@@ -342,12 +342,17 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Hosts being monitored in this project. Auto-discovered from any OTel telemetry that carries host.name plus a host signal (host.id, os.type, system.* metrics, etc).",
         }}
         showViewIdButton={true}
+        formSteps={[
+          { title: "Basic Info", id: "basic-info" },
+          { title: "Labels", id: "labels" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "production-host-1",
@@ -357,6 +362,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               hostIdentifier: true,
             },
             title: "Host Identifier",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "host-prod-1",
@@ -368,6 +374,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               description: true,
             },
             title: "Description",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production host running in US East",
@@ -377,6 +384,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               labels: true,
             },
             title: "Labels",
+            stepId: "labels",
             description:
               "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,

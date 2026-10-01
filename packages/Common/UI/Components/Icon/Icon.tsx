@@ -1782,11 +1782,12 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.Eye) {
+    // The outline and the pupil: the outline alone is an empty almond.
     return getSvgWrapper(
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+        d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
       />,
     );
   } else if (icon === IconProp.FaceFrown) {
@@ -2378,11 +2379,15 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.StopCircle) {
+    /*
+     * The circle and the square inside it. With the circle alone this drew
+     * an empty ring, which reads as an unticked radio button, not as "stop".
+     */
     return getSvgWrapper(
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+        d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9 9.563C9 9.252 9.252 9 9.563 9h4.874c.311 0 .563.252.563.563v4.874c0 .311-.252.563-.563.563H9.564A.562.562 0 0 1 9 14.437V9.564Z"
       />,
     );
   } else if (icon === IconProp.Sun) {

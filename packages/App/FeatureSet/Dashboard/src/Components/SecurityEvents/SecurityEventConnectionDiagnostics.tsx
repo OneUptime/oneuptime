@@ -485,7 +485,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
             />
             <Button
               title="Run now"
-              buttonStyle={ButtonStyleType.PRIMARY}
+              buttonStyle={ButtonStyleType.OUTLINE}
               disabled={disableActions}
               tooltip={props.disabledReason}
               onClick={(): void => {

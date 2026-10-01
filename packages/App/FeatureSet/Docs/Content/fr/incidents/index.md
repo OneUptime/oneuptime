@@ -114,10 +114,9 @@ Ouvrez **Incidents** dans la navigation de gauche. Son menu latéral est organis
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Vue d'ensemble**     | **Tous les incidents** et **Incidents actifs** — ce dernier porte un badge rouge comptant les incidents qui ne sont pas à l'état résolu.                                  |
 | **Épisodes**           | Les épisodes d'incident, une fonctionnalité de regroupement distincte avec ses propres pages.                                                                             |
-| **IA**                 | **Investigation** et **Remédiation** — les réglages d'investigation automatique et d'auto-remédiation.                                                                    |
 | **Espace de travail**  | Les connexions **Slack** et **Microsoft Teams** pour les incidents.                                                                                                      |
-| **Règles**             | Les moteurs de règles : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA**, **Reminder Rules**. |
-| **Paramètres**         | **État de l'incident**, **Gravité de l'incident**, **Modèles d'incident**, **Modèles de notes**, **Modèles de post-mortem**, **Champs personnalisés**, **Rôles d'incident**, **Plus de paramètres**. |
+| **Règles**             | Les moteurs de règles : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles d'auto-remédiation**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA**, **Reminder Rules**. |
+| **Paramètres**         | **IA**, **État de l'incident**, **Gravité de l'incident**, **Modèles d'incident**, **Modèles de notes**, **Modèles de post-mortem**, **Champs personnalisés**, **Rôles d'incident**, **Plus de paramètres**. |
 
 **Règles** et **Paramètres** sont repliés par défaut — dépliez-les pour trouver les pages auxquelles renvoie le reste de cette documentation. La configuration des incidents n'est pas dans les Paramètres du projet : tout vit ici.
 

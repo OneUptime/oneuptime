@@ -1117,12 +1117,17 @@ const Settings: FunctionComponent<ComponentProps> = (
             }}
             isEditable={true}
             editButtonText={"Update"}
+            formSteps={[
+              { title: "Billing Address", id: "billing-address" },
+              { title: "Invoices", id: "invoices" },
+            ]}
             formFields={[
               {
                 field: {
                   businessDetails: true,
                 },
                 title: "Business Details / Billing Address",
+                stepId: "billing-address",
                 description:
                   "This information will appear on invoices. Include company legal name, address, and tax / VAT ID if applicable.",
                 required: false,
@@ -1136,6 +1141,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                   businessDetailsCountry: true,
                 },
                 title: "Country",
+                stepId: "billing-address",
                 description: "Required by Stripe. Select your billing country.",
                 required: false,
                 placeholder: "Select Country",
@@ -1147,6 +1153,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                   financeAccountingEmail: true,
                 },
                 title: "Finance / Accounting Email",
+                stepId: "invoices",
                 description:
                   "Invoices, receipts and billing notifications will be sent here (optional). Separate multiple emails with a comma.",
                 required: false,
@@ -1178,6 +1185,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                   sendInvoicesByEmail: true,
                 },
                 title: "Send Invoices by Email",
+                stepId: "invoices",
                 description:
                   "When enabled, invoices will be automatically sent to the finance/accounting email when they are generated.",
                 required: false,

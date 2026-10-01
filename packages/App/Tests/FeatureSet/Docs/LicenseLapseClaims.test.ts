@@ -19,13 +19,13 @@ import path from "path";
  * or that changes are still recorded, when neither is true.
  *
  * Single sign-on does not stop. SAML and OIDC sign-in, global SSO and "Require
- * SSO for login" are part of every edition, the Community Edition included,
- * from the first release after 14.0.10 (in 14.0.0 to 14.0.10 they were
- * Enterprise features that stopped with the license). So no text may say
- * single sign-on stops, is refused or is not enforced when the license lapses,
- * or that it needs the Enterprise Edition - except where a sentence says it
- * describes 14.0.10 or earlier, and in the upgrade notes of released versions,
- * which stay as history.
+ * SSO for login" are part of every edition, the Community Edition included.
+ * So no text may say single sign-on stops, is refused or is not enforced when
+ * the license lapses, or that it needs the Enterprise Edition - the upgrade
+ * notes of released versions included. The one exception is a sentence that
+ * says it describes 14.0.10 or earlier: oneuptime.com sends the license expiry
+ * email to installs on every version, and on those releases single sign-on
+ * did stop with the license.
  *
  * Both scans are phrase-based, like the retired "100% open source" claims in
  * EnterpriseEditionDocs.test.ts: every pattern carries the published sentence
@@ -286,9 +286,8 @@ const ACCURATE_SSO_COPY: Array<string> = [
   "The SSO and OIDC endpoints (SAML sign-in and ACS URLs, OIDC redirect URIs, and the global SSO endpoints) keep their exact paths and are served by both editions in every license state.",
   // Not about the license: a status page with no provider says so.
   "Single sign-on is not available for this status page. Sign in with your email and password instead.",
-  // Dated to the releases where it was true.
+  // Dated to the releases where it was true, as the license expiry email says it.
   "On OneUptime 14.0.10 and earlier, SSO and OIDC sign-in stop too and &quot;Require SSO&quot; is no longer enforced, so your users sign in with their password.",
-  "In 14.0.0 to 14.0.10 they were Enterprise Edition features that stopped when the license lapsed; releases after 14.0.10 serve them in both editions.",
 ];
 
 /*
@@ -353,53 +352,10 @@ function retiredSsoClaimsIn(sentence: string): Array<string> {
 // A version section of the upgrade notes: "## Upgrading from OneUptime 13 → 14".
 const VERSION_SECTION_HEADING: RegExp = /^## \D*\d+\D{1,24}\d+\b/;
 
-// A released Helm upgrade-notes entry: "- **14.0.0 (2026-09-21)** — ...".
-const RELEASED_HELM_ENTRY_TITLE: RegExp =
-  /^- \*\*\d+\.\d+\.\d+ \(\d{4}-\d{2}-\d{2}\)\*\*/;
-
-/*
- * What of a file describes the product as it is now. The upgrade notes of
- * released versions stay as history: in upgrading.md every version section
- * (they follow the general guidance and the edition section), and in the
- * Helm chart's upgrade notes every entry with a released title.
- */
-function currentTextOf(relativePath: string, text: string): string {
-  if (relativePath.endsWith(path.join("installation", "upgrading.md"))) {
-    const lines: Array<string> = text.split("\n");
-    const firstVersionSection: number = lines.findIndex((line: string) => {
-      return VERSION_SECTION_HEADING.test(line);
-    });
-
-    return firstVersionSection === -1
-      ? text
-      : lines.slice(0, firstVersionSection).join("\n");
-  }
-
-  if (relativePath.endsWith(path.join("docs", "upgrade-notes.md"))) {
-    return text
-      .split(/^(?=## )/m)
-      .map((section: string) => {
-        if (!section.startsWith("## Upgrade notes")) {
-          return section;
-        }
-
-        return section
-          .split(/^(?=- \*\*)/m)
-          .filter((entry: string) => {
-            return !RELEASED_HELM_ENTRY_TITLE.test(entry);
-          })
-          .join("");
-      })
-      .join("");
-  }
-
-  return text;
-}
-
 function ssoViolationsIn(label: string, text: string): Array<string> {
   const violations: Array<string> = [];
 
-  for (const sentence of sentencesOf(currentTextOf(label, text))) {
+  for (const sentence of sentencesOf(text)) {
     if (retiredSsoClaimsIn(sentence).length > 0) {
       violations.push(`${label}: ${sentence}`);
     }
@@ -645,7 +601,7 @@ describe("the retired single sign-on license claims", () => {
     ).toBeGreaterThan(0);
   });
 
-  it("reads the upgrade notes of released versions as history, and everything else as now", () => {
+  it("reads the upgrade notes of released versions like any other text", () => {
     const claim: string =
       "After the trial, SSO and OIDC sign-in stop until a license is activated.";
     const upgrading: string = [
@@ -660,48 +616,25 @@ describe("the retired single sign-on license claims", () => {
       claim,
     ].join("\n");
 
+    // A version section is not history that may keep the claim.
     expect(
       ssoViolationsIn(
         path.join("Content", "de", "installation", "upgrading.md"),
         upgrading,
       ),
-    ).toEqual([]);
-    // Above the first version section, the same sentence is a claim about now.
-    expect(
-      ssoViolationsIn(
-        path.join("Content", "de", "installation", "upgrading.md"),
-        upgrading.replace(
-          "Single sign-on is in both editions.",
-          `Single sign-on is in both editions. ${claim}`,
-        ),
-      ).length,
-    ).toBeGreaterThan(0);
-    // Any other page is read as now.
-    expect(
-      ssoViolationsIn(
-        path.join("Content", "de", "installation", "docker-compose.md"),
-        upgrading,
-      ).length,
-    ).toBeGreaterThan(0);
+    ).toEqual([expect.stringContaining(claim)]);
 
     const upgradeNotes: string = [
       "## Upgrade notes",
       "",
-      "- **Unreleased (after 14.0.10)** — Single sign-on is in both editions.",
       `- **14.0.0 (2026-09-21)** — ${claim}`,
     ].join("\n");
 
+    // Nor is an entry with a released title.
     expect(
       ssoViolationsIn(
         path.join("oneuptime", "docs", "upgrade-notes.md"),
         upgradeNotes,
-      ),
-    ).toEqual([]);
-    // An entry that has not shipped yet describes the release that ships it.
-    expect(
-      ssoViolationsIn(
-        path.join("oneuptime", "docs", "upgrade-notes.md"),
-        upgradeNotes.replace("- **14.0.0 (2026-09-21)**", "- **Unreleased**"),
       ).length,
     ).toBeGreaterThan(0);
   });
@@ -722,7 +655,15 @@ describe("the retired single sign-on license claims", () => {
 });
 
 describe("no doc, Helm text, README, template or UI string says single sign-on stops with the license or needs the Enterprise Edition", () => {
-  it("reads the edition section of every language's upgrade notes, and none of their version sections", () => {
+  /*
+   * The upgrade notes used to be read only down to their first version
+   * section: the 13 -> 14 and 10 -> 11 notes kept "single sign-on needs the
+   * Enterprise Edition" as history. They are read to the end now, in every
+   * language, so a claim in the oldest version section is caught too.
+   */
+  it("reads every language's upgrade notes to the last version section", () => {
+    const claim: string =
+      "After the trial, SSO and OIDC sign-in stop until a license is activated.";
     const upgradingPages: Array<string> = scannedFiles().filter(
       (file: string) => {
         return file.endsWith(path.join("installation", "upgrading.md"));
@@ -732,22 +673,19 @@ describe("no doc, Helm text, README, template or UI string says single sign-on s
     expect(upgradingPages).toHaveLength(17);
 
     for (const file of upgradingPages) {
-      const current: string = currentTextOf(
-        path.relative(REPOSITORY_ROOT, file),
-        readFile(file),
-      );
+      const relativePath: string = path.relative(REPOSITORY_ROOT, file);
+      const text: string = readFile(file);
 
+      // The page has version sections, and the scan reaches below the last one.
       expect({
-        file: path.relative(REPOSITORY_ROOT, file),
-        edition: current.includes("## Community and Enterprise Edition images"),
-        versionSections: current.split("\n").some((line: string) => {
+        file: relativePath,
+        hasVersionSections: text.split("\n").some((line: string) => {
           return VERSION_SECTION_HEADING.test(line);
         }),
-      }).toEqual({
-        file: path.relative(REPOSITORY_ROOT, file),
-        edition: true,
-        versionSections: false,
-      });
+      }).toEqual({ file: relativePath, hasVersionSections: true });
+      expect(ssoViolationsIn(relativePath, `${text}\n\n${claim}\n`)).toEqual([
+        expect.stringContaining(claim),
+      ]);
     }
   });
 

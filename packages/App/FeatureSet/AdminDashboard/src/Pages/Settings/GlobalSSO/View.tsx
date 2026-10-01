@@ -94,12 +94,19 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
           }}
           isEditable={true}
           editButtonText={"Edit Configuration"}
+          formSteps={[
+            { title: "Basic Info", id: "basic" },
+            { title: "Sign On", id: "sign-on" },
+            { title: "Certificate", id: "certificate" },
+            { title: "More", id: "more" },
+          ]}
           formFields={[
             {
               field: {
                 name: true,
               },
               title: "Name",
+              stepId: "basic",
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "Okta SAML (Company-wide)",
@@ -112,6 +119,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 description: true,
               },
               title: "Description",
+              stepId: "basic",
               fieldType: FormFieldSchemaType.LongText,
               required: true,
               placeholder: "Sign in with Okta",
@@ -121,6 +129,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 signOnURL: true,
               },
               title: "Sign On URL",
+              stepId: "sign-on",
               fieldType: FormFieldSchemaType.URL,
               required: true,
               placeholder: "https://yourapp.example.com/apps/appId",
@@ -130,6 +139,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 issuerURL: true,
               },
               title: "Issuer",
+              stepId: "sign-on",
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "https://example.com",
@@ -139,6 +149,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 publicCertificate: true,
               },
               title: "Public Certificate",
+              stepId: "certificate",
               fieldType: FormFieldSchemaType.LongText,
               required: true,
               placeholder: "Paste in your x509 certificate here.",
@@ -148,6 +159,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 signatureMethod: true,
               },
               title: "Signature Method",
+              stepId: "certificate",
               fieldType: FormFieldSchemaType.Dropdown,
               dropdownOptions:
                 DropdownUtil.getDropdownOptionsFromEnum(SignatureMethod),
@@ -159,6 +171,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 digestMethod: true,
               },
               title: "Digest Method",
+              stepId: "certificate",
               fieldType: FormFieldSchemaType.Dropdown,
               dropdownOptions:
                 DropdownUtil.getDropdownOptionsFromEnum(DigestMethod),
@@ -170,6 +183,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 disableSignUpWithSso: true,
               },
               title: "Disable Sign Up with SSO",
+              stepId: "more",
               fieldType: FormFieldSchemaType.Toggle,
             },
             {
@@ -177,6 +191,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 restrictToAttachedProjects: true,
               },
               title: "Restrict to Attached Projects",
+              stepId: "more",
               description:
                 "When on, this provider only satisfies SSO enforcement for the projects attached below. Off by default, where attachments control provisioning only.",
               fieldType: FormFieldSchemaType.Toggle,
@@ -186,6 +201,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 isEnabled: true,
               },
               title: "Enabled",
+              stepId: "more",
               fieldType: FormFieldSchemaType.Toggle,
             },
           ]}

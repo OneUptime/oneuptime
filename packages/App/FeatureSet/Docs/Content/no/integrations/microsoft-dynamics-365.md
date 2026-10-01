@@ -151,7 +151,7 @@ Erstatt konto-GUID-en med kontoen disse sakene hører til. **`customerid` er vir
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-Slå nå på arbeidsflyten — **Oversikt → Rediger arbeidsflyt → Aktivert** — opprett en testhendelse, og les kjøringen under **Kjøringer og logger**. `create-case`-blokken bør vise en `201` og en kropp som inneholder den nye `incidentid`. Endringer på lerretet lagrer seg selv; det finnes ingen Lagre-knapp.
+Slå nå på arbeidsflyten — **Oversikt → Rediger arbeidsflyt → Aktivert** — opprett en testhendelse, og les kjøringen under **Logger → Kjøringer**. `create-case`-blokken bør vise en `201` og en kropp som inneholder den nye `incidentid`. Endringer på lerretet lagrer seg selv; det finnes ingen Lagre-knapp.
 
 ### Å mappe alvorlighetsgrad og status
 
@@ -230,13 +230,13 @@ Så den andre retningen: noen lukker saken i Dynamics, eller en agent legger til
 ### Bygg den mottakende arbeidsflyten først
 
 1. **Opprett arbeidsflyt**, gi den navnet `Dynamics 365 → OneUptime`, og legg til **Webhook**-triggeren.
-2. Åpne **Innstillinger** på den arbeidsflyten og kopier **Webhook Secret Key**. URL-en din er:
+2. Åpne arbeidsflytens **Bygger**, klikk på **Webhook**-triggeren, og klikk på **Kopier URL** øverst i innstillingene dens. URL-en ser slik ut:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   På en selvhostet installasjon bytter du inn din egen vert. Behandle URL-en som et passord — alle som har den, kan starte arbeidsflyten. Du kan nullstille nøkkelen fra den samme siden.
+   Selvhostede installasjoner bruker sin egen vert. Behandle URL-en som et passord — alle som har den, kan starte arbeidsflyten. Hvis den lekker, klikker du på **Tilbakestill URL** på samme sted; den gamle URL-en slutter å virke med en gang.
 
 3. Legg til en **If / Else**-blokk som sjekker en delt hemmelighet før noe annet skjer. **Input 1** er `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, og **Input 2** `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — en verdi du finner på selv og lagrer som en hemmelig global variabel.
 4. Fra **Yes**-grenen legger du til en **Update One Incident**-blokk:
@@ -323,7 +323,7 @@ En arbeidsflyt har nøyaktig én trigger, så hendelser og varsler trenger én a
 
 ## Feilsøking
 
-Les den feilende blokken i **Kjøringer og logger** først — begge Microsoft-endepunktene returnerer en forklarende JSON-kropp, og API-komponenten beholder den i `response-body`.
+Les den feilende blokken i **Logger → Kjøringer** først — begge Microsoft-endepunktene returnerer en forklarende JSON-kropp, og API-komponenten beholder den i `response-body`.
 
 **Tokenforespørselen feiler med `400` og `invalid_request` eller en grant type som ikke støttes.** `Content-Type`-headeren er ikke nøyaktig `Content-Type: application/x-www-form-urlencoded`, så kroppen gikk ut som JSON. Sjekk bruken av store og små bokstaver.
 
@@ -343,7 +343,7 @@ Les den feilende blokken i **Kjøringer og logger** først — begge Microsoft-e
 
 **`429 Too Many Requests`.** Dataverses tjenestebeskyttelsesgrenser — grovt regnet 6 000 forespørsler og 20 minutters kjøretid per bruker i et hvilket som helst femminuttersvindu, per webserver. Svaret bærer en `Retry-After` i sekunder. Kommer en arbeidsflyt i byger, legger du en **Delay**-blokk inn i den eller flytter arbeidet til en planlagt arbeidsflyt som kjører i bolker.
 
-**Ingenting kommer fram på OneUptime-siden.** Send en forespørsel til webhook-URL-en selv med `curl` og sjekk arbeidsflytens **Kjøringer og logger**. Dukker din egen forespørsel opp mens Dynamics' ikke gjør det, ligger problemet oppstrøms: for Power Automate ser du på flytens egen kjørehistorikk; for en nativ webhook ser du på **Settings → System Jobs** filtrert på feil.
+**Ingenting kommer fram på OneUptime-siden.** Send en forespørsel til webhook-URL-en selv med `curl` og sjekk arbeidsflytens **Logger → Kjøringer**. Dukker din egen forespørsel opp mens Dynamics' ikke gjør det, ligger problemet oppstrøms: for Power Automate ser du på flytens egen kjørehistorikk; for en nativ webhook ser du på **Settings → System Jobs** filtrert på feil.
 
 **Arbeidsflyten kjører, men hendelsen endrer seg ikke.** En **Update One Incident**-blokk rapporterer `Items Updated: 0` når spørringen ikke matchet noe — det er en suksess, ikke en feil. Sjekk at id-en i nyttelasten er OneUptime-hendelses-id-en, og at du spør på `_id`.
 

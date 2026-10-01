@@ -988,6 +988,30 @@ describe("investigation diagnostic boundaries", () => {
     expect(cooldown.description).toContain("75-minute");
     expect(cooldown.title).not.toContain("covers");
   });
+  /*
+   * Alerts used to be investigated from the top two severity tiers only
+   * unless a floor was set, and the explanation said so. There is no floor
+   * by default now, so a severity skip only ever comes from a floor a
+   * project set — the explanation must not claim a default.
+   */
+  it.each(subjects)(
+    "explains a severity skip by the configured floor alone, never a default, for %o",
+    (subject: InvestigationSubject) => {
+      for (const source of [
+        InvestigationEligibility.reason(
+          "severity_below_threshold",
+          subject,
+          undefined,
+          { severityName: "Low", minimumSeverityName: "High" },
+        ),
+        InvestigationEligibility.reason("severity_below_threshold", subject),
+      ]) {
+        expect(source.description).not.toMatch(/by default/i);
+        expect(source.description).not.toMatch(/two highest/i);
+        expect(source.description).not.toMatch(/top two/i);
+      }
+    },
+  );
   it("does not let a failed caller diagnostic callback make enqueue throw", async () => {
     jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
       exhausted: true,

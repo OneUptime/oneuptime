@@ -74,12 +74,17 @@ const MonitorSecrets: FunctionComponent<
           'No monitor secret found. Click on the "Create" button to add a new monitor secret.'
         }
         viewPageRoute={Navigation.getCurrentRoute()}
+        formSteps={[
+          { title: "Secret", id: "secret" },
+          { title: "Access", id: "access" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "secret",
             fieldType: FormFieldSchemaType.Text,
             description:
               "Name of the secret. This is a unique identifier and can only contain letters, numbers, hyphens (-), and underscores (_). You can then use this name to access the secret in your monitors.",
@@ -97,6 +102,7 @@ const MonitorSecrets: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "secret",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Secret Description",
@@ -106,6 +112,7 @@ const MonitorSecrets: FunctionComponent<
               secretValue: true,
             },
             title: "Secret Value",
+            stepId: "secret",
             doNotShowWhenEditing: true, // Do not show this field when editing
             fieldType: FormFieldSchemaType.LongText,
             required: true,
@@ -116,6 +123,7 @@ const MonitorSecrets: FunctionComponent<
               monitors: true,
             },
             title: "Monitors which have access to this secret",
+            stepId: "access",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: Monitor,

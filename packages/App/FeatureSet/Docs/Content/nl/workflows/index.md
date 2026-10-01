@@ -38,15 +38,15 @@ Open **Workflows** in de linkernavigatie. Die sectie bevat:
 
 - **Workflows** — je lijst met workflows. Maak een nieuwe aan of open een bestaande.
 - **Globale variabelen** — waarden die je deelt over al je workflows.
-- **Runs & logboeken** — de uitvoeringsgeschiedenis van elke workflow in je project.
+- **Logboeken → Uitvoeringen** — de uitvoeringsgeschiedenis van elke workflow in je project.
 
 Open je één workflow, dan bevat het eigen linkermenu:
 
 - **Overzicht** — naam, beschrijving, labels en de schakelaar **Ingeschakeld**.
 - **Bouwer** — het canvas waarop je de workflow ontwerpt.
 - **Workflow-variabelen** — waarden die alleen voor deze ene workflow gelden.
-- **Runs & logboeken** — elke uitvoering van deze workflow, met details.
-- **Instellingen** — webhook-secret, dupliceren en exporteren.
+- **Logboeken → Uitvoeringen** — elke uitvoering van deze workflow, met details.
+- **Instellingen** — dupliceren en exporteren.
 
 ## Je eerste workflow bouwen
 
@@ -80,5 +80,5 @@ De eerstvolgende keer dat iemand een incident opent met "Sev 1" in de titel, lic
 - [Workflow-triggers](/docs/workflows/triggers) — de verschillende manieren waarop een workflow kan starten.
 - [Workflow-componenten](/docs/workflows/components) — de bouwblokken die je kunt toevoegen.
 - [Workflow-variabelen](/docs/workflows/variables) — waarden gebruiken tussen blokken en workflows.
-- [Workflow-uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — nagaan wat er gebeurd is.
+- [Workflow-uitvoeringen](/docs/workflows/runs-and-logs) — nagaan wat er gebeurd is.
 - [Workflow-configuratie en veiligheid](/docs/workflows/configuration) — instellingen die het waard zijn om te kennen.

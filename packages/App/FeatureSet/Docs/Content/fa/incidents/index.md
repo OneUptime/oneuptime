@@ -117,10 +117,9 @@
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Overview** | **All Incidents** و **Active Incidents** — دومی نشانی قرمز با شمار حادثه‌هایی که در وضعیت برطرف‌شده نیستند حمل می‌کند. |
 | **Episodes** | اپیزودهای حادثه، قابلیتی جدا برای گروه‌بندی با صفحه‌های خودش. |
-| **AI** | **Investigation** و **Remediation** — تنظیمات بررسی خودکار و اصلاح خودکار. |
 | **Workspace** | اتصال‌های **Slack** و **Microsoft Teams** برای حادثه‌ها. |
-| **Rules** | موتورهای قاعده: **Grouping Rules**، **On-Call Rules**، **Owner Rules**، **Runbook Rules**، **Privacy Rules**، **Label Rules**، **SLA Rules**، **Reminder Rules**. |
-| **Settings** | **Incident State**، **Incident Severity**، **Incident Templates**، **Forms**، **Note Templates**، **Postmortem Templates**، **Custom Fields**، **Incident Roles**، **More Settings**. |
+| **Rules** | موتورهای قاعده: **Grouping Rules**، **On-Call Rules**، **Owner Rules**، **Runbook Rules**، **Auto Remediation Rules**، **Privacy Rules**، **Label Rules**، **SLA Rules**، **Reminder Rules**. |
+| **Settings** | **AI**، **Incident State**، **Incident Severity**، **Incident Templates**، **Forms**، **Note Templates**، **Postmortem Templates**، **Custom Fields**، **Incident Roles**، **More Settings**. |
 
 بخش‌های **Rules** و **Settings** به‌طور پیش‌فرض جمع‌اند — بگسترانیدشان تا صفحه‌هایی را که باقی این مستندات به آن‌ها ارجاع می‌دهند بیابید. پیکربندی حادثه زیر Project Settings نیست؛ همه‌اش اینجا زندگی می‌کند.
 

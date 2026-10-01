@@ -693,6 +693,7 @@ const FormField: <T extends GenericObject>(
               tabIndex={0}
               dataTestId={props.field.dataTestId}
               disableSpellCheck={props.field.disableSpellCheck}
+              autoGrow={props.field.autoGrow}
               onChange={async (value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);

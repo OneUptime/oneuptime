@@ -78,4 +78,4 @@ Un workflow può avere un solo trigger. Se ti servono due modi per avviare la st
 
 - [Componenti del workflow](/docs/workflows/components) — le azioni che aggiungi dopo il trigger.
 - [Variabili del workflow](/docs/workflows/variables) — leggere l'output del trigger dai blocchi successivi.
-- [Esecuzioni e log del workflow](/docs/workflows/runs-and-logs) — verificare che il tuo trigger sia scattato.
+- [Esecuzioni del workflow](/docs/workflows/runs-and-logs) — verificare che il tuo trigger sia scattato.

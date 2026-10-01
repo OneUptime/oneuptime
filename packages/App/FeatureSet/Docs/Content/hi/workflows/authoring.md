@@ -96,4 +96,4 @@ canvas की आदत पड़ने का सबसे तेज़ तर�
 - [वर्कफ़्लो ट्रिगर](/docs/workflows/triggers) — वे चार तरीके जिनसे कोई वर्कफ़्लो शुरू हो सकता है।
 - [वर्कफ़्लो घटक](/docs/workflows/components) — हर वह block जिसे आप जोड़ सकते हैं।
 - [वर्कफ़्लो वेरिएबल](/docs/workflows/variables) — blocks के बीच data ले जाना।
-- [वर्कफ़्लो रन और लॉग](/docs/workflows/runs-and-logs) — यह देखना कि हुआ क्या।
+- [वर्कफ़्लो रन](/docs/workflows/runs-and-logs) — यह देखना कि हुआ क्या।

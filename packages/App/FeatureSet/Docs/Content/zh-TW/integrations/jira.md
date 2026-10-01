@@ -104,7 +104,7 @@ Jira Cloud 的 REST API 採用 **Basic auth**，由您的 Atlassian 帳號電子
 
 description 看起來很笨重，是因為 Jira Cloud 的 v3 API 把富文字視為 **Atlassian Document Format**——一棵文件樹，而不是一個字串。上面的形狀是最小的有效文件：一個段落包著一個文字節點。同樣的規則適用於 `environment` 以及任何多行文字自訂欄位；單行文字自訂欄位仍然接受純字串。
 
-現在從 **概覽 → 編輯工作流程 → 已啟用** 把工作流程打開，宣告一個測試事件，然後開啟 **執行與日誌**。`create-issue` 區塊應該顯示 `201`，以及一個包含新 issue 的 `id`、`key` 與 `self` 的主體。畫布上的變更會自行儲存——沒有儲存按鈕，而且停用的工作流程根本無法執行，連手動都不行。
+現在從 **概覽 → 編輯工作流程 → 已啟用** 把工作流程打開，宣告一個測試事件，然後開啟 **日誌 → 執行記錄**。`create-issue` 區塊應該顯示 `201`，以及一個包含新 issue 的 `id`、`key` 與 `self` 的主體。畫布上的變更會自行儲存——沒有儲存按鈕，而且停用的工作流程根本無法執行，連手動都不行。
 
 新的 issue key 可供這個區塊之後的任何區塊使用：
 
@@ -227,13 +227,13 @@ curl -u 'you@example.com:your_api_token' \
 ### 先建立接收端的工作流程
 
 1. **建立工作流程**，把它命名為 `Jira → OneUptime`，並加入 **Webhook** 觸發器。
-2. 開啟該工作流程的 **設定**，複製 **Webhook Secret Key**。您的 URL 是：
+2. 開啟該工作流程的 **建構器**，點擊 **Webhook** 觸發器，再點擊其設定頂端的 **複製 URL**。URL 的形式如下：
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   自架的安裝會使用自己的主機。請把這個 URL 當成密碼看待——任何拿到它的人都能啟動這個工作流程——而且如果外洩了，就從同一個頁面重設金鑰。
+   自架的安裝會使用自己的主機。請把這個 URL 當成密碼看待——任何拿到它的人都能啟動這個工作流程。如果外洩了，請在同一個地方點擊 **重設 URL**，舊的 URL 會立即失效。
 
 3. 加入一個 **If / Else** 區塊，在其他任何動作執行之前先檢查一組共用祕密。**Input 1** 是 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**Operator** 為 `==`，**Input 2** 是 `{{global.variables.JIRA_WEBHOOK_SECRET}}`——一個由您自己想出來、並存成祕密全域變數的值。
 4. 從 **Yes** 分支加入一個 **Update One Incident** 區塊：
@@ -270,7 +270,7 @@ curl -u 'you@example.com:your_api_token' \
 
      如果您在步驟 3 用的是標籤而不是自訂欄位，請送出 `"labels": "{{issue.labels}}"`，並在 OneUptime 這一側用一個 **Run Custom JavaScript** 區塊把 id 取出來。
 
-4. 把規則打開，把一張測試 issue 移到 Done，然後檢查兩邊：Jira 中該規則自己的稽核日誌，以及 OneUptime 中的 **執行與日誌**。
+4. 把規則打開，把一張測試 issue 移到 Done，然後檢查兩邊：Jira 中該規則自己的稽核日誌，以及 OneUptime 中的 **日誌 → 執行記錄**。
 
 在您依賴這套機制之前，有些事值得知道：
 
@@ -342,7 +342,7 @@ Jira 管理員可以直接在 **Settings → System → Advanced → WebHooks** 
 
 ## 疑難排解
 
-請先在 **執行與日誌** 中打開失敗的那個區塊。Jira 會回傳一個 JSON 主體，精確說明它拒絕了什麼，而 API 元件會把它保留在 `response-body` 中。
+請先在 **日誌 → 執行記錄** 中打開失敗的那個區塊。Jira 會回傳一個 JSON 主體，精確說明它拒絕了什麼，而 API 元件會把它保留在 `response-body` 中。
 
 **`401 Unauthorized`。** 用 `printf` 重新編碼 `email:api_token` 並更新 `JIRA_AUTH`；`echo` 留下的結尾換行字元通常就是元兇。接著確認擁有該 token 的帳號能在該專案中建立 issue。在 Data Center 上，請檢查您送的是 `Bearer` 而不是 `Basic`。
 
@@ -356,7 +356,7 @@ Jira 管理員可以直接在 **Settings → System → Advanced → WebHooks** 
 
 **轉換呼叫回傳 `400`。** 該轉換 id 從這張 issue 的*目前*狀態出發並不有效。請為那張 issue 取得 `/transitions`，並使用回應中的某個 id。
 
-**自動化規則顯示成功，但什麼都沒送到 OneUptime。** 請先檢查連接埠——參見上面那份受限清單。接著自己用 `curl` 對 webhook URL 送一個請求，看看它會不會出現在 **執行與日誌** 中；如果您的請求有到而 Jira 的沒有，問題就出在 Jira 那一側。
+**自動化規則顯示成功，但什麼都沒送到 OneUptime。** 請先檢查連接埠——參見上面那份受限清單。接著自己用 `curl` 對 webhook URL 送一個請求，看看它會不會出現在 **日誌 → 執行記錄** 中；如果您的請求有到而 Jira 的沒有，問題就出在 Jira 那一側。
 
 **工作流程有執行，但事件沒有變化。** 當 **Update One Incident** 區塊的查詢沒有比對到任何東西時，它會回報 `Items Updated: 0`，而那算成功，不算錯誤。請檢查酬載中的 id 真的是 OneUptime 的事件 id，而且您查詢的是 `_id`。
 

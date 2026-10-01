@@ -20,10 +20,11 @@ export function getWorkflowsBreadcrumbs(path: string): Array<Link> | undefined {
       "Variables",
       "View Variable",
     ]),
+    // The page is "Runs" in the menu's Logs section; its URL stays /logs.
     ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOWS_LOGS, [
       "Project",
       "Workflows",
-      "Logs",
+      "Runs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOW_VIEW, [
       "Project",
@@ -53,7 +54,7 @@ export function getWorkflowsBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Workflows",
       "View Workflow",
-      "Logs",
+      "Runs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOW_VIEW_SETTINGS, [
       "Project",

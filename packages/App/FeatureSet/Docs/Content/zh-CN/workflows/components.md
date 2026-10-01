@@ -105,7 +105,7 @@ API 组件的简化版，适合"发完就走"的场景。往一个 URL POST 一�
 - **成功**——SMTP 服务器接受了这封邮件时触发。
 - **错误**——SMTP 主机被拒绝、服务器连不上，或者服务器拒收这封邮件时触发。把错误信息传下去。如果缺了 **To Email**、**From Email**、**SMTP Host** 或 **SMTP Port**，则会改为直接停止这次运行。
 
-这个方块直接连接它设置里的那台服务器。它不使用你项目的 [SMTP](/docs/emails/smtp) 设置，也不使用 OneUptime 自己的邮件服务器，它发出的邮件也不会出现在通知日志里。想知道它做了什么，就去看这个工作流的[运行与日志](/docs/workflows/runs-and-logs)。
+这个方块直接连接它设置里的那台服务器。它不使用你项目的 [SMTP](/docs/emails/smtp) 设置，也不使用 OneUptime 自己的邮件服务器，它发出的邮件也不会出现在通知日志里。想知道它做了什么，就去看这个工作流的[运行记录](/docs/workflows/runs-and-logs)。
 
 到回环地址（`localhost`、`127.0.0.1`）、链路本地地址和云元数据地址的连接都会被拒绝。在 OneUptime Cloud 上，位于私有网络地址上的 SMTP 主机，或者解析到私有网络地址的主机名，也会被拒绝。自托管部署可以连到自己网络里的邮件服务器，除非把 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 设为 `true`。被拒绝的主机会走 **错误** 输出，什么都不会发出去。
 
@@ -217,5 +217,5 @@ Create One 上的 **JSON Object**、Create Many 上的 **JSON Array**，还有 U
 ## 接下来读什么
 
 - [工作流变量](/docs/workflows/variables) —— 在方块之间传递数据。
-- [工作流运行与日志](/docs/workflows/runs-and-logs) —— 查看一次运行里每个方块干了什么。
+- [工作流运行记录](/docs/workflows/runs-and-logs) —— 查看一次运行里每个方块干了什么。
 - [工作流配置与安全](/docs/workflows/configuration) —— 上限、所有者和密钥。

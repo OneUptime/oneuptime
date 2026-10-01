@@ -78,4 +78,4 @@ Et workflow kan kun have én trigger. Har du brug for to måder at starte den sa
 
 - [Workflow-komponenter](/docs/workflows/components) — de handlinger, du tilføjer efter triggeren.
 - [Workflow-variabler](/docs/workflows/variables) — sådan læser du triggerens output fra senere blokke.
-- [Workflow-kørsler & logfiler](/docs/workflows/runs-and-logs) — sådan bekræfter du, at din trigger blev udløst.
+- [Workflow-kørsler](/docs/workflows/runs-and-logs) — sådan bekræfter du, at din trigger blev udløst.

@@ -104,7 +104,7 @@ Zit je organisatie op Atlassians centrale gebruikersbeheer, dan is er een derde 
 
 De beschrijving oogt zwaar omdat de v3-API van Jira Cloud rijke tekst aanneemt als **Atlassian Document Format** — een documentboom, geen string. De vorm hierboven is het minimale geldige document: één alinea met één tekstknoop. Hetzelfde geldt voor `environment` en voor elk aangepast tekstveld met meerdere regels; aangepaste tekstvelden van één regel accepteren nog steeds een gewone string.
 
-Zet de workflow nu aan via **Overzicht → Workflow bewerken → Ingeschakeld**, roep een testincident uit, en open **Runs & logboeken**. Het blok `create-issue` hoort een `201` te tonen en een body met de `id`, `key` en `self` van de nieuwe issue. Wijzigingen op het canvas slaan zichzelf op — er is geen opslaanknop, en een uitgeschakelde workflow kan helemaal niet draaien, ook niet met de hand.
+Zet de workflow nu aan via **Overzicht → Workflow bewerken → Ingeschakeld**, roep een testincident uit, en open **Logboeken → Uitvoeringen**. Het blok `create-issue` hoort een `201` te tonen en een body met de `id`, `key` en `self` van de nieuwe issue. Wijzigingen op het canvas slaan zichzelf op — er is geen opslaanknop, en een uitgeschakelde workflow kan helemaal niet draaien, ook niet met de hand.
 
 De key van de nieuwe issue is beschikbaar voor elk blok na dit blok:
 
@@ -227,13 +227,13 @@ Nu de andere richting: iemand zet de issue op Done, en het OneUptime-incident ho
 ### Bouw eerst de ontvangende workflow
 
 1. **Workflow maken**, geef het de naam `Jira → OneUptime`, en voeg de trigger **Webhook** toe.
-2. Open de **Instellingen** van die workflow en kopieer de **Webhook Secret Key**. Je URL is:
+2. Open de **Bouwer** van die workflow, klik op de **Webhook**-trigger en klik bovenaan de instellingen ervan op **URL kopiëren**. De URL ziet er zo uit:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Zelfgehoste installaties gebruiken hun eigen host. Behandel de URL als een wachtwoord — iedereen die hem heeft, kan de workflow starten — en reset de sleutel vanaf diezelfde pagina als hij uitlekt.
+   Zelfgehoste installaties gebruiken hun eigen host. Behandel de URL als een wachtwoord — iedereen die hem heeft, kan de workflow starten. Lekt hij uit, klik dan op dezelfde plek op **URL opnieuw instellen**; de oude URL werkt dan meteen niet meer.
 
 3. Voeg een **If / Else**-blok toe dat een gedeeld geheim controleert voordat er iets anders draait. **Input 1** is `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** is `{{global.variables.JIRA_WEBHOOK_SECRET}}` — een waarde die je zelf verzint en als geheime globale variabele opslaat.
 4. Voeg vanaf de tak **Yes** een **Update One Incident**-blok toe:
@@ -270,7 +270,7 @@ Laat de workflow ingeschakeld staan. Geef Jira nu iets om aan te roepen.
 
      Heb je in Stap 3 een label gebruikt in plaats van een aangepast veld, stuur dan `"labels": "{{issue.labels}}"` en haal de id er aan de OneUptime-kant uit met een **Run Custom JavaScript**-blok.
 
-4. Zet de regel aan, verplaats een testissue naar Done, en controleer beide kanten: het audit log van de regel zelf in Jira, en **Runs & logboeken** in OneUptime.
+4. Zet de regel aan, verplaats een testissue naar Done, en controleer beide kanten: het audit log van de regel zelf in Jira, en **Logboeken → Uitvoeringen** in OneUptime.
 
 Dingen die het weten waard zijn voordat je hierop vertrouwt:
 
@@ -342,7 +342,7 @@ Een workflow heeft precies één trigger, dus incidenten en alerts vragen elk om
 
 ## Probleemoplossing
 
-Open eerst het mislukte blok in **Runs & logboeken**. Jira geeft een JSON-body terug die precies noemt wat het afwees, en het API-component bewaart die in `response-body`.
+Open eerst het mislukte blok in **Logboeken → Uitvoeringen**. Jira geeft een JSON-body terug die precies noemt wat het afwees, en het API-component bewaart die in `response-body`.
 
 **`401 Unauthorized`.** Hercodeer `email:api_token` met `printf` en werk `JIRA_AUTH` bij; een afsluitende regelafbreking van `echo` is de gebruikelijke oorzaak. Bevestig daarna dat het account dat het token bezit issues in dat project kan aanmaken. Controleer op Data Center of je `Bearer` verstuurt en niet `Basic`.
 
@@ -356,7 +356,7 @@ Open eerst het mislukte blok in **Runs & logboeken**. Jira geeft een JSON-body t
 
 **De transition-aanroep geeft `400` terug.** De transition-id is niet geldig vanaf de *huidige* status van de issue. Haal `/transitions` op voor die issue en gebruik een id uit het antwoord.
 
-**De automation rule toont zich als geslaagd, maar er komt niets aan in OneUptime.** Controleer eerst de poort — zie de lijst met beperkingen hierboven. Stuur daarna zelf een verzoek naar de webhook-URL met `curl` en kijk of het in **Runs & logboeken** verschijnt; komt dat van jou wel aan en dat van Jira niet, dan zit het probleem aan de kant van Jira.
+**De automation rule toont zich als geslaagd, maar er komt niets aan in OneUptime.** Controleer eerst de poort — zie de lijst met beperkingen hierboven. Stuur daarna zelf een verzoek naar de webhook-URL met `curl` en kijk of het in **Logboeken → Uitvoeringen** verschijnt; komt dat van jou wel aan en dat van Jira niet, dan zit het probleem aan de kant van Jira.
 
 **De workflow draait, maar het incident verandert niet.** Een **Update One Incident**-blok meldt `Items Updated: 0` wanneer zijn query niets matchte, en dat telt als succes, niet als fout. Controleer of de id in de payload echt het OneUptime-incident-id is en of je op `_id` bevraagt.
 

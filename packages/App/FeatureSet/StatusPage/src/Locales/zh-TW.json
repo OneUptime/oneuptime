@@ -235,6 +235,10 @@
       "invalidLink": "此取消訂閱連結無效。連結可能不完整，或訂閱可能已被移除。若要取消訂閱，請使用此狀態頁最近傳送的訊息中的取消訂閱連結。",
       "failed": "無法取消訂閱，請再試一次。",
       "loadFailed": "無法載入此取消訂閱連結，請稍後再試。"
+    },
+    "steps": {
+      "details": "詳細資料",
+      "preferences": "偏好設定"
     }
   },
   "accounts": {
@@ -327,5 +331,6 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}}不能小於 {{minValue}}。",
   "{{field}} is required.": "{{field}}為必填項。",
   "{{field}} should match {{matchField}}": "{{field}}必須與 {{matchField}} 相符",
-  "Email is not valid.": "電子郵件無效。"
+  "Email is not valid.": "電子郵件無效。",
+  "Next": "下一步"
 }

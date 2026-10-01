@@ -96,4 +96,4 @@
 - [ワークフロー トリガー](/docs/workflows/triggers) — ワークフローが始まる 4 つの方法。
 - [ワークフロー コンポーネント](/docs/workflows/components) — 追加できるブロックのすべて。
 - [ワークフロー 変数](/docs/workflows/variables) — ブロックのあいだでデータを動かす。
-- [ワークフロー 実行とログ](/docs/workflows/runs-and-logs) — 何が起きたのかを確かめる。
+- [ワークフロー 実行履歴](/docs/workflows/runs-and-logs) — 何が起きたのかを確かめる。

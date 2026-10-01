@@ -69,6 +69,10 @@ const STEPPED_FORM_PAGES: Array<string> = [
   "Pages/NetworkDevice/Devices.tsx",
   "Pages/NetworkDevice/Discovery.tsx",
   "Pages/NetworkDevice/View/Settings.tsx",
+  // The device Overview card's edit form, and the device and site links.
+  "Pages/NetworkDevice/View/Index.tsx",
+  "Pages/NetworkDevice/Links.tsx",
+  "Pages/NetworkSite/Links.tsx",
   "Pages/NetworkSite/Sites.tsx",
   "Pages/NetworkSite/View/Settings.tsx",
   "Pages/NetworkSite/View/Index.tsx",

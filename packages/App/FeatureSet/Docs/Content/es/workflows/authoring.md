@@ -96,4 +96,4 @@ Para pausar un flujo de trabajo sin eliminarlo, apaga **Habilitado**. No arranca
 - [Disparadores de flujo de trabajo](/docs/workflows/triggers) — las cuatro formas de arrancar un flujo de trabajo.
 - [Componentes de flujo de trabajo](/docs/workflows/components) — todos los bloques que puedes añadir.
 - [Variables de flujo de trabajo](/docs/workflows/variables) — mover datos entre bloques.
-- [Ejecuciones y registros de flujo de trabajo](/docs/workflows/runs-and-logs) — comprobar qué pasó.
+- [Ejecuciones de flujo de trabajo](/docs/workflows/runs-and-logs) — comprobar qué pasó.

@@ -11,13 +11,16 @@ import {
   AIChatWidget,
 } from "Common/Types/AI/AIChatTypes";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { AIInvestigationStage } from "../AIInvestigationStatus";
 
 /*
- * The investigation box's conversation, as data: parsing the thread the API
- * returns, and the small decisions the view makes about it (who is asking,
- * whether the viewer can send, what to suggest). Pure, so the rules read in
- * one place and are tested without rendering anything.
+ * The AI Investigation card's conversation, as data: parsing the thread the
+ * API returns, and the small decisions the view makes about it (who is
+ * asking, whether the viewer can send, what to suggest, how much of a long
+ * thread to open with). Pure, so the rules read in one place and are tested
+ * without rendering anything.
  */
 
 export type InvestigationConversationSubjectType = "incident" | "alert";
@@ -29,6 +32,15 @@ export const THREAD_POLL_HIDDEN_MS: number = 30_000;
 
 // The longest question the server accepts.
 export const MAX_THREAD_QUESTION_LENGTH: number = 8000;
+
+/*
+ * The thread is part of the card, not a scrolling box inside it, so a long
+ * one opens on its newest messages with the rest one click away. It only
+ * folds once it is clearly longer than what it would keep: hiding a single
+ * exchange behind a button saves nothing.
+ */
+export const THREAD_TAIL_LENGTH: number = 6;
+export const THREAD_FOLD_ABOVE_LENGTH: number = 8;
 
 // Where the viewer's last chosen permission mode is remembered.
 export const THREAD_PERMISSION_MODE_STORAGE_KEY: string =
@@ -285,8 +297,12 @@ export function getInitials(name: string): string {
   return (first + second).toUpperCase() || "?";
 }
 
-// Each responder keeps one avatar colour, derived from who they are.
-const AVATAR_TONES: Array<string> = [
+/*
+ * Each responder keeps one avatar colour, derived from who they are. Every
+ * tone here has a dark-theme rule in Theme.css; a tone without one (lime
+ * used to be the eighth) stays a pale disc on the dark card.
+ */
+export const AVATAR_TONES: ReadonlyArray<string> = [
   "bg-sky-100 text-sky-700",
   "bg-violet-100 text-violet-700",
   "bg-emerald-100 text-emerald-700",
@@ -294,7 +310,7 @@ const AVATAR_TONES: Array<string> = [
   "bg-rose-100 text-rose-700",
   "bg-teal-100 text-teal-700",
   "bg-fuchsia-100 text-fuchsia-700",
-  "bg-lime-100 text-lime-800",
+  "bg-cyan-100 text-cyan-700",
 ];
 
 export function getAvatarTone(seed: string): string {
@@ -351,12 +367,7 @@ export function describeThreadActivity(view: ThreadView): string | null {
 export function hasPendingApproval(message: ThreadMessage): boolean {
   return (
     message.status === AIChatMessageStatus.WaitingForApproval &&
-    message.toolActions.some((action: AIChatToolAction): boolean => {
-      return (
-        action.status === AIChatToolActionStatus.Pending &&
-        action.requiresApproval
-      );
-    })
+    message.toolActions.some(isToolActionAwaitingApproval)
   );
 }
 
@@ -391,11 +402,17 @@ export function getSendBlocker(data: {
 /*
  * Starting points for an empty thread: the questions responders actually
  * ask in the first minutes, and the requests that save them clicks.
+ *
+ * When the card above has no report to read (nothing ran, the run stopped,
+ * or it finished without one) the first thing to ask is the question the
+ * report would have answered, so it leads. It is not offered while an
+ * investigation is still underway, or before the card knows.
  */
 export function getSuggestedPrompts(
   subjectType: InvestigationConversationSubjectType,
+  stage?: AIInvestigationStage | undefined,
 ): Array<SuggestedPrompt> {
-  return [
+  const prompts: Array<SuggestedPrompt> = [
     {
       label: "What should I do right now?",
       prompt: `What should I do right now to mitigate this ${subjectType}? Give me the next steps in order.`,
@@ -418,6 +435,125 @@ export function getSuggestedPrompts(
       isAction: true,
     },
   ];
+
+  if (stage === "none") {
+    prompts.unshift({
+      label: "What is the root cause?",
+      prompt: `What is the most likely root cause of this ${subjectType}? Investigate it and cite the evidence.`,
+    });
+  }
+
+  return prompts;
+}
+
+/*
+ * One line under the section's title: what the box is for, and that it is
+ * shared. "Follow-up" only makes sense under a report.
+ */
+export function describeConversation(
+  subjectType: InvestigationConversationSubjectType,
+  stage?: AIInvestigationStage | undefined,
+): string {
+  const ask: string =
+    stage === "reported"
+      ? "Ask a follow-up question, or ask it to act."
+      : `Ask a question about this ${subjectType}, or ask it to act.`;
+
+  return `${ask} Everyone on this ${subjectType} sees this conversation.`;
+}
+
+export interface ThreadTail {
+  // Earlier messages left out until the reader asks for them.
+  hiddenCount: number;
+  messages: Array<ThreadMessage>;
+}
+
+/*
+ * The messages a thread opens with. An answer is never shown without the
+ * question it is for: when the cut would start on an answer, it moves back
+ * to that question.
+ */
+export function getThreadTail(
+  messages: Array<ThreadMessage>,
+  showAll: boolean,
+): ThreadTail {
+  if (showAll || messages.length <= THREAD_FOLD_ABOVE_LENGTH) {
+    return { hiddenCount: 0, messages };
+  }
+
+  let start: number = messages.length - THREAD_TAIL_LENGTH;
+
+  if (
+    messages[start]!.role === AIChatMessageRole.Assistant &&
+    messages[start - 1]!.role === AIChatMessageRole.User
+  ) {
+    start -= 1;
+  }
+
+  return { hiddenCount: start, messages: messages.slice(start) };
+}
+
+export interface ToolActionOutcome {
+  icon: IconProp;
+  // The mark's colour; the words stay in the card's own greys.
+  iconClassName: string;
+  label: string;
+}
+
+/*
+ * How an action that is no longer waiting for anyone reads in the thread: a
+ * mark and one word after its title.
+ */
+export function describeToolActionOutcome(
+  status: AIChatToolActionStatus,
+): ToolActionOutcome {
+  switch (status) {
+    case AIChatToolActionStatus.Executed:
+      return {
+        icon: IconProp.CheckCircle,
+        iconClassName: "text-emerald-600",
+        label: "Done",
+      };
+    case AIChatToolActionStatus.Approved:
+      return {
+        icon: IconProp.Check,
+        iconClassName: "text-emerald-600",
+        label: "Approved",
+      };
+    case AIChatToolActionStatus.Failed:
+      return {
+        icon: IconProp.Alert,
+        iconClassName: "text-red-600",
+        label: "Failed",
+      };
+    case AIChatToolActionStatus.Denied:
+      return {
+        icon: IconProp.Close,
+        iconClassName: "text-gray-400",
+        label: "Denied",
+      };
+    case AIChatToolActionStatus.Skipped:
+      return {
+        icon: IconProp.Close,
+        iconClassName: "text-gray-400",
+        label: "Skipped",
+      };
+    default:
+      return {
+        icon: IconProp.Clock,
+        iconClassName: "text-gray-400",
+        label: "Pending",
+      };
+  }
+}
+
+// An action the answer is paused on until someone decides.
+export function isToolActionAwaitingApproval(
+  action: AIChatToolAction,
+): boolean {
+  return (
+    action.status === AIChatToolActionStatus.Pending && action.requiresApproval
+  );
 }
 
 // The permission mode stored for the viewer, or the default.
@@ -429,14 +565,20 @@ export function parseStoredPermissionMode(
     : DEFAULT_THREAD_PERMISSION_MODE;
 }
 
+/*
+ * What the chosen mode means, as the caption beside its picker in the
+ * composer. The picker names the mode and the box is for asking OneUptime
+ * AI, so the sentence does not say who acts again: without that it fits on
+ * the picker's row in the two-thirds column of a 1280px page.
+ */
 export function describePermissionMode(mode: AIChatPermissionMode): string {
   switch (mode) {
     case AIChatPermissionMode.AutoRun:
-      return "OneUptime AI acts on clear requests right away, within your permissions.";
+      return "Acts on clear requests right away, within your permissions.";
     case AIChatPermissionMode.AskForApproval:
-      return "OneUptime AI asks before it changes anything.";
+      return "Asks for approval before it changes anything.";
     case AIChatPermissionMode.ReadOnly:
-      return "OneUptime AI only reads and answers — it never changes anything.";
+      return "Only reads and answers. It never changes anything.";
     default:
       return "";
   }

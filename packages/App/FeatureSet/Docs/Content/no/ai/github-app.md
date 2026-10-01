@@ -56,7 +56,7 @@ Du kan også gi appen en sak **helt uten å kommentere**:
 | `@oneuptime status` | Forteller hva den jobber med i denne tråden akkurat nå. |
 | `@oneuptime cancel` | Stopper kjøringene den har gående i denne tråden. Arbeid som allerede er pushet, forblir pushet. |
 
-`help`, `status` og `cancel` starter aldri en agentkjøring, så de koster ingenting og teller ikke mot det daglige budsjettet ditt for AI-koderettelser.
+`help`, `status` og `cancel` starter aldri en agentkjøring, så de koster ingenting.
 
 ## Slik ser det ut i tråden
 
@@ -87,10 +87,9 @@ Den ignorerer også alle kommentarer skrevet av en bot, inkludert sine egne, og 
 
 Hver kommando som starter arbeid, er en full agentkjøring — en kloning, opptil 40 LLM-kall og 100 000 output-tokens, pluss bygge- og testkommandoene til repositoriet ditt hvis du har satt dem opp.
 
-To grenser gjelder, og begge er de samme som allerede styrer [AI Fix Tasks](/docs/ai/ai-agent):
+GitHub-kommandoer er KI-arbeid utenfor hendelser og varsler, så ingen daglig grense for rettelseskjøringer gjelder for dem. Den ene grensen som kan gjelde, er den samme som allerede styrer [AI Fix Tasks](/docs/ai/ai-agent):
 
-- **Prosjektets daglige grense for rettelseskjøringer** (**Prosjektinnstillinger → AI**, 25 per dag som standard). GitHub-kommandoer deler dette budsjettet med resten av prosjektets rettelseskjøringer.
-- **Taket på åpne pull requests per repositorium** (**Kode-repositorier → repositoriet → Innstillinger**, 5 som standard). Gjennomganger og revisjoner er unntatt: ingen av dem legger en ny pull request i gjennomgangskøen din.
+- **Taket på åpne pull requests per repositorium** (**Max Open Fix Pull Requests**, under **Kode-repositorier → repositoriet → Innstillinger**). Det er ikke noe tak før du setter et, og 0 blokkerer pull requests med KI-rettelser på det repositoriet. Gjennomganger og revisjoner er unntatt: ingen av dem legger en ny pull request i gjennomgangskøen din.
 
 Bare én kjøring av hver type er aktiv per sak eller pull request om gangen. Spør du to ganger, får du beskjed om at den allerede er i gang; ber du om en gjennomgang mens en revisjon kjører, starter begge, siden det er ulike forespørsler.
 

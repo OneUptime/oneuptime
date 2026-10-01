@@ -96,4 +96,4 @@ För att pausa ett arbetsflöde utan att ta bort det, slå av **Aktiverad**. Ing
 - [Arbetsflödesutlösare](/docs/workflows/triggers) — de fyra sätten ett arbetsflöde kan starta på.
 - [Arbetsflödeskomponenter](/docs/workflows/components) — varje block du kan lägga till.
 - [Arbetsflödesvariabler](/docs/workflows/variables) — flytta data mellan block.
-- [Arbetsflödeskörningar & loggar](/docs/workflows/runs-and-logs) — kontrollera vad som hände.
+- [Arbetsflödeskörningar](/docs/workflows/runs-and-logs) — kontrollera vad som hände.

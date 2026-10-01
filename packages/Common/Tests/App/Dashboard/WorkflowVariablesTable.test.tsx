@@ -142,6 +142,12 @@ type FormFieldEntry = {
   dropdownOptions?: Array<unknown> | undefined;
 };
 
+type FormStepEntry = {
+  id: string;
+  title: string;
+  showIf?: ((values: Record<string, unknown>) => boolean) | undefined;
+};
+
 type ColumnEntry = {
   field?: Record<string, unknown> | undefined;
   title?: string | undefined;
@@ -864,14 +870,78 @@ describe.each(PAGE_CASES)("the $page variables list", (pageCase: PageCase) => {
       renderPage(pageCase.page);
 
       expect(formFieldNames()).not.toContain("variableType");
-      expect(table().formSteps || []).toEqual([]);
 
       for (const entry of table().formFields || []) {
         expect(entry.fieldType).not.toBe("CardSelect");
         expect(entry.cardSelectOptions).toBeUndefined();
         // Nothing on the form hides or shows by a type the form never sets.
         expect(entry.showIf).toBeUndefined();
-        expect(entry.stepId).toBeUndefined();
+      }
+
+      // No step is about the type, and no step comes and goes with one.
+      for (const step of (table().formSteps || []) as Array<FormStepEntry>) {
+        expect(step.title.toLowerCase()).not.toContain("type");
+        expect(step.showIf).toBeUndefined();
+      }
+    });
+
+    /*
+     * The maintainer's ask: the form was one long scrolling page. It now
+     * walks two steps - what the variable is called, then what it holds.
+     */
+    test("walks two steps: Variable, then Value", () => {
+      renderPage(pageCase.page);
+
+      expect(
+        ((table().formSteps || []) as Array<FormStepEntry>).map(
+          (step: FormStepEntry): { id: string; title: string } => {
+            return { id: step.id, title: step.title };
+          },
+        ),
+      ).toEqual([
+        { id: "variable", title: "Variable" },
+        { id: "value", title: "Value" },
+      ]);
+    });
+
+    test("asks for the name and description first, then the content and the secret switch", () => {
+      renderPage(pageCase.page);
+
+      expect(
+        (table().formFields || []).map(
+          (entry: FormFieldEntry): [string, string | undefined] => {
+            return [Object.keys(entry.field || {})[0] || "", entry.stepId];
+          },
+        ),
+      ).toEqual([
+        ["name", "variable"],
+        ["description", "variable"],
+        ["content", "value"],
+        ["isSecret", "value"],
+      ]);
+    });
+
+    // A field on no declared step would never be shown, so never filled in.
+    test("puts every field on a step it declares, and leaves no step empty", () => {
+      renderPage(pageCase.page);
+
+      const stepIds: Array<string> = (
+        (table().formSteps || []) as Array<FormStepEntry>
+      ).map((step: FormStepEntry): string => {
+        return step.id;
+      });
+      const fieldStepIds: Array<string | undefined> = (
+        table().formFields || []
+      ).map((entry: FormFieldEntry): string | undefined => {
+        return entry.stepId;
+      });
+
+      for (const stepId of fieldStepIds) {
+        expect(stepIds).toContain(stepId);
+      }
+
+      for (const stepId of stepIds) {
+        expect(fieldStepIds).toContain(stepId);
       }
     });
 

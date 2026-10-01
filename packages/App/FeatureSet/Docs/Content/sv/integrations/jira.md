@@ -104,7 +104,7 @@ Om din organisation använder Atlassians centraliserade användarhantering finns
 
 Beskrivningen ser tung ut eftersom Jira Clouds v3-API tar emot rik text som **Atlassian Document Format** — ett dokumentträd, inte en sträng. Formen ovan är det minsta giltiga dokumentet: ett stycke som innehåller en textnod. Detsamma gäller `environment` och alla flerradiga anpassade textfält; enradiga anpassade textfält tar fortfarande en vanlig sträng.
 
-Slå nu på arbetsflödet från **Översikt → Redigera arbetsflöde → Aktiverad**, deklarera en testincident och öppna **Körningar och loggar**. Blocket `create-issue` bör visa en `201` och en body som innehåller det nya ärendets `id`, `key` och `self`. Ändringar på arbetsytan sparar sig själva — det finns ingen Spara-knapp, och ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand.
+Slå nu på arbetsflödet från **Översikt → Redigera arbetsflöde → Aktiverad**, deklarera en testincident och öppna **Loggar → Körningar**. Blocket `create-issue` bör visa en `201` och en body som innehåller det nya ärendets `id`, `key` och `self`. Ändringar på arbetsytan sparar sig själva — det finns ingen Spara-knapp, och ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand.
 
 Den nya ärendenyckeln är tillgänglig för alla block efter det här:
 
@@ -227,13 +227,13 @@ Nu den andra riktningen: någon flyttar ärendet till Done, och OneUptime-incide
 ### Bygg det mottagande arbetsflödet först
 
 1. **Skapa arbetsflöde**, namnge det `Jira → OneUptime` och lägg till utlösaren **Webhook**.
-2. Öppna det arbetsflödets **Inställningar** och kopiera **Webhookens hemliga nyckel**. Din URL är:
+2. Öppna arbetsflödets **Byggare**, klicka på **Webhook**-utlösaren och klicka på **Kopiera URL** högst upp i dess inställningar. URL:en ser ut så här:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Självhostade installationer använder sin egen värd. Behandla URL:en som ett lösenord — vem som helst som har den kan starta arbetsflödet — och återställ nyckeln från samma sida om den läcker.
+   Självhostade installationer använder sin egen värd. Behandla URL:en som ett lösenord — vem som helst som har den kan starta arbetsflödet. Om den läcker klickar du på **Återställ URL** på samma ställe; den gamla URL:en slutar fungera direkt.
 
 3. Lägg till ett **If / Else**-block som kontrollerar en delad hemlighet innan något annat körs. **Input 1** är `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** är `{{global.variables.JIRA_WEBHOOK_SECRET}}` — ett värde du hittar på och sparar som en hemlig global variabel.
 4. Från grenen **Yes**, lägg till ett **Update One Incident**-block:
@@ -270,7 +270,7 @@ Lämna arbetsflödet aktiverat. Ge nu Jira något att anropa.
 
      Om du använde en etikett i stället för ett anpassat fält i Steg 3, skicka `"labels": "{{issue.labels}}"` och plocka ut id:t med ett **Run Custom JavaScript**-block på OneUptime-sidan.
 
-4. Slå på regeln, flytta ett testärende till Done och kontrollera båda sidor: regelns egen granskningslogg i Jira, och **Körningar och loggar** i OneUptime.
+4. Slå på regeln, flytta ett testärende till Done och kontrollera båda sidor: regelns egen granskningslogg i Jira, och **Loggar → Körningar** i OneUptime.
 
 Saker värda att känna till innan du förlitar dig på det här:
 
@@ -342,7 +342,7 @@ Ett arbetsflöde har exakt en utlösare, så incidenter och larm behöver ett ar
 
 ## Felsökning
 
-Öppna det felande blocket i **Körningar och loggar** först. Jira returnerar en JSON-body som namnger exakt vad det avvisade, och API-komponenten behåller den i `response-body`.
+Öppna det felande blocket i **Loggar → Körningar** först. Jira returnerar en JSON-body som namnger exakt vad det avvisade, och API-komponenten behåller den i `response-body`.
 
 **`401 Unauthorized`.** Koda om `email:api_token` med `printf` och uppdatera `JIRA_AUTH`; en avslutande radbrytning från `echo` är den vanliga orsaken. Bekräfta sedan att kontot som äger token kan skapa ärenden i det projektet. På Data Center, kontrollera att du skickar `Bearer`, inte `Basic`.
 
@@ -356,7 +356,7 @@ Ett arbetsflöde har exakt en utlösare, så incidenter och larm behöver ett ar
 
 **Övergångsanropet returnerar `400`.** Övergångs-id:t är inte giltigt från ärendets *nuvarande* status. Hämta `/transitions` för det ärendet och använd ett id från svaret.
 
-**Automationsregeln visas som lyckad men ingenting når OneUptime.** Kontrollera porten först — se den begränsade listan ovan. Skicka sedan en förfrågan till webhook-URL:en själv med `curl` och se om den dyker upp i **Körningar och loggar**; om din kommer fram men inte Jiras ligger problemet på Jiras sida.
+**Automationsregeln visas som lyckad men ingenting når OneUptime.** Kontrollera porten först — se den begränsade listan ovan. Skicka sedan en förfrågan till webhook-URL:en själv med `curl` och se om den dyker upp i **Loggar → Körningar**; om din kommer fram men inte Jiras ligger problemet på Jiras sida.
 
 **Arbetsflödet körs men incidenten ändras inte.** Ett **Update One Incident**-block rapporterar `Items Updated: 0` när dess fråga inte matchade något, och det räknas som en framgång, inte ett fel. Kontrollera att id:t i payloaden verkligen är OneUptime-incidentens id och att du frågar på `_id`.
 

@@ -251,3 +251,56 @@ describe("the Databases product page entry", () => {
     expect(features).toContain("Open source");
   });
 });
+
+describe("the Queues product page entry", () => {
+  /*
+   * /product/queues is the marketing surface for the Queues product. Its
+   * template hard-codes the same <title> and description, and this entry is
+   * what feeds the canonical tag, OG tags, breadcrumb JSON-LD, llms.txt and
+   * products.json.
+   */
+  const seo: PageSEOData | undefined = PageSEOConfig["/product/queues"];
+
+  test("is registered as a product page", () => {
+    expect(seo).toBeDefined();
+    expect(seo!.canonicalPath).toBe("/product/queues");
+    expect(seo!.pageType).toBe("product");
+    expect(seo!.twitterCard).toBe("summary_large_image");
+  });
+
+  test("walks Home → Products → Queues", () => {
+    expect(seo!.breadcrumbs).toEqual([
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Queues", url: "/product/queues" },
+    ]);
+  });
+
+  test("names the brokers people search for, and where the data comes from", () => {
+    expect(seo!.title).toMatch(/^Message Queue Monitoring \|/);
+    expect(seo!.title).toMatch(/\| OneUptime$/);
+    for (const broker of ["Kafka", "RabbitMQ", "SQS", "Pub/Sub"]) {
+      expect(seo!.title).toContain(broker);
+    }
+    for (const source of ["OpenTelemetry traces", "broker metrics"]) {
+      expect(seo!.description).toContain(source);
+    }
+    for (const signal of ["consumer lag", "dead letters"]) {
+      expect(seo!.description).toContain(signal);
+    }
+  });
+
+  test("carries a SoftwareApplication schema with the product's features", () => {
+    expect(seo!.softwareApplication).toBeDefined();
+    expect(seo!.softwareApplication!.name).toBe("OneUptime Queue Monitoring");
+    expect(seo!.softwareApplication!.features.length).toBeGreaterThanOrEqual(8);
+
+    const features: string = seo!.softwareApplication!.features.join(" | ");
+    expect(features).toMatch(
+      /Auto-discovery from OpenTelemetry messaging spans/,
+    );
+    expect(features).toMatch(/consumer lag, dead letters/);
+    expect(features).toContain("OpenTelemetry native");
+    expect(features).toContain("Open source");
+  });
+});

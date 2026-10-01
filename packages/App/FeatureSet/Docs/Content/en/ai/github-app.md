@@ -56,7 +56,7 @@ You can also hand the app an issue **without commenting at all**:
 | `@oneuptime status` | Says what it is currently working on in this thread. |
 | `@oneuptime cancel` | Stops the runs it has going on this thread. Work already pushed stays pushed. |
 
-`help`, `status` and `cancel` never start an agent run, so they cost nothing and are not subject to your daily fix-task budget.
+`help`, `status` and `cancel` never start an agent run, so they cost nothing.
 
 ## What it looks like in the thread
 
@@ -87,10 +87,9 @@ It also ignores every comment written by a bot, including its own, and ignores m
 
 Every command that starts work is a full agent run — a clone, up to 40 LLM calls and 100,000 output tokens, plus your repository's build and test commands if you have configured them.
 
-Two limits apply, and both are the ones that already govern [AI Fix Tasks](/docs/ai/ai-agent):
+GitHub commands are AI work outside incidents and alerts, so no daily fix-run limit applies to them. The one limit that can apply is the one that already governs [AI Fix Tasks](/docs/ai/ai-agent):
 
-- **The project's daily fix-run limit** (**Project Settings → AI**, 25/day by default). GitHub commands share this budget with the rest of your project's fix runs.
-- **The per-repository open pull request cap** (**Code Repositories → the repository → Settings**, 5 by default). Reviews and revisions are exempt: neither adds a new pull request to your review queue.
+- **The per-repository open pull request cap** (**Max Open Fix Pull Requests**, under **Code Repositories → the repository → Settings**). There is no cap until you set one, and 0 blocks AI fix pull requests on that repository. Reviews and revisions are exempt: neither adds a new pull request to your review queue.
 
 Only one run of a given kind is live per issue or pull request at a time. Asking twice tells you it is already working; asking for a review while a revision is running starts both, since they are different requests.
 

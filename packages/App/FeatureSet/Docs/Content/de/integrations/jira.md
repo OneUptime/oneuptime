@@ -104,7 +104,7 @@ Wenn Ihre Organisation Atlassians zentralisierte Benutzerverwaltung nutzt, gibt 
 
 Die Beschreibung wirkt schwerfällig, weil die v3-API von Jira Cloud Rich Text als **Atlassian Document Format** entgegennimmt – einen Dokumentbaum, keine Zeichenkette. Die Form oben ist das minimal gültige Dokument: ein Absatz mit einem Textknoten. Dasselbe gilt für `environment` und für jedes mehrzeilige benutzerdefinierte Textfeld; einzeilige benutzerdefinierte Textfelder nehmen weiterhin eine einfache Zeichenkette entgegen.
 
-Schalten Sie den Workflow nun über **Übersicht → Workflow bearbeiten → Aktiviert** ein, erklären Sie einen Test-Vorfall und öffnen Sie **Ausführungen & Protokolle**. Der Baustein `create-issue` sollte einen `201` zeigen und einen Body, der `id`, `key` und `self` des neuen Issues enthält. Änderungen auf der Arbeitsfläche speichern sich selbst – es gibt keinen Speichern-Knopf, und ein deaktivierter Workflow läuft überhaupt nicht, nicht einmal von Hand.
+Schalten Sie den Workflow nun über **Übersicht → Workflow bearbeiten → Aktiviert** ein, erklären Sie einen Test-Vorfall und öffnen Sie **Protokolle → Ausführungen**. Der Baustein `create-issue` sollte einen `201` zeigen und einen Body, der `id`, `key` und `self` des neuen Issues enthält. Änderungen auf der Arbeitsfläche speichern sich selbst – es gibt keinen Speichern-Knopf, und ein deaktivierter Workflow läuft überhaupt nicht, nicht einmal von Hand.
 
 Der Key des neuen Issues steht jedem Baustein nach diesem zur Verfügung:
 
@@ -227,13 +227,13 @@ Nun die andere Richtung: Jemand zieht das Issue auf Done, und der OneUptime-Vorf
 ### Zuerst den empfangenden Workflow bauen
 
 1. **Workflow erstellen**, benennen Sie ihn `Jira → OneUptime`, und fügen Sie den Trigger **Webhook** hinzu.
-2. Öffnen Sie die **Einstellungen** dieses Workflows und kopieren Sie den **geheimen Webhook-Schlüssel**. Ihre URL lautet:
+2. Öffnen Sie den **Builder** dieses Workflows, klicken Sie auf den Trigger **Webhook** und dann oben in seinen Einstellungen auf **URL kopieren**. Die URL sieht so aus:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Selbst gehostete Installationen verwenden ihren eigenen Host. Behandeln Sie die URL wie ein Passwort – wer sie hat, kann den Workflow starten – und setzen Sie den Schlüssel auf derselben Seite zurück, falls er nach außen gelangt.
+   Selbst gehostete Installationen verwenden ihren eigenen Host. Behandeln Sie die URL wie ein Passwort – wer sie hat, kann den Workflow starten. Falls sie nach außen gelangt, klicken Sie an derselben Stelle auf **URL zurücksetzen**; die alte URL funktioniert dann sofort nicht mehr.
 
 3. Fügen Sie einen Baustein **If / Else** hinzu, der ein gemeinsames Geheimnis prüft, bevor irgendetwas anderes läuft. **Input 1** ist `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** ist `{{global.variables.JIRA_WEBHOOK_SECRET}}` – ein Wert, den Sie sich ausdenken und als geheime globale Variable speichern.
 4. Fügen Sie vom Zweig **Ja** aus einen Baustein **Update One Incident** hinzu:
@@ -270,7 +270,7 @@ Lassen Sie den Workflow aktiviert. Geben Sie Jira nun etwas zum Aufrufen.
 
      Wenn Sie in Schritt 3 ein Label statt eines benutzerdefinierten Feldes verwendet haben, senden Sie `"labels": "{{issue.labels}}"` und holen die ID auf der OneUptime-Seite mit einem Baustein **Run Custom JavaScript** heraus.
 
-4. Schalten Sie die Regel ein, ziehen Sie ein Test-Issue auf Done und prüfen Sie beide Seiten: das Audit-Log der Regel in Jira und **Ausführungen & Protokolle** in OneUptime.
+4. Schalten Sie die Regel ein, ziehen Sie ein Test-Issue auf Done und prüfen Sie beide Seiten: das Audit-Log der Regel in Jira und **Protokolle → Ausführungen** in OneUptime.
 
 Was Sie wissen sollten, bevor Sie sich darauf verlassen:
 
@@ -342,7 +342,7 @@ Ein Workflow hat genau einen Trigger, Vorfälle und Warnungen brauchen also je e
 
 ## Fehlerbehebung
 
-Öffnen Sie zuerst den fehlgeschlagenen Baustein in **Ausführungen & Protokolle**. Jira liefert einen JSON-Body zurück, der genau benennt, was abgelehnt wurde, und die API-Komponente hält ihn in `response-body` fest.
+Öffnen Sie zuerst den fehlgeschlagenen Baustein in **Protokolle → Ausführungen**. Jira liefert einen JSON-Body zurück, der genau benennt, was abgelehnt wurde, und die API-Komponente hält ihn in `response-body` fest.
 
 **`401 Unauthorized`.** Kodieren Sie `email:api_token` mit `printf` neu und aktualisieren Sie `JIRA_AUTH`; ein abschließender Zeilenumbruch von `echo` ist die übliche Ursache. Prüfen Sie dann, ob das Konto, dem das Token gehört, in diesem Projekt Issues erstellen darf. Auf Data Center kontrollieren Sie, dass Sie `Bearer` senden, nicht `Basic`.
 
@@ -356,7 +356,7 @@ Ein Workflow hat genau einen Trigger, Vorfälle und Warnungen brauchen also je e
 
 **Der Übergangsaufruf antwortet mit `400`.** Die Übergangs-ID ist vom *aktuellen* Status des Issues aus nicht gültig. Rufen Sie `/transitions` für dieses Issue ab und nehmen Sie eine ID aus der Antwort.
 
-**Die Automatisierungsregel wird als erfolgreich angezeigt, aber bei OneUptime kommt nichts an.** Prüfen Sie zuerst den Port – siehe die eingeschränkte Liste oben. Senden Sie dann selbst mit `curl` eine Anfrage an die Webhook-URL und sehen Sie nach, ob sie in **Ausführungen & Protokolle** auftaucht; wenn Ihre ankommt und die von Jira nicht, liegt das Problem auf Jiras Seite.
+**Die Automatisierungsregel wird als erfolgreich angezeigt, aber bei OneUptime kommt nichts an.** Prüfen Sie zuerst den Port – siehe die eingeschränkte Liste oben. Senden Sie dann selbst mit `curl` eine Anfrage an die Webhook-URL und sehen Sie nach, ob sie in **Protokolle → Ausführungen** auftaucht; wenn Ihre ankommt und die von Jira nicht, liegt das Problem auf Jiras Seite.
 
 **Der Workflow läuft, aber der Vorfall ändert sich nicht.** Ein Baustein **Update One Incident** meldet `Items Updated: 0`, wenn seine Query nichts getroffen hat, und das gilt als Erfolg, nicht als Fehler. Prüfen Sie, ob die ID in der Payload wirklich die OneUptime-Vorfall-ID ist und ob Sie nach `_id` abfragen.
 

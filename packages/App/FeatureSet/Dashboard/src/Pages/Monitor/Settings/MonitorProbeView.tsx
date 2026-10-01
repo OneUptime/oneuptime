@@ -60,12 +60,17 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
          * the modal thinking there is nothing to save - and the edit is lost.
          * Five fields fit on one page with a real "Save Changes" button.
          */
+        formSteps={[
+          { title: "Basic Info", id: "basic-info" },
+          { title: "More", id: "more" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "internal-probe",
@@ -79,6 +84,7 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               description: true,
             },
             title: "Description",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "This probe is to monitor all the internal services.",
@@ -89,6 +95,7 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               iconFile: true,
             },
             title: "Probe Logo",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
             placeholder: "Upload logo",
@@ -98,6 +105,7 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               shouldAutoEnableProbeOnNewMonitors: true,
             },
             title: "Enable monitoring automatically on new monitors",
+            stepId: "more",
             description:
               "When on, this probe is pre-selected for every new monitor you create.",
             fieldType: FormFieldSchemaType.Toggle,
@@ -109,6 +117,7 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
             },
 
             title: "Labels ",
+            stepId: "more",
             description:
               "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,

@@ -350,7 +350,9 @@
       "amountNotPositive": "금액은 0보다 커야 합니다.",
       "amountTooLarge": "한 번의 조정에서 금액은 {{max}} USD를 초과할 수 없습니다.",
       "amountTooPrecise": "금액은 소수점 이하 두 자리를 초과할 수 없습니다.",
-      "reasonRequired": "이 조정에 대한 사유를 입력하세요."
+      "reasonRequired": "이 조정에 대한 사유를 입력하세요.",
+      "adjustBalanceStepBalance": "잔액",
+      "adjustBalanceStepAmount": "금액 및 사유"
     },
     "projectSupport": {
       "title": "고객 지원 액세스",

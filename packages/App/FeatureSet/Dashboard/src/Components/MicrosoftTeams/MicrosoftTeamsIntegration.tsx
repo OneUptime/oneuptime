@@ -426,7 +426,13 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       {
         title: `Uninstall OneUptime from Microsoft Teams`,
         isLoading: isButtonLoading,
-        buttonStyle: SharedButtonStyle.DANGER,
+        /*
+         * Red, but outlined: "Connect my account with Microsoft Teams" beside
+         * it is the card's one primary button, and a filled red one would
+         * compete with it for a step almost nobody on this card has come to
+         * take.
+         */
+        buttonStyle: SharedButtonStyle.DANGER_OUTLINE,
         onClick: async () => {
           try {
             setIsButtonLoading(true);

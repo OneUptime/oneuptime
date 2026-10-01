@@ -1525,9 +1525,14 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                         {configError}
                       </p>
                       <div className="mt-3">
+                        {/*
+                         * A retry, not a destructive action: the red panel
+                         * already says something went wrong, and a filled red
+                         * button would compete with the dialog's own action.
+                         */}
                         <Button
                           title="Try again"
-                          buttonStyle={ButtonStyleType.DANGER}
+                          buttonStyle={ButtonStyleType.NORMAL}
                           onClick={handleRetryFetch}
                           isLoading={isConfigLoading}
                           className="!mt-0 md:!ml-0"

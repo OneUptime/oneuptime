@@ -56,7 +56,7 @@ También puedes pasarle un issue a la app **sin escribir ningún comentario**:
 | `@oneuptime status` | Dice en qué está trabajando ahora mismo en este hilo. |
 | `@oneuptime cancel` | Detiene las ejecuciones que tenga en marcha en este hilo. El trabajo ya enviado se queda enviado. |
 
-`help`, `status` y `cancel` nunca arrancan una ejecución del agente, así que no cuestan nada y no consumen tu presupuesto diario de tareas de corrección.
+`help`, `status` y `cancel` nunca arrancan una ejecución del agente, así que no cuestan nada.
 
 ## Cómo se ve en el hilo
 
@@ -87,10 +87,9 @@ También ignora todo comentario escrito por un bot, incluidos los suyos, e ignor
 
 Cada comando que arranca trabajo es una ejecución completa del agente: un clon, hasta 40 llamadas al LLM y 100 000 tokens de salida, más los comandos de compilación y de pruebas de tu repositorio si los tienes configurados.
 
-Se aplican dos límites, y los dos son los que ya rigen las [Tareas de corrección con IA](/docs/ai/ai-agent):
+Los comandos de GitHub son trabajo de IA fuera de incidentes y alertas, así que no tienen límite diario de ejecuciones de corrección. El único límite que se les puede aplicar es el que ya rige las [Tareas de corrección con IA](/docs/ai/ai-agent):
 
-- **El límite diario de ejecuciones de corrección del proyecto** (**Ajustes del proyecto → IA**, 25 al día por defecto). Los comandos de GitHub comparten ese presupuesto con el resto de las ejecuciones de corrección de tu proyecto.
-- **El tope de pull requests abiertos por repositorio** (**Repositorios de código → el repositorio → Ajustes**, 5 por defecto). Las revisiones y las modificaciones están exentas: ninguna de las dos añade un pull request nuevo a tu cola de revisión.
+- **El tope de pull requests abiertos por repositorio** (**Max Open Fix Pull Requests**, en **Repositorios de código → el repositorio → Ajustes**). No hay tope hasta que lo fijas, y 0 bloquea los pull requests de corrección con IA en ese repositorio. Las revisiones y las modificaciones están exentas: ninguna de las dos añade un pull request nuevo a tu cola de revisión.
 
 Solo hay una ejecución activa de cada tipo por issue o por pull request a la vez. Pedirlo dos veces te responde que ya está trabajando en ello; pedir una revisión mientras se ejecuta una modificación arranca las dos, porque son peticiones distintas.
 

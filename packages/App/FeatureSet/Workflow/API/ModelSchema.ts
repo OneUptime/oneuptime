@@ -8,6 +8,7 @@ import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Dictionary from "Common/Types/Dictionary";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import Permission from "Common/Types/Permission";
+import { isSystemColumnId } from "Common/Types/Workflow/SystemColumns";
 import Entities from "Common/Models/DatabaseModels/Index";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
@@ -42,6 +43,23 @@ interface ColumnDescriptor {
    * with a row nothing should be typed into.
    */
   isTenantColumn: boolean;
+  /**
+   * True for a column OneUptime fills in itself: the record's ID and
+   * timestamps, who created it, and anything the model computes on save (a
+   * slug, a number, a notification status). The record editor never offers
+   * one for a create or an update. A Select or a Query can still name it -
+   * reading when an incident was created, or filtering on it, is useful.
+   */
+  isSystemColumn: boolean;
+  /**
+   * Whether some role may set this column when a record is created, and
+   * whether some role may change it afterwards. The write gate admits a column
+   * when either is true, so the editor needs both to tell Create One's fields
+   * from Update One's: createdByUserId is create-only, and a column like
+   * Incident.statusPagesNotifiedOnCreation is update-only.
+   */
+  canCreate: boolean;
+  canUpdate: boolean;
   example?: string | undefined;
   placeholder?: string | undefined;
 }
@@ -109,6 +127,20 @@ const hasReadAccess: (acl: ColumnAccessControl | undefined) => boolean = (
   return true;
 };
 
+// Whether some role may set the column on a new record.
+const hasCreateAccess: (acl: ColumnAccessControl | undefined) => boolean = (
+  acl: ColumnAccessControl | undefined,
+): boolean => {
+  return Boolean(acl && Array.isArray(acl.create) && acl.create.length > 0);
+};
+
+// Whether some role may change the column on a record that exists.
+const hasUpdateAccess: (acl: ColumnAccessControl | undefined) => boolean = (
+  acl: ColumnAccessControl | undefined,
+): boolean => {
+  return Boolean(acl && Array.isArray(acl.update) && acl.update.length > 0);
+};
+
 /*
  * A column is writable when some role may create or update it. Deliberately not
  * symmetrical with hasReadAccess: there is no CurrentUser carve-out, because a
@@ -120,14 +152,25 @@ const hasReadAccess: (acl: ColumnAccessControl | undefined) => boolean = (
 const hasWriteAccess: (acl: ColumnAccessControl | undefined) => boolean = (
   acl: ColumnAccessControl | undefined,
 ): boolean => {
-  if (!acl) {
-    return false;
-  }
+  return hasCreateAccess(acl) || hasUpdateAccess(acl);
+};
 
-  const canCreate: boolean = Array.isArray(acl.create) && acl.create.length > 0;
-  const canUpdate: boolean = Array.isArray(acl.update) && acl.update.length > 0;
-
-  return canCreate || canUpdate;
+/*
+ * A column OneUptime fills in itself. `computed` is how the models mark it -
+ * the ID and timestamps, every slug, record numbers, notification statuses -
+ * and forceGetDefaultValueOnCreate overwrites whatever a create sends. The
+ * shared list catches the rest, chiefly createdByUserId, which carries a
+ * create list on nearly every model only so the write path may stamp it.
+ */
+const isSystemColumn: (
+  columnId: string,
+  column: TableColumnMetadata,
+) => boolean = (columnId: string, column: TableColumnMetadata): boolean => {
+  return (
+    isSystemColumnId(columnId) ||
+    Boolean(column.computed) ||
+    Boolean(column.forceGetDefaultValueOnCreate)
+  );
 };
 
 const hasAccess: (
@@ -223,6 +266,9 @@ const describeColumns: (
       required: Boolean(column.required),
       hasDefault: hasDefault,
       isTenantColumn: isTenantColumn,
+      isSystemColumn: isSystemColumn(columnId, column),
+      canCreate: hasCreateAccess(acl),
+      canUpdate: hasUpdateAccess(acl),
       /*
        * example is typed loosely on TableColumnMetadata (it also carries JSON
        * for the API reference). Only a scalar is useful as a placeholder in a

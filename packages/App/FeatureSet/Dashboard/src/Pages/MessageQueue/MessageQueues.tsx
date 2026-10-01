@@ -309,12 +309,18 @@ const MessageQueues: FunctionComponent<
           description:
             "Every message queue, topic and subscription your applications publish to and consume from — discovered from their OpenTelemetry messaging spans and from your brokers' metrics, for Kafka, RabbitMQ, ActiveMQ, Amazon SQS and SNS, Google Pub/Sub, Azure Service Bus and Event Hubs, Pulsar, RocketMQ, NATS, BullMQ and more — or added by hand.",
         }}
+        formSteps={[
+          { title: "Messaging System", id: "messaging-system" },
+          { title: "Queue Info", id: "queue-info" },
+          { title: "Labels", id: "labels" },
+        ]}
         formFields={[
           {
             field: {
               messagingSystem: true,
             },
             title: "Messaging System",
+            stepId: "messaging-system",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: CREATE_SYSTEM_OPTIONS,
             required: true,
@@ -336,6 +342,7 @@ const MessageQueues: FunctionComponent<
             overrideFieldKey: MESSAGE_QUEUE_OTHER_SYSTEM_FIELD,
             showEvenIfPermissionDoesNotExist: true,
             title: "messaging.system Value",
+            stepId: "messaging-system",
             fieldType: FormFieldSchemaType.Text,
             showIf: (values: FormValues<MessageQueue>): boolean => {
               return (
@@ -373,6 +380,7 @@ const MessageQueues: FunctionComponent<
               destinationName: true,
             },
             title: "Destination",
+            stepId: "messaging-system",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "orders.created",
@@ -405,6 +413,7 @@ const MessageQueues: FunctionComponent<
               brokerScope: true,
             },
             title: "Namespace",
+            stepId: "messaging-system",
             fieldType: FormFieldSchemaType.Text,
             // Only Azure Service Bus and Event Hubs key a queue on its namespace.
             showIf: (values: FormValues<MessageQueue>): boolean => {
@@ -444,6 +453,7 @@ const MessageQueues: FunctionComponent<
               name: true,
             },
             title: "Name",
+            stepId: "queue-info",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "Order events",
@@ -455,6 +465,7 @@ const MessageQueues: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "queue-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Order events from checkout to fulfilment",
@@ -464,6 +475,7 @@ const MessageQueues: FunctionComponent<
               labels: true,
             },
             title: "Labels",
+            stepId: "labels",
             description:
               "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,

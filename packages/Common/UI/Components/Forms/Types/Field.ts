@@ -174,6 +174,14 @@ export default interface Field<TEntity> {
   disableSpellCheck?: boolean | undefined;
 
   /*
+   * For a LongText field: start a few lines tall and grow with what is typed,
+   * up to a limit where it scrolls, rather than sitting at a fixed six lines.
+   * Suits values that are usually a line or two but sometimes run to
+   * paragraphs, such as a workflow step's message or prompt.
+   */
+  autoGrow?: boolean | undefined;
+
+  /*
    * For a Markdown field: whether its editor uploads pasted, dropped and
    * picked images. Default: true. Uploading needs a signed-in user, so a
    * form that people without a OneUptime account fill in sets this to false

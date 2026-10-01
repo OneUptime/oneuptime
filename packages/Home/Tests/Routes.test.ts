@@ -379,6 +379,52 @@ describe("Databases product page", () => {
   });
 });
 
+describe("Queues product page", () => {
+  /*
+   * Route, SEO entry and sitemap priority, plus the content its system and
+   * threshold lists render from, the way the Databases page is wired.
+   */
+  test("the product page is registered and renders its own template", () => {
+    expect(hasGetRoute("/product/queues")).toBe(true);
+    expect(routesSource).toContain(`${"${ViewsPath}"}/queues`);
+  });
+
+  test("it hands the template the product's catalogs", () => {
+    const body: string | null = bodyOfGetRoute("/product/queues");
+
+    expect(body).toContain("getSEOForPath(");
+    expect(body).toContain('"/product/queues"');
+    expect(body).toContain("queues: getQueuesPageContent()");
+    expect(routesSource).toContain(
+      'import { getQueuesPageContent } from "./Utils/Queues";',
+    );
+  });
+
+  test("it is a canonical page, not a redirect", () => {
+    expect(redirectTargetOf("/product/queues")).toBeNull();
+    expect(isRedirectPath("/product/queues")).toBe(false);
+  });
+
+  test("it resolves SEO data typed as a product", () => {
+    const seo: PageSEOData | undefined = PageSEOConfig["/product/queues"];
+
+    expect(seo).toBeDefined();
+    expect(seo!.canonicalPath).toBe("/product/queues");
+    expect(seo!.pageType).toBe("product");
+  });
+
+  test("it is prioritised in the sitemap config", () => {
+    const sitemapSource: string = fs.readFileSync(
+      path.join(__dirname, "..", "Utils", "Sitemap.ts"),
+      "utf-8",
+    );
+
+    expect(sitemapSource).toContain(
+      '"/product/queues": { priority: 0.9, changefreq: "weekly" }',
+    );
+  });
+});
+
 describe("SEO registration", () => {
   test("both new canonical pages resolve their own SEO data", () => {
     for (const pagePath of ["/enterprise/self-hosted", "/trust"]) {

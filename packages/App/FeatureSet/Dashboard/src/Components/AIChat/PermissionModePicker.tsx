@@ -8,6 +8,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -16,6 +17,13 @@ export interface ComponentProps {
   value: AIChatPermissionMode;
   onChange: (mode: AIChatPermissionMode) => void;
   disabled?: boolean | undefined;
+  /*
+   * Which edge of the button the menu lines up with. Defaults to "right",
+   * for a picker at the right end of a composer's controls. A picker at the
+   * left end passes "left": lined up on its right edge, the menu (wider
+   * than the button) would open past the left edge of whatever holds it.
+   */
+  menuAlign?: "left" | "right" | undefined;
 }
 
 const modeIcon: { [key in AIChatPermissionMode]: IconProp } = {
@@ -36,6 +44,9 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const containerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  const buttonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const menuId: string = useId();
 
   useEffect(() => {
     if (!isOpen) {
@@ -51,9 +62,20 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
         setIsOpen(false);
       }
     };
+    // Escape closes the menu and hands focus back to the button it came from.
+    const onKeyDown: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
     document.addEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKeyDown);
     };
   }, [isOpen]);
 
@@ -63,15 +85,19 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
   return (
     <div className="relative" ref={containerRef}>
       <button
+        ref={buttonRef}
         type="button"
         disabled={props.disabled}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? menuId : undefined}
         onClick={() => {
           setIsOpen((open: boolean) => {
             return !open;
           });
         }}
         title="Choose what the AI is allowed to do"
-        className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+        className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50"
       >
         <Icon
           icon={modeIcon[props.value]}
@@ -85,7 +111,14 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
       </button>
 
       {isOpen && (
-        <div className="absolute bottom-full right-0 z-50 mb-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+        <div
+          id={menuId}
+          role="menu"
+          aria-label="AI permissions"
+          className={`absolute bottom-full z-50 mb-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
+            props.menuAlign === "left" ? "left-0" : "right-0"
+          }`}
+        >
           <div className="border-b border-gray-100 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
             AI permissions
           </div>
@@ -95,11 +128,14 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
               <button
                 key={option.value}
                 type="button"
+                role="menuitemradio"
+                aria-checked={isSelected}
                 onClick={() => {
                   props.onChange(option.value);
                   setIsOpen(false);
+                  buttonRef.current?.focus();
                 }}
-                className={`flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-gray-50 ${
+                className={`flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-100 ${
                   isSelected ? "bg-gray-50" : ""
                 }`}
               >

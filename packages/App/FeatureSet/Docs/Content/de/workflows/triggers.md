@@ -78,4 +78,4 @@ Ein Workflow kann nur einen Trigger haben. Brauchen Sie zwei Wege, dieselbe Auto
 
 - [Workflow-Komponenten](/docs/workflows/components) – die Aktionen, die Sie nach dem Trigger hinzufügen.
 - [Workflow-Variablen](/docs/workflows/variables) – Trigger-Ausgaben aus späteren Bausteinen lesen.
-- [Workflow-Ausführungen & Protokolle](/docs/workflows/runs-and-logs) – nachsehen, ob Ihr Trigger ausgelöst hat.
+- [Workflow-Ausführungen](/docs/workflows/runs-and-logs) – nachsehen, ob Ihr Trigger ausgelöst hat.

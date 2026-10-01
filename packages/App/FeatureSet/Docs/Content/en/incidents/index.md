@@ -117,10 +117,9 @@ Open **Incidents** in the left navigation. Its side menu is organized into secti
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Overview**  | **All Incidents** and **Active Incidents** — the latter carries a red badge with the count of incidents that are not in the resolved state.                                |
 | **Episodes**  | Incident episodes, a separate grouping feature with its own pages.                                                                                                         |
-| **AI**        | **Investigation** and **Remediation** — automatic investigation and auto-remediation settings.                                                                             |
 | **Workspace** | **Slack** and **Microsoft Teams** connections for incidents.                                                                                                               |
-| **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**.        |
-| **Settings**  | **Incident State**, **Incident Severity**, **Incident Templates**, **Forms**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **More Settings**. |
+| **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Auto Remediation Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**. |
+| **Settings**  | **AI**, **Incident State**, **Incident Severity**, **Incident Templates**, **Forms**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **More Settings**. |
 
 **Rules** and **Settings** are collapsed by default — expand them to find the pages the rest of these docs refer to. Incident configuration is not under Project Settings; it all lives here.
 

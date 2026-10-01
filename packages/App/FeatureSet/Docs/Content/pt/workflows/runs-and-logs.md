@@ -1,4 +1,4 @@
-# Execuções e registros
+# Execuções
 
 Toda vez que um workflow roda, o OneUptime guarda um registro do que aconteceu — quando rodou, se deu certo e o que cada bloco fez. Esse registro se chama **execução**. É por meio das execuções que você confirma que um workflow funcionou, depura um que não funcionou e revisita atividades passadas.
 
@@ -6,8 +6,8 @@ Toda vez que um workflow roda, o OneUptime guarda um registro do que aconteceu �
 
 | Página                        | O que você vê                                                                                       |
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Fluxos de trabalho → Execuções e registros** | Todas as execuções de todos os workflows do projeto. Filtre por nome do workflow, status e período.           |
-| **Workflow → Execuções e registros**  | Só as execuções deste workflow. Aqui o filtro é **ID da execução**, em vez do filtro por workflow.  |
+| **Fluxos de trabalho → Registros → Execuções** | Todas as execuções de todos os workflows do projeto. Filtre por nome do workflow, status e período.           |
+| **Workflow → Registros → Execuções**  | Só as execuções deste workflow. Aqui o filtro é **ID da execução**, em vez do filtro por workflow.  |
 | **Uma execução específica**            | Aberta pelo botão **Ver registros** na linha da execução — as linhas em si não são clicáveis.           |
 
 ## Status da execução

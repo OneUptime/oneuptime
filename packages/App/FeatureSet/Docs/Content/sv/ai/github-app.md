@@ -56,7 +56,7 @@ Du kan också lämna över ett ärende till appen **utan att kommentera alls**:
 | `@oneuptime status` | Berättar vad den arbetar med just nu i den här tråden. |
 | `@oneuptime cancel` | Stoppar de körningar den har igång i den här tråden. Arbete som redan pushats förblir pushat. |
 
-`help`, `status` och `cancel` startar aldrig en agentkörning, så de kostar ingenting och belastar inte din dagliga budget för fixuppgifter.
+`help`, `status` och `cancel` startar aldrig en agentkörning, så de kostar ingenting.
 
 ## Hur det ser ut i tråden
 
@@ -87,10 +87,9 @@ Den ignorerar också varje kommentar skriven av en bot, inklusive sina egna, och
 
 Varje kommando som startar arbete är en fullständig agentkörning — en kloning, upp till 40 LLM-anrop och 100 000 output-tokens, plus ditt repositories bygg- och testkommandon om du har konfigurerat sådana.
 
-Två gränser gäller, och båda är desamma som redan styr [AI-fixuppgifter](/docs/ai/ai-agent):
+GitHub-kommandon är AI-arbete utanför incidenter och varningar, så ingen daglig gräns för fixkörningar gäller för dem. Den enda gräns som kan gälla är densamma som redan styr [AI-fixuppgifter](/docs/ai/ai-agent):
 
-- **Projektets dagliga gräns för fixkörningar** (**Projektinställningar → AI**, 25/dag som standard). GitHub-kommandon delar den budgeten med resten av projektets fixkörningar.
-- **Taket för öppna pull requests per repositorie** (**Kodförråd → repositoriet → Inställningar**, 5 som standard). Granskningar och revideringar är undantagna: ingen av dem lägger till en ny pull request i din granskningskö.
+- **Taket för öppna pull requests per repositorie** (**Max Open Fix Pull Requests**, under **Kodförråd → repositoriet → Inställningar**). Det finns inget tak förrän du sätter ett, och 0 blockerar AI-fix-pull requests i det repositoriet. Granskningar och revideringar är undantagna: ingen av dem lägger till en ny pull request i din granskningskö.
 
 Bara en körning av ett givet slag är igång per ärende eller pull request åt gången. Frågar du två gånger får du veta att den redan arbetar; att be om en granskning medan en revidering pågår startar båda, eftersom de är olika förfrågningar.
 

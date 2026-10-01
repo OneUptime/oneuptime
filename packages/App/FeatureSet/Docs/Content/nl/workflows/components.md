@@ -105,7 +105,7 @@ Verstuur een e-mail via een SMTP-server die je in het blok invult.
 - **Succes** — gaat af wanneer de SMTP-server het bericht accepteerde.
 - **Fout** — gaat af wanneer de SMTP-host wordt geweigerd, de server niet bereikbaar is of de server het bericht afwijst. Geeft de foutmelding door. Ontbreekt **To Email**, **From Email**, **SMTP Host** of **SMTP Port**, dan stopt in plaats daarvan de run.
 
-Het blok maakt rechtstreeks verbinding met de server uit zijn instellingen. Het gebruikt niet de [SMTP](/docs/emails/smtp)-instellingen van je project en ook niet de eigen mailserver van OneUptime, en de e-mails die het verstuurt, verschijnen niet in de Meldingslogboeken. Wil je nagaan wat het deed, kijk dan bij de [uitvoeringen en logboeken](/docs/workflows/runs-and-logs) van de workflow.
+Het blok maakt rechtstreeks verbinding met de server uit zijn instellingen. Het gebruikt niet de [SMTP](/docs/emails/smtp)-instellingen van je project en ook niet de eigen mailserver van OneUptime, en de e-mails die het verstuurt, verschijnen niet in de Meldingslogboeken. Wil je nagaan wat het deed, kijk dan bij de [uitvoeringen](/docs/workflows/runs-and-logs) van de workflow.
 
 Verbindingen met loopback-adressen (`localhost`, `127.0.0.1`), link-local-adressen en cloud-metadata-adressen worden geweigerd. Op OneUptime Cloud wordt ook een SMTP-host op een privénetwerkadres geweigerd, of een naam die naar zo'n adres wordt omgezet. Zelf gehoste installaties kunnen een mailserver in hun eigen netwerk bereiken, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` op `true` staat. Een geweigerde host gaat naar de **Fout**-output, en er wordt niets verstuurd.
 
@@ -217,5 +217,5 @@ Een paar snelle vuistregels:
 ## Waar je verder kunt lezen
 
 - [Workflow-variabelen](/docs/workflows/variables) — data doorgeven tussen blokken.
-- [Workflow-uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — nagaan wat elk blok tijdens een run deed.
+- [Workflow-uitvoeringen](/docs/workflows/runs-and-logs) — nagaan wat elk blok tijdens een run deed.
 - [Workflow-configuratie en veiligheid](/docs/workflows/configuration) — limieten, eigenaren en geheimen.

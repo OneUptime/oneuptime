@@ -104,7 +104,7 @@ Er organisasjonen din på Atlassians sentraliserte brukeradministrasjon, finnes 
 
 Beskrivelsen ser tung ut fordi Jira Clouds v3-API tar imot rik tekst som **Atlassian Document Format** — et dokumenttre, ikke en streng. Formen ovenfor er det minste gyldige dokumentet: ett avsnitt som rommer én tekstnode. Det samme gjelder `environment` og alle flerlinjes tekstfelt av typen egendefinert felt; enlinjes egendefinerte tekstfelt tar fortsatt en vanlig streng.
 
-Slå nå på arbeidsflyten fra **Oversikt → Rediger arbeidsflyt → Aktivert**, opprett en testhendelse, og åpne **Kjøringer og logger**. `create-issue`-blokken bør vise en `201` og en kropp som inneholder den nye sakens `id`, `key` og `self`. Endringer på lerretet lagrer seg selv — det finnes ingen Lagre-knapp, og en deaktivert arbeidsflyt kan ikke kjøre i det hele tatt, ikke engang manuelt.
+Slå nå på arbeidsflyten fra **Oversikt → Rediger arbeidsflyt → Aktivert**, opprett en testhendelse, og åpne **Logger → Kjøringer**. `create-issue`-blokken bør vise en `201` og en kropp som inneholder den nye sakens `id`, `key` og `self`. Endringer på lerretet lagrer seg selv — det finnes ingen Lagre-knapp, og en deaktivert arbeidsflyt kan ikke kjøre i det hele tatt, ikke engang manuelt.
 
 Den nye saksnøkkelen er tilgjengelig for enhver blokk etter denne:
 
@@ -227,13 +227,13 @@ Så den andre retningen: noen flytter saken til Done, og OneUptime-hendelsen bø
 ### Bygg den mottakende arbeidsflyten først
 
 1. **Opprett arbeidsflyt**, gi den navnet `Jira → OneUptime`, og legg til **Webhook**-triggeren.
-2. Åpne den arbeidsflytens **Innstillinger** og kopier **Webhook Secret Key**. URL-en din er:
+2. Åpne arbeidsflytens **Bygger**, klikk på **Webhook**-triggeren, og klikk på **Kopier URL** øverst i innstillingene dens. URL-en ser slik ut:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Selvhostede installasjoner bruker sin egen vert. Behandle URL-en som et passord — alle som har den, kan starte arbeidsflyten — og nullstill nøkkelen fra den samme siden hvis den lekker.
+   Selvhostede installasjoner bruker sin egen vert. Behandle URL-en som et passord — alle som har den, kan starte arbeidsflyten. Hvis den lekker, klikker du på **Tilbakestill URL** på samme sted; den gamle URL-en slutter å virke med en gang.
 
 3. Legg til en **If / Else**-blokk som sjekker en delt hemmelighet før noe annet kjører. **Input 1** er `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, og **Input 2** er `{{global.variables.JIRA_WEBHOOK_SECRET}}` — en verdi du finner på selv og lagrer som en hemmelig global variabel.
 4. Fra **Yes**-grenen legger du til en **Update One Incident**-blokk:
@@ -270,7 +270,7 @@ La arbeidsflyten stå aktivert. Gi nå Jira noe å kalle.
 
      Brukte du en etikett i stedet for et egendefinert felt i Steg 3, sender du `"labels": "{{issue.labels}}"` og trekker id-en ut med en **Run Custom JavaScript**-blokk på OneUptime-siden.
 
-4. Slå på regelen, flytt en testsak til Done, og sjekk begge sider: regelens egen revisjonslogg i Jira, og **Kjøringer og logger** i OneUptime.
+4. Slå på regelen, flytt en testsak til Done, og sjekk begge sider: regelens egen revisjonslogg i Jira, og **Logger → Kjøringer** i OneUptime.
 
 Ting som er verdt å vite før du stoler på dette:
 
@@ -342,7 +342,7 @@ En arbeidsflyt har nøyaktig én trigger, så hendelser og varsler trenger én a
 
 ## Feilsøking
 
-Åpne den feilende blokken i **Kjøringer og logger** først. Jira returnerer en JSON-kropp som navngir nøyaktig hva den avviste, og API-komponenten beholder den i `response-body`.
+Åpne den feilende blokken i **Logger → Kjøringer** først. Jira returnerer en JSON-kropp som navngir nøyaktig hva den avviste, og API-komponenten beholder den i `response-body`.
 
 **`401 Unauthorized`.** Kod `email:api_token` på nytt med `printf` og oppdater `JIRA_AUTH`; en etterfølgende nylinje fra `echo` er den vanlige årsaken. Bekreft deretter at kontoen som eier tokenet, kan opprette saker i det prosjektet. På Data Center: sjekk at du sender `Bearer`, ikke `Basic`.
 
@@ -356,7 +356,7 @@ En arbeidsflyt har nøyaktig én trigger, så hendelser og varsler trenger én a
 
 **Overgangskallet returnerer `400`.** Overgangs-id-en er ikke gyldig fra sakens *nåværende* status. Hent `/transitions` for den saken og bruk en id fra svaret.
 
-**Automatiseringsregelen vises som vellykket, men ingenting når fram til OneUptime.** Sjekk porten først — se den begrensede listen ovenfor. Send deretter en forespørsel til webhook-URL-en selv med `curl` og se om den dukker opp i **Kjøringer og logger**; kommer din fram og Jiras ikke gjør det, ligger problemet på Jiras side.
+**Automatiseringsregelen vises som vellykket, men ingenting når fram til OneUptime.** Sjekk porten først — se den begrensede listen ovenfor. Send deretter en forespørsel til webhook-URL-en selv med `curl` og se om den dukker opp i **Logger → Kjøringer**; kommer din fram og Jiras ikke gjør det, ligger problemet på Jiras side.
 
 **Arbeidsflyten kjører, men hendelsen endrer seg ikke.** En **Update One Incident**-blokk rapporterer `Items Updated: 0` når spørringen ikke matchet noe, og det teller som suksess, ikke som en feil. Sjekk at id-en i nyttelasten virkelig er OneUptime-hendelses-id-en, og at du spør på `_id`.
 

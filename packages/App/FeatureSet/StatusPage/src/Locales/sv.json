@@ -235,6 +235,10 @@
       "invalidLink": "Den här avregistreringslänken är ogiltig. Den kan vara ofullständig, eller så kan prenumerationen ha tagits bort. Använd avregistreringslänken i ett nyligen skickat meddelande från den här statussidan för att avsluta prenumerationen.",
       "failed": "Det gick inte att avsluta prenumerationen. Försök igen.",
       "loadFailed": "Det gick inte att läsa in den här avregistreringslänken. Försök igen senare."
+    },
+    "steps": {
+      "details": "Detaljer",
+      "preferences": "Inställningar"
     }
   },
   "accounts": {
@@ -327,5 +331,6 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}} får inte vara mindre än {{minValue}}.",
   "{{field}} is required.": "{{field}} är obligatoriskt.",
   "{{field}} should match {{matchField}}": "{{field}} måste matcha {{matchField}}",
-  "Email is not valid.": "E-postadressen är ogiltig."
+  "Email is not valid.": "E-postadressen är ogiltig.",
+  "Next": "Nästa"
 }

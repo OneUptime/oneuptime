@@ -151,7 +151,7 @@ Replace the account GUID with the account these cases belong to. **`customerid` 
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-Now turn the workflow on — **Overview → Edit Workflow → Enabled** — declare a test incident, and read the run under **Runs & Logs**. The `create-case` block should show a `201` and a body containing the new `incidentid`. Changes on the canvas save themselves; there is no Save button.
+Now turn the workflow on — **Overview → Edit Workflow → Enabled** — declare a test incident, and read the run under **Logs → Runs**. The `create-case` block should show a `201` and a body containing the new `incidentid`. Changes on the canvas save themselves; there is no Save button.
 
 ### Mapping severity and status
 
@@ -230,13 +230,13 @@ Now the other direction: someone closes the case in Dynamics, or an agent adds a
 ### Build the receiving workflow first
 
 1. **Create Workflow**, name it `Dynamics 365 → OneUptime`, and add the **Webhook** trigger.
-2. Open **Settings** on that workflow and copy the **Webhook Secret Key**. Your URL is:
+2. Open the workflow's **Builder**, click the **Webhook** trigger, and click **Copy URL** at the top of its settings. The URL looks like this:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   On a self-hosted install, swap in your own host. Treat the URL like a password — anyone who has it can start the workflow. You can reset the key from the same page.
+   On a self-hosted install, the URL has your own host. Treat the URL like a password — anyone who has it can start the workflow. If it leaks, click **Reset URL** in the same place; the old URL stops working at once.
 
 3. Add an **If / Else** block that checks a shared secret before anything else happens. **Input 1** is `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — a value you invent and save as a secret global variable.
 4. From the **Yes** branch, add an **Update One Incident** block:
@@ -323,7 +323,7 @@ A workflow has exactly one trigger, so incidents and alerts need one workflow ea
 
 ## Troubleshooting
 
-Read the failing block in **Runs & Logs** first — both Microsoft endpoints return an explanatory JSON body, and the API component keeps it in `response-body`.
+Read the failing block in **Logs → Runs** first — both Microsoft endpoints return an explanatory JSON body, and the API component keeps it in `response-body`.
 
 **The token request fails with `400` and `invalid_request` or an unsupported grant type.** The `Content-Type` header is not exactly `Content-Type: application/x-www-form-urlencoded`, so the body went out as JSON. Check the capitalization.
 
@@ -343,7 +343,7 @@ Read the failing block in **Runs & Logs** first — both Microsoft endpoints ret
 
 **`429 Too Many Requests`.** Dataverse's service protection limits — roughly 6,000 requests and 20 minutes of execution time per user in any five-minute window, per web server. The response carries a `Retry-After` in seconds. If a workflow is bursting, put a **Delay** block in it or move the work to a scheduled workflow that batches.
 
-**Nothing arrives on the OneUptime side.** Send a request to the webhook URL yourself with `curl` and check the workflow's **Runs & Logs**. If your own request shows up and Dynamics' does not, the problem is upstream: for Power Automate, look at the flow's own run history; for a native webhook, look at **Settings → System Jobs** filtered to failures.
+**Nothing arrives on the OneUptime side.** Send a request to the webhook URL yourself with `curl` and check the workflow's **Logs → Runs**. If your own request shows up and Dynamics' does not, the problem is upstream: for Power Automate, look at the flow's own run history; for a native webhook, look at **Settings → System Jobs** filtered to failures.
 
 **The workflow runs but the incident does not change.** An **Update One Incident** block reports `Items Updated: 0` when the query matched nothing — that is a success, not an error. Check that the id in the payload is the OneUptime incident id and that you are querying `_id`.
 

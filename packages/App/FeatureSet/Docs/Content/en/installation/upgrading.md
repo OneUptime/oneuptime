@@ -19,15 +19,6 @@ Dashboard. Before this change both editions ran the same code, and
 `IS_ENTERPRISE_EDITION` decided which features were switched on. Now the image
 decides, and the Community image does not contain the `ee/` directory.
 
-> **Releases after 14.0.10:** SAML and OIDC single sign-on, global SSO and
-> "Require SSO for login" are part of the Community Edition again, and no
-> license state switches them off. In 14.0.0 to 14.0.10 they needed the
-> Enterprise Edition and stopped when its license lapsed, which is what the
-> 13 → 14 notes below describe. A "Require SSO for login" setting that was
-> saved but not enforced (on the Community image, or under a lapsed license)
-> is enforced again after this upgrade, so check that its provider still works
-> before you upgrade.
-
 The [Enterprise Edition](/docs/self-hosted/enterprise) page has the full
 feature comparison, licensing details and what happens when you switch
 editions.
@@ -106,40 +97,34 @@ settings that used to show an upgrade prompt.
 
 ## Upgrading from OneUptime 13 → 14
 
-> **Releases after 14.0.10:** SAML and OIDC single sign-on, global SSO and
-> "Require SSO for login" are part of the Community Edition again, and no
-> license state switches them off. Where this section says that the Community
-> image leaves single sign-on out, or that single sign-on stops or is not
-> enforced without a license, it describes 14.0.0 to 14.0.10. What it says
-> about SCIM, team compliance, audit logs and the Health dashboards still
-> applies.
-
 OneUptime 14 splits the app into two editions, and the image you pull decides
 which one you run. The **Community Edition** (Apache-2.0, the `release` and
-`<version>` tags) does not contain the repository's `ee/` directory, so SAML
-SSO, OpenID Connect, SCIM provisioning, team compliance settings, audit logs,
-the Admin **Health** dashboards and the Admin **Query Console** are not in that
-image at all. The **Enterprise Edition** (the `enterprise-release` and
-`enterprise-<version>` tags) contains them, and checks an Enterprise license
-while it runs, which OneUptime 13 never did.
+`<version>` tags) includes SAML SSO, OpenID Connect, global SSO and "Require
+SSO for login". It does not contain the repository's `ee/` directory, so SCIM
+provisioning, team compliance settings, audit logs, the Admin **Health**
+dashboards and the Admin **Query Console** are not in that image at all. The
+**Enterprise Edition** (the `enterprise-release` and `enterprise-<version>`
+tags) contains them, and checks an Enterprise license while it runs, which
+OneUptime 13 never did. Single sign-on does not depend on that license.
 
 [Community and Enterprise Edition images](#community-and-enterprise-edition-images)
 above is the reference for the change: what each edition contains, what to set
 on each deployment path, and what the license does. This section is the upgrade
 itself. Upgrade from 13 — if you are still on 12, do 12 → 13 first.
 
-Nothing is deleted on either edition. Your SSO, OIDC and SCIM configuration,
-your "Require SSO for login" settings and the audit logs recorded so far all
-stay in the database. The Community Edition simply does not serve or enforce
-them, and switching editions needs no migration in either direction.
+Nothing is deleted on either edition. Single sign-on works the same on both:
+your SSO and OIDC configuration and your "Require SSO for login" settings carry
+over as they are. Your SCIM configuration and the audit logs recorded so far
+stay in the database. The Community Edition simply does not serve them, and
+switching editions needs no migration in either direction.
 
 ### What you need to do
 
-1. **Decide which edition this install runs.** If you use SAML SSO, OpenID
-   Connect, SCIM provisioning, team compliance settings or audit logs, or you
-   want the Admin **Health** dashboards, that is the Enterprise Edition.
-   Otherwise nothing here needs a decision: the Community Edition is what you
-   already have.
+1. **Decide which edition this install runs.** If you use SCIM provisioning,
+   team compliance settings or audit logs, or you want the Admin **Health**
+   dashboards, that is the Enterprise Edition. Otherwise nothing here needs a
+   decision: the Community Edition is what you already have, and it includes
+   SAML SSO and OpenID Connect.
 2. **On Helm, set the edition in your values file:** `image.type:
    enterprise-edition` (the default is `community-edition`). Leave `image.tag`
    alone — the chart adds the `enterprise-` prefix itself, so `image.tag:
@@ -151,23 +136,23 @@ them, and switching editions needs no migration in either direction.
    is the Community image. This is the one thing that stops a 13 install: on 13
    a Compose Enterprise install was `APP_TAG=release` plus
    `IS_ENTERPRISE_EDITION=true`, and that combination now **refuses to start**
-   rather than coming up as the Community Edition with your SSO configuration no
-   longer enforced. `npm run update` rewrites `APP_TAG` for you while
-   `IS_ENTERPRISE_EDITION=true` (`release` becomes `enterprise-release`, a pinned
-   `13.0.8` becomes `enterprise-13.0.8`) and prints what it changed. If you pull
-   images by hand instead, set `APP_TAG` yourself first.
+   rather than coming up as the Community Edition with SCIM provisioning and
+   audit logging silently stopped. `npm run update` rewrites `APP_TAG` for you
+   while `IS_ENTERPRISE_EDITION=true` (`release` becomes `enterprise-release`, a
+   pinned `13.0.8` becomes `enterprise-13.0.8`) and prints what it changed. If
+   you pull images by hand instead, set `APP_TAG` yourself first.
 4. **On the Enterprise Edition, activate a license.** An install with no license
    gets a 14-day trial, counted from its first start of the Enterprise Edition —
    for an upgrade that is the day you upgrade, not the day you first installed
    OneUptime. A master admin activates it from the edition label in the Admin
    Dashboard header; air-gapped installs activate with a signed token instead.
    See [Licensing](/docs/self-hosted/enterprise#licensing).
-5. **If this install will run the Community Edition while SSO enforcement is
-   configured, review who has access before you upgrade.** "Require SSO for
-   login" stops being enforced, so password sign-in is accepted again, and
-   anyone who still has an account and can reach its mailbox can set a password
-   with "Forgot password" — including people your identity provider
-   deprovisioned, because SCIM deprovisioning stops as well. Remove those users
+5. **If this install will run the Community Edition while your identity
+   provider deprovisions users through SCIM, review who has access before you
+   upgrade.** SCIM deprovisioning stops, so the people you remove at your
+   identity provider keep their OneUptime accounts, and unless "Require SSO for
+   login" applies to them, anyone who can still reach such an account's mailbox
+   can set a password with "Forgot password" and sign in. Remove those users
    first:
    [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community).
 6. **If you monitor IPv6 addresses with Ping, Port or SSL monitors, re-save
@@ -182,7 +167,8 @@ them, and switching editions needs no migration in either direction.
 | Helm selector | `image.type` | `image.type` — unchanged, but the images now differ |
 | Compose selector | `IS_ENTERPRISE_EDITION=true` | `APP_TAG=enterprise-release` |
 | Enterprise license | never checked while running | checked at startup and once a day |
-| SSO, OIDC and SCIM endpoints | the same paths in both editions | the same paths on Enterprise; `404` on Community |
+| SSO and OIDC endpoints | the same paths in both editions | the same paths in both editions, whatever the license state |
+| SCIM endpoints | the same paths in both editions | the same paths on Enterprise; `404` on Community |
 | Your enterprise configuration | stored, enforced | stored either way, enforced on Enterprise |
 
 One migration runs: a nullable `enterpriseEditionFirstSeenAt` column on the
@@ -200,18 +186,16 @@ either direction.
 - **A license that expires** gets a 30-day grace period from its expiry date,
   during which every enterprise feature works and the edition label warns.
 - **After the trial, or after that grace period**, until a license is activated:
-  SSO and OIDC sign-in are refused, "Require SSO for login" is no longer
-  enforced (users sign in with their password), your identity provider's SCIM
-  requests are refused and audit logging stops recording. Enterprise
-  configuration becomes read-only — you can still view and delete it, disable an
-  SSO or OIDC provider and reset a SCIM bearer token, which is what an incident
+  your identity provider's SCIM requests are refused and audit logging stops
+  recording. Enterprise configuration becomes read-only — you can still view
+  and delete it and reset a SCIM bearer token, which is what an incident
   needs — and the Admin Health dashboards and Query Console are locked.
 - **Nothing is deleted, and core monitoring is never affected.** Monitors,
   alerts, incidents, on-call, status pages and telemetry are outside the
-  license, and password sign-in for every user, master admins included, is
-  unaffected. Activating a license restores SSO sign-in, SSO enforcement, SCIM
-  provisioning and audit logging with the configuration you already have,
-  without a restart.
+  license, and so is sign-in: SSO and OIDC sign-in, "Require SSO for login" and
+  password sign-in for every user, master admins included, work the same in
+  every license state. Activating a license restores SCIM provisioning and
+  audit logging with the configuration you already have, without a restart.
 - **A license key you already have is accepted**, as an "unverified" license: its
   expiry date and seat limit come from what the license server has already told
   this install, and it gets the same 30-day grace period after that expiry.
@@ -249,8 +233,8 @@ npm run update
   the Enterprise Edition, or `IS_ENTERPRISE_EDITION=false` to run the Community
   Edition.
 - **To move to the Community Edition deliberately**, set `APP_TAG=release` and
-  `IS_ENTERPRISE_EDITION=false`. Read point 5 above first if this install
-  enforces SSO.
+  `IS_ENTERPRISE_EDITION=false`. Read point 5 above first if your identity
+  provider deprovisions users through SCIM.
 - Nothing else in `config.env` has to change for this release.
 
 ### Helm: pick the image type
@@ -266,7 +250,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   release, per the timeline above.
 - **`image.tag: release` is the default**, so a chart left on the floating tag
   moves to 14 on its next upgrade with no values change at all. If that install
-  has SSO, OIDC or SCIM configured on `community-edition`, set `image.type:
+  has SCIM configured on `community-edition`, set `image.type:
   enterprise-edition` in the same upgrade.
 - **`IS_ENTERPRISE_EDITION` is still emitted by the chart**, derived from
   `image.type` so the two can never disagree. It gates nothing. Forcing it to
@@ -417,18 +401,18 @@ upgrade moves those fixes to asking first:
 Nothing is turned off. Rules, clusters and resources that one of the switches
 kept quiet start proposing fixes, and each fix still waits for a human. To keep
 auto-remediation out of a project, turn off **Enable AI**, or disable its rules
-(Incidents or Alerts → AI → Remediation) and set **Fixes** to **Off** on each
-cluster's and resource's AI agent page. API clients and Terraform
-configurations that set `enableAutoRemediation` or `enableAiCommandExecution`
-(`enable_auto_remediation` or `enable_ai_command_execution` in Terraform)
-should stop setting them.
+(Incidents or Alerts → Rules → Auto Remediation Rules) and set **Fixes** to
+**Off** on each cluster's and resource's AI agent page. API clients and
+Terraform configurations that set `enableAutoRemediation` or
+`enableAiCommandExecution` (`enable_auto_remediation` or
+`enable_ai_command_execution` in Terraform) should stop setting them.
 
 ### New projects start with every AI feature on
 
 A project created after the upgrade starts with every AI feature switched on,
 not only automatic incident and alert investigation: postmortem drafts,
-automatic code fixes and instrumentation fixes (Incidents or Alerts → AI →
-Investigation), and AI Insights with its fix pull requests and auto-archiving
+automatic code fixes and instrumentation fixes (Incidents or Alerts →
+Settings → AI), and AI Insights with its fix pull requests and auto-archiving
 of expected-denial exceptions (AI → Insights → Settings).
 
 Projects that already exist keep the settings they have; the upgrade switches
@@ -443,6 +427,45 @@ keeps it off. The Terraform provider's default for these attributes is still
 `false`, so a project created with Terraform starts with them off unless its
 configuration sets them to `true`.
 
+### AI has no limits by default
+
+Every limit on the work AI does on its own is now opt-in, and a limit nobody
+has set does not apply. Where an existing project left one of these settings
+empty, it used to get a default and now gets no limit:
+
+| Setting                                                                                                      | Before                                   | Now                                                   |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------- | ----------------------------------------------------- |
+| **Minimum Severity To Investigate** (alerts)                                                                 | The project's top two severity tiers     | Every severity                                        |
+| **Re-investigation Cooldown (Minutes)** (incidents and alerts)                                               | 30 minutes                               | No cooldown: every incident and alert is investigated |
+| **Max Concurrent Incident Investigations**, **Max Concurrent Alert Investigations**                          | 3, and a value you set was held to 1–25  | No limit: every investigation starts right away       |
+| **Daily Incident AI Fix Task Limit**, **Daily Alert AI Fix Task Limit**                                      | 25 per UTC day                           | No limit                                              |
+| AI work outside incidents and alerts: insight triage, and fix tasks for exceptions, insights and performance | 3 runs at once, 25 fix tasks per UTC day | No limit                                              |
+| **Max Open Fix Pull Requests** (a repository's **Settings** page)                                            | 5                                        | No cap                                                |
+
+Values a project already set are kept exactly, and nothing is migrated. They
+work as before, except that a concurrency cap is no longer held to 25: it can
+be any number from 1 up. Investigations only queue for a free slot in a lane
+that has a cap, and a queued one still expires after 30 minutes. 0 still
+pauses where it did: a daily fix task limit of 0 pauses that lane's fix tasks,
+and a **Max Open Fix Pull Requests** of 0 blocks AI fix pull requests on that
+repository. A cooldown is still held to at most 1440 minutes (a day).
+
+To keep the old limits, set them yourself: **Minimum Severity To
+Investigate**, the cooldown, the concurrency caps and the daily fix task limits
+on **Incidents → Settings → AI** and **Alerts → Settings → AI**, and **Max Open
+Fix Pull Requests** on each repository's **Settings** page. AI work outside
+incidents and alerts has no setting, so it runs without these limits. Nothing
+changes for the **Daily Incident AI Token Limit** and **Daily Alert AI Token
+Limit** (0 still pauses that lane) or for the investigation time limit: they
+were already unset by default, which means no limit.
+
+The AI settings also moved in the Incidents and Alerts side menus, and the
+**AI** section there is gone. Its **Investigation** page is now **Settings →
+AI**, the first item under **Settings**, and its **Remediation** page is now
+**Rules → Auto Remediation Rules**, right after **Runbook Rules**. The URLs
+(`…/settings/ai` and `…/settings/auto-remediation-rules`) have not changed, so
+bookmarks keep working.
+
 ### Verify the edition and the license
 
 - The **edition label in the Admin Dashboard header** names the edition that is
@@ -451,9 +474,9 @@ configuration sets them to `true`.
   OneUptime image carries the `enterprise-` prefix on the Enterprise Edition.
 - **Helm:** `kubectl get pods -n <namespace> -o jsonpath='{..image}'` prints the
   images the pods run; the same prefix rule applies.
-- The SSO, OIDC and SCIM endpoints tell the two cases apart: `404` means this
-  image has no `ee/` in it (the Community Edition), while `402` or `403` means
-  the Enterprise Edition is running with a license that needs attention.
+- The SCIM endpoints tell the two cases apart: `404` means this image has no
+  `ee/` in it (the Community Edition), while `402` or `403` means the
+  Enterprise Edition is running with a license that needs attention.
 
 ### Rolling back to 13
 
@@ -469,9 +492,9 @@ configuration sets them to `true`.
   finds it as it was.
 
 > Tip: on the Enterprise Edition, activate the license on the day you upgrade
-> rather than at the end of the trial. Activation is what keeps single sign-on
-> enforced, and the trial is counted from this upgrade, not from your original
-> install date.
+> rather than at the end of the trial. Activation is what keeps SCIM
+> provisioning and audit logging running, and the trial is counted from this
+> upgrade, not from your original install date.
 
 ## Upgrading from OneUptime 12 → 13
 
@@ -867,58 +890,45 @@ it participate. Upgrading changes nothing here.
 
 OneUptime 11 has two changes that need your attention before you upgrade:
 
-1. **Identity features (SSO, OIDC, SCIM) moved to the Enterprise Edition** —
-   if you sign in with SSO on a self-hosted Community build, read this first.
+1. **SCIM provisioning and team compliance settings moved to the Enterprise
+   Edition** — if you use them on a self-hosted Community build, read this
+   first.
 2. **The ClickHouse telemetry storage was rebuilt** — relevant if you want to
    carry historical telemetry forward.
 
 This page explains both — what changes, who needs to act, and (for the
 telemetry rebuild) every query needed to migrate history.
 
-### Identity features (SSO, OIDC, SCIM) now require the Enterprise Edition
+### SCIM and team compliance settings now require the Enterprise Edition
 
-> **Releases after 14.0.10:** SAML SSO, OIDC and global SSO are part of the
-> Community Edition again, together with "Require SSO for login", and need no
-> license. SCIM provisioning and team compliance settings still need the
-> Enterprise Edition. The rest of this section describes v11 to 14.0.10.
+In v11, the following access-management features moved to the **OneUptime
+Enterprise Edition** and are no longer part of the free, open-source
+(Community) build:
 
-In v11, the following authentication and access-management features moved to
-the **OneUptime Enterprise Edition** and are no longer part of the free,
-open-source (Community) build:
-
-- **SAML SSO** — both project login and status-page login
-- **OpenID Connect (OIDC)** — both project login and status-page login
 - **SCIM user provisioning** — project and status page
-- **Global (instance-wide) SSO / OIDC**
 - **Team compliance settings**
 
-**What you'll see after upgrading:** if you configured any of these on a
-Community Edition build, the settings pages show an upgrade prompt instead of
-the configuration form, and the configuration can no longer be changed. Until
-the Community and Enterprise images were split, providers you had already
-configured could keep signing users in on a Community build, because it still
-contained the sign-in code. The Community images of 14.0.0 to 14.0.10 contain
-no SSO, OIDC or SCIM code, so sign-in through them stops once you upgrade to
-one of those releases — see
+SAML SSO, OpenID Connect (OIDC) and global (instance-wide) SSO, for both
+project login and status-page login, are part of the Community Edition — see
 [Community and Enterprise Edition images](#community-and-enterprise-edition-images).
-Your existing provider records are **preserved in the database** — nothing is
-deleted — and they work again as soon as the instance runs the Enterprise
-Edition, or, for SSO and OIDC, any release after 14.0.10.
+
+**What you'll see after upgrading:** if you configured SCIM or team compliance
+settings on a Community Edition build, the settings pages show an upgrade
+prompt instead of the configuration form, and the configuration can no longer
+be changed. Your existing configuration is **preserved in the database** —
+nothing is deleted — and it works again as soon as the instance runs the
+Enterprise Edition.
 
 **Availability:**
 
-- **Self-hosted:** SCIM and team compliance settings require the
-  **Enterprise Edition** build. SSO and OIDC require it only on v11 to
-  14.0.10; releases after 14.0.10 include them in every edition.
+- **Self-hosted:** requires the **Enterprise Edition** build.
 - **OneUptime Cloud:** requires the **Scale** plan (or above).
 
-**If you rely on SSO and self-host**, upgrade to a release after 14.0.10,
-where every edition serves SSO and OIDC. For SCIM, email
+**If you rely on SCIM and self-host**, email
 [support@oneuptime.com](mailto:support@oneuptime.com) for an Enterprise Edition
 license, mention that you upgraded from v10 to v11, and we'll help you get it
-back online. If your team is mid-upgrade and this
-is blocking sign-in, contact us before upgrading production so we can plan it
-with you.
+back online. If your team is mid-upgrade and this is blocking provisioning,
+contact us before upgrading production so we can plan it with you.
 
 ### What changes in v11 (telemetry storage)
 

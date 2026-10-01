@@ -534,7 +534,8 @@ const DocsNav: NavGroup[] = [
         url: "/docs/workflows/variables",
       },
       {
-        title: "Workflow Runs & Logs",
+        // The Dashboard menu item is Logs → Runs; the page keeps its URL.
+        title: "Workflow Runs",
         url: "/docs/workflows/runs-and-logs",
       },
       {

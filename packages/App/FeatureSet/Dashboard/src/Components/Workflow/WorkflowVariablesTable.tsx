@@ -12,8 +12,10 @@
  * screen on an ordinary laptop.
  *
  * Create makes a static variable - the kind almost everybody wants - and its
- * form never asks which kind. An OAuth 2.0 variable is created from the More
- * menu beside it, with a form of its own (CreateOAuthWorkflowVariableModal).
+ * form never asks which kind. It walks two steps, Variable (name and
+ * description) then Value (content and the secret switch), rather than one
+ * long page. An OAuth 2.0 variable is created from the More menu beside it,
+ * with a form of its own (CreateOAuthWorkflowVariableModal).
  */
 
 import React, {
@@ -47,6 +49,7 @@ import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import CreateOAuthWorkflowVariableModal from "./CreateOAuthWorkflowVariableModal";
 import WorkflowVariableTokenRefreshModal from "./WorkflowVariableTokenRefreshModal";
 import {
+  STATIC_VARIABLE_FORM_STEPS,
   TokenRefreshOutcome,
   fetchTokenRefreshOutcome,
   getStaticVariableCreateFormFields,
@@ -275,6 +278,7 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
             setHasFetchedOnce(true);
           }
         }}
+        formSteps={STATIC_VARIABLE_FORM_STEPS}
         formFields={getStaticVariableCreateFormFields({ isGlobal })}
         showRefreshButton={true}
         searchableFields={["name", "description"]}

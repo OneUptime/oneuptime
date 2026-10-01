@@ -33,6 +33,7 @@ describe("Sitemap isRedirectPath", () => {
       "/product/proxmox",
       "/product/vmware",
       "/product/databases",
+      "/product/queues",
     ]) {
       expect(isRedirectPath(canonicalPath)).toBe(false);
     }
@@ -83,6 +84,13 @@ describe("Sitemap product page priorities", () => {
       '"/product/databases": { priority: 0.9, changefreq: "weekly" }',
     );
     expect(sitemapSource.split('"/product/databases"').length - 1).toBe(1);
+  });
+
+  test("the Queues product page is configured like the other product pages, once", () => {
+    expect(sitemapSource).toContain(
+      '"/product/queues": { priority: 0.9, changefreq: "weekly" }',
+    );
+    expect(sitemapSource.split('"/product/queues"').length - 1).toBe(1);
   });
 });
 

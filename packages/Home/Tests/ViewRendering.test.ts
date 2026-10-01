@@ -52,6 +52,39 @@ import DatabaseServerDiscoverySource, {
   DATABASE_SERVER_DISCOVERY_SOURCES,
   getDatabaseServerDiscoverySourceLabel,
 } from "Common/Types/DatabaseServer/DatabaseServerDiscoverySource";
+import {
+  QueueAlertThresholdEntry,
+  QueueAlertThresholdGroup,
+  QueueSystemEntry,
+  QueueSystemGroup,
+  QueuesPageContent,
+  getQueuesPageContent,
+} from "../Utils/Queues";
+import {
+  MESSAGING_SYSTEMS,
+  MessagingSystemDescriptor,
+  getMessagingBrokerScope,
+  getMessagingSystemDisplayName,
+  normalizeMessagingSystem,
+} from "Common/Types/MessageQueue/MessagingSystem";
+import {
+  MessageQueueMetricDescriptor,
+  getMessageQueueMetricsForSystem,
+} from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
+import {
+  MESSAGE_QUEUE_SERIES_TOTALS,
+  MessageQueueAlertTemplate,
+  MessageQueueSeriesTotalDefinition,
+  formatMessageQueueThreshold,
+  getMessageQueueAlertTemplateForMetric,
+  getMessageQueueSourceWindowFloor,
+  isMessageQueueMetricMonitorable,
+} from "Common/Types/Monitor/MessageQueueAlertTemplates";
+import {
+  ResolvedMessagingDestination,
+  resolveMessagingSpan,
+} from "Common/Types/MessageQueue/MessagingTelemetryResolver";
+import { buildMessageQueueIdentifier } from "Common/Types/MessageQueue/MessageQueueIdentity";
 import ejs from "ejs";
 import fs from "fs";
 import path from "path";
@@ -1611,7 +1644,7 @@ describe("Databases on every product surface", () => {
   test("the mobile menu lists what the flyout lists, with no hole before the AI card", async () => {
     const nav: string = await render("nav.ejs", { homeUrl: HOME_URL });
 
-    // The mobile menu's two-column grid, which ends with a full-width AI card.
+    // The mobile menu's two-column grid, which opens with a full-width AI card.
     const mobileStart: number = nav.indexOf(
       '<nav class="grid grid-cols-2 gap-3">',
     );
@@ -1628,8 +1661,28 @@ describe("Databases on every product surface", () => {
 
     expect(mobileStart).toBeGreaterThan(-1);
     expect(fullWidth).toEqual(["/product/ai-agent"]);
-    // An odd count leaves an empty cell right before the full-width card.
-    expect((mobileLinks.length - fullWidth.length) % 2).toBe(0);
+    // Featured first, as the flyout features it above every product.
+    expect(mobileLinks[0]).toBe("/product/ai-agent");
+
+    /*
+     * An odd number of products right before a full-width card leaves an
+     * empty cell beside the last of them: the cells before each full-width
+     * card must fill whole rows.
+     */
+    let cellsSinceFullWidth: number = 0;
+
+    for (const href of mobileLinks) {
+      if (fullWidth.includes(href)) {
+        expect({ fullWidth: href, oddCell: cellsSinceFullWidth % 2 }).toEqual({
+          fullWidth: href,
+          oddCell: 0,
+        });
+        cellsSinceFullWidth = 0;
+        continue;
+      }
+
+      cellsSinceFullWidth++;
+    }
 
     // The flyout: every product card, plus its featured AI banner.
     const flyoutLinks: Array<string> = productLinksIn(
@@ -1726,6 +1779,1038 @@ describe("Databases on every product surface", () => {
 
     expect(icon).toContain(`d="${dashboardPath}"`);
     expect(dashboardPath.startsWith(DATABASE_GLYPH_PATH_START)).toBe(true);
+  });
+});
+
+// The queue-list glyph IconProp.QueueList draws in the dashboard.
+const QUEUE_GLYPH_PATH_START: string =
+  "M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5";
+
+/*
+ * A system's starting threshold by name, read the way "Create monitor"
+ * reads it: the template of one of the system's broker health metrics.
+ */
+function queueTemplateNamed(
+  system: string,
+  name: string,
+): MessageQueueAlertTemplate | undefined {
+  for (const metric of getMessageQueueMetricsForSystem(system)) {
+    const template: MessageQueueAlertTemplate | undefined =
+      getMessageQueueAlertTemplateForMetric(metric);
+
+    if (template && template.name === name) {
+      return template;
+    }
+  }
+
+  return undefined;
+}
+
+// "1.21M", "610k", "5,412" as the mockups print them.
+function parseMockupCount(value: string): number {
+  const match: RegExpMatchArray | null = value
+    .replace(/,/g, "")
+    .match(/^([\d.]+)([kM]?)$/);
+
+  if (!match) {
+    throw new Error(`"${value}" is not a count the mockups print`);
+  }
+
+  const multiplier: number =
+    match[2] === "M" ? 1_000_000 : match[2] === "k" ? 1_000 : 1;
+
+  return Number(match[1]) * multiplier;
+}
+
+/*
+ * The Queues page's own sections: everything in <main> up to the end of its
+ * FAQ. The shared features-table include that follows lists the other
+ * products' cards, vocabulary and all.
+ */
+function queuesOwnSectionsOf(html: string): string {
+  const body: string = pageBodyOf(html);
+  const faqStart: number = body.indexOf('id="queues-faq"');
+  const faqEnd: number = body.indexOf("</dl>", faqStart);
+
+  expect(faqStart).toBeGreaterThan(-1);
+  expect(faqEnd).toBeGreaterThan(faqStart);
+
+  return body.slice(0, faqEnd);
+}
+
+describe("queues.ejs", () => {
+  let html: string = "";
+  const seo: PageSEOData = PageSEOConfig["/product/queues"]!;
+  const content: QueuesPageContent = getQueuesPageContent();
+  const locals: Record<string, unknown> = {
+    enableGoogleTagManager: false,
+    seo: seoFor("/product/queues"),
+    homeUrl: HOME_URL,
+  };
+
+  // One messaging system's entry in the supported-systems section.
+  function systemEntryOf(system: string): string {
+    const start: number = html.indexOf(`data-messaging-system="${system}"`);
+
+    expect(start).toBeGreaterThan(-1);
+
+    const next: number = html.indexOf('data-messaging-system="', start + 1);
+
+    return html.slice(start, next === -1 ? html.indexOf("</ul>", start) : next);
+  }
+
+  beforeAll(async () => {
+    // Exactly the locals Routes.ts hands the template, plus homeUrl.
+    html = await render("queues.ejs", {
+      ...locals,
+      queues: getQueuesPageContent(),
+    });
+  });
+
+  test("renders a complete page", () => {
+    expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain("</html>");
+    expect(html.length).toBeGreaterThan(10000);
+  });
+
+  test("the hardcoded head is identical to the SEO entry", () => {
+    // Search engines read the first pair, social cards the second.
+    expect(html).toContain(`<title>${seo.title}</title>`);
+    expect(html).toContain(`content="${seo.description}"`);
+    expect(html).toContain(
+      '<link rel="canonical" href="https://oneuptime.com/product/queues"',
+    );
+  });
+
+  test("renders the sections the page is built around", () => {
+    for (const heading of [
+      "Every queue and topic, found and monitored",
+      "Three sources, one page per queue",
+      "From the spans you already send to a monitored queue",
+      "Queue monitoring that sees both sides",
+      `${content.systemCount} messaging systems, known by name`,
+      `${content.alertThresholdCount} starting thresholds for ${content.systemsWithAlertThresholdsCount} messaging systems`,
+      "Built for the way messaging actually runs",
+      "Queue alerts where your team already works",
+      "Pay for data, or run it yourself",
+      "Questions platform teams ask",
+    ]) {
+      expect(html).toContain(heading);
+    }
+  });
+
+  test("covers every source a queue's page is built from", () => {
+    for (const source of [
+      "Application traces",
+      "Broker metrics",
+      "Client metrics",
+    ]) {
+      expect(html).toContain(`>${source}</h3>`);
+    }
+  });
+
+  test("prints the counts the catalogs give it, not numbers typed into the copy", async () => {
+    expect(html).toContain(
+      `${MESSAGING_SYSTEMS.length} messaging systems</span>`,
+    );
+    expect(html).toContain(
+      `Curated broker health charts for ${content.systemsWithBrokerHealthCount} messaging systems`,
+    );
+    expect(html).toContain(
+      `charts broker health for ${content.systemsWithBrokerHealthCount} of them`,
+    );
+
+    // Control: other counts in, other counts out.
+    const doctored: string = await render("queues.ejs", {
+      ...locals,
+      queues: {
+        ...content,
+        systemCount: 1234,
+        systemsWithBrokerHealthCount: 567,
+        alertThresholdCount: 89,
+        systemsWithAlertThresholdsCount: 12,
+      },
+    });
+
+    expect(doctored).toContain("1234 messaging systems, known by name");
+    expect(doctored).toContain("1234 messaging systems</span>");
+    expect(doctored).toContain(
+      "Curated broker health charts for 567 messaging systems",
+    );
+    expect(doctored).toContain("charts broker health for 567 of them");
+    expect(doctored).toContain(
+      "89 starting thresholds for 12 messaging systems",
+    );
+  });
+
+  test("lists every catalog system once, under the source of its broker metrics", () => {
+    const listed: Array<string> = [
+      ...html.matchAll(/data-messaging-system="([^"]+)"/g),
+    ].map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect([...listed].sort()).toEqual(
+      MESSAGING_SYSTEMS.map((descriptor: MessagingSystemDescriptor): string => {
+        return descriptor.system;
+      }).sort(),
+    );
+
+    // Each group card holds its systems up to the next card.
+    const cards: Array<string> = html.split('data-system-group="').slice(1);
+
+    expect(cards.length).toBe(content.systemGroups.length);
+
+    content.systemGroups.forEach((group: QueueSystemGroup, index: number) => {
+      const card: string = cards[index]!;
+
+      expect(card.startsWith(`${group.key}"`)).toBe(true);
+      expect(card).toContain(`>${escapeForHtml(group.title)}</h3>`);
+      expect(
+        [...card.matchAll(/data-messaging-system="([^"]+)"/g)].map(
+          (match: RegExpMatchArray): string => {
+            return match[1]!;
+          },
+        ),
+      ).toEqual(
+        group.systems.map((entry: QueueSystemEntry): string => {
+          return entry.system;
+        }),
+      );
+    });
+  });
+
+  test("names each system, where its metrics come from and the charts its queues show", () => {
+    for (const group of content.systemGroups) {
+      for (const entry of group.systems) {
+        const block: string = systemEntryOf(entry.system);
+
+        expect(block).toContain(`>${escapeForHtml(entry.displayName)}</span>`);
+
+        if (entry.metricsSource) {
+          expect(block).toContain(
+            `>${escapeForHtml(entry.metricsSource)}</code>`,
+          );
+        } else {
+          expect(block).not.toContain("<code");
+        }
+
+        expect(
+          [...block.matchAll(/data-broker-health-chart>([^<]+)</g)].map(
+            (match: RegExpMatchArray): string => {
+              return match[1]!;
+            },
+          ),
+        ).toEqual(entry.brokerHealthCharts.map(escapeForHtml));
+      }
+    }
+  });
+
+  test("says where the metrics of a system without charts go instead", () => {
+    for (const system of ["nats", "eventgrid"]) {
+      expect(systemEntryOf(system)).toContain(
+        "Its broker metrics arrive in the Metrics explorer, not on a queue's page.",
+      );
+    }
+
+    for (const system of ["jms", "bullmq"]) {
+      expect(systemEntryOf(system)).toContain(
+        "Queues from traces, with no broker metrics of their own.",
+      );
+    }
+  });
+
+  test("quotes every starting threshold by its real name, value and severity, under its system", () => {
+    const section: string = html.slice(
+      html.indexOf('id="queues-monitors"'),
+      html.indexOf("<!-- Build your own -->"),
+    );
+    const cards: Array<string> = section
+      .split('data-alert-threshold-group="')
+      .slice(1);
+
+    expect(cards.length).toBe(content.alertThresholdGroups.length);
+
+    let quoted: number = 0;
+
+    content.alertThresholdGroups.forEach(
+      (group: QueueAlertThresholdGroup, index: number) => {
+        const card: string = cards[index]!;
+
+        expect(card.startsWith(`${group.system}"`)).toBe(true);
+        expect(card).toContain(`>${escapeForHtml(group.title)}</h3>`);
+
+        const rows: Array<QueueAlertThresholdEntry> = [
+          ...card.matchAll(
+            /<li[^>]*><span>([^<]+)<\/span><span[^>]*><span[^>]*>([^<]+)<\/span><span[^>]*>(Critical|Warning)<\/span><\/span><\/li>/g,
+          ),
+        ].map((match: RegExpMatchArray): QueueAlertThresholdEntry => {
+          return {
+            name: match[1]!,
+            threshold: match[2]!,
+            severity: match[3] as QueueAlertThresholdEntry["severity"],
+          };
+        });
+
+        expect(rows).toEqual(
+          group.thresholds.map(
+            (entry: QueueAlertThresholdEntry): QueueAlertThresholdEntry => {
+              return {
+                name: escapeForHtml(entry.name),
+                threshold: escapeForHtml(entry.threshold),
+                severity: entry.severity,
+              };
+            },
+          ),
+        );
+
+        // Each one is the template Create monitor reads beside that chart.
+        for (const entry of group.thresholds) {
+          const template: MessageQueueAlertTemplate | undefined =
+            queueTemplateNamed(group.system, entry.name);
+
+          expect(template).toBeDefined();
+          expect(template!.severity).toBe(entry.severity);
+          expect(
+            formatMessageQueueThreshold(template!.threshold, template!.unit),
+          ).toBe(entry.threshold);
+        }
+
+        quoted += rows.length;
+      },
+    );
+
+    expect(quoted).toBe(content.alertThresholdCount);
+  });
+
+  test("colours each severity the way the rest of the site does", () => {
+    expect(html).toMatch(
+      /<span class="[^"]*text-red-600[^"]*">Critical<\/span>/,
+    );
+    expect(html).toMatch(
+      /<span class="[^"]*text-amber-600[^"]*">Warning<\/span>/,
+    );
+    expect(html).not.toMatch(
+      /<span class="[^"]*text-amber-600[^"]*">Critical<\/span>/,
+    );
+    expect(html).not.toMatch(
+      /<span class="[^"]*text-red-600[^"]*">Warning<\/span>/,
+    );
+  });
+
+  test("the alerts in the mockups are real starting thresholds of the systems they are shown on", () => {
+    for (const [templateName, system, severity] of [
+      ["Messages In Flight Near Quota", "aws_sqs", "CRITICAL"],
+      ["Consumer Lag High", "kafka", "WARNING"],
+      ["Dead-Lettered Messages", "servicebus", "WARNING"],
+      ["Queue Depth High", "rabbitmq", "WARNING"],
+    ] as Array<[string, string, string]>) {
+      const template: MessageQueueAlertTemplate | undefined =
+        queueTemplateNamed(system, templateName);
+
+      expect(template).toBeDefined();
+      expect(template!.severity.toUpperCase()).toBe(severity);
+      expect(html).toMatch(
+        new RegExp(
+          `>${severity}</span>[\\s\\S]{0,300}?>${escapeForRegExp(templateName)}</div>\\s*<div[^>]*>${escapeForRegExp(getMessagingSystemDisplayName(system))} `,
+        ),
+      );
+    }
+  });
+
+  test("the Slack alert quotes the threshold its monitor starts from", () => {
+    const template: MessageQueueAlertTemplate = queueTemplateNamed(
+      "kafka",
+      "Consumer Lag High",
+    )!;
+
+    expect(template.severity).toBe("Warning");
+    expect(html).toMatch(
+      />WARNING<\/span>\s*<span class="text-white\/40 text-xs">Consumer Lag High<\/span>/,
+    );
+    expect(html).toContain(
+      `Threshold: ${formatMessageQueueThreshold(template.threshold, template.unit)}`,
+    );
+    expect(html).toMatch(/<\/svg>\s*Apache Kafka &middot; orders\s*<\/span>/);
+  });
+
+  test("the broker health mockup charts RabbitMQ's catalog, with Create monitor only where the product offers it", () => {
+    const rabbitmq: ReadonlyArray<MessageQueueMetricDescriptor> =
+      getMessageQueueMetricsForSystem("rabbitmq");
+    const tiles: Array<{ title: string; createMonitor: boolean }> = [
+      ...html.matchAll(
+        /data-broker-chart="([^"]+)"( data-create-monitor="true")?/g,
+      ),
+    ].map(
+      (match: RegExpMatchArray): { title: string; createMonitor: boolean } => {
+        return { title: match[1]!, createMonitor: Boolean(match[2]) };
+      },
+    );
+
+    // Every chart a RabbitMQ queue shows, and none it does not.
+    expect(
+      tiles
+        .map((tile: { title: string }): string => {
+          return tile.title;
+        })
+        .sort(),
+    ).toEqual(
+      rabbitmq
+        .map((metric: MessageQueueMetricDescriptor): string => {
+          return metric.title;
+        })
+        .sort(),
+    );
+
+    for (const tile of tiles) {
+      const metric: MessageQueueMetricDescriptor = rabbitmq.find(
+        (candidate: MessageQueueMetricDescriptor): boolean => {
+          return candidate.title === tile.title;
+        },
+      )!;
+
+      // A gauge gets Create monitor; a counter, charted as a rate, does not.
+      expect(tile).toEqual({
+        title: tile.title,
+        createMonitor: isMessageQueueMetricMonitorable(metric),
+      });
+      expect(html).toContain(`>${tile.title}</span>`);
+    }
+
+    expect(html).toContain("from the collector's rabbitmq receiver");
+    expect(
+      MESSAGING_SYSTEMS.find((descriptor: MessagingSystemDescriptor) => {
+        return descriptor.system === "rabbitmq";
+      })!.brokerMetrics,
+    ).toMatchObject({ kind: "receiver", receiver: "rabbitmq" });
+
+    // Its depth is ready plus unacknowledged, as the note under it says.
+    const depth: MessageQueueMetricDescriptor = rabbitmq.find(
+      (metric: MessageQueueMetricDescriptor): boolean => {
+        return metric.title === "Queue depth";
+      },
+    )!;
+    const total: MessageQueueSeriesTotalDefinition | undefined =
+      MESSAGE_QUEUE_SERIES_TOTALS.find(
+        (definition: MessageQueueSeriesTotalDefinition): boolean => {
+          return (
+            definition.system === "rabbitmq" &&
+            definition.metricName === depth.metricName
+          );
+        },
+      );
+
+    expect(total?.values).toEqual(["ready", "unacknowledged"]);
+    expect(html).toMatch(
+      new RegExp(
+        `Ready and unacknowledged, added up</span>\\s*<span[^>]*>${escapeForRegExp(depth.metricName)}</span>`,
+      ),
+    );
+  });
+
+  test("the broker health mockup uses the dashboard's own labels", () => {
+    const section: string = repoFile(
+      "packages/App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueBrokerHealthSection.tsx",
+    );
+
+    expect(section).toContain('BROKER_HEALTH_TITLE: string = "Broker health"');
+    expect(section).toContain(
+      'BROKER_HEALTH_CREATE_MONITOR_LABEL: string = "Create monitor"',
+    );
+    expect(html).toContain(">Broker health</span>");
+    expect(html).toContain(">Create monitor</div>");
+  });
+
+  test("the producers and consumers mockup uses the labels a queue's Overview shows", () => {
+    const overview: string = repoFile(
+      "packages/App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Overview.tsx",
+    );
+    const servicesCard: string = repoFile(
+      "packages/App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueServicesCard.tsx",
+    );
+
+    for (const [title, sublabel] of [
+      ["Published", "publish spans, selected range"],
+      ["Consumed", "consumer spans, selected range"],
+      ["p95 processing time", "consumer spans, as the consumers measure them"],
+    ] as Array<[string, string]>) {
+      expect(html).toContain(`data-queue-tile="${title}"`);
+      expect(html).toContain(`>${sublabel}</div>`);
+      expect(overview).toContain(`title: "${title}"`);
+      expect(overview).toContain(`sublabel: "${sublabel}"`);
+    }
+
+    // The Errors tile counts failed spans, out of all of the queue's spans.
+    expect(html).toContain('data-queue-tile="Errors"');
+    expect(overview).toContain('title: "Errors"');
+    expect(overview).toContain(" of ${formatMessageQueueCount(m.total)} spans");
+    expect(html).toMatch(/>[\d.]+% of [\d.]+M spans</);
+
+    for (const field of [
+      'title: "Producers"',
+      'title: "Consumers"',
+      'countHeader: "Published"',
+      'countHeader: "Consumed"',
+      'durationHeader: "p95 publish"',
+      'durationHeader: "p95 processing"',
+    ]) {
+      expect(servicesCard).toContain(field);
+    }
+
+    for (const header of [
+      ">Producers</div>",
+      ">Consumers</div>",
+      ">p95 publish</div>",
+      ">p95 processing</div>",
+    ]) {
+      expect(html).toContain(header);
+    }
+  });
+
+  test("the producers and consumers mockup adds up", () => {
+    const block: string = html.slice(
+      html.indexOf('data-queue-tile="Published"'),
+      html.indexOf("<!-- Feature 2: Broker health -->"),
+    );
+    const tile: (title: string) => string = (title: string): string => {
+      return block.match(
+        new RegExp(
+          `data-queue-tile="${escapeForRegExp(title)}">[\\s\\S]*?<div class="text-lg font-bold text-gray-900">([^<]+)</div>\\s*<div[^>]*>([^<]+)</div>`,
+        ),
+      )![1]!;
+    };
+    const sideCounts: (side: string) => Array<number> = (
+      side: string,
+    ): Array<number> => {
+      const start: number = block.indexOf(`>${side}</div>`);
+      const end: number =
+        side === "Producers" ? block.indexOf(">Consumers</div>") : block.length;
+
+      return [
+        ...block
+          .slice(start, end)
+          .matchAll(
+            /truncate">[^<]+<\/div><div class="col-span-3 text-right[^"]*">([^<]+)<\/div>/g,
+          ),
+      ].map((match: RegExpMatchArray): number => {
+        return parseMockupCount(match[1]!);
+      });
+    };
+    const sum: (values: Array<number>) => number = (
+      values: Array<number>,
+    ): number => {
+      return values.reduce((total: number, value: number): number => {
+        return total + value;
+      }, 0);
+    };
+
+    const published: number = parseMockupCount(tile("Published"));
+    const consumed: number = parseMockupCount(tile("Consumed"));
+
+    // Every message published is published by one of the producers listed.
+    expect(sideCounts("Producers").length).toBe(2);
+    expect(Math.abs(sum(sideCounts("Producers")) - published)).toBeLessThan(
+      published * 0.005,
+    );
+    // Each consuming service reads the topic, so their counts add up.
+    expect(sideCounts("Consumers").length).toBe(2);
+    expect(Math.abs(sum(sideCounts("Consumers")) - consumed)).toBeLessThan(
+      consumed * 0.005,
+    );
+
+    // "N errors, X% of the queue's spans", where its spans are both sides.
+    const errors: number = parseMockupCount(tile("Errors"));
+    const errorsLine: RegExpMatchArray = block.match(
+      />([\d.]+)% of ([\d.]+M) spans</,
+    )!;
+    const spans: number = parseMockupCount(errorsLine[2]!);
+
+    expect(Math.abs(spans - (published + consumed))).toBeLessThan(
+      spans * 0.005,
+    );
+    expect(((errors / spans) * 100).toFixed(2)).toBe(errorsLine[1]);
+  });
+
+  test("every name-folding example is what OneUptime's resolver does with that span", () => {
+    const examples: Array<RegExpMatchArray> = [
+      ...html.matchAll(
+        /data-destination-example data-system="([^"]+)">\s*<div[^>]*>([^<]+)<\/div>[\s\S]*?data-reported-as="([^"]+)"[\s\S]*?data-queue="([^"]+)"/g,
+      ),
+    ];
+
+    expect(examples.length).toBe(6);
+
+    for (const [, system, label, reportedAs, queue] of examples) {
+      const attributes: Record<string, string> = {
+        "messaging.system": system!,
+        "messaging.destination.name": reportedAs!,
+      };
+      const resolved: ResolvedMessagingDestination | null =
+        resolveMessagingSpan({
+          getAttribute: (key: string): unknown => {
+            return attributes[key];
+          },
+          kind: "SPAN_KIND_CONSUMER",
+        });
+
+      expect({ reportedAs, queue: resolved?.destination }).toEqual({
+        reportedAs,
+        queue,
+      });
+      expect(resolved!.system).toBe(system);
+      expect(label).toBe(getMessagingSystemDisplayName(system));
+    }
+  });
+
+  test("the spellings and names it says are one queue are one queue", () => {
+    expect(html).toContain("AmazonSQS, aws.sqs and aws_sqs are one system");
+    for (const spelling of ["AmazonSQS", "aws.sqs", "aws_sqs"]) {
+      expect(normalizeMessagingSystem(spelling)).toBe("aws_sqs");
+    }
+
+    const identifierOf: (
+      system: string,
+      destination: string,
+      brokerScope?: string,
+    ) => string | null = (
+      system: string,
+      destination: string,
+      brokerScope: string = "",
+    ): string | null => {
+      return buildMessageQueueIdentifier({ system, brokerScope, destination });
+    };
+
+    // "Orders and orders are one queue"
+    expect(html).toContain("Orders and orders are one queue");
+    expect(identifierOf("kafka", "Orders")).toBe(
+      identifierOf("kafka", "orders"),
+    );
+
+    // The FAQ: two Kafka clusters with a topic called orders share one queue.
+    expect(identifierOf("kafka", "orders", "cluster-a")).toBe(
+      identifierOf("kafka", "orders", "cluster-b"),
+    );
+
+    // ...while Service Bus and Event Hubs keep their namespace.
+    for (const system of ["servicebus", "eventhubs"]) {
+      expect(getMessagingBrokerScope(system)).toBe("azure-namespace");
+      expect(identifierOf(system, "orders", "shop-prod")).not.toBe(
+        identifierOf(system, "orders", "shop-test"),
+      );
+    }
+
+    // JMS spans and ActiveMQ's broker metrics land on one queue.
+    expect(identifierOf("activemq", "orders")).toBe(
+      identifierOf("jms", "orders"),
+    );
+  });
+
+  test("a broker it does not know keeps its own name, as the page says", () => {
+    for (const system of ["ibmmq", "solace"]) {
+      expect(html).toContain(`<code>${system}</code>`);
+      expect(normalizeMessagingSystem(system)).toBe(system);
+    }
+  });
+
+  test("quotes the discovery defaults the product actually uses", () => {
+    const minSpans: number = numericConstantIn(
+      "packages/Common/Server/Utils/Telemetry/MessageQueueDiscovery.ts",
+      "DEFAULT_MESSAGE_QUEUE_MIN_SPANS",
+    );
+    const windowMinutes: number = numericConstantIn(
+      "packages/App/FeatureSet/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies.ts",
+      "WINDOW_MINUTES",
+    );
+    const budget: number = numericConstantIn(
+      "packages/Common/Server/Services/MessageQueueService.ts",
+      "DEFAULT_AUTO_CREATE_BUDGET",
+    );
+    const archiveDays: number = numericConstantIn(
+      "packages/Common/Server/Services/MessageQueueService.ts",
+      "DEFAULT_AUTO_ARCHIVE_DAYS",
+    );
+
+    expect(html).toContain(
+      `A queue appears once ${minSpans} of its spans arrive in ${windowMinutes} minutes`,
+    );
+    expect(html).toContain(
+      `only once ${minSpans} of its spans arrive in ${windowMinutes} minutes`,
+    );
+    expect(html).toContain(`${budget} live discovered queues per project`);
+    expect(html).toContain(
+      `nobody has seen for ${archiveDays} days is archived`,
+    );
+    expect(html).toContain(
+      `A discovered queue nobody has seen for ${archiveDays} days`,
+    );
+  });
+
+  test("quotes the discovery schedule and lookback the workers actually run", () => {
+    const job: string = repoFile(
+      "packages/App/FeatureSet/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies.ts",
+    );
+
+    expect(html).toContain(
+      "Spans and broker metrics are read every 10 minutes.",
+    );
+    expect(job).toMatch(/EVERY_TEN_MINUTES: string = "\*\/10 \* \* \* \*"/);
+    expect(job).toMatch(/schedule: EVERY_TEN_MINUTES\b/);
+    expect(job).toContain("await discoverMessageQueuesForProject(");
+
+    // Cloud monitoring's late points: the window plus its lookback is an hour.
+    const lateMinutes: number = numericConstantIn(
+      "packages/Common/Server/Utils/Telemetry/MessageQueueDiscovery.ts",
+      "MESSAGE_QUEUE_LATE_METRIC_MINUTES",
+    );
+    const windowMinutes: number = numericConstantIn(
+      "packages/App/FeatureSet/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies.ts",
+      "WINDOW_MINUTES",
+    );
+
+    expect(lateMinutes + windowMinutes).toBe(60);
+    expect(html).toContain("Discovery reads their metrics from the last hour");
+  });
+
+  test("monitors on late cloud metrics start with a window that can hold one", () => {
+    expect(html).toContain(
+      "monitors built from SQS, SNS and Pub/Sub charts start with windows long enough to hold one",
+    );
+    expect(html).toContain(
+      "monitors on SQS, SNS and Pub/Sub charts start with a window long enough to hold their points",
+    );
+
+    for (const system of ["aws_sqs", "aws.sns", "gcp_pubsub"]) {
+      const pulled: Array<MessageQueueMetricDescriptor> =
+        getMessageQueueMetricsForSystem(system).filter(
+          (metric: MessageQueueMetricDescriptor): boolean => {
+            return metric.receiver !== "awsfirehose";
+          },
+        );
+
+      expect(pulled.length).toBeGreaterThan(0);
+
+      for (const metric of pulled) {
+        expect({
+          metric: metric.metricName,
+          floor: getMessageQueueSourceWindowFloor(metric) !== null,
+        }).toEqual({ metric: metric.metricName, floor: true });
+      }
+    }
+  });
+
+  test("names the monitoring access the Queues docs prescribe", () => {
+    const docs: string = repoFile(
+      "packages/App/FeatureSet/Docs/Content/en/telemetry/queues.md",
+    );
+
+    for (const grant of [
+      "monitoring",
+      "cloudwatch:ListMetrics",
+      "cloudwatch:GetMetricData",
+      "Monitoring Reader",
+      "Monitoring Viewer",
+    ]) {
+      expect(html).toContain(`>${grant}</code>`);
+      expect(docs).toContain(grant);
+    }
+
+    // "empty permission patterns": no right to configure, publish or consume.
+    expect(html).toContain("with empty permission patterns");
+    expect(docs).toContain('rabbitmqctl set_permissions -p / otel "" "" ""');
+  });
+
+  test("every docs link in the page body is a real docs page and heading", () => {
+    const docsLinks: Array<string> = [
+      ...new Set(
+        [...pageBodyOf(html).matchAll(/href="(\/docs\/[^"]+)"/g)].map(
+          (match: RegExpMatchArray): string => {
+            return match[1]!;
+          },
+        ),
+      ),
+    ];
+
+    expect(docsLinks).toEqual(
+      expect.arrayContaining([
+        "/docs/telemetry/queues",
+        "/docs/telemetry/queues#broker-health-metrics",
+        "/docs/telemetry/queues#alerting",
+        "/docs/monitor/metrics-monitor",
+      ]),
+    );
+
+    for (const link of docsLinks) {
+      const [docsPath, anchor] = link.replace(/^\/docs\//, "").split("#") as [
+        string,
+        string | undefined,
+      ];
+      const markdown: string = repoFile(
+        `packages/App/FeatureSet/Docs/Content/en/${docsPath}.md`,
+      );
+
+      if (anchor) {
+        const slugs: Array<string> = [
+          ...markdown.matchAll(/^#{2,4} (.+)$/gm),
+        ].map((match: RegExpMatchArray): string => {
+          return match[1]!
+            .toLowerCase()
+            .replace(/[^a-z0-9 -]/g, "")
+            .trim()
+            .replace(/\s+/g, "-");
+        });
+
+        expect(slugs).toContain(anchor);
+      }
+    }
+  });
+
+  test("cross-links the products and pages it leans on", () => {
+    for (const href of [
+      "/product/traces",
+      "/product/serverless",
+      "/pricing",
+      "/enterprise/self-hosted",
+      "/accounts/register",
+      "/enterprise/demo",
+    ]) {
+      expect(html).toContain(`href="${href}"`);
+    }
+  });
+
+  test("every product link in the page body is a real canonical page", () => {
+    const productLinks: Array<string> = catalogueLinksIn(pageBodyOf(html));
+
+    expect(productLinks.length).toBeGreaterThan(1);
+
+    for (const href of productLinks) {
+      expect(PageSEOConfig[href]?.canonicalPath).toBe(href);
+    }
+  });
+
+  test("names brokers without presenting OneUptime as any vendor's product", () => {
+    const body: string = pageBodyOf(html);
+
+    expect(body).toContain("not affiliated with or endorsed by them");
+    expect(body).not.toMatch(
+      /official (?:Kafka|RabbitMQ|ActiveMQ|Pulsar|RocketMQ|NATS|BullMQ|Amazon|AWS|Azure|Microsoft|Google|Apache)/i,
+    );
+    expect(body).not.toMatch(/certified by/i);
+    expect(body).not.toMatch(/partner(?:ed)? with/i);
+  });
+
+  test("keeps the Community Edition claim exact", () => {
+    expect(html).toContain(
+      "Queues is part of the open source Community Edition (Apache 2.0).",
+    );
+  });
+
+  test("never leaks another resource page's vocabulary into its own sections", () => {
+    const body: string = queuesOwnSectionsOf(html);
+
+    for (const leak of [
+      /vCenter/,
+      /ESXi/,
+      /vSphere/,
+      /Proxmox/,
+      /datastore/i,
+      /CrashLoopBackOff/,
+      /kubelet/i,
+      /Database Agent/,
+      /engine metrics/i,
+    ]) {
+      expect(body).not.toMatch(leak);
+    }
+  });
+
+  test("the queue list mockup names systems and sources the way the dashboard does", () => {
+    const hero: string = html.slice(
+      html.indexOf('id="queues-hero-section"'),
+      html.indexOf("<!-- What You Get Section -->"),
+    );
+    const model: string = repoFile(
+      "packages/Common/Models/DatabaseModels/MessageQueue.ts",
+    );
+    const labelsStart: number = model.indexOf("DISCOVERY_SOURCE_LABELS");
+    const labels: Array<string> = [
+      ...model
+        .slice(labelsStart, model.indexOf("]);", labelsStart))
+        .matchAll(/\["[a-z-]+", "([^"]+)"\]/g),
+    ].map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(labels).toEqual([
+      "Application traces",
+      "Broker metrics",
+      "Added manually",
+    ]);
+
+    for (const label of labels) {
+      expect(hero).toContain(`>${label}</span>`);
+    }
+
+    for (const system of [
+      "kafka",
+      "servicebus",
+      "rabbitmq",
+      "aws_sqs",
+      "gcp_pubsub",
+    ]) {
+      expect(hero).toContain(`>${getMessagingSystemDisplayName(system)}</div>`);
+    }
+  });
+
+  test("wires the cursor glow to its own element ids", () => {
+    expect(html).toContain('id="queues-hero-section"');
+    expect(html).toContain('id="queues-grid-glow"');
+    expect(html).toContain("getElementById('queues-hero-section')");
+    expect(html).toContain("getElementById('queues-grid-glow')");
+    for (const borrowed of ["databases", "vmware", "kubernetes", "proxmox"]) {
+      expect(html).not.toContain(`${borrowed}-hero-section`);
+      expect(html).not.toContain(`${borrowed}-grid-glow`);
+    }
+  });
+});
+
+describe("Queues on every product surface", () => {
+  test("the navigation lists Queues right after Databases, in both product lists", async () => {
+    const nav: string = await render("nav.ejs", { homeUrl: HOME_URL });
+    const links: Array<string> = productLinksIn(nav);
+
+    expect(nav.split('href="/product/queues"').length - 1).toBe(2);
+
+    // The dashboard files Queues beside Databases, with the cross-platform catalogs.
+    const afterDatabases: Array<string> = links
+      .map((href: string, index: number): string | null => {
+        return href === "/product/databases" ? links[index + 1] || null : null;
+      })
+      .filter((href: string | null): href is string => {
+        return href !== null;
+      });
+
+    expect(afterDatabases).toEqual(["/product/queues", "/product/queues"]);
+    expect(nav).toContain(
+      'data-search="queues queue message queues messaging broker kafka rabbitmq activemq jms sqs sns pub/sub pubsub service bus event hubs event grid pulsar rocketmq nats bullmq topics consumer lag dead letter backlog"',
+    );
+  });
+
+  test("the flyout search finds Queues by every broker, and leaves other products' aliases alone", async () => {
+    const nav: string = await render("nav.ejs", { homeUrl: HOME_URL });
+    const search: string = nav.match(
+      /href="\/product\/queues"[^>]*data-search="([^"]+)"/,
+    )![1]!;
+
+    // Typing one of these must still narrow the flyout to its one product.
+    for (const alias of ["rum", "k8s", "db"]) {
+      expect(search).not.toContain(alias);
+    }
+
+    // "Apache Kafka" is found by "kafka", "Google Cloud Pub/Sub" by "pub/sub".
+    for (const descriptor of MESSAGING_SYSTEMS) {
+      const shortName: string = descriptor.displayName
+        .replace(/^(?:Apache|Amazon|Azure|Google Cloud) /, "")
+        .toLowerCase();
+
+      expect({
+        system: descriptor.system,
+        found: search.includes(shortName),
+      }).toEqual({
+        system: descriptor.system,
+        found: true,
+      });
+    }
+  });
+
+  test("the footer lists Queues after Databases", async () => {
+    const footer: string = await render("footer.ejs", {
+      footerCards: false,
+      cta: false,
+      homeUrl: HOME_URL,
+    });
+    const links: Array<string> = productLinksIn(footer);
+
+    expect(links).toContain("/product/queues");
+    expect(links[links.indexOf("/product/databases") + 1]).toBe(
+      "/product/queues",
+    );
+  });
+
+  test.each([
+    "features-table.ejs",
+    "Partials/product-showcase.ejs",
+    "Partials/hero-cards/product-grid.ejs",
+    "Partials/home-products.ejs",
+    "Partials/home-detect.ejs",
+  ])(
+    "%s links to the Queues product with its glyph",
+    async (templateFileName: string) => {
+      const partial: string = await render(templateFileName, {
+        homeUrl: HOME_URL,
+      });
+
+      expect(partial.split('href="/product/queues"').length - 1).toBe(1);
+      expect(linkBlockOf(partial, "/product/queues")).toContain(
+        QUEUE_GLYPH_PATH_START,
+      );
+    },
+  );
+
+  test("the homepage and the hero grid list Queues next to Databases", async () => {
+    for (const templateFileName of [
+      "Partials/home-products.ejs",
+      "Partials/home-detect.ejs",
+      "Partials/hero-cards/product-grid.ejs",
+    ]) {
+      const partial: string = await render(templateFileName, {
+        homeUrl: HOME_URL,
+      });
+      const links: Array<string> = productLinksIn(partial);
+
+      expect(links[links.indexOf("/product/databases") + 1]).toBe(
+        "/product/queues",
+      );
+    }
+  });
+
+  test("the hero card and icon partials render on their own", async () => {
+    const card: string = await render("Partials/hero-cards/queues.ejs", {});
+    const icon: string = await render("Partials/icons/queues.ejs", {
+      iconClass: "h-3 w-3",
+    });
+
+    expect(card).toContain('href="/product/queues"');
+    expect(card).toContain(">Queues<");
+    expect(card).toContain("hero-glow-indigo");
+    expect(icon).toContain('class="h-3 w-3 text-indigo-600"');
+    expect(icon).not.toMatch(/<title>/);
+  });
+
+  test("the icon is the glyph the dashboard marks Queues with", async () => {
+    const icon: string = await render("Partials/icons/queues.ejs", {});
+    const iconSource: string = repoFile(
+      "packages/Common/UI/Components/Icon/Icon.tsx",
+    );
+    const dashboardPath: string = iconSource.match(
+      /icon === IconProp\.QueueList\)[\s\S]*?d="([^"]+)"/,
+    )![1]!;
+
+    expect(icon).toContain(`d="${dashboardPath}"`);
+    expect(dashboardPath.startsWith(QUEUE_GLYPH_PATH_START)).toBe(true);
+
+    // ...the one the dashboard's navigation gives the Queues product.
+    const navigationItems: string = repoFile(
+      "packages/App/FeatureSet/Dashboard/src/Utils/NavigationItems.tsx",
+    );
+    const queuesItemStart: number = navigationItems.indexOf(
+      "navbar.items.queuesTitle",
+    );
+    const queuesItem: string = navigationItems.slice(
+      queuesItemStart,
+      navigationItems.indexOf("category:", queuesItemStart),
+    );
+
+    expect(queuesItemStart).toBeGreaterThan(-1);
+    expect(queuesItem).toContain("icon: IconProp.QueueList");
   });
 });
 

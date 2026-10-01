@@ -35,7 +35,10 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
  *       Error — and the CAS guard means an already-Completed run is never
  *       clobbered;
  *   (d) heartbeat-stale runs requeue while attempts remain, else go Stale;
- *   (e) the poller expires runs that queued past their usefulness window.
+ *   (e) the poller expires runs that queued past their usefulness window;
+ *   (f) concurrency caps are opt-in: a lane with no cap set claims at once
+ *       and never counts running work, a lane with one honours it, and the
+ *       daily budget still applies either way.
  */
 
 function mockBudgetOk(): void {
@@ -57,7 +60,7 @@ describe("AIInvestigationQueue", () => {
     mockBudgetOk();
     jest.spyOn(Semaphore, "lock").mockResolvedValue({} as never);
     jest.spyOn(Semaphore, "release").mockResolvedValue();
-    // No lane cap override => default of 3.
+    // No lane cap override => no cap.
     jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue({ id: ObjectID.generate() } as unknown as Project);
@@ -396,18 +399,20 @@ describe("AIInvestigationQueue", () => {
     );
   });
 
-  test("subjectless insight work uses the default cap and ignores the legacy project column", async () => {
+  /*
+   * Insight triage has no setting. It used to run on a fixed cap of 3 that
+   * nobody could raise; with no limit by default it has none.
+   */
+  test("subjectless insight work has no cap: it never reads the project or counts running work", async () => {
     const findProject: jest.SpyInstance = jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue({
         id: ObjectID.generate(),
         aiMaxConcurrentInvestigations: 1,
       } as unknown as Project);
-    // Two running in the lane: over the legacy cap of 1, under the default 3.
     const count: jest.SpyInstance = jest
       .spyOn(AIRunService, "countBy")
-      .mockResolvedValueOnce(new PositiveNumber(2))
-      .mockResolvedValue(new PositiveNumber(0));
+      .mockResolvedValue(new PositiveNumber(50));
     const claim: jest.SpyInstance = jest
       .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(0);
@@ -420,17 +425,142 @@ describe("AIInvestigationQueue", () => {
     });
 
     expect(findProject).not.toHaveBeenCalled();
+    expect(count).not.toHaveBeenCalled();
     expect(claim).toHaveBeenCalledTimes(1);
-    const query: Record<string, unknown> = (
-      count.mock.calls[0]![0] as { query: Record<string, unknown> }
-    ).query;
-    expect(findOperatorSql(query["triggeredByIncidentId"])).toContain(
-      "IS NULL",
+  });
+
+  test("with no cap set, an incident run is claimed however many are already running", async () => {
+    const count: jest.SpyInstance = jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1000));
+    const claim: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(0);
+
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      attemptCount: 0,
+      triggeredByIncidentId: ObjectID.generate(),
+    });
+
+    expect(count).not.toHaveBeenCalled();
+    expect(claim).toHaveBeenCalledTimes(1);
+  });
+
+  test("the lane's cap is read from the incident column for incident runs and the alert column for alert runs", async () => {
+    const findProject: jest.SpyInstance = jest.spyOn(
+      ProjectService,
+      "findOneById",
     );
-    expect(findOperatorSql(query["triggeredByAlertId"])).toContain("IS NULL");
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(0);
+
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      attemptCount: 0,
+      triggeredByIncidentId: ObjectID.generate(),
+    });
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      attemptCount: 0,
+      triggeredByAlertId: ObjectID.generate(),
+    });
+
+    expect(findProject.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        select: { incidentAiMaxConcurrentInvestigations: true },
+      }),
+    );
+    expect(findProject.mock.calls[1]![0]).toEqual(
+      expect.objectContaining({
+        select: { alertAiMaxConcurrentInvestigations: true },
+      }),
+    );
+  });
+
+  // The cap used to be clamped to 25 whatever the project set.
+  test("an incident cap set above 25 is honoured, not clamped", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: ObjectID.generate(),
+      incidentAiMaxConcurrentInvestigations: 60,
+    } as unknown as Project);
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(59));
+    const claim: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(0);
+
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      attemptCount: 0,
+      triggeredByIncidentId: ObjectID.generate(),
+    });
+    expect(claim).toHaveBeenCalledTimes(1);
+
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(60));
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      attemptCount: 0,
+      triggeredByIncidentId: ObjectID.generate(),
+    });
+    expect(claim).toHaveBeenCalledTimes(1);
+  });
+
+  // No cap is not no budget: a daily token limit a project set still holds.
+  test("with no cap set, an exhausted daily budget still leaves the run queued", async () => {
+    jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
+      exhausted: true,
+      limitInTokens: 1000,
+      usedTokensToday: 1000,
+    });
+    const claim: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "attemptStatusTransition",
+    );
+
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      attemptCount: 0,
+      triggeredByAlertId: ObjectID.generate(),
+    });
+
+    expect(claim).not.toHaveBeenCalled();
+  });
+
+  test("a remediation plan in a lane with no cap is claimed without counting the background lane", async () => {
+    const count: jest.SpyInstance = jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(20));
+    const claim: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(0);
+
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      attemptCount: 0,
+      runType: AIRunType.RemediationPlan,
+      triggeredByIncidentId: ObjectID.generate(),
+      triggeredByAutoRemediationSuggestionId: ObjectID.generate(),
+    });
+
+    expect(count).not.toHaveBeenCalled();
+    expect(claim).toHaveBeenCalledTimes(1);
   });
 
   test("background counts are isolated to the remediation subject lane", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: ObjectID.generate(),
+      incidentAiMaxConcurrentInvestigations: 3,
+    } as unknown as Project);
     const count: jest.SpyInstance = jest
       .spyOn(AIRunService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));

@@ -47,7 +47,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -58,7 +58,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -72,7 +72,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -83,7 +83,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -94,7 +94,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex items-center rounded-md border border-transparent bg-indigo-100 text-sm font-medium text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 px-3 py-2",
+      "inline-flex items-center rounded-md border border-transparent bg-indigo-100 text-sm font-medium text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 px-3 py-2",
     );
   });
 
@@ -105,7 +105,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -116,7 +116,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -130,7 +130,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -141,7 +141,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-transparent bg-yellow-600 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-transparent bg-yellow-600 text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -155,7 +155,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      " inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
+      " inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -164,7 +164,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      " inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
+      " inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -173,7 +173,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-2 py-1",
+      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-2 py-1",
     );
   });
 
@@ -182,7 +182,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      " inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-4 py-2",
+      " inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-4 py-2",
     );
   });
 
@@ -494,6 +494,45 @@ describe("Button motion", () => {
         "duration-150",
         "ease-out",
       );
+    },
+  );
+});
+
+describe("Button focus rings", () => {
+  /*
+   * Every button rings on keyboard focus only. A ring on plain :focus also
+   * drew round whatever a script focused - a dialog opened with a click put its
+   * initial focus on Cancel, and the ring made Cancel look like the main
+   * action of the dialog.
+   */
+  const RINGED_STYLES: Array<[string, ButtonStyleType]> = [
+    ["NORMAL", ButtonStyleType.NORMAL],
+    ["PRIMARY", ButtonStyleType.PRIMARY],
+    ["SECONDARY", ButtonStyleType.SECONDARY],
+    ["DANGER", ButtonStyleType.DANGER],
+    ["DANGER_OUTLINE", ButtonStyleType.DANGER_OUTLINE],
+    ["SUCCESS", ButtonStyleType.SUCCESS],
+    ["SUCCESS_OUTLINE", ButtonStyleType.SUCCESS_OUTLINE],
+    ["WARNING", ButtonStyleType.WARNING],
+    ["WARNING_OUTLINE", ButtonStyleType.WARNING_OUTLINE],
+    ["ICON", ButtonStyleType.ICON],
+    ["ICON_LIGHT", ButtonStyleType.ICON_LIGHT],
+    ["LINK", ButtonStyleType.LINK],
+    ["SECONDARY_LINK", ButtonStyleType.SECONDARY_LINK],
+  ];
+
+  test.each(RINGED_STYLES)(
+    "%s rings on keyboard focus and not on a click or a script's focus",
+    (_name: string, buttonStyle: ButtonStyleType) => {
+      const button: HTMLElement = renderButton({ buttonStyle });
+      const classes: Array<string> = Array.from(button.classList);
+
+      expect(button).toHaveClass("focus:outline-none", "focus-visible:ring-2");
+      expect(
+        classes.filter((className: string) => {
+          return className.startsWith("focus:ring");
+        }),
+      ).toEqual([]);
     },
   );
 });

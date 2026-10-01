@@ -22,12 +22,18 @@ const CodeRepositorySettings: FunctionComponent<
         }}
         isEditable={true}
         editButtonText="Edit Settings"
+        formSteps={[
+          { title: "Pull Requests", id: "pull-requests" },
+          { title: "GitHub Commands", id: "github-commands" },
+          { title: "Build & Test", id: "build-and-test" },
+        ]}
         formFields={[
           {
             field: {
               mainBranchName: true,
             },
             title: "Main Branch",
+            stepId: "pull-requests",
             description:
               "The main branch of the repository (e.g., main, master).",
             fieldType: FormFieldSchemaType.Text,
@@ -36,9 +42,22 @@ const CodeRepositorySettings: FunctionComponent<
           },
           {
             field: {
+              maxOpenFixPullRequests: true,
+            },
+            title: "Max Open Fix Pull Requests",
+            stepId: "pull-requests",
+            description:
+              "Maximum AI-authored fix pull requests that may be open on this repository at the same time. At the cap, new AI fix runs fail before they can push a branch. Leave empty for no cap; set 0 to block AI fix pull requests for this repository entirely.",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "No cap",
+          },
+          {
+            field: {
               isGitHubCommandsEnabled: true,
             },
             title: "Respond to GitHub Commands",
+            stepId: "github-commands",
             description:
               "Let people work with the OneUptime GitHub App from GitHub itself — mention it on an issue or pull request, assign it an issue, or add the trigger label below. Only people with write access to the repository can command it, and it never merges anything. Leave on unless you want the app to stay silent here.",
             fieldType: FormFieldSchemaType.Toggle,
@@ -49,6 +68,7 @@ const CodeRepositorySettings: FunctionComponent<
               gitHubTriggerLabel: true,
             },
             title: "GitHub Trigger Label",
+            stepId: "github-commands",
             description:
               "The issue label that hands an issue to the app. Adding it to an issue starts the same work a mention would — the reliable way to assign work to the app from the GitHub UI, since GitHub does not let an app be an assignee on every repository. Leave empty for 'oneuptime'.",
             fieldType: FormFieldSchemaType.Text,
@@ -57,20 +77,10 @@ const CodeRepositorySettings: FunctionComponent<
           },
           {
             field: {
-              maxOpenFixPullRequests: true,
-            },
-            title: "Max Open Fix Pull Requests",
-            description:
-              "Maximum AI-authored fix pull requests that may be open on this repository at the same time. At the cap, new AI fix runs fail before they can push a branch. Leave empty for the default of 5; set 0 to block AI fix pull requests for this repository entirely.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "5",
-          },
-          {
-            field: {
               setupCommand: true,
             },
             title: "Setup Command",
+            stepId: "build-and-test",
             description:
               "Command the AI fix Runner executes at the repository root to install dependencies before verifying an AI-authored fix (e.g. 'npm ci'). Runs on your Runner, in the cloned workspace, before the build and test commands. Leave empty to skip.",
             fieldType: FormFieldSchemaType.Text,
@@ -82,6 +92,7 @@ const CodeRepositorySettings: FunctionComponent<
               buildCommand: true,
             },
             title: "Build Command",
+            stepId: "build-and-test",
             description:
               "Command the AI fix Runner executes at the repository root to verify an AI-authored fix compiles/builds (e.g. 'npm run build'). A failure is fed back to the code agent for bounded repair attempts before the pull request opens. Leave empty to skip the build check.",
             fieldType: FormFieldSchemaType.Text,
@@ -93,6 +104,7 @@ const CodeRepositorySettings: FunctionComponent<
               testCommand: true,
             },
             title: "Test Command",
+            stepId: "build-and-test",
             description:
               "Command the AI fix Runner executes at the repository root to run the test suite against an AI-authored fix (e.g. 'npm test'). A failure is fed back to the code agent for bounded repair attempts before the pull request opens. Leave empty to skip the test check.",
             fieldType: FormFieldSchemaType.Text,
@@ -137,7 +149,7 @@ const CodeRepositorySettings: FunctionComponent<
               title: "Max Open Fix Pull Requests",
               description:
                 "How many AI-authored fix pull requests may be open at once on this repository.",
-              placeholder: "Default (5)",
+              placeholder: "No cap",
               fieldType: FieldType.Number,
             },
             {

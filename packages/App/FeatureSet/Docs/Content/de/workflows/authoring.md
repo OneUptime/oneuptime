@@ -96,4 +96,4 @@ Um einen Workflow zu pausieren, ohne ihn zu löschen, schalten Sie **Aktiviert**
 - [Workflow-Trigger](/docs/workflows/triggers) – die vier Arten, wie ein Workflow starten kann.
 - [Workflow-Komponenten](/docs/workflows/components) – jeder Baustein, den Sie hinzufügen können.
 - [Workflow-Variablen](/docs/workflows/variables) – Daten zwischen Bausteinen bewegen.
-- [Workflow-Ausführungen & Protokolle](/docs/workflows/runs-and-logs) – nachsehen, was passiert ist.
+- [Workflow-Ausführungen](/docs/workflows/runs-and-logs) – nachsehen, was passiert ist.

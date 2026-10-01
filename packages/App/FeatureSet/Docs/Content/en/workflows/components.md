@@ -4,21 +4,24 @@ Components are the building blocks you add after the trigger. Each one does one 
 
 This page is the catalog. For how to add and connect them on the canvas, see [Authoring a Workflow](/docs/workflows/authoring).
 
+You rarely need this page open while you build. Every block's settings end with **How to use**: what the block does, the steps to set it up, an example built from your own workflow, and the mistakes people commonly make. Click **How to use** at the top of the settings to jump there.
+
 ## API
 
-Make an HTTP request to any URL.
+Make an HTTP request to any URL. There is one block per method: **API Get (JSON)**, **API Post (JSON)**, **API Put (JSON)**, **API Patch (JSON)** and **API Delete (JSON)**.
 
 **Settings**:
 
-- **Method** — `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`.
 - **URL** — the address to call.
-- **Headers** — any headers to send.
-- **Body** — the request body for `POST` / `PUT` / `PATCH`.
+- **Request Body** — the JSON to send, for `POST`, `PUT` and `PATCH`.
+- **Request Headers** — any headers to send, such as an API key. They are under the block's advanced settings.
 
 **Outputs**:
 
-- **Success** — fires when the call worked (2xx response). Passes along the status, headers, and body.
-- **Error** — fires on a network failure or non-2xx response. Passes along the error message.
+- **Success** — fires when the call worked (2xx response).
+- **Error** — fires on a network failure or non-2xx response.
+
+Either way, the block returns **Response Status**, **Response Headers** and **Response Body**, plus **Error** with the reason when it failed. Read one field of a JSON response by adding its name to the reference, as in `{{local.components.api-get-1.returnValues.response-body.id}}`. Redirects are not followed.
 
 Use this for: any external API, your own admin endpoints, or any integration that doesn't have its own component.
 
@@ -31,7 +34,7 @@ Generate one text response from a prompt and optional JSON context. The componen
 **Settings**:
 
 - **System Instructions** — optional guidance for the model's role, tone, and constraints.
-- **Prompt** — the required task. It can include workflow variables and outputs from earlier components.
+- **Prompt** — the required task. It's sent exactly as you type it, so Markdown is fine, and it can include workflow variables and outputs from earlier components.
 - **Context** — optional JSON that you deliberately include with the request. It is appended after an explicit end-of-message trust marker and treated as untrusted data through the rest of the message.
 - **Temperature** — variation from `0` to `1`. The default is `0.2` for predictable automation.
 - **Maximum Output Tokens** — from `1` to `4096`. The default is `1024`.
@@ -50,22 +53,14 @@ Connect **Success** to components that should use the response. Connect **Error*
 
 Model output is untrusted text. Review it before sending customer-facing communications, and do not use free-form AI text alone to authorize destructive workflow actions. See [Configuration & Safety](/docs/workflows/configuration) for provider, egress, logging, and cost details.
 
-## Webhook (outbound)
-
-A simpler version of the API component for "fire and forget" cases. Posts a JSON body to a URL.
-
-Use **API** if you need to read the response. Use **Webhook** if you just want to send a notification and move on.
-
 ## Slack
 
-Post a message to a Slack channel.
+Post a message to a Slack channel through an incoming webhook.
 
 **Settings**:
 
-- **Channel** — the channel name. The bot must already be in that channel.
-- **Message** — the text to send. Supports Slack formatting.
-
-Connect Slack to your project first under **Project Settings → Workspace → Slack**. See [Slack Workspace Connection](/docs/workspace-connections/slack).
+- **Slack Incoming Webhook URL** — the webhook for the channel to post to. Slack's guide to [creating one](https://api.slack.com/messaging/webhooks) takes a couple of minutes.
+- **Message Text** — the text to send. It's sent exactly as you type it, so use Slack's own formatting: `*bold*`, `_italic_`, `~strikethrough~` and `<https://example.com|a link>`.
 
 ## Microsoft Teams
 
@@ -73,10 +68,8 @@ Post a message to a Microsoft Teams channel.
 
 **Settings**:
 
-- **Team and channel** — where to post.
-- **Message** — the text to send.
-
-See [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams) for setup.
+- **Teams Incoming Webhook URL** — the channel webhook to post to. Microsoft's guide shows how to [create one with Teams Workflows](https://support.microsoft.com/en-us/teams/apps-service/create-incoming-webhooks-with-workflows-for-microsoft-teams).
+- **Message Text** — the text to send.
 
 ## Discord
 
@@ -105,7 +98,7 @@ Send an email through an SMTP server that you enter on the block.
 - **Success** — fires when the SMTP server accepted the message.
 - **Error** — fires when the SMTP host is refused, the server can't be reached, or it rejects the message. Passes along the error message. A missing **To Email**, **From Email**, **SMTP Host** or **SMTP Port** stops the run instead.
 
-The block connects straight to the server in its settings. It does not use your project's [SMTP](/docs/emails/smtp) settings or OneUptime's own mail server, and the emails it sends do not appear in Notification Logs. To check what it did, look at the workflow's [Runs & Logs](/docs/workflows/runs-and-logs).
+The block connects straight to the server in its settings. It does not use your project's [SMTP](/docs/emails/smtp) settings or OneUptime's own mail server, and the emails it sends do not appear in Notification Logs. To check what it did, look at the workflow's [Runs](/docs/workflows/runs-and-logs).
 
 Connections to loopback (`localhost`, `127.0.0.1`), link-local and cloud metadata addresses are refused. On OneUptime Cloud, an SMTP host on a private network address, or a name that resolves to one, is refused too. Self-hosted installs can reach a mail server on their own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is set to `true`. A refused host takes the **Error** output, and nothing is sent.
 
@@ -127,7 +120,7 @@ Use this for: reshaping data between two systems, doing a small calculation, any
 Convert between text and JSON.
 
 - **JSON → Text** — turn a JSON object into a string. Useful when the next block expects text.
-- **Text → JSON** — parse a string into a JSON object. Useful when something arrived as text and you need to read a field.
+- **Text → JSON** — parse a string into a JSON object. Useful when something arrived as text and you need to read a field. Its **Text** box takes several lines, so you can paste a whole document to test with.
 
 ## Conditions
 
@@ -135,19 +128,28 @@ Branch based on a comparison. In the **Add Component** panel this block is calle
 
 **Settings**:
 
-- **Left value** — usually a value from an earlier block.
-- **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
-- **Right value** — what to compare against.
+- **Input 1** — usually a value from an earlier block.
+- **Operator** — Equal To, Not Equal To, Greater Than, Less Than, Greater Than or Equal, Less Than or Equal, Contains, Does Not Contain, Starts With or Ends With.
+- **Input 2** — what to compare against.
+- **Input 1 Type** and **Input 2 Type** — Text unless you change them. Set both to Number to compare numbers: as text, `10` comes before `9`.
 
 **Outputs**: **Yes** and **No**. Connect the next blocks to whichever branch you want.
 
-## Delay
+## Sleep
 
 Pause the workflow for a set amount of time before continuing. Useful when you need to give another system a moment to catch up.
 
+**Settings**: **Days**, **Hours**, **Minutes** and **Seconds**, which add up. The longest wait is 30 days.
+
+While it waits, the run is put aside and picked up again when the time is up, so a long wait does not hold anything up.
+
 ## Log
 
-Write a line to the run log. No external effect — it just shows up in the workflow's logs for you to read. Handy for debugging.
+Write to the run log. No external effect — it just shows up in the workflow's logs for you to read. Handy for debugging.
+
+**Settings**:
+
+- **Value** — what to write. It can run to several lines, and it can include values from earlier blocks, like `{{local.components.webhook-1.returnValues.request-body}}`.
 
 ## Execute Workflow
 
@@ -200,6 +202,10 @@ A query is always scoped to the project the workflow runs in. You can't reach an
 
 A key that isn't a column is ignored rather than rejected — the run log names the ones it dropped, so check there when a field doesn't land. **Select Fields**, on the Find components and the triggers, uses the same column keys with `true` values: `{"_id": true, "name": true}`.
 
+You rarely type these keys yourself. In the component's settings, **Add a field** (or **Add a condition** on a query) lists the model's columns by name, with the kind of value each one takes. Search it by name, by column key or by what the field does, and press Enter to add the best match. On a create, the fields the record can't be created without come first, then the model's main fields (the ones it fills in for you if you leave them out), then everything else.
+
+Fields OneUptime fills in itself aren't offered when you write a record: the record's `_id`, **Created At**, **Updated At**, **Created by User**, slugs, record numbers and notification statuses. An update only offers fields that can change after a record exists. A query still offers the ID, the timestamps and **Created by User**, because they're useful to filter on. **Deleted At** isn't offered anywhere: records are deleted outright, so it's always empty.
+
 **Skip** and **Limit** are two number fields on Find Many, Update Many, and Delete Many — `Skip: 0` with `Limit: 100` takes the first hundred matches. Limit defaults to `10`, and on Update Many and Delete Many it caps how many records are actually written, not just how many come back. So `Items Deleted: 10` means ten records were deleted, not that ten matched. Raise Limit when you mean to change more than ten.
 
 **Success** and **Error** report whether the query ran, not what it found. A query matching nothing returns `0` and still leaves through Success — that is not a failure. To branch on whether anything matched, read the returned count in an **If / Else** block.
@@ -217,5 +223,5 @@ A few quick rules:
 ## Where to read next
 
 - [Variables](/docs/workflows/variables) — passing data between blocks.
-- [Runs & Logs](/docs/workflows/runs-and-logs) — checking what each block did on a run.
+- [Runs](/docs/workflows/runs-and-logs) — checking what each block did on a run.
 - [Configuration & Safety](/docs/workflows/configuration) — limits, owners, and secrets.

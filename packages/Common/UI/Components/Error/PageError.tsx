@@ -23,7 +23,7 @@ const PageError: FunctionComponent<ComponentProps> = (
       onSubmit={() => {
         Navigation.reload();
       }}
-      submitButtonStyleType={ButtonStyleType.NORMAL}
+      submitButtonStyleType={ButtonStyleType.PRIMARY}
       submitButtonText="Reload Page"
     >
       <p className="text-sm text-gray-500">{message}</p>
