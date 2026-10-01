@@ -67,7 +67,7 @@ Il modo più rapido per prendere le misure alla tela:
 1. Clicca il blocco segnaposto tratteggiato, poi clicca **Manual** nel pannello **Add Trigger**.
 2. Clicca **Aggiungi componente**, poi clicca **Log** sotto **Popular**. Il blocco nuovo compare sotto il trigger. Collega il puntino **Execute** del trigger al puntino di input del blocco Log.
 3. Clicca il blocco Log, che mostra **Click to set up**, e imposta il suo **Value** su `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` è l'**Identifier** del trigger, stampato sul blocco stesso — controlla che corrisponda.
-4. Vai su **Panoramica**, clicca **Modifica flusso di lavoro** nella scheda **Dettagli del flusso di lavoro** e attiva **Abilitato**. Un workflow disabilitato non si può eseguire in nessun modo, nemmeno a mano.
+4. Attiva **Abilitato** in cima al Costruttore. Un workflow disabilitato non si può eseguire in nessun modo, nemmeno a mano; se salti questo passaggio, **Esegui flusso di lavoro** ti chiede prima di attivarlo.
 5. Torna sul **Costruttore**, clicca **Esegui flusso di lavoro**, metti `{ "name": "Ada" }` nel campo **JSON**, clicca **Run Workflow Manually** e conferma con **Run**.
 6. Si apre da solo un pannello **Workflow Run** che segue l'esecuzione. Nel log compare `Value:` seguito da `Hello from Ada`.
 
@@ -75,11 +75,13 @@ Quel ciclo — aggiungi, collega, configura, esegui, leggi il log — è il modo
 
 ## Accenderlo
 
-I workflow nuovi partono disabilitati, e lo stesso vale per qualsiasi workflow che duplichi o importi.
+I workflow nuovi partono disabilitati, e lo stesso vale per qualsiasi workflow che duplichi o importi. Finché un workflow è spento, il Costruttore lo dice sopra la tela, con un pulsante **Attiva flusso di lavoro**.
 
-L'interruttore **Abilitato** sta nella pagina **Panoramica** del workflow, dentro la scheda **Dettagli del flusso di lavoro** — non nella pagina delle impostazioni. La stessa scheda mostra lo stato attuale con una pillola verde **Abilitato** o rossa **Disabilitato**.
+L'interruttore **Abilitato** sta in cima al **Costruttore**, accanto ad **Aggiungi componente** ed **Esegui flusso di lavoro**. Si trova anche nella pagina **Panoramica** del workflow: clicca **Modifica flusso di lavoro** nella scheda **Dettagli del flusso di lavoro**, che mostra lo stato attuale con una pillola verde **Abilitato** o rossa **Disabilitato**. Solo chi può modificare il workflow può accenderlo o spegnerlo; gli altri vedono l'interruttore in grigio.
 
-Un workflow disabilitato non viene eseguito affatto. Le esecuzioni manuali vengono rifiutate con "This workflow is not enabled" esattamente come quelle scatenate da un trigger, quindi l'ordine è: abilitalo, provalo con **Esegui flusso di lavoro**, leggi il log dell'esecuzione e rimetti **Abilitato** su off se non sei pronto a far scattare il suo trigger. Per provare un singolo blocco senza eseguire tutto il resto, usa **Run just this step** nelle impostazioni di quel blocco.
+Un workflow disabilitato non viene eseguito affatto: il suo trigger viene ignorato, e così **Esegui flusso di lavoro** e **Run just this step**. Se lo esegui, o esegui uno dei suoi blocchi, mentre è spento, il Costruttore chiede invece **Attivare questo flusso di lavoro?**. **Attiva ed esegui** (o **Attiva ed esegui il passaggio**) accende il workflow e poi esegue quello che hai chiesto, con i valori che hai indicato. Quindi l'ordine è: costruiscilo, provalo con **Esegui flusso di lavoro**, leggi il log dell'esecuzione e rimetti **Abilitato** su off se non sei pronto a far scattare il suo trigger. Per provare un singolo blocco senza eseguire tutto il resto, usa **Run just this step** nelle impostazioni di quel blocco.
+
+Tutto il resto che avvia un workflow disabilitato viene respinto con lo stesso consiglio. Una chiamata al suo URL webhook riceve un HTTP 400 e "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again." Un blocco **Execute Workflow** che lo chiama prende il percorso **Error**, e l'errore indica il workflow chiamato.
 
 Per mettere in pausa un workflow senza eliminarlo, spegni **Abilitato**. Non parte nessuna nuova esecuzione. Un'esecuzione già a metà strada arriva in fondo, ma una parcheggiata su un blocco **Sleep** viene annullata al risveglio e registrata come errore.
 

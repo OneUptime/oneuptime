@@ -67,7 +67,7 @@ La forma más rápida de cogerle el pulso al lienzo:
 1. Haz clic en el bloque punteado y luego en **Manual**, en el panel **Add Trigger**.
 2. Haz clic en **Añadir componente** y luego en **Log**, dentro de **Popular**. El bloque nuevo aparece debajo del disparador. Conecta el punto **Execute** del disparador con el punto de entrada del bloque Log.
 3. Haz clic en el bloque Log, que dice **Click to set up**, y pon en su **Valor** `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` es el **Identifier** del disparador, visible en su bloque — comprueba que coincide.
-4. Ve a **Vista General**, haz clic en **Editar flujo de trabajo** en la tarjeta **Detalles del flujo de trabajo** y activa **Habilitado**. Un flujo de trabajo deshabilitado no se puede ejecutar de ninguna manera, ni siquiera a mano.
+4. Activa **Habilitado** en la parte superior del Constructor. Un flujo de trabajo deshabilitado no se puede ejecutar de ninguna manera, ni siquiera a mano; si te saltas este paso, **Ejecutar flujo de trabajo** te pide activarlo primero.
 5. Vuelve al **Constructor**, haz clic en **Ejecutar flujo de trabajo**, pon `{ "name": "Ada" }` en el campo **JSON**, haz clic en **Run Workflow Manually** y confirma con **Run**.
 6. Se abre solo un panel **Workflow Run** que sigue la ejecución. El registro muestra `Value:` seguido de `Hello from Ada`.
 
@@ -75,11 +75,13 @@ Ese ciclo — añadir, conectar, configurar, ejecutar y leer el registro — es 
 
 ## Encenderlo
 
-Los flujos de trabajo nuevos nacen deshabilitados, y también los que duplicas o importas.
+Los flujos de trabajo nuevos nacen deshabilitados, y también los que duplicas o importas. Mientras un flujo de trabajo está apagado, el Constructor lo indica encima del lienzo, con un botón **Activar flujo de trabajo**.
 
-El interruptor **Habilitado** está en la página **Vista General** del flujo de trabajo, dentro de la tarjeta **Detalles del flujo de trabajo** — no en la página de ajustes. Esa misma tarjeta muestra el estado actual como una píldora verde **Habilitado** o roja **Deshabilitado**.
+El interruptor **Habilitado** está en la parte superior del **Constructor**, junto a **Añadir componente** y **Ejecutar flujo de trabajo**. También está en la página **Vista General** del flujo de trabajo: haz clic en **Editar flujo de trabajo** en la tarjeta **Detalles del flujo de trabajo**, que muestra el estado actual como una píldora verde **Habilitado** o roja **Deshabilitado**. Solo quien puede editar el flujo de trabajo puede encenderlo o apagarlo; los demás ven el interruptor atenuado.
 
-Un flujo de trabajo deshabilitado no se ejecuta en absoluto. Las ejecuciones manuales se rechazan con «This workflow is not enabled» igual que las disparadas, así que el orden es: habilítalo, pruébalo con **Ejecutar flujo de trabajo**, lee el registro de la ejecución y vuelve a apagar **Habilitado** si aún no quieres que su disparador salte. Para probar un solo bloque sin ejecutar todo lo demás, usa **Run just this step** en los ajustes de ese bloque.
+Un flujo de trabajo deshabilitado no se ejecuta en absoluto: su disparador se ignora, y también **Ejecutar flujo de trabajo** y **Run just this step**. Si lo ejecutas, o ejecutas uno de sus bloques, mientras está apagado, el Constructor te pregunta **¿Activar este flujo de trabajo?**. **Activar y ejecutar** (o **Activar y ejecutar paso**) lo enciende y luego ejecuta lo que pediste, con los valores que diste. Así que el orden es: constrúyelo, pruébalo con **Ejecutar flujo de trabajo**, lee el registro de la ejecución y vuelve a apagar **Habilitado** si aún no quieres que su disparador salte. Para probar un solo bloque sin ejecutar todo lo demás, usa **Run just this step** en los ajustes de ese bloque.
+
+Todo lo demás que inicia un flujo de trabajo deshabilitado se rechaza con el mismo consejo. Una llamada a su URL de webhook recibe un HTTP 400 y «This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again.» Un bloque **Execute Workflow** que lo llama toma su camino **Error**, y el error nombra el flujo de trabajo al que llamó.
 
 Para pausar un flujo de trabajo sin eliminarlo, apaga **Habilitado**. No arranca ninguna ejecución nueva. Una ejecución que esté a medias termina, pero una que esté aparcada en un bloque **Sleep** se cancela al despertar y queda registrada como error.
 

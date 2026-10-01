@@ -4,14 +4,14 @@ Denne siden dekker innstillingene og sikkerhetsgrensene det er verdt å kjenne t
 
 ## Å slå en arbeidsflyt på eller av
 
-Hver arbeidsflyt har en **Aktivert**-bryter under **Innstillinger**. Er den av, kjører ikke arbeidsflyten — webhook-kall, planlagte tidspunkter og hendelser i OneUptime blir alle ignorert. Nye arbeidsflyter starter deaktivert.
+Hver arbeidsflyt har en **Aktivert**-bryter øverst i **Bygger** og på **Oversikt**-siden sin. Er den av, kjører ikke arbeidsflyten — webhook-kall, planlagte tidspunkter og hendelser i OneUptime blir alle ignorert, og det samme gjør **Kjør arbeidsflyt** og **Run just this step**. Nye arbeidsflyter starter deaktivert.
 
 Bruk denne bryteren som din «klar til å gå»-port:
 
 1. Bygg arbeidsflyten.
-2. Klikk **Kjør arbeidsflyt** i **Bygger** med realistiske verdier.
+2. Klikk **Kjør arbeidsflyt** i **Bygger** med realistiske verdier. En deaktivert arbeidsflyt kjører ikke engang for hånd, så Bygger spør først om den skal slås på: klikk **Slå på og kjør**.
 3. Sjekk **Logger** — forsikre deg om at hver blokk gikk dit du ventet.
-4. Slå på **Aktivert**.
+4. La **Aktivert** stå på hvis den er klar. Hvis ikke, slå den av til den er det: så lenge den er på, fyrer triggeren ved ekte hendelser.
 
 Å slå av en arbeidsflyt stopper ikke kjøringer som allerede er i gang; det hindrer bare nye i å starte.
 

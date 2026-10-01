@@ -4,14 +4,14 @@ Den här sidan går igenom inställningarna och säkerhetsgränserna som är vä
 
 ## Slå på eller av ett arbetsflöde
 
-Varje arbetsflöde har en växel **Aktiverad** under **Inställningar**. När den är av körs arbetsflödet inte — webhook-anrop, schemalagda tider och OneUptime-händelser ignoreras allihop. Nya arbetsflöden startar inaktiverade.
+Varje arbetsflöde har en växel **Aktiverad** högst upp i sin **Byggare** och på sin sida **Översikt**. När den är av körs arbetsflödet inte — webhook-anrop, schemalagda tider och OneUptime-händelser ignoreras allihop, och det gör även **Kör arbetsflöde** och **Run just this step**. Nya arbetsflöden startar inaktiverade.
 
 Använd växeln som din "redo att köra"-grind:
 
 1. Bygg arbetsflödet.
-2. Klicka på **Kör arbetsflöde** i **Byggare** med realistiska värden.
+2. Klicka på **Kör arbetsflöde** i **Byggare** med realistiska värden. Ett inaktiverat arbetsflöde körs inte ens för hand, så Byggare frågar först om det ska slås på: klicka på **Slå på och kör**.
 3. Kontrollera **Loggar** — se till att varje block gick dit du förväntade dig.
-4. Slå på **Aktiverad**.
+4. Låt **Aktiverad** vara på om det är klart. Om inte, slå av det tills det är det: medan det är på smäller dess utlösare vid riktiga händelser.
 
 Att slå av ett arbetsflöde stoppar inte körningar som redan pågår; det hindrar bara nya från att starta.
 
