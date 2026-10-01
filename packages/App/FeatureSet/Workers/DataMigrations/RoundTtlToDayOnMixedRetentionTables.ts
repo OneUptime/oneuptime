@@ -34,6 +34,12 @@ export const DAY_ROUNDED_TTL_MODELS: Array<ModelType> = [
  * TTL bounds it was written with until its next TTL merge, which applies the
  * new expression and stores the new bounds - the setting travels with the
  * ON CLUSTER task, so every host alters its tables this way.
+ *
+ * (`materialize_ttl_recalculate_only = 1` would make that mutation read only
+ * the columns the TTL uses, and spare each old partition its one later
+ * rewrite. It is not used: it takes a per-replica table setting and a
+ * mutation across every part, to save a rewrite the old TTL would have
+ * repeated six or seven times.)
  */
 export const ModifyTtlWithoutRewriteOptions: ClickhouseExecuteOptions = {
   ...MigrationExecuteOptions,

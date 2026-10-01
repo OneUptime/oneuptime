@@ -1238,10 +1238,10 @@ export default class Metric extends AnalyticsBaseModel {
        */
       tableSettings: "non_replicated_deduplication_window = 10000",
       /*
-       * So rows go one at a time, but rounded up to the midnight after
-       * their retentionDate (and lined up with their partition's day when
-       * the event was stamped ahead of the ingest clock): a day's rows of
-       * one retention expire together, the last ones as a free part drop,
+       * Rows expire one at a time, rounded up to the midnight after their
+       * retentionDate (and lined up with their partition's day when the
+       * event was stamped ahead of the ingest clock): a day's rows of one
+       * retention expire together, the last ones as a free part drop,
        * instead of the partition being rewritten every
        * merge_with_ttl_timeout while they expire. See RetentionTtl.
        */
