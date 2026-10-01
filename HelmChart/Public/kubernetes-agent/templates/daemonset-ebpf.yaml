@@ -17,6 +17,10 @@ spec:
       labels:
         {{- include "kubernetes-agent.selectorLabels" . | nindent 8 }}
         component: ebpf-instrument
+      annotations:
+        # OBI reads its config file once, at startup; roll the pods when it
+        # changes so a new exclusion or route takes effect.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap-ebpf.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
       hostPID: true
@@ -48,13 +52,13 @@ spec:
             privileged: true
             readOnlyRootFilesystem: true
           env:
-            {{- if .Values.ebpf.logToTraceCorrelation }}
-            # YAML config holds the pieces OBI doesn't accept via env vars —
-            # right now just `ebpf.log_enricher.services` for trace→log
-            # correlation. Env vars on this container still win on conflict.
+            # The YAML config holds what OBI does not accept as env vars:
+            # which processes to instrument and which to skip
+            # (discovery.instrument / exclude_instrument), route naming, and
+            # the log enricher's selector. See templates/configmap-ebpf.yaml.
+            # Env vars on this container still win on conflict.
             - name: OTEL_EBPF_CONFIG_PATH
               value: "/etc/obi/obi-config.yaml"
-            {{- end }}
             - name: NODE_NAME
               valueFrom:
                 fieldRef:
@@ -63,15 +67,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            # OBI auto-discovers every executable on the node and instruments
-            # the supported ones (Go, .NET, Java, Node.js, Python, Ruby, Rust,
-            # plus generic HTTP/HTTPS/gRPC via socket-level probes).
-            - name: OTEL_EBPF_AUTO_TARGET_EXE
-              value: {{ .Values.ebpf.autoTargetExe | quote }}
-            {{- if .Values.ebpf.excludeExePaths }}
-            - name: OTEL_EBPF_EXCLUDE_AUTO_TARGET_EXE
-              value: {{ .Values.ebpf.excludeExePaths | quote }}
-            {{- end }}
+            # Which executables OBI instruments (ebpf.autoTargetExe) and skips
+            # (ebpf.excludeExePaths) is in the config file, NOT in
+            # OTEL_EBPF_AUTO_TARGET_EXE: OBI ORs that variable in as one more
+            # selector, which would undo the namespace include rules.
             - name: OTEL_EBPF_KUBE_METADATA_ENABLE
               value: "true"
             # OBI emits a warning unless this is set explicitly — without it,
@@ -89,6 +88,22 @@ spec:
             # Built from .Values.ebpf.features.*; see values.yaml.
             - name: OTEL_EBPF_METRICS_FEATURES
               value: {{ include "kubernetes-agent.ebpfMetricsFeatures" . | quote }}
+            # OBI's Node.js agent: links a Node request's outgoing calls to
+            # it, and harvests route templates. See ebpf.nodejs.
+            - name: OTEL_EBPF_NODEJS_ENABLED
+              value: {{ ternary "false" "true" (eq (toString ((.Values.ebpf.nodejs | default dict).enabled)) "false") | quote }}
+            # Stop exporting OBI telemetry for a process that exports OTLP
+            # itself. See ebpf.excludeOtelInstrumentedServices.
+            - name: OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES
+              value: {{ ternary "false" "true" (eq (toString .Values.ebpf.excludeOtelInstrumentedServices) "false") | quote }}
+            {{- if .Values.ebpf.trackRequestHeaders }}
+            # Read (never write) an incoming W3C traceparent on plain-HTTP
+            # servers. Rendered on its own: it used to sit inside the
+            # contextPropagation block below, where OBI already turns header
+            # reading on, so it could never change anything.
+            - name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
+              value: "true"
+            {{- end }}
             {{- if .Values.ebpf.contextPropagation }}
             # Inject a W3C `traceparent` into outbound traffic so traces link
             # across services. OFF unless explicitly opted into, because every
@@ -103,10 +118,6 @@ spec:
             # that would otherwise stop injection is always open.
             - name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
               value: {{ .Values.ebpf.contextPropagationMode | default "headers" | quote }}
-            {{- if .Values.ebpf.trackRequestHeaders }}
-            - name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
-              value: "true"
-            {{- end }}
             {{- end }}
             # OTLP HTTP export to the in-cluster collector (the
             # metrics-collector Deployment). The collector adds k8sattributes
@@ -122,16 +133,8 @@ spec:
             # do NOT override it here.
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "k8s.cluster.name={{ .Values.clusterName }}"
-            {{- $ebpfInclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "include" "scope" "ebpfDiscovery") | fromJsonArray }}
-            {{- $ebpfExclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "exclude" "scope" "ebpfDiscovery") | fromJsonArray }}
-            {{- if $ebpfInclude }}
-            - name: OTEL_EBPF_DISCOVERY_NAMESPACE
-              value: {{ join "," $ebpfInclude | quote }}
-            {{- end }}
-            {{- if $ebpfExclude }}
-            - name: OTEL_EBPF_DISCOVERY_EXCLUDE_NAMESPACE
-              value: {{ join "," $ebpfExclude | quote }}
-            {{- end }}
+            # Namespace rules with the `ebpfDiscovery` scope are in the config
+            # file too, as k8s_namespace selectors.
           resources:
             {{- toYaml .Values.ebpf.resources | nindent 12 }}
           volumeMounts:
@@ -155,11 +158,9 @@ spec:
             - name: debugfs
               mountPath: /sys/kernel/debug
               readOnly: true
-            {{- if .Values.ebpf.logToTraceCorrelation }}
             - name: obi-config
               mountPath: /etc/obi
               readOnly: true
-            {{- end }}
       volumes:
         - name: var-run-obi
           emptyDir: {}
@@ -173,9 +174,7 @@ spec:
         - name: debugfs
           hostPath:
             path: /sys/kernel/debug
-        {{- if .Values.ebpf.logToTraceCorrelation }}
         - name: obi-config
           configMap:
             name: {{ include "kubernetes-agent.fullname" . }}-ebpf
-        {{- end }}
 {{- end }}

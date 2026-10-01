@@ -397,6 +397,25 @@ data:
       {{- include "kubernetes-agent.filterProcessor" (dict "root" . "signals" $signals) | nindent 6 }}
       {{- end }}
 
+      {{- if and .Values.ebpf.enabled .Values.ebpf.dropUnlinkedDatabaseSpans }}
+      # Drop eBPF database spans that belong to no trace: the span OBI records
+      # inside the database server for every command it receives (database
+      # wire protocols carry no trace context, so it can never join the
+      # caller's trace), and calls made outside any request (queue workers
+      # polling Redis, pool pings). Each would otherwise reach OneUptime as a
+      # one-span "trace" named after the bare command — `set`, `evalsha` — and
+      # on a busy cluster they are most of what OBI sends. Database spans
+      # inside a request trace have a parent and are kept; spans applications
+      # push from their own SDKs are not OBI's and are kept. OBI computes its
+      # database metrics before export, so those still count every command.
+      # See ebpf.dropUnlinkedDatabaseSpans.
+      filter/ebpf-unlinked-db:
+        error_mode: ignore
+        traces:
+          span:
+            - '{{ include "kubernetes-agent.ebpfUnlinkedDatabaseSpanCondition" . | replace "'" "''" }}'
+      {{- end }}
+
       {{- if eq (include "kubernetes-agent.traceSamplingEnabled" .) "true" }}
       # Keep .Values.sampling.traces.percentage% of traces, drop the rest.
       # The decision is a hash of the trace ID, so every span of a trace is
@@ -507,6 +526,11 @@ data:
             - memory_limiter
             - k8sattributes
             - resource
+            {{- if .Values.ebpf.dropUnlinkedDatabaseSpans }}
+            # Before the user's filters and the sampler, so neither spends
+            # work on spans that are about to be dropped anyway.
+            - filter/ebpf-unlinked-db
+            {{- end }}
             {{- if and .Values.ebpf.enabled (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true") }}
             # k8sattributes resolves the sending pod to a namespace, so this
             # must stay after it — before it, every span looks namespace-less.

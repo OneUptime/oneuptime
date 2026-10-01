@@ -783,11 +783,11 @@
         },
         "autoTargetExe": {
           "type": "string",
-          "description": "Glob pattern of executable paths to auto-instrument (e.g., '*' for all, '*/python,*/java' to scope)."
+          "description": "Comma-separated globs of executable paths to auto-instrument (e.g. '*' for all, '*/python,*/java' to scope). Each entry becomes one OBI discovery.instrument selector; `*` matches across `/`."
         },
         "excludeExePaths": {
           "type": "string",
-          "description": "Comma-separated glob list of executable paths to skip."
+          "description": "Comma-separated globs of executable paths to skip. Each entry becomes one OBI discovery.exclude_instrument selector, next to OBI's built-in exclusions."
         },
         "logLevel": {
           "type": "string",
@@ -843,7 +843,43 @@
         },
         "trackRequestHeaders": {
           "type": "boolean",
-          "description": "Track HTTP request headers in kernel for traceparent extraction. Only effective if `contextPropagation` is true."
+          "description": "Read an incoming W3C traceparent on plain-HTTP servers and continue that trace (OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS). Read-only and independent of `contextPropagation`. Turn on only when callers that already send a traceparent report to the same OneUptime project."
+        },
+        "nodejs": {
+          "type": "object",
+          "description": "OBI's Node.js support: linking a request's outgoing calls to it, and route harvesting, through an agent injected via the Node inspector (SIGUSR1; loopback 127.0.0.1:9229).",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "OTEL_EBPF_NODEJS_ENABLED. When false there is no SIGUSR1/inspector injection, and Node.js spans are not linked to the request that made them."
+            }
+          },
+          "additionalProperties": false
+        },
+        "excludeOtelInstrumentedServices": {
+          "type": "boolean",
+          "description": "OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES. When true (OBI's default) OBI stops exporting its own telemetry for a process once it sees that process export OTLP itself. Set false when those SDKs report to a different project or backend."
+        },
+        "routes": {
+          "type": "object",
+          "description": "How OBI names HTTP spans (OBI `routes` config).",
+          "properties": {
+            "patterns": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Route templates matched against URL paths, e.g. '/api/items/{id}'. A matching path gets that route, and span name, verbatim."
+            },
+            "unmatched": {
+              "type": "string",
+              "enum": ["", "heuristic", "low-cardinality", "wildcard", "path", "unset"],
+              "description": "Route for a path no pattern matches. '' keeps OBI's default (heuristic)."
+            }
+          },
+          "additionalProperties": false
+        },
+        "dropUnlinkedDatabaseSpans": {
+          "type": "boolean",
+          "description": "Drop eBPF database spans (db.system.name set) that have no parent: server-side spans recorded inside database processes, and calls made outside any request. Each would otherwise be a one-span trace named after the bare command. Spans pushed by application SDKs are never touched, and database metrics are unaffected."
         },
         "logToTraceCorrelation": {
           "type": "boolean",

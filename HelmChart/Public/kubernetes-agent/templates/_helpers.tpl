@@ -121,6 +121,120 @@ currently enabled. Empty list -> empty string (OBI then exports no metrics).
 {{- end }}
 
 {{/*
+Split a comma-separated glob list (ebpf.autoTargetExe, ebpf.excludeExePaths)
+into a JSON array: entries trimmed, blanks and duplicates dropped, order kept.
+
+OBI compiles each `exe_path` selector as ONE gobwas glob, in which a comma is
+a literal character, so the sh and bash globs handed over joined by a comma
+match no executable at all. Each entry has to become its own selector.
+(No glob examples in this comment: a star followed by a slash would end it.)
+Usage: {{ include "kubernetes-agent.globList" .Values.ebpf.excludeExePaths | fromJsonArray }}
+*/}}
+{{- define "kubernetes-agent.globList" -}}
+{{- $out := list -}}
+{{- range (splitList "," ((. | default "") | toString)) -}}
+{{- $glob := trim . -}}
+{{- if and $glob (not (has $glob $out)) -}}
+{{- $out = append $out $glob -}}
+{{- end -}}
+{{- end -}}
+{{- toJson $out -}}
+{{- end }}
+
+{{/*
+The OBI configuration file (templates/configmap-ebpf.yaml, mounted at
+/etc/obi/obi-config.yaml and named by OTEL_EBPF_CONFIG_PATH).
+
+Process selection lives here because OBI has no environment variable for it:
+the chart used to set OTEL_EBPF_EXCLUDE_AUTO_TARGET_EXE,
+OTEL_EBPF_DISCOVERY_NAMESPACE and OTEL_EBPF_DISCOVERY_EXCLUDE_NAMESPACE, none
+of which any OBI release reads, so excludeExePaths and the ebpfDiscovery
+namespace rules silently did nothing.
+
+  discovery.instrument — one selector per autoTargetExe glob. With namespace
+    include rules, one per (glob, namespace) pair, so a process has to match
+    both. OTEL_EBPF_AUTO_TARGET_EXE must NOT be set alongside: OBI ORs it in
+    as one more selector, which would widen discovery back to every
+    namespace.
+  discovery.exclude_instrument — one selector per excludeExePaths glob and
+    per excluded namespace. OBI still appends its built-in exclusions (itself,
+    OTel collectors, the system namespaces) after these.
+
+OBI decodes this file on top of its defaults, so anything not written here
+keeps OBI's default.
+*/}}
+{{- define "kubernetes-agent.obiConfig" -}}
+{{- $targets := include "kubernetes-agent.globList" .Values.ebpf.autoTargetExe | fromJsonArray -}}
+{{- if not $targets -}}
+{{- /* An empty selector is a config error that stops OBI from starting. */ -}}
+{{- $targets = list "*" -}}
+{{- end -}}
+{{- $excludes := include "kubernetes-agent.globList" .Values.ebpf.excludeExePaths | fromJsonArray -}}
+{{- $nsInclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "include" "scope" "ebpfDiscovery") | fromJsonArray -}}
+{{- $nsExclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "exclude" "scope" "ebpfDiscovery") | fromJsonArray -}}
+discovery:
+  instrument:
+{{- if $nsInclude }}
+{{- range $ns := $nsInclude }}
+{{- range $exe := $targets }}
+    - exe_path: {{ $exe | quote }}
+      k8s_namespace: {{ $ns | quote }}
+{{- end }}
+{{- end }}
+{{- else }}
+{{- range $exe := $targets }}
+    - exe_path: {{ $exe | quote }}
+{{- end }}
+{{- end }}
+{{- if or $excludes $nsExclude }}
+  exclude_instrument:
+{{- range $excludes }}
+    - exe_path: {{ . | quote }}
+{{- end }}
+{{- range $nsExclude }}
+    - k8s_namespace: {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- $routes := .Values.ebpf.routes | default dict }}
+{{- if or $routes.patterns $routes.unmatched }}
+routes:
+{{- with $routes.unmatched }}
+  unmatched: {{ . | quote }}
+{{- end }}
+{{- with $routes.patterns }}
+  patterns:
+{{- range . }}
+    - {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Values.ebpf.logToTraceCorrelation }}
+# The log enricher's process selector has no env var equivalent either.
+ebpf:
+  log_enricher:
+    services:
+{{ toYaml .Values.ebpf.logEnricher.services | indent 6 }}
+{{- end }}
+{{- end }}
+
+{{/*
+OTTL span condition for `filter/ebpf-unlinked-db`: an eBPF (OBI) span with a
+database system and no parent. See ebpf.dropUnlinkedDatabaseSpans.
+
+  - telemetry.distro.name scopes it to OBI. The receiver also takes spans
+    that applications push from their own SDKs, and those are none of this
+    filter's business.
+  - db.system.name is the current semantic-convention key and what OBI
+    emits; db.system is the older one, kept so an OBI that still emits it is
+    covered too.
+  - parent_span_id == SpanID(0x0000000000000000) is "no parent" in a form
+    the pinned collector (0.96.0) understands; IsRootSpan() is newer.
+*/}}
+{{- define "kubernetes-agent.ebpfUnlinkedDatabaseSpanCondition" -}}
+resource.attributes["telemetry.distro.name"] == "opentelemetry-ebpf-instrumentation" and parent_span_id == SpanID(0x0000000000000000) and (attributes["db.system.name"] != nil or attributes["db.system"] != nil)
+{{- end }}
+
+{{/*
 Render .Values.oneuptime.labels as OTel resource-processor attribute entries.
 
 The OneUptime ingest pipeline promotes any resource attribute prefixed with

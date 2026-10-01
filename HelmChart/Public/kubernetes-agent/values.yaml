@@ -824,11 +824,29 @@ ebpf:
   affinity: {}
   # Optional PriorityClass for the agent pods (empty = none).
   priorityClassName: ""
-  # Glob pattern of executable paths to instrument. "*" means "every process
-  # OBI can recognize". Set to a narrower pattern (e.g. "*/python,*/java") if
-  # you only want specific runtimes.
+  # Comma-separated globs of executable paths to instrument. "*" means "every
+  # process OBI can recognize". Set to a narrower list (e.g. "*/python,*/java")
+  # if you only want specific runtimes. `*` matches across `/`, so `*/java`
+  # matches /usr/bin/java and /opt/jdk/bin/java alike.
+  #
+  # How this reaches OBI: each entry becomes one `discovery.instrument` selector
+  # in the OBI config file this chart renders (templates/configmap-ebpf.yaml).
+  # OBI compiles a selector as ONE glob, in which a comma is a literal
+  # character — so the list has to be split here, and is. (Earlier versions of
+  # this chart passed the whole string to OTEL_EBPF_AUTO_TARGET_EXE unsplit,
+  # where "*/python,*/java" matched nothing at all.)
   autoTargetExe: "*"
-  # Comma-separated globs of executables to skip. Defaults filter out:
+  # Comma-separated globs of executables to skip. Each entry becomes one
+  # `discovery.exclude_instrument` selector in the OBI config file, next to
+  # OBI's own built-in exclusions (itself, OTel collectors, kube-system and the
+  # other system namespaces).
+  #
+  # (Earlier versions of this chart passed this list as
+  # OTEL_EBPF_EXCLUDE_AUTO_TARGET_EXE, which is not an OBI setting — no OBI
+  # release has read it — so NOTHING on it was ever excluded. OBI only reads
+  # exclusions from its YAML config.)
+  #
+  # Defaults filter out:
   #   - Shell / coreutils noise (sh, bash, awk, sed, ...) so transient
   #     pod execs don't show up as one-off services.
   #   - Cluster plumbing (kubelet, kube-proxy, containerd, runc, dockerd,
@@ -839,10 +857,11 @@ ebpf:
   #     restart them — and most of them already export their own
   #     Prometheus metrics that the chart can scrape via
   #     `serviceMesh.enabled: true` instead.
-  #   - Browser binaries (firefox, chrome, chromium, headless_shell, webkit) so
-  #     synthetic-monitoring / Playwright probe pods don't bury OBI in
-  #     short-lived-process churn — a CPU-peg + container-runtime-stall risk on
-  #     any node co-located with probes.
+  #   - Browser binaries (firefox, chrome, chromium, headless_shell, webkit,
+  #     and Chrome's crash reporter chrome_crashpad_handler, which every
+  #     Playwright browser launch spawns) so synthetic-monitoring / Playwright
+  #     probe pods don't bury OBI in short-lived-process churn — a CPU-peg +
+  #     container-runtime-stall risk on any node co-located with probes.
   #   - ClickHouse (clickhouse): its server binary runs a self-integrity
   #     checksum at startup and REFUSES to boot the instant OBI attaches a
   #     uprobe and patches its in-memory text — it aborts with "Calculated
@@ -859,7 +878,7 @@ ebpf:
   # (Note: `*/node` is intentionally NOT excluded — it would drop traces for
   # every Node.js service, including your own apps; the browser basenames above
   # are what cover Playwright.)
-  excludeExePaths: "*/sh,*/bash,*/dash,*/busybox,*/sleep,*/grep,*/awk,*/sed,*/ps,*/cat,*/find,*/runc,*/containerd*,*/dockerd,*/kubelet,*/kube-proxy,*/coredns,*/etcd,*/otelcol*,*/ebpf-instrument,*/obi,*/linkerd2-proxy,*/envoy,*/istio-pilot-agent,*/pilot-agent,*/cilium-agent,*/cilium-operator,*/cilium-envoy,*/calico-node,*/kube-router,*/firefox,*/firefox-bin,*/headless_shell,*/chrome,*/chromium,*/webkit,*/clickhouse"
+  excludeExePaths: "*/sh,*/bash,*/dash,*/busybox,*/sleep,*/grep,*/awk,*/sed,*/ps,*/cat,*/find,*/runc,*/containerd*,*/dockerd,*/kubelet,*/kube-proxy,*/coredns,*/etcd,*/otelcol*,*/ebpf-instrument,*/obi,*/linkerd2-proxy,*/envoy,*/istio-pilot-agent,*/pilot-agent,*/cilium-agent,*/cilium-operator,*/cilium-envoy,*/calico-node,*/kube-router,*/firefox,*/firefox-bin,*/headless_shell,*/chrome,*/chrome_crashpad_handler,*/chromium,*/webkit,*/clickhouse"
   # OBI log level: debug, info, warn, error
   logLevel: "info"
   # Print spans to stdout in addition to OTLP export — useful for confirming
@@ -966,11 +985,93 @@ ebpf:
   # — this chart rejects it so a stale override fails loudly at install time
   # rather than silently disabling propagation.)
   contextPropagationMode: "headers"
-  # Track HTTP request headers in kernel for traceparent extraction on
-  # the receiving side via kprobes. Needed for propagation to work across
-  # plain (non-Go, non-TLS) HTTP servers. Only takes effect if
-  # `contextPropagation` is true.
-  trackRequestHeaders: true
+  # READ an incoming W3C `traceparent` header on plain-HTTP servers (via
+  # kprobes) and continue that trace, instead of starting a new one. Maps to
+  # `OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS`. Read-only: it writes nothing to any
+  # connection, unlike `contextPropagation` (Go servers always read the header;
+  # this is for every other runtime).
+  #
+  # Independent of `contextPropagation`, which turns header reading on by
+  # itself. Turn this on when callers ALREADY send a `traceparent` — an
+  # ingress, a mesh, or OpenTelemetry SDKs in other apps — AND those callers'
+  # spans go to the same OneUptime project as this cluster's. If they report
+  # to a different project, the eBPF spans adopt parent ids that only exist
+  # over there, and every trace here starts with a "missing parent". OBI also
+  # documents the header scan as costly on high-traffic nodes. Off by default.
+  trackRequestHeaders: false
+
+  # OBI's Node.js support. For a process OBI identifies as Node.js it sends
+  # SIGUSR1, which opens Node's inspector on 127.0.0.1:9229 inside the pod's
+  # network namespace, and injects a small agent that follows async context.
+  # That agent is what makes a Node.js request's outgoing HTTP, SQL and Redis
+  # calls children of the request instead of separate one-span traces — Node
+  # runs every request on one thread, so the kernel alone cannot tell which
+  # request a call belongs to. It also harvests Express/Fastify/Nest route
+  # templates, so request spans are named "POST /api/items/:id" rather than a
+  # guessed pattern. Maps to `OTEL_EBPF_NODEJS_ENABLED`.
+  #
+  # OBI skips the injection for a process that handles SIGUSR1 itself. Turn
+  # this off if your security policy forbids an inspector socket in your pods,
+  # even a loopback-only one; Node.js traces then keep working, unlinked.
+  nodejs:
+    enabled: true
+
+  # OBI stops exporting its own traces (and metrics) for a process once it
+  # sees that process export OTLP itself — it watches the process's outgoing
+  # requests for OTLP exports (e.g. to `*/v1/traces`) — so an app that already
+  # has an OpenTelemetry SDK is not traced twice. Maps to
+  # `OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES` (OBI's default: true).
+  #
+  # Set false when those apps' SDKs report somewhere else — another OneUptime
+  # project, another backend — and you want this cluster's project to have
+  # eBPF traces for them too.
+  excludeOtelInstrumentedServices: true
+
+  # How OBI names HTTP spans. A span is named "<METHOD> <route>"; when the
+  # route template is not known (OBI harvests it for Node.js and Java apps),
+  # OBI derives one from the URL path. Maps to OBI's `routes` config.
+  routes:
+    # Route templates to match URL paths against, e.g.
+    # ["/api/items/{id}", "/otlp/v1/{signal}"]. A matching path gets that
+    # route (and span name) verbatim. Use this for frameworks OBI cannot
+    # harvest routes from.
+    patterns: []
+    # What to do with a path no pattern matches. "" keeps OBI's default
+    # (`heuristic`: replace segments that look like ids with `*`). Others:
+    # `low-cardinality` (heuristic, plus a cap on distinct routes),
+    # `wildcard` (every unmatched route is `/**`), `path` (the raw path —
+    # unbounded cardinality, avoid), `unset` (no route; the span is named
+    # after the method alone).
+    unmatched: ""
+
+  # Drop eBPF database spans that are not part of any trace.
+  #
+  # OBI records a span for every database command it sees — on the client
+  # that sends it AND on the database server that receives it. When the
+  # command is made while handling a request, the client span is a child of
+  # that request and shows up inside its trace. But most database traffic is
+  # not like that:
+  #
+  #   - The server-side span (Valkey/Redis, PostgreSQL, MySQL, MongoDB, ...)
+  #     can never join the caller's trace: database wire protocols carry no
+  #     trace context. It is always a new one-span trace, and it duplicates
+  #     the client span the caller already recorded.
+  #   - Calls made outside any request — queue workers polling Redis
+  #     (BRPOP/BZPOPMIN/EVALSHA), connection pools pinging, cron jobs — have
+  #     no request to belong to.
+  #
+  # Each of those becomes a "trace" of exactly one span named after the bare
+  # command — `set`, `evalsha`, `SELECT` — and on a cluster with a busy queue
+  # they are the large majority of everything OBI sends, burying the request
+  # traces you actually want to read.
+  #
+  # With this on, the agent's collector drops an eBPF span when it has a
+  # database system (`db.system.name`) AND no parent. Database spans inside a
+  # request trace are kept. Only OBI's spans are considered — spans that
+  # applications push to the agent's OTLP endpoint from their own SDKs are
+  # never touched. Database RED metrics (`db.client.operation.duration`, …)
+  # are computed by OBI before export, so they still count every command.
+  dropUnlinkedDatabaseSpans: true
 
   # Log ↔ trace correlation. OBI's log enricher attaches a uprobe to
   # the `write()` syscall in every instrumented process, looks up the
