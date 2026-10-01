@@ -1,5 +1,9 @@
 import DatabaseConfig from "../../../Server/DatabaseConfig";
-import ProjectService from "../../../Server/Services/ProjectService";
+import ProjectService, {
+  NEW_PROJECT_AI_DEFAULT_COLUMNS,
+  NewProjectAiDefaultColumn,
+  NewProjectAiDefaults,
+} from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
@@ -10,14 +14,15 @@ import User from "../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * New projects start with AI investigating their incidents and alerts.
+ * New projects start with every AI feature on.
  *
- * The two automatic-investigation opt-ins are switched on by
- * ProjectService.onBeforeCreate when the create request leaves them unset —
+ * Each per-feature AI switch on Project is switched on by
+ * ProjectService.onBeforeCreate when the create request leaves it unset —
  * every project created in the dashboard — and NOT by a column default:
  * a default would reach the generated Terraform provider as a static
  * default and flip existing Terraform-managed projects on their next
@@ -25,7 +30,8 @@ import { getJestSpyOn } from "../../Spy";
  *
  * Pinned here:
  *  - unset becomes on; an explicit value (either way) is kept;
- *  - postmortem drafting is NOT switched on (its own opt-in, off);
+ *  - the list covers every boolean AI feature switch the model has, so a
+ *    switch added later cannot be left off for new projects by accident;
  *  - the hook really runs on a dashboard create and the result still
  *    passes the column permission check a non-root create goes through
  *    AFTER the hook (a server-set column the creator may not write would
@@ -43,10 +49,31 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 
 const USER_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
 
-type AiFlags = {
-  enableAutomaticIncidentInvestigation?: boolean | null | undefined;
-  enableAutomaticAlertInvestigation?: boolean | null | undefined;
-};
+type AiFlags = NewProjectAiDefaults;
+
+// The ten switches, written out so a column dropped from the list fails here.
+const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
+  "enableAutomaticIncidentInvestigation",
+  "enableAutomaticAlertInvestigation",
+  "enableAutomaticPostmortemDraft",
+  "enableIncidentInstrumentationFixTasks",
+  "enableAlertInstrumentationFixTasks",
+  "enableAutomaticIncidentCodeFixes",
+  "enableAutomaticAlertCodeFixes",
+  "enableAiInsights",
+  "enableInsightFixTasks",
+  "autoArchiveNonActionableExceptions",
+];
+
+function allSwitches(value: boolean | null): AiFlags {
+  const flags: AiFlags = {};
+
+  for (const column of AI_SWITCHES) {
+    flags[column] = value;
+  }
+
+  return flags;
+}
 
 function userProps(): DatabaseCommonInteractionProps {
   // What a signed-in dashboard user carries when creating a project.
@@ -78,68 +105,99 @@ async function runOnBeforeCreate(
   return result.createBy.data;
 }
 
+describe("NEW_PROJECT_AI_DEFAULT_COLUMNS", () => {
+  it("lists the ten per-feature AI switches", () => {
+    expect([...NEW_PROJECT_AI_DEFAULT_COLUMNS].sort()).toEqual(
+      [...AI_SWITCHES].sort(),
+    );
+  });
+
+  /*
+   * Found from the model rather than from the list: every Boolean column
+   * whose name, title or description mentions AI is a feature switch,
+   * except the ones named below. The balance and notification-sent columns
+   * are bookkeeping, and Enable AI defaults to true in the column.
+   */
+  it("covers every boolean AI feature switch on the Project model", () => {
+    const project: Project = new Project();
+    const mentionsAi: RegExp = /\bAI\b|Ai[A-Z]/;
+    const notFeatureSwitches: Array<string> = [
+      "enableAi",
+      "enableAutoRechargeAiBalance",
+      "lowAiBalanceNotificationSentToOwners",
+      "failedAiBalanceChargeNotificationSentToOwners",
+      "notEnabledAiNotificationSentToOwners",
+    ];
+
+    const aiBooleanColumns: Array<string> = Object.keys(project)
+      .filter((column: string) => {
+        const metadata: ReturnType<Project["getTableColumnMetadata"]> =
+          project.getTableColumnMetadata(column);
+
+        return (
+          metadata?.type === TableColumnType.Boolean &&
+          mentionsAi.test(`${column} ${metadata.title} ${metadata.description}`)
+        );
+      })
+      .filter((column: string) => {
+        return !notFeatureSwitches.includes(column);
+      });
+
+    expect(aiBooleanColumns.sort()).toEqual([...AI_SWITCHES].sort());
+  });
+});
+
 describe("ProjectService.applyNewProjectAiDefaults", () => {
-  it("turns both automatic investigations on when the request leaves them unset", () => {
+  it("turns every AI switch on when the request leaves them unset", () => {
     const data: AiFlags = {};
 
     ProjectService.applyNewProjectAiDefaults(data);
 
-    expect(data).toEqual({
-      enableAutomaticIncidentInvestigation: true,
-      enableAutomaticAlertInvestigation: true,
-    });
+    expect(data).toEqual(allSwitches(true));
   });
 
   it("treats null like unset", () => {
-    const data: AiFlags = {
-      enableAutomaticIncidentInvestigation: null,
-      enableAutomaticAlertInvestigation: null,
-    };
+    const data: AiFlags = allSwitches(null);
 
     ProjectService.applyNewProjectAiDefaults(data);
 
-    expect(data.enableAutomaticIncidentInvestigation).toBe(true);
-    expect(data.enableAutomaticAlertInvestigation).toBe(true);
+    expect(data).toEqual(allSwitches(true));
   });
 
-  it("keeps an explicit off, for each flag on its own", () => {
-    const incidentOff: AiFlags = {
-      enableAutomaticIncidentInvestigation: false,
-    };
-    ProjectService.applyNewProjectAiDefaults(incidentOff);
-    expect(incidentOff).toEqual({
-      enableAutomaticIncidentInvestigation: false,
-      enableAutomaticAlertInvestigation: true,
-    });
+  it.each(AI_SWITCHES)(
+    "keeps an explicit off for %s and turns the others on",
+    (column: NewProjectAiDefaultColumn) => {
+      const data: AiFlags = { [column]: false };
 
-    const alertOff: AiFlags = { enableAutomaticAlertInvestigation: false };
-    ProjectService.applyNewProjectAiDefaults(alertOff);
-    expect(alertOff).toEqual({
-      enableAutomaticIncidentInvestigation: true,
-      enableAutomaticAlertInvestigation: false,
-    });
+      ProjectService.applyNewProjectAiDefaults(data);
+
+      expect(data).toEqual({ ...allSwitches(true), [column]: false });
+    },
+  );
+
+  it("keeps every switch off when the request turns them all off", () => {
+    const data: AiFlags = allSwitches(false);
+
+    ProjectService.applyNewProjectAiDefaults(data);
+
+    expect(data).toEqual(allSwitches(false));
   });
 
   it("keeps an explicit on", () => {
-    const data: AiFlags = {
-      enableAutomaticIncidentInvestigation: true,
-      enableAutomaticAlertInvestigation: true,
-    };
+    const data: AiFlags = allSwitches(true);
 
     ProjectService.applyNewProjectAiDefaults(data);
 
-    expect(data).toEqual({
-      enableAutomaticIncidentInvestigation: true,
-      enableAutomaticAlertInvestigation: true,
-    });
+    expect(data).toEqual(allSwitches(true));
   });
 
-  it("does not switch postmortem drafting on", () => {
+  it("leaves Enable AI and the AI balance auto-recharge alone", () => {
     const project: Project = new Project();
 
     ProjectService.applyNewProjectAiDefaults(project);
 
-    expect(project.enableAutomaticPostmortemDraft).toBeUndefined();
+    expect(project.enableAi).toBeUndefined();
+    expect(project.enableAutoRechargeAiBalance).toBeUndefined();
   });
 });
 
@@ -158,27 +216,30 @@ describe("ProjectService.onBeforeCreate: AI defaults for a new project", () => {
     jest.restoreAllMocks();
   });
 
-  it("a project created in the dashboard investigates incidents and alerts, and does not draft postmortems", async () => {
+  it("a project created in the dashboard starts with every AI switch on", async () => {
     const project: Project = new Project();
     project.name = "Acme";
 
     const created: Project = await runOnBeforeCreate(project);
 
-    expect(created.enableAutomaticIncidentInvestigation).toBe(true);
-    expect(created.enableAutomaticAlertInvestigation).toBe(true);
-    expect(created.enableAutomaticPostmortemDraft).toBeUndefined();
+    for (const column of AI_SWITCHES) {
+      expect({ [column]: created[column] }).toEqual({ [column]: true });
+    }
   });
 
   it("a create request that turns them off keeps them off", async () => {
     const project: Project = new Project();
     project.name = "Acme";
-    project.enableAutomaticIncidentInvestigation = false;
-    project.enableAutomaticAlertInvestigation = false;
+
+    for (const column of AI_SWITCHES) {
+      project[column] = false;
+    }
 
     const created: Project = await runOnBeforeCreate(project);
 
-    expect(created.enableAutomaticIncidentInvestigation).toBe(false);
-    expect(created.enableAutomaticAlertInvestigation).toBe(false);
+    for (const column of AI_SWITCHES) {
+      expect({ [column]: created[column] }).toEqual({ [column]: false });
+    }
   });
 
   it("applies to a root create too (a seeded or admin-created project)", async () => {
@@ -190,8 +251,9 @@ describe("ProjectService.onBeforeCreate: AI defaults for a new project", () => {
       isRoot: true,
     });
 
-    expect(created.enableAutomaticIncidentInvestigation).toBe(true);
-    expect(created.enableAutomaticAlertInvestigation).toBe(true);
+    for (const column of AI_SWITCHES) {
+      expect({ [column]: created[column] }).toEqual({ [column]: true });
+    }
   });
 
   /*
@@ -233,25 +295,17 @@ describe("ProjectService.onBeforeCreate: AI defaults for a new project", () => {
   });
 });
 
-describe("Project automatic AI columns", () => {
+describe("Project AI switch columns", () => {
   const project: Project = new Project();
 
-  it.each([
-    "enableAutomaticIncidentInvestigation",
-    "enableAutomaticAlertInvestigation",
-    "enableAutomaticPostmortemDraft",
-  ])(
+  it.each(AI_SWITCHES)(
     "%s defaults off in the column, so no existing project is switched on",
     (column: string) => {
       expect(project.getTableColumnMetadata(column).defaultValue).toBe(false);
     },
   );
 
-  it.each([
-    "enableAutomaticIncidentInvestigation",
-    "enableAutomaticAlertInvestigation",
-    "enableAutomaticPostmortemDraft",
-  ])(
+  it.each(AI_SWITCHES)(
     "%s may be set by the project's creator and changed only by an owner or admin",
     (column: string) => {
       const acl: ReturnType<Project["getColumnAccessControlFor"]> =
@@ -264,25 +318,21 @@ describe("Project automatic AI columns", () => {
     },
   );
 
-  it("the descriptions say new projects start with investigations on", () => {
-    for (const column of [
-      "enableAutomaticIncidentInvestigation",
-      "enableAutomaticAlertInvestigation",
-    ]) {
-      expect(project.getTableColumnMetadata(column).description).toContain(
-        "On for new projects created in OneUptime",
-      );
-    }
-  });
+  it.each(AI_SWITCHES)(
+    "the description of %s says new projects start with it on",
+    (column: string) => {
+      const description: string | undefined =
+        project.getTableColumnMetadata(column).description;
+
+      expect(description).toContain("On for new projects created in OneUptime");
+      expect(description).not.toMatch(/off by default/i);
+    },
+  );
 
   it("the incident description points at the separate postmortem setting", () => {
     expect(
       project.getTableColumnMetadata("enableAutomaticIncidentInvestigation")
         .description,
     ).toContain("Enable Automatic Postmortem Draft");
-    expect(
-      project.getTableColumnMetadata("enableAutomaticPostmortemDraft")
-        .description,
-    ).toContain("Off by default");
   });
 });

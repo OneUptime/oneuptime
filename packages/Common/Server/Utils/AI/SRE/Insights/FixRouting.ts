@@ -19,7 +19,7 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 /*
  * Deterministic fix routing for newly created insights — gated on the
  * Project.enableAi master switch AND on Project.enableInsightFixTasks
- * (default FALSE): insights whose evidence points at code (new/spiking
+ * (on for new projects): insights whose evidence points at code (new/spiking
  * exceptions with a resolvable repository, latency regressions with
  * span-tree findings) queue a CodeFix AIRun that opens a pull request,
  * ready for review. The decision is readiness/evidence-based, never
@@ -74,8 +74,8 @@ export default class InsightFixRouting {
       }
 
       /*
-       * Strict opt-in — the column defaults to false, so unset/legacy rows
-       * never enqueue. Autonomous PR creation must never be default-on.
+       * Strictly === true — the column defaults to false, so unset/legacy
+       * rows never enqueue. New projects get it on from ProjectService.
        */
       if (project.enableInsightFixTasks !== true) {
         logger.debug(
