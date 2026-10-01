@@ -15,7 +15,7 @@ Bausteine hinzufügen:
 - **Der Trigger** – klicken Sie auf den gestrichelten Platzhalter-Baustein. Es öffnet sich ein Panel mit dem Titel **Add Trigger**.
 - **Alles andere** – klicken Sie in der Werkzeugleiste über der Arbeitsfläche auf **Komponente hinzufügen**. Dasselbe Panel öffnet sich, betitelt mit **Komponente hinzufügen**.
 
-Beide Panels lassen sich durchsuchen – drücken Sie `/`, um ins Suchfeld zu springen – und sind nach Kategorien gruppiert. Wählen Sie einen Baustein aus und klicken Sie auf **Add to Workflow**.
+Beide Panels beginnen mit den Bausteinen, die die meisten Workflows brauchen, unter **Popular**; danach folgen die übrigen eingebauten Bausteine. Unter **OneUptime resources** klicken Sie auf eine Ressource wie **Incident**, um zu sehen, was Sie damit tun können; **Browse all resources** listet alle auf. Oder Sie suchen: Geben Sie ein paar Wörter ein, etwa `create incident`, und der beste Treffer steht oben. Drücken Sie `/`, um ins Suchfeld zu springen, die Pfeiltasten, um durch die Ergebnisse zu gehen, und **Enter**, um den markierten Baustein hinzuzufügen. Ein Klick auf einen Baustein fügt ihn hinzu.
 
 Ein neuer Baustein landet unter dem untersten Baustein der Arbeitsfläche, und ein neuer Trigger nimmt oben den Platz des alten ein. Der neue Baustein ist ausgewählt, und landet er außerhalb des sichtbaren Bereichs, scrollt die Arbeitsfläche gerade so weit, dass er zu sehen ist. Seine Einstellungen öffnen sich nicht von selbst: Klicken Sie den Baustein an, wenn Sie ihn einrichten möchten. Solange seine Pflichteinstellungen leer sind, steht **Click to set up** darauf. Ziehen Sie Bausteine, wohin Sie möchten; die Arbeitsfläche rastet dabei an einem Raster ein. Die Positionen der Bausteine werden gespeichert – die nächste Person sieht also genau die Anordnung, die Sie hinterlassen haben.
 
@@ -64,8 +64,8 @@ Eines kann er nicht prüfen: ob ein Variablenname existiert. Eine umbenannte Var
 
 Der schnellste Weg, ein Gefühl für die Arbeitsfläche zu bekommen:
 
-1. Klicken Sie auf den gestrichelten Platzhalter-Baustein, wählen Sie im Panel **Add Trigger** den Eintrag **Manual** und klicken Sie auf **Add to Workflow**.
-2. Klicken Sie auf **Komponente hinzufügen**, wählen Sie **Log** (unter **Utils**) und klicken Sie auf **Add to Workflow**. Der neue Baustein landet unter dem Trigger. Verbinden Sie den Punkt **Execute** des Triggers nach unten mit dem Eingangspunkt des Log-Bausteins.
+1. Klicken Sie auf den gestrichelten Platzhalter-Baustein und dann im Panel **Add Trigger** auf **Manual**.
+2. Klicken Sie auf **Komponente hinzufügen** und dann unter **Popular** auf **Log**. Der neue Baustein landet unter dem Trigger. Verbinden Sie den Punkt **Execute** des Triggers nach unten mit dem Eingangspunkt des Log-Bausteins.
 3. Klicken Sie auf den Log-Baustein, auf dem **Click to set up** steht, und setzen Sie sein Feld **Wert** auf `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` ist der **Identifier** des Triggers, angezeigt auf dem Trigger-Baustein – prüfen Sie, ob er übereinstimmt.
 4. Gehen Sie auf **Übersicht**, klicken Sie auf der Karte **Details zum Arbeitsablauf** auf **Workflow bearbeiten** und schalten Sie **Aktiviert** ein. Ein deaktivierter Workflow lässt sich überhaupt nicht ausführen, nicht einmal von Hand.
 5. Zurück im **Builder** klicken Sie auf **Arbeitsablauf ausführen**, tragen `{ "name": "Ada" }` in das Feld **JSON** ein, klicken auf **Run Workflow Manually** und bestätigen mit **Run**.

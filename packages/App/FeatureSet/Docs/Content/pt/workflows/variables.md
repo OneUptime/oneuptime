@@ -61,7 +61,7 @@ Quase todo campo de texto aceita variáveis:
 - O texto da mensagem em Slack, Teams, Discord, Telegram, Email.
 - O assunto e o corpo de um e-mail.
 - Campos de cabeçalho e de corpo (dentro de valores de texto).
-- Os dois lados de um bloco **If / Else** (listado na categoria Conditions).
+- Os dois lados de um bloco **If / Else**.
 
 Em campos JSON você pode usar uma variável dentro de um valor de texto, mas não como chave. Uma referência que ocupa um valor inteiro sozinha é substituída sem aspas, então dá para jogar um objeto completo em um campo JSON dessa forma. Se precisar montar uma estrutura dinamicamente, use um bloco **Run Custom JavaScript** para construí-la e passe a saída dele ao bloco seguinte.
 

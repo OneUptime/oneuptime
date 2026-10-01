@@ -10,6 +10,7 @@ import ComponentMetadata, {
 import Components, { Categories } from "../../../Types/Workflow/Components";
 import BaseModelComponentFactory from "../../../Types/Workflow/Components/BaseModel";
 import Entities from "../../../Models/DatabaseModels/Index";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ConditionValueType } from "../../../Types/Workflow/Components/Condition";
 import {
   CONDITION_COMPARISONS,
@@ -33,16 +34,30 @@ export const loadComponentsAndCategories: LoadComponentsAndCategoriesFunction =
 
     initComponents = initComponents.concat(Components);
 
-    for (const model of Entities) {
-      initComponents = initComponents.concat(
-        BaseModelComponentFactory.getComponents(new model()),
-      );
+    for (const modelType of Entities) {
+      const model: BaseModel = new modelType();
+      const modelComponents: Array<ComponentMetadata> =
+        BaseModelComponentFactory.getComponents(model);
+
+      // A model with no workflow steps has nothing for its category to hold.
+      if (modelComponents.length === 0) {
+        continue;
+      }
+
+      initComponents = initComponents.concat(modelComponents);
+
+      /*
+       * The model's own description says what the resource is ("Manage
+       * incidents for your project"); the Add Component picker shows it when
+       * the resource is opened.
+       */
       initCategories.push({
-        name: new model().singularName || "Model",
-        description: `Interact with ${
-          new model().singularName
-        } in your workflow.`,
-        icon: new model().icon || IconProp.Database,
+        name: model.singularName || "Model",
+        description:
+          model.tableDescription ||
+          `Interact with ${model.singularName} in your workflow.`,
+        icon: model.icon || IconProp.Database,
+        tableName: model.tableName || undefined,
       });
     }
 

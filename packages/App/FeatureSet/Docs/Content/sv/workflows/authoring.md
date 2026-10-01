@@ -15,7 +15,7 @@ Att lägga till block:
 - **Utlösaren** — klicka på det streckade platshållarblocket. En panel med rubriken **Add Trigger** öppnas.
 - **Allt annat** — klicka på **Lägg till komponent** i verktygsfältet ovanför arbetsytan. Samma panel öppnas, med rubriken **Lägg till komponent**.
 
-Båda panelerna är sökbara — tryck på `/` för att hoppa till sökrutan — och grupperade efter kategori. Markera ett block och klicka på **Add to Workflow**.
+Båda panelerna öppnas med de block som de flesta arbetsflöden använder, under **Popular**, följda av de övriga inbyggda blocken. Under **OneUptime resources** klickar du på en resurs som **Incident** för att se vad du kan göra med den; **Browse all resources** listar alla. Eller sök: skriv några ord, till exempel `create incident`, så hamnar den närmaste träffen först. Tryck på `/` för att hoppa till sökrutan, piltangenterna för att flytta mellan resultaten och **Enter** för att lägga till det markerade blocket. Ett klick på ett block lägger till det.
 
 Ett nytt block landar under det nedersta blocket på arbetsytan, och en ny utlösare tar den gamlas plats högst upp. Det nya blocket är markerat, och landar det utanför synfältet rullar arbetsytan precis så långt att det syns. Dess inställningar öppnas inte av sig själva: klicka på blocket när du är redo att ställa in det. Så länge de obligatoriska inställningarna är tomma står det **Click to set up** på det. Dra blocken dit du vill; arbetsytan snäpper till ett rutnät medan du drar. Blockens positioner sparas, så nästa person ser samma upplägg som du lämnade efter dig.
 
@@ -64,8 +64,8 @@ En sak den inte kan kontrollera: om ett variabelnamn finns. En omdöpt variabel 
 
 Snabbaste sättet att få känsla för arbetsytan:
 
-1. Klicka på det streckade platshållarblocket, välj **Manual** i panelen **Add Trigger** och klicka på **Add to Workflow**.
-2. Klicka på **Lägg till komponent**, välj **Log** (under **Utils**) och klicka på **Add to Workflow**. Det nya blocket landar under utlösaren. Koppla utlösarens **Execute**-punkt ner till Log-blockets inmatningspunkt.
+1. Klicka på det streckade platshållarblocket och sedan på **Manual** i panelen **Add Trigger**.
+2. Klicka på **Lägg till komponent** och sedan på **Log** under **Popular**. Det nya blocket landar under utlösaren. Koppla utlösarens **Execute**-punkt ner till Log-blockets inmatningspunkt.
 3. Klicka på Log-blocket, där det står **Click to set up**, och sätt dess **Value** till `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` är utlösarens **Identifier**, som står på utlösarblocket — kontrollera att det stämmer.
 4. Gå till **Översikt**, klicka på **Redigera arbetsflöde** på kortet **Arbetsflödesdetaljer** och slå på **Aktiverad**. Ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand.
 5. Tillbaka i **Byggare**, klicka på **Kör arbetsflöde**, lägg `{ "name": "Ada" }` i fältet **JSON**, klicka på **Run Workflow Manually** och bekräfta med **Run**.

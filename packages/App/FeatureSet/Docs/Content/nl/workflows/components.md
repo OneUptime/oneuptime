@@ -131,7 +131,7 @@ Converteer tussen tekst en JSON.
 
 ## Voorwaarden
 
-Vertak op basis van een vergelijking. In het paneel **Component toevoegen** heet dit blok **If / Else**, onder de categorie Voorwaarden.
+Vertak op basis van een vergelijking. In het paneel **Component toevoegen** heet dit blok **If / Else**, onder **Popular**.
 
 **Instellingen**:
 
@@ -159,7 +159,7 @@ Er geldt een veiligheidslimiet, zodat workflows elkaar niet eindeloos in een lus
 
 ## OneUptime-datacomponenten
 
-Voor elk soort record in OneUptime (monitoren, incidenten, waarschuwingen, statuspagina's, piketbeleid en veel meer) biedt het paneel **Component toevoegen** deze componenten — zoek op de naam van het type. Elke titel wordt uit het recordtype opgebouwd, dus de set voor Monitor leest als:
+Voor elk soort record in OneUptime (monitoren, incidenten, waarschuwingen, statuspagina's, piketbeleid en veel meer) biedt het paneel **Component toevoegen** deze componenten: klik onder **OneUptime resources** op het recordtype (**Browse all resources** heeft de types die niet getoond worden), of zoek op de naam van het type. Elke titel wordt uit het recordtype opgebouwd, dus de set voor Monitor leest als:
 
 - **Find One Monitor** — lees één record dat aan de query voldoet.
 - **Find Many Monitors** — lees een lijst met records die aan de query voldoen.

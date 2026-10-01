@@ -15,7 +15,7 @@ Per aggiungere i blocchi:
 - **Il trigger** — clicca il blocco segnaposto tratteggiato. Si apre un pannello intitolato **Add Trigger**.
 - **Tutto il resto** — clicca **Aggiungi componente** nella barra degli strumenti sopra la tela. Si apre lo stesso pannello, questa volta intitolato **Add Component**.
 
-Entrambi i pannelli hanno una ricerca — premi `/` per saltare direttamente alla casella — e raggruppano i blocchi per categoria. Seleziona un blocco e clicca **Add to Workflow**.
+Entrambi i pannelli si aprono sui blocchi che usa quasi ogni workflow, sotto **Popular**, seguiti dagli altri blocchi integrati. Sotto **OneUptime resources** clicca una risorsa come **Incident** per vedere che cosa puoi farci; **Browse all resources** le elenca tutte. Oppure cerca: scrivi qualche parola, come `create incident`, e il risultato più vicino compare per primo. Premi `/` per saltare alla casella di ricerca, le frecce per muoverti tra i risultati e **Invio** per aggiungere il blocco evidenziato. Un clic su un blocco lo aggiunge.
 
 Un blocco nuovo compare sotto il blocco più in basso della tela, e un trigger nuovo prende in alto il posto del vecchio. Il blocco nuovo è selezionato e, se compare fuori vista, la tela scorre quel tanto che basta per mostrarlo. Le sue impostazioni non si aprono da sole: clicca il blocco quando sei pronto a configurarlo. Finché le impostazioni obbligatorie sono vuote, il blocco mostra **Click to set up**. Trascina i blocchi dove vuoi; mentre li sposti la tela li aggancia a una griglia. Le posizioni dei blocchi vengono salvate, così chi apre il workflow dopo di te ritrova la disposizione che hai lasciato.
 
@@ -64,8 +64,8 @@ Una cosa non riesce a controllarla: se il nome di una variabile esiste davvero. 
 
 Il modo più rapido per prendere le misure alla tela:
 
-1. Clicca il blocco segnaposto tratteggiato, scegli **Manual** nel pannello **Add Trigger** e clicca **Add to Workflow**.
-2. Clicca **Aggiungi componente**, scegli **Log** (nella categoria **Utils**) e clicca **Add to Workflow**. Il blocco nuovo compare sotto il trigger. Collega il puntino **Execute** del trigger al puntino di input del blocco Log.
+1. Clicca il blocco segnaposto tratteggiato, poi clicca **Manual** nel pannello **Add Trigger**.
+2. Clicca **Aggiungi componente**, poi clicca **Log** sotto **Popular**. Il blocco nuovo compare sotto il trigger. Collega il puntino **Execute** del trigger al puntino di input del blocco Log.
 3. Clicca il blocco Log, che mostra **Click to set up**, e imposta il suo **Value** su `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` è l'**Identifier** del trigger, stampato sul blocco stesso — controlla che corrisponda.
 4. Vai su **Panoramica**, clicca **Modifica flusso di lavoro** nella scheda **Dettagli del flusso di lavoro** e attiva **Abilitato**. Un workflow disabilitato non si può eseguire in nessun modo, nemmeno a mano.
 5. Torna sul **Costruttore**, clicca **Esegui flusso di lavoro**, metti `{ "name": "Ada" }` nel campo **JSON**, clicca **Run Workflow Manually** e conferma con **Run**.
