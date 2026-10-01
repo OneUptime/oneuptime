@@ -50,6 +50,9 @@ export interface ToggleScanResult {
   handRolledSwitches: Array<HandRolledSwitch>;
 }
 
+// A plain element (button, span), not a component (Toggle, Button).
+const INTRINSIC_TAG: RegExp = /^[a-z]/;
+
 const NAMING_ATTRIBUTES: ReadonlyArray<string> = [
   "title",
   "ariaLabel",
@@ -58,8 +61,7 @@ const NAMING_ATTRIBUTES: ReadonlyArray<string> = [
 
 function lineOf(sourceFile: ts.SourceFile, node: ts.Node): number {
   return (
-    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line +
-    1
+    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1
   );
 }
 
@@ -87,8 +89,7 @@ function importedDefaultNames(
       continue;
     }
 
-    const defaultName: ts.Identifier | undefined =
-      statement.importClause?.name;
+    const defaultName: ts.Identifier | undefined = statement.importClause?.name;
 
     if (defaultName) {
       names.add(defaultName.text);
@@ -228,7 +229,7 @@ export function scanToggleUsage(
         toggleElements.push(node);
       }
 
-      const isIntrinsic: boolean = /^[a-z]/.test(tagName);
+      const isIntrinsic: boolean = INTRINSIC_TAG.test(tagName);
 
       if (isIntrinsic && attributes.values.get("role") === '"switch"') {
         result.handRolledSwitches.push({

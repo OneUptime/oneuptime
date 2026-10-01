@@ -38,7 +38,9 @@ afterEach(() => {
   cleanup();
 });
 
-function secretField(overrides?: Partial<Field<TestEntity>>): Field<TestEntity> {
+function secretField(
+  overrides?: Partial<Field<TestEntity>>,
+): Field<TestEntity> {
   return {
     field: { isSecret: true },
     title: "Secret",
@@ -213,11 +215,17 @@ describe("FormField - a Toggle field is one row", () => {
   });
 
   test("a field with no help is just the switch and its title", () => {
-    renderField({ field: { description: undefined } });
+    renderField({ field: { description: "" } });
 
     const toggle: HTMLElement = screen.getByRole("switch", { name: "Secret" });
 
     expect(toggle).not.toHaveAttribute("aria-describedby");
+    expect(screen.queryByText(SECRET_DESCRIPTION)).toBeNull();
+    // No empty help block under the title either.
+    expect(
+      screen.getByText("Secret").closest("label")!.parentElement!
+        .nextElementSibling,
+    ).toBeNull();
   });
 
   test("help written as an element is kept", () => {
@@ -234,8 +242,9 @@ describe("FormField - a Toggle field is one row", () => {
     expect(
       screen.getByRole("link", { name: "workflow docs" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Secret" }))
-      .toHaveAccessibleDescription("Read the workflow docs first.");
+    expect(
+      screen.getByRole("switch", { name: "Secret" }),
+    ).toHaveAccessibleDescription("Read the workflow docs first.");
   });
 
   test("the field's test id reaches the switch", () => {

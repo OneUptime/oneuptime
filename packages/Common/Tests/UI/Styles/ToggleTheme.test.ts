@@ -170,7 +170,16 @@ function darkDeclaration(selector: string, property: string): string {
   return value.replace(/\s*!important$/, "");
 }
 
-const DARK = {
+interface DarkSwitchColours {
+  offOutline: string;
+  offKnob: string;
+  onTrack: string;
+  onTrackBorder: string;
+  onKnob: string;
+  check: string;
+}
+
+const DARK: DarkSwitchColours = {
   offOutline: darkDeclaration(
     "html.dark [data-ou-toggle-track].border-gray-500",
     "border-color",
@@ -335,10 +344,11 @@ describe("the switch in the dark theme", () => {
     expect(
       contrast(LIGHT_PALETTE["gray-500"]!, DARK_SURFACES["a dark panel"]!),
     ).toBeLessThan(3.1);
-    expect(contrast(DARK.offOutline, DARK_SURFACES["a dark panel"]!))
-      .toBeGreaterThan(
-        contrast(LIGHT_PALETTE["gray-500"]!, DARK_SURFACES["a dark panel"]!),
-      );
+    expect(
+      contrast(DARK.offOutline, DARK_SURFACES["a dark panel"]!),
+    ).toBeGreaterThan(
+      contrast(LIGHT_PALETTE["gray-500"]!, DARK_SURFACES["a dark panel"]!),
+    );
   });
 
   test("each hover has a dark colour of its own", () => {
@@ -374,9 +384,9 @@ describe("the switch in the dark theme", () => {
 
     expect(general).toBeDefined();
     expect(general!.declarations["color"]).not.toBe(DARK.check);
-    expect(
-      contrast(general!.declarations["color"]!, DARK.onKnob),
-    ).toBeLessThan(3);
+    expect(contrast(general!.declarations["color"]!, DARK.onKnob)).toBeLessThan(
+      3,
+    );
 
     const generalSpecificity: [number, number, number] = specificity(
       general!.selectors.join(", "),
@@ -397,9 +407,7 @@ describe("the switch in the dark theme", () => {
   test("no rule keeping a switch's knob light lights up an off track", () => {
     const thumbSelectors: Array<string> = THEME_RULES.filter(
       (rule: StyleRule): boolean => {
-        return (
-          rule.declarations["background-color"] === "#f8fafc !important"
-        );
+        return rule.declarations["background-color"] === "#f8fafc !important";
       },
     )
       .flatMap((rule: StyleRule): Array<string> => {
@@ -412,8 +420,10 @@ describe("the switch in the dark theme", () => {
     expect(thumbSelectors.length).toBeGreaterThan(0);
 
     for (const selector of thumbSelectors) {
-      expect({ selector, leavesTracksOut: selector.includes(":not([data-ou-toggle-track])") })
-        .toEqual({ selector, leavesTracksOut: true });
+      expect({
+        selector,
+        leavesTracksOut: selector.includes(":not([data-ou-toggle-track])"),
+      }).toEqual({ selector, leavesTracksOut: true });
     }
   });
 
@@ -437,8 +447,10 @@ describe("the switch in the dark theme", () => {
       "data-ou-toggle-knob",
       "data-ou-toggle-check",
     ]) {
-      expect({ attribute, rendered: toggleSource.includes(`${attribute}=""`) })
-        .toEqual({ attribute, rendered: true });
+      expect({
+        attribute,
+        rendered: toggleSource.includes(`${attribute}=""`),
+      }).toEqual({ attribute, rendered: true });
     }
   });
 });

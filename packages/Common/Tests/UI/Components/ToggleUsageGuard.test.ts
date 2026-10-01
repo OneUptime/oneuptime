@@ -165,8 +165,8 @@ describe("the detector", () => {
       [
         "<div>",
         '  <button type="button" role="switch" aria-checked={on} />',
-        "  {/* a role=\"switch\" in a comment */}",
-        '  <span title=\'role="switch"\'>text</span>',
+        '  {/* a role="switch" in a comment */}',
+        "  <span title='role=\"switch\"'>text</span>",
         "</div>",
       ].join("\n"),
     );
@@ -221,8 +221,8 @@ describe("every switch in the product", () => {
   });
 
   test("draws its own label beside it, never sits under a separate FieldLabel", () => {
-    const stacked: Array<string> = scanProject()
-      .result.togglesUnderFieldLabel.map(
+    const stacked: Array<string> =
+      scanProject().result.togglesUnderFieldLabel.map(
         (found: ToggleUnderFieldLabel): string => {
           return `${found.file}:${found.line} - pass the FieldLabel's title and description to the Toggle instead`;
         },

@@ -21,13 +21,7 @@ import userEvent from "@testing-library/user-event";
 import { createInstance, i18n } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import React, { ReactElement, useState } from "react";
-import {
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 
 afterEach(() => {
@@ -54,15 +48,19 @@ function labelWithText(text: string): HTMLElement {
 
 function expectAllClasses(element: Element, classList: string): void {
   for (const className of classList.split(" ")) {
-    expect({ className, present: element.classList.contains(className) })
-      .toEqual({ className, present: true });
+    expect({
+      className,
+      present: element.classList.contains(className),
+    }).toEqual({ className, present: true });
   }
 }
 
 function expectNoClasses(element: Element, classList: string): void {
   for (const className of classList.split(" ")) {
-    expect({ className, present: element.classList.contains(className) })
-      .toEqual({ className, present: false });
+    expect({
+      className,
+      present: element.classList.contains(className),
+    }).toEqual({ className, present: false });
   }
 }
 
@@ -537,7 +535,9 @@ describe("Toggle - keyboard", () => {
     const onChange: MockFunction = getJestMockFunction();
     const user: UserEventController = userEvent.setup({ delay: null });
 
-    render(<ControlledToggle initial={false} title="Secret" onChange={onChange} />);
+    render(
+      <ControlledToggle initial={false} title="Secret" onChange={onChange} />,
+    );
 
     await user.tab();
 
@@ -562,7 +562,9 @@ describe("Toggle - keyboard", () => {
     const onChange: MockFunction = getJestMockFunction();
     const user: UserEventController = userEvent.setup({ delay: null });
 
-    render(<ControlledToggle initial={true} title="Enabled" onChange={onChange} />);
+    render(
+      <ControlledToggle initial={true} title="Enabled" onChange={onChange} />,
+    );
 
     await user.tab();
     await user.keyboard("{Enter}");
@@ -654,8 +656,9 @@ describe("Toggle - its label", () => {
       />,
     );
 
-    expect(screen.getByRole("switch", { name: "Secret" }))
-      .toHaveAccessibleDescription(SECRET_DESCRIPTION);
+    expect(
+      screen.getByRole("switch", { name: "Secret" }),
+    ).toHaveAccessibleDescription(SECRET_DESCRIPTION);
   });
 
   test("the title is a real label for the switch", () => {
@@ -672,7 +675,9 @@ describe("Toggle - its label", () => {
   test("pressing the title flips the switch, once", () => {
     const onChange: MockFunction = getJestMockFunction();
 
-    render(<ControlledToggle initial={false} title="Secret" onChange={onChange} />);
+    render(
+      <ControlledToggle initial={false} title="Secret" onChange={onChange} />,
+    );
 
     fireEvent.click(screen.getByText("Secret"));
 
@@ -1053,7 +1058,9 @@ describe("Toggle - state stays in step with presses", () => {
   test("many quick presses end where the count says", async () => {
     const onChange: MockFunction = getJestMockFunction();
 
-    render(<ControlledToggle initial={false} title="Secret" onChange={onChange} />);
+    render(
+      <ControlledToggle initial={false} title="Secret" onChange={onChange} />,
+    );
 
     const toggle: HTMLElement = screen.getByRole("switch", { name: "Secret" });
 
