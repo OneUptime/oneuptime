@@ -1537,12 +1537,13 @@ export default class Project extends TenantModel {
   public enableAi?: boolean = undefined;
 
   /*
-   * The automatic-investigation opt-ins are ON for projects created from now
-   * on, and the column default stays OFF on purpose. ProjectService's
-   * onBeforeCreate turns both on when the create request leaves them unset
-   * (every project created in the dashboard), which is why a creator may
-   * set them (create ACL): a create that says false keeps false. The column
-   * default and defaultValue stay false so existing projects are not
+   * The per-feature AI switches below (this one down to
+   * autoArchiveNonActionableExceptions) are ON for projects created from
+   * now on, and their column default stays OFF on purpose. ProjectService's
+   * onBeforeCreate turns each one on when the create request leaves it
+   * unset (every project created in the dashboard), which is why a creator
+   * may set them (create ACL): a create that says false keeps false. The
+   * column default and defaultValue stay false so existing projects are not
    * switched on (that would start spending their AI budget), and so the
    * generated Terraform provider's static default does not flip existing
    * Terraform-managed projects on their next apply.
@@ -1610,9 +1611,8 @@ export default class Project extends TenantModel {
 
   /*
    * Drafting a postmortem when an incident resolves used to ride on
-   * enableAutomaticIncidentInvestigation. It is its own switch now, off by
-   * default, so turning investigations on for new projects does not also
-   * start writing postmortem notes. The migration that added it copied each
+   * enableAutomaticIncidentInvestigation. It is its own switch now, on for
+   * new projects like the rest. The migration that added it copied each
    * existing project's investigation flag into it, so nothing changed for
    * projects that already had the behaviour.
    */
@@ -1635,7 +1635,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Automatic Postmortem Draft",
     description:
-      "When enabled, OneUptime's AI SRE drafts a postmortem from the incident's timeline and telemetry when an incident is resolved, for a human to review and edit. It never overwrites a postmortem that already exists. Off by default. Requires AI to be enabled and an LLM provider to be configured.",
+      "When enabled, OneUptime's AI SRE drafts a postmortem from the incident's timeline and telemetry when an incident is resolved, for a human to review and edit. It never overwrites a postmortem that already exists. On for new projects created in OneUptime; projects that existed before keep their setting. Requires AI to be enabled and an LLM provider to be configured.",
     defaultValue: false,
     example: true,
   })
@@ -1707,7 +1707,7 @@ export default class Project extends TenantModel {
   public resolveLinkedAlertsWhenIncidentResolved?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1725,7 +1725,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Incident Instrumentation Fix Tasks",
     description:
-      "When enabled, an incident AI investigation that ends inconclusive (telemetry was insufficient to determine a root cause) automatically queues an AI agent task that opens a pull request adding the missing instrumentation to the implicated code paths. Requires a repository connected through the GitHub App. Pull requests are always human-reviewed — nothing merges automatically.",
+      "When enabled, an incident AI investigation that ends inconclusive (telemetry was insufficient to determine a root cause) automatically queues an AI agent task that opens a pull request adding the missing instrumentation to the implicated code paths. Requires a repository connected through the GitHub App. Pull requests are always human-reviewed — nothing merges automatically. On for new projects created in OneUptime; projects that existed before keep their setting.",
     defaultValue: false,
     example: true,
   })
@@ -1737,7 +1737,7 @@ export default class Project extends TenantModel {
   public enableIncidentInstrumentationFixTasks?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1755,7 +1755,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Alert Instrumentation Fix Tasks",
     description:
-      "When enabled, an alert AI investigation that ends inconclusive (telemetry was insufficient to determine a root cause) automatically queues an AI agent task that opens a pull request adding the missing instrumentation to the implicated code paths. Requires a repository connected through the GitHub App. Pull requests are always human-reviewed — nothing merges automatically.",
+      "When enabled, an alert AI investigation that ends inconclusive (telemetry was insufficient to determine a root cause) automatically queues an AI agent task that opens a pull request adding the missing instrumentation to the implicated code paths. Requires a repository connected through the GitHub App. Pull requests are always human-reviewed — nothing merges automatically. On for new projects created in OneUptime; projects that existed before keep their setting.",
     defaultValue: false,
     example: true,
   })
@@ -1767,7 +1767,7 @@ export default class Project extends TenantModel {
   public enableAlertInstrumentationFixTasks?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1785,7 +1785,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Automatic Incident Code Fixes",
     description:
-      "When enabled, an incident AI investigation that ends with a confident, evidenced root cause analysis and recommends a repository code change automatically queues an AI agent task that opens a fix pull request, ready for review, from that analysis — the automatic form of the 'Open Fix PR from this analysis' button. Operational, infrastructure, external, user-error and inconclusive findings do not offer or open code-fix pull requests. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically.",
+      "When enabled, an incident AI investigation that ends with a confident, evidenced root cause analysis and recommends a repository code change automatically queues an AI agent task that opens a fix pull request, ready for review, from that analysis — the automatic form of the 'Open Fix PR from this analysis' button. Operational, infrastructure, external, user-error and inconclusive findings do not offer or open code-fix pull requests. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically. On for new projects created in OneUptime; projects that existed before keep their setting.",
     defaultValue: false,
     example: true,
   })
@@ -1797,7 +1797,7 @@ export default class Project extends TenantModel {
   public enableAutomaticIncidentCodeFixes?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1815,7 +1815,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Automatic Alert Code Fixes",
     description:
-      "When enabled, an alert AI investigation that ends with a confident, evidenced root cause analysis and recommends a repository code change automatically queues an AI agent task that opens a fix pull request, ready for review, from that analysis — the automatic form of the 'Open Fix PR from this analysis' button. Operational, infrastructure, external, user-error and inconclusive findings do not offer or open code-fix pull requests. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically.",
+      "When enabled, an alert AI investigation that ends with a confident, evidenced root cause analysis and recommends a repository code change automatically queues an AI agent task that opens a fix pull request, ready for review, from that analysis — the automatic form of the 'Open Fix PR from this analysis' button. Operational, infrastructure, external, user-error and inconclusive findings do not offer or open code-fix pull requests. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically. On for new projects created in OneUptime; projects that existed before keep their setting.",
     defaultValue: false,
     example: true,
   })
@@ -1827,7 +1827,7 @@ export default class Project extends TenantModel {
   public enableAutomaticAlertCodeFixes?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1845,7 +1845,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable AI Insights",
     description:
-      "When enabled, OneUptime AI continuously watches this project's telemetry with deterministic statistical sensors (error-log spikes, exception novelty and spikes, trace-latency regressions, week-over-week metric drift) and files quiet Insights — never pages, never opens incidents. Each new insight also gets a budgeted, read-only AI triage analysis when an LLM provider is configured.",
+      "When enabled, OneUptime AI continuously watches this project's telemetry with deterministic statistical sensors (error-log spikes, exception novelty and spikes, trace-latency regressions, week-over-week metric drift) and files quiet Insights — never pages, never opens incidents. Each new insight also gets a budgeted, read-only AI triage analysis when an LLM provider is configured. On for new projects created in OneUptime; projects that existed before keep their setting.",
     defaultValue: false,
     example: true,
   })
@@ -1857,7 +1857,7 @@ export default class Project extends TenantModel {
   public enableAiInsights?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1875,7 +1875,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Insight Fix Tasks",
     description:
-      "When enabled, insights whose deterministic evidence points at code (new or spiking exceptions with a resolvable repository, trace-latency regressions with span-tree findings) automatically queue an AI agent task that opens a pull request with a proposed fix, ready for review. Honors the daily fix task budget and per-repository open-PR caps. Pull requests are always human-reviewed — nothing merges automatically.",
+      "When enabled, insights whose deterministic evidence points at code (new or spiking exceptions with a resolvable repository, trace-latency regressions with span-tree findings) automatically queue an AI agent task that opens a pull request with a proposed fix, ready for review. Honors the daily fix task budget and per-repository open-PR caps. Pull requests are always human-reviewed — nothing merges automatically. On for new projects created in OneUptime; projects that existed before keep their setting.",
     defaultValue: false,
     example: true,
   })
@@ -1887,7 +1887,7 @@ export default class Project extends TenantModel {
   public enableInsightFixTasks?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1905,7 +1905,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Auto Archive Non-Actionable Exceptions",
     description:
-      "When enabled, exception groups the AI triage classifies as expected denials (auth failures, plan/paywall rejections, scanner probes tripping intentional validation) are automatically archived so they stop surfacing in the unresolved list and never queue AI fix tasks. Groups classified as user errors or infrastructure conditions are NOT auto-archived — only clear expected denials are. Archiving is reversible from the Archived tab.",
+      "When enabled, exception groups the AI triage classifies as expected denials (auth failures, plan/paywall rejections, scanner probes tripping intentional validation) are automatically archived so they stop surfacing in the unresolved list and never queue AI fix tasks. Groups classified as user errors or infrastructure conditions are NOT auto-archived — only clear expected denials are. Archiving is reversible from the Archived tab. On for new projects created in OneUptime; projects that existed before keep their setting.",
     defaultValue: false,
     example: true,
   })

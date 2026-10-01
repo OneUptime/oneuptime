@@ -144,6 +144,43 @@ export type ProjectBalanceColumnName =
  */
 export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
 
+/*
+ * The per-feature AI switches a new project starts with ON (see
+ * applyNewProjectAiDefaults). Every boolean AI feature switch on Project
+ * belongs here; Enable AI is not listed because its column already defaults
+ * to true. A switch added to Project later is added here too, or new
+ * projects get it off.
+ */
+export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultColumn> =
+  [
+    "enableAutomaticIncidentInvestigation",
+    "enableAutomaticAlertInvestigation",
+    "enableAutomaticPostmortemDraft",
+    "enableIncidentInstrumentationFixTasks",
+    "enableAlertInstrumentationFixTasks",
+    "enableAutomaticIncidentCodeFixes",
+    "enableAutomaticAlertCodeFixes",
+    "enableAiInsights",
+    "enableInsightFixTasks",
+    "autoArchiveNonActionableExceptions",
+  ];
+
+export type NewProjectAiDefaultColumn =
+  | "enableAutomaticIncidentInvestigation"
+  | "enableAutomaticAlertInvestigation"
+  | "enableAutomaticPostmortemDraft"
+  | "enableIncidentInstrumentationFixTasks"
+  | "enableAlertInstrumentationFixTasks"
+  | "enableAutomaticIncidentCodeFixes"
+  | "enableAutomaticAlertCodeFixes"
+  | "enableAiInsights"
+  | "enableInsightFixTasks"
+  | "autoArchiveNonActionableExceptions";
+
+export type NewProjectAiDefaults = {
+  [column in NewProjectAiDefaultColumn]?: boolean | null | undefined;
+};
+
 // The project columns that decide what the audit log records and keeps.
 export interface ProjectAuditLogSettings {
   enableAuditLogs: boolean;
@@ -550,32 +587,23 @@ export class ProjectService extends DatabaseService<Model> {
   }
 
   /*
-   * A new project starts with AI investigating its incidents and alerts:
-   * both automatic-investigation opt-ins are turned on unless the create
-   * request set them itself (a request that says false keeps false). The
-   * columns' database default stays false, so projects that existed before
-   * this are never switched on by an upgrade, and a create that bypasses
-   * this hook entirely gets the old behaviour rather than a surprise.
+   * A new project starts with every AI feature on: each per-feature switch
+   * in NEW_PROJECT_AI_DEFAULT_COLUMNS is turned on unless the create request
+   * set it itself (a request that says false keeps false). The columns'
+   * database default stays false, so projects that existed before this are
+   * never switched on by an upgrade, and a create that bypasses this hook
+   * entirely gets the old behaviour rather than a surprise.
    *
-   * Postmortem drafting is deliberately NOT turned on here: it is its own
-   * opt-in (enableAutomaticPostmortemDraft), off by default.
+   * On means allowed, not running: each feature still needs what it always
+   * needed (an LLM provider, AI balance, a connected repository and a
+   * capable Runner for the ones that open pull requests), and Enable AI
+   * turns all of them off at once.
    */
-  public applyNewProjectAiDefaults(data: {
-    enableAutomaticIncidentInvestigation?: boolean | null | undefined;
-    enableAutomaticAlertInvestigation?: boolean | null | undefined;
-  }): void {
-    if (
-      data.enableAutomaticIncidentInvestigation === undefined ||
-      data.enableAutomaticIncidentInvestigation === null
-    ) {
-      data.enableAutomaticIncidentInvestigation = true;
-    }
-
-    if (
-      data.enableAutomaticAlertInvestigation === undefined ||
-      data.enableAutomaticAlertInvestigation === null
-    ) {
-      data.enableAutomaticAlertInvestigation = true;
+  public applyNewProjectAiDefaults(data: NewProjectAiDefaults): void {
+    for (const column of NEW_PROJECT_AI_DEFAULT_COLUMNS) {
+      if (data[column] === undefined || data[column] === null) {
+        data[column] = true;
+      }
     }
   }
 

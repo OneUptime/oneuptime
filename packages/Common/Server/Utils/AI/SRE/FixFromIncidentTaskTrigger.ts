@@ -31,16 +31,16 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * this form, but the durable recommendation remains a server-side gate so a
  * stale or forged client cannot turn a non-code investigation into a PR.
  *
- * AUTOMATIC: for projects that opted in through the subject lane's incident
- * or alert automatic-code-fix setting (default FALSE — G11 posture:
- * autonomous PR creation is opt-in only), an
+ * AUTOMATIC: for projects with the subject lane's incident or alert
+ * automatic-code-fix setting on (on for new projects; a project that
+ * existed before keeps its own value, and unset reads as off), an
  * investigation that ends with a POSITIVE code-fix classification (per the
  * structured G6 signal, never a regex over the analysis prose) enqueues the
  * same FixFromIncident task with no human click. Confidence alone is not
  * sufficient: operational and other non-code causes do not open PRs. Like its
  * InstrumentationTaskTrigger sibling it runs only after the Recommended
  * decision and snapshot are durable, and it never throws. The PR opens ready
- * for review and is always human-reviewed — the opt-in moves the human gate
+ * for review and is always human-reviewed — the setting moves the human gate
  * from PR creation to PR review, never past it.
  */
 
@@ -255,7 +255,7 @@ export default class FixFromIncidentTaskTrigger {
 
   /*
    * The pure trigger decision for the AUTOMATIC form, separated from IO so
-   * it can be tested directly: strict opt-in (default FALSE), a repository
+   * it can be tested directly: the project's setting (=== true), a repository
    * the agent can actually open a PR against, and the per-subject dedupe
    * guard. The caller has already established and durably persisted the
    * code-fix-recommended investigation prerequisite.
@@ -272,8 +272,8 @@ export default class FixFromIncidentTaskTrigger {
     }
 
     /*
-     * Strict opt-in — the column defaults to false, so unset/legacy rows
-     * never enqueue. Autonomous PR creation must never be default-on.
+     * Strictly === true — the column defaults to false, so unset/legacy
+     * rows never enqueue. New projects get it on from ProjectService.
      */
     if (Boolean(input.incidentId) === Boolean(input.alertId)) {
       return {

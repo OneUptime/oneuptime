@@ -262,8 +262,8 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
 
       {/*
        * Its own card and its own save: drafting a postmortem writes to the
-       * incident, so it is a separate switch from investigating one (and
-       * no longer turns on with it). A card writes every field it is given,
+       * incident, so it is a separate switch from investigating one (both
+       * start on in a new project). A card writes every field it is given,
        * so keeping it apart also keeps either save from touching the other.
        */}
       <CardModelDetail<Project>
@@ -283,7 +283,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             },
             title: "Draft a postmortem automatically when an incident resolves",
             description:
-              "The draft is saved on the incident for someone to review and edit. It never replaces a postmortem that already exists. Off by default.",
+              "The draft is saved on the incident for someone to review and edit. It never replaces a postmortem that already exists. On for new projects.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },

@@ -369,8 +369,8 @@ export default class AIAlertInvestigationRunner {
 
           /*
            * Inconclusive means the telemetry was insufficient — for
-           * opted-in projects (the alert instrumentation-fix setting,
-           * default false), queue an ImproveInstrumentation fix task that
+           * projects with the alert instrumentation-fix setting on (on
+           * for new projects), queue an ImproveInstrumentation fix task that
            * opens a PR adding the missing observability. Runs strictly
            * AFTER the analysis is posted, and the trigger never throws, so
            * the investigation can neither be blocked nor failed by it.
