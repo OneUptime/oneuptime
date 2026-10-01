@@ -318,7 +318,7 @@ describePostgres(
         data: {
           hasAcceptedInvitation: true,
           invitationAcceptedAt: new Date(),
-        } as TeamMember,
+        },
         props: inviteeProps(data.userId),
       });
     }
