@@ -1,8 +1,8 @@
 /*
  * The workflow builder and its value picker, in a real browser, with no
  * backend: Fixture.js is bundled with the app's esbuild config, Tailwind and
- * theme, and stands in for the two requests the picker makes (the variable
- * list and a model's columns).
+ * theme, and stands in for the three requests the picker makes (the variable
+ * list, a model's columns, and what the steps held the last times they ran).
  */
 const fs = require("fs");
 const http = require("http");

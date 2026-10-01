@@ -1,17 +1,20 @@
 import Icon, { ThickProp } from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
+import { summarizeCondition } from "./Condition/ConditionModel";
 import {
   WorkflowLintTone,
   WorkflowNodeIssuePresentation,
   WorkflowNodeRenderData,
   getWorkflowNodeIssuePresentation,
 } from "./GraphLintSummary";
+import { describeReference } from "./ValuePicker/ReferenceDescription";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   ComponentType,
   NodeType,
   Port,
 } from "../../../Types/Workflow/Component";
+import ComponentID from "../../../Types/Workflow/ComponentID";
 import React, { FunctionComponent, useState } from "react";
 import { Connection, Handle, Position } from "reactflow";
 
@@ -22,6 +25,32 @@ export interface ComponentProps {
 
 /** Said on a step whose required settings are still empty. */
 export const WORKFLOW_NODE_SETUP_TEXT: string = "Click to set up";
+
+type StepSummaryFunction = (data: WorkflowNodeRenderData) => string | null;
+
+/*
+ * What a set-up step does, in its own words, in place of the description
+ * every step of its kind shares. An If / Else step says its condition - "If
+ * environment is equal to “production”" - so a workflow can be read from the
+ * canvas without opening each check. Null keeps the description.
+ */
+export const getStepSummary: StepSummaryFunction = (
+  data: WorkflowNodeRenderData,
+): string | null => {
+  if (data.isPreview || data.metadata.id !== ComponentID.IfElse) {
+    return null;
+  }
+
+  const condition: string | null = summarizeCondition({
+    args: data.arguments,
+    // The canvas has no list of steps: a value is named by its last part.
+    describeReference: (reference: string) => {
+      return describeReference(reference, {});
+    },
+  });
+
+  return condition ? `If ${condition}` : null;
+};
 
 type BadgeColorScheme = {
   background: string;
@@ -337,6 +366,8 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     ? ERROR_BADGE_COLORS
     : WARNING_BADGE_COLORS;
 
+  const stepSummary: string | null = getStepSummary(props.data);
+
   return (
     <div
       className="cursor-pointer"
@@ -537,8 +568,12 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           </div>
         )}
 
-        {/* Description */}
+        {/* Description, or what this step does when it can say */}
         <p
+          data-testid={
+            stepSummary ? "workflow-node-summary" : "workflow-node-description"
+          }
+          title={stepSummary || undefined}
           style={{
             color: "var(--ou-text-muted, #64748b)",
             fontSize: "0.75rem",
@@ -550,7 +585,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             overflow: "hidden",
           }}
         >
-          {props.data.metadata.description}
+          {stepSummary || props.data.metadata.description}
         </p>
 
         {/*

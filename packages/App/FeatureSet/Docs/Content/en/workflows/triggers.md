@@ -40,6 +40,8 @@ Good for: receiving data into OneUptime from another tool — CI/CD callbacks, a
 - **Request Query Params** — the parsed query string.
 - **Request Body** — the parsed body (or the raw text if it's not JSON).
 
+Once a request has arrived, the value picker in every block after the trigger knows what was in it: it lists the fields of the body, the headers and the query parameters, each with what it held, so you can pick `incident.title` instead of typing a path. Until then it says that no request has arrived, and offers **Copy test request**, a `curl` command for the URL; the fields show up once the run that request starts has finished. See [Using values from earlier blocks](/docs/workflows/authoring#using-values-from-earlier-blocks).
+
 The URL accepts both `GET` and `POST`. The caller gets a quick acknowledgement — the workflow itself runs in the background.
 
 Treat the URL like a password. Anyone who has it can start your workflow.

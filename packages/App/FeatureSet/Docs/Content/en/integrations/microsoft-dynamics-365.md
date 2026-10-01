@@ -193,7 +193,7 @@ Build this as a **second** workflow so a failure here cannot stop cases being op
 
 1. **Create Workflow**, name it `Incident resolved → Close Dynamics case`, and add the **On Update Incident** trigger.
 2. In the trigger's **Listen on**, put `{"currentIncidentStateId": true}` so the workflow only wakes for state changes rather than every edit. In **Select Fields**, ask for `{"_id": true, "currentIncidentState": {"name": true}}`.
-3. Add an **If / Else** block. **Input 1** is `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** is `==`, **Input 2** is `Resolved` — or whatever your project's resolved state is called. See [Incident States & Severities](/docs/incidents/states-and-severities).
+3. Add an **If / Else** block. **Value to check** is `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** is **is equal to**, and **Compare with** is `Resolved` — or whatever your project's resolved state is called. See [Incident States & Severities](/docs/incidents/states-and-severities).
 4. From the **Yes** branch, repeat the `get-token` block from Step 4.
 5. Add an **API Get (JSON)** block, set its **Identifier** to `find-case`, and give it the `$filter` URL from Step 6. A Dataverse query answers with a `value` array, and a workflow reference can index into an array with brackets, so the case id is `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}`.
 6. Add an **API Post (JSON)** block that closes the case:
@@ -238,7 +238,7 @@ Now the other direction: someone closes the case in Dynamics, or an agent adds a
 
    On a self-hosted install, the URL has your own host. Treat the URL like a password — anyone who has it can start the workflow. If it leaks, click **Reset URL** in the same place; the old URL stops working at once.
 
-3. Add an **If / Else** block that checks a shared secret before anything else happens. **Input 1** is `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — a value you invent and save as a secret global variable.
+3. Add an **If / Else** block that checks a shared secret before anything else happens. **Value to check** is `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** is **is equal to**, and **Compare with** is `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — a value you invent and save as a secret global variable.
 4. From the **Yes** branch, add an **Update One Incident** block:
 
    - **Query**: `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`

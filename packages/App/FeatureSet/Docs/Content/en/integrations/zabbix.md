@@ -27,14 +27,14 @@ Do this first, because you'll need the webhook URL it generates.
 
 1. Open **Workflows → Create Workflow**. Name it `Zabbix → Incidents` and open the **Builder** tab.
 2. Drag a **Webhook** trigger onto the canvas. Click it and **copy the unique URL** it shows. Keep this safe — anyone with it can start the workflow. Rename the block to `Zabbix` so variables read nicely.
-3. Drag a **Conditions** block onto the canvas and connect the trigger's output to it. Configure:
-   - **Left value**: `{{Zabbix.Request Body.status}}`
-   - **Operator**: `==`
-   - **Right value**: `1` _(Zabbix sends `1` for a problem, `0` for recovery)_
-4. Drag a **Create Incident** block and connect it to the Conditions block's **Yes** output. Fill in:
+3. Drag an **If / Else** block (Conditions category) onto the canvas and connect the trigger's output to it. Configure:
+   - **Value to check**: `{{Zabbix.Request Body.status}}`
+   - **Comparison**: **is equal to**
+   - **Compare with**: `1` _(Zabbix sends `1` for a problem, `0` for recovery)_
+4. Drag a **Create Incident** block and connect it to the If / Else block's **Yes** output. Fill in:
    - **Title**: `Zabbix: {{Zabbix.Request Body.name}}`
    - **Description**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **Severity**: pick the OneUptime incident severity you want (you can refine this later with more Conditions branches that map Zabbix severities).
+   - **Severity**: pick the OneUptime incident severity you want (you can refine this later with more If / Else branches that map Zabbix severities).
 5. Save. Leave **Enabled** _off_ for now — you'll turn it on after a test.
 
 > **Tip:** Putting the Zabbix `event_id` in the description (or an incident label) lets you find this incident again later if you want to auto-resolve on recovery. See [Resolving automatically](#resolving-automatically-optional).
@@ -72,7 +72,7 @@ Do this first, because you'll need the webhook URL it generates.
      name: params.event_name,
      host: params.host,
      severity: params.event_severity,
-     // "1" = problem, "0" = recovered. OneUptime reads this in a Conditions block.
+     // "1" = problem, "0" = recovered. OneUptime reads this in an If / Else block.
      status: params.event_value,
      date: params.event_date,
      time: params.event_time,
@@ -116,7 +116,7 @@ Zabbix sends notifications _to a user_. Create a dedicated one so the integratio
 
 1. Back in the OneUptime workflow, turn **Enabled** on.
 2. In Zabbix, trigger a test problem — for example, temporarily lower a trigger threshold, or use a test item that flips to a problem state.
-3. Open your workflow's **Logs** tab. You should see a run with the Zabbix payload, the Conditions block taking the **Yes** path, and the incident being created.
+3. Open your workflow's **Logs** tab. You should see a run with the Zabbix payload, the If / Else block taking the **Yes** path, and the incident being created.
 4. Check **Incidents** in OneUptime — your Zabbix problem is now an incident.
 
 If nothing arrives, see [Troubleshooting](#troubleshooting).

@@ -54,7 +54,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 ## Step 3 — Resolve on OneUptime resolve (recommended)
 
 1. In the **same** workflow, add a second **Incident** trigger? No — a workflow has one trigger. Instead create a **second** workflow named `Resolve PagerDuty` with an **Incident → On Update** trigger.
-2. Add a **Conditions** block to check the incident is now resolved (branch on the incident's state/`{{Incident.currentIncidentState.name}}` equal to your resolved state name).
+2. Add an **If / Else** block to check the incident is now resolved (branch on the incident's state/`{{Incident.currentIncidentState.name}}` equal to your resolved state name).
 3. From **Yes**, add an **API** block to PagerDuty with the **same `dedup_key`** and `event_action` set to `resolve`:
 
    ```json

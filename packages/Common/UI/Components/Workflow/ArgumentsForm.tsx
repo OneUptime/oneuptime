@@ -6,6 +6,7 @@ import BasicForm, { FormProps } from "../Forms/BasicForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { CustomElementProps } from "../Forms/Types/Field";
 import FormValues from "../Forms/Types/FormValues";
+import ConditionEditor from "./Condition/ConditionEditor";
 import CronScheduleField from "./CronScheduleField";
 import ModelColumnEditor, {
   ModelColumnEditorMode,
@@ -45,6 +46,7 @@ import {
   NodeDataProp,
   isJSON5ToleratedInputType,
 } from "../../../Types/Workflow/Component";
+import ComponentID from "../../../Types/Workflow/ComponentID";
 import { DropdownOption } from "../Dropdown/Dropdown";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
@@ -69,10 +71,16 @@ export interface ComponentProps {
    */
   valueSources?: StepValueSources | undefined;
   /*
-   * Where the value picker's values come from: the steps before this one and
-   * the variables, unless a caller adds to that.
+   * Where the value picker's values come from: the steps before this one,
+   * what they held the last times they ran, and the variables, unless a
+   * caller says otherwise.
    */
   valueSuggestionSources?: Array<ValueSuggestionSource> | undefined;
+  /*
+   * The workflow's webhook URL, when the reader may see it. A step after a
+   * Webhook that nothing has called yet offers a test request to copy.
+   */
+  webhookUrl?: string | undefined;
   onFormChange: (value: NodeDataProp) => void;
 }
 
@@ -661,6 +669,47 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     return baseField;
   };
 
+  /*
+   * If / Else is set up as the sentence its settings make, not as a form of
+   * five fields (Condition/ConditionEditor). It edits the same stored
+   * settings, and reports whether the step can be saved the way the form
+   * below does, under "arguments".
+   */
+  if (component.metadata.id === ComponentID.IfElse) {
+    return (
+      <ValuePickerProvider
+        workflowId={props.workflowId}
+        component={component}
+        graphComponents={props.graphComponents}
+        valueSources={props.valueSources}
+        sources={props.valueSuggestionSources}
+        webhookUrl={props.webhookUrl}
+      >
+        <ConditionEditor
+          arguments={component.arguments}
+          onChange={(patch: JSONObject) => {
+            setComponent((current: NodeDataProp) => {
+              return {
+                ...current,
+                arguments: {
+                  ...((current.arguments as JSONObject) || {}),
+                  ...patch,
+                },
+              };
+            });
+          }}
+          onValidationChange={(hasError: boolean) => {
+            setHasFormValidationErrors((current: Dictionary<boolean>) => {
+              return current["arguments"] === hasError
+                ? current
+                : { ...current, arguments: hasError };
+            });
+          }}
+        />
+      </ValuePickerProvider>
+    );
+  }
+
   return (
     <ValuePickerProvider
       workflowId={props.workflowId}
@@ -668,6 +717,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       graphComponents={props.graphComponents}
       valueSources={props.valueSources}
       sources={props.valueSuggestionSources}
+      webhookUrl={props.webhookUrl}
     >
       <div>
         {component.metadata.arguments &&
