@@ -414,7 +414,6 @@ Alle slået til som standard. Slå en hvilken som helst fra med `--set ebpf.feat
 | `httpMetrics`             | til      | HTTP/gRPC RED-metrikker (request-rate, latency, fejl) pr. tjeneste |
 | `spanMetrics`             | til      | Request-/response-størrelse og -varighed pr. span                  |
 | `serviceGraph`            | til      | Caller → callee edge-metrikker; driver service map                 |
-| `hostMetrics`             | til      | CPU og hukommelse pr. instrumenteret proces                        |
 | `networkMetrics`          | til      | Pod-til-pod TCP/UDP flow-tællere                                   |
 | `networkInterZoneMetrics` | fra      | Inter-zone-variant af netværksmetrikker (fordobler kardinalitet)   |
 | `tcpStats`                | til      | Node-niveau TCP RTT-, fejlede-forbindelses- og retransmit-tællere  |

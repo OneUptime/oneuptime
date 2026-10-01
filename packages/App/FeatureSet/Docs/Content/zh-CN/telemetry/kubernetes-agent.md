@@ -415,7 +415,6 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `httpMetrics`             | 开   | 每个服务的 HTTP/gRPC RED 指标（请求速率、延迟、错误） |
 | `spanMetrics`             | 开   | 每个 span 的请求/响应大小和持续时间                   |
 | `serviceGraph`            | 开   | 调用方 → 被调用方的边指标；驱动服务地图               |
-| `hostMetrics`             | 开   | 每个被埋点进程的 CPU 和内存                           |
 | `networkMetrics`          | 开   | Pod 到 Pod 的 TCP/UDP 流量计数器                      |
 | `networkInterZoneMetrics` | 关   | 网络指标的跨区域变体（使基数翻倍）                    |
 | `tcpStats`                | 开   | 节点级别的 TCP RTT、连接失败、重传计数器              |

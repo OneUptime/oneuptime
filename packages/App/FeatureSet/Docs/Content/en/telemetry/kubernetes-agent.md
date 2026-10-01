@@ -501,13 +501,32 @@ The chart runs a DaemonSet with [OpenTelemetry eBPF Instrumentation (OBI)](https
 
 **Requirements:** Linux kernel **5.8+** with BTF (default on Debian 11+, Ubuntu 20.10+, Fedora 34+, RHEL/Stream 9+). The eBPF DaemonSet runs in **privileged mode** because it has to, to load eBPF programs.
 
+### What eBPF traces look like
+
+eBPF sees network calls, not your code, so a trace is built from the requests a service handles and the calls it makes while handling them:
+
+- **A request and its calls form one trace.** The request into a service is the root span, named `<METHOD> <route>`, and the HTTP, gRPC, SQL and Redis calls the service makes while handling it are its children. (For Node.js this relies on OBI's Node.js agent, which the chart enables with `ebpf.nodejs.enabled`.) Calls that concurrent requests send down one shared connection — typical for Redis clients — cannot always be told apart, so some of those are not placed in their request's trace.
+- **A hop to a service on another node starts a new trace**, unless something carries the trace context across — an OpenTelemetry SDK, or the opt-in context propagation described below. When both ends run on the same node, OBI sees both and links them itself.
+- **Work that no request triggered stands alone.** A queue worker polling Redis or a cron job has no request for its calls to belong to.
+- **Database servers usually stand alone.** Database wire protocols carry no trace context, so unless the caller runs on the same node, the span OBI records inside a database server for each command is a trace of one span.
+
+Those standalone database calls arrive as one-span traces named after a bare command (`set`, `evalsha`, `SELECT`), and on a busy cluster they can be most of what OBI captures. By default the agent drops them before they leave the cluster: a database server's own span, which always duplicates the caller's span (`ebpf.dropDatabaseServerSpans=true`), and an application's call that belongs to no trace (`ebpf.dropUnlinkedDatabaseCalls=true`). An application's database calls inside a request trace are kept, spans your applications send from their own SDKs are never touched, and the database metrics still count every command.
+
+One trade-off: OneUptime discovers databases, and draws them on the service map, from database client spans. A database that only background work talks to — a worker's queue, a cron job's warehouse — is then no longer discovered from traces and appears on the service map as a remote endpoint. Its metrics are unaffected. Set `ebpf.dropUnlinkedDatabaseCalls=false` to keep those spans.
+
+On a self-hosted OneUptime, upgrade the server before the agent: the eBPF tracer this chart runs (OBI v0.14) names called services and reports message brokers' own spans in ways older OneUptime servers do not read.
+
+Names come from the traffic: HTTP spans use the app's route template when OBI can read it, and otherwise a pattern derived from the URL with id-like segments replaced by `*` — set `ebpf.routes.patterns` to name them yourself. OBI reads the route templates of Go (net/http, Gorilla mux, Gin), Java (Spring, JAX-RS), Node.js (Express, Fastify, Koa, NestJS, Next.js), Python (Django, FastAPI, Flask), Ruby (Rails), .NET (ASP.NET Core attribute routes) and PHP (Symfony, Laravel, Slim) apps. Application-level names such as `OrderService.charge` exist only in code and need an OpenTelemetry SDK.
+
+If an app already exports traces with an OpenTelemetry SDK, OBI notices and stops sending eBPF traces for it, so it is not traced twice (`ebpf.excludeOtelInstrumentedServices=true`, OBI's default). Set it to `false` if that SDK reports to a different project and you want eBPF traces for the app in this one too.
+
 ### Disable eBPF auto-instrumentation
 
 You should disable it when:
 
 - Installing on **GKE Autopilot** or **EKS Fargate** — those platforms block privileged pods (use `preset=gke-autopilot` / `preset=eks-fargate` and pair with `ebpf.enabled=false`).
 - Nodes run a kernel older than 5.8 without BTF backports.
-- You already ship traces via OpenTelemetry SDKs from your apps and do not want duplicates.
+- You already ship traces via OpenTelemetry SDKs from every app and do not want the eBPF metrics either. (For traces alone you need not: OBI stops sending eBPF traces for an app it sees exporting its own — see above.)
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -528,7 +547,6 @@ All on by default. Turn any off with `--set ebpf.features.<name>=false`:
 | `httpMetrics`             | on      | HTTP/gRPC RED metrics (request rate, latency, errors) per service |
 | `spanMetrics`             | on      | Per-span request/response size and duration                       |
 | `serviceGraph`            | on      | Caller → callee edge metrics; drives the service map              |
-| `hostMetrics`             | on      | CPU and memory per instrumented process                           |
 | `networkMetrics`          | on      | Pod-to-pod TCP/UDP flow counters                                  |
 | `networkInterZoneMetrics` | off     | Inter-zone variant of network metrics (doubles cardinality)       |
 | `tcpStats`                | on      | Node-level TCP RTT, failed-connection, retransmit counters        |
@@ -624,10 +642,10 @@ eBPF gives you traces, RED metrics, the service map, and network-flow metrics wi
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
     --namespace oneuptime-agent --reuse-values \
-    --set ebpf.autoTargetExe='*/python,*/java'
+    --set 'ebpf.autoTargetExe=*/python\,*/java'
   ```
 
-  See [Toggle individual signal families](#toggle-individual-signal-families) and the `excludeExePaths` note in the chart values for the full defaults.
+  (`--set` splits on commas, so the comma between the two globs is escaped.) See [Toggle individual signal families](#toggle-individual-signal-families) and the `excludeExePaths` note in the chart values for the full defaults.
 
 ### Lever 3 — Slow down the scrape intervals
 

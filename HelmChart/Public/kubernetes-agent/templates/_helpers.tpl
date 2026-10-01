@@ -106,18 +106,288 @@ Usage (the include is nindent-ed under the `nodeSelector:` key):
 {{/*
 Build the OTEL_EBPF_METRICS_FEATURES env var value from .Values.ebpf.features
 toggles. Returns a comma-separated string of the OBI feature names that are
-currently enabled. Empty list -> empty string (OBI then exports no metrics).
+currently enabled. (An empty string does NOT mean "no metrics": OBI falls back
+to its default, `application`.) Current OBI (since v0.12) refuses to start on a token it does
+not know, so every token here must exist in the pinned version.
 */}}
 {{- define "kubernetes-agent.ebpfMetricsFeatures" -}}
 {{- $features := list -}}
 {{- if .Values.ebpf.features.httpMetrics -}}{{- $features = append $features "application" -}}{{- end -}}
 {{- if .Values.ebpf.features.spanMetrics -}}{{- $features = append $features "application_span" -}}{{- end -}}
 {{- if .Values.ebpf.features.serviceGraph -}}{{- $features = append $features "application_service_graph" -}}{{- end -}}
-{{- if .Values.ebpf.features.hostMetrics -}}{{- $features = append $features "application_host" -}}{{- end -}}
+{{- /* ebpf.features.hostMetrics is ignored on purpose: its `application_host`
+     feature is gone in OBI v0.14, and an unknown token stops OBI starting. */ -}}
 {{- if .Values.ebpf.features.networkMetrics -}}{{- $features = append $features "network" -}}{{- end -}}
 {{- if .Values.ebpf.features.networkInterZoneMetrics -}}{{- $features = append $features "network_inter_zone" -}}{{- end -}}
-{{- if .Values.ebpf.features.tcpStats -}}{{- $features = append $features "stats" -}}{{- end -}}
+{{- /* Not `stats`: in current OBI that also turns on stats_tcp_io, a probe on
+     every TCP send and receive — far more events than the three
+     close/failure/retransmit counters tcpStats describes. */ -}}
+{{- if .Values.ebpf.features.tcpStats -}}{{- $features = concat $features (list "stats_tcp_rtt" "stats_tcp_failed_connections" "stats_tcp_retransmits") -}}{{- end -}}
 {{- join "," $features -}}
+{{- end }}
+
+{{/*
+Split a comma-separated glob list (ebpf.autoTargetExe, ebpf.excludeExePaths)
+into a JSON array: entries trimmed, blanks and duplicates dropped, order kept.
+
+OBI compiles each `exe_path` selector as ONE gobwas glob, in which a comma is
+a literal character, so the sh and bash globs handed over joined by a comma
+match no executable at all. Each entry has to become its own selector.
+(No glob examples in this comment: a star followed by a slash would end it.)
+Usage: {{ include "kubernetes-agent.globList" .Values.ebpf.excludeExePaths | fromJsonArray }}
+*/}}
+{{- define "kubernetes-agent.globList" -}}
+{{- /* Split on commas outside braces only: a brace alternative such as
+     python-or-java inside one pattern is one glob to OBI (and was one entry
+     when the whole string went to OTEL_EBPF_AUTO_TARGET_EXE), so cutting it
+     at its comma would leave two broken halves that match far less. */ -}}
+{{- $out := list -}}
+{{- $current := "" -}}
+{{- $depth := 0 -}}
+{{- range (splitList "" ((. | default "") | toString)) -}}
+{{- if and (eq . ",") (eq (int $depth) 0) -}}
+{{- $glob := trim $current -}}
+{{- if and $glob (not (has $glob $out)) -}}
+{{- $out = append $out $glob -}}
+{{- end -}}
+{{- $current = "" -}}
+{{- else -}}
+{{- if eq . "{" -}}
+{{- $depth = add1 $depth -}}
+{{- else if and (eq . "}") (gt (int $depth) 0) -}}
+{{- $depth = sub $depth 1 -}}
+{{- end -}}
+{{- $current = printf "%s%s" $current . -}}
+{{- end -}}
+{{- end -}}
+{{- $glob := trim $current -}}
+{{- if and $glob (not (has $glob $out)) -}}
+{{- $out = append $out $glob -}}
+{{- end -}}
+{{- toJson $out -}}
+{{- end }}
+
+{{/*
+The OBI configuration file (templates/configmap-ebpf.yaml, mounted at
+/etc/obi/obi-config.yaml and named by OTEL_EBPF_CONFIG_PATH).
+
+Process selection lives here because OBI has no environment variable for it:
+the chart used to set OTEL_EBPF_EXCLUDE_AUTO_TARGET_EXE,
+OTEL_EBPF_DISCOVERY_NAMESPACE and OTEL_EBPF_DISCOVERY_EXCLUDE_NAMESPACE, none
+of which any OBI release reads, so excludeExePaths and the ebpfDiscovery
+namespace rules silently did nothing.
+
+  discovery.instrument — one selector per autoTargetExe glob, each also
+    requiring a Kubernetes namespace: `k8s_namespace: "*"`, or with namespace
+    include rules one selector per (glob, namespace) pair. The namespace
+    requirement keeps node daemons (kubelet, containerd, sshd — processes with
+    no pod) out, which OBI v0.10+ otherwise matches, and holds back a pod's
+    process until OBI knows its pod, so a namespace exclusion cannot be
+    skipped by a process seen before its pod metadata arrived.
+    OTEL_EBPF_AUTO_TARGET_EXE must NOT be set alongside: OBI ORs it in as one
+    more selector, which would widen discovery back to every namespace.
+  discovery.exclude_instrument — one selector per excludeExePaths glob and
+    per excluded namespace. OBI still appends its built-in exclusions (itself,
+    OTel collectors, the system namespaces) after these.
+  attributes.select.traces.include — the span attributes OBI exports; see
+    kubernetes-agent.obiSpanAttributes.
+
+OBI decodes this file on top of its defaults, so anything not written here
+keeps OBI's default.
+*/}}
+{{- define "kubernetes-agent.obiConfig" -}}
+{{- $targets := include "kubernetes-agent.globList" .Values.ebpf.autoTargetExe | fromJsonArray -}}
+{{- if not $targets -}}
+{{- /* An empty selector is a config error that stops OBI from starting. */ -}}
+{{- $targets = list "*" -}}
+{{- end -}}
+{{- $excludes := include "kubernetes-agent.globList" .Values.ebpf.excludeExePaths | fromJsonArray -}}
+{{- $nsInclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "include" "scope" "ebpfDiscovery") | fromJsonArray -}}
+{{- $nsExclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "exclude" "scope" "ebpfDiscovery") | fromJsonArray -}}
+discovery:
+  instrument:
+{{- if $nsInclude }}
+{{- range $ns := $nsInclude }}
+{{- range $exe := $targets }}
+    - exe_path: {{ $exe | quote }}
+      k8s_namespace: {{ $ns | quote }}
+{{- end }}
+{{- end }}
+{{- else }}
+{{- range $exe := $targets }}
+    - exe_path: {{ $exe | quote }}
+      k8s_namespace: "*"
+{{- end }}
+{{- end }}
+{{- if or $excludes $nsExclude }}
+  exclude_instrument:
+{{- range $excludes }}
+    - exe_path: {{ . | quote }}
+{{- end }}
+{{- range $nsExclude }}
+    - k8s_namespace: {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- $routes := .Values.ebpf.routes | default dict }}
+{{- if or $routes.patterns $routes.unmatched }}
+routes:
+{{- with $routes.unmatched }}
+  unmatched: {{ . | quote }}
+{{- end }}
+{{- with $routes.patterns }}
+  patterns:
+{{- range . }}
+    - {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if eq (include "kubernetes-agent.obiSelectsSpanAttributes" .) "true" }}
+# Span attributes. A list here replaces OBI's default set rather than adding
+# to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+attributes:
+  select:
+    traces:
+      include:
+{{- range (include "kubernetes-agent.obiSpanAttributes" . | fromJsonArray) }}
+        - {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- if .Values.ebpf.logToTraceCorrelation }}
+# The log enricher's process selector has no env var equivalent either.
+ebpf:
+  log_enricher:
+    services:
+{{ toYaml .Values.ebpf.logEnricher.services | indent 6 }}
+    # JSON lines only, as documented on ebpf.logToTraceCorrelation. Since
+    # v0.11 OBI also appends " trace_id=… span_id=…" to plain-text lines by
+    # default, which the node collector does not parse and which changes
+    # every non-JSON log line the app writes.
+    plain_text:
+      enabled: false
+{{- end }}
+{{- end }}
+
+{{/*
+The span attributes OBI is told to export (attributes.select.traces.include in
+the OBI config file), as a JSON array: OBI's nine default span attributes,
+then service.peer.name, then ebpf.extraSpanAttributes, trimmed, with blanks,
+repeats and a bare "*" dropped.
+
+service.peer.name: OBI v0.14 made it opt-in, together with the HTTP body
+sizes and obi.http.response.observed (OBI #3559). OneUptime's service map
+names the service a client call went to from it (ServiceDependencyDiscovery);
+without it those calls fall back to server.address, which re-keys the remote
+services the map already shows and so duplicates their nodes.
+
+Why the defaults are repeated: a non-empty include list REPLACES OBI's
+default set instead of adding to it (AttrSelector.For in
+pkg/export/attributes/attr_selector.go falls back to the defaults only when
+the include list is empty). Asking for service.peer.name alone would drop
+error.type, network.peer.address and the rest. The nine are the `true`
+entries of Traces.Section in pkg/export/attributes/attr_defs.go of the pinned
+OBI; re-check them whenever ebpf.image.tag moves. The list is v0.14's, so it
+is only rendered for v0.14 and later (kubernetes-agent.obiSelectsSpanAttributes):
+an older OBI has other defaults (v0.9 kept url.query off, so the list would
+start exporting query strings) and sends service.peer.name anyway.
+
+Why "*" is refused: OBI matches each entry as a glob, and a bare star opts in
+to every optional span attribute, among them db.query.text (the full SQL or
+Redis command, with whatever literal values it carries) and the gen_ai
+prompt, completion and system-instruction payloads. Those stay opt-in by
+name.
+*/}}
+{{- define "kubernetes-agent.obiSpanAttributes" -}}
+{{- /* See the comment above. */ -}}
+{{- $attrs := list "dns.question.name" "url.query" "error.type" "http.request.method_original" "db.query.summary" "user_agent.original" "network.peer.address" "network.peer.port" "network.protocol.version" "service.peer.name" -}}
+{{- range (.Values.ebpf.extraSpanAttributes | default list) -}}
+{{- $name := trim (toString .) -}}
+{{- if and $name (ne $name "*") (not (has $name $attrs)) -}}
+{{- $attrs = append $attrs $name -}}
+{{- end -}}
+{{- end -}}
+{{- toJson $attrs -}}
+{{- end }}
+
+{{/*
+Base OTTL span condition for `filter/ebpf-unlinked-db`: an eBPF (OBI) span
+with a database system. See ebpf.dropDatabaseServerSpans and
+ebpf.dropUnlinkedDatabaseCalls.
+
+  - telemetry.distro.name scopes it to OBI. The receiver also takes spans
+    that applications push from their own SDKs, and those are none of this
+    filter's business.
+  - db.system.name is the current semantic-convention key and what OBI
+    emits; db.system is the older one, kept so an OBI that still emits it is
+    covered too.
+  - The calls condition adds parent_span_id == SpanID(0x0000000000000000),
+    "no parent" in a form the pinned collector (0.96.0) understands;
+    IsRootSpan() is newer.
+*/}}
+{{/*
+Whether to drop each kind of unlinked eBPF database span in
+`filter/ebpf-unlinked-db` (ebpf.dropDatabaseServerSpans,
+ebpf.dropUnlinkedDatabaseCalls). Only with eBPF on (the traces pipeline exists
+only then), and on unless explicitly set to false: an upgrade with
+--reuse-values keeps the old release's values, which do not have these keys,
+and a default-on fix should not silently stay off for those clusters.
+Usage: {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.dropDatabaseServerSpans" -}}
+{{- and (.Values.ebpf.enabled | default false) (ne (toString .Values.ebpf.dropDatabaseServerSpans) "false") -}}
+{{- end -}}
+
+{{- define "kubernetes-agent.dropUnlinkedDatabaseCalls" -}}
+{{- and (.Values.ebpf.enabled | default false) (ne (toString .Values.ebpf.dropUnlinkedDatabaseCalls) "false") -}}
+{{- end -}}
+
+{{- define "kubernetes-agent.ebpfDatabaseFilterEnabled" -}}
+{{- or (eq (include "kubernetes-agent.dropDatabaseServerSpans" .) "true") (eq (include "kubernetes-agent.dropUnlinkedDatabaseCalls" .) "true") -}}
+{{- end -}}
+
+{{/*
+The OTTL span conditions of `filter/ebpf-unlinked-db`, as a JSON array: one
+per enabled switch, both on the base below.
+
+  - server (ebpf.dropDatabaseServerSpans): `kind == SPAN_KIND_SERVER`, with
+    or without a parent. It is the span OBI records inside the database
+    server, and it duplicates the caller's client span either way: unlinked
+    it is a one-span trace, and linked (OBI links the two ends of a
+    connection when the caller runs on the same node) it doubles every
+    database call in the request trace. Keeping the linked ones would also
+    leave them pointing at a missing parent whenever the calls switch drops
+    the client span they hang from.
+  - calls (ebpf.dropUnlinkedDatabaseCalls): `kind != SPAN_KIND_SERVER` and no
+    parent — the application's own call, outside any trace.
+*/}}
+{{- define "kubernetes-agent.ebpfUnlinkedDatabaseSpanConditions" -}}
+{{- $base := include "kubernetes-agent.ebpfDatabaseSpanCondition" . -}}
+{{- $conds := list -}}
+{{- if eq (include "kubernetes-agent.dropDatabaseServerSpans" .) "true" -}}
+{{- $conds = append $conds (printf "%s and kind == SPAN_KIND_SERVER" $base) -}}
+{{- end -}}
+{{- if eq (include "kubernetes-agent.dropUnlinkedDatabaseCalls" .) "true" -}}
+{{- $conds = append $conds (printf "%s and parent_span_id == SpanID(0x0000000000000000) and kind != SPAN_KIND_SERVER" $base) -}}
+{{- end -}}
+{{- toJson $conds -}}
+{{- end -}}
+
+{{- define "kubernetes-agent.ebpfDatabaseSpanCondition" -}}
+resource.attributes["telemetry.distro.name"] == "opentelemetry-ebpf-instrumentation" and (attributes["db.system.name"] != nil or attributes["db.system"] != nil)
+{{- end }}
+
+{{/*
+Whether the pinned OBI takes the span-attribute list in
+kubernetes-agent.obiSpanAttributes: v0.14 or later, or a tag that is not a
+version at all (a branch build or a digest), which is assumed current.
+*/}}
+{{- define "kubernetes-agent.obiSelectsSpanAttributes" -}}
+{{- $tag := toString ((.Values.ebpf.image | default dict).tag) -}}
+{{- $version := regexFind "^v?[0-9]+\\.[0-9]+\\.[0-9]+" $tag -}}
+{{- if $version -}}
+{{- semverCompare ">=0.14.0-0" $version -}}
+{{- else -}}
+true
+{{- end -}}
 {{- end }}
 
 {{/*

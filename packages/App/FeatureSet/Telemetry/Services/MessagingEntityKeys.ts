@@ -218,6 +218,11 @@ export default class MessagingEntityKeyResolver {
    * operation is never served — the resolver refuses those too), and some
    * messaging trigger attribute is present. Zero allocation — safe to call
    * on every span.
+   *
+   * The Kafka, MQTT and NATS spans OBI records on the receiving side of a
+   * connection (a broker's, a subscriber's delivery) are SERVER here too:
+   * OBI v0.14 sends them as PRODUCER / CONSUMER, and ingest stores them as
+   * SERVER before this runs (ObiReceivingSideMessagingSpan).
    */
   public static isMessagingSpan(attributes: unknown, kind: unknown): boolean {
     if (kind === SpanKind.Server || !attributes) {

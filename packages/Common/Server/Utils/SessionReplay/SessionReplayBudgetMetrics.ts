@@ -79,9 +79,9 @@ export const SESSION_REPLAY_BUDGET_SWEEP_MAX_CONSECUTIVE_FAILED_PAGES: number = 
 
 /*
  * Same knob and default as monitor and SLO metrics
- * (GlobalConfig.monitorMetricRetentionInDays). Never longer: the metric table
- * drops whole daily partitions (ttl_only_drop_parts), so a long retention on
- * any row pins its day for that long.
+ * (GlobalConfig.monitorMetricRetentionInDays). Never longer: these rows sit in
+ * the raw metric table's daily partitions, so a long retention on any of them
+ * keeps a part of its day around for that long.
  */
 const DEFAULT_RETENTION_DAYS: number = 30;
 

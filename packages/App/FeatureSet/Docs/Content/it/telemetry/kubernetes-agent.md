@@ -414,7 +414,6 @@ Tutte attive per impostazione predefinita. Disattivane una qualsiasi con `--set 
 | `httpMetrics`             | attivo      | Metriche HTTP/gRPC RED (frequenza delle richieste, latenza, errori) per servizio |
 | `spanMetrics`             | attivo      | Dimensione e durata di richiesta/risposta per span                               |
 | `serviceGraph`            | attivo      | Metriche degli archi chiamante → chiamato; alimenta la mappa dei servizi         |
-| `hostMetrics`             | attivo      | CPU e memoria per processo strumentato                                           |
 | `networkMetrics`          | attivo      | Contatori di flusso TCP/UDP pod-a-pod                                            |
 | `networkInterZoneMetrics` | disattivo   | Variante inter-zona delle metriche di rete (raddoppia la cardinalità)            |
 | `tcpStats`                | attivo      | Contatori a livello di nodo di RTT TCP, connessioni fallite e ritrasmissioni     |

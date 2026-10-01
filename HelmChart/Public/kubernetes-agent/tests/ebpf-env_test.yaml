@@ -1,0 +1,248 @@
+# The OTEL_EBPF_* switches on the eBPF DaemonSet that decide how OBI links
+# spans into traces.
+suite: eBPF DaemonSet trace-linking switches
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/daemonset-ebpf.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: keeps OBI's Node.js agent on by default
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_NODEJS_ENABLED
+            value: "true"
+
+  - it: turns OBI's Node.js agent off on request
+    set:
+      ebpf.nodejs.enabled: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_NODEJS_ENABLED
+            value: "false"
+
+  - it: treats a values file without ebpf.nodejs as enabled (upgrades from older values)
+    set:
+      ebpf.nodejs: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_NODEJS_ENABLED
+            value: "true"
+
+  - it: follows OBI's default of not double-tracing apps that export OTLP themselves
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES
+            value: "true"
+
+  - it: traces SDK-instrumented apps too when asked
+    set:
+      ebpf.excludeOtelInstrumentedServices: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES
+            value: "false"
+
+  - it: treats a values file without excludeOtelInstrumentedServices as OBI's default
+    set:
+      ebpf.excludeOtelInstrumentedServices: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES
+            value: "true"
+
+  - it: writes no trace headers by default
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
+          any: true
+
+  - it: renders propagation, with header tracking, when propagation is on
+    set:
+      ebpf.contextPropagation: true
+      ebpf.contextPropagationMode: tcp
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
+            value: tcp
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
+            value: "true"
+
+  # trackRequestHeaders stays where it was: inside the propagation block. Every
+  # values file predating this chart says `true`, and with --reuse-values a
+  # release keeps it, so moving it out would switch on header reading for
+  # clusters that never asked for it.
+  - it: does not read incoming headers on its own, so old values files keep their behaviour
+    set:
+      ebpf.trackRequestHeaders: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
+          any: true
+
+  - it: still rejects the removed `ip` propagation mode
+    set:
+      ebpf.contextPropagation: true
+      ebpf.contextPropagationMode: ip
+    asserts:
+      - failedTemplate: {}
+
+  # Current OBI refuses to start on a metrics feature it does not know, and
+  # `stats` there also turns on stats_tcp_io, a probe on every TCP send and
+  # receive. tcpStats promises RTT, failed connections and retransmits.
+  - it: asks for the three TCP stats families by name, not the catch-all `stats`
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  - it: drops the TCP stats families together
+    set:
+      ebpf.features.tcpStats: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span,application_service_graph,network
+
+  # OBI v0.14 removed `application_host`, and since v0.12 an unknown feature
+  # stops OBI starting: every eBPF pod would crash-loop. Values files written
+  # for older charts say hostMetrics: true, so it must be a no-op, not an error.
+  - it: never passes the removed application_host feature, even when an old values file asks for it
+    set:
+      ebpf.features.hostMetrics: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  # Every token the chart can render, all at once. Each must exist in the
+  # pinned OBI: since v0.12 it exits on an unknown one ("unknown metrics feature"),
+  # taking every eBPF pod down. Checked against v0.14's FeatureMapper
+  # (pkg/export/feature.go); re-check it when the tag moves.
+  - it: renders only feature names the pinned OBI knows, with every toggle on
+    set:
+      ebpf.features.httpMetrics: true
+      ebpf.features.spanMetrics: true
+      ebpf.features.serviceGraph: true
+      ebpf.features.hostMetrics: true
+      ebpf.features.networkMetrics: true
+      ebpf.features.networkInterZoneMetrics: true
+      ebpf.features.tcpStats: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span,application_service_graph,network,network_inter_zone,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  # The profiler (profiling.obiProcessContext) links CPU samples to spans by
+  # reading OBI's pinned traces_ctx_v1 map. Since v0.14 OBI fills that map
+  # only for its own log enricher or when OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+  # asks it to (pkg/obi/config.go, PopulateTraceContext), and filling it costs
+  # every instrumented app a refresh per async context switch. So: set for
+  # the profiler, and for nothing else.
+  - it: does not ask OBI to fill the trace-context map by default
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+          any: true
+
+  - it: asks OBI to fill the trace-context map for the profiler
+    set:
+      profiling.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+            value: "true"
+
+  # A values file from before profiling.obiProcessContext existed (an upgrade
+  # with --reuse-values) gets the key's default, true.
+  - it: treats a values file without obiProcessContext as correlating
+    set:
+      profiling.enabled: true
+      profiling.obiProcessContext: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+            value: "true"
+
+  - it: leaves the map empty when the profiler does not correlate with traces
+    set:
+      profiling.enabled: true
+      profiling.obiProcessContext: false
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+          any: true
+
+  - it: does not ask for it for log correlation alone, which makes OBI fill the map by itself
+    set:
+      ebpf.logToTraceCorrelation: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT
+          any: true
+
+  - it: renders no eBPF DaemonSet with eBPF off, even with the profiler on
+    set:
+      ebpf.enabled: false
+      profiling.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # The tag decides which of OBI's behaviours the tests above are about:
+  # v0.13.0 validates feature names and no longer misreads Redis replies to
+  # blocking commands as requests. (v0.14 adds Node.js 26+ identification;
+  # it is not published yet.)
+  - it: runs the pinned OBI release
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: otel/ebpf-instrument:v0.13.0

@@ -12,10 +12,12 @@ import Permission from "../../Types/Permission";
  * by the SLO evaluation worker and read by dashboard charts through this
  * model's auto-generated `/aggregate` endpoint.
  *
- * Why a dedicated table (and NOT MetricItemV3): MetricItemV3 partitions
- * by `toYYYYMMDD(time)` with `ttl_only_drop_parts = 1`, so a single
- * 400-day SLO row per day would pin every daily raw-telemetry partition
- * for 400 days. This table owns its retention (monthly partitions,
+ * Why a dedicated table (and NOT MetricItemV3): MetricItemV3 is the
+ * high-volume raw telemetry table, partitioned by `toYYYYMMDD(time)`, so
+ * a 400-day SLO row per day would keep a part alive in every daily
+ * partition for 400 days (and, while that table set
+ * `ttl_only_drop_parts = 1`, the whole partition with it). This table
+ * owns its retention (monthly partitions,
  * `bucketStart + INTERVAL 400 DAY` TTL) so history rows never interfere
  * with telemetry retention — and SLO rows stay out of telemetry usage
  * billing entirely.

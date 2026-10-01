@@ -414,7 +414,6 @@ Todas ativadas por padrão. Desative qualquer uma com `--set ebpf.features.<name
 | `httpMetrics`             | ativado    | Métricas HTTP/gRPC RED (taxa de requisições, latência, erros) por serviço |
 | `spanMetrics`             | ativado    | Tamanho de requisição/resposta e duração por span                         |
 | `serviceGraph`            | ativado    | Métricas de aresta chamador → chamado; alimenta o mapa de serviços        |
-| `hostMetrics`             | ativado    | CPU e memória por processo instrumentado                                  |
 | `networkMetrics`          | ativado    | Contadores de fluxo TCP/UDP pod-a-pod                                     |
 | `networkInterZoneMetrics` | desativado | Variante entre zonas das métricas de rede (dobra a cardinalidade)         |
 | `tcpStats`                | ativado    | Contadores de RTT TCP, conexões falhas e retransmissões em nível de nó    |

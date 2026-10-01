@@ -28,8 +28,10 @@ data:
         # Correlate samples with OBI's trace context via the shared
         # bpffs map, so flame graphs are linkable from spans. Has no
         # effect when the eBPF auto-instrumentation DaemonSet isn't
-        # running.
-        obi_process_ctx: {{ .Values.profiling.obiProcessContext }}
+        # running. A values file without the key (an upgrade with
+        # --reuse-values) gets the default, true, as the eBPF DaemonSet
+        # assumes when it asks OBI to fill that map.
+        obi_process_ctx: {{ ternary false true (eq (toString .Values.profiling.obiProcessContext) "false") }}
         # Don't fail collector startup if the eBPF program can't load
         # (e.g. wrong kernel) — log and keep the rest of the pipeline
         # alive so the user can see the warning instead of a crashloop.

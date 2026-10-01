@@ -491,8 +491,14 @@ export function buildClientSpanDependencySql(
         multiIf(attributes['db.system.name'] != '', attributes['db.system.name'], attributes['db.system']) AS dbSystem,
         multiIf(attributes['db.namespace'] != '', attributes['db.namespace'], attributes['db.name']) AS dbNamespace,
         attributes['messaging.system'] AS messagingSystem,
-        attributes['peer.service'] AS peerService,
-        attributes['rpc.system'] AS rpcSystem,
+        /*
+         * Current semantic conventions renamed both: peer.service became
+         * service.peer.name, rpc.system became rpc.system.name. The Kubernetes
+         * agent's eBPF spans (OBI v0.10+) send only the new names, older SDKs
+         * only the old ones, so read either.
+         */
+        multiIf(attributes['service.peer.name'] != '', attributes['service.peer.name'], attributes['peer.service']) AS peerService,
+        multiIf(attributes['rpc.system.name'] != '', attributes['rpc.system.name'], attributes['rpc.system']) AS rpcSystem,
         attributes['rpc.service'] AS rpcService,
         multiIf(
           attributes['server.address'] != '', attributes['server.address'],
