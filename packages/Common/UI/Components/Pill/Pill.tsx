@@ -5,7 +5,12 @@ import IconProp from "../../../Types/Icon/IconProp";
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 import Tooltip from "../Tooltip/Tooltip";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
-import { getPillColors, PillColors } from "./PillColors";
+import {
+  getPillColors,
+  getPillDotStyle,
+  getPillToneStyle,
+  PillColors,
+} from "./PillColors";
 
 export enum PillSize {
   Small = "10px",
@@ -24,8 +29,6 @@ export interface ComponentProps {
   icon?: IconProp | undefined;
 }
 
-type PillStyle = CSSProperties & { [customProperty: `--${string}`]: string };
-
 /*
  * Spacing is in em, so each size is the same pill scaled: a Small pill in a
  * dense table and an ExtraLarge one in a page header keep their proportions.
@@ -38,34 +41,6 @@ const Pill: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const colors: PillColors = getPillColors(props.color || Gray500);
 
-  /*
-   * The light theme's colours are written inline, so a pill is right in an
-   * app that never loads Theme.css. The dark theme's ride along as custom
-   * properties that Theme.css applies under html.dark. A colour the caller
-   * overrides through `style` is the dark value too, so it wins in both.
-   */
-  const toneStyle: PillStyle = props.isMinimal
-    ? {}
-    : {
-        backgroundColor: colors.light.backgroundColor,
-        color: colors.light.textColor,
-        boxShadow: `inset 0 0 0 1px ${colors.light.ringColor}`,
-        "--ou-pill-dark-bg": String(
-          props.style?.backgroundColor || colors.dark.backgroundColor,
-        ),
-        "--ou-pill-dark-text": String(
-          props.style?.color || colors.dark.textColor,
-        ),
-        "--ou-pill-dark-shadow": String(
-          props.style?.boxShadow || `inset 0 0 0 1px ${colors.dark.ringColor}`,
-        ),
-      };
-
-  const dotStyle: PillStyle = {
-    backgroundColor: colors.light.dotColor,
-    "--ou-pill-dark-dot": colors.dark.dotColor,
-  };
-
   const getPillElement: GetReactElementFunction = (): ReactElement => {
     return (
       <span
@@ -76,7 +51,8 @@ const Pill: FunctionComponent<ComponentProps> = (
         }`}
         style={{
           fontSize: props.size ? props.size.toString() : PillSize.Normal,
-          ...toneStyle,
+          // A minimal pill is a neutral outline: its classes colour it.
+          ...(props.isMinimal ? {} : getPillToneStyle(colors, props.style)),
           ...props.style,
         }}
       >
@@ -91,7 +67,7 @@ const Pill: FunctionComponent<ComponentProps> = (
             data-testid="pill-dot"
             data-ou-pill-dot=""
             className="h-[0.5em] w-[0.5em] flex-shrink-0 rounded-full"
-            style={dotStyle}
+            style={getPillDotStyle(colors)}
             aria-hidden="true"
           ></span>
         )}

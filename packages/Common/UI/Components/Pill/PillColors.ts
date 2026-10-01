@@ -1,4 +1,5 @@
 import Color, { RGB } from "../../../Types/Color";
+import { CSSProperties } from "react";
 
 /*
  * Every colour a Pill paints, worked out from the one colour its caller
@@ -27,6 +28,10 @@ export interface PillColors {
   light: PillTone;
   dark: PillTone;
 }
+
+export type PillStyle = CSSProperties & {
+  [customProperty: `--${string}`]: string;
+};
 
 interface HSL {
   hue: number;
@@ -397,5 +402,39 @@ export function getPillColors(
   return {
     light: getTone(rgb, LIGHT_THEME),
     dark: getTone(rgb, DARK_THEME),
+  };
+}
+
+/*
+ * The inline style that paints a tone. The light theme's colours are written
+ * as they are, so a pill is right in an app that never loads Theme.css (the
+ * status page). The dark theme's ride along as custom properties, which the
+ * html.dark [data-ou-pill] rule in Theme.css swaps in; the element must carry
+ * that attribute. A colour the caller overrides is the dark value too, so the
+ * override wins in both themes.
+ */
+export function getPillToneStyle(
+  colors: PillColors,
+  overrides?: CSSProperties | undefined,
+): PillStyle {
+  return {
+    backgroundColor: colors.light.backgroundColor,
+    color: colors.light.textColor,
+    boxShadow: `inset 0 0 0 1px ${colors.light.ringColor}`,
+    "--ou-pill-dark-bg": String(
+      overrides?.backgroundColor || colors.dark.backgroundColor,
+    ),
+    "--ou-pill-dark-text": String(overrides?.color || colors.dark.textColor),
+    "--ou-pill-dark-shadow": String(
+      overrides?.boxShadow || `inset 0 0 0 1px ${colors.dark.ringColor}`,
+    ),
+  };
+}
+
+// The same for the dot, under html.dark [data-ou-pill-dot].
+export function getPillDotStyle(colors: PillColors): PillStyle {
+  return {
+    backgroundColor: colors.light.dotColor,
+    "--ou-pill-dark-dot": colors.dark.dotColor,
   };
 }

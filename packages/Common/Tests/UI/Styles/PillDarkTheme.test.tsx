@@ -3,6 +3,7 @@ import { describe, expect, test } from "@jest/globals";
 import { render, screen } from "@testing-library/react";
 import * as React from "react";
 import Pill from "../../../UI/Components/Pill/Pill";
+import DropdownValueBadge from "../../../UI/Components/Dropdown/DropdownValueBadge";
 import { Green } from "../../../Types/BrandColors";
 import {
   declaredValue,
@@ -93,6 +94,27 @@ describe("the pill's dark theme rules", () => {
     );
     expect(customPropertiesWritten(screen.getByTestId("pill-dot"))).toEqual(
       expect.arrayContaining(readByDotRule),
+    );
+  });
+
+  test("a coloured dropdown value takes the same rules", () => {
+    // It paints itself with the pill's colours, so it is themed by its rules.
+    const { container } = render(
+      <DropdownValueBadge label="Critical" color="#dc2626" />,
+    );
+    const badge: HTMLElement = container.querySelector<HTMLElement>(
+      "[data-ou-pill]",
+    ) as HTMLElement;
+    const dot: HTMLElement = container.querySelector<HTMLElement>(
+      "[data-ou-pill-dot]",
+    ) as HTMLElement;
+
+    expect(badge).toHaveAttribute("data-dropdown-value-badge", "true");
+    expect(customPropertiesWritten(badge)).toEqual(
+      expect.arrayContaining(customPropertiesRead(PILL_SELECTOR)),
+    );
+    expect(customPropertiesWritten(dot)).toEqual(
+      expect.arrayContaining(customPropertiesRead(DOT_SELECTOR)),
     );
   });
 
