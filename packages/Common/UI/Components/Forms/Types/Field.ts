@@ -16,7 +16,8 @@ import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/Databas
 import Route from "../../../../Types/API/Route";
 import URL from "../../../../Types/API/URL";
 import MimeType from "../../../../Types/File/MimeType";
-import { ReactElement } from "react";
+import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
+import { ReactElement, ReactNode } from "react";
 
 export enum FormFieldStyleType {
   Default = "Default",
@@ -37,6 +38,11 @@ export interface CustomElementProps {
   onBlur?: () => void;
   initialValue?: any;
   placeholder?: string | undefined;
+  /*
+   * The id of the field's label, so a custom control can be named by it the
+   * way a native input is by <label for>.
+   */
+  ariaLabelledby?: string | undefined;
 }
 
 export interface CategoryCheckboxProps {
@@ -122,6 +128,13 @@ export default interface Field<TEntity> {
    * been read back perfectly well.
    */
   allowJSON5?: boolean | undefined;
+  /*
+   * For a JSON, HTML, CSS or JavaScript field: more buttons for its code
+   * editor's toolbar, such as the workflow builder's "Insert value".
+   */
+  codeEditorToolbarActions?:
+    | ((editor: CodeEditorActions) => ReactNode)
+    | undefined;
   onChange?:
     | ((
         value: any,

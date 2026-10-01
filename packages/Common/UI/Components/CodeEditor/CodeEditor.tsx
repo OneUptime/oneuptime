@@ -39,6 +39,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useId,
   useLayoutEffect,
@@ -93,6 +94,27 @@ export interface ComponentProps {
   maxHeight?: string | undefined;
   /** JSON only: the field is read with JSON5, so judge it by JSON5's rules. */
   allowJSON5?: boolean | undefined;
+  /**
+   * More buttons for the toolbar, handed what they need to put text in the
+   * document - the workflow builder's "Insert value" is one.
+   */
+  toolbarActions?: ((editor: CodeEditorActions) => ReactNode) | undefined;
+}
+
+/**
+ * What a toolbar action can do with the document. The selection is the one
+ * the textarea had before the action's button took the focus: a textarea
+ * keeps it while it is not focused.
+ */
+export interface CodeEditorActions {
+  getText: () => string;
+  getSelection: () => { start: number; end: number };
+  /**
+   * Put text in place of the selection, as one step on the browser's undo
+   * stack, and leave the caret after it.
+   */
+  insertText: (text: string) => void;
+  focus: () => void;
 }
 
 /*
@@ -929,6 +951,52 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     ? !props.disableSpellCheck
     : false;
 
+  const actions: CodeEditorActions = {
+    getText: (): string => {
+      return textareaRef.current?.value ?? textRef.current;
+    },
+    getSelection: (): { start: number; end: number } => {
+      const textarea: HTMLTextAreaElement | null = textareaRef.current;
+
+      if (!textarea) {
+        return { start: textRef.current.length, end: textRef.current.length };
+      }
+
+      return {
+        start: Math.min(textarea.selectionStart, textarea.selectionEnd),
+        end: Math.max(textarea.selectionStart, textarea.selectionEnd),
+      };
+    },
+    insertText: (insert: string): void => {
+      const textarea: HTMLTextAreaElement | null = textareaRef.current;
+
+      if (!textarea || readOnly) {
+        return;
+      }
+
+      const from: number = Math.min(
+        textarea.selectionStart,
+        textarea.selectionEnd,
+      );
+      const to: number = Math.max(
+        textarea.selectionStart,
+        textarea.selectionEnd,
+      );
+
+      textarea.focus();
+      applyEditToTextarea(textarea, {
+        from: from,
+        to: to,
+        insert: insert,
+        selectionStart: from + insert.length,
+        selectionEnd: from + insert.length,
+      });
+    },
+    focus: (): void => {
+      textareaRef.current?.focus();
+    },
+  };
+
   const describedBy: string =
     [
       props.ariaDescribedby,
@@ -996,6 +1064,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5">
+          {props.toolbarActions && !readOnly && props.toolbarActions(actions)}
           {showExampleButton && (
             <button
               type="button"

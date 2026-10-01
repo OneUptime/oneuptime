@@ -1,6 +1,15 @@
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import Icon from "../Icon/Icon";
-import VariableModal from "./VariableModal";
+import InsertValueButton from "./ValuePicker/InsertValueButton";
+import ReferenceChip from "./ValuePicker/ReferenceChip";
+import {
+  ValuePickerContextValue,
+  useValuePicker,
+} from "./ValuePicker/ValuePickerContext";
+import {
+  ValueSuggestionGroup,
+  ValueSuggestionGroupKind,
+} from "./ValuePicker/ValueSuggestion";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import CronTab from "../../../Utils/CronTab";
@@ -36,6 +45,22 @@ const PRESET_VALUES: Set<string> = new Set(
     return preset.value;
   }),
 );
+
+/*
+ * A schedule is set up before the workflow runs, so only a variable can
+ * stand for one - never a step's return value.
+ */
+const isVariableGroup: (group: ValueSuggestionGroup) => boolean = (
+  group: ValueSuggestionGroup,
+): boolean => {
+  return (
+    group.kind === ValueSuggestionGroupKind.WorkflowVariables ||
+    group.kind === ValueSuggestionGroupKind.GlobalVariables
+  );
+};
+
+const NO_VARIABLES_MESSAGE: string =
+  "There are no variables yet. Add one under this workflow's Variables, or a global one for every workflow in the project.";
 
 const normalizeInitialValue: (value: string | null | undefined) => string = (
   value: string | null | undefined,
@@ -99,7 +124,7 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
   const [mode, setMode] = useState<ScheduleMode>(
     inferInitialMode(initialValue),
   );
-  const [showVariableModal, setShowVariableModal] = useState<boolean>(false);
+  const picker: ValuePickerContextValue = useValuePicker();
 
   const emit: (next: string) => void = (next: string): void => {
     setValue(next);
@@ -318,26 +343,28 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
       {mode === "variable" && (
         <div className="space-y-3">
           {isVariable ? (
-            <div className="flex items-center justify-between gap-3 rounded-md border border-indigo-200 bg-indigo-50/50 px-3 py-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <Icon
-                  icon={IconProp.Variable}
-                  className="h-4 w-4 text-indigo-500 flex-shrink-0"
+            <div className="flex items-center justify-between gap-3 rounded-md border border-gray-200 bg-white px-3 py-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <ReferenceChip
+                  reference={trimmedValue}
+                  description={picker.describeReference(trimmedValue)}
                 />
-                <code className="truncate font-mono text-sm text-indigo-800">
-                  {trimmedValue}
-                </code>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <button
-                  type="button"
+                <InsertValueButton
                   className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
-                  onClick={() => {
-                    setShowVariableModal(true);
+                  ariaLabel="Change the variable"
+                  groupFilter={isVariableGroup}
+                  searchPlaceholder="Search variables"
+                  emptyMessage={NO_VARIABLES_MESSAGE}
+                  dataTestId="cron-schedule-change-variable"
+                  onPick={(reference: string) => {
+                    setMode("variable");
+                    emit(reference);
                   }}
                 >
                   Change
-                </button>
+                </InsertValueButton>
                 <span className="text-gray-300">·</span>
                 <button
                   type="button"
@@ -352,19 +379,24 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
               </div>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setShowVariableModal(true);
-              }}
+            <InsertValueButton
               className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+              ariaLabel="Select a variable"
+              groupFilter={isVariableGroup}
+              searchPlaceholder="Search variables"
+              emptyMessage={NO_VARIABLES_MESSAGE}
+              dataTestId="cron-schedule-select-variable"
+              onPick={(reference: string) => {
+                setMode("variable");
+                emit(reference);
+              }}
             >
               <Icon
                 icon={IconProp.Variable}
                 className="h-4 w-4 text-gray-500"
               />
               Select a variable
-            </button>
+            </InsertValueButton>
           )}
 
           <div className="flex items-start gap-2 rounded-md border border-gray-200 bg-gray-50/60 px-3 py-2 text-xs text-gray-600">
@@ -391,19 +423,6 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
         </p>
       )}
 
-      {showVariableModal && (
-        <VariableModal
-          workflowId={props.workflowId}
-          onClose={() => {
-            setShowVariableModal(false);
-          }}
-          onSave={(variableId: string) => {
-            setShowVariableModal(false);
-            setMode("variable");
-            emit(variableId);
-          }}
-        />
-      )}
     </div>
   );
 };

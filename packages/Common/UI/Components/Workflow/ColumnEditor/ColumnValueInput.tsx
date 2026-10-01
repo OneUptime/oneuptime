@@ -3,22 +3,35 @@
  *
  * The control comes from the column's type in the model schema, so nobody is
  * asked whether the thing they are typing is Text, Number or Boolean - the
- * model already said. What is left for the builder to choose is the one thing
- * the schema genuinely cannot know: whether this value is typed in, or read
- * from an earlier step at run time.
+ * model already said. A value can also come from an earlier step or a
+ * variable, through the same picker every other workflow setting has:
+ *
+ * - a text cell is the chip editor, so a title can be "Alert: " followed by
+ *   the webhook's alert name, shown as a chip;
+ * - a number, a switch, a date or a colour keeps its control, with { }
+ *   beside it, and a picked value replaces it as a chip, with "abc" to type a
+ *   value again.
  */
 
 import Color from "../../../../Types/Color";
 import IconProp from "../../../../Types/Icon/IconProp";
-import AutocompleteTextInput from "../../AutocompleteTextInput/AutocompleteTextInput";
 import { DictionaryFilterOperatorOption } from "../../Dictionary/DictionaryFilterOperator";
 import ColorPicker from "../../Forms/Fields/ColorPicker";
 import Icon from "../../Icon/Icon";
 import Input, { InputType } from "../../Input/Input";
-import TextArea from "../../TextArea/TextArea";
+import { ValuePickerContextValue, useValuePicker } from "../ValuePicker/ValuePickerContext";
+import ValuePickerMenu from "../ValuePicker/ValuePickerMenu";
+import ValuePickerPopup, {
+  ValuePickerCloseReason,
+  ValuePickerPopupMode,
+} from "../ValuePicker/ValuePickerPopup";
+import { TYPE_A_VALUE_LABEL } from "../ValuePicker/ValueSingleField";
+import ValueTextField, {
+  INSERT_VALUE_LABEL,
+} from "../ValuePicker/ValueTextField";
 import { ColumnValueMode, ModelColumnControl } from "./ColumnRow";
 import { containsTemplateExpression } from "./ColumnRowSerialization";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useRef, useState } from "react";
 
 export interface ComponentProps {
   control: ModelColumnControl;
@@ -28,8 +41,6 @@ export interface ComponentProps {
   /** Absent in record mode, where every row is an equality. */
   operatorOption?: DictionaryFilterOperatorOption | undefined;
   placeholder?: string | undefined;
-  /** The other steps' return values and the workflow's variables. */
-  suggestions?: Array<string> | undefined;
   /**
    * Every edit reports as one change.
    *
@@ -54,68 +65,113 @@ export interface ComponentProps {
 
 const INPUT_WRAPPER_CLASS: string = "relative w-full";
 
-const MONO_INPUT_CLASS: string =
-  "block w-full rounded-md border-0 bg-transparent py-1 pl-0 pr-0 font-mono text-xs text-indigo-900 placeholder-indigo-300 focus:outline-none focus:ring-0";
+/*
+ * Text of any kind: the cell is the chip editor in every mode, so there is
+ * nothing to switch between - a reference is just part of the text.
+ */
+const TEXT_CONTROLS: Array<ModelColumnControl> = [
+  ModelColumnControl.Text,
+  ModelColumnControl.LongText,
+  ModelColumnControl.ObjectId,
+  ModelColumnControl.Unsupported,
+];
 
 const ColumnValueInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const picker: ValuePickerContextValue = useValuePicker();
   const isReference: boolean = props.valueMode === ColumnValueMode.Reference;
+  const dataTestId: string = props.dataTestId || "model-column";
+  const cellRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const [isPickerOpen, setIsPickerOpen] = useState<boolean>(false);
 
   type SetTextFunction = (value: string) => void;
 
   /*
-   * Typing "{{" anywhere in a text control means the builder is reaching for
-   * another step's output, so the cell becomes a reference there and then and
-   * keeps what has been typed. Without this the autocomplete would never open
-   * unless the reference button had been found first.
+   * A text cell holding a {{ }} reference is a reference: it is written as the
+   * string it is, whatever the column's type.
    */
   const setTextAndDetectReference: SetTextFunction = (value: string): void => {
-    if (!isReference && value.includes("{{")) {
-      props.onChange({ text: value, valueMode: ColumnValueMode.Reference });
-      return;
-    }
-
-    props.onChange({ text: value });
+    props.onChange({
+      text: value,
+      valueMode: containsTemplateExpression(value)
+        ? ColumnValueMode.Reference
+        : ColumnValueMode.Literal,
+    });
   };
 
   /*
-   * Spelled "{ }" rather than drawn as an icon. The shared variable glyph is a
-   * dashed square that reads as a placeholder or a spinner, and this button has
-   * to say what it does at a glance - it is the only route from a typed value to
-   * an earlier step's output, which is how most of these payloads are built.
+   * Spelled "{ }" rather than drawn as an icon, as in every other workflow
+   * setting: the shared variable glyph is a dashed square that reads as a
+   * placeholder or a spinner.
    */
-  const referenceButton: ReactElement = (
+  const insertValueButton: ReactElement | null = picker.isAvailable ? (
     <button
       type="button"
-      aria-pressed={isReference}
-      title={
-        isReference
-          ? "Type a value instead"
-          : "Use a value from an earlier step"
-      }
-      aria-label={
-        isReference
-          ? "Type a value instead"
-          : "Use a value from an earlier step"
-      }
-      data-testid={`${props.dataTestId || "model-column"}-reference-toggle`}
-      className={`shrink-0 rounded-md border px-1.5 py-1 font-mono text-[11px] leading-none transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
-        isReference
-          ? "border-indigo-200 bg-white text-indigo-500 hover:bg-indigo-50"
-          : "border-transparent text-gray-400 hover:border-gray-200 hover:bg-gray-50 hover:text-gray-600"
+      aria-label={INSERT_VALUE_LABEL}
+      title={INSERT_VALUE_LABEL}
+      aria-haspopup="dialog"
+      aria-expanded={isPickerOpen}
+      data-testid={`${dataTestId}-insert-value`}
+      className={`shrink-0 rounded-md px-1.5 py-1 font-mono text-[11px] leading-none transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+        isPickerOpen
+          ? "bg-indigo-50 text-indigo-600"
+          : "text-gray-400 hover:bg-gray-50 hover:text-indigo-600"
       }`}
       onClick={() => {
-        props.onChange({
-          valueMode: isReference
-            ? ColumnValueMode.Literal
-            : ColumnValueMode.Reference,
-        });
+        setIsPickerOpen(!isPickerOpen);
       }}
     >
-      {isReference ? "abc" : "{ }"}
+      {"{ }"}
+    </button>
+  ) : null;
+
+  // Back to the column's own control, empty: it cannot show the reference.
+  const typeAValueButton: ReactElement = (
+    <button
+      type="button"
+      aria-label={TYPE_A_VALUE_LABEL}
+      title={TYPE_A_VALUE_LABEL}
+      data-testid={`${dataTestId}-type-a-value`}
+      className="mt-0.5 shrink-0 rounded-md border border-gray-200 px-1.5 py-1 font-mono text-[11px] leading-none text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+      onClick={() => {
+        props.onChange({ valueMode: ColumnValueMode.Literal, text: "" });
+      }}
+    >
+      abc
     </button>
   );
+
+  const pickerPopup: ReactElement | null = isPickerOpen ? (
+    <ValuePickerPopup
+      anchorRef={cellRef}
+      mode={ValuePickerPopupMode.Popover}
+      ariaLabel="Use a value"
+      onClose={(reason: ValuePickerCloseReason) => {
+        setIsPickerOpen(false);
+
+        if (reason !== ValuePickerCloseReason.Outside) {
+          cellRef.current
+            ?.querySelector<HTMLElement>(
+              `[data-testid="${dataTestId}-insert-value"]`,
+            )
+            ?.focus();
+        }
+      }}
+    >
+      <ValuePickerMenu
+        hasSearchBox={true}
+        onPick={(reference: string) => {
+          setIsPickerOpen(false);
+          props.onChange({
+            text: reference,
+            valueMode: ColumnValueMode.Reference,
+          });
+        }}
+      />
+    </ValuePickerPopup>
+  ) : null;
 
   // An operator like "is not set" takes no value at all.
   if (props.operatorOption?.hidesValueInput) {
@@ -140,29 +196,46 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
     );
   }
 
+  const isTextControl: boolean = TEXT_CONTROLS.includes(props.control);
+
+  /*
+   * Text, typed or with references in it. Kept-raw values are the exception:
+   * they keep the plain box below until they are edited.
+   */
+  if (isTextControl && props.valueMode !== ColumnValueMode.Raw) {
+    return (
+      <ValueTextField
+        value={props.text}
+        multiline={props.control === ModelColumnControl.LongText}
+        monospace={props.control === ModelColumnControl.ObjectId}
+        placeholder={props.placeholder}
+        ariaLabelledby={props.ariaLabelledby}
+        autoFocus={props.autoFocus}
+        dataTestId={dataTestId}
+        isCompact={true}
+        onChange={setTextAndDetectReference}
+      />
+    );
+  }
+
+  // A typed column holding a value from an earlier step: the value, as a chip.
   if (isReference) {
     return (
-      <div className="flex w-full items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50/40 px-2 py-1">
-        <span className="shrink-0 font-mono text-[11px] text-indigo-400">
-          {"{ }"}
-        </span>
+      <div className="flex w-full items-start gap-1">
         <div className="min-w-0 flex-1">
-          <AutocompleteTextInput
+          <ValueTextField
             value={props.text}
-            placeholder="{{local.components.step.returnValues.value}}"
-            suggestions={props.suggestions}
-            className={MONO_INPUT_CLASS}
-            outerDivClassName={INPUT_WRAPPER_CLASS}
-            disableSpellCheck={true}
-            autoFocus={props.autoFocus}
+            multiline={false}
             ariaLabelledby={props.ariaLabelledby}
-            dataTestId={props.dataTestId}
+            autoFocus={props.autoFocus}
+            dataTestId={dataTestId}
+            isCompact={true}
             onChange={(value: string) => {
               props.onChange({ text: value });
             }}
           />
         </div>
-        {referenceButton}
+        {typeAValueButton}
       </div>
     );
   }
@@ -265,18 +338,13 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
           />
         );
 
-      case ModelColumnControl.LongText:
-        /*
-         * A description or a note: it grows with what is typed, like the
-         * multi-line arguments around it, rather than opening six lines tall
-         * on every row.
-         */
+      default:
+        // Text kept raw: the plain box, until it is edited.
         return (
-          <TextArea
+          <Input
             value={props.text}
-            autoGrow={true}
             placeholder={props.placeholder}
-            className="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y min-h-16"
+            outerDivClassName={INPUT_WRAPPER_CLASS}
             ariaLabelledby={props.ariaLabelledby}
             dataTestId={props.dataTestId}
             tabIndex={props.tabIndex}
@@ -284,32 +352,14 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
             onChange={setTextAndDetectReference}
           />
         );
-
-      default:
-        return (
-          <AutocompleteTextInput
-            value={props.text}
-            placeholder={props.placeholder}
-            suggestions={props.suggestions}
-            outerDivClassName={INPUT_WRAPPER_CLASS}
-            className={
-              props.control === ModelColumnControl.ObjectId
-                ? "block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 font-mono text-xs text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                : undefined
-            }
-            ariaLabelledby={props.ariaLabelledby}
-            autoFocus={props.autoFocus}
-            dataTestId={props.dataTestId}
-            onChange={setTextAndDetectReference}
-          />
-        );
     }
   };
 
   return (
-    <div className="flex w-full items-center gap-1">
+    <div ref={cellRef} className="flex w-full items-center gap-1">
       <div className="min-w-0 flex-1">{renderControl()}</div>
-      {referenceButton}
+      {props.valueMode === ColumnValueMode.Raw ? null : insertValueButton}
+      {pickerPopup}
     </div>
   );
 };

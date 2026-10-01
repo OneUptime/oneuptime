@@ -722,6 +722,7 @@ const FormField: <T extends GenericObject>(
                * read that way, so the editor's own check has to agree.
                */
               allowJSON5={props.field.allowJSON5}
+              toolbarActions={props.field.codeEditorToolbarActions}
               tabIndex={0}
               dataTestId={props.field.dataTestId}
               onChange={async (value: string) => {
@@ -821,6 +822,8 @@ const FormField: <T extends GenericObject>(
                   : "",
 
               placeholder: translatedPlaceholder || "",
+
+              ariaLabelledby: fieldLabelId,
             })}
 
           {(props.field.fieldType === FormFieldSchemaType.HTML ||
@@ -839,6 +842,7 @@ const FormField: <T extends GenericObject>(
                 props.setFieldTouched(props.fieldName, true);
               }}
               dataTestId={props.field.dataTestId}
+              toolbarActions={props.field.codeEditorToolbarActions}
               type={codeType}
               initialValue={
                 props.currentValues &&

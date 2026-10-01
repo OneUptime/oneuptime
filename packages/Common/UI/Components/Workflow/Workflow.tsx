@@ -10,6 +10,12 @@ import {
   lintWorkflowGraph,
 } from "./GraphLint";
 import { findStepNodeToOpen } from "./GraphLintSummary";
+import {
+  StepGraphEdge,
+  StepGraphNode,
+  StepValueSources,
+  getStepValueSources,
+} from "./ValuePicker/StepGraph";
 import { loadComponentsAndCategories } from "./Utils";
 import { VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -322,6 +328,51 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     props.onStepOpened?.();
   }, [props.openStepForNodeId]);
+
+  /*
+   * Every step, for the settings dialog. Placeholder nodes are left out: the
+   * "click here to add trigger" node carries a partial metadata object - no
+   * return values, no arguments, an empty id - and passing it on made every
+   * consumer responsible for knowing that.
+   */
+  const graphComponents: Array<NodeDataProp> = useMemo(() => {
+    return nodes
+      .map((node: Node) => {
+        return node.data as NodeDataProp;
+      })
+      .filter((data: NodeDataProp) => {
+        return data.nodeType !== NodeType.PlaceholderNode;
+      });
+  }, [nodes]);
+
+  /*
+   * The steps the open step can read values from - the trigger and every
+   * step before it - and the ones after it, whose values never exist yet when
+   * it runs. Its value picker offers only the first.
+   */
+  const selectedStepValueSources: StepValueSources | undefined =
+    useMemo(() => {
+      if (!selectedNodeData) {
+        return undefined;
+      }
+
+      const selectedNode: Node | undefined = nodes.find((node: Node) => {
+        return (
+          (node.data as NodeDataProp).internalId ===
+          selectedNodeData.internalId
+        );
+      });
+
+      if (!selectedNode) {
+        return undefined;
+      }
+
+      return getStepValueSources({
+        nodes: nodes as unknown as Array<StepGraphNode>,
+        edges: edges as unknown as Array<StepGraphEdge>,
+        nodeId: selectedNode.id,
+      });
+    }, [nodes, edges, selectedNodeData]);
 
   const nodesToRender: Array<Node> = useMemo(() => {
     return nodes.map((node: Node) => {
@@ -688,19 +739,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
       {showComponentSettingsModal && selectedNodeData && (
         <ComponentSettingsModal
-          /*
-           * Placeholder nodes are excluded here rather than defended against
-           * downstream. The "click here to add trigger" node carries a partial
-           * metadata object — no returnValues, no arguments, an empty id — and
-           * passing it on made every consumer responsible for knowing that.
-           */
-          graphComponents={nodes
-            .map((node: Node) => {
-              return node.data as NodeDataProp;
-            })
-            .filter((data: NodeDataProp) => {
-              return data.nodeType !== NodeType.PlaceholderNode;
-            })}
+          graphComponents={graphComponents}
+          valueSources={selectedStepValueSources}
           workflowId={props.workflowId}
           webhookSecretKey={props.webhookSecretKey}
           canSeeWebhookSecretKey={props.canSeeWebhookSecretKey}
