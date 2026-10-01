@@ -151,6 +151,18 @@ export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
  * to true. A switch added to Project later is added here too, or new
  * projects get it off.
  */
+export type NewProjectAiDefaultColumn =
+  | "enableAutomaticIncidentInvestigation"
+  | "enableAutomaticAlertInvestigation"
+  | "enableAutomaticPostmortemDraft"
+  | "enableIncidentInstrumentationFixTasks"
+  | "enableAlertInstrumentationFixTasks"
+  | "enableAutomaticIncidentCodeFixes"
+  | "enableAutomaticAlertCodeFixes"
+  | "enableAiInsights"
+  | "enableInsightFixTasks"
+  | "autoArchiveNonActionableExceptions";
+
 export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultColumn> =
   [
     "enableAutomaticIncidentInvestigation",
@@ -165,18 +177,7 @@ export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultCo
     "autoArchiveNonActionableExceptions",
   ];
 
-export type NewProjectAiDefaultColumn =
-  | "enableAutomaticIncidentInvestigation"
-  | "enableAutomaticAlertInvestigation"
-  | "enableAutomaticPostmortemDraft"
-  | "enableIncidentInstrumentationFixTasks"
-  | "enableAlertInstrumentationFixTasks"
-  | "enableAutomaticIncidentCodeFixes"
-  | "enableAutomaticAlertCodeFixes"
-  | "enableAiInsights"
-  | "enableInsightFixTasks"
-  | "autoArchiveNonActionableExceptions";
-
+// The AI switches of a project being created; unset or null means "not said".
 export type NewProjectAiDefaults = {
   [column in NewProjectAiDefaultColumn]?: boolean | null | undefined;
 };
