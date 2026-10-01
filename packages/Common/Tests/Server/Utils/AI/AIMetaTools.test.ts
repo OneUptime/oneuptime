@@ -26,6 +26,7 @@ import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import OneUptimeDate from "../../../../Types/Date";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
@@ -520,6 +521,36 @@ describe("start_investigation", () => {
     expect(result.rowCount).toBe(0);
     expect(result.dataForLlm).toContain("recent AI investigation");
     expect(enqueueSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The automatic lanes' per-monitor cooldown is a project setting, off by
+   * default — but this is a different thing: the chat's guard against
+   * double-starting a run on the exact subject it just investigated. It used
+   * to borrow the lanes' old 30-minute default; turning that default off
+   * must not quietly turn this guard off with it.
+   */
+  test("the chat's duplicate window stays 30 minutes now the lanes' cooldown is off by default", async () => {
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(buildIncident() as never);
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValueOnce(new PositiveNumber(0) as never)
+      .mockResolvedValueOnce(new PositiveNumber(1) as never);
+    const minutesAgo: jest.SpyInstance = jest.spyOn(
+      OneUptimeDate,
+      "getSomeMinutesAgo",
+    );
+    jest.spyOn(AIInvestigationQueue, "enqueue");
+
+    const result: ToolExecutionResult = await StartInvestigationTool.execute(
+      { incidentId: INCIDENT_ID.toString() },
+      ctx,
+    );
+
+    expect(minutesAgo).toHaveBeenCalledWith(30);
+    expect(result.dataForLlm).toContain("within the last 30 minutes");
   });
 
   test("a budget quiet-skip (enqueue returns null) is reported honestly", async () => {
