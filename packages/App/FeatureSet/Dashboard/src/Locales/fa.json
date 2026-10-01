@@ -6889,5 +6889,17 @@
   "You can turn it off again with the Enabled switch above the canvas.": "می‌توانید با کلید «فعال» بالای بوم، دوباره آن را خاموش کنید.",
   "Turn on and run step": "روشن کردن و اجرای مرحله",
   "Turn on and run": "روشن کردن و اجرا",
-  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "این گردش کاری خاموش است، بنابراین اجرا نمی‌شود. فقط کسانی که می‌توانند این گردش کاری را ویرایش کنند، می‌توانند آن را روشن کنند."
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "این گردش کاری خاموش است، بنابراین اجرا نمی‌شود. فقط کسانی که می‌توانند این گردش کاری را ویرایش کنند، می‌توانند آن را روشن کنند.",
+  "Developer": "توسعه‌دهنده",
+  "Terraform": "Terraform",
+  "API": "API",
+  "AI Assistants": "دستیارهای هوش مصنوعی",
+  "Learn more:": "اطلاعات بیشتر:",
+  "This could not be found. It may have been deleted.": "پیدا نشد. ممکن است حذف شده باشد.",
+  "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.": "این منبع را با ارائه‌دهندهٔ Terraform در OneUptime به‌صورت کد مدیریت کنید. پیکربندی زیر از تنظیمات فعلی آن نوشته شده است، بنابراین Terraform آن را بدون هیچ تغییری در اختیار می‌گیرد.",
+  "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.": "این منابع را با ارائه‌دهندهٔ Terraform در OneUptime به‌صورت کد مدیریت کنید: منابع تازه بسازید یا منابعی را که از قبل دارید وارد کنید.",
+  "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "این منبع را با REST API در OneUptime بخوانید، تغییر دهید و حذف کنید. همهٔ دستورهای زیر روی همین OneUptime اجرا می‌شوند.",
+  "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "این منابع را با REST API در OneUptime فهرست کنید و بسازید. همهٔ دستورهای زیر روی همین OneUptime اجرا می‌شوند.",
+  "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "با این منبع از طریق یک دستیار هوش مصنوعی مانند Claude، GitHub Copilot یا Cursor کار کنید.",
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "با این منابع از طریق یک دستیار هوش مصنوعی مانند Claude، GitHub Copilot یا Cursor کار کنید."
 }

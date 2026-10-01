@@ -6889,5 +6889,17 @@
   "You can turn it off again with the Enabled switch above the canvas.": "你可以隨時使用畫布上方的「已啟用」開關再次關閉它。",
   "Turn on and run step": "開啟並執行步驟",
   "Turn on and run": "開啟並執行",
-  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "此工作流程已關閉，因此無法執行。只有可以編輯此工作流程的人才能開啟它。"
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "此工作流程已關閉，因此無法執行。只有可以編輯此工作流程的人才能開啟它。",
+  "Developer": "開發者",
+  "Terraform": "Terraform",
+  "API": "API",
+  "AI Assistants": "AI 助理",
+  "Learn more:": "了解更多：",
+  "This could not be found. It may have been deleted.": "找不到。它可能已被刪除。",
+  "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.": "使用 OneUptime Terraform 供應者以程式碼方式管理此資源。下方設定依其目前的設定產生，因此 Terraform 會原樣接管，不做任何變更。",
+  "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.": "使用 OneUptime Terraform 供應者以程式碼方式管理這些資源：建立新的資源，或納入既有的資源。",
+  "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "使用 OneUptime REST API 讀取、修改和刪除此資源。下方所有指令都會在目前這個 OneUptime 上執行。",
+  "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "使用 OneUptime REST API 列出和建立這些資源。下方所有指令都會在目前這個 OneUptime 上執行。",
+  "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "透過 Claude、GitHub Copilot 或 Cursor 等 AI 助理處理此資源。",
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "透過 Claude、GitHub Copilot 或 Cursor 等 AI 助理處理這些資源。"
 }

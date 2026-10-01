@@ -106,29 +106,73 @@ export interface DeveloperDocsGuideContext {
 
 export const DEVELOPER_DOCS_IMPORT_LIMIT: number = 100;
 
+// The page's own words, which it translates.
+export const DEVELOPER_DOCS_LEARN_MORE_LABEL: string = "Learn more:";
+export const DEVELOPER_DOCS_NOT_FOUND_MESSAGE: string =
+  "This could not be found. It may have been deleted.";
+
 const TERRAFORM_REGISTRY_DOCS_URL: string =
   "https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs";
 
-// Titles and descriptions the page translates: no names in them.
+export interface DeveloperDocsGuideCopy {
+  title: string;
+  description: string;
+}
+
+/*
+ * The card's title and description, which the page translates: whole
+ * sentences that name no resource, so each is one entry in every locale.
+ */
 export const DEVELOPER_DOCS_GUIDE_COPY: Readonly<
-  Record<DeveloperDocsPageType, { title: string; description: string }>
+  Record<
+    DeveloperDocsPageType,
+    Readonly<Record<DeveloperDocsScope, DeveloperDocsGuideCopy>>
+  >
 > = {
   [DeveloperDocsPageType.Terraform]: {
-    title: "Terraform",
-    description:
-      "Manage this with the OneUptime Terraform provider. The configuration below is written from what is set in OneUptime now.",
+    [DeveloperDocsScope.View]: {
+      title: "Terraform",
+      description:
+        "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.",
+    },
+    [DeveloperDocsScope.List]: {
+      title: "Terraform",
+      description:
+        "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.",
+    },
   },
   [DeveloperDocsPageType.Api]: {
-    title: "API",
-    description:
-      "Read and change this with the OneUptime REST API. Every command below runs against this OneUptime.",
+    [DeveloperDocsScope.View]: {
+      title: "API",
+      description:
+        "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.",
+    },
+    [DeveloperDocsScope.List]: {
+      title: "API",
+      description:
+        "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.",
+    },
   },
   [DeveloperDocsPageType.AiAssistants]: {
-    title: "AI Assistants",
-    description:
-      "Work with this from an AI assistant such as Claude, GitHub Copilot or Cursor.",
+    [DeveloperDocsScope.View]: {
+      title: "AI Assistants",
+      description:
+        "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.",
+    },
+    [DeveloperDocsScope.List]: {
+      title: "AI Assistants",
+      description:
+        "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.",
+    },
   },
 };
+
+function guideCopy(
+  page: DeveloperDocsPageType,
+  context: DeveloperDocsGuideContext,
+): DeveloperDocsGuideCopy {
+  return DEVELOPER_DOCS_GUIDE_COPY[page][context.scope];
+}
 
 function docsUrl(context: DeveloperDocsGuideContext, path: string): string {
   return `${context.oneuptimeUrl.replace(/\/+$/, "")}/docs/${path}`;
@@ -268,8 +312,10 @@ function getTerraformResourceGuide(
   record: DeveloperDocsRecord,
 ): DeveloperDocsGuide {
   const { singular, theRecord } = nouns(context);
-  const copy: { title: string; description: string } =
-    DEVELOPER_DOCS_GUIDE_COPY[DeveloperDocsPageType.Terraform];
+  const copy: DeveloperDocsGuideCopy = guideCopy(
+    DeveloperDocsPageType.Terraform,
+    context,
+  );
   const typeName: string | null = getTerraformTypeName(
     context.resource.modelType,
   );
@@ -338,8 +384,10 @@ function getTerraformUnsupportedGuide(
   typeName: string | null,
 ): DeveloperDocsGuide {
   const { plural } = nouns(context);
-  const copy: { title: string; description: string } =
-    DEVELOPER_DOCS_GUIDE_COPY[DeveloperDocsPageType.Terraform];
+  const copy: DeveloperDocsGuideCopy = guideCopy(
+    DeveloperDocsPageType.Terraform,
+    context,
+  );
 
   return {
     ...copy,
@@ -372,8 +420,10 @@ function getTerraformCollectionGuide(
   context: DeveloperDocsGuideContext,
 ): DeveloperDocsGuide {
   const { singular, plural } = nouns(context);
-  const copy: { title: string; description: string } =
-    DEVELOPER_DOCS_GUIDE_COPY[DeveloperDocsPageType.Terraform];
+  const copy: DeveloperDocsGuideCopy = guideCopy(
+    DeveloperDocsPageType.Terraform,
+    context,
+  );
   const typeName: string | null = getTerraformTypeName(
     context.resource.modelType,
   );
@@ -535,7 +585,7 @@ function getApiResourceGuide(
   });
 
   return {
-    ...DEVELOPER_DOCS_GUIDE_COPY[DeveloperDocsPageType.Api],
+    ...guideCopy(DeveloperDocsPageType.Api, context),
     steps: [
       apiKeyStep(context, "the API"),
       ...curlStep({
@@ -582,7 +632,7 @@ function getApiCollectionGuide(
   }
 
   return {
-    ...DEVELOPER_DOCS_GUIDE_COPY[DeveloperDocsPageType.Api],
+    ...guideCopy(DeveloperDocsPageType.Api, context),
     steps: [
       apiKeyStep(context, "the API"),
       ...curlStep({
@@ -659,7 +709,7 @@ function getAiGuide(context: DeveloperDocsGuideContext): DeveloperDocsGuide {
 
   if (tools) {
     return {
-      ...DEVELOPER_DOCS_GUIDE_COPY[DeveloperDocsPageType.AiAssistants],
+      ...guideCopy(DeveloperDocsPageType.AiAssistants, context),
       steps: [
         {
           title: "Connect your assistant to OneUptime",
@@ -688,7 +738,7 @@ function getAiGuide(context: DeveloperDocsGuideContext): DeveloperDocsGuide {
   }
 
   return {
-    ...DEVELOPER_DOCS_GUIDE_COPY[DeveloperDocsPageType.AiAssistants],
+    ...guideCopy(DeveloperDocsPageType.AiAssistants, context),
     notice: `OneUptime's MCP server does not have tools for ${plural} yet. An assistant that can run commands (Claude Code, Cursor, or GitHub Copilot in agent mode) can still work with ${
       context.record ? `this ${singular}` : `your ${plural}`
     } through the REST API.`,

@@ -410,23 +410,32 @@ describe("AI Assistants", () => {
 describe("the card's own words", () => {
   test("name no resource, so each is one translation", () => {
     for (const page of Object.values(DeveloperDocsPageType)) {
-      const copy: { title: string; description: string } =
-        DEVELOPER_DOCS_GUIDE_COPY[page];
-
-      expect(copy.description).not.toMatch(/workflow|monitor|"/i);
+      for (const scope of Object.values(DeveloperDocsScope)) {
+        expect(DEVELOPER_DOCS_GUIDE_COPY[page][scope].description).not.toMatch(
+          /workflow|monitor|"/i,
+        );
+      }
     }
   });
 
-  test("every guide uses them", () => {
+  test("every guide uses its page's and scope's", () => {
     for (const page of Object.values(DeveloperDocsPageType)) {
-      const guide: DeveloperDocsGuide = getDeveloperDocsGuide(
+      const view: DeveloperDocsGuide = getDeveloperDocsGuide(
         page,
         workflowRecordContext(),
       );
-
-      expect({ page, title: guide.title, description: guide.description }).toEqual({
+      const list: DeveloperDocsGuide = getDeveloperDocsGuide(
         page,
-        ...DEVELOPER_DOCS_GUIDE_COPY[page],
+        context({ scope: DeveloperDocsScope.List }),
+      );
+
+      expect({ page, title: view.title, description: view.description }).toEqual({
+        page,
+        ...DEVELOPER_DOCS_GUIDE_COPY[page][DeveloperDocsScope.View],
+      });
+      expect({ page, title: list.title, description: list.description }).toEqual({
+        page,
+        ...DEVELOPER_DOCS_GUIDE_COPY[page][DeveloperDocsScope.List],
       });
     }
   });

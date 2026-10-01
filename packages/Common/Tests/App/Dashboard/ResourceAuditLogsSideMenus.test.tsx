@@ -111,6 +111,7 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
       "Team",
       "Notifications",
       "Notes",
+      "Developer",
       "Advanced",
     ],
     auditSectionLinks: [
@@ -132,7 +133,13 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
     },
     auditPage: PageMap.MONITOR_VIEW_AUDIT_LOGS,
     auditSection: "Advanced",
-    sections: ["Overview", "Activity", "Configuration", "Advanced"],
+    sections: [
+      "Overview",
+      "Activity",
+      "Configuration",
+      "Developer",
+      "Advanced",
+    ],
     auditSectionLinks: [
       { title: "Owners", page: PageMap.MONITOR_VIEW_OWNERS },
       { title: "Custom Fields", page: PageMap.MONITOR_VIEW_CUSTOM_FIELDS },
@@ -148,7 +155,13 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
     },
     auditPage: PageMap.SLO_VIEW_AUDIT_LOGS,
     auditSection: "Management",
-    sections: ["Overview", "Activity", "Configuration", "Management"],
+    sections: [
+      "Overview",
+      "Activity",
+      "Configuration",
+      "Developer",
+      "Management",
+    ],
     auditSectionLinks: [
       { title: "Owners", page: PageMap.SLO_VIEW_OWNERS },
       { title: "Settings", page: PageMap.SLO_VIEW_SETTINGS },
@@ -171,6 +184,7 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
       "Branding",
       "Security",
       "AI",
+      "Developer",
       "Advanced",
     ],
     auditSectionLinks: [

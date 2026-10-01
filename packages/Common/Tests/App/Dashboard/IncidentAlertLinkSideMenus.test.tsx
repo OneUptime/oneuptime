@@ -94,7 +94,7 @@ afterEach(() => {
 });
 
 describe("the incident view side menu", () => {
-  test("keeps its sections exactly as they were", async () => {
+  test("keeps its sections, with Developer just before Advanced", async () => {
     goTo(pageRoute(PageMap.INCIDENT_VIEW_ALERTS));
     await renderMenu(<IncidentSideMenu modelId={MODEL_ID} />);
 
@@ -104,6 +104,7 @@ describe("the incident view side menu", () => {
       "Team",
       "Notifications",
       "Notes",
+      "Developer",
       "Advanced",
     ]);
   });
@@ -178,6 +179,7 @@ describe("the alert view side menu", () => {
       "On Call",
       "Logs",
       "Alert Notes",
+      "Developer",
       "Advanced",
     ]);
   });

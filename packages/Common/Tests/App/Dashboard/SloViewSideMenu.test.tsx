@@ -85,6 +85,13 @@ const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
     section: "Configuration",
     path: `${SLO_PATH}/burn-rate-rules`,
   },
+  { title: "Terraform", section: "Developer", path: `${SLO_PATH}/developer/terraform` },
+  { title: "API", section: "Developer", path: `${SLO_PATH}/developer/api` },
+  {
+    title: "AI Assistants",
+    section: "Developer",
+    path: `${SLO_PATH}/developer/ai-assistants`,
+  },
   { title: "Owners", section: "Management", path: `${SLO_PATH}/owners` },
   { title: "Settings", section: "Management", path: `${SLO_PATH}/settings` },
   {
@@ -116,6 +123,7 @@ describe("SLO detail side menu", () => {
       "Overview",
       "Activity",
       "Configuration",
+      "Developer",
       "Management",
     ]);
   });
@@ -138,13 +146,13 @@ describe("SLO detail side menu", () => {
     },
   );
 
-  test("keeps all twelve destinations unique and fully populated", async () => {
+  test("keeps all fifteen destinations unique and fully populated", async () => {
     await renderSloMenu();
 
     const hrefs: Array<string> = hrefsInMenu();
     const titles: Array<string> = titlesInMenu();
 
-    expect(hrefs).toHaveLength(12);
+    expect(hrefs).toHaveLength(15);
     expect(hrefs).toEqual(Array.from(new Set(hrefs)));
     expect(titles).toEqual(Array.from(new Set(titles)));
     expect(hrefs).toEqual(

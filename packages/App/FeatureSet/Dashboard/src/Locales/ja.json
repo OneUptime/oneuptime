@@ -6889,5 +6889,17 @@
   "You can turn it off again with the Enabled switch above the canvas.": "キャンバスの上にある「有効」スイッチで、いつでもオフに戻せます。",
   "Turn on and run step": "オンにしてステップを実行",
   "Turn on and run": "オンにして実行",
-  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "このワークフローはオフのため、実行できません。このワークフローを編集できるユーザーだけがオンにできます。"
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "このワークフローはオフのため、実行できません。このワークフローを編集できるユーザーだけがオンにできます。",
+  "Developer": "開発者",
+  "Terraform": "Terraform",
+  "API": "API",
+  "AI Assistants": "AI アシスタント",
+  "Learn more:": "詳細:",
+  "This could not be found. It may have been deleted.": "見つかりませんでした。削除された可能性があります。",
+  "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.": "OneUptime の Terraform プロバイダーで、このリソースをコードとして管理します。以下の構成は現在の設定から作成されているため、Terraform は何も変更せずに取り込みます。",
+  "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.": "OneUptime の Terraform プロバイダーで、これらのリソースをコードとして管理します。新しく作成することも、既存のものを取り込むこともできます。",
+  "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "OneUptime の REST API で、このリソースを読み取り、変更し、削除します。以下のコマンドはすべてこの OneUptime に対して実行されます。",
+  "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "OneUptime の REST API で、これらのリソースを一覧表示し、作成します。以下のコマンドはすべてこの OneUptime に対して実行されます。",
+  "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Claude、GitHub Copilot、Cursor などの AI アシスタントから、このリソースを操作します。",
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Claude、GitHub Copilot、Cursor などの AI アシスタントから、これらのリソースを操作します。"
 }

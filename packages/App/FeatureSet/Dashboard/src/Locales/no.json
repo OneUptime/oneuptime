@@ -6889,5 +6889,17 @@
   "You can turn it off again with the Enabled switch above the canvas.": "Du kan slå den av igjen med bryteren «Aktivert» over lerretet.",
   "Turn on and run step": "Slå på og kjør trinn",
   "Turn on and run": "Slå på og kjør",
-  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Denne arbeidsflyten er slått av, så den kan ikke kjøres. Bare personer som kan redigere denne arbeidsflyten, kan slå den på."
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Denne arbeidsflyten er slått av, så den kan ikke kjøres. Bare personer som kan redigere denne arbeidsflyten, kan slå den på.",
+  "Developer": "Utvikler",
+  "Terraform": "Terraform",
+  "API": "API",
+  "AI Assistants": "AI-assistenter",
+  "Learn more:": "Les mer:",
+  "This could not be found. It may have been deleted.": "Fant det ikke. Det kan ha blitt slettet.",
+  "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.": "Administrer denne ressursen som kode med OneUptime Terraform-leverandøren. Konfigurasjonen nedenfor er skrevet ut fra de nåværende innstillingene, så Terraform tar den over uten å endre noe.",
+  "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.": "Administrer disse ressursene som kode med OneUptime Terraform-leverandøren: opprett nye, eller ta inn dem du allerede har.",
+  "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "Les, endre og slett denne ressursen med OneUptimes REST API. Alle kommandoene nedenfor kjører mot denne OneUptime.",
+  "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "List opp og opprett disse ressursene med OneUptimes REST API. Alle kommandoene nedenfor kjører mot denne OneUptime.",
+  "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Arbeid med denne ressursen fra en AI-assistent som Claude, GitHub Copilot eller Cursor.",
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Arbeid med disse ressursene fra en AI-assistent som Claude, GitHub Copilot eller Cursor."
 }

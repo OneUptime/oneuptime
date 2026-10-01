@@ -77,7 +77,7 @@ describe("Scheduled maintenance side menu", () => {
   });
 
   describe("sections", () => {
-    test("renders Overview, Workspace, Rules and Settings in order", async () => {
+    test("renders Overview, Workspace, Rules, Settings and Developer in order", async () => {
       await renderScheduledMaintenanceMenu();
 
       expect(sectionTitlesInOrder()).toEqual([
@@ -85,6 +85,7 @@ describe("Scheduled maintenance side menu", () => {
         "Workspace",
         "Rules",
         "Settings",
+        "Developer",
       ]);
     });
 

@@ -6889,5 +6889,17 @@
   "You can turn it off again with the Enabled switch above the canvas.": "Выключить его снова можно переключателем «Включено» над холстом.",
   "Turn on and run step": "Включить и выполнить шаг",
   "Turn on and run": "Включить и запустить",
-  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Этот рабочий процесс выключен, поэтому его нельзя запустить. Включить его могут только те, кто может редактировать этот рабочий процесс."
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Этот рабочий процесс выключен, поэтому его нельзя запустить. Включить его могут только те, кто может редактировать этот рабочий процесс.",
+  "Developer": "Для разработчиков",
+  "Terraform": "Terraform",
+  "API": "API",
+  "AI Assistants": "ИИ-ассистенты",
+  "Learn more:": "Подробнее:",
+  "This could not be found. It may have been deleted.": "Не найдено. Возможно, это было удалено.",
+  "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.": "Управляйте этим ресурсом как кодом с помощью провайдера Terraform для OneUptime. Конфигурация ниже составлена по его текущим настройкам, поэтому Terraform возьмёт его под управление, ничего не меняя.",
+  "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.": "Управляйте этими ресурсами как кодом с помощью провайдера Terraform для OneUptime: создавайте новые или берите под управление уже существующие.",
+  "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "Читайте, изменяйте и удаляйте этот ресурс через REST API OneUptime. Все команды ниже выполняются на этом экземпляре OneUptime.",
+  "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "Получайте список этих ресурсов и создавайте новые через REST API OneUptime. Все команды ниже выполняются на этом экземпляре OneUptime.",
+  "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Работайте с этим ресурсом через ИИ-ассистента, например Claude, GitHub Copilot или Cursor.",
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Работайте с этими ресурсами через ИИ-ассистента, например Claude, GitHub Copilot или Cursor."
 }

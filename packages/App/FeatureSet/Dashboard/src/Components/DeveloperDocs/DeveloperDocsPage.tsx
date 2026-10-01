@@ -18,6 +18,8 @@ import {
 } from "../SetupGuide/SetupGuide";
 import {
   DEVELOPER_DOCS_IMPORT_LIMIT,
+  DEVELOPER_DOCS_LEARN_MORE_LABEL,
+  DEVELOPER_DOCS_NOT_FOUND_MESSAGE,
   DeveloperDocsGuide,
   DeveloperDocsRecord,
   DeveloperDocsStep,
@@ -296,7 +298,7 @@ export const DeveloperDocsGuideView: FunctionComponent<GuideViewProps> = (
             >
               <span className="inline-flex items-center gap-1.5">
                 <Icon icon={IconProp.BookOpen} className="h-4 w-4" />
-                {translateString("Learn more:")}
+                {translateString(DEVELOPER_DOCS_LEARN_MORE_LABEL)}
               </span>
               {guide.links.map((link: SetupGuideLink) => {
                 return (
@@ -356,7 +358,7 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
         });
 
         if (!item) {
-          setError("This could not be found. It may have been deleted.");
+          setError(DEVELOPER_DOCS_NOT_FOUND_MESSAGE);
           return;
         }
 

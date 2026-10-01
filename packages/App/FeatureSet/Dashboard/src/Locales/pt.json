@@ -6889,5 +6889,17 @@
   "You can turn it off again with the Enabled switch above the canvas.": "Você pode desativá-lo novamente com a chave \"Habilitado\" acima da tela.",
   "Turn on and run step": "Ativar e executar etapa",
   "Turn on and run": "Ativar e executar",
-  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Este fluxo de trabalho está desativado, então não pode ser executado. Somente pessoas que podem editar este fluxo de trabalho podem ativá-lo."
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Este fluxo de trabalho está desativado, então não pode ser executado. Somente pessoas que podem editar este fluxo de trabalho podem ativá-lo.",
+  "Developer": "Desenvolvedores",
+  "Terraform": "Terraform",
+  "API": "API",
+  "AI Assistants": "Assistentes de IA",
+  "Learn more:": "Saiba mais:",
+  "This could not be found. It may have been deleted.": "Não foi encontrado. Talvez tenha sido excluído.",
+  "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.": "Gerencie este recurso como código com o provedor Terraform do OneUptime. A configuração abaixo é gerada a partir das configurações atuais, então o Terraform o adota sem alterar nada.",
+  "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.": "Gerencie estes recursos como código com o provedor Terraform do OneUptime: crie novos ou traga os que você já tem.",
+  "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "Leia, altere e exclua este recurso com a API REST do OneUptime. Todos os comandos abaixo são executados nesta instância do OneUptime.",
+  "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "Liste e crie estes recursos com a API REST do OneUptime. Todos os comandos abaixo são executados nesta instância do OneUptime.",
+  "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Trabalhe com este recurso a partir de um assistente de IA como Claude, GitHub Copilot ou Cursor.",
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Trabalhe com estes recursos a partir de um assistente de IA como Claude, GitHub Copilot ou Cursor."
 }

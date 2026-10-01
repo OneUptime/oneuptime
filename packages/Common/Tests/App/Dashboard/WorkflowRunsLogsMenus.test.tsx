@@ -264,6 +264,17 @@ const WORKFLOWS_MENU: ReadonlyArray<MenuPage> = [
     section: "Settings",
     path: `${WORKFLOWS_PATH}/settings/label-rules`,
   },
+  {
+    title: "Terraform",
+    section: "Developer",
+    path: `${WORKFLOWS_PATH}/developer/terraform`,
+  },
+  { title: "API", section: "Developer", path: `${WORKFLOWS_PATH}/developer/api` },
+  {
+    title: "AI Assistants",
+    section: "Developer",
+    path: `${WORKFLOWS_PATH}/developer/ai-assistants`,
+  },
 ];
 
 const WORKFLOW_MENU: ReadonlyArray<MenuPage> = [
@@ -276,6 +287,17 @@ const WORKFLOW_MENU: ReadonlyArray<MenuPage> = [
   },
   { title: "Runs", section: "Logs", path: WORKFLOW_RUNS_PATH },
   { title: "Owners", section: "Owners", path: `${WORKFLOW_PATH}/owners` },
+  {
+    title: "Terraform",
+    section: "Developer",
+    path: `${WORKFLOW_PATH}/developer/terraform`,
+  },
+  { title: "API", section: "Developer", path: `${WORKFLOW_PATH}/developer/api` },
+  {
+    title: "AI Assistants",
+    section: "Developer",
+    path: `${WORKFLOW_PATH}/developer/ai-assistants`,
+  },
   {
     title: "Settings",
     section: "Advanced",
@@ -336,7 +358,12 @@ describe("the Workflows menu", () => {
   test("has a Logs section between Workflows and Settings", async () => {
     await renderWorkflowsMenu();
 
-    expect(sectionTitlesInOrder()).toEqual(["Workflows", "Logs", "Settings"]);
+    expect(sectionTitlesInOrder()).toEqual([
+      "Workflows",
+      "Logs",
+      "Settings",
+      "Developer",
+    ]);
   });
 
   test("Logs holds Runs alone, at the run list's existing URL", async () => {
@@ -422,13 +449,14 @@ describe("a workflow's own menu", () => {
     goTo(WORKFLOW_PATH);
   });
 
-  test("has Basic, Logs, Owners and Advanced, in that order", async () => {
+  test("has Basic, Logs, Owners, Developer and Advanced, in that order", async () => {
     await renderWorkflowMenu();
 
     expect(sectionTitlesInOrder()).toEqual([
       "Basic",
       "Logs",
       "Owners",
+      "Developer",
       "Advanced",
     ]);
   });
@@ -462,13 +490,13 @@ describe("a workflow's own menu", () => {
     expect(linksIn("Owners")).toEqual(linksOf(WORKFLOW_MENU, "Owners"));
   });
 
-  test("lists all eight pages once, in order", async () => {
+  test("lists all eleven pages once, in order", async () => {
     await renderWorkflowMenu();
 
     const hrefs: Array<string> = hrefsInMenu();
 
-    expect(hrefs).toHaveLength(8);
-    expect(new Set(hrefs).size).toBe(8);
+    expect(hrefs).toHaveLength(11);
+    expect(new Set(hrefs).size).toBe(11);
     expect(hrefs).toEqual(
       WORKFLOW_MENU.map((page: MenuPage): string => {
         return page.path;
@@ -651,7 +679,12 @@ describe("the run pages keep their URLs", () => {
     const runs: HTMLElement = screen.getByRole("link", { name: "Runs" });
     expect(runs).toHaveAttribute("href", ALL_RUNS_PATH);
     expect(runs).toHaveClass(...ACTIVE_LINK_CLASSES);
-    expect(sectionTitlesInOrder()).toEqual(["Workflows", "Logs", "Settings"]);
+    expect(sectionTitlesInOrder()).toEqual([
+      "Workflows",
+      "Logs",
+      "Settings",
+      "Developer",
+    ]);
   });
 
   test("/workflows/:id/logs still opens that workflow's runs, under its own menu", async () => {
@@ -683,6 +716,7 @@ describe("the run pages keep their URLs", () => {
       "Basic",
       "Logs",
       "Owners",
+      "Developer",
       "Advanced",
     ]);
   });

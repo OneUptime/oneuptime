@@ -43,12 +43,13 @@ describe("SLO list side menu", () => {
     cleanup();
   });
 
-  test("renders the SLO pages, then Settings", async () => {
+  test("renders the SLO pages, then Settings, then Developer", async () => {
     await renderSloMenuAt(PageMap.SLOS);
 
     expect(sectionTitlesInOrder()).toEqual([
       "Service Level Objectives",
       "Settings",
+      "Developer",
     ]);
     expect(linksIn("Service Level Objectives")).toEqual([
       { title: "SLOs", href: routeFor(PageMap.SLOS) },

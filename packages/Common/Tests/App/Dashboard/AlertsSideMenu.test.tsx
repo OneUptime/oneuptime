@@ -80,7 +80,7 @@ describe("Alerts side menu", () => {
   });
 
   describe("sections", () => {
-    test("renders the five product sections in order, with no AI section", async () => {
+    test("renders the five product sections in order, then Developer, with no AI section", async () => {
       await renderAlertsMenu();
 
       expect(sectionTitlesInOrder()).toEqual([
@@ -89,6 +89,7 @@ describe("Alerts side menu", () => {
         "Workspace",
         "Rules",
         "Settings",
+        "Developer",
       ]);
     });
 
