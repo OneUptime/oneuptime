@@ -2,7 +2,8 @@
  * A form field drawn by its caller (CustomComponent) is handed the id of its
  * label, so the control can be named by it the way a native input is by
  * <label for>; and a code field can add buttons to its editor's toolbar.
- * The workflow builder's value picker uses both.
+ * The workflow builder's value picker uses both. One that draws its own
+ * label, as a switch does beside it, gets none from the form.
  */
 
 import FormField from "../../../../UI/Components/Forms/Fields/FormField";
@@ -75,6 +76,54 @@ describe("FormField — a field its caller draws", () => {
     expect(
       screen.getByRole("textbox", { name: "Message" }),
     ).toBeInTheDocument();
+  });
+
+  test("keeps its label, help and the gap under them, unless it says otherwise", () => {
+    renderField({
+      description: "What to send.",
+      fieldType: FormFieldSchemaType.CustomComponent,
+      getCustomElement: (): ReactElement => {
+        return <div data-testid="caller-drawn" />;
+      },
+    });
+
+    expect(screen.getByText("Message")).toBeInTheDocument();
+    expect(screen.getByText("What to send.")).toBeInTheDocument();
+    expect(screen.getByTestId("caller-drawn").parentElement).toHaveClass(
+      "mt-2",
+    );
+  });
+
+  test("that draws its own label gets none above it, no gap, and no id of a label that is not there", () => {
+    const handed: Array<CustomElementProps> = [];
+
+    renderField({
+      title: "Use Implicit TLS",
+      description: "Optional. Enable for implicit TLS.",
+      required: false,
+      fieldType: FormFieldSchemaType.CustomComponent,
+      customElementDrawsOwnLabel: true,
+      getCustomElement: (
+        _values: FormValues<TestEntity>,
+        props: CustomElementProps,
+      ): ReactElement => {
+        handed.push(props);
+        return <div data-testid="caller-drawn" />;
+      },
+    });
+
+    // FormField's label would have drawn the title, "(Optional)" and help.
+    expect(screen.queryByText("Use Implicit TLS")).toBeNull();
+    expect(screen.queryByText("(Optional)")).toBeNull();
+    expect(screen.queryByText("Optional. Enable for implicit TLS.")).toBeNull();
+
+    // It starts where a label would, as a switch field's row does.
+    expect(screen.getByTestId("caller-drawn").parentElement).not.toHaveClass(
+      "mt-2",
+    );
+
+    expect(handed.length).toBeGreaterThan(0);
+    expect(handed[handed.length - 1]!.ariaLabelledby).toBeUndefined();
   });
 });
 

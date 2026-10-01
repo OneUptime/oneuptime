@@ -8,8 +8,14 @@
  * the control, with { } beside it; or, once a value has been picked, that
  * value as a chip, with a button to type a value again. This is the record
  * editor's typed cells, for a step's own settings.
+ *
+ * A switch draws its name and help beside it, the way every switch field in
+ * a form does, with { } at the end of that row. Given a title, the field
+ * labels itself in every state: the switch by its title, and the box a picked
+ * value shows in by the same title above it.
  */
 
+import FieldLabelElement from "../../Forms/Fields/FieldLabel";
 import Input, { InputType } from "../../Input/Input";
 import Toggle from "../../Toggle/Toggle";
 import { containsTemplateExpression } from "./TemplateText";
@@ -28,6 +34,7 @@ import ValueTextField, {
 import React, {
   FunctionComponent,
   ReactElement,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -54,6 +61,15 @@ export interface ValueSingleFieldProps {
   value: unknown;
   onChange: (value: string | boolean) => void;
   placeholder?: string | undefined;
+  /*
+   * The setting's name and help, for a field whose form draws no label for
+   * it (Field.customElementDrawsOwnLabel): beside a switch, as a switch field
+   * has them, and above anything else. Like a switch field's, the name says
+   * nothing about being optional. Without a title, the label is the
+   * caller's, and ariaLabelledby points at it.
+   */
+  title?: string | undefined;
+  description?: string | ReactElement | undefined;
   ariaLabelledby?: string | undefined;
   error?: string | undefined;
   autoFocus?: boolean | undefined;
@@ -75,9 +91,39 @@ const ValueSingleField: FunctionComponent<ValueSingleFieldProps> = (
 
   const canPick: boolean = picker.isAvailable && !props.disabled;
   const holdsReference: boolean = containsTemplateExpression(props.value);
+  const isSwitch: boolean = props.kind === ValueSingleFieldKind.Boolean;
+
+  const labelId: string = `value-single-field-label-${useId()}`;
+  const hasOwnLabel: boolean = Boolean(props.title);
+  const ariaLabelledby: string | undefined = hasOwnLabel
+    ? labelId
+    : props.ariaLabelledby;
+
+  type WithLabelFunction = (control: ReactElement) => ReactElement;
+
+  // The title above a box, as FormField would have drawn it.
+  const withLabel: WithLabelFunction = (
+    control: ReactElement,
+  ): ReactElement => {
+    if (!hasOwnLabel) {
+      return control;
+    }
+
+    return (
+      <div className="w-full">
+        <FieldLabelElement
+          title={props.title || ""}
+          id={labelId}
+          description={props.description}
+          hideOptionalLabel={true}
+        />
+        <div className="mt-2">{control}</div>
+      </div>
+    );
+  };
 
   if (holdsReference) {
-    return (
+    return withLabel(
       <div className="flex w-full items-start gap-1.5">
         <div className="min-w-0 flex-1">
           <ValueTextField
@@ -86,7 +132,7 @@ const ValueSingleField: FunctionComponent<ValueSingleFieldProps> = (
               props.onChange(value);
             }}
             multiline={false}
-            ariaLabelledby={props.ariaLabelledby}
+            ariaLabelledby={ariaLabelledby}
             error={props.error}
             autoFocus={props.autoFocus}
             tabIndex={props.tabIndex}
@@ -111,7 +157,7 @@ const ValueSingleField: FunctionComponent<ValueSingleFieldProps> = (
             abc
           </button>
         )}
-      </div>
+      </div>,
     );
   }
 
@@ -136,18 +182,30 @@ const ValueSingleField: FunctionComponent<ValueSingleFieldProps> = (
     </button>
   ) : null;
 
-  return (
+  /*
+   * A switch's row starts at the top: its title and help sit beside it, and
+   * { } lines up with the switch rather than with the middle of the help.
+   */
+  const control: ReactElement = (
     <div className="w-full">
-      <div ref={boxRef} className="flex w-full items-center gap-1.5">
+      <div
+        ref={boxRef}
+        className={`flex w-full gap-1.5 ${
+          isSwitch ? "items-start" : "items-center"
+        }`}
+      >
         <div className="min-w-0 flex-1">
-          {props.kind === ValueSingleFieldKind.Boolean ? (
+          {isSwitch ? (
             <Toggle
               value={props.value === true || props.value === "true"}
               onChange={(value: boolean) => {
                 props.onChange(value);
               }}
-              ariaLabelledby={props.ariaLabelledby}
+              title={props.title}
+              description={props.description}
+              ariaLabelledby={hasOwnLabel ? undefined : props.ariaLabelledby}
               error={props.error}
+              disabled={props.disabled}
               dataTestId={dataTestId}
               onBlur={() => {
                 props.onBlur?.();
@@ -162,7 +220,7 @@ const ValueSingleField: FunctionComponent<ValueSingleFieldProps> = (
                   : String(props.value)
               }
               placeholder={props.placeholder}
-              ariaLabelledby={props.ariaLabelledby}
+              ariaLabelledby={ariaLabelledby}
               error={props.error}
               autoFocus={props.autoFocus}
               tabIndex={props.tabIndex}
@@ -208,6 +266,9 @@ const ValueSingleField: FunctionComponent<ValueSingleFieldProps> = (
       )}
     </div>
   );
+
+  // A switch labels itself, beside it; anything else under its title.
+  return isSwitch ? control : withLabel(control);
 };
 
 export default ValueSingleField;

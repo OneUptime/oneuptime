@@ -402,9 +402,18 @@ const FormField: <T extends GenericObject>(
      * Neither says "(Optional)" either: on or off, a switch always has an
      * answer, so there is nothing to leave out.
      */
+    /*
+     * A custom element can say it does the same: a workflow step's switch,
+     * which can also take a value from an earlier step.
+     */
+    const customElementDrawsOwnLabel: boolean =
+      props.field.fieldType === FormFieldSchemaType.CustomComponent &&
+      Boolean(props.field.customElementDrawsOwnLabel);
+
     const drawsOwnLabel: boolean =
       props.field.fieldType === FormFieldSchemaType.Checkbox ||
-      props.field.fieldType === FormFieldSchemaType.Toggle;
+      props.field.fieldType === FormFieldSchemaType.Toggle ||
+      customElementDrawsOwnLabel;
 
     return (
       <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>
@@ -430,7 +439,10 @@ const FormField: <T extends GenericObject>(
          */}
         <div
           className={
-            props.field.fieldType === FormFieldSchemaType.Toggle ? "" : "mt-2"
+            props.field.fieldType === FormFieldSchemaType.Toggle ||
+            customElementDrawsOwnLabel
+              ? ""
+              : "mt-2"
           }
         >
           {/* Time Picker */}
@@ -842,7 +854,9 @@ const FormField: <T extends GenericObject>(
 
               placeholder: translatedPlaceholder || "",
 
-              ariaLabelledby: fieldLabelId,
+              ariaLabelledby: customElementDrawsOwnLabel
+                ? undefined
+                : fieldLabelId,
             })}
 
           {(props.field.fieldType === FormFieldSchemaType.HTML ||

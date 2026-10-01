@@ -161,6 +161,14 @@ export default interface Field<TEntity> {
     values: FormValues<TEntity>,
     props: CustomElementProps,
   ) => ReactElement | undefined; // custom element to render instead of the elements in the form.
+  /*
+   * The custom element draws the field's title and help itself, the way a
+   * switch field does - beside its control rather than above it. FormField
+   * leaves out the label it would draw over the element, and the gap under
+   * that label, and hands the element no ariaLabelledby to a label that is
+   * not there.
+   */
+  customElementDrawsOwnLabel?: boolean | undefined;
   categoryCheckboxProps?: CategoryCheckboxProps | undefined; // props for the category checkbox component. If fieldType is CategoryCheckbox, this prop is required.
   dataTestId?: string | undefined;
   autoComplete?: string | undefined;

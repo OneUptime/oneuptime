@@ -704,11 +704,47 @@ describe("ArgumentsForm — a setting with a control of its own", () => {
     );
   });
 
-  test("a switch keeps its switch, with { } beside it", () => {
+  test("a switch is one row, as every switch field is: its name and help beside it, then { }", () => {
     renderStep(step(ComponentID.SendEmail));
 
-    expect(insertValue("secure")).toBeInTheDocument();
-    expect(screen.getByTestId("workflow-argument-secure")).toBeInTheDocument();
+    const toggle: HTMLElement = screen.getByRole("switch", {
+      name: "Use Implicit TLS",
+    });
+
+    expect(toggle).toHaveAccessibleDescription(
+      /^Optional\. Enable for implicit TLS/,
+    );
+    expect(insertValue("secure").parentElement).toContainElement(toggle);
+
+    // No label above it: the name is drawn once, beside the switch.
+    expect(screen.getAllByText("Use Implicit TLS")).toHaveLength(1);
+  });
+
+  test("a value picked for a switch sits under its name, and abc brings the switch back", async () => {
+    const { user, onFormChange } = renderStep(step(ComponentID.SendEmail));
+
+    await user.click(insertValue("secure"));
+    await pick(DEPLOY_ENV);
+
+    await waitFor(() => {
+      expect(lastArguments(onFormChange)["secure"]).toBe(DEPLOY_ENV);
+    });
+    expect(chipsIn(control("Use Implicit TLS"))[0]).toHaveTextContent(
+      "Variable›DEPLOY_ENV",
+    );
+    expect(
+      screen.queryByRole("switch", { name: "Use Implicit TLS" }),
+    ).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: TYPE_A_VALUE_LABEL }));
+
+    await waitFor(() => {
+      expect(lastArguments(onFormChange)["secure"]).toBe(false);
+    });
+    // The form hands its fields the new value a moment after it reports it.
+    expect(
+      await screen.findByRole("switch", { name: "Use Implicit TLS" }),
+    ).toHaveAttribute("aria-checked", "false");
   });
 });
 

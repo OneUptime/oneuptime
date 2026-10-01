@@ -86,6 +86,16 @@ const SINGLE_FIELD_KINDS: Partial<
   [ArgumentControl.DateTime]: ValueSingleFieldKind.DateTime,
 };
 
+type DescribeArgumentFunction = (arg: Argument) => string;
+
+/*
+ * A setting's help: whether it is required, then what it is for. Under the
+ * label for most settings, and under a switch's name beside it.
+ */
+const describeArgument: DescribeArgumentFunction = (arg: Argument): string => {
+  return `${arg.required ? "Required" : "Optional"}. ${arg.description}`;
+};
+
 type ValidateTypedValueFunction = (
   type: ComponentInputType,
   value: unknown,
@@ -325,6 +335,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     codeEditorToolbarActions?:
       | ((editor: CodeEditorActions) => ReactNode)
       | undefined;
+    customElementDrawsOwnLabel?: boolean | undefined;
   };
 
   const fieldForArgument: FieldForArgumentFunction = (
@@ -509,8 +520,16 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       SINGLE_FIELD_KINDS[control];
 
     if (singleKind) {
+      /*
+       * A switch is one row, as a switch field is everywhere else: the
+       * switch, its name beside it and its help under the name. The form
+       * draws no label above it.
+       */
+      const isSwitch: boolean = singleKind === ValueSingleFieldKind.Boolean;
+
       return {
         fieldType: FormFieldSchemaType.CustomComponent,
+        customElementDrawsOwnLabel: isSwitch,
         getCustomElement: (
           _values: FormValues<JSONObject>,
           customProps: CustomElementProps,
@@ -518,6 +537,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           return (
             <ValueSingleField
               kind={singleKind}
+              title={isSwitch ? arg.name : undefined}
+              description={isSwitch ? describeArgument(arg) : undefined}
               value={
                 singleKind === ValueSingleFieldKind.Boolean
                   ? component.arguments?.[arg.id]
@@ -700,6 +721,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       values: FormValues<JSONObject>,
                       customProps: CustomElementProps,
                     ) => ReactElement | undefined;
+                    customElementDrawsOwnLabel?: boolean | undefined;
                   } = fieldForArgument(arg, argIndex);
 
                   /*
@@ -728,9 +750,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                           return showAdvanced;
                         }
                       : undefined,
-                    description: `${
-                      arg.required ? "Required" : "Optional"
-                    }. ${arg.description}`,
+                    description: describeArgument(arg),
                     field: {
                       [arg.id]: true,
                     },
