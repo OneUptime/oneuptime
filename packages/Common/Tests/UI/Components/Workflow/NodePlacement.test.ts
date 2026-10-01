@@ -1,5 +1,6 @@
 import {
   DEFAULT_NODE_HEIGHT,
+  NEW_NODE_HEIGHT_ESTIMATE,
   WORKFLOW_NODE_WIDTH,
   WorkflowCanvasRect,
   WorkflowCanvasSize,
@@ -159,8 +160,14 @@ describe("Workflow node placement", () => {
 /*
  * Bringing a step that was just added into view. The canvas below is
  * 1000 x 600 on screen; a step is 256 wide and, before the canvas has
- * measured it, 200 tall. Steps must stay 24px clear of the edges.
+ * measured it, taken to be 220 tall. Steps must stay 24px clear of the edges.
  */
+
+test("a new step is taken to be as tall as a card with its setup prompt", () => {
+  expect(WORKFLOW_NODE_WIDTH).toBe(256);
+  expect(NEW_NODE_HEIGHT_ESTIMATE).toBe(220);
+  expect(NEW_NODE_HEIGHT_ESTIMATE).toBeGreaterThan(DEFAULT_NODE_HEIGHT);
+});
 const CANVAS: WorkflowCanvasSize = { width: 1000, height: 600 };
 const AT_ORIGIN: WorkflowCanvasViewport = { x: 0, y: 0, zoom: 1 };
 
@@ -179,9 +186,9 @@ describe("Workflow node reveal: is the new step in view", () => {
     ["exactly at the top-left margin", { x: 24, y: 24 }, true],
     ["one pixel past the left margin", { x: 23, y: 24 }, false],
     ["one pixel past the top margin", { x: 24, y: 23 }, false],
-    ["exactly at the bottom-right margin", { x: 720, y: 376 }, true],
-    ["one pixel past the right margin", { x: 721, y: 376 }, false],
-    ["one pixel past the bottom margin", { x: 720, y: 377 }, false],
+    ["exactly at the bottom-right margin", { x: 720, y: 356 }, true],
+    ["one pixel past the right margin", { x: 721, y: 356 }, false],
+    ["one pixel past the bottom margin", { x: 720, y: 357 }, false],
   ])(
     "a step %s",
     (_label: string, position: { x: number; y: number }, inView: boolean) => {
@@ -302,8 +309,8 @@ describe("Workflow node reveal: where the canvas moves to", () => {
       canvasSize: CANVAS,
     });
 
-    // Its bottom was at 700 and may be at 576 at most: 124 pixels up.
-    expect(viewport).toEqual({ x: 0, y: -124, zoom: 1 });
+    // Its bottom was at 720 and may be at 576 at most: 144 pixels up.
+    expect(viewport).toEqual({ x: 0, y: -144, zoom: 1 });
   });
 
   test("the step above the new one stays on screen, rather than being scrolled away by centring", () => {
@@ -441,8 +448,8 @@ describe("Workflow node reveal: where the canvas moves to", () => {
       overlays: [controls, minimap],
     });
 
-    // Its bottom was at 500 and may be at 455 - 24 = 431 at most.
-    expect(viewport).toEqual({ x: 0, y: -69, zoom: 1 });
+    // Its bottom was at 520 and may be at 455 - 24 = 431 at most.
+    expect(viewport).toEqual({ x: 0, y: -89, zoom: 1 });
     expect(
       isWorkflowNodeInView({
         position: position,
@@ -472,7 +479,8 @@ describe("Workflow node reveal: where the canvas moves to", () => {
       overlays: [minimap],
     });
 
-    expect(viewport).toEqual({ x: -480, y: -94, zoom: 1 });
+    // Its bottom, at 520, has to come up to 430 - 24 = 406.
+    expect(viewport).toEqual({ x: -480, y: -114, zoom: 1 });
   });
 
   test("an overlay along the top lowers where a step may start", () => {

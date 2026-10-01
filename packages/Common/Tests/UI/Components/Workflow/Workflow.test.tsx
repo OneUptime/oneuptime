@@ -6,6 +6,7 @@ import { ComponentProps as PickerProps } from "../../../../UI/Components/Workflo
 import { ComponentProps as SettingsProps } from "../../../../UI/Components/Workflow/ComponentSettingsModal";
 import { ComponentProps as RunProps } from "../../../../UI/Components/Workflow/RunModal";
 import { WorkflowNodeRenderData } from "../../../../UI/Components/Workflow/GraphLintSummary";
+import { NEW_NODE_HEIGHT_ESTIMATE } from "../../../../UI/Components/Workflow/NodePlacement";
 import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
@@ -767,7 +768,7 @@ describe("Workflow builder: bringing a new step into view", () => {
     setCanvasSize(1200, 500);
     addAction(harness);
 
-    // It lands at y 520, so at zoom 0.75 its bottom is drawn at 540.
+    // It lands at y 520, so at zoom 0.75 its bottom is drawn at 555.
     const added: Node<WorkflowNodeRenderData> = findRenderedNode("write-log-1");
     expect(added.position.y).toBe(520);
     expect(mockSetViewport).toHaveBeenCalledTimes(1);
@@ -777,7 +778,9 @@ describe("Workflow builder: bringing a new step into view", () => {
     ];
     expect(viewport.zoom).toBe(0.75);
     // Only as far as it takes: the step's bottom ends up at the margin.
-    expect((added.position.y + 200) * 0.75 + viewport.y).toBe(500 - 24);
+    expect(
+      (added.position.y + NEW_NODE_HEIGHT_ESTIMATE) * 0.75 + viewport.y,
+    ).toBe(500 - 24);
     expect(viewport.x).toBe(0);
     expect(options).toEqual({ duration: 200 });
     // The old behaviour centred on the step and reset the zoom to 1.
@@ -824,8 +827,8 @@ describe("Workflow builder: bringing a new step into view", () => {
     const [viewport] = mockSetViewport.mock.calls[0] as [
       { x: number; y: number; zoom: number },
     ];
-    // The step's bottom (520 + 200) has to clear the minimap's top, 600 - 24.
-    expect(720 + viewport.y).toBe(576);
+    // The step's bottom has to clear the minimap's top, 600, by the margin.
+    expect(520 + NEW_NODE_HEIGHT_ESTIMATE + viewport.y).toBe(600 - 24);
   });
 
   test("with reduced motion the canvas jumps rather than glides", () => {

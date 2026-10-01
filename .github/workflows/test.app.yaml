@@ -226,6 +226,10 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
         run: npm run test-topology-ui
+      - name: Run Workflow Builder UI regressions
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        run: npm run test-workflow-builder-ui
       - name: Upload browser screenshots and failure traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -262,4 +266,5 @@ jobs:
             output/playwright/discovery/test-results
             output/playwright/topology/*.png
             output/playwright/topology/test-results
+            output/playwright/workflow-builder-ui/test-results
           retention-days: 7

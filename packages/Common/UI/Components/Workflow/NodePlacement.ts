@@ -4,12 +4,16 @@ import { Node, XYPosition } from "reactflow";
 /** A step card's width on the canvas: 16rem, set in Component.tsx. */
 export const WORKFLOW_NODE_WIDTH: number = 256;
 
-/*
- * A step's height is only known once the canvas has drawn it, and a step that
- * was just added has not been drawn yet. Cards come out between about 140 and
- * 210 pixels tall, so this errs on the tall side.
- */
+// Room left below a step whose height the canvas has not measured yet.
 export const DEFAULT_NODE_HEIGHT: number = 200;
+
+/*
+ * How tall a step that was just added is taken to be when deciding whether
+ * it is in view, since the canvas has not drawn it yet. Cards come out about
+ * 160 to 210 pixels tall, the most with the "Click to set up" prompt a new
+ * step usually has, so this errs on the tall side.
+ */
+export const NEW_NODE_HEIGHT_ESTIMATE: number = 220;
 
 const NODE_GAP: number = 80;
 
@@ -106,7 +110,7 @@ export interface WorkflowNodeOnCanvas {
   overlays?: Array<WorkflowCanvasRect> | undefined;
   /** Defaults to a step card's width. */
   width?: number | undefined;
-  /** Defaults to DEFAULT_NODE_HEIGHT: a new step has not been measured yet. */
+  /** Defaults to NEW_NODE_HEIGHT_ESTIMATE: a new step is not measured yet. */
   height?: number | undefined;
 }
 
@@ -124,7 +128,7 @@ const getScreenBox: GetScreenBoxFunction = (
     left: params.position.x * zoom + params.viewport.x,
     top: params.position.y * zoom + params.viewport.y,
     width: (params.width || WORKFLOW_NODE_WIDTH) * zoom,
-    height: (params.height || DEFAULT_NODE_HEIGHT) * zoom,
+    height: (params.height || NEW_NODE_HEIGHT_ESTIMATE) * zoom,
   };
 };
 
