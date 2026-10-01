@@ -64,7 +64,10 @@ import {
   formatDatabaseEndpoint,
   isClientSocketDatabaseEndpoint,
 } from "../../../../Types/DatabaseServer/DatabaseEndpoint";
-import { DATABASE_SYSTEMS } from "../../../../Types/DatabaseServer/DatabaseSystem";
+import {
+  DATABASE_SYSTEMS,
+  DatabaseSystemDescriptor,
+} from "../../../../Types/DatabaseServer/DatabaseSystem";
 import {
   DATABASE_ADDRESS_ATTRIBUTES,
   DATABASE_PORT_ATTRIBUTES,
@@ -1789,7 +1792,7 @@ describe("client span dependencies — a client's own socket", () => {
   // Every engine by every name it is known by, and one nobody knows.
   const ENGINES: Array<string> = [
     ...DATABASE_SYSTEMS.flatMap(
-      (descriptor: { system: string; aliases: Array<string> }) => {
+      (descriptor: DatabaseSystemDescriptor): Array<string> => {
         return [descriptor.system, ...descriptor.aliases];
       },
     ),
@@ -1822,9 +1825,11 @@ describe("client span dependencies — a client's own socket", () => {
       61000,
       65534,
       65535,
-      ...DATABASE_SYSTEMS.map((descriptor: { defaultPort: number | null }) => {
-        return descriptor.defaultPort ?? 1;
-      }),
+      ...DATABASE_SYSTEMS.map(
+        (descriptor: DatabaseSystemDescriptor): number => {
+          return descriptor.defaultPort ?? 1;
+        },
+      ),
     ]),
   );
 
