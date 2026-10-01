@@ -1,9 +1,14 @@
 import Icon, { ThickProp } from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
+import {
+  WorkflowLintTone,
+  WorkflowNodeIssuePresentation,
+  WorkflowNodeRenderData,
+  getWorkflowNodeIssuePresentation,
+} from "./GraphLintSummary";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   ComponentType,
-  NodeDataProp,
   NodeType,
   Port,
 } from "../../../Types/Workflow/Component";
@@ -11,9 +16,32 @@ import React, { FunctionComponent, useState } from "react";
 import { Connection, Handle, Position } from "reactflow";
 
 export interface ComponentProps {
-  data: NodeDataProp;
+  data: WorkflowNodeRenderData;
   selected: boolean;
 }
+
+/** Said on a step whose required settings are still empty. */
+export const WORKFLOW_NODE_SETUP_TEXT: string = "Click to set up";
+
+type BadgeColorScheme = {
+  background: string;
+  border: string;
+  icon: string;
+};
+
+const ERROR_BADGE_COLORS: BadgeColorScheme = {
+  background:
+    "color-mix(in srgb, #ef4444 15%, var(--ou-surface-primary, #ffffff))",
+  border: "1px solid rgb(248 113 113 / 45%)",
+  icon: "#ef4444",
+};
+
+const WARNING_BADGE_COLORS: BadgeColorScheme = {
+  background:
+    "color-mix(in srgb, #f59e0b 18%, var(--ou-surface-primary, #ffffff))",
+  border: "1px solid rgb(245 158 11 / 50%)",
+  icon: "#d97706",
+};
 
 type CategoryColorScheme = {
   bg: string;
@@ -298,7 +326,16 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   }
 
   // Regular node
-  const hasError: boolean = Boolean(props.data.error);
+  const issues: WorkflowNodeIssuePresentation =
+    getWorkflowNodeIssuePresentation({
+      issueSummary: props.data.issueSummary,
+      error: props.data.error,
+    });
+
+  const hasError: boolean = issues.badgeTone === WorkflowLintTone.Error;
+  const badgeColors: BadgeColorScheme = hasError
+    ? ERROR_BADGE_COLORS
+    : WARNING_BADGE_COLORS;
 
   return (
     <div
@@ -372,10 +409,17 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           </div>
         )}
 
-      {/* Error indicator — hover it to read what is actually wrong. */}
-      {!props.data.isPreview && hasError && (
-        <Tooltip text={props.data.error}>
+      {/*
+        Problem indicator: red for an error, amber for a warning, as the
+        toolbar and the issues panel colour them. Hover it to read what is
+        actually wrong. Empty required settings are not on it: those are the
+        "Click to set up" prompt below.
+      */}
+      {!props.data.isPreview && issues.badgeTone !== WorkflowLintTone.Clean && (
+        <Tooltip text={issues.badgeText}>
           <div
+            data-testid="workflow-node-issue-badge"
+            data-tone={issues.badgeTone}
             style={{
               position: "absolute",
               top: "8px",
@@ -384,18 +428,17 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               width: "22px",
               height: "22px",
               borderRadius: "50%",
-              backgroundColor:
-                "color-mix(in srgb, #ef4444 15%, var(--ou-surface-primary, #ffffff))",
+              backgroundColor: badgeColors.background,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              border: "1px solid rgb(248 113 113 / 45%)",
+              border: badgeColors.border,
             }}
           >
             <Icon
               icon={IconProp.Alert}
               style={{
-                color: "#ef4444",
+                color: badgeColors.icon,
                 width: "0.75rem",
                 height: "0.75rem",
               }}
@@ -509,6 +552,45 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         >
           {props.data.metadata.description}
         </p>
+
+        {/*
+          Settings no longer open by themselves when a step is added, so a
+          step that cannot run until it is set up says how to get there.
+          Hover it for which settings are still empty.
+        */}
+        {!props.data.isPreview && issues.needsSetup && (
+          <Tooltip text={issues.setupHint}>
+            <div
+              data-testid="workflow-node-setup-hint"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.375rem",
+                marginTop: "0.625rem",
+                padding: "0.1875rem 0.5rem 0.1875rem 0.375rem",
+                borderRadius: "9999px",
+                border: `1px dashed ${colors.selectedBorder}`,
+                backgroundColor: "var(--ou-surface-primary, #ffffff)",
+                color: "var(--ou-text-secondary, #475569)",
+                fontSize: "0.6875rem",
+                fontWeight: 600,
+                lineHeight: "1rem",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Icon
+                icon={IconProp.Settings}
+                style={{
+                  color: colors.selectedBorder,
+                  width: "0.75rem",
+                  height: "0.75rem",
+                  flexShrink: 0,
+                }}
+              />
+              <span>{WORKFLOW_NODE_SETUP_TEXT}</span>
+            </div>
+          </Tooltip>
+        )}
       </div>
 
       {/* Out ports section */}

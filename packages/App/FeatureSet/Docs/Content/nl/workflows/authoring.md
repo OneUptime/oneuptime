@@ -6,7 +6,7 @@ Zodra hij bestaat, open je **Bouwer** in het linkermenu. Dat is het canvas waaro
 
 ## Het canvas
 
-Een workflow die je vanaf nul begint, opent met één gestippeld blok met de tekst **Please click here to add trigger**. Dat blok is het startpunt — klik erop om een trigger te kiezen. Een workflow uit een sjabloon opent met de blokken al op hun plek.
+Een workflow die je vanaf nul begint, opent met één gestippeld blok met de tekst **Choose what starts this workflow**. Dat blok is het startpunt — klik erop om een trigger te kiezen. Een workflow uit een sjabloon opent met de blokken al op hun plek.
 
 Elke workflow heeft precies één **trigger** bovenaan. Al het andere is een **component** dat iets doet. Voeg je een tweede trigger toe, dan vervangt die de eerste; verwijder je de laatste, dan komt het gestippelde blok terug.
 
@@ -17,7 +17,7 @@ Blokken toevoegen:
 
 In beide panelen kun je zoeken — druk op `/` om naar het zoekveld te springen — en alles staat gegroepeerd per categorie. Selecteer één blok en klik op **Add to Workflow**.
 
-Nieuwe blokken landen altijd op dezelfde plek op het canvas, dus een nieuw blok kan boven op iets vallen wat je al had neergezet. Sleep het vrij; het canvas klikt onderweg vast op een raster. Blokposities worden bewaard, dus de volgende persoon ziet dezelfde indeling als jij achterliet.
+Een nieuw blok landt onder het onderste blok op het canvas, en een nieuwe trigger neemt bovenaan de plek van de oude in. Het nieuwe blok is geselecteerd, en landt het buiten beeld, dan schuift het canvas precies ver genoeg op om het te tonen. De instellingen gaan niet vanzelf open: klik op het blok wanneer je het wilt instellen. Zolang de verplichte instellingen leeg zijn, staat er **Click to set up** op het blok. Sleep blokken waarheen je wilt; het canvas klikt onderweg vast op een raster. Blokposities worden bewaard, dus de volgende persoon ziet dezelfde indeling als jij achterliet.
 
 Wijzigingen worden automatisch opgeslagen. Een pil in de werkbalk houdt dat bij: **Saving…** zolang de wijziging onderweg is, daarna **Opgeslagen**, of **Kon niet opslaan** als het misging. Er is geen opslaanknop en geen aparte publicatiestap.
 
@@ -42,7 +42,7 @@ Je kunt één uitgang met meerdere blokken verbinden. Ze draaien allemaal — ma
 
 ## Een blok instellen
 
-Klik op een blok om zijn instellingen in een dialoogvenster te openen. Elke instelling heeft het passende soort invoer — tekstvelden, keuzelijsten, code-editors, schakelaars, enzovoort. Vul het in en klik op **Opslaan**.
+Klik op een blok om zijn instellingen in een dialoogvenster te openen (of ga er met **Tab** naartoe en druk op **Enter**). Elke instelling heeft het passende soort invoer — tekstvelden, keuzelijsten, code-editors, schakelaars, enzovoort. Vul het in en klik op **Opslaan**.
 
 In datzelfde venster vind je ook:
 
@@ -54,7 +54,7 @@ De meeste tekstvelden accepteren variabelen — zo stroomt data van het ene blok
 
 ## Controles tijdens het bouwen
 
-De Bouwer controleert bij elke wijziging de hele graaf en meldt wat hij vindt in een pil in de werkbalk. Klik op de pil om **Problems with this workflow** te openen: daar staat elk probleem, met een sprong naar het blok dat het veroorzaakt. Blokken met een probleem krijgen ook een rode badge op het canvas.
+De Bouwer controleert bij elke wijziging de hele graaf en meldt wat hij vindt in een pil in de werkbalk. Klik op de pil om **Problems with this workflow** te openen: daar staat elk probleem, met een sprong naar het blok dat het veroorzaakt. Op het canvas staat **Click to set up** op een blok waarvan de verplichte instellingen nog leeg zijn, en een blok met een ander probleem krijgt een badge in de hoek: rood voor een fout, oranje voor een waarschuwing. Houd de muis boven de badge om te lezen wat er mis is.
 
 Hij vangt de fouten die anders onzichtbaar blijven tot een run misgaat — geen trigger, twee blokken met dezelfde id, een punt in een id, een blok waar niets naartoe loopt, een verplichte instelling die leeg bleef, ongeldige JSON, spaties binnen `{{ }}`, en verwijzingen naar een stap of retourwaarde die niet bestaat.
 
@@ -65,8 +65,8 @@ Eén ding kan hij niet controleren: of een variabelenaam bestaat. Een hernoemde 
 De snelste manier om het canvas te leren kennen:
 
 1. Klik op het gestippelde blok, kies **Manual** in het paneel **Add Trigger** en klik op **Add to Workflow**.
-2. Klik op **Component toevoegen**, kies **Log** (onder **Utils**) en klik op **Add to Workflow**. Sleep het nieuwe blok weg bij de trigger en verbind daarna de stip **Execute** van de trigger met de invoerstip van het Log-blok.
-3. Open het Log-blok en zet zijn **Waarde** op `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` is de **Identifier** van de trigger, te zien op het triggerblok — controleer of die klopt.
+2. Klik op **Component toevoegen**, kies **Log** (onder **Utils**) en klik op **Add to Workflow**. Het nieuwe blok landt onder de trigger. Verbind de stip **Execute** van de trigger met de invoerstip van het Log-blok.
+3. Klik op het Log-blok, waar **Click to set up** op staat, en zet zijn **Waarde** op `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` is de **Identifier** van de trigger, te zien op het triggerblok — controleer of die klopt.
 4. Ga naar **Overzicht**, klik op **Workflow bewerken** op de kaart **Workflow-details** en zet **Ingeschakeld** aan. Een uitgeschakelde workflow kan helemaal niet draaien, ook niet met de hand.
 5. Terug in de **Bouwer** klik je op **Workflow uitvoeren**, zet je `{ "name": "Ada" }` in het veld **JSON**, klik je op **Run Workflow Manually** en bevestig je met **Run**.
 6. Er opent vanzelf een paneel **Workflow Run** dat de uitvoering volgt. Het logboek toont `Value:` gevolgd door `Hello from Ada`.

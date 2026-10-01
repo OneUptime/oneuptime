@@ -6,7 +6,7 @@ Once it's created, open **Builder** in the left menu. That's the canvas where yo
 
 ## The canvas
 
-A workflow from scratch opens with a single dashed block reading **Please click here to add trigger**. That block is the starting point — click it to pick a trigger. A workflow created from a template opens with its blocks already in place.
+A workflow from scratch opens with a single dashed block reading **Choose what starts this workflow**. That block is the starting point — click it to pick a trigger. A workflow created from a template opens with its blocks already in place.
 
 Every workflow has exactly one **trigger** at the top. Everything else is a **component** that does something. Adding a second trigger replaces the first, and deleting the last one puts the dashed placeholder back.
 
@@ -17,7 +17,7 @@ Adding blocks:
 
 Both panels are searchable — press `/` to jump to the search box — and grouped by category. Select one block and click **Add to Workflow**.
 
-New blocks always land in the same spot on the canvas, so a new one may drop on top of something you already placed. Drag it clear; the canvas snaps to a grid as you go. Block positions are saved, so the next person sees the same arrangement you left behind.
+A new block lands below the lowest block on the canvas, and a new trigger takes the old one's place at the top. The new block is selected, and if it landed out of view, the canvas scrolls just far enough to show it. Its settings don't open by themselves: click the block when you're ready to set it up. Until its required settings are filled in, it says **Click to set up**. Drag blocks wherever you like; the canvas snaps to a grid as you go. Block positions are saved, so the next person sees the same arrangement you left behind.
 
 Changes save automatically. A pill in the toolbar tracks it: **Saving…** while the change is in flight, then **Saved**, or **Could not save** if it didn't work. There is no Save button and no separate publish step.
 
@@ -42,7 +42,7 @@ You can connect one output to several blocks. All of them run — but one after 
 
 ## Configuring a block
 
-Click a block to open its settings in a dialog. Each setting has the right kind of input. Anything you write in words — a message, a prompt, a value to log — gets a box that grows as you type, and **Enter** starts a new line. Short values such as a URL, an ID or a subject line stay on one line. Code and HTML get a code editor, JSON a JSON editor, and on/off settings a toggle. Fill it in and click **Save**.
+Click a block to open its settings in a dialog, or move to it with **Tab** and press **Enter**. Each setting has the right kind of input. Anything you write in words — a message, a prompt, a value to log — gets a box that grows as you type, and **Enter** starts a new line. Short values such as a URL, an ID or a subject line stay on one line. Code and HTML get a code editor, JSON a JSON editor, and on/off settings a toggle. Fill it in and click **Save**.
 
 The dialog opens on what you most likely came for. For a **Webhook** trigger that is its URL, with a **Copy URL** button, the methods it accepts and an example request. For a **Manual** trigger it is how the workflow gets started. Every other block opens on its settings. A block with no settings has no **Settings** section at all.
 
@@ -61,7 +61,7 @@ Most text fields accept variables — that's how data flows from one block to th
 
 ## Checks as you build
 
-The Builder checks the whole graph every time you change it, and reports what it finds in a pill in the toolbar. Click the pill to open **Problems with this workflow**, which lists each issue and jumps you to the block responsible. Blocks with a problem also carry a red badge on the canvas.
+The Builder checks the whole graph every time you change it, and reports what it finds in a pill in the toolbar. Click the pill to open **Problems with this workflow**, which lists each issue and jumps you to the block responsible. On the canvas, a block whose required settings are still empty says **Click to set up**, and a block with any other problem carries a badge in its corner: red for an error, amber for a warning. Hover the badge to read what's wrong.
 
 It catches the mistakes that are otherwise invisible until a run goes wrong — no trigger, two blocks sharing an id, a dot inside an id, a block nothing connects to, a required setting left empty, malformed JSON, spaces inside `{{ }}`, and references to a step or return value that doesn't exist.
 
@@ -72,8 +72,8 @@ One thing it can't check: whether a variable name exists. A renamed variable onl
 The quickest way to feel out the canvas:
 
 1. Click the dashed placeholder block, pick **Manual** in the **Add Trigger** panel, and click **Add to Workflow**.
-2. Click **Add Component**, pick **Log** (under **Utils**), and click **Add to Workflow**. Drag the new block clear of the trigger, then connect the trigger's **Execute** dot down to the Log block's input dot.
-3. Open the Log block and set its **Value** to `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` is the trigger's **Identifier**, shown on the trigger block — check it matches.
+2. Click **Add Component**, pick **Log** (under **Utils**), and click **Add to Workflow**. The new block lands below the trigger. Connect the trigger's **Execute** dot down to the Log block's input dot.
+3. Click the Log block, which says **Click to set up**, and set its **Value** to `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` is the trigger's **Identifier**, shown on the trigger block — check it matches.
 4. Go to **Overview**, click **Edit Workflow** on the **Workflow Details** card, and switch **Enabled** on. A disabled workflow can't be run at all, not even by hand.
 5. Back on the **Builder**, click **Run Workflow**, put `{ "name": "Ada" }` in the **JSON** field, click **Run Workflow Manually**, and confirm with **Run**.
 6. A **Workflow Run** panel opens by itself and follows the run. The log shows `Value:` followed by `Hello from Ada`.
