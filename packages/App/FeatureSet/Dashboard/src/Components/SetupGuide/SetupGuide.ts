@@ -1,7 +1,7 @@
 /*
  * The shape every in-app setup guide is built from — Kubernetes, Docker,
  * Podman, Docker Swarm, Ceph, Proxmox, VMware, hosts, IoT, databases, cloud
- * environments, serverless functions and RUM applications.
+ * environments, serverless functions, RUM applications and message queues.
  *
  * A guide used to be one long markdown document: every platform's commands
  * one after another, then every configuration option, upgrade note and

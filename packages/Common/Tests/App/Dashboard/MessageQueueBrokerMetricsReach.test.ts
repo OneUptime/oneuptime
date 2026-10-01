@@ -6,8 +6,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * canBrokerMetricsReachMessageQueue in Pages/MessageQueue/Utils/
  * MessageQueuePresentation: the Overview's Broker health section offers a
  * setup by it (getMessageQueueBrokerMetricsGuidance), and the Documentation
- * tab's guide promises the broker's own metrics by it
- * (DocumentationMarkdown). The guide used to keep a private copy of the
+ * tab's guide promises the broker's own metrics by it, in its intro and its
+ * check step (DocumentationMarkdown's getMessageQueueSetupGuide). The guide used to keep a private copy of the
  * rule, held to the section's by a cross-check over the catalog.
  *
  * Here the rule is swapped for a stand-in that answers what the catalog
@@ -46,10 +46,8 @@ jest.mock(
   },
 );
 
-import {
-  getMessageQueueDocumentationMarkdown,
-  getMessageQueueSystemGuideMarkdown,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
+import { getMessageQueueSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
+import { getSetupGuideMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import {
   MessageQueueBrokerMetricsGuidance,
   getMessageQueueBrokerMetricsGuidance,
@@ -72,15 +70,38 @@ const PRODUCT_GUIDE_PROMISE: string =
 const QUEUE_GUIDE_PROMISE: string = "and from the broker's own metrics.";
 const QUEUE_GUIDE_NO_PROMISE: string =
   "and from metrics that carry its `messaging.system` and `messaging.destination.name`.";
+// What each guide's check step says when the rule lets them in.
+const PRODUCT_CHECK_PROMISE: string =
+  "One datapoint of a broker metric a queue page charts creates its queue too";
+const QUEUE_CHECK_PROMISE: string =
+  "**Broker health** on the Overview fills in from the broker's metrics";
 const QUEUE_GUIDE_OUTSIDE: string =
   "This queue has no namespace, so Azure Monitor's metrics never reach it";
 
+// The product guide for a system, as one markdown document.
+function productGuide(system: string): string {
+  return getSetupGuideMarkdown(
+    getMessageQueueSetupGuide({
+      oneuptimeUrl: VARS.oneuptimeUrl,
+      apiKey: VARS.apiKey,
+      system: system,
+    }),
+  );
+}
+
 function queueGuide(system: string, brokerScope: string): string {
-  return getMessageQueueDocumentationMarkdown(VARS, {
-    system: system,
-    destination: "orders",
-    brokerScope: brokerScope,
-  });
+  return getSetupGuideMarkdown(
+    getMessageQueueSetupGuide({
+      oneuptimeUrl: VARS.oneuptimeUrl,
+      apiKey: VARS.apiKey,
+      system: system,
+      queue: {
+        system: system,
+        destination: "orders",
+        brokerScope: brokerScope,
+      },
+    }),
+  );
 }
 
 beforeEach(() => {
@@ -90,18 +111,16 @@ beforeEach(() => {
 
 describe("the stand-in starts out as the real rule", () => {
   test("so Kafka's guides and Broker health promise its broker metrics, and NATS's do not", () => {
-    expect(getMessageQueueSystemGuideMarkdown(VARS, "kafka")).toContain(
-      PRODUCT_GUIDE_PROMISE,
-    );
+    expect(productGuide("kafka")).toContain(PRODUCT_GUIDE_PROMISE);
     expect(queueGuide("kafka", "")).toContain(QUEUE_GUIDE_PROMISE);
+    expect(productGuide("kafka")).toContain(PRODUCT_CHECK_PROMISE);
+    expect(queueGuide("kafka", "")).toContain(QUEUE_CHECK_PROMISE);
     expect(
       getMessageQueueBrokerMetricsGuidance("kafka", { brokerScope: "" })
         .reachesQueue,
     ).toBe(true);
 
-    expect(getMessageQueueSystemGuideMarkdown(VARS, "nats")).not.toContain(
-      PRODUCT_GUIDE_PROMISE,
-    );
+    expect(productGuide("nats")).not.toContain(PRODUCT_GUIDE_PROMISE);
     expect(queueGuide("nats", "")).toContain(QUEUE_GUIDE_NO_PROMISE);
     expect(
       getMessageQueueBrokerMetricsGuidance("nats", { brokerScope: "" })
@@ -117,8 +136,10 @@ describe("the Documentation tab and Broker health both follow the one rule", () 
       return false;
     });
 
-    const product: string = getMessageQueueSystemGuideMarkdown(VARS, "kafka");
+    const product: string = productGuide("kafka");
     expect(product).not.toContain(PRODUCT_GUIDE_PROMISE);
+    // Nor does its check step say Kafka's broker metrics create a queue.
+    expect(product).not.toContain(PRODUCT_CHECK_PROMISE);
     expect(product).toContain(
       "Apache Kafka queues appear in OneUptime on their own, from the messaging spans of the applications that publish to and consume from them. ",
     );
@@ -126,6 +147,7 @@ describe("the Documentation tab and Broker health both follow the one rule", () 
     const queue: string = queueGuide("kafka", "");
     expect(queue).toContain(QUEUE_GUIDE_NO_PROMISE);
     expect(queue).not.toContain("the broker's own metrics");
+    expect(queue).not.toContain(QUEUE_CHECK_PROMISE);
 
     const guidance: MessageQueueBrokerMetricsGuidance =
       getMessageQueueBrokerMetricsGuidance("kafka", { brokerScope: "" });
@@ -138,10 +160,10 @@ describe("the Documentation tab and Broker health both follow the one rule", () 
       return true;
     });
 
-    expect(getMessageQueueSystemGuideMarkdown(VARS, "nats")).toContain(
-      PRODUCT_GUIDE_PROMISE,
-    );
+    expect(productGuide("nats")).toContain(PRODUCT_GUIDE_PROMISE);
     expect(queueGuide("nats", "")).toContain(QUEUE_GUIDE_PROMISE);
+    expect(productGuide("nats")).toContain(PRODUCT_CHECK_PROMISE);
+    expect(queueGuide("nats", "")).toContain(QUEUE_CHECK_PROMISE);
 
     const guidance: MessageQueueBrokerMetricsGuidance =
       getMessageQueueBrokerMetricsGuidance("nats", { brokerScope: "" });
@@ -184,9 +206,7 @@ describe("the Documentation tab and Broker health both follow the one rule", () 
     );
 
     // The product guide has no queue to turn away.
-    expect(getMessageQueueSystemGuideMarkdown(VARS, "servicebus")).toContain(
-      PRODUCT_GUIDE_PROMISE,
-    );
+    expect(productGuide("servicebus")).toContain(PRODUCT_GUIDE_PROMISE);
   });
 
   test("each asks about the queue it shows: its system and its namespace", () => {
@@ -210,7 +230,7 @@ describe("the Documentation tab and Broker health both follow the one rule", () 
 
     // The product guide is about every queue of the system: no queue.
     reachRule.mockClear();
-    getMessageQueueSystemGuideMarkdown(VARS, "servicebus");
+    productGuide("servicebus");
     expect(reachRule).toHaveBeenCalledWith("servicebus", null);
   });
 });

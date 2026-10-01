@@ -14,15 +14,13 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import MessageQueueGuideCard from "../Utils/MessageQueueGuideCard";
+import MessageQueueDocumentationCard from "../Utils/MessageQueueDocumentationCard";
 import {
   MessageQueueDocumentationTarget,
-  MessageQueueGuideVariables,
-  getMessageQueueDocumentationMarkdown,
+  getMessageQueueDocumentationHeading,
 } from "../Utils/DocumentationMarkdown";
 import {
   MESSAGE_QUEUE_NOT_FOUND_MESSAGE,
-  getMessageQueueSystemLabel,
   isMessageQueueFound,
 } from "../Utils/MessageQueuePresentation";
 
@@ -30,7 +28,8 @@ import {
  * The setup guide prefilled for THIS queue: the guide of its specific
  * messaging system (an ActiveMQ queue gets ActiveMQ's, a JMS one JMS's until
  * the broker's metrics refine it), with how its telemetry finds it and what
- * its spans already reported about the broker.
+ * its spans already reported about the broker — the product's guide card
+ * without its system picker, since a queue's system is fixed.
  */
 const MessageQueueDocumentation: FunctionComponent<
   PageComponentProps
@@ -97,18 +96,16 @@ const MessageQueueDocumentation: FunctionComponent<
     return <ErrorMessage message={MESSAGE_QUEUE_NOT_FOUND_MESSAGE} />;
   }
 
-  const buildMarkdown: (vars: MessageQueueGuideVariables) => string = (
-    vars: MessageQueueGuideVariables,
-  ): string => {
-    return getMessageQueueDocumentationMarkdown(vars, target);
-  };
+  // The heading follows the guide's own steps (see the helper).
+  const heading: { title: string; description: string } =
+    getMessageQueueDocumentationHeading(target);
 
   return (
     <Fragment>
-      <MessageQueueGuideCard
-        title={`Send ${getMessageQueueSystemLabel(target.system)} telemetry for this queue`}
-        description="Instrument the applications that publish to and consume from this queue, and send its broker's metrics to OneUptime. Every value below is prefilled for this queue."
-        buildMarkdown={buildMarkdown}
+      <MessageQueueDocumentationCard
+        title={heading.title}
+        description={heading.description}
+        queue={target}
       />
     </Fragment>
   );

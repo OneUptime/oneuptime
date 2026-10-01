@@ -3,6 +3,22 @@ import {
   getMessageQueueSystemLabel,
   isNamespaceScopedMessagingSystem,
 } from "./MessageQueuePresentation";
+import {
+  MESSAGE_QUEUE_BROKER_HEALTH_EMPTY_DOCS_ANCHOR,
+  MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES,
+  MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES,
+  MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES,
+} from "../../../Components/MessageQueue/MessageQueueOverviewPresentation";
+import {
+  SETUP_GUIDE_API_KEY_PLACEHOLDER,
+  SetupGuideContent,
+  SetupGuideLink,
+  SetupGuideOption,
+  SetupGuideStep,
+  SetupGuideTopic,
+  SetupGuideVariables,
+  codeBlock,
+} from "../../../Components/SetupGuide/SetupGuide";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import {
   MESSAGING_SYSTEMS,
@@ -22,7 +38,21 @@ import {
 /*
  * The in-app setup guide of the Queues product: the product Documentation
  * page and the empty list (a messaging-system picker), and every queue's own
- * Documentation tab (prefilled for that queue).
+ * Documentation tab (prefilled for that queue). It builds on the shared
+ * SetupGuide framework every product's guide uses
+ * (Components/SetupGuide/SetupGuide): getMessageQueueSetupGuide returns a
+ * SetupGuideContent, which MessageQueueDocumentationCard hands to
+ * SetupGuideCard — the ingestion key as step 1, then the steps below, with
+ * reference material folded under Advanced and known problems under
+ * Troubleshooting.
+ *
+ *   2. instrument the applications (BullMQ: tag its telemetry in the
+ *      collector);
+ *   3. send the broker's metrics, or report BullMQ's depth — absent for a
+ *      system with no ready-made metrics path (JMS, a long-tail system),
+ *      whose reason the intro gives instead;
+ *   4. check that the queues appear (a queue's own guide: what fills in
+ *      where), in the numbers discovery runs on.
  *
  * Everything system-specific comes from the catalog
  * (Common/Types/MessageQueue): the display name, the accepted
@@ -37,9 +67,9 @@ import {
  * each validated with `otelcol-contrib validate` on
  * otel/opentelemetry-collector-contrib 0.161.0 — with the viewer's OneUptime
  * URL and ingestion key in the `otlphttp` exporter.
- * MessageQueueDocumentationMarkdown.test parses every YAML block this module
- * emits and holds each system's config equal to the docs page's, so the two
- * cannot drift.
+ * MessageQueueSetupGuide.test parses every YAML block this module emits and
+ * holds each system's config equal to the docs page's, so the two cannot
+ * drift.
  *
  * A queue's guide also says how its telemetry finds it (the identity:
  * system, destination and, for Service Bus / Event Hubs, the namespace) and
@@ -48,50 +78,31 @@ import {
  * or SNS endpoint, the BullMQ queue name.
  *
  * What the guide shares with the other Queues pages is theirs, not copied
- * here (MessageQueuePresentation): the system's name as the list shows it
- * (getMessageQueueSystemLabel), and whether the broker's own metrics can
- * reach the queues it is about (canBrokerMetricsReachMessageQueue) — the
+ * here: the system's name as the list shows it (getMessageQueueSystemLabel)
+ * and whether the broker's own metrics can reach the queues it is about
+ * (canBrokerMetricsReachMessageQueue) from MessageQueuePresentation — the
  * rule the Overview's Broker health section follows, so the guide never
- * promises metrics that section says cannot arrive.
+ * promises metrics that section says cannot arrive — and how often discovery
+ * runs, over how much telemetry, from MessageQueueOverviewPresentation (the
+ * numbers the Overview's liveness pill states, which a wiring test holds to
+ * the discovery job). That module imports MESSAGE_QUEUE_DOCS_PATH from here;
+ * both sides read the other's constants only when a guide or a docs route is
+ * built, never while the modules load.
  *
- * Pure: plain values in, markdown out. No React, no API.
+ * Pure: plain values in, SetupGuideContent out. No React, no API.
  */
 
 /*
- * What every guide is filled in with: where to send data, and with which
- * key — the same two values every in-app setup guide takes. The Queues
- * guide declares them itself rather than borrowing another product's guide
- * types, so it depends on no other product's guide module.
+ * Spans a destination needs inside one discovery window before traces
+ * create a queue for it (DEFAULT_MESSAGE_QUEUE_MIN_SPANS in
+ * Common/Server/Utils/Telemetry/MessageQueueDiscovery, which a self-hosted
+ * install changes with MESSAGE_QUEUE_MIN_SPANS). That module is server code
+ * the dashboard bundle cannot import, so the number is repeated here and
+ * MessageQueueSetupGuide.test holds it equal to the server's.
  */
-export interface MessageQueueGuideVariables {
-  oneuptimeUrl: string;
-  apiKey: string;
-}
-
-// What the guide shows until the reader has picked a key.
-export const MESSAGE_QUEUE_GUIDE_URL_PLACEHOLDER: string =
-  "<YOUR_ONEUPTIME_URL>";
-export const MESSAGE_QUEUE_GUIDE_API_KEY_PLACEHOLDER: string = "<YOUR_API_KEY>";
-
-/**
- * The guide's values: the OneUptime origin (`https://host`, or `http://`),
- * or its placeholder when the dashboard does not know its own host, and the
- * selected key's secret, or its placeholder while none is selected.
- */
-export function getMessageQueueGuideVariables(data: {
-  host: string | null | undefined;
-  isHttps: boolean;
-  secretKey: string | null | undefined;
-}): MessageQueueGuideVariables {
-  const host: string = (data.host || "").toString().trim();
-  const secretKey: string = (data.secretKey || "").toString().trim();
-  return {
-    oneuptimeUrl: host
-      ? `${data.isHttps ? "https" : "http"}://${host}`
-      : MESSAGE_QUEUE_GUIDE_URL_PLACEHOLDER,
-    apiKey: secretKey || MESSAGE_QUEUE_GUIDE_API_KEY_PLACEHOLDER,
-  };
-}
+export const MESSAGE_QUEUE_GUIDE_MIN_SPANS: number = 3;
+export const MESSAGE_QUEUE_MIN_SPANS_ENV_NAME: string =
+  "MESSAGE_QUEUE_MIN_SPANS";
 
 export const MESSAGE_QUEUE_DOCS_PATH: string = "/docs/telemetry/queues";
 
@@ -153,8 +164,12 @@ export function markdownInlineCode(value: string): string {
   return `${fence}${padding}${value}${padding}${fence}`;
 }
 
-function codeBlock(language: string, lines: Array<string>): string {
-  return ["```" + language, ...lines, "```"].join("\n");
+/*
+ * A fenced code block from its lines (the shared codeBlock takes the code as
+ * one string): the configs below are built line by line.
+ */
+function codeLines(language: string, lines: Array<string>): string {
+  return codeBlock(language, lines.join("\n"));
 }
 
 function joinWithOr(values: ReadonlyArray<string>): string {
@@ -231,7 +246,7 @@ interface QueueContext {
 }
 
 interface GuideContext {
-  vars: MessageQueueGuideVariables;
+  vars: SetupGuideVariables;
   // The canonical system, or the raw value of one the catalog does not know.
   system: string;
   descriptor: MessagingSystemDescriptor | null;
@@ -246,7 +261,7 @@ interface GuideContext {
 }
 
 function buildContext(
-  vars: MessageQueueGuideVariables,
+  vars: SetupGuideVariables,
   systemInput: string | null | undefined,
   queue: QueueContext | null,
 ): GuideContext {
@@ -266,7 +281,7 @@ function buildContext(
 
 // ---- collector configuration pieces ------------------------------------------
 
-function exporterLines(vars: MessageQueueGuideVariables): Array<string> {
+function exporterLines(vars: SetupGuideVariables): Array<string> {
   return [
     "exporters:",
     "  otlphttp:",
@@ -282,7 +297,7 @@ function exporterLines(vars: MessageQueueGuideVariables): Array<string> {
  * every broker config on the docs page.
  */
 function metricsCollectorConfig(data: {
-  vars: MessageQueueGuideVariables;
+  vars: SetupGuideVariables;
   extensionLines?: Array<string> | undefined;
   extensions?: Array<string> | undefined;
   receiverLines: Array<string>;
@@ -312,7 +327,7 @@ function metricsCollectorConfig(data: {
     "      processors: [batch]",
     "      exporters: [otlphttp]",
   );
-  return codeBlock("yaml", lines);
+  return codeLines("yaml", lines);
 }
 
 function prometheusScrapeLines(data: {
@@ -366,7 +381,7 @@ const AZURE_MONITOR_READER_NOTE: string =
  * The metrics each Azure Monitor config collects, by the names and
  * aggregations Azure Monitor uses. The receiver stores them as
  * `azure_<name>_<aggregation>`, lowercased — the names the catalog charts;
- * the documentation test checks every charted metric is collected here.
+ * the setup guide test checks every charted metric is collected here.
  */
 const AZURE_MONITOR_METRICS: ReadonlyMap<
   string,
@@ -624,13 +639,13 @@ function activeMqScraperSteps(context: GuideContext): Array<string> {
   return [
     "1. Let the broker accept JMX connections. With the `apache/activemq-classic` image or the `bin/activemq` script, set `ACTIVEMQ_SUNJMX_START` before starting it. This example turns authentication off: keep the port on a private network, or turn `jmxremote.authenticate` on with a password file and give the scraper `OTEL_JMX_USERNAME` and `OTEL_JMX_PASSWORD`.",
     "",
-    codeBlock("bash", [
+    codeLines("bash", [
       `ACTIVEMQ_SUNJMX_START="-Dcom.sun.management.jmxremote.port=1099 -Dcom.sun.management.jmxremote.rmi.port=1099 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${host}"`,
     ]),
     "",
     "2. Run the scraper where it can reach that port, with a Java runtime. It sends straight to OneUptime:",
     "",
-    codeBlock("bash", [
+    codeLines("bash", [
       "curl -fsSLo opentelemetry-jmx-scraper.jar https://github.com/open-telemetry/opentelemetry-java-contrib/releases/latest/download/opentelemetry-jmx-scraper.jar",
       "",
       `export OTEL_JMX_SERVICE_URL=service:jmx:rmi:///jndi/rmi://${host}:1099/jmxrmi`,
@@ -653,8 +668,8 @@ function activeMqScraperSteps(context: GuideContext): Array<string> {
  * `messaging.system`: a transform processor in the collector the
  * applications send to adds the two keys OneUptime reads.
  */
-function bullMqTransformConfig(vars: MessageQueueGuideVariables): string {
-  return codeBlock("yaml", [
+function bullMqTransformConfig(vars: SetupGuideVariables): string {
+  return codeLines("yaml", [
     "receivers:",
     "  otlp:",
     "    protocols:",
@@ -693,7 +708,7 @@ function bullMqTransformConfig(vars: MessageQueueGuideVariables): string {
 }
 
 function bullMqGaugeSnippet(queueName: string): string {
-  return codeBlock("ts", [
+  return codeLines("ts", [
     'import { metrics } from "@opentelemetry/api";',
     'import { Queue } from "bullmq";',
     "",
@@ -1020,7 +1035,7 @@ function getScopeAttributeKeys(system: string): Array<string> {
   );
 }
 
-// ---- sections ------------------------------------------------------------------------
+// ---- identity ------------------------------------------------------------------------
 
 /*
  * Every `messaging.system` spelling that keys a queue on this identity
@@ -1062,6 +1077,13 @@ function isOutsideBrokerMetricsScope(context: GuideContext): boolean {
   );
 }
 
+// Lines of markdown into one piece of a guide, without leading or trailing blank lines.
+function joinLines(lines: Array<string>): string {
+  return lines.join("\n").trim();
+}
+
+// ---- intro ---------------------------------------------------------------------------
+
 /*
  * The intro promises the broker's own metrics — they create the guide's
  * queues and fill in their Broker health — only where they reach them (the
@@ -1071,8 +1093,13 @@ function isOutsideBrokerMetricsScope(context: GuideContext): boolean {
  * that section says cannot arrive. Queues the broker's metrics cannot reach
  * still fill in from metrics that carry the queue's `messaging.system` and
  * destination, which attach to a queue but never create one.
+ *
+ * The card's title names the guide, so the intro starts with its first
+ * sentence. A system with no ready-made metrics path and no step in its
+ * place (JMS, a system the catalog does not know) gets the catalog's reason
+ * here: it says why there is no broker step, and what to do instead.
  */
-function introSection(context: GuideContext): Array<string> {
+function introMarkdown(context: GuideContext): string {
   const lines: Array<string> = [];
   const descriptor: MessagingSystemDescriptor | null = context.descriptor;
   const brokerMetricsReach: boolean = canBrokerMetricsReachMessageQueue(
@@ -1082,8 +1109,6 @@ function introSection(context: GuideContext): Array<string> {
 
   if (context.queue) {
     lines.push(
-      `## Connect ${markdownInlineCode(context.queue.destination)}`,
-      "",
       `This is the ${context.displayName} queue ${markdownInlineCode(
         context.queue.destination,
       )}${
@@ -1096,57 +1121,472 @@ function introSection(context: GuideContext): Array<string> {
           : "metrics that carry its `messaging.system` and `messaging.destination.name`"
       }. Everything below is prefilled for this queue.`,
     );
-    return lines;
+  } else {
+    lines.push(
+      `${context.displayName} queues appear in OneUptime on their own, from ${
+        brokerMetricsReach
+          ? "two sources: the messaging spans of the applications that publish to and consume from them, and the broker's own metrics"
+          : "the messaging spans of the applications that publish to and consume from them"
+      }. You can also add one by hand: **Queues → Create Queue**.`,
+    );
+
+    if (descriptor) {
+      lines.push(
+        "",
+        `Spans name the system as \`messaging.system\` = ${markdownInlineCode(
+          descriptor.system,
+        )}${
+          descriptor.aliases.length > 0
+            ? ` (also accepted: ${descriptor.aliases
+                .map((alias: string): string => {
+                  return markdownInlineCode(alias);
+                })
+                .join(", ")})`
+            : ""
+        }.`,
+      );
+    }
+  }
+
+  if (context.source.kind === "none" && context.system !== "bullmq") {
+    lines.push("", context.source.reason);
+  }
+
+  return joinLines(lines);
+}
+
+// ---- step: instrument the applications -----------------------------------------------
+
+function otlpEnvironmentBlock(vars: SetupGuideVariables): Array<string> {
+  return [
+    codeLines("bash", [
+      `OTEL_EXPORTER_OTLP_ENDPOINT=${quoted(`${vars.oneuptimeUrl}/otlp`)}`,
+      `OTEL_EXPORTER_OTLP_HEADERS=${quoted(`x-oneuptime-token=${vars.apiKey}`)}`,
+      'OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"',
+    ]),
+    "",
+    "> **This token is a secret.** Use a **Server** ingestion key, kept in your",
+    "> deployment's secrets. Never put a Server key in browser JavaScript — a",
+    "> **Browser** ingestion key exists for that.",
+  ];
+}
+
+// Until a key is picked, the first step that carries it says where to pick one.
+function pickKeyNote(vars: SetupGuideVariables): Array<string> {
+  return vars.apiKey === SETUP_GUIDE_API_KEY_PLACEHOLDER
+    ? [
+        "",
+        `Pick an ingestion key in step 1 to fill in \`${SETUP_GUIDE_API_KEY_PLACEHOLDER}\`.`,
+      ]
+    : [];
+}
+
+function instrumentationStep(context: GuideContext): SetupGuideStep {
+  if (context.system === "bullmq") {
+    return {
+      title: "Tag BullMQ's telemetry in your collector",
+      description:
+        "BullMQ's own spans and metrics create no queue until the collector your applications send to adds the two keys OneUptime reads.",
+      markdown: joinLines([
+        "BullMQ's own telemetry — its `telemetry` option, which the `bullmq-otel` package implements — names the queue in `bullmq.queue.name` and sets no `messaging.system`, so on its own it creates no queue. A `transform` processor in the collector your applications send to adds the two keys OneUptime reads, on the spans that add and process jobs and on BullMQ's own metrics:",
+        "",
+        bullMqTransformConfig(context.vars),
+        "",
+        "Only the PRODUCER spans that add jobs and the CONSUMER spans that process them are tagged: BullMQ's internal spans name the queue too, but are not messages. Point your applications' OTLP exporter at this collector.",
+        ...pickKeyNote(context.vars),
+      ]),
+    };
+  }
+
+  const lines: Array<string> = [
+    "Queues come from the messaging spans your OpenTelemetry instrumentation already produces; nothing OneUptime-specific is needed.",
+    "",
+  ];
+  for (const note of getMessagingInstrumentationNotes(context.system)) {
+    lines.push(`- **${note.language}**: ${note.text}`);
+  }
+  lines.push(
+    `- **Any other client**: use the client library's own OpenTelemetry support, or set \`messaging.system\` = ${markdownInlineCode(
+      context.system || "<system>",
+    )}, \`messaging.destination.name\` and the span kind (PRODUCER when publishing, CONSUMER when consuming) on the spans around your sends and handlers.`,
+    "",
+    "Then point the OTLP exporter at OneUptime. Most SDKs and agents read these environment variables:",
+    "",
+    ...otlpEnvironmentBlock(context.vars),
+    ...pickKeyNote(context.vars),
+  );
+
+  return {
+    title: context.queue
+      ? "Instrument the applications that use it"
+      : "Instrument the applications that use them",
+    description: context.queue
+      ? "Trace the applications that publish to and consume from this queue, and send their spans to OneUptime."
+      : "Trace the applications that publish and consume messages, and send their spans to OneUptime.",
+    markdown: joinLines(lines),
+  };
+}
+
+// ---- step: the broker's metrics ------------------------------------------------------
+
+/*
+ * How late the guide's `aws_cloudwatch` config delivers. The receiver asks,
+ * once per collection_interval, for the whole periods that ended by now -
+ * delay, each point stamped with its period's start: the newest point is
+ * delay + period to delay + 2 × period + collection_interval old (10m, 1m
+ * and 5m in awsCloudWatchConfig: 11 to 17 minutes), as queues.md says of
+ * the same config.
+ */
+const CLOUDWATCH_LATENESS: string = "11 to 17 minutes";
+
+function prefilledBrokerNote(context: GuideContext, what: string): string {
+  const address: string = context.queue?.brokerAddress || "";
+  return context.queue?.broker
+    ? ` The ${what} is prefilled from the broker address this queue's telemetry reports (${markdownInlineCode(
+        address,
+      )}); change it if the collector reaches the broker another way.`
+    : "";
+}
+
+/*
+ * A catalog source this guide has no ready-made config for (a system added
+ * to the catalog after this guide): the catalog's note above says where the
+ * metrics come from, and the docs section has the setup. The setup guide
+ * test fails for every catalog system that ends up here, so it is a safety
+ * net for a new entry, never what a shipped system shows.
+ */
+function unknownConfigNote(context: GuideContext): string {
+  return `See [${context.displayName} on the Queues documentation page](${getMessageQueueDocsUrl(
+    context.system,
+  )}) for the collector configuration.`;
+}
+
+/*
+ * The broker step's one-line description: what the metrics add, by the
+ * same reach rule as the intro — the catalog's note under it already says
+ * what reads them.
+ */
+function brokerStepDescription(context: GuideContext): string {
+  if (canBrokerMetricsReachMessageQueue(context.system, context.queue)) {
+    return context.queue
+      ? "They add the broker's view of this queue to its Overview, under Broker health."
+      : "They add the broker's view of each queue to its Overview, under Broker health.";
+  }
+  if (isOutsideBrokerMetricsScope(context)) {
+    return "They chart on the same destination's queue in its namespace, not on this one.";
+  }
+  return "No queue page charts them: they arrive in the Metrics explorer.";
+}
+
+/*
+ * The step that sends the broker's health metrics, from the catalog's
+ * source. BullMQ has no broker to read (its jobs live in Redis): the
+ * application reports the depth. JMS and a long-tail system have no
+ * ready-made path and so no step — their reason is in the intro, and JMS's
+ * ActiveMQ scraper is an Advanced topic.
+ */
+function brokerStep(context: GuideContext): SetupGuideStep | null {
+  const source: MessagingBrokerMetricsSource = context.source;
+
+  if (context.system === "bullmq") {
+    return {
+      title: "Report the queue's depth",
+      description:
+        "BullMQ has no broker to read, so the application reports each queue's job counts itself.",
+      markdown: joinLines([
+        source.kind === "none" ? source.reason : "",
+        "",
+        "Observe the job counts in the application; a gauge that carries the two keys itself needs no transform:",
+        "",
+        bullMqGaugeSnippet(context.queue?.destination || "orders"),
+      ]),
+    };
+  }
+
+  if (source.kind === "none") {
+    return null;
+  }
+
+  const lines: Array<string> = [source.note, ""];
+
+  switch (source.kind) {
+    case "receiver": {
+      if (context.system === "rabbitmq") {
+        lines.push(
+          "Enable the management plugin and create that user. The `monitoring` tag alone shows it no queue: give it access to each virtual host to monitor. Empty patterns grant that access without any right to configure, publish or consume:",
+          "",
+          codeLines("bash", [
+            "rabbitmq-plugins enable rabbitmq_management",
+            "rabbitmqctl add_user otel 'a-strong-password'",
+            "rabbitmqctl set_user_tags otel monitoring",
+            '# Once per virtual host to monitor; "/" is the default one.',
+            'rabbitmqctl set_permissions -p / otel "" "" ""',
+          ]),
+          "",
+          rabbitMqConfig(context, source.receiver),
+          "",
+          `Set \`RABBITMQ_USERNAME\` and \`RABBITMQ_PASSWORD\` in the collector's environment.${prefilledBrokerNote(
+            context,
+            "management endpoint's host",
+          )} The receiver reports each queue under its RabbitMQ name, while most instrumentations' spans name the exchange a message went through: the two meet for messages sent through the default exchange, whose routing key is the queue's name.`,
+        );
+      } else if (context.system === "kafka") {
+        lines.push(
+          kafkaConfig(context, source.receiver),
+          "",
+          `For a cluster with SASL or TLS, uncomment \`auth\` and \`tls\`.${prefilledBrokerNote(
+            context,
+            "bootstrap broker",
+          )} The receiver names each topic in \`topic\`, which is how the metrics find the topic's queue. It reports a consumer group's lag and committed offsets only on topics the group has committed an offset to, and skips topics whose names start with \`_\`.`,
+        );
+      } else {
+        lines.push(unknownConfigNote(context));
+      }
+      break;
+    }
+
+    case "prometheus": {
+      if (context.system === "rocketmq") {
+        lines.push(
+          codeLines("text", [
+            "metricsExporterType=PROM",
+            `metricsPromExporterPort=${source.port}`,
+            "metricsPromExporterHost=0.0.0.0",
+          ]),
+          "",
+          "Then scrape every broker:",
+          "",
+        );
+      }
+      if (context.system === "nats") {
+        lines.push(
+          "Turn on the server's monitoring port with `-m 8222` (or `http_port: 8222` in its configuration), then run the exporter:",
+          "",
+          codeLines("bash", [
+            "prometheus-nats-exporter -varz -jsz=all http://nats:8222",
+          ]),
+          "",
+          "And scrape it:",
+          "",
+        );
+      }
+      lines.push(prometheusConfig(context, source));
+      if (context.system === "pulsar") {
+        lines.push(
+          "",
+          "Pulsar labels each series with the topic's full name (`persistent://public/default/orders`), and a partition's with the partition's: partitions add up into their topic.",
+        );
+      }
+      break;
+    }
+
+    case "cloud-monitoring": {
+      if (source.receiver === "aws_cloudwatch") {
+        const region: string | null = getAwsRegionFromBrokerAddress(
+          context.queue?.brokerAddress,
+        );
+        lines.push(
+          "The `aws_cloudwatch` receiver polls CloudWatch's `GetMetricData` API with the AWS SDK's default credentials (environment, shared profile or instance role), which need `cloudwatch:ListMetrics` and `cloudwatch:GetMetricData`:",
+          "",
+          awsCloudWatchConfig(context, region || "us-east-1"),
+          "",
+          `- **Leave \`stats\` unset.** Without it each metric arrives as one summary per period, which is what OneUptime reads.`,
+          "- `discovery.limit` must be set, and caps the metrics read per scrape.",
+          `- \`delay\` waits for CloudWatch to publish a period, so with this configuration ${
+            context.queue ? "this queue's" : "a queue's"
+          } broker metrics arrive ${CLOUDWATCH_LATENESS} late: a monitor over them needs a longer window (see **Late metrics** under [Alerting](${MESSAGE_QUEUE_DOCS_PATH}#alerting)).`,
+          `- One receiver reads one region and one namespace: add an instance per region.${
+            region
+              ? ` The region is prefilled from this queue's endpoint (${markdownInlineCode(
+                  context.queue?.brokerAddress || "",
+                )}).`
+              : ""
+          }`,
+          "",
+          `To stream the metrics instead — a CloudWatch Metric Stream through Amazon Data Firehose to the collector's \`awsfirehose\` receiver — see [Amazon SQS](${MESSAGE_QUEUE_DOCS_PATH}#amazon-sqs).`,
+        );
+      } else if (source.receiver === "azure_monitor") {
+        lines.push(AZURE_MONITOR_READER_NOTE, "", azureMonitorConfig(context));
+        /*
+         * The receiver re-lists the subscription's resources once a day
+         * (cache_resources, 86400 s), so a new Service Bus or Event Hubs
+         * namespace's queues start filling in up to a day late. Event
+         * Grid's resources are topics, system topics and domains, not
+         * namespaces, and its metrics never make or fill a queue.
+         */
+        if (isNamespaceScopedMessagingSystem(context.system)) {
+          lines.push(
+            "",
+            "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.",
+          );
+        }
+      } else if (source.receiver !== "googlecloudmonitoring") {
+        lines.push(unknownConfigNote(context));
+      } else {
+        lines.push(
+          "The receiver signs in with Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS`, or the service account the collector runs as), which need the **Monitoring Viewer** role on the project. Set `project_id` to your project:",
+          "",
+          googleCloudMonitoringConfig(context),
+          "",
+          "A metric type missing from `metrics_list` is never read. Subscription metrics attach to the subscription's queue (`subscription_id`), topic metrics to the topic's (`topic_id`).",
+        );
+      }
+      break;
+    }
+
+    case "external-scraper": {
+      if (context.system !== "activemq") {
+        lines.push(unknownConfigNote(context));
+        break;
+      }
+      lines.push(...activeMqScraperSteps(context));
+      if (context.queue?.broker) {
+        lines.push(
+          "",
+          `The JMX host is prefilled from the broker address this queue's telemetry reports (${markdownInlineCode(
+            context.queue.brokerAddress,
+          )}).`,
+        );
+      }
+      break;
+    }
+  }
+
+  return {
+    title: "Send the broker's metrics",
+    description: brokerStepDescription(context),
+    markdown: joinLines(lines),
+  };
+}
+
+// ---- step: check it worked -----------------------------------------------------------
+
+/*
+ * What to expect, and when — in the numbers discovery runs on
+ * (MessageQueueOverviewPresentation, held to the discovery job's cron and
+ * window by MessageQueueOverviewWiring.test; the span minimum, held to the
+ * server's by MessageQueueSetupGuide.test) and the docs page's "How queues
+ * are discovered" words.
+ *
+ * The product guide says what creates a queue: enough spans in one window,
+ * one datapoint of a curated broker metric (only where the system's broker
+ * metrics can reach a queue at all), and never a client metric or a metric
+ * of the reader's own. A queue's own guide is for a queue that exists, which
+ * every span naming it is matched to whatever their number, so it says
+ * which part of the queue's page each kind of telemetry fills in, and when
+ * the header's liveness turns on.
+ */
+function verificationStep(context: GuideContext): SetupGuideStep {
+  const brokerMetricsReach: boolean = canBrokerMetricsReachMessageQueue(
+    context.system,
+    context.queue,
+  );
+  const isCloudMonitoring: boolean = context.source.kind === "cloud-monitoring";
+  const lines: Array<string> = [];
+
+  if (!context.queue) {
+    lines.push(
+      `Send a few messages through your queues. Every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes OneUptime reads the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of spans and lists, under **Queues**, each destination at least ${MESSAGE_QUEUE_GUIDE_MIN_SPANS} of them name (spans of any kind but SERVER). On a self-hosted OneUptime, \`${MESSAGE_QUEUE_MIN_SPANS_ENV_NAME}\` sets that number.`,
+      "",
+    );
+    const creates: Array<string> = [];
+    if (brokerMetricsReach) {
+      creates.push(
+        `One datapoint of a broker metric a queue page charts creates its queue too${
+          isCloudMonitoring
+            ? `: cloud monitoring metrics arrive late, so each run reads them from the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES} minutes`
+            : ""
+        }.`,
+      );
+    }
+    creates.push(
+      "Messaging client metrics, and metrics of your own that carry `messaging.system` and `messaging.destination.name`, never create a queue: they show on the **Metrics** tab of one that exists.",
+    );
+    lines.push(
+      creates.join(" "),
+      "",
+      `Queues are created on their own only while the project is under its [auto-create budget](${MESSAGE_QUEUE_DOCS_PATH}#the-auto-create-budget).`,
+    );
+
+    return {
+      title: "Check that your queues appear",
+      description: `OneUptime looks for new queues every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes.`,
+      markdown: joinLines(lines),
+    };
   }
 
   lines.push(
-    `## Connect ${context.displayName}`,
+    `Send a few messages through ${markdownInlineCode(
+      context.queue.destination,
+    )}. Every span that names this queue is tagged with it as OneUptime ingests it: the spans fill in the **Overview** — messages published and consumed, errors and processing time, and the services under **Producers** and **Consumers** — and the **Traces** tab.`,
     "",
-    `${context.displayName} queues appear in OneUptime on their own, from ${
-      brokerMetricsReach
-        ? "two sources: the messaging spans of the applications that publish to and consume from them, and the broker's own metrics"
-        : "the messaging spans of the applications that publish to and consume from them"
-    }. You can also add one by hand: **Queues → Create Queue**.`,
   );
 
-  if (descriptor) {
+  if (brokerMetricsReach) {
+    const isCloudWatch: boolean =
+      context.source.kind === "cloud-monitoring" &&
+      context.source.receiver === "aws_cloudwatch";
     lines.push(
-      "",
-      `Spans name the system as \`messaging.system\` = ${markdownInlineCode(
-        descriptor.system,
-      )}${
-        descriptor.aliases.length > 0
-          ? ` (also accepted: ${descriptor.aliases
-              .map((alias: string): string => {
-                return markdownInlineCode(alias);
-              })
-              .join(", ")})`
+      `**Broker health** on the Overview fills in from the broker's metrics as they arrive${
+        isCloudWatch
+          ? `: with the configuration in step 3, CloudWatch's arrive ${CLOUDWATCH_LATENESS} late`
           : ""
       }.`,
     );
+  } else if (isOutsideBrokerMetricsScope(context)) {
+    lines.push(
+      "Azure Monitor's metrics chart under **Broker health** on the same destination's queue in its namespace, not on this one.",
+    );
+  } else {
+    lines.push(
+      "Metrics that carry its `messaging.system` and `messaging.destination.name` on each datapoint show on its **Metrics** tab.",
+    );
   }
 
-  return lines;
+  /*
+   * The header's liveness in the Overview pill's words
+   * (MESSAGE_QUEUE_LIVENESS_DESCRIPTION) where the broker's metrics reach
+   * this queue. Where they never do — a system none of whose metrics name a
+   * queue, or an Azure queue without a namespace — no broker metric sights
+   * it, so the sentence names what does (spans, and messaging client
+   * metrics, which keep an existing queue's Last seen current) and drops
+   * the cloud monitoring window, which only broker metrics are read over.
+   */
+  lines.push(
+    "",
+    brokerMetricsReach
+      ? `The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of telemetry${
+          isCloudMonitoring
+            ? `, and over the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES} minutes of cloud monitoring metrics, which arrive late`
+            : ""
+        }.`
+      : `The header reads **Seen recently** once discovery finds spans or messaging client metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of telemetry.`,
+  );
+
+  return {
+    title: "Check that this queue fills in",
+    description: "Where this queue's spans and metrics show, and when.",
+    markdown: joinLines(lines),
+  };
 }
+
+// ---- advanced ------------------------------------------------------------------------
 
 /*
  * How this queue's telemetry finds it: the identity (system family,
  * destination, namespace — compared without regard to case), and the
  * attribute its broker metrics name it by.
  */
-function identitySection(context: GuideContext): Array<string> {
+function identityTopic(context: GuideContext): SetupGuideTopic | null {
   const queue: QueueContext | null = context.queue;
   if (!queue) {
-    return [];
+    return null;
   }
 
   const identitySystem: string =
     getMessagingIdentitySystem(context.system) || context.system;
   const destination: string = markdownInlineCode(queue.destination);
   const lines: Array<string> = [
-    "",
-    "### How telemetry finds this queue",
-    "",
     "Names are compared without regard to case.",
     "",
   ];
@@ -1203,290 +1643,46 @@ function identitySection(context: GuideContext): Array<string> {
     lines.push(`${metrics}.`);
   }
 
-  return lines;
-}
-
-function otlpEnvironmentBlock(vars: MessageQueueGuideVariables): Array<string> {
-  return [
-    codeBlock("bash", [
-      `OTEL_EXPORTER_OTLP_ENDPOINT=${quoted(`${vars.oneuptimeUrl}/otlp`)}`,
-      `OTEL_EXPORTER_OTLP_HEADERS=${quoted(`x-oneuptime-token=${vars.apiKey}`)}`,
-      'OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"',
-    ]),
-    "",
-    "> **This token is a secret.** Use a **Server** ingestion key, kept in your",
-    "> deployment's secrets. Never put a Server key in browser JavaScript — a",
-    "> **Browser** ingestion key exists for that.",
-  ];
-}
-
-function instrumentationSection(context: GuideContext): Array<string> {
-  const lines: Array<string> = [
-    "",
-    context.queue
-      ? "### 1. Instrument the applications that use it"
-      : "### 1. Instrument the applications that use them",
-    "",
-  ];
-
-  if (context.system === "bullmq") {
-    lines.push(
-      "BullMQ's own telemetry — its `telemetry` option, which the `bullmq-otel` package implements — names the queue in `bullmq.queue.name` and sets no `messaging.system`, so on its own it creates no queue. A `transform` processor in the collector your applications send to adds the two keys OneUptime reads, on the spans that add and process jobs and on BullMQ's own metrics:",
-      "",
-      bullMqTransformConfig(context.vars),
-      "",
-      "Only the PRODUCER spans that add jobs and the CONSUMER spans that process them are tagged: BullMQ's internal spans name the queue too, but are not messages. Point your applications' OTLP exporter at this collector.",
-    );
-    return lines;
-  }
-
-  lines.push(
-    "Queues come from the messaging spans your OpenTelemetry instrumentation already produces; nothing OneUptime-specific is needed.",
-    "",
-  );
-
-  for (const note of getMessagingInstrumentationNotes(context.system)) {
-    lines.push(`- **${note.language}**: ${note.text}`);
-  }
-  lines.push(
-    `- **Any other client**: use the client library's own OpenTelemetry support, or set \`messaging.system\` = ${markdownInlineCode(
-      context.system || "<system>",
-    )}, \`messaging.destination.name\` and the span kind (PRODUCER when publishing, CONSUMER when consuming) on the spans around your sends and handlers.`,
-    "",
-    "Then point the OTLP exporter at OneUptime. Most SDKs and agents read these environment variables:",
-    "",
-    ...otlpEnvironmentBlock(context.vars),
-  );
-
-  return lines;
-}
-
-function prefilledBrokerNote(context: GuideContext, what: string): string {
-  const address: string = context.queue?.brokerAddress || "";
-  return context.queue?.broker
-    ? ` The ${what} is prefilled from the broker address this queue's telemetry reports (${markdownInlineCode(
-        address,
-      )}); change it if the collector reaches the broker another way.`
-    : "";
+  return {
+    title: "How telemetry finds this queue",
+    summary: isNamespaceScopedMessagingSystem(context.system)
+      ? "The system, destination and namespace its spans and broker metrics must name."
+      : "The system and destination its spans and metrics must name.",
+    markdown: joinLines(lines),
+  };
 }
 
 /*
- * A catalog source this guide has no ready-made config for (a system added
- * to the catalog after this guide): the catalog's note above says where the
- * metrics come from, and the docs section has the setup. The documentation
- * test fails for every catalog system that ends up here, so it is a
- * safety net for a new entry, never what a shipped system shows.
+ * JMS has no metrics path of its own, but a JMS queue whose broker is
+ * Apache ActiveMQ gets ActiveMQ's: the JMX Scraper's first metric refines
+ * the row to ActiveMQ (getMoreSpecificMessagingSystem). Not every JMS
+ * broker is ActiveMQ, so it is an Advanced topic rather than a step.
  */
-function unknownConfigNote(context: GuideContext): string {
-  return `See [${context.displayName} on the Queues documentation page](${getMessageQueueDocsUrl(
-    context.system,
-  )}) for the collector configuration.`;
+function activeMqTopic(context: GuideContext): SetupGuideTopic | null {
+  if (context.system !== "jms") {
+    return null;
+  }
+  return {
+    title: "If the broker is Apache ActiveMQ",
+    summary:
+      "Run the OpenTelemetry JMX Scraper beside the broker to add its destination metrics.",
+    markdown: joinLines([
+      ...activeMqScraperSteps(context),
+      "",
+      context.queue
+        ? "Its metrics join this queue, which from then on shows as an Apache ActiveMQ queue."
+        : "Its metrics join the same queue as the JMS spans, which from then on shows as an Apache ActiveMQ queue.",
+    ]),
+  };
 }
 
-function brokerMetricsSection(context: GuideContext): Array<string> {
-  const source: MessagingBrokerMetricsSource = context.source;
-  /*
-   * BullMQ has no broker to read (its jobs live in Redis): the application
-   * reports the depth. JMS and a long-tail system have none ready-made.
-   */
-  let heading: string = "### 2. Send the broker's metrics";
-  if (context.system === "bullmq") {
-    heading = "### 2. Report the queue's depth";
-  } else if (source.kind === "none") {
-    heading = "### 2. Broker metrics";
-  }
-  const lines: Array<string> = ["", heading, ""];
-
-  switch (source.kind) {
-    case "receiver": {
-      lines.push(source.note, "");
-      if (context.system === "rabbitmq") {
-        lines.push(
-          "Enable the management plugin and create that user. The `monitoring` tag alone shows it no queue: give it access to each virtual host to monitor. Empty patterns grant that access without any right to configure, publish or consume:",
-          "",
-          codeBlock("bash", [
-            "rabbitmq-plugins enable rabbitmq_management",
-            "rabbitmqctl add_user otel 'a-strong-password'",
-            "rabbitmqctl set_user_tags otel monitoring",
-            '# Once per virtual host to monitor; "/" is the default one.',
-            'rabbitmqctl set_permissions -p / otel "" "" ""',
-          ]),
-          "",
-          rabbitMqConfig(context, source.receiver),
-          "",
-          `Set \`RABBITMQ_USERNAME\` and \`RABBITMQ_PASSWORD\` in the collector's environment.${prefilledBrokerNote(
-            context,
-            "management endpoint's host",
-          )} The receiver reports each queue under its RabbitMQ name, while most instrumentations' spans name the exchange a message went through: the two meet for messages sent through the default exchange, whose routing key is the queue's name.`,
-        );
-      } else if (context.system === "kafka") {
-        lines.push(
-          kafkaConfig(context, source.receiver),
-          "",
-          `For a cluster with SASL or TLS, uncomment \`auth\` and \`tls\`.${prefilledBrokerNote(
-            context,
-            "bootstrap broker",
-          )} The receiver names each topic in \`topic\`, which is how the metrics find the topic's queue. It reports a consumer group's lag and committed offsets only on topics the group has committed an offset to, and skips topics whose names start with \`_\`.`,
-        );
-      } else {
-        lines.push(unknownConfigNote(context));
-      }
-      break;
-    }
-
-    case "prometheus": {
-      lines.push(source.note, "");
-      if (context.system === "rocketmq") {
-        lines.push(
-          codeBlock("text", [
-            "metricsExporterType=PROM",
-            `metricsPromExporterPort=${source.port}`,
-            "metricsPromExporterHost=0.0.0.0",
-          ]),
-          "",
-          "Then scrape every broker:",
-          "",
-        );
-      }
-      if (context.system === "nats") {
-        lines.push(
-          "Turn on the server's monitoring port with `-m 8222` (or `http_port: 8222` in its configuration), then run the exporter:",
-          "",
-          codeBlock("bash", [
-            "prometheus-nats-exporter -varz -jsz=all http://nats:8222",
-          ]),
-          "",
-          "And scrape it:",
-          "",
-        );
-      }
-      lines.push(prometheusConfig(context, source));
-      if (context.system === "pulsar") {
-        lines.push(
-          "",
-          "Pulsar labels each series with the topic's full name (`persistent://public/default/orders`), and a partition's with the partition's: partitions add up into their topic.",
-        );
-      }
-      break;
-    }
-
-    case "cloud-monitoring": {
-      lines.push(source.note, "");
-      if (source.receiver === "aws_cloudwatch") {
-        const region: string | null = getAwsRegionFromBrokerAddress(
-          context.queue?.brokerAddress,
-        );
-        lines.push(
-          "The `aws_cloudwatch` receiver polls CloudWatch's `GetMetricData` API with the AWS SDK's default credentials (environment, shared profile or instance role), which need `cloudwatch:ListMetrics` and `cloudwatch:GetMetricData`:",
-          "",
-          awsCloudWatchConfig(context, region || "us-east-1"),
-          "",
-          `- **Leave \`stats\` unset.** Without it each metric arrives as one summary per period, which is what OneUptime reads.`,
-          "- `discovery.limit` must be set, and caps the metrics read per scrape.",
-          /*
-           * The receiver asks, once per collection_interval, for the whole
-           * periods that ended by now - delay, each point stamped with its
-           * period's start: the newest point is delay + period to
-           * delay + 2 × period + collection_interval old (10m, 1m and 5m
-           * above: 11 to 17 minutes), as queues.md says of the same config.
-           */
-          `- \`delay\` waits for CloudWatch to publish a period, so with this configuration ${
-            context.queue ? "this queue's" : "a queue's"
-          } broker metrics arrive 11 to 17 minutes late: a monitor over them needs a longer window (see **Late metrics** under [Alerting](${MESSAGE_QUEUE_DOCS_PATH}#alerting)).`,
-          `- One receiver reads one region and one namespace: add an instance per region.${
-            region
-              ? ` The region is prefilled from this queue's endpoint (${markdownInlineCode(
-                  context.queue?.brokerAddress || "",
-                )}).`
-              : ""
-          }`,
-          "",
-          `To stream the metrics instead — a CloudWatch Metric Stream through Amazon Data Firehose to the collector's \`awsfirehose\` receiver — see [Amazon SQS](${MESSAGE_QUEUE_DOCS_PATH}#amazon-sqs).`,
-        );
-      } else if (source.receiver === "azure_monitor") {
-        lines.push(AZURE_MONITOR_READER_NOTE, "", azureMonitorConfig(context));
-        /*
-         * The receiver re-lists the subscription's resources once a day
-         * (cache_resources, 86400 s), so a new Service Bus or Event Hubs
-         * namespace's queues start filling in up to a day late. Event
-         * Grid's resources are topics, system topics and domains, not
-         * namespaces, and its metrics never make or fill a queue.
-         */
-        if (isNamespaceScopedMessagingSystem(context.system)) {
-          lines.push(
-            "",
-            "The receiver lists your namespaces once a day, so a new one can take up to 24 hours to appear.",
-          );
-        }
-      } else if (source.receiver !== "googlecloudmonitoring") {
-        lines.push(unknownConfigNote(context));
-      } else {
-        lines.push(
-          "The receiver signs in with Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS`, or the service account the collector runs as), which need the **Monitoring Viewer** role on the project. Set `project_id` to your project:",
-          "",
-          googleCloudMonitoringConfig(context),
-          "",
-          "A metric type missing from `metrics_list` is never read. Subscription metrics attach to the subscription's queue (`subscription_id`), topic metrics to the topic's (`topic_id`).",
-        );
-      }
-      break;
-    }
-
-    case "external-scraper": {
-      lines.push(source.note, "");
-      if (context.system !== "activemq") {
-        lines.push(unknownConfigNote(context));
-        break;
-      }
-      lines.push(...activeMqScraperSteps(context));
-      if (context.queue?.broker) {
-        lines.push(
-          "",
-          `The JMX host is prefilled from the broker address this queue's telemetry reports (${markdownInlineCode(
-            context.queue.brokerAddress,
-          )}).`,
-        );
-      }
-      break;
-    }
-
-    default: {
-      lines.push(source.reason);
-      if (context.system === "jms") {
-        lines.push(
-          "",
-          "#### If the broker is Apache ActiveMQ",
-          "",
-          ...activeMqScraperSteps(context),
-          "",
-          "Its metrics join this queue, which from then on shows as an Apache ActiveMQ queue.",
-        );
-      }
-      if (context.system === "bullmq") {
-        lines.push(
-          "",
-          "Observe the job counts in the application; a gauge that carries the two keys itself needs no transform:",
-          "",
-          bullMqGaugeSnippet(context.queue?.destination || "orders"),
-        );
-      }
-      break;
-    }
-  }
-
-  return lines;
-}
-
-function chartedMetricsSection(context: GuideContext): Array<string> {
+function chartedMetricsTopic(context: GuideContext): SetupGuideTopic {
   const rows: Array<MessageQueueChartedMetricRow> =
     getMessageQueueChartedMetricRows(context.system);
-  const lines: Array<string> = [
-    "",
-    context.queue
-      ? "### 3. What this queue's page charts"
-      : "### 3. What a queue's page charts",
-    "",
-  ];
+  const title: string = context.queue
+    ? "What this queue's page charts"
+    : "What a queue's page charts";
+  const lines: Array<string> = [];
 
   if (rows.length === 0) {
     /*
@@ -1512,7 +1708,12 @@ function chartedMetricsSection(context: GuideContext): Array<string> {
         )}).`,
       );
     }
-    return lines;
+    return {
+      title: title,
+      summary:
+        "No broker metrics chart under Broker health for this system; where its metrics show instead.",
+      markdown: joinLines(lines),
+    };
   }
 
   /*
@@ -1533,66 +1734,381 @@ function chartedMetricsSection(context: GuideContext): Array<string> {
     lines.push(`| ${row.metric} | ${row.title} | ${row.type} |`);
   }
 
-  return lines;
+  return {
+    title: title,
+    summary:
+      "The broker metrics Broker health charts, and which of them offer Create monitor.",
+    markdown: joinLines(lines),
+  };
 }
 
-function footerSection(context: GuideContext): Array<string> {
+// ---- troubleshooting -----------------------------------------------------------------
+
+/*
+ * The docs page's "## Troubleshooting" entries, condensed: the same facts,
+ * with the system's own where the guide already states one, and a link to
+ * the entry by its heading's anchor (as the docs renderer slugs it).
+ */
+function docsEntryLink(title: string, anchor: string): string {
+  return `See [${title}](${MESSAGE_QUEUE_DOCS_PATH}#${anchor}) on the Queues documentation page.`;
+}
+
+function notCreatedTopic(context: GuideContext): SetupGuideTopic {
+  const title: string = "A queue my applications use was not created";
+  return {
+    title: title,
+    summary:
+      "Spans that name no system, a name OneUptime ignores, too few spans, or the auto-create budget.",
+    markdown: joinLines([
+      `- Its spans name no messaging system OneUptime can tell: Celery's spans, BullMQ's own telemetry or a hand-rolled client. Add \`messaging.system\` and \`messaging.destination.name\`, and give the spans the PRODUCER or CONSUMER kind.${
+        context.system === "bullmq"
+          ? " For BullMQ, the transform in step 2 does that."
+          : ""
+      }`,
+      `- Its name is one OneUptime ignores (see [What is ignored](${MESSAGE_QUEUE_DOCS_PATH}#what-is-ignored)), or only SERVER spans name it.`,
+      `- Fewer than ${MESSAGE_QUEUE_GUIDE_MIN_SPANS} of its spans arrived in the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes, or the project reached its [auto-create budget](${MESSAGE_QUEUE_DOCS_PATH}#the-auto-create-budget).`,
+      "",
+      "When its spans do name it, create it by hand with the same system and destination (**Queues → Create Queue**): its **Traces** tab fills in from the spans already stored.",
+      "",
+      docsEntryLink(title, "a-queue-my-applications-use-was-not-created"),
+    ]),
+  };
+}
+
+/*
+ * Why Broker health can stay empty for this system: the key check every
+ * system shares, then only the causes the docs entry names that apply to
+ * this system — or, for a system whose broker metrics chart nowhere, that.
+ *
+ * The bullets reuse the docs entry's own sentences, so
+ * MessageQueueSetupGuide.test can hold every sentence of the entry to the
+ * docs page: a sentence that is not the docs entry's must be one of a short
+ * list the test proves against the system's docs section, or against the
+ * step or topic of this guide it points at. The summary shown while the
+ * topic is folded names the causes of these bullets, and no other.
+ */
+interface BrokerHealthEmptyCauses {
+  summary: string;
+  reasons: Array<string>;
+}
+
+function brokerHealthEmptyCauses(
+  context: GuideContext,
+): BrokerHealthEmptyCauses {
+  const differently: string =
+    "The metric names the queue differently from the spans.";
+  const limitations: string = `(see [Limitations](${MESSAGE_QUEUE_DOCS_PATH}#limitations))`;
+  const azureNamespace: string = `${differently} Service Bus and Event Hubs spans without a namespace host are on a different queue from Azure Monitor's metrics ${limitations}.`;
+
+  if (isOutsideBrokerMetricsScope(context)) {
+    return {
+      summary:
+        "A refused key, or spans without a namespace on a different queue from Azure Monitor's metrics.",
+      reasons: [azureNamespace],
+    };
+  }
+
+  if (getMessageQueueChartedMetricRows(context.system).length === 0) {
+    if (!context.descriptor) {
+      return {
+        summary: "A refused key, or a system OneUptime does not know.",
+        reasons: [
+          `Only the broker's own metrics need a system OneUptime knows (see [Supported messaging systems](${getMessageQueueDocsUrl(
+            context.system,
+          )})). Its metrics are in the **Metrics** explorer.`,
+        ],
+      };
+    }
+    if (context.system === "jms") {
+      /*
+       * The docs entry excepts ActiveMQ: its JMX Scraper metrics turn a JMS
+       * queue into an ActiveMQ one, which charts them (the Advanced topic).
+       */
+      return {
+        summary:
+          "A refused key, or no charted metrics for JMS brokers other than ActiveMQ.",
+        reasons: [
+          "JMS brokers other than ActiveMQ have no charted metrics. Their metrics are in the **Metrics** explorer. For an ActiveMQ broker, see **If the broker is Apache ActiveMQ** under **Advanced**.",
+        ],
+      };
+    }
+    return {
+      summary: `A refused key, or no charted metrics for ${context.displayName}.`,
+      reasons: [
+        `${context.displayName} has no charted metrics. Its metrics are in the **Metrics** explorer.`,
+      ],
+    };
+  }
+
+  switch (context.system) {
+    case "kafka":
+      return {
+        summary:
+          "A refused key, a consumer group that has not committed an offset, or a topic the receiver skips.",
+        reasons: [
+          "Kafka reports a consumer group's lag only after the group commits an offset. The receiver skips topics whose names start with `_`.",
+        ],
+      };
+    case "rabbitmq":
+      return {
+        summary:
+          "A refused key, spans that name the exchange rather than the queue, or a virtual host the user has no access to.",
+        reasons: [
+          `${differently} RabbitMQ spans usually name the exchange, while the broker's metrics describe queues. The two meet for messages sent through the default exchange, whose routing key is the queue's name.`,
+          "RabbitMQ reports only the queues of virtual hosts its user has access to, and logs no error for the rest. RabbitMQ's counters appear with the first activity.",
+        ],
+      };
+    case "servicebus":
+    case "eventhubs":
+      return {
+        summary:
+          "A refused key, spans without a namespace, more queues than Azure Monitor returns, or a namespace not listed yet.",
+        reasons: [
+          azureNamespace,
+          "Azure Monitor returns 10 queues per metric and namespace unless `maximum_number_of_records_per_resource` is raised. The config in step 3 raises it.",
+          "The receiver lists your namespaces once a day, so a new namespace can take up to 24 hours to appear.",
+        ],
+      };
+    case "aws_sqs":
+    case "aws.sns":
+      return {
+        summary: `A refused key, or metrics that arrive ${CLOUDWATCH_LATENESS} late.`,
+        reasons: [
+          `It is late. \`aws_cloudwatch\` waits \`delay\` (10 minutes) for CloudWatch to publish, so its points arrive ${CLOUDWATCH_LATENESS} late.`,
+        ],
+      };
+    case "gcp_pubsub":
+      return {
+        summary:
+          "A refused key, a topic and its subscriptions on separate queues, a metric type the config does not list, or late metrics.",
+        reasons: [
+          `${differently} A Pub/Sub topic has the topic metrics and its subscriptions the subscription metrics.`,
+          "Cloud Monitoring reads only the types in `metrics_list`.",
+          "It is late. Pub/Sub's metrics arrive minutes late.",
+        ],
+      };
+    default:
+      return {
+        summary:
+          "A refused key, or a metric that names the queue differently from the spans.",
+        reasons: [
+          `The metric names the queue differently from the spans ${limitations}.`,
+        ],
+      };
+  }
+}
+
+function brokerHealthEmptyTopic(context: GuideContext): SetupGuideTopic {
+  const title: string = "Broker health stays empty";
+  const causes: BrokerHealthEmptyCauses = brokerHealthEmptyCauses(context);
+  return {
+    title: title,
+    summary: causes.summary,
+    markdown: joinLines([
+      "- Check the collector's log. OneUptime refuses a wrong ingestion key with `401` (`422` for a disabled key or a Browser key), and the collector logs `Exporting failed` for every batch it drops.",
+      ...causes.reasons.map((reason: string): string => {
+        return `- ${reason}`;
+      }),
+      "",
+      docsEntryLink(title, MESSAGE_QUEUE_BROKER_HEALTH_EMPTY_DOCS_ANCHOR),
+    ]),
+  };
+}
+
+function troubleshootingTopics(context: GuideContext): Array<SetupGuideTopic> {
+  const twoQueuesTitle: string = "Two queues for one destination";
+  const queuePerRequestTitle: string = "A new queue for every request";
+
   return [
-    "",
-    `Full guide: [${
-      context.descriptor ? context.displayName : "Supported messaging systems"
-    } on the Queues documentation page](${getMessageQueueDocsUrl(
-      context.system,
-    )}).`,
+    notCreatedTopic(context),
+    brokerHealthEmptyTopic(context),
+    {
+      title: twoQueuesTitle,
+      summary:
+        "Two systems name it, one sighting has no namespace, or RabbitMQ spans name the exchange.",
+      markdown: joinLines([
+        "- Two systems name it: a Kafka client on Event Hubs' Kafka endpoint reports `kafka`, the Event Hubs SDK `eventhubs`.",
+        "- One Service Bus or Event Hubs sighting has no namespace: the emulator or a custom domain.",
+        "- RabbitMQ spans usually name the exchange, and the broker's metrics the queue: two queues in OneUptime unless the exchange and the queue share a name.",
+        "",
+        "Archive the one you do not want: an archived queue stays archived, and what names it no longer creates a new one.",
+        "",
+        docsEntryLink(twoQueuesTitle, "two-queues-for-one-destination"),
+      ]),
+    },
+    {
+      title: queuePerRequestTitle,
+      summary:
+        "A destination named per request or per consumer that OneUptime does not recognise.",
+      markdown: joinLines([
+        `A destination named per request or per consumer that OneUptime does not recognise — a numeric suffix, a hash — makes a queue per name. UUIDs are already folded (see [What is ignored](${MESSAGE_QUEUE_DOCS_PATH}#what-is-ignored)). Mark such destinations \`messaging.destination.temporary=true\` in your instrumentation, or give them a stable name, then archive the queues already created.`,
+        "",
+        docsEntryLink(queuePerRequestTitle, "a-new-queue-for-every-request"),
+      ]),
+    },
   ];
 }
 
-function buildGuide(context: GuideContext): string {
+// ---- links ---------------------------------------------------------------------------
+
+function guideLinks(context: GuideContext): Array<SetupGuideLink> {
   return [
-    ...introSection(context),
-    ...identitySection(context),
-    ...instrumentationSection(context),
-    ...brokerMetricsSection(context),
-    ...chartedMetricsSection(context),
-    ...footerSection(context),
-  ].join("\n");
+    {
+      title: context.descriptor
+        ? `${context.displayName} in the Queues documentation`
+        : "Supported messaging systems",
+      url: getMessageQueueDocsUrl(context.system),
+    },
+    { title: "Queues documentation", url: MESSAGE_QUEUE_DOCS_PATH },
+  ];
 }
 
-// ---- entry points ----------------------------------------------------------------
+// ---- the key step --------------------------------------------------------------------
 
-/**
- * The product-level guide for one messaging system (the Documentation page
- * and the empty list's picker): how its queues appear, what traces its
- * clients, the collector (or scraper) config for its broker metrics, and
- * what a queue page charts.
+/*
+ * Who sends with the guide's key: always the applications' exporters, and
+ * whatever the guide sets up beside them — the collector that reads the
+ * broker, the JMX Scraper that pushes ActiveMQ's metrics itself (JMS's only
+ * if its broker is ActiveMQ, an Advanced topic), or BullMQ's collector,
+ * which tags the applications' telemetry and reads no broker. A system with
+ * no broker step sets up nothing else.
  */
-export function getMessageQueueSystemGuideMarkdown(
-  vars: MessageQueueGuideVariables,
-  system: string,
-): string {
-  return buildGuide(buildContext(vars, system, null));
+function keyStepSenders(context: GuideContext): string {
+  const exporters: string = "Your applications' OpenTelemetry exporters";
+  if (context.system === "bullmq") {
+    return `${exporters} and the collector that tags BullMQ's telemetry`;
+  }
+  if (context.system === "jms") {
+    return `${exporters}, and the OpenTelemetry JMX Scraper if the broker is Apache ActiveMQ,`;
+  }
+  const source: MessagingBrokerMetricsSource = context.source;
+  switch (source.kind) {
+    case "none":
+      return exporters;
+    case "external-scraper":
+      return `${exporters} and the ${source.scraper} that reads your broker`;
+    default:
+      return `${exporters} and the collector that reads your broker`;
+  }
+}
+
+// ---- entry points --------------------------------------------------------------------
+
+export interface MessageQueueSetupGuideOptions {
+  oneuptimeUrl: string;
+  apiKey: string;
+  /*
+   * The messaging system: the picked one on the product page, the row's
+   * SPECIFIC system on a queue's tab. Aliases are accepted; a system the
+   * catalog does not know gets the generic guide under its own name.
+   */
+  system: string | null | undefined;
+  // The queue a Documentation tab is for; undefined on the product page.
+  queue?: MessageQueueDocumentationTarget | undefined;
 }
 
 /**
- * A queue's own guide (its Documentation tab): the system guide for the
- * queue's SPECIFIC system, prefilled for the queue — its identity, the
- * attribute its broker metrics name it by, and what its telemetry already
- * reported about the broker.
+ * The Queues setup guide for one messaging system, filled in with the
+ * reader's OneUptime URL and ingestion key. Without `queue` it is the
+ * product guide (the Documentation page and the empty list): how the
+ * system's queues appear, what traces its clients, the collector (or
+ * scraper) config for its broker metrics, and what a queue page charts.
+ * With it, the same guide for the queue's own system, prefilled for the
+ * queue — its identity, the attribute its broker metrics name it by, and
+ * what its telemetry already reported about the broker.
  */
-export function getMessageQueueDocumentationMarkdown(
-  vars: MessageQueueGuideVariables,
-  target: MessageQueueDocumentationTarget,
-): string {
-  const brokerAddress: string = (target.brokerAddress || "").toString().trim();
-  return buildGuide(
-    buildContext(vars, target.system, {
-      destination: (target.destination || "").toString().trim(),
-      brokerScope: (target.brokerScope || "").toString().trim(),
-      brokerAddress,
+export function getMessageQueueSetupGuide(
+  options: MessageQueueSetupGuideOptions,
+): SetupGuideContent {
+  const vars: SetupGuideVariables = {
+    oneuptimeUrl: options.oneuptimeUrl,
+    apiKey: options.apiKey,
+  };
+
+  let queue: QueueContext | null = null;
+  if (options.queue) {
+    const brokerAddress: string = (options.queue.brokerAddress || "")
+      .toString()
+      .trim();
+    queue = {
+      destination: (options.queue.destination || "").toString().trim(),
+      brokerScope: (options.queue.brokerScope || "").toString().trim(),
+      brokerAddress: brokerAddress,
       broker: parseMessageQueueBrokerAddress(brokerAddress),
-    }),
-  );
+    };
+  }
+
+  const context: GuideContext = buildContext(vars, options.system, queue);
+
+  const steps: Array<SetupGuideStep> = [instrumentationStep(context)];
+  const broker: SetupGuideStep | null = brokerStep(context);
+  if (broker) {
+    steps.push(broker);
+  }
+  steps.push(verificationStep(context));
+
+  const advanced: Array<SetupGuideTopic> = [];
+  for (const topic of [
+    identityTopic(context),
+    activeMqTopic(context),
+    chartedMetricsTopic(context),
+  ]) {
+    if (topic) {
+      advanced.push(topic);
+    }
+  }
+
+  return {
+    keyStep: {
+      description: `${keyStepSenders(context)} send to OneUptime with this key — a Server key, kept in your deployment's secrets and never in browser JavaScript. Pick an existing key or create a new one — the settings below update to use it.`,
+      endpointLabel: "OTLP Endpoint",
+      endpointValue: `${options.oneuptimeUrl}/otlp`,
+      endpointHint:
+        "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter.",
+    },
+    intro: introMarkdown(context),
+    steps: steps,
+    advanced: advanced,
+    troubleshooting: troubleshootingTopics(context),
+    links: guideLinks(context),
+  };
 }
+
+/**
+ * The title and description of a queue's Documentation tab, above its
+ * guide. The description says what the guide's own steps do, so it follows
+ * them: the broker's metrics only where the guide has a step that sends
+ * them, BullMQ's depth where its step reports that instead, and only the
+ * spans for a system with no broker step (JMS, a long-tail system, a queue
+ * with no system). That everything is prefilled the guide's intro says.
+ */
+export function getMessageQueueDocumentationHeading(
+  queue: MessageQueueDocumentationTarget,
+): { title: string; description: string } {
+  const context: GuideContext = buildContext(
+    { oneuptimeUrl: "", apiKey: "" },
+    queue.system,
+    null,
+  );
+  const title: string = `Send ${context.displayName} telemetry for this queue`;
+
+  if (context.system === "bullmq") {
+    return {
+      title: title,
+      description:
+        "Tag the BullMQ telemetry of the applications that use this queue in the collector they send to, and report the queue's depth from the application.",
+    };
+  }
+
+  return {
+    title: title,
+    description: brokerStep(context)
+      ? "Instrument the applications that publish to and consume from this queue, and send its broker's metrics to OneUptime."
+      : "Instrument the applications that publish to and consume from this queue, and send their spans to OneUptime.",
+  };
+}
+
+// ---- the product guide's picker ------------------------------------------------------
 
 /**
  * The systems the product guide's picker offers — every catalog system,
@@ -1604,6 +2120,39 @@ export function getMessageQueueGuideSystems(): Array<MessagingSystemDescriptor> 
       return a.displayName.localeCompare(b.displayName);
     },
   );
+}
+
+/*
+ * The product guide's picker, one pill per catalog system, keyed by the
+ * canonical `messaging.system`. The options come from the catalog, so the
+ * picker can only offer a system OneUptime knows, and a system added to the
+ * catalog is offered without touching this file. A pill shows its
+ * description as its tooltip: the value the system's spans carry.
+ */
+export const MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS: ReadonlyArray<SetupGuideOption> =
+  getMessageQueueGuideSystems().map(
+    (descriptor: MessagingSystemDescriptor): SetupGuideOption => {
+      return {
+        key: descriptor.system,
+        label: descriptor.displayName,
+        description: `messaging.system: ${descriptor.system}`,
+      };
+    },
+  );
+
+export const DEFAULT_MESSAGE_QUEUE_GUIDE_SYSTEM: string = "kafka";
+
+/*
+ * The canonical system for a candidate (aliases accepted), or the default
+ * one — never a value the catalog does not know, which would render a guide
+ * with nothing system-specific in it.
+ */
+export function resolveMessageQueueGuideSystem(
+  candidate: string | null | undefined,
+): string {
+  const descriptor: MessagingSystemDescriptor | null =
+    getMessagingSystemDescriptor(candidate);
+  return descriptor ? descriptor.system : DEFAULT_MESSAGE_QUEUE_GUIDE_SYSTEM;
 }
 
 /*

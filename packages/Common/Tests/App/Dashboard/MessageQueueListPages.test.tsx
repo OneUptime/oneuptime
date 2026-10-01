@@ -128,9 +128,16 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (props: { title: string; description: string }) => {
+      default: (props: {
+        title: string;
+        description: string;
+        queue?: unknown;
+      }) => {
         return (
-          <div data-testid="queue-docs-card">
+          <div
+            data-testid="queue-docs-card"
+            data-queue={props.queue ? "set" : "none"}
+          >
             {props.title} | {props.description}
           </div>
         );
@@ -372,6 +379,8 @@ describe("the Queues list: loading, errors and the setup guide", () => {
     ).toBeTruthy();
     expect(guide).toHaveTextContent("Getting Started with Queues");
     expect(guide).toHaveTextContent("Add one by hand above");
+    // The product guide, with its messaging-system picker: no queue of its own.
+    expect(guide).toHaveAttribute("data-queue", "none");
   });
 
   test("a project with queues shows no guide", async () => {

@@ -690,14 +690,32 @@ test.describe.skip("Queues Product", () => {
       timeout: 30000,
     });
 
-    // The picker starts on Apache Kafka: its guide and collector receiver.
-    const systemPicker: Locator = page.getByRole("combobox", {
-      name: "Select messaging system",
+    /*
+     * The picker is the setup guide's radio group, one radio per messaging
+     * system. It starts on Apache Kafka: its guide and collector receiver.
+     */
+    const systemPicker: Locator = page.getByRole("radiogroup", {
+      name: "Which messaging system?",
     });
     await expect(systemPicker).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: "Connect Apache Kafka" }),
-    ).toBeVisible({ timeout: 30000 });
+    const kafkaRadio: Locator = systemPicker.getByRole("radio", {
+      name: "Apache Kafka",
+      exact: true,
+    });
+    const serviceBusRadio: Locator = systemPicker.getByRole("radio", {
+      name: "Azure Service Bus",
+      exact: true,
+    });
+    await expect(kafkaRadio).toHaveAttribute("aria-checked", "true");
+    await expect(serviceBusRadio).toHaveAttribute("aria-checked", "false");
+    await expect
+      .poll(
+        async (): Promise<string> => {
+          return await bodyText(page);
+        },
+        { timeout: 30000 },
+      )
+      .toContain("Apache Kafka queues appear in OneUptime on their own");
     await expect
       .poll(
         async (): Promise<string> => {
@@ -708,18 +726,9 @@ test.describe.skip("Queues Product", () => {
       .toContain("kafka_metrics");
 
     // Another system swaps the whole guide: Service Bus is read from Azure Monitor.
-    await selectDropdownOption({
-      page,
-      combobox: systemPicker,
-      search: "Service Bus",
-      option: /^Azure Service Bus/,
-    });
-    await expect(
-      page.getByRole("heading", { name: "Connect Azure Service Bus" }),
-    ).toBeVisible({ timeout: 30000 });
-    await expect(
-      page.getByRole("heading", { name: "Connect Apache Kafka" }),
-    ).toHaveCount(0);
+    await serviceBusRadio.click();
+    await expect(serviceBusRadio).toHaveAttribute("aria-checked", "true");
+    await expect(kafkaRadio).toHaveAttribute("aria-checked", "false");
     await expect
       .poll(
         async (): Promise<string> => {
@@ -728,6 +737,11 @@ test.describe.skip("Queues Product", () => {
         { timeout: 30000 },
       )
       .toContain("azure_monitor/servicebus");
+    const serviceBusGuide: string = await bodyText(page);
+    expect(serviceBusGuide).toContain(
+      "Azure Service Bus queues appear in OneUptime on their own",
+    );
+    expect(serviceBusGuide).not.toContain("kafka_metrics");
   });
 
   test("Create Queue adds a Kafka queue by hand and opens its page", async () => {
@@ -888,12 +902,38 @@ test.describe.skip("Queues Product", () => {
       ),
       ready: page.getByText("Send Apache Kafka telemetry for this queue"),
     });
+    // A queue's system is fixed: no messaging-system picker.
     await expect(
-      page.getByRole("heading", { name: `Connect ${DESTINATION}` }),
-    ).toBeVisible({ timeout: 30000 });
+      page.getByRole("radiogroup", { name: "Which messaging system?" }),
+    ).toHaveCount(0);
+    await expect
+      .poll(
+        async (): Promise<string> => {
+          return await bodyText(page);
+        },
+        { timeout: 30000 },
+      )
+      .toContain(`This is the Apache Kafka queue ${DESTINATION}.`);
     await expect(
-      page.getByRole("heading", { name: "How telemetry finds this queue" }),
+      page.getByRole("heading", {
+        name: "Step 4: Check that this queue fills in",
+      }),
     ).toBeVisible();
+    // How its telemetry finds it is folded under Advanced.
+    await page.getByTestId("setup-guide-advanced-toggle").click();
+    await page
+      .getByTestId("setup-guide-topic")
+      .filter({ hasText: "How telemetry finds this queue" })
+      .getByRole("button")
+      .click();
+    await expect
+      .poll(
+        async (): Promise<string> => {
+          return await bodyText(page);
+        },
+        { timeout: 30000 },
+      )
+      .toContain(`topic = ${DESTINATION}.`);
     await expect
       .poll(
         async (): Promise<string> => {

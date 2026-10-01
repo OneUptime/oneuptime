@@ -121,8 +121,9 @@ import { MessageQueueMetricMonitorLink } from "../../../../App/FeatureSet/Dashbo
 import {
   MessageQueueChartedMetricRow,
   getMessageQueueChartedMetricRows,
-  getMessageQueueSystemGuideMarkdown,
+  getMessageQueueSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
+import { getSetupGuideMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import slugify from "../../../Server/Types/MarkdownSlugify";
 import Metric from "../../../Models/AnalyticsModels/Metric";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
@@ -1269,9 +1270,12 @@ describe("Broker health with data", () => {
         continue;
       }
       expect(
-        getMessageQueueSystemGuideMarkdown(
-          { oneuptimeUrl: "https://oneuptime.example.com", apiKey: "key" },
-          descriptor.system,
+        getSetupGuideMarkdown(
+          getMessageQueueSetupGuide({
+            oneuptimeUrl: "https://oneuptime.example.com",
+            apiKey: "key",
+            system: descriptor.system,
+          }),
         ),
       ).toContain(
         "under **Broker health**, and each gauge and each count per period has **Create monitor**.",

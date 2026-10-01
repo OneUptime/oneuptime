@@ -974,10 +974,13 @@ describe("the pages follow the house idioms", () => {
       ),
     );
 
-    expect(code).toContain("<MessageQueueGuideCard");
-    expect(code).toContain(
-      "getMessageQueueDocumentationMarkdown(vars, target)",
-    );
+    // The product's card, handed this queue: no picker, prefilled guide.
+    expect(code).toContain("<MessageQueueDocumentationCard");
+    expect(code).toContain("queue={target}");
+    // Its heading follows the guide's steps, from the guide module.
+    expect(code).toContain("getMessageQueueDocumentationHeading(target)");
+    expect(code).toContain("title={heading.title}");
+    expect(code).toContain("description={heading.description}");
     for (const column of [
       "messagingSystem: true",
       "destinationName: true",
@@ -989,14 +992,30 @@ describe("the pages follow the house idioms", () => {
     }
   });
 
-  test("the guides render markdown only through the lazy viewer", () => {
+  test("the guides render markdown only through the shared setup guide card", () => {
+    /*
+     * SetupGuideCard renders every piece through SetupGuideMarkdown, on the
+     * lazy viewer; a Queues page that imported a viewer itself would put
+     * the eager one back in the bundle.
+     */
     expect(
-      readSource("Pages", "MessageQueue", "Utils", "MessageQueueGuideCard.tsx"),
+      readSource("Components", "SetupGuide", "SetupGuideMarkdown.tsx"),
     ).toContain(
       'import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";',
     );
+    expect(
+      squash(
+        readSource(
+          "Pages",
+          "MessageQueue",
+          "Utils",
+          "MessageQueueDocumentationCard.tsx",
+        ),
+      ),
+    ).toContain(
+      'import SetupGuideCard, { SetupGuideRenderContext, } from "../../../Components/SetupGuide/SetupGuideCard";',
+    );
     for (const file of [
-      ["Pages", "MessageQueue", "Utils", "MessageQueueGuideCard.tsx"],
       ["Pages", "MessageQueue", "Utils", "MessageQueueDocumentationCard.tsx"],
       ["Pages", "MessageQueue", "View", "Documentation.tsx"],
       ["Pages", "MessageQueue", "Documentation.tsx"],
@@ -1048,7 +1067,6 @@ describe("no other product's concepts leaked into the Queues scaffold", () => {
     ["Pages", "MessageQueue", "Utils", "MessageQueuePresentation.ts"],
     ["Pages", "MessageQueue", "Utils", "MessageQueueViewOutletContext.ts"],
     ["Pages", "MessageQueue", "Utils", "MessageQueueDocumentationCard.tsx"],
-    ["Pages", "MessageQueue", "Utils", "MessageQueueGuideCard.tsx"],
     ["Routes", "MessageQueueRoutes.tsx"],
     ["Utils", "Breadcrumbs", "MessageQueueBreadcrumbs.ts"],
   ];
@@ -1258,21 +1276,25 @@ describe("what several Queues pages share has one home", () => {
 });
 
 /*
- * The Queues guides are the Queues product's own: their card
- * (MessageQueueGuideCard, on the shared IngestionKeySelector) and their
- * variables (MessageQueueGuideVariables). Master replaced the telemetry
- * resources' guide card and markdown module (ResourceDocumentationCard,
- * documentationMarkdown) with its SetupGuide layout and deleted both, so a
- * Queues page that still imported either would stop compiling once master is
- * merged in — the card's deletion merges cleanly, with no conflict to warn.
+ * The Queues guides are built on the shared SetupGuide framework every
+ * product's guide uses: the guide is SetupGuideContent
+ * (Components/SetupGuide/SetupGuide), and the card is SetupGuideCard with
+ * the messaging-system picker — the same layout, key step and folded
+ * Advanced / Troubleshooting as every other product, so a change to how
+ * guides are laid out reaches the Queues pages with them. Master retired the
+ * telemetry resources' guide card and markdown module
+ * (ResourceDocumentationCard, documentationMarkdown) and the Queues guide's
+ * own card went with the move, so a Queues page that imported any of them
+ * would stop compiling once merged.
  */
-describe("the Queues guides depend on no other product's guide module", () => {
+describe("the Queues guides are built on the shared SetupGuide framework", () => {
   const RETIRED_GUIDE_MODULES: ReadonlyArray<string> = [
     "Components/TelemetryResource/ResourceDocumentationCard",
     "Components/TelemetryResource/documentationMarkdown",
+    "Pages/MessageQueue/Utils/MessageQueueGuideCard",
   ];
 
-  test("no Queues source imports the telemetry resources' guide card or markdown", () => {
+  test("no Queues source imports a retired guide card or markdown module", () => {
     expect(
       queuesImports
         .filter((entry: QueuesImport): boolean => {
@@ -1282,18 +1304,65 @@ describe("the Queues guides depend on no other product's guide module", () => {
           return `${entry.file} imports ${entry.name} from ${entry.module}`;
         }),
     ).toEqual([]);
+    expect(
+      queuesSources.has("Pages/MessageQueue/Utils/MessageQueueGuideCard.tsx"),
+    ).toBe(false);
   });
 
-  test("the guide card is built on the shared ingestion key step", () => {
+  test("the guide card is SetupGuideCard, and the guide its content", () => {
     expect(queuesImports).toEqual(
       expect.arrayContaining([
         {
-          file: "Pages/MessageQueue/Utils/MessageQueueGuideCard.tsx",
-          module: "Components/Telemetry/IngestionKeySelector",
+          file: "Pages/MessageQueue/Utils/MessageQueueDocumentationCard.tsx",
+          module: "Components/SetupGuide/SetupGuideCard",
           name: "default",
+        },
+        {
+          file: "Pages/MessageQueue/Utils/DocumentationMarkdown.ts",
+          module: "Components/SetupGuide/SetupGuide",
+          name: "SetupGuideContent",
+        },
+        {
+          file: "Pages/MessageQueue/Utils/DocumentationMarkdown.ts",
+          module: "Components/SetupGuide/SetupGuide",
+          name: "SETUP_GUIDE_API_KEY_PLACEHOLDER",
         },
       ]),
     );
+  });
+
+  test("only the shared card picks the key: no Queues source renders its own key step or markdown viewer", () => {
+    expect(
+      queuesImports
+        .filter((entry: QueuesImport): boolean => {
+          return (
+            entry.module === "Components/Telemetry/IngestionKeySelector" ||
+            entry.module.startsWith("Common/UI/Components/Markdown.tsx/")
+          );
+        })
+        .map((entry: QueuesImport): string => {
+          return `${entry.file} imports ${entry.name} from ${entry.module}`;
+        }),
+    ).toEqual([]);
+  });
+
+  test("the guide keeps no placeholders or variables of its own", () => {
+    for (const [file, code] of queuesSources) {
+      for (const retired of [
+        "MessageQueueGuideVariables",
+        "MESSAGE_QUEUE_GUIDE_URL_PLACEHOLDER",
+        "MESSAGE_QUEUE_GUIDE_API_KEY_PLACEHOLDER",
+        "getMessageQueueGuideVariables",
+        '"<YOUR_API_KEY>"',
+        '"<YOUR_ONEUPTIME_URL>"',
+      ]) {
+        expect({ file, retired, found: code.includes(retired) }).toEqual({
+          file,
+          retired,
+          found: false,
+        });
+      }
+    }
   });
 });
 

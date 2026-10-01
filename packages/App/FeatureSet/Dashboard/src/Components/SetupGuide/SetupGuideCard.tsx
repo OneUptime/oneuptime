@@ -39,7 +39,7 @@ import SetupGuideMarkdown from "./SetupGuideMarkdown";
 /*
  * Every in-app "connect this resource" guide: Kubernetes, Docker, Podman,
  * Docker Swarm, Ceph, Proxmox, VMware, hosts, IoT, databases, cloud
- * environments, serverless functions and RUM applications.
+ * environments, serverless functions, RUM applications and message queues.
  *
  *   ┌ title and description
  *   ├ option picker — "Where is your cluster running?"

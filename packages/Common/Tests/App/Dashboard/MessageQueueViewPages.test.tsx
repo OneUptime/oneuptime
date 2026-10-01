@@ -164,7 +164,7 @@ jest.mock("../../../UI/Components/ModelDelete/ModelDelete", () => {
 });
 
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/MessageQueueGuideCard",
+  "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/MessageQueueDocumentationCard",
   () => {
     return {
       __esModule: true,
@@ -185,7 +185,11 @@ import MessageQueueSettings from "../../../../App/FeatureSet/Dashboard/src/Pages
 import MessageQueueOwners from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Owners";
 import MessageQueueDelete from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Delete";
 import MessageQueueDocumentation from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Documentation";
-import { getMessageQueueDocumentationMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
+import {
+  MessageQueueDocumentationTarget,
+  getMessageQueueSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
+import { getSetupGuideMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { MESSAGE_QUEUE_DELETE_WARNING } from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/MessageQueuePresentation";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import MessageQueue from "../../../Models/DatabaseModels/MessageQueue";
@@ -205,6 +209,25 @@ const PAGE_PROPS: PageComponentProps = {
   currentProject: null,
   hasPaymentMethod: true,
 };
+
+/*
+ * The guide the card renders for the queue it was handed: the queue's own
+ * system, prefilled for the queue (what MessageQueueDocumentationCard asks
+ * getMessageQueueSetupGuide for on a queue's tab).
+ */
+function guideForCard(card: Record<string, any>): string {
+  const queue: MessageQueueDocumentationTarget = card[
+    "queue"
+  ] as MessageQueueDocumentationTarget;
+  return getSetupGuideMarkdown(
+    getMessageQueueSetupGuide({
+      oneuptimeUrl: VARS.oneuptimeUrl,
+      apiKey: VARS.apiKey,
+      system: queue.system,
+      queue: queue,
+    }),
+  );
+}
 
 const VARS: { oneuptimeUrl: string; apiKey: string } = {
   oneuptimeUrl: "https://oneuptime.example.com",
@@ -528,23 +551,64 @@ describe("the Documentation tab", () => {
     expect(card["title"]).toBe(
       "Send Azure Service Bus telemetry for this queue",
     );
-    expect(card["description"]).toContain("prefilled for this queue");
-
-    // The guide is the queue's own: prefilled from the row.
-    const markdown: string = card["buildMarkdown"](VARS);
-    expect(markdown).toBe(
-      getMessageQueueDocumentationMarkdown(VARS, {
-        system: "servicebus",
-        destination: "orders",
-        brokerScope: "shop-prod",
-        brokerAddress: "shop-prod.servicebus.windows.net",
-      }),
+    // Its guide has a broker step, so the heading promises the broker's metrics.
+    expect(card["description"]).toBe(
+      "Instrument the applications that publish to and consume from this queue, and send its broker's metrics to OneUptime.",
     );
+
+    // The guide is the queue's own: prefilled from the row, with no picker.
+    expect(card["queue"]).toEqual({
+      system: "servicebus",
+      destination: "orders",
+      brokerScope: "shop-prod",
+      brokerAddress: "shop-prod.servicebus.windows.net",
+    });
+    const markdown: string = guideForCard(card);
     expect(markdown).toContain(
       "This is the Azure Service Bus queue `orders` in the `shop-prod` namespace.",
     );
     expect(markdown).toContain('x-oneuptime-token: "ingest-key-123"');
   });
+
+  /*
+   * The heading says what the guide's own steps do: a JMS queue's guide has
+   * no broker step, and BullMQ's reports the depth from the application.
+   */
+  test.each([
+    [
+      "jms",
+      "Send JMS telemetry for this queue",
+      "Instrument the applications that publish to and consume from this queue, and send their spans to OneUptime.",
+    ],
+    [
+      "bullmq",
+      "Send BullMQ telemetry for this queue",
+      "Tag the BullMQ telemetry of the applications that use this queue in the collector they send to, and report the queue's depth from the application.",
+    ],
+  ])(
+    "a %s queue's heading follows its guide's steps",
+    async (system: string, title: string, description: string) => {
+      getItemMock.mockResolvedValue(
+        queueRow({
+          queueIdentifier: `${system}||orders`,
+          messagingSystem: system,
+          destinationName: "orders",
+        }),
+      );
+
+      await renderTab(
+        "documentation",
+        <MessageQueueDocumentation {...PAGE_PROPS} />,
+        false,
+      );
+
+      const card: Record<string, any> = documentationCardMock.mock
+        .calls[0]![0] as Record<string, any>;
+      expect(card["title"]).toBe(title);
+      expect(card["description"]).toBe(description);
+      expect(card["description"]).not.toContain("prefilled");
+    },
+  );
 
   test("an ActiveMQ queue gets ActiveMQ's guide, not its JMS family's", async () => {
     getItemMock.mockResolvedValue(
@@ -564,7 +628,8 @@ describe("the Documentation tab", () => {
     const card: Record<string, any> = documentationCardMock.mock
       .calls[0]![0] as Record<string, any>;
     expect(card["title"]).toBe("Send Apache ActiveMQ telemetry for this queue");
-    expect(card["buildMarkdown"](VARS)).toContain(
+    expect(card["queue"]["system"]).toBe("activemq");
+    expect(guideForCard(card)).toContain(
       "export OTEL_JMX_TARGET_SYSTEM=activemq",
     );
   });
@@ -586,7 +651,10 @@ describe("the Documentation tab", () => {
 
     const card: Record<string, any> = documentationCardMock.mock
       .calls[0]![0] as Record<string, any>;
-    expect(card["buildMarkdown"](VARS)).toContain("## Connect `orders`");
+    expect(card["queue"]["destination"]).toBe("orders");
+    expect(guideForCard(card)).toContain(
+      "This is the Apache Kafka queue `orders`.",
+    );
   });
 
   test("a deleted queue says so instead of a guide", async () => {
