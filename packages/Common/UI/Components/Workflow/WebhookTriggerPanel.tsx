@@ -272,7 +272,9 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
 
   /*
    * The translated sentence, with each method name in it drawn as a badge.
-   * Method names are the same in every language, so they are found by name.
+   * Method names are the same in every language, so they are found by name;
+   * everything else - spaces and punctuation included - is the sentence as
+   * the language writes it ("GET- oder POST-Anfragen.").
    */
   const methodsSentence: string = translate(getMethodsSentence());
   const methodNames: RegExp = new RegExp(
@@ -280,9 +282,6 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
   );
   const methodsParts: Array<string> = methodsSentence
     .split(methodNames)
-    .map((part: string) => {
-      return part.trim();
-    })
     .filter((part: string) => {
       return part.length > 0;
     });
@@ -410,8 +409,8 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      <div
-        className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-gray-600"
+      <p
+        className="mt-3 text-xs leading-6 text-gray-600"
         data-testid="webhook-trigger-methods"
       >
         {methodsParts.map((part: string, index: number) => {
@@ -419,16 +418,16 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
             return (
               <span
                 key={index}
-                className="rounded border border-gray-200 bg-white px-1.5 py-0.5 font-mono text-[11px] font-semibold text-gray-700"
+                className="mx-0.5 inline-block rounded border border-gray-200 bg-white px-1.5 font-mono text-[11px] font-semibold leading-5 text-gray-700"
               >
                 {part}
               </span>
             );
           }
 
-          return <span key={index}>{part}</span>;
+          return <React.Fragment key={index}>{part}</React.Fragment>;
         })}
-      </div>
+      </p>
 
       <div className="mt-4">
         <div className="flex items-center justify-between gap-2">
