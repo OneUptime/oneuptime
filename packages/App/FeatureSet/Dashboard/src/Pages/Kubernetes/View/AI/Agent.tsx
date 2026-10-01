@@ -8,19 +8,20 @@ import {
   AI_AGENT_READY_TEXT,
   AI_AGENT_STATUS_POLL_INTERVAL_MS,
   ASK_PROJECT_ADMIN_TEXT,
+  AiAgentAttention,
+  AiAgentAttentionStep,
   AiAgentCardCommand,
   AiAgentGapAction,
   AiAgentStatusPill,
   canSwitchToAiAgent,
   describeAiAgentWriteAccess,
+  getAiAgentAttention,
   getAiAgentCardCommand,
-  getAiAgentGapAction,
   getAiAgentMetaParts,
   getAiAgentPodNamespace,
   getAiAgentStateSentence,
   getAiAgentStatusPill,
   getAiAgentSummary,
-  getAttentionGaps,
   getAutomaticInvestigation,
   getAutomaticInvestigationConfirmation,
   getAutomaticInvestigationLine,
@@ -126,7 +127,6 @@ import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import Color from "Common/Types/Color";
 import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
 import {
-  KubernetesAiAccessGap,
   KubernetesAiAgentSummary,
   KubernetesAiAutomaticInvestigationSettings,
   KubernetesAiRemediationMode,
@@ -187,8 +187,10 @@ import { Navigate, useParams } from "react-router-dom";
  *  A. "Kubernetes AI agent": the connection, with the one command that
  *     fixes a missing or offline agent, a connection test, and the admin
  *     actions (reset the agent; move an advanced Runner binding over to it).
- *  B. "Needs attention": the server's gaps, only when there are any. The
- *     page never builds a readiness checklist of its own.
+ *  B. "Needs attention": the server's gaps as ONE item, only when there
+ *     are any — a headline saying what AI cannot do here, then one short
+ *     step per gap with its action. The page never builds a readiness
+ *     checklist of its own.
  *  C. "What AI may do": one row for investigation (with the project's
  *     automatic-investigation line) and one for fixes (with the
  *     write-access command when fixes need it), each with a badge that says
@@ -1173,7 +1175,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   const helmCommands: AiAgentHelmCommands = getAiAgentHelmCommands();
   const metaParts: Array<string> = getAiAgentMetaParts(status);
   const refusedWarning: string | null = getRefusedRegistrationWarning(aiAgent);
-  const attentionGaps: Array<KubernetesAiAccessGap> = getAttentionGaps(status);
+  const attention: AiAgentAttention | null = getAiAgentAttention(status);
   const isAdvanced: boolean = isAdvancedRunnerTarget(status);
   const hasTarget: boolean = status.runner !== null;
   const remediationMode: KubernetesAiRemediationMode = readRemediationMode(
@@ -1221,11 +1223,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
     );
   };
 
-  const renderGapAction: (gap: KubernetesAiAccessGap) => ReactElement = (
-    gap: KubernetesAiAccessGap,
+  const renderStepAction: (action: AiAgentGapAction | null) => ReactElement = (
+    action: AiAgentGapAction | null,
   ): ReactElement => {
-    const action: AiAgentGapAction | null = getAiAgentGapAction(gap, status);
-
     switch (action) {
       case "turn_on_investigation":
         return settingsGate.isAllowed ? (
@@ -1289,6 +1289,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             buttonSize={ButtonSize.Small}
             isLoading={isTesting}
             disabled={isTesting}
+            dataTestId="ai-agent-gap-test-connection"
             onClick={() => {
               runTest().catch(() => {
                 // handled inside runTest
@@ -1716,40 +1717,55 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         </div>
       </Card>
 
-      {attentionGaps.length > 0 ? (
-        <Card
-          title="Needs attention"
-          description="Each item stops OneUptime AI from doing part of its job on this cluster."
-        >
-          <ul className="space-y-2" data-testid="ai-agent-gaps">
-            {attentionGaps.map((gap: KubernetesAiAccessGap): ReactElement => {
-              return (
-                <li
-                  key={gap.code}
-                  data-testid={`ai-agent-gap-${gap.code}`}
-                  className="flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
-                >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <Icon
-                      icon={IconProp.Alert}
-                      className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
-                        {gap.title}
-                      </p>
-                      <p className="mt-0.5 text-xs leading-5 text-gray-700">
-                        {gap.nextStep}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0 sm:pl-4">
-                    {renderGapAction(gap)}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+      {attention ? (
+        <Card title="Needs attention">
+          <div
+            className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3"
+            data-testid="ai-agent-attention"
+          >
+            <Icon
+              icon={IconProp.Alert}
+              className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
+            />
+            <div className="min-w-0 flex-1">
+              <p
+                className="text-sm font-medium text-gray-900"
+                data-testid="ai-agent-attention-title"
+              >
+                {attention.title}
+              </p>
+              <ol className="mt-2 space-y-2" data-testid="ai-agent-gaps">
+                {attention.steps.map(
+                  (step: AiAgentAttentionStep, index: number): ReactElement => {
+                    return (
+                      <li
+                        key={`${index}:${step.gap.code}`}
+                        data-testid={`ai-agent-gap-${step.gap.code}`}
+                        className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <p className="flex min-w-0 gap-2 text-sm text-gray-700">
+                          {attention.steps.length > 1 ? (
+                            <span
+                              className="flex-shrink-0 tabular-nums text-gray-500"
+                              data-testid="ai-agent-gap-number"
+                            >
+                              {index + 1}.
+                            </span>
+                          ) : (
+                            <></>
+                          )}
+                          <span className="min-w-0">{step.text}</span>
+                        </p>
+                        <div className="flex-shrink-0 sm:pl-4">
+                          {renderStepAction(step.action)}
+                        </div>
+                      </li>
+                    );
+                  },
+                )}
+              </ol>
+            </div>
+          </div>
         </Card>
       ) : (
         <></>

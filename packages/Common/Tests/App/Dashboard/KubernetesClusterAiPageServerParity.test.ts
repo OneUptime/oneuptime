@@ -21,7 +21,10 @@ import {
   AI_AGENT_GONE_TEXT,
   AI_AGENT_SIGNED_OFF_TEXT,
   AI_AGENT_SILENT_TEXT,
+  AiAgentAttention,
+  AiAgentAttentionStep,
   canSwitchToAiAgent,
+  getAiAgentAttention,
   getAiAgentCardCommand,
   getAiAgentCardState,
   getAiAgentGapAction,
@@ -35,6 +38,7 @@ import {
   getAutomaticInvestigation,
   isAdvancedRunnerTarget,
   isLegacyRunnerTarget,
+  parseStatus,
   shouldShowWriteAccessCommands,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentStatus";
 import { isKubernetesAgentRunnerRow } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAgentRunner";
@@ -46,6 +50,8 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerFormFields";
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterAiAccessService, {
+  AI_AGENT_INSTALL_COMMAND,
+  CLUSTER_AI_AGENT_PAGE,
   KubernetesClusterAiAccessProjectGates,
 } from "../../../Server/Services/KubernetesClusterAiAccessService";
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
@@ -64,7 +70,9 @@ import logger from "../../../Server/Utils/Logger";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
-import Runner from "../../../Models/DatabaseModels/Runner";
+import Runner, {
+  RunnerConnectionStatus,
+} from "../../../Models/DatabaseModels/Runner";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -72,6 +80,7 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import { JSONObject } from "../../../Types/JSON";
 import {
   KubernetesAiAccessGap,
+  KubernetesAiAccessGapCode,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -93,9 +102,10 @@ import FormValues from "../../../UI/Components/Forms/Types/FormValues";
  *   cluster have a Kubernetes AI agent?" — Off -> Ask for approval and
  *   clearing a binding while an agent exists included;
  * - the status the real service computes drives the page's card: every
- *   state of the "Kubernetes AI agent" card, the Needs attention rows, the
- *   write-access commands and the Overview card, from the real resolution
- *   of the access target;
+ *   state of the "Kubernetes AI agent" card, the Needs attention item (one
+ *   headline, a step per gap in this page's words), the write-access
+ *   commands and the Overview card, from the real resolution of the access
+ *   target;
  * - the page's allowlist validation agrees with the server's;
  * - the Runner pages and RunnerService agree on which rows are the chart's.
  */
@@ -1060,6 +1070,868 @@ describe("the AI agent card follows the real status", () => {
       gates: { ...READY_GATES, isAiEnabled: false },
     });
     expect(projectSwitchGapCodes(aiOff)).toEqual(["project_ai_disabled"]);
+  });
+});
+
+/*
+ * The "Needs attention" item against the statuses the real service sends.
+ * For each of them:
+ *
+ * - the gaps become ONE item: a headline, then one step per gap in the
+ *   server's order, with the fixes-off choice left out;
+ * - the headline agrees with the server's own verdicts (isInvestigationReady,
+ *   isRemediationReady);
+ * - every gap the server can send has this page's own words. None of them
+ *   sends the reader to the page they are on or repeats a helm or kubectl
+ *   command — which the server's next steps do, because they are written
+ *   for incident pages and the investigation panel too — and a step that
+ *   points "above" or "below" points at something the page shows.
+ */
+
+const CLOSED_GATES: KubernetesClusterAiAccessProjectGates = {
+  isAiEnabled: false,
+  hasLlmProvider: false,
+  aiBalanceBlocker: "The project's AI balance is used up.",
+  automaticInvestigation: { incidents: false, alerts: false },
+};
+
+const FIXES_ON: Record<string, unknown> = {
+  aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
+};
+
+// The agent's posture, as makeAgentRow reports it, with changes.
+function agentPosture(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    clusterIdentifier: "prod-us",
+    inCluster: true,
+    allowWrites: false,
+    writeNamespaces: [],
+    podNamespace: "monitoring",
+    kubectlVersion: "v1.31.2",
+    ...overrides,
+  };
+}
+
+function minutesAgo(minutes: number): Date {
+  return OneUptimeDate.addRemoveMinutes(
+    OneUptimeDate.getCurrentDate(),
+    -minutes,
+  );
+}
+
+/*
+ * The cluster's Kubernetes credential, assigned to `runnerId` (the
+ * advanced Runner unless said), or none at all.
+ */
+function serveCredential(runnerId: string | null = OTHER_RUNNER_ID): void {
+  jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue(
+    runnerId
+      ? ({
+          id: new ObjectID(CREDENTIAL_ID),
+          credentialType: RunbookCredentialType.Kubernetes,
+          name: "prod token",
+          runners: [{ _id: runnerId, id: new ObjectID(runnerId) }],
+        } as unknown as RunbookCredential)
+      : null,
+  );
+}
+
+const ADVANCED_BINDING: Record<string, unknown> = {
+  aiAccessRunnerId: new ObjectID(OTHER_RUNNER_ID),
+  aiAccessCredentialId: new ObjectID(CREDENTIAL_ID),
+};
+
+const LEGACY_BINDING: Record<string, unknown> = {
+  aiAccessRunnerId: new ObjectID(RUNNER_ID),
+};
+
+/*
+ * The status as the page receives it: computed by the real service, sent
+ * as JSON, read back with the page's own parser.
+ */
+async function pageStatus(
+  data: Parameters<typeof realStatus>[0],
+): Promise<KubernetesClusterAiAccessStatus> {
+  const built: KubernetesClusterAiAccessStatus = await realStatus(data);
+  const parsed: KubernetesClusterAiAccessStatus | null = parseStatus(
+    JSON.parse(JSON.stringify(built)),
+  );
+
+  if (!parsed) {
+    throw new Error("The page could not read the server's status.");
+  }
+
+  return parsed;
+}
+
+function stepCodes(
+  attention: AiAgentAttention | null,
+): Array<KubernetesAiAccessGapCode> {
+  return (attention?.steps || []).map(
+    (step: AiAgentAttentionStep): KubernetesAiAccessGapCode => {
+      return step.gap.code;
+    },
+  );
+}
+
+function stepTexts(attention: AiAgentAttention | null): Array<string> {
+  return (attention?.steps || []).map((step: AiAgentAttentionStep): string => {
+    return step.text;
+  });
+}
+
+interface NamedStatus {
+  name: string;
+  status: KubernetesClusterAiAccessStatus;
+}
+
+/*
+ * Every shape of status the server sends: each access target in each of
+ * its states, each switch, each project gate. Built one at a time —
+ * realStatus re-serves the bound Runner for each.
+ */
+async function everyServerStatus(): Promise<Array<NamedStatus>> {
+  const cases: Array<{
+    name: string;
+    data: Parameters<typeof realStatus>[0];
+    credentialFor?: string | null;
+  }> = [
+    {
+      name: "the agent, ready",
+      data: {
+        cluster: fakeCluster(FIXES_ON),
+        agentRow: makeAgentRow({
+          posture: agentPosture({ allowWrites: true }),
+        }),
+      },
+    },
+    {
+      name: "the agent, fixes off",
+      data: { cluster: fakeCluster(), agentRow: makeAgentRow() },
+    },
+    { name: "nothing installed", data: { cluster: fakeCluster() } },
+    {
+      name: "nothing installed, investigation off, fixes on",
+      data: {
+        cluster: fakeCluster({ ...FIXES_ON, isAiInvestigationEnabled: false }),
+      },
+    },
+    {
+      name: "the agent silent, fixes on",
+      data: {
+        cluster: fakeCluster(FIXES_ON),
+        agentRow: makeAgentRow({ lastAliveAt: minutesAgo(60) }),
+      },
+    },
+    {
+      name: "the agent just signed off",
+      data: {
+        cluster: fakeCluster(),
+        agentRow: makeAgentRow({ connectionStatus: "disconnected" }),
+      },
+    },
+    {
+      name: "the agent signed off and never came back",
+      data: {
+        cluster: fakeCluster(),
+        agentRow: makeAgentRow({
+          connectionStatus: "disconnected",
+          lastAliveAt: minutesAgo(60),
+        }),
+      },
+    },
+    {
+      name: "the agent reports another cluster, fixes on",
+      data: {
+        cluster: fakeCluster(FIXES_ON),
+        agentRow: makeAgentRow({
+          posture: agentPosture({ clusterIdentifier: "prod-eu" }),
+        }),
+      },
+    },
+    {
+      name: "the agent read-only, fixes on",
+      data: { cluster: fakeCluster(FIXES_ON), agentRow: makeAgentRow() },
+    },
+    {
+      name: "investigation off",
+      data: {
+        cluster: fakeCluster({ isAiInvestigationEnabled: false }),
+        agentRow: makeAgentRow(),
+      },
+    },
+    {
+      name: "investigation off, fixes on and working",
+      data: {
+        cluster: fakeCluster({ ...FIXES_ON, isAiInvestigationEnabled: false }),
+        agentRow: makeAgentRow({
+          posture: agentPosture({ allowWrites: true }),
+        }),
+      },
+    },
+    {
+      name: "every project gate closed",
+      data: {
+        cluster: fakeCluster(FIXES_ON),
+        agentRow: makeAgentRow({
+          posture: agentPosture({ allowWrites: true }),
+        }),
+        gates: CLOSED_GATES,
+      },
+    },
+    {
+      name: "the previous Runner, read-only with fixes on",
+      data: {
+        cluster: fakeCluster({ ...FIXES_ON, ...LEGACY_BINDING }),
+        runner: fakeLegacyRunner(),
+      },
+    },
+    {
+      name: "the previous Runner, offline",
+      data: {
+        cluster: fakeCluster(LEGACY_BINDING),
+        runner: fakeLegacyRunner({ lastAlive: minutesAgo(60) }),
+      },
+    },
+    {
+      name: "the previous Runner, signed off",
+      data: {
+        cluster: fakeCluster(LEGACY_BINDING),
+        runner: fakeLegacyRunner({
+          connectionStatus: RunnerConnectionStatus.Disconnected,
+        }),
+      },
+    },
+    {
+      name: "the previous Runner, not accepting AI commands",
+      data: {
+        cluster: fakeCluster(LEGACY_BINDING),
+        runner: fakeLegacyRunner({ canRunAiCommands: false }),
+      },
+    },
+    {
+      name: "the previous Runner, its posture dropped",
+      data: {
+        cluster: fakeCluster(LEGACY_BINDING),
+        runner: fakeLegacyRunner({ hostInfo: {} }),
+      },
+    },
+    {
+      name: "an advanced Runner, ready",
+      data: {
+        cluster: fakeCluster({ ...FIXES_ON, ...ADVANCED_BINDING }),
+        runner: fakeAdvancedRunner(),
+      },
+    },
+    {
+      name: "an advanced Runner, offline",
+      data: {
+        cluster: fakeCluster(ADVANCED_BINDING),
+        runner: fakeAdvancedRunner({ lastAlive: minutesAgo(60) }),
+      },
+    },
+    {
+      name: "an advanced Runner, never connected",
+      data: {
+        cluster: fakeCluster(ADVANCED_BINDING),
+        runner: fakeAdvancedRunner({ lastAlive: undefined }),
+      },
+    },
+    {
+      name: "an advanced Runner, signed off",
+      data: {
+        cluster: fakeCluster(ADVANCED_BINDING),
+        runner: fakeAdvancedRunner({
+          connectionStatus: RunnerConnectionStatus.Disconnected,
+        }),
+      },
+    },
+    {
+      name: "an advanced Runner, not accepting AI commands",
+      data: {
+        cluster: fakeCluster(ADVANCED_BINDING),
+        runner: fakeAdvancedRunner({ canRunAiCommands: false }),
+      },
+    },
+    {
+      name: "an advanced Runner without a credential",
+      data: {
+        cluster: fakeCluster({
+          aiAccessRunnerId: new ObjectID(OTHER_RUNNER_ID),
+        }),
+        runner: fakeAdvancedRunner(),
+      },
+    },
+    {
+      name: "an advanced Runner whose credential is another Runner's",
+      data: {
+        cluster: fakeCluster(ADVANCED_BINDING),
+        runner: fakeAdvancedRunner(),
+      },
+      credentialFor: RUNNER_ID,
+    },
+    {
+      name: "an advanced Runner whose credential was deleted",
+      data: {
+        cluster: fakeCluster(ADVANCED_BINDING),
+        runner: fakeAdvancedRunner(),
+      },
+      credentialFor: null,
+    },
+    {
+      name: "an advanced Runner in a pod of no named cluster, fixes on",
+      data: {
+        cluster: fakeCluster({
+          ...FIXES_ON,
+          aiAccessRunnerId: new ObjectID(OTHER_RUNNER_ID),
+        }),
+        runner: fakeAdvancedRunner({
+          hostInfo: { kubernetes: { inCluster: true, allowWrites: false } },
+        }),
+      },
+    },
+    {
+      name: "an advanced Runner, AI off for the project",
+      data: {
+        cluster: fakeCluster({ ...FIXES_ON, ...ADVANCED_BINDING }),
+        runner: fakeAdvancedRunner(),
+        gates: { ...READY_GATES, isAiEnabled: false },
+      },
+    },
+    {
+      name: "the bound Runner was just deleted",
+      data: { cluster: fakeCluster(LEGACY_BINDING), runner: null },
+    },
+    {
+      name: "everything wrong at once",
+      data: {
+        cluster: fakeCluster({ ...FIXES_ON, isAiInvestigationEnabled: false }),
+        gates: CLOSED_GATES,
+      },
+    },
+  ];
+
+  const statuses: Array<NamedStatus> = [];
+
+  for (const testCase of cases) {
+    serveCredential(
+      testCase.credentialFor === undefined
+        ? OTHER_RUNNER_ID
+        : testCase.credentialFor,
+    );
+    statuses.push({
+      name: testCase.name,
+      status: await pageStatus(testCase.data),
+    });
+  }
+
+  return statuses;
+}
+
+/*
+ * Every gap the server produces, but the fixes-off choice. The retired
+ * project_auto_remediation_disabled and project_ai_command_execution_disabled
+ * are not among them: Enable AI covers both.
+ */
+const ATTENTION_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
+  "ai_agent_not_connected",
+  "ai_agent_offline",
+  "ai_balance_insufficient",
+  "runner_missing",
+  "runner_offline",
+  "runner_ai_commands_disabled",
+  "runner_cluster_mismatch",
+  "credential_missing",
+  "investigation_disabled",
+  "remediation_write_access_missing",
+  "project_ai_disabled",
+  "llm_provider_missing",
+];
+
+const UPGRADE_STEP: string =
+  "Upgrade the Kubernetes agent chart with the command above. The Kubernetes AI agent replaces the previous in-cluster Runner.";
+
+const CHOOSE_CREDENTIAL_STEP: string =
+  "With Change below, choose a Kubernetes credential the Runner may use, or clear the Runner to use the Kubernetes AI agent.";
+
+describe("Needs attention, from the server's own statuses", () => {
+  test("a new cluster: one item, two steps, no self-reference", async () => {
+    const status: KubernetesClusterAiAccessStatus = await pageStatus({
+      cluster: fakeCluster({ isAiInvestigationEnabled: false }),
+    });
+
+    // What the server sends: three gaps, each written for any surface.
+    expect(gapCodes(status)).toEqual([
+      "ai_agent_not_connected",
+      "investigation_disabled",
+      "remediation_disabled",
+    ]);
+    expect(status.gaps[0]!.nextStep).toContain(AI_AGENT_INSTALL_COMMAND);
+    expect(status.gaps[1]!.nextStep).toContain(CLUSTER_AI_AGENT_PAGE);
+
+    // What the page shows: one item.
+    expect(getAiAgentAttention(status)).toEqual({
+      title: "OneUptime AI can't investigate this cluster",
+      steps: [
+        {
+          gap: status.gaps[0],
+          text: "Install the Kubernetes AI agent with the command above.",
+          action: null,
+        },
+        {
+          gap: status.gaps[1],
+          text: "Turn on AI investigation with kubectl.",
+          action: "turn_on_investigation",
+        },
+      ],
+    });
+    expect(getAiAgentCardCommand(status)).toBe("install");
+  });
+
+  test("nothing to show when AI is ready, or only fixes are off by choice", async () => {
+    const statuses: Array<NamedStatus> = (await everyServerStatus()).filter(
+      (entry: NamedStatus): boolean => {
+        return [
+          "the agent, ready",
+          "the agent, fixes off",
+          "an advanced Runner, ready",
+        ].includes(entry.name);
+      },
+    );
+
+    expect(statuses).toHaveLength(3);
+    for (const { name, status } of statuses) {
+      expect({ name, isReady: status.isInvestigationReady }).toEqual({
+        name,
+        isReady: true,
+      });
+      expect({ name, attention: getAiAgentAttention(status) }).toEqual({
+        name,
+        attention: null,
+      });
+    }
+  });
+
+  test("every status is one item whose steps follow the server's gaps", async () => {
+    for (const { name, status } of await everyServerStatus()) {
+      const attention: AiAgentAttention | null = getAiAgentAttention(status);
+      const expectedCodes: Array<string> = gapCodes(status).filter(
+        (code: string): boolean => {
+          return code !== "remediation_disabled";
+        },
+      );
+
+      expect({ name, codes: stepCodes(attention) }).toEqual({
+        name,
+        codes: expectedCodes,
+      });
+
+      if (!attention) {
+        continue;
+      }
+
+      // Each step keeps the action its gap offers on the page.
+      for (const step of attention.steps) {
+        expect({ name, action: step.action }).toEqual({
+          name,
+          action: getAiAgentGapAction(step.gap, status),
+        });
+      }
+
+      // The headline says what the server's verdicts say.
+      if (!status.isInvestigationReady) {
+        expect({ name, title: attention.title }).toEqual({
+          name,
+          title: expect.stringMatching(
+            /^OneUptime AI can't investigate this cluster( or run fixes on it)?$/,
+          ),
+        });
+      } else {
+        expect({ name, title: attention.title }).toEqual({
+          name,
+          title: "OneUptime AI can't run fixes on this cluster",
+        });
+      }
+
+      const fixesOn: boolean =
+        status.remediationMode !== KubernetesAiRemediationMode.Disabled;
+      expect({ name, namesFixes: attention.title.includes("fixes") }).toEqual({
+        name,
+        namesFixes: fixesOn
+          ? !status.isRemediationReady
+          : status.isInvestigationReady,
+      });
+    }
+  });
+
+  test("every gap the server sends has this page's own words", async () => {
+    const seen: Set<KubernetesAiAccessGapCode> =
+      new Set<KubernetesAiAccessGapCode>();
+
+    for (const { name, status } of await everyServerStatus()) {
+      for (const step of getAiAgentAttention(status)?.steps || []) {
+        seen.add(step.gap.code);
+
+        expect({ name, text: step.text }).not.toEqual({
+          name,
+          text: step.gap.nextStep,
+        });
+        expect({ name, text: step.text }).toEqual({
+          name,
+          text: expect.stringMatching(/^[A-Z].*\.$/),
+        });
+        for (const forbidden of [
+          CLUSTER_AI_AGENT_PAGE,
+          "AI → Agent",
+          "AI agent page",
+          AI_AGENT_INSTALL_COMMAND,
+          "helm ",
+          "kubectl logs",
+          CLUSTER_ID.toString(),
+          RUNNER_ID,
+          OTHER_RUNNER_ID,
+        ]) {
+          expect({ name, text: step.text }).toEqual({
+            name,
+            text: expect.not.stringContaining(forbidden),
+          });
+        }
+      }
+    }
+
+    // Every gap but the fixes-off choice was seen, so none fell through.
+    expect(Array.from(seen).sort()).toEqual([...ATTENTION_GAP_CODES].sort());
+  });
+
+  /*
+   * A step that says "above" or "below" sends the reader to something on
+   * this page — so that thing must be there for the same status.
+   */
+  test("a step points only at what the page shows for the same status", async () => {
+    for (const { name, status } of await everyServerStatus()) {
+      for (const text of stepTexts(getAiAgentAttention(status))) {
+        const where: Record<string, unknown> = { name, text };
+
+        if (text.includes("with the command above")) {
+          expect({ ...where, command: getAiAgentCardCommand(status) }).toEqual({
+            ...where,
+            command: "install",
+          });
+        }
+        if (text.includes("(the command is above)")) {
+          expect({ ...where, command: getAiAgentCardCommand(status) }).toEqual({
+            ...where,
+            command: "logs",
+          });
+        }
+        if (text.includes("commands below")) {
+          expect({
+            ...where,
+            shown: shouldShowWriteAccessCommands(status),
+          }).toEqual({ ...where, shown: true });
+        }
+        // Runner pickers and Runner fixes exist only for an advanced binding.
+        if (text.includes("With Change below") || text.includes("the Runner")) {
+          expect({
+            ...where,
+            advanced: isAdvancedRunnerTarget(status),
+          }).toEqual({ ...where, advanced: true });
+        }
+        if (text.startsWith("Reset the Kubernetes AI agent")) {
+          expect({
+            ...where,
+            hasAgent: getAiAgentSummary(status) !== null,
+          }).toEqual({ ...where, hasAgent: true });
+        }
+      }
+    }
+  });
+
+  test("an offline agent: wait right after a sign-off, bring it back otherwise", async () => {
+    const byName: Map<string, KubernetesClusterAiAccessStatus> = new Map<
+      string,
+      KubernetesClusterAiAccessStatus
+    >(
+      (await everyServerStatus()).map(
+        (entry: NamedStatus): [string, KubernetesClusterAiAccessStatus] => {
+          return [entry.name, entry.status];
+        },
+      ),
+    );
+
+    const signedOff: AiAgentAttention | null = getAiAgentAttention(
+      byName.get("the agent just signed off")!,
+    );
+    expect(signedOff?.title).toBe(
+      "OneUptime AI can't investigate this cluster",
+    );
+    expect(stepTexts(signedOff)).toEqual([
+      "Wait a few minutes for the Kubernetes AI agent to reconnect. If it does not, its logs say why (the command is above).",
+    ]);
+
+    expect(
+      stepTexts(
+        getAiAgentAttention(
+          byName.get("the agent signed off and never came back")!,
+        ),
+      ),
+    ).toEqual([
+      "Bring the Kubernetes AI agent back online. Its logs say why it is offline (the command is above).",
+    ]);
+
+    // Silent with fixes on: both blocked, and the agent is read-only too.
+    const silent: AiAgentAttention | null = getAiAgentAttention(
+      byName.get("the agent silent, fixes on")!,
+    );
+    expect(silent?.title).toBe(
+      "OneUptime AI can't investigate this cluster or run fixes on it",
+    );
+    expect(stepTexts(silent)).toEqual([
+      "Bring the Kubernetes AI agent back online. Its logs say why it is offline (the command is above).",
+      "Give the Kubernetes AI agent write access with the commands below.",
+    ]);
+    expect(
+      silent?.steps.map((step: AiAgentAttentionStep): string | null => {
+        return step.action;
+      }),
+    ).toEqual([null, null]);
+  });
+
+  test("an agent that has not reported this cluster: reset it", async () => {
+    const status: KubernetesClusterAiAccessStatus = await pageStatus({
+      cluster: fakeCluster(),
+      agentRow: makeAgentRow({
+        posture: agentPosture({ clusterIdentifier: "prod-eu" }),
+      }),
+    });
+
+    expect(gapCodes(status)).toEqual([
+      "runner_cluster_mismatch",
+      "remediation_disabled",
+    ]);
+    expect(status.gaps[0]!.nextStep).toContain(CLUSTER_AI_AGENT_PAGE);
+    expect(stepTexts(getAiAgentAttention(status))).toEqual([
+      "Reset the Kubernetes AI agent. It reconnects on its own within a few minutes.",
+    ]);
+  });
+
+  test("the previous in-cluster Runner: every Runner gap is the one chart upgrade", async () => {
+    const statuses: Array<NamedStatus> = (await everyServerStatus()).filter(
+      (entry: NamedStatus): boolean => {
+        return entry.name.startsWith("the previous Runner");
+      },
+    );
+
+    expect(statuses).toHaveLength(5);
+    for (const { name, status } of statuses) {
+      expect({ name, legacy: isLegacyRunnerTarget(status) }).toEqual({
+        name,
+        legacy: true,
+      });
+      expect({ name, command: getAiAgentCardCommand(status) }).toEqual({
+        name,
+        command: "install",
+      });
+
+      for (const step of getAiAgentAttention(status)?.steps || []) {
+        expect({ name, code: step.gap.code, text: step.text }).toEqual({
+          name,
+          code: step.gap.code,
+          text:
+            step.gap.code === "remediation_write_access_missing"
+              ? "Upgrade to the Kubernetes AI agent with write access, using the commands below."
+              : UPGRADE_STEP,
+        });
+        // Nothing to open on a Runner that is being replaced.
+        expect({ name, action: step.action }).toEqual({ name, action: null });
+      }
+    }
+  });
+
+  test("an advanced Runner: fixed on the Runner, or swapped under Change", async () => {
+    const byName: Map<string, KubernetesClusterAiAccessStatus> = new Map<
+      string,
+      KubernetesClusterAiAccessStatus
+    >(
+      (await everyServerStatus()).map(
+        (entry: NamedStatus): [string, KubernetesClusterAiAccessStatus] => {
+          return [entry.name, entry.status];
+        },
+      ),
+    );
+    const expected: Array<[string, Array<[string, string, string | null]>]> = [
+      [
+        "an advanced Runner, offline",
+        [
+          [
+            "runner_offline",
+            "Start the Runner and make sure it can reach your OneUptime URL.",
+            "view_runner",
+          ],
+        ],
+      ],
+      [
+        "an advanced Runner, never connected",
+        [
+          [
+            "runner_offline",
+            "Start the Runner and make sure it can reach your OneUptime URL.",
+            "view_runner",
+          ],
+        ],
+      ],
+      [
+        "an advanced Runner, signed off",
+        [
+          [
+            "runner_offline",
+            "Start the Runner and make sure it can reach your OneUptime URL.",
+            "view_runner",
+          ],
+        ],
+      ],
+      [
+        "an advanced Runner, not accepting AI commands",
+        [
+          [
+            "runner_ai_commands_disabled",
+            'Turn on "Runs AI Remediation Commands" on the Runner.',
+            "view_runner",
+          ],
+        ],
+      ],
+      [
+        "an advanced Runner without a credential",
+        [["credential_missing", CHOOSE_CREDENTIAL_STEP, "view_runner"]],
+      ],
+      [
+        "an advanced Runner whose credential is another Runner's",
+        [["credential_missing", CHOOSE_CREDENTIAL_STEP, "view_runner"]],
+      ],
+      [
+        "an advanced Runner whose credential was deleted",
+        [["credential_missing", CHOOSE_CREDENTIAL_STEP, "view_runner"]],
+      ],
+      [
+        "an advanced Runner in a pod of no named cluster, fixes on",
+        [
+          ["runner_cluster_mismatch", CHOOSE_CREDENTIAL_STEP, "view_runner"],
+          [
+            "remediation_write_access_missing",
+            "Set ONEUPTIME_KUBECTL_ALLOW_WRITES=true on the Runner's host and restart it.",
+            null,
+          ],
+        ],
+      ],
+      [
+        "an advanced Runner, AI off for the project",
+        [
+          [
+            "project_ai_disabled",
+            "Turn on AI for this project.",
+            "open_ai_features",
+          ],
+        ],
+      ],
+    ];
+
+    for (const [name, steps] of expected) {
+      const status: KubernetesClusterAiAccessStatus = byName.get(name)!;
+
+      expect({ name, advanced: isAdvancedRunnerTarget(status) }).toEqual({
+        name,
+        advanced: true,
+      });
+      expect({
+        name,
+        steps: (getAiAgentAttention(status)?.steps || []).map(
+          (step: AiAgentAttentionStep): [string, string, string | null] => {
+            return [step.gap.code, step.text, step.action];
+          },
+        ),
+      }).toEqual({ name, steps });
+    }
+
+    /*
+     * Enable AI is the one switch for a Runner's commands too: off, it
+     * blocks investigation and fixes alike.
+     */
+    expect(
+      getAiAgentAttention(
+        byName.get("an advanced Runner, AI off for the project")!,
+      )?.title,
+    ).toBe("OneUptime AI can't investigate this cluster or run fixes on it");
+  });
+
+  test("a read-only executor with fixes on: the commands below for the agent", async () => {
+    const status: KubernetesClusterAiAccessStatus = await pageStatus({
+      cluster: fakeCluster(FIXES_ON),
+      agentRow: makeAgentRow(),
+    });
+    const attention: AiAgentAttention | null = getAiAgentAttention(status);
+
+    expect(status.isInvestigationReady).toBe(true);
+    expect(status.isRemediationReady).toBe(false);
+    expect(shouldShowWriteAccessCommands(status)).toBe(true);
+    expect(attention?.title).toBe(
+      "OneUptime AI can't run fixes on this cluster",
+    );
+    expect(stepTexts(attention)).toEqual([
+      "Give the Kubernetes AI agent write access with the commands below.",
+    ]);
+  });
+
+  test("the project's gates: one step each, in the server's order, each with its settings page", async () => {
+    const status: KubernetesClusterAiAccessStatus = await pageStatus({
+      cluster: fakeCluster(FIXES_ON),
+      agentRow: makeAgentRow({ posture: agentPosture({ allowWrites: true }) }),
+      gates: CLOSED_GATES,
+    });
+    const attention: AiAgentAttention | null = getAiAgentAttention(status);
+
+    expect(attention?.title).toBe(
+      "OneUptime AI can't investigate this cluster or run fixes on it",
+    );
+    expect(
+      (attention?.steps || []).map(
+        (step: AiAgentAttentionStep): [string, string, string | null] => {
+          return [step.gap.code, step.text, step.action];
+        },
+      ),
+    ).toEqual([
+      [
+        "project_ai_disabled",
+        "Turn on AI for this project.",
+        "open_ai_features",
+      ],
+      [
+        "llm_provider_missing",
+        "Add an AI provider for this project, or use OneUptime AI credits.",
+        "open_llm_providers",
+      ],
+      [
+        "ai_balance_insufficient",
+        "Add AI credits to this project, or turn on auto-recharge.",
+        "open_ai_credits",
+      ],
+    ]);
+  });
+
+  test("the bound Runner just deleted: reload", async () => {
+    const status: KubernetesClusterAiAccessStatus = await pageStatus({
+      cluster: fakeCluster(LEGACY_BINDING),
+      runner: null,
+    });
+
+    expect(gapCodes(status)).toEqual([
+      "runner_missing",
+      "remediation_disabled",
+    ]);
+    expect(stepTexts(getAiAgentAttention(status))).toEqual([
+      "Reload this page. The Runner this cluster was bound to was just deleted.",
+    ]);
   });
 });
 

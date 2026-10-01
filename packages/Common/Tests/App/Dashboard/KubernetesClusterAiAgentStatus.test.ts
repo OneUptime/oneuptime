@@ -13,6 +13,8 @@ import {
   AI_AGENT_STATUS_POLL_INTERVAL_MS,
   AI_AGENT_UPGRADE_CHART_TEXT,
   ASK_PROJECT_ADMIN_TEXT,
+  AiAgentAttention,
+  AiAgentAttentionStep,
   AiAgentCardState,
   AiAgentOfflineReason,
   CHOICE_GAP_CODES,
@@ -20,6 +22,9 @@ import {
   canSwitchToAiAgent,
   describeAiAgentNodeOperations,
   describeAiAgentWriteAccess,
+  getAiAgentAttention,
+  getAiAgentAttentionStepText,
+  getAiAgentAttentionTitle,
   getAiAgentCardCommand,
   getAiAgentCardState,
   getAiAgentGapAction,
@@ -49,6 +54,7 @@ import {
   KubernetesAiAgentSummary,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  KUBECTL_ALLOW_WRITES_ENV,
   KUBERNETES_AI_AGENT_DISPLAY_NAME,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 
@@ -58,8 +64,9 @@ import {
  * card is in (the agent connected or offline, not installed, the previous
  * in-cluster Runner, an advanced Runner), the words and the one command for
  * each, the meta line, the refused-registration warning, which server gaps
- * the "Needs attention" card lists and what each row offers, when the
- * write-access commands show, and the automatic-investigation footer.
+ * the "Needs attention" card holds — as ONE item: a headline, then a short
+ * step per gap with what it offers — when the write-access commands show,
+ * and the automatic-investigation footer.
  */
 
 const AGENT_ID: string = "99999999-0000-4000-8000-000000000009";
@@ -1008,6 +1015,736 @@ describe("the Needs attention card", () => {
 
   test("tells a user without permission who to ask", () => {
     expect(ASK_PROJECT_ADMIN_TEXT).toBe("Ask a project owner or admin.");
+  });
+});
+
+/*
+ * "Needs attention" as ONE item: a headline that says what OneUptime AI
+ * cannot do on the cluster, then one short step per gap in this page's
+ * words, each with the action its gap offers.
+ */
+
+// What each gap blocks, as KubernetesClusterAiAccessService sets it.
+const SERVER_BLOCKS: Record<
+  KubernetesAiAccessGapCode,
+  KubernetesAiAccessGap["blocks"]
+> = {
+  ai_agent_not_connected: "both",
+  ai_agent_offline: "both",
+  ai_balance_insufficient: "both",
+  runner_missing: "both",
+  runner_offline: "both",
+  runner_ai_commands_disabled: "both",
+  runner_cluster_mismatch: "both",
+  credential_missing: "both",
+  investigation_disabled: "investigation",
+  remediation_disabled: "remediation",
+  remediation_write_access_missing: "remediation",
+  project_ai_disabled: "both",
+  llm_provider_missing: "both",
+  // Kept in the union, no longer produced (an older server may send them).
+  project_auto_remediation_disabled: "remediation",
+  project_ai_command_execution_disabled: "remediation",
+  no_runner_bound: "both",
+  credential_on_agent_runner: "both",
+  last_access_check_failed: "both",
+};
+
+const ALL_GAP_CODES: Array<KubernetesAiAccessGapCode> = Object.keys(
+  SERVER_BLOCKS,
+) as Array<KubernetesAiAccessGapCode>;
+
+function serverGap(code: KubernetesAiAccessGapCode): KubernetesAiAccessGap {
+  return gap(code, SERVER_BLOCKS[code]);
+}
+
+function stepTexts(attention: AiAgentAttention | null): Array<string> {
+  return (attention?.steps || []).map((step: AiAgentAttentionStep): string => {
+    return step.text;
+  });
+}
+
+function stepCodes(
+  attention: AiAgentAttention | null,
+): Array<KubernetesAiAccessGapCode> {
+  return (attention?.steps || []).map(
+    (step: AiAgentAttentionStep): KubernetesAiAccessGapCode => {
+      return step.gap.code;
+    },
+  );
+}
+
+const AGENT_NAME: string = KUBERNETES_AI_AGENT_DISPLAY_NAME;
+
+const UPGRADE_STEP: string = `Upgrade the Kubernetes agent chart with the command above. The ${AGENT_NAME} replaces the previous in-cluster Runner.`;
+
+const CHOOSE_CREDENTIAL_STEP: string = `With Change below, choose a Kubernetes credential the Runner may use, or clear the Runner to use the ${AGENT_NAME}.`;
+
+describe("Needs attention, as one item", () => {
+  test("nothing to show without gaps, or with only the fixes-off choice", () => {
+    expect(getAiAgentAttention(agentStatus({ gaps: [] }), NOW)).toBeNull();
+    expect(
+      getAiAgentAttention(
+        agentStatus({ gaps: [serverGap("remediation_disabled")] }),
+        NOW,
+      ),
+    ).toBeNull();
+  });
+
+  test("a new cluster: one headline, two short steps", () => {
+    const attention: AiAgentAttention | null = getAiAgentAttention(
+      notInstalledStatus({
+        isInvestigationEnabled: false,
+        gaps: [
+          serverGap("ai_agent_not_connected"),
+          serverGap("investigation_disabled"),
+          serverGap("remediation_disabled"),
+        ],
+      }),
+      NOW,
+    );
+
+    expect(attention).toEqual({
+      title: "OneUptime AI can't investigate this cluster",
+      steps: [
+        {
+          gap: serverGap("ai_agent_not_connected"),
+          text: "Install the Kubernetes AI agent with the command above.",
+          action: null,
+        },
+        {
+          gap: serverGap("investigation_disabled"),
+          text: "Turn on AI investigation with kubectl.",
+          action: "turn_on_investigation",
+        },
+      ],
+    });
+  });
+
+  test("keeps the server's order and gives each step its gap's action", () => {
+    const gaps: Array<KubernetesAiAccessGap> = [
+      serverGap("ai_agent_offline"),
+      serverGap("investigation_disabled"),
+      serverGap("remediation_write_access_missing"),
+      serverGap("project_ai_disabled"),
+      serverGap("llm_provider_missing"),
+      serverGap("ai_balance_insufficient"),
+      serverGap("project_auto_remediation_disabled"),
+    ];
+    const status: KubernetesClusterAiAccessStatus = agentStatus(
+      {
+        remediationMode: KubernetesAiRemediationMode.RequireApproval,
+        isInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps,
+      },
+      silentAgent(),
+    );
+    const attention: AiAgentAttention = getAiAgentAttention(status, NOW)!;
+
+    expect(stepCodes(attention)).toEqual(
+      gaps.map((item: KubernetesAiAccessGap): KubernetesAiAccessGapCode => {
+        return item.code;
+      }),
+    );
+    expect(
+      attention.steps.map((step: AiAgentAttentionStep): string | null => {
+        return step.action;
+      }),
+    ).toEqual([
+      null,
+      "turn_on_investigation",
+      null,
+      "open_ai_features",
+      "open_llm_providers",
+      "open_ai_credits",
+      "open_ai_features",
+    ]);
+    for (const step of attention.steps) {
+      expect(step.action).toBe(getAiAgentGapAction(step.gap, status));
+      expect(step.text).toBe(
+        getAiAgentAttentionStepText(step.gap, status, NOW),
+      );
+    }
+    expect(attention.title).toBe(getAiAgentAttentionTitle(status));
+  });
+
+  test("an advanced Runner's steps link to the Runner", () => {
+    const attention: AiAgentAttention | null = getAiAgentAttention(
+      advancedStatus(
+        {
+          isInvestigationReady: false,
+          gaps: [
+            serverGap("runner_offline"),
+            serverGap("runner_ai_commands_disabled"),
+            serverGap("credential_missing"),
+          ],
+        },
+        false,
+      ),
+      NOW,
+    );
+
+    expect(
+      attention?.steps.map((step: AiAgentAttentionStep): string | null => {
+        return step.action;
+      }),
+    ).toEqual(["view_runner", "view_runner", "view_runner"]);
+  });
+
+  test("one gap is one step", () => {
+    const attention: AiAgentAttention | null = getAiAgentAttention(
+      agentStatus({
+        isInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps: [serverGap("investigation_disabled")],
+      }),
+      NOW,
+    );
+
+    expect(attention?.title).toBe(
+      "OneUptime AI can't investigate this cluster",
+    );
+    expect(stepTexts(attention)).toEqual([
+      "Turn on AI investigation with kubectl.",
+    ]);
+  });
+
+  test("reads the offline wording at the time it is given", () => {
+    const status: KubernetesClusterAiAccessStatus = agentStatus(
+      { isInvestigationReady: false, gaps: [serverGap("ai_agent_offline")] },
+      signedOffAgent(),
+    );
+
+    expect(stepTexts(getAiAgentAttention(status, NOW))[0]).toMatch(
+      /^Wait a few minutes/,
+    );
+    // Ten minutes on, the sign-off it never came back from.
+    expect(
+      stepTexts(
+        getAiAgentAttention(status, new Date(NOW.getTime() + 10 * 60 * 1000)),
+      )[0],
+    ).toMatch(/^Bring the Kubernetes AI agent back online/);
+  });
+});
+
+describe("Needs attention's headline", () => {
+  test("investigation blocked, fixes off: only investigation is named", () => {
+    expect(
+      getAiAgentAttentionTitle(
+        notInstalledStatus({
+          gaps: [
+            serverGap("ai_agent_not_connected"),
+            serverGap("remediation_disabled"),
+          ],
+        }),
+      ),
+    ).toBe("OneUptime AI can't investigate this cluster");
+  });
+
+  test.each([
+    KubernetesAiRemediationMode.RequireApproval,
+    KubernetesAiRemediationMode.Automatic,
+    KubernetesAiRemediationMode.BypassApproval,
+  ])(
+    "investigation and fixes blocked with fixes on (%s): both are named",
+    (mode: KubernetesAiRemediationMode) => {
+      expect(
+        getAiAgentAttentionTitle(
+          notInstalledStatus({
+            remediationMode: mode,
+            gaps: [serverGap("ai_agent_not_connected")],
+          }),
+        ),
+      ).toBe("OneUptime AI can't investigate this cluster or run fixes on it");
+    },
+  );
+
+  test("investigation off while fixes are on and working: only investigation", () => {
+    expect(
+      getAiAgentAttentionTitle(
+        agentStatus({
+          isInvestigationEnabled: false,
+          remediationMode: KubernetesAiRemediationMode.RequireApproval,
+          isRemediationReady: true,
+          gaps: [serverGap("investigation_disabled")],
+        }),
+      ),
+    ).toBe("OneUptime AI can't investigate this cluster");
+  });
+
+  test("a read-only agent while fixes are on: only fixes are named", () => {
+    expect(
+      getAiAgentAttentionTitle(
+        agentStatus({
+          remediationMode: KubernetesAiRemediationMode.Automatic,
+          gaps: [serverGap("remediation_write_access_missing")],
+        }),
+      ),
+    ).toBe("OneUptime AI can't run fixes on this cluster");
+  });
+
+  // The retired switches an older server may still send mid-rollout.
+  test("retired project switches that only stopped fixes name only fixes", () => {
+    expect(
+      getAiAgentAttentionTitle(
+        advancedStatus({
+          remediationMode: KubernetesAiRemediationMode.RequireApproval,
+          gaps: [
+            serverGap("project_auto_remediation_disabled"),
+            serverGap("project_ai_command_execution_disabled"),
+          ],
+        }),
+      ),
+    ).toBe("OneUptime AI can't run fixes on this cluster");
+  });
+
+  test("a gap that blocks only fixes still says fixes when they are off", () => {
+    expect(
+      getAiAgentAttentionTitle(
+        agentStatus({
+          gaps: [
+            serverGap("remediation_disabled"),
+            serverGap("project_auto_remediation_disabled"),
+          ],
+        }),
+      ),
+    ).toBe("OneUptime AI can't run fixes on this cluster");
+  });
+
+  test("the fixes-off choice never counts toward the headline", () => {
+    expect(
+      getAiAgentAttentionTitle(
+        agentStatus({
+          remediationMode: KubernetesAiRemediationMode.RequireApproval,
+          gaps: [
+            // Not what the server sends together, but the choice must not count.
+            serverGap("remediation_disabled"),
+            serverGap("investigation_disabled"),
+          ],
+        }),
+      ),
+    ).toBe("OneUptime AI can't investigate this cluster");
+  });
+
+  test("an unknown fixes mode reads as off", () => {
+    expect(
+      getAiAgentAttentionTitle(
+        notInstalledStatus({
+          remediationMode: "Sometimes" as KubernetesAiRemediationMode,
+          gaps: [serverGap("ai_agent_not_connected")],
+        }),
+      ),
+    ).toBe("OneUptime AI can't investigate this cluster");
+  });
+
+  test("a gap that blocks neither falls back to a plain sentence", () => {
+    expect(
+      getAiAgentAttentionTitle(
+        agentStatus({
+          remediationMode: KubernetesAiRemediationMode.RequireApproval,
+          gaps: [
+            {
+              ...serverGap("ai_agent_offline"),
+              blocks: "nothing" as KubernetesAiAccessGap["blocks"],
+            },
+          ],
+        }),
+      ),
+    ).toBe("OneUptime AI can't do all of its job on this cluster");
+  });
+
+  test("every target, the same three headlines", () => {
+    for (const status of [
+      agentStatus({ gaps: [serverGap("ai_agent_offline")] }, silentAgent()),
+      legacyStatus({ gaps: [serverGap("runner_offline")] }, false),
+      advancedStatus({ gaps: [serverGap("credential_missing")] }),
+      notInstalledStatus(),
+    ]) {
+      expect(getAiAgentAttentionTitle(status)).toBe(
+        "OneUptime AI can't investigate this cluster",
+      );
+      expect(
+        getAiAgentAttentionTitle({
+          ...status,
+          remediationMode: KubernetesAiRemediationMode.Automatic,
+        }),
+      ).toBe("OneUptime AI can't investigate this cluster or run fixes on it");
+    }
+  });
+});
+
+describe("Needs attention's steps", () => {
+  const fixesOn: Partial<KubernetesClusterAiAccessStatus> = {
+    remediationMode: KubernetesAiRemediationMode.RequireApproval,
+  };
+
+  test.each([
+    [
+      "ai_agent_not_connected",
+      "Install the Kubernetes AI agent with the command above.",
+    ],
+    ["investigation_disabled", "Turn on AI investigation with kubectl."],
+    ["project_ai_disabled", "Turn on AI for this project."],
+    // Retired: Enable AI covers both, so an older server's gap asks for it.
+    ["project_auto_remediation_disabled", "Turn on AI for this project."],
+    ["project_ai_command_execution_disabled", "Turn on AI for this project."],
+    [
+      "llm_provider_missing",
+      "Add an AI provider for this project, or use OneUptime AI credits.",
+    ],
+    [
+      "ai_balance_insufficient",
+      "Add AI credits to this project, or turn on auto-recharge.",
+    ],
+    [
+      "runner_missing",
+      "Reload this page. The Runner this cluster was bound to was just deleted.",
+    ],
+  ])("%s: %s", (code: string, text: string) => {
+    expect(
+      getAiAgentAttentionStepText(
+        serverGap(code as KubernetesAiAccessGapCode),
+        agentStatus(),
+        NOW,
+      ),
+    ).toBe(text);
+  });
+
+  test("an old server's no_runner_bound reads as the agent not installed", () => {
+    expect(
+      getAiAgentAttentionStepText(
+        serverGap("no_runner_bound"),
+        notInstalledStatus(),
+        NOW,
+      ),
+    ).toBe("Install the Kubernetes AI agent with the command above.");
+  });
+
+  describe("an offline agent", () => {
+    const BRING_BACK: string =
+      "Bring the Kubernetes AI agent back online. Its logs say why it is offline (the command is above).";
+
+    test("whose heartbeats stopped: bring it back, its logs say why", () => {
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("ai_agent_offline"),
+          agentStatus({}, silentAgent()),
+          NOW,
+        ),
+      ).toBe(BRING_BACK);
+    });
+
+    test("that signed off long ago: bring it back", () => {
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("ai_agent_offline"),
+          agentStatus({}, goneAgent()),
+          NOW,
+        ),
+      ).toBe(BRING_BACK);
+    });
+
+    /*
+     * A helm upgrade's old pod signs off and the new one registers within
+     * minutes: the card says it reconnects on its own, and so does the step.
+     */
+    test("right after a sign-off or reset: wait, then read its logs", () => {
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("ai_agent_offline"),
+          agentStatus({}, signedOffAgent()),
+          NOW,
+        ),
+      ).toBe(
+        "Wait a few minutes for the Kubernetes AI agent to reconnect. If it does not, its logs say why (the command is above).",
+      );
+    });
+
+    test("from an older server without the agent row: bring it back", () => {
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("ai_agent_offline"),
+          agentStatus({ aiAgent: null }, silentAgent()),
+          NOW,
+        ),
+      ).toBe(BRING_BACK);
+    });
+  });
+
+  describe("the previous in-cluster Runner is replaced, not fixed", () => {
+    test.each([
+      "runner_offline",
+      "runner_ai_commands_disabled",
+      "runner_cluster_mismatch",
+      "credential_missing",
+      "credential_on_agent_runner",
+    ])("%s: upgrade the chart with the command above", (code: string) => {
+      for (const isOnline of [true, false]) {
+        expect(
+          getAiAgentAttentionStepText(
+            serverGap(code as KubernetesAiAccessGapCode),
+            legacyStatus({}, isOnline),
+            NOW,
+          ),
+        ).toBe(UPGRADE_STEP);
+      }
+    });
+
+    test("read-only with fixes on: upgrade to the agent with the write-access commands below", () => {
+      const status: KubernetesClusterAiAccessStatus = legacyStatus(fixesOn);
+
+      expect(shouldShowWriteAccessCommands(status)).toBe(true);
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("remediation_write_access_missing"),
+          status,
+          NOW,
+        ),
+      ).toBe(
+        "Upgrade to the Kubernetes AI agent with write access, using the commands below.",
+      );
+    });
+  });
+
+  describe("a Runner an operator bound", () => {
+    test("offline: start it", () => {
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("runner_offline"),
+          advancedStatus({}, false),
+          NOW,
+        ),
+      ).toBe("Start the Runner and make sure it can reach your OneUptime URL.");
+    });
+
+    test("not accepting AI commands: turn them on, on the Runner", () => {
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("runner_ai_commands_disabled"),
+          advancedStatus(),
+          NOW,
+        ),
+      ).toBe('Turn on "Runs AI Remediation Commands" on the Runner.');
+    });
+
+    test("without a credential, or not saying which cluster it is in: choose a credential or clear it", () => {
+      for (const code of [
+        "credential_missing",
+        "runner_cluster_mismatch",
+      ] as Array<KubernetesAiAccessGapCode>) {
+        expect(
+          getAiAgentAttentionStepText(serverGap(code), advancedStatus(), NOW),
+        ).toBe(CHOOSE_CREDENTIAL_STEP);
+      }
+    });
+
+    test("an old server's credential_on_agent_runner: choose a dashboard Runner or clear it", () => {
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("credential_on_agent_runner"),
+          advancedStatus(),
+          NOW,
+        ),
+      ).toBe(
+        "With Change below, choose a Runner created in the dashboard, or clear the Runner to use the Kubernetes AI agent.",
+      );
+    });
+
+    test("read-only with fixes on: the setting on the Runner's host, not the chart's commands", () => {
+      const status: KubernetesClusterAiAccessStatus = advancedStatus({
+        ...fixesOn,
+        runner: {
+          ...advancedStatus().runner!,
+          posture: { inCluster: true, allowWrites: false },
+        },
+      });
+
+      expect(shouldShowWriteAccessCommands(status)).toBe(false);
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("remediation_write_access_missing"),
+          status,
+          NOW,
+        ),
+      ).toBe(
+        `Set ${KUBECTL_ALLOW_WRITES_ENV}=true on the Runner's host and restart it.`,
+      );
+    });
+  });
+
+  describe("the agent", () => {
+    test("read-only with fixes on: the write-access commands below", () => {
+      const status: KubernetesClusterAiAccessStatus = agentStatus(fixesOn);
+
+      expect(shouldShowWriteAccessCommands(status)).toBe(true);
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("remediation_write_access_missing"),
+          status,
+          NOW,
+        ),
+      ).toBe(
+        "Give the Kubernetes AI agent write access with the commands below.",
+      );
+    });
+
+    test("that has not reported this cluster: reset it", () => {
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("runner_cluster_mismatch"),
+          agentStatus({ accessMethod: "none" }),
+          NOW,
+        ),
+      ).toBe(
+        "Reset the Kubernetes AI agent. It reconnects on its own within a few minutes.",
+      );
+    });
+  });
+
+  describe("a step this page has no words for keeps the server's", () => {
+    test("a Runner gap without a Runner", () => {
+      for (const code of [
+        "runner_offline",
+        "runner_ai_commands_disabled",
+        "credential_missing",
+        "credential_on_agent_runner",
+      ] as Array<KubernetesAiAccessGapCode>) {
+        for (const status of [agentStatus(), notInstalledStatus()]) {
+          expect(
+            getAiAgentAttentionStepText(serverGap(code), status, NOW),
+          ).toBe(`next step for ${code}`);
+        }
+      }
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("runner_cluster_mismatch"),
+          notInstalledStatus(),
+          NOW,
+        ),
+      ).toBe("next step for runner_cluster_mismatch");
+    });
+
+    test("write access while the page shows no commands for it", () => {
+      // Fixes off, which the server never sends with this gap.
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("remediation_write_access_missing"),
+          agentStatus(),
+          NOW,
+        ),
+      ).toBe("next step for remediation_write_access_missing");
+    });
+
+    test("a failed access check: test again, once there is something to test", () => {
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("last_access_check_failed"),
+          agentStatus(),
+          NOW,
+        ),
+      ).toBe("Test the connection again.");
+      expect(
+        getAiAgentAttentionStepText(
+          serverGap("last_access_check_failed"),
+          notInstalledStatus(),
+          NOW,
+        ),
+      ).toBe("next step for last_access_check_failed");
+    });
+
+    test("a gap this build does not know: the server's next step, or its title", () => {
+      const unknown: KubernetesAiAccessGap = {
+        ...serverGap("ai_agent_offline"),
+        code: "something_new" as KubernetesAiAccessGapCode,
+        title: "Something new is wrong",
+        nextStep: "Do the new thing.",
+      };
+
+      expect(getAiAgentAttentionStepText(unknown, agentStatus(), NOW)).toBe(
+        "Do the new thing.",
+      );
+      expect(
+        getAiAgentAttentionStepText(
+          { ...unknown, nextStep: "" },
+          agentStatus(),
+          NOW,
+        ),
+      ).toBe("Something new is wrong");
+    });
+  });
+
+  /*
+   * For every gap code, on every target it can come with, the step is this
+   * page's own sentence: never the server's, never a pointer back to this
+   * page, never the helm or kubectl command the card already shows.
+   */
+  test("every gap on its own target reads in this page's words", () => {
+    const targetFor: (
+      code: KubernetesAiAccessGapCode,
+    ) => Array<KubernetesClusterAiAccessStatus> = (
+      code: KubernetesAiAccessGapCode,
+    ): Array<KubernetesClusterAiAccessStatus> => {
+      switch (code) {
+        case "ai_agent_not_connected":
+        case "no_runner_bound":
+        case "runner_missing":
+          return [notInstalledStatus()];
+        case "ai_agent_offline":
+          return [
+            agentStatus({}, silentAgent()),
+            agentStatus({}, signedOffAgent()),
+            agentStatus({}, goneAgent()),
+          ];
+        case "runner_offline":
+          return [legacyStatus({}, false), advancedStatus({}, false)];
+        case "runner_ai_commands_disabled":
+        case "credential_missing":
+        case "credential_on_agent_runner":
+          return [legacyStatus(), advancedStatus()];
+        case "runner_cluster_mismatch":
+          return [agentStatus(), legacyStatus(), advancedStatus()];
+        case "remediation_write_access_missing":
+          return [
+            agentStatus(fixesOn),
+            legacyStatus(fixesOn),
+            advancedStatus({
+              ...fixesOn,
+              runner: {
+                ...advancedStatus().runner!,
+                posture: { inCluster: true, allowWrites: false },
+              },
+            }),
+          ];
+        default:
+          return [agentStatus(), legacyStatus(), advancedStatus()];
+      }
+    };
+
+    for (const code of ALL_GAP_CODES) {
+      if (CHOICE_GAP_CODES.includes(code)) {
+        continue;
+      }
+
+      for (const status of targetFor(code)) {
+        const text: string = getAiAgentAttentionStepText(
+          serverGap(code),
+          status,
+          NOW,
+        );
+
+        expect({ code, text }).toEqual({
+          code,
+          text: expect.stringMatching(/^[A-Z].*\.$/),
+        });
+        expect({ code, text }).toEqual({
+          code,
+          text: expect.not.stringMatching(
+            /next step for|title of|AI → Agent|AI agent page|helm |kubectl logs/,
+          ),
+        });
+      }
+    }
   });
 });
 
