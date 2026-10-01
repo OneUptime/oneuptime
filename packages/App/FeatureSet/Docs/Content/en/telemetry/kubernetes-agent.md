@@ -505,7 +505,7 @@ The chart runs a DaemonSet with [OpenTelemetry eBPF Instrumentation (OBI)](https
 
 eBPF sees network calls, not your code, so a trace is built from the requests a service handles and the calls it makes while handling them:
 
-- **A request and its calls form one trace.** The request into a service is the root span, named `<METHOD> <route>`, and the HTTP, gRPC, SQL and Redis calls the service makes while handling it are its children. (For Node.js this relies on OBI's Node.js agent, which the chart enables with `ebpf.nodejs.enabled`.)
+- **A request and its calls form one trace.** The request into a service is the root span, named `<METHOD> <route>`, and the HTTP, gRPC, SQL and Redis calls the service makes while handling it are its children. (For Node.js this relies on OBI's Node.js agent, which the chart enables with `ebpf.nodejs.enabled`.) Calls that concurrent requests send down one shared connection — typical for Redis clients — cannot always be told apart, so some of those are not placed in their request's trace.
 - **A hop to another service starts a new trace**, unless something carries the trace context across — an OpenTelemetry SDK, or the opt-in context propagation described below.
 - **Work that no request triggered stands alone.** A queue worker polling Redis or a cron job has no request for its calls to belong to.
 - **Database servers never join the caller's trace.** Database wire protocols carry no trace context, so the span OBI records inside a database server for each command can only ever be a trace of one span.
