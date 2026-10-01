@@ -135,5 +135,5 @@ To ting å passe på:
 ## Hvor du leser videre
 
 - [Arbeidsflyt-komponenter](/docs/workflows/components) — hele listen over utdata hver blokk produserer.
-- [Arbeidsflyt-kjøringer & logger](/docs/workflows/runs-and-logs) — se den faktiske verdien til hver variabel etter en kjøring.
+- [Arbeidsflyt-kjøringer](/docs/workflows/runs-and-logs) — se den faktiske verdien til hver variabel etter en kjøring.
 - [Arbeidsflyt-konfigurasjon & sikkerhet](/docs/workflows/configuration) — hva som er trygt å legge i en global variabel.

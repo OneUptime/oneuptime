@@ -78,4 +78,4 @@ Um workflow só pode ter um trigger. Se você precisa de duas formas de iniciar 
 
 - [Componentes de workflow](/docs/workflows/components) — as ações que você adiciona depois do trigger.
 - [Variáveis de workflow](/docs/workflows/variables) — lendo a saída do trigger em blocos posteriores.
-- [Execuções e registros de workflow](/docs/workflows/runs-and-logs) — confirmando que seu trigger disparou.
+- [Execuções de workflow](/docs/workflows/runs-and-logs) — confirmando que seu trigger disparou.

@@ -135,5 +135,5 @@ To ting at holde øje med:
 ## Hvor du kan læse videre
 
 - [Workflow-komponenter](/docs/workflows/components) — den fulde liste over det output, hver blok producerer.
-- [Workflow-kørsler & logfiler](/docs/workflows/runs-and-logs) — se den faktiske værdi af hver variabel efter en kørsel.
+- [Workflow-kørsler](/docs/workflows/runs-and-logs) — se den faktiske værdi af hver variabel efter en kørsel.
 - [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration) — hvad der er sikkert at lægge i en global variabel.

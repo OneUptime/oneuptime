@@ -135,5 +135,5 @@ Två saker att se upp med:
 ## Läs vidare
 
 - [Arbetsflödeskomponenter](/docs/workflows/components) — hela listan över output varje block producerar.
-- [Arbetsflödeskörningar & loggar](/docs/workflows/runs-and-logs) — se det faktiska värdet på varje variabel efter en körning.
+- [Arbetsflödeskörningar](/docs/workflows/runs-and-logs) — se det faktiska värdet på varje variabel efter en körning.
 - [Arbetsflödeskonfiguration & säkerhet](/docs/workflows/configuration) — vad som är säkert att lägga i en global variabel.

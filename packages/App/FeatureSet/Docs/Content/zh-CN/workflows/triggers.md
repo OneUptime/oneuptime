@@ -78,4 +78,4 @@ OneUptime 里几乎所有东西——监视器、事件、告警、计划维护�
 
 - [工作流组件](/docs/workflows/components) —— 触发器之后你要添加的那些动作。
 - [工作流变量](/docs/workflows/variables) —— 在后面的方块里读取触发器的输出。
-- [工作流运行与日志](/docs/workflows/runs-and-logs) —— 确认你的触发器确实触发了。
+- [工作流运行记录](/docs/workflows/runs-and-logs) —— 确认你的触发器确实触发了。

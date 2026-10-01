@@ -96,4 +96,4 @@ Per mettere in pausa un workflow senza eliminarlo, spegni **Abilitato**. Non par
 - [Trigger del workflow](/docs/workflows/triggers) — i quattro modi in cui un workflow può partire.
 - [Componenti del workflow](/docs/workflows/components) — tutti i blocchi che puoi aggiungere.
 - [Variabili del workflow](/docs/workflows/variables) — spostare i dati tra i blocchi.
-- [Esecuzioni e log del workflow](/docs/workflows/runs-and-logs) — controllare che cosa è successo.
+- [Esecuzioni del workflow](/docs/workflows/runs-and-logs) — controllare che cosa è successo.

@@ -151,7 +151,7 @@ Erstatt konto-GUID-en med kontoen disse sakene hører til. **`customerid` er vir
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-Slå nå på arbeidsflyten — **Oversikt → Rediger arbeidsflyt → Aktivert** — opprett en testhendelse, og les kjøringen under **Kjøringer og logger**. `create-case`-blokken bør vise en `201` og en kropp som inneholder den nye `incidentid`. Endringer på lerretet lagrer seg selv; det finnes ingen Lagre-knapp.
+Slå nå på arbeidsflyten — **Oversikt → Rediger arbeidsflyt → Aktivert** — opprett en testhendelse, og les kjøringen under **Logger → Kjøringer**. `create-case`-blokken bør vise en `201` og en kropp som inneholder den nye `incidentid`. Endringer på lerretet lagrer seg selv; det finnes ingen Lagre-knapp.
 
 ### Å mappe alvorlighetsgrad og status
 
@@ -323,7 +323,7 @@ En arbeidsflyt har nøyaktig én trigger, så hendelser og varsler trenger én a
 
 ## Feilsøking
 
-Les den feilende blokken i **Kjøringer og logger** først — begge Microsoft-endepunktene returnerer en forklarende JSON-kropp, og API-komponenten beholder den i `response-body`.
+Les den feilende blokken i **Logger → Kjøringer** først — begge Microsoft-endepunktene returnerer en forklarende JSON-kropp, og API-komponenten beholder den i `response-body`.
 
 **Tokenforespørselen feiler med `400` og `invalid_request` eller en grant type som ikke støttes.** `Content-Type`-headeren er ikke nøyaktig `Content-Type: application/x-www-form-urlencoded`, så kroppen gikk ut som JSON. Sjekk bruken av store og små bokstaver.
 
@@ -343,7 +343,7 @@ Les den feilende blokken i **Kjøringer og logger** først — begge Microsoft-e
 
 **`429 Too Many Requests`.** Dataverses tjenestebeskyttelsesgrenser — grovt regnet 6 000 forespørsler og 20 minutters kjøretid per bruker i et hvilket som helst femminuttersvindu, per webserver. Svaret bærer en `Retry-After` i sekunder. Kommer en arbeidsflyt i byger, legger du en **Delay**-blokk inn i den eller flytter arbeidet til en planlagt arbeidsflyt som kjører i bolker.
 
-**Ingenting kommer fram på OneUptime-siden.** Send en forespørsel til webhook-URL-en selv med `curl` og sjekk arbeidsflytens **Kjøringer og logger**. Dukker din egen forespørsel opp mens Dynamics' ikke gjør det, ligger problemet oppstrøms: for Power Automate ser du på flytens egen kjørehistorikk; for en nativ webhook ser du på **Settings → System Jobs** filtrert på feil.
+**Ingenting kommer fram på OneUptime-siden.** Send en forespørsel til webhook-URL-en selv med `curl` og sjekk arbeidsflytens **Logger → Kjøringer**. Dukker din egen forespørsel opp mens Dynamics' ikke gjør det, ligger problemet oppstrøms: for Power Automate ser du på flytens egen kjørehistorikk; for en nativ webhook ser du på **Settings → System Jobs** filtrert på feil.
 
 **Arbeidsflyten kjører, men hendelsen endrer seg ikke.** En **Update One Incident**-blokk rapporterer `Items Updated: 0` når spørringen ikke matchet noe — det er en suksess, ikke en feil. Sjekk at id-en i nyttelasten er OneUptime-hendelses-id-en, og at du spør på `_id`.
 

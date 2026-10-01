@@ -82,4 +82,4 @@ A workflow can only have one trigger. If you need two ways to start the same aut
 
 - [Components](/docs/workflows/components) — the actions you add after the trigger.
 - [Variables](/docs/workflows/variables) — reading trigger output from later blocks.
-- [Runs & Logs](/docs/workflows/runs-and-logs) — confirming your trigger fired.
+- [Runs](/docs/workflows/runs-and-logs) — confirming your trigger fired.

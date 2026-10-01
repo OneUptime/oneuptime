@@ -135,5 +135,5 @@ Zwei Dinge, auf die Sie achten sollten:
 ## Weiterführende Themen
 
 - [Workflow-Komponenten](/docs/workflows/components) – die vollständige Liste der Ausgaben, die jeder Baustein produziert.
-- [Workflow-Ausführungen & Protokolle](/docs/workflows/runs-and-logs) – den tatsächlichen Wert jeder Variablen nach einer Ausführung sehen.
+- [Workflow-Ausführungen](/docs/workflows/runs-and-logs) – den tatsächlichen Wert jeder Variablen nach einer Ausführung sehen.
 - [Workflow-Konfiguration & Sicherheit](/docs/workflows/configuration) – was gefahrlos in eine globale Variable gehört.

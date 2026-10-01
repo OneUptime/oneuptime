@@ -96,4 +96,4 @@ Vil du sætte et workflow på pause uden at slette det, slår du **Aktiveret** f
 - [Workflow-triggere](/docs/workflows/triggers) — de fire måder et workflow kan starte på.
 - [Workflow-komponenter](/docs/workflows/components) — alle de blokke, du kan tilføje.
 - [Workflow-variabler](/docs/workflows/variables) — sådan flytter du data mellem blokke.
-- [Workflow-kørsler & logfiler](/docs/workflows/runs-and-logs) — sådan tjekker du, hvad der skete.
+- [Workflow-kørsler](/docs/workflows/runs-and-logs) — sådan tjekker du, hvad der skete.

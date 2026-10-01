@@ -151,7 +151,7 @@ Ersätt konto-GUID:t med kontot som de här ärendena tillhör. **`customerid` �
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-Slå nu på arbetsflödet — **Översikt → Redigera arbetsflöde → Aktiverad** — deklarera en testincident och läs körningen under **Körningar och loggar**. Blocket `create-case` bör visa en `201` och en body som innehåller det nya `incidentid`. Ändringar på arbetsytan sparar sig själva; det finns ingen Spara-knapp.
+Slå nu på arbetsflödet — **Översikt → Redigera arbetsflöde → Aktiverad** — deklarera en testincident och läs körningen under **Loggar → Körningar**. Blocket `create-case` bör visa en `201` och en body som innehåller det nya `incidentid`. Ändringar på arbetsytan sparar sig själva; det finns ingen Spara-knapp.
 
 ### Mappa allvarlighetsgrad och status
 
@@ -323,7 +323,7 @@ Ett arbetsflöde har exakt en utlösare, så incidenter och larm behöver ett ar
 
 ## Felsökning
 
-Läs det felande blocket i **Körningar och loggar** först — båda Microsoft-endpointerna returnerar en förklarande JSON-body, och API-komponenten behåller den i `response-body`.
+Läs det felande blocket i **Loggar → Körningar** först — båda Microsoft-endpointerna returnerar en förklarande JSON-body, och API-komponenten behåller den i `response-body`.
 
 **Tokenförfrågan misslyckas med `400` och `invalid_request` eller en grant type som inte stöds.** Headern `Content-Type` är inte exakt `Content-Type: application/x-www-form-urlencoded`, så bodyn gick ut som JSON. Kontrollera versaliseringen.
 
@@ -343,7 +343,7 @@ Läs det felande blocket i **Körningar och loggar** först — båda Microsoft-
 
 **`429 Too Many Requests`.** Dataverses tjänsteskyddsgränser — ungefär 6 000 förfrågningar och 20 minuters exekveringstid per användare under ett femminutersfönster, per webbserver. Svaret bär en `Retry-After` i sekunder. Om ett arbetsflöde skickar i skurar, lägg ett **Delay**-block i det eller flytta arbetet till ett schemalagt arbetsflöde som batchar.
 
-**Ingenting kommer fram på OneUptime-sidan.** Skicka en förfrågan till webhook-URL:en själv med `curl` och kontrollera arbetsflödets **Körningar och loggar**. Om din egen förfrågan dyker upp men inte Dynamics ligger problemet uppströms: för Power Automate, titta på flödets egen körhistorik; för en inbyggd webhook, titta under **Settings → System Jobs** filtrerat på misslyckanden.
+**Ingenting kommer fram på OneUptime-sidan.** Skicka en förfrågan till webhook-URL:en själv med `curl` och kontrollera arbetsflödets **Loggar → Körningar**. Om din egen förfrågan dyker upp men inte Dynamics ligger problemet uppströms: för Power Automate, titta på flödets egen körhistorik; för en inbyggd webhook, titta under **Settings → System Jobs** filtrerat på misslyckanden.
 
 **Arbetsflödet körs men incidenten ändras inte.** Ett **Update One Incident**-block rapporterar `Items Updated: 0` när frågan inte matchade något — det är en framgång, inte ett fel. Kontrollera att id:t i payloaden är OneUptime-incidentens id och att du frågar på `_id`.
 

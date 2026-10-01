@@ -96,4 +96,4 @@ Pour mettre un workflow en pause sans le supprimer, désactivez **Activé**. Auc
 - [Déclencheurs de workflow](/docs/workflows/triggers) — les quatre façons de démarrer un workflow.
 - [Composants de workflow](/docs/workflows/components) — tous les blocs que vous pouvez ajouter.
 - [Variables de workflow](/docs/workflows/variables) — faire circuler les données entre les blocs.
-- [Exécutions et journaux de workflow](/docs/workflows/runs-and-logs) — vérifier ce qui s'est passé.
+- [Exécutions de workflow](/docs/workflows/runs-and-logs) — vérifier ce qui s'est passé.

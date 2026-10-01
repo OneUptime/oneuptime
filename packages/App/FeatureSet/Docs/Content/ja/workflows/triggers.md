@@ -78,4 +78,4 @@ OneUptime にあるほぼすべてのもの — モニター、インシデン�
 
 - [ワークフロー コンポーネント](/docs/workflows/components) — トリガーの後に足していく動作。
 - [ワークフロー 変数](/docs/workflows/variables) — 後続のブロックからトリガーの出力を読む。
-- [ワークフロー 実行とログ](/docs/workflows/runs-and-logs) — トリガーが発火したことを確かめる。
+- [ワークフロー 実行履歴](/docs/workflows/runs-and-logs) — トリガーが発火したことを確かめる。

@@ -151,7 +151,7 @@ OneUptime 是以應用程式而非個人的身分驗證，所以它使用 OAuth 
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-現在把工作流程打開——**概覽 → 編輯工作流程 → 已啟用**——宣告一個測試事件，然後在 **執行與日誌** 底下閱讀那次執行。`create-case` 區塊應該顯示 `201`，以及一個包含新 `incidentid` 的主體。畫布上的變更會自行儲存；沒有儲存按鈕。
+現在把工作流程打開——**概覽 → 編輯工作流程 → 已啟用**——宣告一個測試事件，然後在 **日誌 → 執行記錄** 底下閱讀那次執行。`create-case` 區塊應該顯示 `201`，以及一個包含新 `incidentid` 的主體。畫布上的變更會自行儲存；沒有儲存按鈕。
 
 ### 對應嚴重程度與狀態
 
@@ -323,7 +323,7 @@ Dynamics 出廠的 `severitycode` 只有一個選項「Default Value」，所以
 
 ## 疑難排解
 
-請先在 **執行與日誌** 中讀取失敗的那個區塊——兩個 Microsoft 端點都會回傳說明性的 JSON 主體，而 API 元件會把它保留在 `response-body` 中。
+請先在 **日誌 → 執行記錄** 中讀取失敗的那個區塊——兩個 Microsoft 端點都會回傳說明性的 JSON 主體，而 API 元件會把它保留在 `response-body` 中。
 
 **權杖請求以 `400` 加上 `invalid_request` 或不支援的 grant type 失敗。** `Content-Type` 標頭不是精確的 `Content-Type: application/x-www-form-urlencoded`，所以主體是以 JSON 送出去的。請檢查大小寫。
 
@@ -343,7 +343,7 @@ Dynamics 出廠的 `severitycode` 只有一個選項「Default Value」，所以
 
 **`429 Too Many Requests`。** 這是 Dataverse 的服務保護限制——大致上是每個使用者在任何五分鐘視窗內、於每一台網頁伺服器上約 6,000 個請求與 20 分鐘的執行時間。回應會帶有以秒為單位的 `Retry-After`。如果某個工作流程正在爆量，請在其中放一個 **Delay** 區塊，或把工作移到會分批處理的排程工作流程。
 
-**OneUptime 這一側什麼都沒收到。** 自己用 `curl` 對 webhook URL 送一個請求，並檢查該工作流程的 **執行與日誌**。如果您自己的請求有出現而 Dynamics 的沒有，問題就出在上游：如果是 Power Automate，請查看該 flow 自己的執行歷史；如果是原生 webhook，請查看篩選為失敗的 **Settings → System Jobs**。
+**OneUptime 這一側什麼都沒收到。** 自己用 `curl` 對 webhook URL 送一個請求，並檢查該工作流程的 **日誌 → 執行記錄**。如果您自己的請求有出現而 Dynamics 的沒有，問題就出在上游：如果是 Power Automate，請查看該 flow 自己的執行歷史；如果是原生 webhook，請查看篩選為失敗的 **Settings → System Jobs**。
 
 **工作流程有執行，但事件沒有變化。** 當查詢沒有比對到任何東西時，**Update One Incident** 區塊會回報 `Items Updated: 0`——那是成功，不是錯誤。請檢查酬載中的 id 是 OneUptime 的事件 id，而且您查詢的是 `_id`。
 

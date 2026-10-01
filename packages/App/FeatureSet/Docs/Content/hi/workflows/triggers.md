@@ -78,4 +78,4 @@ OneUptime की लगभग हर चीज़ — मॉनिटर, घट
 
 - [वर्कफ़्लो घटक](/docs/workflows/components) — trigger के बाद आप जो क्रियाएँ जोड़ते हैं।
 - [वर्कफ़्लो वेरिएबल](/docs/workflows/variables) — बाद वाले blocks से trigger का output पढ़ना।
-- [वर्कफ़्लो रन और लॉग](/docs/workflows/runs-and-logs) — यह पक्का करना कि आपका trigger चला।
+- [वर्कफ़्लो रन](/docs/workflows/runs-and-logs) — यह पक्का करना कि आपका trigger चला।

@@ -78,4 +78,4 @@ Ett arbetsflöde kan bara ha en utlösare. Behöver du två sätt att starta sam
 
 - [Arbetsflödeskomponenter](/docs/workflows/components) — åtgärderna du lägger till efter utlösaren.
 - [Arbetsflödesvariabler](/docs/workflows/variables) — att läsa utlösarens output från senare block.
-- [Arbetsflödeskörningar & loggar](/docs/workflows/runs-and-logs) — att bekräfta att din utlösare utlöstes.
+- [Arbetsflödeskörningar](/docs/workflows/runs-and-logs) — att bekräfta att din utlösare utlöstes.

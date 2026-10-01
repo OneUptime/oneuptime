@@ -1,4 +1,4 @@
-# Esecuzioni e log
+# Esecuzioni
 
 Ogni volta che un workflow parte, OneUptime salva un resoconto di quello che è successo: quando è stato eseguito, se ha funzionato e che cosa ha fatto ciascun blocco. Quel resoconto si chiama **esecuzione** (run). Le esecuzioni ti servono per confermare che un workflow ha funzionato, per capire perché uno non ha funzionato e per rileggere l'attività passata.
 
@@ -6,8 +6,8 @@ Ogni volta che un workflow parte, OneUptime salva un resoconto di quello che è 
 
 | Pagina                                       | Che cosa vedi                                                                                      |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Flussi di lavoro → Esecuzioni e registri** | Tutte le esecuzioni di tutti i workflow del progetto. Filtra per nome del workflow, stato e periodo. |
-| **Flusso di lavoro → Esecuzioni e registri** | Solo le esecuzioni di questo workflow. Qui, al posto del filtro per workflow, c'è un filtro **ID esecuzione**. |
+| **Flussi di lavoro → Registri → Esecuzioni** | Tutte le esecuzioni di tutti i workflow del progetto. Filtra per nome del workflow, stato e periodo. |
+| **Flusso di lavoro → Registri → Esecuzioni** | Solo le esecuzioni di questo workflow. Qui, al posto del filtro per workflow, c'è un filtro **ID esecuzione**. |
 | **Una singola esecuzione**                   | Si apre con il pulsante **Visualizza log** su una riga di esecuzione — le righe in sé non sono cliccabili. |
 
 ## Stati di un'esecuzione

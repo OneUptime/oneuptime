@@ -105,7 +105,7 @@ Send en e-post gjennom en SMTP-server som du legger inn på blokken.
 - **Suksess** — fyrer når SMTP-serveren godtok meldingen.
 - **Feil** — fyrer når SMTP-verten avvises, serveren ikke kan nås, eller serveren avviser meldingen. Sender videre feilmeldingen. Mangler **To Email**, **From Email**, **SMTP Host** eller **SMTP Port**, stopper kjøringen i stedet.
 
-Blokken kobler seg direkte til serveren i innstillingene sine. Den bruker verken prosjektets [SMTP](/docs/emails/smtp)-innstillinger eller OneUptimes egen e-postserver, og e-postene den sender, vises ikke i Varsellogger. Vil du sjekke hva den gjorde, se arbeidsflytens [kjøringer & logger](/docs/workflows/runs-and-logs).
+Blokken kobler seg direkte til serveren i innstillingene sine. Den bruker verken prosjektets [SMTP](/docs/emails/smtp)-innstillinger eller OneUptimes egen e-postserver, og e-postene den sender, vises ikke i Varsellogger. Vil du sjekke hva den gjorde, se arbeidsflytens [kjøringer](/docs/workflows/runs-and-logs).
 
 Tilkoblinger til loopback-adresser (`localhost`, `127.0.0.1`), link-local-adresser og skymetadata-adresser avvises. På OneUptime Cloud avvises også en SMTP-vert på en privat nettverksadresse, eller et navn som løses opp til en slik adresse. Selvhostede installasjoner kan nå en e-postserver på sitt eget nettverk, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er satt til `true`. En avvist vert går til **Feil**-utgangen, og ingenting blir sendt.
 
@@ -217,5 +217,5 @@ Noen kjappe regler:
 ## Hvor du leser videre
 
 - [Arbeidsflyt-variabler](/docs/workflows/variables) — å sende data mellom blokker.
-- [Arbeidsflyt-kjøringer & logger](/docs/workflows/runs-and-logs) — å sjekke hva hver blokk gjorde i en kjøring.
+- [Arbeidsflyt-kjøringer](/docs/workflows/runs-and-logs) — å sjekke hva hver blokk gjorde i en kjøring.
 - [Arbeidsflyt-konfigurasjon & sikkerhet](/docs/workflows/configuration) — grenser, eiere og hemmeligheter.
