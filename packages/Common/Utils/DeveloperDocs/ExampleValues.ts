@@ -18,6 +18,46 @@ import {
 export const ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE: string =
   "ONEUPTIME_API_KEY";
 
+/*
+ * Product and technology names that keep their capital in a sentence:
+ * "Kubernetes cluster", not "kubernetes cluster".
+ */
+const PROPER_NOUNS: ReadonlyArray<string> = [
+  "Docker",
+  "Swarm",
+  "Kubernetes",
+  "Podman",
+  "Proxmox",
+  "Ceph",
+  "VMware",
+  "OneUptime",
+];
+
+// A word written the ordinary way: a capital, then lower case ("Policy", "On").
+const TITLE_CASE_WORD: RegExp = /^[A-Z][a-z0-9']*$/;
+
+/*
+ * A resource's name for use inside a sentence: "Status Page" -> "status
+ * page", "On-Call Policy" -> "on-call policy", while acronyms and names keep
+ * their capitals: "AI insight", "SLOs", "IoT fleet", "Kubernetes cluster",
+ * "vCenter".
+ */
+export function toSentenceCaseName(name: string): string {
+  return name
+    .split(" ")
+    .map((word: string): string => {
+      return word
+        .split("-")
+        .map((part: string): string => {
+          return TITLE_CASE_WORD.test(part) && !PROPER_NOUNS.includes(part)
+            ? part.toLowerCase()
+            : part;
+        })
+        .join("-");
+    })
+    .join(" ");
+}
+
 // `export ONEUPTIME_API_KEY="your-api-key"`.
 export function getApiKeyExportCommand(): string {
   return `export ${ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE}="your-api-key"`;
@@ -36,7 +76,7 @@ export function getExampleJsonValue(data: {
   const { descriptor } = data;
 
   if (data.isNameColumn) {
-    return `My ${data.singularName.toLowerCase()}`;
+    return `My ${toSentenceCaseName(data.singularName)}`;
   }
 
   if (descriptor.defaultValue !== undefined) {

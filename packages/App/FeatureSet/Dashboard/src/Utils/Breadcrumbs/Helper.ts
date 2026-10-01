@@ -9,6 +9,7 @@ import {
   normalizeRoutePath,
   resolveBreadcrumbTarget,
 } from "Common/UI/Utils/Breadcrumb/BreadcrumbTrailResolver";
+import { getDeveloperDocsChildPages } from "../../Components/DeveloperDocs/DeveloperDocsResources";
 
 export function BuildBreadcrumbLinks(
   key: string,
@@ -92,27 +93,48 @@ function breadcrumbTargetToRoute(target: BreadcrumbTarget): Route {
  * destination so it always points at a real, navigable route (never a bare
  * section prefix that would render a blank page).
  */
+function buildBreadcrumbLinksForPage(
+  key: string,
+  titles: Array<string>,
+): Array<Link> {
+  const pagePattern: string = RouteUtil.getRouteString(key);
+  const realRoutePatterns: Array<string> = getRealRoutePatterns();
+
+  return titles.map((title: string, index: number): Link => {
+    const target: BreadcrumbTarget = resolveBreadcrumbTarget({
+      index,
+      crumbCount: titles.length,
+      pagePattern,
+      realRoutePatterns,
+    });
+    return {
+      title,
+      to: breadcrumbTargetToRoute(target),
+    };
+  });
+}
+
 export function BuildBreadcrumbLinksByTitles(
   key: string,
   titles: Array<string>,
 ): Dictionary<Link[]> {
-  const pagePattern: string = RouteUtil.getRouteString(key);
-  const realRoutePatterns: Array<string> = getRealRoutePatterns();
-
-  return {
-    [RouteUtil.getRouteString(key)]: titles.map(
-      (title: string, index: number): Link => {
-        const target: BreadcrumbTarget = resolveBreadcrumbTarget({
-          index,
-          crumbCount: titles.length,
-          pagePattern,
-          realRoutePatterns,
-        });
-        return {
-          title,
-          to: breadcrumbTargetToRoute(target),
-        };
-      },
-    ),
+  const links: Dictionary<Link[]> = {
+    [RouteUtil.getRouteString(key)]: buildBreadcrumbLinksForPage(key, titles),
   };
+
+  /*
+   * A page with Developer pages under it (Workflows, View Workflow) gives
+   * them its own trail plus their title: Project > Workflows > View Workflow
+   * > Terraform. They are generated (see DeveloperDocsResources.ts), so their
+   * breadcrumbs are too, from the parent's.
+   */
+  for (const child of getDeveloperDocsChildPages(key)) {
+    links[RouteUtil.getRouteString(child.key)] = buildBreadcrumbLinksForPage(
+      child.key,
+      [...titles, child.page.title],
+    );
+  }
+
+  return links;
 }
+

@@ -22,6 +22,7 @@ import {
 import {
   getExampleJsonValue,
   ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE,
+  toSentenceCaseName,
 } from "./ExampleValues";
 
 /*
@@ -463,9 +464,12 @@ export function getTerraformResourceConfig(data: {
   const shortTypeName: string = getTerraformShortTypeName(typeName);
   const localName: string = getTerraformLocalName(displayName, shortTypeName);
   const address: string = `${typeName}.${localName}`;
+  const noun: string = toSentenceCaseName(
+    new data.modelType().singularName || shortTypeName.replace(/_/g, " "),
+  );
   const resourceLabel: string = displayName
-    ? `${shortTypeName.replace(/_/g, " ")} "${displayName}"`
-    : `this ${shortTypeName.replace(/_/g, " ")}`;
+    ? `${noun} "${displayName}"`
+    : `this ${noun}`;
 
   const variables: TerraformVariableCollector = new TerraformVariableCollector();
   const body: Array<HclBodyItem> = [];
@@ -653,7 +657,7 @@ export function getTerraformStarterHcl(data: {
           descriptor.attributeName,
           variables.add(
             `${localName}_${descriptor.attributeName}`,
-            `The ${descriptor.title} of the new ${data.singularName.toLowerCase()}.`,
+            `The ${descriptor.title} of the new ${toSentenceCaseName(data.singularName)}.`,
           ),
         ),
       );

@@ -1,7 +1,10 @@
 import DatabaseBaseModel, {
   DatabaseBaseModelType,
 } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE } from "./ExampleValues";
+import {
+  ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE,
+  toSentenceCaseName,
+} from "./ExampleValues";
 import { getTerraformTypeName } from "./TerraformSchema";
 
 /*
@@ -177,7 +180,7 @@ export interface AssistantPromptContext {
 
 // `the workflow "Send weekly report" (ID 6e4f...)`.
 export function describeResourceForPrompt(context: AssistantPromptContext): string {
-  const noun: string = context.singularName.toLowerCase();
+  const noun: string = toSentenceCaseName(context.singularName);
 
   if (context.displayName && context.id) {
     return `the ${noun} "${context.displayName}" (ID ${context.id})`;
@@ -317,8 +320,8 @@ const MCP_PROMPTS_BY_TABLE: Readonly<Record<string, PromptSet>> = {
 export function getAssistantPrompts(
   context: AssistantPromptContext,
 ): Array<string> {
-  const plural: string = context.pluralName.toLowerCase();
-  const noun: string = context.singularName.toLowerCase();
+  const plural: string = toSentenceCaseName(context.pluralName);
+  const noun: string = toSentenceCaseName(context.singularName);
   const terraformType: string | null = getTerraformTypeName(context.modelType);
   const isResource: boolean = Boolean(context.id);
   const resource: string = describeResourceForPrompt(context);

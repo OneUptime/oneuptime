@@ -18,7 +18,10 @@ import {
   ResourceApiExamples,
   shellQuote,
 } from "../../../Utils/DeveloperDocs/ApiExamples";
-import { getApiKeyExportCommand } from "../../../Utils/DeveloperDocs/ExampleValues";
+import {
+  getApiKeyExportCommand,
+  toSentenceCaseName,
+} from "../../../Utils/DeveloperDocs/ExampleValues";
 
 /*
  * The curl commands on the Developer > API pages. They run against this
@@ -219,5 +222,23 @@ describe("a resource type", () => {
         singularName: "AI Insight",
       }).create,
     ).toBeNull();
+  });
+});
+
+describe("resource names inside a sentence", () => {
+  test.each([
+    ["Workflow", "workflow"],
+    ["Status Page", "status page"],
+    ["On-Call Policy", "on-call policy"],
+    ["Scheduled Maintenance Events", "scheduled maintenance events"],
+    ["AI Insight", "AI insight"],
+    ["SLOs", "SLOs"],
+    ["IoT Fleet", "IoT fleet"],
+    ["RUM Application", "RUM application"],
+    ["Kubernetes Cluster", "Kubernetes cluster"],
+    ["Docker Swarm Clusters", "Docker Swarm clusters"],
+    ["vCenter", "vCenter"],
+  ])("%s -> %s", (name: string, expected: string) => {
+    expect(toSentenceCaseName(name)).toBe(expected);
   });
 });

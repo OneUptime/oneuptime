@@ -5,7 +5,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, { ReactElement } from "react";
+import { getDeveloperSideMenuSectionProps } from "../../Components/DeveloperDocs/DeveloperDocsSideMenu";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsResources";
 
 const DashboardSideMenu: () => ReactElement = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -76,6 +79,10 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
         },
       ],
     },
+    getDeveloperSideMenuSectionProps({
+      modelType: Workflow,
+      scope: DeveloperDocsScope.List,
+    }),
   ];
 
   return <SideMenu sections={sections} />;
