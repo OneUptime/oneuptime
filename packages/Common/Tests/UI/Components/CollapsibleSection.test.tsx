@@ -1,8 +1,9 @@
 import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import CollapsibleSection from "../../../UI/Components/CollapsibleSection/CollapsibleSection";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * The folding group behind every "Advanced Options", "On-Call" and "Filters"
@@ -88,7 +89,7 @@ describe("CollapsibleSection", () => {
   });
 
   test("reports each toggle to onToggle", () => {
-    const onToggle: jest.Mock<(isCollapsed: boolean) => void> = jest.fn();
+    const onToggle: MockFunction = getJestMockFunction();
 
     renderSection({ onToggle });
 
