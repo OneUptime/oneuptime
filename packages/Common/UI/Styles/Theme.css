@@ -1085,8 +1085,13 @@ html.dark optgroup {
   color-scheme: dark;
 }
 
-/* Switch thumbs are an affordance, not a surface, and must stay distinct. */
-html.dark button[role="switch"] > span.bg-white {
+/*
+ * Switch thumbs are an affordance, not a surface, and must stay distinct -
+ * including a knob drawn inside a larger control (the session replay's
+ * transport switch), which the first selector cannot reach.
+ */
+html.dark button[role="switch"] > span.bg-white,
+html.dark [data-ou-toggle-knob].bg-white {
   background-color: #f8fafc !important;
 }
 

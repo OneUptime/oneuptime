@@ -21,6 +21,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -288,6 +289,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
     redis: "",
   });
   const [readOnly, setReadOnly] = useState<boolean>(true);
+  const readOnlySwitchId: string = useId();
   const [maxRows, setMaxRows] = useState<number>(100);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [result, setResult] = useState<ConsoleResult | null>(null);
@@ -483,13 +485,24 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
         <span className="text-xs text-gray-400 -ml-2">⌘ / Ctrl + ↵</span>
 
         <div className="flex items-center gap-2">
+          {/*
+           * The toolbar's own label style, so it reads like "Row limit"
+           * beside it - and a real label: it names the switch, and pressing
+           * it flips the switch.
+           */}
           <Toggle
+            id={readOnlySwitchId}
             value={readOnly}
             onChange={(value: boolean) => {
               setReadOnly(value);
             }}
           />
-          <span className="text-sm text-gray-600">Read-only</span>
+          <label
+            htmlFor={readOnlySwitchId}
+            className="cursor-pointer text-sm text-gray-600"
+          >
+            Read-only
+          </label>
         </div>
 
         {config.tabular ? (

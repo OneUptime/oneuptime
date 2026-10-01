@@ -261,16 +261,14 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
               />
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3">
             <Toggle
+              title="Only count spans with status = error"
               value={Boolean(props.source.onlyErrors)}
               onChange={(v: boolean) => {
                 update({ onlyErrors: v });
               }}
             />
-            <span className="text-sm text-gray-700">
-              Only count spans with status = error
-            </span>
           </div>
         </div>
       )}
