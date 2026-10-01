@@ -135,7 +135,7 @@ Tratta una pull request scritta dall'AI come tratteresti quella di un nuovo coll
 
 **Dice che ci sta già lavorando.** Un'esecuzione di quel tipo è già in corso su questa issue o pull request. `@oneuptime status` ti dice quale, e `@oneuptime cancel` la ferma.
 
-**Ha dato conferma e poi è rimasta in silenzio a lungo.** Verifica che sia online un Runner con **Esegue le correzioni di codice AI** in **Impostazioni → Agenti di runbook**. Senza, l'esecuzione viene fatta fallire dopo 30 minuti e il thread viene avvisato.
+**Ha dato conferma e poi è rimasta in silenzio a lungo.** Verifica che sia online un Runner con **Esegue le correzioni di codice AI** in **Runbook → Agenti di runbook**. Senza, l'esecuzione viene fatta fallire dopo 30 minuti e il thread viene avvisato.
 
 **Dice che la pull request proviene da un fork.** Le modifiche richiedono un branch in questo repository. Chiedi invece una revisione, oppure fai push del branch qui.
 

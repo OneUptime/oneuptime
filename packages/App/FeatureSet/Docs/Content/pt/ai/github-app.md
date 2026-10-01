@@ -135,7 +135,7 @@ Trate um pull request escrito por IA como você trataria um de um contribuidor n
 
 **Ele diz que já está trabalhando nisso.** Já existe uma execução desse tipo ativa neste issue ou pull request. `@oneuptime status` diz qual é, e `@oneuptime cancel` a interrompe.
 
-**Ele confirmou e depois ficou muito tempo em silêncio.** Verifique se há um Runner com **Executa Correções de Código com IA** online em **Configurações → Runners**. Sem ele, a execução falha depois de 30 minutos e a thread é avisada.
+**Ele confirmou e depois ficou muito tempo em silêncio.** Verifique se há um Runner com **Executa Correções de Código com IA** online em **Runbooks → Agentes de runbook**. Sem ele, a execução falha depois de 30 minutos e a thread é avisada.
 
 **Ele diz que o pull request vem de um fork.** Ajustes precisam de um branch neste repositório. Peça uma revisão, ou envie o branch para cá.
 

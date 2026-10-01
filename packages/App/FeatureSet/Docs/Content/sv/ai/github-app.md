@@ -135,7 +135,7 @@ Behandla en AI-författad pull request som du skulle behandla en från en ny bid
 
 **Den säger att den redan arbetar med det här.** En körning av det slaget är redan igång på det här ärendet eller den här pull requesten. `@oneuptime status` talar om vilken, och `@oneuptime cancel` stoppar den.
 
-**Den bekräftade och blev sedan tyst länge.** Kontrollera att en Runner med **Kör AI-kodfixar** är online under **Inställningar → Runbook-agenter**. Utan en sådan misslyckas körningen efter 30 minuter, och tråden får besked.
+**Den bekräftade och blev sedan tyst länge.** Kontrollera att en Runner med **Kör AI-kodfixar** är online under **Runbooks → Runbook-agenter**. Utan en sådan misslyckas körningen efter 30 minuter, och tråden får besked.
 
 **Den säger att pull requesten kommer från en fork.** Revideringar behöver en gren i det här repositoriet. Be om en granskning i stället, eller pusha grenen hit.
 

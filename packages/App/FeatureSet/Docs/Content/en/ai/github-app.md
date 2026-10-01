@@ -135,7 +135,7 @@ Treat an AI-authored pull request the way you would treat one from a new contrib
 
 **It says it is already working on this.** A run of that kind is already live on this issue or pull request. `@oneuptime status` will tell you what, and `@oneuptime cancel` stops it.
 
-**It acknowledged and then went quiet for a long time.** Check that a Runner with **Runs AI Code Fixes** is online under **Settings → Runners**. Without one, the run is failed after 30 minutes and the thread is told.
+**It acknowledged and then went quiet for a long time.** Check that a Runner with **Runs AI Code Fixes** is online under **Runbooks → Runners**. Without one, the run is failed after 30 minutes and the thread is told.
 
 **It says the pull request comes from a fork.** Revisions need a branch in this repository. Ask for a review instead, or push the branch here.
 

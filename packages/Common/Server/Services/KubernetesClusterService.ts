@@ -1085,7 +1085,7 @@ export class Service extends DatabaseService<Model> {
 
       if (isAgentRunner && !isThisClustersAgent && isRunnerChanged) {
         throw new BadDataException(
-          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed on another cluster. Its ServiceAccount reaches only the cluster its pod runs in, and it is never given a credential, so it cannot run kubectl for this cluster. Leave the Runner empty to use this cluster's Kubernetes AI agent, or bind a Runner you created under Project Settings → Runners together with a Kubernetes credential for this cluster.`,
+          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed on another cluster. Its ServiceAccount reaches only the cluster its pod runs in, and it is never given a credential, so it cannot run kubectl for this cluster. Leave the Runner empty to use this cluster's Kubernetes AI agent, or bind a Runner you created under Runbooks → Runners together with a Kubernetes credential for this cluster.`,
         );
       }
 
@@ -1095,7 +1095,7 @@ export class Service extends DatabaseService<Model> {
 
       if (isAgentRunner) {
         throw new BadDataException(
-          `Runner "${runner.name}" is an in-cluster Runner the Kubernetes agent chart installed: it runs kubectl with its own ServiceAccount only and is never given a credential. Clear the credential, or bind a Runner you created under Project Settings → Runners that the credential is assigned to.`,
+          `Runner "${runner.name}" is an in-cluster Runner the Kubernetes agent chart installed: it runs kubectl with its own ServiceAccount only and is never given a credential. Clear the credential, or bind a Runner you created under Runbooks → Runners that the credential is assigned to.`,
         );
       }
 
@@ -1121,7 +1121,7 @@ export class Service extends DatabaseService<Model> {
 
       if (!isAssigned) {
         throw new BadDataException(
-          `The Kubernetes credential is not assigned to Runner "${runner.name}", so that Runner could never use it for this cluster (a credential is handed only to the Runners it is assigned to). Assign it to the Runner under Project Settings → Runner Credentials first, or choose a credential that is assigned to it.`,
+          `The Kubernetes credential is not assigned to Runner "${runner.name}", so that Runner could never use it for this cluster (a credential is handed only to the Runners it is assigned to). Assign it to the Runner under Runbooks → Runner Credentials first, or choose a credential that is assigned to it.`,
         );
       }
     }

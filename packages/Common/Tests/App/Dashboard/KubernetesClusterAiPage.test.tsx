@@ -1418,7 +1418,7 @@ describe("Needs attention", () => {
     const row: HTMLElement = await findTestId("ai-agent-gap-runner_offline");
     expect(
       within(row).getByText("View Runner").closest("a")?.getAttribute("href"),
-    ).toBe(`/dashboard/${PROJECT_ID}/settings/runners/${HOST_RUNNER_ID}`);
+    ).toBe(`/dashboard/${PROJECT_ID}/runbooks/runners/${HOST_RUNNER_ID}`);
   });
 
   test("the not-installed gap has no extra action: the command is on the card", async () => {

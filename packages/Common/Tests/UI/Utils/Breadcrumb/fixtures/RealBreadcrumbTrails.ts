@@ -2217,6 +2217,21 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getRunbooksBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/runbooks/runner-credentials",
+    titles: ["Project", "Runbooks", "Runner Credentials"],
+  },
+  {
+    getter: "getRunbooksBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/runbooks/runners",
+    titles: ["Project", "Runbooks", "Runners"],
+  },
+  {
+    getter: "getRunbooksBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/runbooks/runners/:id",
+    titles: ["Project", "Runbooks", "Runners", "View Runner"],
+  },
+  {
+    getter: "getRunbooksBreadcrumbs",
     pagePattern: "/dashboard/:projectId/runbooks/settings/secrets",
     titles: ["Project", "Runbooks", "Secrets"],
   },

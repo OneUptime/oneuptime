@@ -172,7 +172,7 @@ describe("the Infrastructure AI Agents page", () => {
 
   it("still says a resource AI agent is not a Runner, without a switch for Runners", () => {
     expect(page).toContain(
-      "Like the Kubernetes AI agent, a resource AI agent is not a Runner. It never appears under Project Settings → Runners, and it is never used as a Bash or SSH host for runbooks.",
+      "Like the Kubernetes AI agent, a resource AI agent is not a Runner. It never appears under Runbooks → Runners, and it is never used as a Bash or SSH host for runbooks.",
     );
     expect(page).not.toContain("that switch is for commands a Runner runs");
   });

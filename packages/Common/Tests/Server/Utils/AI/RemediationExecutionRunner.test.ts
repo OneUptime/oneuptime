@@ -2826,7 +2826,7 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
               description:
                 '"Runs AI Remediation Commands" is turned off on Runner "ops-runner", so it will not be served kubectl work.',
               nextStep:
-                'Turn on "Runs AI Remediation Commands" on the Runner (Project Settings → Runners).',
+                'Turn on "Runs AI Remediation Commands" on the Runner (Runbooks → Runners).',
               blocks: "both",
             },
           ],

@@ -282,7 +282,7 @@ function installAiAgent(database: FakeDatabase): void {
 }
 
 /*
- * What deleting a Runner under Project Settings → Runners does to these
+ * What deleting a Runner under Runbooks → Runners does to these
  * rows: the Runner row goes, and the binding's foreign key (ON DELETE SET
  * NULL) clears aiAccessRunnerId in the same statement. aiAccessRunnerBoundAt
  * is never cleared — that is what registration reads as "a Runner was bound
@@ -402,7 +402,7 @@ describe("recovering from a previous in-cluster Runner that holds more than the 
     const head: string = refusal.message.slice(0, 500);
     expect(head.startsWith(UPGRADE_STEP)).toBe(true);
     expect(head).toContain(
-      'Or, under Project Settings → Runners, on Runner "kubernetes-agent/prod-us": unassign its 1 Runner credential(s).',
+      'Or, under Runbooks → Runners, on Runner "kubernetes-agent/prod-us": unassign its 1 Runner credential(s).',
     );
     expect(refusal.message).not.toContain("AI page");
     // Nothing was written by the refused registration.

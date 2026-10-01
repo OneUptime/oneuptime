@@ -3815,7 +3815,7 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         ),
       ).toBe(true);
       expect(refusal.message).toContain(
-        'Or, under Project Settings → Runners, on Runner "kubernetes-agent/prod-us": turn off "Runs Runbooks"',
+        'Or, under Runbooks → Runners, on Runner "kubernetes-agent/prod-us": turn off "Runs Runbooks"',
       );
       // Only what it actually holds is asked for.
       expect(refusal.message).not.toContain('turn off "Runs AI Code Fixes"');

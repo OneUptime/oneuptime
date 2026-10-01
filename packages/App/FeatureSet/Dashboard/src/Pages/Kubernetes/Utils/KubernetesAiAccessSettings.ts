@@ -1077,7 +1077,7 @@ export function getKubernetesAiCredentialFieldDescription(
 
   return `The Kubernetes credentials (API server URL + ServiceAccount token) assigned to "${
     runner.name || "the chosen Runner"
-  }". Assign one under Project Settings → Runner Credentials.`;
+  }". Assign one under Runbooks → Runner Credentials.`;
 }
 
 /*
@@ -1103,7 +1103,7 @@ export function getKubernetesAiCredentialAssignmentError(data: {
     : "The Kubernetes credential";
 
   if (data.runner.id && isAgentCredentialRunner(data.runner)) {
-    return `"${data.runner.name}" is an in-cluster Runner: it runs kubectl with its own ServiceAccount and is never given a credential. Clear the Kubernetes credential, or choose a Runner created under Project Settings → Runners.`;
+    return `"${data.runner.name}" is an in-cluster Runner: it runs kubectl with its own ServiceAccount and is never given a credential. Clear the Kubernetes credential, or choose a Runner created under Runbooks → Runners.`;
   }
 
   if (!data.runner.id) {
@@ -1116,7 +1116,7 @@ export function getKubernetesAiCredentialAssignmentError(data: {
   ) {
     return `${credential} is not assigned to Runner "${
       data.runner.name || data.runner.id
-    }". Assign it under Project Settings → Runner Credentials, or choose a credential assigned to that Runner.`;
+    }". Assign it under Runbooks → Runner Credentials, or choose a credential assigned to that Runner.`;
   }
 
   return null;

@@ -135,7 +135,7 @@ Traitez une pull request écrite par l'IA comme vous traiteriez celle d'un nouve
 
 **Elle dit qu'elle travaille déjà là-dessus.** Une exécution de ce type est déjà en cours sur cette issue ou cette pull request. `@oneuptime status` vous dira laquelle, et `@oneuptime cancel` l'arrête.
 
-**Elle a accusé réception puis n'a plus rien dit pendant longtemps.** Vérifiez qu'un Runner doté de **Runs AI Code Fixes** est en ligne sous **Paramètres → Runners**. Sans lui, l'exécution est mise en échec au bout de 30 minutes et le fil en est informé.
+**Elle a accusé réception puis n'a plus rien dit pendant longtemps.** Vérifiez qu'un Runner doté de **Runs AI Code Fixes** est en ligne sous **Runbooks → Agents de runbook**. Sans lui, l'exécution est mise en échec au bout de 30 minutes et le fil en est informé.
 
 **Elle dit que la pull request vient d'un fork.** Les révisions ont besoin d'une branche dans ce dépôt. Demandez plutôt une revue, ou poussez la branche ici.
 

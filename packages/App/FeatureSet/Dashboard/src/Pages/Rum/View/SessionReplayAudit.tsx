@@ -195,7 +195,7 @@ const RumApplicationSessionReplayAudit: FunctionComponent<
            * filterDropdownField is skipped by BaseModelTable and rendered
            * as a label with no control, so "did person X watch any of our
            * users' screens?" could not be asked. Same wiring as the User
-           * filter on Pages/Settings/RunnerView.tsx.
+           * filter on Pages/Runbook/Runners/RunnerView.tsx.
            */
           {
             field: { viewedByUser: true },

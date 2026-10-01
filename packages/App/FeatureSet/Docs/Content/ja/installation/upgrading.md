@@ -180,6 +180,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **管理画面の Health ダッシュボードと Query Console は Enterprise Edition が必要になります。** PostgreSQL と Valkey のヘルスアラートも同様です。13 では `IS_ENTERPRISE_EDITION=true` だけで利用できたため、これらを使っていた Community のインストールには目に見える機能の減少です。ClickHouse の容量表示と自動削除、マイグレーションの状態、グローバルプローブ、サポートバンドルは両方のエディションにあります。
 - **プローブのプロキシ経由で IP アドレスに到達する HTTPS モニターが再び動作します。** プローブは IP を TLS のサーバー名として送っていましたが、IP は有効なサーバー名ではなく Node はこれを拒否するため、`PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` を設定したグローバルプローブから `https://<プライベート IP>` を監視するとハンドシェイクに失敗していました。プローブは IP を対象とする場合にサーバー名を送らず、証明書を IP 自体に対して検証します。ホスト名を対象とする場合は変わりません。
 - **`oneuptime` CLI が `--version` で実際のバージョンを報告します**（従来はプレースホルダーでした）。
+- **Runner がプロジェクト設定から Runbook に移動しました。** Runner は **Runbook → Runbook エージェント**（`…/runbooks/runners`）、Runner Credentials は **Runbook → Runbook エージェント → 認証情報**（`…/runbooks/runner-credentials`）にあり、Runner がステップを実行する Runbook のすぐ隣に並びます。以前の `…/settings/runners` と `…/settings/runner-credentials` の URL はリダイレクトされるため、ブックマークはそのまま使えます。それ以外の変更はありません。Runner の ID、キー、機能、権限はそのままで、AI コード修正と AI 修復コマンドも引き続き実行します。このリリースより古い Runner イメージは、ログメッセージに引き続き「Project Settings > Runners」と出力します。これは Runbook → Runbook エージェント と読み替えてください。
 - 移動または制限されたエンドポイント（`GET /api/global-config/license` と、セルフホストのインストールが提供しなくなったライセンスサーバーのエンドポイントを含む）は、上の [API and endpoint changes](#api-and-endpoint-changes) に記載しています。
 
 ### IPv6 モニター: Ping、Port、SSL
@@ -375,7 +376,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(Or open the Runner in **設定 → Runbook エージェント** and use **セットアップ手順を表示**
+(Or open the Runner in **Runbook → Runbook エージェント** and use **セットアップ手順を表示**
 for a pre-filled command.)
 
 If you tuned the agent with environment variables, rename them — the old
@@ -396,7 +397,7 @@ The **設定 → AI → AI エージェント** page is gone and the `oneuptime/
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
-1. Create a Runner under **設定 → Runbook エージェント** and install it with the
+1. Create a Runner under **Runbook → Runbook エージェント** and install it with the
    command from **セットアップ手順を表示**.
 2. Enable **AI コード修正を実行** on it. The change is picked up on the next
    heartbeat.
@@ -488,6 +489,11 @@ wiki links:
 | AI Agents               | 設定 → AI → AI エージェント (`…/settings/ai-agents`) | Removed — Runners with the **AI コード修正を実行** capability replace it |
 
 Runbook Secrets stays where it was, under Runbook → 設定 → シークレット.
+
+That is where the pages were in 12 and 13. In 14 the two Runner pages moved
+again, to **Runbook → Runbook エージェント** (`…/runbooks/runners`) and
+**Runbook → Runbook エージェント → 認証情報** (`…/runbooks/runner-credentials`); the 12 and 13
+URLs in the table redirect there. See [14 のその他の変更](#14-のその他の変更).
 
 ### New in 12, nothing to enable by accident
 

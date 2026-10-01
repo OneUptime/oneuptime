@@ -45,7 +45,7 @@ Runner**), or upgrade the chart again.
 
 ## Install
 
-Create a Runner in the dashboard (**Settings → Runners → Create**), copy the id
+Create a Runner in the dashboard (**Runbooks → Runners → Create**), copy the id
 and key it shows you once, then run:
 
 ```bash

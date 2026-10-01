@@ -17,8 +17,8 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
-import RunnerView from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/RunnerView";
-import RunnersPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/Runners";
+import RunnerView from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerView";
+import RunnersPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/Runners";
 import {
   NO_RUNNER_FORM_RESTRICTIONS,
   RunnerFormRestrictions,
@@ -27,7 +27,7 @@ import {
   getRunnerFormFields,
   getRunnerFormRestrictions,
   getRunnerTableFormFields,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/RunnerFormFields";
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerFormFields";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Runner from "../../../Models/DatabaseModels/Runner";
@@ -441,12 +441,12 @@ describe("the Runner pages, rendered", () => {
   });
 
   function openRunnerView(runnerId: string): void {
-    const path: string = `/dashboard/${PROJECT_ID}/settings/runners/${runnerId}`;
+    const path: string = `/dashboard/${PROJECT_ID}/runbooks/runners/${runnerId}`;
     goTo(path);
     render(
       <MemoryRouter initialEntries={[path]}>
         <RunnerView
-          pageRoute={RouteMap[PageMap.SETTINGS_RUNNER_VIEW] as Route}
+          pageRoute={RouteMap[PageMap.RUNBOOKS_RUNNER_VIEW] as Route}
           currentProject={null}
           hasPaymentMethod={true}
         />
@@ -546,12 +546,12 @@ describe("the Runner pages, rendered", () => {
   });
 
   function openRunnersPage(): void {
-    const path: string = `/dashboard/${PROJECT_ID}/settings/runners`;
+    const path: string = `/dashboard/${PROJECT_ID}/runbooks/runners`;
     goTo(path);
     render(
       <MemoryRouter initialEntries={[path]}>
         <RunnersPage
-          pageRoute={RouteMap[PageMap.SETTINGS_RUNNERS] as Route}
+          pageRoute={RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route}
           currentProject={null}
           hasPaymentMethod={true}
         />

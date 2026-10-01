@@ -121,7 +121,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   public static getAgentCommandRunnerRefusal(runner: Runner): string {
-    return `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl for its own cluster only, never the Bash or SSH commands a rule composes, so it cannot be one of this rule's Command Runners. OneUptime AI reaches that cluster through its Kubernetes AI agent instead (the cluster's AI → Agent page). Choose Runners you created under Project Settings → Runners, or leave Command Runners empty to allow any Runner with AI commands enabled.`;
+    return `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl for its own cluster only, never the Bash or SSH commands a rule composes, so it cannot be one of this rule's Command Runners. OneUptime AI reaches that cluster through its Kubernetes AI agent instead (the cluster's AI → Agent page). Choose Runners you created under Runbooks → Runners, or leave Command Runners empty to allow any Runner with AI commands enabled.`;
   }
 }
 

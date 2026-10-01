@@ -329,9 +329,7 @@ describe("the Kubernetes AI agent's identity and registration, in the docs", () 
 
       expect({
         file: relative(file),
-        notARunner: text.includes(
-          "never appears under Project Settings → Runners",
-        ),
+        notARunner: text.includes("never appears under Runbooks → Runners"),
         agentPage: text.includes("**AI agent** page"),
       }).toEqual({ file: relative(file), notARunner: true, agentPage: true });
     });

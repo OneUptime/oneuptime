@@ -135,7 +135,7 @@ Behandel een door AI geschreven pull request zoals u er een zou behandelen van e
 
 **Hij zegt dat hij hier al mee bezig is.** Er loopt al een run van dat soort op deze issue of pull request. `@oneuptime status` vertelt u welke, en `@oneuptime cancel` stopt hem.
 
-**Hij heeft bevestigd en bleef daarna lang stil.** Controleer of er onder **Instellingen → Runners** een Runner met **Voert AI-codefixes uit** online is. Zonder Runner wordt de run na 30 minuten als mislukt gemarkeerd en krijgt de thread dat te horen.
+**Hij heeft bevestigd en bleef daarna lang stil.** Controleer of er onder **Runbooks → Runbook-agenten** een Runner met **Voert AI-codefixes uit** online is. Zonder Runner wordt de run na 30 minuten als mislukt gemarkeerd en krijgt de thread dat te horen.
 
 **Hij zegt dat de pull request uit een fork komt.** Herzieningen hebben een branch in deze repository nodig. Vraag in plaats daarvan om een review, of push de branch hierheen.
 

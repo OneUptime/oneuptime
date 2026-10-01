@@ -180,6 +180,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **Health-dashbordene og Query Console i administrasjonen krever Enterprise Edition**, i tillegg til health-varslene for PostgreSQL og Valkey. På 13 fulgte de med `IS_ENTERPRISE_EDITION=true` alene, så for en Community-installasjon som brukte dem er dette et synlig tap. ClickHouse-kapasitetsvisningen med opprydding, migreringsstatus, globale prober og støttepakken finnes i begge utgaver.
 - **HTTPS-monitorer som når en IP-adresse gjennom proxyen til en probe, virker igjen.** Proben sendte IP-en som TLS-servernavn; en IP er ikke et gyldig servernavn, og Node avviser det blankt, så en monitor på `https://<privat IP>` fra en global probe med `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` feilet i håndtrykket. Proben utelater nå servernavnet for et IP-mål og kontrollerer sertifikatet mot selve IP-en. Mål med vertsnavn er uendret.
 - **`oneuptime`-CLI-en oppgir den virkelige versjonen** for `--version` i stedet for en plassholder.
+- **Runners er flyttet fra Prosjektinnstillinger til Runbooks.** Runners ligger nå under **Runbooks → Runbook-agenter** (`…/runbooks/runners`) og Runner Credentials under **Runbooks → Runbook-agenter → Påloggingsinformasjon** (`…/runbooks/runner-credentials`), ved siden av runbookene de kjører trinnene til. De gamle URL-ene `…/settings/runners` og `…/settings/runner-credentials` omdirigerer, så bokmerker fungerer fortsatt. Ingenting annet endres: Runners beholder ID-er, nøkler, kapabiliteter og tillatelser, og de kjører fortsatt AI-koderettelser og AI-utbedringskommandoer. Et Runner-image som er eldre enn denne utgivelsen, skriver fortsatt «Project Settings > Runners» i loggmeldingene sine; les det som Runbooks → Runbook-agenter.
 - Hvilke endepunkter som er flyttet eller strammet inn, blant dem `GET /api/global-config/license` og lisensserver-endepunktene selvhostede installasjoner ikke lenger tilbyr, står ovenfor under [API and endpoint changes](#api-and-endpoint-changes).
 
 ### IPv6-monitorer: Ping, Port og SSL
@@ -375,7 +376,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(Or open the Runner in **Innstillinger → Runbook-agenter** and use **Vis
+(Or open the Runner in **Runbooks → Runbook-agenter** and use **Vis
 oppsettsinstruksjoner** for a pre-filled command.)
 
 If you tuned the agent with environment variables, rename them — the old
@@ -396,7 +397,7 @@ The **Innstillinger → AI → AI Agents** page is gone and the `oneuptime/ai-ag
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
-1. Create a Runner under **Innstillinger → Runbook-agenter** and install it with the
+1. Create a Runner under **Runbooks → Runbook-agenter** and install it with the
    command from **Vis oppsettsinstruksjoner**.
 2. Enable **Kjører AI-koderettelser** on it. The change is picked up on the next
    heartbeat.
@@ -488,6 +489,11 @@ wiki links:
 | AI Agents               | Settings → AI → AI Agents (`…/settings/ai-agents`) | Removed — Runners with the **Runs AI Code Fixes** capability replace it |
 
 Runbook Secrets stays where it was, under Runbooks → Settings → Secrets.
+
+That is where the pages were in 12 and 13. In 14 the two Runner pages moved
+again, to **Runbooks → Runbook-agenter** (`…/runbooks/runners`) and
+**Runbooks → Runbook-agenter → Påloggingsinformasjon** (`…/runbooks/runner-credentials`); the 12 and 13
+URLs in the table redirect there. See [Andre endringer i 14](#andre-endringer-i-14).
 
 ### New in 12, nothing to enable by accident
 

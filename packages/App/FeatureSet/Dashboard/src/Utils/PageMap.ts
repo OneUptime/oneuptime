@@ -1128,6 +1128,15 @@ enum PageMap {
   RUNBOOKS_SETTINGS_LABEL_RULES = "RUNBOOKS_SETTINGS_LABEL_RULES",
   RUNBOOKS_SETTINGS_LABEL_RULE_VIEW = "RUNBOOKS_SETTINGS_LABEL_RULE_VIEW",
 
+  /*
+   * Runners are what a runbook's Bash, SSH and Kubernetes steps run on, so
+   * they are set up where runbooks are. They also run AI code fixes and AI
+   * remediation commands; the pages that need one for that link straight here.
+   */
+  RUNBOOKS_RUNNERS = "RUNBOOKS_RUNNERS",
+  RUNBOOKS_RUNNER_VIEW = "RUNBOOKS_RUNNER_VIEW",
+  RUNBOOKS_RUNNER_CREDENTIALS = "RUNBOOKS_RUNNER_CREDENTIALS",
+
   // SMS and Call
   SETTINGS_NOTIFICATION_SETTINGS = "SETTINGS_NOTIFICATION_SETTINGS",
 
@@ -1147,15 +1156,6 @@ enum PageMap {
   SETTINGS_AI_CREDITS = "SETTINGS_AI_CREDITS",
   SETTINGS_AI_LOGS = "SETTINGS_AI_LOGS",
   SETTINGS_MCP_SERVER = "SETTINGS_MCP_SERVER",
-
-  /*
-   * Runners execute both runbook steps and AI code fixes, so they are project
-   * infrastructure rather than a runbook detail — which is where they used to
-   * live.
-   */
-  SETTINGS_RUNNERS = "SETTINGS_RUNNERS",
-  SETTINGS_RUNNER_VIEW = "SETTINGS_RUNNER_VIEW",
-  SETTINGS_RUNNER_CREDENTIALS = "SETTINGS_RUNNER_CREDENTIALS",
 
   // AI Agent Tasks section
   AI_AGENT_TASKS_ROOT = "AI_AGENT_TASKS_ROOT",

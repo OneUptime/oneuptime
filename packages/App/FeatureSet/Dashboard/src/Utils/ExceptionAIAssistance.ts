@@ -232,7 +232,7 @@ export function getReadinessCheckLink(
   if (checkId === "agentAvailable") {
     return {
       title: "Set up a Runner",
-      pageMap: PageMap.SETTINGS_RUNNERS,
+      pageMap: PageMap.RUNBOOKS_RUNNERS,
     };
   }
 
