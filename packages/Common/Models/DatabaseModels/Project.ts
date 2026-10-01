@@ -1935,7 +1935,7 @@ export default class Project extends TenantModel {
     modelType: AlertSeverity,
     title: "Alert Investigation Minimum Severity",
     description:
-      "Only alerts at or above this severity are investigated automatically by AI. When unset, the top two severity tiers (by order) are investigated by default.",
+      "Only alerts at or above this severity are investigated automatically by AI. Unset means every alert is investigated, whatever its severity.",
   })
   @ManyToOne(
     () => {
@@ -1997,7 +1997,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Daily Autonomous AI Token Limit",
     description:
-      "Fallback maximum tokens per UTC day for autonomous AI work that is not associated with an incident or alert. When the limit is reached, new autonomous work is skipped until the next day — interactive AI chat is never blocked. Unset means no limit.",
+      "Legacy setting, no longer enforced: autonomous AI work that is not associated with an incident or alert has no daily token limit. Use the Daily Incident AI Token Limit and Daily Alert AI Token Limit instead.",
     example: 500000,
   })
   @Column({
@@ -2078,7 +2078,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Daily AI Fix Task Limit",
     description:
-      "Fallback maximum AI fix tasks (agent runs that open pull requests) that may be created per UTC day for work not associated with an incident or alert, across every fix recipe and trigger. Unset means the default of 25 per day; 0 pauses these AI fix tasks entirely.",
+      "Legacy setting, no longer enforced: AI fix tasks that are not associated with an incident or alert have no daily limit. Use the Daily Incident AI Fix Task Limit and Daily Alert AI Fix Task Limit instead.",
     example: 25,
   })
   @Column({
@@ -2105,7 +2105,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Daily Incident AI Fix Task Limit",
     description:
-      "Maximum AI fix tasks derived from incidents that may be created per UTC day for this project. Unset means the default of 25 per day; 0 pauses incident AI fix tasks entirely.",
+      "Maximum AI fix tasks derived from incidents that may be created per UTC day for this project. Unset means no limit; 0 pauses incident AI fix tasks entirely.",
     example: 25,
   })
   @Column({
@@ -2132,7 +2132,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Daily Alert AI Fix Task Limit",
     description:
-      "Maximum AI fix tasks derived from alerts that may be created per UTC day for this project. Unset means the default of 25 per day; 0 pauses alert AI fix tasks entirely.",
+      "Maximum AI fix tasks derived from alerts that may be created per UTC day for this project. Unset means no limit; 0 pauses alert AI fix tasks entirely.",
     example: 25,
   })
   @Column({
@@ -2159,7 +2159,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Alert Re-investigation Cooldown (Minutes)",
     description:
-      "Repeat alerts from the same monitor within this many minutes are not re-investigated by AI — the first analysis stands. Unset means the default of 30 minutes; 0 disables the cooldown.",
+      "Repeat alerts from the same monitor within this many minutes are not re-investigated by AI — the first analysis stands. Unset or 0 means no cooldown, so every alert is investigated; at most 1440 minutes (a day).",
     example: 30,
   })
   @Column({
@@ -2187,7 +2187,7 @@ export default class Project extends TenantModel {
     modelType: IncidentSeverity,
     title: "Incident Investigation Minimum Severity",
     description:
-      "Only incidents at or above this severity are investigated automatically by AI. Unset means every incident is investigated — unlike alerts, which default to the top two tiers, because an incident already cleared a human-authored threshold to exist.",
+      "Only incidents at or above this severity are investigated automatically by AI. Unset means every incident is investigated, whatever its severity.",
   })
   @ManyToOne(
     () => {
@@ -2248,7 +2248,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Incident Re-investigation Cooldown (Minutes)",
     description:
-      "Incidents affecting a monitor that AI investigated within this many minutes are not re-investigated — the first analysis stands. Unset means the default of 30 minutes; 0 disables the cooldown.",
+      "Incidents affecting a monitor that AI investigated within this many minutes are not re-investigated — the first analysis stands. Unset or 0 means no cooldown, so every incident is investigated; at most 1440 minutes (a day).",
     example: 30,
   })
   @Column({
@@ -2275,7 +2275,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Max Concurrent Investigations",
     description:
-      "Fallback maximum number of non-incident and non-alert AI investigations that may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause autonomous work with its toggle or a daily token limit of 0 instead.",
+      "Legacy setting, no longer enforced: AI investigations that are not associated with an incident or alert have no concurrency limit. Use the Max Concurrent Incident Investigations and Max Concurrent Alert Investigations instead.",
     example: 3,
   })
   @Column({
@@ -2302,7 +2302,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Max Concurrent Incident Investigations",
     description:
-      "How many incident AI investigations may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause incident investigations with the Enable Automatic Incident Investigation toggle or a daily token limit of 0 instead.",
+      "How many incident AI investigations may run at the same time for this project. Unset means no limit — every incident investigation starts right away. Minimum 1 — pause incident investigations with the Enable Automatic Incident Investigation toggle or a daily token limit of 0 instead.",
     example: 3,
   })
   @Column({
@@ -2329,7 +2329,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Max Concurrent Alert Investigations",
     description:
-      "How many alert AI investigations may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause alert investigations with the Enable Automatic Alert Investigation toggle or a daily token limit of 0 instead.",
+      "How many alert AI investigations may run at the same time for this project. Unset means no limit — every alert investigation starts right away. Minimum 1 — pause alert investigations with the Enable Automatic Alert Investigation toggle or a daily token limit of 0 instead.",
     example: 3,
   })
   @Column({

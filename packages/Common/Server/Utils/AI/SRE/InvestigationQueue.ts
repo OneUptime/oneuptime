@@ -5,6 +5,7 @@ import Query from "../../../../Types/BaseDatabase/Query";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
+import AIWorkloadLimits from "../../../../Types/AI/AIWorkloadLimits";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunService from "../../../Services/AIRunService";
@@ -51,23 +52,18 @@ import InvestigationSubjectLock from "./InvestigationSubjectLock";
 export const MAX_INVESTIGATION_ATTEMPTS: number = 2;
 
 /*
- * G4 cost guardrail: at most this many investigations may be Running in an
- * incident, alert or subjectless lane at once. The incident and alert lanes
- * have their own project override; subjectless work always uses the default.
- * Enforced at CLAIM time, so a storm queues (bounded by dedupe + severity
- * gates + this TTL) and drains at cap rate instead of being dropped.
+ * G4 cost guardrail, opt-in: a project may cap how many investigations run at
+ * once in its incident lane and in its alert lane (Incidents or Alerts →
+ * Settings → AI). Unset means no cap — a run is claimed as soon as it passes
+ * the budget gate, however many are already Running — and subjectless work
+ * (insight triage) has no setting and no cap (see AIWorkloadLimits). Where a
+ * cap is set it is enforced at CLAIM time, so a storm queues (bounded by
+ * QUEUE_TTL_MINUTES) and drains at cap rate instead of being dropped.
  */
-export const DEFAULT_MAX_CONCURRENT_INVESTIGATIONS: number = 3;
-/*
- * Clamp bounds for the per-project override. Pausing has its own switches
- * (the opt-in toggles, daily limit 0), so the floor is 1, not 0.
- */
-const MIN_CONCURRENT_INVESTIGATIONS: number = 1;
-const MAX_CONCURRENT_INVESTIGATIONS: number = 25;
 
 /*
- * Lane priority. Two kinds of run share this queue and each subject lane's
- * concurrency cap above:
+ * Lane priority, when a lane has a cap. Two kinds of run share this queue and
+ * each subject lane's concurrency cap:
  *   - the INTERACTIVE lane (incident/alert RCA) — a human is waiting;
  *   - the PREVENTIVE lane (AI-insight triage, identified by
  *     triggeredByAiInsightId) — nobody is waiting, and one scan tick
@@ -92,7 +88,7 @@ export const INSIGHT_TRIAGE_RESERVED_SLOTS: number = 1;
 /*
  * A first-pass RCA is only useful while the incident is fresh. Queued runs
  * older than this are expired rather than run late — this also caps queue
- * growth when the daily budget blocks claiming for hours.
+ * growth when a configured cap or daily budget blocks claiming for hours.
  */
 export const QUEUE_TTL_MINUTES: number = 30;
 
@@ -293,7 +289,8 @@ export default class AIInvestigationQueue {
    * Claim a queued run and execute it to completion. Safe to call from
    * multiple places concurrently — the claim is one conditional UPDATE, so
    * exactly one caller wins. Leaves the run Queued (for the poller / TTL)
-   * when the concurrency cap is full or the budget is exhausted.
+   * when a concurrency cap the project set is full or the budget is
+   * exhausted.
    */
   @CaptureSpan()
   public static async processRun(run: QueuedRunRef): Promise<void> {
@@ -360,7 +357,7 @@ export default class AIInvestigationQueue {
           status: AIRunStatus.Cancelled,
           codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
           completedAt: OneUptimeDate.getCurrentDate(),
-          errorMessage: `Expired in the investigation queue after ${QUEUE_TTL_MINUTES} minutes — a first-pass analysis this late would no longer be useful. The project may have been at its concurrency cap or daily token budget.`,
+          errorMessage: `Expired in the investigation queue after ${QUEUE_TTL_MINUTES} minutes — a first-pass analysis this late would no longer be useful. The project may have been at a concurrency cap or daily token limit it set.`,
         },
       });
 
@@ -618,10 +615,10 @@ export default class AIInvestigationQueue {
   }
 
   /*
-   * The claim-time cost gates: concurrency cap, the preventive-lane sub-cap
-   * and the daily budget. A run failing these stays Queued — the poller
-   * retries and the TTL expires what never fits. Fails cheap (skip) on gate
-   * errors.
+   * The claim-time cost gates: the concurrency cap and the preventive-lane
+   * sub-cap (only when the lane has a cap), then the daily budget. A run
+   * failing these stays Queued — the poller retries and the TTL expires what
+   * never fits. Fails cheap (skip) on gate errors.
    */
   private static async passesClaimGates(run: QueuedRunRef): Promise<boolean> {
     if (run.triggeredByIncidentId && run.triggeredByAlertId) {
@@ -633,7 +630,7 @@ export default class AIInvestigationQueue {
 
     /*
      * Each subject lane owns its own concurrency pool. Insight triage and any
-     * future subjectless queue work use the default cap.
+     * future subjectless queue work have no setting, so no cap.
      */
     let configuredConcurrencyCap: number | undefined = undefined;
 
@@ -651,14 +648,41 @@ export default class AIInvestigationQueue {
         : project?.alertAiMaxConcurrentInvestigations;
     }
 
-    const concurrencyCap: number = Math.min(
-      MAX_CONCURRENT_INVESTIGATIONS,
-      Math.max(
-        MIN_CONCURRENT_INVESTIGATIONS,
-        configuredConcurrencyCap ?? DEFAULT_MAX_CONCURRENT_INVESTIGATIONS,
-      ),
-    );
+    const concurrencyCap: number | null =
+      AIWorkloadLimits.getMaxConcurrentInvestigations(configuredConcurrencyCap);
 
+    // No cap, nothing to count: the run is only held back by the budget.
+    if (
+      concurrencyCap !== null &&
+      !(await this.hasFreeSlot(run, concurrencyCap))
+    ) {
+      return false;
+    }
+
+    const budget: AutonomousBudgetStatus =
+      await AIService.getAutonomousDailyBudgetStatus(run.projectId, {
+        incidentId: run.triggeredByIncidentId,
+        alertId: run.triggeredByAlertId,
+      });
+
+    if (budget.exhausted) {
+      logger.debug(
+        `AI: leaving run ${run.id.toString()} queued — daily autonomous token budget exhausted.`,
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  /*
+   * Whether the run's lane has a slot free under the cap the project set for
+   * it, including the background lane's share of that cap.
+   */
+  private static async hasFreeSlot(
+    run: QueuedRunRef,
+    concurrencyCap: number,
+  ): Promise<boolean> {
     const subjectLaneQuery: Query<AIRun> = this.getSubjectLaneQuery(run);
 
     /*
@@ -754,19 +778,6 @@ export default class AIInvestigationQueue {
         );
         return false;
       }
-    }
-
-    const budget: AutonomousBudgetStatus =
-      await AIService.getAutonomousDailyBudgetStatus(run.projectId, {
-        incidentId: run.triggeredByIncidentId,
-        alertId: run.triggeredByAlertId,
-      });
-
-    if (budget.exhausted) {
-      logger.debug(
-        `AI: leaving run ${run.id.toString()} queued — daily autonomous token budget exhausted.`,
-      );
-      return false;
     }
 
     return true;

@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "Rotationer som avgör vem som har jour vid varje tidpunkt. Lägg till ett schema i eskaleringsreglerna för en jourpolicy för att larma den som har jour.",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "De applikationer och mikrotjänster du kör. Varje tjänst samlar sina loggar, spår, mätvärden, undantag, incidenter och ägare på ett ställe.",
   "Create On-Call Schedule": "Skapa jourschema",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Sonder är de maskiner som kör den här monitorns kontroller. Projektets standardsonder är redan valda. En monitor utan sonder kontrolleras aldrig."
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Sonder är de maskiner som kör den här monitorns kontroller. Projektets standardsonder är redan valda. En monitor utan sonder kontrolleras aldrig.",
+  "Auto Remediation Rules": "Regler för automatisk åtgärd"
 }

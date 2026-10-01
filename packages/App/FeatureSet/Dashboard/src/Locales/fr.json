@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "Des rotations qui déterminent qui est d'astreinte à tout moment. Ajoutez un planning aux règles d'escalade d'une politique d'astreinte pour alerter la personne d'astreinte.",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "Les applications et microservices que vous exploitez. Chaque service rassemble ses journaux, traces, métriques, exceptions, incidents et propriétaires au même endroit.",
   "Create On-Call Schedule": "Créer un planning d'astreinte",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Les sondes sont les machines qui exécutent les vérifications de ce moniteur. Les sondes par défaut de votre projet sont déjà sélectionnées. Un moniteur sans sonde n'est jamais vérifié."
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Les sondes sont les machines qui exécutent les vérifications de ce moniteur. Les sondes par défaut de votre projet sont déjà sélectionnées. Un moniteur sans sonde n'est jamais vérifié.",
+  "Auto Remediation Rules": "Règles d'auto-remédiation"
 }

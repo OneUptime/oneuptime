@@ -5,8 +5,8 @@ import {
 import InvestigationEligibility from "./InvestigationEligibility";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
-import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import AIRunType from "../../../../Types/AI/AIRunType";
+import AIWorkloadLimits from "../../../../Types/AI/AIWorkloadLimits";
 import { Blue500 } from "../../../../Types/BrandColors";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
@@ -58,19 +58,16 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * the alert timeline + Slack/Teams. Symmetric to incident investigation and
  * built on the same shared AIInvestigationEngine.
  *
- * Gated by the same per-project opt-in as incidents, PLUS alert-specific cost
- * gates (alert volume can be far higher than incidents):
+ * Gated by the same per-project opt-in as incidents, PLUS two cost gates a
+ * project may set for alerts (alert volume can be far higher than
+ * incidents). Both are off until a project sets them, so by default every
+ * alert is investigated:
  *   - severity floor: only alerts at or above the project's configured minimum
- *     severity are investigated; when unset, the top two severity tiers
- *     (lowest two `order` values) are the default.
- *   - per-monitor dedupe window: a monitor that already triggered an
- *     investigation recently is not re-investigated — the first RCA stands.
+ *     severity are investigated; unset means every severity.
+ *   - per-monitor cooldown: a monitor that already triggered an investigation
+ *     within the window is not re-investigated — the first RCA stands; unset
+ *     means no cooldown.
  */
-
-// Per-project override lives in Project.alertInvestigationDedupeWindowMinutes.
-export const DEFAULT_DEDUPE_WINDOW_MINUTES: number = 30;
-// Clamp: an RCA older than a day is a new episode by any reading.
-const MAX_DEDUPE_WINDOW_MINUTES: number = 24 * 60;
 
 export interface AlertGateDecision {
   investigate: boolean;
@@ -468,9 +465,12 @@ export default class AIAlertInvestigationRunner {
       props: { isRoot: true },
     });
 
-    // Severity floor.
+    /*
+     * Severity floor. Only filters KNOWN-low-severity alerts: an alert whose
+     * severity order cannot be determined passes, as does every alert when
+     * no floor is configured.
+     */
     const floorSeverity: AlertSeverity | null = await this.getSeverityFloor(
-      projectId,
       project?.alertInvestigationMinimumSeverityId,
     );
     const floorOrder: number | undefined = floorSeverity?.order;
@@ -494,17 +494,12 @@ export default class AIAlertInvestigationRunner {
     }
 
     /*
-     * Per-monitor dedupe window: per-project override, defaulting to 30
-     * minutes, clamped to at most a day; 0 disables the cooldown. Alerts
-     * without a monitor have no dedupe key.
+     * Per-monitor cooldown: off unless the project sets one, clamped to at
+     * most a day (see AIWorkloadLimits). Alerts without a monitor have no
+     * dedupe key.
      */
-    const dedupeWindowMinutes: number = Math.min(
-      MAX_DEDUPE_WINDOW_MINUTES,
-      Math.max(
-        0,
-        project?.alertInvestigationDedupeWindowMinutes ??
-          DEFAULT_DEDUPE_WINDOW_MINUTES,
-      ),
+    const dedupeWindowMinutes: number = AIWorkloadLimits.getCooldownInMinutes(
+      project?.alertInvestigationDedupeWindowMinutes,
     );
 
     if (alert.monitorId && dedupeWindowMinutes > 0) {
@@ -546,43 +541,32 @@ export default class AIAlertInvestigationRunner {
   /*
    * The severity `order` value that still qualifies for investigation (lower
    * order = higher severity; an alert qualifies when its order <= floor).
-   * An explicitly configured minimum severity wins; when unset — or when the
-   * configured severity has been deleted — the default is the project's top
-   * two tiers. Returns null when no floor applies (no severities configured).
+   * Returns null when no floor applies — the default: no configured minimum
+   * means every alert is investigated, whatever its severity.
    */
   private static async getSeverityFloor(
-    projectId: ObjectID,
     minimumSeverityId: ObjectID | undefined,
   ): Promise<AlertSeverity | null> {
-    if (minimumSeverityId) {
-      const floorSeverity: AlertSeverity | null =
-        await AlertSeverityService.findOneById({
-          id: minimumSeverityId,
-          select: { order: true, name: true },
-          props: { isRoot: true },
-        });
-
-      if (floorSeverity && floorSeverity.order !== undefined) {
-        return floorSeverity;
-      }
-    }
-
-    // Default: the top two severity tiers (the two lowest order values).
-    const topTiers: Array<AlertSeverity> = await AlertSeverityService.findBy({
-      query: { projectId },
-      select: { order: true, name: true },
-      sort: { order: SortOrder.Ascending },
-      limit: 2,
-      skip: 0,
-      props: { isRoot: true },
-    });
-
-    if (topTiers.length === 0) {
+    if (!minimumSeverityId) {
       return null;
     }
 
-    const lastTier: AlertSeverity = topTiers[topTiers.length - 1]!;
-    return lastTier.order !== undefined ? lastTier : null;
+    const floorSeverity: AlertSeverity | null =
+      await AlertSeverityService.findOneById({
+        id: minimumSeverityId,
+        select: { order: true, name: true },
+        props: { isRoot: true },
+      });
+
+    /*
+     * A configured severity that has since been deleted must not silently
+     * become "investigate nothing" — fall back to no floor.
+     */
+    if (!floorSeverity || floorSeverity.order === undefined) {
+      return null;
+    }
+
+    return floorSeverity;
   }
 
   // Build a compact alert record to seed the investigation.

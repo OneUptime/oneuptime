@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "Rodízios que definem quem está de plantão a cada momento. Adicione um agendamento às regras de escalonamento de uma política de plantão para acionar quem estiver de plantão.",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "Os aplicativos e microsserviços que você executa. Cada serviço reúne seus registros, traços, métricas, exceções, incidentes e proprietários em um só lugar.",
   "Create On-Call Schedule": "Criar agendamento de plantão",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Sondas são as máquinas que executam as verificações deste monitor. As sondas padrão do seu projeto já vêm selecionadas. Um monitor sem sondas nunca é verificado."
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Sondas são as máquinas que executam as verificações deste monitor. As sondas padrão do seu projeto já vêm selecionadas. Um monitor sem sondas nunca é verificado.",
+  "Auto Remediation Rules": "Regras de remediação automática"
 }

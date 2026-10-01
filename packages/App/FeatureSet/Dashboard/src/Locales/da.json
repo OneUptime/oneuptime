@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "Rotationer, der bestemmer, hvem der har vagt på ethvert tidspunkt. Føj en vagtplan til eskaleringsreglerne i en vagtpolitik for at kalde den, der har vagt.",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "De applikationer og microservices, du kører. Hver tjeneste samler sine protokoller, spor, metrikker, undtagelser, hændelser og ejere ét sted.",
   "Create On-Call Schedule": "Opret vagtplan",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Sonder er de maskiner, der kører denne monitors tjek. Dit projekts standardsonder er valgt på forhånd. En monitor uden sonder bliver aldrig tjekket."
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Sonder er de maskiner, der kører denne monitors tjek. Dit projekts standardsonder er valgt på forhånd. En monitor uden sonder bliver aldrig tjekket.",
+  "Auto Remediation Rules": "Regler for automatisk afhjælpning"
 }

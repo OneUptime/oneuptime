@@ -22,7 +22,6 @@ import AlertService from "../../../Services/AlertService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import PostedRootCause from "../SRE/PostedRootCause";
 import AIInvestigationQueue from "../SRE/InvestigationQueue";
-import { DEFAULT_INCIDENT_DEDUPE_WINDOW_MINUTES } from "../SRE/IncidentInvestigationRunner";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
@@ -49,6 +48,14 @@ import {
 
 // How many investigation runs one get_ai_investigation call returns at most.
 const MAX_INVESTIGATION_RUNS_RETURNED: number = 5;
+
+/*
+ * How recent a run on the exact same subject must be for start_investigation
+ * to point the model at it instead of starting another. This is the chat's
+ * duplicate guard, not the automatic lanes' per-monitor cooldown — that one
+ * is a project setting and off by default.
+ */
+const RECENT_INVESTIGATION_REUSE_WINDOW_MINUTES: number = 30;
 
 /*
  * Detects the analysis' own "the evidence was inconclusive" verdict in the
@@ -765,13 +772,12 @@ export const StartInvestigationTool: ObservabilityTool = {
     }
 
     /*
-     * Cooldown: reuse the automatic lane's default dedupe window (30
-     * minutes). A run that recently settled for this exact subject already
-     * answered — or errored on — the same question; point the model at it
-     * instead of double-spending the budget.
+     * A run that recently settled for this exact subject already answered —
+     * or errored on — the same question; point the model at it instead of
+     * double-spending the budget.
      */
     const cooldownStart: Date = OneUptimeDate.getSomeMinutesAgo(
-      DEFAULT_INCIDENT_DEDUPE_WINDOW_MINUTES,
+      RECENT_INVESTIGATION_REUSE_WINDOW_MINUTES,
     );
     const recentRunCount: number = (
       await AIRunService.countBy({
@@ -786,7 +792,7 @@ export const StartInvestigationTool: ObservabilityTool = {
 
     if (recentRunCount > 0) {
       return {
-        dataForLlm: `A recent AI investigation already exists for ${subject.label} (started within the last ${DEFAULT_INCIDENT_DEDUPE_WINDOW_MINUTES} minutes) — not starting a duplicate. Read it with get_ai_investigation.`,
+        dataForLlm: `A recent AI investigation already exists for ${subject.label} (started within the last ${RECENT_INVESTIGATION_REUSE_WINDOW_MINUTES} minutes) — not starting a duplicate. Read it with get_ai_investigation.`,
         rowCount: 0,
         citationLabel: `Recent investigation exists for ${subject.label}`,
         citationTarget: {

@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "いつ誰がオンコール担当かを決めるローテーションです。オンコールポリシーのエスカレーションルールにスケジュールを追加すると、その時点の担当者を呼び出せます。",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "運用しているアプリケーションとマイクロサービスです。各サービスには、ログ、トレース、メトリクス、例外、インシデント、所有者が1か所にまとまっています。",
   "Create On-Call Schedule": "オンコールスケジュールを作成",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "プローブは、このモニターのチェックを実行するマシンです。プロジェクトのデフォルトのプローブがあらかじめ選択されています。プローブのないモニターは一度もチェックされません。"
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "プローブは、このモニターのチェックを実行するマシンです。プロジェクトのデフォルトのプローブがあらかじめ選択されています。プローブのないモニターは一度もチェックされません。",
+  "Auto Remediation Rules": "自動修復ルール"
 }

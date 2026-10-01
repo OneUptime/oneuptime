@@ -80,8 +80,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     /*
      * Every "when an event looks like X, do Y" page lives here. Collapsed by
      * default because these are set up once and rarely revisited. Scheduled
-     * maintenance has no AI section to go with it — unlike incidents and
-     * alerts, nothing here is investigated or auto-remediated.
+     * maintenance has no AI settings page or auto-remediation rules — unlike
+     * incidents and alerts, nothing here is investigated or auto-remediated.
      */
     {
       title: "Rules",
