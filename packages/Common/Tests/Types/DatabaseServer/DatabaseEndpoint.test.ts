@@ -2868,9 +2868,9 @@ describe("isClientSocketDatabaseEndpoint", () => {
       { host: "x.example.com", port: 0 },
       { host: "x.example.com", port: Number.NaN },
     ]) {
-      expect(isClientSocketDatabaseEndpoint({ system: "redis", endpoint })).toBe(
-        false,
-      );
+      expect(
+        isClientSocketDatabaseEndpoint({ system: "redis", endpoint }),
+      ).toBe(false);
     }
     expect(
       isClientSocketDatabaseEndpoint(
