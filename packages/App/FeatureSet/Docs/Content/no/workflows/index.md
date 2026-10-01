@@ -46,7 +46,7 @@ Alt dette bygger du visuelt på et lerret. De fleste arbeidsflyter krever ingen 
 - **Bygger** — lerretet der du utformer arbeidsflyten.
 - **Arbeidsflytvariabler** — verdier som bare gjelder denne ene arbeidsflyten.
 - **Kjøringer og logger** — hver kjøring av denne arbeidsflyten, med detaljer.
-- **Innstillinger** — webhook-hemmelighet, duplisering og eksport.
+- **Innstillinger** — duplisering og eksport.
 
 ## Bygg din første arbeidsflyt
 

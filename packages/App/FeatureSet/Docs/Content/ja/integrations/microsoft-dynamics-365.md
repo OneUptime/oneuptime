@@ -230,13 +230,13 @@ Dynamics の `severitycode` は既定で「Default Value」という選択肢が
 ### 先に受信側のワークフローを作る
 
 1. **ワークフローを作成** し、`Dynamics 365 → OneUptime` という名前にして **Webhook** トリガーを追加します。
-2. そのワークフローの **設定** を開いて **Webhook Secret Key** をコピーします。URL は次の形です。
+2. そのワークフローの **ビルダー** を開き、**Webhook** トリガーをクリックして、設定の一番上にある **URL をコピー** をクリックします。URL は次の形です。
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   セルフホストのインストールでは自分のホストに置き換えます。この URL はパスワードと同じように扱ってください — 持っている人は誰でもワークフローを起動できます。キーは同じページからリセットできます。
+   セルフホストのインストールでは自分のホストになります。この URL はパスワードと同じように扱ってください — 持っている人は誰でもワークフローを起動できます。漏洩した場合は、同じ場所で **URL をリセット** をクリックします。古い URL はすぐに使えなくなります。
 
 3. 他の処理が始まる前に共有シークレットを確認する **If / Else** ブロックを追加します。**Input 1** は `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`、**Operator** は `==`、**Input 2** は `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — 自分で決めてシークレットのグローバル変数として保存した値です。
 4. **Yes** ブランチから **Update One Incident** ブロックを追加します。

@@ -246,6 +246,15 @@ describe("the step settings dialog in the dark theme", () => {
         "hover:bg-gray-200",
         "bg-emerald-50",
         "border-emerald-200",
+        /*
+         * The webhook URL's masked key, the warning for a URL built from the
+         * workflow's ID, and the line confirming a reset.
+         */
+        "text-gray-500",
+        "bg-amber-50",
+        "border-amber-200",
+        "text-amber-800",
+        "text-emerald-700",
       ]),
     );
     expect(unmapped).toEqual([]);

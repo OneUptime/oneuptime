@@ -46,7 +46,7 @@ Allt det här bygger du visuellt på en arbetsyta. Ingen kodning krävs för de 
 - **Byggare** — arbetsytan där du designar arbetsflödet.
 - **Arbetsflödesvariabler** — värden som bara gäller det här enda arbetsflödet.
 - **Körningar och loggar** — varje körning av det här arbetsflödet, med detaljer.
-- **Inställningar** — webhook-hemlighet, duplicering och export.
+- **Inställningar** — duplicering och export.
 
 ## Bygg ditt första arbetsflöde
 
