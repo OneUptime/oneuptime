@@ -7,8 +7,8 @@
  * all on screen at once, that the maintainer described as decision paralysis.
  * It now opens on a handful of recommended templates and keeps the rest
  * behind a short list of categories, each with its count, and a search that
- * reads every word typed. Picking a template shows what it does before
- * anything is created.
+ * reads words the way the Add Component picker does. Picking a template
+ * shows what it does before anything is created.
  */
 
 import IconProp from "Common/Types/Icon/IconProp";
@@ -26,6 +26,16 @@ import {
   getWorkflowTemplates,
 } from "Common/Types/Workflow/Templates";
 import { loadComponentsAndCategories } from "Common/UI/Components/Workflow/Utils";
+import {
+  HighlightSegment,
+  WORD_MATCH_QUALITY,
+  WordMatchKind,
+  getHighlightSegments,
+  getSearchTokens,
+  getSearchWords,
+  matchWord,
+  matchWordWithTypo,
+} from "Common/UI/Components/Workflow/ComponentPicker/ComponentSearch";
 
 /** The two lists that are not a category: the starting handful, and everything. */
 export enum WorkflowTemplateCollection {
@@ -161,74 +171,181 @@ export const getTemplatesInView: GetTemplatesInViewFunction = (
 
 /* ------------------------------ Search ------------------------------ */
 
+/*
+ * Search reads words the way the builder's Add Component picker does, on its
+ * word matching (ComponentPicker/ComponentSearch), so the two pickers answer
+ * the same typing the same way. Every word typed has to be found, in any
+ * order and in any field; it may be a plural of what is written ("webhooks"),
+ * the start of a longer word ("inc"), or inside one ("script"); a word that
+ * matches nothing as typed is read as a typo ("incidnet"); and words that say
+ * nothing about which template is meant ("when", "the") are left out unless
+ * they are all there is.
+ */
+
 export type GetWorkflowTemplateSearchTokensFunction = (
   search: string,
 ) => Array<string>;
 
-/** The words of a search, in lower case, each once. Empty when nothing was typed. */
+/**
+ * The words a search is matched on, lower case and each once, without the
+ * ones that say nothing. Empty when nothing searchable was typed.
+ */
 export const getWorkflowTemplateSearchTokens: GetWorkflowTemplateSearchTokensFunction =
   (search: string): Array<string> => {
-    const tokens: Array<string> = search
-      .trim()
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((token: string) => {
-        return token.length > 0;
-      });
-
-    return Array.from(new Set(tokens));
+    return getSearchTokens(search);
   };
 
-type WordsOfFunction = (text: string) => Array<string>;
-
-const wordsOf: WordsOfFunction = (text: string): Array<string> => {
-  return text
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter((word: string) => {
-      return word.length > 0;
-    });
-};
-
 interface SearchField {
-  text: string;
-  /** Points for a word in this field that starts with the token. */
-  wordStart: number;
-  /** Points for the token anywhere else in the field. */
-  anywhere: number;
+  words: Array<string>;
+  // How much a match here counts. Zero: searched, but not scored.
+  weight: number;
 }
+
+/*
+ * What a search reads, and how much a match in each place is worth: the
+ * name, then the category, then the description, as in the Add Component
+ * picker. The template's own words only: the category's description is left
+ * out on purpose, because the Jira category's mentions both incidents and
+ * alerts, and searching for "alert" would then bring back every incident
+ * Jira template as well.
+ *
+ * What a template teaches is searched but not scored. It is about the
+ * builder, not the job ("how to read a Jira changelog"), so a word in it
+ * should find a template without lifting it over one whose name says it.
+ */
+const NAME_WEIGHT: number = 1;
+const CATEGORY_WEIGHT: number = 0.7;
+const DESCRIPTION_WEIGHT: number = 0.35;
+const TEACHES_WEIGHT: number = 0;
+
+// The catalog does not change while the page is open, so its words are read once.
+const searchFieldsByTemplateId: Map<string, Array<SearchField>> = new Map();
 
 type SearchFieldsFunction = (template: WorkflowTemplate) => Array<SearchField>;
 
-/*
- * What a search reads, and how much a hit in each is worth. The template's
- * own words only: the category's description is left out on purpose, because
- * the Jira category's mentions both incidents and alerts, and searching for
- * "alert" would then bring back every incident Jira template as well.
- *
- * What a template teaches is searched but not scored. It is about the
- * builder, not about the job ("how to read a Jira changelog"), so a word in it
- * should find a template without lifting it over one whose name says it.
- */
-const searchFields: SearchFieldsFunction = (
+const searchFieldsOf: SearchFieldsFunction = (
   template: WorkflowTemplate,
 ): Array<SearchField> => {
-  return [
-    { text: template.name, wordStart: 70, anywhere: 40 },
+  const known: Array<SearchField> | undefined = searchFieldsByTemplateId.get(
+    template.id,
+  );
+
+  if (known) {
+    return known;
+  }
+
+  const fields: Array<SearchField> = [
+    { words: getSearchWords(template.name), weight: NAME_WEIGHT },
     {
       // The category's own name and the one the picker shows, which can differ.
-      text: `${template.category} ${getWorkflowTemplateCategoryLabel(
-        template.category,
-      )} ${template.subcategory || ""}`,
-      wordStart: 30,
-      anywhere: 20,
+      words: getSearchWords(
+        `${template.category} ${getWorkflowTemplateCategoryLabel(
+          template.category,
+        )} ${template.subcategory || ""}`,
+      ),
+      weight: CATEGORY_WEIGHT,
     },
-    { text: template.description, wordStart: 15, anywhere: 10 },
-    { text: template.teaches, wordStart: 0, anywhere: 0 },
+    { words: getSearchWords(template.description), weight: DESCRIPTION_WEIGHT },
+    { words: getSearchWords(template.teaches), weight: TEACHES_WEIGHT },
   ];
+
+  searchFieldsByTemplateId.set(template.id, fields);
+
+  return fields;
 };
 
-/** Extra points when the name itself starts with the word: "jira" finds "Jira…" first. */
+type BestMatchFunction = (
+  token: string,
+  words: Array<string>,
+  allowTypo: boolean,
+) => number;
+
+// How well a typed word matches the best of these words, from 0 (not at all) to 1.
+const bestMatch: BestMatchFunction = (
+  token: string,
+  words: Array<string>,
+  allowTypo: boolean,
+): number => {
+  let best: number = 0;
+
+  for (const word of words) {
+    const kind: WordMatchKind | null = matchWord(token, word);
+
+    if (kind) {
+      best = Math.max(best, WORD_MATCH_QUALITY[kind]);
+    } else if (allowTypo && matchWordWithTypo(token, word)) {
+      best = Math.max(best, WORD_MATCH_QUALITY[WordMatchKind.Fuzzy]);
+    }
+  }
+
+  return best;
+};
+
+type IsFoundFunction = (
+  template: WorkflowTemplate,
+  token: string,
+  allowTypo: boolean,
+) => boolean;
+
+const isFound: IsFoundFunction = (
+  template: WorkflowTemplate,
+  token: string,
+  allowTypo: boolean,
+): boolean => {
+  return searchFieldsOf(template).some((field: SearchField) => {
+    return bestMatch(token, field.words, allowTypo) > 0;
+  });
+};
+
+export type GetWorkflowTemplateTypoTokensFunction = (
+  tokens: Array<string>,
+) => Array<string>;
+
+/**
+ * The words typed that no template holds as written, which are then looked
+ * for again as typos. As in the Add Component picker, a typo is only read
+ * where nothing matches the word as typed, so a word that is right is never
+ * also read as a near miss of some other word.
+ */
+export const getWorkflowTemplateTypoTokens: GetWorkflowTemplateTypoTokensFunction =
+  (tokens: Array<string>): Array<string> => {
+    const templates: Array<WorkflowTemplate> = getWorkflowTemplates();
+
+    return tokens.filter((token: string) => {
+      return !templates.some((template: WorkflowTemplate) => {
+        return isFound(template, token, false);
+      });
+    });
+  };
+
+export type WorkflowTemplateMatchesSearchFunction = (
+  template: WorkflowTemplate,
+  tokens: Array<string>,
+  typoTokens?: Array<string> | undefined,
+) => boolean;
+
+/**
+ * Does this template match every word typed? Each word may be found in a
+ * different place - the name, the category, the description or what the
+ * template teaches - so "slack monitor" finds "Tell Slack when a monitor
+ * changes status", which a search for the whole phrase never would. The
+ * typoTokens are matched forgiving a typo.
+ */
+export const workflowTemplateMatchesSearch: WorkflowTemplateMatchesSearchFunction =
+  (
+    template: WorkflowTemplate,
+    tokens: Array<string>,
+    typoTokens?: Array<string> | undefined,
+  ): boolean => {
+    return tokens.every((token: string) => {
+      return isFound(template, token, Boolean(typoTokens?.includes(token)));
+    });
+  };
+
+/** Points for each word typed, at the best place it was found. */
+const SCORE_PER_WORD: number = 100;
+
+/** Extra points when the name itself starts with a word typed: "send" finds "Send…" first. */
 const NAME_PREFIX_BONUS: number = 30;
 
 /*
@@ -246,94 +363,71 @@ const searchPhraseOf: SearchPhraseFunction = (search: string): string => {
   return search.trim().toLowerCase().replace(/\s+/g, " ");
 };
 
-type TokenScoreFunction = (template: WorkflowTemplate, token: string) => number;
-
-const tokenScore: TokenScoreFunction = (
-  template: WorkflowTemplate,
-  token: string,
-): number => {
-  let score: number = 0;
-
-  for (const field of searchFields(template)) {
-    const text: string = field.text.toLowerCase();
-
-    if (
-      wordsOf(text).some((word: string) => {
-        return word.startsWith(token);
-      })
-    ) {
-      score += field.wordStart;
-    } else if (text.includes(token)) {
-      score += field.anywhere;
-    }
-  }
-
-  if (template.name.toLowerCase().startsWith(token)) {
-    score += NAME_PREFIX_BONUS;
-  }
-
-  return score;
-};
-
-export type WorkflowTemplateMatchesSearchFunction = (
-  template: WorkflowTemplate,
-  tokens: Array<string>,
-) => boolean;
-
-/**
- * Does this template match every word typed? Each word may be found in a
- * different place - the name, the category, the description or what the
- * template teaches - so "slack monitor" finds "Tell Slack when a monitor
- * changes status", which a search for the whole phrase never would.
- */
-export const workflowTemplateMatchesSearch: WorkflowTemplateMatchesSearchFunction =
-  (template: WorkflowTemplate, tokens: Array<string>): boolean => {
-    if (tokens.length === 0) {
-      return true;
-    }
-
-    const haystack: string = searchFields(template)
-      .map((field: SearchField) => {
-        return field.text;
-      })
-      .join(" ")
-      .toLowerCase();
-
-    return tokens.every((token: string) => {
-      return haystack.includes(token);
-    });
-  };
-
 export type GetWorkflowTemplateSearchScoreFunction = (
   template: WorkflowTemplate,
   tokens: Array<string>,
   phrase?: string | undefined,
+  typoTokens?: Array<string> | undefined,
 ) => number;
 
 /**
- * How well a template matches, summed over the words typed, plus a large
- * bonus when its name holds the phrase typed (by default, the words in the
- * order given). Higher is better.
+ * How well a template matches: for each word typed, how well and where it
+ * was found at best, plus a bonus when the name starts with a word typed,
+ * and a large one when the name holds the phrase typed (by default, the
+ * words in the order given). Higher is better.
  */
 export const getWorkflowTemplateSearchScore: GetWorkflowTemplateSearchScoreFunction =
   (
     template: WorkflowTemplate,
     tokens: Array<string>,
     phrase?: string | undefined,
+    typoTokens?: Array<string> | undefined,
   ): number => {
-    const wordScore: number = tokens.reduce(
-      (total: number, token: string): number => {
-        return total + tokenScore(template, token);
-      },
-      0,
-    );
+    const fields: Array<SearchField> = searchFieldsOf(template);
+    let score: number = 0;
+
+    for (const token of tokens) {
+      const allowTypo: boolean = Boolean(typoTokens?.includes(token));
+      let best: number = 0;
+
+      for (const field of fields) {
+        best = Math.max(
+          best,
+          bestMatch(token, field.words, allowTypo) * field.weight,
+        );
+      }
+
+      score += best * SCORE_PER_WORD;
+    }
+
+    const firstWordOfName: string | undefined = fields[0]?.words[0];
+
+    if (
+      firstWordOfName &&
+      tokens.some((token: string) => {
+        const kind: WordMatchKind | null = matchWord(token, firstWordOfName);
+
+        return (
+          kind === WordMatchKind.Exact ||
+          kind === WordMatchKind.Variant ||
+          kind === WordMatchKind.Prefix
+        );
+      })
+    ) {
+      score += NAME_PREFIX_BONUS;
+    }
+
     const wholePhrase: string = phrase ?? tokens.join(" ");
-    const hasPhrase: boolean =
+
+    if (
       tokens.length > 1 &&
       wholePhrase.length > 0 &&
-      template.name.toLowerCase().includes(wholePhrase);
+      template.name.toLowerCase().includes(wholePhrase)
+    ) {
+      score += NAME_PHRASE_BONUS;
+    }
 
-    return wordScore + (hasPhrase ? NAME_PHRASE_BONUS : 0);
+    return score;
   };
 
 export type SearchWorkflowTemplatesFunction = (
@@ -357,18 +451,24 @@ export const searchWorkflowTemplates: SearchWorkflowTemplatesFunction = (
     return [...templates];
   }
 
+  const typoTokens: Array<string> = getWorkflowTemplateTypoTokens(tokens);
   const phrase: string = searchPhraseOf(search);
 
   return templates
+    .filter((template: WorkflowTemplate) => {
+      return workflowTemplateMatchesSearch(template, tokens, typoTokens);
+    })
     .map((template: WorkflowTemplate, index: number) => {
       return {
         template: template,
         index: index,
-        score: getWorkflowTemplateSearchScore(template, tokens, phrase),
+        score: getWorkflowTemplateSearchScore(
+          template,
+          tokens,
+          phrase,
+          typoTokens,
+        ),
       };
-    })
-    .filter((entry: { template: WorkflowTemplate }) => {
-      return workflowTemplateMatchesSearch(entry.template, tokens);
     })
     .sort(
       (
@@ -383,55 +483,27 @@ export const searchWorkflowTemplates: SearchWorkflowTemplatesFunction = (
     });
 };
 
-export interface WorkflowTemplateHighlightSegment {
-  text: string;
-  isMatch: boolean;
-}
-
-const escapeRegExp: (value: string) => string = (value: string): string => {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-};
+export type WorkflowTemplateHighlightSegment = HighlightSegment;
 
 export type GetWorkflowTemplateHighlightSegmentsFunction = (
   text: string,
   tokens: Array<string>,
+  typoTokens?: Array<string> | undefined,
 ) => Array<WorkflowTemplateHighlightSegment>;
 
 /**
- * The text cut into pieces, each marked by whether it is one of the words
- * typed, so the row can highlight them. Longer words are tried first, so
- * typing "inc incident" marks "incident" whole rather than "inc" and a rest.
+ * The text cut into pieces, each marked by whether a word typed matched it:
+ * a whole word, what has been typed of a longer one, the letters inside one,
+ * or the word a typo was read as. Marked as the Add Component picker marks
+ * its rows.
  */
 export const getWorkflowTemplateHighlightSegments: GetWorkflowTemplateHighlightSegmentsFunction =
   (
     text: string,
     tokens: Array<string>,
+    typoTokens?: Array<string> | undefined,
   ): Array<WorkflowTemplateHighlightSegment> => {
-    if (tokens.length === 0 || text.length === 0) {
-      return [{ text: text, isMatch: false }];
-    }
-
-    const pattern: RegExp = new RegExp(
-      `(${[...tokens]
-        .sort((a: string, b: string) => {
-          return b.length - a.length;
-        })
-        .map(escapeRegExp)
-        .join("|")})`,
-      "gi",
-    );
-
-    return text
-      .split(pattern)
-      .filter((piece: string) => {
-        return piece.length > 0;
-      })
-      .map((piece: string): WorkflowTemplateHighlightSegment => {
-        return {
-          text: piece,
-          isMatch: tokens.includes(piece.toLowerCase()),
-        };
-      });
+    return getHighlightSegments(text, tokens, typoTokens || []);
   };
 
 /* ------------------------------ State ------------------------------- */
@@ -500,6 +572,8 @@ export interface WorkflowTemplatePickerSection {
 export interface WorkflowTemplatePickerList {
   view: WorkflowTemplatePickerView;
   isSearching: boolean;
+  /** The words of the search read as typos, for the rows to mark what they were read as. */
+  typoTokens: Array<string>;
   sections: Array<WorkflowTemplatePickerSection>;
   /** Every template on the list, in the order shown: what the arrow keys walk. */
   templates: Array<WorkflowTemplate>;
@@ -568,6 +642,11 @@ export const getWorkflowTemplatePickerList: GetWorkflowTemplatePickerListFunctio
       getCurrentWorkflowTemplatePickerView(state);
     const isSearching: boolean = isSearchingTemplates(state);
     const inView: Array<WorkflowTemplate> = getTemplatesInView(view);
+    const typoTokens: Array<string> = isSearching
+      ? getWorkflowTemplateTypoTokens(
+          getWorkflowTemplateSearchTokens(state.search),
+        )
+      : [];
 
     let sections: Array<WorkflowTemplatePickerSection>;
 
@@ -603,6 +682,7 @@ export const getWorkflowTemplatePickerList: GetWorkflowTemplatePickerListFunctio
     return {
       view: view,
       isSearching: isSearching,
+      typoTokens: typoTokens,
       sections: sections,
       templates: sections.flatMap(
         (section: WorkflowTemplatePickerSection): Array<WorkflowTemplate> => {
@@ -624,13 +704,14 @@ export type GetWorkflowTemplatePickerCountsFunction = (
 export const getWorkflowTemplatePickerCounts: GetWorkflowTemplatePickerCountsFunction =
   (search: string): Map<WorkflowTemplatePickerView, number> => {
     const tokens: Array<string> = getWorkflowTemplateSearchTokens(search);
+    const typoTokens: Array<string> = getWorkflowTemplateTypoTokens(tokens);
     const counts: Map<WorkflowTemplatePickerView, number> = new Map();
 
     for (const info of getWorkflowTemplatePickerViews()) {
       counts.set(
         info.view,
         getTemplatesInView(info.view).filter((template: WorkflowTemplate) => {
-          return workflowTemplateMatchesSearch(template, tokens);
+          return workflowTemplateMatchesSearch(template, tokens, typoTokens);
         }).length,
       );
     }

@@ -53,6 +53,7 @@ import {
   getWorkflowTemplatePreview,
   getWorkflowTemplateSearchScore,
   getWorkflowTemplateSearchTokens,
+  getWorkflowTemplateTypoTokens,
   isSearchingTemplates,
   searchWorkflowTemplates,
   withWorkflowTemplateSearch,
@@ -253,6 +254,84 @@ describe("the picker's views", () => {
   });
 });
 
+/*
+ * The template search reads words the way the Add Component picker does,
+ * on the same word matching, so the two pickers answer the same typing the
+ * same way.
+ */
+describe("words the way the Add Component picker reads them", () => {
+  test("a plural finds what is written in the singular", () => {
+    const SINGULAR_WEBHOOK: RegExp = /\bwebhook\b/i;
+    const webhookTemplates: Array<string> = ALL_TEMPLATES.filter(
+      (candidate: WorkflowTemplate) => {
+        return SINGULAR_WEBHOOK.test(candidate.name);
+      },
+    ).map((candidate: WorkflowTemplate) => {
+      return candidate.id;
+    });
+
+    expect(webhookTemplates.length).toBeGreaterThan(0);
+    expect(searchIds("webhooks")).toEqual(
+      expect.arrayContaining(webhookTemplates),
+    );
+  });
+
+  test("the start of a word finds the word", () => {
+    expect(searchIds("discor")).toEqual(["incident-created-discord"]);
+    expect(searchIds("inc").length).toBeGreaterThan(0);
+
+    for (const templateId of searchIds("inc")) {
+      expect(JSON.stringify(template(templateId)).toLowerCase()).toContain(
+        "inc",
+      );
+    }
+  });
+
+  test("a typo finds what was meant, but only where nothing matches as typed", () => {
+    expect(getWorkflowTemplateTypoTokens(["incidnet", "slack"])).toEqual([
+      "incidnet",
+    ]);
+    // The same templates; a typo counts for less than the word, so the order may differ.
+    expect([...searchIds("incidnet slack")].sort()).toEqual(
+      [...searchIds("incident slack")].sort(),
+    );
+    // "slak" is in no word as typed, so it is read as a typo of "slack".
+    expect(getWorkflowTemplateTypoTokens(["slak"])).toEqual(["slak"]);
+    expect([...searchIds("slak")].sort()).toEqual(
+      [...searchIds("slack")].sort(),
+    );
+    // "tems" is inside "systems", so it is not a typo of "teams".
+    expect(getWorkflowTemplateTypoTokens(["tems"])).toEqual([]);
+  });
+
+  test("a word too short to be read as a typo is not", () => {
+    expect(getWorkflowTemplateTypoTokens(["zq"])).toEqual(["zq"]);
+    expect(searchIds("zq")).toEqual([]);
+  });
+
+  test("words that say nothing about which template is meant are left out", () => {
+    expect(
+      getWorkflowTemplateSearchTokens("Tell Slack when an incident opens"),
+    ).toEqual(["tell", "slack", "incident", "opens"]);
+    expect(searchIds("when an incident opens")).toEqual(
+      searchIds("incident opens"),
+    );
+  });
+
+  test("unless they are all that was typed", () => {
+    expect(getWorkflowTemplateSearchTokens("the")).toEqual(["the"]);
+  });
+
+  test("punctuation splits words: on-call is on and call", () => {
+    expect(getWorkflowTemplateSearchTokens("On-Call, Slack!")).toEqual([
+      "on",
+      "call",
+      "slack",
+    ]);
+    expect(searchIds("on-call")).toContain("oncall-executed-slack");
+  });
+});
+
 describe("search words", () => {
   test("are lower-cased, trimmed, split on any whitespace and kept once each", () => {
     expect(
@@ -300,8 +379,20 @@ describe("what a search matches", () => {
         "maintenance",
       ]),
     ).toBe(true);
+
+    // "Learn the basics" is the label; "Basics" is the category's own name.
+    for (const word of ["learn", "basics"]) {
+      expect(searchIds(word)).toEqual(
+        expect.arrayContaining(
+          ids(getTemplatesInView(WorkflowTemplateCategory.Basics)),
+        ),
+      );
+    }
+
     expect(searchIds("integrations")).toEqual(
-      ids(getTemplatesInView(WorkflowTemplateCategory.Integrations)),
+      expect.arrayContaining(
+        ids(getTemplatesInView(WorkflowTemplateCategory.Integrations)),
+      ),
     );
   });
 
@@ -459,8 +550,12 @@ describe("how a search ranks what it finds", () => {
   test("a word only in what a template teaches finds it, but scores nothing", () => {
     const transform: WorkflowTemplate = template("javascript-transform");
 
-    expect(getWorkflowTemplateSearchScore(transform, ["built-in"])).toBe(0);
-    expect(workflowTemplateMatchesSearch(transform, ["built-in"])).toBe(true);
+    expect(transform.teaches).toContain("built-in");
+    expect(
+      `${transform.name} ${transform.description}`.toLowerCase(),
+    ).not.toContain("built");
+    expect(getWorkflowTemplateSearchScore(transform, ["built"])).toBe(0);
+    expect(workflowTemplateMatchesSearch(transform, ["built"])).toBe(true);
   });
 
   test("an empty search keeps the order it was given", () => {
@@ -530,17 +625,39 @@ describe("highlighting what a search matched", () => {
     ).toEqual(["Incident"]);
   });
 
-  test("characters that mean something to a regular expression are matched as text", () => {
+  test("a search is read as words, never as a pattern, and punctuation is never marked", () => {
     expect(
       marked(
-        getWorkflowTemplateHighlightSegments("API Post (JSON) and a.b", [
-          "(json)",
-          "a.b",
-        ]),
+        getWorkflowTemplateHighlightSegments(
+          "API Post (JSON)",
+          getWorkflowTemplateSearchTokens("(json)"),
+        ),
       ),
-    ).toEqual(["(JSON)", "a.b"]);
+    ).toEqual(["JSON"]);
+    expect(getWorkflowTemplateSearchTokens(".* [a-z]+ (?:)")).toEqual(["z"]);
+    expect(searchIds(".*")).toEqual(
+      ids(getTemplatesInView(WorkflowTemplateCollection.All)),
+    );
+  });
+
+  test("the word a typo was read as is marked whole", () => {
     expect(
-      marked(getWorkflowTemplateHighlightSegments("axb", ["a.b"])),
+      marked(
+        getWorkflowTemplateHighlightSegments(
+          "Tell Slack when an incident opens",
+          ["incidnet"],
+          ["incidnet"],
+        ),
+      ),
+    ).toEqual(["incident"]);
+    // Not when the word was not read as a typo.
+    expect(
+      marked(
+        getWorkflowTemplateHighlightSegments(
+          "Tell Slack when an incident opens",
+          ["incidnet"],
+        ),
+      ),
     ).toEqual([]);
   });
 });

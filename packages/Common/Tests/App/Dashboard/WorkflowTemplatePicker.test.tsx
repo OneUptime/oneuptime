@@ -750,6 +750,34 @@ describe("the search", () => {
     expect(marks).toContain("incident");
   });
 
+  /*
+   * Read as the Add Component picker reads it: a word that matches nothing as
+   * typed is taken for a typo, and the word it was read as is marked whole.
+   */
+  test("forgives a typo, and marks the word it was read as", () => {
+    renderPicker();
+    typeSearch("incidnet");
+
+    expect(listedIds()).toContain("incident-created-slack");
+
+    const row: HTMLElement = screen.getByTestId(
+      workflowTemplateOptionDomId("incident-created-slack"),
+    );
+
+    expect(
+      Array.from(row.querySelectorAll("mark")).map((mark: Element) => {
+        return mark.textContent;
+      }),
+    ).toContain("incident");
+  });
+
+  test("finds a plural written in the singular", () => {
+    renderPicker();
+    typeSearch("webhooks");
+
+    expect(listedIds()).toContain("webhook-relay");
+  });
+
   test("highlights the best match", () => {
     renderPicker();
     typeSearch("heartbeat");

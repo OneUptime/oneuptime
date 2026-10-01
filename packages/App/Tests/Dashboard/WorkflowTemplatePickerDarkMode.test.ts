@@ -279,8 +279,8 @@ describe("the workflow template picker in the dark theme", () => {
         "border-gray-300",
         "bg-white",
         "placeholder-gray-400",
-        // The words a search matched.
-        "bg-yellow-100",
+        // The words a search matched, marked as the Add Component picker marks them.
+        "text-indigo-700",
         // The preview panel.
         "bg-gray-50",
         "ring-gray-200",

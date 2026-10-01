@@ -140,14 +140,20 @@ export const workflowTemplateCountText: CountTextFunction = (
 interface HighlightedTextProps {
   text: string;
   tokens: Array<string>;
+  typoTokens: Array<string>;
 }
 
+// What a search matched, marked as the Add Component picker marks it.
 const HighlightedText: FunctionComponent<HighlightedTextProps> = (
   props: HighlightedTextProps,
 ): ReactElement => {
   return (
     <>
-      {getWorkflowTemplateHighlightSegments(props.text, props.tokens).map(
+      {getWorkflowTemplateHighlightSegments(
+        props.text,
+        props.tokens,
+        props.typoTokens,
+      ).map(
         (
           segment: WorkflowTemplateHighlightSegment,
           index: number,
@@ -159,7 +165,7 @@ const HighlightedText: FunctionComponent<HighlightedTextProps> = (
           return (
             <mark
               key={index}
-              className="rounded-sm bg-yellow-100 px-0.5 text-inherit"
+              className="bg-transparent font-semibold text-indigo-700"
             >
               {segment.text}
             </mark>
@@ -174,6 +180,7 @@ interface TemplateOptionProps {
   template: WorkflowTemplate;
   isActive: boolean;
   tokens: Array<string>;
+  typoTokens: Array<string>;
   /** Shown when the list mixes categories, so each row says where it is from. */
   showCategory: boolean;
   tx: TranslateFunction;
@@ -211,10 +218,18 @@ const TemplateOption: FunctionComponent<TemplateOptionProps> = (
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-sm font-medium leading-5 text-gray-900">
-          <HighlightedText text={template.name} tokens={props.tokens} />
+          <HighlightedText
+            text={template.name}
+            tokens={props.tokens}
+            typoTokens={props.typoTokens}
+          />
         </div>
         <div className="mt-0.5 truncate text-xs leading-5 text-gray-500">
-          <HighlightedText text={template.description} tokens={props.tokens} />
+          <HighlightedText
+            text={template.description}
+            tokens={props.tokens}
+            typoTokens={props.typoTokens}
+          />
         </div>
       </div>
       {props.showCategory ? (
@@ -719,6 +734,7 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
         template={template}
         isActive={activeTemplate?.id === template.id}
         tokens={tokens}
+        typoTokens={list.typoTokens}
         showCategory={showCategoryOnRows}
         tx={tx}
         onActivate={() => {
