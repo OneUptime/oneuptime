@@ -12,7 +12,6 @@ import {
   RESOURCE_AI_AGENT_PAGE_TITLE,
   RESOURCE_AI_AGENT_STATUS_POLL_INTERVAL_MS,
   RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT,
-  RESOURCE_AI_FIXES_OFF_HINT,
   ResourceAccessTestResult,
   ResourceAiAgentCardCommand,
   ResourceAiAgentGapAction,
@@ -38,10 +37,11 @@ import {
   ResourceAiAccessOfferedFields,
   ResourceAiAccessSavedSettings,
   ResourceAiAccessSettingsFormValues,
-  RESOURCE_REMEDIATION_MODE_LABELS,
   RESOURCE_REMEDIATION_MODE_SHORT_NAMES,
   RESOURCE_REMEDIATION_MODE_SUMMARIES,
   capitalizeFirst,
+  formatNameList,
+  getEveryModeProtections,
   getResourceAiAccessAdminPermissionTitles,
   getResourceAiAccessConfirmation,
   getResourceAiAccessLooseningChanges,
@@ -52,7 +52,8 @@ import {
   getResourceAllowlistFieldDescription,
   getResourceAllowlistInEffect,
   getResourceAllowlistRemovalOnlyError,
-  getResourceRemediationModeFieldDescription,
+  getResourceInvestigationOnSentence,
+  getResourceRemediationModeOptionDescriptions,
   isResourceAllowlistFieldShown,
   isResourceRemediationModeOpenToEveryEditor,
   readResourceAiAccessSavedSettings,
@@ -77,6 +78,28 @@ import {
   getResourceAccessTestPermissionRequirement,
   getResourceSettingsGate,
 } from "./ResourceAiAccessPermissions";
+import {
+  AI_ACCESS_FIXES_ROW_TITLE,
+  AI_ACCESS_INVESTIGATION_ROW_TITLE,
+  AI_FIXES_MODE_ICONS,
+  formatAiAccessProtections,
+  getAiAccessCardDescription,
+  getAiFixesBadge,
+  getAiFixesFieldDescription,
+  getAiFixesModeCardTitle,
+  getAiFixesOffHint,
+  getAiInvestigationBadge,
+  getAiInvestigationOffSentence,
+} from "../AiAccess/AiAccessModes";
+import {
+  AiAccessActionPanel,
+  AiAccessAllowlist,
+  AiAccessHint,
+  AiAccessPermissionNote,
+  AiAccessProtections,
+  AiAccessRow,
+  AiAccessRows,
+} from "../AiAccess/AiAccessRow";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -106,8 +129,8 @@ import Button, {
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import Card from "Common/UI/Components/Card/Card";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
+import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
@@ -145,8 +168,10 @@ import { useParams } from "react-router-dom";
  *     are any — a headline saying what AI cannot do here, then one short
  *     step per gap with its action. The page never builds a readiness
  *     checklist of its own.
- *  C. "What AI may do": investigation and fixes, and the write switch when
- *     fixes need it.
+ *  C. "What AI may do": one row for investigation and one for fixes, each
+ *     with a badge that says where it stands and one plain sentence (the
+ *     rows are shared with the cluster page, ../AiAccess), and the write
+ *     switch when fixes need it.
  *
  * What AI did on the resource lives on the AI Insights page (AI → Insights).
  */
@@ -196,17 +221,17 @@ async function postResourceAiAccess(data: {
   return (response.data || {}) as JSONObject;
 }
 
+// What an editor without the admin set may change here, and what they may not.
 function AdminPermissionNote(): ReactElement {
   return (
-    <p
-      className="text-xs leading-5 text-gray-500"
-      data-testid="resource-ai-access-admin-note"
-    >
-      Turning fixes on or up, or adding allowlist entries, needs one of these
-      permissions: {getResourceAiAccessAdminPermissionTitles().join(", ")}. You
-      can still turn investigation on or off, lower fixes and remove allowlist
-      entries.
-    </p>
+    <AiAccessPermissionNote
+      canText="You can turn investigation on or off, lower fixes and remove allowlist entries."
+      cannotText={`Turning fixes on or up, or adding allowlist entries, needs ${formatNameList(
+        getResourceAiAccessAdminPermissionTitles(),
+        "or",
+      )}.`}
+      dataTestId="resource-ai-access-admin-note"
+    />
   );
 }
 
@@ -321,6 +346,8 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
             );
           },
         );
+    const modeDescriptions: Record<ResourceAiRemediationMode, string> =
+      getResourceRemediationModeOptionDescriptions(descriptor);
 
     const result: Fields<ResourceAiAccessSettingsFormValues> = [
       {
@@ -332,22 +359,25 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         dataTestId: "ai-investigation-field",
       },
       {
+        // One card per mode, each saying what it does.
         field: { aiRemediationMode: true },
-        title: "Fixes",
-        description: getResourceRemediationModeFieldDescription(descriptor),
-        fieldType: FormFieldSchemaType.Dropdown,
+        title: AI_ACCESS_FIXES_ROW_TITLE,
+        description: getAiFixesFieldDescription(descriptor.noun),
+        fieldType: FormFieldSchemaType.CardSelect,
+        cardSelectSingleColumn: true,
         required: true,
         dataTestId: "ai-remediation-mode-field",
-        dropdownOptions: modes.map(
-          (mode: ResourceAiRemediationMode): DropdownOption => {
+        cardSelectOptions: modes.map(
+          (mode: ResourceAiRemediationMode): CardSelectOption => {
             return {
               value: mode,
-              label:
-                !canConfigureUnattended &&
-                mode === saved.aiRemediationMode &&
-                mode !== ResourceAiRemediationMode.Disabled
-                  ? `${RESOURCE_REMEDIATION_MODE_LABELS[mode]} (current)`
-                  : RESOURCE_REMEDIATION_MODE_LABELS[mode],
+              title: getAiFixesModeCardTitle({
+                mode,
+                savedMode: saved.aiRemediationMode,
+                shortNames: RESOURCE_REMEDIATION_MODE_SHORT_NAMES,
+              }),
+              description: modeDescriptions[mode],
+              icon: AI_FIXES_MODE_ICONS[mode],
             };
           },
         ),
@@ -358,9 +388,8 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       result.push({
         field: { aiCommandAllowlistText: true },
         title: "Command allowlist",
-        description: offered.allowlistRemoveOnly
-          ? `You can remove entries or clear the list; adding or changing one needs one of these permissions: ${getResourceAiAccessAdminPermissionTitles().join(", ")}. ${getResourceAllowlistFieldDescription(descriptor)}`
-          : getResourceAllowlistFieldDescription(descriptor),
+        // Who may add entries is the admin note's, at the top of the modal.
+        description: getResourceAllowlistFieldDescription(descriptor),
         fieldType: FormFieldSchemaType.LongText,
         required: false,
         placeholder: descriptor.allowlistPlaceholder,
@@ -482,13 +511,7 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         }}
       >
         <div className="space-y-4">
-          {!canConfigureUnattended ? (
-            <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-              <AdminPermissionNote />
-            </div>
-          ) : (
-            <></>
-          )}
+          {!canConfigureUnattended ? <AdminPermissionNote /> : <></>}
 
           {loadError ? (
             <ErrorMessage message={loadError} />
@@ -505,6 +528,16 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
               footer={<></>}
               onSubmit={onSubmit}
             />
+          )}
+
+          {saved ? (
+            <AiAccessProtections
+              protections={formatAiAccessProtections(
+                getEveryModeProtections(descriptor),
+              )}
+            />
+          ) : (
+            <></>
           )}
 
           {saveError ? (
@@ -543,24 +576,6 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     </>
   );
 };
-
-function SettingRow(props: {
-  label: string;
-  children: ReactElement | string;
-  dataTestId: string;
-}): ReactElement {
-  return (
-    <div className="grid gap-1 sm:grid-cols-3 sm:gap-4">
-      <dt className="text-sm font-medium text-gray-500">{props.label}</dt>
-      <dd
-        className="text-sm text-gray-900 sm:col-span-2"
-        data-testid={props.dataTestId}
-      >
-        {props.children}
-      </dd>
-    </div>
-  );
-}
 
 // The install instructions: the compose snippet, how to start it, and what it reads.
 function InstallInstructions(props: {
@@ -646,13 +661,10 @@ function WriteAccessInstructions(props: {
     getResourceAiAgentWriteAccessCommands(props.descriptor.resourceType);
 
   return (
-    <div
-      className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-      data-testid="ai-access-write-commands"
+    <AiAccessActionPanel
+      title="Give the agent write access"
+      dataTestId="ai-access-write-commands"
     >
-      <p className="text-sm font-medium text-gray-900">
-        Give the agent write access
-      </p>
       <p className="text-xs leading-5 text-gray-600">
         The agent is read-only, so fixes cannot run yet.
       </p>
@@ -707,7 +719,7 @@ function WriteAccessInstructions(props: {
       >
         {getResourceAiAgentWriteDisclosure(props.descriptor.resourceType)}
       </p>
-    </div>
+    </AiAccessActionPanel>
   );
 }
 
@@ -1449,74 +1461,52 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
 
       <Card
         title="What AI may do"
-        description="Changes apply to the next incident or alert."
+        description={getAiAccessCardDescription(descriptor.noun)}
         buttons={settingsButtons}
       >
-        <div className="space-y-4">
-          <dl className="space-y-3">
-            <SettingRow
-              label={descriptor.investigateTitle}
-              dataTestId="ai-access-investigation-value"
-            >
-              {status.isAiInvestigationEnabled
-                ? `Yes — read-only (${descriptor.readExamples})`
-                : "No — AI investigates with OneUptime data only"}
-            </SettingRow>
-            <SettingRow label="Fixes" dataTestId="ai-access-fixes-value">
-              <span>
-                <span className="font-medium">
-                  {RESOURCE_REMEDIATION_MODE_SHORT_NAMES[remediationMode]}
-                </span>
-                {" — "}
-                {RESOURCE_REMEDIATION_MODE_SUMMARIES[remediationMode]}
-              </span>
-            </SettingRow>
-            {remediationMode === ResourceAiRemediationMode.Automatic ? (
-              <SettingRow
-                label="Command allowlist"
-                dataTestId="ai-command-allowlist-in-effect"
-              >
-                {allowlistInEffect.length > 0 ? (
-                  <ul className="space-y-0.5">
-                    {allowlistInEffect.map(
-                      (pattern: string, index: number): ReactElement => {
-                        return (
-                          <li
-                            key={`${index}:${pattern}`}
-                            className="break-words font-mono text-xs text-gray-800"
-                          >
-                            {pattern}
-                          </li>
-                        );
-                      },
-                    )}
-                  </ul>
-                ) : (
-                  "None"
+        <AiAccessRows>
+          <AiAccessRow
+            icon={IconProp.MagnifyingGlass}
+            title={AI_ACCESS_INVESTIGATION_ROW_TITLE}
+            badge={getAiInvestigationBadge(status.isAiInvestigationEnabled)}
+            sentence={
+              status.isAiInvestigationEnabled
+                ? getResourceInvestigationOnSentence(descriptor)
+                : getAiInvestigationOffSentence(descriptor.noun)
+            }
+            dataTestId="ai-access-investigation"
+          />
+          <AiAccessRow
+            icon={IconProp.WrenchScrewdriver}
+            title={AI_ACCESS_FIXES_ROW_TITLE}
+            badge={getAiFixesBadge({
+              mode: remediationMode,
+              shortNames: RESOURCE_REMEDIATION_MODE_SHORT_NAMES,
+            })}
+            sentence={RESOURCE_REMEDIATION_MODE_SUMMARIES[remediationMode]}
+            dataTestId="ai-access-fixes"
+          >
+            {remediationMode === ResourceAiRemediationMode.Disabled ? (
+              <AiAccessHint
+                text={getAiFixesOffHint(
+                  settingsGate.isAllowed &&
+                    canConfigureUnattendedResourceAiAccess(),
                 )}
-              </SettingRow>
-            ) : (
-              <></>
-            )}
-          </dl>
-
-          {remediationMode === ResourceAiRemediationMode.Disabled ? (
-            <p
-              className="text-sm text-gray-600"
-              data-testid="ai-access-fixes-off-hint"
-            >
-              {RESOURCE_AI_FIXES_OFF_HINT}
-            </p>
-          ) : (
-            <></>
-          )}
-
-          {shouldShowResourceWriteAccessCommands(status) ? (
-            <WriteAccessInstructions descriptor={descriptor} />
-          ) : (
-            <></>
-          )}
-        </div>
+                dataTestId="ai-access-fixes-off-hint"
+              />
+            ) : null}
+            {remediationMode === ResourceAiRemediationMode.Automatic ? (
+              <AiAccessAllowlist
+                title="Command allowlist"
+                patterns={allowlistInEffect}
+                dataTestId="ai-command-allowlist-in-effect"
+              />
+            ) : null}
+            {shouldShowResourceWriteAccessCommands(status) ? (
+              <WriteAccessInstructions descriptor={descriptor} />
+            ) : null}
+          </AiAccessRow>
+        </AiAccessRows>
       </Card>
 
       {isEditingSettings ? (

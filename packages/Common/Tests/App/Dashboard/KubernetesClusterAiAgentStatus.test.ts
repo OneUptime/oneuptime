@@ -1,6 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
 import {
-  AI_AGENT_FIXES_OFF_HINT,
   AI_AGENT_GONE_TEXT,
   AI_AGENT_LEGACY_RUNNER_OFFLINE_TEXT,
   AI_AGENT_LEGACY_RUNNER_TEXT,
@@ -1053,12 +1052,6 @@ describe("the write-access commands", () => {
         }),
       ),
     ).toBe(false);
-  });
-
-  test("the fixes-off hint names the mode to choose", () => {
-    expect(AI_AGENT_FIXES_OFF_HINT).toBe(
-      "Want AI to propose fixes? Choose Ask for approval.",
-    );
   });
 });
 

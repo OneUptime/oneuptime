@@ -77,9 +77,6 @@ export const AI_AGENT_GONE_TEXT: string =
 
 export const AI_AGENT_SILENT_TEXT: string = `The AI agent has not checked in for over ${KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES} minutes. Check its pod:`;
 
-export const AI_AGENT_FIXES_OFF_HINT: string =
-  "Want AI to propose fixes? Choose Ask for approval.";
-
 export const ASK_PROJECT_ADMIN_TEXT: string = "Ask a project owner or admin.";
 
 /*
