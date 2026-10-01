@@ -414,7 +414,6 @@ Alle standardmäßig aktiviert. Schalten Sie jede mit `--set ebpf.features.<name
 | `httpMetrics`             | aktiviert   | HTTP/gRPC-RED-Metriken (Request-Rate, Latenz, Fehler) pro Service      |
 | `spanMetrics`             | aktiviert   | Request-/Response-Größe und -Dauer pro Span                            |
 | `serviceGraph`            | aktiviert   | Caller → Callee Edge-Metriken; speist die Service-Map                  |
-| `hostMetrics`             | aktiviert   | CPU und Speicher pro instrumentiertem Prozess                          |
 | `networkMetrics`          | aktiviert   | Pod-zu-Pod-TCP/UDP-Fluss-Zähler                                        |
 | `networkInterZoneMetrics` | deaktiviert | Inter-Zone-Variante der Netzwerkmetriken (verdoppelt die Kardinalität) |
 | `tcpStats`                | aktiviert   | Node-Level-TCP-RTT-, Fehlverbindungs-, Retransmit-Zähler               |

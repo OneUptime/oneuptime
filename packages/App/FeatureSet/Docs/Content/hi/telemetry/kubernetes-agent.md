@@ -415,7 +415,6 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `httpMetrics`             | चालू     | प्रति service HTTP/gRPC RED मेट्रिक्स (request दर, latency, errors)  |
 | `spanMetrics`             | चालू     | प्रति-span request/response आकार और अवधि                             |
 | `serviceGraph`            | चालू     | Caller → callee edge मेट्रिक्स; service map को संचालित करता है       |
-| `hostMetrics`             | चालू     | प्रति instrumented process CPU और मेमोरी                             |
 | `networkMetrics`          | चालू     | Pod-to-pod TCP/UDP फ्लो काउंटर                                       |
 | `networkInterZoneMetrics` | बंद      | नेटवर्क मेट्रिक्स का Inter-zone संस्करण (cardinality दोगुनी करता है) |
 | `tcpStats`                | चालू     | Node-स्तरीय TCP RTT, failed-connection, retransmit काउंटर            |

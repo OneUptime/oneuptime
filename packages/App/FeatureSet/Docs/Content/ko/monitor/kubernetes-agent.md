@@ -111,7 +111,6 @@ OBI는 캡처된 트래픽에서 여러 시그널 패밀리를 추출합니다. 
 | `ebpf.features.httpMetrics`             | on     | HTTP/gRPC RED 메트릭 — 서비스별 요청률, 지연 히스토그램, 오류 카운트.                                                                                              |
 | `ebpf.features.spanMetrics`             | on     | 스팬 속성 기반 메트릭: 라우트/오퍼레이션별로 분류된 요청 크기, 응답 크기, 지속 시간.                                                                               |
 | `ebpf.features.serviceGraph`            | on     | 서비스 간 엣지 메트릭(호출자 → 피호출자 요청률 및 지연). 서비스 맵을 구동합니다.                                                                                   |
-| `ebpf.features.hostMetrics`             | on     | 계측된 프로세스별 CPU 및 메모리 — 기본적인 용량 질문을 위해 별도의 프로파일러를 실행할 필요가 없습니다.                                                            |
 | `ebpf.features.networkMetrics`          | on     | k8s 메타데이터가 포함된 파드 간 TCP/UDP 플로우 바이트 및 패킷 카운터. OBI가 파싱할 수 없는 프로토콜을 사용하는 파드를 포함하여 통신하는 모든 파드 쌍을 표시합니다. |
 | `ebpf.features.networkInterZoneMetrics` | off    | 네트워크 메트릭의 존 간 변형. 카디널리티가 두 배가 됩니다; 실제로 존 기반 스케줄링을 사용하는 경우에만 활성화할 가치가 있습니다.                                   |
 | `ebpf.features.tcpStats`                | on     | 노드 레벨 TCP 통계: RTT 히스토그램, 실패한 연결 수, 재전송.                                                                                                        |

@@ -151,7 +151,6 @@ OBI 從擷取到的流量中提取數個訊號家族（signal family）。所有
 | `ebpf.features.httpMetrics`             | 開啟 | 每個服務的 HTTP/gRPC RED 指標 — 請求速率、延遲長條圖、錯誤計數。                                                               |
 | `ebpf.features.spanMetrics`             | 開啟 | 以 span 屬性為鍵的指標：依路由/操作細分的請求大小、回應大小、持續時間。                                                        |
 | `ebpf.features.serviceGraph`            | 開啟 | 服務對服務的邊緣指標（呼叫端 → 被呼叫端的請求速率 + 延遲）。為服務地圖提供動力。                                               |
-| `ebpf.features.hostMetrics`             | 開啟 | 每個受檢測程序的 CPU 和記憶體 — 對於基本的容量問題，省去執行另一個獨立 profiler 的麻煩。                                       |
 | `ebpf.features.networkMetrics`          | 開啟 | 帶有 k8s 中繼資料的 pod 對 pod TCP/UDP 流量位元組與封包計數器。呈現每一對有通訊的 pod，包括那些執行 OBI 無法解析之協定的 pod。 |
 | `ebpf.features.networkInterZoneMetrics` | 關閉 | 網路指標的跨區域（inter-zone）變體。會使基數（cardinality）加倍；只有當您實際使用基於區域的排程時才值得啟用。                  |
 | `ebpf.features.tcpStats`                | 開啟 | 節點層級的 TCP 統計資料：RTT 長條圖、失敗連線計數、重傳次數。                                                                  |

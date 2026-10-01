@@ -414,7 +414,6 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `httpMetrics`             | 有効       | サービスごとの HTTP/gRPC RED メトリクス (リクエストレート、レイテンシ、エラー) |
 | `spanMetrics`             | 有効       | スパンごとのリクエスト/レスポンスサイズと所要時間                              |
 | `serviceGraph`            | 有効       | 呼び出し元 → 呼び出し先のエッジメトリクス。サービスマップを駆動                |
-| `hostMetrics`             | 有効       | 計装されたプロセスごとの CPU とメモリ                                          |
 | `networkMetrics`          | 有効       | Pod 間の TCP/UDP フローカウンター                                              |
 | `networkInterZoneMetrics` | 無効       | ネットワークメトリクスのゾーン間バリアント (カーディナリティが倍増)            |
 | `tcpStats`                | 有効       | ノードレベルの TCP RTT、接続失敗、再送信のカウンター                           |

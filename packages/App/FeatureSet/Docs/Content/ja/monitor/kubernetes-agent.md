@@ -111,7 +111,6 @@ OBI は、キャプチャされたトラフィックから複数のシグナル�
 | `ebpf.features.httpMetrics`             | on         | サービスごとの HTTP/gRPC RED メトリクス — リクエストレート、レイテンシヒストグラム、エラー数。                                                                            |
 | `ebpf.features.spanMetrics`             | on         | スパン属性をキーとするメトリクス: ルート/オペレーションごとに分類されたリクエストサイズ、レスポンスサイズ、所要時間。                                                     |
 | `ebpf.features.serviceGraph`            | on         | サービス間のエッジメトリクス(呼び出し元 → 呼び出し先のリクエストレートとレイテンシ)。サービスマップを支える機能です。                                                     |
-| `ebpf.features.hostMetrics`             | on         | 計装された各プロセスの CPU とメモリ。基本的なキャパシティの確認のために別途プロファイラーを動かす手間を省きます。                                                         |
 | `ebpf.features.networkMetrics`          | on         | k8s メタデータ付きの pod 間 TCP/UDP フローのバイト数とパケット数のカウンター。OBI が解析できないプロトコルで動作するものを含め、通信するすべての pod ペアを可視化します。 |
 | `ebpf.features.networkInterZoneMetrics` | off        | ネットワークメトリクスのゾーン間バリアント。カーディナリティが倍になるため、ゾーンベースのスケジューリングを実際に利用している場合のみ有効化する価値があります。          |
 | `ebpf.features.tcpStats`                | on         | ノードレベルの TCP 統計: RTT ヒストグラム、接続失敗数、再送回数。                                                                                                         |
