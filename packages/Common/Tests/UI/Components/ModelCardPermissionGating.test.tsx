@@ -164,11 +164,13 @@ describe("resource card permission gating", () => {
 
       fireEvent.click(button);
 
-      // The confirmation dialog restates the question before anything happens.
-      expect(
-        screen.getAllByText("Are you sure you want to delete this monitor?")
-          .length,
-      ).toBeGreaterThan(0);
+      /*
+       * The confirmation dialog asks before anything happens. This monitor has
+       * no name to read (getItem answers null here), so it asks about its kind.
+       */
+      expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+        "Are you sure you want to delete this monitor? This action cannot be undone.",
+      );
     });
 
     /*
@@ -224,10 +226,12 @@ describe("resource card permission gating", () => {
 
       fireEvent.click(findButton("Delete Monitor")!);
 
-      expect(
-        screen.queryAllByText("Are you sure you want to delete this monitor?")
-          .length,
-      ).toBe(1); // only the card's own description, never the dialog's copy
+      // The card's own description is there; the dialog never opened.
+      expect(screen.getByTestId("model-delete-card-message")).toHaveTextContent(
+        "This action cannot be undone.",
+      );
+      expect(screen.queryByTestId("confirm-modal-description")).toBeNull();
+      expect(screen.queryByText(/Are you sure you want to delete/)).toBeNull();
       expect(deleteItemCalls).toBe(0);
     });
 

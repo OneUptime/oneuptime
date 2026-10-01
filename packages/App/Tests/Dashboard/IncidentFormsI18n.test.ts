@@ -370,8 +370,25 @@ describe("the composed strings", () => {
     const modelDelete: string = readCommon("ModelDelete", "ModelDelete.tsx");
 
     expect(modelDelete).toContain("title={`Delete ${model.singularName}`}");
+    /*
+     * The confirmation names the form. For one whose name cannot be read it
+     * asks about its kind - "this incident form" - built by the shared
+     * message from the model's singular name, lower-cased.
+     */
     expect(modelDelete).toContain(
-      "description={`Are you sure you want to delete this ${model.singularName?.toLowerCase()}?`}",
+      'const typeLabel: string = model.singularName || "item";',
+    );
+
+    const deleteMessage: string = readCommon(
+      "DeleteConfirmation",
+      "DeleteConfirmationMessage.tsx",
+    );
+
+    expect(deleteMessage).toContain(
+      'const typeLabel: string = data.typeLabel.trim().toLowerCase() || "item";',
+    );
+    expect(deleteMessage).toContain(
+      "return `Are you sure you want to delete this ${typeLabel}?`;",
     );
   });
 });

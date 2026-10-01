@@ -147,7 +147,12 @@ const DeleteConfirmationMessage: FunctionComponent<ComponentProps> = (
     )
   );
 
-  const trailingSentences: Array<string> = getTrailingSentences(props);
+  const trailingSentences: Array<string> = getTrailingSentences({
+    name: name,
+    typeLabel: props.typeLabel,
+    isIrreversible: props.isIrreversible,
+    warning: props.warning,
+  });
 
   return (
     <span data-testid={props.dataTestId || "delete-confirmation-message"}>

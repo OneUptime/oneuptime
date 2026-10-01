@@ -245,8 +245,10 @@ export const getRecordDisplayName: (
 export interface NameListSummary {
   // The names to list, in the order given.
   shownNames: Array<string>;
-  // How many of the records are not in shownNames: the rest of a long list,
-  // and every record that has no name.
+  /*
+   * How many of the records are not in shownNames: the rest of a long list,
+   * and every record that has no name.
+   */
   remainingCount: number;
 }
 

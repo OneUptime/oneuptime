@@ -35,7 +35,7 @@ The list shows each variable's name, type and description. Click **View** on a r
 - **Edit Variable** changes the name, the description and — for a static variable that isn't secret yet — the secret flag. Once a variable is secret it stays secret.
 - **Update Content** replaces a static value. The saved content can't be read back, so you type the new value in full.
 - **Use in Workflows** shows the exact reference to paste into your blocks, with a copy button.
-- **Delete Workflow Variable** deletes it, after asking you to confirm.
+- **Delete Workflow Variable** deletes it, after asking you to confirm. The confirmation names the variable, so you can check it is the one you mean.
 
 You can also update a variable over the API, which is covered at the end of this page. Global and workflow variables are a Growth plan feature.
 

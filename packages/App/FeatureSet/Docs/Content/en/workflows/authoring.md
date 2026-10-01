@@ -54,7 +54,7 @@ Below that, from top to bottom:
 
 The footer holds:
 
-- **Delete** — remove this block.
+- **Delete** — remove this block. It asks first, and names the block by its kind and identifier, such as **Send Email (send-email-2)**, so you know which of several alike blocks goes.
 - **Run just this step** — run this one block on its own, without the rest of the workflow. Values it would have read from other steps come through empty, and anything it sends, writes or deletes really happens.
 
 Most text fields accept variables — that's how data flows from one block to the next. Rather than typing the syntax by hand, use the value picker in the editor: it builds a correct reference from the block and field you choose. See [Variables](/docs/workflows/variables).
