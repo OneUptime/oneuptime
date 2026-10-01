@@ -336,7 +336,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         },
         title: "Subscribe to All Resources",
         description: "Send notifications for all resources.",
-        stepId: "subscriber-info",
+        stepId: "notifications",
         fieldType: FormFieldSchemaType.Checkbox,
         required: false,
         defaultValue: true,
@@ -348,7 +348,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         },
         title: "Select Resources to Subscribe",
         description: "Please select the resources you want to subscribe to.",
-        stepId: "subscriber-info",
+        stepId: "notifications",
         fieldType: FormFieldSchemaType.CategoryCheckbox,
         required: false,
         categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
@@ -364,7 +364,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           isSubscribedToAllEventTypes: true,
         },
         title: "Subscribe to All Event Types",
-        stepId: "subscriber-info",
+        stepId: "notifications",
         description:
           "Select this option if you want to subscribe to all event types.",
         fieldType: FormFieldSchemaType.Checkbox,
@@ -377,7 +377,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           statusPageEventTypes: true,
         },
         title: "Select Event Types to Subscribe",
-        stepId: "subscriber-info",
+        stepId: "notifications",
         description: "Please select the event types you want to subscribe to.",
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         required: false,
@@ -476,16 +476,23 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             formFields={formFields}
             showRefreshButton={true}
             viewPageRoute={Navigation.getCurrentRoute()}
-            formSteps={[
-              {
-                title: "Subscriber Info",
-                id: "subscriber-info",
-              },
-              {
-                title: "Internal Info",
-                id: "internal-info",
-              },
-            ]}
+            /*
+             * Who gets the updates, then - when this page lets subscribers
+             * choose - what they hear about, as the bulk add form asks it.
+             */
+            formSteps={
+              allowSubscribersToChooseResources ||
+              allowSubscribersToChooseEventTypes
+                ? [
+                    { title: "Subscriber Info", id: "subscriber-info" },
+                    { title: "Notifications", id: "notifications" },
+                    { title: "Internal Info", id: "internal-info" },
+                  ]
+                : [
+                    { title: "Subscriber Info", id: "subscriber-info" },
+                    { title: "Internal Info", id: "internal-info" },
+                  ]
+            }
             filters={[
               {
                 field: {
