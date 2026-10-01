@@ -264,7 +264,10 @@ function filterToHcl(
   const serverOptions: unknown = filter["serverMonitorOptions"];
 
   if (isJSONObject(serverOptions)) {
-    attributes.addString("disk_path", unwrapApiString(serverOptions["diskPath"]));
+    attributes.addString(
+      "disk_path",
+      unwrapApiString(serverOptions["diskPath"]),
+    );
   }
 
   for (const option of FILTER_JSON_OPTIONS) {
@@ -305,7 +308,10 @@ function incidentOrAlertToHcl(
       "alert_severity_id",
       unwrapApiString(template["alertSeverityId"]),
     );
-    attributes.addBool("auto_resolve_alert", apiBool(template["autoResolveAlert"]));
+    attributes.addBool(
+      "auto_resolve_alert",
+      apiBool(template["autoResolveAlert"]),
+    );
   }
 
   attributes.addString(
@@ -314,7 +320,10 @@ function incidentOrAlertToHcl(
   );
 
   for (const list of INCIDENT_AND_ALERT_ID_LISTS) {
-    attributes.addStringList(list.attributeName, apiStringList(template[list.apiKey]));
+    attributes.addStringList(
+      list.attributeName,
+      apiStringList(template[list.apiKey]),
+    );
   }
 
   if (kind === "incident") {
@@ -510,7 +519,10 @@ function stepToHcl(
     "screen_size_types",
     apiStringList(step["screenSizeTypes"]),
   );
-  attributes.addStringList("browser_types", apiStringList(step["browserTypes"]));
+  attributes.addStringList(
+    "browser_types",
+    apiStringList(step["browserTypes"]),
+  );
   attributes.addNumber(
     "retry_count_on_error",
     apiInteger(step["retryCountOnError"]),

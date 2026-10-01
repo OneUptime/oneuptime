@@ -60,12 +60,9 @@ describe("isTitleCollapsedByDefault", () => {
     "\tadvanced\n",
     "developer",
     " DEVELOPER ",
-  ])(
-    "ignores case and surrounding space: %p",
-    (title: string) => {
-      expect(isTitleCollapsedByDefault(title)).toBe(true);
-    },
-  );
+  ])("ignores case and surrounding space: %p", (title: string) => {
+    expect(isTitleCollapsedByDefault(title)).toBe(true);
+  });
 
   test.each([
     "",

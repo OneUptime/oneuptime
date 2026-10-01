@@ -84,9 +84,10 @@ describe("the Developer pages' words are in every Dashboard locale", () => {
     for (const file of LOCALE_FILES) {
       const translated: string | undefined = readLocale(file)[text];
 
-      expect({ file, present: Boolean(translated && translated.trim()) }).toEqual(
-        { file, present: true },
-      );
+      expect({
+        file,
+        present: Boolean(translated && translated.trim()),
+      }).toEqual({ file, present: true });
 
       if (file !== "en.json" && !UNTRANSLATED.includes(text)) {
         expect({ file, translated: translated !== text }).toEqual({
@@ -99,15 +100,23 @@ describe("the Developer pages' words are in every Dashboard locale", () => {
 
   test("a translated sentence keeps the product names it mentions", () => {
     for (const text of STRINGS) {
-      for (const name of ["OneUptime", "Terraform", "Claude", "GitHub Copilot", "Cursor"]) {
+      for (const name of [
+        "OneUptime",
+        "Terraform",
+        "Claude",
+        "GitHub Copilot",
+        "Cursor",
+      ]) {
         if (!text.includes(name)) {
           continue;
         }
 
         for (const file of LOCALE_FILES) {
-          expect({ file, name, kept: readLocale(file)[text]?.includes(name) }).toEqual(
-            { file, name, kept: true },
-          );
+          expect({
+            file,
+            name,
+            kept: readLocale(file)[text]?.includes(name),
+          }).toEqual({ file, name, kept: true });
         }
       }
     }

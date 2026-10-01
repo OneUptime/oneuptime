@@ -269,7 +269,11 @@ const WORKFLOWS_MENU: ReadonlyArray<MenuPage> = [
     section: "Developer",
     path: `${WORKFLOWS_PATH}/developer/terraform`,
   },
-  { title: "API", section: "Developer", path: `${WORKFLOWS_PATH}/developer/api` },
+  {
+    title: "API",
+    section: "Developer",
+    path: `${WORKFLOWS_PATH}/developer/api`,
+  },
   {
     title: "AI Assistants",
     section: "Developer",
@@ -292,7 +296,11 @@ const WORKFLOW_MENU: ReadonlyArray<MenuPage> = [
     section: "Developer",
     path: `${WORKFLOW_PATH}/developer/terraform`,
   },
-  { title: "API", section: "Developer", path: `${WORKFLOW_PATH}/developer/api` },
+  {
+    title: "API",
+    section: "Developer",
+    path: `${WORKFLOW_PATH}/developer/api`,
+  },
   {
     title: "AI Assistants",
     section: "Developer",

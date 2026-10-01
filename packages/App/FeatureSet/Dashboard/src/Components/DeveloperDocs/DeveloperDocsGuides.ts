@@ -1,4 +1,7 @@
-import { DeveloperDocsPageType, DeveloperDocsScope } from "./DeveloperDocsPages";
+import {
+  DeveloperDocsPageType,
+  DeveloperDocsScope,
+} from "./DeveloperDocsPages";
 import {
   DeveloperDocsResource,
   getDeveloperDocsPluralName,
@@ -34,7 +37,10 @@ import {
   ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE,
   toSentenceCaseName,
 } from "Common/Utils/DeveloperDocs/ExampleValues";
-import { jsonToHcl } from "Common/Utils/DeveloperDocs/TerraformValues";
+import {
+  jsonToHcl,
+  TerraformSecretVariable,
+} from "Common/Utils/DeveloperDocs/TerraformValues";
 import {
   getTerraformDataSourceByNameHcl,
   getTerraformImportBlocksHcl,
@@ -48,7 +54,6 @@ import {
 } from "Common/Utils/DeveloperDocs/TerraformConfig";
 import { getTerraformTypeName } from "Common/Utils/DeveloperDocs/TerraformSchema";
 import { HclExpression } from "Common/Utils/DeveloperDocs/Hcl";
-import { TerraformSecretVariable } from "Common/Utils/DeveloperDocs/TerraformValues";
 
 /*
  * What each Developer page says, as data: numbered steps (in the same layout
@@ -351,7 +356,10 @@ function getTerraformResourceGuide(
       {
         title: "Import it",
         description: `The plan shows the ${singular} being imported and nothing to change. Apply it, and the ${singular} is managed by Terraform from then on.`,
-        markdown: codeBlock("bash", "terraform init\nterraform plan\nterraform apply"),
+        markdown: codeBlock(
+          "bash",
+          "terraform init\nterraform plan\nterraform apply",
+        ),
       },
     ],
     topics: [
@@ -392,7 +400,9 @@ function getTerraformUnsupportedGuide(
   return {
     ...copy,
     notice: `The Terraform provider cannot create or change ${plural}.${
-      typeName ? ` You can still read them with the \`${typeName}\` data source.` : ""
+      typeName
+        ? ` You can still read them with the \`${typeName}\` data source.`
+        : ""
     }`,
     steps: [apiKeyStep(context, "Terraform"), providerStep(context)],
     topics: [],
@@ -643,8 +653,7 @@ function getApiCollectionGuide(
       ...curlStep({
         title: `Create a ${singular}`,
         description:
-          examples.create &&
-          JSON.stringify(examples.create.body).includes("<")
+          examples.create && JSON.stringify(examples.create.body).includes("<")
             ? "Replace the values in angle brackets with your own."
             : `The fields a new ${singular} needs. Add any others from the reference.`,
         example: examples.create,
@@ -695,11 +704,11 @@ function getAiGuide(context: DeveloperDocsGuideContext): DeveloperDocsGuide {
       oneuptimeUrl: context.oneuptimeUrl,
     }),
   });
-  const variants: Array<SetupGuideStepVariant> = getMcpClientSetups(
-    mcpUrl,
-  ).map((setup: McpClientSetup): SetupGuideStepVariant => {
-    return { label: setup.label, markdown: setup.markdown };
-  });
+  const variants: Array<SetupGuideStepVariant> = getMcpClientSetups(mcpUrl).map(
+    (setup: McpClientSetup): SetupGuideStepVariant => {
+      return { label: setup.label, markdown: setup.markdown };
+    },
+  );
   const askTitle: string = context.record
     ? `Ask about ${theRecord}`
     : `Ask about your ${plural}`;
@@ -757,7 +766,10 @@ function getAiGuide(context: DeveloperDocsGuideContext): DeveloperDocsGuide {
         markdown: [
           `The MCP server works with monitors, incidents, alerts, status pages, on-call policies, scheduled maintenance, teams and labels. Add it to your assistant and sign in to OneUptime when it asks:`,
           "",
-          codeBlock("bash", `claude mcp add --transport http oneuptime ${mcpUrl}`),
+          codeBlock(
+            "bash",
+            `claude mcp add --transport http oneuptime ${mcpUrl}`,
+          ),
           "",
           "Other assistants take the same URL; see the MCP server documentation.",
         ].join("\n"),

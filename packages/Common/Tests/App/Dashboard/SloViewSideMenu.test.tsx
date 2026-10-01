@@ -85,7 +85,11 @@ const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
     section: "Configuration",
     path: `${SLO_PATH}/burn-rate-rules`,
   },
-  { title: "Terraform", section: "Developer", path: `${SLO_PATH}/developer/terraform` },
+  {
+    title: "Terraform",
+    section: "Developer",
+    path: `${SLO_PATH}/developer/terraform`,
+  },
   { title: "API", section: "Developer", path: `${SLO_PATH}/developer/api` },
   {
     title: "AI Assistants",

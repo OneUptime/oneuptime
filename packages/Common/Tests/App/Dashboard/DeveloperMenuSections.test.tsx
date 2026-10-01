@@ -93,16 +93,19 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/IncidentState", () => {
-  return {
-    __esModule: true,
-    default: {
-      getUnresolvedIncidentStates: (): Promise<Array<unknown>> => {
-        return Promise.resolve([]);
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Utils/IncidentState",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getUnresolvedIncidentStates: (): Promise<Array<unknown>> => {
+          return Promise.resolve([]);
+        },
       },
-    },
-  };
-});
+    };
+  },
+);
 
 jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/AlertState", () => {
   return {
@@ -264,26 +267,37 @@ async function renderMenuModuleAt(
   await renderMenu(<MenuComponent {...MENU_PROPS} />);
 }
 
-function developerHref(parent: DeveloperDocsParentPage, page: DeveloperDocsPageDefinition): string {
+function developerHref(
+  parent: DeveloperDocsParentPage,
+  page: DeveloperDocsPageDefinition,
+): string {
   return RouteUtil.populateRouteParams(
     RouteMap[getDeveloperDocsPageKey(parent.pageKey, page.type)] as Route,
-    parent.scope === DeveloperDocsScope.View ? { modelId: MODEL_ID } : undefined,
+    parent.scope === DeveloperDocsScope.View
+      ? { modelId: MODEL_ID }
+      : undefined,
   ).toString();
 }
 
 // The parent page a Developer section's links belong to, found from its first href.
-function parentOfSection(links: Array<MenuLink>): DeveloperDocsParentPage | undefined {
+function parentOfSection(
+  links: Array<MenuLink>,
+): DeveloperDocsParentPage | undefined {
   return DEVELOPER_DOCS_PARENT_PAGES.find(
     (parent: DeveloperDocsParentPage): boolean => {
       return (
-        developerHref(parent, DEVELOPER_DOCS_PAGES[0] as DeveloperDocsPageDefinition) ===
-        links[0]?.href
+        developerHref(
+          parent,
+          DEVELOPER_DOCS_PAGES[0] as DeveloperDocsPageDefinition,
+        ) === links[0]?.href
       );
     },
   );
 }
 
-function expectedSectionLinks(parent: DeveloperDocsParentPage): Array<MenuLink> {
+function expectedSectionLinks(
+  parent: DeveloperDocsParentPage,
+): Array<MenuLink> {
   return DEVELOPER_DOCS_PAGES.map(
     (page: DeveloperDocsPageDefinition): MenuLink => {
       return { title: page.title, href: developerHref(parent, page) };
@@ -365,24 +379,30 @@ describe("every resource's view menu has a Developer section", () => {
         return [menu.name, menu];
       },
     ),
-  )("%s: the section is open on each of its pages", async (_name: string, menu: MenuModule) => {
-    await renderMenuModuleAt(menu, PROJECT_HOME);
-    const hrefs: Array<string> = linksIn(DEVELOPER_DOCS_SECTION_TITLE).map(
-      (link: MenuLink): string => {
-        return link.href;
-      },
-    );
-    cleanup();
-
-    for (const href of hrefs) {
-      await renderMenuModuleAt(menu, href);
-      expect({ href, expanded: isExpanded(DEVELOPER_DOCS_SECTION_TITLE) }).toEqual({
-        href,
-        expanded: true,
-      });
+  )(
+    "%s: the section is open on each of its pages",
+    async (_name: string, menu: MenuModule) => {
+      await renderMenuModuleAt(menu, PROJECT_HOME);
+      const hrefs: Array<string> = linksIn(DEVELOPER_DOCS_SECTION_TITLE).map(
+        (link: MenuLink): string => {
+          return link.href;
+        },
+      );
       cleanup();
-    }
-  });
+
+      for (const href of hrefs) {
+        await renderMenuModuleAt(menu, href);
+        expect({
+          href,
+          expanded: isExpanded(DEVELOPER_DOCS_SECTION_TITLE),
+        }).toEqual({
+          href,
+          expanded: true,
+        });
+        cleanup();
+      }
+    },
+  );
 
   test("the menus without one are real menus, each with a reason", () => {
     for (const name of Object.keys(VIEW_MENUS_WITHOUT_DEVELOPER_PAGES)) {
@@ -391,7 +411,9 @@ describe("every resource's view menu has a Developer section", () => {
           return menu.name;
         }),
       ).toContain(name);
-      expect(VIEW_MENUS_WITHOUT_DEVELOPER_PAGES[name]?.length).toBeGreaterThan(20);
+      expect(VIEW_MENUS_WITHOUT_DEVELOPER_PAGES[name]?.length).toBeGreaterThan(
+        20,
+      );
     }
   });
 
@@ -512,35 +534,46 @@ describe("the registry", () => {
 describe("every Developer page has a route and breadcrumbs", () => {
   const routes: Array<{ path: string }> = RouteUtil.getRoutes();
 
-  const pages: Array<[string, DeveloperDocsParentPage, DeveloperDocsPageDefinition]> =
-    DEVELOPER_DOCS_PARENT_PAGES.flatMap(
-      (
-        parent: DeveloperDocsParentPage,
-      ): Array<[string, DeveloperDocsParentPage, DeveloperDocsPageDefinition]> => {
-        return DEVELOPER_DOCS_PAGES.map(
-          (
-            page: DeveloperDocsPageDefinition,
-          ): [string, DeveloperDocsParentPage, DeveloperDocsPageDefinition] => {
-            return [getDeveloperDocsPageKey(parent.pageKey, page.type), parent, page];
-          },
-        );
-      },
-    );
+  const pages: Array<
+    [string, DeveloperDocsParentPage, DeveloperDocsPageDefinition]
+  > = DEVELOPER_DOCS_PARENT_PAGES.flatMap(
+    (
+      parent: DeveloperDocsParentPage,
+    ): Array<
+      [string, DeveloperDocsParentPage, DeveloperDocsPageDefinition]
+    > => {
+      return DEVELOPER_DOCS_PAGES.map(
+        (
+          page: DeveloperDocsPageDefinition,
+        ): [string, DeveloperDocsParentPage, DeveloperDocsPageDefinition] => {
+          return [
+            getDeveloperDocsPageKey(parent.pageKey, page.type),
+            parent,
+            page,
+          ];
+        },
+      );
+    },
+  );
 
   type BreadcrumbsFunction = (path: string) => Array<Link> | undefined;
 
+  const BREADCRUMBS_FUNCTION_NAME: RegExp = /^get\w*Bread[cC]rumbs$/;
+
   const breadcrumbFunctions: Array<BreadcrumbsFunction> = [
-    ...sourceFilesUnder(path.join(DASHBOARD_SRC, "Utils", "Breadcrumbs"), ".ts"),
+    ...sourceFilesUnder(
+      path.join(DASHBOARD_SRC, "Utils", "Breadcrumbs"),
+      ".ts",
+    ),
     ...sourceFilesUnder(path.join(DASHBOARD_SRC, "Pages"), "Breadcrumbs.ts"),
   ].flatMap((file: string): Array<BreadcrumbsFunction> => {
-    const exported: Record<string, unknown> = jest.requireActual(file) as Record<
-      string,
-      unknown
-    >;
+    const exported: Record<string, unknown> = jest.requireActual(
+      file,
+    ) as Record<string, unknown>;
 
     return Object.keys(exported)
       .filter((name: string): boolean => {
-        return /^get\w*Bread[cC]rumbs$/.test(name);
+        return BREADCRUMBS_FUNCTION_NAME.test(name);
       })
       .map((name: string): BreadcrumbsFunction => {
         return exported[name] as BreadcrumbsFunction;
@@ -549,7 +582,11 @@ describe("every Developer page has a route and breadcrumbs", () => {
 
   test.each(pages)(
     "%s",
-    (key: string, parent: DeveloperDocsParentPage, page: DeveloperDocsPageDefinition) => {
+    (
+      key: string,
+      parent: DeveloperDocsParentPage,
+      page: DeveloperDocsPageDefinition,
+    ) => {
       const route: Route | undefined = RouteMap[key];
       expect(route?.toString()).toBe(
         `${(RouteMap[parent.pageKey] as Route).toString()}/developer/${page.type}`,
@@ -585,7 +622,10 @@ describe("every route file shows the Developer pages it has", () => {
   test("each parent page's routes are in exactly one route file", () => {
     const declared: Array<string> = [];
 
-    for (const file of sourceFilesUnder(path.join(DASHBOARD_SRC, "Routes"), ".tsx")) {
+    for (const file of sourceFilesUnder(
+      path.join(DASHBOARD_SRC, "Routes"),
+      ".tsx",
+    )) {
       const source: string = fs.readFileSync(file, "utf8");
 
       for (const match of source.matchAll(ROUTE_CALL)) {

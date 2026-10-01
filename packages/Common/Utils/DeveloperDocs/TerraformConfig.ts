@@ -132,9 +132,8 @@ export function getTerraformProviderHcl(data: {
   oneuptimeUrl: string | null;
   platformVersion: string | null | undefined;
 }): string {
-  const versionConstraint: string | null = getTerraformProviderVersionConstraint(
-    data.platformVersion,
-  );
+  const versionConstraint: string | null =
+    getTerraformProviderVersionConstraint(data.platformVersion);
 
   const requirement: Array<{ key: string; value: HclExpression }> = [
     { key: "source", value: Hcl.string(TERRAFORM_PROVIDER_SOURCE) },
@@ -159,11 +158,17 @@ export function getTerraformProviderHcl(data: {
   );
 
   return printHclDocument([
-    Hcl.block("terraform", [], [
-      Hcl.block("required_providers", [], [
-        Hcl.attribute("oneuptime", Hcl.object(requirement)),
-      ]),
-    ]),
+    Hcl.block(
+      "terraform",
+      [],
+      [
+        Hcl.block(
+          "required_providers",
+          [],
+          [Hcl.attribute("oneuptime", Hcl.object(requirement))],
+        ),
+      ],
+    ),
     Hcl.blank(),
     Hcl.block("provider", ["oneuptime"], providerBody),
   ]);
@@ -366,7 +371,10 @@ function attributeValueToHcl(data: {
   }
 }
 
-function hasValue(descriptor: TerraformAttributeDescriptor, value: unknown): boolean {
+function hasValue(
+  descriptor: TerraformAttributeDescriptor,
+  value: unknown,
+): boolean {
   const plain: unknown = plainValue(descriptor, value);
 
   if (plain === null || plain === undefined) {
@@ -392,15 +400,22 @@ function isDefaultValue(
     return false;
   }
 
-  return isSameJsonValue(plainValue(descriptor, value), descriptor.defaultValue);
+  return isSameJsonValue(
+    plainValue(descriptor, value),
+    descriptor.defaultValue,
+  );
 }
 
 function variableBlock(variable: TerraformSecretVariable): HclBodyItem {
-  return Hcl.block("variable", [variable.name], [
-    Hcl.attribute("description", Hcl.string(variable.description)),
-    Hcl.attribute("type", Hcl.raw("string")),
-    Hcl.attribute("sensitive", Hcl.bool(true)),
-  ]);
+  return Hcl.block(
+    "variable",
+    [variable.name],
+    [
+      Hcl.attribute("description", Hcl.string(variable.description)),
+      Hcl.attribute("type", Hcl.raw("string")),
+      Hcl.attribute("sensitive", Hcl.bool(true)),
+    ],
+  );
 }
 
 /*
@@ -471,7 +486,8 @@ export function getTerraformResourceConfig(data: {
     ? `${noun} "${displayName}"`
     : `this ${noun}`;
 
-  const variables: TerraformVariableCollector = new TerraformVariableCollector();
+  const variables: TerraformVariableCollector =
+    new TerraformVariableCollector();
   const body: Array<HclBodyItem> = [];
   const omittedSecrets: Array<TerraformOmittedAttribute> = [];
 
@@ -575,10 +591,14 @@ export function getTerraformResourceConfig(data: {
   resourceItems.push(Hcl.block("resource", [typeName, localName], body));
 
   const importItems: Array<HclBodyItem> = [
-    Hcl.block("import", [], [
-      Hcl.attribute("to", Hcl.raw(address)),
-      Hcl.attribute("id", Hcl.string(id)),
-    ]),
+    Hcl.block(
+      "import",
+      [],
+      [
+        Hcl.attribute("to", Hcl.raw(address)),
+        Hcl.attribute("id", Hcl.string(id)),
+      ],
+    ),
   ];
 
   return {
@@ -590,9 +610,11 @@ export function getTerraformResourceConfig(data: {
     hcl: printHclDocument([...resourceItems, Hcl.blank(), ...importItems]),
     importCommand: `terraform import ${address} ${id}`,
     dataSourceHcl: printHclDocument([
-      Hcl.block("data", [typeName, localName], [
-        Hcl.attribute("id", Hcl.string(id)),
-      ]),
+      Hcl.block(
+        "data",
+        [typeName, localName],
+        [Hcl.attribute("id", Hcl.string(id))],
+      ),
     ]),
     variables: variables.variables,
     omittedSecrets,
@@ -634,7 +656,8 @@ export function getTerraformStarterHcl(data: {
 
   const nameColumn: string | null = getNameColumn(data.modelType);
   const shortTypeName: string = getTerraformShortTypeName(typeName);
-  const variables: TerraformVariableCollector = new TerraformVariableCollector();
+  const variables: TerraformVariableCollector =
+    new TerraformVariableCollector();
   const localName: string = `my_${shortTypeName}`;
 
   const body: Array<HclBodyItem> = [];
@@ -745,10 +768,14 @@ export function getTerraformImportBlocksHcl(data: {
     }
 
     items.push(
-      Hcl.block("import", [], [
-        Hcl.attribute("to", Hcl.raw(`${typeName}.${localName}`)),
-        Hcl.attribute("id", Hcl.string(target.id)),
-      ]),
+      Hcl.block(
+        "import",
+        [],
+        [
+          Hcl.attribute("to", Hcl.raw(`${typeName}.${localName}`)),
+          Hcl.attribute("id", Hcl.string(target.id)),
+        ],
+      ),
     );
   }
 
@@ -776,4 +803,3 @@ export function getTerraformDataSourceByNameHcl(data: {
     ),
   ]);
 }
-

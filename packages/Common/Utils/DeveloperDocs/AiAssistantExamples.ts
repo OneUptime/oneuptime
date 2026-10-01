@@ -101,7 +101,10 @@ export function getMcpClientSetups(mcpUrl: string): Array<McpClientSetup> {
       markdown: [
         "Add the server, then run `/mcp` inside Claude Code and choose **oneuptime** to sign in:",
         "",
-        codeBlock("bash", `claude mcp add --transport http oneuptime ${mcpUrl}`),
+        codeBlock(
+          "bash",
+          `claude mcp add --transport http oneuptime ${mcpUrl}`,
+        ),
       ].join("\n"),
     },
     {
@@ -134,7 +137,11 @@ export function getMcpClientSetups(mcpUrl: string): Array<McpClientSetup> {
         "",
         codeBlock(
           "json",
-          JSON.stringify({ mcpServers: { oneuptime: { url: mcpUrl } } }, null, 2),
+          JSON.stringify(
+            { mcpServers: { oneuptime: { url: mcpUrl } } },
+            null,
+            2,
+          ),
         ),
       ].join("\n"),
     },
@@ -179,7 +186,9 @@ export interface AssistantPromptContext {
 }
 
 // `the workflow "Send weekly report" (ID 6e4f...)`.
-export function describeResourceForPrompt(context: AssistantPromptContext): string {
+export function describeResourceForPrompt(
+  context: AssistantPromptContext,
+): string {
   const noun: string = toSentenceCaseName(context.singularName);
 
   if (context.displayName && context.id) {
@@ -294,7 +303,10 @@ const MCP_PROMPTS_BY_TABLE: Readonly<Record<string, PromptSet>> = {
         `Update the description of ${resource} to say what the team owns.`,
       ];
     },
-    collection: ["List the teams in this project.", 'Create a team called "Platform".'],
+    collection: [
+      "List the teams in this project.",
+      'Create a team called "Platform".',
+    ],
   },
   OnCallDutyPolicy: {
     resource: (resource: string): Array<string> => {

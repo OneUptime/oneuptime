@@ -346,7 +346,9 @@ export function isServerManagedColumn(
     return true;
   }
 
-  return Boolean(SERVER_MANAGED_COLUMNS_BY_TABLE[tableName]?.includes(columnName));
+  return Boolean(
+    SERVER_MANAGED_COLUMNS_BY_TABLE[tableName]?.includes(columnName),
+  );
 }
 
 /*

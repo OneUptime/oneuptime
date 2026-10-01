@@ -108,7 +108,9 @@ describe("Terraform, for one workflow", () => {
   test("the key step links to this project's API keys and exports the key", () => {
     const markdown: string = guide.steps[0]?.markdown || "";
 
-    expect(markdown).toContain(`[Project Settings → API Keys](${API_KEYS_URL})`);
+    expect(markdown).toContain(
+      `[Project Settings → API Keys](${API_KEYS_URL})`,
+    );
     expect(markdown).toContain("permission to manage workflows");
     expect(markdown).toContain('export ONEUPTIME_API_KEY="your-api-key"');
   });
@@ -228,7 +230,9 @@ describe("Terraform, for all workflows", () => {
     expect(guide.steps[3]?.markdown).toContain(
       "An import block for each of your workflows:",
     );
-    expect(guide.steps[3]?.markdown).toContain("to = oneuptime_workflow.report");
+    expect(guide.steps[3]?.markdown).toContain(
+      "to = oneuptime_workflow.report",
+    );
     expect(guide.steps[3]?.markdown).toContain(
       "terraform plan -generate-config-out=workflows.tf",
     );
@@ -350,7 +354,11 @@ describe("AI Assistants", () => {
       DeveloperDocsPageType.AiAssistants,
       context({
         resource: getDeveloperDocsResource(Monitor),
-        record: { id: MONITOR_ID, displayName: "API Health", json: monitorJson() },
+        record: {
+          id: MONITOR_ID,
+          displayName: "API Health",
+          json: monitorJson(),
+        },
       }),
     );
 
@@ -429,11 +437,19 @@ describe("the card's own words", () => {
         context({ scope: DeveloperDocsScope.List }),
       );
 
-      expect({ page, title: view.title, description: view.description }).toEqual({
+      expect({
+        page,
+        title: view.title,
+        description: view.description,
+      }).toEqual({
         page,
         ...DEVELOPER_DOCS_GUIDE_COPY[page][DeveloperDocsScope.View],
       });
-      expect({ page, title: list.title, description: list.description }).toEqual({
+      expect({
+        page,
+        title: list.title,
+        description: list.description,
+      }).toEqual({
         page,
         ...DEVELOPER_DOCS_GUIDE_COPY[page][DeveloperDocsScope.List],
       });

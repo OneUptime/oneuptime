@@ -150,10 +150,14 @@ export class TerraformVariableCollector {
  * text: lowercase letters, digits and underscores, starting with a letter or
  * an underscore. Empty when the text has nothing usable in it.
  */
+// Accents left as separate marks once text is decomposed ("é" → "e" + U+0301).
+const COMBINING_MARKS: RegExp = /[̀-ͯ]/g;
+const STARTS_WITH_DIGIT: RegExp = /^[0-9]/;
+
 export function toTerraformIdentifier(text: string): string {
   const identifier: string = text
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(COMBINING_MARKS, "")
     .replace(/([a-z\d])([A-Z])/g, "$1_$2")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
@@ -163,7 +167,7 @@ export function toTerraformIdentifier(text: string): string {
     return "";
   }
 
-  return /^[0-9]/.test(identifier) ? `_${identifier}` : identifier;
+  return STARTS_WITH_DIGIT.test(identifier) ? `_${identifier}` : identifier;
 }
 
 /*
@@ -317,19 +321,16 @@ export function jsonencodeWithSecretVariables(data: {
   describe: (key: string) => string;
 }): HclExpression {
   return Hcl.call("jsonencode", [
-    jsonToHcl(
-      data.value,
-      (key: string, text: string): HclExpression | null => {
-        if (!isSecretKeyName(key) || isMonitorSecretReference(text)) {
-          return null;
-        }
+    jsonToHcl(data.value, (key: string, text: string): HclExpression | null => {
+      if (!isSecretKeyName(key) || isMonitorSecretReference(text)) {
+        return null;
+      }
 
-        return data.variables.add(
-          `${data.variablePrefix}_${key}`,
-          data.describe(key),
-        );
-      },
-    ),
+      return data.variables.add(
+        `${data.variablePrefix}_${key}`,
+        data.describe(key),
+      );
+    }),
   ]);
 }
 

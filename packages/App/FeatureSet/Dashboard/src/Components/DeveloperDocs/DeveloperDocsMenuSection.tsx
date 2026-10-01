@@ -59,7 +59,9 @@ export function getDeveloperSideMenuItems(
         link: {
           title: page.title,
           to: RouteUtil.populateRouteParams(
-            RouteMap[getDeveloperDocsPageKey(parent.pageKey, page.type)] as Route,
+            RouteMap[
+              getDeveloperDocsPageKey(parent.pageKey, page.type)
+            ] as Route,
             options.modelId ? { modelId: options.modelId } : undefined,
           ),
         },

@@ -73,12 +73,19 @@ describe("connecting an assistant", () => {
       setups.map((setup: McpClientSetup): string => {
         return setup.label;
       }),
-    ).toEqual(["Claude Code", "Claude", "VS Code", "Cursor", "Other assistants"]);
+    ).toEqual([
+      "Claude Code",
+      "Claude",
+      "VS Code",
+      "Cursor",
+      "Other assistants",
+    ]);
 
     for (const setup of setups) {
-      expect({ label: setup.label, hasUrl: setup.markdown.includes(MCP_URL) }).toEqual(
-        { label: setup.label, hasUrl: true },
-      );
+      expect({
+        label: setup.label,
+        hasUrl: setup.markdown.includes(MCP_URL),
+      }).toEqual({ label: setup.label, hasUrl: true });
       expect(setup.markdown).not.toContain("x-api-key");
     }
 
@@ -110,9 +117,7 @@ function context(
 describe("prompts", () => {
   test("name the resource and its id, so the assistant finds the right one", () => {
     expect(
-      describeResourceForPrompt(
-        context({ displayName: "API Health", id: ID }),
-      ),
+      describeResourceForPrompt(context({ displayName: "API Health", id: ID })),
     ).toBe(`the monitor "API Health" (ID ${ID})`);
     expect(describeResourceForPrompt(context({ id: ID }))).toBe(
       `the monitor with ID ${ID}`,
@@ -185,7 +190,9 @@ describe("prompts", () => {
           id: ID,
         }),
       )[0],
-    ).toBe(`Show me the label "prod" (ID ${ID}) in OneUptime and summarize how it is set up.`);
+    ).toBe(
+      `Show me the label "prod" (ID ${ID}) in OneUptime and summarize how it is set up.`,
+    );
   });
 
   test("without MCP tools, prompts send a coding assistant to the API, and ask for Terraform", () => {

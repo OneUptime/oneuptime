@@ -117,7 +117,9 @@ describe("a workflow's attributes", () => {
 
   test("each has the provider's type", () => {
     expect(attribute(Workflow, "name").kind).toBe(TerraformValueKind.String);
-    expect(attribute(Workflow, "is_enabled").kind).toBe(TerraformValueKind.Bool);
+    expect(attribute(Workflow, "is_enabled").kind).toBe(
+      TerraformValueKind.Bool,
+    );
     expect(attribute(Workflow, "graph").kind).toBe(TerraformValueKind.Json);
     expect(attribute(Workflow, "labels").kind).toBe(TerraformValueKind.IdSet);
   });
@@ -137,7 +139,10 @@ describe("a workflow's attributes", () => {
 
   test("the webhook and incoming email keys are secrets the API sets, changeable on update only", () => {
     for (const name of ["webhook_secret_key", "incoming_email_secret_key"]) {
-      const descriptor: TerraformAttributeDescriptor = attribute(Workflow, name);
+      const descriptor: TerraformAttributeDescriptor = attribute(
+        Workflow,
+        name,
+      );
       expect(descriptor.secretKind).toBe(TerraformSecretKind.Secret);
       expect(descriptor.inCreateSchema).toBe(false);
       expect(descriptor.inUpdateSchema).toBe(true);
@@ -146,7 +151,9 @@ describe("a workflow's attributes", () => {
 
   test("the project and the creator are filled in by the server", () => {
     expect(attribute(Workflow, "project_id").isServerManaged).toBe(true);
-    expect(attribute(Workflow, "created_by_user_id").isServerManaged).toBe(true);
+    expect(attribute(Workflow, "created_by_user_id").isServerManaged).toBe(
+      true,
+    );
     expect(attribute(Workflow, "name").isServerManaged).toBe(false);
   });
 });
@@ -175,15 +182,17 @@ describe("a monitor's attributes", () => {
       "server_monitor_response",
       "incoming_monitor_request",
     ]) {
-      expect({ name, managed: attribute(Monitor, name).isServerManaged }).toEqual(
-        { name, managed: true },
-      );
+      expect({
+        name,
+        managed: attribute(Monitor, name).isServerManaged,
+      }).toEqual({ name, managed: true });
     }
 
     for (const name of ["monitoring_interval", "labels", "monitor_steps"]) {
-      expect({ name, managed: attribute(Monitor, name).isServerManaged }).toEqual(
-        { name, managed: false },
-      );
+      expect({
+        name,
+        managed: attribute(Monitor, name).isServerManaged,
+      }).toEqual({ name, managed: false });
     }
   });
 });
@@ -196,9 +205,9 @@ describe("secrets", () => {
   });
 
   test("a token is a secret by its name", () => {
-    expect(attribute(StatusPage, "embedded_overall_status_token").secretKind).toBe(
-      TerraformSecretKind.Secret,
-    );
+    expect(
+      attribute(StatusPage, "embedded_overall_status_token").secretKind,
+    ).toBe(TerraformSecretKind.Secret);
   });
 
   test("the switch that turns a password on is not a secret", () => {
@@ -213,7 +222,9 @@ describe("secrets", () => {
 
 describe("server-managed columns", () => {
   test("state machine positions and timestamps the server moves", () => {
-    expect(isServerManagedColumn("Incident", "currentIncidentStateId")).toBe(true);
+    expect(isServerManagedColumn("Incident", "currentIncidentStateId")).toBe(
+      true,
+    );
     expect(isServerManagedColumn("AnyTable", "lastSeenAt")).toBe(true);
     expect(isServerManagedColumn("AnyTable", "nextPollAt")).toBe(true);
     expect(isServerManagedColumn("Incident", "incidentEpisodeId")).toBe(true);
@@ -222,7 +233,9 @@ describe("server-managed columns", () => {
 
   test("configuration is not", () => {
     expect(isServerManagedColumn("Incident", "incidentSeverityId")).toBe(false);
-    expect(isServerManagedColumn("ScheduledMaintenance", "startsAt")).toBe(false);
+    expect(isServerManagedColumn("ScheduledMaintenance", "startsAt")).toBe(
+      false,
+    );
     expect(isServerManagedColumn("AnyTable", "description")).toBe(false);
   });
 

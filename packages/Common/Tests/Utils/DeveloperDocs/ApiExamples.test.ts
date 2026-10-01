@@ -73,7 +73,9 @@ describe("curl commands", () => {
   });
 
   test("a request without a body sends none", () => {
-    expect(getCurlCommand({ method: "DELETE", url: `${API}/workflow/${ID}` })).toBe(
+    expect(
+      getCurlCommand({ method: "DELETE", url: `${API}/workflow/${ID}` }),
+    ).toBe(
       `curl -X DELETE ${API}/workflow/${ID} \\\n  -H "ApiKey: $ONEUPTIME_API_KEY"`,
     );
   });

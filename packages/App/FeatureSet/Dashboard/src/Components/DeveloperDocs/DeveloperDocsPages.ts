@@ -46,19 +46,20 @@ export interface DeveloperDocsPageDefinition {
 
 export const DEVELOPER_DOCS_SECTION_TITLE: string = "Developer";
 
-export const DEVELOPER_DOCS_PAGES: ReadonlyArray<DeveloperDocsPageDefinition> = [
-  {
-    type: DeveloperDocsPageType.Terraform,
-    title: "Terraform",
-    icon: IconProp.Cube,
-  },
-  { type: DeveloperDocsPageType.Api, title: "API", icon: IconProp.Code },
-  {
-    type: DeveloperDocsPageType.AiAssistants,
-    title: "AI Assistants",
-    icon: IconProp.Sparkles,
-  },
-];
+export const DEVELOPER_DOCS_PAGES: ReadonlyArray<DeveloperDocsPageDefinition> =
+  [
+    {
+      type: DeveloperDocsPageType.Terraform,
+      title: "Terraform",
+      icon: IconProp.Cube,
+    },
+    { type: DeveloperDocsPageType.Api, title: "API", icon: IconProp.Code },
+    {
+      type: DeveloperDocsPageType.AiAssistants,
+      title: "AI Assistants",
+      icon: IconProp.Sparkles,
+    },
+  ];
 
 export interface DeveloperDocsParentPage {
   pageKey: PageMap;
@@ -74,24 +75,80 @@ export interface DeveloperDocsParentPage {
 export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage> =
   [
     // Workflows
-    { pageKey: PageMap.WORKFLOWS, scope: DeveloperDocsScope.List, tableName: "Workflow" },
-    { pageKey: PageMap.WORKFLOW_VIEW, scope: DeveloperDocsScope.View, tableName: "Workflow" },
+    {
+      pageKey: PageMap.WORKFLOWS,
+      scope: DeveloperDocsScope.List,
+      tableName: "Workflow",
+    },
+    {
+      pageKey: PageMap.WORKFLOW_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "Workflow",
+    },
     // Monitors and monitor groups
-    { pageKey: PageMap.MONITORS, scope: DeveloperDocsScope.List, tableName: "Monitor" },
-    { pageKey: PageMap.MONITOR_VIEW, scope: DeveloperDocsScope.View, tableName: "Monitor" },
-    { pageKey: PageMap.MONITOR_GROUP_VIEW, scope: DeveloperDocsScope.View, tableName: "MonitorGroup" },
+    {
+      pageKey: PageMap.MONITORS,
+      scope: DeveloperDocsScope.List,
+      tableName: "Monitor",
+    },
+    {
+      pageKey: PageMap.MONITOR_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "Monitor",
+    },
+    {
+      pageKey: PageMap.MONITOR_GROUP_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "MonitorGroup",
+    },
     // Status pages and their announcements
-    { pageKey: PageMap.STATUS_PAGES, scope: DeveloperDocsScope.List, tableName: "StatusPage" },
-    { pageKey: PageMap.STATUS_PAGE_VIEW, scope: DeveloperDocsScope.View, tableName: "StatusPage" },
-    { pageKey: PageMap.ANNOUNCEMENT_VIEW, scope: DeveloperDocsScope.View, tableName: "StatusPageAnnouncement" },
+    {
+      pageKey: PageMap.STATUS_PAGES,
+      scope: DeveloperDocsScope.List,
+      tableName: "StatusPage",
+    },
+    {
+      pageKey: PageMap.STATUS_PAGE_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "StatusPage",
+    },
+    {
+      pageKey: PageMap.ANNOUNCEMENT_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "StatusPageAnnouncement",
+    },
     // Incidents and incident episodes
-    { pageKey: PageMap.INCIDENTS, scope: DeveloperDocsScope.List, tableName: "Incident" },
-    { pageKey: PageMap.INCIDENT_VIEW, scope: DeveloperDocsScope.View, tableName: "Incident" },
-    { pageKey: PageMap.INCIDENT_EPISODE_VIEW, scope: DeveloperDocsScope.View, tableName: "IncidentEpisode" },
+    {
+      pageKey: PageMap.INCIDENTS,
+      scope: DeveloperDocsScope.List,
+      tableName: "Incident",
+    },
+    {
+      pageKey: PageMap.INCIDENT_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "Incident",
+    },
+    {
+      pageKey: PageMap.INCIDENT_EPISODE_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "IncidentEpisode",
+    },
     // Alerts and alert episodes
-    { pageKey: PageMap.ALERTS, scope: DeveloperDocsScope.List, tableName: "Alert" },
-    { pageKey: PageMap.ALERT_VIEW, scope: DeveloperDocsScope.View, tableName: "Alert" },
-    { pageKey: PageMap.ALERT_EPISODE_VIEW, scope: DeveloperDocsScope.View, tableName: "AlertEpisode" },
+    {
+      pageKey: PageMap.ALERTS,
+      scope: DeveloperDocsScope.List,
+      tableName: "Alert",
+    },
+    {
+      pageKey: PageMap.ALERT_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "Alert",
+    },
+    {
+      pageKey: PageMap.ALERT_EPISODE_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "AlertEpisode",
+    },
     // Scheduled maintenance
     {
       pageKey: PageMap.SCHEDULED_MAINTENANCE_EVENTS,
@@ -104,8 +161,16 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
       tableName: "ScheduledMaintenance",
     },
     // On-call
-    { pageKey: PageMap.ON_CALL_DUTY_POLICIES, scope: DeveloperDocsScope.List, tableName: "OnCallDutyPolicy" },
-    { pageKey: PageMap.ON_CALL_DUTY_POLICY_VIEW, scope: DeveloperDocsScope.View, tableName: "OnCallDutyPolicy" },
+    {
+      pageKey: PageMap.ON_CALL_DUTY_POLICIES,
+      scope: DeveloperDocsScope.List,
+      tableName: "OnCallDutyPolicy",
+    },
+    {
+      pageKey: PageMap.ON_CALL_DUTY_POLICY_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "OnCallDutyPolicy",
+    },
     {
       pageKey: PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
       scope: DeveloperDocsScope.View,
@@ -117,68 +182,240 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
       tableName: "IncomingCallPolicy",
     },
     // Teams
-    { pageKey: PageMap.TEAMS, scope: DeveloperDocsScope.List, tableName: "Team" },
-    { pageKey: PageMap.TEAM_VIEW, scope: DeveloperDocsScope.View, tableName: "Team" },
+    {
+      pageKey: PageMap.TEAMS,
+      scope: DeveloperDocsScope.List,
+      tableName: "Team",
+    },
+    {
+      pageKey: PageMap.TEAM_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "Team",
+    },
     // Dashboards
-    { pageKey: PageMap.DASHBOARDS, scope: DeveloperDocsScope.List, tableName: "Dashboard" },
-    { pageKey: PageMap.DASHBOARD_VIEW, scope: DeveloperDocsScope.View, tableName: "Dashboard" },
+    {
+      pageKey: PageMap.DASHBOARDS,
+      scope: DeveloperDocsScope.List,
+      tableName: "Dashboard",
+    },
+    {
+      pageKey: PageMap.DASHBOARD_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "Dashboard",
+    },
     // Runbooks
-    { pageKey: PageMap.RUNBOOKS, scope: DeveloperDocsScope.List, tableName: "Runbook" },
-    { pageKey: PageMap.RUNBOOK_VIEW, scope: DeveloperDocsScope.View, tableName: "Runbook" },
+    {
+      pageKey: PageMap.RUNBOOKS,
+      scope: DeveloperDocsScope.List,
+      tableName: "Runbook",
+    },
+    {
+      pageKey: PageMap.RUNBOOK_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "Runbook",
+    },
     // SLOs
-    { pageKey: PageMap.SLOS, scope: DeveloperDocsScope.List, tableName: "ServiceLevelObjective" },
-    { pageKey: PageMap.SLO_VIEW, scope: DeveloperDocsScope.View, tableName: "ServiceLevelObjective" },
+    {
+      pageKey: PageMap.SLOS,
+      scope: DeveloperDocsScope.List,
+      tableName: "ServiceLevelObjective",
+    },
+    {
+      pageKey: PageMap.SLO_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "ServiceLevelObjective",
+    },
     // Services
-    { pageKey: PageMap.SERVICES, scope: DeveloperDocsScope.List, tableName: "Service" },
-    { pageKey: PageMap.SERVICE_VIEW, scope: DeveloperDocsScope.View, tableName: "Service" },
+    {
+      pageKey: PageMap.SERVICES,
+      scope: DeveloperDocsScope.List,
+      tableName: "Service",
+    },
+    {
+      pageKey: PageMap.SERVICE_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "Service",
+    },
     // Code repositories
-    { pageKey: PageMap.CODE_REPOSITORY, scope: DeveloperDocsScope.List, tableName: "CodeRepository" },
-    { pageKey: PageMap.CODE_REPOSITORY_VIEW, scope: DeveloperDocsScope.View, tableName: "CodeRepository" },
+    {
+      pageKey: PageMap.CODE_REPOSITORY,
+      scope: DeveloperDocsScope.List,
+      tableName: "CodeRepository",
+    },
+    {
+      pageKey: PageMap.CODE_REPOSITORY_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "CodeRepository",
+    },
     // Infrastructure
-    { pageKey: PageMap.KUBERNETES_CLUSTERS, scope: DeveloperDocsScope.List, tableName: "KubernetesCluster" },
-    { pageKey: PageMap.KUBERNETES_CLUSTER_VIEW, scope: DeveloperDocsScope.View, tableName: "KubernetesCluster" },
-    { pageKey: PageMap.DOCKER_HOSTS, scope: DeveloperDocsScope.List, tableName: "DockerHost" },
-    { pageKey: PageMap.DOCKER_HOST_VIEW, scope: DeveloperDocsScope.View, tableName: "DockerHost" },
-    { pageKey: PageMap.DOCKER_SWARM_CLUSTERS, scope: DeveloperDocsScope.List, tableName: "DockerSwarmCluster" },
+    {
+      pageKey: PageMap.KUBERNETES_CLUSTERS,
+      scope: DeveloperDocsScope.List,
+      tableName: "KubernetesCluster",
+    },
+    {
+      pageKey: PageMap.KUBERNETES_CLUSTER_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "KubernetesCluster",
+    },
+    {
+      pageKey: PageMap.DOCKER_HOSTS,
+      scope: DeveloperDocsScope.List,
+      tableName: "DockerHost",
+    },
+    {
+      pageKey: PageMap.DOCKER_HOST_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "DockerHost",
+    },
+    {
+      pageKey: PageMap.DOCKER_SWARM_CLUSTERS,
+      scope: DeveloperDocsScope.List,
+      tableName: "DockerSwarmCluster",
+    },
     {
       pageKey: PageMap.DOCKER_SWARM_CLUSTER_VIEW,
       scope: DeveloperDocsScope.View,
       tableName: "DockerSwarmCluster",
     },
-    { pageKey: PageMap.PODMAN_HOSTS, scope: DeveloperDocsScope.List, tableName: "PodmanHost" },
-    { pageKey: PageMap.PODMAN_HOST_VIEW, scope: DeveloperDocsScope.View, tableName: "PodmanHost" },
-    { pageKey: PageMap.PROXMOX_CLUSTERS, scope: DeveloperDocsScope.List, tableName: "ProxmoxCluster" },
-    { pageKey: PageMap.PROXMOX_CLUSTER_VIEW, scope: DeveloperDocsScope.View, tableName: "ProxmoxCluster" },
-    { pageKey: PageMap.VMWARE_VCENTERS, scope: DeveloperDocsScope.List, tableName: "VMwareVCenter" },
-    { pageKey: PageMap.VMWARE_VCENTER_VIEW, scope: DeveloperDocsScope.View, tableName: "VMwareVCenter" },
-    { pageKey: PageMap.CEPH_CLUSTERS, scope: DeveloperDocsScope.List, tableName: "CephCluster" },
-    { pageKey: PageMap.CEPH_CLUSTER_VIEW, scope: DeveloperDocsScope.View, tableName: "CephCluster" },
-    { pageKey: PageMap.HOSTS, scope: DeveloperDocsScope.List, tableName: "Host" },
-    { pageKey: PageMap.HOST_VIEW, scope: DeveloperDocsScope.View, tableName: "Host" },
-    { pageKey: PageMap.IOT_FLEETS, scope: DeveloperDocsScope.List, tableName: "IoTFleet" },
-    { pageKey: PageMap.IOT_FLEET_VIEW, scope: DeveloperDocsScope.View, tableName: "IoTFleet" },
-    { pageKey: PageMap.DATABASE_SERVERS, scope: DeveloperDocsScope.List, tableName: "DatabaseServer" },
-    { pageKey: PageMap.DATABASE_SERVER_VIEW, scope: DeveloperDocsScope.View, tableName: "DatabaseServer" },
-    { pageKey: PageMap.MESSAGE_QUEUES, scope: DeveloperDocsScope.List, tableName: "MessageQueue" },
-    { pageKey: PageMap.MESSAGE_QUEUE_VIEW, scope: DeveloperDocsScope.View, tableName: "MessageQueue" },
-    { pageKey: PageMap.SERVERLESS_FUNCTIONS, scope: DeveloperDocsScope.List, tableName: "ServerlessFunction" },
+    {
+      pageKey: PageMap.PODMAN_HOSTS,
+      scope: DeveloperDocsScope.List,
+      tableName: "PodmanHost",
+    },
+    {
+      pageKey: PageMap.PODMAN_HOST_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "PodmanHost",
+    },
+    {
+      pageKey: PageMap.PROXMOX_CLUSTERS,
+      scope: DeveloperDocsScope.List,
+      tableName: "ProxmoxCluster",
+    },
+    {
+      pageKey: PageMap.PROXMOX_CLUSTER_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "ProxmoxCluster",
+    },
+    {
+      pageKey: PageMap.VMWARE_VCENTERS,
+      scope: DeveloperDocsScope.List,
+      tableName: "VMwareVCenter",
+    },
+    {
+      pageKey: PageMap.VMWARE_VCENTER_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "VMwareVCenter",
+    },
+    {
+      pageKey: PageMap.CEPH_CLUSTERS,
+      scope: DeveloperDocsScope.List,
+      tableName: "CephCluster",
+    },
+    {
+      pageKey: PageMap.CEPH_CLUSTER_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "CephCluster",
+    },
+    {
+      pageKey: PageMap.HOSTS,
+      scope: DeveloperDocsScope.List,
+      tableName: "Host",
+    },
+    {
+      pageKey: PageMap.HOST_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "Host",
+    },
+    {
+      pageKey: PageMap.IOT_FLEETS,
+      scope: DeveloperDocsScope.List,
+      tableName: "IoTFleet",
+    },
+    {
+      pageKey: PageMap.IOT_FLEET_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "IoTFleet",
+    },
+    {
+      pageKey: PageMap.DATABASE_SERVERS,
+      scope: DeveloperDocsScope.List,
+      tableName: "DatabaseServer",
+    },
+    {
+      pageKey: PageMap.DATABASE_SERVER_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "DatabaseServer",
+    },
+    {
+      pageKey: PageMap.MESSAGE_QUEUES,
+      scope: DeveloperDocsScope.List,
+      tableName: "MessageQueue",
+    },
+    {
+      pageKey: PageMap.MESSAGE_QUEUE_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "MessageQueue",
+    },
+    {
+      pageKey: PageMap.SERVERLESS_FUNCTIONS,
+      scope: DeveloperDocsScope.List,
+      tableName: "ServerlessFunction",
+    },
     {
       pageKey: PageMap.SERVERLESS_FUNCTION_VIEW,
       scope: DeveloperDocsScope.View,
       tableName: "ServerlessFunction",
     },
-    { pageKey: PageMap.CLOUD_RESOURCES, scope: DeveloperDocsScope.List, tableName: "CloudResource" },
-    { pageKey: PageMap.CLOUD_RESOURCE_VIEW, scope: DeveloperDocsScope.View, tableName: "CloudResource" },
+    {
+      pageKey: PageMap.CLOUD_RESOURCES,
+      scope: DeveloperDocsScope.List,
+      tableName: "CloudResource",
+    },
+    {
+      pageKey: PageMap.CLOUD_RESOURCE_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "CloudResource",
+    },
     // Network
-    { pageKey: PageMap.NETWORK_DEVICES, scope: DeveloperDocsScope.List, tableName: "NetworkDevice" },
-    { pageKey: PageMap.NETWORK_DEVICE_VIEW, scope: DeveloperDocsScope.View, tableName: "NetworkDevice" },
-    { pageKey: PageMap.NETWORK_SITE_VIEW, scope: DeveloperDocsScope.View, tableName: "NetworkSite" },
+    {
+      pageKey: PageMap.NETWORK_DEVICES,
+      scope: DeveloperDocsScope.List,
+      tableName: "NetworkDevice",
+    },
+    {
+      pageKey: PageMap.NETWORK_DEVICE_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "NetworkDevice",
+    },
+    {
+      pageKey: PageMap.NETWORK_SITE_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "NetworkSite",
+    },
     // Real user monitoring
-    { pageKey: PageMap.RUM_APPLICATIONS, scope: DeveloperDocsScope.List, tableName: "RumApplication" },
-    { pageKey: PageMap.RUM_APPLICATION_VIEW, scope: DeveloperDocsScope.View, tableName: "RumApplication" },
+    {
+      pageKey: PageMap.RUM_APPLICATIONS,
+      scope: DeveloperDocsScope.List,
+      tableName: "RumApplication",
+    },
+    {
+      pageKey: PageMap.RUM_APPLICATION_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "RumApplication",
+    },
     // Inventory
-    { pageKey: PageMap.INVENTORY_ITEMS, scope: DeveloperDocsScope.List, tableName: "InventoryItem" },
-    { pageKey: PageMap.INVENTORY_VIEW, scope: DeveloperDocsScope.View, tableName: "InventoryItem" },
+    {
+      pageKey: PageMap.INVENTORY_ITEMS,
+      scope: DeveloperDocsScope.List,
+      tableName: "InventoryItem",
+    },
+    {
+      pageKey: PageMap.INVENTORY_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "InventoryItem",
+    },
   ];
 
 /*

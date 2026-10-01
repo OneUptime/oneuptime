@@ -173,7 +173,12 @@ describe("server extras are dropped (TestMonitorStepsFromAPIDropsServerExtras)",
     expect(
       convert(
         envelope([
-          step({ requestType: "", requestBody: "", customCode: "", retryCount: 0 }),
+          step({
+            requestType: "",
+            requestBody: "",
+            customCode: "",
+            retryCount: 0,
+          }),
         ]),
       ),
     ).toEqual([{ retry_count: 0 }]);
@@ -221,9 +226,21 @@ describe("value coercions", () => {
               name: "Numbers",
               filterCondition: "All",
               filters: [
-                { checkOn: "Response Status Code", filterType: "Equal To", value: 200 },
-                { checkOn: "Response Time (in ms)", filterType: "Less Than", value: 99.5 },
-                { checkOn: "Response Body", filterType: "Contains", value: "ok" },
+                {
+                  checkOn: "Response Status Code",
+                  filterType: "Equal To",
+                  value: 200,
+                },
+                {
+                  checkOn: "Response Time (in ms)",
+                  filterType: "Less Than",
+                  value: 99.5,
+                },
+                {
+                  checkOn: "Response Body",
+                  filterType: "Contains",
+                  value: "ok",
+                },
               ],
             },
           ]),
@@ -232,7 +249,9 @@ describe("value coercions", () => {
     );
 
     const filters: Array<{ value: string }> = (
-      converted as Array<{ criteria: Array<{ filters: Array<{ value: string }> }> }>
+      converted as Array<{
+        criteria: Array<{ filters: Array<{ value: string }> }>;
+      }>
     )[0]!.criteria[0]!.filters;
 
     expect(

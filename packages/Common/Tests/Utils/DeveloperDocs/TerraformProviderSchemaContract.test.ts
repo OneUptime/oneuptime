@@ -43,18 +43,19 @@ const SHARED_NAME_TYPES: ReadonlyArray<string> = [
   "oneuptime_subscriber_notification_template",
 ];
 
-const PROVIDER_TYPES_BY_KIND: Readonly<Record<TerraformValueKind, Array<string>>> =
-  {
-    [TerraformValueKind.String]: ["string"],
-    [TerraformValueKind.DateTime]: ["string"],
-    [TerraformValueKind.Json]: ["string"],
-    [TerraformValueKind.Number]: ["number"],
-    [TerraformValueKind.Bool]: ["bool"],
-    [TerraformValueKind.IdSet]: ["set", "list"],
-    [TerraformValueKind.StringSet]: ["set", "list"],
-    [TerraformValueKind.MonitorSteps]: ["monitor_steps"],
-    [TerraformValueKind.Unsupported]: ["string"],
-  };
+const PROVIDER_TYPES_BY_KIND: Readonly<
+  Record<TerraformValueKind, Array<string>>
+> = {
+  [TerraformValueKind.String]: ["string"],
+  [TerraformValueKind.DateTime]: ["string"],
+  [TerraformValueKind.Json]: ["string"],
+  [TerraformValueKind.Number]: ["number"],
+  [TerraformValueKind.Bool]: ["bool"],
+  [TerraformValueKind.IdSet]: ["set", "list"],
+  [TerraformValueKind.StringSet]: ["set", "list"],
+  [TerraformValueKind.MonitorSteps]: ["monitor_steps"],
+  [TerraformValueKind.Unsupported]: ["string"],
+};
 
 /*
  * Column types whose API value is a wrapper object ({_type: "Color", value:
@@ -115,27 +116,33 @@ function modelsWithResources(): Array<[string, DatabaseBaseModelType]> {
       !SHARED_NAME_TYPES.includes(typeName as string) &&
       getTerraformAttributes(modelType).length > 0
     );
-  }).map((modelType: DatabaseBaseModelType): [string, DatabaseBaseModelType] => {
-    return [modelType.name, modelType];
-  });
+  }).map(
+    (modelType: DatabaseBaseModelType): [string, DatabaseBaseModelType] => {
+      return [modelType.name, modelType];
+    },
+  );
 }
 
-function providerAttributes(resource: TerraformResource): Array<ProviderAttribute> {
+function providerAttributes(
+  resource: TerraformResource,
+): Array<ProviderAttribute> {
   return Object.entries(resource.schema)
     .filter(([name, attribute]: [string, TerraformAttribute]): boolean => {
       return name !== "id" && Boolean(attribute.required || attribute.optional);
     })
-    .map(([name, attribute]: [string, TerraformAttribute]): ProviderAttribute => {
-      return {
-        name,
-        type: attribute.type,
-        required: Boolean(attribute.required),
-        default: attribute.default ?? null,
-        isComplexObject: Boolean(attribute.isComplexObject),
-        isDateTime: Boolean(attribute.isDateTime),
-        forceNew: Boolean(attribute.forceNew),
-      };
-    })
+    .map(
+      ([name, attribute]: [string, TerraformAttribute]): ProviderAttribute => {
+        return {
+          name,
+          type: attribute.type,
+          required: Boolean(attribute.required),
+          default: attribute.default ?? null,
+          isComplexObject: Boolean(attribute.isComplexObject),
+          isDateTime: Boolean(attribute.isDateTime),
+          forceNew: Boolean(attribute.forceNew),
+        };
+      },
+    )
     .sort((a: ProviderAttribute, b: ProviderAttribute): number => {
       return a.name.localeCompare(b.name);
     });

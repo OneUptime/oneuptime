@@ -74,7 +74,9 @@ export function getApiBaseUrl(oneuptimeUrl: string): string {
 }
 
 // `/workflow`, the model's path under the API.
-export function getModelApiPath(modelType: DatabaseBaseModelType): string | null {
+export function getModelApiPath(
+  modelType: DatabaseBaseModelType,
+): string | null {
   const model: DatabaseBaseModel = new modelType();
   const path: string | undefined = model.crudApiPath?.toString();
 
@@ -162,11 +164,12 @@ function getExampleUpdateData(data: {
   modelType: DatabaseBaseModelType;
   displayName: string | null;
 }): JSONObject | null {
-  const attributes: Array<TerraformAttributeDescriptor> = getTerraformAttributes(
-    data.modelType,
-  ).filter((descriptor: TerraformAttributeDescriptor): boolean => {
-    return descriptor.inUpdateSchema;
-  });
+  const attributes: Array<TerraformAttributeDescriptor> =
+    getTerraformAttributes(data.modelType).filter(
+      (descriptor: TerraformAttributeDescriptor): boolean => {
+        return descriptor.inUpdateSchema;
+      },
+    );
 
   const hasColumn: (columnName: string) => boolean = (
     columnName: string,

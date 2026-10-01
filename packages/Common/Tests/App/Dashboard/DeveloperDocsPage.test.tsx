@@ -30,7 +30,6 @@ import Route from "../../../Types/API/Route";
 import Color from "../../../Types/Color";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorType from "../../../Types/Monitor/MonitorType";
-import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Clipboard from "../../../UI/Utils/Clipboard";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -203,7 +202,9 @@ describe("a workflow's Terraform page", () => {
       page: DeveloperDocsPageType.Terraform,
     });
 
-    await screen.findByText(/resource "oneuptime_workflow" "send_weekly_report"/);
+    await screen.findByText(
+      /resource "oneuptime_workflow" "send_weekly_report"/,
+    );
 
     const text: string = guide().textContent || "";
 
@@ -315,7 +316,9 @@ describe("a workflow's Terraform page", () => {
       page: DeveloperDocsPageType.Terraform,
     });
 
-    expect(await screen.findByText(DEVELOPER_DOCS_NOT_FOUND_MESSAGE)).toBeInTheDocument();
+    expect(
+      await screen.findByText(DEVELOPER_DOCS_NOT_FOUND_MESSAGE),
+    ).toBeInTheDocument();
   });
 
   test("shows the error when the fetch fails, and tries again on refresh", async () => {
@@ -417,7 +420,7 @@ describe("AI Assistants", () => {
   test("for a monitor: connect the MCP server, then prompts that each copy", async () => {
     routeId = MONITOR_ID;
     getItemMock.mockResolvedValue(monitor());
-    const copy: jest.SpiedFunction<typeof Clipboard.copyToClipboard> = jest
+    const copy: ReturnType<typeof jest.spyOn> = jest
       .spyOn(Clipboard, "copyToClipboard")
       .mockResolvedValue(true);
 
@@ -459,7 +462,9 @@ describe("AI Assistants", () => {
       page: DeveloperDocsPageType.AiAssistants,
     });
 
-    expect(await screen.findByTestId("developer-docs-notice")).toHaveTextContent(
+    expect(
+      await screen.findByTestId("developer-docs-notice"),
+    ).toHaveTextContent(
       "OneUptime's MCP server does not have tools for workflows yet.",
     );
   });

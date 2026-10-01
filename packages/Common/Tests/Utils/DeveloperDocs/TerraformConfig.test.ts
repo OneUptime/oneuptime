@@ -261,7 +261,9 @@ describe("a workflow as Terraform", () => {
           nodes: [
             {
               id: "webhook",
-              data: { arguments: { "api-key": "sk_live_123", url: "https://x" } },
+              data: {
+                arguments: { "api-key": "sk_live_123", url: "https://x" },
+              },
             },
           ],
           edges: [],
@@ -275,15 +277,17 @@ describe("a workflow as Terraform", () => {
     expect(config.resourceHcl).toContain(
       "            api-key = var.send_weekly_report_graph_api_key",
     );
-    expect(config.resourceHcl.startsWith(
-      [
-        'variable "send_weekly_report_graph_api_key" {',
-        '  description = "The api-key in the Workflow Graph of workflow \\"Send weekly report\\"."',
-        "  type        = string",
-        "  sensitive   = true",
-        "}",
-      ].join("\n"),
-    )).toBe(true);
+    expect(
+      config.resourceHcl.startsWith(
+        [
+          'variable "send_weekly_report_graph_api_key" {',
+          '  description = "The api-key in the Workflow Graph of workflow \\"Send weekly report\\"."',
+          "  type        = string",
+          "  sensitive   = true",
+          "}",
+        ].join("\n"),
+      ),
+    ).toBe(true);
     expect(config.variables).toEqual([
       {
         name: "send_weekly_report_graph_api_key",
@@ -308,7 +312,9 @@ describe("a workflow as Terraform", () => {
     const json: Record<string, unknown> = toJson(workflow(), Workflow);
     delete json["_id"];
 
-    expect(getTerraformResourceConfig({ modelType: Workflow, json })).toBeNull();
+    expect(
+      getTerraformResourceConfig({ modelType: Workflow, json }),
+    ).toBeNull();
   });
 });
 
@@ -330,9 +336,7 @@ describe("a monitor as Terraform", () => {
     const config: TerraformResourceConfig = configFor(monitor(), Monitor);
 
     expect(config.resourceHcl).toContain('monitor_type        = "Manual"');
-    expect(config.resourceHcl).toContain(
-      'monitoring_interval = "*/5 * * * *"',
-    );
+    expect(config.resourceHcl).toContain('monitoring_interval = "*/5 * * * *"');
 
     for (const left of [
       "current_monitor_status_id",
@@ -579,6 +583,8 @@ describe("looking a resource up by name", () => {
         modelType: Monitor,
         exampleName: "API Health",
       }),
-    ).toBe('data "oneuptime_monitor" "api_health" {\n  name = "API Health"\n}\n');
+    ).toBe(
+      'data "oneuptime_monitor" "api_health" {\n  name = "API Health"\n}\n',
+    );
   });
 });

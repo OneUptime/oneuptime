@@ -20,9 +20,9 @@ import { McpToolInfo, ModelToolsResult } from "../Types/McpTypes";
 describe("the Developer pages name the MCP server's real tools", () => {
   const cases: Array<[string, { new (): DatabaseBaseModel }]> =
     DatabaseModels.map(
-      (
-        modelType: { new (): DatabaseBaseModel },
-      ): [string, { new (): DatabaseBaseModel }] => {
+      (modelType: {
+        new (): DatabaseBaseModel;
+      }): [string, { new (): DatabaseBaseModel }] => {
         return [modelType.name, modelType];
       },
     );

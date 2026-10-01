@@ -281,14 +281,15 @@ export function shouldUseHeredoc(value: string): boolean {
 
 // A heredoc marker that no line of the string is equal to.
 function getHeredocDelimiter(lines: Array<string>): string {
+  const taken: Set<string> = new Set<string>(
+    lines.map((line: string): string => {
+      return line.trim();
+    }),
+  );
   let delimiter: string = "EOT";
   let suffix: number = 1;
 
-  while (
-    lines.some((line: string): boolean => {
-      return line.trim() === delimiter;
-    })
-  ) {
+  while (taken.has(delimiter)) {
     delimiter = `EOT${suffix}`;
     suffix++;
   }
@@ -482,10 +483,7 @@ function printAssignments(
   assignments: Array<{ name: string; value: HclExpression }>,
 ): Array<PrintedLine> {
   const printed: Array<PrintedAssignment> = assignments.map(
-    (assignment: {
-      name: string;
-      value: HclExpression;
-    }): PrintedAssignment => {
+    (assignment: { name: string; value: HclExpression }): PrintedAssignment => {
       return {
         name: assignment.name,
         lines: printExpression(assignment.value),
@@ -589,10 +587,7 @@ function printCall(call: HclCallExpression): Array<PrintedLine> {
   printedArgs.forEach((argLines: Array<PrintedLine>, argIndex: number) => {
     const isLastArg: boolean = argIndex === printedArgs.length - 1;
     lines.push(
-      ...indentLines(
-        isLastArg ? argLines : appendToLastLine(argLines, ","),
-        1,
-      ),
+      ...indentLines(isLastArg ? argLines : appendToLastLine(argLines, ","), 1),
     );
   });
 

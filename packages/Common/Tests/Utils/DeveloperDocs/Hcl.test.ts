@@ -70,12 +70,16 @@ describe("multi-line strings", () => {
 
   test("keeps the value's own indentation (no <<- trimming)", () => {
     const printed: string = printHclDocument([
-      Hcl.block("resource", ["x", "y"], [
-        Hcl.attribute("css", Hcl.string("  indented\n    more\n  end\n")),
-      ]),
+      Hcl.block(
+        "resource",
+        ["x", "y"],
+        [Hcl.attribute("css", Hcl.string("  indented\n    more\n  end\n"))],
+      ),
     ]);
 
-    expect(printed).toContain("css = <<EOT\n  indented\n    more\n  end\nEOT\n");
+    expect(printed).toContain(
+      "css = <<EOT\n  indented\n    more\n  end\nEOT\n",
+    );
   });
 
   test("escapes template sequences inside the heredoc", () => {
@@ -191,9 +195,9 @@ describe("objects", () => {
 
 describe("function calls", () => {
   test("one-line arguments stay on one line", () => {
-    expect(
-      printHclExpression(Hcl.call("jsonencode", [Hcl.object([])])),
-    ).toBe("jsonencode({})");
+    expect(printHclExpression(Hcl.call("jsonencode", [Hcl.object([])]))).toBe(
+      "jsonencode({})",
+    );
   });
 
   test("a multi-line argument hugs the parentheses", () => {
@@ -211,11 +215,15 @@ describe("documents", () => {
   test("align consecutive one-line attributes like terraform fmt", () => {
     expect(
       printHclDocument([
-        Hcl.block("resource", ["oneuptime_workflow", "report"], [
-          Hcl.attribute("name", Hcl.string("Report")),
-          Hcl.attribute("description", Hcl.string("Weekly")),
-          Hcl.attribute("is_enabled", Hcl.bool(true)),
-        ]),
+        Hcl.block(
+          "resource",
+          ["oneuptime_workflow", "report"],
+          [
+            Hcl.attribute("name", Hcl.string("Report")),
+            Hcl.attribute("description", Hcl.string("Weekly")),
+            Hcl.attribute("is_enabled", Hcl.bool(true)),
+          ],
+        ),
       ]),
     ).toBe(
       [
@@ -232,16 +240,20 @@ describe("documents", () => {
   test("a multi-line value is not padded and ends the aligned run", () => {
     expect(
       printHclDocument([
-        Hcl.block("resource", ["x", "y"], [
-          Hcl.attribute("ami", Hcl.string("ami-123")),
-          Hcl.attribute("instance_type", Hcl.string("t2.micro")),
-          Hcl.attribute(
-            "tags",
-            Hcl.object([{ key: "Name", value: Hcl.string("web") }]),
-          ),
-          Hcl.attribute("a", Hcl.number(1)),
-          Hcl.attribute("long_name", Hcl.number(2)),
-        ]),
+        Hcl.block(
+          "resource",
+          ["x", "y"],
+          [
+            Hcl.attribute("ami", Hcl.string("ami-123")),
+            Hcl.attribute("instance_type", Hcl.string("t2.micro")),
+            Hcl.attribute(
+              "tags",
+              Hcl.object([{ key: "Name", value: Hcl.string("web") }]),
+            ),
+            Hcl.attribute("a", Hcl.number(1)),
+            Hcl.attribute("long_name", Hcl.number(2)),
+          ],
+        ),
       ]),
     ).toBe(
       [
@@ -262,10 +274,14 @@ describe("documents", () => {
   test("a heredoc keeps its body at the start of the line inside a block", () => {
     expect(
       printHclDocument([
-        Hcl.block("resource", ["x", "y"], [
-          Hcl.attribute("name", Hcl.string("A")),
-          Hcl.attribute("code", Hcl.string("line 1\nline 2\nline 3")),
-        ]),
+        Hcl.block(
+          "resource",
+          ["x", "y"],
+          [
+            Hcl.attribute("name", Hcl.string("A")),
+            Hcl.attribute("code", Hcl.string("line 1\nline 2\nline 3")),
+          ],
+        ),
       ]),
     ).toBe(
       [
@@ -286,20 +302,30 @@ describe("documents", () => {
   test("comments, blank lines and nested blocks", () => {
     expect(
       printHclDocument([
-        Hcl.block("terraform", [], [
-          Hcl.block("required_providers", [], [
-            Hcl.attribute(
-              "oneuptime",
-              Hcl.object([
-                { key: "source", value: Hcl.string("oneuptime/oneuptime") },
-              ]),
+        Hcl.block(
+          "terraform",
+          [],
+          [
+            Hcl.block(
+              "required_providers",
+              [],
+              [
+                Hcl.attribute(
+                  "oneuptime",
+                  Hcl.object([
+                    { key: "source", value: Hcl.string("oneuptime/oneuptime") },
+                  ]),
+                ),
+              ],
             ),
-          ]),
-        ]),
+          ],
+        ),
         Hcl.blank(),
-        Hcl.block("provider", ["oneuptime"], [
-          Hcl.comment("First line.\nSecond line."),
-        ]),
+        Hcl.block(
+          "provider",
+          ["oneuptime"],
+          [Hcl.comment("First line.\nSecond line.")],
+        ),
         Hcl.blank(),
         Hcl.block("data", ["x", "y"], []),
       ]),
@@ -325,8 +351,8 @@ describe("documents", () => {
   });
 
   test("block labels are escaped", () => {
-    expect(
-      printHclDocument([Hcl.block("data", ['a"b', "${x}"], [])]),
-    ).toBe('data "a\\"b" "$${x}" {}\n');
+    expect(printHclDocument([Hcl.block("data", ['a"b', "${x}"], [])])).toBe(
+      'data "a\\"b" "$${x}" {}\n',
+    );
   });
 });
