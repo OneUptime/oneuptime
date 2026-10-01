@@ -10,8 +10,8 @@ import {
 import {
   WorkflowTemplatePickerViewInfo,
   getWorkflowTemplatePickerViews,
+  workflowTemplateCountText,
 } from "../../FeatureSet/Dashboard/src/Utils/Workflow/WorkflowTemplatePickerUtil";
-import { workflowTemplateCountText } from "../../FeatureSet/Dashboard/src/Components/Workflow/WorkflowTemplatePicker";
 
 /*
  * The workflow template picker looks every word it draws up in the Dashboard
