@@ -12,6 +12,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Components from "Common/Types/Workflow/Components";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import { NodeType } from "Common/Types/Workflow/Component";
+import { describeSampleValue } from "Common/Types/Workflow/StepSamples";
 import Workflow from "Common/UI/Components/Workflow/Workflow";
 import ValueTextField from "Common/UI/Components/Workflow/ValuePicker/ValueTextField";
 import { ValuePickerProvider } from "Common/UI/Components/Workflow/ValuePicker/ValuePickerContext";
@@ -58,6 +59,62 @@ ModelAPI.getList = async (args) => {
 
 API.get = async () => {
   return new HTTPResponse(200, { columns: [] }, {});
+};
+
+/*
+ * What the steps held the last times they ran (/workflow/step-samples). By
+ * default the Webhook has received one request; with ?samples=none it has
+ * received none yet, until the page calls window.deliverWebhookRequest().
+ * The HTTP POST step has never run, so the specs that pick its Response Body
+ * whole still can.
+ */
+const WEBHOOK_REQUEST_SAMPLE = {
+  componentId: "webhook-1",
+  returnValues: {
+    "request-body": describeSampleValue(
+      {
+        environment: "production",
+        incident: { title: "Database is down", severity: "critical" },
+        alerts: [{ status: "firing" }],
+      },
+      { ranAt: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
+    ),
+    "request-headers": describeSampleValue(
+      {
+        authorization: "Bearer fixture-token",
+        "content-type": "application/json",
+      },
+      { ranAt: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
+    ),
+    "request-params": describeSampleValue(
+      {},
+      { ranAt: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
+    ),
+  },
+};
+
+let hasWebhookRequest = params.get("samples") !== "none";
+
+window.stepSampleRequests = [];
+
+window.deliverWebhookRequest = () => {
+  hasWebhookRequest = true;
+};
+
+API.post = async (options) => {
+  const url = options.url.toString();
+
+  if (url.includes("/step-samples/")) {
+    window.stepSampleRequests.push({ url: url, data: options.data });
+
+    return new HTTPResponse(
+      200,
+      { samples: hasWebhookRequest ? [WEBHOOK_REQUEST_SAMPLE] : [] },
+      {},
+    );
+  }
+
+  return new HTTPResponse(200, {}, {});
 };
 
 function metadataOf(id) {
@@ -140,6 +197,10 @@ function BuilderScenario() {
         initialNodes={nodes}
         initialEdges={edges}
         workflowId={WORKFLOW_ID}
+        webhookSecretKey={
+          params.get("webhook") === "url" ? "fixture-secret-key" : undefined
+        }
+        canSeeWebhookSecretKey={params.get("webhook") === "url"}
         showComponentsPickerModal={false}
         showRunModal={false}
         onComponentPickerModalUpdate={() => {}}

@@ -78,14 +78,23 @@ const openFields: OpenFieldsFunction = async (
   await expect(field(page, "message")).toBeVisible();
 };
 
-type OpenStepFunction = (page: Page, stepId: string) => Promise<void>;
+type OpenStepFunction = (
+  page: Page,
+  stepId: string,
+  query?: string,
+) => Promise<void>;
 
-// The builder, with the settings of one step open.
+/*
+ * The builder, with the settings of one step open. By default the Webhook
+ * has received one request; "&samples=none" is a webhook nothing has called
+ * yet, and "&webhook=url" lets the reader see its URL.
+ */
 const openStep: OpenStepFunction = async (
   page: Page,
   stepId: string,
+  query?: string,
 ): Promise<void> => {
-  await page.goto("/?scenario=builder");
+  await page.goto(`/?scenario=builder${query || ""}`);
   await page.locator(`[data-id="rf-${stepId}"]`).click();
   await expect(page.getByTestId("workflow-component-settings")).toBeVisible();
 };
@@ -557,6 +566,250 @@ test.describe("in the builder", () => {
   });
 });
 
+/*
+ * The maintainer: "if its a webhook component and it has received a request
+ * already - you know what data is in there, so you can suggest based on that
+ * data." The fixture's Webhook received {environment, incident: {title,
+ * severity}, alerts: [...]} five minutes ago, with an Authorization header.
+ */
+const INCIDENT_TITLE: string =
+  "{{local.components.webhook-1.returnValues.request-body.incident.title}}";
+
+type OptionFunction = (page: Page, reference: string) => Locator;
+
+const option: OptionFunction = (page: Page, reference: string): Locator => {
+  return page
+    .getByTestId("value-picker")
+    .locator(`[role="option"][data-reference="${reference}"]`);
+};
+
+test.describe("values from the webhook's last request", () => {
+  test("the body says what it held, opens to its fields, and a field picked is a chip that is saved", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStep(page, "log-1");
+    await page.getByTestId("workflow-argument-value-insert-value").click();
+
+    await expect(
+      option(page, BODY).getByTestId("value-picker-sample"),
+    ).toHaveText("3 fields");
+
+    await option(page, BODY).click();
+
+    await expect(page.getByTestId("value-picker-drill-note")).toHaveText(
+      "From the request received 5 minutes ago.",
+    );
+    await expect(
+      option(page, INCIDENT_TITLE).getByTestId("value-picker-sample"),
+    ).toHaveText('"Database is down"');
+
+    await option(page, INCIDENT_TITLE).click();
+
+    await expect(page.getByTestId("value-picker")).toHaveCount(0);
+
+    const titleChip: Locator = page
+      .getByTestId("workflow-argument-value")
+      .locator(`[data-template-reference="${INCIDENT_TITLE}"]`);
+
+    await expect(titleChip).toHaveText("Webhook›Request Body›incident.title");
+
+    await page.getByRole("button", { name: "Save" }).click();
+
+    await expect
+      .poll(async () => {
+        const saved: Record<string, Record<string, string>> = JSON.parse(
+          await page.getByTestId("saved-arguments").inputValue(),
+        );
+
+        return saved["log-1"]?.["value"] || "";
+      })
+      .toContain(INCIDENT_TITLE);
+  });
+
+  test("a search finds a field inside the body without opening it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStep(page, "log-1");
+    await page.getByTestId("workflow-argument-value-insert-value").click();
+    await expect(
+      option(page, BODY).getByTestId("value-picker-sample"),
+    ).toHaveText("3 fields");
+
+    await page.keyboard.type("title");
+
+    expect(await optionReferences(page)).toEqual([INCIDENT_TITLE]);
+    await expect(option(page, INCIDENT_TITLE)).toContainText(
+      "Request Body › incident.title",
+    );
+
+    await page.keyboard.press("Enter");
+
+    await expect(
+      page
+        .getByTestId("workflow-argument-value")
+        .locator(`[data-template-reference="${INCIDENT_TITLE}"]`),
+    ).toHaveCount(1);
+  });
+
+  test("typing {{ and the body's path lists the fields inside it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStep(page, "log-1");
+
+    // Let the samples arrive before typing.
+    await page.getByTestId("workflow-argument-value-insert-value").click();
+    await expect(
+      option(page, BODY).getByTestId("value-picker-sample"),
+    ).toHaveText("3 fields");
+    await page.keyboard.press("Escape");
+
+    const value: Locator = page.getByTestId("workflow-argument-value");
+    await value.click();
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.keyboard.type(
+      " {{local.components.webhook-1.returnValues.request-body.inc",
+    );
+
+    const inline: Locator = page.getByTestId("value-picker-inline");
+    const inlineOptions: Locator = inline.getByRole("option");
+
+    // The body's fields that start that way: the incident, and its own.
+    await expect(inline).toBeVisible();
+    await expect(
+      inline.locator(`[role="option"][data-reference="${INCIDENT_TITLE}"]`),
+    ).toBeVisible();
+    await expect(inlineOptions).toHaveCount(3);
+
+    // Typed on, the path narrows it down to the one.
+    await page.keyboard.type("ident.ti");
+    await expect(inlineOptions).toHaveCount(1);
+
+    await page.keyboard.press("Enter");
+
+    await expect(
+      value.locator(`[data-template-reference="${INCIDENT_TITLE}"]`),
+    ).toHaveCount(1);
+  });
+
+  test("a header that is a credential is offered, never what it held", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStep(page, "log-1");
+    await page.getByTestId("workflow-argument-value-insert-value").click();
+
+    const headers: string =
+      "{{local.components.webhook-1.returnValues.request-headers}}";
+
+    await option(page, headers).click();
+
+    const authorization: Locator = option(
+      page,
+      "{{local.components.webhook-1.returnValues.request-headers.authorization}}",
+    );
+
+    await expect(authorization.getByTestId("value-picker-sample")).toHaveText(
+      "hidden",
+    );
+    await expect(page.locator("body")).not.toContainText("fixture-token");
+  });
+});
+
+test.describe("a webhook nothing has called yet", () => {
+  test("offers a test request to copy, without showing the URL", async ({
+    page,
+    browserName,
+  }: {
+    page: Page;
+    browserName: string;
+  }) => {
+    test.skip(
+      browserName === "firefox",
+      "Headless Firefox does not give the page a clipboard to read back.",
+    );
+
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"]);
+    await openStep(page, "log-1", "&samples=none&webhook=url");
+    await page.getByTestId("workflow-argument-value-insert-value").click();
+
+    const note: Locator = page.getByTestId("value-picker-group-note");
+
+    await expect(note).toContainText(
+      "No request has reached this webhook yet. Send a test request, and the fields it sends show up here.",
+    );
+    await expect(note.getByRole("status")).toHaveText("Waiting for a request…");
+    await expect(page.getByTestId("value-picker")).not.toContainText(
+      "fixture-secret-key",
+    );
+
+    await note.getByTestId("value-picker-note-copy").click();
+
+    await expect(note.getByTestId("value-picker-note-copy")).toHaveText(
+      "Copied!",
+    );
+
+    const copied: string = await page.evaluate(() => {
+      return navigator.clipboard.readText();
+    });
+
+    expect(copied.startsWith("curl -X POST ")).toBe(true);
+    expect(copied).toContain("/workflow/trigger/fixture-secret-key");
+    // The search box keeps the keyboard.
+    await expect(page.getByTestId("value-picker-search")).toBeFocused();
+  });
+
+  test("its fields turn up by themselves once a request arrives", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStep(page, "log-1", "&samples=none");
+    await page.getByTestId("workflow-argument-value-insert-value").click();
+
+    await expect(page.getByTestId("value-picker-group-note")).toBeVisible();
+    await expect(
+      option(page, BODY).getByTestId("value-picker-sample"),
+    ).toHaveCount(0);
+
+    await page.evaluate(() => {
+      (
+        window as unknown as { deliverWebhookRequest: () => void }
+      ).deliverWebhookRequest();
+    });
+
+    // The open list asks again every few seconds.
+    await expect(page.getByTestId("value-picker-group-note")).toHaveCount(0, {
+      timeout: 15000,
+    });
+    await expect(
+      option(page, BODY).getByTestId("value-picker-sample"),
+    ).toHaveText("3 fields");
+
+    const requests: Array<{ data: { componentIds: Array<string> } }> =
+      await page.evaluate(() => {
+        return (
+          window as unknown as {
+            stepSampleRequests: Array<{
+              data: { componentIds: Array<string> };
+            }>;
+          }
+        ).stepSampleRequests;
+      });
+
+    expect(requests.length).toBeGreaterThanOrEqual(2);
+    expect(requests[0]!.data.componentIds).toEqual(["webhook-1", "api-post-1"]);
+  });
+});
+
 test.describe("dark theme", () => {
   test("chips and the list take the dark colours", async ({
     page,
@@ -583,5 +836,42 @@ test.describe("dark theme", () => {
       });
 
     expect(listBackground).not.toBe("rgb(255, 255, 255)");
+  });
+
+  test("the waiting note and the samples take the dark colours", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStep(page, "log-1", "&samples=none&webhook=url&theme=dark");
+    await page.getByTestId("workflow-argument-value-insert-value").click();
+
+    const noteBackground: string = await page
+      .getByTestId("value-picker-group-note")
+      .evaluate((element: Element) => {
+        return getComputedStyle(element).backgroundColor;
+      });
+
+    // Not gray-50, the light theme's.
+    expect(noteBackground).not.toBe("rgb(249, 250, 251)");
+
+    await page.evaluate(() => {
+      (
+        window as unknown as { deliverWebhookRequest: () => void }
+      ).deliverWebhookRequest();
+    });
+
+    const sample: Locator = option(page, BODY).getByTestId(
+      "value-picker-sample",
+    );
+
+    await expect(sample).toHaveText("3 fields", { timeout: 15000 });
+
+    const sampleColour: string = await sample.evaluate((element: Element) => {
+      return getComputedStyle(element).color;
+    });
+
+    // Not gray-500 on the light theme's white.
+    expect(sampleColour).not.toBe("rgb(107, 114, 128)");
   });
 });
