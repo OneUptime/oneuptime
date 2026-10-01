@@ -10,10 +10,13 @@ import ComponentMetadata, {
 import Components, { Categories } from "../../../Types/Workflow/Components";
 import BaseModelComponentFactory from "../../../Types/Workflow/Components/BaseModel";
 import Entities from "../../../Models/DatabaseModels/Index";
+import { ConditionValueType } from "../../../Types/Workflow/Components/Condition";
 import {
-  ConditionOperator,
-  ConditionValueType,
-} from "../../../Types/Workflow/Components/Condition";
+  CONDITION_COMPARISONS,
+  CONDITION_VALUE_TYPE_LABELS,
+  ConditionComparison,
+  ConditionComparisonKind,
+} from "../../../Types/Workflow/Components/ConditionComparison";
 
 type LoadComponentsAndCategoriesFunction = () => {
   components: Array<ComponentMetadata>;
@@ -316,51 +319,24 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
       };
     }
 
+    /*
+     * If / Else draws its own comparison list (Workflow/Condition); this is
+     * the same list of stored operators, in the same words, for anything else
+     * that has an Operator setting.
+     */
     if (componentInputType === ComponentInputType.Operator) {
       return {
         fieldType: FormFieldSchemaType.Dropdown,
-        dropdownOptions: [
-          {
-            label: "Equal To",
-            value: ConditionOperator.EqualTo,
+        dropdownOptions: CONDITION_COMPARISONS.filter(
+          (comparison: ConditionComparison) => {
+            return comparison.kind !== ConditionComparisonKind.TrueOrFalse;
           },
-          {
-            label: "Not Equal To",
-            value: ConditionOperator.NotEqualTo,
-          },
-          {
-            label: "Greater Than",
-            value: ConditionOperator.GreaterThan,
-          },
-          {
-            label: "Less Than",
-            value: ConditionOperator.LessThan,
-          },
-          {
-            label: "Greater Than or Equal",
-            value: ConditionOperator.GreaterThanOrEqualTo,
-          },
-          {
-            label: "Less Than or Equal",
-            value: ConditionOperator.LessThanOrEqualTo,
-          },
-          {
-            label: "Contains",
-            value: ConditionOperator.Contains,
-          },
-          {
-            label: "Does Not Contain",
-            value: ConditionOperator.DoesNotContain,
-          },
-          {
-            label: "Starts With",
-            value: ConditionOperator.StartsWith,
-          },
-          {
-            label: "Ends With",
-            value: ConditionOperator.EndsWith,
-          },
-        ],
+        ).map((comparison: ConditionComparison) => {
+          return {
+            label: comparison.label,
+            value: comparison.operator,
+          };
+        }),
       };
     }
 
@@ -378,28 +354,14 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
     if (componentInputType === ComponentInputType.ValueType) {
       return {
         fieldType: FormFieldSchemaType.Dropdown,
-        dropdownOptions: [
-          {
-            label: "Text",
-            value: ConditionValueType.Text,
+        dropdownOptions: Object.values(ConditionValueType).map(
+          (type: ConditionValueType) => {
+            return {
+              label: CONDITION_VALUE_TYPE_LABELS[type],
+              value: type,
+            };
           },
-          {
-            label: "Boolean",
-            value: ConditionValueType.Boolean,
-          },
-          {
-            label: "Number",
-            value: ConditionValueType.Number,
-          },
-          {
-            label: "Null",
-            value: ConditionValueType.Null,
-          },
-          {
-            label: "Undefined",
-            value: ConditionValueType.Undefined,
-          },
-        ],
+        ),
       };
     }
 

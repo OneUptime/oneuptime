@@ -76,6 +76,10 @@ import { DISCORD_WEBHOOK_DOMAINS } from "../../../Server/Types/Workflow/Componen
 import { MAX_SLEEP_IN_MS } from "../../../Server/Types/Workflow/Components/Sleep";
 import { MICROSOFT_TEAMS_WEBHOOK_DOMAINS } from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import { componentInputTypeToFormFieldType } from "../../../UI/Components/Workflow/Utils";
+import {
+  CONDITION_COMPARISONS,
+  ConditionComparison,
+} from "../../../Types/Workflow/Components/ConditionComparison";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -339,6 +343,12 @@ const UI_LABELS: Record<string, Array<{ file: string; text: string }>> = {
     {
       file: "Common/UI/Components/Workflow/ColumnEditor/ModelRecordForm.tsx",
       text: 'triggerLabel="Add a field"',
+    },
+  ],
+  "Compare as": [
+    {
+      file: "Common/UI/Components/Workflow/Condition/ConditionModel.ts",
+      text: 'COMPARE_AS_LABEL: string = "Compare as"',
     },
   ],
   "Project Settings → AI → LLM Providers": [
@@ -865,30 +875,38 @@ describe("what is meant to be pasted is valid", () => {
     expect(wrong).toEqual([]);
   });
 
-  test("If / Else's example picks values its dropdowns offer", () => {
-    const labelsOf: (type: ComponentInputType) => Array<string> = (
-      type: ComponentInputType,
-    ): Array<string> => {
-      return (
-        componentInputTypeToFormFieldType(type, null).dropdownOptions || []
-      ).map((option: DropdownOption) => {
-        return option.label;
-      });
-    };
+  test("If / Else's examples pick comparisons its list offers", () => {
+    const comparisonLabels: Array<string> = CONDITION_COMPARISONS.map(
+      (comparison: ConditionComparison) => {
+        return comparison.label;
+      },
+    );
+    const typeLabels: Array<string> = (
+      componentInputTypeToFormFieldType(ComponentInputType.ValueType, null)
+        .dropdownOptions || []
+    ).map((option: DropdownOption) => {
+      return option.label;
+    });
 
     const metadata: ComponentMetadata = findStep(BUILT_IN, ComponentID.IfElse);
+    let comparisonsSeen: number = 0;
 
     for (const graph of [[], [INCIDENT_TRIGGER]]) {
-      for (const field of docsOf(metadata, graph).examples[0]?.fields || []) {
-        if (field.name === "Operator") {
-          expect(labelsOf(ComponentInputType.Operator)).toContain(field.value);
-        }
+      for (const example of docsOf(metadata, graph).examples) {
+        for (const field of example.fields || []) {
+          if (field.name === "Comparison") {
+            comparisonsSeen++;
+            expect(comparisonLabels).toContain(field.value);
+          }
 
-        if (field.name.endsWith(" Type")) {
-          expect(labelsOf(ComponentInputType.ValueType)).toContain(field.value);
+          if (field.name.endsWith(" type")) {
+            expect(typeLabels).toContain(field.value);
+          }
         }
       }
     }
+
+    expect(comparisonsSeen).toBeGreaterThanOrEqual(2);
   });
 
   test("the Schedule example is a cron expression the schedule field accepts", () => {

@@ -30,6 +30,9 @@ const FILES: Array<string> = [
   "Components/Workflow/BreakableCode.tsx",
   "Components/Workflow/DocumentationViewer.tsx",
   "Components/CopyTextButton/CopyTextButton.tsx",
+  // If / Else's condition, its Compare as switch, notes and Yes / No summary.
+  "Components/Workflow/Condition/ConditionEditor.tsx",
+  "Components/Workflow/Condition/ConditionModel.ts",
 ];
 
 /*

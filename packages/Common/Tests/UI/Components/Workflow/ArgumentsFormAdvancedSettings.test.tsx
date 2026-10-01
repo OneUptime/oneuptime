@@ -10,7 +10,8 @@
  * user made is never hidden from the person who comes back to read it.
  *
  * Every built-in component with advanced settings is rendered from its real
- * definition; only the two value pickers are stood in for.
+ * definition. (The two "Pick this value" dialogs it once stood in for are
+ * gone: every setting has the value picker in it now.)
  */
 
 /*
@@ -24,27 +25,6 @@ jest.mock("../../../../Models/DatabaseModels/Index", () => {
   };
 });
 
-jest.mock("../../../../UI/Components/Workflow/VariableModal", () => {
-  return {
-    __esModule: true,
-    default: (): ReactElement => {
-      return <div data-testid="variable-picker" />;
-    },
-  };
-});
-
-jest.mock(
-  "../../../../UI/Components/Workflow/ComponentValuePickerModal",
-  () => {
-    return {
-      __esModule: true,
-      default: (): ReactElement => {
-        return <div data-testid="component-value-picker" />;
-      },
-    };
-  },
-);
-
 import ArgumentsForm from "../../../../UI/Components/Workflow/ArgumentsForm";
 import Components from "../../../../Types/Workflow/Components";
 import ComponentID from "../../../../Types/Workflow/ComponentID";
@@ -55,7 +35,7 @@ import ComponentMetadata, {
 } from "../../../../Types/Workflow/Component";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import React, { ReactElement } from "react";
+import React from "react";
 import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "@jest/globals";
