@@ -266,9 +266,15 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
         );
 
       case ModelColumnControl.LongText:
+        /*
+         * A description or a note: it grows with what is typed, like the
+         * multi-line arguments around it, rather than opening six lines tall
+         * on every row.
+         */
         return (
           <TextArea
             value={props.text}
+            autoGrow={true}
             placeholder={props.placeholder}
             className="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y min-h-16"
             ariaLabelledby={props.ariaLabelledby}
