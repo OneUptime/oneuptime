@@ -66,7 +66,6 @@ const KNOWN_CROSS_MODEL_COLUMN_GATES: Array<string> = [
   "MonitorFeed.postedAt requires CreateScheduledMaintenanceFeed",
   "MonitorFeed.user requires CreateScheduledMaintenanceFeed",
   "MonitorFeed.userId requires CreateScheduledMaintenanceFeed",
-  "MonitorSecret.monitors requires ReadMonitorSecret",
   "OnCallDutyPolicyFeed.postedAt requires CreateScheduledMaintenanceFeed",
   "OnCallDutyPolicyFeed.user requires CreateScheduledMaintenanceFeed",
   "OnCallDutyPolicyFeed.userId requires CreateScheduledMaintenanceFeed",

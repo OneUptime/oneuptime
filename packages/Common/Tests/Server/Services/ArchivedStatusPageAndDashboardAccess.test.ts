@@ -4,6 +4,9 @@ import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
 import DashboardService from "../../../Server/Services/DashboardService";
+import ProjectService, {
+  CurrentPlan,
+} from "../../../Server/Services/ProjectService";
 import StatusPageResourceService from "../../../Server/Services/StatusPageResourceService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
@@ -11,6 +14,7 @@ import { ExpressRequest } from "../../../Server/Utils/Express";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
 import ObjectID from "../../../Types/ObjectID";
@@ -300,6 +304,15 @@ describe("an archived status page takes no new subscribers", () => {
   }
 
   beforeEach(() => {
+    /*
+     * With billing on (as in CI), the plan is checked before the page: a paid
+     * plan lets the check reach the page, so these tests read the same in
+     * both billing modes.
+     */
+    jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: PlanType.Growth,
+      isSubscriptionUnpaid: false,
+    } as CurrentPlan);
     // Not subscribed yet, and the page is not one that notifies.
     jest
       .spyOn(StatusPageSubscriberService, "findOneBy")

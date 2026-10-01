@@ -172,7 +172,8 @@ describe.each(PAGES)("the $name", (c: FormsPageCase) => {
 
 describe("the Incidents side menu", () => {
   function settingsSection(): string {
-    return sectionBetween(dense(SIDE_MENU), 'title:"Settings",', "];return");
+    // Settings is the last section: it runs to the end of the sections array.
+    return sectionBetween(dense(SIDE_MENU), 'title:"Settings",', "];");
   }
 
   test("links Forms from the Settings section, with the forms icon", () => {
