@@ -60,7 +60,7 @@ Configurez sur une étape Bash :
 - **Execution timeout** — combien de temps l'agent laisse tourner le script avant de le tuer avec `SIGKILL`. Par défaut 30 secondes ; augmentez-le pour les étapes qui prennent légitimement plusieurs minutes.
 - **Claim timeout** — combien de temps le Worker attend que l'agent récupère le job. Par défaut 2 minutes.
 
-Si l'agent sélectionné est hors ligne lorsque le runbook atteint cette étape, l'étape attend jusqu'au **claim timeout** (par défaut 2 minutes) puis échoue avec `TimedOut`. Ajoutez un agent dans **Runbooks → Paramètres → Agents** avant de dépendre d'une étape Bash.
+Si l'agent sélectionné est hors ligne lorsque le runbook atteint cette étape, l'étape attend jusqu'au **claim timeout** (par défaut 2 minutes) puis échoue avec `TimedOut`. Ajoutez un agent dans **Runbooks → Agents de runbook** avant de dépendre d'une étape Bash.
 
 ### AI
 

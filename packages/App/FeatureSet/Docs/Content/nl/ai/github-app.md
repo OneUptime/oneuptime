@@ -14,7 +14,7 @@ Vermeld hem in een issue en hij opent een pull request. Vermeld hem in een pull 
 
 ## Voordat u begint
 
-- De repository moet via de GitHub App **aan een OneUptime-project gekoppeld** zijn. Zie [GitHub-integratie (zelf-gehost)](/docs/self-hosted/github-integration) voor de installatie, of koppel hem op OneUptime Cloud via **Projectinstellingen → Code-opslagplaatsen**.
+- De repository moet via de GitHub App **aan een OneUptime-project gekoppeld** zijn. Zie [GitHub-integratie (zelf-gehost)](/docs/self-hosted/github-integration) voor de installatie, of koppel hem op OneUptime Cloud via **Taken → Code-opslagplaatsen**.
 - Er moet een **Runner met de capability "Voert AI-codefixes uit"** online zijn — dezelfde Runner die [AI Fix Tasks](/docs/ai/ai-agent) uitvoert. Zonder Runner worden commando's wel aangenomen, maar mislukken ze na 30 minuten met de melding dat geen enkele agent ze heeft opgepakt.
 - De GitHub App moet de machtiging **Issues: Lezen & Schrijven** hebben en geabonneerd zijn op de webhookgebeurtenissen onder [Waarop u zich moet abonneren](#waarop-u-zich-moet-abonneren).
 
@@ -129,13 +129,13 @@ Behandel een door AI geschreven pull request zoals u er een zou behandelen van e
 
 ## Probleemoplossing
 
-**Er gebeurt niets als ik hem vermeld.** Controleer eerst de handle — dat is de slug van de app, niet de weergavenaam. Controleer daarna of de repository aan een project is gekoppeld (**Projectinstellingen → Code-opslagplaatsen**), of **Reageren op GitHub-commando's** aanstaat, en of uw GitHub App geabonneerd is op de bovenstaande gebeurtenissen.
+**Er gebeurt niets als ik hem vermeld.** Controleer eerst de handle — dat is de slug van de app, niet de weergavenaam. Controleer daarna of de repository aan een project is gekoppeld (**Taken → Code-opslagplaatsen**), of **Reageren op GitHub-commando's** aanstaat, en of uw GitHub App geabonneerd is op de bovenstaande gebeurtenissen.
 
 **Hij reageert met 😕 en zegt niets.** U hebt geen schrijftoegang tot de repository.
 
 **Hij zegt dat hij hier al mee bezig is.** Er loopt al een run van dat soort op deze issue of pull request. `@oneuptime status` vertelt u welke, en `@oneuptime cancel` stopt hem.
 
-**Hij heeft bevestigd en bleef daarna lang stil.** Controleer of er onder **Instellingen → Runners** een Runner met **Voert AI-codefixes uit** online is. Zonder Runner wordt de run na 30 minuten als mislukt gemarkeerd en krijgt de thread dat te horen.
+**Hij heeft bevestigd en bleef daarna lang stil.** Controleer of er onder **Runbooks → Runbook-agenten** een Runner met **Voert AI-codefixes uit** online is. Zonder Runner wordt de run na 30 minuten als mislukt gemarkeerd en krijgt de thread dat te horen.
 
 **Hij zegt dat de pull request uit een fork komt.** Herzieningen hebben een branch in deze repository nodig. Vraag in plaats daarvan om een review, of push de branch hierheen.
 

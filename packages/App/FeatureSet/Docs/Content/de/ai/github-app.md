@@ -14,7 +14,7 @@ Erwähnen Sie sie in einem Issue, und sie öffnet einen Pull Request. Erwähnen 
 
 ## Bevor Sie beginnen
 
-- Das Repository muss über die GitHub App **mit einem OneUptime-Projekt verbunden** sein. Die Einrichtung beschreibt [GitHub-Integration (selbst gehostet)](/docs/self-hosted/github-integration); in OneUptime Cloud verbinden Sie es unter **Projekteinstellungen → Code-Repositories**.
+- Das Repository muss über die GitHub App **mit einem OneUptime-Projekt verbunden** sein. Die Einrichtung beschreibt [GitHub-Integration (selbst gehostet)](/docs/self-hosted/github-integration); in OneUptime Cloud verbinden Sie es unter **Aufgaben → Code-Repositories**.
 - Ein **Runner mit der Fähigkeit „Führt KI-Codekorrekturen aus"** muss online sein — derselbe Runner, der auch [KI-Korrekturaufgaben](/docs/ai/ai-agent) ausführt. Ohne ihn werden Befehle zwar angenommen, scheitern aber nach 30 Minuten mit dem Hinweis, dass kein Agent sie aufgenommen hat.
 - Die GitHub App braucht die Berechtigung **Issues: Lesen & Schreiben** und muss die Webhook-Ereignisse abonniert haben, die unter [Was Sie abonnieren müssen](#was-sie-abonnieren-müssen) aufgeführt sind.
 
@@ -129,13 +129,13 @@ Behandeln Sie einen von der KI verfassten Pull Request so, wie Sie einen von ein
 
 ## Fehlerbehebung
 
-**Es passiert nichts, wenn ich sie erwähne.** Prüfen Sie zuerst das Handle — es ist der Slug der App, nicht ihr Anzeigename. Prüfen Sie dann, ob das Repository mit einem Projekt verbunden ist (**Projekteinstellungen → Code-Repositories**), ob **Auf GitHub-Befehle reagieren** eingeschaltet ist und ob Ihre GitHub App die oben genannten Ereignisse abonniert hat.
+**Es passiert nichts, wenn ich sie erwähne.** Prüfen Sie zuerst das Handle — es ist der Slug der App, nicht ihr Anzeigename. Prüfen Sie dann, ob das Repository mit einem Projekt verbunden ist (**Aufgaben → Code-Repositories**), ob **Auf GitHub-Befehle reagieren** eingeschaltet ist und ob Ihre GitHub App die oben genannten Ereignisse abonniert hat.
 
 **Sie reagiert mit 😕 und sagt nichts.** Sie haben keinen Schreibzugriff auf das Repository.
 
 **Sie sagt, sie arbeite bereits daran.** Für dieses Issue oder diesen Pull Request ist bereits ein Lauf dieser Art aktiv. `@oneuptime status` sagt Ihnen, welcher, und `@oneuptime cancel` stoppt ihn.
 
-**Sie hat bestätigt und ist dann lange still.** Prüfen Sie unter **Einstellungen → Runbook-Agents**, ob ein Runner mit **Führt KI-Codekorrekturen aus** online ist. Ohne einen solchen wird der Lauf nach 30 Minuten als fehlgeschlagen markiert, und der Thread erfährt davon.
+**Sie hat bestätigt und ist dann lange still.** Prüfen Sie unter **Runbooks → Runbook-Agents**, ob ein Runner mit **Führt KI-Codekorrekturen aus** online ist. Ohne einen solchen wird der Lauf nach 30 Minuten als fehlgeschlagen markiert, und der Thread erfährt davon.
 
 **Sie sagt, der Pull Request komme aus einem Fork.** Überarbeitungen brauchen einen Branch in diesem Repository. Bitten Sie stattdessen um ein Review, oder pushen Sie den Branch hierher.
 

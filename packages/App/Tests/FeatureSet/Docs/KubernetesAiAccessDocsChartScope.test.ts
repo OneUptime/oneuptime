@@ -1,67 +1,66 @@
-import { KUBECTL_ALLOW_NODE_OPERATIONS_ENV } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  AI_AGENT_DIR,
+  AI_SRE_PAGE,
+  CHART_NOTES,
+  CHART_README,
+  CHART_SCHEMA,
+  CHART_TEMPLATE,
+  CHART_VALUES,
+  EMPTY_LIST_RESET_FLAG,
+  KUBERNETES_AGENT_PAGE,
+  PACKAGES_ROOT,
+  RUNNER_README,
+  UPGRADING_PAGE,
+  getClusterAccessSection,
+  getSection,
+  read,
+  readFlat,
+  relative,
+} from "./KubernetesAiAgentDocsSupport";
+import {
+  KUBECTL_ALLOW_NODE_OPERATIONS_ENV,
+  KUBERNETES_AI_AGENT_COMPONENT,
+  KUBERNETES_AI_AGENT_IMAGE_REPOSITORY,
+  TRANSIENT_KUBERNETES_AI_AGENT_REGISTRATION_REFUSALS,
+} from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import TelemetryIngestSurface, {
+  IDENTITY_REGISTRATION_SURFACES,
+} from "Common/Types/Telemetry/TelemetryIngestSurface";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
 /*
  * What the docs say about the kubernetes-agent chart's write scope and the
- * in-cluster Runner's identity, against what the chart and server do:
+ * Kubernetes AI agent's identity, against what the chart, the agent and the
+ * server do:
  *
- * - aiAccess.remediation.namespaces renders one RoleBinding per listed
+ * - aiAgent.remediation.namespaces renders one RoleBinding per listed
  *   namespace and the chart never creates a namespace, so a missing one
  *   fails the whole install or upgrade (collector included). Every copy
  *   that offers the value says the namespaces must already exist, and how
  *   to go back to cluster-wide on a release that stores a list
- *   (`--set-json 'aiAccess.remediation.namespaces=[]'`; `={}` is one empty
- *   name and fails the schema, leaving the flag out under --reuse-values
- *   keeps the list, and — round four — `--set ...=null` does not reset a
- *   stored list under --reuse-values, and fails the schema on a release
- *   from a chart without aiAccess; KubernetesAiAccessDocsRoundFour.test.ts
- *   holds every copy to that).
- * - aiAccess.remediation.nodeOperations=false reaches the Runner
+ *   (`--set-json 'aiAgent.remediation.namespaces=[]'`; `={}` is one empty
+ *   name and fails the schema, and leaving the flag out under --reuse-values
+ *   keeps the list; KubernetesAiAccessDocsRoundFour.test.ts holds every copy
+ *   to the `=null` rules).
+ * - aiAgent.remediation.nodeOperations=false reaches the agent
  *   (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS), which then refuses node
  *   operations; the docs say so rather than "RBAC only".
  * - Patch access to workloads is as good as running any image: the policy
  *   refuses some ways to do that, but not `set image`, which is a riskier
  *   change a human approves (or that Bypass approval runs). No copy may
  *   claim the refused commands are all of them.
- * - The in-cluster Runner cannot be renamed or given the runbook / code-fix
- *   capabilities; an ingestion key with a Pinned Service Name cannot
- *   register it; a refused registration says whether it clears on its own;
- *   and settings an operator picked before installing the chart are kept.
+ * - The agent registers with the chart's ingestion key, so a key with a
+ *   Pinned Service Name cannot register it (the pinned-key refusal covers
+ *   the agent's surface); a refused registration says whether it clears on
+ *   its own; settings an operator picked before installing the chart are
+ *   kept; Reset agent replaces the old "delete the Runner, then select the
+ *   new one" remedy; and a server that predates the agent's API is named in
+ *   the agent's own words.
  */
 
-const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
-const REPOSITORY_ROOT: string = path.resolve(PACKAGES_ROOT, "..");
-const CHART_DIR: string = path.join(
-  REPOSITORY_ROOT,
-  "HelmChart/Public/kubernetes-agent",
-);
-const DOCS_CONTENT_DIR: string = path.join(
-  PACKAGES_ROOT,
-  "App/FeatureSet/Docs/Content/en",
-);
-
-const AI_SRE_PAGE: string = path.join(DOCS_CONTENT_DIR, "ai/ai-sre.md");
-const KUBERNETES_AGENT_PAGE: string = path.join(
-  DOCS_CONTENT_DIR,
-  "telemetry/kubernetes-agent.md",
-);
-const CHART_README: string = path.join(CHART_DIR, "README.md");
-const CHART_NOTES: string = path.join(CHART_DIR, "templates/NOTES.txt");
-const CHART_VALUES: string = path.join(CHART_DIR, "values.yaml");
-const CHART_SCHEMA: string = path.join(CHART_DIR, "values.schema.json");
-const CHART_TEMPLATE: string = path.join(CHART_DIR, "templates/ai-runner.yaml");
-const RUNNER_MODEL: string = path.join(
-  PACKAGES_ROOT,
-  "Common/Models/DatabaseModels/Runner.ts",
-);
-const INGESTION_KEY_MODEL: string = path.join(
-  PACKAGES_ROOT,
-  "Common/Models/DatabaseModels/TelemetryIngestionKey.ts",
-);
-
-// Every copy that offers aiAccess.remediation.namespaces.
+// Every copy that offers aiAgent.remediation.namespaces.
 const NAMESPACES_COPY: Array<string> = [
   AI_SRE_PAGE,
   KUBERNETES_AGENT_PAGE,
@@ -82,28 +81,24 @@ const WRITE_ACCESS_COPY: Array<string> = [
   CHART_TEMPLATE,
 ];
 
-// Pages that explain the in-cluster Runner's registration.
-const REGISTRATION_COPY: Array<string> = [
-  AI_SRE_PAGE,
-  KUBERNETES_AGENT_PAGE,
-  CHART_README,
-  CHART_NOTES,
-  CHART_VALUES,
-];
+// The docs pages that explain the agent's registration.
+const REGISTRATION_COPY: Array<string> = [AI_SRE_PAGE, KUBERNETES_AGENT_PAGE];
 
-// Line breaks, and the `#` of a YAML comment, read as one space.
-const LINE_BREAK_PATTERN: RegExp = /\s*\n\s*#?\s*/g;
+const TELEMETRY_INGESTION_KEY_MODEL: string = path.join(
+  PACKAGES_ROOT,
+  "Common/Models/DatabaseModels/TelemetryIngestionKey.ts",
+);
+const RUNNER_MODEL: string = path.join(
+  PACKAGES_ROOT,
+  "Common/Models/DatabaseModels/Runner.ts",
+);
 
 const MUST_EXIST_PATTERN: RegExp = /must already exist/;
-/*
- * The reset that works under --reuse-values: an empty JSON list. It
- * replaced `--set aiAccess.remediation.namespaces=null` in round four.
- */
 const EMPTY_LIST_RESET_PATTERN: RegExp =
-  /--set-json 'aiAccess\.remediation\.namespaces=\[\]'/;
+  /--set-json 'aiAgent\.remediation\.namespaces=\[\]'/;
 // A reset written the way Helm reads as one empty namespace name.
 const EMPTY_BRACES_RESET_PATTERN: RegExp =
-  /--set "?aiAccess\.remediation\.namespaces=\{\}/;
+  /--set "?aiAgent\.remediation\.namespaces=\{\}/;
 const WORKLOAD_PATCH_EQUIVALENCE_PATTERN: RegExp =
   /any image as any ServiceAccount/;
 // `set image` named as a riskier, human-approved change.
@@ -114,32 +109,67 @@ const COMPLETE_REFUSAL_CLAIM_PATTERN: RegExp =
   /refuses the commands that would do that/;
 const CLEARS_ON_ITS_OWN_PATTERN: RegExp = /clears on its own/;
 const PINNED_SERVICE_NAME_PATTERN: RegExp = /Pinned Service Name/;
-// Settings picked on the AI page before the install survive registration.
+// Settings picked on the AI agent page before the install survive it.
 const PRE_INSTALL_SETTINGS_PATTERN: RegExp =
   /before the (install|chart was installed)[^.]{0,80}kept|kept (exactly )?as (chosen|they are)/;
-
-function read(filePath: string): string {
-  return fs.readFileSync(filePath, "utf8");
-}
-
-function readFlat(filePath: string): string {
-  return read(filePath).replace(LINE_BREAK_PATTERN, " ");
-}
-
-function relative(filePath: string): string {
-  return path.relative(REPOSITORY_ROOT, filePath);
-}
+/*
+ * The remedy the in-cluster Runner needed after its row was deleted:
+ * select the fresh Runner on the cluster's AI page. The agent has no row to
+ * delete or select; Reset agent replaces it.
+ */
+const SELECT_NEW_RUNNER_PATTERN: RegExp =
+  /select the new( `kubernetes-agent\/<[a-zA-Z]+>`)? Runner on the cluster's AI page/;
+// What the agent logs when the server has no agent API (Registration.ts).
+const API_MISSING_LOG_LINE: string =
+  "This OneUptime server does not have the Kubernetes AI agent API";
+// The server that refuses a second agent for a cluster, and what it says.
+const AI_AGENT_SERVICE: string = path.join(
+  PACKAGES_ROOT,
+  "Common/Server/Services/KubernetesAiAgentService.ts",
+);
+// The template of that refusal's message, up to the cluster's name.
+const PREVIOUS_INSTANCE_MESSAGE_PATTERN: RegExp =
+  /`(Another Kubernetes AI agent for cluster )"\$\{clusterIdentifier\}"( is online)\./;
+const NOT_CONNECTING_HEADING: string = "### If the AI agent does not connect";
+// The two troubleshooting bullets, by their bold lead.
+const CLEARS_ON_ITS_OWN_BULLET: string =
+  "- **A refusal that clears on its own**";
+const NEEDS_YOU_BULLET: string = "- **A refusal that needs you**";
+// A second install with the same clusterName, however it is worded.
+const DUPLICATE_INSTALL_PATTERN: RegExp =
+  /second install|two installs|installed twice|same `clusterName`/;
 
 // The `title: "..."` of every column a model declares.
 function getColumnTitles(modelPath: string): Array<string> {
   return Array.from(read(modelPath).matchAll(/title: "([^"]+)"/g)).map(
-    (match: RegExpMatchArray) => {
+    (match: RegExpMatchArray): string => {
       return match[1]!;
     },
   );
 }
 
-describe("aiAccess.remediation.namespaces in the docs", () => {
+// Every TypeScript source of the agent, tests and build output left out.
+function getAgentSources(directory: string): Array<string> {
+  const sources: Array<string> = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    if (["node_modules", "build", "Tests"].includes(entry.name)) {
+      continue;
+    }
+
+    const entryPath: string = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      sources.push(...getAgentSources(entryPath));
+    } else if (entry.name.endsWith(".ts")) {
+      sources.push(entryPath);
+    }
+  }
+
+  return sources;
+}
+
+describe("aiAgent.remediation.namespaces in the docs", () => {
   for (const file of NAMESPACES_COPY) {
     it(`says every listed namespace must already exist and how to reset the list, in ${relative(file)}`, () => {
       const text: string = readFlat(file);
@@ -168,14 +198,14 @@ describe("aiAccess.remediation.namespaces in the docs", () => {
     }
   });
 
-  it("no longer says that leaving the namespaces flag out grants cluster-wide on the AI SRE page", () => {
-    const page: string = read(AI_SRE_PAGE);
+  it("says on the AI SRE page that leaving the namespaces flag out keeps a stored list", () => {
+    const section: string = getClusterAccessSection();
 
     // True only the first time: --reuse-values keeps a stored list.
-    expect(page).not.toContain(
+    expect(section).not.toContain(
       "Leave out the last line to grant it cluster-wide. ",
     );
-    expect(page).toContain(
+    expect(section).toContain(
       "With `--reuse-values`, leaving the flag out keeps the list stored on the release",
     );
   });
@@ -185,33 +215,36 @@ describe("aiAccess.remediation.namespaces in the docs", () => {
       [CHART_README, "## Upgrading"],
       [KUBERNETES_AGENT_PAGE, "## Upgrading the Agent"],
     ] as Array<[string, string]>) {
-      const text: string = read(file);
-      const start: number = text.indexOf(heading);
-      const end: number = text.indexOf("\n## ", start + 1);
-      const section: string = text.slice(start, end);
+      const section: string = getSection(read(file), heading);
 
       expect({
         file: relative(file),
-        found: start !== -1,
         notFound: section.includes('namespaces "<name>" not found'),
-        /*
-         * Round four: the recovery names the empty-list reset. Under the
-         * --reuse-values upgrade these sections show, `=null` kept the
-         * stale list, so the recovery upgrade failed with the same error.
-         */
         reset: EMPTY_LIST_RESET_PATTERN.test(section),
-      }).toEqual({
-        file: relative(file),
-        found: true,
-        notFound: true,
-        reset: true,
-      });
+      }).toEqual({ file: relative(file), notFound: true, reset: true });
     }
+  });
+
+  // Negative control: the patterns read the reset forms as intended.
+  it("tells the empty-list reset from the empty-braces one", () => {
+    expect(EMPTY_LIST_RESET_PATTERN.test(EMPTY_LIST_RESET_FLAG)).toBe(true);
+    expect(
+      EMPTY_BRACES_RESET_PATTERN.test(
+        '--set "aiAgent.remediation.namespaces={}"',
+      ),
+    ).toBe(true);
+    expect(EMPTY_BRACES_RESET_PATTERN.test(EMPTY_LIST_RESET_FLAG)).toBe(false);
+    // The old key's reset is not the new one.
+    expect(
+      EMPTY_LIST_RESET_PATTERN.test(
+        "--set-json 'aiAccess.remediation.namespaces=[]'",
+      ),
+    ).toBe(false);
   });
 });
 
-describe("aiAccess.remediation.nodeOperations in the docs", () => {
-  it("says the switch reaches the Runner, not only RBAC", () => {
+describe("aiAgent.remediation.nodeOperations in the docs", () => {
+  it("says the switch reaches the agent, not only RBAC", () => {
     for (const file of [
       AI_SRE_PAGE,
       KUBERNETES_AGENT_PAGE,
@@ -225,10 +258,13 @@ describe("aiAccess.remediation.nodeOperations in the docs", () => {
         env: read(file).includes(KUBECTL_ALLOW_NODE_OPERATIONS_ENV),
       }).toEqual({ file: relative(file), env: true });
     }
+  });
 
-    expect(readFlat(CHART_NOTES)).toContain(
-      "the chart grants no node RBAC, and the Runner refuses them before it runs kubectl.",
-    );
+  it("says in NOTES.txt that turning node operations off grants no node RBAC", () => {
+    const notes: string = readFlat(CHART_NOTES);
+
+    expect(notes).toContain("aiAgent.remediation.nodeOperations");
+    expect(notes).toMatch(/no node RBAC/);
   });
 });
 
@@ -252,37 +288,25 @@ describe("what the write access amounts to, in the docs", () => {
   }
 });
 
-describe("the in-cluster Runner's identity and registration, in the docs", () => {
-  it("uses the capability titles the Runner model shows", () => {
-    const titles: Array<string> = getColumnTitles(RUNNER_MODEL);
-
-    expect(titles).toContain("Runs Runbooks");
-    expect(titles).toContain("Runs AI Code Fixes");
-    expect(getColumnTitles(INGESTION_KEY_MODEL)).toContain(
+describe("the Kubernetes AI agent's identity and registration, in the docs", () => {
+  it("uses the ingestion key's column title, and the pinned-key refusal really covers the agent", () => {
+    expect(getColumnTitles(TELEMETRY_INGESTION_KEY_MODEL)).toContain(
       "Pinned Service Name",
     );
+    /*
+     * TelemetryIngest refuses a key with a pinned service name on every
+     * identity-registration surface; the docs' claim holds only while the
+     * agent's surface is one of them.
+     */
+    expect(
+      IDENTITY_REGISTRATION_SURFACES.has(
+        TelemetryIngestSurface.KubernetesAiAgent,
+      ),
+    ).toBe(true);
   });
 
-  for (const file of [AI_SRE_PAGE, KUBERNETES_AGENT_PAGE, CHART_README]) {
-    it(`says the agent Runner cannot be renamed or given runbook or code-fix capabilities, in ${relative(file)}`, () => {
-      const text: string = readFlat(file);
-
-      expect({
-        file: relative(file),
-        cannotBeRenamed: text.includes("cannot be renamed"),
-        runbooks: text.includes("**Runs Runbooks**"),
-        codeFixes: text.includes("**Runs AI Code Fixes**"),
-      }).toEqual({
-        file: relative(file),
-        cannotBeRenamed: true,
-        runbooks: true,
-        codeFixes: true,
-      });
-    });
-  }
-
   for (const file of REGISTRATION_COPY) {
-    it(`says a pinned key cannot register the Runner, a refusal says whether it clears on its own, and settings picked before the install are kept, in ${relative(file)}`, () => {
+    it(`says a pinned key cannot register the agent, a refusal says whether it clears on its own, and settings picked before the install are kept, in ${relative(file)}`, () => {
       const text: string = readFlat(file);
 
       expect({
@@ -290,12 +314,291 @@ describe("the in-cluster Runner's identity and registration, in the docs", () =>
         pinnedServiceName: PINNED_SERVICE_NAME_PATTERN.test(text),
         clearsOnItsOwn: CLEARS_ON_ITS_OWN_PATTERN.test(text),
         preInstallSettingsKept: PRE_INSTALL_SETTINGS_PATTERN.test(text),
+        resetAgent: text.includes("**Reset agent**"),
       }).toEqual({
         file: relative(file),
         pinnedServiceName: true,
         clearsOnItsOwn: true,
         preInstallSettingsKept: true,
+        resetAgent: true,
       });
     });
+
+    it(`says the agent is not a Runner and lives on the cluster's AI agent page, in ${relative(file)}`, () => {
+      const text: string = readFlat(file);
+
+      expect({
+        file: relative(file),
+        notARunner: text.includes("never appears under Runbooks → Runners"),
+        agentPage: text.includes("**AI agent** page"),
+      }).toEqual({ file: relative(file), notARunner: true, agentPage: true });
+    });
   }
+
+  /*
+   * The two refusals that clear on their own: a previous agent pod that
+   * still reports in (previous_instance_online) and the old in-cluster
+   * Runner still online during an upgrade (legacy_runner_online). A new
+   * transient reason needs a line in the docs too.
+   */
+  it("explains each refusal that clears on its own", () => {
+    expect(
+      [...TRANSIENT_KUBERNETES_AI_AGENT_REGISTRATION_REFUSALS].sort(),
+    ).toEqual(["legacy_runner_online", "previous_instance_online"]);
+
+    for (const file of REGISTRATION_COPY) {
+      const text: string = readFlat(file);
+
+      expect({
+        file: relative(file),
+        previousInstance: text.includes(
+          "a previous agent pod that still reports in",
+        ),
+        legacyRunner: text.includes(
+          "the old in-cluster Runner still shutting down during an upgrade",
+        ),
+      }).toEqual({
+        file: relative(file),
+        previousInstance: true,
+        legacyRunner: true,
+      });
+    }
+  });
+
+  /*
+   * previous_instance_online is transient for a pod replaced without a
+   * clean shutdown, but a second install with the same clusterName is
+   * refused for as long as the first one heartbeats: it never clears
+   * without someone acting, so the docs list it with the refusals that
+   * need you, in the words the agent's log shows.
+   */
+  describe("a second install with the same clusterName", () => {
+    const section: string = getSection(
+      read(KUBERNETES_AGENT_PAGE),
+      NOT_CONNECTING_HEADING,
+    );
+
+    function getBullet(lead: string): string {
+      const line: string | undefined = section
+        .split("\n")
+        .find((candidate: string): boolean => {
+          return candidate.startsWith(lead);
+        });
+
+      expect({ lead, found: line !== undefined }).toEqual({
+        lead,
+        found: true,
+      });
+
+      return line!;
+    }
+
+    it("is not listed as a refusal that clears on its own", () => {
+      expect(
+        DUPLICATE_INSTALL_PATTERN.test(getBullet(CLEARS_ON_ITS_OWN_BULLET)),
+      ).toBe(false);
+    });
+
+    it("is listed as a refusal that needs you, with what to change", () => {
+      const needsYou: string = getBullet(NEEDS_YOU_BULLET);
+
+      for (const expected of [
+        "two installs share one `clusterName`",
+        "the one already connected keeps it for as long as it runs",
+        "give each cluster its own `clusterName` or remove the extra release",
+      ]) {
+        expect({ expected, said: needsYou.includes(expected) }).toEqual({
+          expected,
+          said: true,
+        });
+      }
+    });
+
+    it("quotes the server's refusal message as the agent logs it", () => {
+      const match: RegExpMatchArray | null = read(AI_AGENT_SERVICE).match(
+        PREVIOUS_INSTANCE_MESSAGE_PATTERN,
+      );
+
+      expect(match).not.toBeNull();
+      expect(getBullet(NEEDS_YOU_BULLET)).toContain(
+        `\`${match![1]!}"<name>"${match![2]!}\``,
+      );
+    });
+
+    // Negative control: the old wording is caught.
+    it("catches the duplicate install in the old wording", () => {
+      expect(
+        DUPLICATE_INSTALL_PATTERN.test(
+          "- **A refusal that clears on its own** — a previous agent pod that still reports in (a pod replaced without a clean shutdown, or a second install with the same `clusterName`).",
+        ),
+      ).toBe(true);
+    });
+  });
+
+  it("names the agent's pod label and image as Common does", () => {
+    for (const file of [AI_SRE_PAGE, KUBERNETES_AGENT_PAGE, UPGRADING_PAGE]) {
+      const text: string = read(file);
+
+      expect({
+        file: relative(file),
+        label: text.includes(`component=${KUBERNETES_AI_AGENT_COMPONENT}`),
+        image: text.includes(KUBERNETES_AI_AGENT_IMAGE_REPOSITORY),
+      }).toEqual({ file: relative(file), label: true, image: true });
+    }
+  });
+
+  it("points the log command at the agent's pod, not the old Runner's", () => {
+    for (const file of [AI_SRE_PAGE, KUBERNETES_AGENT_PAGE, CHART_NOTES]) {
+      const text: string = read(file);
+
+      expect({
+        file: relative(file),
+        agentLogs: text.includes(
+          `-l component=${KUBERNETES_AI_AGENT_COMPONENT}`,
+        ),
+        runnerLogs: text.includes("-l component=ai-runner"),
+      }).toEqual({ file: relative(file), agentLogs: true, runnerLogs: false });
+    }
+  });
+
+  it("no longer tells anyone to select a new Runner on the cluster's AI page", () => {
+    for (const file of [
+      AI_SRE_PAGE,
+      KUBERNETES_AGENT_PAGE,
+      UPGRADING_PAGE,
+      RUNNER_README,
+      CHART_README,
+      CHART_NOTES,
+      CHART_VALUES,
+    ]) {
+      expect({
+        file: relative(file),
+        selectNewRunner: SELECT_NEW_RUNNER_PATTERN.test(readFlat(file)),
+      }).toEqual({ file: relative(file), selectNewRunner: false });
+    }
+  });
+
+  // Negative control: the old remedy is flagged.
+  it("reads the old re-select step as one", () => {
+    expect(
+      SELECT_NEW_RUNNER_PATTERN.test(
+        "select the new `kubernetes-agent/<cluster>` Runner on the cluster's AI page afterwards",
+      ),
+    ).toBe(true);
+  });
+
+  /*
+   * The docs quote what the agent logs against a server without its API
+   * (an older OneUptime, or a proxy page). Quoted wrong, an operator
+   * searching the log for it finds nothing.
+   */
+  it("quotes the agent's own log line for a server without the agent API", () => {
+    const sources: Array<string> = getAgentSources(AI_AGENT_DIR);
+
+    expect(sources.length).toBeGreaterThan(0);
+    expect(
+      sources.some((source: string): boolean => {
+        return read(source).includes(API_MISSING_LOG_LINE);
+      }),
+    ).toBe(true);
+
+    for (const file of [KUBERNETES_AGENT_PAGE, UPGRADING_PAGE]) {
+      expect({
+        file: relative(file),
+        quoted: readFlat(file).includes(`"${API_MISSING_LOG_LINE}"`),
+      }).toEqual({ file: relative(file), quoted: true });
+    }
+  });
+
+  it("says how often the agent retries against such a server, as the agent does", () => {
+    const retry: RegExpMatchArray | undefined = getAgentSources(AI_AGENT_DIR)
+      .map((source: string): RegExpMatchArray | null => {
+        return read(source).match(
+          /API_MISSING_RETRY_MS\b[^=\n]*=\s*(\d+)\s*\*\s*60_?000\b/,
+        );
+      })
+      .find((match: RegExpMatchArray | null): boolean => {
+        return match !== null;
+      }) as RegExpMatchArray | undefined;
+
+    expect(retry).toBeDefined();
+
+    const minutes: string = retry![1]!;
+
+    for (const file of [KUBERNETES_AGENT_PAGE, UPGRADING_PAGE]) {
+      expect({
+        file: relative(file),
+        interval: readFlat(file).includes(`retries every ${minutes} minutes`),
+      }).toEqual({ file: relative(file), interval: true });
+    }
+  });
+});
+
+describe("the legacy in-cluster Runner, in the Runner README", () => {
+  const readme: string = read(RUNNER_README);
+
+  it("uses the capability titles the Runner model shows", () => {
+    const titles: Array<string> = getColumnTitles(RUNNER_MODEL);
+
+    expect(titles).toContain("Runs Runbooks");
+    expect(titles).toContain("Runs AI Code Fixes");
+  });
+
+  it("says the kubernetes-agent mode is deprecated and superseded by the Kubernetes AI agent", () => {
+    const section: string = getSection(
+      readme,
+      "## The Kubernetes agent mode is deprecated",
+    );
+
+    expect(section).toContain("That mode is **deprecated**.");
+    expect(section).toContain(
+      `the **Kubernetes AI agent** (\`${KUBERNETES_AI_AGENT_IMAGE_REPOSITORY}\`)`,
+    );
+    expect(section).toContain("is not a Runner");
+    expect(section).toContain("carries its settings over");
+  });
+
+  it("keeps what is still true for a legacy install", () => {
+    const section: string = readFlat(RUNNER_README);
+
+    for (const expected of [
+      "cannot be renamed",
+      "**Runs Runbooks**",
+      "**Runs AI Code Fixes**",
+      "never accepted as an auto-remediation rule's command Runner",
+    ]) {
+      expect({ expected, said: section.includes(expected) }).toEqual({
+        expected,
+        said: true,
+      });
+    }
+  });
+
+  /*
+   * superseded_by_ai_agent is refused only while the agent is online and
+   * is transient, so a rolled-back chart's Runner registers again — but
+   * after a week offline the server may have deleted its row, and a Runner
+   * registered after that is not bound to its cluster again
+   * (KubernetesAiAccessDocsUpgrade.test.ts checks both against the server).
+   */
+  it("says the server refuses the legacy Runner only while the agent is online", () => {
+    expect(readFlat(RUNNER_README)).toContain(
+      "While the cluster's Kubernetes AI agent is online, the server refuses the legacy Runner's registration; the Runner keeps retrying, so a `helm rollback` of the chart within a week of the upgrade brings it back once the AI agent has stopped.",
+    );
+  });
+
+  it("says a Runner rolled back after its row was removed must be bound again", () => {
+    for (const expected of [
+      "After a week offline, OneUptime removes the old Runner's row if nothing else uses it (no credentials or secrets, runbooks, code fixes or remediation rules).",
+      "A Runner rolled back after that registers again but is not bound to its cluster: bind it with the API or Terraform (the cluster's **AI Access Runner**), or upgrade the chart again.",
+    ]) {
+      expect({
+        expected,
+        said: readFlat(RUNNER_README).includes(expected),
+      }).toEqual({
+        expected,
+        said: true,
+      });
+    }
+  });
 });

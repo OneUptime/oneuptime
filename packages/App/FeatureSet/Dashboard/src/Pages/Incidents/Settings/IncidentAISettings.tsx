@@ -1,17 +1,44 @@
 import PageComponentProps from "../../PageComponentProps";
+import {
+  ProjectColumnsEditGate,
+  getProjectColumnsEditGate,
+} from "../../Settings/ProjectColumnEditGate";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Project from "Common/Models/DatabaseModels/Project";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import ProjectUtil from "Common/UI/Utils/Project";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export type ComponentProps = PageComponentProps;
+
+export const POSTMORTEM_DRAFT_CARD_TITLE: string = "Automatic Postmortem Draft";
+
+export const POSTMORTEM_DRAFT_FIELDS: Array<"enableAutomaticPostmortemDraft"> =
+  ["enableAutomaticPostmortemDraft"];
 
 const IncidentAISettings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
+  /*
+   * The permission snapshot arrives on an API response header, so it can be
+   * empty on the first paint. Loading the postmortem card re-renders the
+   * page, which reads the permissions again.
+   */
+  const [, setIsPostmortemCardLoaded] = useState<boolean>(false);
+
+  /*
+   * Project.enableAutomaticPostmortemDraft takes Project Owner or Project
+   * Admin; the Project table's update list (which the card would otherwise
+   * gate on) also lets Manage Billing and Edit Project in, and their save
+   * would be refused.
+   */
+  const postmortemEditGate: ProjectColumnsEditGate = getProjectColumnsEditGate({
+    fields: POSTMORTEM_DRAFT_FIELDS,
+    buttonTitle: "Update",
+  });
+
   return (
     <>
       <CardModelDetail<Project>
@@ -89,6 +116,18 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             required: false,
             fieldType: FormFieldSchemaType.Number,
             placeholder: "3",
+          },
+          {
+            field: {
+              incidentAiInvestigationTimeLimitInMinutes: true,
+            },
+            stepId: "limits",
+            title: "Incident Investigation Time Limit (Minutes)",
+            description:
+              "Stop an incident investigation after this many minutes and report what it found. Leave empty for no time limit — OneUptime AI keeps investigating (running every query and command it needs) until it is done.",
+            required: false,
+            fieldType: FormFieldSchemaType.Number,
+            placeholder: "No time limit",
           },
           {
             field: {
@@ -178,6 +217,14 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             },
             {
               field: {
+                incidentAiInvestigationTimeLimitInMinutes: true,
+              },
+              title: "Incident Investigation Time Limit (Minutes)",
+              placeholder: "No time limit",
+              fieldType: FieldType.Number,
+            },
+            {
+              field: {
                 incidentAiDailyAutonomousTokenLimit: true,
               },
               title: "Daily Incident AI Token Limit",
@@ -207,6 +254,55 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               title: "Daily Incident AI Fix Task Limit",
               placeholder: "Default (25)",
               fieldType: FieldType.Number,
+            },
+          ],
+          modelId: ProjectUtil.getCurrentProjectId()!,
+        }}
+      />
+
+      {/*
+       * Its own card and its own save: drafting a postmortem writes to the
+       * incident, so it is a separate switch from investigating one (both
+       * start on in a new project). A card writes every field it is given,
+       * so keeping it apart also keeps either save from touching the other.
+       */}
+      <CardModelDetail<Project>
+        name={POSTMORTEM_DRAFT_CARD_TITLE}
+        cardProps={{
+          title: POSTMORTEM_DRAFT_CARD_TITLE,
+          description:
+            "When an incident resolves, OneUptime AI drafts a postmortem from its timeline and telemetry for your team to review. This is separate from automatic investigation.",
+          buttons: postmortemEditGate.lockedButtons,
+        }}
+        isEditable={postmortemEditGate.isEditable}
+        editButtonText={"Update"}
+        formFields={[
+          {
+            field: {
+              enableAutomaticPostmortemDraft: true,
+            },
+            title: "Draft a postmortem automatically when an incident resolves",
+            description:
+              "The draft is saved on the incident for someone to review and edit. It never replaces a postmortem that already exists. On for new projects.",
+            required: false,
+            fieldType: FormFieldSchemaType.Toggle,
+          },
+        ]}
+        modelDetailProps={{
+          modelType: Project,
+          id: "model-detail-project-incident-postmortem-draft",
+          onItemLoaded: () => {
+            setIsPostmortemCardLoaded(true);
+          },
+          fields: [
+            {
+              field: {
+                enableAutomaticPostmortemDraft: true,
+              },
+              title:
+                "Draft a postmortem automatically when an incident resolves",
+              placeholder: "Disabled",
+              fieldType: FieldType.Boolean,
             },
           ],
           modelId: ProjectUtil.getCurrentProjectId()!,

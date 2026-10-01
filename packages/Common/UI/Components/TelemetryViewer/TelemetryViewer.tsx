@@ -14,6 +14,7 @@ import TelemetrySearchBar, {
   TelemetrySearchBarRef,
 } from "./components/TelemetrySearchBar";
 import TelemetryFacetSidebar from "./components/TelemetryFacetSidebar";
+import { hasLockedTelemetryScope } from "./FacetVisibility";
 import TelemetryActiveFilterChips from "./components/TelemetryActiveFilterChips";
 import { TelemetrySignal } from "../../../Utils/Telemetry/LockedFilterSearch";
 import TelemetryHistogram from "./components/TelemetryHistogram";
@@ -22,9 +23,10 @@ import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
-import useHistogramZoom, {
-  HistogramZoomState,
-} from "../Charts/Utils/useHistogramZoom";
+import useViewerTimeRangeZoom, {
+  ViewerTimeRangeZoom,
+} from "./useViewerTimeRangeZoom";
+import { TimeRangeZoomProvider } from "../Charts/TimeRangeZoom/TimeRangeZoomContext";
 
 export interface TelemetryViewerProps<T> {
   // -- Data --
@@ -108,6 +110,13 @@ export interface TelemetryViewerProps<T> {
    * tooltips. Forwarded to the chip list.
    */
   lockedFilterSignal?: TelemetrySignal | undefined;
+  /*
+   * Whether the facet sidebar lists only values found in the viewer's scope
+   * (see getFacetValuesInScope). Defaults to "whenever a locked chip is
+   * showing": a page pinned to one database, service or trace wants its
+   * sidebar to describe that slice, not the project's catalog.
+   */
+  onlyShowFacetValuesInScope?: boolean | undefined;
 
   // -- Histogram --
   showHistogram?: boolean;
@@ -166,13 +175,22 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
 
   const showHistogram: boolean = props.showHistogram ?? true;
 
+  const onlyShowFacetValuesInScope: boolean =
+    props.onlyShowFacetValuesInScope ??
+    hasLockedTelemetryScope(props.activeFilters);
+
   /*
    * Drag-zooming the histogram is a one-way trip on its own: it swaps the
    * window for a custom one and nothing remembers what the reader was
-   * looking at. This keeps that window so a double-click on the chart can
-   * hand it back.
+   * looking at. This keeps that window so a double-click on a chart, or
+   * "Reset zoom" beside the picker, can hand it back. The same zoom is
+   * offered to everything the viewer renders (see the provider below), so
+   * a drag across the analytics chart retimes the viewer just like one
+   * across the histogram. A viewer pinned to the window of a zoom offered
+   * around it (a telemetry snapshot's primary explorer) follows that zoom
+   * instead, so a drag here retimes everything that zoom does.
    */
-  const histogramZoom: HistogramZoomState = useHistogramZoom({
+  const viewerZoom: ViewerTimeRangeZoom = useViewerTimeRangeZoom({
     timeRange: props.timeRange,
     onTimeRangeSelect: props.onHistogramTimeRangeSelect,
     onTimeRangeChange: props.onTimeRangeChange,
@@ -190,7 +208,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
 
   const showFacetToggle: boolean = showFacets && !props.mainContentOverride;
 
-  return (
+  const viewer: ReactElement = (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-3">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
@@ -247,7 +265,12 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
 
         <TelemetryTimeRangePicker
           value={props.timeRange}
-          onChange={histogramZoom.onTimeRangeChange || props.onTimeRangeChange}
+          onChange={viewerZoom.onTimeRangeChange || props.onTimeRangeChange}
+          /*
+           * A followed zoom's way back is shown by whoever offers it (the
+           * snapshot's, beside its badge): one Reset zoom per zoom.
+           */
+          showResetZoom={!viewerZoom.followsEnclosingZoom}
         />
 
         {props.live && (
@@ -320,8 +343,8 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             series={props.histogramSeries}
             title={props.histogramTitle}
             bucketIntervalMs={props.histogramBucketIntervalMs}
-            onTimeRangeSelect={histogramZoom.onTimeRangeSelect}
-            onZoomOut={histogramZoom.onZoomOut}
+            onTimeRangeSelect={viewerZoom.onTimeRangeSelect}
+            onZoomOut={viewerZoom.onZoomOut}
             headerActions={props.histogramHeaderActions}
             valueFormatter={props.histogramValueFormatter}
           />
@@ -352,6 +375,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
               props.onFacetExclude?.(key, value);
             }}
             onFacetSearchChange={props.onFacetSearchChange}
+            onlyShowValuesInScope={onlyShowFacetValuesInScope}
           />
         )}
 
@@ -418,6 +442,26 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
       {/* Detail panel overlay */}
       {props.detailPanel}
     </div>
+  );
+
+  /*
+   * Every chart in the viewer zooms the viewer's own window: the histogram,
+   * the analytics charts a host renders as mainContentOverride, and the
+   * picker's "Reset zoom", which is how a keyboard user gets back out. It
+   * also shadows any zoom a page around the viewer offers, since a drag
+   * here is about this explorer's window, unless that zoom is over this
+   * very window: the viewer then hands that zoom on (see
+   * useViewerTimeRangeZoom). A host that cannot zoom (no select handler)
+   * leaves whatever surrounds the viewer in place.
+   */
+  if (!viewerZoom.zoom) {
+    return viewer;
+  }
+
+  return (
+    <TimeRangeZoomProvider zoom={viewerZoom.zoom}>
+      {viewer}
+    </TimeRangeZoomProvider>
   );
 }
 

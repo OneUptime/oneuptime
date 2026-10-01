@@ -602,7 +602,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             "An incident is a problem that affects your users, like an outage or a slowdown. Declare one to page on-call, track the fix and update your status page.",
         }}
         createVerb="Declare"
-        noItemsMessage={props.noItemsMessage || "No incidents found."}
+        noItemsMessage={props.noItemsMessage}
         showRefreshButton={true}
         searchableFields={["title", "description"]}
         showViewIdButton={true}

@@ -1,8 +1,5 @@
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
-import TeamComplianceService, {
-  TeamComplianceStatus,
-  UserComplianceStatus,
-} from "./TeamComplianceService";
+import TeamComplianceService from "./TeamComplianceService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -15,10 +12,12 @@ import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCo
 import ObjectID from "Common/Types/ObjectID";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamService from "Common/Server/Services/TeamService";
-import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
+import { JSONObject } from "Common/Types/JSON";
+import { TeamComplianceStatusJSON } from "Common/Types/Team/TeamComplianceStatus";
 
 /*
- * `/team/compliance-status/:teamId` - who on this team cannot be paged, and why.
+ * `/team/compliance-status/:teamId` - which of this team's members fail its
+ * compliance rules, and why (TeamComplianceStatusJSON).
  *
  * AUTHORISATION, and why it is written out here rather than assumed.
  *
@@ -121,47 +120,19 @@ router.get(
         projectId: projectId,
       });
 
-      const complianceStatus: TeamComplianceStatus =
+      /*
+       * The service builds the wire shape itself
+       * (Common/Types/Team/TeamComplianceStatus, which the Dashboard page is
+       * typed against too), so there is nothing left to convert here.
+       */
+      const complianceStatus: TeamComplianceStatusJSON =
         await TeamComplianceService.getTeamComplianceStatus(teamId, projectId);
 
-      // Convert ObjectIDs to strings for JSON response
-      const responseData: {
-        teamId: string;
-        teamName: string;
-        complianceSettings: Array<{
-          ruleType: ComplianceRuleType;
-          enabled: boolean;
-        }>;
-        userComplianceStatuses: Array<{
-          userId: string;
-          userName: string;
-          userEmail: string;
-          userProfilePictureId: string | undefined;
-          isCompliant: boolean;
-          nonCompliantRules: Array<{
-            ruleType: ComplianceRuleType;
-            reason: string;
-          }>;
-        }>;
-      } = {
-        teamId: complianceStatus.teamId.toString(),
-        teamName: complianceStatus.teamName,
-        complianceSettings: complianceStatus.complianceSettings,
-        userComplianceStatuses: complianceStatus.userComplianceStatuses.map(
-          (user: UserComplianceStatus) => {
-            return {
-              userId: user.userId.toString(),
-              userName: user.userName,
-              userEmail: user.userEmail,
-              userProfilePictureId: user.userProfilePictureId?.toString(),
-              isCompliant: user.isCompliant,
-              nonCompliantRules: user.nonCompliantRules,
-            };
-          },
-        ),
-      };
-
-      return Response.sendJsonObjectResponse(req, res, responseData);
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        complianceStatus as unknown as JSONObject,
+      );
     } catch (e) {
       next(e);
     }

@@ -45,6 +45,12 @@
  *            HTTPErrorResponse. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
  *            Failed, so the details cards offer a retry that is refused.
+ *   ?resources= default | many | none
+ *            What Incident #1042 is attached to, for its Affected Resources
+ *            card. "many" adds more monitors and services, two hosts, a
+ *            Kubernetes cluster and an SLO: five categories, one of them
+ *            behind a Show more. "none" leaves Incident #1042 and Scheduled
+ *            Maintenance #58 with nothing attached, for the empty state.
  *   ?theme=  dark adds html.dark (handled by server.js).
  *   ?role=   owner (default) | alert-member | loading
  *            Who is signed in. "owner" is a master admin who is also the
@@ -124,6 +130,8 @@ import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import Host from "Common/Models/DatabaseModels/Host";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -140,6 +148,7 @@ import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/Sched
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import Service from "Common/Models/DatabaseModels/Service";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
@@ -201,6 +210,20 @@ const failures = new Set(
 const roleMode = ["alert-member", "loading"].includes(params.get("role"))
   ? params.get("role")
   : "owner";
+const resourcesMode = ["many", "none"].includes(params.get("resources"))
+  ? params.get("resources")
+  : "default";
+/*
+ * Which Kubernetes clusters the investigation payload's clusterAccess lists
+ * (what OneUptime AI can reach with kubectl now): none (the default, and
+ * what a signal with no cluster gets), one it can reach, one it cannot, or
+ * both.
+ */
+const clustersMode = ["reachable", "unreachable", "mixed"].includes(
+  params.get("clusters"),
+)
+  ? params.get("clusters")
+  : "none";
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -259,6 +282,10 @@ const ID = {
   user: (number) => uuid("80000000", number),
   team: (number) => uuid("81000000", number),
   task: (number) => uuid("82000000", number),
+  host: (number) => uuid("84000000", number),
+  kubernetesCluster: (number) => uuid("85000000", number),
+  slo: (number) => uuid("86000000", number),
+  cluster: (number) => uuid("83000000", number),
 };
 let rowCounter = 0;
 function rowId() {
@@ -285,6 +312,8 @@ const fixture = {
     sm: smMode,
     fail: Array.from(failures),
     role: roleMode,
+    resources: resourcesMode,
+    clusters: clustersMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -535,6 +564,73 @@ const services = {
   payments: service(3, "payments-webhooks", "#14b8a6"),
 };
 
+/*
+ * What Incident #1042 is attached to (?resources=). The default is its two
+ * monitors and two services. "many" gives the Affected Resources card five
+ * categories, six monitors among them (so two wait behind Show more) and a
+ * name too long for the sidebar; its extra records exist only then.
+ */
+function incidentResources() {
+  if (resourcesMode === "none") {
+    return { monitors: [], services: [] };
+  }
+
+  if (resourcesMode !== "many") {
+    return {
+      monitors: [monitors.checkoutLatency, monitors.ordersPool],
+      services: [services.checkout, services.orders],
+    };
+  }
+
+  return {
+    monitors: [
+      monitors.checkoutLatency,
+      monitors.ordersPool,
+      monitor(
+        5,
+        "Checkout web journey (synthetic) from eu-west-1 and us-east-1",
+        MonitorType.SyntheticMonitor,
+        monitorStatus.operational,
+      ),
+      monitor(
+        6,
+        "Payments API uptime",
+        MonitorType.API,
+        monitorStatus.operational,
+      ),
+      monitor(
+        7,
+        "Cart API p99 latency",
+        MonitorType.API,
+        monitorStatus.operational,
+      ),
+      monitor(
+        8,
+        "CDN edge eu-west",
+        MonitorType.Website,
+        monitorStatus.operational,
+      ),
+    ],
+    hosts: [
+      insert(Host, { _id: ID.host(1), name: "checkout-api-7f9c" }),
+      insert(Host, { _id: ID.host(2), name: "orders-db-primary" }),
+    ],
+    kubernetesClusters: [
+      insert(KubernetesCluster, {
+        _id: ID.kubernetesCluster(1),
+        name: "prod-eks-eu-west-1",
+      }),
+    ],
+    services: [services.checkout, services.orders, services.payments],
+    serviceLevelObjectives: [
+      insert(ServiceLevelObjective, {
+        _id: ID.slo(1),
+        name: "Checkout availability 99.9%",
+      }),
+    ],
+  };
+}
+
 const policies = {
   checkout: insert(OnCallDutyPolicy, {
     _id: ID.onCallPolicy(1),
@@ -743,6 +839,14 @@ function defineIncident(spec) {
     labels: spec.labels || [labels.checkout, labels.production],
     monitors: spec.monitors || [],
     services: spec.services || [],
+    // Only ?resources=many attaches these, so every other record keeps its shape.
+    ...(spec.hosts ? { hosts: spec.hosts } : {}),
+    ...(spec.kubernetesClusters
+      ? { kubernetesClusters: spec.kubernetesClusters }
+      : {}),
+    ...(spec.serviceLevelObjectives
+      ? { serviceLevelObjectives: spec.serviceLevelObjectives }
+      : {}),
     onCallDutyPolicies: spec.onCallDutyPolicies || [policies.checkout],
     createdByProbe: spec.createdByUser ? undefined : probe,
     createdByProbeId: spec.createdByUser ? undefined : probe.id,
@@ -942,8 +1046,7 @@ const mainIncident = defineIncident({
   ackBy: people.sam,
   resolvedAt: isResolved ? at("18:12") : undefined,
   resolvedBy: people.maya,
-  monitors: [monitors.checkoutLatency, monitors.ordersPool],
-  services: [services.checkout, services.orders],
+  ...incidentResources(),
   episode: incidentEpisodeRecord,
   notificationFailed: failures.has("resend"),
   rootCause: isResolved
@@ -1253,8 +1356,12 @@ table(ScheduledMaintenance).push({
   currentScheduledMaintenanceState: smCurrentState,
   currentScheduledMaintenanceStateId: smCurrentState.id,
   statusPages: [statusPages.public, statusPages.internal],
-  monitors: [monitors.ordersPrimary, monitors.checkoutLatency],
-  services: [services.orders, services.checkout],
+  monitors:
+    resourcesMode === "none"
+      ? []
+      : [monitors.ordersPrimary, monitors.checkoutLatency],
+  services:
+    resourcesMode === "none" ? [] : [services.orders, services.checkout],
   labels: [labels.platform, labels.production],
   subscriberNotificationStatusOnEventScheduled: failures.has("resend")
     ? StatusPageSubscriberNotificationStatus.Failed
@@ -2602,6 +2709,63 @@ function buildEvents(investigation, options) {
   return events;
 }
 
+/*
+ * The payload's clusterAccess rows, shaped like the server's
+ * KubernetesClusterAiAccessStatus as every reader of the signal receives
+ * it. The unreachable cluster's gaps use the server's own wording, with the
+ * AI agent's install command shortened to one line.
+ */
+function clusterAccessRows() {
+  const evaluatedAt = iso(NOW);
+  const reachable = {
+    clusterId: ID.cluster(1),
+    clusterName: "prod-eu-west-1",
+    isInvestigationReady: true,
+    isRemediationReady: true,
+    remediationMode: "RequireApproval",
+    gaps: [],
+    evaluatedAt,
+  };
+  const unreachable = {
+    clusterId: ID.cluster(2),
+    clusterName: "staging-us-east-1",
+    isInvestigationReady: false,
+    isRemediationReady: false,
+    remediationMode: "Disabled",
+    gaps: [
+      {
+        code: "ai_agent_not_connected",
+        title: "The Kubernetes AI agent is not connected",
+        description:
+          "OneUptime AI runs kubectl on this cluster through the Kubernetes AI agent, and no agent has connected for this cluster yet.",
+        nextStep:
+          "Install the Kubernetes AI agent: helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent --set aiAgent.enabled=true.",
+        blocks: "both",
+      },
+      {
+        code: "remediation_disabled",
+        title: "AI fixes are turned off for this cluster",
+        description:
+          "OneUptime AI will diagnose but never propose or apply a fix on this cluster.",
+        nextStep:
+          'Set "Fixes" to "Ask for approval", "Automatic" or "Bypass approval" on the cluster\'s AI agent page.',
+        blocks: "remediation",
+      },
+    ],
+    evaluatedAt,
+  };
+
+  if (clustersMode === "reachable") {
+    return [reachable];
+  }
+
+  if (clustersMode === "unreachable") {
+    return [unreachable];
+  }
+
+  return clustersMode === "mixed" ? [reachable, unreachable] : [];
+}
+
 function investigationPayload(investigation) {
   if (aiMode === "none") {
     return {
@@ -2689,6 +2853,10 @@ function investigationPayload(investigation) {
     analysisTldr,
     isAnalysisPending,
   };
+
+  if (clustersMode !== "none") {
+    payload.clusterAccess = clusterAccessRows();
+  }
 
   // An API replica that predates structured evidence omits both keys.
   if (analysisMarkdown && aiMode !== "legacy") {
@@ -3158,6 +3326,24 @@ async function handleApi(method, options) {
     return ok({ aiRunId: ID.task(1) });
   }
 
+  /*
+   * The investigation box's shared conversation, which it reads on load and
+   * then polls. Nobody has asked OneUptime AI anything about these incidents
+   * and alerts, so every subject gets what InvestigationThreadService.getView
+   * answers for one without a thread. Sending a question, answering an
+   * approval and stopping a run are not modelled: a spec that does any of
+   * them finds it in `unhandled`.
+   */
+  if (url.endsWith("/ai-investigation/conversation")) {
+    return ok({
+      conversationId: null,
+      messages: [],
+      activeRun: null,
+      isBusy: false,
+      viewerUserId: people.maya.id.toString(),
+    });
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({ data: [], count: 0 });
 }
@@ -3249,6 +3435,10 @@ const STUB_PAGES = [
   [PageMap.AI_AGENT_TASK_VIEW, "AI Agent Task"],
   [PageMap.AI_AGENT_TASKS, "AI Agent Tasks"],
   [PageMap.MONITOR_VIEW, "Monitor"],
+  // What the Affected Resources card links to with ?resources=many.
+  [PageMap.HOST_VIEW, "Host"],
+  [PageMap.KUBERNETES_CLUSTER_VIEW, "Kubernetes Cluster"],
+  [PageMap.SLO_VIEW, "SLO"],
   [PageMap.ON_CALL_DUTY_POLICY_VIEW, "On-Call Policy"],
   [PageMap.STATUS_PAGE_VIEW, "Status Page"],
   [PageMap.SERVICE_VIEW, "Service"],
@@ -3268,6 +3458,8 @@ const STUB_PAGES = [
   [PageMap.ALERT_EPISODES, "Alert Episodes"],
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS, "Scheduled Maintenance"],
   [PageMap.HOME, "Home"],
+  // Where the AI Investigation card's cluster access notice links.
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT, "Kubernetes AI Agent"],
 ].filter(([pageKey]) => {
   return Boolean(pageKey && RouteMap[pageKey]);
 });

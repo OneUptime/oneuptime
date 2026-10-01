@@ -76,5 +76,69 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # The OneUptime AI agent for this swarm — MUST run on a manager node, like
+  # the inventory poller (node, service and task commands are manager-only;
+  # on a worker it reports the swarm as unreachable and runs nothing). While
+  # OneUptime AI investigates an incident or alert it runs read-only docker
+  # commands (docker node ls, docker service ps NAME, docker service logs
+  # --tail 200 NAME, ...), and — only when you set
+  # ONEUPTIME_AI_ALLOW_WRITES=true in .env — the fixes you allow (a rolling
+  # restart, a rollback or a scale of a named service; a node drain always
+  # needs a person's approval). It shares this file's .env, so it serves
+  # exactly the cluster the collector reports (DOCKER_SWARM_CLUSTER_NAME).
+  # install.sh --no-ai-agent leaves it out; or remove this service.
+  oneuptime-docker-swarm-ai-agent:
+    image: oneuptime/resource-ai-agent:release
+    container_name: oneuptime-docker-swarm-ai-agent
+    # Root, because the Docker socket is root-owned. Neither the account nor
+    # the socket's :ro mount limits what can be done through the Docker API
+    # (connect() works on a read-only bind mount, and on a manager the socket
+    # is the whole swarm). The agent's command policy is the limit: read-only
+    # commands unless ONEUPTIME_AI_ALLOW_WRITES=true, then only the fixes it
+    # tiers as changes (never service create/rm, stack deploy/rm, secrets,
+    # exec, ...), only on the services and nodes ONEUPTIME_AI_WRITE_TARGETS
+    # allows (all when empty), and never on itself, the collector or
+    # ONEUPTIME_AI_PROTECTED_TARGETS.
+    user: "0:0"
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
+      - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=docker-swarm
+      - DOCKER_SWARM_CLUSTER_NAME=${DOCKER_SWARM_CLUSTER_NAME:-docker-swarm}
+      # "true" lets OneUptime AI apply fixes; anything else keeps it read-only.
+      - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
+      # Comma-separated service/node-name globs fixes may touch (e.g. web_*).
+      - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
+      # Comma-separated service/node-name globs OneUptime AI must never change.
+      - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # Overrides DOCKER_SWARM_CLUSTER_NAME as the name the AI agent registers under.
+      - ONEUPTIME_AI_AGENT_RESOURCE_NAME=${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}
+      # The AI agent's log level: debug, info, warn or error.
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # Empty: the docker CLI negotiates the API version with the daemon. Not
+      # APP_VERSION: that one is the collector's; the agent image sets its own.
+      - DOCKER_API_VERSION=${DOCKER_API_VERSION:-}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3877/status/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    # When deployed as a stack, pin it to a manager like the poller:
+    #   deploy:
+    #     placement:
+    #       constraints: [node.role == manager]
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 volumes:
   swarm-inventory:

@@ -50,8 +50,13 @@ const COPY: Record<AIChatUnavailableReason, AIChatUnavailableCopy> = {
     title: "AI features are disabled for this project",
     description:
       "Ask AI is switched off along with every other AI feature in this project. A project owner can turn it back on with the Enable AI toggle.",
-    actionPage: PageMap.SETTINGS_AI_CREDITS,
-    actionLabel: "Go to Project Settings > AI Credits",
+    /*
+     * AI Features is in the settings menu on every install; AI Credits is
+     * shown only when billing is on, so a self-hosted user would be sent to
+     * a page they cannot find.
+     */
+    actionPage: PageMap.SETTINGS_AI_FEATURES,
+    actionLabel: "Go to Project Settings > AI Features",
   },
   [AIChatUnavailableReason.NoProviderConfigured]: {
     icon: IconProp.Sparkles,

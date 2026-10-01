@@ -14,6 +14,7 @@ import TelemetryIngestionKeyPolicy, {
 import TelemetryIngestionKeyType from "../../Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
+  IDENTITY_REGISTRATION_SURFACES,
   getIngestSurfaceReadableName,
 } from "../../Types/Telemetry/TelemetryIngestSurface";
 import OriginAllowList from "../../Utils/Telemetry/OriginAllowList";
@@ -72,14 +73,41 @@ const COUNTER_UNAVAILABLE_LOG_INTERVAL_MS: number = 60 * 1000;
 const UNNAMED_SURFACE_READABLE_NAME: string = "this ingest endpoint";
 
 /*
- * The ceiling a server key gets on the Kubernetes agent Runner registration
- * surface when its policy names none. Registration is a handful of calls
- * per agent pod lifetime (start-up, then heartbeats through the Runner's
- * own credential), so a leaked ingestion key hammering it is abuse, not
+ * The ceiling a server key gets on an identity registration surface
+ * (IDENTITY_REGISTRATION_SURFACES: the Kubernetes agent Runner, the
+ * Kubernetes AI agent and the resource AI agents) when its policy names
+ * none. Registration is a handful
+ * of calls per pod lifetime (start-up, then heartbeats through the minted
+ * identity's own key), so a leaked ingestion key hammering it is abuse, not
  * traffic - unlike OTLP ingest, where "no limit" is the historical contract
  * and must stay that way. An explicit per-key limit still wins.
  */
-export const DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE: number = 30;
+export const DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE: number = 30;
+
+// The name this ceiling shipped under, when only the Runner registered.
+export const DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE: number =
+  DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE;
+
+/*
+ * The refusal a service-pinned key gets on an identity registration surface.
+ * Worded for whichever identity the surface mints, and it never names the
+ * key, its pinned service or anything else about it. The Kubernetes
+ * surfaces keep their wording exactly; a resource AI agent (Docker, Proxmox,
+ * a database, a host, ...) is told about infrastructure instead.
+ */
+export const getPinnedKeyRegistrationRefusalMessage: (
+  surface: TelemetryIngestSurface,
+) => string = (surface: TelemetryIngestSurface): string => {
+  if (surface === TelemetryIngestSurface.ResourceAiAgent) {
+    return `This telemetry ingestion key is pinned to a single service, so it cannot be used for ${getIngestSurfaceReadableName(
+      surface,
+    )}: that grants access to your infrastructure, not to one service's telemetry. Use an unpinned server ingestion key for the AI agent.`;
+  }
+
+  return `This telemetry ingestion key is pinned to a single service, so it cannot be used for ${getIngestSurfaceReadableName(
+    surface,
+  )}: that grants access to a Kubernetes cluster, not to one service's telemetry. Use an unpinned server ingestion key for the Kubernetes agent.`;
+};
 
 type GetEffectiveRequestsPerMinuteLimitFunction = (
   policy: TelemetryIngestionKeyPolicy,
@@ -101,11 +129,14 @@ type GetEffectiveRequestsPerMinuteLimitFunction = (
  * with no ceiling is the thing we are trying to stop shipping: "the customer
  * did not configure a limit" cannot be allowed to mean "unlimited" there.
  *
- * The one surface-dependent case is Kubernetes agent Runner registration:
- * a server key with no configured limit is held to a conservative default
- * there (see DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE), because
- * that endpoint mints Runner identities rather than accepting telemetry.
- * Every other surface keeps the server-key contract above untouched.
+ * The one surface-dependent case is identity registration
+ * (IDENTITY_REGISTRATION_SURFACES: the Kubernetes agent Runner, the
+ * Kubernetes AI agent and the resource AI agents): a server key with no
+ * configured limit is held to a
+ * conservative default there (see
+ * DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE), because those
+ * endpoints mint identities rather than accepting telemetry. Every other
+ * surface keeps the server-key contract above untouched.
  */
 export const getEffectiveRequestsPerMinuteLimit: GetEffectiveRequestsPerMinuteLimitFunction =
   (
@@ -129,8 +160,8 @@ export const getEffectiveRequestsPerMinuteLimit: GetEffectiveRequestsPerMinuteLi
       return DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE;
     }
 
-    if (surface === TelemetryIngestSurface.KubernetesAgentRunner) {
-      return DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE;
+    if (surface && IDENTITY_REGISTRATION_SURFACES.has(surface)) {
+      return DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE;
     }
 
     return null;
@@ -460,22 +491,24 @@ export default class TelemetryIngest {
       }
 
       /*
-       * Kubernetes agent Runner registration mints a Runner identity — the
-       * one every kubectl job for a cluster is targeted at — so it takes a
-       * project-wide server key. A key pinned to one service's name was
-       * scoped by its owner to that service's telemetry; it is refused here
+       * An identity registration surface (the Kubernetes agent Runner, the
+       * Kubernetes AI agent) mints the identity every kubectl job for a
+       * cluster is targeted at, so it takes a project-wide server key. A key
+       * pinned to one service's name was scoped by its owner to that
+       * service's telemetry; it is refused here, before the rate limiter,
        * rather than letting it stand up cluster access it was never meant
        * to reach.
        */
       if (
-        surface === TelemetryIngestSurface.KubernetesAgentRunner &&
+        surface &&
+        IDENTITY_REGISTRATION_SURFACES.has(surface) &&
         policy.pinnedServiceName
       ) {
         return Response.sendErrorResponse(
           req,
           res,
           new NotAuthorizedException(
-            "This telemetry ingestion key is pinned to a single service, so it cannot register the Kubernetes agent's in-cluster Runner. Use an unpinned server ingestion key for the Kubernetes agent.",
+            getPinnedKeyRegistrationRefusalMessage(surface),
           ),
         );
       }

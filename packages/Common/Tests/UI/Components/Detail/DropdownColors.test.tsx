@@ -61,6 +61,14 @@ const requireElement: (
   return element;
 };
 
+// A coloured badge is a tint of its colour; its dot is the colour itself.
+const badgeColor: (badge: HTMLElement) => string = (
+  badge: HTMLElement,
+): string => {
+  return requireElement(badge.querySelector<HTMLElement>("[data-ou-pill-dot]"))
+    .style.backgroundColor;
+};
+
 afterEach(() => {
   cleanup();
 });
@@ -73,9 +81,7 @@ describe("Detail dropdown colors", () => {
     );
 
     expect(requireElement(badge).textContent).toContain("High");
-    expect(requireElement(badge).style.backgroundColor).toEqual(
-      "rgb(239, 68, 68)",
-    );
+    expect(badgeColor(requireElement(badge))).toEqual("rgb(239, 68, 68)");
   });
 
   test("renders each multi-select value with its own option color", () => {
@@ -91,13 +97,9 @@ describe("Detail dropdown colors", () => {
 
     expect(badges).toHaveLength(2);
     expect(requireElement(badges[0]).textContent).toContain("Low");
-    expect(requireElement(badges[0]).style.backgroundColor).toEqual(
-      "rgb(34, 197, 94)",
-    );
+    expect(badgeColor(requireElement(badges[0]))).toEqual("rgb(34, 197, 94)");
     expect(requireElement(badges[1]).textContent).toContain("High");
-    expect(requireElement(badges[1]).style.backgroundColor).toEqual(
-      "rgb(239, 68, 68)",
-    );
+    expect(badgeColor(requireElement(badges[1]))).toEqual("rgb(239, 68, 68)");
   });
 
   test("uses the legacy uncolored badge for an unmatched multi-select value", () => {

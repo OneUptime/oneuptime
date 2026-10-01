@@ -1,8 +1,13 @@
 import ChatActivityFeed, {
   countActivitySteps,
+  InfrastructureActivitySummary,
   isClusterToolName,
   KubectlActivitySummary,
 } from "../../AIChat/ChatActivityFeed";
+import {
+  isInfrastructureToolName,
+  isLiveInfrastructureToolName,
+} from "../ClusterToolFormat";
 import InvestigationEvidenceList, {
   EvidenceFocusRequest,
 } from "./InvestigationEvidenceList";
@@ -121,6 +126,64 @@ export function describeKubectlUsage(
 }
 
 /*
+ * The usage line's item for commands on infrastructure resources (through
+ * their AI agents), or null when the run never tried one. Worded like the
+ * kubectl item: only commands that ran are counted as commands.
+ */
+export function describeInfrastructureUsage(
+  activity: InfrastructureActivitySummary | undefined,
+): string | null {
+  if (!activity) {
+    return null;
+  }
+
+  const executed: number = Math.max(0, activity.executed);
+  const failed: number = Math.max(
+    0,
+    executed - Math.min(executed, Math.max(0, activity.succeeded)),
+  );
+  const notRun: number = Math.max(0, activity.notRun);
+  const unknown: number = Math.max(0, activity.unknown);
+  const noun: (count: number) => string = (count: number): string => {
+    return `infrastructure ${count === 1 ? "command" : "commands"}`;
+  };
+
+  if (executed === 0 && notRun === 0 && unknown === 0) {
+    return null;
+  }
+
+  if (executed === 0 && unknown === 0) {
+    return `${notRun.toLocaleString()} ${noun(notRun)} did not run`;
+  }
+
+  if (executed === 0 && notRun === 0) {
+    return `${unknown.toLocaleString()} ${noun(unknown)} returned no result`;
+  }
+
+  if (executed === 0) {
+    return `${(notRun + unknown).toLocaleString()} infrastructure commands without a result (${notRun.toLocaleString()} did not run, ${unknown.toLocaleString()} returned no result)`;
+  }
+
+  const notes: Array<string> = [];
+
+  if (failed > 0) {
+    notes.push(`${failed.toLocaleString()} failed`);
+  }
+
+  if (notRun > 0) {
+    notes.push(`${notRun.toLocaleString()} did not run`);
+  }
+
+  if (unknown > 0) {
+    notes.push(`${unknown.toLocaleString()} returned no result`);
+  }
+
+  return `${executed.toLocaleString()} ${noun(executed)}${
+    notes.length > 0 ? ` (${notes.join(", ")})` : ""
+  }`;
+}
+
+/*
  * What a run did and cost, plus the read-only guarantee, as one wrapping
  * list. Responders ask "did this thing touch anything?" before they trust a
  * report, so the guarantee stays visible even while the details are
@@ -146,6 +209,9 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
   const kubectlUsage: string | null = describeKubectlUsage(
     props.kubectlActivity,
   );
+  const infrastructureUsage: string | null = describeInfrastructureUsage(
+    props.kubectlActivity?.infrastructure,
+  );
   const items: Array<ReactElement> = [];
 
   if (props.showCounts !== false && queryCount !== null) {
@@ -163,6 +229,15 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
       <li key="clusterCommands" className={USAGE_ITEM_CLASS_NAME}>
         <Icon icon={IconProp.Terminal} className={USAGE_ICON_CLASS_NAME} />
         {kubectlUsage}
+      </li>,
+    );
+  }
+
+  if (props.showCounts !== false && infrastructureUsage) {
+    items.push(
+      <li key="infrastructureCommands" className={USAGE_ITEM_CLASS_NAME}>
+        <Icon icon={IconProp.Terminal} className={USAGE_ICON_CLASS_NAME} />
+        {infrastructureUsage}
       </li>,
     );
   }
@@ -224,6 +299,13 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
 };
 
 type DetailsTab = "evidence" | "activity";
+
+/*
+ * The section starts under a hairline, which is all that separates the
+ * report (the answer) from its working. It used to be a bordered, shadowed
+ * box of its own inside the card.
+ */
+const DETAILS_DIVIDER_CLASS_NAME: string = "border-t border-gray-200 pt-5";
 
 export interface ComponentProps {
   // Structured evidence from the API; empty until the report exists.
@@ -310,12 +392,18 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
   const telemetryQueryCount: number =
     props.evidence.length > 0
       ? props.evidence.filter((item: InvestigationEvidenceItem): boolean => {
-          return !isClusterToolName(item.toolName);
+          return !isLiveInfrastructureToolName(item.toolName);
         }).length
       : props.legacyEntries.length;
   const hasClusterEvidence: boolean = props.evidence.some(
     (item: InvestigationEvidenceItem): boolean => {
       return isClusterToolName(item.toolName);
+    },
+  );
+  // Commands on other infrastructure (through their AI agents) likewise.
+  const hasInfrastructureEvidence: boolean = props.evidence.some(
+    (item: InvestigationEvidenceItem): boolean => {
+      return isInfrastructureToolName(item.toolName);
     },
   );
   const stepCount: number = countActivitySteps(props.events);
@@ -336,7 +424,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
   // Nothing to expand: what the run did and cost is all there is to say.
   if (tabs.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-3 sm:px-5">
+      <div className={DETAILS_DIVIDER_CLASS_NAME}>
         <InvestigationUsageLine
           usage={props.usage}
           kubectlActivity={props.kubectlActivity}
@@ -433,7 +521,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
           hidden={activeTab !== tab}
           className={panelFocusClassName}
         >
-          <p className="px-4 pb-1 pt-3 text-xs leading-5 text-gray-500 sm:px-5">
+          <p className="pb-1 pt-3 text-xs leading-5 text-gray-500">
             {/*
               A kubectl command is not a query and has no rows to load, so
               a list with cluster calls in it promises rows only for the
@@ -441,9 +529,11 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
             */}
             {props.evidence.length === 0
               ? "Every query OneUptime AI ran while investigating."
-              : hasClusterEvidence
-                ? "Every telemetry query and kubectl call OneUptime AI made. Expand one to see what it asked — and, for a telemetry query, the rows it returned."
-                : "Every query OneUptime AI ran. Expand one to see what it asked and the rows it returned."}
+              : hasInfrastructureEvidence
+                ? "Every telemetry query and command OneUptime AI ran on your infrastructure. Expand one to see what it asked — and, for a telemetry query, the rows it returned."
+                : hasClusterEvidence
+                  ? "Every telemetry query and kubectl call OneUptime AI made. Expand one to see what it asked — and, for a telemetry query, the rows it returned."
+                  : "Every query OneUptime AI ran. Expand one to see what it asked and the rows it returned."}
           </p>
           <InvestigationEvidenceList
             items={props.evidence}
@@ -462,7 +552,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
         key={tab}
         {...panelProps}
         hidden={activeTab !== tab}
-        className={`px-4 py-4 sm:px-5 ${panelFocusClassName}`}
+        className={`py-4 ${panelFocusClassName}`}
       >
         {/*
           A finished run is short (the engine caps its tool calls), so the
@@ -482,13 +572,13 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
     <section
       aria-labelledby={titleId}
       data-testid="investigation-details"
-      className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+      className={DETAILS_DIVIDER_CLASS_NAME}
     >
-      <div className="relative flex items-center gap-2.5 px-4 py-3.5 transition-colors hover:bg-gray-50 sm:px-5">
-        {/* Hidden on phones, where the usage line needs the width more. */}
-        <span className="max-sm:hidden h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 sm:flex">
-          <Icon icon={IconProp.DocumentMagnifyingGlass} className="h-4 w-4" />
-        </span>
+      {/*
+        The hover wash reaches a little past the text on both sides, so the
+        header reads as one clickable row without a border around it.
+      */}
+      <div className="group relative -mx-3 flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-gray-50">
         <div className="min-w-0 flex-1">
           <h3 id={titleId} className="text-sm font-semibold text-gray-900">
             {/*
@@ -500,7 +590,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
               data-testid="investigation-details-toggle"
               aria-expanded={isOpen}
               aria-controls={bodyId}
-              className="text-left after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500"
+              className="text-left after:absolute after:inset-0 after:rounded-lg after:content-[''] focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500"
               onClick={() => {
                 /*
                  * Pin the panel the reader is about to see, so evidence that
@@ -532,23 +622,23 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
             kubectlActivity={props.kubectlActivity}
             stepCount={stepCount}
             showCost={false}
-            className="mt-0.5"
+            className="mt-1"
           />
         </div>
         <Icon
           icon={IconProp.ChevronDown}
-          className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform ${
+          className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform group-hover:text-gray-600 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
       </div>
 
-      <div id={bodyId} hidden={!isOpen} className="border-t border-gray-200">
+      <div id={bodyId} hidden={!isOpen} className="mt-3">
         {hasTabs ? (
           <div
             role="tablist"
             aria-label="Investigation details"
-            className="flex gap-x-5 border-b border-gray-200 px-4 sm:px-5"
+            className="flex gap-x-5 border-b border-gray-200"
           >
             {tabs.map((tab: DetailsTab): ReactElement => {
               const isSelected: boolean = tab === activeTab;
@@ -603,7 +693,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
           showCounts={false}
           showReadOnly={false}
           label="Model and tokens"
-          className="border-t border-gray-100 bg-gray-50/70 px-4 py-2.5 sm:px-5"
+          className="border-t border-gray-100 pt-3"
         />
       </div>
     </section>

@@ -13,12 +13,22 @@
 ## Community and Enterprise Edition images
 
 OneUptime now ships the app as two images. The **Community Edition** is open
-source under the Apache License 2.0. The **Enterprise Edition** adds the
-enterprise modules from the repository's `ee/` directory: SAML SSO, OIDC, SCIM,
-team compliance, audit logs and the enterprise Health dashboards in the Admin
+source under the Apache License 2.0 and includes SAML and OIDC single sign-on,
+global SSO and "Require SSO for login". The **Enterprise Edition** adds the
+enterprise modules from the repository's `ee/` directory: SCIM, team
+compliance, audit logs and the enterprise Health dashboards in the Admin
 Dashboard. Before this change both editions ran the same code, and
 `IS_ENTERPRISE_EDITION` decided which features were switched on. Now the image
 decides, and the Community image does not contain the `ee/` directory.
+
+> **Releases after 14.0.10:** SAML and OIDC single sign-on, global SSO and
+> "Require SSO for login" are part of the Community Edition again, and no
+> license state switches them off. In 14.0.0 to 14.0.10 they needed the
+> Enterprise Edition and stopped when its license lapsed, which is what the
+> 13 → 14 notes below describe. A "Require SSO for login" setting that was
+> saved but not enforced (on the Community image, or under a lapsed license)
+> is enforced again after this upgrade, so check that its provider still works
+> before you upgrade.
 
 The [Enterprise Edition](/docs/self-hosted/enterprise) page has the full
 feature comparison, licensing details and what happens when you switch
@@ -26,7 +36,7 @@ editions.
 
 ### What to do before you upgrade
 
-- **Community Edition without SSO, OIDC or SCIM:** nothing. Upgrade as usual.
+- **Community Edition without SCIM:** nothing. Upgrade as usual.
 - **Helm with `image.type: enterprise-edition`:** nothing. The chart already
   pulls the `enterprise-` images, which now contain the enterprise modules.
 - **Docker Compose with `IS_ENTERPRISE_EDITION=true`:** switch to the
@@ -37,17 +47,16 @@ editions.
   `IS_ENTERPRISE_EDITION=true` (`release` becomes `enterprise-release`, a
   pinned `13.0.7` becomes `enterprise-13.0.7`) and prints what it changed.
   The App now **refuses to start** when `IS_ENTERPRISE_EDITION=true` is set on
-  the Community image, instead of silently no longer enforcing "Require SSO",
-  SSO, SCIM and audit logging. The error says what to set:
+  the Community image, instead of silently stopping SCIM provisioning and
+  audit logging. The error says what to set:
   `APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
   `IS_ENTERPRISE_EDITION=false` to run the Community Edition.
-- **Community image with SSO, OIDC or SCIM already configured:** SSO sign-in
-  and SCIM provisioning stop with this upgrade, and "Require SSO for login" is
-  no longer enforced. Switch to the Enterprise image to keep them. Otherwise,
-  read [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)
-  before you upgrade. It explains how users sign in afterwards and who to
-  remove first. To run the Community Edition, also set
-  `IS_ENTERPRISE_EDITION=false`.
+- **Community image with SCIM already configured:** SCIM provisioning stops
+  with this upgrade, including deprovisioning. Switch to the Enterprise image
+  to keep it. Otherwise, read [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)
+  before you upgrade. It explains what stops and who to remove first. To run
+  the Community Edition, also set `IS_ENTERPRISE_EDITION=false`. Single
+  sign-on is not affected: the Community image serves it too.
 
 Your configuration is never deleted, and no migration is needed to switch
 editions in either direction.
@@ -62,15 +71,13 @@ The Enterprise Edition now checks its license:
   for an install with no license.
 - **An install with no license**, for example one that ran the Enterprise
   Edition on `IS_ENTERPRISE_EDITION=true` alone, gets a 14-day trial from the
-  first start of this release. **If you use SSO, OIDC, SCIM or audit logging,
-  activate a license before the trial ends.** After the trial, SSO and OIDC
-  sign-in stop, "Require SSO for login" is no longer enforced (users sign in
-  with their password), SCIM provisioning stops and audit logging stops
-  recording. Enterprise configuration also becomes read-only and the
-  enterprise Health dashboards are locked. Everything resumes, without a
-  restart, as soon as you activate a license. The trial is for evaluation:
-  production use of the Enterprise Edition requires a OneUptime Enterprise
-  subscription. See
+  first start of this release. **If you use SCIM or audit logging, activate a
+  license before the trial ends.** After the trial, SCIM provisioning stops and
+  audit logging stops recording. Enterprise configuration also becomes
+  read-only and the enterprise Health dashboards are locked. Single sign-on is
+  not affected. Everything resumes, without a restart, as soon as you activate
+  a license. The trial is for evaluation: production use of the Enterprise
+  Edition requires a OneUptime Enterprise subscription. See
   [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing).
 - **Air-gapped installs** can activate with a signed license token instead of
   a key. See [Offline activation](/docs/self-hosted/enterprise#offline-activation-air-gapped-installs).
@@ -90,13 +97,18 @@ settings that used to show an upgrade prompt.
   admins. Other callers get the edition and the license status.
 - Self-hosted installs no longer serve the license-server endpoints under
   `/api/enterprise-license/`. Only oneuptime.com uses them.
-- The SSO, OIDC and SCIM endpoints keep their exact paths on the Enterprise
-  Edition, so identity provider configuration does not change. On the
-  Community Edition they return `404`. On the Enterprise Edition they refuse
-  requests while the license is lapsed (after the trial or grace period), and
-  answer again as soon as a license is activated.
+- The SCIM endpoints keep their exact paths on the Enterprise Edition, so
+  identity provider configuration does not change. On the Community Edition
+  they return `404`. On the Enterprise Edition they refuse requests while the
+  license is lapsed (after the trial or grace period), and answer again as
+  soon as a license is activated.
+- The SSO and OIDC endpoints (SAML sign-in and ACS URLs, OIDC redirect URIs,
+  and the global SSO endpoints) keep their exact paths and are served by both
+  editions in every license state.
 
 ## ارتقا از OneUptime 13 → 14
+
+> **نسخه‌های پس از 14.0.10:** ورود یکپارچه SAML و OIDC، ‏SSO سراسری و «Require SSO for login» دوباره بخشی از Community Edition هستند و هیچ وضعیت پروانه‌ای آن‌ها را خاموش نمی‌کند. هر جا این بخش می‌گوید ایمیج Community ورود یکپارچه را ندارد، یا اینکه ورود یکپارچه بدون پروانه متوقف می‌شود یا اعمال نمی‌شود، وضعیت 14.0.0 تا 14.0.10 را شرح می‌دهد. آنچه این بخش دربارهٔ SCIM، تنظیمات انطباق تیم‌ها، گزارش‌های حسابرسی و داشبوردهای **Health** می‌گوید همچنان برقرار است.
 
 نسخهٔ OneUptime 14 برنامه را به دو ویرایش تقسیم می‌کند و اینکه کدام‌یک اجرا شود با ایمیجی که دریافت می‌کنید تعیین می‌شود. **Community Edition** (با پروانهٔ Apache-2.0، برچسب‌های `release` و `<version>`) شامل پوشهٔ `ee/` مخزن نیست: SAML SSO، OpenID Connect، تأمین حساب با SCIM، تنظیمات انطباق تیم‌ها، گزارش‌های حسابرسی، داشبوردهای **Health** در بخش مدیریت و **Query Console** به‌هیچ‌وجه در آن ایمیج وجود ندارند. **Enterprise Edition** (برچسب‌های `enterprise-release` و `enterprise-<version>`) این موارد را در خود دارد و هنگام اجرا پروانهٔ Enterprise را بررسی می‌کند؛ کاری که OneUptime 13 هرگز انجام نمی‌داد.
 
@@ -168,6 +180,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **داشبوردهای Health و Query Console در بخش مدیریت به Enterprise Edition نیاز دارند**، و همچنین هشدارهای سلامت PostgreSQL و Valkey. در 13 این‌ها تنها با `IS_ENTERPRISE_EDITION=true` در دسترس بودند، پس برای نصب Community که از آن‌ها استفاده می‌کرد این یک کاهش محسوس است. نمای ظرفیت ClickHouse و پاک‌سازی آن، وضعیت مهاجرت‌ها، پروب‌های جهانی و بستهٔ پشتیبانی در هر دو ویرایش هستند.
 - **مانیتورهای HTTPS که از طریق پراکسی یک پروب به نشانی IP می‌رسند دوباره کار می‌کنند.** پروب نشانی IP را به‌عنوان نام سرور TLS می‌فرستاد؛ IP نام سرور معتبری نیست و Node آن را یکسره رد می‌کند، بنابراین مانیتور روی `https://<IP خصوصی>` از یک پروب جهانی با `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` در دست‌دادن TLS شکست می‌خورد. اکنون پروب برای مقصدِ IP نام سرور را نمی‌فرستد و گواهی را در برابر خود آن IP بررسی می‌کند. مقصدهای نام میزبان تغییری نکرده‌اند.
 - **ابزار خط فرمان `oneuptime` در `--version` نسخهٔ واقعی خود را اعلام می‌کند**، نه یک مقدار جای‌نگهدار.
+- **جابه‌جایی Runnerها از Project Settings به Runbooks.** اکنون Runnerها زیر **Runbooks → Runners** (`…/runbooks/runners`) و Runner Credentials زیر **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`) هستند، کنار رانبوک‌هایی که گام‌هایشان را اجرا می‌کنند. نشانی‌های کهنهٔ `…/settings/runners` و `…/settings/runner-credentials` تغییرمسیر می‌دهند، پس نشانک‌ها همچنان کار می‌کنند. چیز دیگری تغییر نمی‌کند: Runnerها شناسه‌ها، کلیدها، قابلیت‌ها و دسترسی‌هایشان را نگه می‌دارند و همچنان رفع کد با AI و فرمان‌های ترمیم AI را اجرا می‌کنند. تصویر Runner کهنه‌تر از این انتشار هنوز در پیام‌های گزارشش «Project Settings > Runners» می‌نویسد؛ آن را Runbooks → Runners بخوانید.
 - اینکه کدام نقاط پایانی جابه‌جا یا محدودتر شده‌اند، از جمله `GET /api/global-config/license` و نقاط پایانی سرور پروانه که نصب‌های خودمیزبان دیگر ارائه نمی‌کنند، در بخش [API and endpoint changes](#api-and-endpoint-changes) در بالا آمده است.
 
 ### مانیتورهای IPv6: Ping، Port و SSL
@@ -325,7 +338,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(یا Runner را در **Settings → Runners** باز کنید و برای فرمانی از پیش پرشده از **Show setup instructions** استفاده کنید.)
+(یا Runner را در **Runbooks → Runners** باز کنید و برای فرمانی از پیش پرشده از **Show setup instructions** استفاده کنید.)
 
 اگر عامل را با متغیرهای محیطی تنظیم کرده بودید، نامشان را تغییر دهید — تصویر تازه نام‌های کهنه را **بی‌صدا نادیده می‌گیرد**:
 
@@ -342,7 +355,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 صفحه **Settings → AI → AI Agents** رفته است و تصویر `oneuptime/ai-agent` دیگر ساخته نمی‌شود. اگر خودتان کانتینر AI Agentای نصب کرده بودید، آن را با یک Runner جایگزین کنید:
 
-1. زیر **Settings → Runners** یک Runner بسازید و با فرمان **Show setup instructions** نصبش کنید.
+1. زیر **Runbooks → Runners** یک Runner بسازید و با فرمان **Show setup instructions** نصبش کنید.
 2. روی آن **Runs AI Code Fixes** را فعال کنید. تغییر در ضربان قلب بعدی برداشته می‌شود.
 
 اعتبارنامه‌های کهنه AI Agent هنوز از راه یک عقب‌نشینی میراثی تصویر تازه `oneuptime/runner` را راه می‌اندازند (فقط رفع‌های کد، با هشداری ثبت‌شده که می‌گوید Runner واقعی بسازید) — آن را پلی در میانه مهاجرت بگیرید، نه مقصد.
@@ -390,6 +403,8 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ‏Runbook Secrets همان‌جا که بود می‌ماند، زیر Runbooks → Settings → Secrets.
 
+جای صفحه‌ها در 12 و 13 همین بود. در 14 دو صفحهٔ Runner دوباره جابه‌جا شدند، به **Runbooks → Runners** (`…/runbooks/runners`) و **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`)؛ نشانی‌های 12 و 13 در جدول به آن‌جا تغییرمسیر می‌دهند. [تغییرهای دیگر در 14](#تغییرهای-دیگر-در-14) را ببینید.
+
 ### تازه در 12، چیزی نیست که تصادفی فعال شود
 
 ‏v12 فرمان‌های اصلاحی نوشته‌شده با هوش مصنوعی را می‌افزاید: هوش مصنوعی می‌تواند طرح فرمانی پیشنهاد دهد و برای اجرا به Runnerای بسپاردش. همه‌چیز درباره‌اش به‌طور پیش‌فرض خاموش است و خاموش می‌ماند تا وقتی دو بار انتخابش کنید — تنظیم **AI command execution** در سطح پروژه و قابلیت **Runs AI Remediation Commands** به ازای هر Runner هر دو باید فعال شوند، و فقط رانبوک‌ها/قاعده‌هایی که برایش پیکربندی می‌کنید شرکت می‌کنند. ارتقا اینجا چیزی را تغییر نمی‌دهد.
@@ -407,6 +422,8 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### ویژگی‌های هویت (SSO، ‏OIDC، ‏SCIM) اکنون به Enterprise Edition نیاز دارند
 
+> **نسخه‌های پس از 14.0.10:** ‏SAML SSO، ‏OIDC و SSO سراسری، همراه با «Require SSO for login»، دوباره بخشی از Community Edition هستند و به پروانه نیاز ندارند. تأمین کاربر SCIM و تنظیم‌های انطباق تیم همچنان به Enterprise Edition نیاز دارند. بقیهٔ این بخش وضعیت v11 تا 14.0.10 را شرح می‌دهد.
+
 در v11، ویژگی‌های احراز هویت و مدیریت دسترسی زیر به **OneUptime Enterprise Edition** منتقل شدند و دیگر بخشی از ساخت رایگان و متن‌باز (Community) نیستند:
 
 - **SAML SSO** — هم ورود پروژه و هم ورود صفحه وضعیت
@@ -415,14 +432,14 @@ docker run --name oneuptime-runner --restart unless-stopped \
 - **‏SSO / OIDC سراسری (در سطح نمونه)**
 - **تنظیم‌های انطباق تیم**
 
-**پس از ارتقا چه می‌بینید:** اگر هرکدام از این‌ها را روی ساخت Community Edition پیکربندی کرده بودید، صفحه‌های تنظیم به‌جای فرم پیکربندی، درخواست ارتقا نشان می‌دهند و پیکربندی دیگر قابل تغییر نیست. تا پیش از جدا شدن ایمیج‌های Community و Enterprise، ارائه‌دهنده‌هایی که از قبل پیکربندی کرده بودید روی ساخت Community می‌توانستند همچنان کاربران را وارد کنند، چون کد ورود هنوز در آن بود. ایمیج Community دیگر هیچ کدی برای SSO، ‏OIDC یا SCIM ندارد، پس با ارتقا به آن، ورود از راه آن‌ها متوقف می‌شود — [Community and Enterprise Edition images](#community-and-enterprise-edition-images) را ببینید. رکوردهای موجود ارائه‌دهنده شما **در پایگاه داده نگه داشته می‌شوند** — چیزی حذف نمی‌شود — و به‌محض اینکه نمونه، Enterprise Edition را اجرا کند دوباره کار می‌کنند.
+**پس از ارتقا چه می‌بینید:** اگر هرکدام از این‌ها را روی ساخت Community Edition پیکربندی کرده بودید، صفحه‌های تنظیم به‌جای فرم پیکربندی، درخواست ارتقا نشان می‌دهند و پیکربندی دیگر قابل تغییر نیست. تا پیش از جدا شدن ایمیج‌های Community و Enterprise، ارائه‌دهنده‌هایی که از قبل پیکربندی کرده بودید روی ساخت Community می‌توانستند همچنان کاربران را وارد کنند، چون کد ورود هنوز در آن بود. ایمیج‌های Community نسخه‌های 14.0.0 تا 14.0.10 هیچ کدی برای SSO، ‏OIDC یا SCIM ندارند، پس با ارتقا به یکی از این نسخه‌ها، ورود از راه آن‌ها متوقف می‌شود — [Community and Enterprise Edition images](#community-and-enterprise-edition-images) را ببینید. رکوردهای موجود ارائه‌دهنده شما **در پایگاه داده نگه داشته می‌شوند** — چیزی حذف نمی‌شود — و به‌محض اینکه نمونه، Enterprise Edition یا (برای SSO و OIDC) هر نسخهٔ پس از 14.0.10 را اجرا کند دوباره کار می‌کنند.
 
 **در دسترس بودن:**
 
-- **خودمیزبان:** به ساخت **Enterprise Edition** نیاز دارد.
+- **خودمیزبان:** تأمین کاربر SCIM و تنظیم‌های انطباق تیم به ساخت **Enterprise Edition** نیاز دارند. ‏SSO و OIDC فقط در v11 تا 14.0.10 به آن نیاز دارند؛ نسخه‌های پس از 14.0.10 آن‌ها را در هر ویرایش دارند.
 - **‏OneUptime Cloud:** به طرح **Scale** (یا بالاتر) نیاز دارد.
 
-**اگر به SSO تکیه دارید و خودمیزبانید**، برای پروانه Enterprise Edition به [support@oneuptime.com](mailto:support@oneuptime.com) ایمیل بزنید تا بتوانید SSO/OIDC/SCIM را بازگردانید. اشاره کنید که از v10 به v11 ارتقا داده‌اید و کمکتان می‌کنیم دوباره آنلاینش کنید. اگر تیمتان وسط ارتقاست و این ورود را می‌بندد، پیش از ارتقای تولید با ما تماس بگیرید تا با هم برنامه‌ریزی‌اش کنیم.
+**اگر به SSO تکیه دارید و خودمیزبانید**، به نسخه‌ای پس از 14.0.10 ارتقا دهید که در آن هر ویرایش SSO و OIDC را ارائه می‌کند. برای SCIM، برای پروانه Enterprise Edition به [support@oneuptime.com](mailto:support@oneuptime.com) ایمیل بزنید، اشاره کنید که از v10 به v11 ارتقا داده‌اید، و کمکتان می‌کنیم دوباره آنلاینش کنید. اگر تیمتان وسط ارتقاست و این ورود را می‌بندد، پیش از ارتقای تولید با ما تماس بگیرید تا با هم برنامه‌ریزی‌اش کنیم.
 
 ### چه چیزی در v11 تغییر می‌کند (انباره تله‌متری)
 

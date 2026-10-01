@@ -9,13 +9,17 @@ import path from "path";
  * renderer, so — as EmptyResourceInventoryPages.test.ts does — these tests
  * read the component source and check the wiring that matters:
  *
+ *   - the card is a thin wrapper around the shared SetupGuideCard, which
+ *     owns the picker, the ingestion key step and the folded sections;
  *   - the picker's options come from the shared platform registry, never
  *     from a hand-typed list that could name a platform ingest rejects;
- *   - `initialPlatform` seeds the selection through the registry's own
- *     validity check, with the default platform as the fallback;
- *   - the markdown handed to ResourceDocumentationCard is the per-platform
- *     builder, keyed on the current selection;
+ *   - `initialPlatform` seeds the picker, and the guide is built for the
+ *     picked option through the registry's own validity check, with the
+ *     default platform as the fallback;
  *   - the environment page selects cloudPlatform and passes it through.
+ *
+ * Common/Tests/App/Dashboard/CloudDocumentationCard.test.tsx renders the
+ * card, and CloudSetupGuide.test.ts pins every platform's guide.
  *
  * Whitespace is squashed so Prettier can reflow props without breaking them.
  */
@@ -34,6 +38,13 @@ const CARD_PATH: string = path.join(
   "Components",
   "Cloud",
   "CloudDocumentationCard.tsx",
+);
+
+const GUIDE_PATH: string = path.join(
+  DASHBOARD_SRC,
+  "Components",
+  "Cloud",
+  "CloudSetupGuide.ts",
 );
 
 const DOCUMENTATION_PAGE_PATH: string = path.join(
@@ -69,14 +80,29 @@ describe("CloudDocumentationCard", () => {
     expect(code).toContain("export default CloudDocumentationCard;");
   });
 
-  test("feeds the platform picker from the shared registry", () => {
-    expect(code).toContain(
-      'import { CLOUD_PROVIDER_LABELS, CloudProvider, MANAGED_CLOUD_PLATFORMS, ManagedCloudPlatform, ManagedCloudPlatformDescriptor, isManagedCloudPlatform, } from "Common/Types/Cloud/CloudPlatform";',
-    );
-    expect(code).toContain("MANAGED_CLOUD_PLATFORMS.filter(");
-    expect(code).toContain("MANAGED_CLOUD_PLATFORMS.map(toDropdownOption)");
-    expect(code).toContain("<Dropdown options={PLATFORM_OPTION_GROUPS}");
-    expect(code).toContain('ariaLabel="Select cloud platform"');
+  test("is a thin wrapper around the shared SetupGuideCard", () => {
+    expect(code).toContain('from "../SetupGuide/SetupGuideCard"');
+    expect(code).toContain("<SetupGuideCard");
+    expect(code).toContain("title={props.title}");
+    expect(code).toContain("description={props.description}");
+    expect(code).toContain("icon={IconProp.Cloud}");
+
+    /*
+     * The key picker, the create-key modal and the markdown viewer are the
+     * shared card's; a copy here would drift from every other guide.
+     */
+    expect(code).not.toContain("ResourceDocumentationCard");
+    expect(code).not.toContain("Dropdown");
+    expect(code).not.toContain("ModelFormModal");
+    expect(code).not.toContain("MarkdownViewer");
+    expect(code).not.toContain("useState");
+    expect(code).not.toContain("documentationMarkdown");
+  });
+
+  test("feeds the picker from the guide's registry-built options", () => {
+    expect(code).toContain('optionsLabel="Where does your app run?"');
+    expect(code).toContain("options={CLOUD_PLATFORM_OPTIONS}");
+    expect(code).toContain('from "./CloudSetupGuide"');
 
     /*
      * No platform string is typed into the component: a platform ingest
@@ -86,32 +112,54 @@ describe("CloudDocumentationCard", () => {
     expect(code).not.toMatch(/"(aws|gcp|azure)_[a-z_]+"/);
   });
 
-  test("honours initialPlatform through the registry's validity check, with the default as fallback", () => {
-    expect(code).toContain(
-      "useState<ManagedCloudPlatform>( resolvePlatform(props.initialPlatform), )",
-    );
-    expect(code).toContain("if (isManagedCloudPlatform(candidate)) {");
-    expect(code).toContain("return DEFAULT_CLOUD_DOC_PLATFORM;");
+  test("opens on the environment's own platform", () => {
+    /*
+     * Passed through untouched: SetupGuideCard falls back to the first
+     * option (ECS) for a value it does not offer, and a valid value the
+     * page learns later moves the picker, while an unknown one never
+     * overrides what the reader picked.
+     */
+    expect(code).toContain("initialOption={props.initialPlatform}");
+  });
 
-    // A parent that learns the platform later still lands on the right guide.
+  test("builds the guide for the picked platform with the reader's URL and key", () => {
     expect(code).toContain(
-      "useEffect(() => { if (isManagedCloudPlatform(props.initialPlatform)) { setPlatform(props.initialPlatform as ManagedCloudPlatform); } }, [props.initialPlatform]);",
+      "getContent={(context: SetupGuideRenderContext): SetupGuideContent => { return getCloudSetupGuide({",
+    );
+    expect(code).toContain("oneuptimeUrl: context.oneuptimeUrl,");
+    expect(code).toContain("apiKey: context.apiKey,");
+    expect(code).toContain("platform: resolveCloudPlatform(context.option)");
+  });
+});
+
+describe("CloudSetupGuide", () => {
+  const code: string = readCode(GUIDE_PATH);
+
+  test("builds the picker from the shared registry, grouped by provider", () => {
+    expect(code).toContain('from "Common/Types/Cloud/CloudPlatform"');
+    expect(code).toContain("MANAGED_CLOUD_PLATFORMS.map(");
+    expect(code).toContain("key: descriptor.platform,");
+    expect(code).toContain("label: descriptor.productName,");
+    expect(code).toContain("description: descriptor.description,");
+    expect(code).toContain(
+      "group: CLOUD_PROVIDER_LABELS[descriptor.provider],",
     );
   });
 
-  test("renders the per-platform guide through ResourceDocumentationCard", () => {
+  test("resolves a platform through the registry's own lookup, with ECS as the fallback", () => {
     expect(code).toContain(
-      "return getCloudDocMarkdownForPlatform(vars, platform);",
+      "export const DEFAULT_CLOUD_DOC_PLATFORM: ManagedCloudPlatform = ManagedCloudPlatform.AwsEcs;",
     );
+    expect(code).toContain("getManagedCloudPlatformDescriptor(platform);");
     expect(code).toContain(
-      "<ResourceDocumentationCard title={props.title} description={props.description} buildMarkdown={buildMarkdown} />",
+      "return descriptor ? descriptor.platform : DEFAULT_CLOUD_DOC_PLATFORM;",
     );
-    expect(code).not.toContain("getCloudDocMarkdown(");
   });
 
-  test("only accepts a picker value the registry knows", () => {
-    expect(code).toContain(
-      'if (typeof value === "string" && isManagedCloudPlatform(value)) { setPlatform(value as ManagedCloudPlatform); }',
+  test("has a guide for every managed platform, enforced by the builder table's type", () => {
+    // Whitespace dropped entirely: Prettier may or may not break the generic.
+    expect(code.replace(/\s+/g, "")).toContain(
+      "constCLOUD_GUIDE_BUILDERS:Readonly<Record<ManagedCloudPlatform,CloudGuideBuilder>>={",
     );
   });
 });

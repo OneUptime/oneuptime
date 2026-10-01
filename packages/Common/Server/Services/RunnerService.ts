@@ -287,7 +287,7 @@ export class Service extends DatabaseService<Model> {
 
       if (renames && Service.isKubernetesAgentName(runner.name)) {
         throw new BadDataException(
-          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart registered, and its name is how OneUptime recognises it (and keeps credentials, secrets and shell work away from it), so it cannot be renamed. Use its description instead, or delete the Runner, let the agent register a fresh one (on its next retry, within a minute) and then select the new Runner on the cluster's AI page as its Runner. ${getDeletedAgentRunnerRebindNote()}`,
+          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart registered, and its name is how OneUptime recognises it (and keeps credentials, secrets and shell work away from it), so it cannot be renamed. Use its description instead, or upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner, and the Runner can then be deleted. ${getDeletedAgentRunnerRebindNote()}`,
         );
       }
 
@@ -302,7 +302,7 @@ export class Service extends DatabaseService<Model> {
         throw new BadDataException(
           `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed: it runs kubectl for its cluster only, so ${turnsOnCapabilities.join(
             " and ",
-          )} cannot be turned on for it — and doing so would stop it re-registering after its pod restarts. Create a Runner under Project Settings → Runners for runbooks or code fixes instead.`,
+          )} cannot be turned on for it — and doing so would stop it re-registering after its pod restarts. Create a Runner under Runbooks → Runners for runbooks or code fixes instead.`,
         );
       }
     }
@@ -483,7 +483,7 @@ export class Service extends DatabaseService<Model> {
 
     if (agentRunner) {
       throw new BadDataException(
-        `Runner "${agentRunner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl with its own ServiceAccount only and is never given a ${data.assignedWhat}, because its identity is issued with the project's telemetry ingestion key. Assign this ${data.assignedWhat} to a Runner you created under Project Settings → Runners instead.`,
+        `Runner "${agentRunner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl with its own ServiceAccount only and is never given a ${data.assignedWhat}, because its identity is issued with the project's telemetry ingestion key. Assign this ${data.assignedWhat} to a Runner you created under Runbooks → Runners instead.`,
       );
     }
   }

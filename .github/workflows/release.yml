@@ -157,9 +157,49 @@ jobs:
 
 
 
+  # Lints and renders both charts at the start of the run, with the same
+  # commands helm-chart-deploy runs. It keeps a chart that does not render
+  # from getting any further than it used to: the e2e jobs need this job, and
+  # push-release-tags needs them, so no `release` tag moves on a broken chart.
+  # helm-chart-deploy used to be that gate itself, but it now runs after
+  # push-release-tags (see there), and it cannot be both.
+  helm-chart-check:
+    runs-on: ubuntu-latest
+    needs: [read-version]
+    steps:
+
+      - name: Install Helm
+        run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Lint and render the Helm charts
+        working-directory: ./HelmChart/Public
+        run: |
+          helm lint oneuptime
+          helm template oneuptime --values oneuptime/values.yaml > /dev/null
+          # clusterName has no default; see helm-chart-deploy.
+          helm lint kubernetes-agent --set clusterName=ci-render-check
+          helm template kubernetes-agent --values kubernetes-agent/values.yaml --set clusterName=ci-render-check > /dev/null
+
+  # Publishes the charts only after push-release-tags has moved `release`.
+  #
+  # The kubernetes-agent chart installs the Kubernetes AI agent by default, as
+  # oneuptime/kubernetes-ai-agent:release, and the agent needs this release's
+  # server API (/kubernetes-ai-agent-ingest). That tag moves in
+  # push-release-tags, with the App's, once the e2e jobs pass. This job used to
+  # need only read-version, so the chart went out before any image had been
+  # built: a new chart would have pulled an agent image that did not exist yet
+  # (on the first release, a repository that did not), and a release whose e2e
+  # failed would still have published its chart.
+  #
+  # The e2e jobs used to need this job. push-release-tags needs them, so that
+  # would now be a cycle; they need helm-chart-check instead.
   helm-chart-deploy:
     runs-on: ubuntu-latest
-    needs: [generate-build-number, read-version]
+    needs: [generate-build-number, read-version, push-release-tags]
     env:
         CI_COMMIT_AUTHOR: Continuous Integration
     steps:
@@ -1137,6 +1177,186 @@ jobs:
             --image kubernetes-cost-agent \
             --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION},release,enterprise-release"
 
+  # The Kubernetes AI agent is tagged like the Runner, not like the two
+  # Kubernetes agents above: build and merge publish only <version> and
+  # enterprise-<version>, and `release` / `enterprise-release` move in
+  # push-release-tags, after the e2e jobs pass. The kubernetes-agent chart
+  # runs it by default at `release`, and it re-checks every kubectl command
+  # against its copy of the server's policy, so its `release` must not get
+  # ahead of the App's.
+  kubernetes-ai-agent-docker-image-build:
+    needs: [generate-build-number, read-version]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Build and push
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image kubernetes-ai-agent \
+            --version "${{needs.read-version.outputs.major_minor}}" \
+            --dockerfile ./agents/KubernetesAIAgent/Dockerfile \
+            --context . \
+            --platforms ${{ matrix.platform }} \
+            --git-sha "${{ github.sha }}"
+
+  kubernetes-ai-agent-docker-image-merge:
+    needs: [kubernetes-ai-agent-docker-image-build, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image kubernetes-ai-agent \
+            --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
+
+  # The resource AI agent is tagged like the Kubernetes AI agent above (the
+  # Runner's pattern): build and merge publish only <version> and
+  # enterprise-<version>, and `release` / `enterprise-release` move in
+  # push-release-tags, after the e2e jobs pass. The Docker, Podman, Swarm,
+  # Proxmox, VMware, Ceph, database and host agents run it at `release` next
+  # to their collector, it registers with this release's server API
+  # (/resource-ai-agent-ingest), and it re-checks every command against its
+  # copy of the server's resource command policy, so its `release` must not
+  # get ahead of the App's.
+  resource-ai-agent-docker-image-build:
+    needs: [generate-build-number, read-version]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Build and push
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image resource-ai-agent \
+            --version "${{needs.read-version.outputs.major_minor}}" \
+            --dockerfile ./agents/ResourceAIAgent/Dockerfile \
+            --context . \
+            --platforms ${{ matrix.platform }} \
+            --git-sha "${{ github.sha }}"
+
+  resource-ai-agent-docker-image-merge:
+    needs: [resource-ai-agent-docker-image-build, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image resource-ai-agent \
+            --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
+
   app-docker-image-build:
     needs: [generate-build-number, read-version]
     strategy:
@@ -1358,6 +1578,15 @@ jobs:
 
 
 
+  # Moves release / enterprise-release onto this version's images only once the
+  # three e2e jobs have passed. Every image in the matrix is built with version
+  # tags only; the collector-based and Kubernetes telemetry agents move their
+  # own release tags at build time instead. kubernetes-ai-agent is here, not
+  # there, because the kubernetes-agent chart runs it at `release` and it must
+  # match the server it talks to (see kubernetes-ai-agent-docker-image-build).
+  # resource-ai-agent is here for the same reason: every resource agent's
+  # docker-compose.yml runs it at `release` (see
+  # resource-ai-agent-docker-image-build).
   push-release-tags:
     name: Push release tags before GitHub release
     needs:
@@ -1370,6 +1599,8 @@ jobs:
       - test-docker-image-merge
       - probe-docker-image-merge
       - runner-docker-image-merge
+      - kubernetes-ai-agent-docker-image-merge
+      - resource-ai-agent-docker-image-merge
       - app-docker-image-merge
       - test-e2e-release-saas
       - test-e2e-release-self-hosted
@@ -1386,6 +1617,8 @@ jobs:
           "test",
           "probe",
           "runner",
+          "kubernetes-ai-agent",
+          "resource-ai-agent",
           "app"
         ]
     steps:
@@ -1445,7 +1678,7 @@ jobs:
 
   test-e2e-release-saas:
     runs-on: ubuntu-latest
-    needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-merge]
+    needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-check, generate-build-number, read-version, nginx-docker-image-merge]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -1686,7 +1919,7 @@ jobs:
   test-e2e-release-self-hosted:
     runs-on: ubuntu-latest
     # After all the jobs runs
-    needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-merge]
+    needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-check, generate-build-number, read-version, nginx-docker-image-merge]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -1846,10 +2079,11 @@ jobs:
   # job against the -test tags; this one gates the release tags, so keep the two
   # in step. The published enterprise- App image is booted from
   # docker-compose.yml with billing OFF - the only configuration in which the
-  # LICENSE, rather than the billing flag, decides whether SSO, SCIM and audit
-  # logging run - and the enterprise suite runs twice against that one stack:
-  # phase A inside the unlicensed 14-day trial, phase B after the trial has been
-  # pushed into the past.
+  # LICENSE, rather than the billing flag, decides whether SCIM and audit
+  # logging run (single sign-on is core and runs whatever the license says) -
+  # and the enterprise suite runs twice against that one stack: phase A inside
+  # the unlicensed 14-day trial, phase B after the trial has been pushed into
+  # the past.
   #
   # push-release-tags waits for this job, so an Enterprise stack that no longer
   # serves (or no longer refuses) its enterprise features cannot be promoted to
@@ -1857,7 +2091,7 @@ jobs:
   test-e2e-release-enterprise:
     runs-on: ubuntu-latest
     # After all the jobs runs
-    needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-merge]
+    needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-check, generate-build-number, read-version, nginx-docker-image-merge]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -1983,7 +2217,7 @@ jobs:
           echo "${KEY}=true" >> "$GITHUB_ENV"
       # push-release-tags promotes this App tag to enterprise-release once this
       # job passes, and the whole job is meaningless if the tag is not really the
-      # Enterprise Edition: a Community image answers 404 to every identity route
+      # Enterprise Edition: a Community image answers 404 to every SCIM route
       # and phase B would "pass" for the wrong reason. So check it before booting
       # it: ee/ in the image and in its UI bundles, and the loader actually
       # loading it.
@@ -2266,17 +2500,21 @@ jobs:
   # Ordering matters: this runs after draft-github-release so there is a release
   # to attach to, and finalize-github-release depends on it so the release is
   # never published without its SBOMs.
-  # The needs list is not just ordering sugar. This job scans eleven of the
-  # twelve published tags (home is deliberately skipped — see SKIPPED_IMAGES in
-  # generate_sboms.sh), and the unsuffixed tag it scans is created only by the
-  # corresponding *-docker-image-merge job. Seven of those merges are reached
-  # transitively via draft-github-release; docker-agent, podman-agent,
+  # The needs list is not just ordering sugar. This job scans thirteen of the
+  # fourteen published images (home is deliberately skipped — see
+  # SKIPPED_IMAGES in generate_sboms.sh), and the unsuffixed tag it scans is
+  # created only by the corresponding *-docker-image-merge job. Nine of those
+  # merges are reached transitively via draft-github-release (it needs
+  # push-release-tags, which needs them); docker-agent, podman-agent,
   # kubernetes-log-tailer and kubernetes-cost-agent are leaves that nothing
   # else depends on, so they must be named explicitly. Without them a failure
   # in any of the four would let this job run against a tag that was never
   # pushed, fail on MANIFEST_UNKNOWN, and — since finalize-github-release now
   # needs this job — strand the release as a permanent draft after the images
-  # and tags had already gone out.
+  # and tags had already gone out. kubernetes-ai-agent and resource-ai-agent
+  # are among the nine, but they are named as well: either would become a
+  # leaf too if it ever moved its release tags at build time like the
+  # collector-based agents.
   generate-sboms:
     name: Generate CycloneDX SBOMs
     needs:
@@ -2286,6 +2524,8 @@ jobs:
       - podman-agent-docker-image-merge
       - kubernetes-log-tailer-docker-image-merge
       - kubernetes-cost-agent-docker-image-merge
+      - kubernetes-ai-agent-docker-image-merge
+      - resource-ai-agent-docker-image-merge
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -2593,9 +2833,13 @@ jobs:
         run: |
           security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
 
+  # helm-chart-deploy is named because nothing else here waits for it any
+  # more (it runs after push-release-tags, beside the draft): a release is
+  # not published without its charts, as it was not when the chart publish
+  # came first.
   finalize-github-release:
     name: Publish GitHub release
-    needs: [infrastructure-agent-deploy, generate-sboms, generate-build-number, read-version]
+    needs: [infrastructure-agent-deploy, generate-sboms, helm-chart-deploy, generate-build-number, read-version]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/release'
     permissions:

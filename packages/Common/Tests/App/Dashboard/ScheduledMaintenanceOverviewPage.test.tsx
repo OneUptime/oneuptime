@@ -1088,6 +1088,31 @@ describe("Scheduled maintenance overview page", () => {
 
       expect((display.props as { columns?: number }).columns).toBe(1);
     });
+
+    /*
+     * The incident and alert pages already did. The default style pulls its
+     * one row out by -mx-3 at full width, so the display ended 24px short of
+     * the card's right edge, and it washed the whole body in a rounded grey
+     * box on hover: another box inside the card.
+     */
+    test("both cards use the compact detail style, the resources card too", async () => {
+      getItemMock.mockResolvedValue(makeEvent() as never);
+
+      await renderPage();
+
+      for (const name of [
+        "Scheduled Maintenance Details",
+        "Affected Resources",
+      ]) {
+        const detail: CardProps = cardProps(name);
+
+        expect({ name, style: detail.modelDetailProps.style }).toEqual({
+          name,
+          style: DetailStyle.Compact,
+        });
+        expect(detail.modelDetailProps.showDetailsInNumberOfColumns).toBe(1);
+      }
+    });
   });
 
   describe("affected resources card", () => {

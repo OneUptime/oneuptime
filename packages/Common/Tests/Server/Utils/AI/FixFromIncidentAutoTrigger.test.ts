@@ -21,8 +21,9 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 /*
  * The AUTOMATIC form of the FixFromIncident trigger: a durably Recommended
  * investigation (per the structured G6 signal) enqueues a fix-PR CodeFix
- * run with no human click — but ONLY for projects that explicitly opted in
- * for the investigation's incident or alert lane (both default FALSE — G11 posture), only
+ * run with no human click — but ONLY for projects with the setting on for
+ * the investigation's incident or alert lane (both columns default FALSE;
+ * new projects get them on), only
  * when a GitHub-App repo exists to open the PR against, at most one
  * non-terminal run per subject, and inside the daily fix-run budget. It
  * runs as a post-recommendation follow-up, so it must NEVER throw,
@@ -100,7 +101,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
     expect(decision.reason).toMatch(/disabled/);
   });
 
-  test("opt-in is strict: an unset flag (legacy row) never enqueues — default is FALSE", () => {
+  test("opt-in is strict: an unset flag (legacy row) never enqueues — the column default is FALSE", () => {
     const project: Project = {
       id: projectId,
       enableAi: true,
@@ -356,7 +357,7 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation", (
     },
   );
 
-  test("a not-opted-in project (default) skips cheaply: BEFORE the budget, repo and dedupe queries", async () => {
+  test("a project with the setting off skips cheaply: BEFORE the budget, repo and dedupe queries", async () => {
     jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue(

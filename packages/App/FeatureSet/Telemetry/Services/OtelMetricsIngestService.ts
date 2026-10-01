@@ -23,7 +23,7 @@ import ObjectID from "Common/Types/ObjectID";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import logger, {
   getLogAttributesFromRequest,
   type RequestLike,
@@ -38,6 +38,7 @@ import OtelIngestBaseService, {
 import DatabaseCallEntityKeyResolver, {
   DatabaseCallerSource,
 } from "./DatabaseCallEntityKeys";
+import MessagingEntityKeyResolver from "./MessagingEntityKeys";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import MetricPipelineRuleService, {
@@ -110,7 +111,25 @@ import {
   computeProxmoxGuestBackedUp,
   deriveProxmoxClusterSnapshotExtras,
   deriveCephClusterSnapshotExtras,
+  proxmoxClusterCountsFromInventory,
 } from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
+import {
+  appendProxmoxSiblingReportsInPlace,
+  isProxmoxNativePushResource,
+  isProxmoxSiblingReportScope,
+  normalizeProxmoxNativePushInPlace,
+  readProxmoxNativeNodeStatus,
+} from "Common/Server/Utils/Telemetry/ProxmoxNativePush";
+import {
+  PROXMOX_NODE_SILENCE_MS,
+  ProxmoxRosterNode,
+  ProxmoxSilentNodeDecision,
+  ProxmoxSilentNodeReport,
+  isProxmoxSilentNodeDetectionEnabled,
+  recordProxmoxNodePushAndFindSilentNodes,
+} from "Common/Server/Utils/Telemetry/ProxmoxNativeNodeLiveness";
+import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
+import crypto from "crypto";
 import {
   VMWARE_SNAPSHOT_METRIC_NAMES,
   VMwareResourceBufferEntry,
@@ -134,6 +153,9 @@ import TelemetryFanInWriter, {
   FanInSubmitResult,
   pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import SessionReplayBudgetMetricTypeUtil, {
+  SESSION_REPLAY_METRIC_NAME_PREFIX,
+} from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
 
 type MetricTimestamp = {
   nano: string;
@@ -775,6 +797,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        */
       OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceMetrics);
 
+      /*
+       * Proxmox VE's built-in OpenTelemetry push speaks its own dialect
+       * (proxmox_* names, no `id` label, `proxmox.cluster` instead of
+       * `proxmox.cluster.name`). Translate it to the pve_* shape the
+       * Proxmox pages, catalog and alert templates read — before cluster
+       * discovery, routing and the snapshot scan see the batch.
+       */
+      normalizeProxmoxNativePushInPlace(resourceMetrics);
+
       const dbMetrics: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
 
@@ -791,6 +822,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        */
       const databaseCallEntityKeys: DatabaseCallEntityKeyResolver =
         new DatabaseCallEntityKeyResolver(projectId);
+
+      /*
+       * Broker-metric and messaging-client datapoints (and any datapoint
+       * carrying `messaging.system`) get their queue's key on their own
+       * row. Memoized for this request only — see MessagingEntityKeys.
+       */
+      const messagingEntityKeys: MessagingEntityKeyResolver =
+        new MessagingEntityKeyResolver(projectId);
 
       /*
        * Hosts already heartbeated in this batch. The hostmetrics receiver
@@ -891,6 +930,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         ProxmoxClusterSnapshotBufferEntry
       > = new Map();
+      /*
+       * Per cluster: the native-push nodes this batch's live nodes
+       * reported as not reporting, for the inventory flush.
+       */
+      const proxmoxSilentNodeReports: Map<string, ProxmoxSilentNodeReport> =
+        new Map();
       const vmwareResourceMetricsBuffer: Map<
         string,
         Map<string, VMwareResourceBufferEntry>
@@ -974,6 +1019,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * every row — see OtelIngestBaseService.normalizeCloudPlatformAttribute.
            */
           this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
+          this.stampServerlessFunctionNameAttribute(resourceAttributes_raw);
+
+          /*
+           * A PVE native push describes one node's node, guest or storage
+           * status per request, so the Proxmox cluster counts are
+           * recounted from the stored inventory rather than this block.
+           */
+          const proxmoxNativePush: boolean = isProxmoxNativePushResource(
+            resourceAttributes_raw,
+          );
 
           // Producer-declared entities (authoritative when present).
           const resourceEntityRefs: Array<ResourceEntityRef> =
@@ -1061,6 +1116,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               receiverSystemHint: databaseReceiverSystemHint,
             }),
           ]);
+
+          /*
+           * A native-push node's own status push also reports the
+           * siblings that have stopped reporting (pve_up = 0), so Node
+           * Offline and Quorum at Risk see dead nodes as they do on the
+           * agent path. Appended before the rows are built, so the
+           * reports ride the same routing, retention and pipeline rules.
+           */
+          if (proxmoxNativePush && proxmoxClusterId) {
+            await this.appendProxmoxSilentNodeReports({
+              projectId,
+              proxmoxClusterId,
+              resourceMetric: resourceMetric as JSONObject,
+              reports: proxmoxSilentNodeReports,
+            });
+          }
 
           /*
            * The same pure gate autoDiscoverDatabaseServer ran: it names the
@@ -1380,6 +1451,30 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   const metricName: string = (metric["name"] || "")
                     .toString()
                     .toLowerCase();
+
+                  /*
+                   * Names under the session replay prefix belong to
+                   * OneUptime's budget sweep: its series open incidents
+                   * through the RUM alert templates and are left out of
+                   * telemetry billing by name. A browser batch is keyed to
+                   * its RUM application exactly like the sweep's rows, so a
+                   * point any page sent under one of these names could fire
+                   * the customer's budget alerts, and would be stored
+                   * unbilled. Refused before the catalog too, so a sent
+                   * unit or description cannot overwrite the registered
+                   * one. Nothing wider than this prefix is reserved.
+                   */
+                  if (
+                    SessionReplayBudgetMetricTypeUtil.isReservedMetricName(
+                      metricName,
+                    )
+                  ) {
+                    logger.debug(
+                      `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${SESSION_REPLAY_METRIC_NAME_PREFIX}" are reserved for OneUptime's session replay budget metrics.`,
+                    );
+                    continue;
+                  }
+
                   const metricDescription: string = metric[
                     "description"
                   ] as string;
@@ -1598,9 +1693,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                          * attributes — the buffer functions read the
                          * raw datapoint attribute array directly.
                          */
+                        /*
+                         * Reports about silent siblings never reach the
+                         * inventory fold: they must not refresh the
+                         * silent node's lastSeenAt (the flush marks it
+                         * Offline instead).
+                         */
                         if (
                           proxmoxClusterId &&
-                          PVE_SNAPSHOT_METRIC_NAMES.has(metricName)
+                          PVE_SNAPSHOT_METRIC_NAMES.has(metricName) &&
+                          !isProxmoxSiblingReportScope(scopeMetric)
                         ) {
                           bufferProxmoxSnapshotMetric({
                             clusterIdStr: proxmoxClusterId.toString(),
@@ -1608,6 +1710,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             datapoint: datapoint as JSONObject,
                             resourceBuffer: proxmoxResourceMetricsBuffer,
                             clusterBuffer: proxmoxClusterSnapshotBuffer,
+                            countsFromInventory: proxmoxNativePush,
                           });
                         }
 
@@ -1693,6 +1796,30 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         }
 
                         /*
+                         * The name was checked on arrival (above), but a
+                         * customer RenameMetric rule sets the row's name
+                         * after that, verbatim - not lowercased - so a
+                         * rename into the reserved prefix is dropped here,
+                         * like any other dropped row. Only a rule can
+                         * change the name, so an unchanged one costs a
+                         * single comparison per datapoint.
+                         */
+                        const finalMetricName: JSONValue | undefined =
+                          transformed["name"];
+                        if (
+                          finalMetricName !== metricName &&
+                          typeof finalMetricName === "string" &&
+                          SessionReplayBudgetMetricTypeUtil.isReservedMetricName(
+                            finalMetricName,
+                          )
+                        ) {
+                          logger.debug(
+                            `Dropped a "${metricName}" datapoint for project ${projectId.toString()}: a metric pipeline rule renamed it to "${finalMetricName}", and names starting with "${SESSION_REPLAY_METRIC_NAME_PREFIX}" are reserved for OneUptime's session replay budget metrics.`,
+                          );
+                          continue;
+                        }
+
+                        /*
                          * IoT device identity lives in datapoint labels
                          * (device.id) and resource/datapoint attributes —
                          * the buffer function reads the raw datapoint
@@ -1747,6 +1874,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           metricRow,
                           databaseCaller,
                         );
+
+                        /*
+                         * A broker or messaging-client datapoint belongs to
+                         * its queue — same rules, keyed off the FINAL name
+                         * and attributes (a rule's rename or redaction
+                         * decides), resource keys read `resource.`-prefixed
+                         * as stored.
+                         */
+                        messagingEntityKeys.appendToMetricRow(metricRow);
 
                         dbMetrics.push(metricRow);
                         totalMetricsProcessed++;
@@ -1849,6 +1985,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         projectId,
         resourceBuffer: proxmoxResourceMetricsBuffer,
         clusterBuffer: proxmoxClusterSnapshotBuffer,
+        silentNodeReports: proxmoxSilentNodeReports,
       });
 
       await this.flushVMwareSnapshotBuffers({
@@ -3249,6 +3386,190 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   /*
+   * Record a Proxmox VE native-push node-status push and, when this node
+   * may report, append pve_up = 0 reports for the siblings that have
+   * stopped reporting (see ProxmoxNativeNodeLiveness). Collects what was
+   * reported per cluster for the inventory flush. Never throws: on any
+   * failure the push is ingested exactly as it came.
+   */
+  private static async appendProxmoxSilentNodeReports(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    resourceMetric: JSONObject;
+    reports: Map<string, ProxmoxSilentNodeReport>;
+  }): Promise<void> {
+    if (!isProxmoxSilentNodeDetectionEnabled()) {
+      return;
+    }
+    try {
+      const status: {
+        nodeName: string;
+        timeUnixNanos: Array<JSONValue>;
+      } | null = readProxmoxNativeNodeStatus(data.resourceMetric);
+      if (!status) {
+        return;
+      }
+
+      /*
+       * The earliest of the node's own points: the silence check compares
+       * sibling rows against it, so the earliest is the cautious choice.
+       */
+      let reporterTimeMs: number | null = null;
+      for (const timeUnixNano of status.timeUnixNanos) {
+        if (
+          typeof timeUnixNano !== "string" &&
+          typeof timeUnixNano !== "number"
+        ) {
+          continue;
+        }
+        const ms: number = OneUptimeDate.fromUnixNano(timeUnixNano).getTime();
+        if (
+          Number.isFinite(ms) &&
+          (reporterTimeMs === null || ms < reporterTimeMs)
+        ) {
+          reporterTimeMs = ms;
+        }
+      }
+      if (reporterTimeMs === null) {
+        reporterTimeMs = OneUptimeDate.getCurrentDate().getTime();
+      }
+
+      const decision: ProxmoxSilentNodeDecision | null =
+        await recordProxmoxNodePushAndFindSilentNodes({
+          projectId: data.projectId,
+          proxmoxClusterId: data.proxmoxClusterId,
+          selfNode: status.nodeName,
+          reporterTimeMs,
+          loadRoster: (roster: {
+            projectId: ObjectID;
+            proxmoxClusterId: ObjectID;
+          }): Promise<Array<ProxmoxRosterNode>> => {
+            return ProxmoxResourceService.getNodeRoster(roster);
+          },
+        });
+      if (!decision) {
+        return;
+      }
+
+      appendProxmoxSiblingReportsInPlace(data.resourceMetric, {
+        silentNodes: decision.silentNodes,
+        reporterCount: decision.reporterCount,
+        timeUnixNanos: status.timeUnixNanos,
+      });
+
+      const clusterIdStr: string = data.proxmoxClusterId.toString();
+      const silentBefore: Date = new Date(
+        reporterTimeMs - PROXMOX_NODE_SILENCE_MS,
+      );
+      const existing: ProxmoxSilentNodeReport | undefined =
+        data.reports.get(clusterIdStr);
+      if (existing) {
+        decision.silentNodes.forEach((nodeName: string) => {
+          existing.nodeNames.add(nodeName);
+        });
+        if (silentBefore < existing.silentBefore) {
+          existing.silentBefore = silentBefore;
+        }
+      } else {
+        data.reports.set(clusterIdStr, {
+          nodeNames: new Set(decision.silentNodes),
+          silentBefore,
+        });
+      }
+    } catch (err) {
+      logger.warn(
+        `Proxmox silent-node report failed for cluster ${data.proxmoxClusterId.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  /*
+   * Turn reported nodes Offline in the inventory. Every live node reports
+   * on every push (~every 10 s), so the write is fenced to once per
+   * 30 s per cluster and set of nodes; the UPDATE itself is a no-op for
+   * rows already marked. Never throws.
+   */
+  private static async markProxmoxSilentNodesOffline(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    report: ProxmoxSilentNodeReport;
+  }): Promise<void> {
+    try {
+      const nodeNames: Array<string> = Array.from(data.report.nodeNames).sort();
+      const fingerprint: string = crypto
+        .createHash("sha1")
+        .update(nodeNames.join("\n"))
+        .digest("hex");
+      const acquired: boolean = await GlobalCache.setStringIfNotExists(
+        "proxmox-silent-node-mark",
+        `${data.proxmoxClusterId.toString()}:${fingerprint}`,
+        "1",
+        { expiresInSeconds: 30 },
+      );
+      if (!acquired) {
+        return;
+      }
+      await ProxmoxResourceService.markNodesNotReporting({
+        projectId: data.projectId,
+        proxmoxClusterId: data.proxmoxClusterId,
+        nodeNames,
+        silentBefore: data.report.silentBefore,
+        markedAt: OneUptimeDate.getCurrentDate(),
+      });
+    } catch (err) {
+      logger.warn(
+        `Proxmox silent-node inventory write failed for cluster ${data.proxmoxClusterId.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  /*
+   * A cluster reporting over the Proxmox VE native push: take all of its
+   * Node rows into the native-push keep, so a node that was already down
+   * under the agent (or before the flag existed) stays on the roster and
+   * gets reported (ProxmoxResourceService.adoptNodesAsNativePush). The
+   * UPDATE only touches rows not yet flagged, and is fenced to once per
+   * 10 minutes per cluster; without Redis it simply runs, and when it
+   * fails the fence is released so the next push retries. Never throws.
+   */
+  private static async adoptProxmoxNodesAsNativePush(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    seenUpTo: Date;
+  }): Promise<void> {
+    const fenceNamespace: string = "proxmox-native-adopt";
+    const fenceKey: string = data.proxmoxClusterId.toString();
+    let fenced: boolean = false;
+    try {
+      let acquired: boolean = true;
+      try {
+        acquired = await GlobalCache.setStringIfNotExists(
+          fenceNamespace,
+          fenceKey,
+          "1",
+          { expiresInSeconds: 600 },
+        );
+        fenced = acquired;
+      } catch {
+        acquired = true;
+      }
+      if (!acquired) {
+        return;
+      }
+      await ProxmoxResourceService.adoptNodesAsNativePush(data);
+    } catch (err) {
+      if (fenced) {
+        await GlobalCache.deleteKey(fenceNamespace, fenceKey).catch(() => {
+          // The fence expires on its own.
+        });
+      }
+      logger.warn(
+        `Proxmox native-push node adoption failed for cluster ${data.proxmoxClusterId.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  /*
    * Drain the Proxmox buffers: inventory upsert + latest-metric
    * mirror, then the ProxmoxCluster snapshot columns. The count
    * columns are computed from the SAME buffer the inventory rows were
@@ -3261,10 +3582,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     projectId: ObjectID;
     resourceBuffer: Map<string, Map<string, ProxmoxResourceBufferEntry>>;
     clusterBuffer: Map<string, ProxmoxClusterSnapshotBufferEntry>;
+    silentNodeReports?: Map<string, ProxmoxSilentNodeReport> | undefined;
   }): Promise<void> {
     const clusterIdStrs: Set<string> = new Set<string>([
       ...data.resourceBuffer.keys(),
       ...data.clusterBuffer.keys(),
+      ...(data.silentNodeReports?.keys() || []),
     ]);
 
     for (const clusterIdStr of clusterIdStrs) {
@@ -3300,7 +3623,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             projectId: data.projectId,
             proxmoxClusterId: new ObjectID(clusterIdStr),
             resources,
+            // A native push is exactly the batch that counts from inventory.
+            isNativePush: Boolean(snap?.countsFromInventory),
           });
+
+          if (snap?.countsFromInventory) {
+            await this.adoptProxmoxNodesAsNativePush({
+              projectId: data.projectId,
+              proxmoxClusterId: new ObjectID(clusterIdStr),
+              seenUpTo: entries.reduce(
+                (newest: Date, e: ProxmoxResourceBufferEntry) => {
+                  return e.observedAt > newest ? e.observedAt : newest;
+                },
+                entries[0]!.observedAt,
+              ),
+            });
+          }
 
           const metrics: Array<ProxmoxResourceLatestMetric> = entries.map(
             (e: ProxmoxResourceBufferEntry) => {
@@ -3334,6 +3672,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         }
       }
 
+      /*
+       * Nodes the live siblings reported as not reporting turn Offline —
+       * before the recount below, so onlineNodeCount drops in this flush.
+       */
+      const silentNodeReport: ProxmoxSilentNodeReport | undefined =
+        data.silentNodeReports?.get(clusterIdStr);
+      if (silentNodeReport) {
+        await this.markProxmoxSilentNodesOffline({
+          projectId: data.projectId,
+          proxmoxClusterId: new ObjectID(clusterIdStr),
+          report: silentNodeReport,
+        });
+      }
+
       try {
         /*
          * Counts are only written when the batch carried the matching
@@ -3342,6 +3694,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
          */
         const extras: ProxmoxClusterSnapshotExtras =
           deriveProxmoxClusterSnapshotExtras(entries, snap);
+
+        /*
+         * A partial-by-design batch (PVE native push) is recounted from
+         * the inventory it just wrote to, which spans every node's pushes.
+         */
+        if (snap?.countsFromInventory && entries.length > 0) {
+          Object.assign(
+            extras,
+            proxmoxClusterCountsFromInventory(
+              await ProxmoxResourceService.getInventorySummary({
+                projectId: data.projectId,
+                proxmoxClusterId: new ObjectID(clusterIdStr),
+              }),
+            ),
+          );
+        }
 
         if (Object.keys(extras).length > 0) {
           await ProxmoxClusterService.updateLastSeen(

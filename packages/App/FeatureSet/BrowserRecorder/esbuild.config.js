@@ -42,7 +42,7 @@ const COMMON_ROOT = path.resolve(__dirname, "../../../Common");
 
 /*
  * The ONLY Common paths this bundle may reach. Everything else in Common
- * transitively drags in express / typeorm / stripe / monaco, or reads
+ * transitively drags in express / typeorm / stripe, or reads
  * window.process.env (Common/UI/Config.ts) which only exists inside the
  * OneUptime Dashboard. The modules below are deliberately dependency-free
  * so they can be inlined here and unit-tested once for both sides of the

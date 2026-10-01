@@ -730,6 +730,84 @@ describe("install.sh", () => {
     expect(run.output).toContain("not an engine this agent ships a config for");
     expect(run.output).toContain("sqlserver, oracle, elasticsearch");
   });
+
+  /*
+   * The OneUptime AI agent (oneuptime-database-ai-agent) reads the same
+   * .env: it is read-only unless ONEUPTIME_AI_ALLOW_WRITES is exactly true,
+   * its own login is written as typed (the collector never reads it, so
+   * no $ doubling), and a re-run keeps all of it.
+   */
+  test("the AI agent is read-only by default, and says so", () => {
+    const run = runInstall(scratch(), {
+      ...BASE,
+      DATABASE_SYSTEM: "postgresql",
+      DATABASE_ENDPOINT: "db.example.com:5432",
+      DATABASE_USERNAME: "monitor",
+      DATABASE_PASSWORD: "pw",
+    });
+
+    expect(run.status).toBe(0);
+    expect(run.envLine("ONEUPTIME_AI_ALLOW_WRITES")).toBe("false");
+    expect(run.envLine("ONEUPTIME_AI_DATABASE_USERNAME")).toBe("''");
+    expect(run.envLine("ONEUPTIME_AI_DATABASE_PASSWORD")).toBe("''");
+    expect(run.output).toContain(
+      "The OneUptime AI agent (oneuptime-database-ai-agent) is read-only.",
+    );
+    expect(run.output).toContain(
+      "docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status",
+    );
+  });
+
+  test("fixes on: only an exact true, and the AI login is written as typed, then reused", () => {
+    const dir = scratch();
+    const first = runInstall(dir, {
+      ...BASE,
+      DATABASE_SYSTEM: "mysql",
+      DATABASE_ENDPOINT: "db.example.com:3306",
+      DATABASE_USERNAME: "monitor",
+      DATABASE_PASSWORD: "pw",
+      ONEUPTIME_AI_ALLOW_WRITES: "TRUE",
+      ONEUPTIME_AI_DATABASE_USERNAME: "oneuptime_ai",
+      ONEUPTIME_AI_DATABASE_PASSWORD: "a$b'c",
+      ONEUPTIME_AI_PROTECTED_TARGETS: "session:1",
+    });
+
+    expect(first.status).toBe(0);
+    expect(first.envLine("ONEUPTIME_AI_ALLOW_WRITES")).toBe("true");
+    expect(first.envLine("ONEUPTIME_AI_DATABASE_USERNAME")).toBe("'oneuptime_ai'");
+    // Compose quoting only (its $$ is one $): no collector escaping.
+    expect(first.envLine("ONEUPTIME_AI_DATABASE_PASSWORD")).toBe('"a$$b\'c"');
+    expect(first.envLine("ONEUPTIME_AI_PROTECTED_TARGETS")).toBe("'session:1'");
+    expect(first.output).toContain("may cancel a query or end a");
+
+    const again = runInstall(dir, { ...BASE });
+
+    expect(again.status).toBe(0);
+    expect(again.envLine("ONEUPTIME_AI_ALLOW_WRITES")).toBe("true");
+    expect(again.envLine("ONEUPTIME_AI_DATABASE_PASSWORD")).toBe('"a$$b\'c"');
+
+    const typo = runInstall(scratch(), {
+      ...BASE,
+      DATABASE_SYSTEM: "redis",
+      DATABASE_ENDPOINT: "cache.example.com",
+      ONEUPTIME_AI_ALLOW_WRITES: "yes",
+    });
+
+    expect(typo.envLine("ONEUPTIME_AI_ALLOW_WRITES")).toBe("false");
+  });
+
+  test("an engine without AI diagnostics is told the AI agent runs nothing", () => {
+    const run = runInstall(scratch(), {
+      ...BASE,
+      DATABASE_SYSTEM: "memcached",
+      DATABASE_ENDPOINT: "cache.example.com",
+    });
+
+    expect(run.status).toBe(0);
+    expect(run.output).toContain(
+      "has no AI diagnostics for\nmemcached yet, so it runs nothing.",
+    );
+  });
 });
 
 /*

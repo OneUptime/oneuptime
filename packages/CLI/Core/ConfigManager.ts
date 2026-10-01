@@ -99,11 +99,18 @@ export function getResolvedCredentials(
     return { apiKey: cliOptions.apiKey, apiUrl: cliOptions.url };
   }
 
+  function applyCliOverrides(creds: ResolvedCredentials): ResolvedCredentials {
+    return {
+      apiKey: cliOptions.apiKey || creds.apiKey,
+      apiUrl: cliOptions.url || creds.apiUrl,
+    };
+  }
+
   // Priority 2: Environment variables
   const envApiKey: string | undefined = process.env["ONEUPTIME_API_KEY"];
   const envUrl: string | undefined = process.env["ONEUPTIME_URL"];
   if (envApiKey && envUrl) {
-    return { apiKey: envApiKey, apiUrl: envUrl };
+    return applyCliOverrides({ apiKey: envApiKey, apiUrl: envUrl });
   }
 
   // Priority 3: Specific context if specified via --context flag
@@ -111,7 +118,7 @@ export function getResolvedCredentials(
     const config: CLIConfig = load();
     const ctx: CLIContext | undefined = config.contexts[cliOptions.context];
     if (ctx) {
-      return { apiKey: ctx.apiKey, apiUrl: ctx.apiUrl };
+      return applyCliOverrides({ apiKey: ctx.apiKey, apiUrl: ctx.apiUrl });
     }
     throw new Error(`Context "${cliOptions.context}" does not exist.`);
   }
@@ -119,16 +126,19 @@ export function getResolvedCredentials(
   // Priority 4: Current context in config file
   const currentCtx: CLIContext | null = getCurrentContext();
   if (currentCtx) {
-    return { apiKey: currentCtx.apiKey, apiUrl: currentCtx.apiUrl };
+    return applyCliOverrides({
+      apiKey: currentCtx.apiKey,
+      apiUrl: currentCtx.apiUrl,
+    });
   }
 
   // Partial env vars + partial context
   if (envApiKey || envUrl) {
     const ctx: CLIContext | null = getCurrentContext();
-    return {
+    return applyCliOverrides({
       apiKey: envApiKey || ctx?.apiKey || "",
       apiUrl: envUrl || ctx?.apiUrl || "",
-    };
+    });
   }
 
   throw new Error(

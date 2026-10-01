@@ -7,6 +7,7 @@ import InventoryItem, {
   MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH,
   ResourceEntityRef,
   RetiredEntityIdentity,
+  truncateDescriptiveAttributeValue,
 } from "../../../../Server/Utils/Telemetry/TelemetryEntity";
 import {
   MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
@@ -1317,6 +1318,29 @@ describe("database.server is membership-only (never resolver-emitted)", () => {
   });
 });
 
+describe("message.queue is membership-only (never resolver-emitted)", () => {
+  test("a broker receiver resource derives no message.queue entity", () => {
+    expect(
+      typesFor({
+        "rabbitmq.queue.name": "orders",
+        "rabbitmq.vhost.name": "/",
+        "rabbitmq.node.name": "rabbit@node-1",
+      }),
+    ).not.toContain(EntityType.MessageQueue);
+  });
+
+  test("an app resource that carries messaging attributes derives none either", () => {
+    expect(
+      typesFor({
+        "service.name": "checkout",
+        "messaging.system": "kafka",
+        "messaging.destination.name": "orders",
+        "server.address": "kafka-1",
+      }),
+    ).not.toContain(EntityType.MessageQueue);
+  });
+});
+
 describe("descriptive attributes & labels (never identity-bearing)", () => {
   test("host: allowlisted descriptive attributes are emitted, key unchanged", () => {
     const bare: ExtractedEntity | undefined = entityOfType(
@@ -1338,8 +1362,12 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
         "cloud.provider": "aws",
         "cloud.region": "us-east-1",
         "cloud.availability_zone": "us-east-1a",
+        // issue #4107 — a list too, joined the same way host.ip is.
+        "host.mac": ["02-42-AC-11-00-02", "00-15-5D-01-02-03"],
+        "os.version": "24.04",
+        "device.firmware.version": "1.21.0",
         // still not in the allowlist — must not leak into descriptive.
-        "host.mac": ["02:42:ac:11:00:02"],
+        "host.cpu.model.name": "Intel(R) Xeon(R) Gold 6338",
       },
       EntityType.Host,
     );
@@ -1360,6 +1388,9 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
       "cloud.provider": "aws",
       "cloud.region": "us-east-1",
       "cloud.availability_zone": "us-east-1a",
+      "host.mac": "02-42-AC-11-00-02, 00-15-5D-01-02-03",
+      "os.version": "24.04",
+      "device.firmware.version": "1.21.0",
     });
     expect(bare!.descriptiveAttributes).toBeUndefined();
   });
@@ -2118,6 +2149,364 @@ describe("host asset attributes (issue #3866)", () => {
 
       expect(host!.descriptiveAttributes).toEqual({ "host.arch": "amd64" });
     });
+  });
+});
+
+/*
+ * Issue #4107 — the follow-up to #3866. The same CMDB sync still had to
+ * collect a host's MAC address and firmware version elsewhere. host.mac
+ * and os.version come from the collector's system detector (opt-in, like
+ * host.ip); the firmware version is stamped, like the serial number.
+ */
+describe("host MAC, OS version and firmware (issue #4107)", () => {
+  const IDENTITY: EntityAttributes = { "host.name": "wbprjdeais002" };
+
+  function hostDescriptive(
+    extra: EntityAttributes,
+  ): Record<string, string> | undefined {
+    return entityOfType({ ...IDENTITY, ...extra }, EntityType.Host)
+      ?.descriptiveAttributes;
+  }
+
+  describe("host.mac", () => {
+    test("every address is kept, comma-joined in source order", () => {
+      expect(
+        hostDescriptive({
+          "host.mac": ["AC-DE-48-23-45-67", "00-15-5D-01-02-03"],
+        }),
+      ).toEqual({ "host.mac": "AC-DE-48-23-45-67, 00-15-5D-01-02-03" });
+    });
+
+    /*
+     * The same trap host.ip fell into: strOrFirst would keep one arbitrary
+     * NIC. On a Hyper-V or Docker host the first interface enumerated is
+     * as likely to be a virtual switch as the physical adapter.
+     */
+    test("is not truncated to its first element", () => {
+      const value: string = hostDescriptive({
+        "host.mac": ["02-42-AC-11-00-02", "3C-7C-3F-1A-2B-3C"],
+      })!["host.mac"]!;
+      expect(value).toContain("3C-7C-3F-1A-2B-3C");
+    });
+
+    test("duplicates are removed case-insensitively, first spelling kept", () => {
+      expect(
+        hostDescriptive({
+          "host.mac": [
+            "ac-de-48-23-45-67",
+            "AC-DE-48-23-45-67",
+            "00-15-5D-01-02-03",
+          ],
+        }),
+      ).toEqual({ "host.mac": "ac-de-48-23-45-67, 00-15-5D-01-02-03" });
+    });
+
+    test("a single scalar is accepted", () => {
+      expect(hostDescriptive({ "host.mac": "AC-DE-48-23-45-67" })).toEqual({
+        "host.mac": "AC-DE-48-23-45-67",
+      });
+    });
+
+    /*
+     * OTEL_RESOURCE_ATTRIBUTES can only express scalars, so a list set
+     * there arrives comma-joined. Both routes must store the same value.
+     */
+    test("the env detector's comma-joined scalar matches the array form", () => {
+      expect(
+        hostDescriptive({ "host.mac": "AC-DE-48-23-45-67,00-15-5D-01-02-03" }),
+      ).toEqual(
+        hostDescriptive({
+          "host.mac": ["AC-DE-48-23-45-67", "00-15-5D-01-02-03"],
+        }),
+      );
+    });
+
+    test("blank entries (an interface with no hardware address) are dropped", () => {
+      expect(
+        hostDescriptive({ "host.mac": ["", "  ", "AC-DE-48-23-45-67"] }),
+      ).toEqual({ "host.mac": "AC-DE-48-23-45-67" });
+    });
+
+    test.each([
+      "00-00-00-00-00-00",
+      "00:00:00:00:00:00",
+      "000000000000",
+      "0000.0000.0000",
+      " 00-00-00-00-00-00 ",
+    ])("the all-zero placeholder %p is not listed as a NIC", (zero: string) => {
+      expect(
+        hostDescriptive({ "host.mac": [zero, "AC-DE-48-23-45-67"] }),
+      ).toEqual({ "host.mac": "AC-DE-48-23-45-67" });
+    });
+
+    test("a host whose only MAC is the placeholder gets no host.mac at all", () => {
+      expect(hostDescriptive({ "host.mac": ["00-00-00-00-00-00"] })).toEqual(
+        undefined,
+      );
+    });
+
+    /*
+     * The placeholder check must not swallow a real address that merely
+     * starts or ends with zeros.
+     */
+    test.each(["00-00-00-00-00-01", "10-00-00-00-00-00", "00-00-5E-00-01-01"])(
+      "a real address that looks zero-ish (%p) survives",
+      (mac: string) => {
+        expect(hostDescriptive({ "host.mac": [mac] })).toEqual({
+          "host.mac": mac,
+        });
+      },
+    );
+
+    /*
+     * A MAC is 17 characters, 19 with its separator, so the 512-character
+     * cap binds before the 32-address one: 17 + 19 * 26 = 511, and a 28th
+     * would not fit. That is still more NICs than any real machine has; a
+     * Docker host with a veth per container is what the cap is for.
+     */
+    test("is capped by the inventory list caps, on whole addresses", () => {
+      const macs: Array<string> = [];
+      for (let i: number = 0; i < 100; i++) {
+        macs.push(
+          `02-00-00-00-00-${i.toString(16).padStart(2, "0").toUpperCase()}`,
+        );
+      }
+      const value: string = hostDescriptive({ "host.mac": macs })!["host.mac"]!;
+      expect(value.split(", ")).toHaveLength(27);
+      expect(value.split(", ").length).toBeLessThanOrEqual(
+        MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
+      );
+      expect(value.length).toBeLessThanOrEqual(
+        MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
+      );
+      // Source order: the first 27, not an arbitrary 27.
+      expect(value.startsWith("02-00-00-00-00-00, 02-00-00-00-00-01")).toBe(
+        true,
+      );
+      // Whole addresses only: every surviving entry is a full MAC.
+      for (const mac of value.split(", ")) {
+        expect(mac).toMatch(/^([0-9A-F]{2}-){5}[0-9A-F]{2}$/);
+      }
+    });
+
+    test("is joined independently of host.ip", () => {
+      expect(
+        hostDescriptive({
+          "host.ip": ["10.1.2.3", "10.1.2.4"],
+          "host.mac": ["AC-DE-48-23-45-67"],
+        }),
+      ).toEqual({
+        "host.ip": "10.1.2.3, 10.1.2.4",
+        "host.mac": "AC-DE-48-23-45-67",
+      });
+    });
+
+    /*
+     * A NIC swap or a new virtual switch changes the MAC list. That must
+     * update the row, never fork it.
+     */
+    test("never becomes identifying, and never moves the entity key", () => {
+      const withMac: ExtractedEntity | undefined = entityOfType(
+        { ...IDENTITY, "host.mac": ["AC-DE-48-23-45-67"] },
+        EntityType.Host,
+      );
+      const withOtherMac: ExtractedEntity | undefined = entityOfType(
+        { ...IDENTITY, "host.mac": ["00-15-5D-01-02-03"] },
+        EntityType.Host,
+      );
+      expect(withMac!.identifyingAttributes).toEqual({
+        "host.name": "wbprjdeais002",
+      });
+      expect(withMac!.entityKey).toBe(withOtherMac!.entityKey);
+    });
+
+    test("a producer-declared description_keys host.mac is joined too", () => {
+      const host: ExtractedEntity | undefined = InventoryItem.extractEntities({
+        projectId: PROJECT,
+        attributes: {
+          ...IDENTITY,
+          "host.mac": [
+            "AC-DE-48-23-45-67",
+            "00-00-00-00-00-00",
+            "00-15-5D-01-02-03",
+          ],
+        },
+        entityRefs: [
+          {
+            type: "host",
+            idKeys: ["host.name"],
+            descriptionKeys: ["host.mac"],
+          },
+        ],
+      }).find((e: ExtractedEntity) => {
+        return e.entityType === EntityType.Host;
+      });
+
+      expect(host!.descriptiveAttributes).toEqual({
+        "host.mac": "AC-DE-48-23-45-67, 00-15-5D-01-02-03",
+      });
+    });
+
+    test("is a host fact only — a container carrying it gets nothing", () => {
+      const container: ExtractedEntity | undefined = entityOfType(
+        {
+          "container.id": "c-1",
+          "container.image.name": "ghcr.io/acme/checkout",
+          "host.mac": ["02-42-AC-11-00-02"],
+        },
+        EntityType.Container,
+      );
+      expect(container!.descriptiveAttributes).toEqual({
+        "container.image.name": "ghcr.io/acme/checkout",
+      });
+    });
+  });
+
+  test("os.version is collected alongside os.description", () => {
+    expect(
+      hostDescriptive({
+        "os.description": "Microsoft Windows Server 2022 Datacenter",
+        "os.version": "10.0.20348",
+      }),
+    ).toEqual({
+      "os.description": "Microsoft Windows Server 2022 Datacenter",
+      "os.version": "10.0.20348",
+    });
+  });
+
+  describe("firmware version", () => {
+    test("lands verbatim under device.firmware.version", () => {
+      expect(hostDescriptive({ "device.firmware.version": "2.19.1" })).toEqual({
+        "device.firmware.version": "2.19.1",
+      });
+    });
+
+    test.each([
+      ["host.firmware.version", "U46 v2.72"],
+      ["host.bios.version", "1.21.0"],
+    ])(
+      "%s is accepted and stored as device.firmware.version",
+      (alias: string, value: string) => {
+        expect(hostDescriptive({ [alias]: value })).toEqual({
+          "device.firmware.version": value,
+        });
+      },
+    );
+
+    test("the canonical key wins over both aliases", () => {
+      expect(
+        hostDescriptive({
+          "device.firmware.version": "2.19.1",
+          "host.firmware.version": "ignored",
+          "host.bios.version": "ignored too",
+        }),
+      ).toEqual({ "device.firmware.version": "2.19.1" });
+    });
+
+    test("host.firmware.version is preferred over host.bios.version", () => {
+      expect(
+        hostDescriptive({
+          "host.firmware.version": "U46 v2.72",
+          "host.bios.version": "ignored",
+        }),
+      ).toEqual({ "device.firmware.version": "U46 v2.72" });
+    });
+
+    test("an over-long value is truncated, not dropped", () => {
+      const long: string = "F".repeat(400);
+      expect(
+        hostDescriptive({ "host.bios.version": long })![
+          "device.firmware.version"
+        ],
+      ).toHaveLength(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH);
+    });
+
+    test("a numeric value is stringified rather than lost", () => {
+      expect(hostDescriptive({ "host.bios.version": 7 })).toEqual({
+        "device.firmware.version": "7",
+      });
+    });
+  });
+
+  describe("device.serial_number", () => {
+    /*
+     * Someone who has just written device.manufacturer and
+     * device.model.name will write device.serial_number next. It is
+     * stored under the existing host.serial_number so a CMDB export keeps
+     * one serial column.
+     */
+    test("is accepted and stored as host.serial_number", () => {
+      expect(hostDescriptive({ "device.serial_number": "7XYZ123" })).toEqual({
+        "host.serial_number": "7XYZ123",
+      });
+    });
+
+    test("host.serial_number still wins when both are present", () => {
+      expect(
+        hostDescriptive({
+          "host.serial_number": "7XYZ123",
+          "device.serial_number": "ignored",
+        }),
+      ).toEqual({ "host.serial_number": "7XYZ123" });
+    });
+  });
+
+  test("the full asset set a CMDB row wants, from one resource", () => {
+    expect(
+      hostDescriptive({
+        "host.ip": ["192.168.1.42"],
+        "host.mac": ["3C-7C-3F-1A-2B-3C"],
+        "host.serial_number": "7XYZ123",
+        "device.manufacturer": "Dell Inc.",
+        "device.model.name": "PowerEdge R760",
+        "device.firmware.version": "2.19.1",
+        "os.description": "Microsoft Windows Server 2022 Datacenter",
+        "os.version": "10.0.20348",
+      }),
+    ).toEqual({
+      "host.ip": "192.168.1.42",
+      "host.mac": "3C-7C-3F-1A-2B-3C",
+      "host.serial_number": "7XYZ123",
+      "device.manufacturer": "Dell Inc.",
+      "device.model.name": "PowerEdge R760",
+      "device.firmware.version": "2.19.1",
+      "os.description": "Microsoft Windows Server 2022 Datacenter",
+      "os.version": "10.0.20348",
+    });
+  });
+});
+
+describe("truncateDescriptiveAttributeValue", () => {
+  test("leaves a value at the cap untouched", () => {
+    const exact: string = "a".repeat(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH);
+    expect(truncateDescriptiveAttributeValue(exact)).toBe(exact);
+  });
+
+  test("cuts a longer value to the cap", () => {
+    expect(
+      truncateDescriptiveAttributeValue(
+        "a".repeat(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH + 50),
+      ),
+    ).toHaveLength(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH);
+  });
+
+  test("steps back off a high surrogate at the cut", () => {
+    const value: string = truncateDescriptiveAttributeValue(
+      "x".repeat(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH - 1) + "\u{1F5A5}",
+    );
+    expect(value).toBe("x".repeat(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH - 1));
+  });
+
+  test("is what the extractor uses, so the two cannot drift", () => {
+    const long: string =
+      "x".repeat(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH - 1) +
+      "\u{1F5A5}".repeat(4);
+    expect(
+      entityOfType(
+        { "host.name": "web-1", "device.manufacturer": long },
+        EntityType.Host,
+      )!.descriptiveAttributes!["device.manufacturer"],
+    ).toBe(truncateDescriptiveAttributeValue(long));
   });
 });
 

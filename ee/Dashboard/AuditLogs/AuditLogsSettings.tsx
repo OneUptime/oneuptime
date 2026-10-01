@@ -10,8 +10,8 @@ import AuditLogsLicenseNotice from "./AuditLogsLicenseNotice";
 import {
   EnterpriseLicenseMode,
   LicensedFeature,
-} from "../SSO/License/EnterpriseLicenseMode";
-import useEnterpriseLicenseMode from "../SSO/License/UseEnterpriseLicenseMode";
+} from "../Identity/License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../Identity/License/UseEnterpriseLicenseMode";
 
 /*
  * Settings > Audit Logs (OneUptime Enterprise): the project's recording switch,

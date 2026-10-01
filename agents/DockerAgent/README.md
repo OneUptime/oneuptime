@@ -116,6 +116,33 @@ services:
 
 Then restart Docker and recreate (not just restart) the affected containers — the log driver is baked in at container create time, so an existing container will keep its old driver until it is removed and recreated.
 
+## AI agent
+
+`install.sh` and `docker-compose.yml` also run the **OneUptime AI agent** for this host: a second container, `oneuptime-docker-ai-agent` (image `oneuptime/resource-ai-agent`), that runs the `docker` commands OneUptime AI asks for while it investigates an incident or alert here. It shares the collector's settings (`ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, `DOCKER_HOST_NAME`), so it serves exactly the host the collector reports, and it appears on the host's **AI → AI agent** page in OneUptime.
+
+- **Read-only by default.** It runs commands such as `docker ps`, `docker logs --tail 200 NAME`, `docker inspect` and `docker stats --no-stream`, never `exec`, `run`, `rm`, `prune` or docker's global flags (`-H`, `--context`). Environment values in `docker inspect` output are masked before anything leaves the host.
+- **Fixes are opt-in.** Set `ONEUPTIME_AI_ALLOW_WRITES=true` (in `.env`, or re-run `install.sh` with it) to let it restart, start, stop, pause, kill or change the limits of a named container, then choose on the host's AI agent page whether each fix needs approval. `ONEUPTIME_AI_WRITE_TARGETS` (comma-separated globs such as `web-*,api-*`) limits which containers; `ONEUPTIME_AI_PROTECTED_TARGETS` adds containers it must never change. It never changes itself or the collector.
+- It runs as root because the Docker socket is root-owned. The socket's `:ro` mount does not make the Docker API read-only; the agent's command policy is the limit.
+- To leave it out: `install.sh --no-ai-agent` (or `ONEUPTIME_INSTALL_AI_AGENT=false`), or delete the `oneuptime-docker-ai-agent` service from `docker-compose.yml`. To remove it later: `docker rm -f oneuptime-docker-ai-agent`.
+
+Without the installer:
+
+```bash
+docker run -d \
+  --name oneuptime-docker-ai-agent \
+  --user 0:0 \
+  --restart unless-stopped \
+  --read-only --tmpfs /tmp \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  -e ONEUPTIME_URL="https://oneuptime.com" \
+  -e ONEUPTIME_SERVICE_TOKEN="your-service-token" \
+  -e ONEUPTIME_AI_AGENT_RESOURCE_TYPE=docker \
+  -e DOCKER_HOST_NAME="my-docker-host" \
+  oneuptime/resource-ai-agent:release
+```
+
+Logs: `docker logs -f oneuptime-docker-ai-agent`. Every setting is described in the [resource AI agent README](../ResourceAIAgent/README.md).
+
 ## Upgrading
 
 ```bash
@@ -230,6 +257,7 @@ docker ps --filter name=oneuptime-docker-agent
 # View agent logs
 docker logs -f oneuptime-docker-agent
 
-# Verify Docker socket access
-docker exec oneuptime-docker-agent ls -la /var/run/docker.sock
+# Verify Docker socket access — the agent image has no shell, so look from a
+# throwaway container that shares its mounts
+docker run --rm --volumes-from oneuptime-docker-agent alpine:3.19 ls -la /var/run/docker.sock
 ```

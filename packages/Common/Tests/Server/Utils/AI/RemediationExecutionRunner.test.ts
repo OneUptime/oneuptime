@@ -60,6 +60,10 @@ import {
   KubernetesRunnerPosture,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { JSONObject } from "../../../../Types/JSON";
+import {
+  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
+  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
+} from "../../../../Types/AI/AIAgentRunLimits";
 import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
@@ -75,9 +79,13 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * - a retried run whose earlier attempt already executed commands (the
  *   durable commandPlan record proves it) settles what happened and NEVER
  *   re-runs the agent loop;
- * - the project gates (enableAi, enableAutoRemediation, and the strict
- *   opt-in enableAiCommandExecution === true) and the rule gates
- *   (exists, enabled, aiComposesCommands) are re-checked at execution time;
+ * - the project gate (Enable AI, the project's only AI switch, off only
+ *   when === false) and the rule gates (exists, enabled,
+ *   aiComposesCommands) are re-checked at execution time; the project gate
+ *   comes first, so AI off stops a round before its rule or cluster is
+ *   read. A rule round needs nothing else from the project (there is no
+ *   command-execution opt-in any more), and a cluster round (a cluster, no
+ *   rule) needs the same gate plus its cluster's own readiness;
  * - FullAuto requires the rule to say FullAuto AND a non-empty operator
  *   allowlist AND breaker headroom — every other combination (including a
  *   failing breaker query) fails safe to Suggest, whose tools cannot
@@ -165,15 +173,17 @@ function mockRule(overrides: Partial<Record<string, unknown>> = {}): void {
   } as unknown as AutoRemediationRule);
 }
 
+// Enable AI on, and nothing else: no round needs another project switch.
 function mockProject(overrides: Partial<Record<string, unknown>> = {}): void {
   jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
     id: PROJECT_ID,
     enableAi: true,
-    enableAutoRemediation: true,
-    enableAiCommandExecution: true,
     ...overrides,
   } as unknown as Project);
 }
+
+const AI_DISABLED_MESSAGE: string =
+  "AI was disabled for this project before the run started (Project Settings → AI Features) — nothing was run or proposed.";
 
 function mockIncident(): void {
   jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
@@ -471,23 +481,27 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
     });
   });
 
-  describe("project gates re-checked at execution time", () => {
-    function expectSettledNoneApplicable(rationaleFragment: string): void {
+  describe("the project gate re-checked at execution time", () => {
+    function expectSettledNoneApplicable(rationale: string): void {
       expect(suggestionCas).toHaveBeenCalledWith(
         expect.objectContaining({
           suggestionId: SUGGESTION_ID,
           fromStatus: AutoRemediationSuggestionStatus.Planning,
           set: expect.objectContaining({
             status: AutoRemediationSuggestionStatus.NoneApplicable,
-            rationaleMarkdown: expect.stringContaining(rationaleFragment),
+            rationaleMarkdown: rationale,
           }),
         }),
       );
     }
 
-    it("settles NoneApplicable when AI was disabled for the project", async () => {
+    it("settles NoneApplicable when AI was disabled for the project, before the rule is read", async () => {
       mockSuggestion();
       mockProject({ enableAi: false });
+      const ruleRead: jest.SpyInstance = jest.spyOn(
+        AutoRemediationRuleService,
+        "findOneById",
+      );
       const executeRun: jest.SpyInstance = jest
         .spyOn(AIInvestigationEngine, "executeRun")
         .mockResolvedValue(undefined as never);
@@ -495,26 +509,151 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
       await run();
 
       expect(executeRun).not.toHaveBeenCalled();
-      expectSettledNoneApplicable("AI or auto-remediation was disabled");
+      expect(ruleRead).not.toHaveBeenCalled();
+      expectSettledNoneApplicable(AI_DISABLED_MESSAGE);
+      expect(runCas).toHaveBeenCalledWith(
+        expect.objectContaining({
+          set: expect.objectContaining({ status: AIRunStatus.Completed }),
+        }),
+      );
     });
 
-    it("settles NoneApplicable when auto-remediation was disabled", async () => {
+    it("settles NoneApplicable when the project row is gone — the gate fails closed", async () => {
       mockSuggestion();
+      jest.spyOn(ProjectService, "findOneById").mockResolvedValue(null);
+      const executeRun: jest.SpyInstance = jest
+        .spyOn(AIInvestigationEngine, "executeRun")
+        .mockResolvedValue(undefined as never);
+
+      await run();
+
+      expect(executeRun).not.toHaveBeenCalled();
+      expectSettledNoneApplicable(AI_DISABLED_MESSAGE);
+    });
+
+    it("asks the project for Enable AI alone", async () => {
+      mockHappyPathLoads();
+      const projectRead: jest.SpyInstance = jest.spyOn(
+        ProjectService,
+        "findOneById",
+      );
+      captureRequest();
+
+      await run();
+
+      expect(projectRead).toHaveBeenCalledTimes(1);
+      expect(projectRead).toHaveBeenCalledWith({
+        id: PROJECT_ID,
+        select: { enableAi: true },
+        props: { isRoot: true },
+      });
+    });
+
+    it.each([
+      ["never opted into", { enableAiCommandExecution: undefined }],
+      ["explicitly off", { enableAiCommandExecution: false }],
+    ])(
+      "runs a rule round with the retired AI command execution opt-in %s — Enable AI on is enough",
+      async (_label: string, stale: Record<string, unknown>) => {
+        mockHappyPathLoads();
+        mockProject(stale);
+        const request: { get: () => InvestigationRequest } = captureRequest();
+
+        await run();
+
+        expect(toolNames(request.get())).toEqual([
+          "list_command_targets",
+          "propose_remediation_commands",
+        ]);
+        // Nothing settled it early: the run went to the engine.
+        expect(suggestionCas).not.toHaveBeenCalled();
+      },
+    );
+
+    it("runs a rule round whose project still carries the retired auto-remediation switch, off", async () => {
+      mockHappyPathLoads();
       mockProject({ enableAutoRemediation: false });
-      const executeRun: jest.SpyInstance = jest
-        .spyOn(AIInvestigationEngine, "executeRun")
-        .mockResolvedValue(undefined as never);
+      const request: { get: () => InvestigationRequest } = captureRequest();
 
       await run();
 
-      expect(executeRun).not.toHaveBeenCalled();
-      expectSettledNoneApplicable("AI or auto-remediation was disabled");
+      expect(toolNames(request.get())).toContain(
+        "propose_remediation_commands",
+      );
+      expect(suggestionCas).not.toHaveBeenCalled();
     });
 
-    it("settles NoneApplicable when AI command execution is not explicitly opted in (=== true)", async () => {
-      mockSuggestion();
-      // undefined, not false — the opt-in must be an explicit true.
-      mockProject({ enableAiCommandExecution: undefined });
+    it("runs a FullAuto rule round with Enable AI on and no other project switch", async () => {
+      mockHappyPathLoads();
+      mockRule({
+        executionMode: AutoRemediationExecutionMode.FullAuto,
+        commandAllowlist: ALLOWLIST,
+      });
+      jest
+        .spyOn(AutoRemediationSuggestionService, "countBy")
+        .mockResolvedValue(new PositiveNumber(0));
+      const request: { get: () => InvestigationRequest } = captureRequest();
+
+      await run();
+
+      expect(toolNames(request.get())).toEqual([
+        "list_command_targets",
+        "execute_remediation_command",
+      ]);
+      expect(suggestionCas).not.toHaveBeenCalled();
+    });
+
+    it("treats Enable AI that was not selected (undefined) as on — it is off only when explicitly false", async () => {
+      mockHappyPathLoads();
+      mockProject({ enableAi: undefined });
+      const request: { get: () => InvestigationRequest } = captureRequest();
+
+      await run();
+
+      expect(toolNames(request.get())).toContain(
+        "propose_remediation_commands",
+      );
+      expect(suggestionCas).not.toHaveBeenCalled();
+    });
+
+    it("gives a RULE round its signal's remediation-ready cluster with Enable AI on — kubectl needs no other project switch", async () => {
+      mockHappyPathLoads();
+      const subjectStatuses: jest.SpyInstance = jest
+        .spyOn(KubernetesClusterAiAccessService, "getStatusesForSubject")
+        .mockResolvedValue([clusterStatus()]);
+      const ruleRead: jest.SpyInstance = jest.spyOn(
+        AutoRemediationRuleService,
+        "findOneById",
+      );
+      const request: { get: () => InvestigationRequest } = captureRequest();
+
+      await run();
+
+      expect(ruleRead).toHaveBeenCalledTimes(1);
+      expect(subjectStatuses).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        alertId: undefined,
+      });
+      expect(toolNames(request.get())).toContain(
+        "propose_remediation_commands",
+      );
+      // The cluster is readable (and a command target) for the rule run.
+      expect(toolNames(request.get())).toContain("run_kubectl");
+      expect(suggestionCas).not.toHaveBeenCalled();
+    });
+
+    it("stops a row that names a rule AND a cluster when Enable AI is off, before either is read — every round passes the same gate", async () => {
+      mockSuggestion({ kubernetesClusterId: CLUSTER_ID });
+      mockProject({ enableAi: false });
+      const clusterStatusRead: jest.SpyInstance = jest.spyOn(
+        KubernetesClusterAiAccessService,
+        "getStatusForCluster",
+      );
+      const ruleRead: jest.SpyInstance = jest.spyOn(
+        AutoRemediationRuleService,
+        "findOneById",
+      );
       const executeRun: jest.SpyInstance = jest
         .spyOn(AIInvestigationEngine, "executeRun")
         .mockResolvedValue(undefined as never);
@@ -522,7 +661,28 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
       await run();
 
       expect(executeRun).not.toHaveBeenCalled();
-      expectSettledNoneApplicable("AI command execution is not enabled");
+      expect(clusterStatusRead).not.toHaveBeenCalled();
+      expect(ruleRead).not.toHaveBeenCalled();
+      expectSettledNoneApplicable(AI_DISABLED_MESSAGE);
+    });
+
+    it("sends people to Project Settings → AI Features, the page every install shows, and names no retired switch", async () => {
+      mockSuggestion();
+      mockProject({ enableAi: false });
+      jest
+        .spyOn(AIInvestigationEngine, "executeRun")
+        .mockResolvedValue(undefined as never);
+
+      await run();
+
+      const rationale: string = (
+        suggestionCas.mock.calls[0]![0] as {
+          set: { rationaleMarkdown: string };
+        }
+      ).set.rationaleMarkdown;
+      expect(rationale).toContain("(Project Settings → AI Features)");
+      expect(rationale).not.toMatch(/auto-remediation/i);
+      expect(rationale).not.toMatch(/command execution/i);
     });
   });
 
@@ -960,6 +1120,8 @@ function clusterStatus(
       posture: { inCluster: true, allowWrites: true },
     },
     accessMethod: "in_cluster",
+    aiAgent: null,
+    automaticInvestigation: { incidents: false, alerts: false },
     kubectlAllowlist: [],
     isInvestigationEnabled: true,
     isInvestigationReady: true,
@@ -994,9 +1156,6 @@ function kubectlProposal(): JSONObject {
     ],
   };
 }
-
-// The run's wall clock (RemediationExecutionRunner's MAX_WALL_CLOCK_MS).
-const REMEDIATION_RUN_WALL_CLOCK_MS: number = 10 * 60 * 1000;
 
 /*
  * Drive the captured run_kubectl tool once and return the deadline the
@@ -1225,27 +1384,23 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
     expect(incidentFeed).not.toHaveBeenCalled();
   });
 
-  it("hands the cluster round's read toolkit the run's wall clock as a deadline, and the engine the same budget", async () => {
+  it("gives the cluster round no wall clock: its reads plan no deadline and the engine has no time limit", async () => {
     mockSuggestionHonouringSelect(clusterRow());
     const request: { get: () => InvestigationRequest } = captureRequest();
-    const startedAtMs: number = Date.now();
 
     await run();
 
-    const finishedAtMs: number = Date.now();
-    expect(request.get().maxWallClockMs).toBe(REMEDIATION_RUN_WALL_CLOCK_MS);
+    expect(request.get().maxWallClockMs).toBeUndefined();
+    expect(request.get().maxLlmCalls).toBe(AI_AGENT_RUNAWAY_MAX_LLM_CALLS);
+    expect(request.get().maxToolCalls).toBe(AI_AGENT_RUNAWAY_MAX_TOOL_CALLS);
     expect(toolNames(request.get())).toContain("run_kubectl");
+    // Its read output is paged, so the reader comes with the reads.
+    expect(toolNames(request.get())).toContain("read_tool_output");
 
     const deadlineAtMs: number | undefined = await deadlinePlannedForRunKubectl(
       request.get(),
     );
-    expect(deadlineAtMs).toBeDefined();
-    expect(deadlineAtMs).toBeGreaterThanOrEqual(
-      startedAtMs + REMEDIATION_RUN_WALL_CLOCK_MS,
-    );
-    expect(deadlineAtMs).toBeLessThanOrEqual(
-      finishedAtMs + REMEDIATION_RUN_WALL_CLOCK_MS,
-    );
+    expect(deadlineAtMs).toBeUndefined();
   });
 
   it("the harness catches a select that drops executionMode: the same row would then silently run Suggest", async () => {
@@ -2546,6 +2701,198 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
     });
   });
 
+  /*
+   * Enable AI is the only project switch a cluster round passes: it stops
+   * the round before the cluster is read. Past it, the round's consent is
+   * the cluster's own — its Fixes mode and the write access of whatever
+   * reaches it — and the retired command-execution opt-in no longer holds
+   * back a cluster reached through a Runner.
+   */
+  describe("cluster rounds and the project's Enable AI switch", () => {
+    it("runs an Ask-for-approval round with Enable AI on and nothing else from the project", async () => {
+      mockSuggestionHonouringSelect(
+        clusterRow({ executionMode: AutoRemediationExecutionMode.Suggest }),
+      );
+      (
+        KubernetesClusterAiAccessService.getStatusForCluster as unknown as jest.SpyInstance
+      ).mockResolvedValue(
+        clusterStatus({
+          remediationMode: KubernetesAiRemediationMode.RequireApproval,
+        }),
+      );
+      const request: { get: () => InvestigationRequest } = captureRequest();
+
+      await run();
+
+      expect(toolNames(request.get())).toContain(
+        "propose_remediation_commands",
+      );
+      expect(ProjectService.findOneById).toHaveBeenCalledWith({
+        id: PROJECT_ID,
+        select: { enableAi: true },
+        props: { isRoot: true },
+      });
+      // Nothing settled it early: the run went to the engine.
+      expect(suggestionCas).not.toHaveBeenCalled();
+    });
+
+    it("runs a Bypass-approval round FullAuto when the row still carries the retired switches, off", async () => {
+      mockProject({
+        enableAutoRemediation: false,
+        enableAiCommandExecution: false,
+      });
+      mockSuggestionHonouringSelect(clusterRow());
+      const request: { get: () => InvestigationRequest } = captureRequest();
+
+      await run();
+
+      expect(toolNames(request.get())).toContain("execute_remediation_command");
+      expect(suggestionCas).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["Enable AI is off", { id: PROJECT_ID, enableAi: false }],
+      ["the project row is gone", null],
+    ])(
+      "is stopped when %s, before its cluster is read",
+      async (_label: string, row: Record<string, unknown> | null) => {
+        jest
+          .spyOn(ProjectService, "findOneById")
+          .mockResolvedValue(row as unknown as Project);
+        mockSuggestionHonouringSelect(clusterRow());
+        const statusRead: jest.SpyInstance =
+          KubernetesClusterAiAccessService.getStatusForCluster as unknown as jest.SpyInstance;
+        const executeRun: jest.SpyInstance = jest
+          .spyOn(AIInvestigationEngine, "executeRun")
+          .mockResolvedValue(undefined as never);
+
+        await run();
+
+        expect(executeRun).not.toHaveBeenCalled();
+        expect(statusRead).not.toHaveBeenCalled();
+        const set: ReturnType<typeof settleSet> = settleSet();
+        expect(set.status).toBe(AutoRemediationSuggestionStatus.NoneApplicable);
+        expect(set.rationaleMarkdown).toBe(AI_DISABLED_MESSAGE);
+      },
+    );
+
+    it("runs a cluster reached through an advanced Runner with Enable AI on — no project opt-in holds it back", async () => {
+      mockSuggestionHonouringSelect(clusterRow());
+      (
+        KubernetesClusterAiAccessService.getStatusForCluster as unknown as jest.SpyInstance
+      ).mockResolvedValue(
+        clusterStatus({
+          runner: {
+            id: CLUSTER_RUNNER_ID.toString(),
+            name: "ops-runner",
+            kind: "runner",
+            isOnline: true,
+            canRunAiCommands: true,
+            posture: { inCluster: false, allowWrites: true },
+          },
+          accessMethod: "credential",
+          credentialId: "99999999-9999-4999-8999-999999999999",
+        }),
+      );
+      const request: { get: () => InvestigationRequest } = captureRequest();
+
+      await run();
+
+      expect(toolNames(request.get())).toContain("execute_remediation_command");
+      expect(suggestionCas).not.toHaveBeenCalled();
+    });
+
+    it("still stops a round whose advanced-Runner cluster is not remediation-ready, with the status's own reason", async () => {
+      mockSuggestionHonouringSelect(clusterRow());
+      (
+        KubernetesClusterAiAccessService.getStatusForCluster as unknown as jest.SpyInstance
+      ).mockResolvedValue(
+        clusterStatus({
+          runner: {
+            id: CLUSTER_RUNNER_ID.toString(),
+            name: "ops-runner",
+            kind: "runner",
+            isOnline: true,
+            canRunAiCommands: false,
+          },
+          accessMethod: "credential",
+          credentialId: "99999999-9999-4999-8999-999999999999",
+          isInvestigationReady: false,
+          isRemediationReady: false,
+          gaps: [
+            {
+              code: "runner_ai_commands_disabled",
+              title: "The Runner does not accept AI commands",
+              description:
+                '"Runs AI Remediation Commands" is turned off on Runner "ops-runner", so it will not be served kubectl work.',
+              nextStep:
+                'Turn on "Runs AI Remediation Commands" on the Runner (Runbooks → Runners).',
+              blocks: "both",
+            },
+          ],
+        }),
+      );
+      const executeRun: jest.SpyInstance = jest
+        .spyOn(AIInvestigationEngine, "executeRun")
+        .mockResolvedValue(undefined as never);
+
+      await run();
+
+      expect(executeRun).not.toHaveBeenCalled();
+      const set: ReturnType<typeof settleSet> = settleSet();
+      expect(set.status).toBe(AutoRemediationSuggestionStatus.NoneApplicable);
+      expect(set.rationaleMarkdown).toContain(
+        'OneUptime AI can no longer remediate cluster "prod-us": The Runner does not accept AI commands.',
+      );
+      expect(set.rationaleMarkdown).toContain(
+        "Review the cluster's AI agent page (AI → Agent).",
+      );
+      expect(set.rationaleMarkdown).not.toContain("cluster's AI page");
+    });
+
+    it("a round whose cluster was deleted is closed as such — never blamed on a project switch", async () => {
+      mockSuggestionHonouringSelect(
+        clusterRow({ kubernetesClusterId: undefined }),
+      );
+      jest
+        .spyOn(AIInvestigationEngine, "executeRun")
+        .mockResolvedValue(undefined as never);
+
+      await run();
+
+      const set: ReturnType<typeof settleSet> = settleSet();
+      expect(set.status).toBe(AutoRemediationSuggestionStatus.NoneApplicable);
+      expect(set.rationaleMarkdown).toContain(
+        'The Kubernetes cluster "prod-us" was deleted before OneUptime AI could remediate it',
+      );
+      expect(set.rationaleMarkdown).not.toContain("Project Settings");
+    });
+
+    it("a round whose cluster was deleted is closed as such even with AI off — the deletion wins over the gate", async () => {
+      mockProject({ enableAi: false });
+      mockSuggestionHonouringSelect(
+        clusterRow({ kubernetesClusterId: undefined }),
+      );
+      const projectRead: jest.SpyInstance = jest.spyOn(
+        ProjectService,
+        "findOneById",
+      );
+      jest
+        .spyOn(AIInvestigationEngine, "executeRun")
+        .mockResolvedValue(undefined as never);
+
+      await run();
+
+      const set: ReturnType<typeof settleSet> = settleSet();
+      expect(set.status).toBe(AutoRemediationSuggestionStatus.NoneApplicable);
+      expect(set.rationaleMarkdown).toContain(
+        'The Kubernetes cluster "prod-us" was deleted',
+      );
+      expect(set.rationaleMarkdown).not.toContain(AI_DISABLED_MESSAGE);
+      expect(projectRead).not.toHaveBeenCalled();
+    });
+  });
+
   describe("a round whose cluster was deleted while it waited", () => {
     it("closes with an accurate message about the cluster — never a rule that never existed", async () => {
       mockSuggestionHonouringSelect(
@@ -2684,25 +3031,17 @@ describe("RemediationExecutionRunner.executeRemediation — rule-driven runs and
     );
   });
 
-  it("hands a rule-driven run's read toolkit the run's wall clock as a deadline too", async () => {
+  it("gives a rule-driven run no wall clock either", async () => {
     const request: { get: () => InvestigationRequest } = captureRequest();
-    const startedAtMs: number = Date.now();
 
     await run();
 
-    const finishedAtMs: number = Date.now();
-    expect(request.get().maxWallClockMs).toBe(REMEDIATION_RUN_WALL_CLOCK_MS);
+    expect(request.get().maxWallClockMs).toBeUndefined();
 
     const deadlineAtMs: number | undefined = await deadlinePlannedForRunKubectl(
       request.get(),
     );
-    expect(deadlineAtMs).toBeDefined();
-    expect(deadlineAtMs).toBeGreaterThanOrEqual(
-      startedAtMs + REMEDIATION_RUN_WALL_CLOCK_MS,
-    );
-    expect(deadlineAtMs).toBeLessThanOrEqual(
-      finishedAtMs + REMEDIATION_RUN_WALL_CLOCK_MS,
-    );
+    expect(deadlineAtMs).toBeUndefined();
   });
 
   it("drops a cluster whose breaker tripped from the command targets, keeps it readable, and tells the model", async () => {

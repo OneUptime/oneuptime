@@ -8,7 +8,7 @@ import {
   describeClusterEvidenceTool,
   describeClusterToolOutcome,
   getClusterEvidenceNote,
-  isClusterToolName,
+  isLiveInfrastructureToolName,
 } from "../ClusterToolFormat";
 import {
   EvidenceToolDescription,
@@ -80,6 +80,20 @@ type EvidenceRowsState =
   | { status: "loading" }
   | { status: "loaded"; response: InvestigationEvidenceRowsResponse }
   | { status: "error"; message: string };
+
+/*
+ * The list has no frame of its own inside the card, so its dividers stay at
+ * the width of the text, like every other rule on the card. What happens
+ * behind a row (its hover, and the highlight a citation chip gives it)
+ * reaches 12px past the text on both sides, so the badge and the count are
+ * never pressed against its edge. The highlight is a pseudo-element for
+ * that reason: the row, and the divider above it, never move.
+ */
+export const EVIDENCE_ROW_CLASS_NAME: string =
+  "relative isolate scroll-mt-32 before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-lg before:transition-colors before:duration-300 before:content-['']";
+
+export const EVIDENCE_ROW_HIGHLIGHT_CLASS_NAME: string =
+  "before:bg-indigo-50/70 before:ring-2 before:ring-inset before:ring-indigo-500";
 
 const CITATION_BADGE_CLASS_NAME: string =
   "inline-flex h-5 min-w-[2.25rem] flex-shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-semibold tabular-nums";
@@ -499,9 +513,9 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
   const getRowClassName: (citationId: string) => string = (
     citationId: string,
   ): string => {
-    return `scroll-mt-32 transition-colors duration-300 ${
+    return `${EVIDENCE_ROW_CLASS_NAME} ${
       highlightedCitationId === citationId
-        ? "bg-indigo-50/70 ring-2 ring-inset ring-indigo-400"
+        ? EVIDENCE_ROW_HIGHLIGHT_CLASS_NAME
         : ""
     }`;
   };
@@ -564,7 +578,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                   }}
                   aria-expanded={isExpanded}
                   aria-controls={detailsId}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5"
+                  className="-mx-3 flex w-[calc(100%+1.5rem)] items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
                   onClick={() => {
                     if (isExpanded) {
                       collapse(item.citationId);
@@ -618,7 +632,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                   role="region"
                   aria-label={`${displayLabel} details`}
                   hidden={!isExpanded}
-                  className="border-t border-gray-100 bg-gray-50/60 px-4 py-4 sm:px-5"
+                  className="pb-4 pt-1 sm:pl-12"
                 >
                   {isExpanded ? (
                     <EvidenceDetails
@@ -657,7 +671,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                       : undefined
                   }
                   tabIndex={-1}
-                  className={`flex items-center gap-3 px-4 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5 ${getRowClassName(entry.citationId)}`}
+                  className={`flex items-center gap-3 py-3 focus:outline-none focus-visible:before:ring-2 focus-visible:before:ring-inset focus-visible:before:ring-indigo-500 ${getRowClassName(entry.citationId)}`}
                 >
                   <span
                     className={getCitationBadgeClassName(
@@ -705,8 +719,11 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
   const took: string | undefined = formatEvidenceDuration(item.durationInMs);
   const targetRoute: Route | undefined = getRouteForCitationTarget(item.target);
   const detailRows: Array<FormattedEvidenceArgument> = [...argumentsRows];
-  // A kubectl command is run, not queried, and has no rows to load.
-  const isClusterTool: boolean = isClusterToolName(item.toolName);
+  /*
+   * A kubectl command is run, not queried, and has no rows to load.
+   * Infrastructure commands (through a resource's AI agent) likewise.
+   */
+  const isClusterTool: boolean = isLiveInfrastructureToolName(item.toolName);
   const clusterNote: string | null = getClusterEvidenceNote(item.toolName);
 
   if (ranAt) {
@@ -730,12 +747,12 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
         ) : (
           <></>
         )}
-        <dl className="mt-2 divide-y divide-gray-100 rounded-lg bg-white px-3 ring-1 ring-inset ring-gray-200">
+        <dl className="mt-1">
           {detailRows.map((row: FormattedEvidenceArgument): ReactElement => {
             return (
               <div
                 key={row.key}
-                className="grid grid-cols-1 gap-0.5 py-2 sm:grid-cols-3 sm:gap-3"
+                className="grid grid-cols-1 gap-0.5 py-1.5 sm:grid-cols-3 sm:gap-3"
               >
                 <dt className="text-xs font-medium text-gray-500">
                   {row.label}
@@ -746,7 +763,7 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
               </div>
             );
           })}
-          <div className="grid grid-cols-1 gap-0.5 py-2 sm:grid-cols-3 sm:gap-3">
+          <div className="grid grid-cols-1 gap-0.5 py-1.5 sm:grid-cols-3 sm:gap-3">
             <dt className="text-xs font-medium text-gray-500">Tool</dt>
             <dd className="min-w-0 break-all font-mono text-xs leading-5 text-gray-700 sm:col-span-2">
               {item.toolName}
@@ -804,11 +821,7 @@ const EvidenceRows: FunctionComponent<EvidenceRowsProps> = (
 
   if (!state || state.status === "loading") {
     body = (
-      <div
-        role="status"
-        aria-live="polite"
-        className="space-y-2 rounded-lg bg-white p-3 ring-1 ring-inset ring-gray-200"
-      >
+      <div role="status" aria-live="polite" className="space-y-2 py-1">
         <span className="block h-3 w-2/3 rounded bg-gray-100 motion-safe:animate-pulse" />
         <span className="block h-3 w-1/2 rounded bg-gray-100 motion-safe:animate-pulse" />
         <span className="block h-3 w-3/4 rounded bg-gray-100 motion-safe:animate-pulse" />
@@ -894,16 +907,14 @@ const LoadedEvidenceRows: FunctionComponent<LoadedEvidenceRowsProps> = (
     );
 
     content = emptyRowsMessage ? (
-      <div className="rounded-lg bg-white px-3 py-3 ring-1 ring-inset ring-gray-200">
+      <div>
         <p className="text-sm font-medium text-gray-700">No rows returned.</p>
         <p className="mt-1 max-h-40 overflow-y-auto whitespace-pre-line break-words text-xs leading-5 text-gray-500">
           {emptyRowsMessage}
         </p>
       </div>
     ) : (
-      <p className="rounded-lg bg-white px-3 py-4 text-center text-sm text-gray-500 ring-1 ring-inset ring-gray-200">
-        No rows returned.
-      </p>
+      <p className="text-sm text-gray-500">No rows returned.</p>
     );
   } else if (response.widget) {
     content = <WidgetRenderer widgets={[response.widget]} />;
@@ -914,11 +925,7 @@ const LoadedEvidenceRows: FunctionComponent<LoadedEvidenceRowsProps> = (
       </pre>
     );
   } else {
-    content = (
-      <p className="rounded-lg bg-white px-3 py-4 text-center text-sm text-gray-500 ring-1 ring-inset ring-gray-200">
-        No rows returned.
-      </p>
-    );
+    content = <p className="text-sm text-gray-500">No rows returned.</p>;
   }
 
   return (

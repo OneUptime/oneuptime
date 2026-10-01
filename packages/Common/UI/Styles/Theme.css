@@ -239,7 +239,9 @@ html.dark [class~="active:bg-gray-100"]:active,
  * near-white bar across whatever it is on - see the status page group tree.
  */
 html.dark [class~="focus-within:bg-gray-100"]:focus-within,
-html.dark [class~="disabled:bg-gray-100"]:disabled {
+html.dark [class~="disabled:bg-gray-100"]:disabled,
+/* A locked menu item reached with the keyboard (MoreMenuItem). */
+html.dark [class~="focus-visible:bg-gray-100"]:focus-visible {
   background-color: var(--ou-surface-tertiary) !important;
 }
 
@@ -307,6 +309,7 @@ html.dark :is(
     [class~="hover:text-gray-900"]
   ):hover,
 html.dark [class~="focus:text-gray-900"]:focus,
+html.dark [class~="focus-visible:text-gray-900"]:focus-visible,
 html.dark .group:hover [class*="group-hover"][class*="text-gray-"],
 /*
  * `group-[:not(:hover)]:hidden` is a group-hover reveal written so a foreign
@@ -594,6 +597,23 @@ html.dark :is(
   --tw-gradient-to: rgb(49 46 129 / 42%) var(--tw-gradient-to-position);
 }
 
+/*
+ * Pill (Common/UI/Components/Pill). Its colours are worked out from whatever
+ * hex a user picked for a state, a severity or a label, so no utility class
+ * can carry them: the pill writes the light theme's inline and the dark
+ * theme's as custom properties (PillColors.ts), and these rules swap them in.
+ * Important, because what they replace is an inline style.
+ */
+html.dark [data-ou-pill] {
+  background-color: var(--ou-pill-dark-bg) !important;
+  color: var(--ou-pill-dark-text) !important;
+  box-shadow: var(--ou-pill-dark-shadow) !important;
+}
+
+html.dark [data-ou-pill-dot] {
+  background-color: var(--ou-pill-dark-dot) !important;
+}
+
 /* Semantic light surfaces retain hue without becoming luminous cards. */
 html.dark :is(
     .bg-red-50,
@@ -671,6 +691,14 @@ html.dark :is(
     [class~="bg-indigo-100/50"],
     [class~="bg-indigo-500/5"]
   ) {
+  background-color: rgb(49 46 129 / 35%);
+}
+
+/*
+ * The same wash painted on a row's ::before, which reaches past the row's
+ * text without moving the row (the AI investigation's evidence rows).
+ */
+html.dark [class~="before:bg-indigo-50/70"]::before {
   background-color: rgb(49 46 129 / 35%);
 }
 
@@ -871,6 +899,11 @@ html.dark :is(
   --tw-ring-color: rgb(52 211 153 / 32%);
 }
 
+html.dark :is(.border-cyan-100, .ring-cyan-200) {
+  border-color: rgb(34 211 238 / 42%);
+  --tw-ring-color: rgb(34 211 238 / 32%);
+}
+
 html.dark :is(
     .border-fuchsia-100,
     .border-pink-100,
@@ -938,6 +971,8 @@ html.dark :is(
     [class~="group-hover:bg-indigo-50"],
     [class~="group-hover:bg-indigo-100"]
   ):hover,
+/* Menu items give keyboard focus the same ground as hover (MoreMenuItem). */
+html.dark [class~="focus-visible:bg-indigo-50"]:focus-visible,
 html.dark .group:hover :is(
     [class*="group-hover:bg-indigo-50"],
     [class~="group-hover:bg-indigo-100"]
@@ -958,11 +993,13 @@ html.dark :is(
     [class~="hover:bg-blue-100"],
     [class~="hover:bg-rose-50"],
     [class~="hover:bg-rose-100"]
-  ):hover {
+  ):hover,
+html.dark [class~="focus-visible:bg-red-50"]:focus-visible {
   background-color: var(--ou-surface-tertiary) !important;
 }
 
 html.dark [class*="hover:text-red-"]:hover,
+html.dark [class~="focus-visible:text-red-700"]:focus-visible,
 html.dark .group:hover [class*="group-hover:text-red-"] {
   color: #fca5a5 !important;
 }

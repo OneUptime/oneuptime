@@ -1,5 +1,6 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
-import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
+import RowActions from "../ActionButton/RowActions";
+import { ButtonStyleType } from "../Button/Button";
 import CheckboxElement from "../Checkbox/Checkbox";
 import ColorInput from "../ColorViewer/ColorViewer";
 import Icon, { ThickProp } from "../Icon/Icon";
@@ -15,6 +16,7 @@ import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import React, { ReactElement, useState, useEffect } from "react";
 import { Draggable, DraggableProvided } from "react-beautiful-dnd";
 import LongTextViewer from "../LongText/LongTextViewer";
@@ -52,6 +54,8 @@ export interface ComponentProps<T extends GenericObject> {
   itemSelectLabel?: string | undefined;
   /** Hover text for a row whose box is locked. Says why, in the caller's words. */
   itemNotSelectableReason?: string | undefined;
+  /** What this row is ("Monitor: Checkout API"), for its ⋯ menu's name. */
+  itemLabel?: string | undefined;
 
   // responsive
   isMobile?: boolean;
@@ -74,15 +78,14 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     }, obj);
   };
 
-  const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(
-    props.actionButtons?.map(() => {
-      return false;
-    }) || [],
-  );
-
   const [tooltipModalText, setTooltipModalText] = useState<string>("");
 
-  const [error, setError] = useState<string>("");
+  /*
+   * On a phone a row is a card that labels each value with its column's
+   * title, which TableHeader - hidden there - would otherwise have
+   * translated.
+   */
+  const { translateString } = useTranslateValue();
 
   // Track mobile view for responsive behavior
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -198,71 +201,15 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     : null;
 
                   return (
-                    <div key={i} className="flex flex-wrap gap-2">
+                    <div key={i} className="flex flex-wrap items-center gap-2">
                       {customAction}
-                      {error && (
-                        <ConfirmModal
-                          title={`Error`}
-                          description={error}
-                          submitButtonText={"Close"}
-                          onSubmit={() => {
-                            return setError("");
-                          }}
-                        />
-                      )}
-                      {props.actionButtons?.map(
-                        (
-                          button: ActionButtonSchema<T>,
-                          actionIndex: number,
-                        ) => {
-                          if (
-                            button.isVisible &&
-                            !button.isVisible(props.item)
-                          ) {
-                            return <div key={actionIndex}></div>;
-                          }
-
-                          if (button.hideOnMobile) {
-                            return <div key={actionIndex}></div>;
-                          }
-
-                          return (
-                            <Button
-                              key={actionIndex}
-                              buttonSize={ButtonSize.Small}
-                              title={button.title}
-                              icon={button.icon}
-                              buttonStyle={button.buttonStyleType}
-                              isLoading={isButtonLoading[actionIndex]}
-                              disabled={button.disabled}
-                              tooltip={button.tooltip}
-                              onClick={() => {
-                                if (button.disabled) {
-                                  return;
-                                }
-
-                                if (button.onClick) {
-                                  isButtonLoading[actionIndex] = true;
-                                  setIsButtonLoading(isButtonLoading);
-
-                                  button.onClick(
-                                    props.item,
-                                    () => {
-                                      isButtonLoading[actionIndex] = false;
-                                      setIsButtonLoading(isButtonLoading);
-                                    },
-                                    (err: Error) => {
-                                      isButtonLoading[actionIndex] = false;
-                                      setIsButtonLoading(isButtonLoading);
-                                      setError((err as Error).message);
-                                    },
-                                  );
-                                }
-                              }}
-                            />
-                          );
-                        },
-                      )}
+                      <RowActions<T>
+                        item={props.item}
+                        actionButtons={props.actionButtons}
+                        isMobile={true}
+                        className="justify-start"
+                        itemLabel={props.itemLabel}
+                      />
                     </div>
                   );
                 }
@@ -358,7 +305,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     }}
                   >
                     <div className="text-sm font-medium text-gray-500">
-                      {column.title}
+                      {translateString(column.title) ?? column.title}
                     </div>
                     <div className="text-sm text-gray-900">{value}</div>
                   </div>
@@ -501,8 +448,8 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 getTableCellContentClassName<T>(column);
 
               const actionsContainerClassName: string = contentWrapperClassName
-                ? `flex justify-end ${contentWrapperClassName}`
-                : "flex justify-end";
+                ? `flex items-center justify-end gap-2 ${contentWrapperClassName}`
+                : "flex items-center justify-end gap-2";
 
               return (
                 <td
@@ -528,71 +475,12 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                   {column.type === FieldType.Actions && (
                     <div className={actionsContainerClassName}>
                       {columnContent}
-                      {error && (
-                        <div className="text-align-left">
-                          <ConfirmModal
-                            title={`Error`}
-                            description={error}
-                            submitButtonText={"Close"}
-                            onSubmit={() => {
-                              return setError("");
-                            }}
-                          />
-                        </div>
-                      )}
-                      {props.actionButtons?.map(
-                        (button: ActionButtonSchema<T>, i: number) => {
-                          if (
-                            button.isVisible &&
-                            !button.isVisible(props.item)
-                          ) {
-                            return <div key={i}></div>;
-                          }
-
-                          // Hide button on mobile if hideOnMobile is true
-                          if (button.hideOnMobile && isMobileView) {
-                            return <div key={i}></div>;
-                          }
-
-                          return (
-                            <div key={i}>
-                              <Button
-                                buttonSize={ButtonSize.Small}
-                                title={button.title}
-                                icon={button.icon}
-                                buttonStyle={button.buttonStyleType}
-                                isLoading={isButtonLoading[i]}
-                                disabled={button.disabled}
-                                tooltip={button.tooltip}
-                                onClick={() => {
-                                  if (button.disabled) {
-                                    return;
-                                  }
-
-                                  if (button.onClick) {
-                                    isButtonLoading[i] = true;
-                                    setIsButtonLoading(isButtonLoading);
-
-                                    button.onClick(
-                                      props.item,
-                                      () => {
-                                        // on action complete
-                                        isButtonLoading[i] = false;
-                                        setIsButtonLoading(isButtonLoading);
-                                      },
-                                      (err: Error) => {
-                                        isButtonLoading[i] = false;
-                                        setIsButtonLoading(isButtonLoading);
-                                        setError((err as Error).message);
-                                      },
-                                    );
-                                  }
-                                }}
-                              />
-                            </div>
-                          );
-                        },
-                      )}
+                      <RowActions<T>
+                        item={props.item}
+                        actionButtons={props.actionButtons}
+                        isMobile={isMobileView}
+                        itemLabel={props.itemLabel}
+                      />
                     </div>
                   )}
                 </td>

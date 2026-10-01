@@ -52,6 +52,6 @@ export default class KubernetesAgentMode {
 
     return `This Runner is the Kubernetes agent's in-cluster Runner: it only runs policy-tiered kubectl for OneUptime AI and never ${
       stepType || "unknown"
-    } steps. Bash and SSH commands need a Runner installed on a host (Project Settings > Runners).`;
+    } steps. Bash and SSH commands need a Runner installed on a host (Runbooks > Runners).`;
   }
 }

@@ -40,7 +40,7 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
  * orient a new user, by mounting the real components and reading them the
  * way a user would:
  *
- *  - the Products menu groups 40 products into small, named sections, with
+ *  - the Products menu groups 41 products into small, named sections, with
  *    the core products first and in the order a problem flows through them;
  *  - Home explains how the core products fit together;
  *  - Help links to the documentation.
@@ -270,11 +270,40 @@ describe("Products menu sections", () => {
       "Essentials",
       "Observability",
       "AI",
+      "Code",
       "Resources",
       "Infrastructure",
       "Dashboards & Automation",
       "Settings",
     ]);
+  });
+
+  test("AI is what you ask and read; Code is the work AI does in your code", () => {
+    openProductsMenu();
+
+    const sections: Array<MenuSection> = readMenuSections();
+    expect(
+      sections.find((section: MenuSection): boolean => {
+        return section.heading === "AI";
+      }),
+    ).toEqual({ heading: "AI", items: ["Chat", "Insights"] });
+    /*
+     * One item, not Tasks plus Code Repositories: repositories are where
+     * tasks open pull requests, so they are a page in the Tasks side menu.
+     */
+    expect(
+      sections.find((section: MenuSection): boolean => {
+        return section.heading === "Code";
+      }),
+    ).toEqual({ heading: "Code", items: ["Tasks"] });
+  });
+
+  test("the Tasks item says repositories are connected there", () => {
+    openProductsMenu();
+
+    expect(optionFor("Tasks")).toHaveTextContent(
+      "AI opens pull requests that fix your code. Connect GitHub here.",
+    );
   });
 
   test("no section is a catch-all called 'More' inside the products menu", () => {
@@ -348,6 +377,7 @@ describe("Products menu sections", () => {
       "Inventory",
       "Services",
       "Databases",
+      "Queues",
       "Real User Monitoring",
     ]);
   });
@@ -360,8 +390,10 @@ describe("Products menu sections", () => {
         return section.items;
       },
     );
+    // 41, not 42: Code Repositories became a page of Tasks.
     expect(titles).toHaveLength(41);
     expect(new Set(titles).size).toBe(41);
+    expect(titles).not.toContain("Code Repositories");
   });
 });
 
@@ -415,7 +447,9 @@ describe("Products menu descriptions say what each product is for", () => {
     expect(headings).toContain(
       lookupNested(DE, "navbar.categories.analyticsAutomation"),
     );
+    expect(headings).toContain(lookupNested(DE, "navbar.categories.code"));
     expect(headings).not.toContain("navbar.categories.infrastructure");
+    expect(headings).not.toContain("navbar.categories.code");
   });
 });
 

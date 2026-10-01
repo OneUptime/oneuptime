@@ -76,6 +76,7 @@ If policy forbids inbound connectivity, the complete Teams bot integration canno
 - **Team.ReadBasic.All** - Required to list all teams in the organization after admin consent is granted
 - **Channel.ReadBasic.All** - Required to verify channel existence and retrieve channel details
 - **TeamsAppInstallation.ReadForTeam.All** - Required for diagnosis. Lets OneUptime read which app package is really installed in a team and compare it against this deployment's client id, so a failed send can tell you _which_ of the possible causes it is. Without it OneUptime cannot tell "not installed" apart from "installed, but it is somebody else's package", and simply reports what Microsoft said — which is the single biggest reason this integration takes days instead of minutes to debug. Grant it.
+- **Chat.ReadBasic.WhereInstalled** - Optional. Lets OneUptime read the name of every chat the OneUptime app is in. Without it, each chat grants that through the manifest's **ChatSettings.Read.Chat** permission (below), which a chat added with an older manifest only has once the app is updated in it.
 
 `ChannelMessage.Send` is a delegated permission only; it has no application permission variant in the [Microsoft Graph permissions reference](https://learn.microsoft.com/en-us/graph/permissions-reference#channelmessagesend). Keep it in the delegated list above.
 
@@ -84,9 +85,12 @@ If policy forbids inbound connectivity, the complete Teams bot integration canno
 - **ChannelMessage.Send.Group** - Allows the bot to send messages to team channels
 - **ChannelMessage.Read.Group** - Allows the bot to read channel messages for interactive commands
 - **Channel.Create.Group** - Allows the bot to create channels when needed
+- **ChatMessage.Read.Chat** - Allows the bot to read messages in chats it has been added to (for interactive commands)
+- **ChatMember.Read.Chat** - Allows the bot to read the members of chats it has been added to (to name chats in OneUptime)
+- **ChatSettings.Read.Chat** - Allows OneUptime to read the name of group chats the app is added to. Teams does not reliably send a group chat's name to the bot, so without it a named group chat is listed by its members' names
 - **TeamsAppInstallation.Read.Group** - Allows OneUptime to confirm the app is installed in a team it is about to post to
 
-If you uploaded the app manifest before this permission existed, download it again from **Project Settings > Workspace > Microsoft Teams** and re-upload it to pick it up.
+If you uploaded the app manifest before these permissions existed, download it again from **Project Settings > Workspace > Microsoft Teams** and upload it to Teams as an update of the OneUptime app. Teams grants team and chat permissions when the app is installed or updated in that team or chat, so accept the update in each team and chat that already has the app. See [A group chat is listed by its members' names](#a-group-chat-is-listed-by-its-members-names) for chats.
 
 3. Click "Grant admin consent" for your organization
 
@@ -213,7 +217,7 @@ The confusing part is that alert cards keep arriving in Teams, which makes the i
 
 So a working alert verifies that particular outbound send; it does not verify every Graph permission or the inbound bot endpoint. Interactive features require successful inbound bot activity processing.
 
-OneUptime records chats from bot activities, such as the app being installed, the bot being added to the conversation, or a message sent to the bot in that chat. All arrive over the same inbound endpoint. An empty **Chats** list after adding the app and messaging it means no chat has been recorded for that project; check incoming requests, authentication errors, and tenant/project mapping. Clicking **Refresh Chats** re-reads OneUptime's stored chats.
+OneUptime records chats from bot activities, such as the app being installed, the bot being added to the conversation, or a message sent to the bot in that chat. All arrive over the same inbound endpoint. An empty **Chats** list after adding the app and messaging it means no chat has been recorded for that project; check incoming requests, authentication errors, and tenant/project mapping. Clicking **Refresh Chats** re-reads OneUptime's stored chats, and re-reads the name of each stored group chat from Microsoft.
 
 **Diagnose it in this order:**
 
@@ -240,6 +244,17 @@ OneUptime records chats from bot activities, such as the app being installed, th
 **A 404 on `GET /api/microsoft-bot/messages` is not the bug, and it is not evidence Azure could not reach you.** The endpoint has always accepted POST only, so on versions before this one a browser GET fell through to OneUptime's generic not-found handler and came back `{"message":"Page not found - /api/microsoft-bot/messages"}`. That reads as a missing route and has sent more than one admin looking for a regression that was not there — but note what it actually proves: OneUptime generated that response, so the request reached the app. It is 58 bytes, which is why it shows up in an access log as `"GET /api/microsoft-bot/messages HTTP/1.1" 404 58`.
 
 This version answers a GET with `405 Method Not Allowed` and a description of itself, so the distinction no longer needs explaining. If you are still on an older build, judge a 404 by its body: OneUptime's JSON means the request arrived, an HTML error page from your proxy means it did not.
+
+### A group chat is listed by its members' names
+
+Teams does not reliably send a group chat's name to the bot, so OneUptime reads it from Microsoft Graph. That needs the manifest's **ChatSettings.Read.Chat** permission, which each chat grants when the OneUptime app in it is installed or updated. Chats the app was added to with an older manifest do not have it, and **Refresh Chats** marks them. Fix it one of two ways:
+
+1. Download the manifest again from **Project Settings > Workspace > Microsoft Teams**, upload it to Teams as an update of the OneUptime app, accept the update in each of those chats, then click **Refresh Chats**.
+   - Teams only takes the upload as an update when its version is higher than the installed one. Release images set it from `APP_VERSION`. A build without `APP_VERSION` uses a fixed fallback that only changes when OneUptime changes the manifest; if Teams says the package is not newer, raise the `version` in the manifest before uploading.
+   - If your tenant only lets preapproved apps use chat permissions, add **ChatSettings.Read.Chat** to OneUptime's preapproval policy first (for example `Update-MgBetaTeamAppPreapproval -TeamsAppId <app id> -ResourceSpecificApplicationPermissionsAllowedForChats @('ChatMember.Read.Chat','ChatMessage.Read.Chat','ChatSettings.Read.Chat')`), or the updated app cannot be added to chats.
+2. Or grant the app registration the **Chat.ReadBasic.WhereInstalled** application permission (Step 2) with admin consent, then click **Refresh Chats**. That covers every chat the app is in at once, with no per-chat update. OneUptime keeps using its current Microsoft Graph token until it expires, so a newly granted permission can take up to an hour to take effect.
+
+A group chat that has no name in Teams is listed by its members' names by design. A chat renamed in Teams picks up its new name the next time someone clicks **Refresh Chats**.
 
 ### Checking this deployment's bot configuration
 

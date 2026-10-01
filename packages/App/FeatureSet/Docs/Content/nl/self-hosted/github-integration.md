@@ -152,7 +152,7 @@ gitHubApp:
 ### Stap 10: Repositories verbinden in OneUptime
 
 1. Log in op uw OneUptime-dashboard
-2. Navigeer naar **Producten** > **Code-opslagplaatsen**
+2. Navigeer naar **Producten** > **Taken** > **Code-opslagplaatsen**
 3. Klik op **"Repository aanmaken"** of gebruik de GitHub App-installatiestroom
 4. Als u wordt doorgestuurd vanuit GitHub, wordt de installatie-ID automatisch vastgelegd
 5. Selecteer de repositories die u wilt verbinden uit de lijst

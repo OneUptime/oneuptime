@@ -128,7 +128,7 @@ describe("InsightFixRouting.routeInsightFix", () => {
     jest.restoreAllMocks();
   });
 
-  test("skips everything when the project has not opted in (strict, default false)", async () => {
+  test("skips everything when the project has not opted in (strict, column default false)", async () => {
     const budget: jest.SpyInstance = mockBudgetAllowed(true);
     const create: jest.SpyInstance = jest.spyOn(
       TelemetryExceptionService,

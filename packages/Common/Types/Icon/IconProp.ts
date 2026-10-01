@@ -55,6 +55,8 @@ enum IconProp {
   Graph = "Graph",
   Variable = "Variable",
   ListBullet = "ListBullet",
+  Indent = "Indent",
+  Outdent = "Outdent",
   Image = "Image",
   Grid = "Grid",
   More = "More",

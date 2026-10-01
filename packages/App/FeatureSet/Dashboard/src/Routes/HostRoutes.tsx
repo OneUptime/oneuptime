@@ -15,6 +15,8 @@ import HostSettingsLabelRules from "../Pages/Host/Settings/LabelRules";
 import HostOverview from "../Pages/Host/View/Overview";
 import HostMetrics from "../Pages/Host/View/Metrics";
 import HostRecommendations from "../Pages/Host/View/Recommendations";
+import HostAiInsights from "../Pages/Host/View/AI/Insights";
+import HostAiAgent from "../Pages/Host/View/AI/Agent";
 import HostProcesses from "../Pages/Host/View/Processes";
 import HostProcessView from "../Pages/Host/View/ProcessView";
 import HostServices from "../Pages/Host/View/Services";
@@ -130,6 +132,27 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             <HostRecommendations
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW_RECOMMENDATIONS] as Route}
+            />
+          }
+        />
+
+        {/* AI: what OneUptime AI did here, and the resource AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_AI_INSIGHTS, 2)}
+          element={
+            <HostAiInsights
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_AI_INSIGHTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_AI_AGENT, 2)}
+          element={
+            <HostAiAgent
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_AI_AGENT] as Route}
             />
           }
         />

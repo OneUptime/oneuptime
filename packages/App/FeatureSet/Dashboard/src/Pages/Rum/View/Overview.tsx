@@ -1,6 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getRumApplicationConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -8,7 +10,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -23,6 +24,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -816,8 +818,16 @@ const RumApplicationOverview: FunctionComponent<
     },
   );
 
+  /*
+   * Drag-to-zoom (issue #4105): a drag across any chart on the page sets
+   * the page's range to the window dragged out, and a double-click on any
+   * chart - or "Reset zoom" beside the picker - puts the range from before
+   * the zoom back. The charts, the tiles, both web-vitals cards and the
+   * sessions link are all read from `timeRange`, so all of them follow; a
+   * zoomed (custom) range also stays put across auto-refresh ticks.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {showRumSdkMissingNotice && (
         <Alert
           type={AlertType.INFO}
@@ -845,6 +855,21 @@ const RumApplicationOverview: FunctionComponent<
         identifierLabel="service.name"
         status={a.otelCollectorStatus}
         lastSeenAt={a.lastSeenAt}
+        connectionGuide={
+          <ResourceConnectionGuideCard
+            status={a.otelCollectorStatus as string | undefined}
+            lastSeenAt={a.lastSeenAt}
+            guide={getRumApplicationConnectionGuide(
+              (a.appIdentifier as string | undefined) ||
+                (a.name as string | undefined) ||
+                "",
+            )}
+            documentationRoute={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION] as Route,
+              { modelId: modelId },
+            )}
+          />
+        }
         description={a.description as string}
         chips={chips}
         tiles={tiles}
@@ -887,7 +912,7 @@ const RumApplicationOverview: FunctionComponent<
           description={RUM_METRIC_DESCRIPTIONS.inpByRoute}
         />
       )}
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

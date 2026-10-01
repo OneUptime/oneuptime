@@ -14,7 +14,7 @@ Mencione-o em um issue e ele abre um pull request. Mencione-o em um pull request
 
 ## Antes de começar
 
-- O repositório precisa estar **conectado a um projeto do OneUptime** pelo GitHub App. Veja [Integração com o GitHub (auto-hospedado)](/docs/self-hosted/github-integration) para a configuração, ou conecte-o em **Configurações do projeto → Repositórios de código** no OneUptime Cloud.
+- O repositório precisa estar **conectado a um projeto do OneUptime** pelo GitHub App. Veja [Integração com o GitHub (auto-hospedado)](/docs/self-hosted/github-integration) para a configuração, ou conecte-o em **Tarefas → Repositórios de código** no OneUptime Cloud.
 - Um **Runner com a capacidade "Executa Correções de Código com IA"** precisa estar online — o mesmo Runner que executa as [Tarefas de Correção com IA](/docs/ai/ai-agent). Sem ele, os comandos são aceitos e depois falham após 30 minutos com uma mensagem dizendo que nenhum agente os assumiu.
 - O GitHub App precisa ter a permissão **Issues: Leitura e Escrita** e precisa assinar os eventos de webhook listados em [O que assinar](#o-que-assinar).
 
@@ -129,13 +129,13 @@ Trate um pull request escrito por IA como você trataria um de um contribuidor n
 
 ## Solução de problemas
 
-**Não acontece nada quando eu menciono o app.** Verifique o handle primeiro — ele é o slug do app, não o nome de exibição. Depois verifique se o repositório está conectado a um projeto (**Configurações do projeto → Repositórios de código**), se **Responder a Comandos do GitHub** está ligado e se o seu GitHub App assina os eventos acima.
+**Não acontece nada quando eu menciono o app.** Verifique o handle primeiro — ele é o slug do app, não o nome de exibição. Depois verifique se o repositório está conectado a um projeto (**Tarefas → Repositórios de código**), se **Responder a Comandos do GitHub** está ligado e se o seu GitHub App assina os eventos acima.
 
 **Ele reage com 😕 e não diz nada.** Você não tem acesso de escrita ao repositório.
 
 **Ele diz que já está trabalhando nisso.** Já existe uma execução desse tipo ativa neste issue ou pull request. `@oneuptime status` diz qual é, e `@oneuptime cancel` a interrompe.
 
-**Ele confirmou e depois ficou muito tempo em silêncio.** Verifique se há um Runner com **Executa Correções de Código com IA** online em **Configurações → Runners**. Sem ele, a execução falha depois de 30 minutos e a thread é avisada.
+**Ele confirmou e depois ficou muito tempo em silêncio.** Verifique se há um Runner com **Executa Correções de Código com IA** online em **Runbooks → Agentes de runbook**. Sem ele, a execução falha depois de 30 minutos e a thread é avisada.
 
 **Ele diz que o pull request vem de um fork.** Ajustes precisam de um branch neste repositório. Peça uma revisão, ou envie o branch para cá.
 

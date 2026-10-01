@@ -20,6 +20,11 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import { KubectlCommandTier } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import { ResourceCommandTier } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  AI_RESOURCE_TYPE_INFO,
+  isAiResourceType,
+} from "Common/Types/ResourceAiAgent/AiResourceType";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
@@ -160,6 +165,145 @@ function KubectlTierPill({ tier }: { tier: KubectlCommandTier }): ReactElement {
       {v.label}
     </span>
   );
+}
+
+/*
+ * The resource command policy's tier, in the same words and colours: the
+ * two tier enums carry the same values (a Common test asserts it), so a
+ * resource command's "safe change" reads exactly like a kubectl one.
+ */
+const RESOURCE_TIER_TO_KUBECTL_TIER: Record<
+  ResourceCommandTier,
+  KubectlCommandTier
+> = {
+  [ResourceCommandTier.Read]: KubectlCommandTier.Read,
+  [ResourceCommandTier.SafeWrite]: KubectlCommandTier.SafeWrite,
+  [ResourceCommandTier.RiskyWrite]: KubectlCommandTier.RiskyWrite,
+  [ResourceCommandTier.Denied]: KubectlCommandTier.Denied,
+};
+
+export function getResourceCommandTierLabel(tier: ResourceCommandTier): string {
+  const kubectlTier: KubectlCommandTier =
+    RESOURCE_TIER_TO_KUBECTL_TIER[tier] || KubectlCommandTier.RiskyWrite;
+  return (
+    TIER_VISUAL[kubectlTier] || TIER_VISUAL[KubectlCommandTier.RiskyWrite]!
+  ).label;
+}
+
+function ResourceCommandTierPill({
+  tier,
+}: {
+  tier: ResourceCommandTier;
+}): ReactElement {
+  return (
+    <KubectlTierPill
+      tier={
+        RESOURCE_TIER_TO_KUBECTL_TIER[tier] || KubectlCommandTier.RiskyWrite
+      }
+    />
+  );
+}
+
+/*
+ * Where a command runs, as the card's command row names it: the cluster of
+ * a kubectl step, the resource of a resource command ("Docker host web-1"),
+ * the Runner of a Bash or SSH step.
+ */
+export function getCommandTargetLabel(
+  command: Pick<
+    AiRemediationCommand,
+    | "stepType"
+    | "kubernetesClusterNameSnapshot"
+    | "resourceType"
+    | "resourceNameSnapshot"
+    | "runnerNameSnapshot"
+  >,
+): string {
+  if (command.stepType === RunbookStepType.Kubectl) {
+    return `cluster ${command.kubernetesClusterNameSnapshot || "(unknown)"}`;
+  }
+
+  if (command.stepType === RunbookStepType.ResourceCommand) {
+    return `${
+      isAiResourceType(command.resourceType)
+        ? AI_RESOURCE_TYPE_INFO[command.resourceType].displayName
+        : "resource"
+    } ${command.resourceNameSnapshot || "(unknown)"}`;
+  }
+
+  return command.runnerNameSnapshot;
+}
+
+/*
+ * The step-type chip of a command row: "kubectl" for a kubectl step, the
+ * program a resource command runs ("docker", "systemctl", "pvesh", ...), the
+ * step type otherwise.
+ */
+export function getCommandStepLabel(
+  command: Pick<AiRemediationCommand, "stepType" | "command">,
+): string {
+  if (command.stepType === RunbookStepType.Kubectl) {
+    return "kubectl";
+  }
+
+  if (command.stepType === RunbookStepType.ResourceCommand) {
+    return (command.command || "").trim().split(/\s+/)[0] || "command";
+  }
+
+  return command.stepType;
+}
+
+/*
+ * The card's description: what an AI fix on this signal can be. Commands
+ * run through a resource's AI agent (a Docker host, a database server, a
+ * host, ...) are named only when the card shows such a fix, so every other
+ * card — kubectl, Runner and runbook fixes — reads exactly as before.
+ */
+export const REMEDIATION_CARD_DESCRIPTION: string =
+  "Fixes OneUptime AI proposed or applied for this signal — kubectl on a cluster, commands on a Runner, or a runbook. Approving runs exactly what is shown, under your name.";
+
+export const REMEDIATION_CARD_DESCRIPTION_WITH_RESOURCE_FIXES: string =
+  "Fixes OneUptime AI proposed or applied for this signal — kubectl on a cluster, commands through a resource's AI agent, commands on a Runner, or a runbook. Approving runs exactly what is shown, under your name.";
+
+export function getRemediationCardDescription(
+  suggestions: Array<
+    Pick<
+      AutoRemediationSuggestion,
+      "resourceId" | "suggestionType" | "commandPlan"
+    >
+  >,
+): string {
+  const hasResourceFix: boolean = suggestions.some(
+    (
+      suggestion: Pick<
+        AutoRemediationSuggestion,
+        "resourceId" | "suggestionType" | "commandPlan"
+      >,
+    ): boolean => {
+      if (suggestion.resourceId) {
+        return true;
+      }
+
+      if (
+        suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan
+      ) {
+        return false;
+      }
+
+      const plan: AiRemediationCommandPlan | null =
+        AiRemediationCommandPlanUtil.parse(suggestion.commandPlan || null);
+
+      return Boolean(
+        plan?.commands.some((command: AiRemediationCommand): boolean => {
+          return command.stepType === RunbookStepType.ResourceCommand;
+        }),
+      );
+    },
+  );
+
+  return hasResourceFix
+    ? REMEDIATION_CARD_DESCRIPTION_WITH_RESOURCE_FIXES
+    : REMEDIATION_CARD_DESCRIPTION;
 }
 
 interface VerificationVisual {
@@ -523,6 +667,8 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                 verificationStatus: true,
                 verificationNote: true,
                 kubernetesClusterId: true,
+                resourceType: true,
+                resourceId: true,
                 createdAt: true,
               },
               sort: {
@@ -695,7 +841,7 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Remediation"
-      description="Fixes OneUptime AI proposed or applied for this signal — kubectl on a cluster, commands on a Runner, or a runbook. Approving runs exactly what is shown, under your name."
+      description={getRemediationCardDescription(suggestions)}
     >
       <div className="flex flex-col gap-4">
         {actionError ? (
@@ -743,14 +889,27 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                   return command.stepType === RunbookStepType.Kubectl;
                 }),
             );
+            // A resource round, or a plan of commands on a resource's AI agent.
+            const isResourceFix: boolean =
+              !isClusterFix &&
+              Boolean(
+                suggestion.resourceId ||
+                  plan?.commands.some((command: AiRemediationCommand) => {
+                    return command.stepType === RunbookStepType.ResourceCommand;
+                  }),
+              );
             const title: string = isCommandPlan
               ? isClusterFix
                 ? "AI kubectl fix"
-                : "AI Command Plan"
+                : isResourceFix
+                  ? "AI infrastructure fix"
+                  : "AI Command Plan"
               : runbookTitle;
             const sourceLabel: string = suggestion.kubernetesClusterId
               ? suggestion.ruleNameSnapshot || "AI remediation for cluster"
-              : `Rule: ${suggestion.ruleNameSnapshot || "Unknown"}`;
+              : suggestion.resourceId
+                ? suggestion.ruleNameSnapshot || "AI remediation"
+                : `Rule: ${suggestion.ruleNameSnapshot || "Unknown"}`;
 
             return (
               <div
@@ -833,20 +992,19 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                                   {command.sequence}.
                                 </span>
                                 <span className="text-xs font-medium text-gray-900">
-                                  {command.stepType === RunbookStepType.Kubectl
-                                    ? `cluster ${
-                                        command.kubernetesClusterNameSnapshot ||
-                                        "(unknown)"
-                                      }`
-                                    : command.runnerNameSnapshot}
+                                  {getCommandTargetLabel(command)}
                                 </span>
                                 <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
-                                  {command.stepType === RunbookStepType.Kubectl
-                                    ? "kubectl"
-                                    : command.stepType}
+                                  {getCommandStepLabel(command)}
                                 </span>
                                 {command.kubectlTier ? (
                                   <KubectlTierPill tier={command.kubectlTier} />
+                                ) : command.stepType ===
+                                    RunbookStepType.ResourceCommand &&
+                                  command.resourceCommandTier ? (
+                                  <ResourceCommandTierPill
+                                    tier={command.resourceCommandTier}
+                                  />
                                 ) : (
                                   <></>
                                 )}

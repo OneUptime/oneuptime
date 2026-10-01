@@ -246,9 +246,30 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     numberBg: "bg-cyan-600",
     borderL: "border-l-cyan-500",
   },
+  /*
+   * Same for a command OneUptime AI composed for an infrastructure
+   * resource's AI agent (Docker, Proxmox, VMware, Ceph, a database, a
+   * host): rendered when one exists, never offered by the step picker.
+   */
+  [RunbookStepType.ResourceCommand]: {
+    type: RunbookStepType.ResourceCommand,
+    label: "Resource command",
+    shortLabel: "AI agent",
+    description:
+      "A single command OneUptime AI composed for an infrastructure resource's AI agent. Not authored in runbooks.",
+    icon: IconProp.Server,
+    bg: "bg-teal-50",
+    ring: "ring-teal-100",
+    iconColor: "text-teal-600",
+    numberBg: "bg-teal-600",
+    borderL: "border-l-teal-500",
+  },
 };
 
-// The step types a runbook author may add. Kubectl is deliberately absent.
+/*
+ * The step types a runbook author may add. Kubectl and ResourceCommand are
+ * deliberately absent: only OneUptime AI composes them.
+ */
 const ALL_STEP_TYPES: RunbookStepType[] = [
   RunbookStepType.Manual,
   RunbookStepType.JavaScript,
@@ -840,7 +861,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         {agents.length === 0 ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             No Runners in this project yet. Create one under{" "}
-            <strong>Settings &rsaquo; Runners</strong>, then come back to pick
+            <strong>Runbooks &rsaquo; Runners</strong>, then come back to pick
             it here.
           </div>
         ) : (
@@ -1363,24 +1384,26 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               ),
                                             })}
                                             <div>
-                                              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                              <label
+                                                htmlFor={`runbook-step-${idx}-javascript-script`}
+                                                className="block text-xs font-medium text-gray-700 mb-1.5"
+                                              >
                                                 Script
                                               </label>
-                                              <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                                                <CodeEditor
-                                                  type={CodeType.JavaScript}
-                                                  value={
-                                                    (
-                                                      step.config as JavaScriptStepConfig
-                                                    ).script || ""
-                                                  }
-                                                  onChange={(v: string) => {
-                                                    return updateConfig(idx, {
-                                                      script: v,
-                                                    });
-                                                  }}
-                                                />
-                                              </div>
+                                              <CodeEditor
+                                                id={`runbook-step-${idx}-javascript-script`}
+                                                type={CodeType.JavaScript}
+                                                value={
+                                                  (
+                                                    step.config as JavaScriptStepConfig
+                                                  ).script || ""
+                                                }
+                                                onChange={(v: string) => {
+                                                  return updateConfig(idx, {
+                                                    script: v,
+                                                  });
+                                                }}
+                                              />
                                               <p className="text-xs text-gray-500 mt-1.5">
                                                 Sandboxed via{" "}
                                                 <code>isolated-vm</code> on the
@@ -1472,48 +1495,52 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               </div>
                                             </div>
                                             <div>
-                                              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                              <label
+                                                htmlFor={`runbook-step-${idx}-http-headers`}
+                                                className="block text-xs font-medium text-gray-700 mb-1.5"
+                                              >
                                                 Headers (JSON)
                                               </label>
-                                              <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                                                <CodeEditor
-                                                  type={CodeType.JSON}
-                                                  value={
-                                                    (
-                                                      step.config as HttpRequestStepConfig
-                                                    ).headersJson || ""
-                                                  }
-                                                  onChange={(v: string) => {
-                                                    return updateConfig(idx, {
-                                                      headersJson: v,
-                                                    });
-                                                  }}
-                                                  placeholder={
-                                                    '{ "Authorization": "Bearer ..." }'
-                                                  }
-                                                />
-                                              </div>
+                                              <CodeEditor
+                                                id={`runbook-step-${idx}-http-headers`}
+                                                type={CodeType.JSON}
+                                                value={
+                                                  (
+                                                    step.config as HttpRequestStepConfig
+                                                  ).headersJson || ""
+                                                }
+                                                onChange={(v: string) => {
+                                                  return updateConfig(idx, {
+                                                    headersJson: v,
+                                                  });
+                                                }}
+                                                placeholder={
+                                                  '{ "Authorization": "Bearer ..." }'
+                                                }
+                                              />
                                             </div>
                                             <div>
-                                              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                              <label
+                                                htmlFor={`runbook-step-${idx}-http-body`}
+                                                className="block text-xs font-medium text-gray-700 mb-1.5"
+                                              >
                                                 Body
                                               </label>
-                                              <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                                                <CodeEditor
-                                                  type={CodeType.JSON}
-                                                  value={
-                                                    (
-                                                      step.config as HttpRequestStepConfig
-                                                    ).body || ""
-                                                  }
-                                                  onChange={(v: string) => {
-                                                    return updateConfig(idx, {
-                                                      body: v,
-                                                    });
-                                                  }}
-                                                  placeholder='{ "message": "..." }'
-                                                />
-                                              </div>
+                                              <CodeEditor
+                                                id={`runbook-step-${idx}-http-body`}
+                                                type={CodeType.JSON}
+                                                value={
+                                                  (
+                                                    step.config as HttpRequestStepConfig
+                                                  ).body || ""
+                                                }
+                                                onChange={(v: string) => {
+                                                  return updateConfig(idx, {
+                                                    body: v,
+                                                  });
+                                                }}
+                                                placeholder='{ "message": "..." }'
+                                              />
                                             </div>
                                             <StepTimeoutInput
                                               label="Request timeout"
@@ -1566,24 +1593,26 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               ),
                                             })}
                                             <div>
-                                              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                              <label
+                                                htmlFor={`runbook-step-${idx}-bash-script`}
+                                                className="block text-xs font-medium text-gray-700 mb-1.5"
+                                              >
                                                 Bash script
                                               </label>
-                                              <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                                                <CodeEditor
-                                                  type={CodeType.Text}
-                                                  value={
-                                                    (
-                                                      step.config as BashStepConfig
-                                                    ).script || ""
-                                                  }
-                                                  onChange={(v: string) => {
-                                                    return updateConfig(idx, {
-                                                      script: v,
-                                                    });
-                                                  }}
-                                                />
-                                              </div>
+                                              <CodeEditor
+                                                id={`runbook-step-${idx}-bash-script`}
+                                                type={CodeType.Bash}
+                                                value={
+                                                  (
+                                                    step.config as BashStepConfig
+                                                  ).script || ""
+                                                }
+                                                onChange={(v: string) => {
+                                                  return updateConfig(idx, {
+                                                    script: v,
+                                                  });
+                                                }}
+                                              />
                                               <p className="text-xs text-gray-500 mt-1.5">
                                                 Runs via <code>bash -c</code> on
                                                 the selected agent. Output is
@@ -1655,24 +1684,25 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               ),
                                             })}
                                             <div>
-                                              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                              <label
+                                                htmlFor={`runbook-step-${idx}-ssh-command`}
+                                                className="block text-xs font-medium text-gray-700 mb-1.5"
+                                              >
                                                 Command
                                               </label>
-                                              <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                                                <CodeEditor
-                                                  type={CodeType.Text}
-                                                  value={
-                                                    (
-                                                      step.config as SSHStepConfig
-                                                    ).command || ""
-                                                  }
-                                                  onChange={(v: string) => {
-                                                    return updateConfig(idx, {
-                                                      command: v,
-                                                    });
-                                                  }}
-                                                />
-                                              </div>
+                                              <CodeEditor
+                                                id={`runbook-step-${idx}-ssh-command`}
+                                                type={CodeType.Bash}
+                                                value={
+                                                  (step.config as SSHStepConfig)
+                                                    .command || ""
+                                                }
+                                                onChange={(v: string) => {
+                                                  return updateConfig(idx, {
+                                                    command: v,
+                                                  });
+                                                }}
+                                              />
                                               <p className="text-xs text-gray-500 mt-1.5">
                                                 Runs on the remote host as the
                                                 credential&rsquo;s user. Output

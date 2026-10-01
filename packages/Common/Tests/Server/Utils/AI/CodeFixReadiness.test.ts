@@ -37,20 +37,7 @@ function fakeProvider(params: {
   } as unknown as LlmProvider;
 }
 
-// No daily-budget limit configured: the common case, and never a blocker.
-function mockBudgetNotExhausted(): void {
-  jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
-    exhausted: false,
-    limitInTokens: null,
-    usedTokensToday: 0,
-  });
-}
-
 describe("CodeFixReadiness.getLlmProviderCheck", () => {
-  beforeEach(() => {
-    mockBudgetNotExhausted();
-  });
-
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -191,57 +178,23 @@ describe("CodeFixReadiness.getLlmProviderCheck", () => {
  * ignored it would report ready and then die at the run's first completion
  * call — the exact fail-late hole the balance gate exists to close.
  */
+/*
+ * Readiness only covers subjectless fix tasks, and subjectless AI work has no
+ * daily token limit, so the token budget never gates it.
+ */
 describe("CodeFixReadiness.getLlmProviderCheck — daily autonomous token budget", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("a zeroed daily limit (the kill switch) is NOT ready, even with a healthy project-owned provider", async () => {
+  test("the daily token budget is not consulted", async () => {
     jest
       .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
       .mockResolvedValue(fakeProvider({ name: "My OpenAI" }));
-    jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
-      exhausted: true,
-      limitInTokens: 0,
-      usedTokensToday: 0,
-    });
-
-    const check: AIFixReadinessCheck =
-      await CodeFixReadiness.getLlmProviderCheck({
-        projectId,
-        billingEnabled: false,
-      });
-
-    expect(check.ok).toBe(false);
-    expect(check.detail).toContain("paused");
-  });
-
-  test("an exhausted daily budget is NOT ready and reports the usage", async () => {
-    jest
-      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
-      .mockResolvedValue(fakeProvider({ name: "My OpenAI" }));
-    jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
-      exhausted: true,
-      limitInTokens: 1000,
-      usedTokensToday: 1000,
-    });
-
-    const check: AIFixReadinessCheck =
-      await CodeFixReadiness.getLlmProviderCheck({
-        projectId,
-        billingEnabled: false,
-      });
-
-    expect(check.ok).toBe(false);
-    expect(check.detail).toContain("exhausted");
-    expect(check.detail).toContain("1,000");
-  });
-
-  test("an unset daily limit never blocks", async () => {
-    jest
-      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
-      .mockResolvedValue(fakeProvider({ name: "My OpenAI" }));
-    mockBudgetNotExhausted();
+    const getBudget: jest.SpyInstance = jest.spyOn(
+      AIService,
+      "getAutonomousDailyBudgetStatus",
+    );
 
     const check: AIFixReadinessCheck =
       await CodeFixReadiness.getLlmProviderCheck({
@@ -250,6 +203,7 @@ describe("CodeFixReadiness.getLlmProviderCheck — daily autonomous token budget
       });
 
     expect(check.ok).toBe(true);
+    expect(getBudget).not.toHaveBeenCalled();
   });
 });
 
@@ -378,7 +332,6 @@ describe("CodeFixReadiness.getProjectReadiness", () => {
   };
 
   function mockAll(params: MockAllParams): void {
-    mockBudgetNotExhausted();
     jest
       .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
       .mockResolvedValue(params.hasRepo);

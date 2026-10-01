@@ -1,3 +1,5 @@
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import DockerHost from "./DockerHost";
 import KubernetesCluster from "./KubernetesCluster";
 import Label from "./Label";
@@ -22,6 +24,7 @@ import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { ResourceAiRemediationMode } from "../../Types/ResourceAiAgent/ResourceAiAccess";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import {
   Column,
@@ -1336,6 +1339,11 @@ export default class Host extends BaseModel {
     nullable: true,
     unique: false,
   })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
   public retainTelemetryDataForDays?: number = undefined;
 
   @ColumnAccessControl({
@@ -1376,6 +1384,11 @@ export default class Host extends BaseModel {
   @Column({
     type: ColumnType.JSON,
     nullable: true,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
   })
   public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
 
@@ -1587,4 +1600,216 @@ export default class Host extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public cloudAccountId?: string = undefined;
+
+  /*
+   * OneUptime AI access to this host through its Host AI agent (a resource AI
+   * agent, ResourceAiAgent). The settings are plain columns written through
+   * ordinary CRUD, so they exist before any agent registers. The columns
+   * keep the host's own update ACL: anyone who may edit the host may make
+   * AI do LESS; making it do MORE is refused by the service unless the
+   * caller may author a FullAuto auto-remediation rule. The aiAccess*
+   * columns are written only by the server.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditHost,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Let AI Investigate With Read-Only Commands",
+    description:
+      "When on, OneUptime AI runs read-only commands (systemctl status, journalctl, df, free, uptime, ps, ss) on this host, through its Host AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. Off by default. Anyone who may edit the host can turn it on or off.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isAiInvestigationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditHost,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "AI Remediation Mode",
+    /*
+     * The API and Terraform docs for the mode: the same semantics as the
+     * ResourceAiRemediationMode doc comment in
+     * Types/ResourceAiAgent/ResourceAiAccess.ts (the canonical text).
+     */
+    description:
+      "Disabled: AI never proposes or runs a change on this host. RequireApproval: AI composes a command plan and a human approves it with one click before anything runs. Automatic: safe changes (SafeWrite) run without a human; a riskier change is proposed for approval unless the host's allowlist names its exact shape. BypassApproval: every change the policy allows — safe AND riskier — runs on its own, except what always needs a human. In EVERY mode: Denied commands never run, commands the policy marks requiresHuman always ask, and the agent itself refuses every write unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true (and then only on the targets ONEUPTIME_AI_WRITE_TARGETS allows, never its protected targets). Anyone who may edit the host can lower the mode; raising it needs Project Owner, Project Admin or Edit Auto Remediation Rule.",
+    defaultValue: ResourceAiRemediationMode.Disabled,
+    example: ResourceAiRemediationMode.RequireApproval,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: ResourceAiRemediationMode.Disabled,
+  })
+  public aiRemediationMode?: ResourceAiRemediationMode = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditHost,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "AI Command Allowlist",
+    description:
+      "Optional JSON array of command patterns that Automatic mode may run on this host without approval even though they are riskier changes. Each pattern is one command line for this host's agent (systemctl, journalctl and the other host programs it may run) and is compared with the command word by word: * stands for exactly one word (a name, an id), never for extra words or flags, and every flag the command uses must be written out in the pattern. At most 50 patterns of at most 500 characters each; a pattern that is not one valid write command for this host is refused. Destructive commands (Denied tier) never run regardless, and a command that always needs a human still asks. Adding a pattern needs Project Owner, Project Admin or Edit Auto Remediation Rule; anyone who may edit the host can remove patterns or clear the list.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public aiCommandAllowlist?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Last Verified At",
+    description:
+      "When a command from OneUptime AI last succeeded on this host through its Host AI agent. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessLastVerifiedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "AI Access Last Error",
+    description:
+      "The most recent failure OneUptime AI hit while running a command on this host, kept until the next successful command. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public aiAccessLastError?: string = undefined;
+
+  /*
+   * When this host's AI access was first configured — by anyone writing an
+   * AI access setting. Only the server writes it, and nothing ever clears
+   * it. A registering Host AI agent reads it to tell "never configured" (it may
+   * apply its first-connection defaults) from "an operator chose settings,
+   * perhaps before installing the agent" (every setting stays as chosen).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Configured At",
+    description:
+      "When OneUptime AI access to this host was first configured by anyone saving an AI access setting. Set by the server; never cleared, so a Host AI agent that registers later never overwrites a setting an operator chose.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessConfiguredAt?: Date = undefined;
 }

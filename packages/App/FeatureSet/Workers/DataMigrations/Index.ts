@@ -120,6 +120,7 @@ import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMiss
 import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
 import BackfillStatusPageSubscriberUnsubscribeColumns from "./BackfillStatusPageSubscriberUnsubscribeColumns";
 import BackfillIncidentCustomFieldVariableKeys from "./BackfillIncidentCustomFieldVariableKeys";
+import AcceptPendingTeamInvitationsOfProjectMembers from "./AcceptPendingTeamInvitationsOfProjectMembers";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -532,6 +533,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Idempotent: it only fills an empty key.
    */
   new BackfillIncidentCustomFieldVariableKeys(),
+  /*
+   * Accepting a project invitation is per project, not per team: a member of
+   * a project added to another of its teams no longer gets an invitation for
+   * it. Accepts the invitations left over from before for people who are
+   * already in that project, and refreshes their cached permissions.
+   * Invitations of people who have not joined are left pending. Idempotent.
+   */
+  new AcceptPendingTeamInvitationsOfProjectMembers(),
   /*
    * Clears ttl_only_drop_parts on the metric tables and on LogItemV3, which
    * AddTtlOnlyDropPartsToTelemetryV3 set and the models no longer declare: a

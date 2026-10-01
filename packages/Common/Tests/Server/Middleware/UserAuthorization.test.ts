@@ -38,10 +38,7 @@ import {
 import { getJestSpyOn } from "../../../Tests/Spy";
 import getJestMockFunction from "../../../Tests/MockType";
 import UserPermissionUtil from "../../../Server/Utils/UserPermission/UserPermission";
-import {
-  installFakeEnterpriseModule,
-  uninstallEnterpriseModule,
-} from "../Enterprise/FakeEnterpriseModule";
+import { uninstallEnterpriseModule } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 
 jest.mock("../../../Server/Utils/Logger");
@@ -56,13 +53,13 @@ jest.mock("../../../Server/Services/TeamMemberService");
 jest.mock("../../../Types/HashedString");
 jest.mock("../../../Types/JSONFunctions");
 /*
- * SSO enforcement is an Enterprise Edition control (on while SSO is active:
- * ee loaded and, with billing off, a license that covers SSO; relaxed on the
- * Community Edition and while the license is lapsed). The enforcement tests
- * below install a fake enterprise module with a valid license and pin billing
- * so they test the same thing locally and in CI, whose config.env sets
- * BILLING_ENABLED=true. The Community Edition and lapsed-license cases live in
- * UserAuthorizationEditionEnforcement.test.ts.
+ * SSO enforcement is part of the Community Edition: a configured requirement
+ * is enforced whether or not ee/ is loaded and whatever the license says. The
+ * enforcement tests below run with NO enterprise module (the Community
+ * Edition) and billing pinned off, which proves they need nothing from ee/,
+ * and test the same thing locally and in CI, whose config.env sets
+ * BILLING_ENABLED=true. Every other edition and license state is covered by
+ * UserAuthorizationSsoEnforcement.test.ts.
  */
 jest.mock("../../../Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
@@ -762,12 +759,13 @@ describe("UserMiddleware", () => {
 
     /*
      * By default no project requires a specific SSO provider (discriminator),
-     * and the instance-wide "Require SSO for Login" flag is off. The
-     * Enterprise Edition is loaded, so a configured requirement is enforced.
+     * and the instance-wide "Require SSO for Login" flag is off. No
+     * enterprise module is loaded: a configured requirement is enforced on
+     * the Community Edition too.
      */
     beforeEach(() => {
       setTestBillingEnabled(false);
-      installFakeEnterpriseModule();
+      uninstallEnterpriseModule();
       spyGetRequireSsoWithSsoProviderId.mockResolvedValue(null);
       spyGetGlobalRequireSsoForLogin.mockResolvedValue(false);
     });
@@ -921,12 +919,13 @@ describe("UserMiddleware", () => {
 
     /*
      * By default neither a project's own nor the instance-wide "Require SSO for
-     * Login" flag is on, and no project requires a specific SSO provider. The
-     * Enterprise Edition is loaded, so a configured requirement is enforced.
+     * Login" flag is on, and no project requires a specific SSO provider. No
+     * enterprise module is loaded: a configured requirement is enforced on
+     * the Community Edition too.
      */
     beforeEach(() => {
       setTestBillingEnabled(false);
-      installFakeEnterpriseModule();
+      uninstallEnterpriseModule();
       spyGetProjectRequireSsoForLogin.mockResolvedValue(false);
       spyGetRequireSsoWithSsoProviderId.mockResolvedValue(null);
       spyGetGlobalRequireSsoForLogin.mockResolvedValue(false);

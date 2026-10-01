@@ -49,7 +49,13 @@ const MonitorStepMetricPreview: FunctionComponent<ComponentProps> = (
           hideQueryElements={true}
           hideStartAndEndDate={true}
           hideCardInCharts={true}
-          disableChartZoom={true}
+          /*
+           * The window is the step's rolling window, not the reader's to
+           * change: a drag zooms this preview alone, and a double-click
+           * (or Reset zoom) brings the rolling window back. Each step's
+           * preview keeps its own zoom.
+           */
+          localChartZoom={true}
           enableSeriesActions={false}
           chartCssClass="rounded-lg border border-gray-200 shadow-sm"
           data={{

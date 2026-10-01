@@ -27,10 +27,6 @@ const artifacts: string = path.resolve(
   __dirname,
   "../../../output/playwright/session-replay-ui",
 );
-const monacoRuntime: string = path.resolve(
-  __dirname,
-  "../../Common/node_modules/monaco-editor/min/vs",
-);
 const port: string = process.env["SESSION_REPLAY_FIXTURE_PORT"] || "4212";
 const appId: string = "20000000-0000-4000-8000-000000000001";
 const policyRoute: string = `/dashboard/10000000-0000-4000-8000-000000000001/rum/${appId}/session-replay-settings`;
@@ -63,7 +59,16 @@ const state: (page: Page) => Promise<FixtureState> = async (
 
 /*
  * The policy card's reads: its select names the policy columns and _id. The
- * layout's name read selects neither, and the edit form's read has no _id.
+ * page reads the application in two other places, so the card is told apart
+ * by a column only it asks for, the sample percentage it shows as "100%":
+ *
+ *   - the layout's name read selects neither _id nor any policy column;
+ *   - the side menu's Recommendations badge reads the application through
+ *     RecommendationResourceRegistry.getSelect: _id and name, plus the
+ *     columns that decide its session replay storage budget alerts, which
+ *     include isSessionReplayEnabled. Keying on isSessionReplayEnabled
+ *     counted that read as a second card read;
+ *   - the edit form's read has no _id.
  */
 const policyFetchCount: (page: Page) => Promise<number> = async (
   page: Page,
@@ -72,7 +77,7 @@ const policyFetchCount: (page: Page) => Promise<number> = async (
     (request: GetItemRequest): boolean => {
       return (
         request.modelType === "RumApplication" &&
-        request.selectKeys.includes("isSessionReplayEnabled") &&
+        request.selectKeys.includes("sessionReplaySamplePercentage") &&
         request.selectKeys.includes("_id")
       );
     },
@@ -141,26 +146,6 @@ test.beforeEach(async ({ page }: { page: Page }) => {
     }
 
     await route.abort();
-  });
-
-  /*
-   * The edit form's JSON fields mount Monaco, which the build points at
-   * /assets/monaco/vs. The fixture server only serves the bundle, so hand
-   * the editor the runtime the build would have copied there.
-   */
-  await page.route("**/assets/monaco/vs/**", async (route: PlaywrightRoute) => {
-    const relative: string = new URL(route.request().url()).pathname.replace(
-      /^\/assets\/monaco\/vs\//,
-      "",
-    );
-    const file: string = path.resolve(monacoRuntime, relative);
-
-    if (!file.startsWith(monacoRuntime + path.sep)) {
-      await route.abort();
-      return;
-    }
-
-    await route.fulfill({ path: file });
   });
 });
 

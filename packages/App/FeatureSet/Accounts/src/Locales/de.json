@@ -148,7 +148,6 @@
     "subtitle": "Melden Sie sich mit Ihrem SSO-Anbieter an, um auf Ihr Konto zuzugreifen.",
     "submitButton": "Mit SSO anmelden",
     "useUsernameInstead": "Stattdessen Benutzername und Passwort verwenden.",
-    "enterpriseEditionRequired": "Single Sign-On (SSO) ist auf diesem Server nicht verfügbar: Dafür ist die OneUptime Enterprise Edition mit einer aktiven Lizenz erforderlich. Melden Sie sich stattdessen mit Ihrer E-Mail-Adresse und Ihrem Passwort an.",
     "noAccountPrompt": "Sie haben noch kein Konto?",
     "registerLink": "Registrieren.",
     "selectProjectTitle": "Projekt auswählen",
@@ -177,6 +176,19 @@
     "wait": "Vor Kurzem wurde bereits eine Bestätigungs-E-Mail gesendet. Sie können eine weitere anfordern, sobald der Timer abgelaufen ist.",
     "alreadyVerified": "Ihre E-Mail-Adresse ist bereits bestätigt. Sie können sich jetzt anmelden.",
     "failed": "Wir konnten keine neue Bestätigungs-E-Mail senden. Bitte versuchen Sie es gleich noch einmal."
+  },
+  "incidentForm": {
+    "title": "Titel",
+    "titleDescription": "Eine kurze Zusammenfassung des Problems.",
+    "description": "Beschreibung",
+    "severity": "Schweregrad",
+    "reporterName": "Ihr Name",
+    "reporterEmail": "Ihre E-Mail-Adresse",
+    "successTitle": "Vielen Dank – Ihre Meldung wurde übermittelt.",
+    "incidentNumber": "Ihre Meldung ist der Vorfall {{incidentNumber}}.",
+    "submitAnother": "Weitere Meldung senden",
+    "retryAfter": "Sie können es {{when}} erneut versuchen.",
+    "tryAgain": "Erneut versuchen"
   },
   "errors": {
     "forbidden": {
@@ -222,5 +234,25 @@
   "Complete:": "Erfüllt:",
   "Incomplete:": "Nicht erfüllt:",
   "Special character included (optional)": "Sonderzeichen enthalten (optional)",
-  "Special characters are optional. Try !, @, # or $.": "Sonderzeichen sind optional. Probiere !, @, # oder $."
+  "Special characters are optional. Try !, @, # or $.": "Sonderzeichen sind optional. Probiere !, @, # oder $.",
+  "This form is not available. It may have been turned off, or the link may be out of date.": "Dieses Formular ist nicht verfügbar. Möglicherweise wurde es deaktiviert, oder der Link ist nicht mehr aktuell.",
+  "This form can only be opened from an allowed network.": "Dieses Formular kann nur aus einem zugelassenen Netzwerk geöffnet werden.",
+  "Too many submissions from your network. Please wait a few minutes and try again.": "Zu viele Meldungen aus Ihrem Netzwerk. Bitte warten Sie einige Minuten und versuchen Sie es dann erneut.",
+  "This form is receiving too many reports right now. Please try again later.": "Dieses Formular erhält gerade zu viele Meldungen. Bitte versuchen Sie es später erneut.",
+  "Too many requests. Please try again later.": "Zu viele Anfragen. Bitte versuchen Sie es später erneut.",
+  "Captcha token is missing. Please complete the verification challenge.": "Das Captcha-Token fehlt. Bitte schließen Sie die Überprüfung ab.",
+  "Captcha verification failed. Please try again.": "Die Captcha-Überprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+  "This form cannot declare an incident because it has no severity. Please let the team that shared it know.": "Über dieses Formular kann kein Vorfall gemeldet werden, weil ihm kein Schweregrad zugewiesen ist. Bitte informieren Sie das Team, das es geteilt hat.",
+  "Reports cannot be accepted right now. Please try again in a few minutes.": "Meldungen können derzeit nicht angenommen werden. Bitte versuchen Sie es in einigen Minuten erneut.",
+  "Your report could not be submitted. Please try again in a few minutes.": "Ihre Meldung konnte nicht übermittelt werden. Bitte versuchen Sie es in einigen Minuten erneut.",
+  "This form could not be loaded. Please try again in a few minutes.": "Dieses Formular konnte nicht geladen werden. Bitte versuchen Sie es in einigen Minuten erneut.",
+  "(Optional)": "(Optional)",
+  "{{field}} is required.": "{{field}} ist erforderlich.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} darf nicht mehr als {{maxLength}} Zeichen enthalten.",
+  "Email is not valid.": "E-Mail ist ungültig.",
+  "{{field}} must be checked.": "{{field}} muss angehakt sein.",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Diese Angabe bezieht sich auf Ihre Zeitzone - {{abbreviation}} ({{timezone}}).",
+  "Type your content here...": "Geben Sie hier Ihren Inhalt ein...",
+  "Type your markdown here...": "Geben Sie hier Ihr Markdown ein...",
+  "Formatting help": "Hilfe zur Formatierung"
 }

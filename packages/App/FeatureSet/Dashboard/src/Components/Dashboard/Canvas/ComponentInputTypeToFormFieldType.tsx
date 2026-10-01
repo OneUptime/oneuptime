@@ -106,8 +106,8 @@ export default class ComponentInputTypeToFormFieldType {
     }
 
     /*
-     * FormField renders all three of these with the Monaco CodeEditor,
-     * picking the language off the schema type.
+     * FormField renders all three of these with CodeEditor, picking the
+     * language off the schema type.
      */
     if (componentInputType === ComponentInputType.Html) {
       return {

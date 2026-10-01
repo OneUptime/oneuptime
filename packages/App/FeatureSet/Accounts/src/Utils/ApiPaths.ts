@@ -94,6 +94,17 @@ export const RESET_PASSWORD_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
 );
 
 /*
+ * The public incident form routes: GET <this>/<shareKey> reads a form's
+ * questions and POST <this>/<shareKey>/submit declares an incident from the
+ * answers. Both are anonymous, and on APP_API_URL like the form's other
+ * routes -- a signed-in visitor's session rides along, and the server ignores
+ * it. Only the page's own client (IncidentFormAPI) may call them.
+ */
+export const INCIDENT_FORM_PUBLIC_API_URL: URL = URL.fromURL(
+  APP_API_URL,
+).addRoute(new Route("/incident-form/public"));
+
+/*
  * Mails a fresh verification link to an account that signed up but has not
  * verified its address yet. There is no session at that point, so the request
  * is authorized by a credential instead: the short-lived resend token /signup

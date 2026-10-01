@@ -1,5 +1,4 @@
 import AIAgentService from "../../../Services/AIAgentService";
-import AIService, { AutonomousBudgetStatus } from "../../../Services/AIService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import ProjectService from "../../../Services/ProjectService";
 import SubjectCodeFixRun from "../SRE/SubjectCodeFixRun";
@@ -93,37 +92,6 @@ export default class CodeFixReadiness {
       }
     }
 
-    /*
-     * The project must also be ALLOWED to spend, not just able to pay.
-     * executeWithLogging enforces two gates back to back: the balance check
-     * above, and the daily autonomous token budget — and AI_CODE_FIX_FEATURE
-     * is one of AUTONOMOUS_AI_FEATURES, so every fix completion goes through
-     * it. Unlike the balance, this one has no billing condition: it fires on
-     * self-hosted too, where a project-owned provider makes the balance gate
-     * moot and this becomes the ONLY thing that can kill a run.
-     *
-     * These readiness surfaces create subjectless exception/general tasks, so
-     * they use the "Other AI Workload" token lane. Incident/alert fix paths
-     * enforce their own lane when they are triggered and on every completion.
-     * A limit of 0 is a documented kill-switch for this lane, so without this
-     * a paused project would read "ready" forever while every subjectless run
-     * died at its first completion call.
-     */
-    const budget: AutonomousBudgetStatus =
-      await AIService.getAutonomousDailyBudgetStatus(params.projectId);
-
-    if (budget.exhausted) {
-      return {
-        id: "llmProvider",
-        ok: false,
-        title: "LLM provider",
-        detail:
-          budget.limitInTokens !== null && budget.limitInTokens <= 0
-            ? "Other autonomous AI work is paused for this project: the daily background AI token limit is set to 0. Raise or unset it under Project Settings > AI > AI Guardrails to let subjectless fix tasks run."
-            : `The daily background AI token budget is exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Subjectless fix tasks resume tomorrow (UTC) — raise or unset the limit under Project Settings > AI > AI Guardrails.`,
-      };
-    }
-
     let detail: string = "";
 
     if (!isGlobal) {
@@ -198,7 +166,7 @@ export default class CodeFixReadiness {
       title: "AI agent online",
       detail: anyAgent
         ? `The AI agent "${anyAgent.name || "agent"}" has not reported in — check that its container is running.`
-        : "No agent is available for this project. Install a OneUptime Runner and enable Runs AI Code Fixes on it (Settings > Runners). Cloud: the shared fleet appears here automatically once enabled.",
+        : "No agent is available for this project. Install a OneUptime Runner and enable Runs AI Code Fixes on it (Runbooks > Runners). Cloud: the shared fleet appears here automatically once enabled.",
     };
   }
 

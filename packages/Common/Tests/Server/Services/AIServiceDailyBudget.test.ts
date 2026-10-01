@@ -30,7 +30,7 @@ import { describe, expect, test, afterEach } from "@jest/globals";
 
 /*
  * G4 daily budget: incident and alert work have independent per-UTC-day token
- * lanes; subjectless work retains Project.aiDailyAutonomousTokenLimit. The
+ * lanes; subjectless work has no daily token limit. The
  * engine skips new investigations quietly when its lane is exhausted (no Error
  * run created); AIService.executeWithLogging is the hard backstop mid-run.
  * Interactive chat is never blocked — its features are not autonomous.
@@ -42,10 +42,11 @@ import { describe, expect, test, afterEach } from "@jest/globals";
  *   (d) the engine skips run creation when the budget is exhausted.
  */
 
+// A project whose incident lane carries the given daily token limit.
 function fakeProject(limit: number | undefined): Project {
   return {
     id: ObjectID.generate(),
-    aiDailyAutonomousTokenLimit: limit,
+    incidentAiDailyAutonomousTokenLimit: limit,
   } as unknown as Project;
 }
 
@@ -56,6 +57,7 @@ function fakeProjectWithLaneLimits(data: {
 }): Project {
   return {
     id: ObjectID.generate(),
+    // The legacy column is ignored; set it to prove nothing reads it.
     aiDailyAutonomousTokenLimit: data.subjectless,
     incidentAiDailyAutonomousTokenLimit: data.incident,
     alertAiDailyAutonomousTokenLimit: data.alert,
@@ -175,6 +177,27 @@ describe("AIService.getAutonomousDailyBudgetStatus", () => {
     expect(findProject).not.toHaveBeenCalled();
   });
 
+  test("subjectless work has no limit and reads no project settings", async () => {
+    const findProject: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(fakeProjectWithLaneLimits({ subjectless: 0 }));
+    const getTokens: jest.SpyInstance = jest.spyOn(
+      LlmLogService,
+      "getTotalTokensUsedSince",
+    );
+
+    const status: AutonomousBudgetStatus =
+      await AIService.getAutonomousDailyBudgetStatus(projectId);
+
+    expect(status).toEqual({
+      exhausted: false,
+      limitInTokens: null,
+      usedTokensToday: 0,
+    });
+    expect(findProject).not.toHaveBeenCalled();
+    expect(getTokens).not.toHaveBeenCalled();
+  });
+
   test("no configured limit means never exhausted and no usage query", async () => {
     jest
       .spyOn(ProjectService, "findOneById")
@@ -185,7 +208,9 @@ describe("AIService.getAutonomousDailyBudgetStatus", () => {
     );
 
     const status: AutonomousBudgetStatus =
-      await AIService.getAutonomousDailyBudgetStatus(projectId);
+      await AIService.getAutonomousDailyBudgetStatus(projectId, {
+        incidentId: ObjectID.generate(),
+      });
 
     expect(status.exhausted).toBe(false);
     expect(status.limitInTokens).toBeNull();
@@ -200,7 +225,9 @@ describe("AIService.getAutonomousDailyBudgetStatus", () => {
     );
 
     const status: AutonomousBudgetStatus =
-      await AIService.getAutonomousDailyBudgetStatus(projectId);
+      await AIService.getAutonomousDailyBudgetStatus(projectId, {
+        incidentId: ObjectID.generate(),
+      });
 
     expect(status.exhausted).toBe(true);
     expect(status.limitInTokens).toBe(0);
@@ -208,6 +235,7 @@ describe("AIService.getAutonomousDailyBudgetStatus", () => {
   });
 
   test("usage below the limit is not exhausted", async () => {
+    const incidentId: ObjectID = ObjectID.generate();
     jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue(fakeProject(100_000));
@@ -216,14 +244,14 @@ describe("AIService.getAutonomousDailyBudgetStatus", () => {
       .mockResolvedValue(99_999);
 
     const status: AutonomousBudgetStatus =
-      await AIService.getAutonomousDailyBudgetStatus(projectId);
+      await AIService.getAutonomousDailyBudgetStatus(projectId, { incidentId });
 
     expect(status.exhausted).toBe(false);
     expect(status.limitInTokens).toBe(100_000);
     expect(status.usedTokensToday).toBe(99_999);
     expect(LlmLogService.getTotalTokensUsedSince).toHaveBeenCalledWith(
       expect.objectContaining({
-        incidentId: undefined,
+        incidentId,
         alertId: undefined,
       }),
     );
@@ -238,7 +266,9 @@ describe("AIService.getAutonomousDailyBudgetStatus", () => {
       .mockResolvedValue(100_000);
 
     const status: AutonomousBudgetStatus =
-      await AIService.getAutonomousDailyBudgetStatus(projectId);
+      await AIService.getAutonomousDailyBudgetStatus(projectId, {
+        incidentId: ObjectID.generate(),
+      });
 
     expect(status.exhausted).toBe(true);
     expect(getTokens).toHaveBeenCalledWith(
@@ -274,7 +304,6 @@ describe("AIService.getAutonomousDailyBudgetStatus", () => {
     expect(findProject).toHaveBeenCalledWith(
       expect.objectContaining({
         select: {
-          aiDailyAutonomousTokenLimit: true,
           incidentAiDailyAutonomousTokenLimit: true,
           alertAiDailyAutonomousTokenLimit: true,
         },

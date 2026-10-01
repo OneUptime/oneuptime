@@ -262,7 +262,7 @@ describe("getReadinessCheckLink", () => {
     ["llmProvider", PageMap.SETTINGS_AI_LLM_PROVIDERS],
     ["repositoryConnected", PageMap.CODE_REPOSITORY],
     ["repositoryResolved", PageMap.CODE_REPOSITORY],
-    ["agentAvailable", PageMap.SETTINGS_RUNNERS],
+    ["agentAvailable", PageMap.RUNBOOKS_RUNNERS],
   ])("links %s to the page that fixes it", (id: string, pageMap: PageMap) => {
     const link: ReturnType<typeof getReadinessCheckLink> =
       getReadinessCheckLink(id as AIFixReadinessCheckId);

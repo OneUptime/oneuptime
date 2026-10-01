@@ -274,6 +274,12 @@ export default class KubectlJobRunner {
      * every other kubectl job's.
      */
     isAccessTest?: boolean | undefined;
+    /*
+     * How much of the redacted output to keep. Defaults to the shared cap;
+     * a caller that pages long output itself (the investigation and
+     * conversation toolkits) asks for all of it.
+     */
+    maxOutputChars?: number | undefined;
   }): Promise<KubectlJobOutcome> {
     const claimTimeoutInMs: number =
       data.claimTimeoutInMs ?? KUBECTL_CLAIM_TIMEOUT_MS;
@@ -306,6 +312,7 @@ export default class KubectlJobRunner {
       command: data.command,
       claimTimeoutInMs,
       executionTimeoutInMs: data.timeoutInMs,
+      maxOutputChars: data.maxOutputChars,
     });
 
     await KubectlJobRunner.recordOutcomeOnCluster({
@@ -334,6 +341,8 @@ export default class KubectlJobRunner {
     command: string;
     claimTimeoutInMs: number;
     executionTimeoutInMs: number;
+    // How much of the redacted output to keep (default: the shared cap).
+    maxOutputChars?: number | undefined;
   }): Promise<KubectlJobOutcome> {
     const { job, terminalJob } = data;
 
@@ -375,6 +384,7 @@ export default class KubectlJobRunner {
 
     const redacted: RedactedKubectlOutput = this.redactAndCap(
       terminalJob.output || "",
+      data.maxOutputChars,
     );
 
     return {
@@ -392,6 +402,9 @@ export default class KubectlJobRunner {
                   wasClaimed: claimState.wasClaimed,
                   claimTimeoutInMs: data.claimTimeoutInMs,
                   executionTimeoutInMs: data.executionTimeoutInMs,
+                  isForKubernetesAiAgent: Boolean(
+                    job.targetKubernetesAiAgentId,
+                  ),
                 })
               : terminalJob.errorMessage ||
                   `Command ended with status ${terminalJob.status}.`,
@@ -612,18 +625,26 @@ export default class KubectlJobRunner {
     wasClaimed: boolean | undefined;
     claimTimeoutInMs: number;
     executionTimeoutInMs: number;
+    // The job was for the cluster's Kubernetes AI agent, not a Runner.
+    isForKubernetesAiAgent?: boolean | undefined;
   }): string {
+    const executor: string = data.isForKubernetesAiAgent
+      ? "Kubernetes AI agent"
+      : "Runner";
+
     if (data.wasClaimed === false) {
-      return `The cluster's Runner did not pick up this kubectl command within ${KubectlJobRunner.describeSeconds(
+      return `The cluster's ${executor} did not pick up this kubectl command within ${KubectlJobRunner.describeSeconds(
         data.claimTimeoutInMs,
       )} — it may be offline, restarting or busy with other work. Nothing was run on the cluster.`;
     }
 
     if (data.wasClaimed === undefined) {
-      return "No result came back for this kubectl command in time, and whether a Runner picked it up could not be read. What the command did is unknown.";
+      return `No result came back for this kubectl command in time, and whether ${
+        data.isForKubernetesAiAgent ? "the Kubernetes AI agent" : "a Runner"
+      } picked it up could not be read. What the command did is unknown.`;
     }
 
-    return `The Runner took this kubectl command but did not report a result in time — it stopped responding, or kubectl outlived its ${KubectlJobRunner.describeSeconds(
+    return `The ${executor} took this kubectl command but did not report a result in time — it stopped responding, or kubectl outlived its ${KubectlJobRunner.describeSeconds(
       data.executionTimeoutInMs,
     )} timeout. Whether it ran, and what it did, is unknown.`;
   }
@@ -723,8 +744,10 @@ export default class KubectlJobRunner {
    */
   public static redactAndCap(
     output: string,
-    maxChars: number = MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM,
+    maxCharsOverride?: number | undefined,
   ): RedactedKubectlOutput {
+    const maxChars: number =
+      maxCharsOverride ?? MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM;
     const structured: { text: string; redactionCount: number } =
       KubectlOutputRedactor.redact(output || "");
     const generic: { text: string; count: number } =

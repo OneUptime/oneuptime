@@ -40,9 +40,15 @@ import {
 import { KubernetesClusterAiAccessStatus } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
 import ClusterAccessContext from "../ClusterAccess/ClusterAccessContext";
-import KubectlInvestigationToolkit, {
-  INVESTIGATION_MAX_WALL_CLOCK_MS,
-} from "../ClusterAccess/KubectlInvestigationToolkit";
+import KubectlInvestigationToolkit from "../ClusterAccess/KubectlInvestigationToolkit";
+import ToolOutputPager from "../Chat/ToolOutputPager";
+import AIAgentRunLimitsHelper, {
+  AIAgentRunLimits,
+} from "../../../../Types/AI/AIAgentRunLimits";
+import { ResourceAiAccessStatus } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
+import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
+import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
+import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -334,6 +340,7 @@ export default class AIIncidentInvestigationRunner {
 
     let contextSummary: string;
     let clusterStatuses: Array<KubernetesClusterAiAccessStatus> = [];
+    let resourceStatuses: Array<ResourceAiAccessStatus> = [];
     try {
       const contextData: IncidentContextData =
         await IncidentAIContextBuilder.buildIncidentContext({
@@ -380,6 +387,29 @@ export default class AIIncidentInvestigationRunner {
 
       contextSummary +=
         ClusterAccessContext.buildContextSection(clusterStatuses);
+
+      /*
+       * Direct infrastructure access (Docker, Podman, Swarm, Proxmox,
+       * VMware, Ceph, databases, hosts) through their resource AI agents.
+       * Enrichment only, like cluster access, and on its own: losing it
+       * never fails the investigation nor takes the cluster access away.
+       */
+      try {
+        const statuses: Array<ResourceAiAccessStatus> =
+          await ResourceAiAccessService.getStatusesForSubject({
+            projectId,
+            incidentId,
+          });
+        const section: string =
+          ResourceAccessContext.buildContextSection(statuses);
+
+        resourceStatuses = statuses;
+        contextSummary += section;
+      } catch (error) {
+        logger.error(
+          `AI: could not resolve infrastructure access for incident ${incidentId.toString()}; investigating it with OneUptime data only: ${error}`,
+        );
+      }
     } catch (error) {
       /*
        * Context assembly failed — the run is claimed, so hand it to the
@@ -408,13 +438,19 @@ export default class AIIncidentInvestigationRunner {
     }
 
     /*
-     * The run's wall clock, stated once: the engine enforces it between
-     * tool calls and the kubectl toolkit plans every command's wait to end
-     * before it, so a run_kubectl issued late in the run cannot outlive the
-     * budget (the loop cannot interrupt a tool once it is running).
+     * How far the run may go, stated once: no time limit unless the project
+     * configured one. When it did, the engine enforces it between tool
+     * calls and the command toolkits plan every command's wait to end
+     * before it, so a command issued late in the run cannot outlive it (the
+     * loop cannot interrupt a tool once it is running).
      */
-    const runDeadlineAtMs: number =
-      Date.now() + INVESTIGATION_MAX_WALL_CLOCK_MS;
+    const runLimits: AIAgentRunLimits =
+      await AIInvestigationEngine.getRunLimitsForProject(projectId, "Incident");
+    const runDeadlineAtMs: number | undefined =
+      AIAgentRunLimitsHelper.getDeadlineAtMs(runLimits, Date.now());
+
+    // One pager for the run, so read_tool_output reads every toolkit's output.
+    const outputPager: ToolOutputPager = new ToolOutputPager();
 
     const kubectlToolkit: KubectlInvestigationToolkit =
       new KubectlInvestigationToolkit({
@@ -422,9 +458,58 @@ export default class AIIncidentInvestigationRunner {
         aiRunId,
         clusters: clusterStatuses,
         runDeadlineAtMs,
+        outputPager,
       });
     const extraTools: Array<ObservabilityAssistantExtraTool> =
       kubectlToolkit.buildTools();
+
+    /*
+     * The infrastructure tools, bound to the same run and deadline. Built
+     * on their own so a failure here leaves the kubectl tools (and the
+     * run) as they are.
+     */
+    let resourceAddendum: string = "";
+
+    try {
+      const infrastructureToolkit: InfrastructureInvestigationToolkit =
+        new InfrastructureInvestigationToolkit({
+          projectId,
+          aiRunId,
+          resources: resourceStatuses,
+          runDeadlineAtMs,
+          outputPager,
+        });
+      const infrastructureTools: Array<ObservabilityAssistantExtraTool> =
+        infrastructureToolkit.buildTools();
+
+      resourceAddendum =
+        resourceStatuses.length > 0
+          ? ResourceAccessContext.buildPersonaAddendum(resourceStatuses)
+          : "";
+      extraTools.push(...infrastructureTools);
+    } catch (error) {
+      logger.error(
+        `AI: could not offer infrastructure access for incident ${incidentId.toString()}; investigating it with OneUptime data only: ${error}`,
+      );
+    }
+
+    // Long command output is paged, never cut: offer the reader with the commands.
+    if (extraTools.length > 0) {
+      extraTools.push(outputPager.buildReadTool());
+    }
+
+    // The cluster rules first, exactly as before; the infrastructure rules after.
+    const additionalInstructions: Array<string> = [];
+
+    if (clusterStatuses.length > 0) {
+      additionalInstructions.push(
+        ClusterAccessContext.buildPersonaAddendum(clusterStatuses),
+      );
+    }
+
+    if (resourceAddendum) {
+      additionalInstructions.push(resourceAddendum);
+    }
 
     await AIInvestigationEngine.executeRun({
       aiRunId,
@@ -435,12 +520,11 @@ export default class AIIncidentInvestigationRunner {
         feature: AI_INCIDENT_INVESTIGATION_FEATURE,
         incidentId,
         contextSummary,
-        maxWallClockMs: INVESTIGATION_MAX_WALL_CLOCK_MS,
-        ...(clusterStatuses.length > 0
-          ? {
-              additionalInstructions:
-                ClusterAccessContext.buildPersonaAddendum(clusterStatuses),
-            }
+        maxLlmCalls: runLimits.maxLlmCalls,
+        maxToolCalls: runLimits.maxToolCalls,
+        maxWallClockMs: runLimits.maxWallClockMs,
+        ...(additionalInstructions.length > 0
+          ? { additionalInstructions: additionalInstructions.join("\n\n") }
           : {}),
         ...(extraTools.length > 0 ? { extraTools } : {}),
         persistCodeFixRecommendation: true,
@@ -517,8 +601,8 @@ export default class AIIncidentInvestigationRunner {
 
           /*
            * Inconclusive means the telemetry was insufficient — for
-           * opted-in projects (the incident instrumentation-fix setting,
-           * default false), queue an ImproveInstrumentation fix task that
+           * projects with the incident instrumentation-fix setting on (on
+           * for new projects), queue an ImproveInstrumentation fix task that
            * opens a PR adding the missing observability. Runs strictly
            * AFTER the analysis is posted, and the trigger never throws, so
            * the investigation can neither be blocked nor failed by it.

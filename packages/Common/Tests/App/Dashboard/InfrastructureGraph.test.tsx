@@ -46,22 +46,39 @@ jest.mock("react-i18next", () => {
 });
 
 /*
+ * How the map asked React Flow to treat the wheel, a pinch and a
+ * double-click over its canvas, as last rendered (see "a map inside a page").
+ */
+interface MockFlowSettings {
+  zoomOnScroll?: boolean;
+  zoomOnPinch?: boolean;
+  zoomOnDoubleClick?: boolean;
+  preventScrolling?: boolean;
+  panOnScroll?: boolean;
+}
+let mockFlowSettings: MockFlowSettings | null = null;
+
+/*
  * The infrastructure map draws one level of the tree: cards for the
  * workloads and machines in scope, a column of the services running on them,
  * and an arrow per placement. React Flow's rendering is the only boundary
- * replaced; layout runs for real.
+ * replaced; layout runs for real. The stand-in records the canvas settings it
+ * is given.
  */
 jest.mock("reactflow", () => {
   return {
     __esModule: true,
-    default: (props: {
-      nodes: Array<Node>;
-      edges: Array<Edge>;
-      onNodeClick: (event: React.MouseEvent, node: Node) => void;
-      onEdgeClick?: (event: React.MouseEvent, edge: Edge) => void;
-      onEdgeMouseEnter?: (event: React.MouseEvent, edge: Edge) => void;
-      onEdgeMouseLeave?: (event: React.MouseEvent, edge: Edge) => void;
-    }): React.ReactElement => {
+    default: (
+      props: MockFlowSettings & {
+        nodes: Array<Node>;
+        edges: Array<Edge>;
+        onNodeClick: (event: React.MouseEvent, node: Node) => void;
+        onEdgeClick?: (event: React.MouseEvent, edge: Edge) => void;
+        onEdgeMouseEnter?: (event: React.MouseEvent, edge: Edge) => void;
+        onEdgeMouseLeave?: (event: React.MouseEvent, edge: Edge) => void;
+      },
+    ): React.ReactElement => {
+      mockFlowSettings = props;
       return (
         <div data-testid="infrastructure-canvas">
           {props.nodes.map((node: Node): React.ReactElement => {
@@ -175,6 +192,7 @@ function kubernetesModel(): InfrastructureTopologyModel {
 
 afterEach(() => {
   cleanup();
+  mockFlowSettings = null;
 });
 
 describe("layoutInfrastructureMap", () => {
@@ -1337,5 +1355,78 @@ describe("InfrastructureGraph traffic", () => {
     ).toHaveTextContent(
       "No services are known to run on these cards, so there are no calls to draw between them.",
     );
+  });
+});
+
+/*
+ * Issue #4117. This map and the Service Map beside it sit inside a page,
+ * but React Flow's defaults took every wheel event over the canvas: the page
+ * stopped scrolling under the pointer and the map zoomed about it instead,
+ * which on a large drawing zoomed the cards out of view. The plain wheel now
+ * belongs to the page. Ctrl + scroll and a pinch still zoom (React Flow reads
+ * a trackpad pinch as a wheel event with Ctrl held), and the map says so.
+ */
+describe("a map inside a page (#4117)", () => {
+  function renderKubernetesOverview(): void {
+    const model: InfrastructureTopologyModel = kubernetesModel();
+    render(
+      <InfrastructureGraph
+        model={model}
+        nodeIds={collectMapCards(model, null)}
+        onOpenNode={() => {}}
+        now={NOW}
+      />,
+    );
+  }
+
+  function settings(): MockFlowSettings {
+    expect(mockFlowSettings).not.toBeNull();
+    return mockFlowSettings!;
+  }
+
+  test("the wheel over the map scrolls the page instead of zooming it", () => {
+    renderKubernetesOverview();
+    expect(settings().zoomOnScroll).toBe(false);
+    expect(settings().preventScrolling).toBe(false);
+    // Nor is the wheel taken over to pan the canvas.
+    expect(settings().panOnScroll).not.toBe(true);
+  });
+
+  test("a pinch, and Ctrl + scroll with it, still zooms the map", () => {
+    renderKubernetesOverview();
+    expect(settings().zoomOnPinch).not.toBe(false);
+  });
+
+  test("a double-click on the canvas does not zoom it", () => {
+    renderKubernetesOverview();
+    expect(settings().zoomOnDoubleClick).toBe(false);
+  });
+
+  test("says how to zoom, in the bar above the canvas", () => {
+    renderKubernetesOverview();
+    const hint: HTMLElement = screen.getByTestId("infrastructure-zoom-hint");
+    expect(hint).toHaveTextContent("Ctrl + scroll or pinch to zoom");
+    expect(screen.getByTestId("infrastructure-traffic-bar")).toContainElement(
+      hint,
+    );
+  });
+
+  test("the hint stays beside the line labels when cards have traffic", () => {
+    const model: InfrastructureTopologyModel = aksNodeModel();
+    render(
+      <InfrastructureGraph
+        model={model}
+        nodeIds={collectMapCards(model, "node-k")}
+        onOpenNode={() => {}}
+        metricsWindowSeconds={WINDOW_SECONDS}
+        now={NOW}
+      />,
+    );
+    expect(screen.getByLabelText("Line labels")).toBeInTheDocument();
+    expect(screen.getByTestId("infrastructure-zoom-hint")).toHaveTextContent(
+      "Ctrl + scroll or pinch to zoom",
+    );
+    expect(settings().zoomOnScroll).toBe(false);
+    expect(settings().preventScrolling).toBe(false);
   });
 });

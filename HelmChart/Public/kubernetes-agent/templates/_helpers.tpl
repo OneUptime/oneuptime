@@ -739,3 +739,65 @@ resolves to nothing and every poll would fail against it.
 http://{{ include "kubernetes-agent.fullname" . }}-cost-prometheus.{{ .Release.Namespace }}.svc.cluster.local:9090
 {{- end -}}
 {{- end -}}
+
+{{/*
+Split a metrics URL into the three things a Prometheus scrape job takes it
+as: `scheme`, a bare `host:port` target, and `metrics_path`.
+
+A static target has to be a bare host:port. The prometheus receiver rejects
+one with a "/" in it ("... is not a valid hostname"), and it does so while
+LOADING the config, so the collector never starts: a stray trailing slash on
+one endpoint takes every cluster metric and Kubernetes event down with it.
+So the URL cannot be written into `targets` as it is. And cutting it down to
+host:port without carrying the rest over scrapes somewhere other than where
+the URL points: plain HTTP for an https:// endpoint, /metrics for any other
+path.
+
+What a scrape job has no place for is refused here, while the chart renders,
+instead of being dropped or left in the target:
+  - Credentials (user:password@). In a target they authenticate nothing, the
+    scrape never succeeds, and the receiver exports the target, password and
+    all, as the `instance` of the job's `up` series.
+  - A query string or a fragment, which would be requested as part of the
+    path.
+  - A "%" in the path, which the receiver encodes a second time, and a "$",
+    which the collector expands as a variable.
+  - An empty URL or a scheme other than http(s). Either renders a job that
+    starts and scrapes nothing.
+The error names the setting and never repeats the URL, since the URL may be
+what carries the password.
+
+Takes a dict: `url`, and `setting`, the values key the URL came from.
+Returns JSON: {"scheme": "http"|"https", "target": "<host:port>", "path": "<path>"}.
+`path` is EMPTY when the URL's path is the receiver's default (/metrics, or
+no path at all), so a caller writes `metrics_path` only when it has to and an
+ordinary http://host:port/metrics endpoint renders the job it always did.
+Repeated slashes and a trailing slash are dropped from the path.
+
+Usage:
+  {{- $endpoint := include "kubernetes-agent.scrapeEndpoint" (dict "url" $url "setting" "kubeStateMetrics.endpoint") | fromJson }}
+*/}}
+{{- define "kubernetes-agent.scrapeEndpoint" -}}
+{{- $url := .url | default "" | toString | trim -}}
+{{- $form := "Write it as http://host:port/path or https://host:port/path (the port and the path are optional)." -}}
+{{- $scheme := ternary "https" "http" (regexMatch "(?i)^https://" $url) -}}
+{{- $rest := regexReplaceAll "(?i)^https?://" $url "" -}}
+{{- /* After the empty URL, in order: another scheme (tcp://, or http://
+       written twice); http:/ with one slash, which would otherwise read as a
+       host named "http"; anything that is not host[:port] followed by a path
+       of plain characters. The host part takes ":" so an unbracketed IPv6
+       address and an empty port still pass: the receiver dials both. And a
+       scheme is taken to have no dot in it, so a dotted host name with an
+       empty port in front of a doubled slash is not mistaken for one. */}}
+{{- if not $url -}}
+{{- fail (printf "%s is empty, and it is the URL to scrape. %s" .setting $form) -}}
+{{- else if or (regexMatch "^[A-Za-z][A-Za-z0-9+-]*://" $rest) (regexMatch "(?i)^https?:(/|$)" $rest) (not (regexMatch `^[\pL\pN._:\[\]%-]+(/[\pL\pN._~!*'()+,;=:@&/-]*)?$` $rest)) -}}
+{{- fail (printf "%s is not a URL the agent can scrape. %s Credentials (user:password@), a query string, a fragment, and a %% or $ in the path have no place in a scrape job, so they are refused rather than dropped." .setting $form) -}}
+{{- end -}}
+{{- $target := regexFind "^[^/]*" $rest -}}
+{{- $path := regexReplaceAll "/+" (trimPrefix $target $rest) "/" | trimSuffix "/" -}}
+{{- if eq $path "/metrics" -}}
+{{- $path = "" -}}
+{{- end -}}
+{{- toJson (dict "scheme" $scheme "target" $target "path" $path) -}}
+{{- end -}}

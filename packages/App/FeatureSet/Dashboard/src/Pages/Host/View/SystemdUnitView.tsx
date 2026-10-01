@@ -43,6 +43,9 @@ import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefres
 import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -250,11 +253,19 @@ const HostSystemdUnitView: FunctionComponent<
     });
 
   /*
-   * Manual refresh, the auto-refresh timer, and time-range changes can
-   * overlap in flight; only the most recently started fetch may commit
+   * Manual refresh and time-range changes (a zoom, its reset, the picker)
+   * can overlap in flight; only the most recently started fetch may commit
    * state, or a slow stale response would overwrite newer data.
    */
   const fetchSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  /*
+   * Set while the newest fetch is still running. The auto-refresh timer
+   * skips its tick then instead of superseding that fetch with one for the
+   * same window: were every fetch to outlast the interval, none would ever
+   * land, and the page would sit on its loader with Refresh spinning.
+   */
+  const fetchInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     const seq: number = ++fetchSeqRef.current;
@@ -262,6 +273,7 @@ const HostSystemdUnitView: FunctionComponent<
       return seq !== fetchSeqRef.current;
     };
 
+    fetchInFlightRef.current = true;
     setIsRefreshing(true);
     setError("");
     try {
@@ -371,6 +383,11 @@ const HostSystemdUnitView: FunctionComponent<
         return;
       }
       setError(API.getFriendlyMessage(err));
+    } finally {
+      // However the newest fetch ended, the timer may start the next one.
+      if (!isStale()) {
+        fetchInFlightRef.current = false;
+      }
     }
     if (isStale()) {
       return;
@@ -399,6 +416,10 @@ const HostSystemdUnitView: FunctionComponent<
       return undefined;
     }
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      // Let a fetch that is still running land (see fetchInFlightRef).
+      if (fetchInFlightRef.current) {
+        return;
+      }
       fetchDataRef.current().catch((err: Error) => {
         setError(API.getFriendlyMessage(err));
       });
@@ -693,17 +714,24 @@ const HostSystemdUnitView: FunctionComponent<
       },
     ];
 
+    /*
+     * The heading is this chart's only title, so the drag-to-zoom hint sits
+     * at its right, shown while the pointer is over the heading or chart.
+     */
     return (
-      <div className="mb-6">
+      <div className="group/zoomhint mb-6">
         <div className="mb-3">
-          <div className="flex items-center gap-1">
-            <h2 className="text-sm font-semibold text-gray-900">
-              State timeline
-            </h2>
-            <InfoTooltip
-              label="State timeline"
-              text={HOST_METRIC_DESCRIPTIONS.unitStateTimeline}
-            />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-1">
+              <h2 className="text-sm font-semibold text-gray-900">
+                State timeline
+              </h2>
+              <InfoTooltip
+                label="State timeline"
+                text={HOST_METRIC_DESCRIPTIONS.unitStateTimeline}
+              />
+            </div>
+            <TimeRangeZoomHint revealOnHover={true} />
           </div>
           <p className="text-xs text-gray-500">
             {`Worst observed state per interval${
@@ -803,12 +831,17 @@ const HostSystemdUnitView: FunctionComponent<
     if (isInitialLoading || error || samples.length > 0) {
       return <Fragment />;
     }
+    /*
+     * A zoom into a stretch with no samples removes the timeline, and with
+     * it the chart a double-click would reset; the way back sits under the
+     * note instead (it renders nothing unless zoomed).
+     */
     return (
       <Card
         title="No unit metrics in range"
         description={`No "${unitName}" samples were found on this host during the selected time window. Pick a wider time range, or verify the OTel collector's systemd receiver is enabled on this host and that "${unitName}" matches its "units" patterns — the Documentation tab has setup steps, and the receiver needs otelcol-contrib ${MIN_OTELCOL_CONTRIB_VERSION} or newer.`}
       >
-        <Fragment />
+        <ResetTimeRangeZoomButton />
       </Card>
     );
   };
@@ -821,14 +854,20 @@ const HostSystemdUnitView: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
+  /*
+   * Issue #4105: a drag on the timeline sets the page's range to the window
+   * dragged out (tiles, timeline and State Changes refetch for it); a
+   * double-click on it, or Reset zoom beside the hero's picker, puts the
+   * range from before the zoom back.
+   */
   return (
-    <Fragment>
+    <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
       {renderSummaryTiles()}
       {renderStateChart()}
       {renderTransitions()}
       {renderNoDataNote()}
-    </Fragment>
+    </TimeRangeZoomScope>
   );
 };
 

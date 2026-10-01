@@ -54,8 +54,8 @@ export default class InvestigationEligibility {
           ? `AI was disabled for this project when this ${kind} was created, so its automatic investigation did not start.`
           : "AI is currently disabled for this project, so new automatic investigations cannot start.",
         nextStep: recorded
-          ? "Review project AI settings for new records. Existing records are not automatically retried when AI is enabled."
-          : "Enable project AI and automatic investigations to investigate new records. Existing records are not automatically retried.",
+          ? "Review project AI settings (Project Settings → AI Features) for new records. Existing records are not automatically retried when AI is enabled."
+          : "Turn on Enable AI (Project Settings → AI Features) and automatic investigations to investigate new records. Existing records are not automatically retried.",
       },
       automatic_investigation_disabled: {
         title: recorded
@@ -76,6 +76,17 @@ export default class InvestigationEligibility {
         nextStep: recorded
           ? "Review the AI provider configuration for new investigations. Configuring a provider later does not automatically retry existing records."
           : "Configure an AI provider in project settings. New eligible records can then be investigated; existing records are not automatically retried.",
+      },
+      insufficient_ai_balance: {
+        title: recorded
+          ? "The project was out of AI credits at creation"
+          : "The project is currently out of AI credits",
+        description: recorded
+          ? `This project had no AI credits left when this ${kind} was created, so its automatic investigation did not start.`
+          : "This project is currently out of AI credits, so new automatic investigations cannot start.",
+        nextStep: recorded
+          ? "Review AI credits under Project Settings → AI Credits, or turn on auto-recharge. Adding credits later does not retry this record."
+          : "Add AI credits under Project Settings → AI Credits, or turn on auto-recharge. Existing records are not automatically retried.",
       },
       severity_below_threshold: {
         title: recorded

@@ -626,6 +626,118 @@ const clickButton: ClickButtonFunction = (
   fireEvent.click(within(root).getByText(label));
 };
 
+/*
+ * Each row's actions are ONE button and a ⋯ menu holding the rest (RowActions).
+ * "Resend code" is the button when a row offers it, and "Remove" then sits in
+ * the menu; a row with nothing to resend keeps "Remove" as its lone button.
+ * These helpers drive the menu the way a person does, and say plainly when a
+ * row does not have one - a test reaching for a menu that is not there should
+ * fail on that fact, not on a missing "Remove" somewhere further down.
+ */
+const MORE_BUTTON_TEST_ID: string = "row-actions-more-button";
+
+type MoreButtonForFunction = (row: HTMLElement) => HTMLElement | null;
+
+const moreButtonFor: MoreButtonForFunction = (
+  row: HTMLElement,
+): HTMLElement | null => {
+  return within(row).queryByTestId(MORE_BUTTON_TEST_ID);
+};
+
+type RowButtonLabelsFunction = (row: HTMLElement) => Array<string>;
+
+// The buttons drawn on the row itself, the ⋯ trigger aside.
+const rowButtonLabels: RowButtonLabelsFunction = (
+  row: HTMLElement,
+): Array<string> => {
+  return within(row)
+    .queryAllByRole("button")
+    .filter((button: HTMLElement): boolean => {
+      return button.getAttribute("data-testid") !== MORE_BUTTON_TEST_ID;
+    })
+    .map((button: HTMLElement): string => {
+      return (button.textContent || "").trim();
+    });
+};
+
+type OpenRowMenuFunction = (row: HTMLElement) => HTMLElement;
+
+/*
+ * The menu is portalled to document.body so the card around the list cannot
+ * clip it, which is why it is found through `screen` rather than inside the
+ * row it belongs to.
+ */
+const openRowMenu: OpenRowMenuFunction = (row: HTMLElement): HTMLElement => {
+  const trigger: HTMLElement | null = moreButtonFor(row);
+
+  if (!trigger) {
+    throw new Error(
+      `this row has no ⋯ menu; its buttons are: ${rowButtonLabels(row).join(", ")}`,
+    );
+  }
+
+  fireEvent.click(trigger);
+
+  return screen.getByRole("menu");
+};
+
+type CloseRowMenuFunction = (menu: HTMLElement) => void;
+
+const closeRowMenu: CloseRowMenuFunction = (menu: HTMLElement): void => {
+  fireEvent.keyDown(within(menu).getAllByRole("menuitem")[0]!, {
+    key: "Escape",
+  });
+};
+
+type MenuItemLabelsFunction = (menu: HTMLElement) => Array<string>;
+
+const menuItemLabels: MenuItemLabelsFunction = (
+  menu: HTMLElement,
+): Array<string> => {
+  return within(menu)
+    .getAllByRole("menuitem")
+    .map((item: HTMLElement): string => {
+      return (item.textContent || "").trim();
+    });
+};
+
+type ChooseFromRowMenuFunction = (row: HTMLElement, label: string) => void;
+
+const chooseFromRowMenu: ChooseFromRowMenuFunction = (
+  row: HTMLElement,
+  label: string,
+): void => {
+  const menu: HTMLElement = openRowMenu(row);
+
+  fireEvent.click(within(menu).getByRole("menuitem", { name: label }));
+};
+
+type EveryRowActionLabelFunction = () => Array<string>;
+
+/*
+ * Every action the list offers: the button on each row AND everything inside
+ * each row's ⋯ menu. A scan of the buttons on screen no longer sees the whole
+ * surface - a closed menu's items are not in the DOM at all - so a control
+ * slipped into a menu would pass any check that only looked at the page.
+ */
+const everyRowActionLabel: EveryRowActionLabelFunction = (): Array<string> => {
+  const labels: Array<string> = [];
+
+  for (const row of methodRows()) {
+    labels.push(...rowButtonLabels(row));
+
+    if (moreButtonFor(row)) {
+      const menu: HTMLElement = openRowMenu(row);
+
+      labels.push(...menuItemLabels(menu));
+
+      closeRowMenu(menu);
+    }
+  }
+
+  return labels;
+};
+
 type ModalFunction = () => HTMLElement;
 
 /*
@@ -899,9 +1011,26 @@ describe("adding a method on somebody's behalf", () => {
       expect(label).not.toContain("verify");
     }
 
+    /*
+     * And inside every row's ⋯ menu, which the scan above cannot see: a closed
+     * menu's items are not in the DOM, and the menu is exactly where a new row
+     * action would land.
+     */
+    const rowActionLabels: Array<string> = everyRowActionLabel().map(
+      (label: string): string => {
+        return label.toLowerCase();
+      },
+    );
+
+    for (const label of rowActionLabels) {
+      expect(label).not.toContain("verify");
+    }
+
     // Not vacuous: the controls this page DOES offer are present.
     expect(buttonLabels.join(" ")).toContain("remove");
     expect(buttonLabels.join(" ")).toContain("resend code");
+    expect(rowActionLabels).toContain("remove");
+    expect(rowActionLabels).toContain("resend code");
   });
 
   test("posts the channel and the value to the admin endpoint", async () => {
@@ -1090,7 +1219,11 @@ describe("removing a method", () => {
   test("removes only after the confirmation, and names the method", async () => {
     await renderPage();
 
-    clickButton(rowFor(MASKED_PHONE), "Remove");
+    /*
+     * The SMS row is unverified, so "Resend code" is its button and "Remove"
+     * is in its ⋯ menu.
+     */
+    chooseFromRowMenu(rowFor(MASKED_PHONE), "Remove");
 
     // Nothing is deleted by opening the confirmation.
     expect(apiDeleteMock).not.toHaveBeenCalled();
@@ -1171,6 +1304,10 @@ describe("removing a method", () => {
 
     expect(within(webhookRow).getByText("Remove")).toBeInTheDocument();
     expect(within(webhookRow).queryByText("Resend code")).toBeNull();
+
+    // Its only action, so a button of its own rather than a menu of one.
+    expect(rowButtonLabels(webhookRow)).toEqual(["Remove"]);
+    expect(moreButtonFor(webhookRow)).toBeNull();
   });
 });
 
@@ -1232,6 +1369,14 @@ describe("permissions", () => {
     expect(buttonLabels.join(" ")).not.toContain("remove");
     expect(buttonLabels.join(" ")).not.toContain("resend code");
     expect(buttonLabels.join(" ")).not.toContain("add notification method");
+
+    /*
+     * Nor a ⋯ menu on any row. The scan above cannot see inside a closed menu,
+     * so a Remove that had moved into one would sail past it; a row with no
+     * action it may take draws no actions area at all.
+     */
+    expect(screen.queryAllByTestId(MORE_BUTTON_TEST_ID)).toHaveLength(0);
+    expect(screen.queryAllByTestId("row-actions")).toHaveLength(0);
   });
 
   test("a project owner keeps the controls without the granular permission", async () => {
@@ -1534,6 +1679,13 @@ describe("a row the server sends malformed", () => {
      */
     expect(within(row).queryByText("Resend code")).toBeNull();
     expect(within(row).getByText("Remove")).toBeInTheDocument();
+
+    /*
+     * Not in the ⋯ menu either - there is no menu. With Remove as the row's
+     * only action, it is the row's button.
+     */
+    expect(moreButtonFor(row)).toBeNull();
+    expect(rowButtonLabels(row)).toEqual(["Remove"]);
   });
 });
 
@@ -1687,7 +1839,7 @@ describe("a write the server refuses", () => {
       ) as never,
     );
 
-    clickButton(rowFor(MASKED_PHONE), "Remove");
+    chooseFromRowMenu(rowFor(MASKED_PHONE), "Remove");
 
     fireEvent.click(within(modal()).getByText("Remove"));
 
@@ -1714,7 +1866,7 @@ describe("a write the server refuses", () => {
 
     apiGetMock.mockClear();
 
-    clickButton(rowFor(MASKED_PHONE), "Remove");
+    chooseFromRowMenu(rowFor(MASKED_PHONE), "Remove");
 
     fireEvent.click(within(modal()).getByText("Remove"));
 
@@ -1896,5 +2048,313 @@ describe("who gets the controls", () => {
     expect(container.textContent).not.toContain(
       `Add one for ${TARGET_USER_FIRST_NAME}`,
     );
+  });
+});
+
+/*
+ * Each row's actions, drawn the way every row of actions in the product now is:
+ * one button, and a ⋯ menu holding the rest.
+ *
+ * On this list that means "Resend code" is the button on a row that offers it
+ * - it is the one thing an admin can do to move an unverified method forward -
+ * and "Remove" sits in the menu under it, in red. On every other row Remove is
+ * the only action, and a menu of one would only add a click, so it stays a
+ * button of its own.
+ *
+ * The part worth pinning hardest is that a menu item acts on ITS row. The menu
+ * is portalled out of the list to document.body, so nothing in the DOM ties an
+ * item to the row it was opened from; a menu wired to the wrong method would
+ * ask to remove one device and remove another.
+ */
+describe("each row's actions: one button and a ⋯ menu", () => {
+  const CALL_METHOD_ID: string = "60000000-0000-4000-8000-000000000004";
+  const MASKED_CALL_PHONE: string = "+1 ••• ••• 7730";
+  const RAW_CALL_PHONE: string = "+15557737730";
+
+  /*
+   * A second unverified, admin-addable row, so the list holds two rows whose
+   * actions are drawn identically. Anything that proves an action reached
+   * "the right row" has to be able to reach the wrong one.
+   */
+  const UNVERIFIED_CALL: JSONObject = methodJson({
+    methodId: CALL_METHOD_ID,
+    methodType: "Call",
+    maskedIdentifier: MASKED_CALL_PHONE,
+    isVerified: false,
+    isAdminAddable: true,
+    leakedRawValue: RAW_CALL_PHONE,
+  });
+
+  type DeletionImpactUrlsFunction = () => Array<string>;
+
+  const deletionImpactUrls: DeletionImpactUrlsFunction = (): Array<string> => {
+    return apiGetMock.mock.calls
+      .map((call: Array<any>): string => {
+        return String(call[0].url);
+      })
+      .filter((url: string): boolean => {
+        return url.includes("/deletion-impact");
+      });
+  };
+
+  test("an unverified row shows Resend code as its button and Remove in the ⋯ menu", async () => {
+    await renderPage();
+
+    const row: HTMLElement = rowFor(MASKED_PHONE);
+
+    // One button on the row, and it is the one that moves the method forward.
+    expect(rowButtonLabels(row)).toEqual(["Resend code"]);
+    expect(within(row).queryByText("Remove")).toBeNull();
+
+    const trigger: HTMLElement | null = moreButtonFor(row);
+
+    expect(trigger).not.toBeNull();
+    expect(trigger).toHaveAttribute("aria-label", "More actions");
+
+    const menu: HTMLElement = openRowMenu(row);
+
+    // Remove is everything else, and so the whole menu - and its last item.
+    expect(menuItemLabels(menu)).toEqual(["Remove"]);
+
+    const removeItem: HTMLElement = within(menu).getByRole("menuitem", {
+      name: "Remove",
+    });
+
+    /*
+     * Red, because in a menu there is no bordered button left to say that this
+     * one takes something away.
+     */
+    expect(removeItem).toHaveClass("text-red-600");
+
+    /*
+     * Portalled out of the row, so the card around the list cannot clip it.
+     */
+    expect(row.contains(menu)).toBe(false);
+  });
+
+  test("a verified row keeps Remove as its one button, in red, with no ⋯ menu", async () => {
+    await renderPage();
+
+    for (const masked of [MASKED_EMAIL, MASKED_WEBHOOK]) {
+      const row: HTMLElement = rowFor(masked);
+
+      expect(rowButtonLabels(row)).toEqual(["Remove"]);
+      expect(moreButtonFor(row)).toBeNull();
+
+      const removeButton: HTMLElement = within(row).getByRole("button", {
+        name: "Remove",
+      });
+
+      /*
+       * Still reads as destructive on its own: a red outline, as the row's
+       * raw button had before.
+       */
+      expect(removeButton).toHaveClass("text-red-700");
+      expect(removeButton).toHaveClass("border-red-700");
+    }
+  });
+
+  test("opening the ⋯ menu, or closing it unused, removes nothing", async () => {
+    await renderPage();
+
+    apiGetMock.mockClear();
+
+    const menu: HTMLElement = openRowMenu(rowFor(MASKED_PHONE));
+
+    closeRowMenu(menu);
+
+    await waitForSettled();
+
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+
+    /*
+     * Not even the impact read. That request is the first step of a removal,
+     * and a menu opened and dismissed has not started one.
+     */
+    expect(deletionImpactUrls()).toHaveLength(0);
+    expect(apiDeleteMock).not.toHaveBeenCalled();
+  });
+
+  test("Remove chosen from a row's menu removes that row's method and no other", async () => {
+    respondWithMethods([VERIFIED_EMAIL, UNVERIFIED_SMS, UNVERIFIED_CALL]);
+
+    await renderPage();
+
+    // Both unverified rows are drawn alike: Resend code, and a ⋯ menu.
+    expect(rowButtonLabels(rowFor(MASKED_PHONE))).toEqual(["Resend code"]);
+    expect(rowButtonLabels(rowFor(MASKED_CALL_PHONE))).toEqual(["Resend code"]);
+
+    apiGetMock.mockClear();
+
+    chooseFromRowMenu(rowFor(MASKED_CALL_PHONE), "Remove");
+
+    // The menu closes on the choice rather than hanging over the dialog.
+    expect(screen.queryByRole("menu")).toBeNull();
+
+    // The confirmation is about the Call row, by channel and by mask.
+    expect(
+      within(modal()).getByText("Remove this Call method?"),
+    ).toBeInTheDocument();
+    expect(modal().textContent).toContain(MASKED_CALL_PHONE);
+    expect(modal().textContent).not.toContain(MASKED_PHONE);
+
+    // So is the impact it asked for.
+    await waitFor((): void => {
+      expect(deletionImpactUrls()).toHaveLength(1);
+    });
+
+    expect(deletionImpactUrls()[0]).toContain(`/Call/${CALL_METHOD_ID}/`);
+
+    // Choosing from the menu only asks; nothing is removed until confirmed.
+    expect(apiDeleteMock).not.toHaveBeenCalled();
+
+    fireEvent.click(within(modal()).getByText("Remove"));
+
+    await waitFor((): void => {
+      expect(apiDeleteMock).toHaveBeenCalledTimes(1);
+    });
+
+    const url: string = String(apiDeleteMock.mock.calls[0]![0].url);
+
+    expect(url).toContain(`/Call/${CALL_METHOD_ID}`);
+    expect(url).not.toContain(SMS_METHOD_ID);
+    expect(url).not.toContain(EMAIL_METHOD_ID);
+  });
+
+  test("Resend code on a row resends for that row's method and no other", async () => {
+    respondWithMethods([VERIFIED_EMAIL, UNVERIFIED_SMS, UNVERIFIED_CALL]);
+
+    await renderPage();
+
+    clickButton(rowFor(MASKED_CALL_PHONE), "Resend code");
+
+    expect(modal().textContent).toContain(MASKED_CALL_PHONE);
+    expect(modal().textContent).not.toContain(MASKED_PHONE);
+
+    fireEvent.click(within(modal()).getByText("Resend code"));
+
+    await waitFor((): void => {
+      expect(apiPostMock).toHaveBeenCalledTimes(1);
+    });
+
+    const url: string = String(apiPostMock.mock.calls[0]![0].url);
+
+    expect(url).toContain(`/Call/${CALL_METHOD_ID}/resend-verification-code`);
+    expect(url).not.toContain(SMS_METHOD_ID);
+  });
+
+  test("a row's button is handed back as soon as its confirmation opens", async () => {
+    await renderPage();
+
+    const smsRow: HTMLElement = rowFor(MASKED_PHONE);
+
+    clickButton(smsRow, "Resend code");
+
+    expect(within(modal()).getByText("Resend verification code")).toBeTruthy();
+
+    /*
+     * The confirmation carries the spinner for the request. A row button left
+     * spinning - and so disabled - behind it would be a second spinner for the
+     * same request, and one that never stops if the dialog is cancelled.
+     */
+    const resendButton: HTMLElement = within(smsRow).getByRole("button", {
+      name: "Resend code",
+    });
+
+    expect(resendButton).toBeEnabled();
+    expect(smsRow.querySelector(".animate-spin")).toBeNull();
+
+    fireEvent.click(within(modal()).getByText("Cancel"));
+
+    await waitForSettled();
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+    expect(apiPostMock).not.toHaveBeenCalled();
+
+    // And it works again, rather than having been used up by the first click.
+    clickButton(smsRow, "Resend code");
+
+    expect(within(modal()).getByText("Resend verification code")).toBeTruthy();
+
+    fireEvent.click(within(modal()).getByText("Cancel"));
+
+    await waitForSettled();
+
+    // The same for a lone Remove button, whose confirmation also fetches.
+    const emailRow: HTMLElement = rowFor(MASKED_EMAIL);
+
+    clickButton(emailRow, "Remove");
+
+    await waitForSettled();
+
+    expect(
+      within(modal()).getByText("Remove this Email method?"),
+    ).toBeInTheDocument();
+
+    const removeButton: HTMLElement = within(emailRow).getByRole("button", {
+      name: "Remove",
+    });
+
+    expect(removeButton).toBeEnabled();
+    expect(emailRow.querySelector(".animate-spin")).toBeNull();
+
+    fireEvent.click(within(modal()).getByText("Cancel"));
+
+    await waitForSettled();
+
+    clickButton(emailRow, "Remove");
+
+    await waitForSettled();
+
+    expect(
+      within(modal()).getByText("Remove this Email method?"),
+    ).toBeInTheDocument();
+    expect(apiDeleteMock).not.toHaveBeenCalled();
+  });
+
+  test("a cancelled removal from the menu can be chosen again", async () => {
+    await renderPage();
+
+    const smsRow: HTMLElement = rowFor(MASKED_PHONE);
+
+    chooseFromRowMenu(smsRow, "Remove");
+
+    await waitForSettled();
+
+    fireEvent.click(within(modal()).getByText("Cancel"));
+
+    await waitForSettled();
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+
+    chooseFromRowMenu(smsRow, "Remove");
+
+    await waitForSettled();
+
+    expect(
+      within(modal()).getByText("Remove this SMS method?"),
+    ).toBeInTheDocument();
+    expect(apiDeleteMock).not.toHaveBeenCalled();
+  });
+
+  test("every action on the list, row and menu alike, keeps identifiers masked", async () => {
+    respondWithMethods([VERIFIED_EMAIL, UNVERIFIED_SMS, UNVERIFIED_CALL]);
+
+    await renderPage();
+
+    /*
+     * The menu is new DOM this page did not draw before, and it lives outside
+     * the list - so it is scanned in its own right, open, for the raw values
+     * planted in every fixture.
+     */
+    const menu: HTMLElement = openRowMenu(rowFor(MASKED_CALL_PHONE));
+
+    for (const raw of [...ALL_RAW_IDENTIFIERS, RAW_CALL_PHONE]) {
+      expect(menu.innerHTML).not.toContain(raw);
+      expect(document.body.innerHTML).not.toContain(raw);
+    }
+
+    closeRowMenu(menu);
   });
 });

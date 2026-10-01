@@ -14,7 +14,7 @@ Nevn den i en sak, og den åpner en pull request. Nevn den i en pull request, og
 
 ## Før du begynner
 
-- Repositoriet må være **koblet til et OneUptime-prosjekt** gjennom GitHub App-en. Se [GitHub-integrasjon (selvhostet)](/docs/self-hosted/github-integration) for oppsettet, eller koble det til fra **Prosjektinnstillinger → Kode-repositorier** på OneUptime Cloud.
+- Repositoriet må være **koblet til et OneUptime-prosjekt** gjennom GitHub App-en. Se [GitHub-integrasjon (selvhostet)](/docs/self-hosted/github-integration) for oppsettet, eller koble det til fra **Oppgaver → Kode-repositorier** på OneUptime Cloud.
 - En **Runner med egenskapen «Kjører AI-koderettelser»** må være tilkoblet — den samme Runneren som utfører [AI Fix Tasks](/docs/ai/ai-agent). Uten en slik blir kommandoene tatt imot, for så å feile etter 30 minutter med en melding om at ingen agent hentet dem.
 - GitHub App-en må ha tillatelsen **Issues: Read & write** og abonnere på webhook-hendelsene som er listet opp under [Hva du må abonnere på](#hva-du-må-abonnere-på).
 
@@ -129,13 +129,13 @@ Behandle en AI-skrevet pull request slik du ville behandlet en fra en ny bidrags
 
 ## Feilsøking
 
-**Ingenting skjer når jeg nevner appen.** Sjekk navnet du nevner den med først — det er appens slug, ikke visningsnavnet. Sjekk deretter at repositoriet er koblet til et prosjekt (**Prosjektinnstillinger → Kode-repositorier**), at **Svar på GitHub-kommandoer** er på, og at GitHub App-en din abonnerer på hendelsene over.
+**Ingenting skjer når jeg nevner appen.** Sjekk navnet du nevner den med først — det er appens slug, ikke visningsnavnet. Sjekk deretter at repositoriet er koblet til et prosjekt (**Oppgaver → Kode-repositorier**), at **Svar på GitHub-kommandoer** er på, og at GitHub App-en din abonnerer på hendelsene over.
 
 **Den reagerer med 😕 og sier ingenting.** Du har ikke skrivetilgang til repositoriet.
 
 **Den sier at den allerede jobber med dette.** En kjøring av den typen er allerede i gang på denne saken eller pull requesten. `@oneuptime status` forteller deg hva det er, og `@oneuptime cancel` stopper den.
 
-**Den bekreftet og ble så stille lenge.** Sjekk at en Runner med **Kjører AI-koderettelser** er tilkoblet under **Innstillinger → Runbook-agenter**. Uten en slik feiles kjøringen etter 30 minutter, og tråden får beskjed.
+**Den bekreftet og ble så stille lenge.** Sjekk at en Runner med **Kjører AI-koderettelser** er tilkoblet under **Runbooks → Runbook-agenter**. Uten en slik feiles kjøringen etter 30 minutter, og tråden får beskjed.
 
 **Den sier at pull requesten kommer fra en fork.** Revisjoner trenger en gren i dette repositoriet. Be om en gjennomgang i stedet, eller push grenen hit.
 

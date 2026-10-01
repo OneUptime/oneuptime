@@ -524,7 +524,7 @@ describe("ModelTable column wrapping options (OneUptime issue #3585)", () => {
      * width cap here would squeeze the row's buttons, and wrapping here would
      * stack them.
      */
-    test("renders a nowrap last cell and an uncapped 'flex justify-end' container", async () => {
+    test("renders a nowrap last cell and an uncapped right-aligned actions container", async () => {
       const { container } = renderTable();
 
       await waitForRow();
@@ -536,11 +536,13 @@ describe("ModelTable column wrapping options (OneUptime issue #3585)", () => {
       expect(actionsContainer).not.toBeNull();
       /*
        * Exactly this string: the actions container is built by appending the
-       * cell's content classes to "flex justify-end", so anything the helper
-       * wrongly handed a no-option column would show up here as extra
-       * classes.
+       * cell's content classes to "flex items-center justify-end gap-2", so
+       * anything the helper wrongly handed a no-option column would show up
+       * here as extra classes.
        */
-      expect(actionsContainer.className).toBe("flex justify-end");
+      expect(actionsContainer.className).toBe(
+        "flex items-center justify-end gap-2",
+      );
 
       const actionsCell: HTMLElement = actionsContainer.closest(
         "td",

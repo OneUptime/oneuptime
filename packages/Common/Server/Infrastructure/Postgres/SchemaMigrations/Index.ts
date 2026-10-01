@@ -20,6 +20,15 @@ import { AddStatusPageSubscriberUnsubscribeToken1795600000000 } from "./17956000
 import { AddStatusPageSubscriberIsAddedByTeam1795700000000 } from "./1795700000000-AddStatusPageSubscriberIsAddedByTeam";
 import { AddIncidentCustomFieldCreateAndNotificationSettings1795800000000 } from "./1795800000000-AddIncidentCustomFieldCreateAndNotificationSettings";
 import { AddSubscriberNotificationClaimedAt1795900000000 } from "./1795900000000-AddSubscriberNotificationClaimedAt";
+import { AddTeamComplianceRuleScope1796000000000 } from "./1796000000000-AddTeamComplianceRuleScope";
+import { AddKubernetesAiAgentAndAiDefaults1796100000000 } from "./1796100000000-AddKubernetesAiAgentAndAiDefaults";
+import { AddProxmoxResourceNativePushColumns1796200000000 } from "./1796200000000-AddProxmoxResourceNativePushColumns";
+import { AddResourceAiAgents1796300000000 } from "./1796300000000-AddResourceAiAgents";
+import { AddIncidentForms1796400000000 } from "./1796400000000-AddIncidentForms";
+import { AddTeamComplianceRuleNotificationChannels1796500000000 } from "./1796500000000-AddTeamComplianceRuleNotificationChannels";
+import { AddAIInvestigationConversationAndTimeLimits1796600000000 } from "./1796600000000-AddAIInvestigationConversationAndTimeLimits";
+import { AddMessageQueueTables1796700000000 } from "./1796700000000-AddMessageQueueTables";
+import { FoldAiSwitchesIntoEnableAi1796800000000 } from "./1796800000000-FoldAiSwitchesIntoEnableAi";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1240,4 +1249,13 @@ export default [
   AddStatusPageSubscriberIsAddedByTeam1795700000000,
   AddIncidentCustomFieldCreateAndNotificationSettings1795800000000,
   AddSubscriberNotificationClaimedAt1795900000000,
+  AddTeamComplianceRuleScope1796000000000,
+  AddKubernetesAiAgentAndAiDefaults1796100000000,
+  AddProxmoxResourceNativePushColumns1796200000000,
+  AddResourceAiAgents1796300000000,
+  AddIncidentForms1796400000000,
+  AddTeamComplianceRuleNotificationChannels1796500000000,
+  AddAIInvestigationConversationAndTimeLimits1796600000000,
+  AddMessageQueueTables1796700000000,
+  FoldAiSwitchesIntoEnableAi1796800000000,
 ];

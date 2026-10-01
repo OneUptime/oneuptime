@@ -17,20 +17,22 @@ This page is the **installation guide**. For configuring Proxmox monitors and al
 **Fastest path — run this on any PVE node** (shell as root):
 
 ```bash
+pveum user add monitoring@pam
+pveum acl modify / --roles PVEAuditor --users monitoring@pam
 pveum user token add monitoring@pam oneuptime --privsep 1
 pveum acl modify / --roles PVEAuditor --tokens 'monitoring@pam!oneuptime'
 ```
 
-(If the `monitoring@pam` user does not exist yet, create it first with `pveum user add monitoring@pam` — API tokens carry their own secret, so the user needs no password or system account.)
+(The first command only fails, harmlessly, if `monitoring@pam` already exists — API tokens carry their own secret, so the user needs no password or system account.)
 
-The ACL must sit at the root path `/` because **PVEAuditor** needs read access to every node, guest, and storage object the exporter walks — granting it on a narrower path hides the rest of the cluster and produces `401`/`403 Permission check failed (/, Sys.Audit)` errors. The first command prints the token secret once; in your `.env` that becomes `PVE_API_TOKEN_ID=monitoring@pam!oneuptime` and `PVE_API_TOKEN_SECRET=<the printed secret>`.
+The role goes on the user as well as the token because a privilege-separated token only gets the permissions its user also has. The ACL must sit at the root path `/` because **PVEAuditor** needs read access to every node, guest, and storage object the exporter walks — granting it on a narrower path hides the rest of the cluster and produces `401`/`403 Permission check failed (/, Sys.Audit)` errors. `pveum user token add` prints the token secret once; in your `.env` that becomes `PVE_API_TOKEN_ID=monitoring@pam!oneuptime` and `PVE_API_TOKEN_SECRET=<the printed secret>`.
 
 **Or via the Proxmox web UI:**
 
 1. In the Proxmox web UI go to _Datacenter → Permissions → API Tokens_ and click **Add**.
-2. Pick (or create) a user, give the token an ID like `oneuptime`, and **uncheck Privilege Separation** (or grant the token its own permissions in the next step).
-3. Under _Datacenter → Permissions_ add a permission on path `/` for the token with the **PVEAuditor** role.
-4. Copy the token id (`user@realm!tokenname`) and the secret — the secret is shown only once.
+2. Pick (or create) a user, give the token an ID like `oneuptime`, and leave **Privilege Separation** checked.
+3. Copy the token id (`user@realm!tokenname`) and the secret — the secret is shown only once.
+4. Under _Datacenter → Permissions_ add the **PVEAuditor** role on path `/` twice: once as an **API Token Permission** for the token, once as a **User Permission** for its user. A privilege-separated token only gets the permissions its user also has, so both need the role.
 
 ### Where to Run the Agent
 
@@ -43,7 +45,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Pr
 bash install.sh
 ```
 
-The script prompts for your OneUptime URL, telemetry ingestion token, cluster name, and Proxmox API details, installs to `/opt/oneuptime-proxmox-agent`, and starts the agent with Docker Compose.
+The script prompts for your OneUptime URL, telemetry ingestion token, cluster name, and Proxmox API details — and whether the [AI agent](#ai-agent) may apply fixes, and if so for a token of its own and the guests it must never change — installs to `/opt/oneuptime-proxmox-agent`, and starts the agent with Docker Compose.
 
 ## Alternative — Docker Compose
 
@@ -67,7 +69,7 @@ docker compose up -d
 
 That is it. Once the agent connects, your cluster will appear automatically in the **Proxmox** section of the OneUptime dashboard.
 
-If you already run prometheus-pve-exporter somewhere, drop `COMPOSE_PROFILES`, `PVE_API_TOKEN_ID`, and `PVE_API_TOKEN_SECRET` and point the agent at it instead:
+If you already run prometheus-pve-exporter somewhere, drop `COMPOSE_PROFILES` and point the agent at it instead. Keep `PVE_API_TOKEN_ID` and `PVE_API_TOKEN_SECRET` if you use the [AI agent](#ai-agent), which calls the API with that token; otherwise drop them too:
 
 ```bash
 PVE_EXPORTER_URL=your-exporter-host:9221
@@ -75,17 +77,17 @@ PVE_EXPORTER_URL=your-exporter-host:9221
 
 ## Environment Variables
 
-| Variable                            | Required              | Description                                                                                                                                                                                                   |
-| ----------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ONEUPTIME_URL`                     | Yes                   | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                                                                                                    |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes                   | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                                                                                                                  |
-| `PROXMOX_CLUSTER_NAME`              | Yes                   | Cluster identifier shown in OneUptime, stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable — changing it later registers a second cluster. Defaults to `proxmox-cluster` |
-| `PVE_HOST`                          | Yes                   | Proxmox VE API host (any node of the cluster) the exporter queries, e.g. `192.168.1.10`                                                                                                                       |
-| `PVE_EXPORTER_URL`                  | No                    | Address (`host:port`, no scheme) of prometheus-pve-exporter. Defaults to the bundled exporter (`pve-exporter:9221`)                                                                                           |
-| `PVE_API_TOKEN_ID`                  | Bundled exporter only | Full Proxmox API token id, e.g. `oneuptime@pve!exporter`                                                                                                                                                      |
-| `PVE_API_TOKEN_SECRET`              | Bundled exporter only | Proxmox API token secret                                                                                                                                                                                      |
-| `PVE_VERIFY_SSL`                    | No                    | Verify the Proxmox API TLS certificate. Defaults to `false` because Proxmox ships self-signed certificates                                                                                                    |
-| `COMPOSE_PROFILES`                  | No                    | Set to `pve-exporter` to start the bundled exporter container                                                                                                                                                 |
+| Variable                            | Required                     | Description                                                                                                                                                                                                   |
+| ----------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`                     | Yes                          | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                                                                                                    |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes                          | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                                                                                                          |
+| `PROXMOX_CLUSTER_NAME`              | Yes                          | Cluster identifier shown in OneUptime, stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable — changing it later registers a second cluster. Defaults to `proxmox-cluster` |
+| `PVE_HOST`                          | Yes                          | Proxmox VE API host (any node of the cluster) the exporter and the AI agent query, e.g. `192.168.1.10`                                                                                                        |
+| `PVE_EXPORTER_URL`                  | No                           | Address (`host:port`, no scheme) of prometheus-pve-exporter. Defaults to the bundled exporter (`pve-exporter:9221`)                                                                                           |
+| `PVE_API_TOKEN_ID`                  | Bundled exporter or AI agent | Full Proxmox API token id, e.g. `oneuptime@pve!exporter`. The AI agent reads the API with it unless it has a token of its own (`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`)         |
+| `PVE_API_TOKEN_SECRET`              | Bundled exporter or AI agent | Proxmox API token secret                                                                                                                                                                                      |
+| `PVE_VERIFY_SSL`                    | No                           | Verify the Proxmox API TLS certificate (the exporter and the AI agent). Defaults to `false` because Proxmox ships self-signed certificates                                                                    |
+| `COMPOSE_PROFILES`                  | No                           | Set to `pve-exporter` to start the bundled exporter container                                                                                                                                                 |
 
 ## Verify the Installation
 
@@ -187,12 +189,46 @@ Proxmox VE 9.0 and later ship a built-in **OpenTelemetry metric server** that pu
 | Path     | `/otlp/v1/metrics`                                                   |
 | Headers  | `{"x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"}`            |
 
-Two trade-offs to be aware of:
+Add it once — every node of the cluster pushes its own metrics. Nothing else to configure: OneUptime recognizes the native push and translates it into the same `pve_*` series the agent sends, so:
 
-1. **Cluster discovery.** The agent path is what powers cluster auto-registration in OneUptime, because it stamps the `proxmox.cluster.name` resource attribute on every metric. With the native push, set the metric server's _Resource Attributes_ option to `proxmox.cluster.name=my-proxmox-cluster` so the cluster registers itself — without it the metrics ingest into your project but no Proxmox cluster appears.
-2. **Different metric names.** The native push emits `proxmox_node_*` / `proxmox_vm_*` / `proxmox_storage_*` series, while the agent emits pve-exporter's `pve_*` series. OneUptime's built-in Proxmox metric catalog and alert templates target the `pve_*` names, so the agent path is recommended; the native push is great as a zero-install way to get raw metrics into [Metrics Explorer](/docs/monitor/metrics-monitor) and custom dashboards.
+- the cluster registers itself under your Proxmox cluster name (a standalone node registers under its node name),
+- the Nodes, Guests and Storage pages, the overview charts, the metric catalog and the CPU / memory / storage alert templates work the same as with the agent,
+- the original `proxmox_node_*` / `proxmox_vm_*` / `proxmox_storage_*` series stay available in [Metrics Explorer](/docs/monitor/metrics-monitor) for anything else PVE reports (load average, swap, pressure stall, per-NIC traffic, …).
 
-You can also run both: native push for low-latency raw metrics, agent for discovery, the Proxmox dashboard pages, and alert templates.
+If you set `proxmox.cluster.name` under _Resource Attributes_ before, it keeps being used — the cluster keeps its name.
+
+### When a node stops reporting
+
+Each node pushes only its own status, so a node that goes down cannot say so itself. The nodes that are still alive report it for it:
+
+- About 2 minutes after its last report, the node shows **Offline** on the Nodes page. **Last Seen** on the node's own page keeps the time of its own last report.
+- After about 5 minutes, **Node Offline** fires for it. **Cluster Quorum at Risk** counts it as offline too; because that template needs a full 5-minute window of reports, it fires about 7–9 minutes after the node went quiet.
+- With its next report it is **Online** again and its alert recovers.
+
+Offline here means the node **stopped reporting**, not necessarily that it is down. A node that is up but whose `pvestatd` is hung or killed, whose cluster file system (`pmxcfs`) is down, or whose network to OneUptime is cut is reported the same way.
+
+What it cannot cover:
+
+- **A standalone host, or a whole cluster going silent at once.** Nobody is left to report it, so no per-node alert fires. The cluster turns **Disconnected** instead, the same as when the agent stops.
+- **A node silent for more than 7 days** is no longer reported. Its alert resolves and it drops off the Nodes page.
+- **A node you take out of the cluster** looks the same as a dead one. Use **Remove Node** on its page: it goes away and its alert resolves. Otherwise it stays Offline for up to 7 days.
+- **The node's guests and storage.** Only the node itself is kept as Offline; its VMs, containers and storage drop off their pages about 15 minutes after its last report. Guests that HA restarts on another node come back under that node.
+
+After a OneUptime ingest outage, a node that newly went quiet is only reported once one of the others has pushed again for 2 minutes, so the outage itself never pages for every node. A node that was already Offline stays Offline through a short outage and keeps its alert; after an outage longer than 5 minutes it is reported again once the others have pushed for 2 minutes.
+
+In [Metrics Explorer](/docs/monitor/metrics-monitor) these reports are the `pve_up` = 0 points labelled `oneuptime.proxmox.inferred` = `not-reporting`, so you can always tell them apart from what a node said about itself.
+
+### What the native push cannot do
+
+The native push only sends what each node knows about itself, so part of what the agent collects has no native equivalent:
+
+| Needs the agent                 | Why                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| HA state                        | Not pushed — the **HA Resource in Error State** template needs the agent.                                    |
+| Start-on-boot flag              | Not pushed — the **Guest Down** template, which only pages for guests set to start on boot, needs the agent. |
+| Backup coverage and replication | Not pushed — the **Guest Not Backed Up** and **Replication Failing** templates need the agent.               |
+
+If you need those, run the agent instead. Use one or the other for a cluster: running both reports every resource twice.
 
 ## Run as a systemd Service
 
@@ -250,7 +286,7 @@ It ends with a VERDICT section naming the most likely root cause. The sections b
 
 ### The exporter logs 401 / authentication errors
 
-The API token is wrong or lacks permissions. Re-check the token id format (`user@realm!tokenname`), the secret, and that the token has the **PVEAuditor** role on path `/` (with privilege separation either disabled or permissions granted to the token itself).
+The API token is wrong or lacks permissions. Re-check the token id format (`user@realm!tokenname`), the secret, and that the **PVEAuditor** role is granted on path `/` to the token and to its user.
 
 ### Only node metrics, no guest metrics
 
@@ -259,6 +295,17 @@ Guest series (`qemu/*`, `lxc/*` ids) come from the exporter's cluster collector.
 ### Metrics land under the wrong cluster
 
 OneUptime auto-registers Proxmox clusters by `proxmox.cluster.name`, taken from the `PROXMOX_CLUSTER_NAME` environment variable. Changing it after the first telemetry batch creates a second cluster row rather than renaming the existing one.
+
+## AI agent
+
+The agent's `docker-compose.yml` also runs the **Proxmox AI agent**, `oneuptime-proxmox-ai-agent` (image `oneuptime/resource-ai-agent:release`). While OneUptime AI investigates an incident or alert on this cluster it runs read-only `pvesh` commands through it — `pvesh get /cluster/status`, `pvesh get /nodes/pve1/qemu/101/status/current`, `pvesh get /nodes/pve1/tasks --errors 1 --limit 20` — and, only if you allow it, applies fixes such as starting or rebooting a guest. There is no `pvesh` binary in it: each command becomes exactly one call to the Proxmox VE API at `PVE_HOST`, with a token from the same `.env`. It registers as the cluster named `PROXMOX_CLUSTER_NAME`, like the collector, and shows up on the cluster's **AI → AI agent** page in OneUptime.
+
+- **The API token is the hard limit.** Investigations use the collector's PVEAuditor token (`PVE_API_TOKEN_ID` / `PVE_API_TOKEN_SECRET`), which can read and nothing else; if you run your own exporter and have no token in `.env`, add one. Fixes need a token of the AI agent's own that may power guests (`VM.PowerMgmt`, for example the `PVEVMUser` role on `/vms` or on one pool), set as `ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`.
+- It is **read-only** unless you set `ONEUPTIME_AI_ALLOW_WRITES=true`; `ONEUPTIME_AI_WRITE_TARGETS` (VMIDs such as `100,101`, and `<node>/<service>` for node services) limits what a fix may touch. If the agent runs in a guest of this cluster, put that guest's VMID in `ONEUPTIME_AI_PROTECTED_TARGETS`. Then choose on the AI agent page whether each fix needs a person's approval.
+- Like the exporter, it does not verify the API's self-signed certificate unless you set `PVE_VERIFY_SSL=true` or point `PVE_CA_FILE` at the cluster's CA (`/etc/pve/pve-root-ca.pem`, mounted into the container).
+- It runs as UID 1000 with no capabilities and a read-only root filesystem, and never reads `/access`, opens a console or changes configuration. Delete the `oneuptime-proxmox-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI.
+
+What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#proxmox-clusters). The agent's README has the exact `pveum` commands for a fixes token.
 
 ## Next steps
 

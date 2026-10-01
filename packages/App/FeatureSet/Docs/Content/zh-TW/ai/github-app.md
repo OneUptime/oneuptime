@@ -14,7 +14,7 @@ OneUptime GitHub App 不只是通往您程式碼的一條連線——您可以�
 
 ## 開始之前
 
-- 該儲存庫必須透過 GitHub App **連接到某個 OneUptime 專案**。設定方式請參閱 [GitHub 整合（自架）](/docs/self-hosted/github-integration)；在 OneUptime Cloud 上則可從 **專案設定 → 程式碼儲存庫** 連接。
+- 該儲存庫必須透過 GitHub App **連接到某個 OneUptime 專案**。設定方式請參閱 [GitHub 整合（自架）](/docs/self-hosted/github-integration)；在 OneUptime Cloud 上則可從 **任務 → 程式碼儲存庫** 連接。
 - 必須有一台**具備「Runs AI Code Fixes」能力的 Runner** 在線上——就是執行 [AI 修復任務](/docs/ai/ai-agent) 的那同一台 Runner。少了它，指令會先被接受，30 分鐘後才以「沒有任何代理程式接手」的訊息失敗。
 - GitHub App 必須具備 **Issues: Read & write** 權限，並訂閱[需要訂閱哪些事件](#需要訂閱哪些事件)一節列出的 webhook 事件。
 
@@ -129,13 +129,13 @@ issue 內文、拉取請求描述、diff 與留言全都會成為代理程式提
 
 ## 疑難排解
 
-**我提及它時什麼都沒發生。** 先檢查代號——那是 App 的 slug，不是它的顯示名稱。接著檢查該儲存庫是否已連接到某個專案（**專案設定 → 程式碼儲存庫**）、**Respond to GitHub Commands** 是否開啟，以及您的 GitHub App 是否已訂閱上面列出的事件。
+**我提及它時什麼都沒發生。** 先檢查代號——那是 App 的 slug，不是它的顯示名稱。接著檢查該儲存庫是否已連接到某個專案（**任務 → 程式碼儲存庫**）、**Respond to GitHub Commands** 是否開啟，以及您的 GitHub App 是否已訂閱上面列出的事件。
 
 **它給了 😕 表情回應，然後什麼都沒說。** 您沒有該儲存庫的寫入權限。
 
 **它說它已經在處理這件事了。** 這個 issue 或拉取請求上，已經有一個同類型的執行在進行中。`@oneuptime status` 會告訴您那是什麼，`@oneuptime cancel` 可以停下它。
 
-**它確認之後就安靜了很久。** 請到 **設定 → Runners** 下確認有一台具備 **Runs AI Code Fixes** 的 Runner 在線上。少了它，該次執行會在 30 分鐘後失敗，並在討論串裡告知。
+**它確認之後就安靜了很久。** 請到 **運行手冊 → Runbook 代理程式** 下確認有一台具備 **Runs AI Code Fixes** 的 Runner 在線上。少了它，該次執行會在 30 分鐘後失敗，並在討論串裡告知。
 
 **它說這個拉取請求來自 fork。** 修改需要一個位於這個儲存庫裡的分支。請改要求審查，或把分支推送到這裡來。
 

@@ -156,6 +156,13 @@ import {
   describeLockedEntityFilter,
 } from "../../Utils/LockedTelemetryScope";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
+import {
+  SPAN_STATUS_PRESENTATIONS,
+  SpanStatusPresentation,
+  getSpanStatusColorMap,
+  getSpanStatusDisplayLabelMap,
+  getSpanStatusPresentation,
+} from "../../Utils/SpanStatusPresentation";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
@@ -204,10 +211,11 @@ function computeBucketSizeInMinutes(startTime: Date, endTime: Date): number {
   return Math.max(1, Math.ceil(raw / 60000));
 }
 
-const SPAN_STATUS_COLOR: Record<number, string> = {
-  [SpanStatus.Unset]: "#9ca3af",
-  [SpanStatus.Ok]: "#10b981",
-  [SpanStatus.Error]: "#ef4444",
+// The server's histogram bucket key for each status (TraceAggregationService).
+const HISTOGRAM_SERIES_KEY: Record<SpanStatus, string> = {
+  [SpanStatus.Ok]: "ok",
+  [SpanStatus.Unset]: "unset",
+  [SpanStatus.Error]: "error",
 };
 
 const SPAN_KIND_LABEL: Record<string, string> = {
@@ -243,7 +251,7 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   },
   {
     syntax: "status:ok|error|unset",
-    description: "Filter by span status",
+    description: "Filter by span status (unset = no error status set)",
     example: "status:error",
   },
   {
@@ -752,6 +760,33 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     setPage(1);
   }, [props.timeRangeOverride, pinnedTimeRange]);
 
+  /*
+   * A new pinned window is the host describing a different moment - the
+   * investigation drawer zooming its window (issue #4105), an incident page
+   * re-reading its snapshot - so follow it, the way the logs viewer does.
+   * Only a pin that differs by value from the one it replaces counts: a host
+   * rebuilding an equal query neither refetches nor undoes a zoom the reader
+   * made inside this view.
+   */
+  const lastPinnedTimeRangeRef: React.MutableRefObject<RangeStartAndEndDateTime | null> =
+    useRef<RangeStartAndEndDateTime | null>(pinnedTimeRange);
+
+  useEffect(() => {
+    const previousPin: RangeStartAndEndDateTime | null =
+      lastPinnedTimeRangeRef.current;
+    lastPinnedTimeRangeRef.current = pinnedTimeRange;
+
+    if (
+      !pinnedTimeRange ||
+      TelemetryQueryTimeRange.isSameRange(pinnedTimeRange, previousPin)
+    ) {
+      return;
+    }
+
+    setTimeRange(pinnedTimeRange);
+    setPage(1);
+  }, [pinnedTimeRange]);
+
   const [searchValue, setSearchValue] = useState<string>(
     initialUrlState.search,
   );
@@ -1253,6 +1288,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       statusCode: true,
       statusMessage: true,
       kind: true,
+      // Lets a row and its panel name an Unset span with exceptions plainly.
+      hasException: true,
     } as Select<Span>;
   }, []);
 
@@ -1485,6 +1522,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     void loadValues();
   }, [searchValue]);
 
+  /*
+   * The newest span-list and histogram requests. A zoom, a reset, a new
+   * pinned window or a new filter starts a request while an older one is
+   * still out, and the older (usually wider, slower) answer used to land
+   * last and paint the window the reader had just left under a picker that
+   * named the new one. Only the newest request commits and clears the
+   * loaders.
+   */
+  const spansRequestSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  const spansInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const histogramRequestSeqRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+
   // Fetch spans list
   const fetchSpans: (options?: {
     skipLoadingState?: boolean;
@@ -1494,6 +1545,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       if (viewMode === "analytics") {
         return;
       }
+      const requestSeq: number = ++spansRequestSeqRef.current;
+      const isSuperseded: () => boolean = (): boolean => {
+        return requestSeq !== spansRequestSeqRef.current;
+      };
+      spansInFlightRef.current = true;
       if (!options.skipLoadingState) {
         setIsLoading(true);
       }
@@ -1511,12 +1567,23 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           >,
           requestOptions: {},
         });
+        if (isSuperseded()) {
+          return;
+        }
         setSpans(result.data);
         setTotalCount(result.count);
       } catch (err) {
+        if (isSuperseded()) {
+          return;
+        }
         setError(API.getFriendlyMessage(err));
       } finally {
-        if (!options.skipLoadingState) {
+        /*
+         * The newest request clears the loader whatever started it: the one
+         * it replaced may have been the one that put the loader up.
+         */
+        if (!isSuperseded()) {
+          spansInFlightRef.current = false;
           setIsLoading(false);
         }
       }
@@ -1821,6 +1888,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       return;
     }
 
+    const requestSeq: number = ++histogramRequestSeqRef.current;
+
     setHistogramLoading(true);
     setFacetLoading(true);
 
@@ -1903,6 +1972,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       ),
       postApi("/telemetry/traces/facets", facetsPayload),
     ]);
+
+    // A newer window or filter asked again meanwhile: its answer wins.
+    if (requestSeq !== histogramRequestSeqRef.current) {
+      return;
+    }
 
     if (histogramResult.status === "fulfilled") {
       if (isLatencyChart) {
@@ -2003,6 +2077,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
     if (isLive) {
       livePollRef.current = setInterval(() => {
+        /*
+         * A poll never replaces a request still out: it asks for the same
+         * list, and replacing it would drop its answer - on a list slower
+         * than the interval, every answer.
+         */
+        if (spansInFlightRef.current) {
+          return;
+        }
         void fetchSpans({ skipLoadingState: true });
       }, LIVE_POLL_INTERVAL_MS);
     }
@@ -2072,16 +2154,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
 
-    const statusLabelMap: Record<string, string> = {
-      [SpanStatus.Ok]: "Ok",
-      [SpanStatus.Error]: "Error",
-      [SpanStatus.Unset]: "Unset",
-    };
-    const statusColorMap: Record<string, string> = {
-      [SpanStatus.Ok]: SPAN_STATUS_COLOR[SpanStatus.Ok]!,
-      [SpanStatus.Error]: SPAN_STATUS_COLOR[SpanStatus.Error]!,
-      [SpanStatus.Unset]: SPAN_STATUS_COLOR[SpanStatus.Unset]!,
-    };
+    const statusLabelMap: Record<string, string> =
+      getSpanStatusDisplayLabelMap();
+    const statusColorMap: Record<string, string> = getSpanStatusColorMap();
 
     return [
       // Never folded away while empty — only the resource type facets below are.
@@ -2136,7 +2211,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         key: "hasException",
         title: "Has Exception",
         valueDisplayMap: { true: "Has exception" },
-        valueColorMap: { true: SPAN_STATUS_COLOR[SpanStatus.Error]! },
+        valueColorMap: {
+          true: getSpanStatusPresentation(SpanStatus.Error).color,
+        },
         priority: 6.7,
       },
       {
@@ -2183,19 +2260,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         })?.label || chartMetric;
       return [{ key: "latency", label, color: "#6366f1" }];
     }
-    return [
-      { key: "ok", label: "Ok", color: SPAN_STATUS_COLOR[SpanStatus.Ok]! },
-      {
-        key: "unset",
-        label: "Unset",
-        color: SPAN_STATUS_COLOR[SpanStatus.Unset]!,
+    return SPAN_STATUS_PRESENTATIONS.map(
+      (presentation: SpanStatusPresentation): HistogramSeriesOption => {
+        return {
+          key: HISTOGRAM_SERIES_KEY[presentation.status],
+          label: presentation.displayLabel,
+          color: presentation.color,
+          description: presentation.description,
+        };
       },
-      {
-        key: "error",
-        label: "Error",
-        color: SPAN_STATUS_COLOR[SpanStatus.Error]!,
-      },
-    ];
+    );
   }, [chartMetric]);
 
   // Service id → name map for the analytics view's dimension display.

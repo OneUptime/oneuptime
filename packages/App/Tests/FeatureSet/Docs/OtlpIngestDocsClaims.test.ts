@@ -260,8 +260,13 @@ function docsPages(): Array<string> {
   });
 }
 
-// The Dashboard's in-app install guides: documentationMarkdown.ts and friends.
-const DASHBOARD_GUIDE_FILE_NAME: RegExp = /^documentationMarkdown.*\.ts$/i;
+/*
+ * The Dashboard's in-app install guides: documentationMarkdown.ts and
+ * friends, and the guides that live in a module of their own
+ * (Components/Cloud/CloudSetupGuide.ts).
+ */
+const DASHBOARD_GUIDE_FILE_NAME: RegExp =
+  /^(?:documentationMarkdown.*|[A-Za-z]*SetupGuide)\.ts$/i;
 
 function dashboardGuides(): Array<string> {
   return listFiles(DASHBOARD_SRC_DIR, (file: string): boolean => {
@@ -1123,6 +1128,10 @@ describe("OTLP ingest claims across the docs (issue #3978)", () => {
 
       expect(files).toEqual(expect.arrayContaining(expected));
       expect(dashboardGuides().length).toBeGreaterThan(0);
+      // The cloud guide moved out of documentationMarkdown.ts; still read it.
+      expect(dashboardGuides().map(relativeToRepo)).toContain(
+        "packages/App/FeatureSet/Dashboard/src/Components/Cloud/CloudSetupGuide.ts",
+      );
     });
 
     it("sets neither encoding: json nor a JSON Content-Type on any otlphttp exporter", () => {

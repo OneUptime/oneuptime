@@ -1,4 +1,9 @@
 import KubernetesClusterAiAccessService, {
+  AI_AGENT_INSTALL_COMMAND,
+  AI_AGENT_NOT_CONNECTED_NEXT_STEP,
+  AI_BALANCE_INSUFFICIENT_NEXT_STEP,
+  CREDENTIAL_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP,
+  LEGACY_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP,
   KubernetesAgentRegistrationRefusedException,
   KubernetesClusterAiAccessProjectGates,
   MAX_KUBERNETES_AGENT_RUNNERS_PER_PROJECT,
@@ -9,6 +14,8 @@ import KubernetesClusterAiAccessService, {
   getKubernetesAgentRunnerNameForCluster,
   getPreviousInstanceRetryAfterSeconds,
 } from "../../../Server/Services/KubernetesClusterAiAccessService";
+import AIService from "../../../Server/Services/AIService";
+import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
@@ -17,6 +24,7 @@ import RunbookCredentialService from "../../../Server/Services/RunbookCredential
 import RunbookSecretService from "../../../Server/Services/RunbookSecretService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import logger from "../../../Server/Utils/Logger";
+import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -84,8 +92,6 @@ const CREDENTIAL_ID: ObjectID = new ObjectID(
 
 const READY_GATES: KubernetesClusterAiAccessProjectGates = {
   isAiEnabled: true,
-  isAutoRemediationEnabled: true,
-  isAiCommandExecutionEnabled: true,
   hasLlmProvider: true,
 };
 
@@ -133,6 +139,32 @@ function fakeRunner(overrides: Partial<Record<string, unknown>> = {}): Runner {
   } as unknown as Runner;
 }
 
+const AGENT_ID: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
+
+// This cluster's Kubernetes AI agent row, online and able to write.
+function fakeAgent(
+  overrides: Partial<Record<string, unknown>> = {},
+): KubernetesAiAgent {
+  return {
+    id: AGENT_ID,
+    _id: AGENT_ID.toString(),
+    projectId: PROJECT_ID,
+    kubernetesClusterId: CLUSTER_ID,
+    connectionStatus: "connected",
+    lastAliveAt: OneUptimeDate.getCurrentDate(),
+    lastRegisteredAt: OneUptimeDate.getSomeMinutesAgo(60),
+    agentVersion: "14.1.0",
+    posture: {
+      inCluster: true,
+      allowWrites: true,
+      clusterIdentifier: "prod-us",
+      podNamespace: "oneuptime-agent",
+      kubectlVersion: "v1.36.4",
+    },
+    ...overrides,
+  } as unknown as KubernetesAiAgent;
+}
+
 function gapCodes(
   status: KubernetesClusterAiAccessStatus,
 ): Array<KubernetesAiAccessGapCode> {
@@ -150,6 +182,7 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
   let credentialCountSpy: jest.SpyInstance;
   let secretCountSpy: jest.SpyInstance;
   let boundClusterCountSpy: jest.SpyInstance;
+  let agentLookup: jest.SpyInstance;
 
   beforeEach(() => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
@@ -164,6 +197,10 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
     boundClusterCountSpy = jest
       .spyOn(KubernetesClusterService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+    // No Kubernetes AI agent unless a test says otherwise.
+    agentLookup = jest
+      .spyOn(KubernetesAiAgentService, "findForCluster")
+      .mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -220,11 +257,11 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
     expect(status.runner?.posture?.allowNodeOperations).toBe(false);
   });
 
-  it("reports no_runner_bound with the install step and blocks both when the cluster has no Runner and none is registered for it", async () => {
+  it("reports ai_agent_not_connected with the install command and blocks both when nothing can reach the cluster", async () => {
     /*
-     * The status now looks for this cluster's agent Runner row before
-     * choosing the next step (see the "installed but not selected" block
-     * below); with none registered, the one-command install is the step.
+     * No binding and no agent row: nothing to read but the agent. The
+     * status no longer looks for an unbound previous in-cluster Runner —
+     * the chart upgrade that installs the agent is the one step.
      */
     const findOneBy: jest.SpyInstance = jest
       .spyOn(RunnerService, "findOneBy")
@@ -236,15 +273,42 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
         gates: READY_GATES,
       });
 
-    expect(findOneBy).toHaveBeenCalledTimes(1);
-    expect(gapCodes(status)).toEqual(["no_runner_bound"]);
+    expect(findOneBy).not.toHaveBeenCalled();
+    expect(agentLookup).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      kubernetesClusterId: CLUSTER_ID,
+    });
+    expect(gapCodes(status)).toEqual(["ai_agent_not_connected"]);
     expect(status.gaps[0]?.blocks).toBe("both");
-    expect(status.gaps[0]?.title).toBe("No Runner can reach this cluster");
-    expect(status.gaps[0]?.nextStep).toContain("aiAccess.enabled=true");
+    expect(status.gaps[0]?.title).toBe(
+      "The Kubernetes AI agent is not connected",
+    );
+    expect(status.gaps[0]?.nextStep).toBe(AI_AGENT_NOT_CONNECTED_NEXT_STEP);
+    expect(status.gaps[0]?.nextStep).toContain(AI_AGENT_INSTALL_COMMAND);
+    expect(status.gaps[0]?.nextStep).not.toContain("aiAccess");
+    // Nothing selected, so nothing said about an ignored Runner.
+    expect(status.gaps[0]?.description).toBe(
+      "OneUptime AI runs kubectl on this cluster through the Kubernetes AI agent, and no agent has connected for this cluster yet.",
+    );
     expect(status.isInvestigationReady).toBe(false);
     expect(status.isRemediationReady).toBe(false);
     expect(status.runner).toBeNull();
+    expect(status.aiAgent).toBeNull();
     expect(status.accessMethod).toBe("none");
+  });
+
+  it("never produces no_runner_bound any more", async () => {
+    for (const aiAccessRunnerId of [undefined, RUNNER_ID]) {
+      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(null);
+
+      const status: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster({ aiAccessRunnerId }),
+          gates: READY_GATES,
+        });
+
+      expect(gapCodes(status)).not.toContain("no_runner_bound");
+    }
   });
 
   /*
@@ -265,25 +329,37 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
     expect(gapCodes(status)).toEqual(["runner_missing"]);
     expect(status.gaps[0]?.title).toBe("The bound Runner was just deleted");
     /*
-     * Round three: gap next steps are shown verbatim on incident pages too,
-     * where "this page" would be the incident. They name the cluster's AI
-     * page instead (was "Reload this page").
+     * Gap next steps are shown verbatim on incident pages too, where "this
+     * page" would be the incident. They name the cluster's AI agent page.
      */
-    expect(status.gaps[0]?.nextStep).toContain("Reload the cluster's AI page");
+    expect(status.gaps[0]?.nextStep).toBe(
+      "Reload the cluster's AI agent page (AI → Agent).",
+    );
     expect(status.gaps[0]?.nextStep).not.toContain("this page");
     expect(status.isInvestigationReady).toBe(false);
   });
 
+  it("negative control: a bound Runner that vanished while the cluster has an agent reads as the agent", async () => {
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(null);
+    agentLookup.mockResolvedValue(fakeAgent());
+
+    const status: KubernetesClusterAiAccessStatus =
+      await KubernetesClusterAiAccessService.getStatusForClusterModel({
+        cluster: fakeCluster(),
+        gates: READY_GATES,
+      });
+
+    expect(gapCodes(status)).toEqual([]);
+    expect(status.runner?.kind).toBe("ai_agent");
+  });
+
   /*
-   * A cluster left unbound while its agent Runner already exists (the
-   * binding was cleared, its Runner was deleted and re-registered, or the
-   * cluster row was recreated by telemetry). Re-running the helm upgrade
-   * would change nothing there — a registering Runner never re-binds a
-   * cluster that was configured before — so the step that works is
-   * selecting the Runner on the AI page.
+   * A previous in-cluster Runner that is registered but not bound (its
+   * binding was cleared, or it was deleted and registered again) is not an
+   * access target: only a bound Runner is. The cluster uses its AI agent.
    */
-  describe("no Runner bound, but this cluster's agent Runner is registered", () => {
-    it("tells the operator to select that Runner on the cluster's AI page, not to run helm", async () => {
+  describe("an unbound previous in-cluster Runner", () => {
+    it("is not looked up or used: the install step is the next step", async () => {
       const findOneBy: jest.SpyInstance = jest
         .spyOn(RunnerService, "findOneBy")
         .mockResolvedValue(fakeRunner());
@@ -294,109 +370,46 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
           gates: READY_GATES,
         });
 
-      expect(gapCodes(status)).toEqual(["no_runner_bound"]);
-      expect(status.gaps[0]?.title).toBe(
-        "The in-cluster Runner is installed but not selected",
-      );
-      expect(status.gaps[0]?.description).toContain("and online");
-      expect(status.gaps[0]?.nextStep).toContain(
-        'Select the kubernetes-agent Runner "kubernetes-agent/prod-us"',
-      );
-      // Round three: named, not "on this page" (shown on incident pages too).
-      expect(status.gaps[0]?.nextStep).toContain("on the cluster's AI page");
-      expect(status.gaps[0]?.nextStep).not.toContain("this page");
-      expect(status.gaps[0]?.nextStep).not.toContain("aiAccess.enabled=true");
-      expect(status.gaps[0]?.blocks).toBe("both");
-      expect(status.isInvestigationReady).toBe(false);
-      expect(status.runner).toBeNull();
-
-      // Looked up in this project, by the agent name, case-insensitively.
-      const query: Record<string, unknown> = (
-        findOneBy.mock.calls[0]![0] as { query: Record<string, unknown> }
-      ).query;
-      expect(query["projectId"]).toBe(PROJECT_ID);
-      expect(typeof query["name"]).not.toBe("string");
-      expect(query["name"]).toBeDefined();
-    });
-
-    it("says the Runner is not online when it is not, and still points at selecting it", async () => {
-      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
-        fakeRunner({
-          lastAlive: OneUptimeDate.getSomeMinutesAgo(30),
-        }),
-      );
-
-      const status: KubernetesClusterAiAccessStatus =
-        await KubernetesClusterAiAccessService.getStatusForClusterModel({
-          cluster: fakeCluster({ aiAccessRunnerId: undefined }),
-          gates: READY_GATES,
-        });
-
-      expect(status.gaps[0]?.description).toContain("not online right now");
-      expect(status.gaps[0]?.nextStep).toContain("Select the kubernetes-agent");
-    });
-
-    it("keeps the install step when the row by that name reports a different cluster", async () => {
-      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
-        fakeRunner({
-          hostInfo: {
-            kubernetes: { inCluster: true, clusterIdentifier: "prod-eu" },
-          },
-        }),
-      );
-
-      const status: KubernetesClusterAiAccessStatus =
-        await KubernetesClusterAiAccessService.getStatusForClusterModel({
-          cluster: fakeCluster({ aiAccessRunnerId: undefined }),
-          gates: READY_GATES,
-        });
-
-      expect(status.gaps[0]?.title).toBe("No Runner can reach this cluster");
-      expect(status.gaps[0]?.nextStep).toContain("aiAccess.enabled=true");
-    });
-
-    it("never throws: a failed lookup falls back to the install step", async () => {
-      jest
-        .spyOn(RunnerService, "findOneBy")
-        .mockRejectedValue(new Error("db down"));
-
-      const status: KubernetesClusterAiAccessStatus =
-        await KubernetesClusterAiAccessService.getStatusForClusterModel({
-          cluster: fakeCluster({ aiAccessRunnerId: undefined }),
-          gates: READY_GATES,
-        });
-
-      expect(gapCodes(status)).toEqual(["no_runner_bound"]);
-      expect(status.gaps[0]?.nextStep).toContain("aiAccess.enabled=true");
-    });
-
-    it("does not look anything up for a cluster row without an identifier", async () => {
-      const findOneBy: jest.SpyInstance = jest.spyOn(
-        RunnerService,
-        "findOneBy",
-      );
-
-      const status: KubernetesClusterAiAccessStatus =
-        await KubernetesClusterAiAccessService.getStatusForClusterModel({
-          cluster: fakeCluster({
-            aiAccessRunnerId: undefined,
-            clusterIdentifier: "  ",
-          }),
-          gates: READY_GATES,
-        });
-
       expect(findOneBy).not.toHaveBeenCalled();
-      expect(status.gaps[0]?.nextStep).toContain("aiAccess.enabled=true");
+      expect(gapCodes(status)).toEqual(["ai_agent_not_connected"]);
+      expect(status.runner).toBeNull();
+    });
+
+    it("never throws: a failed agent lookup reads as no agent", async () => {
+      agentLookup.mockRejectedValue(new Error("db down"));
+
+      const status: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster({ aiAccessRunnerId: undefined }),
+          gates: READY_GATES,
+        });
+
+      expect(gapCodes(status)).toEqual(["ai_agent_not_connected"]);
+      expect(status.aiAgent).toBeNull();
+    });
+
+    it("never throws: with a failed agent lookup a bound, online previous Runner still serves", async () => {
+      agentLookup.mockRejectedValue(new Error("db down"));
+      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(fakeRunner());
+
+      const status: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster(),
+          gates: READY_GATES,
+        });
+
+      expect(gapCodes(status)).toEqual([]);
+      expect(status.runner?.kind).toBe("runner");
     });
   });
 
   /*
    * A Runner that signs off (/runner-ingest/disconnect — what a helm
-   * uninstall or turning aiAccess off does to the agent's pod) is offline
-   * at once, not "Connected" until its last heartbeat ages out.
+   * upgrade or uninstall does to the previous in-cluster Runner's pod) is
+   * offline at once, not "Connected" until its last heartbeat ages out.
    */
   describe("a Runner that signed off", () => {
-    it("is offline and blocks both, with the uninstall-aware copy and not the 'check the pod' step", async () => {
+    it("the previous in-cluster Runner: offline, blocks both, and the step is the chart upgrade to the AI agent", async () => {
       const findOneBy: jest.SpyInstance = jest
         .spyOn(RunnerService, "findOneBy")
         .mockResolvedValue(
@@ -413,16 +426,18 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
         });
 
       expect(status.runner?.isOnline).toBe(false);
+      expect(status.runner?.kind).toBe("runner");
       expect(status.isInvestigationReady).toBe(false);
       expect(status.isRemediationReady).toBe(false);
       expect(gapCodes(status)).toEqual(["runner_offline"]);
-      expect(status.gaps[0]?.title).toBe("The in-cluster Runner signed off");
-      expect(status.gaps[0]?.description).toContain("uninstalled");
-      // Round three: was "clear the Runner on this page".
-      expect(status.gaps[0]?.nextStep).toContain(
-        "clear the Runner on the cluster's AI page",
+      expect(status.gaps[0]?.title).toBe(
+        "The previous in-cluster Runner signed off",
       );
-      expect(status.gaps[0]?.nextStep).toContain("aiAccess.enabled=true");
+      expect(status.gaps[0]?.nextStep).toContain(
+        "Upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner",
+      );
+      expect(status.gaps[0]?.nextStep).toContain(AI_AGENT_INSTALL_COMMAND);
+      expect(status.gaps[0]?.nextStep).not.toContain("aiAccess.enabled=true");
       expect(status.gaps[0]?.nextStep).not.toContain("component=ai-runner");
 
       // The sign-off is read, not guessed.
@@ -450,6 +465,9 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       expect(status.gaps[0]?.code).toBe("runner_offline");
       expect(status.gaps[0]?.title).toBe("The Runner signed off");
       expect(status.gaps[0]?.nextStep).toContain("Start the Runner container");
+      expect(status.gaps[0]?.nextStep).toContain(
+        "clear the Runner on the cluster's AI agent page (AI → Agent) to use the Kubernetes AI agent",
+      );
     });
 
     it("negative control: the same Runner Connected is online and ready", async () => {
@@ -475,6 +493,8 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
     it("negative control: a row that never heartbeated is 'never connected', not 'signed off'", async () => {
       jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
         fakeRunner({
+          name: "office-runner",
+          hostInfo: {},
           lastAlive: undefined,
           connectionStatus: RunnerConnectionStatus.Disconnected,
         }),
@@ -489,152 +509,51 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       expect(status.gaps[0]?.title).toBe("The Runner has never connected");
     });
 
-    /*
-     * A restarted agent pod cannot present the key its predecessor held, so
-     * a row holding more than the agent defaults is refused on every
-     * registration — "it reconnects within a minute" would be false.
-     */
-    describe("an offline agent Runner that holds more than the defaults", () => {
-      it('says it cannot re-register and names "Runs Runbooks" instead of promising a reconnect', async () => {
-        jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
-          fakeRunner({
-            connectionStatus: RunnerConnectionStatus.Disconnected,
-            canRunRunbooks: true,
-          }),
-        );
+    it("negative control: a previous in-cluster Runner that never heartbeated is offline, not 'signed off'", async () => {
+      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+        fakeRunner({
+          lastAlive: undefined,
+          connectionStatus: RunnerConnectionStatus.Disconnected,
+        }),
+      );
 
-        const status: KubernetesClusterAiAccessStatus =
-          await KubernetesClusterAiAccessService.getStatusForClusterModel({
-            cluster: fakeCluster(),
-            gates: READY_GATES,
-          });
-
-        expect(gapCodes(status)).toEqual(["runner_offline"]);
-        const gap: KubernetesAiAccessGap = status.gaps[0]!;
-        expect(gap.title).toContain("cannot re-register");
-        expect(gap.description).toContain('"Runs Runbooks" is on');
-        expect(gap.nextStep).toContain(
-          'on Runner "kubernetes-agent/prod-us": turn off "Runs Runbooks"',
-        );
-        expect(gap.nextStep).toContain("delete the Runner");
-        /*
-         * Round four: deleting the Runner leaves this cluster unbound (the
-         * FK nulls the binding and registration never re-binds a cluster
-         * that had a Runner), so the delete path names its second step.
-         * Was "... — or delete the Runner, and the in-cluster Runner
-         * registers a fresh one within a minute."
-         */
-        expect(gap.nextStep).toContain(
-          "select it on the cluster's AI page as its Runner",
-        );
-        expect(gap.nextStep).toContain("still bound to this cluster");
-        expect(gap.nextStep).not.toContain("reconnects within a minute");
-        expect(gap.nextStep).not.toContain("aiAccess.enabled=true");
-        expect(gap.blocks).toBe("both");
-      });
-
-      it("names assigned credentials, secrets and other clusters bound to it, counted for THIS cluster", async () => {
-        credentialCountSpy.mockResolvedValue(new PositiveNumber(1));
-        secretCountSpy.mockResolvedValue(new PositiveNumber(2));
-        boundClusterCountSpy.mockResolvedValue(new PositiveNumber(1));
-        jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
-          fakeRunner({
-            lastAlive: OneUptimeDate.getSomeMinutesAgo(30),
-          }),
-        );
-
-        const status: KubernetesClusterAiAccessStatus =
-          await KubernetesClusterAiAccessService.getStatusForClusterModel({
-            cluster: fakeCluster(),
-            gates: READY_GATES,
-          });
-
-        const gap: KubernetesAiAccessGap = status.gaps[0]!;
-        expect(gap.description).toContain("1 Runner credential(s) assigned");
-        expect(gap.description).toContain("2 runbook secret(s) assigned");
-        expect(gap.description).toContain(
-          "the AI access Runner of 1 other cluster(s)",
-        );
-        // "Runs Runbooks" is off on this row, so it is not named.
-        expect(gap.description).not.toContain("Runs Runbooks");
-
-        const clusterQuery: Record<string, unknown> = (
-          boundClusterCountSpy.mock.calls[0]![0] as {
-            query: Record<string, unknown>;
-          }
-        ).query;
-        expect(clusterQuery["_id"]).toBeDefined();
-        expect(typeof clusterQuery["_id"]).not.toBe("string");
-      });
-
-      it("negative control: a signed-off agent row with nothing extra keeps the reconnect wording", async () => {
-        jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
-          fakeRunner({
-            connectionStatus: RunnerConnectionStatus.Disconnected,
-          }),
-        );
-
-        const status: KubernetesClusterAiAccessStatus =
-          await KubernetesClusterAiAccessService.getStatusForClusterModel({
-            cluster: fakeCluster(),
-            gates: READY_GATES,
-          });
-
-        expect(status.gaps[0]?.title).toBe("The in-cluster Runner signed off");
-        expect(status.gaps[0]?.nextStep).toContain("aiAccess.enabled=true");
-      });
-
-      it("negative control: an online agent row is never counted", async () => {
-        jest
-          .spyOn(RunnerService, "findOneBy")
-          .mockResolvedValue(fakeRunner({ canRunRunbooks: true }));
-
+      const status: KubernetesClusterAiAccessStatus =
         await KubernetesClusterAiAccessService.getStatusForClusterModel({
           cluster: fakeCluster(),
           gates: READY_GATES,
         });
 
-        expect(credentialCountSpy).not.toHaveBeenCalled();
-      });
+      expect(status.gaps[0]?.title).toBe(
+        "The previous in-cluster Runner is offline",
+      );
+    });
 
-      it("negative control: another cluster's agent row is not judged by this cluster's holdings", async () => {
-        jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
-          fakeRunner({
-            name: "kubernetes-agent/prod-eu",
-            connectionStatus: RunnerConnectionStatus.Disconnected,
-            canRunRunbooks: true,
-            hostInfo: {
-              kubernetes: { inCluster: true, clusterIdentifier: "prod-eu" },
-            },
-          }),
-        );
+    /*
+     * An offline previous in-cluster Runner that holds more than the agent
+     * defaults could not re-register — but it no longer has to: the chart
+     * upgrade installs the AI agent, which needs none of it. So the status
+     * no longer counts what the row holds.
+     */
+    it("never counts what an offline previous in-cluster Runner holds: the step is the chart upgrade", async () => {
+      credentialCountSpy.mockResolvedValue(new PositiveNumber(1));
+      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+        fakeRunner({
+          connectionStatus: RunnerConnectionStatus.Disconnected,
+          canRunRunbooks: true,
+        }),
+      );
 
-        const status: KubernetesClusterAiAccessStatus =
-          await KubernetesClusterAiAccessService.getStatusForClusterModel({
-            cluster: fakeCluster(),
-            gates: READY_GATES,
-          });
+      const status: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster(),
+          gates: READY_GATES,
+        });
 
-        expect(status.gaps[0]?.title).toBe("The in-cluster Runner signed off");
-        expect(credentialCountSpy).not.toHaveBeenCalled();
-      });
-
-      it("never throws: a failed holdings lookup falls back to the plain offline gap", async () => {
-        credentialCountSpy.mockRejectedValue(new Error("db down"));
-        jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
-          fakeRunner({
-            connectionStatus: RunnerConnectionStatus.Disconnected,
-          }),
-        );
-
-        const status: KubernetesClusterAiAccessStatus =
-          await KubernetesClusterAiAccessService.getStatusForClusterModel({
-            cluster: fakeCluster(),
-            gates: READY_GATES,
-          });
-
-        expect(status.gaps[0]?.title).toBe("The in-cluster Runner signed off");
-      });
+      expect(gapCodes(status)).toEqual(["runner_offline"]);
+      expect(status.gaps[0]?.nextStep).toContain(AI_AGENT_INSTALL_COMMAND);
+      expect(credentialCountSpy).not.toHaveBeenCalled();
+      expect(secretCountSpy).not.toHaveBeenCalled();
+      expect(boundClusterCountSpy).not.toHaveBeenCalled();
     });
 
     it("still reports the sign-off once the last heartbeat has also aged out", async () => {
@@ -652,15 +571,21 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
         });
 
       // Signed off AND stale: the sign-off is the more precise explanation.
-      expect(status.gaps[0]?.title).toBe("The in-cluster Runner signed off");
+      expect(status.gaps[0]?.title).toBe(
+        "The previous in-cluster Runner signed off",
+      );
       expect(status.runner?.isOnline).toBe(false);
     });
   });
 
   it("reports runner_offline (never connected vs stale) and keeps the Runner summary", async () => {
-    jest
-      .spyOn(RunnerService, "findOneBy")
-      .mockResolvedValue(fakeRunner({ lastAlive: undefined }));
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+      fakeRunner({
+        name: "office-runner",
+        hostInfo: {},
+        lastAlive: undefined,
+      }),
+    );
 
     const never: KubernetesClusterAiAccessStatus =
       await KubernetesClusterAiAccessService.getStatusForClusterModel({
@@ -668,11 +593,10 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
         gates: READY_GATES,
       });
 
-    expect(gapCodes(never)).toEqual(["runner_offline"]);
+    expect(gapCodes(never)).toContain("runner_offline");
     expect(never.gaps[0]?.title).toContain("never connected");
     expect(never.runner?.isOnline).toBe(false);
 
-    jest.restoreAllMocks();
     jest
       .spyOn(RunnerService, "findOneBy")
       .mockResolvedValue(
@@ -686,8 +610,11 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       });
 
     expect(gapCodes(stale)).toEqual(["runner_offline"]);
-    expect(stale.gaps[0]?.title).toBe("The Runner is offline");
-    expect(stale.gaps[0]?.nextStep).toContain("component=ai-runner");
+    expect(stale.gaps[0]?.title).toBe(
+      "The previous in-cluster Runner is offline",
+    );
+    expect(stale.gaps[0]?.description).toContain("last reported in at");
+    expect(stale.runner?.name).toBe("kubernetes-agent/prod-us");
   });
 
   it("reports runner_ai_commands_disabled when the capability is off", async () => {
@@ -773,7 +700,14 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
    * exists only for the Runner whose posture names THIS cluster.
    */
   describe("in-cluster access is only the in-cluster Runner of this cluster", () => {
-    it("refuses the in-cluster Runner of a different cluster with a gap that blocks both", async () => {
+    /*
+     * A kubernetes-agent Runner of ANOTHER cluster bound here (the binding
+     * guard refuses it for new writes; older rows may still hold one) is
+     * never an access target: its ServiceAccount reaches only its own
+     * cluster, and it is neither the advanced Runner an operator chose nor
+     * this cluster's previous in-cluster Runner.
+     */
+    it("never uses the in-cluster Runner of a different cluster: without an agent nothing reaches this one", async () => {
       jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
         fakeRunner({
           name: "kubernetes-agent/prod-eu",
@@ -793,19 +727,39 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
           gates: READY_GATES,
         });
 
-      expect(gapCodes(status)).toEqual(["runner_cluster_mismatch"]);
+      expect(gapCodes(status)).toEqual(["ai_agent_not_connected"]);
       expect(status.gaps[0]?.blocks).toBe("both");
-      expect(status.gaps[0]?.title).toContain("different cluster");
-      expect(status.gaps[0]?.description).toContain('"prod-eu"');
-      expect(status.gaps[0]?.description).toContain('"prod-us"');
-      expect(status.gaps[0]?.nextStep).toContain("aiAccess.enabled=true");
       expect(status.accessMethod).toBe("none");
       expect(status.credentialId).toBeUndefined();
+      expect(status.runner).toBeNull();
       expect(status.isInvestigationReady).toBe(false);
       expect(status.isRemediationReady).toBe(false);
-      // The Runner is still described, so the page can say WHICH Runner.
-      expect(status.runner?.name).toBe("kubernetes-agent/prod-eu");
-      expect(status.runner?.posture?.clusterIdentifier).toBe("prod-eu");
+    });
+
+    it("with this cluster's AI agent, the other cluster's bound Runner is ignored and the agent serves", async () => {
+      agentLookup.mockResolvedValue(fakeAgent());
+      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+        fakeRunner({
+          name: "kubernetes-agent/prod-eu",
+          hostInfo: {
+            kubernetes: {
+              inCluster: true,
+              allowWrites: true,
+              clusterIdentifier: "prod-eu",
+            },
+          },
+        }),
+      );
+
+      const status: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster(),
+          gates: READY_GATES,
+        });
+
+      expect(status.gaps).toEqual([]);
+      expect(status.runner?.kind).toBe("ai_agent");
+      expect(status.runner?.id).toBe(AGENT_ID.toString());
     });
 
     it("refuses a pod Runner that never said which cluster it runs in", async () => {
@@ -823,7 +777,12 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
         });
 
       expect(gapCodes(status)).toEqual(["runner_cluster_mismatch"]);
-      expect(status.gaps[0]?.title).toContain("did not report which cluster");
+      expect(status.gaps[0]?.title).toBe(
+        "The bound Runner did not report which cluster it runs in",
+      );
+      expect(status.gaps[0]?.description).toBe(
+        'Runner "pod-runner" reports that it runs inside a Kubernetes cluster but not which one, so OneUptime AI cannot tell whether that is this cluster.',
+      );
       expect(status.accessMethod).toBe("none");
       expect(status.isInvestigationReady).toBe(false);
     });
@@ -847,7 +806,8 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
           gates: READY_GATES,
         });
 
-      expect(gapCodes(status)).toEqual(["runner_cluster_mismatch"]);
+      // A cluster without an identifier has no previous in-cluster Runner.
+      expect(gapCodes(status)).toEqual(["ai_agent_not_connected"]);
       expect(status.accessMethod).toBe("none");
     });
 
@@ -876,16 +836,16 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
     });
 
     /*
-     * Changed with the credential-exfiltration fix: this used to be the
-     * supported "another cluster's agent + an assigned credential" setup
-     * and read as ready. A kubernetes-agent Runner is minted and re-keyed
-     * with the telemetry ingestion key, so it is never handed credential
-     * material — the claim path refuses it — and readiness must say so
-     * instead of promising access that would fail on every command.
+     * A kubernetes-agent Runner is minted and re-keyed with the telemetry
+     * ingestion key, so it is never handed credential material. Such a row
+     * of another cluster — by its name marker, its posture, or a case
+     * variant of the marker — is not an access target at all now, so the
+     * credential selected with it is never even read, let alone used.
      */
-    it("refuses a credential on another cluster's agent Runner with its own gap, never 'credential' access", async () => {
-      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
-        fakeRunner({
+    it.each([
+      [
+        "another cluster's agent row",
+        {
           name: "kubernetes-agent/prod-eu",
           hostInfo: {
             kubernetes: {
@@ -894,72 +854,17 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
               clusterIdentifier: "prod-eu",
             },
           },
-        }),
-      );
-      const credentialLookup: jest.SpyInstance = jest
-        .spyOn(RunbookCredentialService, "findOneBy")
-        .mockResolvedValue({
-          id: CREDENTIAL_ID,
-          _id: CREDENTIAL_ID.toString(),
-          name: "prod-us kubeconfig",
-          credentialType: "Kubernetes",
-          runners: [{ id: RUNNER_ID, _id: RUNNER_ID.toString() }],
-        } as unknown as RunbookCredential);
-
-      const status: KubernetesClusterAiAccessStatus =
-        await KubernetesClusterAiAccessService.getStatusForClusterModel({
-          cluster: fakeCluster({ aiAccessCredentialId: CREDENTIAL_ID }),
-          gates: READY_GATES,
-        });
-
-      expect(gapCodes(status)).toEqual(["credential_on_agent_runner"]);
-      expect(status.gaps[0]?.blocks).toBe("both");
-      expect(status.gaps[0]?.description).toContain(
-        'the in-cluster Runner of cluster "prod-eu"',
-      );
-      expect(status.gaps[0]?.nextStep).toContain(
-        "Create a Runner under Project Settings → Runners",
-      );
-      expect(status.accessMethod).toBe("none");
-      expect(status.credentialId).toBeUndefined();
-      expect(status.isInvestigationReady).toBe(false);
-      expect(status.isRemediationReady).toBe(false);
-      // The credential's details are moot: an agent row never carries one.
-      expect(credentialLookup).not.toHaveBeenCalled();
-    });
-
-    it("keyed on the server-owned NAME: an agent row whose heartbeat dropped its posture still cannot carry a credential", async () => {
-      jest
-        .spyOn(RunnerService, "findOneBy")
-        .mockResolvedValue(
-          fakeRunner({ name: "kubernetes-agent/prod-eu", hostInfo: {} }),
-        );
-      jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue({
-        id: CREDENTIAL_ID,
-        _id: CREDENTIAL_ID.toString(),
-        name: "prod-us kubeconfig",
-        credentialType: "Kubernetes",
-        runners: [{ id: RUNNER_ID, _id: RUNNER_ID.toString() }],
-      } as unknown as RunbookCredential);
-
-      const status: KubernetesClusterAiAccessStatus =
-        await KubernetesClusterAiAccessService.getStatusForClusterModel({
-          cluster: fakeCluster({ aiAccessCredentialId: CREDENTIAL_ID }),
-          gates: READY_GATES,
-        });
-
-      expect(gapCodes(status)).toEqual(["credential_on_agent_runner"]);
-      expect(status.accessMethod).toBe("none");
-    });
-
-    /*
-     * An agent row renamed (only root can rename one now) keeps its agent
-     * posture, and the posture alone marks it: the one "is an agent row"
-     * rule fails closed on the name OR the posture.
-     */
-    it("keyed on the name OR the posture: a row with another cluster's agent posture but no marker cannot carry a credential", async () => {
-      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
-        fakeRunner({
+        },
+        ' (it reports cluster "prod-eu")',
+      ],
+      [
+        "an agent row whose heartbeat dropped its posture (the server-owned NAME)",
+        { name: "kubernetes-agent/prod-eu", hostInfo: {} },
+        "",
+      ],
+      [
+        "a row with another cluster's agent posture but no marker (name OR posture)",
+        {
           name: "prod-eu in-cluster runner",
           hostInfo: {
             kubernetes: {
@@ -968,42 +873,57 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
               clusterIdentifier: "prod-eu",
             },
           },
-        }),
-      );
-      jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue({
-        id: CREDENTIAL_ID,
-        _id: CREDENTIAL_ID.toString(),
-        name: "prod-us kubeconfig",
-        credentialType: "Kubernetes",
-        runners: [{ id: RUNNER_ID, _id: RUNNER_ID.toString() }],
-      } as unknown as RunbookCredential);
+        },
+        ' (it reports cluster "prod-eu")',
+      ],
+      [
+        "a case variant of the marker",
+        { name: "Kubernetes-Agent/prod-eu", hostInfo: {} },
+        "",
+      ],
+    ])(
+      "never uses a credential with %s: it is no access target",
+      async (
+        _label: string,
+        runner: Record<string, unknown>,
+        reported: string,
+      ) => {
+        jest
+          .spyOn(RunnerService, "findOneBy")
+          .mockResolvedValue(fakeRunner(runner));
+        const credentialLookup: jest.SpyInstance = jest
+          .spyOn(RunbookCredentialService, "findOneBy")
+          .mockResolvedValue({
+            id: CREDENTIAL_ID,
+            _id: CREDENTIAL_ID.toString(),
+            name: "prod-us kubeconfig",
+            credentialType: "Kubernetes",
+            runners: [{ id: RUNNER_ID, _id: RUNNER_ID.toString() }],
+          } as unknown as RunbookCredential);
 
-      const status: KubernetesClusterAiAccessStatus =
-        await KubernetesClusterAiAccessService.getStatusForClusterModel({
-          cluster: fakeCluster({ aiAccessCredentialId: CREDENTIAL_ID }),
-          gates: READY_GATES,
-        });
+        const status: KubernetesClusterAiAccessStatus =
+          await KubernetesClusterAiAccessService.getStatusForClusterModel({
+            cluster: fakeCluster({ aiAccessCredentialId: CREDENTIAL_ID }),
+            gates: READY_GATES,
+          });
 
-      expect(gapCodes(status)).toEqual(["credential_on_agent_runner"]);
-      expect(status.accessMethod).toBe("none");
-      expect(status.credentialId).toBeUndefined();
-    });
-
-    it("keyed on a case variant of the marker too", async () => {
-      jest
-        .spyOn(RunnerService, "findOneBy")
-        .mockResolvedValue(
-          fakeRunner({ name: "Kubernetes-Agent/prod-eu", hostInfo: {} }),
+        expect(gapCodes(status)).toEqual(["ai_agent_not_connected"]);
+        expect(gapCodes(status)).not.toContain("credential_on_agent_runner");
+        /*
+         * The status still says a Runner is selected and why it is not
+         * used, rather than reading as if nothing were bound.
+         */
+        expect(status.gaps[0]?.description).toContain(
+          `Runner "${String(runner["name"])}" is still selected for this cluster, but it is not this cluster's in-cluster Runner${reported}, so OneUptime AI does not use it.`,
         );
-
-      const status: KubernetesClusterAiAccessStatus =
-        await KubernetesClusterAiAccessService.getStatusForClusterModel({
-          cluster: fakeCluster({ aiAccessCredentialId: CREDENTIAL_ID }),
-          gates: READY_GATES,
-        });
-
-      expect(gapCodes(status)).toEqual(["credential_on_agent_runner"]);
-    });
+        expect(status.gaps[0]?.nextStep).toBe(AI_AGENT_NOT_CONNECTED_NEXT_STEP);
+        expect(status.runner).toBeNull();
+        expect(status.accessMethod).toBe("none");
+        expect(status.credentialId).toBeUndefined();
+        expect(status.isInvestigationReady).toBe(false);
+        expect(credentialLookup).not.toHaveBeenCalled();
+      },
+    );
 
     /*
      * Before round two this fixture reported a cluster identity too (an
@@ -1093,7 +1013,7 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       expect(status.accessMethod).toBe("none");
     });
 
-    it("reports both the mismatch and the read-only gap for a read-only agent of another cluster", async () => {
+    it("a row named for this cluster whose posture names another is not this cluster's previous Runner", async () => {
       jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
         fakeRunner({
           hostInfo: {
@@ -1112,16 +1032,13 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
           gates: READY_GATES,
         });
 
-      expect(gapCodes(status)).toEqual([
-        "runner_cluster_mismatch",
-        "remediation_write_access_missing",
-      ]);
+      expect(gapCodes(status)).toEqual(["ai_agent_not_connected"]);
       expect(status.isInvestigationReady).toBe(false);
       expect(status.isRemediationReady).toBe(false);
     });
   });
 
-  it("blocks only remediation when the in-cluster Runner is read-only", async () => {
+  it("blocks only remediation when the previous in-cluster Runner is read-only, and says to upgrade to the AI agent", async () => {
     jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
       fakeRunner({
         hostInfo: {
@@ -1142,36 +1059,66 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
 
     expect(gapCodes(status)).toEqual(["remediation_write_access_missing"]);
     expect(status.gaps[0]?.blocks).toBe("remediation");
-    expect(status.gaps[0]?.nextStep).toContain(
-      "aiAccess.remediation.enabled=true",
+    expect(status.gaps[0]?.title).toBe(
+      "The previous in-cluster Runner is read-only",
     );
-    expect(status.gaps[0]?.nextStep).toBe(REMEDIATION_WRITE_ACCESS_NEXT_STEP);
+    expect(status.gaps[0]?.nextStep).toBe(
+      LEGACY_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP,
+    );
+    expect(status.gaps[0]?.nextStep).toContain(
+      "--set aiAgent.remediation.enabled=true",
+    );
     expect(status.isInvestigationReady).toBe(true);
     expect(status.isRemediationReady).toBe(false);
   });
 
+  it("an in-cluster pod Runner outside the chart that cannot write is told to use its own environment", async () => {
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+      fakeRunner({
+        name: "pod-runner",
+        hostInfo: { kubernetes: { inCluster: true, allowWrites: false } },
+      }),
+    );
+
+    const status: KubernetesClusterAiAccessStatus =
+      await KubernetesClusterAiAccessService.getStatusForClusterModel({
+        cluster: fakeCluster(),
+        gates: READY_GATES,
+      });
+
+    const gap: KubernetesAiAccessGap | undefined = status.gaps.find(
+      (candidate: KubernetesAiAccessGap) => {
+        return candidate.code === "remediation_write_access_missing";
+      },
+    );
+
+    expect(gap?.title).toBe("The Runner is read-only");
+    expect(gap?.nextStep).toBe(
+      CREDENTIAL_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP,
+    );
+  });
+
   /*
-   * Round three: the read-only gap used to give only a bare
-   * "--set aiAccess.remediation.enabled=true", which grants write RBAC
-   * cluster-wide and to every node. It now points at the AI page's
-   * write-access section (the complete commands) and names the two values
-   * that bound where the write role reaches.
+   * The read-only gap names the value that grants writes and the two that
+   * bound where the write role reaches; the complete command lives on the
+   * cluster's AI agent page, which it names (never "this page").
    */
-  it("points the read-only gap at the AI page's write-access section and the values that scope it", () => {
+  it("points the read-only gap at the AI agent page and the aiAgent values that scope it", () => {
     expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
-      "--set aiAccess.remediation.enabled=true",
+      "--set aiAgent.remediation.enabled=true",
     );
     expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
-      '"Let AI apply fixes (write access)" on the cluster\'s AI page',
+      "the cluster's AI agent page (AI → Agent)",
     );
     expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
-      "aiAccess.remediation.namespaces",
+      "aiAgent.remediation.namespaces",
     );
     expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
-      "aiAccess.remediation.nodeOperations=false",
+      "aiAgent.remediation.nodeOperations=false",
     );
     expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain("cluster-wide");
     expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).not.toContain("this page");
+    expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).not.toContain("aiAccess");
   });
 
   it("does not raise the read-only gap when remediation is off", async () => {
@@ -1222,20 +1169,192 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
         cluster: fakeCluster(),
         gates: {
           isAiEnabled: false,
-          isAutoRemediationEnabled: false,
-          isAiCommandExecutionEnabled: false,
           hasLlmProvider: false,
+          aiBalanceBlocker: "This project's AI credit balance is used up.",
         },
       });
 
+    /*
+     * Enable AI is the project's only AI switch: the auto-remediation and
+     * command-execution switches it replaced have no gaps any more.
+     */
     expect(gapCodes(status)).toEqual([
       "project_ai_disabled",
       "llm_provider_missing",
-      "project_auto_remediation_disabled",
-      "project_ai_command_execution_disabled",
+      "ai_balance_insufficient",
     ]);
+    expect(gapCodes(status)).not.toContain("project_auto_remediation_disabled");
+    expect(gapCodes(status)).not.toContain(
+      "project_ai_command_execution_disabled",
+    );
     expect(status.isInvestigationReady).toBe(false);
     expect(status.isRemediationReady).toBe(false);
+  });
+
+  it("ai_balance_insufficient carries the reason, blocks both and says where credits are added", async () => {
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(fakeRunner());
+
+    const status: KubernetesClusterAiAccessStatus =
+      await KubernetesClusterAiAccessService.getStatusForClusterModel({
+        cluster: fakeCluster(),
+        gates: {
+          ...READY_GATES,
+          aiBalanceBlocker: "This project's AI credit balance is used up.",
+        },
+      });
+
+    expect(gapCodes(status)).toEqual(["ai_balance_insufficient"]);
+    expect(status.gaps[0]).toEqual({
+      code: "ai_balance_insufficient",
+      title: "The project is out of AI credits",
+      description: "This project's AI credit balance is used up.",
+      nextStep:
+        "Add AI credits under Project Settings → AI Credits (or enable auto-recharge).",
+      blocks: "both",
+    });
+    expect(status.gaps[0]?.nextStep).toBe(AI_BALANCE_INSUFFICIENT_NEXT_STEP);
+    expect(status.isInvestigationReady).toBe(false);
+    expect(status.isRemediationReady).toBe(false);
+  });
+
+  it("negative control: no blocker (null or absent) is no balance gap", async () => {
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(fakeRunner());
+
+    for (const aiBalanceBlocker of [null, undefined, ""]) {
+      const status: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster(),
+          gates: { ...READY_GATES, aiBalanceBlocker },
+        });
+
+      expect(gapCodes(status)).toEqual([]);
+    }
+  });
+
+  /*
+   * Enable AI is the project's only AI switch. "Enable AI command
+   * execution" used to hold back a cluster reached through an advanced
+   * Runner (project_ai_command_execution_disabled) and "Enable
+   * auto-remediation" every fix (project_auto_remediation_disabled). Both
+   * were folded into Enable AI, so no access target needs another project
+   * switch, and with AI off the one project gap is project_ai_disabled.
+   */
+  describe("Enable AI is the only project switch an access target needs", () => {
+    const AI_OFF: KubernetesClusterAiAccessProjectGates = {
+      ...READY_GATES,
+      isAiEnabled: false,
+    };
+
+    function bindAdvancedRunnerWithCredential(): void {
+      jest
+        .spyOn(RunnerService, "findOneBy")
+        .mockResolvedValue(
+          fakeRunner({ name: "office-runner", hostInfo: { hostname: "x" } }),
+        );
+      jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue({
+        id: CREDENTIAL_ID,
+        _id: CREDENTIAL_ID.toString(),
+        name: "prod kubeconfig",
+        credentialType: "Kubernetes",
+        runners: [{ id: RUNNER_ID, _id: RUNNER_ID.toString() }],
+      } as unknown as RunbookCredential);
+    }
+
+    it("an advanced Runner with a credential: no command-execution gap, remediation ready", async () => {
+      bindAdvancedRunnerWithCredential();
+
+      const status: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster({ aiAccessCredentialId: CREDENTIAL_ID }),
+          gates: READY_GATES,
+        });
+
+      expect(status.accessMethod).toBe("credential");
+      expect(gapCodes(status)).toEqual([]);
+      expect(status.isInvestigationReady).toBe(true);
+      expect(status.isRemediationReady).toBe(true);
+    });
+
+    it("an advanced Runner with Enable AI off: project_ai_disabled blocks both, with the AI Features step", async () => {
+      bindAdvancedRunnerWithCredential();
+
+      const status: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster({ aiAccessCredentialId: CREDENTIAL_ID }),
+          gates: AI_OFF,
+        });
+
+      expect(gapCodes(status)).toEqual(["project_ai_disabled"]);
+      expect(status.gaps[0]?.blocks).toBe("both");
+      expect(status.gaps[0]?.nextStep).toBe(
+        "Enable AI under Project Settings → AI Features.",
+      );
+      expect(status.isInvestigationReady).toBe(false);
+      expect(status.isRemediationReady).toBe(false);
+    });
+
+    it("the Kubernetes AI agent: remediation ready, and project_ai_disabled alone when AI is off", async () => {
+      agentLookup.mockResolvedValue(fakeAgent());
+
+      const ready: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster({ aiAccessRunnerId: undefined }),
+          gates: READY_GATES,
+        });
+
+      expect(gapCodes(ready)).toEqual([]);
+      expect(ready.isRemediationReady).toBe(true);
+
+      const off: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster({ aiAccessRunnerId: undefined }),
+          gates: AI_OFF,
+        });
+
+      expect(gapCodes(off)).toEqual(["project_ai_disabled"]);
+    });
+
+    it("the previous in-cluster Runner: remediation ready, and project_ai_disabled alone when AI is off", async () => {
+      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(fakeRunner());
+
+      const ready: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster(),
+          gates: READY_GATES,
+        });
+
+      expect(gapCodes(ready)).toEqual([]);
+      expect(ready.isRemediationReady).toBe(true);
+
+      const off: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster(),
+          gates: AI_OFF,
+        });
+
+      expect(gapCodes(off)).toEqual(["project_ai_disabled"]);
+    });
+
+    it("nothing connected: the connection gap says it all, and AI off adds only project_ai_disabled", async () => {
+      const ready: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster({ aiAccessRunnerId: undefined }),
+          gates: READY_GATES,
+        });
+
+      expect(gapCodes(ready)).toEqual(["ai_agent_not_connected"]);
+
+      const off: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster({ aiAccessRunnerId: undefined }),
+          gates: AI_OFF,
+        });
+
+      expect(gapCodes(off)).toEqual([
+        "ai_agent_not_connected",
+        "project_ai_disabled",
+      ]);
+    });
   });
 
   it("is remediation-ready in BypassApproval mode with a write-capable Runner and reports the mode verbatim", async () => {
@@ -1403,43 +1522,206 @@ describe("KubernetesClusterAiAccessService.getProjectGates", () => {
     jest.restoreAllMocks();
   });
 
-  it("reads kill switches as enabled-by-default and command execution as opt-in", async () => {
-    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
-      enableAi: undefined,
-      enableAutoRemediation: undefined,
-      enableAiCommandExecution: undefined,
-    } as unknown as Project);
+  // The keys getProjectGates returns: Enable AI's and nothing it replaced.
+  const PROJECT_GATE_KEYS: Array<string> = [
+    "aiBalanceBlocker",
+    "automaticInvestigation",
+    "hasLlmProvider",
+    "isAiEnabled",
+  ];
+
+  function mockProviderAndBalance(): void {
     jest
       .spyOn(LlmProviderService, "getLLMProviderForProject")
       .mockResolvedValue({ id: ObjectID.generate() } as unknown as LlmProvider);
+    jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue(null);
+  }
+
+  it("reads Enable AI as on unless it is exactly false (the kill switch idiom)", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      enableAi: undefined,
+    } as unknown as Project);
+    mockProviderAndBalance();
 
     const gates: KubernetesClusterAiAccessProjectGates =
       await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
 
     expect(gates).toEqual({
       isAiEnabled: true,
-      isAutoRemediationEnabled: true,
-      isAiCommandExecutionEnabled: false,
       hasLlmProvider: true,
+      aiBalanceBlocker: null,
+      // Absent reads as off: the investigation opt-ins count only when true.
+      automaticInvestigation: { incidents: false, alerts: false },
     });
   });
 
-  it("treats a provider lookup failure as no provider", async () => {
+  /*
+   * The project row is read for Enable AI and the two investigation
+   * opt-ins, and for nothing else: Enable AI is the project's only AI
+   * switch, so the columns it replaced are never selected.
+   */
+  it("selects Enable AI and the investigation opt-ins, and never a retired switch", async () => {
+    const findOneById: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue({ enableAi: true } as unknown as Project);
+    mockProviderAndBalance();
+
+    await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
+
+    expect(findOneById).toHaveBeenCalledTimes(1);
+    expect(findOneById).toHaveBeenCalledWith({
+      id: PROJECT_ID,
+      select: {
+        enableAi: true,
+        enableAutomaticIncidentInvestigation: true,
+        enableAutomaticAlertInvestigation: true,
+      },
+      props: { isRoot: true },
+    });
+
+    const select: Record<string, unknown> = (
+      findOneById.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(Object.keys(select)).not.toContain("enableAutoRemediation");
+    expect(Object.keys(select)).not.toContain("enableAiCommandExecution");
+  });
+
+  it.each<[string, Project | null, boolean]>([
+    ["Enable AI on", { enableAi: true } as unknown as Project, true],
+    ["Enable AI off", { enableAi: false } as unknown as Project, false],
+    ["Enable AI not selected", {} as unknown as Project, true],
+    // A missing row reads like one that never set the column.
+    ["no project row", null, true],
+  ])(
+    "returns only the project's gates: %s",
+    async (_label: string, project: Project | null, isAiEnabled: boolean) => {
+      jest.spyOn(ProjectService, "findOneById").mockResolvedValue(project);
+      mockProviderAndBalance();
+
+      const gates: KubernetesClusterAiAccessProjectGates =
+        await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
+
+      expect(Object.keys(gates).sort()).toEqual(PROJECT_GATE_KEYS);
+      expect(gates.isAiEnabled).toBe(isAiEnabled);
+      expect(gates).not.toHaveProperty("isAutoRemediationEnabled");
+      expect(gates).not.toHaveProperty("isAiCommandExecutionEnabled");
+    },
+  );
+
+  /*
+   * A row that still carries the columns Enable AI replaced (a replica of
+   * the previous build reading it mid-rollout, or a fixture) cannot switch
+   * anything off: only Enable AI is read.
+   */
+  it("ignores the retired switches on a row that still carries them", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      enableAi: true,
+      enableAutoRemediation: false,
+      enableAiCommandExecution: false,
+    } as unknown as Project);
+    mockProviderAndBalance();
+
+    const gates: KubernetesClusterAiAccessProjectGates =
+      await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
+
+    expect(gates).toEqual({
+      isAiEnabled: true,
+      hasLlmProvider: true,
+      aiBalanceBlocker: null,
+      automaticInvestigation: { incidents: false, alerts: false },
+    });
+  });
+
+  it("treats a provider lookup failure as no provider, and does not check the balance without one", async () => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
-      enableAiCommandExecution: true,
+      enableAi: true,
     } as unknown as Project);
     jest
       .spyOn(LlmProviderService, "getLLMProviderForProject")
       .mockRejectedValue(new Error("boom"));
+    const blocker: jest.SpyInstance = jest
+      .spyOn(AIService, "getAiBalanceBlocker")
+      .mockResolvedValue("out of credits");
 
     const gates: KubernetesClusterAiAccessProjectGates =
       await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
 
     expect(gates.hasLlmProvider).toBe(false);
-    expect(gates.isAiCommandExecutionEnabled).toBe(true);
+    expect(gates.isAiEnabled).toBe(true);
+    // Unknown, so unsaid: not a second (failing) provider lookup.
+    expect(blocker).not.toHaveBeenCalled();
+    expect(gates.aiBalanceBlocker).toBeNull();
+  });
+
+  it("reads the project's automatic-investigation opt-ins (exactly true) for the AI agent page", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      enableAutomaticIncidentInvestigation: true,
+      enableAutomaticAlertInvestigation: false,
+    } as unknown as Project);
+    jest
+      .spyOn(LlmProviderService, "getLLMProviderForProject")
+      .mockResolvedValue(null);
+    jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue(null);
+
+    const gates: KubernetesClusterAiAccessProjectGates =
+      await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
+
+    expect(gates.automaticInvestigation).toEqual({
+      incidents: true,
+      alerts: false,
+    });
+  });
+
+  it("asks AIService for the AI balance blocker with the provider it already resolved, and carries its reason", async () => {
+    const provider: LlmProvider = {
+      id: ObjectID.generate(),
+      isGlobalLlm: true,
+      costPerMillionTokensInUSDCents: 100,
+    } as unknown as LlmProvider;
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue({} as unknown as Project);
+    const providerLookup: jest.SpyInstance = jest
+      .spyOn(LlmProviderService, "getLLMProviderForProject")
+      .mockResolvedValue(provider);
+    const blocker: jest.SpyInstance = jest
+      .spyOn(AIService, "getAiBalanceBlocker")
+      .mockResolvedValue("out of credits");
+
+    const gates: KubernetesClusterAiAccessProjectGates =
+      await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
+
+    expect(blocker).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      llmProvider: provider,
+    });
+    expect(gates.aiBalanceBlocker).toBe("out of credits");
+    expect(providerLookup).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats a balance check that fails as no blocker (the AI call still refuses on its own)", async () => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue({} as unknown as Project);
+    jest
+      .spyOn(LlmProviderService, "getLLMProviderForProject")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as LlmProvider);
+    jest
+      .spyOn(AIService, "getAiBalanceBlocker")
+      .mockRejectedValue(new Error("db down"));
+
+    const gates: KubernetesClusterAiAccessProjectGates =
+      await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
+
+    expect(gates.aiBalanceBlocker).toBeNull();
+    expect(gates.hasLlmProvider).toBe(true);
   });
 });
 
@@ -1608,6 +1890,10 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       .mockImplementation(async (args: unknown): Promise<void> => {
         feedItems.push(args as Record<string, unknown>);
       });
+    // No Kubernetes AI agent unless a test says otherwise.
+    jest
+      .spyOn(KubernetesAiAgentService, "findForCluster")
+      .mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -2672,7 +2958,11 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         "the binding was cleared by an operator, or the Runner it was bound to was deleted",
       );
       expect(feed).toContain("no AI switch was changed");
-      expect(feed).toContain("Select **kubernetes-agent/prod-us**");
+      // The way back is the AI agent, not selecting this Runner.
+      expect(feed).toContain(
+        "Upgrade the Kubernetes agent chart to use the Kubernetes AI agent instead.",
+      );
+      expect(feed).not.toContain("Select **kubernetes-agent/prod-us**");
     });
 
     it("keeps an operator's enabled switches exactly as they are, too", async () => {
@@ -2696,7 +2986,7 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       expect(clusterUpdates).toHaveLength(0);
     });
 
-    it("afterwards, the cluster's status points at selecting the new Runner, not at helm", async () => {
+    it("afterwards, the cluster's status points at installing the AI agent, not at selecting the Runner", async () => {
       jest
         .spyOn(KubernetesClusterService, "findOneBy")
         .mockResolvedValue(clusterAfterRunnerDelete());
@@ -2708,7 +2998,7 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         posture: { allowWrites: true },
       });
 
-      // The row registration just created is what the status now finds.
+      // The row registration just created exists, but nothing binds it.
       mockRunnerLookups({ byName: createdRunner });
 
       const status: KubernetesClusterAiAccessStatus =
@@ -2717,16 +3007,15 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
           gates: READY_GATES,
         });
 
-      expect(gapCodes(status)).toContain("no_runner_bound");
+      expect(gapCodes(status)).toContain("ai_agent_not_connected");
+      expect(gapCodes(status)).not.toContain("no_runner_bound");
       const gap: KubernetesAiAccessGap = status.gaps.find(
         (candidate: KubernetesAiAccessGap) => {
-          return candidate.code === "no_runner_bound";
+          return candidate.code === "ai_agent_not_connected";
         },
       )!;
-      expect(gap.nextStep).toContain(
-        'Select the kubernetes-agent Runner "kubernetes-agent/prod-us"',
-      );
-      expect(gap.nextStep).not.toContain("aiAccess.enabled=true");
+      expect(gap.nextStep).toContain(AI_AGENT_INSTALL_COMMAND);
+      expect(gap.nextStep).not.toContain("Select the kubernetes-agent Runner");
     });
 
     it("negative control: without either marker (and no other history) the same cluster still first-binds", async () => {
@@ -3034,11 +3323,11 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         expect(thrown).toBeInstanceOf(ForbiddenException);
         const message: string = (thrown as Error).message;
         expect(message).toContain(holding.expectInMessage);
-        expect(message).toContain("delete the Runner");
-        // Round four: the delete path names its second step.
+        // The chart upgrade to the AI agent comes first: it needs no Runner.
         expect(message).toContain(
-          "select it on the cluster's AI page as its Runner",
+          "Upgrade the Kubernetes agent chart: its Kubernetes AI agent replaces this in-cluster Runner.",
         );
+        expect(message).not.toContain("select it on the cluster's AI page");
         expect(message).not.toContain(CURRENT_KEY);
 
         expect(runnerUpdates).toHaveLength(0);
@@ -3519,11 +3808,15 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         isTransientKubernetesAgentRegistrationRefusal(refusal.reason),
       ).toBe(false);
       expect(refusal.retryAfterSeconds).toBeUndefined();
+      // The chart upgrade to the AI agent leads: it needs no Runner at all.
       expect(
         refusal.message.startsWith(
-          'Under Project Settings → Runners, on Runner "kubernetes-agent/prod-us": turn off "Runs Runbooks"',
+          "Upgrade the Kubernetes agent chart: its Kubernetes AI agent replaces this in-cluster Runner.",
         ),
       ).toBe(true);
+      expect(refusal.message).toContain(
+        'Or, under Runbooks → Runners, on Runner "kubernetes-agent/prod-us": turn off "Runs Runbooks"',
+      );
       // Only what it actually holds is asked for.
       expect(refusal.message).not.toContain('turn off "Runs AI Code Fixes"');
       expect(refusal.message).not.toContain("unassign");
@@ -3566,11 +3859,7 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         );
 
       const head: string = refusal.message.slice(0, 500);
-      expect(head).toContain("delete the Runner");
-      // Round four: the delete path's second step is part of the instruction.
-      expect(head).toContain(
-        "select it on the cluster's AI page as its Runner",
-      );
+      expect(head).toContain("Upgrade the Kubernetes agent chart");
       expect(head).toContain('"Runs Runbooks"');
       expect(head).toContain('"Runs AI Code Fixes"');
       expect(head).toContain("3 Runner credential(s)");
@@ -3602,15 +3891,18 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       expect(refusal.reason).toBe("runner_belongs_to_another_cluster");
       expect(refusal.retryAfterSeconds).toBeUndefined();
       /*
-       * Round four: was "Rename or delete Runner ...". A non-root rename of
-       * an agent-named Runner is refused (RunnerService), so the one step
-       * an operator can take is the delete — and then selecting the fresh
-       * Runner, since a deleted Runner's cluster is left unbound.
+       * The step that works is the chart upgrade: the Kubernetes AI agent
+       * replaces the in-cluster Runner and does not use the Runner name.
        */
-      expect(refusal.message.startsWith("Delete Runner")).toBe(true);
+      expect(
+        refusal.message.startsWith(
+          'Upgrade the Kubernetes agent chart of cluster "prod-us"',
+        ),
+      ).toBe(true);
       expect(refusal.message).toContain(
-        'select it on the AI page of cluster "prod-us" as its Runner',
+        'does not need Runner "kubernetes-agent/prod-us"',
       );
+      expect(refusal.message).not.toContain("AI page");
     });
 
     it("getPreviousInstanceRetryAfterSeconds counts down to the end of the alive window, never below 1s", () => {

@@ -8,8 +8,8 @@ const DockerDocumentation: FunctionComponent<
   return (
     <Fragment>
       <DockerDocumentationCard
-        title="Agent Installation Guide"
-        description="Install the OneUptime Docker Agent to connect your Docker host. Once installed, the host will appear automatically."
+        title="Connect a Docker Host"
+        description="Run the OneUptime Docker agent on the host. Pick how you run it, then follow the steps — the host appears automatically once the agent connects."
       />
     </Fragment>
   );

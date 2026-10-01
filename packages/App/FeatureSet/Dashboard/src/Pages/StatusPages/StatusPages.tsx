@@ -84,7 +84,6 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         videoLink={URL.fromString("https://youtu.be/F6BNipy5VCk")}
         showViewIdButton={true}
-        noItemsMessage={"No status pages found."}
         formFields={[
           {
             field: {

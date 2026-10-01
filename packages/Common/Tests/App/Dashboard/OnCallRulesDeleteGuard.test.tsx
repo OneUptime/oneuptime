@@ -14,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -381,11 +382,123 @@ const readinessJson: ReadinessJsonFunction = (
   };
 };
 
-type FindDeleteButtonsFunction = () => Array<HTMLElement>;
+/*
+ * A rule row carries one button (Edit) and folds everything else into a ⋯ menu
+ * beside it, and Delete - destructive, so never the row's one button - is in
+ * that menu. The helpers below are the only way these tests reach it: find the
+ * row, open ITS menu, pick the item by name. Picking by name, not position, is
+ * what keeps "the guarded Delete" distinguishable from "some menu entry".
+ */
 
-const findDeleteButtons: FindDeleteButtonsFunction = (): Array<HTMLElement> => {
-  return screen.queryAllByRole("button", { name: "Delete" });
+type FindRowsFunction = () => Array<HTMLElement>;
+
+/*
+ * The action cell of every rendered rule row. RowActions draws nothing at all
+ * for a row with no actions, so a row with none is not counted - which is the
+ * point: these tests count rows that OFFER something.
+ */
+const findRows: FindRowsFunction = (): Array<HTMLElement> => {
+  return screen.queryAllByTestId("row-actions");
 };
+
+type WaitForRowsFunction = (count: number) => Promise<Array<HTMLElement>>;
+
+/*
+ * Waits until the table has drawn exactly `count` rows, each with its ⋯ menu -
+ * the stand-in for the old wait on "this many Delete buttons", which used to
+ * be visible on the row and now is one click further in.
+ */
+const waitForRows: WaitForRowsFunction = async (
+  count: number,
+): Promise<Array<HTMLElement>> => {
+  let rows: Array<HTMLElement> = [];
+
+  await waitFor(() => {
+    rows = findRows();
+    expect(rows.length).toBe(count);
+
+    for (const row of rows) {
+      expect(
+        within(row).getByTestId("row-actions-more-button"),
+      ).toBeInTheDocument();
+    }
+  });
+
+  return rows;
+};
+
+type RowMenuFunction = (row: HTMLElement) => HTMLElement;
+
+/*
+ * The menu is portalled to document.body, so it is found on the screen rather
+ * than inside the row - and there is only ever one open, so `getByRole` both
+ * finds it and proves no other row's menu was left open behind it.
+ */
+const openRowMenu: RowMenuFunction = (row: HTMLElement): HTMLElement => {
+  fireEvent.click(within(row).getByTestId("row-actions-more-button"));
+
+  return screen.getByRole("menu");
+};
+
+type CloseRowMenuFunction = (row: HTMLElement) => void;
+
+const closeRowMenu: CloseRowMenuFunction = (row: HTMLElement): void => {
+  fireEvent.click(within(row).getByTestId("row-actions-more-button"));
+
+  expect(screen.queryByRole("menu")).toBeNull();
+};
+
+type FindRowDeleteItemFunction = (menu: HTMLElement) => HTMLElement | null;
+
+const findRowDeleteItem: FindRowDeleteItemFunction = (
+  menu: HTMLElement,
+): HTMLElement | null => {
+  return within(menu).queryByRole("menuitem", { name: "Delete" });
+};
+
+type ExpectRowsOfferDeleteFunction = (rows: Array<HTMLElement>) => void;
+
+/*
+ * Every row offers exactly one Delete, and it is live. `getByRole` throws on
+ * two, so the stock delete switched back on NEXT TO the guarded one fails here
+ * just as the old count of Delete buttons did.
+ */
+const expectEveryRowOffersDelete: ExpectRowsOfferDeleteFunction = (
+  rows: Array<HTMLElement>,
+): void => {
+  for (const row of rows) {
+    const menu: HTMLElement = openRowMenu(row);
+
+    expect(
+      within(menu).getByRole("menuitem", { name: "Delete" }),
+    ).toBeEnabled();
+
+    closeRowMenu(row);
+  }
+};
+
+type ClickRowDeleteFunction = (row: HTMLElement) => void;
+
+const clickRowDelete: ClickRowDeleteFunction = (row: HTMLElement): void => {
+  const menu: HTMLElement = openRowMenu(row);
+
+  fireEvent.click(within(menu).getByRole("menuitem", { name: "Delete" }));
+};
+
+type FindConfirmDeleteButtonFunction = () => HTMLElement;
+
+/*
+ * The confirmation's own Delete. The row's Delete is a menu item in a menu
+ * that closed when it was picked, so it no longer competes for the name - but
+ * the confirmation is still looked for inside the dialog, so a Delete that
+ * turned up anywhere else on the page could not be mistaken for its submit.
+ */
+const findConfirmDeleteButton: FindConfirmDeleteButtonFunction =
+  (): HTMLElement => {
+    return within(screen.getByRole("dialog")).getByRole("button", {
+      name: "Delete",
+    });
+  };
 
 type SettleFunction = () => Promise<void>;
 
@@ -454,11 +567,10 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
 
     render(<IncidentOnCallRules {...({} as any)} />);
 
-    await waitFor(() => {
-      expect(findDeleteButtons().length).toBe(1);
-    });
+    const rows: Array<HTMLElement> = await waitForRows(1);
+    expectEveryRowOffersDelete(rows);
 
-    fireEvent.click(findDeleteButtons()[0]!);
+    clickRowDelete(rows[0]!);
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
@@ -485,11 +597,10 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
 
     render(<IncidentOnCallRules {...({} as any)} />);
 
-    await waitFor(() => {
-      expect(findDeleteButtons().length).toBe(2);
-    });
+    const rows: Array<HTMLElement> = await waitForRows(2);
+    expectEveryRowOffersDelete(rows);
 
-    fireEvent.click(findDeleteButtons()[0]!);
+    clickRowDelete(rows[0]!);
 
     /*
      * The property, rather than the exact reassuring sentence: a guard that
@@ -523,11 +634,10 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
 
     render(<IncidentOnCallRules {...({} as any)} />);
 
-    await waitFor(() => {
-      expect(findDeleteButtons().length).toBe(1);
-    });
+    const rows: Array<HTMLElement> = await waitForRows(1);
+    expectEveryRowOffersDelete(rows);
 
-    fireEvent.click(findDeleteButtons()[0]!);
+    clickRowDelete(rows[0]!);
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
@@ -550,11 +660,10 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
 
     render(<IncidentOnCallRules {...({} as any)} />);
 
-    await waitFor(() => {
-      expect(findDeleteButtons().length).toBe(1);
-    });
+    const rows: Array<HTMLElement> = await waitForRows(1);
+    expectEveryRowOffersDelete(rows);
 
-    fireEvent.click(findDeleteButtons()[0]!);
+    clickRowDelete(rows[0]!);
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
@@ -562,12 +671,7 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
       );
     });
 
-    /*
-     * Two controls now read "Delete": the row's and the confirmation's. The
-     * last one in the document is the modal's submit.
-     */
-    const deleteControls: Array<HTMLElement> = findDeleteButtons();
-    fireEvent.click(deleteControls[deleteControls.length - 1]!);
+    fireEvent.click(findConfirmDeleteButton());
 
     await waitFor(() => {
       expect(deleteItemMock).toHaveBeenCalled();
@@ -595,9 +699,8 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
 
     render(<IncidentOnCallRules {...({} as any)} />);
 
-    await waitFor(() => {
-      expect(findDeleteButtons().length).toBe(1);
-    });
+    const rows: Array<HTMLElement> = await waitForRows(1);
+    expectEveryRowOffersDelete(rows);
 
     const previousImplementation: any = (
       getListMock as any
@@ -620,7 +723,7 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
       return previousImplementation(params);
     });
 
-    fireEvent.click(findDeleteButtons()[0]!);
+    clickRowDelete(rows[0]!);
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
@@ -628,8 +731,7 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
       );
     });
 
-    const heldControls: Array<HTMLElement> = findDeleteButtons();
-    fireEvent.click(heldControls[heldControls.length - 1]!);
+    fireEvent.click(findConfirmDeleteButton());
 
     expect(deleteItemMock).not.toHaveBeenCalled();
 
@@ -641,8 +743,7 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
       );
     });
 
-    const readyControls: Array<HTMLElement> = findDeleteButtons();
-    fireEvent.click(readyControls[readyControls.length - 1]!);
+    fireEvent.click(findConfirmDeleteButton());
 
     await waitFor(() => {
       expect(deleteItemMock).toHaveBeenCalled();
@@ -673,8 +774,19 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
      * Row rendering is what makes this non-vacuous. Hand the table an action
      * button unconditionally and the Actions column alone is enough to render
      * it - with a Delete on every row - in place of the refusal below.
+     *
+     * Checked both where a Delete could be offered: on the row as a button,
+     * and folded into a row's ⋯ menu, which is where a destructive action
+     * lands now. A Delete one click further in is still a Delete offered.
      */
-    expect(findDeleteButtons().length).toBe(0);
+    expect(screen.queryAllByRole("button", { name: "Delete" }).length).toBe(0);
+
+    for (const row of findRows()) {
+      const menu: HTMLElement = openRowMenu(row);
+      expect(findRowDeleteItem(menu)).toBeNull();
+      closeRowMenu(row);
+    }
+
     expect(
       screen.getByText(/You are not authorized to view this table/),
     ).toBeInTheDocument();
@@ -707,11 +819,10 @@ describe("The other three rule pages carry the same guard", () => {
 
     render(<AlertOnCallRules {...({} as any)} />);
 
-    await waitFor(() => {
-      expect(findDeleteButtons().length).toBe(1);
-    });
+    const rows: Array<HTMLElement> = await waitForRows(1);
+    expectEveryRowOffersDelete(rows);
 
-    fireEvent.click(findDeleteButtons()[0]!);
+    clickRowDelete(rows[0]!);
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
@@ -738,11 +849,10 @@ describe("The other three rule pages carry the same guard", () => {
 
     render(<EpisodeOnCallRules {...({} as any)} />);
 
-    await waitFor(() => {
-      expect(findDeleteButtons().length).toBe(1);
-    });
+    const rows: Array<HTMLElement> = await waitForRows(1);
+    expectEveryRowOffersDelete(rows);
 
-    fireEvent.click(findDeleteButtons()[0]!);
+    clickRowDelete(rows[0]!);
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
@@ -769,11 +879,10 @@ describe("The other three rule pages carry the same guard", () => {
 
     render(<IncidentEpisodeOnCallRules {...({} as any)} />);
 
-    await waitFor(() => {
-      expect(findDeleteButtons().length).toBe(1);
-    });
+    const rows: Array<HTMLElement> = await waitForRows(1);
+    expectEveryRowOffersDelete(rows);
 
-    fireEvent.click(findDeleteButtons()[0]!);
+    clickRowDelete(rows[0]!);
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(

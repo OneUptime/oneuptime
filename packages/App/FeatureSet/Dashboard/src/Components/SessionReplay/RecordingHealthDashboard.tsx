@@ -32,6 +32,7 @@ import {
   RecordingHealthActionButton,
   SEVERITY_STYLES,
   SeverityStyle,
+  getBudgetAlertRecommendationsRoute,
   getReplayPolicyPageRoute,
   labelEnum,
 } from "./RecordingHealthCard";
@@ -170,6 +171,15 @@ function PanelLink(props: {
   return (
     <Link
       to={props.to}
+      /*
+       * Every panel link opens another page of the product in place, like a
+       * side menu link, so it starts that page at the top the way the side
+       * menu does - not at this panel's scroll position, which lands a tall
+       * page (Recommendations) scrolled past its search box and filters.
+       */
+      onClick={() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }}
       className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-indigo-600 hover:text-indigo-800"
     >
       <span data-testid={props.dataTestId}>{props.label}</span>
@@ -878,6 +888,18 @@ export const RecordingHealthDashboardView: FunctionComponent<
         : [];
     }, [status, health.diagnosis, health.nowUnixMs]);
 
+  /*
+   * "Set up alerts" rides on the same fact that makes the Recommendations
+   * page offer the storage budget alerts (the RUM row of
+   * RecommendationResourceRegistry): replay is on for this application and
+   * it has recorded. Before that, the link would open on a search that
+   * matches no card.
+   */
+  const offersBudgetAlerts: boolean =
+    status !== null &&
+    status.policy.isApplicationEnabled &&
+    Boolean(status.lastChunkReceivedAt);
+
   return (
     <div
       className="space-y-5"
@@ -938,12 +960,28 @@ export const RecordingHealthDashboardView: FunctionComponent<
               description="Replay bytes against the project's daily limit and this application's monthly budget. Once a budget is spent, recorders are told to stop."
               icon={IconProp.Database}
               dataTestId="health-bytes"
+              /*
+               * Stacked rather than side by side: the header keeps this
+               * column from shrinking, so two links in a row would squeeze
+               * the title and description on a phone.
+               */
               headerRight={
-                <PanelLink
-                  to={getReplayPolicyPageRoute(props.rumApplicationId)}
-                  label="Change budget"
-                  dataTestId="health-change-budget"
-                />
+                <div className="flex flex-col items-end gap-1">
+                  <PanelLink
+                    to={getReplayPolicyPageRoute(props.rumApplicationId)}
+                    label="Change budget"
+                    dataTestId="health-change-budget"
+                  />
+                  {offersBudgetAlerts && (
+                    <PanelLink
+                      to={getBudgetAlertRecommendationsRoute(
+                        props.rumApplicationId,
+                      )}
+                      label="Set up alerts"
+                      dataTestId="health-budget-alerts"
+                    />
+                  )}
+                </div>
               }
             >
               <div className="space-y-6">

@@ -64,7 +64,7 @@ const IoTFleetDocumentation: FunctionComponent<
     <Fragment>
       <IoTDocumentationCard
         title="Connect Your IoT Fleet"
-        description="Follow these steps to push OpenTelemetry (OTLP) telemetry from your devices or gateway to this fleet."
+        description={`Send readings to this fleet (${fleet.name}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.`}
       />
     </Fragment>
   );

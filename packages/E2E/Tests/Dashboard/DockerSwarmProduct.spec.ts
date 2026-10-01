@@ -73,7 +73,12 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
       timeout: 30000,
     });
 
-    // ...and the install command block interpolates URL, key, and cluster name.
+    /*
+     * ...and the Docker Compose steps' .env interpolates URL, key, and
+     * cluster name. The guide opens on the install script, which asks for
+     * those itself, so switch to Docker Compose first.
+     */
+    await page.getByRole("radio", { name: /Docker Compose/ }).click();
     await expect
       .poll(
         async () => {
@@ -173,12 +178,16 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
       ready: page.getByText("Getting Started with Docker Swarm Monitoring"),
     });
 
-    // Mint a key, then read the interpolated secret back out of the guide.
+    /*
+     * Mint a key, then read the interpolated secret back out of the guide's
+     * Docker Compose .env (the install script option asks for it instead).
+     */
     await page.getByRole("button", { name: "Create Ingestion Key" }).click();
     await submitIngestionKeyModal({
       page,
       keyName: "E2E Docker Swarm OTLP Key " + Faker.generateName().toString(),
     });
+    await page.getByRole("radio", { name: /Docker Compose/ }).click();
 
     await expect
       .poll(

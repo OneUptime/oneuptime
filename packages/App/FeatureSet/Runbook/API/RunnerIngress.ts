@@ -48,7 +48,7 @@ export default class RunnerIngressAPI {
 
   // Why a job naming a credential is failed for a kubernetes-agent Runner.
   public static readonly AGENT_RUNNER_CREDENTIAL_REFUSAL: string =
-    "This step needs a credential, and this Runner is a cluster's in-cluster Runner: it runs kubectl with its own ServiceAccount only and is never given a credential. It was not run. Create a Runner under Project Settings → Runners, assign the credential to it and target that Runner instead.";
+    "This step needs a credential, and this Runner is a cluster's in-cluster Runner: it runs kubectl with its own ServiceAccount only and is never given a credential. It was not run. Create a Runner under Runbooks → Runners, assign the credential to it and target that Runner instead.";
 
   public constructor() {
     this.router = Express.getRouter();
@@ -91,10 +91,14 @@ export default class RunnerIngressAPI {
     );
 
     /*
-     * The in-cluster Runner the kubernetes-agent chart installs has no
+     * The in-cluster Runner older kubernetes-agent charts install has no
      * dashboard-issued id and key. It presents the project's telemetry
      * ingestion key (the same one the agent ships telemetry with) and the
-     * cluster's name, and is handed a Runner identity bound to that cluster.
+     * cluster's name, and is handed a Runner identity bound to that cluster
+     * — unless the cluster's Kubernetes AI agent is online, which replaces
+     * it: then it is refused with superseded_by_ai_agent (a 403 carrying
+     * retryAfterSeconds and Retry-After, since it clears on its own when
+     * the agent stops, e.g. after a helm rollback).
      */
     this.router.post(
       `/register-kubernetes-agent`,
@@ -182,9 +186,10 @@ export default class RunnerIngressAPI {
     } catch (err) {
       /*
        * A refusal says WHICH refusal it is, so the Runner can tell a wait
-       * that clears on its own (previous_instance_online, with when to try
-       * again) from one that needs an operator — the generic error body is
-       * `{ message }` only.
+       * that clears on its own (previous_instance_online, or
+       * superseded_by_ai_agent while the cluster's Kubernetes AI agent is
+       * online — each with when to try again) from one that needs an
+       * operator. The generic error body is `{ message }` only.
        */
       if (err instanceof KubernetesAgentRegistrationRefusedException) {
         RunnerIngressAPI.sendRegistrationRefusal(req, res, err);
@@ -676,7 +681,7 @@ export default class RunnerIngressAPI {
     jobClusterIdentifier: string;
   }): string | null {
     if (!data.posture?.inCluster) {
-      return "This kubectl command has no Kubernetes credential and this Runner is not the in-cluster Runner. Select a Kubernetes credential for this Runner on the cluster's AI page.";
+      return "This kubectl command has no Kubernetes credential and this Runner is not the in-cluster Runner. Select a Kubernetes credential for this Runner on the cluster's AI agent page (AI → Agent), or clear the Runner there to use the cluster's Kubernetes AI agent.";
     }
 
     if (!data.jobClusterIdentifier) {
@@ -691,7 +696,7 @@ export default class RunnerIngressAPI {
 
       return `This kubectl command is for cluster "${data.jobClusterIdentifier}" but this Runner is the in-cluster Runner of ${
         reportedCluster ? `cluster "${reportedCluster}"` : "an unnamed cluster"
-      }, so it was not run. Install the in-cluster Runner on cluster "${data.jobClusterIdentifier}", or bind a Runner with a Kubernetes credential for it on the cluster's AI page.`;
+      }, so it was not run. Install the Kubernetes AI agent on cluster "${data.jobClusterIdentifier}", or bind a Runner with a Kubernetes credential for it on the cluster's AI agent page (AI → Agent).`;
     }
 
     return null;

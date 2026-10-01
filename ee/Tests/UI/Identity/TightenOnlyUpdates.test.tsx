@@ -1,39 +1,33 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import React from "react";
+import * as TightenOnlyUpdates from "../../../Dashboard/Identity/TightenOnly/TightenOnlyUpdates";
 import {
   MIN_SCIM_BEARER_TOKEN_LENGTH,
   RandomValuesSource,
   SCIM_BEARER_TOKEN_BYTES,
   SCIM_BEARER_TOKEN_UNAVAILABLE_MESSAGE,
-  buildDisableProviderUpdate,
   buildRotateBearerTokenUpdate,
   generateScimBearerToken,
-} from "../../../Dashboard/SSO/TightenOnly/TightenOnlyUpdates";
+} from "../../../Dashboard/Identity/TightenOnly/TightenOnlyUpdates";
 import ReadOnlyActionsNotice, {
-  PROVIDER_ACTIONS_DESCRIPTION,
-  PROVIDER_ACTIONS_TITLE,
   READ_ONLY_ACTIONS_NOTICE_TEST_ID,
-  ReadOnlyActionsKind,
   SCIM_ACTIONS_DESCRIPTION,
   SCIM_ACTIONS_TITLE,
-} from "../../../Dashboard/SSO/TightenOnly/ReadOnlyActionsNotice";
-import DisableProviderCard, {
-  DISABLE_PROVIDER_BUTTON_TITLE,
-  DISABLE_PROVIDER_CARD_DESCRIPTION,
-  DISABLE_PROVIDER_CARD_TEST_ID,
-  DISABLE_PROVIDER_CARD_TITLE,
-} from "../../../Dashboard/SSO/TightenOnly/DisableProviderCard";
-import { EnterpriseLicenseMode } from "../../../Dashboard/SSO/License/EnterpriseLicenseMode";
+} from "../../../Dashboard/Identity/TightenOnly/ReadOnlyActionsNotice";
+import { EnterpriseLicenseMode } from "../../../Dashboard/Identity/License/EnterpriseLicenseMode";
 
 /*
- * The building blocks of the identity screens' incident-response actions
- * under a read-only (lapsed) Enterprise license: the two update payloads the
- * server accepts without a license, the SCIM bearer-token generator, and what
- * the screens say about them. ReadOnlyIncidentActions.test.tsx covers the
- * screens; ee/Tests/Server/Identity/TightenOnlyUiContract.test.ts checks the
- * payloads against the server's own rules.
+ * The building blocks of the SCIM screens' incident-response action under a
+ * read-only (lapsed) Enterprise license: the bearer-token update the server
+ * accepts without a license, the token generator, and what the screens say
+ * about it. ReadOnlyIncidentActions.test.tsx covers the screens;
+ * ee/Tests/Server/Identity/TightenOnlyUiContract.test.ts checks the payload
+ * against the server's own rules.
+ *
+ * Single sign-on has no such action: its configuration is never read-only,
+ * so there is nothing to switch off "without a license".
  */
 
 afterEach(() => {
@@ -44,37 +38,14 @@ afterEach(() => {
 const HEX_TOKEN: RegExp = /^[0-9a-f]+$/;
 
 /*
- * While the license is lapsed, sign-in through the providers is already off
- * and SCIM requests are already refused; both come back the moment a license
- * is activated. So Disable and Reset Bearer Token are about what happens
- * then, and the notices must not promise that Disable "stops sign-ins right
- * away" as if sign-in were still running. The copy they shipped with:
+ * While the license is lapsed, SCIM requests are already refused; they are
+ * accepted again the moment a license is activated. So Reset Bearer Token is
+ * about what happens then, and the notice must say that SCIM is off now and
+ * comes back with a license.
  */
-const RETIRED_PROVIDER_ACTIONS_DESCRIPTION: string =
-  "Without a valid Enterprise license this configuration is read-only, but disabling a provider is always allowed, because it can only tighten security. If an identity provider is compromised, use Disable to stop sign-ins through it right away. Turning a provider back on needs a valid license.";
-
-const RETIRED_DISABLE_PROVIDER_CARD_DESCRIPTION: string =
-  "Stop every sign-in through this provider. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.";
-
-const SIGN_IN_IS_OFF: RegExp =
-  /sign-in through (?:these providers|this provider) is off/i;
-const RESUMES_WITH_A_LICENSE: RegExp = /as soon as a license is activated/;
-const STOPS_SIGN_IN_NOW: RegExp =
-  /stop (?:every sign-in|sign-ins through it right away)/i;
 const SCIM_IS_REFUSED: RegExp = /SCIM requests are refused/;
 const SCIM_RESUMES_WITH_A_LICENSE: RegExp =
   /accepted again as soon as a license is activated/;
-
-// Says that sign-in is already off, and that it comes back with a license.
-const describesLapsedSignIn: (text: string) => boolean = (
-  text: string,
-): boolean => {
-  return (
-    SIGN_IN_IS_OFF.test(text) &&
-    RESUMES_WITH_A_LICENSE.test(text) &&
-    !STOPS_SIGN_IN_NOW.test(text)
-  );
-};
 
 // Says that SCIM requests are already refused, and are accepted again with a license.
 const describesLapsedScim: (text: string) => boolean = (
@@ -83,20 +54,41 @@ const describesLapsedScim: (text: string) => boolean = (
   return SCIM_IS_REFUSED.test(text) && SCIM_RESUMES_WITH_A_LICENSE.test(text);
 };
 
-describe("buildDisableProviderUpdate", () => {
-  test("is exactly { isEnabled: false }: one column, the literal false", () => {
-    const update: Record<string, unknown> = buildDisableProviderUpdate();
+// The provider notice, from when single sign-on stopped with the license.
+const RETIRED_PROVIDER_ACTIONS_TITLE: string =
+  "You can still disable a provider.";
 
-    expect(update).toEqual({ isEnabled: false });
-    expect(Object.keys(update)).toEqual(["isEnabled"]);
-    expect(update["isEnabled"]).toBe(false);
+const RETIRED_PROVIDER_ACTIONS_DESCRIPTION: string =
+  "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security. Sign-in resumes through every enabled provider as soon as a license is activated, so if an identity provider is compromised, use Disable now to keep it off. Turning a provider back on needs a valid license.";
+
+/*
+ * What that notice talked about, and the SCIM notice never does. "Your
+ * identity provider" is the SCIM client, so it does not count.
+ */
+const PROVIDER_CLAIMS: Array<RegExp> = [
+  /(?<!identity )\bproviders?\b/i,
+  /\bDisable\b/,
+  /sign-in/i,
+  /single sign-on/i,
+];
+
+const providerClaimsIn: (text: string) => Array<string> = (
+  text: string,
+): Array<string> => {
+  return PROVIDER_CLAIMS.filter((claim: RegExp) => {
+    return claim.test(text);
+  }).map((claim: RegExp) => {
+    return claim.source;
   });
+};
 
-  test("hands out a new object every time, so a caller cannot add a column to the next one", () => {
-    const first: Record<string, unknown> = buildDisableProviderUpdate();
-    first["name"] = "changed";
+describe("the tighten-only payloads", () => {
+  test("only the bearer-token rotation is left: there is no provider Disable payload", () => {
+    const exported: Array<string> = Object.keys(TightenOnlyUpdates);
 
-    expect(buildDisableProviderUpdate()).toEqual({ isEnabled: false });
+    expect(exported).toContain("buildRotateBearerTokenUpdate");
+    expect(exported).toContain("generateScimBearerToken");
+    expect(exported).not.toContain("buildDisableProviderUpdate");
   });
 });
 
@@ -252,68 +244,54 @@ describe("buildRotateBearerTokenUpdate", () => {
 });
 
 describe("ReadOnlyActionsNotice", () => {
-  test("read-only, providers: says Disable still works, and why", () => {
-    render(
-      <ReadOnlyActionsNotice
-        mode={EnterpriseLicenseMode.ReadOnly}
-        kind={ReadOnlyActionsKind.Provider}
-      />,
-    );
+  test.each([
+    EnterpriseLicenseMode.ReadOnly,
+    EnterpriseLicenseMode.NotIncluded,
+  ])(
+    "%s: says Reset Bearer Token still works, and why",
+    (mode: EnterpriseLicenseMode) => {
+      render(<ReadOnlyActionsNotice mode={mode} />);
+
+      const notice: HTMLElement = screen.getByTestId(
+        READ_ONLY_ACTIONS_NOTICE_TEST_ID,
+      );
+
+      expect(notice).toHaveTextContent(SCIM_ACTIONS_TITLE);
+      expect(notice).toHaveTextContent(SCIM_ACTIONS_DESCRIPTION);
+      expect(SCIM_ACTIONS_DESCRIPTION).toContain("read-only");
+      expect(SCIM_ACTIONS_DESCRIPTION).toContain("tighten security");
+      expect(SCIM_ACTIONS_DESCRIPTION).toContain("Reset Bearer Token");
+      // SCIM is already refused while the license is lapsed; the reset matters before it resumes.
+      expect(describesLapsedScim(SCIM_ACTIONS_DESCRIPTION)).toBe(true);
+    },
+  );
+
+  test("speaks about SCIM only: no provider, no Disable, no single sign-on", () => {
+    render(<ReadOnlyActionsNotice mode={EnterpriseLicenseMode.ReadOnly} />);
 
     const notice: HTMLElement = screen.getByTestId(
       READ_ONLY_ACTIONS_NOTICE_TEST_ID,
     );
 
-    expect(notice).toHaveTextContent(PROVIDER_ACTIONS_TITLE);
-    expect(notice).toHaveTextContent(PROVIDER_ACTIONS_DESCRIPTION);
-    expect(PROVIDER_ACTIONS_DESCRIPTION).toContain("read-only");
-    expect(PROVIDER_ACTIONS_DESCRIPTION).toContain("tighten security");
-    expect(PROVIDER_ACTIONS_DESCRIPTION).toContain("Disable");
-    // Sign-in is already off while the license is lapsed; Disable keeps it off after.
-    expect(describesLapsedSignIn(PROVIDER_ACTIONS_DESCRIPTION)).toBe(true);
-    expect(PROVIDER_ACTIONS_DESCRIPTION).toContain("to keep it off");
-    expect(notice).not.toHaveTextContent(SCIM_ACTIONS_TITLE);
+    expect(providerClaimsIn(notice.textContent || "")).toEqual([]);
+    expect(notice).not.toHaveTextContent(RETIRED_PROVIDER_ACTIONS_TITLE);
   });
 
-  test("read-only, SCIM: says Reset Bearer Token still works, and why", () => {
-    render(
-      <ReadOnlyActionsNotice
-        mode={EnterpriseLicenseMode.ReadOnly}
-        kind={ReadOnlyActionsKind.Scim}
-      />,
-    );
-
-    const notice: HTMLElement = screen.getByTestId(
-      READ_ONLY_ACTIONS_NOTICE_TEST_ID,
-    );
-
-    expect(notice).toHaveTextContent(SCIM_ACTIONS_TITLE);
-    expect(notice).toHaveTextContent(SCIM_ACTIONS_DESCRIPTION);
-    expect(SCIM_ACTIONS_DESCRIPTION).toContain("read-only");
-    expect(SCIM_ACTIONS_DESCRIPTION).toContain("tighten security");
-    expect(SCIM_ACTIONS_DESCRIPTION).toContain("Reset Bearer Token");
-    // SCIM is already refused while the license is lapsed; the reset matters before it resumes.
-    expect(describesLapsedScim(SCIM_ACTIONS_DESCRIPTION)).toBe(true);
-    expect(notice).not.toHaveTextContent(PROVIDER_ACTIONS_TITLE);
-  });
-
-  test("the lapse checks reject the copy that treated sign-in and SCIM as still running (negative controls)", () => {
-    expect(describesLapsedSignIn(RETIRED_PROVIDER_ACTIONS_DESCRIPTION)).toBe(
-      false,
-    );
-    expect(
-      describesLapsedSignIn(RETIRED_DISABLE_PROVIDER_CARD_DESCRIPTION),
-    ).toBe(false);
-    expect(
-      describesLapsedSignIn(
-        `${PROVIDER_ACTIONS_DESCRIPTION} Use Disable to stop sign-ins through it right away.`,
-      ),
-    ).toBe(false);
+  test("the checks reject the copy that treated SCIM as still running, and the retired provider notice (negative controls)", () => {
     expect(
       describesLapsedScim(
         "Without a valid Enterprise license this configuration is read-only, but resetting a bearer token is always allowed, because it can only tighten security. If a token has leaked, use Reset Bearer Token to replace it, then give the new token to your identity provider.",
       ),
     ).toBe(false);
+    expect(
+      providerClaimsIn(
+        `${RETIRED_PROVIDER_ACTIONS_TITLE} ${RETIRED_PROVIDER_ACTIONS_DESCRIPTION}`,
+      ),
+    ).toEqual(
+      PROVIDER_CLAIMS.slice(0, 3).map((claim: RegExp) => {
+        return claim.source;
+      }),
+    );
   });
 
   test.each([
@@ -321,42 +299,11 @@ describe("ReadOnlyActionsNotice", () => {
     EnterpriseLicenseMode.Grace,
     EnterpriseLicenseMode.Unknown,
   ])(
-    "%s: says nothing - the normal forms offer these changes",
+    "%s: says nothing - the normal forms offer the reset",
     (mode: EnterpriseLicenseMode) => {
-      for (const kind of [
-        ReadOnlyActionsKind.Provider,
-        ReadOnlyActionsKind.Scim,
-      ]) {
-        const { container } = render(
-          <ReadOnlyActionsNotice mode={mode} kind={kind} />,
-        );
+      const { container } = render(<ReadOnlyActionsNotice mode={mode} />);
 
-        expect(container).toBeEmptyDOMElement();
-
-        cleanup();
-      }
+      expect(container).toBeEmptyDOMElement();
     },
   );
-});
-
-describe("DisableProviderCard", () => {
-  test("explains the action and runs it from its button", () => {
-    const onDisable: jest.Mock = jest.fn();
-
-    render(<DisableProviderCard onDisable={onDisable} />);
-
-    const card: HTMLElement = screen.getByTestId(DISABLE_PROVIDER_CARD_TEST_ID);
-
-    expect(card).toHaveTextContent(DISABLE_PROVIDER_CARD_TITLE);
-    expect(card).toHaveTextContent(DISABLE_PROVIDER_CARD_DESCRIPTION);
-    // Shown only while read-only: sign-in is already off, Disable keeps it off after.
-    expect(describesLapsedSignIn(DISABLE_PROVIDER_CARD_DESCRIPTION)).toBe(true);
-    expect(onDisable).not.toHaveBeenCalled();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: DISABLE_PROVIDER_BUTTON_TITLE }),
-    );
-
-    expect(onDisable).toHaveBeenCalledTimes(1);
-  });
 });

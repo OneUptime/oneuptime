@@ -11,12 +11,22 @@ This guide covers how to safely upgrade your self-hosted OneUptime installation.
 ## Community and Enterprise Edition images
 
 OneUptime now ships the app as two images. The **Community Edition** is open
-source under the Apache License 2.0. The **Enterprise Edition** adds the
-enterprise modules from the repository's `ee/` directory: SAML SSO, OIDC, SCIM,
-team compliance, audit logs and the enterprise Health dashboards in the Admin
+source under the Apache License 2.0 and includes SAML and OIDC single sign-on,
+global SSO and "Require SSO for login". The **Enterprise Edition** adds the
+enterprise modules from the repository's `ee/` directory: SCIM, team
+compliance, audit logs and the enterprise Health dashboards in the Admin
 Dashboard. Before this change both editions ran the same code, and
 `IS_ENTERPRISE_EDITION` decided which features were switched on. Now the image
 decides, and the Community image does not contain the `ee/` directory.
+
+> **Releases after 14.0.10:** SAML and OIDC single sign-on, global SSO and
+> "Require SSO for login" are part of the Community Edition again, and no
+> license state switches them off. In 14.0.0 to 14.0.10 they needed the
+> Enterprise Edition and stopped when its license lapsed, which is what the
+> 13 → 14 notes below describe. A "Require SSO for login" setting that was
+> saved but not enforced (on the Community image, or under a lapsed license)
+> is enforced again after this upgrade, so check that its provider still works
+> before you upgrade.
 
 The [Enterprise Edition](/docs/self-hosted/enterprise) page has the full
 feature comparison, licensing details and what happens when you switch
@@ -24,7 +34,7 @@ editions.
 
 ### What to do before you upgrade
 
-- **Community Edition without SSO, OIDC or SCIM:** nothing. Upgrade as usual.
+- **Community Edition without SCIM:** nothing. Upgrade as usual.
 - **Helm with `image.type: enterprise-edition`:** nothing. The chart already
   pulls the `enterprise-` images, which now contain the enterprise modules.
 - **Docker Compose with `IS_ENTERPRISE_EDITION=true`:** switch to the
@@ -35,17 +45,16 @@ editions.
   `IS_ENTERPRISE_EDITION=true` (`release` becomes `enterprise-release`, a
   pinned `13.0.7` becomes `enterprise-13.0.7`) and prints what it changed.
   The App now **refuses to start** when `IS_ENTERPRISE_EDITION=true` is set on
-  the Community image, instead of silently no longer enforcing "Require SSO",
-  SSO, SCIM and audit logging. The error says what to set:
+  the Community image, instead of silently stopping SCIM provisioning and
+  audit logging. The error says what to set:
   `APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
   `IS_ENTERPRISE_EDITION=false` to run the Community Edition.
-- **Community image with SSO, OIDC or SCIM already configured:** SSO sign-in
-  and SCIM provisioning stop with this upgrade, and "Require SSO for login" is
-  no longer enforced. Switch to the Enterprise image to keep them. Otherwise,
-  read [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)
-  before you upgrade. It explains how users sign in afterwards and who to
-  remove first. To run the Community Edition, also set
-  `IS_ENTERPRISE_EDITION=false`.
+- **Community image with SCIM already configured:** SCIM provisioning stops
+  with this upgrade, including deprovisioning. Switch to the Enterprise image
+  to keep it. Otherwise, read [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)
+  before you upgrade. It explains what stops and who to remove first. To run
+  the Community Edition, also set `IS_ENTERPRISE_EDITION=false`. Single
+  sign-on is not affected: the Community image serves it too.
 
 Your configuration is never deleted, and no migration is needed to switch
 editions in either direction.
@@ -60,15 +69,13 @@ The Enterprise Edition now checks its license:
   for an install with no license.
 - **An install with no license**, for example one that ran the Enterprise
   Edition on `IS_ENTERPRISE_EDITION=true` alone, gets a 14-day trial from the
-  first start of this release. **If you use SSO, OIDC, SCIM or audit logging,
-  activate a license before the trial ends.** After the trial, SSO and OIDC
-  sign-in stop, "Require SSO for login" is no longer enforced (users sign in
-  with their password), SCIM provisioning stops and audit logging stops
-  recording. Enterprise configuration also becomes read-only and the
-  enterprise Health dashboards are locked. Everything resumes, without a
-  restart, as soon as you activate a license. The trial is for evaluation:
-  production use of the Enterprise Edition requires a OneUptime Enterprise
-  subscription. See
+  first start of this release. **If you use SCIM or audit logging, activate a
+  license before the trial ends.** After the trial, SCIM provisioning stops and
+  audit logging stops recording. Enterprise configuration also becomes
+  read-only and the enterprise Health dashboards are locked. Single sign-on is
+  not affected. Everything resumes, without a restart, as soon as you activate
+  a license. The trial is for evaluation: production use of the Enterprise
+  Edition requires a OneUptime Enterprise subscription. See
   [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing).
 - **Air-gapped installs** can activate with a signed license token instead of
   a key. See [Offline activation](/docs/self-hosted/enterprise#offline-activation-air-gapped-installs).
@@ -88,13 +95,24 @@ settings that used to show an upgrade prompt.
   admins. Other callers get the edition and the license status.
 - Self-hosted installs no longer serve the license-server endpoints under
   `/api/enterprise-license/`. Only oneuptime.com uses them.
-- The SSO, OIDC and SCIM endpoints keep their exact paths on the Enterprise
-  Edition, so identity provider configuration does not change. On the
-  Community Edition they return `404`. On the Enterprise Edition they refuse
-  requests while the license is lapsed (after the trial or grace period), and
-  answer again as soon as a license is activated.
+- The SCIM endpoints keep their exact paths on the Enterprise Edition, so
+  identity provider configuration does not change. On the Community Edition
+  they return `404`. On the Enterprise Edition they refuse requests while the
+  license is lapsed (after the trial or grace period), and answer again as
+  soon as a license is activated.
+- The SSO and OIDC endpoints (SAML sign-in and ACS URLs, OIDC redirect URIs,
+  and the global SSO endpoints) keep their exact paths and are served by both
+  editions in every license state.
 
 ## Upgrading from OneUptime 13 → 14
+
+> **Releases after 14.0.10:** SAML and OIDC single sign-on, global SSO and
+> "Require SSO for login" are part of the Community Edition again, and no
+> license state switches them off. Where this section says that the Community
+> image leaves single sign-on out, or that single sign-on stops or is not
+> enforced without a license, it describes 14.0.0 to 14.0.10. What it says
+> about SCIM, team compliance, audit logs and the Health dashboards still
+> applies.
 
 OneUptime 14 splits the app into two editions, and the image you pull decides
 which one you run. The **Community Edition** (Apache-2.0, the `release` and
@@ -285,6 +303,15 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   IP itself. Hostname targets are unchanged.
 - **The `oneuptime` CLI reports its real version** for `--version` instead of a
   placeholder.
+- **Runners moved from Project Settings into Runbooks.** Runners are now under
+  **Runbooks → Runners** (`…/runbooks/runners`) and Runner Credentials under
+  **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`), next
+  to the runbooks whose steps they run. The old `…/settings/runners` and
+  `…/settings/runner-credentials` URLs redirect, so bookmarks keep working.
+  Nothing else changes: Runners keep their ids, keys, capabilities and
+  permissions, and they still run AI code fixes and AI remediation commands.
+  A Runner image older than this release still prints "Project Settings >
+  Runners" in its log messages; read that as Runbooks → Runners.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
@@ -306,6 +333,115 @@ Ping, Port and SSL monitor after the upgrade and save it again**, and check the
 destination it shows. Expect monitors that were failing permanently on macOS or
 FreeBSD probes to start reporting the truth, which may resolve incidents or
 raise new ones.
+
+### Kubernetes agent chart: the Kubernetes AI agent
+
+The `kubernetes-agent` chart now runs the **Kubernetes AI agent** by default:
+one small, read-only pod (`component=ai-agent`, image
+`oneuptime/kubernetes-ai-agent`) that lets OneUptime AI run `kubectl` while it
+investigates an incident or alert on that cluster. It replaces the in-cluster
+Runner that `aiAccess.enabled=true` installed. It is not related to the AI
+Agent retired in OneUptime 12
+([If you ran the standalone AI Agent](#if-you-ran-the-standalone-ai-agent)).
+
+- **Upgrade the OneUptime server before the chart.** The AI agent needs an API
+  that older servers do not have. Against one, it logs "This OneUptime server
+  does not have the Kubernetes AI agent API" and retries every 5 minutes —
+  and the chart upgrade has already removed the old in-cluster Runner. Until
+  you can upgrade the server, install the chart version that matches it
+  (`--version <your OneUptime version>`).
+- **Mirror the image, or opt out, if your upgrades wait.** The chart upgrade
+  adds a pod that pulls `docker.io/oneuptime/kubernetes-ai-agent`. If your
+  nodes pull through a mirror or an image allowlist and you upgrade with
+  `--wait` or `--atomic`, with Terraform or with Flux, mirror the image and set
+  `aiAgent.image.repository` (and `aiAgent.imagePullSecrets` for a private
+  registry), or pass `--set aiAgent.enabled=false`. Otherwise the pod never
+  becomes ready, the upgrade times out, and `--atomic` rolls back the whole
+  release.
+- **`aiAccess` settings carry over.** Write access, the namespace list, the
+  node-operations switch and `aiAccess.extraEnv` keep applying until you set
+  the matching `aiAgent.*` value, which always wins. `aiAccess.enabled=false`
+  does not turn the AI agent off — `--set aiAgent.enabled=false` does — and
+  `aiAccess.image` and `aiAccess.resources` are not carried over.
+- **Cluster AI settings are kept**, with two changes made by the server
+  upgrade: a cluster whose Runner someone had unbound or deleted (the
+  in-cluster Runner or any other) starts with kubectl access off, and
+  **Automatic** or **Bypass approval** on a cluster whose project never
+  turned on **Enable AI Command Execution** becomes **Ask for approval**.
+- **To downgrade the chart, use `helm rollback`**, not
+  `helm upgrade --version <older version>`: an older chart's schema refuses the
+  `aiAgent` values stored on the release. Within a week of the upgrade, the
+  rollback brings the in-cluster Runner back, and it reconnects on its own
+  once the AI agent has stopped. After that, OneUptime may have removed the
+  old Runner, and the rolled-back one is not used until you bind it to the
+  cluster again with the API or Terraform (the cluster's **AI Access
+  Runner**; a Project Owner, a Project Admin or **Edit Auto Remediation
+  Rule** may do it), or you upgrade the chart again.
+
+```bash
+helm repo update
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set aiAgent.enabled=true
+```
+
+Use your own release name and namespace if they differ. The Kubernetes agent
+page's [Upgrading the Agent](/docs/telemetry/kubernetes-agent#upgrading-the-agent)
+has the details, and [AI SRE — Cluster access](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl)
+explains what the agent may do and how to let it fix what it finds.
+
+### Enable AI is the only AI switch
+
+**Project Settings → AI Features** had three switches. **Enable
+Auto-Remediation** and **Enable AI Command Execution (for Runners)** are gone:
+auto-remediation and AI commands on Runners run whenever **Enable AI** is on.
+Turning **Enable AI** off stops them along with every other AI feature,
+including auto-remediation rules that start a runbook without AI. A project
+that already has **Enable AI** off therefore stops running those rules after
+the upgrade; turn **Enable AI** on to keep them.
+
+The two switches used to hold some fixes back. So that nothing starts
+changing your systems without a human when they disappear, the server
+upgrade moves those fixes to asking first:
+
+- In a project that had turned **Enable Auto-Remediation** off, **Full Auto**
+  rules become **Suggest**, and clusters and resources set to **Automatic** or
+  **Bypass approval** become **Ask for approval**.
+- In a project that never turned on **Enable AI Command Execution**, **Full
+  Auto** rules that let AI compose commands become **Suggest**. A Kubernetes
+  cluster that AI reaches through a Runner you bound to it (with a Kubernetes
+  credential) goes from **Automatic** or **Bypass approval** to **Ask for
+  approval**. Clusters reached through the Kubernetes AI agent keep their
+  mode, and so do resources: they never needed that switch.
+
+Nothing is turned off. Rules, clusters and resources that one of the switches
+kept quiet start proposing fixes, and each fix still waits for a human. To keep
+auto-remediation out of a project, turn off **Enable AI**, or disable its rules
+(Incidents or Alerts → AI → Remediation) and set **Fixes** to **Off** on each
+cluster's and resource's AI agent page. API clients and Terraform
+configurations that set `enableAutoRemediation` or `enableAiCommandExecution`
+(`enable_auto_remediation` or `enable_ai_command_execution` in Terraform)
+should stop setting them.
+
+### New projects start with every AI feature on
+
+A project created after the upgrade starts with every AI feature switched on,
+not only automatic incident and alert investigation: postmortem drafts,
+automatic code fixes and instrumentation fixes (Incidents or Alerts → AI →
+Investigation), and AI Insights with its fix pull requests and auto-archiving
+of expected-denial exceptions (AI → Insights → Settings).
+
+Projects that already exist keep the settings they have; the upgrade switches
+nothing on. On also does not mean running: each feature still needs an LLM
+provider (and AI credits on OneUptime Cloud), and the ones that open pull
+requests need a connected repository and a Runner with the code-fix
+capability. Turn any of them off on its settings page, or all of them with
+**Enable AI**.
+
+A project created through the API that sets one of these fields to `false`
+keeps it off. The Terraform provider's default for these attributes is still
+`false`, so a project created with Terraform starts with them off unless its
+configuration sets them to `true`.
 
 ### Verify the edition and the license
 
@@ -595,7 +731,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(Or open the Runner in **Settings → Runners** and use **Show setup
+(Or open the Runner in **Runbooks → Runners** and use **Show setup
 instructions** for a pre-filled command.)
 
 If you tuned the agent with environment variables, rename them — the old
@@ -616,7 +752,7 @@ The **Settings → AI → AI Agents** page is gone and the `oneuptime/ai-agent`
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
-1. Create a Runner under **Settings → Runners** and install it with the
+1. Create a Runner under **Runbooks → Runners** and install it with the
    command from **Show setup instructions**.
 2. Enable **Runs AI Code Fixes** on it. The change is picked up on the next
    heartbeat.
@@ -709,6 +845,11 @@ wiki links:
 
 Runbook Secrets stays where it was, under Runbooks → Settings → Secrets.
 
+That is where the pages were in 12 and 13. In 14 the two Runner pages moved
+again, to **Runbooks → Runners** (`…/runbooks/runners`) and **Runbooks →
+Runners → Credentials** (`…/runbooks/runner-credentials`); the 12 and 13 URLs
+in the table redirect there. See [Other changes in 14](#other-changes-in-14).
+
 ### New in 12, nothing to enable by accident
 
 v12 adds AI-composed remediation commands: the AI can propose a command
@@ -736,6 +877,11 @@ telemetry rebuild) every query needed to migrate history.
 
 ### Identity features (SSO, OIDC, SCIM) now require the Enterprise Edition
 
+> **Releases after 14.0.10:** SAML SSO, OIDC and global SSO are part of the
+> Community Edition again, together with "Require SSO for login", and need no
+> license. SCIM provisioning and team compliance settings still need the
+> Enterprise Edition. The rest of this section describes v11 to 14.0.10.
+
 In v11, the following authentication and access-management features moved to
 the **OneUptime Enterprise Edition** and are no longer part of the free,
 open-source (Community) build:
@@ -751,22 +897,26 @@ Community Edition build, the settings pages show an upgrade prompt instead of
 the configuration form, and the configuration can no longer be changed. Until
 the Community and Enterprise images were split, providers you had already
 configured could keep signing users in on a Community build, because it still
-contained the sign-in code. The Community image no longer contains any SSO,
-OIDC or SCIM code, so sign-in through them stops once you upgrade to it — see
+contained the sign-in code. The Community images of 14.0.0 to 14.0.10 contain
+no SSO, OIDC or SCIM code, so sign-in through them stops once you upgrade to
+one of those releases — see
 [Community and Enterprise Edition images](#community-and-enterprise-edition-images).
 Your existing provider records are **preserved in the database** — nothing is
 deleted — and they work again as soon as the instance runs the Enterprise
-Edition.
+Edition, or, for SSO and OIDC, any release after 14.0.10.
 
 **Availability:**
 
-- **Self-hosted:** requires the **Enterprise Edition** build.
+- **Self-hosted:** SCIM and team compliance settings require the
+  **Enterprise Edition** build. SSO and OIDC require it only on v11 to
+  14.0.10; releases after 14.0.10 include them in every edition.
 - **OneUptime Cloud:** requires the **Scale** plan (or above).
 
-**If you rely on SSO and self-host**, email
+**If you rely on SSO and self-host**, upgrade to a release after 14.0.10,
+where every edition serves SSO and OIDC. For SCIM, email
 [support@oneuptime.com](mailto:support@oneuptime.com) for an Enterprise Edition
-license so you can restore SSO/OIDC/SCIM. Mention that you upgraded from v10 to
-v11 and we'll help you get it back online. If your team is mid-upgrade and this
+license, mention that you upgraded from v10 to v11, and we'll help you get it
+back online. If your team is mid-upgrade and this
 is blocking sign-in, contact us before upgrading production so we can plan it
 with you.
 

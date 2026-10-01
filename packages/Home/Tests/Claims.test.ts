@@ -10,6 +10,7 @@ import {
   Claims,
   RetiredClaim,
   RetiredClaims,
+  RetiredEditionClaims,
   getClaim,
   getClaimStatus,
   getClaimsByCategory,
@@ -25,6 +26,40 @@ const EXPECTED_STATUS_KEYS: Array<ClaimStatusKey> = [
   "in-progress",
   "customer-configurable",
 ];
+
+/*
+ * Single sign-on is part of the Community Edition: SAML and OIDC single
+ * sign-on, global SSO, and "Require SSO for login" are Apache 2.0 and need no
+ * license. The Enterprise Edition adds SCIM, audit logs, team compliance, and
+ * the instance health dashboards. OneUptime Cloud still puts SSO on the Scale
+ * plan, which is a plan, not an edition.
+ */
+const SINGLE_SIGN_ON_WORDING: RegExp =
+  /\bSSO\b|single sign-on|\bSAML\b|\bOIDC\b|OpenID Connect/i;
+
+// The examples the two single sign-on related edition rules carry.
+const SSO_UNDER_ENTERPRISE_EDITION: string =
+  "the Enterprise Edition adds SSO, SCIM, audit logs, team compliance, and instance health dashboards";
+const FEATURES_UNDER_OPEN_SOURCE: string =
+  "supports SCIM provisioning and audit logs while remaining open source";
+
+type RetiredEditionClaimFunction = (example: string) => RetiredClaim;
+
+const retiredEditionClaim: RetiredEditionClaimFunction = (
+  example: string,
+): RetiredClaim => {
+  const retired: RetiredClaim | undefined = RetiredEditionClaims.find(
+    (candidate: RetiredClaim) => {
+      return candidate.example === example;
+    },
+  );
+
+  if (!retired) {
+    throw new Error(`No retired edition claim has the example "${example}"`);
+  }
+
+  return retired;
+};
 
 const EXPECTED_CATEGORY_KEYS: Array<ClaimCategoryKey> = [
   "sla",
@@ -454,6 +489,17 @@ describe("Retired claims", () => {
       "Free to self-host: Run the full platform on your own infrastructure.",
     );
   });
+
+  test("the retired list covers single sign-on filed under the Enterprise Edition, and SCIM and audit logs put under Apache 2.0", () => {
+    const examples: Array<string> = RetiredClaims.map(
+      (retired: RetiredClaim) => {
+        return retired.example;
+      },
+    );
+
+    expect(examples).toContain(SSO_UNDER_ENTERPRISE_EDITION);
+    expect(examples).toContain(FEATURES_UNDER_OPEN_SOURCE);
+  });
 });
 
 describe("Claims match the Community / Enterprise Edition split", () => {
@@ -473,7 +519,6 @@ describe("Claims match the Community / Enterprise Edition split", () => {
 
     expect(claim.subject).toBe("Enterprise Edition images");
     expect(claim.statement).not.toMatch(/hardened/i);
-    expect(claim.statement).toContain("SSO");
     expect(claim.statement).toContain("SCIM");
     expect(claim.statement).toContain("audit logs");
     expect(claim.qualifier).toContain("requires a valid Enterprise license");
@@ -510,6 +555,165 @@ describe("Claims match the Community / Enterprise Edition split", () => {
       expect(text).not.toMatch(/\b(?:entire|whole)\s+platform\s+is\s+Apache/i);
       expect(text).not.toMatch(/100\s*%\s*open[- ]source/i);
       expect(text).not.toMatch(/not\s+open[- ]core/i);
+    }
+  });
+});
+
+describe("Claims put single sign-on in the Community Edition", () => {
+  test("the Enterprise Edition images claim names what the images add, and single sign-on is not part of it", () => {
+    const claim: Claim = getClaim("deployment-enterprise-edition")!;
+
+    for (const feature of [
+      "SCIM",
+      "audit logs",
+      "team compliance",
+      "instance health dashboards",
+    ]) {
+      expect(claim.statement).toContain(feature);
+    }
+
+    expect(claim.statement).not.toMatch(SINGLE_SIGN_ON_WORDING);
+    expect(claim.qualifier).not.toMatch(SINGLE_SIGN_ON_WORDING);
+  });
+
+  test("the self-hosted claim names single sign-on on the Community Edition side of the split, never the Enterprise side", () => {
+    const sides: Array<string> = getClaim(
+      "deployment-self-hosted",
+    )!.qualifier.split(";");
+
+    expect(sides).toHaveLength(2);
+
+    const communitySide: string = sides[0]!;
+    const enterpriseSide: string = sides[1]!;
+
+    expect(communitySide).toContain("The Community Edition");
+    expect(communitySide).toContain("SAML and OIDC single sign-on included");
+    expect(enterpriseSide).toContain(
+      "the Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards",
+    );
+    expect(enterpriseSide).not.toMatch(SINGLE_SIGN_ON_WORDING);
+  });
+
+  test("no claim files single sign-on under the Enterprise Edition, in its statement or its qualifier", () => {
+    const ssoRule: RetiredClaim = retiredEditionClaim(
+      SSO_UNDER_ENTERPRISE_EDITION,
+    );
+
+    for (const claim of Claims) {
+      expect({
+        id: claim.id,
+        statement: ssoRule.pattern.test(claim.statement),
+        qualifier: ssoRule.pattern.test(claim.qualifier),
+      }).toEqual({ id: claim.id, statement: false, qualifier: false });
+    }
+  });
+
+  test("no approved qualifier uses retired edition language", () => {
+    // The statements are checked against every retired claim above.
+    for (const retired of RetiredEditionClaims) {
+      for (const claim of Claims) {
+        if (retired.pattern.test(claim.qualifier)) {
+          throw new Error(
+            `The qualifier of "${claim.id}" uses retired language "${retired.example}": ${claim.qualifier}`,
+          );
+        }
+      }
+    }
+  });
+
+  test("the hardened-images replacement and the feature-limited reason name SCIM, never single sign-on, as an Enterprise Edition feature", () => {
+    const hardened: RetiredClaim = retiredEditionClaim(
+      "Hardened Enterprise Edition container images",
+    );
+    const featureLimited: RetiredClaim = retiredEditionClaim(
+      "the community edition is not feature-limited",
+    );
+
+    expect(hardened.replacement).toContain("SCIM, audit logs");
+    expect(hardened.replacement).not.toMatch(SINGLE_SIGN_ON_WORDING);
+    expect(featureLimited.reason).toContain("SCIM, audit logs");
+    expect(featureLimited.reason).not.toMatch(SINGLE_SIGN_ON_WORDING);
+  });
+});
+
+describe("The open-source edition rule stays strict for SCIM and audit logs, and leaves single sign-on alone", () => {
+  const openSourceRule: RetiredClaim = retiredEditionClaim(
+    FEATURES_UNDER_OPEN_SOURCE,
+  );
+
+  test.each([
+    "supports SCIM provisioning and audit logs while remaining open source",
+    "OneUptime ships SCIM and audit logging while remaining open-source and self-hostable.",
+    "Audit logs, SCIM, and RBAC, and the platform remains open source.",
+    "Enterprise features include SCIM and audit logs. Self-hosting is available under the Apache 2.0 license for organizations requiring complete infrastructure control.",
+    "Yes. OneUptime supports SSO/SAML, RBAC, and audit logs, and maintains SOC 2 Type II, ISO 27001, and GDPR compliance, so it fits enterprise requirements while remaining open source and self-hostable.",
+  ])(
+    "catches SCIM or audit logs put under the open-source license: %s",
+    (sentence: string) => {
+      expect(openSourceRule.pattern.test(sentence)).toBe(true);
+    },
+  );
+
+  test.each([
+    "SAML and OIDC single sign-on are part of the Community Edition and remain open source under Apache 2.0.",
+    "OneUptime supports SSO/SAML and RBAC while remaining open source.",
+    "Enterprise features include SSO/SAML and role-based access control. Self-hosting is available under the Apache 2.0 license for organizations requiring complete infrastructure control.",
+    "Single sign-on ships in the Community Edition. Self-hosted, it runs under the Apache 2.0 license.",
+  ])(
+    "leaves single sign-on under the open-source license alone: %s",
+    (sentence: string) => {
+      for (const retired of RetiredEditionClaims) {
+        expect({
+          retired: retired.example,
+          caught: retired.pattern.test(sentence),
+        }).toEqual({ retired: retired.example, caught: false });
+      }
+    },
+  );
+
+  test("its reason names SCIM and audit logs as the Enterprise Edition features, and its replacement puts single sign-on under Apache 2.0", () => {
+    expect(openSourceRule.reason).toContain(
+      "SCIM and audit logs are Enterprise Edition features",
+    );
+    expect(openSourceRule.reason).not.toMatch(SINGLE_SIGN_ON_WORDING);
+    expect(openSourceRule.replacement).toContain(
+      "including SAML and OIDC single sign-on, is open source (Apache 2.0)",
+    );
+    expect(openSourceRule.replacement).toContain(
+      "SCIM and audit logs are part of the Enterprise Edition",
+    );
+  });
+});
+
+describe("The single sign-on edition rule", () => {
+  const ssoRule: RetiredClaim = retiredEditionClaim(
+    SSO_UNDER_ENTERPRISE_EDITION,
+  );
+
+  test("is enforced over the templates and the page data", () => {
+    expect(RetiredEditionClaims).toContain(ssoRule);
+    expect(RetiredClaims).toContain(ssoRule);
+    expect(ssoRule.claimId).toBe("deployment-enterprise-edition");
+  });
+
+  test("its reason says where single sign-on is, and that a Cloud plan is not an edition", () => {
+    expect(ssoRule.reason).toContain("Apache 2.0 Community Edition");
+    expect(ssoRule.reason).toContain("need no license");
+    expect(ssoRule.reason).toContain("Scale plan: a plan, not an edition");
+    expect(ssoRule.replacement).toContain(
+      "SAML and OIDC single sign-on are part of the Apache 2.0 Community Edition",
+    );
+    expect(ssoRule.replacement).toContain(
+      "the Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards",
+    );
+  });
+
+  test("its replacement passes every edition rule, not just its own", () => {
+    for (const retired of RetiredEditionClaims) {
+      expect({
+        retired: retired.example,
+        caught: retired.pattern.test(ssoRule.replacement),
+      }).toEqual({ retired: retired.example, caught: false });
     }
   });
 });

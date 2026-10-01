@@ -56,7 +56,8 @@ test.describe("Enterprise licence endpoint (licensed stack)", () => {
     /*
      * "enterprise" is EnterpriseEdition.isLoaded() in the App process: the
      * enterprise module in the image was found and loaded. On the community
-     * image this reads "community" and every identity route 404s.
+     * image this reads "community" and every SCIM route 404s (single sign-on
+     * is core, and answers there all the same).
      */
     expect(licenseState.edition, `Found: ${found}`).toBe("enterprise");
 
@@ -65,8 +66,8 @@ test.describe("Enterprise licence endpoint (licensed stack)", () => {
 
     /*
      * "all" is what an unlicensed trial (and a licence that lists no feature
-     * subset) entitles. Anything else here would stop SSO, SCIM or audit
-     * logging on a stack this suite then expects to serve them.
+     * subset) entitles. Anything else here would stop SCIM or audit logging
+     * on a stack this suite then expects to serve them.
      */
     expect(licenseState.features, `Found: ${found}`).toBe("all");
 

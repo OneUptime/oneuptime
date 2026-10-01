@@ -58,7 +58,10 @@ const SEARCH_CASES: Array<[string, string, string]> = [
   ["genai", "AI / LLM", PageMap.LLM],
   ["copilot", "Chat", PageMap.AI_COPILOT],
   ["ai agents", "Tasks", PageMap.AI_AGENT_TASKS],
-  ["source code", "Code Repositories", PageMap.CODE_REPOSITORY],
+  // Code Repositories is a page of Tasks now, so its words lead there.
+  ["source code", "Tasks", PageMap.AI_AGENT_TASKS],
+  ["github", "Tasks", PageMap.AI_AGENT_TASKS],
+  ["repositories", "Tasks", PageMap.AI_AGENT_TASKS],
   ["dependency map", "Topology", PageMap.TOPOLOGY],
   ["cmdb", "Inventory", PageMap.INVENTORY],
   ["container monitoring", "Docker", PageMap.DOCKER_HOSTS],
@@ -106,6 +109,14 @@ const SEARCH_CASES: Array<[string, string, string]> = [
   ["redis", "Databases", PageMap.DATABASE_SERVERS],
   ["mongodb", "Databases", PageMap.DATABASE_SERVERS],
   ["sql server", "Databases", PageMap.DATABASE_SERVERS],
+  ["kafka", "Queues", PageMap.MESSAGE_QUEUES],
+  ["rabbitmq", "Queues", PageMap.MESSAGE_QUEUES],
+  ["sqs", "Queues", PageMap.MESSAGE_QUEUES],
+  ["service bus", "Queues", PageMap.MESSAGE_QUEUES],
+  ["pub/sub", "Queues", PageMap.MESSAGE_QUEUES],
+  ["consumer lag", "Queues", PageMap.MESSAGE_QUEUES],
+  ["dead letter", "Queues", PageMap.MESSAGE_QUEUES],
+  ["message queue", "Queues", PageMap.MESSAGE_QUEUES],
 ];
 
 function navbar(): React.ReactElement {

@@ -41,6 +41,7 @@ export { default as HostRoutes } from "./HostRoutes";
 export { default as ServerlessRoutes } from "./ServerlessRoutes";
 export { default as CloudResourceRoutes } from "./CloudResourceRoutes";
 export { default as DatabaseRoutes } from "./DatabaseRoutes";
+export { default as MessageQueueRoutes } from "./MessageQueueRoutes";
 export { default as RumApplicationRoutes } from "./RumApplicationRoutes";
 export { default as AIAgentTasksRoutes } from "./AIAgentTasksRoutes";
 export { default as AIInsightsRoutes } from "./AIInsightsRoutes";

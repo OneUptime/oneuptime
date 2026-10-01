@@ -57,6 +57,7 @@ import OtelIngestBaseService from "./OtelIngestBaseService";
 import DatabaseCallEntityKeyResolver, {
   DatabaseCallerSource,
 } from "./DatabaseCallEntityKeys";
+import MessagingEntityKeyResolver from "./MessagingEntityKeys";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import TraceDropFilterService, {
   LoadedTraceDropFilter,
@@ -370,6 +371,14 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       const databaseCallEntityKeys: DatabaseCallEntityKeyResolver =
         new DatabaseCallEntityKeyResolver(projectId);
 
+      /*
+       * Messaging spans (any kind but SERVER) get the key of the queue they
+       * publish to, consume from or settle on, on their own row. Memoized
+       * for this request only — see MessagingEntityKeys.
+       */
+      const messagingEntityKeys: MessagingEntityKeyResolver =
+        new MessagingEntityKeyResolver(projectId);
+
       // Load trace pipeline artifacts once per batch (60s cached inside services).
       let dropFilters: Array<LoadedTraceDropFilter> = [];
       let scrubRules: Array<CompiledTraceScrubRule> = [];
@@ -413,6 +422,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
            * every row — see OtelIngestBaseService.normalizeCloudPlatformAttribute.
            */
           this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
+          this.stampServerlessFunctionNameAttribute(resourceAttributes_raw);
 
           // Producer-declared entities (authoritative when present).
           const resourceEntityRefs: Array<ResourceEntityRef> =
@@ -840,6 +850,14 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     spanRow,
                     databaseCaller,
                   );
+
+                  /*
+                   * A messaging span belongs to its queue too — same rules:
+                   * the FINAL row (a scrubbed destination names no queue),
+                   * a new array, and nothing but a kind check and a few
+                   * key lookups for spans that are not messaging.
+                   */
+                  messagingEntityKeys.appendToSpanRow(spanRow);
 
                   /*
                    * Exception rows are only built for spans that survived

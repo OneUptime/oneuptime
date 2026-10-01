@@ -1,3 +1,5 @@
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
@@ -19,6 +21,7 @@ import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { ResourceAiRemediationMode } from "../../Types/ResourceAiAgent/ResourceAiAccess";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import {
   Column,
@@ -1078,6 +1081,11 @@ export default class DockerSwarmCluster extends BaseModel {
     nullable: true,
     unique: false,
   })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
   public retainTelemetryDataForDays?: number = undefined;
 
   @ColumnAccessControl({
@@ -1119,5 +1127,222 @@ export default class DockerSwarmCluster extends BaseModel {
     type: ColumnType.JSON,
     nullable: true,
   })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
   public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
+
+  /*
+   * OneUptime AI access to this Docker Swarm cluster through its Docker Swarm AI agent (a resource AI
+   * agent, ResourceAiAgent). The settings are plain columns written through
+   * ordinary CRUD, so they exist before any agent registers. The columns
+   * keep the Docker Swarm cluster's own update ACL: anyone who may edit the Docker Swarm cluster may make
+   * AI do LESS; making it do MORE is refused by the service unless the
+   * caller may author a FullAuto auto-remediation rule. The aiAccess*
+   * columns are written only by the server.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDockerSwarmCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditDockerSwarmCluster,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Let AI Investigate With Read-Only Commands",
+    description:
+      "When on, OneUptime AI runs read-only commands (docker service ls, service ps, service logs, node ls) on this Docker Swarm cluster, through its Docker Swarm AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. Off by default. Anyone who may edit the Docker Swarm cluster can turn it on or off.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isAiInvestigationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDockerSwarmCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditDockerSwarmCluster,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "AI Remediation Mode",
+    /*
+     * The API and Terraform docs for the mode: the same semantics as the
+     * ResourceAiRemediationMode doc comment in
+     * Types/ResourceAiAgent/ResourceAiAccess.ts (the canonical text).
+     */
+    description:
+      "Disabled: AI never proposes or runs a change on this Docker Swarm cluster. RequireApproval: AI composes a command plan and a human approves it with one click before anything runs. Automatic: safe changes (SafeWrite) run without a human; a riskier change is proposed for approval unless the Docker Swarm cluster's allowlist names its exact shape. BypassApproval: every change the policy allows — safe AND riskier — runs on its own, except what always needs a human. In EVERY mode: Denied commands never run, commands the policy marks requiresHuman always ask, and the agent itself refuses every write unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true (and then only on the targets ONEUPTIME_AI_WRITE_TARGETS allows, never its protected targets). Anyone who may edit the Docker Swarm cluster can lower the mode; raising it needs Project Owner, Project Admin or Edit Auto Remediation Rule.",
+    defaultValue: ResourceAiRemediationMode.Disabled,
+    example: ResourceAiRemediationMode.RequireApproval,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: ResourceAiRemediationMode.Disabled,
+  })
+  public aiRemediationMode?: ResourceAiRemediationMode = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDockerSwarmCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditDockerSwarmCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "AI Command Allowlist",
+    description:
+      "Optional JSON array of command patterns that Automatic mode may run on this Docker Swarm cluster without approval even though they are riskier changes. Each pattern is one command line for this Docker Swarm cluster's agent (docker) and is compared with the command word by word: * stands for exactly one word (a name, an id), never for extra words or flags, and every flag the command uses must be written out in the pattern. At most 50 patterns of at most 500 characters each; a pattern that is not one valid write command for this Docker Swarm cluster is refused. Destructive commands (Denied tier) never run regardless, and a command that always needs a human still asks. Adding a pattern needs Project Owner, Project Admin or Edit Auto Remediation Rule; anyone who may edit the Docker Swarm cluster can remove patterns or clear the list.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public aiCommandAllowlist?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDockerSwarmCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Last Verified At",
+    description:
+      "When a command from OneUptime AI last succeeded on this Docker Swarm cluster through its Docker Swarm AI agent. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessLastVerifiedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDockerSwarmCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "AI Access Last Error",
+    description:
+      "The most recent failure OneUptime AI hit while running a command on this Docker Swarm cluster, kept until the next successful command. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public aiAccessLastError?: string = undefined;
+
+  /*
+   * When this Docker Swarm cluster's AI access was first configured — by anyone writing an
+   * AI access setting. Only the server writes it, and nothing ever clears
+   * it. A registering Docker Swarm AI agent reads it to tell "never configured" (it may
+   * apply its first-connection defaults) from "an operator chose settings,
+   * perhaps before installing the agent" (every setting stays as chosen).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDockerSwarmCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Configured At",
+    description:
+      "When OneUptime AI access to this Docker Swarm cluster was first configured by anyone saving an AI access setting. Set by the server; never cleared, so a Docker Swarm AI agent that registers later never overwrites a setting an operator chose.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessConfiguredAt?: Date = undefined;
 }

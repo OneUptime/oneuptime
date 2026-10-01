@@ -2,6 +2,7 @@ import CommonAPI from "Common/Server/API/CommonAPI";
 import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import AutoRemediationSuggestionService from "Common/Server/Services/AutoRemediationSuggestionService";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
+import KubernetesClusterAiAccessService from "Common/Server/Services/KubernetesClusterAiAccessService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import RunbookRuleEngineService from "Common/Server/Services/RunbookRuleEngineService";
 import RunnerService from "Common/Server/Services/RunnerService";
@@ -14,6 +15,12 @@ import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRe
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/AutoRemediationVerificationStatus";
 import { AiRemediationCommandExecutionStatus } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
+import {
+  KUBERNETES_AI_AGENT_DISPLAY_NAME,
+  KubectlCommandTier,
+  KubernetesAiRemediationMode,
+  KubernetesClusterAiAccessStatus,
+} from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
   ExpressRequest,
@@ -54,10 +61,12 @@ import {
  *
  * - the runbook-execute permission gate fires BEFORE any state is claimed —
  *   a denied caller must leave no CAS attempt behind;
- * - the PROJECT opt-in is re-read at approval time, not trusted from when
- *   the plan was composed: a project that has since turned AI command
- *   execution (or AI, or auto-remediation) off rejects the plan before any
- *   claim, and the check runs before the Runner-consent loop;
+ * - the PROJECT switch is re-read at approval time, not trusted from when
+ *   the plan was composed: a project that has since turned Enable AI off
+ *   rejects any plan — a rule round's and a cluster round's alike — before
+ *   any claim and before the Runner-consent loop. Enable AI is the only
+ *   project switch: a rule round needs no second opt-in, and the retired
+ *   auto-remediation and AI command execution switches are never read;
  * - a plan that fails fail-closed parsing (missing, empty, denylisted
  *   verdict) is rejected without claiming the suggestion;
  * - a target Runner that lost canRunAiCommands consent (or was deleted)
@@ -179,6 +188,10 @@ const sendJsonObjectResponseMock: jest.Mock =
 
 const APPROVE_ROUTE: string = "/auto-remediation/approve";
 const DISMISS_ROUTE: string = "/auto-remediation/dismiss";
+
+// What the approve route answers, word for word, while the project has AI off.
+const AI_DISABLED_REFUSAL: string =
+  "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -306,8 +319,8 @@ function validPlanJson(): JSONObject {
 }
 
 /*
- * The project row as the approve route selects it: the three switches that
- * together gate the AI command-execution lane.
+ * The project row as the approve route selects it: Enable AI, the one switch
+ * that gates the AI command-execution lane.
  */
 function fakeProject(
   overrides: Partial<Record<string, unknown>> = {},
@@ -316,8 +329,6 @@ function fakeProject(
     _id: PROJECT_ID.toString(),
     id: PROJECT_ID,
     enableAi: true,
-    enableAutoRemediation: true,
-    enableAiCommandExecution: true,
     ...overrides,
   } as unknown as Project;
 }
@@ -398,8 +409,8 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
       .mockResolvedValue(1);
 
     /*
-     * The approve route re-reads the project's AI switches before claiming.
-     * Fully opted in unless a test says otherwise.
+     * The approve route re-reads the project's AI switch before claiming.
+     * AI is on unless a test says otherwise.
      */
     projectFindSpy = jest
       .spyOn(ProjectService, "findOneById")
@@ -519,62 +530,91 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
     });
   });
 
-  describe("POST /auto-remediation/approve — project opt-in re-check", () => {
+  describe("POST /auto-remediation/approve — project switch re-check", () => {
     /*
      * The plan may have been composed hours before a human clicks Approve.
-     * Whatever the project allowed back then is irrelevant — the switch as
-     * it stands NOW decides, and turning it off must stop pending plans, not
-     * just new ones.
+     * Whatever the project allowed back then is irrelevant — Enable AI as it
+     * stands NOW decides, and turning it off must stop pending plans, not
+     * just new ones. It is the only project switch: a rule round needs no
+     * second opt-in.
      */
     test.each([
-      ["the project row is gone", null],
+      ["Enable AI is on", fakeProject()],
       [
-        "enableAiCommandExecution is false",
-        fakeProject({ enableAiCommandExecution: false }),
+        "Enable AI was not selected (the column defaults to on)",
+        fakeProject({ enableAi: undefined }),
       ],
       [
-        "enableAiCommandExecution was never set",
-        fakeProject({ enableAiCommandExecution: undefined }),
-      ],
-      ["enableAi is false", fakeProject({ enableAi: false })],
-      [
-        "enableAutoRemediation is false",
-        fakeProject({ enableAutoRemediation: false }),
+        "the row still carries the retired switches, both off",
+        fakeProject({
+          enableAutoRemediation: false,
+          enableAiCommandExecution: false,
+        }),
       ],
     ])(
-      "refuses to run the plan when %s — nothing claimed, nothing executed",
+      "runs a rule round's plan when %s — no second opt-in is asked for",
+      async (_label: string, project: Project) => {
+        projectFindSpy.mockResolvedValue(project);
+
+        const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
+
+        expect(result.nextCallCount).toBe(0);
+        expect(runnerFindSpy).toHaveBeenCalledTimes(1);
+        expect(casSpy).toHaveBeenCalledTimes(1);
+        expect(executeApprovedPlanMock).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    test.each([
+      ["the project row is gone", null],
+      ["enableAi is false", fakeProject({ enableAi: false })],
+      [
+        "enableAi is false, whatever the retired switches say",
+        fakeProject({
+          enableAi: false,
+          enableAutoRemediation: true,
+          enableAiCommandExecution: true,
+        }),
+      ],
+    ])(
+      "refuses to run the plan when %s, naming Enable AI's page — nothing claimed, nothing executed, nothing posted",
       async (_label: string, project: Project | null) => {
         projectFindSpy.mockResolvedValue(project);
 
         const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
 
         expect(result.thrownToNext).toBeInstanceOf(BadDataException);
-        expect((result.thrownToNext as BadDataException).message).toContain(
-          "AI command execution is disabled",
-        );
-        // Rejected before the plan is even parsed or its Runners polled.
+        const message: string = (result.thrownToNext as BadDataException)
+          .message;
+        expect(message).toBe(AI_DISABLED_REFUSAL);
+        // The switch lives on the page every install shows.
+        expect(message).toContain("Project Settings → AI Features");
+        expect(message).not.toContain("AI Credits");
+        // Neither retired switch is named any more.
+        expect(message).not.toContain("auto-remediation");
+        expect(message).not.toContain("command execution");
+        // Rejected before the plan's Runners are polled.
         expect(runnerFindSpy).not.toHaveBeenCalled();
+        expect(incidentFeedSpy).not.toHaveBeenCalled();
+        expect(alertFeedSpy).not.toHaveBeenCalled();
         expectNoClaimAndNoExecution();
       },
     );
 
-    test("reads the project as root, by the SUGGESTION's project id", async () => {
+    test("reads the project as root, by the SUGGESTION's project id, for Enable AI alone", async () => {
       await callRoute({ uri: APPROVE_ROUTE });
 
       expect(projectFindSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           id: PROJECT_ID,
-          select: expect.objectContaining({
-            enableAi: true,
-            enableAutoRemediation: true,
-            enableAiCommandExecution: true,
-          }),
+          // Exactly: the retired switches are never selected.
+          select: { _id: true, enableAi: true },
           props: expect.objectContaining({ isRoot: true }),
         }),
       );
     });
 
-    test("a fully opted-in project proceeds — and the opt-in was checked BEFORE the Runner consent loop and the claim", async () => {
+    test("a project with AI on proceeds — and the switch was checked BEFORE the Runner consent loop and the claim", async () => {
       const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
 
       expect(result.nextCallCount).toBe(0);
@@ -589,29 +629,149 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
       expect(projectOrder).toBeLessThan(casSpy.mock.invocationCallOrder[0]!);
     });
 
-    test("the opt-in is NOT re-checked for a runbook suggestion — that lane has its own gates", async () => {
-      mockSuggestion({
-        suggestionType: AutoRemediationSuggestionType.Runbook,
-        commandPlan: undefined,
-        runbookId: RUNBOOK_ID,
-      });
-      const startRunbookSpy: jest.SpyInstance = jest
-        .spyOn(RunbookRuleEngineService, "startRunbookFor")
-        .mockResolvedValue({
-          id: RUNBOOK_EXECUTION_ID,
-        } as unknown as RunbookExecution);
-      jest
-        .spyOn(AutoRemediationSuggestionService, "updateOneById")
-        .mockResolvedValue(undefined as never);
+    test.each([
+      ["on", fakeProject()],
+      ["off", fakeProject({ enableAi: false })],
+    ])(
+      "the switch is NOT re-checked for a runbook suggestion (Enable AI %s) — that lane has its own gates",
+      async (_label: string, project: Project) => {
+        projectFindSpy.mockResolvedValue(project);
+        mockSuggestion({
+          suggestionType: AutoRemediationSuggestionType.Runbook,
+          commandPlan: undefined,
+          runbookId: RUNBOOK_ID,
+        });
+        const startRunbookSpy: jest.SpyInstance = jest
+          .spyOn(RunbookRuleEngineService, "startRunbookFor")
+          .mockResolvedValue({
+            id: RUNBOOK_EXECUTION_ID,
+          } as unknown as RunbookExecution);
+        jest
+          .spyOn(AutoRemediationSuggestionService, "updateOneById")
+          .mockResolvedValue(undefined as never);
 
-      const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
+        const result: RouteCallResult = await callRoute({
+          uri: APPROVE_ROUTE,
+        });
 
-      expect(result.nextCallCount).toBe(0);
-      expect(startRunbookSpy).toHaveBeenCalledTimes(1);
-      // The command-execution switch has no say over the runbook lane.
-      expect(projectFindSpy).not.toHaveBeenCalled();
-      expect(executeApprovedPlanMock).not.toHaveBeenCalled();
+        expect(result.nextCallCount).toBe(0);
+        expect(startRunbookSpy).toHaveBeenCalledTimes(1);
+        // The project's AI switch has no say over the runbook lane.
+        expect(projectFindSpy).not.toHaveBeenCalled();
+        expect(executeApprovedPlanMock).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  /*
+   * The project switch is the same for every round. A rule can compose an
+   * all-kubectl plan, and a cluster round (the cluster's AI agent page asked
+   * for it: a cluster, no rule) composes one too; both pass on Enable AI
+   * alone and both stop when it is off. Past the switch, each kubectl
+   * command answers to its cluster's own consent, re-checked per command.
+   */
+  describe("POST /auto-remediation/approve — every round passes the same switch", () => {
+    const CLUSTER_ID: ObjectID = new ObjectID(
+      "99999999-9999-4999-8999-999999999999",
+    );
+    const RULE_ID: ObjectID = new ObjectID(
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    );
+    const AGENT_ID: ObjectID = new ObjectID(
+      "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    );
+
+    function kubectlPlanJson(): JSONObject {
+      return {
+        commands: [
+          validCommandJson({
+            stepType: RunbookStepType.Kubectl,
+            runnerId: AGENT_ID.toString(),
+            runnerNameSnapshot: KUBERNETES_AI_AGENT_DISPLAY_NAME,
+            kubernetesClusterId: CLUSTER_ID.toString(),
+            kubernetesClusterNameSnapshot: "prod-us",
+            kubectlTier: KubectlCommandTier.SafeWrite,
+            command: "kubectl rollout restart deployment/web -n web",
+          }),
+        ],
+      } as JSONObject;
+    }
+
+    function readyAgentStatus(): KubernetesClusterAiAccessStatus {
+      return {
+        clusterId: CLUSTER_ID.toString(),
+        clusterName: "prod-us",
+        clusterIdentifier: "prod-us",
+        runner: {
+          id: AGENT_ID.toString(),
+          name: KUBERNETES_AI_AGENT_DISPLAY_NAME,
+          kind: "ai_agent",
+          isOnline: true,
+          canRunAiCommands: true,
+          posture: { inCluster: true, allowWrites: true },
+        },
+        aiAgent: null,
+        automaticInvestigation: { incidents: false, alerts: false },
+        accessMethod: "in_cluster",
+        kubectlAllowlist: [],
+        isInvestigationEnabled: true,
+        isInvestigationReady: true,
+        remediationMode: KubernetesAiRemediationMode.RequireApproval,
+        isRemediationReady: true,
+        gaps: [],
+        evaluatedAt: "2026-01-01T00:00:00.000Z",
+      };
+    }
+
+    let statusSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      statusSpy = jest
+        .spyOn(KubernetesClusterAiAccessService, "getStatusForCluster")
+        .mockResolvedValue(readyAgentStatus());
     });
+
+    const ROUNDS: Array<[string, Partial<Record<string, unknown>>]> = [
+      ["a RULE round", { autoRemediationRuleId: RULE_ID }],
+      ["a CLUSTER round", { kubernetesClusterId: CLUSTER_ID }],
+      [
+        "a row naming both a rule and a cluster",
+        { kubernetesClusterId: CLUSTER_ID, autoRemediationRuleId: RULE_ID },
+      ],
+    ];
+
+    test.each(ROUNDS)(
+      "%s whose plan is only kubectl is approved on Enable AI alone, its cluster's consent checked instead",
+      async (_label: string, lane: Partial<Record<string, unknown>>) => {
+        mockSuggestion({ ...lane, commandPlan: kubectlPlanJson() });
+
+        const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
+
+        expect(result.nextCallCount).toBe(0);
+        expect(casSpy).toHaveBeenCalledTimes(1);
+        expect(executeApprovedPlanMock).toHaveBeenCalledTimes(1);
+        // The cluster's own consent was checked...
+        expect(statusSpy).toHaveBeenCalledTimes(1);
+        // ...and the AI agent is not a Runner row, so no Runner was re-read.
+        expect(runnerFindSpy).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each(ROUNDS)(
+      "%s is refused when AI is off — the switch covers every lane",
+      async (_label: string, lane: Partial<Record<string, unknown>>) => {
+        mockSuggestion({ ...lane, commandPlan: kubectlPlanJson() });
+        projectFindSpy.mockResolvedValue(fakeProject({ enableAi: false }));
+
+        const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
+
+        expect((result.thrownToNext as BadDataException).message).toBe(
+          AI_DISABLED_REFUSAL,
+        );
+        expect(statusSpy).not.toHaveBeenCalled();
+        expectNoClaimAndNoExecution();
+      },
+    );
   });
 
   describe("POST /auto-remediation/approve — plan validation", () => {

@@ -14,9 +14,10 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * When an investigation finishes INCONCLUSIVE — per the structured G6
  * confidence signal (ConfidenceSignal.ts), never the analysis prose — the
  * telemetry itself is the bug: the code paths involved were not observable
- * enough to diagnose. For projects that opted in
- * (the subject lane's incident/alert instrumentation setting, default FALSE
- * — G11 posture: autonomous PR creation is opt-in only), the inconclusive analysis becomes
+ * enough to diagnose. For projects with the subject lane's incident/alert
+ * instrumentation setting on (on for new projects; a project that existed
+ * before keeps its own value, and unset reads as off), the inconclusive
+ * analysis becomes
  * the input to a CodeFix AIRun (codeFixTaskType: ImproveInstrumentation)
  * that the agent worker turns into a pull request adding the missing
  * observability — so the NEXT investigation of a similar signal can reach a
@@ -48,8 +49,8 @@ export interface InstrumentationTaskGateDecision {
 export default class InstrumentationTaskTrigger {
   /*
    * The pure trigger decision, separated from IO so it can be tested
-   * directly: opt-in (default FALSE), a repository the agent can actually
-   * open a PR against, and the per-subject dedupe guard.
+   * directly: the project's setting (=== true), a repository the agent
+   * can actually open a PR against, and the per-subject dedupe guard.
    */
   public static shouldEnqueueInstrumentationTask(
     input: InstrumentationTaskGateInput,
@@ -63,8 +64,8 @@ export default class InstrumentationTaskTrigger {
     }
 
     /*
-     * Strict opt-in — the column defaults to false, so unset/legacy rows
-     * never enqueue. Autonomous PR creation must never be default-on.
+     * Strictly === true — the column defaults to false, so unset/legacy
+     * rows never enqueue. New projects get it on from ProjectService.
      */
     if (Boolean(input.incidentId) === Boolean(input.alertId)) {
       return {

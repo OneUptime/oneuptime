@@ -15,6 +15,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceArea,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -35,12 +36,20 @@ import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEnd
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import DashboardResourceList from "../Utils/DashboardResourceList";
+import { HistogramRangeSelectionState } from "Common/UI/Components/Charts/Utils/useHistogramRangeSelection";
+import DashboardWidgetTimeRangeZoom, {
+  DashboardHistogramWindow,
+  DashboardWidgetTimeRangeZoomHandlers,
+} from "../Utils/DashboardWidgetTimeRangeZoom";
+import useDashboardHistogramZoom from "../Utils/UseDashboardHistogramZoom";
+import DashboardWidgetZoomHint from "./DashboardWidgetZoomHint";
 import {
   TimeseriesRow,
   buildTraceAnalyticsRequest,
   formatCount,
   formatDurationMs,
   formatTickTime,
+  formatTraceSeriesLabel,
   hexToRgba,
   isDurationMetric,
   pivotTimeseries,
@@ -55,6 +64,13 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [rows, setRows] = useState<Array<TimeseriesRow>>([]);
+  /*
+   * The window and bucket width `rows` were fetched for, replaced together
+   * with them. A drag across the chart reads it to turn the bars it covered
+   * into a time window (see useDashboardHistogramZoom).
+   */
+  const [chartWindow, setChartWindow] =
+    useState<DashboardHistogramWindow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -123,6 +139,11 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
       }
       const data: unknown = response.data["data"] || [];
       setRows(data as Array<TimeseriesRow>);
+      setChartWindow({
+        startTime: startAndEndDate.startValue,
+        endTime: startAndEndDate.endValue,
+        bucketSizeInMinutes: Number(requestData["bucketSizeInMinutes"]),
+      });
       setError(null);
     } catch (err: unknown) {
       if (isStale()) {
@@ -153,6 +174,31 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
     return pivotTimeseries(rows, metric);
   }, [rows, metric]);
 
+  /*
+   * Drag-to-zoom retimes the whole board, the gesture every time-series
+   * panel on it answers to: the window goes up to the dashboard shell and
+   * comes back down as dashboardStartAndEndDate, which refetches this chart
+   * with it. None in edit mode; the reset only while zoomed.
+   */
+  const timeRangeZoom: DashboardWidgetTimeRangeZoomHandlers =
+    DashboardWidgetTimeRangeZoom.getHandlers(props);
+
+  const selection: HistogramRangeSelectionState = useDashboardHistogramZoom({
+    zoom: timeRangeZoom,
+    fetchedWindow: chartWindow,
+  });
+
+  // The one condition the plot is drawn on; the hint reads it too.
+  const isChartShown: boolean = !error && pivotedData.length > 0;
+
+  /*
+   * recharts sets cursor: default inline on its own wrapper, so a crosshair
+   * class on the box around the chart never shows over the plot. The chart
+   * root takes it as a style instead, and only while a drag can zoom.
+   */
+  const chartCursor: { style?: React.CSSProperties } =
+    timeRangeZoom.onTimeRangeSelect ? { style: { cursor: "crosshair" } } : {};
+
   const colorForSeries: (seriesKey: string, index: number) => string = (
     seriesKey: string,
     index: number,
@@ -162,6 +208,12 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
       colorsByGroup: props.component.arguments.colorsByGroup,
       groupByAttribute,
     });
+  };
+
+  const labelForSeries: (seriesKey: string) => string = (
+    seriesKey: string,
+  ): string => {
+    return formatTraceSeriesLabel(seriesKey, groupByAttribute);
   };
 
   const valueFormatter: (value: number) => string = isDuration
@@ -212,9 +264,26 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
             borderRadius: "6px",
           }}
           labelStyle={{ color: "var(--ou-text-secondary)" }}
+          /*
+           * Pinned shut for the length of a drag: it would otherwise sit
+           * over the very buckets the reader is picking a window from.
+           */
+          {...(selection.isDragging ? { active: false } : {})}
         />
       </>
     );
+
+    // The window a drag in progress has covered so far.
+    const selectionBand: ReactElement | null =
+      selection.selectionStart && selection.selectionEnd ? (
+        <ReferenceArea
+          x1={selection.selectionStart}
+          x2={selection.selectionEnd}
+          fill="rgba(99,102,241,0.12)"
+          stroke="rgba(99,102,241,0.5)"
+          strokeWidth={1}
+        />
+      ) : null;
 
     if (isDuration) {
       if (seriesKeys.length === 1) {
@@ -226,10 +295,16 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
           <AreaChart
             data={pivotedData}
             margin={{ top: 6, right: 12, bottom: 2, left: 0 }}
+            onMouseDown={selection.onMouseDown}
+            {...selection.chartRootProps}
+            onMouseMove={selection.onMouseMove}
+            onMouseUp={selection.onMouseUp}
+            {...chartCursor}
           >
             {sharedAxes}
             <Area
               dataKey={seriesKeys[0] || "value"}
+              name={labelForSeries(seriesKeys[0] || "value")}
               stroke={singleSeriesColor}
               strokeWidth={2}
               fill={hexToRgba(singleSeriesColor, 0.08)}
@@ -237,6 +312,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
               connectNulls={true}
               isAnimationActive={false}
             />
+            {selectionBand}
           </AreaChart>
         );
       }
@@ -244,6 +320,11 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
         <LineChart
           data={pivotedData}
           margin={{ top: 6, right: 12, bottom: 2, left: 0 }}
+          onMouseDown={selection.onMouseDown}
+          {...selection.chartRootProps}
+          onMouseMove={selection.onMouseMove}
+          onMouseUp={selection.onMouseUp}
+          {...chartCursor}
         >
           {sharedAxes}
           {seriesKeys.map((key: string, index: number) => {
@@ -251,6 +332,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
               <Line
                 key={key}
                 dataKey={key}
+                name={labelForSeries(key)}
                 stroke={colorForSeries(key, index)}
                 strokeWidth={1.75}
                 dot={false}
@@ -259,6 +341,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
               />
             );
           })}
+          {selectionBand}
         </LineChart>
       );
     }
@@ -269,6 +352,11 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
         margin={{ top: 6, right: 12, bottom: 2, left: 0 }}
         barCategoryGap="18%"
         barGap={0}
+        onMouseDown={selection.onMouseDown}
+        {...selection.chartRootProps}
+        onMouseMove={selection.onMouseMove}
+        onMouseUp={selection.onMouseUp}
+        {...chartCursor}
       >
         {sharedAxes}
         {seriesKeys.map((key: string, index: number) => {
@@ -276,6 +364,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
             <Bar
               key={key}
               dataKey={key}
+              name={labelForSeries(key)}
               stackId="group"
               fill={colorForSeries(key, index)}
               isAnimationActive={false}
@@ -283,15 +372,23 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
             />
           );
         })}
+        {selectionBand}
       </BarChart>
     );
   };
 
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="group/zoomhint relative flex h-full w-full flex-col">
       {props.component.arguments.title && (
-        <div className="mb-1 px-1 text-sm font-medium text-gray-700">
-          {props.component.arguments.title}
+        <div className="mb-1 flex items-baseline gap-2 px-1">
+          <div className="min-w-0 text-sm font-medium text-gray-700">
+            {props.component.arguments.title}
+          </div>
+          <DashboardWidgetZoomHint
+            zoom={timeRangeZoom}
+            isChartShown={isChartShown}
+            className="ml-auto"
+          />
         </div>
       )}
       {seriesKeys.length > 1 && (
@@ -306,15 +403,35 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
                   }}
                 />
                 <span className="max-w-[180px] truncate text-[10px] text-gray-500">
-                  {key}
+                  {labelForSeries(key)}
                 </span>
               </div>
             );
           })}
         </div>
       )}
-      <div className="min-h-0 flex-1">
-        {isLoading && (
+      {/*
+       * The double-click lands here rather than on the chart so that it also
+       * works on the "No data" state: a zoom into a quiet stretch leaves no
+       * buckets to double-click, and the way back should be where the
+       * pointer already is. It does nothing unless the board is zoomed, and
+       * while it is armed the words in here are not selectable: a
+       * double-click on text would also select a word.
+       */}
+      <div
+        className={`min-h-0 flex-1 ${
+          timeRangeZoom.onTimeRangeReset ? "select-none" : ""
+        }`}
+        onDoubleClick={selection.onDoubleClick}
+      >
+        {/*
+         * The spinner stands in only while there is nothing to show yet (or
+         * only an error). A reload with a chart on screen - a zoom refetches
+         * straight away - dims the chart instead of swapping it out, so the
+         * buckets the reader just dragged across stay put, and stay
+         * double-clickable, until the answer lands.
+         */}
+        {isLoading && (pivotedData.length === 0 || Boolean(error)) && (
           <div className="flex h-full items-center justify-center">
             <ComponentLoader />
           </div>
@@ -325,12 +442,39 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
             No data for the selected time range
           </div>
         )}
-        {!isLoading && !error && pivotedData.length > 0 && (
-          <ResponsiveContainer width="100%" height="100%">
-            {renderChart()}
-          </ResponsiveContainer>
+        {isChartShown && (
+          <div
+            className={`h-full w-full ${
+              timeRangeZoom.onTimeRangeSelect
+                ? "cursor-crosshair select-none"
+                : ""
+            }`}
+            style={{
+              opacity: isLoading ? 0.5 : 1,
+              transition: "opacity 0.2s ease-in-out",
+            }}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              {renderChart()}
+            </ResponsiveContainer>
+          </div>
         )}
       </div>
+
+      {/*
+       * Untitled, which is how a new widget starts, there is no header row
+       * for the hint, and adding one would take height from a small widget
+       * for a line shown only on hover. It floats over the top corner
+       * instead: after the chart, so the chart does not paint over it, and
+       * it never takes the pointer from the chart beneath.
+       */}
+      {!props.component.arguments.title && (
+        <DashboardWidgetZoomHint
+          zoom={timeRangeZoom}
+          isChartShown={isChartShown}
+          className="absolute right-1 top-0"
+        />
+      )}
     </div>
   );
 };
@@ -341,6 +485,7 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     prev.refreshTick !== next.refreshTick ||
     prev.isEditMode !== next.isEditMode ||
     prev.isSelected !== next.isSelected ||
+    !DashboardWidgetTimeRangeZoom.isSameZoom(prev, next) ||
     prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
     prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
   ) {

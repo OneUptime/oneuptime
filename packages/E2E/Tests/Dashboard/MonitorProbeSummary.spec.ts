@@ -1,4 +1,5 @@
 import { BASE_URL } from "../../Config";
+import { clickRowMenuAction } from "../Helpers/RowActions";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
 import { toId } from "./Helpers/MonitorAlerting";
 import { selectMonitorTypeCard } from "./Helpers/Monitors";
@@ -354,10 +355,14 @@ test.describe("Monitor summary probe picker", () => {
       timeout: 90000,
     });
 
-    await page
-      .getByRole("button", { name: /^Edit$/ })
-      .first()
-      .click();
+    /*
+     * The row's one button is its View Summary action; Edit sits in the ⋯
+     * menu beside it.
+     */
+    await clickRowMenuAction({
+      row: page.getByRole("row").filter({ hasText: ctx.attachedProbeName }),
+      name: "Edit",
+    });
 
     const saveButton: Locator = page.getByRole("button", {
       name: /Save Changes/i,
@@ -451,15 +456,15 @@ test.describe("Monitor summary probe picker", () => {
     /*
      * The table used to set isDeleteable={false}, so with the probe relation
      * create-only there was no way at all to undo attaching the wrong probe.
+     * Delete is in the row's ⋯ menu.
      */
-    await page
-      .getByRole("button", { name: /^Delete$/ })
-      .first()
-      .click();
+    await clickRowMenuAction({
+      row: page.getByRole("row").filter({ hasText: ctx.attachedProbeName }),
+      name: "Delete",
+    });
     /*
-     * Scope the confirm to the modal. The row's Delete button matches
-     * /^Delete$/ too, so .last() on the whole page silently re-clicks the row
-     * whenever the query lands before React commits the modal.
+     * Scope the confirm to the modal: its Delete button is not the only one
+     * named Delete that the page has held.
      */
     const deleteConfirmModal: Locator = page.getByRole("dialog", {
       name: /Delete Monitor Probe/i,

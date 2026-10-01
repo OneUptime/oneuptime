@@ -29,6 +29,9 @@ import { isPublicDashboard } from "../Utils/PublicDashboardContext";
 import { getConfiguredDataSourceQueries } from "../Utils/DataSourceWidget";
 import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import DashboardWidgetTimeRangeZoom, {
+  DashboardWidgetTimeRangeZoomHandlers,
+} from "../Utils/DashboardWidgetTimeRangeZoom";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDataSourceChartComponentType;
@@ -240,6 +243,15 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
     };
   }, [queryConfigs, results, startAndEndDate, getMetricChartType]);
 
+  /*
+   * Drag-to-zoom retimes the whole board, exactly as the metric chart
+   * widget does: the window goes up to the dashboard shell and comes back
+   * down as dashboardStartAndEndDate, so every panel re-queries it. No
+   * gesture in edit mode, and the reset only while there is a zoom to undo.
+   */
+  const timeRangeZoom: DashboardWidgetTimeRangeZoomHandlers =
+    DashboardWidgetTimeRangeZoom.getHandlers(props);
+
   if (isPublicDashboard()) {
     return <DataSourceWidgetPlaceholder icon={IconProp.ChartBar} />;
   }
@@ -344,6 +356,8 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
            */
           enableSeriesActions={false}
           chartSyncId={props.chartSyncId}
+          onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
+          onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
         />
       </div>
     </div>
@@ -356,6 +370,7 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     prev.refreshTick !== next.refreshTick ||
     prev.isEditMode !== next.isEditMode ||
     prev.isSelected !== next.isSelected ||
+    !DashboardWidgetTimeRangeZoom.isSameZoom(prev, next) ||
     prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
     prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
   ) {

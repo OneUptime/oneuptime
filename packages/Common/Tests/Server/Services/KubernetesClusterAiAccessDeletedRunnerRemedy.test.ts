@@ -1,16 +1,19 @@
 import KubernetesClusterAiAccessService, {
+  AI_AGENT_INSTALL_COMMAND,
   KubernetesAgentRegistrationRefusedException,
   KubernetesClusterAiAccessProjectGates,
   RegisterKubernetesAgentRunnerResult,
   getDeletedAgentRunnerRebindNote,
   getKubernetesAgentRunnerNameForCluster,
 } from "../../../Server/Services/KubernetesClusterAiAccessService";
+import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunbookSecretService from "../../../Server/Services/RunbookSecretService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import logger from "../../../Server/Utils/Logger";
+import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Runner, {
   RunnerConnectionStatus,
@@ -27,29 +30,24 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
  * ---------------------------------------------------------------------------
- * Contract under test — what the "delete the Runner" remedy promises, walked
- * end to end against the real status computation and the real registration.
+ * Contract under test — how a cluster recovers from a stuck previous
+ * in-cluster Runner, walked end to end against the real status computation
+ * and the real registration.
  *
- * An offline agent Runner that holds more than the agent defaults is refused
- * on every registration its restarted pod attempts. Two texts tell the
- * operator how to recover: the cluster's holdings gap and the registration
- * refusal the Runner logs. Both offer two ways out:
- *
- *   - remove what the Runner holds: the Runner row survives, its restarted
- *     pod re-keys it, and the cluster is still bound to it;
- *   - delete the Runner: the binding's foreign key is ON DELETE SET NULL, so
- *     the cluster is left with no Runner bound, and a registration never
- *     binds a cluster that had one (left_unbound_by_operator, deliberate).
- *     The fresh Runner the agent registers is therefore used only once
- *     someone selects it on the cluster's AI page — a loosening that needs
- *     Project Owner, Project Admin or Edit Auto Remediation Rule.
- *
- * Round three said "delete the Runner, and the in-cluster Runner registers a
- * fresh one within a minute" and stopped there, which left the operator with
- * an unbound cluster and AI investigations on telemetry only.
+ * An offline previous in-cluster Runner (older charts) that holds more than
+ * the agent defaults is refused on every registration its restarted pod
+ * attempts. The way out the texts lead with is the chart upgrade: the
+ * Kubernetes AI agent replaces the Runner, needs none of what it holds, and
+ * takes over the moment it is online (resolveKubernetesAiAccessTarget).
+ * Removing what the Runner holds still brings the same Runner back, still
+ * bound. Deleting it leaves the cluster unbound (the binding's foreign key
+ * is ON DELETE SET NULL and registration never re-binds a cluster that had
+ * a Runner), and such a cluster is then reached through its AI agent — not
+ * by selecting a Runner on a page.
  *
  * The database is a small in-memory stand-in: one cluster row, the Runner
- * rows, and the FK's ON DELETE SET NULL applied by deleteRunner().
+ * rows, the cluster's agent row, and the FK's ON DELETE SET NULL applied by
+ * deleteRunner().
  * ---------------------------------------------------------------------------
  */
 
@@ -68,26 +66,29 @@ const FRESH_RUNNER_ID: ObjectID = new ObjectID(
 const OTHER_RUNNER_ID: ObjectID = new ObjectID(
   "66666666-6666-4666-8666-666666666666",
 );
+const AI_AGENT_ID: ObjectID = new ObjectID(
+  "88888888-8888-4888-8888-888888888888",
+);
 
 const AGENT_RUNNER_NAME: string =
   getKubernetesAgentRunnerNameForCluster("prod-us");
 
 const READY_GATES: KubernetesClusterAiAccessProjectGates = {
   isAiEnabled: true,
-  isAutoRemediationEnabled: true,
-  isAiCommandExecutionEnabled: true,
   hasLlmProvider: true,
 };
 
-// The second step, as the texts must say it.
-const SELECT_STEP: string = "select it on the cluster's AI page as its Runner";
+// The step every text leads with now.
+const UPGRADE_STEP: string = "Upgrade the Kubernetes agent chart";
 
-// Who may take that step.
+// Who may bind a Runner again.
 const REBIND_PERMISSIONS: string =
-  "Selecting a Runner needs one of these permissions: Project Owner, Project Admin, Edit Auto Remediation Rule.";
+  "binding a Runner again needs one of these permissions: Project Owner, Project Admin, Edit Auto Remediation Rule.";
 
 interface FakeDatabase {
   cluster: KubernetesCluster;
+  // The cluster's Kubernetes AI agent row, once the chart installs it.
+  aiAgent: KubernetesAiAgent | null;
   runners: Array<Runner>;
   // Runner credentials assigned, by Runner id.
   assignedCredentials: Map<string, number>;
@@ -256,10 +257,32 @@ function installFakeDatabase(database: FakeDatabase): void {
     .mockImplementation(async (): Promise<void> => {
       return undefined;
     });
+  jest
+    .spyOn(KubernetesAiAgentService, "findForCluster")
+    .mockImplementation(async (): Promise<KubernetesAiAgent | null> => {
+      return database.aiAgent;
+    });
+}
+
+// The chart upgrade: the Kubernetes AI agent registers and is online.
+function installAiAgent(database: FakeDatabase): void {
+  database.aiAgent = {
+    id: AI_AGENT_ID,
+    _id: AI_AGENT_ID.toString(),
+    projectId: PROJECT_ID,
+    kubernetesClusterId: CLUSTER_ID,
+    connectionStatus: "connected",
+    lastAliveAt: OneUptimeDate.getCurrentDate(),
+    posture: {
+      inCluster: true,
+      allowWrites: true,
+      clusterIdentifier: "prod-us",
+    },
+  } as unknown as KubernetesAiAgent;
 }
 
 /*
- * What deleting a Runner under Project Settings → Runners does to these
+ * What deleting a Runner under Runbooks → Runners does to these
  * rows: the Runner row goes, and the binding's foreign key (ON DELETE SET
  * NULL) clears aiAccessRunnerId in the same statement. aiAccessRunnerBoundAt
  * is never cleared — that is what registration reads as "a Runner was bound
@@ -329,7 +352,7 @@ async function refusalOf(
   throw new Error("The registration was admitted; a refusal was expected.");
 }
 
-describe("the delete-the-Runner remedy for an agent Runner that holds more than the defaults", () => {
+describe("recovering from a previous in-cluster Runner that holds more than the defaults", () => {
   let database: FakeDatabase;
 
   beforeEach(() => {
@@ -342,6 +365,7 @@ describe("the delete-the-Runner remedy for an agent Runner that holds more than 
     // A Runner credential was assigned to the agent Runner before the guards.
     database = {
       cluster: boundCluster(),
+      aiAgent: null,
       runners: [offlineAgentRunner()],
       assignedCredentials: new Map<string, number>([
         [AGENT_RUNNER_ID.toString(), 1],
@@ -357,39 +381,30 @@ describe("the delete-the-Runner remedy for an agent Runner that holds more than 
     jest.restoreAllMocks();
   });
 
-  it("the gap leads with removing the holdings, then names the delete path's second step and who may take it", async () => {
+  it("the gap leads with the chart upgrade to the AI agent, never with the Runner's holdings", async () => {
     const gap: KubernetesAiAccessGap = gapWithCode(
       await statusOf(database),
       "runner_offline",
     );
 
-    expect(gap.title).toContain("cannot re-register");
-    expect(gap.nextStep).toMatch(
-      /^Under Project Settings → Runners, on Runner "kubernetes-agent\/prod-us": unassign its 1 Runner credential\(s\)\. The in-cluster Runner then reconnects on its next retry, still bound to this cluster\. Or delete the Runner/,
-    );
-    expect(gap.nextStep).toContain(
-      `Or delete the Runner and, once the in-cluster Runner registers a fresh one (within a minute), ${SELECT_STEP}.`,
-    );
-    expect(gap.nextStep).toContain(REBIND_PERMISSIONS);
-    expect(gap.nextStep).toContain(
-      "Deleting a Runner leaves the clusters it was bound to with no Runner bound",
-    );
-    // The removal comes first: it keeps the binding.
-    expect(gap.nextStep.indexOf("unassign its 1")).toBeLessThan(
-      gap.nextStep.indexOf("delete the Runner"),
-    );
+    expect(gap.title).toBe("The previous in-cluster Runner signed off");
+    expect(gap.nextStep.startsWith(UPGRADE_STEP)).toBe(true);
+    expect(gap.nextStep).toContain(AI_AGENT_INSTALL_COMMAND);
+    expect(gap.nextStep).not.toContain("unassign");
+    expect(gap.nextStep).not.toContain("AI page as its Runner");
   });
 
-  it("the refusal the Runner logs names the second step within the part it logs", async () => {
+  it("the refusal the Runner logs leads with the upgrade, then the removal, within the part it logs", async () => {
     const refusal: KubernetesAgentRegistrationRefusedException =
       await refusalOf(registerRestartedPod());
 
     expect(refusal.reason).toBe("runner_holds_more_than_defaults");
     const head: string = refusal.message.slice(0, 500);
+    expect(head.startsWith(UPGRADE_STEP)).toBe(true);
     expect(head).toContain(
-      `— or delete the Runner and, once the agent registers a fresh one on its next retry, ${SELECT_STEP}.`,
+      'Or, under Runbooks → Runners, on Runner "kubernetes-agent/prod-us": unassign its 1 Runner credential(s).',
     );
-    expect(refusal.message).toContain(REBIND_PERMISSIONS);
+    expect(refusal.message).not.toContain("AI page");
     // Nothing was written by the refused registration.
     expect(database.runnerUpdates).toEqual([]);
     expect(database.createdRunners).toEqual([]);
@@ -397,46 +412,28 @@ describe("the delete-the-Runner remedy for an agent Runner that holds more than 
   });
 
   /*
-   * The path the texts describe, step by step: the operator deletes the
-   * Runner, the pod registers a fresh one — and the cluster stays unbound
-   * until the fresh Runner is selected. That is why the texts must say so.
+   * The path the texts lead with, step by step: the chart upgrade installs
+   * the Kubernetes AI agent, which is the cluster's target the moment it is
+   * online — and from then on the stuck Runner's pod (if an old chart still
+   * runs it somewhere) is refused as superseded, not as holding too much.
    */
-  it("following the delete path: the fresh Runner registers but the cluster stays unbound, and its status then asks for the select step", async () => {
-    deleteRunner(database, AGENT_RUNNER_ID);
-    expect(database.cluster.aiAccessRunnerId).toBeNull();
-    expect(database.cluster.aiAccessRunnerBoundAt).toBeDefined();
+  it("following the upgrade: the AI agent serves the cluster and the old Runner is superseded", async () => {
+    installAiAgent(database);
 
-    const result: RegisterKubernetesAgentRunnerResult =
-      await registerRestartedPod();
-
-    expect(result.bindingState).toBe("left_unbound_by_operator");
-    expect(result.isBoundToCluster).toBe(false);
-    expect(result.runnerId.toString()).toBe(FRESH_RUNNER_ID.toString());
-    expect(database.createdRunners).toHaveLength(1);
-    expect(database.createdRunners[0]!.name).toBe(AGENT_RUNNER_NAME);
-
-    // No write bound the cluster to anything.
-    for (const update of database.clusterUpdates) {
-      expect(update).not.toHaveProperty("aiAccessRunnerId");
-    }
-    expect(database.cluster.aiAccessRunnerId).toBeNull();
-
-    // The status now asks for exactly the step the remedy named.
     const status: KubernetesClusterAiAccessStatus = await statusOf(database);
-    expect(status.isInvestigationReady).toBe(false);
-    const gap: KubernetesAiAccessGap = gapWithCode(status, "no_runner_bound");
-    expect(gap.title).toBe(
-      "The in-cluster Runner is installed but not selected",
-    );
-    expect(gap.nextStep).toContain(
-      `Select the kubernetes-agent Runner "${AGENT_RUNNER_NAME}" on the cluster's AI page as its Runner`,
-    );
+    expect(status.gaps).toEqual([]);
+    expect(status.runner?.kind).toBe("ai_agent");
+    expect(status.isInvestigationReady).toBe(true);
+
+    const refusal: KubernetesAgentRegistrationRefusedException =
+      await refusalOf(registerRestartedPod());
+    expect(refusal.reason).toBe("superseded_by_ai_agent");
+    expect(refusal.retryAfterSeconds).toBe(60);
   });
 
   /*
    * The other way out keeps the binding: once the holdings are gone the
-   * restarted pod re-keys the same row, and the cluster is still bound to it
-   * — which is what "still bound to this cluster" promises.
+   * restarted pod re-keys the same row, and the cluster is still bound to it.
    */
   it("following the removal path: the same Runner comes back and the cluster is still bound to it", async () => {
     database.assignedCredentials.clear();
@@ -453,11 +450,36 @@ describe("the delete-the-Runner remedy for an agent Runner that holds more than 
   });
 
   /*
-   * Negative control: the unbound outcome above comes from the cluster's
-   * history, not from the test harness. The same fresh registration for a
-   * cluster that never had a Runner bound, never ran kubectl and was never
-   * configured first-binds, and writes the binding.
+   * Deleting the Runner leaves the cluster unbound for good (the sticky
+   * no-rebind rule), and the status then asks for the AI agent — which
+   * serves the cluster as soon as it is installed.
    */
+  it("following a delete: the fresh Runner registers unbound, and the cluster is reached through its AI agent", async () => {
+    deleteRunner(database, AGENT_RUNNER_ID);
+    expect(database.cluster.aiAccessRunnerId).toBeNull();
+
+    const result: RegisterKubernetesAgentRunnerResult =
+      await registerRestartedPod();
+
+    expect(result.bindingState).toBe("left_unbound_by_operator");
+    expect(result.isBoundToCluster).toBe(false);
+    expect(result.runnerId.toString()).toBe(FRESH_RUNNER_ID.toString());
+    for (const update of database.clusterUpdates) {
+      expect(update).not.toHaveProperty("aiAccessRunnerId");
+    }
+
+    const before: KubernetesClusterAiAccessStatus = await statusOf(database);
+    expect(gapWithCode(before, "ai_agent_not_connected").nextStep).toContain(
+      AI_AGENT_INSTALL_COMMAND,
+    );
+
+    installAiAgent(database);
+
+    const after: KubernetesClusterAiAccessStatus = await statusOf(database);
+    expect(after.gaps).toEqual([]);
+    expect(after.runner?.kind).toBe("ai_agent");
+  });
+
   it("negative control: a cluster with no binding history first-binds the fresh Runner", async () => {
     deleteRunner(database, AGENT_RUNNER_ID);
     database.cluster = boundCluster({
@@ -479,18 +501,18 @@ describe("the delete-the-Runner remedy for an agent Runner that holds more than 
     );
   });
 
-  it("the shared note names the permissions from the catalog, the ones a Runner binding needs", () => {
+  it("the shared note says the clusters use their AI agent, and names who may bind a Runner again", () => {
     expect(getDeletedAgentRunnerRebindNote()).toBe(
-      `Deleting a Runner leaves the clusters it was bound to with no Runner bound, and a registering Runner never binds a cluster that had one. ${REBIND_PERMISSIONS}`,
+      `Deleting a Runner leaves the clusters it was bound to with no Runner bound; they then use their Kubernetes AI agent (upgrade the Kubernetes agent chart to install it). A registering Runner never binds a cluster that had one, and ${REBIND_PERMISSIONS}`,
     );
   });
 });
 
 /*
- * The runner_belongs_to_another_cluster refusal offered "Rename or delete".
- * An operator cannot rename an agent-named Runner (RunnerService refuses a
- * non-root rename of one), and a delete leaves a cluster bound to that row
- * unbound — so it offers the delete, with its second step.
+ * The runner_belongs_to_another_cluster refusal: an operator cannot rename
+ * an agent-named Runner (RunnerService refuses a non-root rename of one),
+ * and the Kubernetes AI agent does not use Runner names at all — so the
+ * step it leads with is the chart upgrade.
  */
 describe("the runner_belongs_to_another_cluster refusal", () => {
   let database: FakeDatabase;
@@ -504,6 +526,7 @@ describe("the runner_belongs_to_another_cluster refusal", () => {
 
     database = {
       cluster: boundCluster(),
+      aiAgent: null,
       runners: [
         offlineAgentRunner({
           hostInfo: {
@@ -523,37 +546,38 @@ describe("the runner_belongs_to_another_cluster refusal", () => {
     jest.restoreAllMocks();
   });
 
-  it("leads with the delete, says a rename is not possible, and names the select step", async () => {
+  it("leads with the chart upgrade and says the AI agent does not need that Runner", async () => {
     const refusal: KubernetesAgentRegistrationRefusedException =
       await refusalOf(registerRestartedPod());
 
     expect(refusal.reason).toBe("runner_belongs_to_another_cluster");
     expect(refusal.message).toMatch(
-      /^Delete Runner "kubernetes-agent\/prod-us" under Project Settings → Runners \(an in-cluster Runner cannot be renamed\) and, once the agent registers a fresh one on its next retry, select it on the AI page of cluster "prod-us" as its Runner\./,
+      /^Upgrade the Kubernetes agent chart of cluster "prod-us": its Kubernetes AI agent replaces the in-cluster Runner and does not need Runner "kubernetes-agent\/prod-us"\./,
     );
     expect(refusal.message).not.toContain("Rename or delete");
-    expect(refusal.message).toContain(REBIND_PERMISSIONS);
+    expect(refusal.message).not.toContain("AI page");
   });
 
-  it("following it: after the delete the fresh Runner registers, and the cluster that was bound to the old row stays unbound", async () => {
-    deleteRunner(database, AGENT_RUNNER_ID);
+  it("following it: once the AI agent is online the old name no longer matters", async () => {
+    installAiAgent(database);
 
-    const result: RegisterKubernetesAgentRunnerResult =
-      await registerRestartedPod();
+    const status: KubernetesClusterAiAccessStatus = await statusOf({
+      ...database,
+      cluster: boundCluster({ aiAccessRunnerId: null }),
+    });
 
-    expect(result.bindingState).toBe("left_unbound_by_operator");
-    expect(result.isBoundToCluster).toBe(false);
-    expect(database.cluster.aiAccessRunnerId).toBeNull();
+    expect(status.runner?.kind).toBe("ai_agent");
+    expect(status.gaps).toEqual([]);
   });
 });
 
 /*
- * runner_cluster_mismatch is shown only for a cluster BOUND to a Runner that
- * runs in another cluster. Round three said installing the in-cluster
- * Runner "binds itself" — but registration never replaces a cluster's
- * binding (bound_to_other_runner), so the select step is needed there too.
+ * A cluster BOUND to another cluster's in-cluster Runner: that Runner can
+ * never reach this cluster, so it is no access target. Registration still
+ * never replaces a cluster's binding (bound_to_other_runner), and the
+ * cluster is reached through its own Kubernetes AI agent.
  */
-describe("the runner_cluster_mismatch next step", () => {
+describe("a cluster bound to another cluster's in-cluster Runner", () => {
   let database: FakeDatabase;
 
   beforeEach(() => {
@@ -566,6 +590,7 @@ describe("the runner_cluster_mismatch next step", () => {
 
     database = {
       cluster: boundCluster({ aiAccessRunnerId: OTHER_RUNNER_ID }),
+      aiAgent: null,
       runners: [
         offlineAgentRunner({
           id: OTHER_RUNNER_ID,
@@ -594,19 +619,21 @@ describe("the runner_cluster_mismatch next step", () => {
     jest.restoreAllMocks();
   });
 
-  it("asks for the select step after the install, and no longer says the Runner binds itself", async () => {
-    const gap: KubernetesAiAccessGap = gapWithCode(
-      await statusOf(database),
-      "runner_cluster_mismatch",
+  it("reads as not connected, with the install step, until the AI agent is installed", async () => {
+    const before: KubernetesClusterAiAccessStatus = await statusOf(database);
+    expect(gapWithCode(before, "ai_agent_not_connected").nextStep).toContain(
+      AI_AGENT_INSTALL_COMMAND,
     );
+    expect(before.runner).toBeNull();
 
-    expect(gap.nextStep).toContain(
-      "Install the in-cluster Runner on THIS cluster with --set aiAccess.enabled=true and select it on the cluster's AI page as its Runner",
-    );
-    expect(gap.nextStep).not.toContain("binds itself");
+    installAiAgent(database);
+
+    const after: KubernetesClusterAiAccessStatus = await statusOf(database);
+    expect(after.gaps).toEqual([]);
+    expect(after.runner?.kind).toBe("ai_agent");
   });
 
-  it("following it: the installed Runner registers but the cluster stays bound to the other Runner until it is selected", async () => {
+  it("the previous in-cluster Runner registering here still does not steal the binding", async () => {
     const result: RegisterKubernetesAgentRunnerResult =
       await registerRestartedPod();
 

@@ -73,6 +73,8 @@ By default a RUM application's telemetry follows the project's retention setting
 
 Open the application and choose **Settings** to configure both overrides.
 
+Retention overrides are part of the [Enterprise Edition](/docs/self-hosted/enterprise), and of the Scale plan and above on OneUptime Cloud. Without them, the application's telemetry follows the project's default retention. Session Replay retention (below) is in every edition.
+
 Session Replay recordings have their **own** retention on that Settings page and on the application's _Replay Policy_ page. Both controls update the same policy, which defaults to 7 days (1, 14, 30 and 90 are the other choices) — deliberately much shorter, because a recording is far more sensitive and far larger than a span. Setting a 90-day telemetry retention does not extend recordings, and the session's metadata (counts, signals, device) expires together with its footage; only the logs, spans and exceptions of that session follow the telemetry retention. See [Retention and deletion](/docs/telemetry/session-replay#retention-and-deletion).
 
 RUM is often the highest-volume telemetry in a project, because it scales with your users rather than with your servers. A shorter retention here, with a longer one on backend services, is a common and sensible configuration.
@@ -105,11 +107,12 @@ The useful split: a support engineer with `ReadRumApplication` + `ReadRumSession
 
 ## Alerting on RUM data
 
-There is no separate "RUM monitor" type — RUM telemetry is ordinary logs, metrics and traces, so the existing monitors apply directly:
+There is no separate "RUM monitor" type — RUM telemetry is ordinary logs, metrics and traces, so the existing monitors apply directly. The quickest start is the application's **Recommendations** tab, which offers ready-made monitors already scoped to the application: for its Core Web Vitals, failed user operations and unhandled browser exceptions, and for its Session Replay storage budgets.
 
 - [Metrics Monitor](/docs/monitor/metrics-monitor) — alert on a Core Web Vital or any custom metric your app reports.
 - [Traces Monitor](/docs/monitor/traces-monitor) — alert on client-side error rate or latency.
 - [Logs Monitor](/docs/monitor/logs-monitor) — alert on a pattern in browser logs.
 - [Exceptions Monitor](/docs/monitor/exceptions-monitor) — alert on new or spiking client-side exceptions.
+- [Storage budget alerts](/docs/telemetry/session-replay#storage-budget-alerts) — hear when the project's daily Session Replay limit or the application's monthly budget is nearly spent, and again when it runs out and recorders are told to stop. Offered on the **Recommendations** tab once the application has recorded a replay; the monthly ones once it also has a monthly budget.
 
 Scope the monitor to the application so a backend service with a similar signature does not trigger it.

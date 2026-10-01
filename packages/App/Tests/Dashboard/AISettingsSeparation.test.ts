@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The four pages this file covers are React components, and react is a
+ * The pages this file covers are React components, and react is a
  * dependency of the Dashboard package alone — App's own `npm install` never
  * provides it, which is exactly why App's tsconfig excludes
  * FeatureSet/Dashboard. Importing the pages here would pull react into
@@ -93,9 +93,7 @@ interface SettingsPage {
   detailFields: Array<ConfiguredField>;
 }
 
-function settingsPage(...relativeParts: Array<string>): SettingsPage {
-  const source: string = read(...relativeParts);
-
+function settingsCard(source: string): SettingsPage {
   return {
     formFields: fieldsIn(
       sectionBetween(source, "formFields={[", "modelDetailProps={{"),
@@ -104,6 +102,26 @@ function settingsPage(...relativeParts: Array<string>): SettingsPage {
       sectionBetween(source, "modelDetailProps={{", "modelId:"),
     ),
   };
+}
+
+function settingsPage(...relativeParts: Array<string>): SettingsPage {
+  return settingsCard(read(...relativeParts));
+}
+
+/*
+ * Every CardModelDetail on a page, in source order. Each card saves on its
+ * own, so each one's fields are its whole update payload.
+ */
+function settingsCards(...relativeParts: Array<string>): Array<SettingsPage> {
+  return read(...relativeParts)
+    .split("<CardModelDetail")
+    .slice(1)
+    .filter((card: string): boolean => {
+      return card.includes("formFields={[");
+    })
+    .map((card: string): SettingsPage => {
+      return settingsCard(card);
+    });
 }
 
 const INCIDENT_PAGE: SettingsPage = settingsPage(
@@ -120,17 +138,54 @@ const ALERT_PAGE: SettingsPage = settingsPage(
   "AlertAISettings.tsx",
 );
 
-const GUARDRAILS_PAGE: SettingsPage = settingsPage(
+const INCIDENT_CARDS: Array<SettingsPage> = settingsCards(
+  "Pages",
+  "Incidents",
+  "Settings",
+  "IncidentAISettings.tsx",
+);
+
+const ALERT_CARDS: Array<SettingsPage> = settingsCards(
+  "Pages",
+  "Alerts",
+  "Settings",
+  "AlertAISettings.tsx",
+);
+
+const AI_FEATURES_PAGE: SettingsPage = settingsPage(
   "Pages",
   "Settings",
-  "AIGuardrails.tsx",
+  "AIFeatures.tsx",
 );
+
+// The project's AI switch, which lives on Project Settings → AI Features.
+const PROJECT_AI_SWITCH_FIELDS: Array<string> = ["enableAi"];
+
+/*
+ * The project switches folded into Enable AI. They are not Project columns
+ * any more, so nothing in the dashboard may read, write or name them.
+ */
+const RETIRED_PROJECT_AI_SWITCH_FIELDS: Array<string> = [
+  "enableAutoRemediation",
+  "enableAiCommandExecution",
+];
+
+// The titles their toggles had on the AI Features card.
+const RETIRED_PROJECT_AI_SWITCH_TITLES: Array<string> = [
+  "Enable Auto-Remediation",
+  "Enable AI Command Execution",
+];
+
+const POSTMORTEM_DRAFT_FIELDS: Array<string> = [
+  "enableAutomaticPostmortemDraft",
+];
 
 const INCIDENT_FIELDS: Array<string> = [
   "enableAutomaticIncidentInvestigation",
   "incidentInvestigationMinimumSeverity",
   "incidentInvestigationDedupeWindowMinutes",
   "incidentAiMaxConcurrentInvestigations",
+  "incidentAiInvestigationTimeLimitInMinutes",
   "incidentAiDailyAutonomousTokenLimit",
   "enableIncidentInstrumentationFixTasks",
   "enableAutomaticIncidentCodeFixes",
@@ -142,16 +197,11 @@ const ALERT_FIELDS: Array<string> = [
   "alertInvestigationMinimumSeverity",
   "alertInvestigationDedupeWindowMinutes",
   "alertAiMaxConcurrentInvestigations",
+  "alertAiInvestigationTimeLimitInMinutes",
   "alertAiDailyAutonomousTokenLimit",
   "enableAlertInstrumentationFixTasks",
   "enableAutomaticAlertCodeFixes",
   "alertAiDailyFixTaskLimit",
-];
-
-const OTHER_AI_GUARDRAIL_FIELDS: Array<string> = [
-  "aiMaxConcurrentInvestigations",
-  "aiDailyAutonomousTokenLimit",
-  "aiDailyFixTaskLimit",
 ];
 
 const LEGACY_SHARED_FIELDS: Array<string> = [
@@ -194,6 +244,22 @@ describe("incident and alert AI settings separation", () => {
     }
   });
 
+  test("each lane's investigation time limit is an optional Limits setting", () => {
+    for (const [page, field] of [
+      [INCIDENT_PAGE, "incidentAiInvestigationTimeLimitInMinutes"],
+      [ALERT_PAGE, "alertAiInvestigationTimeLimitInMinutes"],
+    ] as Array<[SettingsPage, string]>) {
+      const configured: Array<ConfiguredField> = page.formFields.filter(
+        (formField: ConfiguredField): boolean => {
+          return formField.name === field;
+        },
+      );
+
+      expect(configured).toHaveLength(1);
+      expect(configured[0]!.stepId).toBe("limits");
+    }
+  });
+
   test("each lane's follow-up PR controls stay on its Fix Tasks step", () => {
     const assertFixTaskStep: (
       page: SettingsPage,
@@ -218,37 +284,219 @@ describe("incident and alert AI settings separation", () => {
     ]);
   });
 
-  test("subjectless AI work keeps its three fallback limits on the dedicated guardrails page", () => {
-    expect(namesOf(GUARDRAILS_PAGE.formFields)).toEqual(
-      OTHER_AI_GUARDRAIL_FIELDS,
+  /*
+   * The "Other AI Workload Guardrails" page was removed: AI work with no
+   * incident or alert subject runs on the built-in defaults, so nothing in
+   * the dashboard should link to or write those legacy columns any more.
+   */
+  test("the Other AI Workload Guardrails page stays removed", () => {
+    expect(
+      fs.existsSync(
+        path.join(DASHBOARD_SRC, "Pages", "Settings", "AIGuardrails.tsx"),
+      ),
+    ).toBe(false);
+    expect(aiMenuSection()).not.toContain("AI Guardrails");
+    expect(read("Utils", "PageMap.ts")).not.toContain("SETTINGS_AI_GUARDRAILS");
+  });
+});
+
+// Every .ts and .tsx file under the Dashboard source, relative to it.
+function dashboardSourceFiles(
+  directory: string = DASHBOARD_SRC,
+): Array<string> {
+  const files: Array<string> = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entryPath: string = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...dashboardSourceFiles(entryPath));
+    } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+      files.push(path.relative(DASHBOARD_SRC, entryPath));
+    }
+  }
+
+  return files;
+}
+
+// The settings side menu's AI section, as source.
+function aiMenuSection(): string {
+  const source: string = read("Pages", "Settings", "SideMenu.tsx");
+  const sections: Array<string> = source.split(/^ {6}title: "/m);
+  const aiSection: string | undefined = sections.find(
+    (section: string): boolean => {
+      return section.startsWith('AI",');
+    },
+  );
+
+  if (!aiSection) {
+    throw new Error("Expected an AI section in the settings side menu.");
+  }
+
+  return aiSection;
+}
+
+/*
+ * The project's AI switch used to live on AI Credits — listed only when
+ * billing is on, so on a self-hosted install the master switch was reachable
+ * only by URL. It now has one home that every install shows. It is also the
+ * only one: "Enable auto-remediation" and "Enable AI command execution" were
+ * folded into it, so auto-remediation and AI commands on Runners are on
+ * exactly when Enable AI is.
+ */
+describe("the project's AI switches", () => {
+  test("AI Features edits and displays exactly one switch, Enable AI", () => {
+    expect(namesOf(AI_FEATURES_PAGE.formFields)).toEqual(
+      PROJECT_AI_SWITCH_FIELDS,
     );
-    expect(namesOf(GUARDRAILS_PAGE.detailFields)).toEqual(
-      OTHER_AI_GUARDRAIL_FIELDS,
+    expect(namesOf(AI_FEATURES_PAGE.detailFields)).toEqual(
+      PROJECT_AI_SWITCH_FIELDS,
     );
   });
 
+  test("AI Features gates its card on Enable AI alone", () => {
+    expect(read("Pages", "Settings", "AIFeatures.tsx")).toContain(
+      'export const AI_FEATURE_FIELDS: Array<"enableAi"> = ["enableAi"];',
+    );
+  });
+
+  test("AI Features never shows the switches folded into Enable AI", () => {
+    const source: string = read("Pages", "Settings", "AIFeatures.tsx");
+
+    for (const retired of [
+      ...RETIRED_PROJECT_AI_SWITCH_TITLES,
+      ...RETIRED_PROJECT_AI_SWITCH_FIELDS,
+    ]) {
+      expect({ retired, named: source.includes(retired) }).toEqual({
+        retired,
+        named: false,
+      });
+    }
+  });
+
   /*
-   * The guardrails page is the only home the three fallback limits have
-   * left, so it has to sit in the part of the AI menu that renders for
-   * every project — not inside the BILLING_ENABLED branch that hides AI
-   * Credits on a self-hosted install.
+   * The columns are gone from the model and the database. A page that still
+   * selected or wrote one would fail against the API, and copy that still
+   * named a toggle would send people looking for one that does not exist.
    */
-  test("AI Guardrails is in the always-visible AI menu section", () => {
-    const source: string = read("Pages", "Settings", "SideMenu.tsx");
-    const sections: Array<string> = source.split(/^ {6}title: "/m);
-    const aiSection: string | undefined = sections.find(
-      (section: string): boolean => {
-        return section.startsWith('AI",');
+  test("no Dashboard source reads, writes or names a retired switch", () => {
+    const files: Array<string> = dashboardSourceFiles();
+    const offenders: Array<string> = [];
+
+    // A walk that found nothing would pass vacuously.
+    expect(files).toContain(path.join("Pages", "Settings", "AIFeatures.tsx"));
+    expect(files.length).toBeGreaterThan(100);
+
+    for (const file of files) {
+      const source: string = read(file);
+
+      for (const retired of [
+        ...RETIRED_PROJECT_AI_SWITCH_FIELDS,
+        ...RETIRED_PROJECT_AI_SWITCH_TITLES,
+      ]) {
+        if (source.includes(retired)) {
+          offenders.push(`${file}: ${retired}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  test("AI Credits no longer carries any of them", () => {
+    const source: string = read("Pages", "Settings", "AICredits.tsx");
+    const credits: Array<string> = fieldsIn(source).map(
+      (field: ConfiguredField): string => {
+        return field.name;
       },
     );
 
-    expect(aiSection).toBeDefined();
-    expect(aiSection).toContain('title: "AI Guardrails"');
+    for (const field of [
+      ...PROJECT_AI_SWITCH_FIELDS,
+      ...RETIRED_PROJECT_AI_SWITCH_FIELDS,
+    ]) {
+      expect(credits).not.toContain(field);
+    }
+    // What stays: the balance and the recharge settings.
+    expect(credits).toContain("aiCurrentBalanceInUSDCents");
+    expect(credits).toContain("enableAutoRechargeAiBalance");
+  });
 
-    const guardrailsAt: number = aiSection!.indexOf('title: "AI Guardrails"');
-    const billingBranchAt: number = aiSection!.indexOf("BILLING_ENABLED");
+  test("no other AI settings page can write them", () => {
+    const otherPages: Array<SettingsPage> = [...INCIDENT_CARDS, ...ALERT_CARDS];
+
+    for (const page of otherPages) {
+      for (const field of PROJECT_AI_SWITCH_FIELDS) {
+        expect(namesOf(page.formFields)).not.toContain(field);
+      }
+    }
+  });
+
+  test("AI Features is the first item of the AI menu section, outside the billing branch", () => {
+    const aiSection: string = aiMenuSection();
+    const featuresAt: number = aiSection.indexOf('title: "AI Features"');
+    const firstItemAt: number = aiSection.indexOf("title: ");
+    const billingBranchAt: number = aiSection.indexOf("...(BILLING_ENABLED");
 
     expect(billingBranchAt).toBeGreaterThan(-1);
-    expect(guardrailsAt).toBeLessThan(billingBranchAt);
+    expect(featuresAt).toBeGreaterThan(-1);
+    expect(featuresAt).toBe(firstItemAt);
+    expect(featuresAt).toBeLessThan(billingBranchAt);
+    expect(aiSection).toContain("PageMap.SETTINGS_AI_FEATURES");
+  });
+
+  test("the page is routed", () => {
+    const routes: string = read("Routes", "SettingsRoutes.tsx");
+
+    expect(routes).toContain(
+      'import SettingsAIFeatures from "../Pages/Settings/AIFeatures";',
+    );
+    expect(routes).toContain(
+      "path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_FEATURES)}",
+    );
+    expect(read("Utils", "RouteMap.ts")).toContain(
+      '[PageMap.SETTINGS_AI_FEATURES]: "ai-features",',
+    );
+  });
+});
+
+/*
+ * Drafting a postmortem when an incident resolves used to ride on the
+ * automatic investigation switch. It is its own switch now, on its own card:
+ * a card writes every field it is given, so sharing a card with the
+ * investigation settings would let either save rewrite the other.
+ */
+describe("the automatic postmortem draft", () => {
+  test("has its own card on the incident AI settings page", () => {
+    expect(INCIDENT_CARDS.length).toBe(2);
+    expect(namesOf(INCIDENT_CARDS[1]!.formFields)).toEqual(
+      POSTMORTEM_DRAFT_FIELDS,
+    );
+    expect(namesOf(INCIDENT_CARDS[1]!.detailFields)).toEqual(
+      POSTMORTEM_DRAFT_FIELDS,
+    );
+  });
+
+  test("is not part of the investigation card's payload", () => {
+    expect(INCIDENT_CARDS[0]).toEqual(INCIDENT_PAGE);
+    expect(namesOf(INCIDENT_PAGE.formFields)).not.toContain(
+      "enableAutomaticPostmortemDraft",
+    );
+  });
+
+  test("is an incident setting only", () => {
+    for (const card of ALERT_CARDS) {
+      expect(namesOf(card.formFields)).not.toContain(
+        "enableAutomaticPostmortemDraft",
+      );
+    }
+  });
+
+  test("is labelled for what it does", () => {
+    expect(
+      read("Pages", "Incidents", "Settings", "IncidentAISettings.tsx"),
+    ).toContain(
+      'title: "Draft a postmortem automatically when an incident resolves"',
+    );
   });
 });

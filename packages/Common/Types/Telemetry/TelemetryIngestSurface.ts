@@ -34,7 +34,43 @@ enum TelemetryIngestSurface {
    * mint a Runner credential.
    */
   KubernetesAgentRunner = "kubernetes-agent-runner",
+  /*
+   * The Kubernetes AI agent the kubernetes-agent chart installs registers
+   * itself with the same project ingestion key the collector uses, and
+   * receives an agent key that every kubectl job for its cluster is claimed
+   * with. Server keys only, for the same reason as the Runner above.
+   */
+  KubernetesAiAgent = "kubernetes-ai-agent",
+  /*
+   * A resource AI agent (Docker, Podman, Docker Swarm, Proxmox, VMware,
+   * Ceph, a database server or a host) registers itself with the same
+   * project ingestion key its collector uses, and receives an agent key
+   * that every command for its resource is claimed with. Server keys only,
+   * for the same reason as the two above.
+   */
+  ResourceAiAgent = "resource-ai-agent",
 }
+
+/*
+ * Surfaces that mint an IDENTITY (a key that kubectl jobs for a cluster, or
+ * commands for another infrastructure resource, are targeted at) rather
+ * than accept telemetry. The ingest middleware holds
+ * every one of them to the same two extra rules, keyed on this set so a new
+ * identity surface cannot quietly miss one:
+ *
+ *   - a server key with no configured limit gets a conservative default
+ *     requests-per-minute ceiling instead of "unlimited";
+ *   - a key pinned to a single service is refused: its owner scoped it to
+ *     one service's telemetry, not to standing up cluster access.
+ *
+ * None of them is browser-allowed (see the allowlist below).
+ */
+export const IDENTITY_REGISTRATION_SURFACES: ReadonlySet<TelemetryIngestSurface> =
+  new Set<TelemetryIngestSurface>([
+    TelemetryIngestSurface.KubernetesAgentRunner,
+    TelemetryIngestSurface.KubernetesAiAgent,
+    TelemetryIngestSurface.ResourceAiAgent,
+  ]);
 
 /*
  * The only surfaces a Browser key may write to. This is an ALLOWLIST, not a
@@ -81,6 +117,10 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
   [TelemetryIngestSurface.Mqtt]: "MQTT ingest",
   [TelemetryIngestSurface.KubernetesAgentRunner]:
     "Kubernetes agent Runner registration",
+  [TelemetryIngestSurface.KubernetesAiAgent]:
+    "Kubernetes AI agent registration",
+  [TelemetryIngestSurface.ResourceAiAgent]:
+    "infrastructure AI agent registration",
 };
 
 type GetIngestSurfaceReadableNameFunction = (

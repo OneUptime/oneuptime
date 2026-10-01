@@ -696,6 +696,188 @@ jobs:
             --image runner \
             --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
 
+  # The Kubernetes AI agent, tagged like the Runner above. Nothing here runs
+  # it (test-helm-chart installs the oneuptime chart, not kubernetes-agent),
+  # so no job needs this one. It is here for two things: both architectures
+  # are built on every push to master, so a wrong arm64 kubectl digest fails
+  # now rather than in the release (the Build workflow's PR job is amd64
+  # only); and a test cluster can run master's agent from the `test` tag
+  # (aiAgent.image.tag=test with aiAgent.image.pullPolicy=Always).
+  kubernetes-ai-agent-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Build and push
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image kubernetes-ai-agent \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./agents/KubernetesAIAgent/Dockerfile \
+            --context . \
+            --platforms ${{ matrix.platform }} \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
+
+  kubernetes-ai-agent-docker-image-merge:
+    needs: [kubernetes-ai-agent-docker-image-build, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # Merge jobs only run `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke app-docker-image-merge on master).
+          driver: docker
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image kubernetes-ai-agent \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
+  # The resource AI agent, tagged like the Kubernetes AI agent above. Nothing
+  # here runs it, so no job needs this one. It is here for two things: both
+  # architectures are built on every push to master, so an Alpine package
+  # missing for arm64 (docker-cli, govc, ceph19-common, util-linux-misc) fails
+  # now rather than in the release (the Build workflow's PR job is amd64
+  # only); and a test host can run master's agent from the `test` tag
+  # (oneuptime/resource-ai-agent:test in the resource's docker-compose.yml).
+  resource-ai-agent-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Build and push
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image resource-ai-agent \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./agents/ResourceAIAgent/Dockerfile \
+            --context . \
+            --platforms ${{ matrix.platform }} \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
+
+  resource-ai-agent-docker-image-merge:
+    needs: [resource-ai-agent-docker-image-build, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # Merge jobs only run `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke app-docker-image-merge on master).
+          driver: docker
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image resource-ai-agent \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
   app-docker-image-build:
     needs: [read-version, generate-build-number]
     strategy:
@@ -919,6 +1101,24 @@ jobs:
           set -euo pipefail
           npm run prerun
           bash ./Tests/Scripts/enable-billing-env-var.sh
+      # The e2e container this job runs is built from source by
+      # Scripts/Dev/docker-compose.dev.yml, FROM
+      # public.ecr.aws/docker/library/node:26-bookworm-slim. public.ecr.aws
+      # serves anonymous pullers from one shared data quota that a busy CI
+      # window exhausts, and then that build dies on "429 Too Many Requests ...
+      # Data limit exceeded" with the whole stack already up. So seed the base
+      # image into the local image store first, from Docker Hub if ECR will not
+      # serve it, as the Build workflow does: compose builds through
+      # `docker buildx bake` on the runner's default builder (the docker driver;
+      # nothing in this job sets up another), which resolves FROM from the
+      # daemon's image store without asking any registry. Preinstall has just
+      # rendered the Dockerfile this reads. The Ops test
+      # Tests/Ops/KubernetesAiAgentRelease.test.js fails any job that builds
+      # from the dev compose file, with `docker compose -f` or `npm run dev`,
+      # without warming exactly the Dockerfiles it builds, after rendering them
+      # and before building them.
+      - name: Warm the base image of the e2e build
+        run: bash ./Scripts/GHA/warm_base_images.sh ./packages/E2E/Dockerfile
       - name: Inject billing (Stripe) config for SaaS e2e
         env:
           # Secret Stripe credentials (private key + webhook secret must not be
@@ -1084,6 +1284,14 @@ jobs:
         run: |
           set -euo pipefail
           npm run prerun
+      # The e2e container this job runs is built from source by
+      # Scripts/Dev/docker-compose.dev.yml, FROM
+      # public.ecr.aws/docker/library/node:26-bookworm-slim, and public.ecr.aws
+      # runs out of anonymous data quota in busy CI windows. Seed the base image
+      # into the local image store first, from Docker Hub if ECR will not serve
+      # it; see the same step in test-e2e-test-saas for why that is enough.
+      - name: Warm the base image of the e2e build
+        run: bash ./Scripts/GHA/warm_base_images.sh ./packages/E2E/Dockerfile
       - name: Pin APP_TAG to test release
         run: |
           set -euo pipefail
@@ -1151,18 +1359,22 @@ jobs:
   # SaaS job boots the same image with billing ON, where EnterpriseEdition
   # answers "OneUptime Cloud" to every check and the license decides nothing;
   # the self-hosted job boots the Community image, which has no ee/ at all. Only
-  # here does the LICENSE decide whether SSO, SCIM and audit logging run.
+  # here does the LICENSE decide whether SCIM and audit logging run. (Single
+  # sign-on is core: every stack serves it, and no license decides anything
+  # about it.)
   #
   # The suite runs in two phases against one stack:
   #
   #   A  licensed - a fresh Enterprise install is inside its 14-day unlicensed
-  #      trial, so the 44 identity routes answer through nginx, the dashboard
-  #      renders the SSO/OIDC/SCIM and audit-log screens instead of the upsell,
-  #      and the audit recorder writes a real row to ClickHouse.
+  #      trial, so the SCIM routes answer through nginx beside core's single
+  #      sign-on routes, the dashboard renders the SCIM and audit-log screens
+  #      instead of the upsell (and the SSO/OIDC screens with no license
+  #      notice), and the audit recorder writes a real row to ClickHouse.
   #   B  lapsed - the trial is pushed into the past and the SAME stack is
-  #      re-probed: the license gates refuse (402/403, not 404 - the routes are
-  #      still mounted), enterprise configuration becomes read-only, and
-  #      password sign-in still works.
+  #      re-probed: the SCIM gates refuse (403, not 404 - the routes are still
+  #      mounted), enterprise configuration becomes read-only, single sign-on
+  #      answers and works exactly as in phase A, and password sign-in still
+  #      works.
   #
   # In-process jest suites (test.ee.yaml) already cover route mounting, the gate
   # matrix, recorder eligibility and the license classifier. What only a booted
@@ -1202,6 +1414,14 @@ jobs:
         run: |
           set -euo pipefail
           npm run prerun
+      # Both phases below run the e2e container, which is built from source by
+      # Scripts/Dev/docker-compose.dev.yml, FROM
+      # public.ecr.aws/docker/library/node:26-bookworm-slim, and public.ecr.aws
+      # runs out of anonymous data quota in busy CI windows. Seed the base image
+      # into the local image store first, from Docker Hub if ECR will not serve
+      # it; see the same step in test-e2e-test-saas for why that is enough.
+      - name: Warm the base image of the e2e build
+        run: bash ./Scripts/GHA/warm_base_images.sh ./packages/E2E/Dockerfile
       # Billing is off, so the Enterprise Edition is requested through the image
       # tag alone - the enterprise- tag of the App, same one the SaaS job boots.
       - name: Pin APP_TAG to the enterprise test release
@@ -1240,9 +1460,9 @@ jobs:
           echo "${KEY}=true" >> "$GITHUB_ENV"
       # The App tag this job boots is a published enterprise- image, and the
       # whole job is meaningless if it is not really the Enterprise Edition: a
-      # Community image would answer 404 to every identity route and phase B
-      # would "pass" for the wrong reason. Check it before booting it: ee/ in
-      # the image and in its UI bundles, and the loader actually loading it.
+      # Community image would answer 404 to every SCIM route and phase B would
+      # "pass" for the wrong reason. Check it before booting it: ee/ in the
+      # image and in its UI bundles, and the loader actually loading it.
       - name: Check the App image is the Enterprise Edition
         env:
           APP_IMAGE: oneuptime/app:enterprise-${{needs.read-version.outputs.major_minor}}-test

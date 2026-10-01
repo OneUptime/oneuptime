@@ -1,3 +1,4 @@
+import { MAX_FIELD_LENGTH } from "../../../../../Server/Utils/AI/Toolbox/Serializer";
 import Log from "../../../../../Models/AnalyticsModels/Log";
 import LogService from "../../../../../Server/Services/LogService";
 import LogAggregationService, {
@@ -388,11 +389,13 @@ describe("search_logs", () => {
   });
 
   test("truncates very long log bodies in the model payload", async () => {
-    jest
-      .spyOn(LogService, "findBy")
-      .mockResolvedValue([
-        makeLog({ time: NOW, severityText: "Info", body: "x".repeat(2000) }),
-      ]);
+    jest.spyOn(LogService, "findBy").mockResolvedValue([
+      makeLog({
+        time: NOW,
+        severityText: "Info",
+        body: "x".repeat(MAX_FIELD_LENGTH * 2),
+      }),
+    ]);
 
     const result: ToolExecutionResult = await SearchLogsTool.execute(
       {},
@@ -401,7 +404,23 @@ describe("search_logs", () => {
 
     expect(result.isTruncated).toBe(true);
     expect(result.dataForLlm).toContain("… [truncated]");
-    expect(result.dataForLlm.length).toBeLessThan(700);
+    expect(result.dataForLlm.length).toBeLessThan(MAX_FIELD_LENGTH + 300);
+  });
+
+  test("keeps a long log line whole, stack trace included", async () => {
+    const body: string = `Error: connection refused\n${"    at frame (/app/x.ts:1:1)\n".repeat(40)}    at lastFrame (/app/last.ts:99:1)`;
+    jest
+      .spyOn(LogService, "findBy")
+      .mockResolvedValue([makeLog({ time: NOW, severityText: "Error", body })]);
+
+    const result: ToolExecutionResult = await SearchLogsTool.execute(
+      {},
+      context(),
+    );
+
+    expect(body.length).toBeGreaterThan(1000);
+    expect(result.isTruncated).toBe(false);
+    expect(result.dataForLlm).toContain("lastFrame (/app/last.ts:99:1)");
   });
 
   test("propagates service failures from execute", async () => {

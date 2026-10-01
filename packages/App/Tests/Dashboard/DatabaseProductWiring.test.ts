@@ -73,6 +73,8 @@ const DATABASE_PAGE_KEYS: ReadonlyArray<string> = [
   "DATABASE_SERVER_VIEW_OWNERS",
   "DATABASE_SERVER_VIEW_ENDPOINTS",
   "DATABASE_SERVER_VIEW_RECOMMENDATIONS",
+  "DATABASE_SERVER_VIEW_AI_INSIGHTS",
+  "DATABASE_SERVER_VIEW_AI_AGENT",
   "DATABASE_SERVER_VIEW_SETTINGS",
   "DATABASE_SERVER_VIEW_DOCUMENTATION",
   "DATABASE_SERVER_VIEW_DELETE",
@@ -101,6 +103,16 @@ const VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Settings.tsx", "DATABASE_SERVER_VIEW_SETTINGS"],
   ["Documentation.tsx", "DATABASE_SERVER_VIEW_DOCUMENTATION"],
   ["Delete.tsx", "DATABASE_SERVER_VIEW_DELETE"],
+];
+
+/*
+ * The database's AI section (AI → Insights, AI → AI agent): thin pages in
+ * View/AI that render the generic resource AI components, mounted two path
+ * segments deep (ai/insights, ai/agent) under the view layout.
+ */
+const AI_PAGES: ReadonlyArray<[string, string, string]> = [
+  ["Insights.tsx", "DATABASE_SERVER_VIEW_AI_INSIGHTS", "ai/insights"],
+  ["Agent.tsx", "DATABASE_SERVER_VIEW_AI_AGENT", "ai/agent"],
 ];
 
 /** Product-level pages (rendered under Pages/Database/Layout.tsx). */
@@ -392,6 +404,17 @@ describe("the side menus reach the whole product", () => {
     }
   });
 
+  test("the database side menu links to both AI pages in its AI section", () => {
+    const sideMenu: string = dense(
+      readSource("Pages", "Database", "View", "SideMenu.tsx"),
+    );
+
+    for (const [, key] of AI_PAGES) {
+      expect(sideMenu).toContain(`RouteMap[PageMap.${key}]asRoute`);
+    }
+    expect(sideMenu).toContain('<SideMenuSectiontitle="AI">');
+  });
+
   test("the activity badges count by the databaseServers relation", () => {
     const sideMenu: string = squash(
       readSource("Pages", "Database", "View", "SideMenu.tsx"),
@@ -401,6 +424,44 @@ describe("the side menus reach the whole product", () => {
       sideMenu.match(/databaseServers: new Includes\(\[props\.modelId\]\)/g),
     ).toHaveLength(3);
     expect(sideMenu).not.toContain("podmanHosts");
+  });
+});
+
+describe("the AI pages are routed like every other view page", () => {
+  const routesRaw: string = readSource("Routes", "DatabaseRoutes.tsx");
+
+  test.each(AI_PAGES)(
+    "Pages/Database/View/AI/%s exists, is imported and mounted two segments deep for %s",
+    (file: string, key: string, segment: string) => {
+      expect(
+        fs.existsSync(
+          path.join(DASHBOARD_SRC, "Pages", "Database", "View", "AI", file),
+        ),
+      ).toBe(true);
+      expect(routesRaw).toContain(
+        `from "../Pages/Database/View/AI/${file.replace(/\.tsx$/, "")}"`,
+      );
+      expect(dense(routesRaw)).toMatch(
+        new RegExp(`RouteUtil\\.getLastPathForKey\\(PageMap\\.${key},2,?\\)`),
+      );
+      expect(dense(readSource("Utils", "RouteMap.ts"))).toContain(
+        `[PageMap.${key}]:\`\${RouteParams.ModelID}/${segment}\``,
+      );
+    },
+  );
+
+  test("the AI pages render the generic resource AI components for a database server", () => {
+    for (const [file] of AI_PAGES) {
+      const source: string = readSource(
+        "Pages",
+        "Database",
+        "View",
+        "AI",
+        file,
+      );
+      expect(source).toContain("AiResourceType.DatabaseServer");
+      expect(source).toContain("Components/ResourceAiAgent/");
+    }
   });
 });
 
@@ -550,17 +611,23 @@ describe("the chip other products render for the databaseServers relation", () =
 });
 
 describe("the install guide embeds the real agent configuration", () => {
-  test("the card renders the markdown builder with the selected key", () => {
+  test("the card renders the setup guide builders with the selected key", () => {
     const card: string = squash(
       readSource("Components", "DatabaseServer", "DocumentationCard.tsx"),
     );
 
     expect(card).toContain("const DatabaseDocumentationCard");
-    expect(card).toContain("getDatabaseAgentInstallationMarkdown({");
-    expect(card).toContain("getDatabaseOwnCollectorMarkdown({");
-    expect(card).toContain("apiKey: apiKeyValue");
+    expect(card).toContain("<SetupGuideCard");
+    expect(card).toContain("getDatabaseAgentSetupGuide({");
+    expect(card).toContain("getDatabaseOwnCollectorSetupGuide({");
+    // The key SetupGuideCard's shared picker selected, and whether it is one.
+    expect(card.match(/apiKey: context\.apiKey,/g)?.length).toBe(2);
+    expect(card.match(/hasApiKey: context\.hasApiKey,/g)?.length).toBe(2);
     expect(card).toContain("RouteMap[PageMap.MONITOR_CREATE] as Route");
     expect(card).toContain("export default DatabaseDocumentationCard");
+    // The key picker is the shared one now: no private copy of it here.
+    expect(card).not.toContain("ModelFormModal");
+    expect(card).not.toContain("TelemetryIngestionKey");
   });
 
   test("the builder takes the configs from the generated embed, not a paraphrase", () => {

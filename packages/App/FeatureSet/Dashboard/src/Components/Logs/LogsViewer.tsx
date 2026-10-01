@@ -463,6 +463,54 @@ function buildBaseQuery(props: ComponentProps): Query<Log> {
   return query;
 }
 
+/*
+ * A host's logQuery by value, less its pinned window (the viewer follows
+ * that on its own; see getPinnedTimeRangeKey). Hosts hand over a new but
+ * equal query whenever they re-read one: the incident and alert pages on
+ * every background refresh, the telemetry snapshot card whenever it
+ * re-derives a companion. Only a change of value is a new scope.
+ */
+function getLogQueryScopeKey(logQuery: Query<Log> | undefined): string {
+  if (!logQuery) {
+    return "";
+  }
+
+  const scope: Record<string, unknown> = {
+    ...(logQuery as Record<string, unknown>),
+  };
+  delete scope["time"];
+
+  return JSON.stringify(scope);
+}
+
+// Everything buildBaseQuery scopes the list by, by value.
+function getLogsScopeKey(props: ComponentProps): string {
+  return JSON.stringify({
+    serviceIds: (props.serviceIds || []).map((serviceId: ObjectID): string => {
+      return serviceId.toString();
+    }),
+    traceIds: props.traceIds || [],
+    spanIds: props.spanIds || [],
+    sessionIds: props.sessionIds || [],
+    logQuery: getLogQueryScopeKey(props.logQuery),
+    entityScope: props.entityScope || null,
+  });
+}
+
+function getPinnedTimeRangeKey(
+  pinnedTimeRange: RangeStartAndEndDateTime | null,
+): string {
+  const window: InBetween<Date> | null = TelemetryQueryTimeRange.toDateWindow(
+    pinnedTimeRange?.startAndEndDate,
+  );
+
+  if (!window) {
+    return "";
+  }
+
+  return `${window.startValue.getTime()}|${window.endValue.getTime()}`;
+}
+
 function getApiUrl(path: string): URL {
   return URL.fromString(APP_API_URL.toString()).addRoute(path);
 }
@@ -654,24 +702,68 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     useRef<RangeStartAndEndDateTime>(timeRange);
   timeRangeRef.current = timeRange;
 
+  /*
+   * What the list is scoped to and pinned to, by value: the effect below
+   * runs when either one really changes, and never because a host handed
+   * over an equal query again. Re-running it for that would throw away a
+   * zoom the reader made in here (the incident page's background refresh
+   * did exactly that), along with their page and their typed search.
+   */
+  const scopeKey: string = useMemo((): string => {
+    return getLogsScopeKey(props);
+  }, [
+    props.serviceIds,
+    props.traceIds,
+    props.spanIds,
+    props.sessionIds,
+    props.logQuery,
+    props.entityScope,
+  ]);
+  const logQueryScopeKey: string = useMemo((): string => {
+    return getLogQueryScopeKey(props.logQuery);
+  }, [props.logQuery]);
+  const pinnedTimeRangeKey: string = getPinnedTimeRangeKey(pinnedTimeRange);
+
+  // The pin this viewer last followed; see the effect below.
+  const lastPinnedTimeRangeRef: React.MutableRefObject<RangeStartAndEndDateTime | null> =
+    useRef<RangeStartAndEndDateTime | null>(pinnedTimeRange);
+
   useEffect(() => {
+    const previousPin: RangeStartAndEndDateTime | null =
+      lastPinnedTimeRangeRef.current;
+    lastPinnedTimeRangeRef.current = pinnedTimeRange;
+
+    /*
+     * Only a pin that differs by value from the one it replaces is the
+     * host describing a different moment (the incident page re-reading
+     * another window, a snapshot zoomed or reset, the investigation drawer
+     * re-pinned). The same pin again is not, and must not take the reader
+     * back to it: the traces and exceptions explorers keep to the same
+     * rule.
+     */
+    const isNewPin: boolean =
+      Boolean(pinnedTimeRange) &&
+      !TelemetryQueryTimeRange.isSameRange(pinnedTimeRange, previousPin);
+
     const base: Query<Log> = buildBaseQuery(props);
 
     /*
-     * A new pinned window means the caller is describing a different moment
-     * (the incident page re-fetching), so follow it rather than re-stamping
-     * the window the user is currently looking at. With no pinned window this
-     * keeps the user's current picker value, as before.
+     * A new pinned window is followed rather than re-stamping the window
+     * the user is currently looking at. Anything else (a new scope under
+     * the same pin, or no pin at all) keeps the user's current picker
+     * value, a zoom made in here included: stamping the pin back onto the
+     * list alone would leave it describing a different window from the
+     * picker and the histogram.
      */
     const nextTimeRange: RangeStartAndEndDateTime =
-      pinnedTimeRange || timeRange;
+      isNewPin && pinnedTimeRange ? pinnedTimeRange : timeRange;
 
     /*
-     * Compare by value, not identity. A host that rebuilds its query object on
-     * every render hands us an equal-but-new window each time; setting state
-     * from it unconditionally would re-render, rebuild, and loop.
+     * Compare by value, not identity: setting state from an equal window
+     * would re-render and rebuild for nothing.
      */
     if (
+      isNewPin &&
       pinnedTimeRange &&
       !TelemetryQueryTimeRange.isSameRange(pinnedTimeRange, timeRange)
     ) {
@@ -694,14 +786,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
      */
     setFilterOptions(applyLogsFacetFiltersToQuery(base, appliedFacetFilters));
     setPage(1);
-  }, [
-    props.serviceIds,
-    props.traceIds,
-    props.spanIds,
-    props.sessionIds,
-    props.logQuery,
-    props.entityScope,
-  ]);
+  }, [scopeKey, pinnedTimeRangeKey]);
 
   /*
    * Mirror time range / chip filters / page / pageSize to the URL so refresh
@@ -876,7 +961,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
 
       return attributes;
-    }, [props.logQuery]);
+      /*
+       * Keyed on the query's value, not on the object: the chart and the
+       * facet counts reload whenever this changes identity, and an equal
+       * query handed over again must not reload them.
+       */
+    }, [logQueryScopeKey]);
 
   /*
    * Extract the entityKeys membership filter from logQuery so the histogram
@@ -897,7 +987,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     }
 
     return values;
-  }, [props.logQuery]);
+    // By value, like logQueryAttributes above.
+  }, [logQueryScopeKey]);
 
   const savedViewOptions: Array<LogsSavedViewOption> = useMemo(() => {
     return [...savedViews]

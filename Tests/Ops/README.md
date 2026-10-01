@@ -276,6 +276,22 @@ only a log line's `error` field, reports a failed EXPLAIN as a warning rather
 than a missing grant, and hands the ingestion key to a digest-pinned curl image
 on stdin, never on a command line.
 
+### `ContainerAgentAiInstallers.test.js`
+
+Runs the Docker, Podman and Docker Swarm agents' `install.sh` for real in a
+scratch directory, with `docker`, `podman` and `curl` replaced by recording
+stubs (no daemon or network needed; the Swarm installer runs under `sh`, and
+`INSTALL_DIR` points it at the scratch directory). It pins what they hand the
+OneUptime AI agent: `ONEUPTIME_AI_ALLOW_WRITES` reaches it as exactly `true`
+or `false`, read the way the agent reads it, so the script never says
+"read-only" over an agent that applies fixes; the Swarm installer writes
+`ONEUPTIME_AI_PROTECTED_TARGETS` into `.env` next to the write switch and the
+write targets (so a later `docker compose up -d` cannot drop the protection),
+keeps both target lists on a re-run unless the variable is passed, and makes
+the `.env` (it holds the ingestion key) mode 600; and on a node that is not a
+swarm manager it leaves the AI agent out and stops (never `rm -f`s) one it
+installed there before.
+
 ### `AgentTroubleshootTokenCheck.test.js`
 
 Runs the ingestion-key check of the Ceph, Proxmox, VMware and Docker Swarm
@@ -467,6 +483,63 @@ template, finds the ones with an `enterprise` stage (using the same line test
 as `build_docker_images.sh`, cross-checked against the stage parser) and
 asserts that set equals `ENTERPRISE_IMAGES`, which bash reads from the script.
 
+### `KubernetesAiAgentRelease.test.js`
+
+The kubernetes-agent chart installs the Kubernetes AI agent
+(`oneuptime/kubernetes-ai-agent`) by default, at the moving `release` tag, and
+the agent needs the same release's server. So release.yml builds and merges it
+with version tags only, moves its `release` tags in `push-release-tags` (with
+the App's, after the three e2e jobs), and `helm-chart-deploy` waits for that
+before it publishes the charts. The e2e jobs need `helm-chart-check` (lint and
+render only, the same commands) instead of the deploy, because
+`push-release-tags` needs them and the old edge would be a cycle.
+`generate-sboms` names the agent's merge, and `finalize-github-release` waits
+for the charts.
+
+The suite pins all of that, that the chart's default image, the server's
+`KUBERNETES_AI_AGENT_IMAGE_REPOSITORY` and the image release.yml builds are
+the same, that build.yml builds the image on every pull request (and that each
+of its image jobs warms the base images of exactly the Dockerfiles it builds,
+after rendering them and before building them), and that test-release.yaml
+builds both architectures on every push to master with the `test` tags. Every
+job of any workflow that builds from `Scripts/Dev/docker-compose.dev.yml` is
+held to the same warm-up rule, with the Dockerfiles it builds read from the
+compose file, what its services `depends_on` included. A build is read from a
+`docker compose -f` of that file that can build (`up`, `create`, `build`,
+`run`), which is how test-release.yaml's E2E jobs build their e2e container,
+and from `npm run dev`, read as the root package.json's `dev` script with its
+`--services`, which is how the Terraform Provider E2E bring-up builds `app` and
+`ingress`, both FROM public.ecr.aws images. The other npm scripts that build
+from it (`build`, `force-build`) are not read, and no workflow runs them. It
+also checks every workflow's `needs` for a job that does not exist and for
+cycles: GitHub refuses to run such a workflow, and nothing on a pull request
+runs release.yml.
+
+### `ResourceAiAgentRelease.test.js`
+
+The resource AI agent (`oneuptime/resource-ai-agent`, built from
+`agents/ResourceAIAgent`) is one image for every Docker, Podman, Swarm,
+Proxmox, VMware, Ceph, database and host agent, whose compose files run it at
+the moving `release` tag next to the collector. Like the Kubernetes AI agent it
+needs the same release's server (`/resource-ai-agent-ingest`, and the command
+policy it carries a copy of), so it is released the same way: release.yml
+builds and merges it with version tags only, `push-release-tags` moves its
+`release` tags with the App's after the three e2e jobs, and `generate-sboms`
+names its merge.
+
+The suite pins that, that `generate_sboms.sh` scans it (and that every image
+release.yml builds is scanned or skipped on purpose), that the server's
+`RESOURCE_AI_AGENT_IMAGE_REPOSITORY` (and the agent's copy of it) names the
+image release.yml builds, that its package is at `VERSION`, that build.yml
+builds it on every pull request after warming its base image, that
+test-release.yaml builds both architectures with the `test` tags, that
+`test.resource-ai-agent.yaml` runs the agent's own tests and Common-copy check
+with the Node major the image runs, and that every file in the repository that
+names the image with a tag (compose files, install scripts, READMEs, docs)
+names one that is published: `release`, `test`, their `enterprise-` forms, a
+version, or a placeholder. There is no `latest`. The workflow helpers it uses
+are in `Utils/ReleaseWorkflow.js`.
+
 ### `UpdateNpmCli.test.js`
 
 npm bundles its whole dependency tree, so the `tar`, `undici`,
@@ -502,6 +575,13 @@ What keeps the images free of the rest of what scanners reported, for every
   that could need it (`apk del .gyp`, or `apt-get purge --auto-remove`);
 - tini is started from the path the image's package manager installs it to;
 - the Runner still installs the command-line tools the full image provided;
+- the Kubernetes AI agent ships only node, tini, the CA store and one kubectl
+  binary, copied in from a stage that checked it against a pinned sha256 (the
+  download tool never ships), and runs the compiled agent as `node`;
+- the resource AI agent is one stage that installs only the CA store, tini
+  and, from Alpine's own packages, the programs its executors run (docker-cli,
+  govc, ceph19-common, util-linux-misc), and runs the compiled agent as `node`
+  by default;
 - E2E installs itself with `--ignore-scripts` (its `preinstall` would install
   a second, unpinned set of browsers and WebKit's libraries), only while no
   dependency has an install script, and installs exactly the engines its
@@ -538,6 +618,13 @@ whitespace trimming). It throws on anything else. It also finds every
 `Utils/DockerfileContext.js` parses `COPY`/`ADD` (shell and JSON forms) and
 `RUN --mount`, and reports every way a stage can take `ee/` from the build
 context or from a stage that holds it.
+
+`Utils/ReleaseWorkflow.js` reads the image-release workflows: a job's needs
+(directly and transitively), the command lines of its steps (backslash
+continuations joined), the flags of its `build_docker_images.sh` and
+`merge_docker_manifests.sh` calls, which Dockerfiles it builds and warms, and a
+bash array out of a script. `KubernetesAiAgentRelease.test.js` keeps its own
+copies of these helpers as written; new image release tests use this module.
 
 `Utils/Xml.js` is a small strict XML parser. The repo root has no XML parser
 installed and these tests intentionally add no dependency; it exists so both

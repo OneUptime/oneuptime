@@ -55,6 +55,7 @@ import User from "Common/Models/DatabaseModels/User";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
 import IncidentCustomFieldsCopy from "../../../Components/Incident/IncidentCustomFieldsCopy";
+import IncidentCustomFieldSettingsCard from "../../../Components/Incident/IncidentCustomFieldSettingsCard";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
@@ -340,6 +341,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description:
             "Monitors, hosts, Kubernetes clusters, Docker hosts, and services that incidents created from this template should pre-populate.",
         }}
+        createEditModalWidth={ModalWidth.Medium}
         isEditable={true}
         formFields={[
           {
@@ -621,6 +623,18 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ) : (
         <></>
       )}
+
+      {/*
+       * Which of those fields the Details step asks for, and requires, when
+       * an incident is declared from this template ("Custom Fields on
+       * Create"). Also nothing when the project has no incident custom
+       * fields.
+       */}
+      <IncidentCustomFieldSettingsCard
+        mode="template"
+        modelType={IncidentTemplate}
+        modelId={modelId}
+      />
 
       <ModelTable<IncidentTemplateOwnerTeam>
         modelType={IncidentTemplateOwnerTeam}

@@ -89,7 +89,7 @@ if [[ -z "$VERSION" ]]; then
 fi
 
 # Keep in sync with the *-docker-image-build jobs in release.yml. The drift
-# check below fails the build if they diverge, so adding a 13th image without
+# check below fails the build if they diverge, so adding a 15th image without
 # adding it here is caught in CI rather than silently shipping an SBOM set that
 # is missing an image.
 IMAGES=(
@@ -97,18 +97,20 @@ IMAGES=(
 	app
 	docker-agent
 	e2e
+	kubernetes-ai-agent
 	kubernetes-cost-agent
 	kubernetes-log-tailer
 	nginx
 	podman-agent
 	probe
+	resource-ai-agent
 	test
 	test-server
 )
 
 # Images release.yml builds that this script deliberately does not scan. The
 # drift check below requires every built image to appear in exactly one of the
-# two lists, so a thirteenth image still cannot silently skip SBOM coverage — it
+# two lists, so a fifteenth image still cannot silently skip SBOM coverage — it
 # has to be named here, on purpose.
 #
 # home is the marketing site and documentation hub for oneuptime.com, and it is
@@ -251,7 +253,7 @@ scan_image() {
 # image and scan it out of the local daemon instead.
 #
 # The image is removed immediately afterwards. home is ~8GB and this loop makes
-# 24 scans, so anything left behind would fill the runner.
+# 28 scans, so anything left behind would fill the runner.
 scan_image_via_docker() {
 	local ref="$1"
 	local platform="$2"
@@ -302,7 +304,7 @@ for target in "${SCAN_TARGETS[@]}"; do
 
 		echo "📦 Scanning ${ref} (${platform})"
 
-		# Retried rather than run once: this loop makes 24 back-to-back reads
+		# Retried rather than run once: this loop makes 28 back-to-back reads
 		# of every layer of every image, which is enough to trip GHCR's rate
 		# limiter. See Scripts/GHA/retry.sh — the retry is conditional, so a
 		# tag that genuinely is not there still fails on the first attempt.

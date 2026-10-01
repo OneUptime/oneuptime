@@ -35,6 +35,7 @@ import HiddenFacetsFooter from "../../TelemetryViewer/components/HiddenFacetsFoo
 import {
   FacetVisibility,
   computeFacetVisibility,
+  getFacetValuesInScope,
   getSidebarFacetEmptyStateText,
 } from "../../TelemetryViewer/FacetVisibility";
 import useFacetSearchExemptions, {
@@ -80,6 +81,12 @@ export interface LogsFacetSidebarProps {
    * only, so the sidebar stays mounted and keeps its search and expand state.
    */
   isCollapsedOnSmallScreens?: boolean | undefined;
+  /*
+   * The viewer is pinned to a scope (it shows locked chips): list only the
+   * values found in it, never the project's zero-count catalog padding.
+   * See getFacetValuesInScope.
+   */
+  onlyShowValuesInScope?: boolean | undefined;
 }
 
 /*
@@ -339,10 +346,20 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
     onFacetSearchChange: props.onFacetSearchChange,
   });
 
+  // What the sections list: under a locked scope, only values in it.
+  const facetData: FacetData = useMemo(() => {
+    return props.onlyShowValuesInScope
+      ? getFacetValuesInScope({
+          facetData: props.facetData,
+          activeValuesByKey: activeValuesByKey,
+        })
+      : props.facetData;
+  }, [props.onlyShowValuesInScope, props.facetData, activeValuesByKey]);
+
   const visibility: FacetVisibility = useMemo(() => {
     return computeFacetVisibility({
       keys: facetKeys,
-      facetData: props.facetData,
+      facetData: facetData,
       isHideable: isHideableFacetKey,
       activeValuesByKey: activeValuesByKey,
       searchExemptKeys: facetSearch.searchExemptKeys,
@@ -351,7 +368,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
     });
   }, [
     facetKeys,
-    props.facetData,
+    facetData,
     activeValuesByKey,
     facetSearch.searchExemptKeys,
     showHidden,
@@ -387,7 +404,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
         )}
 
         {visibility.visibleKeys.map((key: string) => {
-          const values: Array<FacetValue> = props.facetData[key] || [];
+          const values: Array<FacetValue> = facetData[key] || [];
 
           let valueDisplayMap: Record<string, string> | undefined;
           let valueColorMap: Record<string, string> | undefined;
@@ -435,6 +452,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
                 isHideable: isHideableFacetKey(key),
                 emptyStateNoun: getResourceFacetDefinition(key)?.pluralLabel,
                 searchedAtArrivalText: facetSearch.searchedAtArrivalByKey[key],
+                isScoped: props.onlyShowValuesInScope,
               })}
             />
           );

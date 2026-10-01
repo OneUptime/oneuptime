@@ -34,17 +34,15 @@ import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillin
 import {
   MIN_SCIM_BEARER_TOKEN_LENGTH,
   SCIM_BEARER_TOKEN_BYTES,
-  buildDisableProviderUpdate,
   buildRotateBearerTokenUpdate,
   generateScimBearerToken,
-} from "../../../Dashboard/SSO/TightenOnly/TightenOnlyUpdates";
+} from "../../../Dashboard/Identity/TightenOnly/TightenOnlyUpdates";
 
 /*
- * The contract between the Enterprise identity screens and the server, for
- * the two updates the screens send while the license makes configuration
- * read-only (ee/Dashboard/SSO/TightenOnly/TightenOnlyUpdates.ts):
+ * The contract between the Enterprise SCIM screens and the server, for the
+ * update the screens send while the license makes configuration read-only
+ * (ee/Dashboard/Identity/TightenOnly/TightenOnlyUpdates.ts):
  *
- *   "Disable"             { isEnabled: false }
  *   "Reset Bearer Token"  { bearerToken: <new token> }
  *
  * The server lets an update through without a license only when it is
@@ -52,10 +50,15 @@ import {
  * the UI adding a column, the server renaming one, the minimum token length
  * changing on one side - the screens would offer an action that is answered
  * "license required" in the middle of an incident. This pins them together:
- * the UI's own payload builders against the server's own rule, for every
- * model a screen sends them to, after the same JSON round trip and body
+ * the UI's own payload builder against the server's own rule, for every
+ * model a screen sends it to, after the same JSON round trip and body
  * handling BaseAPI.updateItem does, and through the full edition check with
  * the license expired and on the Community Edition.
+ *
+ * Single sign-on is the other side of the same coin: its screens are core
+ * pages that offer every create and update in every edition and license
+ * state, with no tighten-only mode. That holds only while the server never
+ * asks for a license on the single sign-on models, which the last block pins.
  *
  * Which screen sends which payload to which model is pinned on the UI side,
  * by ee/Tests/UI/Identity/ReadOnlyIncidentActions.test.tsx.
@@ -77,22 +80,22 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 
 type ModelType = { new (): BaseModel };
 
-// The models the screens send "Disable" to, and where.
-const DISABLE_TARGETS: ReadonlyArray<[string, ModelType]> = [
-  ["Settings > SSO", ProjectSSO],
-  ["Settings > OIDC", ProjectOIDC],
-  ["Status page > SSO", StatusPageSSO],
-  ["Status page > OIDC", StatusPageOIDC],
-  ["Admin > Global SSO (list and provider page)", GlobalSSO],
-  ["Admin > Global OIDC (list and provider page)", GlobalOIDC],
-  ["Admin > Global SSO > attached projects", GlobalSSOProject],
-  ["Admin > Global OIDC > attached projects", GlobalOIDCProject],
-];
-
 // The models the screens send "Reset Bearer Token" to, and where.
 const ROTATE_TARGETS: ReadonlyArray<[string, ModelType]> = [
   ["Settings > SCIM", ProjectSCIM],
   ["Status page > SCIM", StatusPageSCIM],
+];
+
+// The single sign-on models the core screens create and update.
+const SSO_MODELS: ReadonlyArray<[string, ModelType]> = [
+  ["Settings > SSO", ProjectSSO],
+  ["Settings > OIDC", ProjectOIDC],
+  ["Status page > SSO", StatusPageSSO],
+  ["Status page > OIDC", StatusPageOIDC],
+  ["Admin > Global SSO", GlobalSSO],
+  ["Admin > Global OIDC", GlobalOIDC],
+  ["Admin > Global SSO > attached projects", GlobalSSOProject],
+  ["Admin > Global OIDC > attached projects", GlobalOIDCProject],
 ];
 
 const tableNameOf: (modelType: ModelType) => string = (
@@ -137,9 +140,7 @@ const callerFor: (modelType: ModelType) => DatabaseCommonInteractionProps = (
   modelType: ModelType,
 ): DatabaseCommonInteractionProps => {
   // Global providers are only ever written by master admins.
-  const tableName: string = tableNameOf(modelType);
-
-  if (tableName.startsWith("Global")) {
+  if (tableNameOf(modelType).startsWith("Global")) {
     return { userId: USER_ID, isMasterAdmin: true };
   }
 
@@ -148,15 +149,20 @@ const callerFor: (modelType: ModelType) => DatabaseCommonInteractionProps = (
 
 type Outcome = "allowed" | "refused";
 
-const runEditionCheck: (modelType: ModelType, data: unknown) => Outcome = (
+const runEditionCheck: (
   modelType: ModelType,
   data: unknown,
+  requestType?: DatabaseRequestType,
+) => Outcome = (
+  modelType: ModelType,
+  data: unknown,
+  requestType: DatabaseRequestType = DatabaseRequestType.Update,
 ): Outcome => {
   try {
     EditionPermissions.checkEditionPermissions(
       modelType,
       callerFor(modelType),
-      DatabaseRequestType.Update,
+      requestType,
       data,
     );
 
@@ -201,7 +207,7 @@ afterEach(() => {
   setTestBillingEnabled(false);
 });
 
-describe("the UI's tighten-only payloads and the server's rule", () => {
+describe("the UI's tighten-only payload and the server's rule", () => {
   test("the UI asks for the same minimum bearer-token length as the server, and generates longer tokens", () => {
     expect(MIN_SCIM_BEARER_TOKEN_LENGTH).toBe(
       MIN_ROTATED_SCIM_BEARER_TOKEN_LENGTH,
@@ -222,13 +228,6 @@ describe("the UI's tighten-only payloads and the server's rule", () => {
       Array<string>
     >();
 
-    for (const [, modelType] of DISABLE_TARGETS) {
-      uiColumns.set(
-        tableNameOf(modelType),
-        Object.keys(buildDisableProviderUpdate()),
-      );
-    }
-
     for (const [, modelType] of ROTATE_TARGETS) {
       uiColumns.set(
         tableNameOf(modelType),
@@ -244,27 +243,6 @@ describe("the UI's tighten-only payloads and the server's rule", () => {
       expect(columns).toEqual(serverColumns.get(tableName));
     }
   });
-
-  test.each(DISABLE_TARGETS)(
-    "%s: Disable's payload is tighten-only for its table, as sent and as received",
-    (_screen: string, modelType: ModelType) => {
-      const tableName: string = tableNameOf(modelType);
-      const payload: JSONObject = buildDisableProviderUpdate();
-
-      expect(EditionPermissions.isTightenOnlyUpdate(tableName, payload)).toBe(
-        true,
-      );
-      expect(
-        EditionPermissions.isTightenOnlyUpdate(
-          tableName,
-          asReceivedByServer(modelType, payload),
-        ),
-      ).toBe(true);
-      expect(asReceivedByServer(modelType, payload)).toEqual({
-        isEnabled: false,
-      });
-    },
-  );
 
   test.each(ROTATE_TARGETS)(
     "%s: every generated Reset Bearer Token payload is tighten-only for its table, as sent and as received",
@@ -292,18 +270,9 @@ describe("the UI's tighten-only payloads and the server's rule", () => {
   );
 
   test.each(LICENSE_UNAVAILABLE)(
-    "with %s, the full edition check lets both payloads through for every target",
+    "with %s, the full edition check lets the payload through for every target",
     (_state: string, install: () => void) => {
       install();
-
-      for (const [, modelType] of DISABLE_TARGETS) {
-        expect(
-          runEditionCheck(
-            modelType,
-            asReceivedByServer(modelType, buildDisableProviderUpdate()),
-          ),
-        ).toBe("allowed");
-      }
 
       for (const [, modelType] of ROTATE_TARGETS) {
         expect(
@@ -324,25 +293,9 @@ describe("the UI's tighten-only payloads and the server's rule", () => {
    * let everything through. These are the updates a form would send.
    */
   test.each(LICENSE_UNAVAILABLE)(
-    "with %s, one column more, or a payload on the wrong kind of table, is refused",
+    "with %s, one column more, a short token, or another kind of update is refused",
     (_state: string, install: () => void) => {
       install();
-
-      for (const [, modelType] of DISABLE_TARGETS) {
-        expect(
-          runEditionCheck(modelType, {
-            ...buildDisableProviderUpdate(),
-            name: "Okta",
-          }),
-        ).toBe("refused");
-        expect(runEditionCheck(modelType, { isEnabled: true })).toBe("refused");
-        expect(
-          runEditionCheck(
-            modelType,
-            buildRotateBearerTokenUpdate(generateScimBearerToken()),
-          ),
-        ).toBe("refused");
-      }
 
       for (const [, modelType] of ROTATE_TARGETS) {
         expect(
@@ -356,20 +309,65 @@ describe("the UI's tighten-only payloads and the server's rule", () => {
             bearerToken: "a".repeat(MIN_ROTATED_SCIM_BEARER_TOKEN_LENGTH - 1),
           }),
         ).toBe("refused");
-        expect(runEditionCheck(modelType, buildDisableProviderUpdate())).toBe(
+        expect(runEditionCheck(modelType, { isEnabled: false })).toBe(
           "refused",
         );
       }
     },
   );
 
-  test("a license that is valid lets everything through, so the payloads above are what make the difference", () => {
+  test("a license that is valid lets everything through, so the payload above is what makes the difference", () => {
     installFakeEnterpriseModule();
 
     expect(EnterpriseEdition.isLoaded()).toBe(true);
 
-    for (const [, modelType] of [...DISABLE_TARGETS, ...ROTATE_TARGETS]) {
+    for (const [, modelType] of ROTATE_TARGETS) {
       expect(runEditionCheck(modelType, { name: "Okta" })).toBe("allowed");
+    }
+  });
+});
+
+describe("the single sign-on models need no license", () => {
+  test("the server has no tighten-only rule for them: their updates are ordinary ones", () => {
+    const serverTables: Array<string> = Array.from(
+      EditionPermissions.getTightenOnlyColumns().keys(),
+    );
+
+    for (const [, modelType] of SSO_MODELS) {
+      expect(serverTables).not.toContain(tableNameOf(modelType));
+    }
+  });
+
+  test.each(LICENSE_UNAVAILABLE)(
+    "with %s, creating and changing any single sign-on configuration passes the edition check",
+    (_state: string, install: () => void) => {
+      install();
+
+      for (const [, modelType] of SSO_MODELS) {
+        expect(
+          runEditionCheck(
+            modelType,
+            { name: "Okta", isEnabled: true },
+            DatabaseRequestType.Create,
+          ),
+        ).toBe("allowed");
+        expect(
+          runEditionCheck(modelType, { name: "Okta", isEnabled: true }),
+        ).toBe("allowed");
+        expect(runEditionCheck(modelType, { isEnabled: false })).toBe(
+          "allowed",
+        );
+      }
+    },
+  );
+
+  test("with a valid license, the same writes pass too", () => {
+    installFakeEnterpriseModule();
+
+    for (const [, modelType] of SSO_MODELS) {
+      expect(
+        runEditionCheck(modelType, { name: "Okta", isEnabled: true }),
+      ).toBe("allowed");
     }
   });
 });
@@ -386,7 +384,7 @@ describe("the tighten-only UI code", () => {
     "..",
     "..",
     "Dashboard",
-    "SSO",
+    "Identity",
     "TightenOnly",
   );
 

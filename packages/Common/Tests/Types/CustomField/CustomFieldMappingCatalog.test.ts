@@ -1,11 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import CustomFieldMappingSourceResource from "../../../Types/CustomField/CustomFieldMappingSourceResource";
 import {
+  CustomFieldMappingColumns,
   CustomFieldMappingSourceInfo,
+  getCustomFieldInheritanceSource,
   getCustomFieldMappingRelationSelect,
   getCustomFieldMappingSource,
   getCustomFieldMappingSources,
   hasCustomFieldMappingSource,
+  isCustomFieldInheritedByRecord,
 } from "../../../Types/CustomField/CustomFieldMappingCatalog";
 import AlertCustomField from "../../../Models/DatabaseModels/AlertCustomField";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
@@ -216,5 +219,93 @@ describe("hasCustomFieldMappingSource", () => {
     expect(
       hasCustomFieldMappingSource({ source: incidentSource, record: null }),
     ).toBe(false);
+  });
+});
+
+/*
+ * The one rule every form that decides whether to ask a field follows: the
+ * dashboard's Declare Incident form (isCustomFieldInherited) and the public
+ * incident forms. A field copied from a monitor is not asked once the record
+ * has a monitor - the value would only be replaced.
+ */
+describe("isCustomFieldInheritedByRecord", () => {
+  const INCIDENT_TABLE: string = new IncidentCustomField().tableName!;
+
+  const MAPPED: CustomFieldMappingColumns = {
+    mapFromResourceType: CustomFieldMappingSourceResource.Monitor,
+    mapFromCustomFieldName: "Region",
+  };
+
+  test("a mapped field on a record with a monitor is inherited", () => {
+    expect(
+      isCustomFieldInheritedByRecord({
+        definitionTableName: INCIDENT_TABLE,
+        definition: MAPPED,
+        record: { monitors: [{ _id: "m1" }] },
+      }),
+    ).toBe(true);
+  });
+
+  test.each([
+    ["no monitors", { monitors: [] }],
+    ["no monitors column", {}],
+    ["no record", null],
+  ])(
+    "a mapped field on a record with %s is typed in",
+    (_label: string, record: Record<string, unknown> | null) => {
+      expect(
+        isCustomFieldInheritedByRecord({
+          definitionTableName: INCIDENT_TABLE,
+          definition: MAPPED,
+          record: record,
+        }),
+      ).toBe(false);
+    },
+  );
+
+  test.each([
+    ["no mapping", {}],
+    ["only a resource", { mapFromResourceType: "Monitor" }],
+    ["only a source field", { mapFromCustomFieldName: "Region" }],
+    [
+      "a resource the table cannot reach",
+      { mapFromResourceType: "Host", mapFromCustomFieldName: "Region" },
+    ],
+  ])(
+    "a field with %s is typed in, monitor or not",
+    (_label: string, definition: CustomFieldMappingColumns) => {
+      expect(
+        isCustomFieldInheritedByRecord({
+          definitionTableName: INCIDENT_TABLE,
+          definition: definition,
+          record: { monitors: [{ _id: "m1" }] },
+        }),
+      ).toBe(false);
+    },
+  );
+
+  test("a table with no sources inherits nothing", () => {
+    expect(
+      isCustomFieldInheritedByRecord({
+        definitionTableName: new TeamCustomField().tableName!,
+        definition: MAPPED,
+        record: { monitors: [{ _id: "m1" }] },
+      }),
+    ).toBe(false);
+  });
+
+  test("names the source a mapped field copies from", () => {
+    expect(
+      getCustomFieldInheritanceSource({
+        definitionTableName: INCIDENT_TABLE,
+        definition: MAPPED,
+      })?.targetRelationProperty,
+    ).toBe("monitors");
+    expect(
+      getCustomFieldInheritanceSource({
+        definitionTableName: INCIDENT_TABLE,
+        definition: {},
+      }),
+    ).toBeUndefined();
   });
 });

@@ -956,18 +956,16 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
       )}
 
       {(viewMode === "json" || loadError) && (
-        <div className="rounded-md border border-gray-200 overflow-hidden">
-          <CodeEditor
-            type={CodeType.JSON}
-            value={jsonText}
-            onChange={onJsonChange}
-            placeholder={
-              props.placeholder || 'Example: {"columnName": true, ...}'
-            }
-            error={props.error}
-            tabIndex={props.tabIndex}
-          />
-        </div>
+        <CodeEditor
+          type={CodeType.JSON}
+          value={jsonText}
+          onChange={onJsonChange}
+          placeholder={
+            props.placeholder || 'Example: {"columnName": true, ...}'
+          }
+          error={props.error}
+          tabIndex={props.tabIndex}
+        />
       )}
 
       {viewMode === "picker" && !loadError && (

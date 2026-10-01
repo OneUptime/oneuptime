@@ -19,8 +19,8 @@ const ScheduledMaintenancesPage: FunctionComponent<
         },
       }}
       noItemsMessage="No ongoing events so far."
-      title="Ongoing Scheduled Maintenances"
-      description="Here is a list of all the ongoing events for this project."
+      title="Ongoing Scheduled Maintenance"
+      description="Scheduled maintenance events that are in progress right now. An event leaves this list when it ends."
     />
   );
 };

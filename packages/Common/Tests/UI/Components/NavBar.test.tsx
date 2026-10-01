@@ -114,6 +114,51 @@ describe("Navbar", () => {
     expect(screen.queryByText("Home")).not.toBeInTheDocument();
   });
 
+  it("uses a product's additional active routes in the mobile selector", () => {
+    /*
+     * Tasks owns /code-repository too (its side menu holds Code
+     * Repositories). The desktop crumb already honoured that; the phone
+     * header fell back to Home.
+     */
+    const projectId: string = "10000000-0000-4000-8000-000000000001";
+
+    Navigation.setLocation({
+      pathname: `/dashboard/${projectId}/code-repository`,
+      search: "",
+      hash: "",
+      state: null,
+      key: "test",
+    } as Location);
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 375,
+    });
+
+    const home: NavItem = {
+      id: "home-nav-bar-item",
+      title: "Home",
+      icon: IconProp.Home,
+      route: new Route(`/dashboard/${projectId}/home`),
+    };
+    const tasks: MoreMenuItem = {
+      title: "Tasks",
+      description: "AI opens pull requests that fix your code.",
+      icon: IconProp.CPUChip,
+      route: new Route(`/dashboard/${projectId}/ai/agents`),
+      activeRoute: new Route("/dashboard/:projectId/ai/agents"),
+      additionalActiveRoutes: [
+        new Route("/dashboard/:projectId/code-repository"),
+      ],
+    };
+
+    render(<Navbar items={[home]} moreMenuItems={[tasks]} />);
+
+    expect(screen.getByTestId("mobile-nav-toggle")).toBeInTheDocument();
+    expect(screen.getByText("Tasks")).toBeInTheDocument();
+    expect(screen.queryByText("Home")).not.toBeInTheDocument();
+  });
+
   it("uses a product's section-wide active route in the desktop selector", () => {
     const projectId: string = "10000000-0000-4000-8000-000000000001";
     const path: string = `/dashboard/${projectId}/exceptions/overview`;

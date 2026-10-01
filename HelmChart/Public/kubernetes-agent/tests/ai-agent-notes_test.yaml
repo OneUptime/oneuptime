@@ -1,0 +1,361 @@
+# NOTES.txt for the Kubernetes AI agent. The notes are the one place every
+# operator reads after `helm install` / `helm upgrade`, so they must:
+#   (a) render at all on a release from an older chart — `--reuse-values`
+#       feeds the templates the previous release's values, where
+#       `.Values.aiAgent` is nil and, on 14.0.2 to 14.0.8, a fully populated
+#       aiAccess block sits in its place — and say what was actually rendered,
+#       carried-over aiAccess settings included (the notes read the same
+#       helper templates/ai-agent.yaml renders from);
+#   (b) say plainly whether the agent is on and read-only, where its log is
+#       (`-l component=ai-agent`), how to turn it off, and — on a read-only
+#       install — the one upgrade that grants write access, with this
+#       release's own name and namespace and `helm repo update` first;
+#   (c) when write access is on, say what it amounts to and where it is
+#       bound, and never call RBAC an outer bound: patch on workloads and
+#       pods is as good as running any image as any ServiceAccount in that
+#       namespace. Say that every listed namespace must already exist, that
+#       `--set-json 'aiAgent.remediation.namespaces=[]'` goes back to
+#       cluster-wide, that a drain, a taint or a patch of a node always waits
+#       for a human, and that nodeOperations=false reaches the agent too;
+#   (d) never send anyone to the Runner, the ai-runner pod or aiAccess.* flags.
+#
+# helm-unittest only hands raw text to the regex asserts for NOTES.txt (for a
+# manifest template they see nil), which is why these live in their own suite
+# rather than next to the RBAC assertions in ai-agent_test.yaml.
+suite: kubernetes ai agent notes
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/NOTES.txt
+tests:
+  - it: says the agent is on and read-only by default, where its log is, and how to turn it off
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - matchRegexRaw:
+          pattern: "  - Kubernetes AI agent: lets OneUptime AI run read-only kubectl while it investigates incidents and alerts\n"
+      - matchRegexRaw:
+          pattern: "\nKubernetes AI agent: on, read-only.\nIt connects with the same API key and cluster name"
+      - matchRegexRaw:
+          pattern: "shows it as\nConnected"
+      - matchRegexRaw:
+          pattern: "  kubectl logs -n oneuptime -l component=ai-agent --tail=100\nTurn it off with --set aiAgent.enabled=false.\n"
+      # Nothing about write scope on a read-only install.
+      - notMatchRegexRaw:
+          pattern: "Write access is bound"
+      - notMatchRegexRaw:
+          pattern: "Node operations"
+      - notMatchRegexRaw:
+          pattern: "any image as any ServiceAccount"
+
+  - it: offers a read-only install the one upgrade that grants write access, for this release, after a repo update
+    release:
+      name: my-agent
+      namespace: monitoring
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - matchRegexRaw:
+          pattern: "  helm repo update\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --reuse-values --set aiAgent.remediation.enabled=true --set \"aiAgent.remediation.namespaces=\\{web,api\\}\" --set aiAgent.remediation.nodeOperations=false\n"
+      - matchRegexRaw:
+          pattern: "grant write access in the\nnamespaces it may change \\(each must already exist\\)"
+      - matchRegexRaw:
+          pattern: "kubectl logs -n monitoring -l component=ai-agent --tail=100"
+
+  - it: tells a self-hosted operator what a refused or unsupported registration looks like
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - matchRegexRaw:
+          pattern: "whether a refusal clears on its\nown, or what to change"
+      - matchRegexRaw:
+          pattern: "an API key with a Pinned Service Name cannot register\nit"
+      - matchRegexRaw:
+          pattern: "a self-hosted OneUptime server older than this chart has no AI agent\nAPI, so upgrade OneUptime first"
+
+  - it: renders with an empty oneuptime.url and apiKey, as the release pipeline's render check does
+    set:
+      clusterName: ci-render-check
+    asserts:
+      - matchRegexRaw:
+          pattern: "Kubernetes AI agent: on, read-only."
+
+  - it: says the agent is off, and how to turn it on, when aiAgent.enabled=false
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "The Kubernetes AI agent is off \\(aiAgent.enabled=false\\)."
+      - matchRegexRaw:
+          pattern: "  helm repo update\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reuse-values --set aiAgent.enabled=true\n"
+      - notMatchRegexRaw:
+          pattern: "component=ai-agent"
+      - notMatchRegexRaw:
+          pattern: "  - Kubernetes AI agent"
+
+  - it: never promises that an already-connected cluster flips to ask-for-approval
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.remediation.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "  - Kubernetes AI agent: lets OneUptime AI run kubectl to investigate AND fix incidents and alerts\n"
+      - matchRegexRaw:
+          pattern: "Kubernetes AI agent: on, with write access."
+      # The server picks "ask for approval" only on a cluster's first
+      # connection, and keeps settings someone already picked.
+      - matchRegexRaw:
+          pattern: "A cluster whose agent connects for the first time with write access starts in\n\"ask for approval\", unless AI settings were already picked on its AI agent\npage before the install, which are kept as chosen. Otherwise pick how fixes\nrun on that page."
+      - notMatchRegexRaw:
+          pattern: "ask for approval by default"
+      # Set explicitly, so nothing was carried over.
+      - notMatchRegexRaw:
+          pattern: "carried over"
+      # No grant-writes command when writes are already on.
+      - notMatchRegexRaw:
+          pattern: "--set aiAgent.remediation.enabled=true"
+
+  - it: says what cluster-wide write access amounts to and what holds the line in the system namespaces
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.remediation.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "patch on workloads and pods \\(and create on\njobs\\) in a namespace is as good as running any image as any ServiceAccount\nthere and reading its Secrets"
+      - matchRegexRaw:
+          pattern: "It still allows changing an image \\(set\nimage\\) as a riskier change a human approves unless the cluster bypasses\napprovals or its allowlist names the command."
+      - matchRegexRaw:
+          pattern: "patches that replace the pod spec or a whole containers list\nincluded\\), and expose --overrides."
+      - matchRegexRaw:
+          pattern: "Write access is bound cluster-wide. RBAC cannot keep it out of kube-system,\nkube-public, kube-node-lease or oneuptime: there OneUptime's policy \\(never\nwithout a human in the three system namespaces\\) and the agent \\(never its own\nnamespace\\) hold the line."
+      - matchRegexRaw:
+          pattern: "\\(every listed namespace must already exist\\):\n  --set \"aiAgent.remediation.namespaces=\\{web,api\\}\""
+      - matchRegexRaw:
+          pattern: "Node operations \\(cordon, uncordon, taint, drain\\) are on, cluster-wide. A drain\nevicts pods in every namespace, kube-system and oneuptime included, so a drain,\na taint or a patch of a node always waits for a human, in every mode; turn\nnode operations off with --set aiAgent.remediation.nodeOperations=false."
+      # RBAC is not an outer bound on code execution or Secret access, and
+      # the policy refuses SOME ways to run another image, not all of them.
+      - notMatchRegexRaw:
+          pattern: "outer bound"
+      - notMatchRegexRaw:
+          pattern: "refuses the commands that would do that"
+
+  - it: names the namespaces write access is bound in, how to reset the list, and that node operations are off
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.remediation.enabled: true
+      aiAgent.remediation.namespaces:
+        - prod
+        - web
+      aiAgent.remediation.nodeOperations: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "Write access is bound only in: prod, web \\(aiAgent.remediation.namespaces\\)."
+      - notMatchRegexRaw:
+          pattern: "bound cluster-wide"
+      # A RoleBinding in a namespace that does not exist fails the upgrade;
+      # say so, and how to go back to cluster-wide under --reuse-values.
+      - matchRegexRaw:
+          pattern: "Each listed namespace must already exist: the chart creates a RoleBinding in\neach and never creates a namespace, so a missing one fails every install or\nupgrade with 'namespaces \"<name>\" not found'."
+      - matchRegexRaw:
+          pattern: "Take a namespace off the list\nbefore you delete it; --set-json 'aiAgent.remediation.namespaces=\\[\\]' goes\nback to cluster-wide."
+      - matchRegexRaw:
+          pattern: "A fix outside these namespaces is refused when it is\nproposed or approved, and the agent refuses it again before it runs kubectl."
+      # The agent refuses node operations too, not only RBAC.
+      - matchRegexRaw:
+          pattern: "Node operations \\(cordon, uncordon, taint, drain\\) are off: the chart grants no\nnode RBAC, and the agent refuses them before it runs kubectl. OneUptime refuses\na node fix already when it is proposed or approved."
+
+  # ---- Upgrading a release from an older chart --------------------------------
+
+  - it: renders the read-only notes on a release from a chart before aiAccess upgraded with plain --reuse-values
+    values:
+      - values/pre-ai-no-ai-values.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - matchRegexRaw:
+          pattern: "Kubernetes AI agent: on, read-only."
+      - matchRegexRaw:
+          pattern: "--reuse-values --set aiAgent.remediation.enabled=true"
+
+  - it: renders the read-only notes on a 14.0.x release that stored aiAccess.enabled=false, never the off branch
+    values:
+      - values/aiaccess-14.0.x-defaults.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - matchRegexRaw:
+          pattern: "Kubernetes AI agent: on, read-only."
+      - notMatchRegexRaw:
+          pattern: "is off"
+      - notMatchRegexRaw:
+          pattern: "carried over"
+
+  - it: says write access was carried over from aiAccess, and where it is bound, on a 14.0.x release with scoped write access
+    values:
+      - values/aiaccess-14.0.x-remediation-scoped.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - matchRegexRaw:
+          pattern: "Kubernetes AI agent: on, with write access."
+      - matchRegexRaw:
+          pattern: "Write access was carried over from aiAccess.remediation.enabled; change it\nwith aiAgent.remediation.\\* from now on."
+      - matchRegexRaw:
+          pattern: "Write access is bound only in: web, api \\(aiAccess.remediation.namespaces\\)."
+      - matchRegexRaw:
+          pattern: "Node operations \\(cordon, uncordon, taint, drain\\) are off"
+
+  - it: renders the cluster-wide write notes on a 14.0.x release with cluster-wide write access
+    values:
+      - values/aiaccess-14.0.x-remediation-cluster-wide.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - matchRegexRaw:
+          pattern: "Write access was carried over from aiAccess.remediation.enabled"
+      - matchRegexRaw:
+          pattern: "Write access is bound cluster-wide."
+      - matchRegexRaw:
+          pattern: "Node operations \\(cordon, uncordon, taint, drain\\) are on, cluster-wide."
+
+  - it: renders the read-only notes after an explicit revoke of carried-over write access
+    values:
+      - values/aiaccess-14.0.x-remediation-cluster-wide.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.remediation.enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "Kubernetes AI agent: on, read-only."
+      - notMatchRegexRaw:
+          pattern: "Write access is bound"
+      - notMatchRegexRaw:
+          pattern: "carried over"
+
+  - it: names aiAgent.remediation.namespaces once an explicit list replaces a carried-over one
+    values:
+      - values/aiaccess-14.0.x-remediation-scoped.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.remediation.namespaces:
+        - payments
+    asserts:
+      - matchRegexRaw:
+          pattern: "Write access is bound only in: payments \\(aiAgent.remediation.namespaces\\)."
+
+  - it: renders the off notes on an explicit aiAgent.enabled=false, even on a 14.0.x release with write access
+    values:
+      - values/aiaccess-14.0.x-remediation-scoped.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "The Kubernetes AI agent is off"
+      - notMatchRegexRaw:
+          pattern: "Write access"
+
+  - it: renders the off notes, not a refusal, when a disabled agent's write list holds the release's own namespace
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.enabled: false
+      aiAgent.remediation.enabled: true
+      aiAgent.remediation.namespaces:
+        - oneuptime
+    asserts:
+      - matchRegexRaw:
+          pattern: "The Kubernetes AI agent is off \\(aiAgent.enabled=false\\)."
+      - notMatchRegexRaw:
+          pattern: "Write access"
+
+  # ---- Never the Runner --------------------------------------------------------
+
+  - it: never points at the Runner, its pod or the aiAccess flags with write access on
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.remediation.enabled: true
+      aiAgent.remediation.nodeOperations: false
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "ai-runner"
+      - notMatchRegexRaw:
+          pattern: "Runner"
+      - notMatchRegexRaw:
+          pattern: "--set aiAccess"
+      # Chart 0.7.0 is never published: released charts carry the OneUptime
+      # version, so a version number here would only mislead.
+      - notMatchRegexRaw:
+          pattern: "0\\.7\\.0"
+
+  - it: never points at the Runner, its pod or the aiAccess flags on a read-only install either
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - matchRegexRaw:
+          pattern: "Kubernetes AI agent: on, read-only."
+      - notMatchRegexRaw:
+          pattern: "ai-runner"
+      - notMatchRegexRaw:
+          pattern: "Runner"
+      - notMatchRegexRaw:
+          pattern: "--set aiAccess"
+      - notMatchRegexRaw:
+          pattern: "0\\.7\\.0"
+
+  - it: never points at the Runner, its pod or the aiAccess flags on a disabled install either
+    values:
+      # A 14.0.x release with write access stored: the off branch must not
+      # fall back on any of it.
+      - values/aiaccess-14.0.x-remediation-scoped.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "The Kubernetes AI agent is off \\(aiAgent.enabled=false\\)."
+      - notMatchRegexRaw:
+          pattern: "ai-runner"
+      - notMatchRegexRaw:
+          pattern: "Runner"
+      - notMatchRegexRaw:
+          pattern: "--set aiAccess"
+      - notMatchRegexRaw:
+          pattern: "0\\.7\\.0"

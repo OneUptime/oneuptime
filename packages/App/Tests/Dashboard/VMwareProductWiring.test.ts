@@ -74,6 +74,9 @@ const VMWARE_PAGE_KEYS: ReadonlyArray<string> = [
   "VMWARE_VCENTER_VIEW_RESOURCE_POOLS",
   "VMWARE_VCENTER_VIEW_INSIGHTS",
   "VMWARE_VCENTER_VIEW_RECOMMENDATIONS",
+  // AI → Insights and AI → AI agent (thin pages in View/AI).
+  "VMWARE_VCENTER_VIEW_AI_INSIGHTS",
+  "VMWARE_VCENTER_VIEW_AI_AGENT",
   "VMWARE_VCENTER_VIEW_METRICS",
   "VMWARE_VCENTER_VIEW_LOGS",
   "VMWARE_VCENTER_VIEW_INCIDENTS",
@@ -534,7 +537,15 @@ describe("the install guide embeds the real agent configuration", () => {
      * from the Proxmox guide) registers nothing.
      */
     expect(markdownSource).toContain("key: vmware.vcenter.name");
-    expect(markdownSource).toContain("VMWARE_VCENTER_NAME=my-vcenter");
+    /*
+     * The `.env` block names the vCenter through VMWARE_VCENTER_NAME: the
+     * vCenter's own name on its Documentation tab, `my-vcenter` otherwise
+     * (the rendered block is pinned in Common's VMwareSetupGuide.test.ts).
+     */
+    expect(markdownSource).toMatch(/^VMWARE_VCENTER_NAME=\$\{/m);
+    expect(markdownSource).toContain(
+      'VMWARE_EXAMPLE_VCENTER_NAME: string = "my-vcenter"',
+    );
     expect(markdownSource).not.toContain("proxmox.cluster.name");
     expect(markdownSource).not.toContain("PROXMOX_CLUSTER_NAME");
   });
@@ -638,13 +649,19 @@ describe("the install guide embeds the real agent configuration", () => {
   });
 
   test("the documentation card renders the guide with the selected key", () => {
+    /*
+     * The card is the shared SetupGuideCard (its key step picks the key);
+     * the guide is rebuilt from the picked key on every render.
+     */
     const card: string = squash(
       readSource("Components", "VMware", "DocumentationCard.tsx"),
     );
 
     expect(card).toContain("const VMwareDocumentationCard");
-    expect(card).toContain("getVMwareInstallationMarkdown({");
-    expect(card).toContain("apiKey: apiKeyValue");
+    expect(card).toContain("<SetupGuideCard");
+    expect(card).toContain("getVMwareSetupGuide({");
+    expect(card).toContain("apiKey: context.apiKey");
+    expect(card).toContain("hasApiKey: context.hasApiKey");
     expect(card).toContain("export default VMwareDocumentationCard");
   });
 });

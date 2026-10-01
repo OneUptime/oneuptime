@@ -1,0 +1,466 @@
+# `kubeStateMetrics.endpoint`, `cost.engine.url` and `cost.metrics.endpoint`
+# are URLs, but a Prometheus scrape job does not take a URL: it takes a
+# `scheme`, a bare host:port target, and a `metrics_path`. The chart used to
+# cut the URL down to host:port and write only that, which went wrong two ways:
+#
+#   - The scheme was dropped, so an https:// endpoint was scraped in plain
+#     HTTP. The sibling suite, external-metrics-https_test.yaml, pins that.
+#   - What the trimming did not recognise stayed IN the target: a trailing
+#     slash, any path but /metrics, an upper-case scheme. The prometheus
+#     receiver rejects a target with a "/" in it ("... is not a valid
+#     hostname") while it loads its config, so the collector never starts.
+#     That is not one job failing: the Deployment crash-loops and every
+#     cluster metric and Kubernetes event stops, after a `helm install` that
+#     reported success.
+#
+# The chart now splits the URL (the `kubernetes-agent.scrapeEndpoint` helper)
+# and refuses, while it renders, the URLs a scrape job cannot express.
+#
+# The "renders" assertions read the job with the ConfigMap's own indent
+# stripped: `- job_name:` at 8 spaces, its keys at 10, `- targets:` at 12, a
+# target at 16. Each pattern spells out the WHOLE job, from `job_name` to the
+# first line past its last key, and the only gaps are comment lines. So a
+# `scheme:` or `metrics_path:` that should not be there fails the match
+# wherever in the job it was written, instead of slipping past a "does not
+# contain" check. The patterns are long and all one shape; edit the two or
+# three words that differ.
+#
+# The "refuses" assertions match the error with `errorMessage`, whole, every
+# time. helm-unittest 0.5.1, the version the harness pins, does not enforce
+# `failedTemplate.errorPattern`: a pattern that cannot match still passes, so
+# it would only say "the render failed", not why. Matching the whole message
+# also pins that it names the setting and never repeats the URL.
+suite: external metrics scrapes follow the whole endpoint URL
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-deployment.yaml
+tests:
+  # --- kube-state-metrics: what renders -------------------------------------
+
+  - it: writes no scheme or path for an ordinary http KSM endpoint
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: http://kube-state-metrics.kube-system.svc.cluster.local:8080/metrics
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-state-metrics\\n          scrape_interval: 30s\\n          # [^\\n]*\\n          static_configs:\\n            - targets:\\n                - \"kube-state-metrics\\.kube-system\\.svc\\.cluster\\.local:8080\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: takes a KSM endpoint written without a scheme as plain http
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: kube-state-metrics.kube-system:8080
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-state-metrics\\n          scrape_interval: 30s\\n          # [^\\n]*\\n          static_configs:\\n            - targets:\\n                - \"kube-state-metrics\\.kube-system:8080\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: drops a trailing slash from the KSM target
+    # "host:port/" as a target is what stopped the collector from starting.
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: http://ksm.example.com:8080/
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-state-metrics\\n          scrape_interval: 30s\\n          # [^\\n]*\\n          static_configs:\\n            - targets:\\n                - \"ksm\\.example\\.com:8080\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: reads /metrics/ as the default path, not as part of the KSM target
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: https://ksm.example.com:8443/metrics/
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-state-metrics\\n          scrape_interval: 30s\\n          scheme: https\\n          # [^\\n]*\\n          static_configs:\\n            - targets:\\n                - \"ksm\\.example\\.com:8443\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: scrapes a KSM endpoint under a path at that path
+    # A KSM published behind an ingress prefix. The path is not /metrics, so
+    # it has to be said; the host alone is the target.
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: https://monitoring.example.com/ksm/metrics/
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-state-metrics\\n          scrape_interval: 30s\\n          scheme: https\\n          metrics_path: \"/ksm/metrics\"\\n          # [^\\n]*\\n          static_configs:\\n            - targets:\\n                - \"monitoring\\.example\\.com\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: scrapes a plain http KSM endpoint under a path without a scheme
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: http://ksm.example.com:8080/ksm/metrics
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-state-metrics\\n          scrape_interval: 30s\\n          metrics_path: \"/ksm/metrics\"\\n          # [^\\n]*\\n          static_configs:\\n            - targets:\\n                - \"ksm\\.example\\.com:8080\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: recognises the scheme whatever its case
+    # A URL scheme is case-insensitive. "HTTPS://host" left in the target is
+    # another target with a slash in it.
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: HTTPS://ksm.example.com:8443/metrics
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-state-metrics\\n          scrape_interval: 30s\\n          scheme: https\\n          # [^\\n]*\\n          static_configs:\\n            - targets:\\n                - \"ksm\\.example\\.com:8443\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: scrapes an https KSM endpoint with no port and lets the scheme pick it
+    # With `scheme: https` the receiver dials 443. Without it, this was :80.
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: https://ksm.example.com
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-state-metrics\\n          scrape_interval: 30s\\n          scheme: https\\n          # [^\\n]*\\n          static_configs:\\n            - targets:\\n                - \"ksm\\.example\\.com\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: keeps an IPv6 literal whole, brackets and port
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: "https://[fd00::1]:8443/metrics"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-state-metrics\\n          scrape_interval: 30s\\n          scheme: https\\n          # [^\\n]*\\n          static_configs:\\n            - targets:\\n                - \"\\[fd00::1\\]:8443\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: ignores white space around the KSM endpoint
+    # A value pasted with a trailing newline, or folded from a block scalar.
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: "  http://ksm.example.com:8080/metrics\n"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-state-metrics\\n          scrape_interval: 30s\\n          # [^\\n]*\\n          static_configs:\\n            - targets:\\n                - \"ksm\\.example\\.com:8080\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: ignores the external endpoint while the bundled KSM is in use
+    # `endpoint` is documented as external-only. Left set after switching
+    # back to bundled, its scheme and path must not leak onto the scrape of
+    # the chart's own plain-http Service, and a URL the external job would
+    # refuse must not stop a render that never reads it.
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: bundled
+      kubeStateMetrics.endpoint: https://user:password@monitoring.example.com/ksm/metrics?x=1
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-state-metrics\\n          scrape_interval: 30s\\n          # [^\\n]*\\n          static_configs:\\n            - targets:\\n                - \"oneuptime-agent-kubernetes-agent-kube-state-metrics\\.oneuptime\\.svc\\.cluster\\.local:8080\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  # --- kube-state-metrics: what is refused ----------------------------------
+
+  - it: refuses external mode with no endpoint
+    # It used to render a job with the target "", which the receiver drops with
+    # one "no address" line and never mentions again.
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+    asserts:
+      - failedTemplate:
+          errorMessage: "kubeStateMetrics.endpoint is empty, and it is the URL to scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional)."
+
+  - it: refuses external mode with a null endpoint
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: null
+    asserts:
+      - failedTemplate:
+          errorMessage: "kubeStateMetrics.endpoint is empty, and it is the URL to scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional)."
+
+  - it: refuses credentials in the KSM endpoint, without repeating them
+    # Left in the target they authenticate nothing and the scrape never
+    # succeeds, while the receiver exports the target, password included, as
+    # the `instance` of the job's `up` series. The message is matched whole:
+    # it names the setting and does not echo the URL.
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: https://scrapeuser:s3cretpw@ksm.example.com:8443/metrics
+    asserts:
+      - failedTemplate:
+          errorMessage: "kubeStateMetrics.endpoint is not a URL the agent can scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional). Credentials (user:password@), a query string, a fragment, and a % or $ in the path have no place in a scrape job, so they are refused rather than dropped."
+
+  - it: refuses a query string on the KSM endpoint
+    # It would be requested as part of the path: "/metrics%3Fcollect=pods".
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: http://ksm.example.com:8080/metrics?collect=pods
+    asserts:
+      - failedTemplate:
+          errorMessage: "kubeStateMetrics.endpoint is not a URL the agent can scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional). Credentials (user:password@), a query string, a fragment, and a % or $ in the path have no place in a scrape job, so they are refused rather than dropped."
+
+  - it: refuses a query string straight after the KSM host
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: http://ksm.example.com:8080?collect=pods
+    asserts:
+      - failedTemplate:
+          errorMessage: "kubeStateMetrics.endpoint is not a URL the agent can scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional). Credentials (user:password@), a query string, a fragment, and a % or $ in the path have no place in a scrape job, so they are refused rather than dropped."
+
+  - it: refuses a fragment on the KSM endpoint
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: "http://ksm.example.com:8080/metrics#pods"
+    asserts:
+      - failedTemplate:
+          errorMessage: "kubeStateMetrics.endpoint is not a URL the agent can scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional). Credentials (user:password@), a query string, a fragment, and a % or $ in the path have no place in a scrape job, so they are refused rather than dropped."
+
+  - it: refuses a percent-encoded path
+    # The receiver encodes it again and asks for "/kube%2520state/metrics".
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: http://ksm.example.com:8080/kube%20state/metrics
+    asserts:
+      - failedTemplate:
+          errorMessage: "kubeStateMetrics.endpoint is not a URL the agent can scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional). Credentials (user:password@), a query string, a fragment, and a % or $ in the path have no place in a scrape job, so they are refused rather than dropped."
+
+  - it: refuses a dollar sign in the path
+    # The collector expands it as a variable before the receiver sees it.
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: http://ksm.example.com:8080/${env:ONEUPTIME_API_KEY}/metrics
+    asserts:
+      - failedTemplate:
+          errorMessage: "kubeStateMetrics.endpoint is not a URL the agent can scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional). Credentials (user:password@), a query string, a fragment, and a % or $ in the path have no place in a scrape job, so they are refused rather than dropped."
+
+  - it: refuses a scheme that is not http or https
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: tcp://ksm.example.com:8080
+    asserts:
+      - failedTemplate:
+          errorMessage: "kubeStateMetrics.endpoint is not a URL the agent can scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional). Credentials (user:password@), a query string, a fragment, and a % or $ in the path have no place in a scrape job, so they are refused rather than dropped."
+
+  - it: refuses http:/ written with one slash
+    # Read as a URL with no scheme, that is a host named "http".
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: http:/ksm.example.com:8080/metrics
+    asserts:
+      - failedTemplate:
+          errorMessage: "kubeStateMetrics.endpoint is not a URL the agent can scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional). Credentials (user:password@), a query string, a fragment, and a % or $ in the path have no place in a scrape job, so they are refused rather than dropped."
+
+  # --- kube-state-metrics: nothing is refused that is not used --------------
+
+  - it: does not look at the KSM endpoint while kube-state-metrics is off
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: false
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: ""
+    asserts:
+      - notFailedTemplate: {}
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: kube-state-metrics"
+
+  # --- cost engine: what renders --------------------------------------------
+
+  - it: writes no scheme or path for the bundled cost engine
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"oneuptime-agent-kubernetes-agent-opencost\\.oneuptime\\.svc\\.cluster\\.local:9003\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: writes no scheme or path for an ordinary http cost engine URL
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+      cost.engine.url: http://opencost.opencost.svc.cluster.local:9003/
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"opencost\\.opencost\\.svc\\.cluster\\.local:9003\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: keeps the cost engine URL's own path in front of /metrics
+    # The engine URL is a base URL, and the poller appends its API paths to
+    # it. The default metrics endpoint is documented as <engine URL>/metrics,
+    # so an engine behind a path prefix is scraped under that prefix.
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+      cost.engine.url: https://kubecost.example.com/model/
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          scheme: https\\n          metrics_path: \"/model/metrics\"\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"kubecost\\.example\\.com\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: does not add a second /metrics to a cost engine URL that ends in one
+    # Not a base URL, but it used to be scraped at /metrics, and still is.
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+      cost.engine.url: http://opencost.example.com:9003/metrics
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"opencost\\.example\\.com:9003\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: does not add a second /metrics behind a cost engine path prefix either
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+      cost.engine.url: http://kubecost.kubecost:9090/model/metrics/
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          metrics_path: \"/model/metrics\"\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"kubecost\\.kubecost:9090\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: scrapes an explicit cost metrics endpoint at its own path
+    # As written: /metrics goes on the end of the engine URL, never on the end
+    # of an endpoint that was spelt out.
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+      cost.engine.url: http://kubecost.kubecost:9090
+      cost.metrics.endpoint: http://kubecost.kubecost:9090/model/prometheus
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          metrics_path: \"/model/prometheus\"\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"kubecost\\.kubecost:9090\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: reads /metrics/ as the default path on the cost metrics endpoint
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+      cost.metrics.endpoint: https://metrics.example.com:8443/metrics/
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          scheme: https\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"metrics\\.example\\.com:8443\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: takes scheme and path from the cost metrics endpoint, not the engine URL
+    # The explicit endpoint replaces the engine URL for the scrape outright:
+    # an https engine behind a prefix says nothing about a plain-http metrics
+    # endpoint on another host.
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+      cost.engine.url: https://kubecost.example.com/model
+      cost.metrics.endpoint: http://opencost.example.com:9003/metrics
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"opencost\\.example\\.com:9003\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: falls back to the engine URL when the cost metrics endpoint is only white space
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+      cost.engine.url: https://kubecost.example.com/model
+      cost.metrics.endpoint: "   "
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          scheme: https\\n          metrics_path: \"/model/metrics\"\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"kubecost\\.example\\.com\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  # --- cost engine: what is refused -----------------------------------------
+
+  - it: refuses credentials in the cost engine URL and names that setting
+    # The poller ignores them and the scrape would export them. With no
+    # explicit metrics endpoint the engine URL is what gets scraped, so it is
+    # the setting to fix.
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+      cost.engine.url: http://scrapeuser:s3cretpw@opencost.example.com:9003
+    asserts:
+      - failedTemplate:
+          errorMessage: "cost.engine.url is not a URL the agent can scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional). Credentials (user:password@), a query string, a fragment, and a % or $ in the path have no place in a scrape job, so they are refused rather than dropped."
+
+  - it: refuses a query string on the cost metrics endpoint and names that setting
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+      cost.engine.url: http://opencost.example.com:9003
+      cost.metrics.endpoint: http://opencost.example.com:9003/metrics?format=prometheus
+    asserts:
+      - failedTemplate:
+          errorMessage: "cost.metrics.endpoint is not a URL the agent can scrape. Write it as http://host:port/path or https://host:port/path (the port and the path are optional). Credentials (user:password@), a query string, a fragment, and a % or $ in the path have no place in a scrape job, so they are refused rather than dropped."
+
+  # --- cost engine: nothing is refused that is not used ---------------------
+
+  - it: does not look at the cost metrics endpoint while the cost scrape is off
+    # The poller still runs against the engine URL; only the scrape is off.
+    set:
+      clusterName: prod-us
+      cost.enabled: true
+      cost.metrics.enabled: false
+      cost.engine.url: http://scrapeuser:s3cretpw@opencost.example.com:9003
+      cost.metrics.endpoint: http://opencost.example.com:9003/metrics?format=prometheus
+    asserts:
+      - notFailedTemplate: {}
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine"
+
+  # --- both jobs at once ----------------------------------------------------
+
+  - it: never writes a slash into either job's target
+    # The one thing that keeps the collector from starting. Both jobs get an
+    # endpoint the old trimming left a slash on.
+    set:
+      clusterName: prod-us
+      kubeStateMetrics.enabled: true
+      kubeStateMetrics.mode: external
+      kubeStateMetrics.endpoint: HTTPS://monitoring.example.com:8443//ksm//metrics//
+      cost.enabled: true
+      cost.engine.url: https://kubecost.example.com/model/
+      cost.metrics.endpoint: https://kubecost.example.com:9090/model/metrics/
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: kube-state-metrics\\n          scrape_interval: 30s\\n          scheme: https\\n          metrics_path: \"/ksm/metrics\"\\n          # [^\\n]*\\n          static_configs:\\n            - targets:\\n                - \"monitoring\\.example\\.com:8443\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          scheme: https\\n          metrics_path: \"/model/metrics\"\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"kubecost\\.example\\.com:9090\"\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"[^\\n]*\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+      # These two are the only `targets:` lists in this render. Each holds one
+      # quoted item, with at most comment lines in between.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- targets:\\n(?:\\s*#[^\\n]*\\n)*\\s*- \"[^\"\\n]*/"

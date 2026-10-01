@@ -23,14 +23,18 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "Common/Types/Permission";
+import DROPDOWN_MENU_Z_INDEX from "Common/UI/Components/Dropdown/DropdownMenuZIndex";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { consumePressForAnchoredPopup } from "Common/UI/Types/LayeredDismissal";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import User from "Common/UI/Utils/User";
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -427,6 +431,109 @@ const toIds: (models: unknown) => Array<string> | undefined = (
 };
 
 /*
+ * Placement of the results panel. The same rules, and the same numbers, as
+ * EntityDropdown's menu, so the two look alike when they share a form.
+ */
+const DROPDOWN_GAP_PX: number = 4;
+const DROPDOWN_MAX_HEIGHT_PX: number = 384;
+const DROPDOWN_MIN_USEFUL_HEIGHT_PX: number = 160;
+const DROPDOWN_VIEWPORT_PADDING_PX: number = 8;
+
+/*
+ * Viewport coordinates for the results panel. Exactly one of top and bottom
+ * is set: top when it opens below the search input, bottom when it flips
+ * above - so a panel shorter than its maxHeight still sits against the input
+ * rather than floating off the far end of the room it was given.
+ */
+export interface DropdownPosition {
+  top: number | undefined;
+  bottom: number | undefined;
+  left: number;
+  width: number;
+  maxHeight: number;
+}
+
+export type DropdownAnchorRect = Pick<
+  DOMRect,
+  "top" | "bottom" | "left" | "width"
+>;
+
+/*
+ * The results panel is `position: fixed`. As an absolute child it sat inside
+ * the Edit modal's scrolling body, which counts an absolute descendant towards
+ * its scrollable area: opening the list grew a scrollbar and hid the lower
+ * part of the results until the user scrolled the modal. A fixed panel is
+ * laid out against the viewport instead, so nothing between it and the
+ * viewport can clip it - but it has to be placed by hand, against the input.
+ *
+ * Below the input by default. Above it when the room below is too small to
+ * be useful and there is more room above. As wide as the input, but never
+ * wider than the viewport, and never taller than the room it has.
+ */
+export const getDropdownPosition: (
+  anchorRect: DropdownAnchorRect,
+  viewportWidth: number,
+  viewportHeight: number,
+) => DropdownPosition = (
+  anchorRect: DropdownAnchorRect,
+  viewportWidth: number,
+  viewportHeight: number,
+): DropdownPosition => {
+  const availableWidth: number = Math.max(
+    0,
+    viewportWidth - DROPDOWN_VIEWPORT_PADDING_PX * 2,
+  );
+  const width: number = Math.min(anchorRect.width, availableWidth);
+  const maximumLeft: number = Math.max(
+    DROPDOWN_VIEWPORT_PADDING_PX,
+    viewportWidth - DROPDOWN_VIEWPORT_PADDING_PX - width,
+  );
+  const left: number = Math.min(
+    Math.max(anchorRect.left, DROPDOWN_VIEWPORT_PADDING_PX),
+    maximumLeft,
+  );
+  const spaceBelow: number = Math.max(
+    0,
+    viewportHeight -
+      anchorRect.bottom -
+      DROPDOWN_GAP_PX -
+      DROPDOWN_VIEWPORT_PADDING_PX,
+  );
+  const spaceAbove: number = Math.max(
+    0,
+    anchorRect.top - DROPDOWN_GAP_PX - DROPDOWN_VIEWPORT_PADDING_PX,
+  );
+  const shouldOpenAbove: boolean =
+    spaceBelow < DROPDOWN_MIN_USEFUL_HEIGHT_PX && spaceAbove > spaceBelow;
+
+  return {
+    top: shouldOpenAbove ? undefined : anchorRect.bottom + DROPDOWN_GAP_PX,
+    bottom: shouldOpenAbove
+      ? viewportHeight - anchorRect.top + DROPDOWN_GAP_PX
+      : undefined,
+    left,
+    width,
+    maxHeight: Math.min(
+      DROPDOWN_MAX_HEIGHT_PX,
+      shouldOpenAbove ? spaceAbove : spaceBelow,
+    ),
+  };
+};
+
+const isSameDropdownPosition: (
+  current: DropdownPosition,
+  next: DropdownPosition,
+) => boolean = (current: DropdownPosition, next: DropdownPosition): boolean => {
+  return (
+    current.top === next.top &&
+    current.bottom === next.bottom &&
+    current.left === next.left &&
+    current.width === next.width &&
+    current.maxHeight === next.maxHeight
+  );
+};
+
+/*
  * Pre-flight permission check so we don't render dropdown options the user
  * could never read. Master admin bypasses everything. For anyone else we
  * intersect the model's readRecordPermissions against the user's tenant
@@ -694,23 +801,82 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
+  const isEditable: boolean = !props.disabled && !props.readOnly;
+
   useEffect(() => {
-    const handleClickOutside: (event: MouseEvent) => void = (
+    if (!isOpen) {
+      return;
+    }
+
+    const handlePressOutside: (event: MouseEvent) => void = (
       event: MouseEvent,
     ): void => {
+      /*
+       * The results panel is a DOM child of containerRef (it is only laid
+       * out as fixed, never portalled), so a press on an option, a tab or a
+       * label row is inside, and the pick it starts still lands.
+       */
       if (
-        containerRef.current &&
-        event.target instanceof Node &&
-        !containerRef.current.contains(event.target)
+        !containerRef.current ||
+        !(event.target instanceof Node) ||
+        containerRef.current.contains(event.target)
       ) {
-        setIsOpen(false);
+        return;
       }
+
+      if (isEditable) {
+        /*
+         * This press is spent on closing the results list. Claiming it
+         * stops the Edit modal behind the picker from also reading it as a
+         * backdrop press, which closed the list and the modal together and
+         * threw the unsaved changes away with them.
+         */
+        consumePressForAnchoredPopup(event);
+      }
+      setIsOpen(false);
     };
-    document.addEventListener("mousedown", handleClickOutside);
+
+    /*
+     * Capture phase, so the press is claimed before anyone reads it: Modal's
+     * backdrop handler is a React onMouseDown, and React runs those from its
+     * root container, ahead of a bubble-phase listener on the document.
+     */
+    document.addEventListener("mousedown", handlePressOutside, true);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handlePressOutside, true);
     };
-  }, []);
+  }, [isOpen, isEditable]);
+
+  /*
+   * The keyboard's side of the outside press above. Tabbing from the search
+   * input, or on past the panel's last row, onto another field used to leave
+   * the list open, and when that field opened a menu of its own (the Monitor
+   * dropdown beside the picker on an alert) the two stacked on top of each
+   * other. The panel is a DOM child of containerRef, so moving between the
+   * chips, the input and the panel's tabs, rows and buttons stays inside and
+   * keeps it open.
+   *
+   * Only a move onto another element closes it. With no element to go to
+   * (relatedTarget null, or the document itself) focus went nowhere in
+   * particular - the window lost focus, a press landed on something that
+   * takes no focus, the focused row unmounted - and presses are for the
+   * listener above to judge.
+   */
+  const closeListWhenFocusLeaves: (
+    event: React.FocusEvent<HTMLDivElement>,
+  ) => void = (event: React.FocusEvent<HTMLDivElement>): void => {
+    const nextFocused: EventTarget | null = event.relatedTarget;
+
+    if (
+      !(nextFocused instanceof Element) ||
+      event.currentTarget.contains(nextFocused)
+    ) {
+      return;
+    }
+
+    setIsOpen(false);
+    setHighlightedIndex(-1);
+  };
 
   /*
    * Shared fetcher used both for typed searches (name/description filters) and
@@ -1318,16 +1484,97 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     }
   }
 
-  const isEditable: boolean = !props.disabled && !props.readOnly;
-
   const chipOverflow: number = Math.max(0, selected.length - MAX_VISIBLE_CHIPS);
   const visibleChips: Array<AffectedResourceItem> =
     showAllChips || chipOverflow === 0
       ? selected
       : selected.slice(0, MAX_VISIBLE_CHIPS);
 
+  /*
+   * The results panel is fixed (see getDropdownPosition), so it follows the
+   * search input by measurement rather than by layout. It is not shown until
+   * the first measurement lands, or it would flash at the viewport's top left
+   * corner for a frame.
+   */
+  const isListOpen: boolean = isOpen && isEditable;
+  const [dropdownPosition, setDropdownPosition] =
+    useState<DropdownPosition | null>(null);
+
+  const updateDropdownPosition: () => void = useCallback((): void => {
+    if (!inputRef.current || typeof window === "undefined") {
+      return;
+    }
+
+    const next: DropdownPosition = getDropdownPosition(
+      inputRef.current.getBoundingClientRect(),
+      window.innerWidth,
+      window.innerHeight,
+    );
+
+    /*
+     * Every scroll on the page lands here, the results list's own included.
+     * Keeping the current object when nothing moved spares the whole picker
+     * a re-render on each of those.
+     */
+    setDropdownPosition(
+      (current: DropdownPosition | null): DropdownPosition => {
+        return current && isSameDropdownPosition(current, next)
+          ? current
+          : next;
+      },
+    );
+  }, []);
+
+  /*
+   * Measure again whenever the input may have moved: chips added or removed
+   * above it (or renamed once their names load, which can rewrap them), the
+   * hidden-resources note, the overflow toggle, a tab switch, a resize, and
+   * any scroll - the modal body's included. Scroll does not bubble, hence the
+   * capture-phase listener.
+   */
+  useLayoutEffect(() => {
+    if (!isListOpen) {
+      setDropdownPosition(null);
+      return;
+    }
+
+    let animationFrame: number | null = null;
+    const schedulePositionUpdate: () => void = (): void => {
+      if (animationFrame !== null) {
+        return;
+      }
+      animationFrame = window.requestAnimationFrame((): void => {
+        animationFrame = null;
+        updateDropdownPosition();
+      });
+    };
+
+    updateDropdownPosition();
+    window.addEventListener("resize", schedulePositionUpdate);
+    document.addEventListener("scroll", schedulePositionUpdate, true);
+
+    return () => {
+      window.removeEventListener("resize", schedulePositionUpdate);
+      document.removeEventListener("scroll", schedulePositionUpdate, true);
+      if (animationFrame !== null) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [
+    isListOpen,
+    selected,
+    hiddenCount,
+    showAllChips,
+    activeTab,
+    updateDropdownPosition,
+  ]);
+
   return (
-    <div ref={containerRef} className="relative mt-1 w-full">
+    <div
+      ref={containerRef}
+      className="relative mt-1 w-full"
+      onBlur={closeListWhenFocusLeaves}
+    >
       {selected.length > 0 && (
         <div className={props.readOnly ? "space-y-2" : "mb-2 space-y-2"}>
           {(chipOverflow > 0 || selected.length >= MAX_VISIBLE_CHIPS) &&
@@ -1513,6 +1760,16 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
               return;
             }
             if (event.key === "Escape") {
+              if (isListOpen) {
+                /*
+                 * Modal closes on an Escape that reaches the document
+                 * unhandled. Claim this one so it closes only the results
+                 * list and the Edit modal - with its unsaved changes -
+                 * stays; a second Escape, the list already closed, still
+                 * closes the modal.
+                 */
+                event.preventDefault();
+              }
               setIsOpen(false);
               setHighlightedIndex(-1);
               return;
@@ -1538,10 +1795,36 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
         />
       )}
 
-      {isOpen && isEditable && (
+      {isListOpen && (
         <div
-          className="absolute z-10 mt-1 flex max-h-96 w-full flex-col overflow-hidden rounded-md border border-gray-200 bg-white text-sm shadow-lg"
+          className="fixed flex flex-col overflow-hidden rounded-md border border-gray-200 bg-white text-sm shadow-lg"
+          data-testid="affected-resources-dropdown"
           role="listbox"
+          style={{
+            top: dropdownPosition?.top,
+            bottom: dropdownPosition?.bottom,
+            left: dropdownPosition?.left ?? 0,
+            width: dropdownPosition?.width ?? 0,
+            maxHeight: dropdownPosition?.maxHeight,
+            visibility: dropdownPosition ? "visible" : "hidden",
+            zIndex: DROPDOWN_MENU_Z_INDEX,
+          }}
+          onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>): void => {
+            if (event.key !== "Escape") {
+              return;
+            }
+            /*
+             * Focus can be inside the panel too - on a tab or a label row,
+             * reached with Tab. Escape there closes the list, not the Edit
+             * modal, and hands focus back to the search input rather than
+             * leaving it on a button that is about to unmount. Focusing the
+             * input asks to open the list; closing it after wins the batch.
+             */
+            event.preventDefault();
+            inputRef.current?.focus();
+            setIsOpen(false);
+            setHighlightedIndex(-1);
+          }}
         >
           {/*
            * Tab strip. Two modes share the same input above: "Resources"

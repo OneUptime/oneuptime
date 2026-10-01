@@ -4,6 +4,29 @@ import {
   KubectlCommandTier,
   PROTECTED_KUBERNETES_NAMESPACES,
 } from "../Kubernetes/KubernetesClusterAiAccess";
+import {
+  AiRemediationCommandPolicyVerdict,
+  MAX_COMMAND_LENGTH_CHARS,
+} from "./AiRemediationCommandPolicyVerdict";
+import AiResourceType, {
+  AI_RESOURCE_TYPE_INFO,
+  isAiResourceType,
+} from "../ResourceAiAgent/AiResourceType";
+import {
+  RESOURCE_AI_ALLOW_WRITES_ENV,
+  RESOURCE_AI_WRITE_TARGETS_ENV,
+  ResourceCommandTier,
+} from "../ResourceAiAgent/ResourceAiAccess";
+
+/*
+ * Defined in a leaf module of their own (no imports) so the pure kubectl
+ * policy closure — KubectlPolicy, KubectlWriteScope, CommandPolicy and the
+ * types they read — can be copied verbatim into the standalone Kubernetes AI
+ * agent (agents/KubernetesAIAgent) without dragging this file, and through
+ * its JSON import most of Common, along. Re-exported here so every existing
+ * importer keeps working.
+ */
+export { AiRemediationCommandPolicyVerdict, MAX_COMMAND_LENGTH_CHARS };
 
 /*
  * The AI-composed command plan stored on
@@ -18,28 +41,18 @@ import {
  * The only step types an AI remediation run may compose. The structured
  * Kubernetes step (restart/scale) stays runbook-only; AI reaches a cluster
  * through the Kubectl step instead, whose argv is tiered by KubectlPolicy
- * and which targets a Runner the cluster's AI page bound.
+ * and which targets a Runner the cluster's AI page bound. Every other
+ * infrastructure resource (Docker, Podman, Swarm, Proxmox, VMware, Ceph, a
+ * database server, a host) is reached through ResourceCommand, whose argv
+ * is tiered by the resource command policy and which targets the
+ * resource's own AI agent — never a Runner.
  */
 export const AI_COMMAND_STEP_TYPES: Array<RunbookStepType> = [
   RunbookStepType.Bash,
   RunbookStepType.SSH,
   RunbookStepType.Kubectl,
+  RunbookStepType.ResourceCommand,
 ];
-
-export enum AiRemediationCommandPolicyVerdict {
-  /*
-   * Matched the rule's operator-authored allowlist and passed the
-   * structural chain guard — eligible for FullAuto inline execution.
-   */
-  AutoApproved = "AutoApproved",
-  // Not denylisted, but a human must approve before it runs.
-  RequiresApproval = "RequiresApproval",
-  /*
-   * Matched the hard denylist. Denied commands are never stored in a plan —
-   * the verdict exists so policy evaluation has a complete result type.
-   */
-  Denied = "Denied",
-}
 
 export enum AiRemediationCommandExecutionStatus {
   Pending = "Pending",
@@ -85,6 +98,14 @@ export interface AiRemediationCommand {
   sequence: number;
   // One of AI_COMMAND_STEP_TYPES. SSH requires credentialId.
   stepType: RunbookStepType;
+  /*
+   * The access target the command runs through. For Bash/SSH (and a
+   * Kubectl step through a Runner) a Runner row; for a Kubectl step through
+   * the Kubernetes AI agent the KubernetesAiAgent row id and
+   * KUBERNETES_AI_AGENT_DISPLAY_NAME; for a ResourceCommand step the
+   * ResourceAiAgent row id and the type's agentDisplayName ("Docker AI
+   * agent").
+   */
   runnerId: string;
   runnerNameSnapshot: string;
   credentialId?: string | undefined;
@@ -97,6 +118,17 @@ export interface AiRemediationCommand {
   kubernetesClusterId?: string | undefined;
   kubernetesClusterNameSnapshot?: string | undefined;
   kubectlTier?: KubectlCommandTier | undefined;
+  /*
+   * ResourceCommand only: the resource the command runs against and the
+   * tier the resource command policy assigned when the plan was composed.
+   * The tier is informational on the card; execution re-evaluates it. A
+   * ResourceCommand step never carries a credential — the resource's AI
+   * agent uses only credentials from its own environment.
+   */
+  resourceType?: AiResourceType | undefined;
+  resourceId?: string | undefined;
+  resourceNameSnapshot?: string | undefined;
+  resourceCommandTier?: ResourceCommandTier | undefined;
   command: string;
   timeoutInMs: number;
   // Why the AI wants to run this — shown verbatim on the approval card.
@@ -186,7 +218,6 @@ export function getRollbackCommandStepId(
 
 // Hard caps — enforced at plan acceptance, not just in the prompt.
 export const MAX_PLAN_COMMANDS: number = 5;
-export const MAX_COMMAND_LENGTH_CHARS: number = 2000;
 export const MIN_COMMAND_TIMEOUT_MS: number = 1000;
 export const MAX_COMMAND_TIMEOUT_MS: number = 5 * 60 * 1000;
 export const DEFAULT_COMMAND_TIMEOUT_MS: number = 60 * 1000;
@@ -288,6 +319,62 @@ export const KUBECTL_BYPASS_MODE_SUMMARY: string =
 
 export const KUBECTL_EVERY_MODE_LIMITS_SUMMARY: string = `In every mode, Bypass approval included: ${KUBECTL_NEVER_RUNS_SUMMARY}; ${KUBECTL_ALWAYS_ASKS_SUMMARY}; the cluster's in-cluster Runner never changes its own namespace, nor a namespace outside the ones its chart lets it change, nor nodes when its chart turned node operations off; and an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster.`;
 
+/*
+ * The resource command tiers and the unattended resource modes in the words
+ * every resource remediation prompt, tool description and feed item uses —
+ * for the Docker and Podman hosts, Docker Swarm, Proxmox, VMware and Ceph
+ * clusters, database servers and hosts reached through their resource AI
+ * agents. They restate the ResourceCommandTier and ResourceAiRemediationMode
+ * doc comments in Types/ResourceAiAgent/ResourceAiAccess and must keep
+ * matching them — and the resource command policy (ResourceCommandPolicy),
+ * which is what actually decides. What each kind of resource accepts is its
+ * tool policy's own guide (ResourceCommandPolicy.getWriteCommandGuide); these
+ * are the rules every kind shares. One copy, so a prompt can never describe
+ * a tier the policy no longer has.
+ */
+
+// SafeWrite: what an Automatic resource runs without a human.
+export const RESOURCE_SAFE_CHANGES_SUMMARY: string =
+  "a reversible change to exactly ONE named object — restart or start one container, a rolling restart of one service, start one VM, restart one unit, cancel one query — never several objects at once";
+
+// RiskyWrite: needs a human unless the allowlist names it or approvals are bypassed.
+export const RESOURCE_RISKIER_CHANGES_SUMMARY: string =
+  "a change that can take something down or alter what runs — stop, kill or pause a container, update limits, scale a service to zero, shut down, power off or reset a VM, mark an OSD out, stop a unit, terminate a session — and a change to several objects at once";
+
+/*
+ * Asks a human whatever the resource's mode, allowlist included: what the
+ * resource command policy marks requiresHuman (the canonical mode text in
+ * ResourceAiAccess).
+ */
+export const RESOURCE_ALWAYS_ASKS_SUMMARY: string =
+  "a change the resource's command policy marks as always needing a human (draining a Swarm node, migrating a VM, putting an ESXi host into maintenance, killing a process on a host, ...) always needs a human, in every mode — Bypass approval and the allowlist included";
+
+// Denied: never runs, whoever approves it.
+export const RESOURCE_NEVER_RUNS_SUMMARY: string =
+  "destructive commands never run, even with approval: exec, run, rm, prune, deleting or destroying anything, anything that reads or changes credentials, anything the resource's command policy does not know, and anything written as a shell line (pipes, redirects, ;, &&, $( ), sudo)";
+
+// How the resource's allowlist is read.
+export const RESOURCE_ALLOWLIST_SUMMARY: string =
+  "the resource's command allowlist is matched word by word: a pattern must have exactly as many words as the command, a * stands for exactly one whole word (never part of one), and every other word must be spelled exactly as the command spells it";
+
+/*
+ * The every-mode clause about unattended resource runs (the resource
+ * sibling of ClusterAccessContext's UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY).
+ */
+export const RESOURCE_UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY: string =
+  "an unattended run becomes a proposal when the hourly per-resource circuit breaker trips or another unattended round already holds the resource";
+
+export const RESOURCE_AUTOMATIC_MODE_SUMMARY: string = `Automatic: safe changes run without a human (${RESOURCE_SAFE_CHANGES_SUMMARY}). A riskier change (${RESOURCE_RISKIER_CHANGES_SUMMARY}) never runs without one: when the round could only find riskier fixes it ends by proposing exactly those for one-click approval; when it also ran safe fixes, a riskier fix is proposed only if verification shows the safe ones did not recover the signal (the follow-up round, which asks). Shapes on the resource's command allowlist run on their own.`;
+
+/*
+ * Interpolated into prompts and feed copy on its own, so it names the
+ * exceptions instead of pointing at a list "below".
+ */
+export const RESOURCE_BYPASS_MODE_SUMMARY: string =
+  "Bypass approval: AI does not ask. Every change the policy allows — safe AND riskier — runs on its own, follow-up rounds included, except for what always needs a human.";
+
+export const RESOURCE_EVERY_MODE_LIMITS_SUMMARY: string = `In every mode, Bypass approval included: ${RESOURCE_NEVER_RUNS_SUMMARY}; ${RESOURCE_ALWAYS_ASKS_SUMMARY}; the resource's AI agent changes nothing unless it was started with ${RESOURCE_AI_ALLOW_WRITES_ENV}=true, never changes its own protected targets (itself and what it runs in), and with ${RESOURCE_AI_WRITE_TARGETS_ENV} set changes only the targets it names; and ${RESOURCE_UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY}.`;
+
 export class AiRemediationCommandPlanUtil {
   /*
    * Parse a jsonb column value back into a typed plan. Fail-closed: any
@@ -350,6 +437,28 @@ export class AiRemediationCommandPlanUtil {
         return null;
       }
 
+      /*
+       * A ResourceCommand step names its resource by type and id, runs
+       * through the resource's AI agent (runnerId holds the ResourceAiAgent
+       * id) and never carries a credential or a cluster. Anything else is a
+       * plan this build cannot execute safely, so the whole plan is refused.
+       */
+      let resourceFields: Pick<
+        AiRemediationCommand,
+        | "resourceType"
+        | "resourceId"
+        | "resourceNameSnapshot"
+        | "resourceCommandTier"
+      > | null = null;
+
+      if (stepType === RunbookStepType.ResourceCommand) {
+        resourceFields = AiRemediationCommandPlanUtil.parseResourceFields(obj);
+
+        if (!resourceFields) {
+          return null;
+        }
+      }
+
       const kubectlTierRaw: string = String(obj["kubectlTier"] || "");
       const kubectlTier: KubectlCommandTier | undefined = Object.values(
         KubectlCommandTier,
@@ -385,7 +494,10 @@ export class AiRemediationCommandPlanUtil {
         runnerNameSnapshot:
           typeof obj["runnerNameSnapshot"] === "string"
             ? obj["runnerNameSnapshot"]
-            : "Runner",
+            : resourceFields?.resourceType
+              ? AI_RESOURCE_TYPE_INFO[resourceFields.resourceType]
+                  .agentDisplayName
+              : "Runner",
         credentialId:
           typeof obj["credentialId"] === "string"
             ? obj["credentialId"]
@@ -403,6 +515,7 @@ export class AiRemediationCommandPlanUtil {
             ? obj["kubernetesClusterNameSnapshot"]
             : undefined,
         kubectlTier,
+        ...(resourceFields || {}),
         command: command,
         timeoutInMs: timeoutInMs,
         rationale: typeof obj["rationale"] === "string" ? obj["rationale"] : "",
@@ -461,6 +574,72 @@ export class AiRemediationCommandPlanUtil {
     }
 
     return plan;
+  }
+
+  /*
+   * The resource fields of a stored ResourceCommand step, or null when the
+   * step must not be trusted: an unknown resourceType, a blank resourceId,
+   * any credential or cluster field, or a tier that is Denied or not a
+   * tier at all.
+   */
+  private static parseResourceFields(
+    obj: JSONObject,
+  ): Pick<
+    AiRemediationCommand,
+    | "resourceType"
+    | "resourceId"
+    | "resourceNameSnapshot"
+    | "resourceCommandTier"
+  > | null {
+    const resourceType: unknown = obj["resourceType"];
+
+    if (!isAiResourceType(resourceType)) {
+      return null;
+    }
+
+    const resourceId: unknown = obj["resourceId"];
+
+    if (typeof resourceId !== "string" || !resourceId.trim()) {
+      return null;
+    }
+
+    for (const field of [
+      "credentialId",
+      "credentialNameSnapshot",
+      "credential",
+      "kubernetesClusterId",
+    ]) {
+      if (obj[field] !== undefined && obj[field] !== null) {
+        return null;
+      }
+    }
+
+    const tierRaw: unknown = obj["resourceCommandTier"];
+    let resourceCommandTier: ResourceCommandTier | undefined = undefined;
+
+    if (tierRaw !== undefined && tierRaw !== null && tierRaw !== "") {
+      if (
+        typeof tierRaw !== "string" ||
+        !(Object.values(ResourceCommandTier) as Array<string>).includes(
+          tierRaw,
+        ) ||
+        tierRaw === ResourceCommandTier.Denied
+      ) {
+        return null;
+      }
+
+      resourceCommandTier = tierRaw as ResourceCommandTier;
+    }
+
+    return {
+      resourceType,
+      resourceId,
+      resourceNameSnapshot:
+        typeof obj["resourceNameSnapshot"] === "string"
+          ? obj["resourceNameSnapshot"]
+          : undefined,
+      resourceCommandTier,
+    };
   }
 
   public static toJSON(plan: AiRemediationCommandPlan): JSONObject {

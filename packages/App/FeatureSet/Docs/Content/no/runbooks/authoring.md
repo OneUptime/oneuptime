@@ -60,7 +60,7 @@ Konfigurer på et Bash-trinn:
 - **Execution timeout** — hvor lenge agenten lar skriptet kjøre før den dreper det med `SIGKILL`. Standard er 30 sekunder; øk den for trinn som faktisk trenger flere minutter.
 - **Claim timeout** — hvor lenge Worker'en venter på at agenten plukker opp jobben. Standard er 2 minutter.
 
-Hvis den valgte agenten er offline når runbook'et når dette trinnet, venter trinnet opp til **claim timeout** (standard 2 minutter) og feiler så med `TimedOut`. Legg til en agent under **Runbooks → Innstillinger → Agents** før du baserer deg på et Bash-trinn.
+Hvis den valgte agenten er offline når runbook'et når dette trinnet, venter trinnet opp til **claim timeout** (standard 2 minutter) og feiler så med `TimedOut`. Legg til en agent under **Runbooks → Runbook-agenter** før du baserer deg på et Bash-trinn.
 
 ### AI
 

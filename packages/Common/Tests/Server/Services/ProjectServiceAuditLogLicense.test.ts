@@ -321,7 +321,6 @@ describe("updating a project's audit log settings, billing off", () => {
       installFakeEnterpriseModule({
         snapshot: createLicenseSnapshot({
           features: [
-            EnterpriseFeature.SSO,
             EnterpriseFeature.SCIM,
             EnterpriseFeature.TeamCompliance,
             EnterpriseFeature.InstanceHealth,

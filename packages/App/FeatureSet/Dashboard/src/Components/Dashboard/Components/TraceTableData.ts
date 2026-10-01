@@ -9,6 +9,7 @@ import {
   formatDurationMs,
   resolveTraceAttributeFilters,
 } from "./TraceChartData";
+import { getSpanStatusDisplayLabelMap } from "../../../Utils/SpanStatusPresentation";
 
 /*
  * Pure, React-free data helpers for the trace table widget. Kept out of the
@@ -129,11 +130,7 @@ export function dimensionLabel(key: string): string {
   return DIMENSION_LABELS[key] || key;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  "0": "Unset",
-  "1": "Ok",
-  "2": "Error",
-};
+const STATUS_LABELS: Record<string, string> = getSpanStatusDisplayLabelMap();
 
 const KIND_LABELS: Record<string, string> = {
   "0": "Unspecified",

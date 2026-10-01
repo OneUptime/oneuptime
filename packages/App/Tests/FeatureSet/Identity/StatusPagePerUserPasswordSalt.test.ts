@@ -8,10 +8,7 @@ import {
 import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
 import PasswordHash from "Common/Server/Utils/PasswordHash";
 import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
-import {
-  installFakeEnterpriseModule,
-  uninstallEnterpriseModule,
-} from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
+import { uninstallEnterpriseModule } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import Email from "Common/Types/Email";
 import HashedString from "Common/Types/HashedString";
@@ -499,11 +496,11 @@ describe("Status page POST /login — per-user salt", () => {
 
   it("still refuses password login on an SSO-only status page", async () => {
     /*
-     * A status page's SSO requirement is enforced whenever the Enterprise
-     * Edition is loaded; the Community Edition relaxes it (see
-     * StatusPageSsoEditionEnforcement.test.ts).
+     * A status page's SSO requirement holds in every edition, so this runs
+     * with no enterprise module loaded: the Community Edition (every other
+     * state is covered by StatusPageSsoEnforcement.test.ts).
      */
-    installFakeEnterpriseModule();
+    uninstallEnterpriseModule();
 
     statusPageFindOneById.mockResolvedValue({
       id: STATUS_PAGE_ID,

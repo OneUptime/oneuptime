@@ -6,6 +6,18 @@ import {
   DatabaseAgentEngine,
 } from "./DatabaseAgentConfigs";
 import {
+  SETUP_GUIDE_API_KEY_PLACEHOLDER,
+  SETUP_GUIDE_URL_PLACEHOLDER,
+  SetupGuideContent,
+  SetupGuideLink,
+  SetupGuideOption,
+  SetupGuideStep,
+  SetupGuideStepVariant,
+  SetupGuideTopic,
+  codeBlock,
+  shellQuote,
+} from "../../../Components/SetupGuide/SetupGuide";
+import {
   DatabaseEndpoint,
   formatDatabaseEndpoint,
   parseDatabaseEndpointString,
@@ -40,6 +52,16 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
  * receiver, Prometheus endpoint or cloud monitoring API its metrics come
  * from — the same facts the docs page's engine table states.
  *
+ * Two shapes are built from the same pieces:
+ *
+ *   - getDatabaseAgentSetupGuide / getDatabaseOwnCollectorSetupGuide: the
+ *     SetupGuide the Documentation card renders — the engine picker, a few
+ *     steps, and everything else folded under Advanced and Troubleshooting;
+ *   - getDatabaseAgentInstallationMarkdown / getDatabaseOwnCollectorMarkdown:
+ *     the same guide as one markdown document, as it read before the
+ *     SetupGuide layout. Its tests pin the identity, quoting and escaping
+ *     rules every piece below follows, so it stays byte for byte what it was.
+ *
  * Pure: plain strings in, markdown out. No React, no API.
  */
 
@@ -47,6 +69,10 @@ export const DATABASE_AGENT_DIRECTORY_URL: string =
   "https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent";
 export const DATABASE_AGENT_RAW_URL: string =
   "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent";
+
+// Where install.sh installs, and where troubleshoot.sh looks by default.
+export const DATABASE_AGENT_INSTALL_DIRECTORY: string =
+  "/opt/oneuptime-database-agent";
 
 /* Engines the probe-based Database Health monitor can check. */
 export const DATABASE_HEALTH_MONITOR_SYSTEMS: ReadonlyArray<string> = [
@@ -124,6 +150,14 @@ const COLLECTED_METRICS: Record<DatabaseAgentEngine, string> = {
     "connections, commands, get hits and misses (the cache hit ratio), evictions, items, memory used, network traffic, threads and CPU",
 };
 
+/*
+ * Whether a config ships the receiver's query events (query samples and top
+ * queries), which DATABASE_QUERY_EVENTS switches on.
+ */
+function hasQueryEvents(engine: DatabaseAgentEngine): boolean {
+  return DATABASE_AGENT_CONFIGS[engine].includes("db.server.top_query:");
+}
+
 /**
  * What the agent collects for an engine, in words: its receiver's metrics,
  * and the optional query events where its config ships them (the configs
@@ -132,7 +166,7 @@ const COLLECTED_METRICS: Record<DatabaseAgentEngine, string> = {
 export function getDatabaseAgentCollectedSummary(
   engine: DatabaseAgentEngine,
 ): string {
-  return DATABASE_AGENT_CONFIGS[engine].includes("db.server.top_query:")
+  return hasQueryEvents(engine)
     ? `${COLLECTED_METRICS[engine]}, plus optional query samples and top queries (\`DATABASE_QUERY_EVENTS\`)`
     : COLLECTED_METRICS[engine];
 }
@@ -207,6 +241,55 @@ export function getDatabaseAgentSystems(): Array<string> {
   });
 }
 
+/*
+ * A fork or drop-in the config monitors besides the engine it is named
+ * after: MariaDB with the mysql config, Valkey with the redis one.
+ */
+function isForkOfEngine(engine: DatabaseAgentEngine, system: string): boolean {
+  return system !== DEFAULT_SYSTEM_FOR_ENGINE[engine];
+}
+
+/*
+ * One line under each engine in the product page's picker: the config it
+ * runs, and for a fork the name it reports.
+ */
+function getDatabaseAgentSystemDescription(system: string): string {
+  const engine: DatabaseAgentEngine = getDatabaseAgentEngine(
+    system,
+  ) as DatabaseAgentEngine;
+  const receiverName: string = getCollectorReceiverComponentName(engine);
+  return isForkOfEngine(engine, system)
+    ? `Runs the ${receiverName} receiver and reports the server as ${getDatabaseSystemDisplayName(system)}.`
+    : `Runs the collector's ${receiverName} receiver.`;
+}
+
+/*
+ * The product page's picker: every engine the agent monitors, forks
+ * included, keyed by the DATABASE_SYSTEM it installs under.
+ */
+export const DATABASE_AGENT_SYSTEM_OPTIONS: Array<SetupGuideOption> =
+  getDatabaseAgentSystems().map((system: string): SetupGuideOption => {
+    return {
+      key: system,
+      label: getDatabaseSystemDisplayName(system),
+      description: getDatabaseAgentSystemDescription(system),
+    };
+  });
+
+export const DEFAULT_DATABASE_AGENT_SYSTEM: string = "postgresql";
+
+/** The picked engine, or PostgreSQL for one the picker does not offer. */
+export function resolveDatabaseAgentSystem(
+  system: string | null | undefined,
+): string {
+  const isOffered: boolean = DATABASE_AGENT_SYSTEM_OPTIONS.some(
+    (option: SetupGuideOption): boolean => {
+      return option.key === system;
+    },
+  );
+  return isOffered ? (system as string) : DEFAULT_DATABASE_AGENT_SYSTEM;
+}
+
 /** The database a guide is prefilled for (a row's Documentation tab). */
 export interface DatabaseDocumentationTarget {
   // DatabaseServer id — becomes DATABASE_SERVER_ID.
@@ -223,6 +306,41 @@ export interface DatabaseDocumentationTarget {
   endpoints?: Array<string> | null | undefined;
   kubernetesNamespace?: string | null | undefined;
   isKubernetes?: boolean | undefined;
+}
+
+/**
+ * The title and description of a database's Documentation tab: an engine
+ * the agent monitors is told to install it, one it does not to use its own
+ * collector, and an in-process engine that there is no server to monitor.
+ */
+export function getDatabaseDocumentationHeading(
+  database: DatabaseDocumentationTarget,
+): { title: string; description: string } {
+  const engineLabel: string = getDatabaseSystemDisplayName(database.dbSystem);
+
+  if (getDatabaseAgentEngine(database.dbSystem)) {
+    return {
+      title: `Connect ${engineLabel} engine metrics`,
+      description:
+        "Install the OneUptime Database Agent next to this database to add its engine metrics. Every value below is prefilled for this database, including its id.",
+    };
+  }
+
+  if (
+    getDatabaseSystemDescriptor(database.dbSystem)?.engineMetrics.kind ===
+    "embedded"
+  ) {
+    return {
+      title: `Monitor ${engineLabel}`,
+      description: `${engineLabel} runs inside your application's process, so this database's page fills in from the traces of the applications that use it.`,
+    };
+  }
+
+  return {
+    title: `Connect ${engineLabel} engine metrics`,
+    description:
+      "Send this database's engine metrics from your own OpenTelemetry Collector. Every value below is prefilled for this database, including its id.",
+  };
 }
 
 export interface DatabaseAgentIdentity {
@@ -270,19 +388,12 @@ function hostForUrl(host: string): string {
   return host.includes(":") ? `[${host}]` : host;
 }
 
-/* Characters the shell leaves alone in an unquoted word. */
-const SHELL_SAFE_WORD: RegExp = /^[A-Za-z0-9._:@%+,/=-]+$/;
-
 /*
  * One word of a shell command line whose value reaches the command as
- * written: bare when made only of characters the shell leaves alone,
- * otherwise single-quoted (a `'` inside closes, escapes and reopens).
+ * written (the guides' shared quoting): bare when made only of characters
+ * the shell leaves alone, otherwise single-quoted.
  */
-function shellWord(value: string): string {
-  return SHELL_SAFE_WORD.test(value)
-    ? value
-    : `'${value.split("'").join("'\\''")}'`;
-}
+const shellWord: (value: string) => string = shellQuote;
 
 /**
  * The identity the guide stamps. For a row: its serverAddress / serverPort
@@ -411,85 +522,233 @@ export function getDatabaseAgentEndpoint(
     : identity.endpoint;
 }
 
+/*
+ * Where a piece of an engine's monitoring-user instructions is shown:
+ *
+ *   - "document": the single-document guide, which prints every piece of
+ *     the engine in order (the text the README's grants are pinned to);
+ *   - "engine": the setup guide's step, for the engine the config is named
+ *     after (PostgreSQL, MySQL, Redis, Elasticsearch …);
+ *   - "fork": the setup guide's step, for a fork the config also monitors
+ *     (MariaDB, Valkey, OpenSearch …) — so MySQL is not told about
+ *     MariaDB's extra grant, and OpenSearch is not shown Elasticsearch's
+ *     security API;
+ *   - "queryEvents": the setup guide's "Query samples and top queries"
+ *     topic, since a first install leaves them off.
+ */
+type MonitoringUserPlacement = "document" | "engine" | "fork" | "queryEvents";
+
+interface MonitoringUserPiece {
+  text: string;
+  placements: Array<MonitoringUserPlacement>;
+}
+
+const DOCUMENT_AND_STEPS: Array<MonitoringUserPlacement> = [
+  "document",
+  "engine",
+  "fork",
+];
+
 /* The least-privilege monitoring login per engine (agents/DatabaseAgent/README.md). */
-const MONITORING_USER_MARKDOWN: Record<DatabaseAgentEngine, string> = {
-  postgresql: `
-\`\`\`sql
-CREATE USER oneuptime_monitor WITH PASSWORD 'a-strong-password';
-GRANT pg_monitor TO oneuptime_monitor;
-\`\`\`
+const MONITORING_USER_PIECES: Record<
+  DatabaseAgentEngine,
+  Array<MonitoringUserPiece>
+> = {
+  postgresql: [
+    {
+      text: `
+${codeBlock(
+  "sql",
+  `CREATE USER oneuptime_monitor WITH PASSWORD 'a-strong-password';
+GRANT pg_monitor TO oneuptime_monitor;`,
+)}
 
 \`pg_monitor\` (PostgreSQL 10 and later) reads the statistics views and grants no access to your tables. Without it \`pg_stat_activity\` does not fail — it returns only the agent's own session, so connection counts read \`1\`. The receiver connects to every database to read per-database statistics, so the user also needs \`CONNECT\` on each one (\`PUBLIC\` has it by default). The PostgreSQL receiver refuses to start without a password. On a managed service where \`pg_monitor\` is unavailable, \`pg_read_all_stats\` covers the same views.
-
+`,
+      placements: DOCUMENT_AND_STEPS,
+    },
+    {
+      text: `
 Top queries (\`DATABASE_QUERY_EVENTS=true\`) also need the \`pg_stat_statements\` extension, loaded through \`shared_preload_libraries = 'pg_stat_statements'\` (a restart) and created in every monitored database:
 
-\`\`\`sql
-CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
-\`\`\`
+${codeBlock("sql", "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;")}
 
 Their explain plans additionally need \`SELECT\` on the tables the queries touch, which \`pg_monitor\` does not grant (for example \`GRANT SELECT ON ALL TABLES IN SCHEMA app TO oneuptime_monitor\`). Without it top queries still arrive, with empty plans, and the collector logs \`failed to explain\` for each one.
 `,
-  mysql: `
-\`\`\`sql
-CREATE USER 'oneuptime_monitor'@'%' IDENTIFIED BY 'a-strong-password';
+      placements: ["document", "queryEvents"],
+    },
+  ],
+  mysql: [
+    {
+      text: `
+${codeBlock(
+  "sql",
+  `CREATE USER 'oneuptime_monitor'@'%' IDENTIFIED BY 'a-strong-password';
 GRANT PROCESS, REPLICATION CLIENT ON *.* TO 'oneuptime_monitor'@'%';
-GRANT SELECT ON performance_schema.* TO 'oneuptime_monitor'@'%';
-\`\`\`
+GRANT SELECT ON performance_schema.* TO 'oneuptime_monitor'@'%';`,
+)}
 
-\`PROCESS\` and \`REPLICATION CLIENT\` cover the global status counters, InnoDB status and replica status; \`performance_schema\` is read for query samples and top queries. MariaDB 10.5.9 and later split replica status into its own privilege, so also run \`GRANT SLAVE MONITOR ON *.* TO 'oneuptime_monitor'@'%';\` there.
-`,
-  redis: `
-\`\`\`text
-ACL SETUSER oneuptime_monitor on >a-strong-password -@all +info +ping
-\`\`\`
+\`PROCESS\` and \`REPLICATION CLIENT\` cover the global status counters, InnoDB status and replica status; \`performance_schema\` is read for query samples and top queries.`,
+      placements: DOCUMENT_AND_STEPS,
+    },
+    {
+      text: " MariaDB 10.5.9 and later split replica status into its own privilege, so also run `GRANT SLAVE MONITOR ON *.* TO 'oneuptime_monitor'@'%';` there.",
+      placements: ["document", "fork"],
+    },
+    { text: "\n", placements: DOCUMENT_AND_STEPS },
+  ],
+  redis: [
+    {
+      text: `
+${codeBlock(
+  "text",
+  "ACL SETUSER oneuptime_monitor on >a-strong-password -@all +info +ping",
+)}
 
-The receiver only runs \`INFO\`. Persist the user with \`ACL SAVE\` (or a \`user\` line in \`redis.conf\` / your ACL file). On a server protected only by \`requirepass\`, leave \`DATABASE_USERNAME\` empty and set \`DATABASE_PASSWORD\`; on a server without authentication leave both empty. Valkey, KeyDB and Dragonfly take the same ACL.
-`,
-  mongodb: `
-\`\`\`js
-db.getSiblingDB("admin").createUser({
+The receiver only runs \`INFO\`. Persist the user with \`ACL SAVE\` (or a \`user\` line in \`redis.conf\` / your ACL file). On a server protected only by \`requirepass\`, leave \`DATABASE_USERNAME\` empty and set \`DATABASE_PASSWORD\`; on a server without authentication leave both empty.`,
+      placements: DOCUMENT_AND_STEPS,
+    },
+    {
+      text: " Valkey, KeyDB and Dragonfly take the same ACL.",
+      placements: ["document", "fork"],
+    },
+    { text: "\n", placements: DOCUMENT_AND_STEPS },
+  ],
+  mongodb: [
+    {
+      text: `
+${codeBlock(
+  "js",
+  `db.getSiblingDB("admin").createUser({
   user: "oneuptime_monitor",
   pwd: "a-strong-password",
   roles: [{ role: "clusterMonitor", db: "admin" }],
-});
-\`\`\`
+});`,
+)}
 
-\`clusterMonitor\` covers every metric. Explain plans on top queries additionally need \`{ role: "read", db: "<database>" }\` for each monitored database. The agent connects to exactly one member, so run one agent per replica-set member.
-`,
-  sqlserver: `
-\`\`\`sql
-CREATE LOGIN oneuptime_monitor WITH PASSWORD = 'a-strong-password';
+\`clusterMonitor\` covers every metric.`,
+      placements: DOCUMENT_AND_STEPS,
+    },
+    {
+      text: ' Explain plans on top queries additionally need `{ role: "read", db: "<database>" }` for each monitored database.',
+      placements: ["document", "queryEvents"],
+    },
+    {
+      text: " The agent connects to exactly one member, so run one agent per replica-set member.\n",
+      placements: DOCUMENT_AND_STEPS,
+    },
+  ],
+  sqlserver: [
+    {
+      text: `
+${codeBlock(
+  "sql",
+  `CREATE LOGIN oneuptime_monitor WITH PASSWORD = 'a-strong-password';
 GRANT VIEW SERVER STATE TO oneuptime_monitor;
-GRANT VIEW ANY DEFINITION TO oneuptime_monitor;
-\`\`\`
+GRANT VIEW ANY DEFINITION TO oneuptime_monitor;`,
+)}
 
 \`VIEW SERVER STATE\` (on SQL Server 2022 and later \`VIEW SERVER PERFORMANCE STATE\` is enough) reads the dynamic management views every metric comes from, and grants no access to your data. The receiver puts the login into a connection string without quoting it, so the user name and password must not contain a semicolon (\`;\`) or a double quote (\`"\`), nor start or end with a space — the install script refuses them. For a named instance (\`host\\instance\`), connect to the instance's own TCP port (\`host:port\`), never the default instance's 1433: SQL Server Configuration Manager shows it, or run \`SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID;\` on the instance.
 `,
-  oracledb: `
-\`\`\`sql
--- In the pluggable database the agent connects to, e.g. ALTER SESSION SET CONTAINER = FREEPDB1;
+      placements: DOCUMENT_AND_STEPS,
+    },
+  ],
+  oracledb: [
+    {
+      text: `
+${codeBlock(
+  "sql",
+  `-- In the pluggable database the agent connects to, e.g. ALTER SESSION SET CONTAINER = FREEPDB1;
 CREATE USER oneuptime_monitor IDENTIFIED BY "a-strong-password";
 GRANT CREATE SESSION TO oneuptime_monitor;
-GRANT SELECT_CATALOG_ROLE TO oneuptime_monitor;
-\`\`\`
+GRANT SELECT_CATALOG_ROLE TO oneuptime_monitor;`,
+)}
 
 \`SELECT_CATALOG_ROLE\` reads the \`V$\` and \`DBA_\` views the metrics, query samples and top queries come from, and grants no access to your tables. \`DATABASE_ORACLE_SERVICE\` is the service the agent connects to (\`FREEPDB1\`, \`ORCLPDB1\`, …).
 `,
-  elasticsearch: `
-\`\`\`text
-POST /_security/role/oneuptime_monitor
+      placements: DOCUMENT_AND_STEPS,
+    },
+  ],
+  elasticsearch: [
+    {
+      text: `
+${codeBlock(
+  "text",
+  `POST /_security/role/oneuptime_monitor
 { "cluster": ["monitor"], "indices": [{ "names": ["*"], "privileges": ["monitor"] }] }
 
 POST /_security/user/oneuptime_monitor
-{ "password": "a-strong-password", "roles": ["oneuptime_monitor"] }
-\`\`\`
+{ "password": "a-strong-password", "roles": ["oneuptime_monitor"] }`,
+)}
 
-The \`monitor\` privileges read node, cluster and index statistics and no documents. On OpenSearch with the security plugin, grant the cluster permission \`cluster_monitor\` and the index permission \`indices_monitor\` on \`*\` instead. On a cluster without security, leave \`DATABASE_USERNAME\` and \`DATABASE_PASSWORD\` empty.
-`,
-  memcached: `
+The \`monitor\` privileges read node, cluster and index statistics and no documents.`,
+      placements: ["document", "engine"],
+    },
+    {
+      text: " On OpenSearch with the security plugin, grant the cluster permission `cluster_monitor` and the index permission `indices_monitor` on `*` instead.",
+      placements: ["document"],
+    },
+    {
+      text: "On OpenSearch with the security plugin, give the monitoring user the cluster permission `cluster_monitor` and the index permission `indices_monitor` on `*`.",
+      placements: ["fork"],
+    },
+    {
+      text: " On a cluster without security, leave `DATABASE_USERNAME` and `DATABASE_PASSWORD` empty.\n",
+      placements: DOCUMENT_AND_STEPS,
+    },
+  ],
+  memcached: [
+    {
+      text: `
 Memcached has no users: the receiver runs \`stats\` over the text protocol, so leave \`DATABASE_USERNAME\` and \`DATABASE_PASSWORD\` empty. A server started with SASL authentication (\`-S\`) cannot be monitored this way.
 `,
+      placements: ["document"],
+    },
+  ],
 };
+
+/*
+ * An engine's monitoring-user instructions for one place: the whole text
+ * for the single document, the parts that apply to the picked engine for
+ * the setup guide's step, or the query-event requirements.
+ */
+function getMonitoringUserMarkdown(
+  engine: DatabaseAgentEngine,
+  placement: MonitoringUserPlacement,
+): string {
+  const text: string = MONITORING_USER_PIECES[engine]
+    .filter((piece: MonitoringUserPiece): boolean => {
+      return piece.placements.includes(placement);
+    })
+    .map((piece: MonitoringUserPiece): string => {
+      return piece.text;
+    })
+    .join("");
+  // The document keeps its own spacing; a step or topic body is trimmed.
+  return placement === "document" ? text : text.trim();
+}
+
+const MONITORING_USER_INTRO: string =
+  "Give the agent its own login with read access to the engine's statistics — never an administrator, and never an application's own login.";
+
+/*
+ * How install.sh treats the monitoring login per config (its LOGIN
+ * variable): PostgreSQL, MySQL, SQL Server and Oracle refuse to start
+ * without one, Memcached has none, and the rest take one when the server
+ * has users.
+ */
+function isLoginRequired(engine: DatabaseAgentEngine): boolean {
+  return (
+    engine === "postgresql" ||
+    engine === "mysql" ||
+    engine === "sqlserver" ||
+    engine === "oracledb"
+  );
+}
+
+function hasLogin(engine: DatabaseAgentEngine): boolean {
+  return engine !== "memcached";
+}
 
 function usernameFor(engine: DatabaseAgentEngine): string {
   return engine === "redis" || engine === "memcached"
@@ -633,7 +892,11 @@ spec:
             name: oneuptime-database-agent`;
 }
 
-function kubernetesSection(data: {
+/*
+ * Running the agent as a Deployment in a Kubernetes database's namespace:
+ * the ConfigMap and Secret it reads, then the Deployment.
+ */
+function kubernetesDeploymentMarkdown(data: {
   oneuptimeUrl: string;
   apiKey: string;
   engine: DatabaseAgentEngine;
@@ -642,34 +905,47 @@ function kubernetesSection(data: {
   namespace: string;
 }): string {
   const namespace: string = data.namespace.trim() || "default";
-  return `
-## Run the agent in Kubernetes
-
-This database runs in Kubernetes, so the agent is best run as a small Deployment in its namespace (\`${namespace}\`). \`DATABASE_SERVER_ID\` ties the metrics to this database directly: a cluster-local name is only unique inside one cluster, so it never creates a database on its own.
+  return `This database runs in Kubernetes, so the agent is best run as a small Deployment in its namespace (\`${namespace}\`). \`DATABASE_SERVER_ID\` ties the metrics to this database directly: a cluster-local name is only unique inside one cluster, so it never creates a database on its own.
 
 1. Put the collector config in a ConfigMap and the secrets in a Secret. The collector expands \`$\` inside the password once more, so write every \`$\` in it as \`$$\`:
 
-\`\`\`bash
-curl -fsSL ${DATABASE_AGENT_RAW_URL}/configs/${data.engine}.yaml -o config.yaml
+${codeBlock(
+  "bash",
+  `curl -fsSL ${DATABASE_AGENT_RAW_URL}/configs/${data.engine}.yaml -o config.yaml
 kubectl -n ${namespace} create configmap oneuptime-database-agent --from-file=config.yaml=config.yaml
 kubectl -n ${namespace} create secret generic oneuptime-database-agent \\
   --from-literal=ONEUPTIME_TELEMETRY_INGESTION_KEY='${data.apiKey}' \\
-  --from-literal=DATABASE_PASSWORD='a-strong-password'
-\`\`\`
+  --from-literal=DATABASE_PASSWORD='a-strong-password'`,
+)}
 
 2. Apply the Deployment:
 
-\`\`\`yaml
-${getDatabaseAgentKubernetesManifest({
-  oneuptimeUrl: data.oneuptimeUrl,
-  engine: data.engine,
-  identity: data.identity,
-  namespace: namespace,
-  system: data.system,
-})}
-\`\`\`
+${codeBlock(
+  "yaml",
+  getDatabaseAgentKubernetesManifest({
+    oneuptimeUrl: data.oneuptimeUrl,
+    engine: data.engine,
+    identity: data.identity,
+    namespace: namespace,
+    system: data.system,
+  }),
+)}
 
-Set \`DATABASE_ENDPOINT\` and \`DATABASE_SERVER_ADDRESS\` to the database Service's full name (\`<service>.${namespace}.svc.cluster.local\`) if the prefilled value is not it. The agent never stamps \`k8s.cluster.name\`: OneUptime reads that attribute as the Kubernetes agent's heartbeat.
+Set \`DATABASE_ENDPOINT\` and \`DATABASE_SERVER_ADDRESS\` to the database Service's full name (\`<service>.${namespace}.svc.cluster.local\`) if the prefilled value is not it. The agent never stamps \`k8s.cluster.name\`: OneUptime reads that attribute as the Kubernetes agent's heartbeat.`;
+}
+
+function kubernetesSection(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  engine: DatabaseAgentEngine;
+  system: string;
+  identity: DatabaseAgentIdentity;
+  namespace: string;
+}): string {
+  return `
+## Run the agent in Kubernetes
+
+${kubernetesDeploymentMarkdown(data)}
 `;
 }
 
@@ -704,9 +980,9 @@ export function getDatabaseProbeEndpoint(
  * The probe-based alternative, for the engines the Database Health monitor
  * checks. A probe's alerts land on the database whose endpoints include the
  * host:port it connects to (MonitorStepResourceIdentity), so a row's guide
- * names one of its own endpoints to connect to.
+ * names one of its own endpoints to connect to. Empty for other engines.
  */
-function databaseHealthSection(data: {
+function databaseHealthMarkdown(data: {
   dbSystem: string;
   databaseHealthMonitorUrl?: string | null | undefined;
   database?: DatabaseDocumentationTarget | null | undefined;
@@ -731,10 +1007,22 @@ function databaseHealthSection(data: {
       : "Its alerts and incidents appear on this database when the host and port it connects to are one of the endpoints on this database's Endpoints tab, written without an `@cluster` suffix — a probe reports no cluster.";
   }
 
+  return `For a probe-based check that needs no agent at all — connections, locks, cache and replication health, with alerting — ${link} (PostgreSQL, MySQL and SQL Server). It uses the same monitoring user. ${linking}`;
+}
+
+function databaseHealthSection(data: {
+  dbSystem: string;
+  databaseHealthMonitorUrl?: string | null | undefined;
+  database?: DatabaseDocumentationTarget | null | undefined;
+}): string {
+  const body: string = databaseHealthMarkdown(data);
+  if (!body) {
+    return "";
+  }
   return `
 ## No agent? Use a Database Health monitor
 
-For a probe-based check that needs no agent at all — connections, locks, cache and replication health, with alerting — ${link} (PostgreSQL, MySQL and SQL Server). It uses the same monitoring user. ${linking}
+${body}
 `;
 }
 
@@ -745,7 +1033,7 @@ For a probe-based check that needs no agent at all — connections, locks, cache
  * monitors for the engines DatabaseAlertTemplates covers; it is only
  * pointed at for those.
  */
-function alertingSection(data: {
+function alertingMarkdown(data: {
   databaseId: string;
   system: string;
   recommendationsUrl?: string | null | undefined;
@@ -770,21 +1058,137 @@ function alertingSection(data: {
   )?.receiverTypes.includes("sqlserver")
     ? " SQL Server's `sqlserver.*.rate` metrics behave like counters too: over the agent's direct connection they carry the counter's total since the server started, not a per-second rate, and `cumulativetodelta` leaves them alone (the receiver reports them as gauges) — threshold point-in-time values such as `sqlserver.processes.blocked` instead."
     : "";
+  return `Engine metrics and query events carry \`${DATABASE_SERVER_ID_ATTRIBUTE_NAME}\` = \`${id}\`. ${recommended} a **Metrics** monitor over an engine metric and filter it on that attribute (or group it by the attribute to cover several databases with one monitor — each series then lands on its own database): its alerts and incidents then appear on this database's Alerts and Incidents tabs, and none are opened for this database while it is in a scheduled maintenance window. A chart opened from this database's **Metrics** tab has **Create monitor**, which fills that filter in for you (a metric the chart adds up across series becomes a monitor that alerts on each series). Threshold a gauge (connections, memory, replication lag) or a ratio of two gauges. A cumulative counter (deadlocks, slow queries, evictions) only ever grows and monitors have no rate, so turn it into per-interval deltas with the collector's \`cumulativetodelta\` processor before alerting on it.${sqlServerRates}`;
+}
+
+function alertingSection(data: {
+  databaseId: string;
+  system: string;
+  recommendationsUrl?: string | null | undefined;
+}): string {
   return `
 ## Alert on this database
 
-Engine metrics and query events carry \`${DATABASE_SERVER_ID_ATTRIBUTE_NAME}\` = \`${id}\`. ${recommended} a **Metrics** monitor over an engine metric and filter it on that attribute (or group it by the attribute to cover several databases with one monitor — each series then lands on its own database): its alerts and incidents then appear on this database's Alerts and Incidents tabs, and none are opened for this database while it is in a scheduled maintenance window. A chart opened from this database's **Metrics** tab has **Create monitor**, which fills that filter in for you (a metric the chart adds up across series becomes a monitor that alerts on each series). Threshold a gauge (connections, memory, replication lag) or a ratio of two gauges. A cumulative counter (deadlocks, slow queries, evictions) only ever grows and monitors have no rate, so turn it into per-interval deltas with the collector's \`cumulativetodelta\` processor before alerting on it.${sqlServerRates}
+${alertingMarkdown(data)}
 `;
 }
 
+/*
+ * The guide's opening sentence: what the agent collects from this engine,
+ * with what, and that one agent watches one server.
+ */
+function agentIntroParagraph(
+  engine: DatabaseAgentEngine,
+  engineLabel: string,
+): string {
+  return `The OneUptime Database Agent collects ${engineLabel} engine metrics — ${getDatabaseAgentCollectedSummary(engine)} — with a stock OpenTelemetry Collector container (\`${DATABASE_AGENT_COLLECTOR_IMAGE}\`) running the collector's native \`${getCollectorReceiverComponentName(engine)}\` receiver (\`configs/${engine}.yaml\`). Nothing is installed on the database server. **One agent monitors one database server**; run a second copy in a second directory for a second server.`;
+}
+
+/* A row's identity, as every block of its guide is prefilled with it. */
+function thisDatabaseTable(
+  system: string,
+  identity: DatabaseAgentIdentity,
+): string {
+  return `| Setting | Value |
+|---------|-------|
+| \`DATABASE_SYSTEM\` | \`${system}\` |
+| \`DATABASE_SERVER_ID\` | \`${identity.databaseId}\` |
+| \`DATABASE_SERVER_ADDRESS\` | \`${identity.serverAddress}\` |
+| \`DATABASE_SERVER_PORT\` | \`${serverPortValue(identity)}\` |`;
+}
+
+/*
+ * What the prefilled identity means, what to do when the row has no
+ * address, and — for a SQL Server named instance the row knows no port
+ * for — where to find the port the samples leave as a placeholder.
+ */
+function thisDatabaseNote(identity: DatabaseAgentIdentity): string {
+  const instanceNote: string = identity.instanceName
+    ? ` This database is the SQL Server named instance \`${identity.instanceName}\` on \`${identity.serverAddress}\`, and OneUptime does not know its TCP port — a named instance listens on its own, never on the default instance's 1433, and the agent connects to that port. Find it in SQL Server Configuration Manager (the instance's TCP/IP protocol, IPAll) or by running \`SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID;\` on the instance. The install script asks for the endpoint to connect to: give it as \`${identity.serverAddress}:<port>\`. In the samples below, replace \`${INSTANCE_PORT_PLACEHOLDER}\` with it.`
+    : "";
+
+  return `Every block below is prefilled with these values. \`DATABASE_SERVER_ID\` is stamped on the agent's data as \`${DATABASE_SERVER_ID_ATTRIBUTE_NAME}\` and links it to this database directly, whatever its address — its data then shows on this database's pages even when the address is a private IP or a name that only resolves inside your network.${
+    identity.isPrefilled
+      ? ""
+      : ` This database has no address yet: the install script asks for the host name your applications use to reach it, and in the samples below replace \`${PLACEHOLDER_ADDRESS}\` with that name.`
+  }${instanceNote}`;
+}
+
+/*
+ * The NAME=value words the install command line passes to install.sh. A
+ * row without an address gets no placeholder on the command line:
+ * install.sh would take the placeholder as given and stamp it, while
+ * without it the script asks for the real name. Likewise a port the row
+ * does not know is left for install.sh, which takes it from the endpoint
+ * it asks for. The id still links the data to this row. Every value is
+ * one shell word, so the shell hands install.sh exactly this text.
+ */
+function installScriptWords(data: {
+  system: string;
+  identity: DatabaseAgentIdentity;
+  database?: DatabaseDocumentationTarget | null | undefined;
+}): Array<string> {
+  const identity: DatabaseAgentIdentity = data.identity;
+  const database: DatabaseDocumentationTarget | null | undefined =
+    data.database;
+  return [
+    `DATABASE_SYSTEM=${shellWord(data.system)}`,
+    database && identity.isPrefilled
+      ? `DATABASE_SERVER_ADDRESS=${shellWord(identity.serverAddress)}`
+      : "",
+    database && identity.isPrefilled && identity.serverPort !== null
+      ? `DATABASE_SERVER_PORT=${identity.serverPort}`
+      : "",
+    database ? `DATABASE_SERVER_ID=${shellWord(identity.databaseId)}` : "",
+  ].filter((part: string): boolean => {
+    return part.length > 0;
+  });
+}
+
+function installScriptCommand(words: Array<string>): string {
+  return `curl -sSL ${DATABASE_AGENT_RAW_URL}/install.sh -o install.sh
+${[...words, "bash install.sh"].join(" ")}`;
+}
+
+/*
+ * The Docker Compose notes: where the agent connects versus what the
+ * database is called, and how a hand-written `.env` holds the password.
+ */
+const COMPOSE_IDENTITY_NOTE: string =
+  "`DATABASE_ENDPOINT` is where the agent connects (`host.docker.internal:<port>` when it runs on the database machine). `DATABASE_SERVER_ADDRESS` is the database's identity: the host name your **applications** use to reach it, never `localhost`. Keep it stable — changing it registers a second database.";
+
+const COMPOSE_PASSWORD_NOTE: string =
+  "In a hand-written `.env`, single-quote the password and write every `$` in it as `$$`: the collector expands `$$` and `${...}` inside it once more. The first line says so, in the words of the `.env` the install script writes — and the script, re-run on this folder, reads the file the same way.";
+
+/* The agent's environment, as docker-compose.yml passes it to the collector. */
+const ENVIRONMENT_VARIABLES_TABLE: string = `| Variable | Required | Description |
+|----------|----------|-------------|
+| \`ONEUPTIME_URL\` | Yes | Your OneUptime URL |
+| \`ONEUPTIME_TELEMETRY_INGESTION_KEY\` | Yes | The telemetry ingestion key selected above |
+| \`DATABASE_SYSTEM\` | Yes | The engine, stamped as \`db.system.name\`: \`postgresql\`, \`mysql\`, \`mariadb\`, \`redis\`, \`valkey\`, \`keydb\`, \`dragonfly\`, \`mongodb\`, \`microsoft.sql_server\`, \`oracle.db\`, \`elasticsearch\`, \`opensearch\` or \`memcached\` |
+| \`DATABASE_ENDPOINT\` | Yes | \`host:port\` the agent connects to (a \`http://\` or \`https://\` URL for Elasticsearch / OpenSearch) |
+| \`DATABASE_ENDPOINT_HOST\` | SQL Server | \`DATABASE_ENDPOINT\`'s host (install.sh writes it) |
+| \`DATABASE_ENDPOINT_PORT\` | SQL Server | \`DATABASE_ENDPOINT\`'s port (install.sh writes it) |
+| \`DATABASE_ORACLE_SERVICE\` | Oracle | The service to connect to, e.g. \`FREEPDB1\` |
+| \`DATABASE_SERVER_ADDRESS\` | Yes | The host name your applications use — the database's identity |
+| \`DATABASE_SERVER_PORT\` | Yes | The port your applications use |
+| \`DATABASE_USERNAME\` | PostgreSQL, MySQL, SQL Server, Oracle | The monitoring user |
+| \`DATABASE_PASSWORD\` | PostgreSQL, SQL Server, Oracle | Its password (single-quoted in \`.env\`, every \`$\` written as \`$$\`) |
+| \`DATABASE_TLS_INSECURE\` | No | \`true\` (default) connects without TLS, \`false\` turns TLS on |
+| \`DATABASE_TLS_INSECURE_SKIP_VERIFY\` | No | \`true\` accepts a certificate the collector image does not trust |
+| \`DATABASE_COLLECTION_INTERVAL\` | No | How often statistics are read. Default \`30s\` |
+| \`DATABASE_QUERY_EVENTS\` | No | \`true\` ships query samples and top queries as logs (they contain query text) |
+| \`DATABASE_SERVER_ID\` | No | The id of a database OneUptime already shows; the data then joins it directly |`;
+
 /**
- * The full agent guide for one engine. With `database`, every value that
- * identifies the database is prefilled for that row, its id included; the
- * Kubernetes section appears for a Kubernetes-detected row. `system` picks
- * the engine the agent reports (DATABASE_SYSTEM: "mariadb" with the mysql
- * config); it defaults to the row's engine, then to the config's.
- * `recommendationsUrl` links the row's Recommendations tab from its
- * alerting section.
+ * The full agent guide for one engine, as one markdown document. With
+ * `database`, every value that identifies the database is prefilled for
+ * that row, its id included; the Kubernetes section appears for a
+ * Kubernetes-detected row. `system` picks the engine the agent reports
+ * (DATABASE_SYSTEM: "mariadb" with the mysql config); it defaults to the
+ * row's engine, then to the config's. `recommendationsUrl` links the row's
+ * Recommendations tab from its alerting section. The Documentation card
+ * renders getDatabaseAgentSetupGuide, the same pieces laid out as steps.
  */
 export function getDatabaseAgentInstallationMarkdown(data: {
   oneuptimeUrl: string;
@@ -805,59 +1209,17 @@ export function getDatabaseAgentInstallationMarkdown(data: {
     system,
     database,
   );
-  const serverPortText: string = serverPortValue(identity);
   const engineLabel: string = getDatabaseSystemDisplayName(system);
-  const receiverName: string = getCollectorReceiverComponentName(data.engine);
-
-  /*
-   * A named instance the row knows no port for: the samples carry a
-   * placeholder port, and the reader is told where to find the real one.
-   */
-  const instanceNote: string = identity.instanceName
-    ? ` This database is the SQL Server named instance \`${identity.instanceName}\` on \`${identity.serverAddress}\`, and OneUptime does not know its TCP port — a named instance listens on its own, never on the default instance's 1433, and the agent connects to that port. Find it in SQL Server Configuration Manager (the instance's TCP/IP protocol, IPAll) or by running \`SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID;\` on the instance. The install script asks for the endpoint to connect to: give it as \`${identity.serverAddress}:<port>\`. In the samples below, replace \`${INSTANCE_PORT_PLACEHOLDER}\` with it.`
-    : "";
 
   const thisDatabase: string = database
     ? `
 ## This database
 
-| Setting | Value |
-|---------|-------|
-| \`DATABASE_SYSTEM\` | \`${system}\` |
-| \`DATABASE_SERVER_ID\` | \`${identity.databaseId}\` |
-| \`DATABASE_SERVER_ADDRESS\` | \`${identity.serverAddress}\` |
-| \`DATABASE_SERVER_PORT\` | \`${serverPortText}\` |
+${thisDatabaseTable(system, identity)}
 
-Every block below is prefilled with these values. \`DATABASE_SERVER_ID\` is stamped on the agent's data as \`${DATABASE_SERVER_ID_ATTRIBUTE_NAME}\` and links it to this database directly, whatever its address — its data then shows on this database's pages even when the address is a private IP or a name that only resolves inside your network.${
-        identity.isPrefilled
-          ? ""
-          : ` This database has no address yet: the install script asks for the host name your applications use to reach it, and in the samples below replace \`${PLACEHOLDER_ADDRESS}\` with that name.`
-      }${instanceNote}
+${thisDatabaseNote(identity)}
 `
     : "";
-
-  /*
-   * A row without an address gets no placeholder on the command line:
-   * install.sh would take the placeholder as given and stamp it, while
-   * without it the script asks for the real name. Likewise a port the row
-   * does not know is left for install.sh, which takes it from the endpoint
-   * it asks for. The id still links the data to this row. Every value is
-   * one shell word, so the shell hands install.sh exactly this text.
-   */
-  const installEnv: string = [
-    `DATABASE_SYSTEM=${shellWord(system)}`,
-    database && identity.isPrefilled
-      ? `DATABASE_SERVER_ADDRESS=${shellWord(identity.serverAddress)}`
-      : "",
-    database && identity.isPrefilled && identity.serverPort !== null
-      ? `DATABASE_SERVER_PORT=${identity.serverPort}`
-      : "",
-    database ? `DATABASE_SERVER_ID=${shellWord(identity.databaseId)}` : "",
-  ]
-    .filter((part: string): boolean => {
-      return part.length > 0;
-    })
-    .join(" ");
 
   const kubernetes: string =
     database && database.isKubernetes
@@ -872,7 +1234,7 @@ Every block below is prefilled with these values. \`DATABASE_SERVER_ID\` is stam
       : "";
 
   return `
-The OneUptime Database Agent collects ${engineLabel} engine metrics — ${getDatabaseAgentCollectedSummary(data.engine)} — with a stock OpenTelemetry Collector container (\`${DATABASE_AGENT_COLLECTOR_IMAGE}\`) running the collector's native \`${receiverName}\` receiver (\`configs/${data.engine}.yaml\`). Nothing is installed on the database server. **One agent monitors one database server**; run a second copy in a second directory for a second server.
+${agentIntroParagraph(data.engine, engineLabel)}
 ${thisDatabase}
 ## Prerequisites
 
@@ -882,80 +1244,65 @@ ${thisDatabase}
 
 ## Create a monitoring user
 
-Give the agent its own login with read access to the engine's statistics — never an administrator, and never an application's own login.
-${MONITORING_USER_MARKDOWN[data.engine]}
+${MONITORING_USER_INTRO}
+${getMonitoringUserMarkdown(data.engine, "document")}
 ## Quick Start — Install Script
 
-\`\`\`bash
-curl -sSL ${DATABASE_AGENT_RAW_URL}/install.sh -o install.sh
-${installEnv} bash install.sh
-\`\`\`
+${codeBlock(
+  "bash",
+  installScriptCommand(
+    installScriptWords({
+      system: system,
+      identity: identity,
+      database: database,
+    }),
+  ),
+)}
 
-The script asks for anything not given up front (your OneUptime URL and ingestion key, the endpoint to connect to and the monitoring credentials — the password is read without echo), installs to \`/opt/oneuptime-database-agent\`, writes a \`0600\` \`.env\` file with values escaped for the collector and quoted for Docker Compose, and starts the agent. Re-running it reuses the existing \`.env\` and updates the agent; a \`docker-compose.yml\` or collector config you edited is kept next to the new one as \`<file>.bak.<timestamp>\`.
+The script asks for anything not given up front (your OneUptime URL and ingestion key, the endpoint to connect to and the monitoring credentials — the password is read without echo), installs to \`${DATABASE_AGENT_INSTALL_DIRECTORY}\`, writes a \`0600\` \`.env\` file with values escaped for the collector and quoted for Docker Compose, and starts the agent. Re-running it reuses the existing \`.env\` and updates the agent; a \`docker-compose.yml\` or collector config you edited is kept next to the new one as \`<file>.bak.<timestamp>\`.
 
 ## Quick Start — Docker Compose
 
 Download \`docker-compose.yml\` and \`configs/${data.engine}.yaml\` (saved as \`otel-collector-config.yaml\`) from the [DatabaseAgent directory](${DATABASE_AGENT_DIRECTORY_URL}) into one folder, then create a \`.env\` file next to them (\`chmod 600 .env\` — it holds a password):
 
-\`\`\`bash
-${getDatabaseAgentEnvFile({
-  oneuptimeUrl: data.oneuptimeUrl,
-  apiKey: data.apiKey,
-  engine: data.engine,
-  identity: identity,
-  system: system,
-})}
-\`\`\`
+${codeBlock(
+  "bash",
+  getDatabaseAgentEnvFile({
+    oneuptimeUrl: data.oneuptimeUrl,
+    apiKey: data.apiKey,
+    engine: data.engine,
+    identity: identity,
+    system: system,
+  }),
+)}
 
 Then start the agent:
 
-\`\`\`bash
-docker compose up -d
-\`\`\`
+${codeBlock("bash", "docker compose up -d")}
 
-\`DATABASE_ENDPOINT\` is where the agent connects (\`host.docker.internal:<port>\` when it runs on the database machine). \`DATABASE_SERVER_ADDRESS\` is the database's identity: the host name your **applications** use to reach it, never \`localhost\`. Keep it stable — changing it registers a second database. In a hand-written \`.env\`, single-quote the password and write every \`$\` in it as \`$$\`: the collector expands \`$$\` and \`\${...}\` inside it once more. The first line says so, in the words of the \`.env\` the install script writes — and the script, re-run on this folder, reads the file the same way.
+${COMPOSE_IDENTITY_NOTE} ${COMPOSE_PASSWORD_NOTE}
 
 ### docker-compose.yml
 
-\`\`\`yaml
-${DATABASE_AGENT_DOCKER_COMPOSE.trimEnd()}
-\`\`\`
+${codeBlock("yaml", DATABASE_AGENT_DOCKER_COMPOSE.trimEnd())}
 
 ### otel-collector-config.yaml (${getDatabaseAgentEngineLabel(data.engine)})
 
-\`\`\`yaml
-${DATABASE_AGENT_CONFIGS[data.engine].trimEnd()}
-\`\`\`
+${codeBlock("yaml", DATABASE_AGENT_CONFIGS[data.engine].trimEnd())}
 ${kubernetes}
 ## Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| \`ONEUPTIME_URL\` | Yes | Your OneUptime URL |
-| \`ONEUPTIME_TELEMETRY_INGESTION_KEY\` | Yes | The telemetry ingestion key selected above |
-| \`DATABASE_SYSTEM\` | Yes | The engine, stamped as \`db.system.name\`: \`postgresql\`, \`mysql\`, \`mariadb\`, \`redis\`, \`valkey\`, \`keydb\`, \`dragonfly\`, \`mongodb\`, \`microsoft.sql_server\`, \`oracle.db\`, \`elasticsearch\`, \`opensearch\` or \`memcached\` |
-| \`DATABASE_ENDPOINT\` | Yes | \`host:port\` the agent connects to (a \`http://\` or \`https://\` URL for Elasticsearch / OpenSearch) |
-| \`DATABASE_ENDPOINT_HOST\` | SQL Server | \`DATABASE_ENDPOINT\`'s host (install.sh writes it) |
-| \`DATABASE_ENDPOINT_PORT\` | SQL Server | \`DATABASE_ENDPOINT\`'s port (install.sh writes it) |
-| \`DATABASE_ORACLE_SERVICE\` | Oracle | The service to connect to, e.g. \`FREEPDB1\` |
-| \`DATABASE_SERVER_ADDRESS\` | Yes | The host name your applications use — the database's identity |
-| \`DATABASE_SERVER_PORT\` | Yes | The port your applications use |
-| \`DATABASE_USERNAME\` | PostgreSQL, MySQL, SQL Server, Oracle | The monitoring user |
-| \`DATABASE_PASSWORD\` | PostgreSQL, SQL Server, Oracle | Its password (single-quoted in \`.env\`, every \`$\` written as \`$$\`) |
-| \`DATABASE_TLS_INSECURE\` | No | \`true\` (default) connects without TLS, \`false\` turns TLS on |
-| \`DATABASE_TLS_INSECURE_SKIP_VERIFY\` | No | \`true\` accepts a certificate the collector image does not trust |
-| \`DATABASE_COLLECTION_INTERVAL\` | No | How often statistics are read. Default \`30s\` |
-| \`DATABASE_QUERY_EVENTS\` | No | \`true\` ships query samples and top queries as logs (they contain query text) |
-| \`DATABASE_SERVER_ID\` | No | The id of a database OneUptime already shows; the data then joins it directly |
+${ENVIRONMENT_VARIABLES_TABLE}
 
 ## Verify
 
 After the first collection (about one \`DATABASE_COLLECTION_INTERVAL\`) the database's **Engine metrics** status turns to Connected and its Overview charts the engine. If nothing arrives, run the diagnostic script from the install directory:
 
-\`\`\`bash
-curl -sSL ${DATABASE_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh
-bash troubleshoot.sh
-\`\`\`
+${codeBlock(
+  "bash",
+  `curl -sSL ${DATABASE_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh
+bash troubleshoot.sh`,
+)}
 ${
   database
     ? alertingSection({
@@ -972,6 +1319,799 @@ ${
 }
 
 /*
+ * ---- The Database Agent setup guide ---------------------------------------
+ *
+ * What the Documentation card renders: the picked engine's steps — the
+ * monitoring user, the install (script, Docker Compose, or a Deployment for
+ * a Kubernetes database) and how to check it worked — with the reference
+ * material folded under Advanced and the known problems under
+ * Troubleshooting.
+ */
+
+export interface DatabaseAgentSetupGuideOptions {
+  oneuptimeUrl: string;
+  apiKey: string;
+  /*
+   * Whether `apiKey` is a key the reader picked rather than the
+   * placeholder. Only then are the URL and key put on the install command
+   * line: install.sh stores whatever it is given. Defaults to "not the
+   * placeholder".
+   */
+  hasApiKey?: boolean | undefined;
+  engine: DatabaseAgentEngine;
+  // The engine the agent reports (DATABASE_SYSTEM); see getDatabaseAgentSystem.
+  system?: string | null | undefined;
+  // The row a database's own Documentation tab installs for.
+  database?: DatabaseDocumentationTarget | null | undefined;
+  databaseHealthMonitorUrl?: string | null | undefined;
+  recommendationsUrl?: string | null | undefined;
+}
+
+const PICK_KEY_NOTE: string = `Pick an ingestion key in step 1 to fill in \`${SETUP_GUIDE_API_KEY_PLACEHOLDER}\`.`;
+
+const TROUBLESHOOT_COMMAND: string = `curl -sSL ${DATABASE_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh
+bash troubleshoot.sh    # add -d <dir> if you installed outside ${DATABASE_AGENT_INSTALL_DIRECTORY}`;
+
+function joinWithAnd(parts: Array<string>): string {
+  if (parts.length <= 1) {
+    return parts.join("");
+  }
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}
+
+/*
+ * install.sh reads ONEUPTIME_URL and ONEUPTIME_TELEMETRY_INGESTION_KEY from
+ * its environment before it prompts for them (`if [ -z "$ONEUPTIME_URL" ]`),
+ * so once a key is picked both go on the command line. Never a
+ * placeholder: the script would store it in `.env` as given.
+ */
+function prefilledConnectionWords(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  hasApiKey: boolean;
+}): Array<string> {
+  if (
+    !data.hasApiKey ||
+    !data.apiKey ||
+    data.apiKey === SETUP_GUIDE_API_KEY_PLACEHOLDER
+  ) {
+    return [];
+  }
+  const words: Array<string> = [];
+  if (data.oneuptimeUrl && data.oneuptimeUrl !== SETUP_GUIDE_URL_PLACEHOLDER) {
+    words.push(`ONEUPTIME_URL=${shellQuote(data.oneuptimeUrl)}`);
+  }
+  words.push(`ONEUPTIME_TELEMETRY_INGESTION_KEY=${shellQuote(data.apiKey)}`);
+  return words;
+}
+
+function getAgentPrerequisites(data: {
+  engine: DatabaseAgentEngine;
+  namespace: string | null;
+  isProductPage: boolean;
+}): Array<string> {
+  const docker: string =
+    "Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that can reach the database's port";
+  const lines: Array<string> = [
+    data.namespace !== null
+      ? `\`kubectl\` access to the \`${data.namespace}\` namespace — or ${docker}`
+      : `${docker} — nothing is installed on the database server`,
+  ];
+
+  if (hasLogin(data.engine)) {
+    lines.push(
+      "A database login that may create users and grant privileges, for the monitoring user in step 2",
+    );
+  } else {
+    lines.push(
+      "A Memcached server without SASL authentication (`-S`): Memcached has no users, and the agent runs `stats` over the text protocol without logging in",
+    );
+  }
+
+  if (data.isProductPage) {
+    lines.push(
+      "The host name your applications use to reach the database — it becomes the database's identity in OneUptime",
+    );
+  }
+
+  return lines;
+}
+
+function getMonitoringUserStep(
+  engine: DatabaseAgentEngine,
+  system: string,
+): SetupGuideStep {
+  return {
+    title: "Create a monitoring user",
+    description: MONITORING_USER_INTRO,
+    markdown: getMonitoringUserMarkdown(
+      engine,
+      isForkOfEngine(engine, system) ? "fork" : "engine",
+    ),
+  };
+}
+
+function getInstallScriptVariant(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  hasApiKey: boolean;
+  engine: DatabaseAgentEngine;
+  system: string;
+  identity: DatabaseAgentIdentity;
+  database: DatabaseDocumentationTarget | null;
+}): SetupGuideStepVariant {
+  const connection: Array<string> = prefilledConnectionWords(data);
+  const words: Array<string> = [
+    ...connection,
+    ...installScriptWords({
+      system: data.system,
+      identity: data.identity,
+      database: data.database,
+    }),
+  ];
+
+  const isUrlPrefilled: boolean = connection.some((word: string): boolean => {
+    return word.startsWith("ONEUPTIME_URL=");
+  });
+  const asked: Array<string> = [];
+  if (!isUrlPrefilled) {
+    asked.push("your OneUptime URL");
+  }
+  if (connection.length === 0) {
+    asked.push("the ingestion key from step 1");
+  }
+  asked.push("the endpoint to connect to");
+  if (data.engine === "oracledb") {
+    asked.push("the Oracle service name");
+  }
+  if (hasLogin(data.engine)) {
+    asked.push(
+      isLoginRequired(data.engine)
+        ? "the monitoring credentials"
+        : "the monitoring credentials, if the server has users",
+    );
+  }
+
+  const notes: Array<string> = [
+    `The script asks for ${joinWithAnd(asked)}${
+      hasLogin(data.engine) ? " (the password is read without echo)" : ""
+    }, then installs to \`${DATABASE_AGENT_INSTALL_DIRECTORY}\`, writes a \`0600\` \`.env\` file and starts the agent.`,
+  ];
+
+  if (!data.database) {
+    notes.push(
+      "When the endpoint only means something on this machine (`localhost`, `host.docker.internal`), it also asks for the host name your applications use: that name is the database's identity in OneUptime.",
+    );
+  }
+
+  return {
+    label: "Install script",
+    markdown: [
+      codeBlock("bash", installScriptCommand(words)),
+      notes.join(" "),
+    ].join("\n\n"),
+  };
+}
+
+function getDockerComposeVariant(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  hasApiKey: boolean;
+  engine: DatabaseAgentEngine;
+  system: string;
+  identity: DatabaseAgentIdentity;
+}): SetupGuideStepVariant {
+  const notes: Array<string> = [COMPOSE_IDENTITY_NOTE];
+  if (hasLogin(data.engine)) {
+    notes.push(COMPOSE_PASSWORD_NOTE);
+  }
+  if (!data.hasApiKey) {
+    notes.push(PICK_KEY_NOTE);
+  }
+
+  return {
+    label: "Docker Compose",
+    markdown: [
+      `Download \`docker-compose.yml\` and \`configs/${data.engine}.yaml\` (saved as \`otel-collector-config.yaml\`) from the [DatabaseAgent directory](${DATABASE_AGENT_DIRECTORY_URL}) into one folder:`,
+      codeBlock(
+        "bash",
+        `curl -fsSL ${DATABASE_AGENT_RAW_URL}/docker-compose.yml -o docker-compose.yml
+curl -fsSL ${DATABASE_AGENT_RAW_URL}/configs/${data.engine}.yaml -o otel-collector-config.yaml`,
+      ),
+      `Create a \`.env\` file next to them (\`chmod 600 .env\` — it holds ${
+        hasLogin(data.engine) ? "a password" : "your ingestion key"
+      }):`,
+      codeBlock(
+        "bash",
+        getDatabaseAgentEnvFile({
+          oneuptimeUrl: data.oneuptimeUrl,
+          apiKey: data.apiKey,
+          engine: data.engine,
+          identity: data.identity,
+          system: data.system,
+        }),
+      ),
+      "Start the agent:",
+      codeBlock("bash", "docker compose up -d"),
+      ...notes,
+    ].join("\n\n"),
+  };
+}
+
+function getKubernetesVariant(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  hasApiKey: boolean;
+  engine: DatabaseAgentEngine;
+  system: string;
+  identity: DatabaseAgentIdentity;
+  namespace: string;
+}): SetupGuideStepVariant {
+  const markdown: string = kubernetesDeploymentMarkdown(data);
+  return {
+    label: "Kubernetes",
+    markdown: data.hasApiKey ? markdown : `${markdown}\n\n${PICK_KEY_NOTE}`,
+  };
+}
+
+function getAgentVerifyStep(data: {
+  database: DatabaseDocumentationTarget | null;
+  namespace: string | null;
+}): SetupGuideStep {
+  const arrival: string = data.database
+    ? "After the first collection (about one `DATABASE_COLLECTION_INTERVAL`, 30 seconds by default) this database's **Engine metrics** status turns to Connected and its Overview charts the engine."
+    : "After the first collection (about one `DATABASE_COLLECTION_INTERVAL`, 30 seconds by default) the database appears under **Databases** — or, when OneUptime already shows it from traces or containers at the same address, its **Engine metrics** status turns to Connected and its Overview charts the engine.";
+
+  const parts: Array<string> = [
+    arrival,
+    "If nothing arrives, run the diagnostic script where the agent runs. It checks the container, the identity in `.env`, the connection to the database, the collector's log and the ingestion key, and names the most likely problem:",
+    codeBlock("bash", TROUBLESHOOT_COMMAND),
+  ];
+
+  if (data.namespace !== null) {
+    parts.push(
+      `The script needs Docker. For the Deployment, read the collector's log instead: \`kubectl -n ${data.namespace} logs deployment/oneuptime-database-agent\`.`,
+    );
+  }
+
+  return {
+    title: "Verify the installation",
+    description: "Check that the engine metrics arrive.",
+    markdown: parts.join("\n\n"),
+  };
+}
+
+/*
+ * The OneUptime AI agent runs next to the collector (the compose file's
+ * oneuptime-database-ai-agent service). install.sh's AI_SUPPORTED: it has
+ * diagnostics for these configs only, and runs nothing for the others.
+ */
+function hasAiAgentDiagnostics(engine: DatabaseAgentEngine): boolean {
+  return (
+    engine === "postgresql" ||
+    engine === "mysql" ||
+    engine === "redis" ||
+    engine === "mongodb"
+  );
+}
+
+/*
+ * What query events need beyond step 2's grants: PostgreSQL's extension and
+ * explain-plan access, MongoDB's per-database role, and for the rest the
+ * grant of step 2 that already covers them.
+ */
+function getQueryEventsRequirements(engine: DatabaseAgentEngine): string {
+  switch (engine) {
+    case "mysql":
+      return "They read `performance_schema`, which the monitoring user's grant from step 2 already covers.";
+    case "sqlserver":
+      return "They read the dynamic management views, which `VIEW SERVER STATE` from step 2 already covers.";
+    case "oracledb":
+      return "They read the `V$` views, which `SELECT_CATALOG_ROLE` from step 2 already covers.";
+    default:
+      return getMonitoringUserMarkdown(engine, "queryEvents");
+  }
+}
+
+function getQueryEventsTopic(data: {
+  engine: DatabaseAgentEngine;
+  namespace: string | null;
+}): SetupGuideTopic {
+  const kubernetes: string =
+    data.namespace !== null
+      ? ' In Kubernetes, set the Deployment\'s `DATABASE_QUERY_EVENTS` value to `"true"` instead.'
+      : "";
+
+  return {
+    title: "Query samples and top queries",
+    summary:
+      "Ship the queries the database runs as logs. Off by default, because they contain query text.",
+    markdown: [
+      "With `DATABASE_QUERY_EVENTS=true` the agent also ships query samples and top queries as logs: they arrive on the database's **Logs** tab with the query text as their message. They contain query text, so they are off by default — the install script asks whether to ship them.",
+      `To turn them on later, set \`DATABASE_QUERY_EVENTS=true\` in the agent's \`.env\` and recreate the container with \`docker compose up -d --force-recreate\` in its folder.${kubernetes}`,
+      getQueryEventsRequirements(data.engine),
+    ]
+      .filter((part: string): boolean => {
+        return part.length > 0;
+      })
+      .join("\n\n"),
+  };
+}
+
+function getAgentFilesTopic(
+  engine: DatabaseAgentEngine,
+  system: string,
+): SetupGuideTopic {
+  const aiAgent: string = hasAiAgentDiagnostics(engine)
+    ? "The compose file also runs `oneuptime-database-ai-agent`, the OneUptime AI agent: it lets OneUptime AI read the database's diagnostics while it investigates an incident or alert — read-only unless you allow fixes — and shows on the database's **AI → AI agent** page. Remove its service if you do not use OneUptime AI."
+    : `The compose file also runs \`oneuptime-database-ai-agent\`, the OneUptime AI agent. It has no AI diagnostics for ${getDatabaseSystemDisplayName(system)} yet, so it runs nothing — remove its service if you do not want it running.`;
+
+  return {
+    title: "The files the agent runs",
+    summary:
+      "The docker-compose.yml and the collector config the install script downloads, in full.",
+    markdown: [
+      `The install script downloads both into \`${DATABASE_AGENT_INSTALL_DIRECTORY}\`; the Docker Compose steps use the same files.`,
+      "**docker-compose.yml**",
+      codeBlock("yaml", DATABASE_AGENT_DOCKER_COMPOSE.trimEnd()),
+      `**otel-collector-config.yaml** — \`configs/${engine}.yaml\`, the ${getDatabaseAgentEngineLabel(engine)} config`,
+      codeBlock("yaml", DATABASE_AGENT_CONFIGS[engine].trimEnd()),
+      aiAgent,
+    ].join("\n\n"),
+  };
+}
+
+function getUpgradeTopic(data: {
+  engine: DatabaseAgentEngine;
+  system: string;
+  connection: Array<string>;
+}): SetupGuideTopic {
+  const secondAgent: string = [
+    ...data.connection,
+    `INSTALL_DIR=${DATABASE_AGENT_INSTALL_DIRECTORY}-orders`,
+    `DATABASE_SYSTEM=${shellWord(data.system)}`,
+    "bash install.sh",
+  ].join(" ");
+
+  return {
+    title: "Upgrade or uninstall the agent",
+    summary:
+      "Move to the current config and keep your settings, monitor a second server, or remove the agent.",
+    markdown: [
+      `**Upgrade** by running the current install script again. It reuses your \`.env\`, replaces \`docker-compose.yml\` and \`otel-collector-config.yaml\` with the current versions and recreates the container; a file you edited is kept next to the new one as \`<file>.bak.<timestamp>\`.`,
+      codeBlock("bash", installScriptCommand([])),
+      "After editing `.env` or `otel-collector-config.yaml` yourself, apply the change with `docker compose up -d --force-recreate` in the agent's folder: the collector reads its config only when it starts, and a plain `docker compose up -d` keeps the running container when only the config file changed.",
+      "**Monitor a second database server** with a second agent in a directory of its own — one agent monitors one server:",
+      codeBlock("bash", secondAgent),
+      "**Uninstall** the agent:",
+      codeBlock(
+        "bash",
+        `cd ${DATABASE_AGENT_INSTALL_DIRECTORY} && docker compose down`,
+      ),
+      hasLogin(data.engine) ? "Then drop the monitoring user." : "",
+    ]
+      .filter((part: string): boolean => {
+        return part.length > 0;
+      })
+      .join("\n\n"),
+  };
+}
+
+function getAgentAdvancedTopics(data: {
+  engine: DatabaseAgentEngine;
+  system: string;
+  identity: DatabaseAgentIdentity;
+  database: DatabaseDocumentationTarget | null;
+  namespace: string | null;
+  connection: Array<string>;
+  databaseHealthMonitorUrl?: string | null | undefined;
+  recommendationsUrl?: string | null | undefined;
+}): Array<SetupGuideTopic> {
+  const topics: Array<SetupGuideTopic> = [];
+  const engineLabel: string = getDatabaseSystemDisplayName(data.system);
+
+  if (data.database) {
+    topics.push({
+      title: "Alert on this database",
+      summary:
+        "Metrics monitors whose alerts and incidents land on this database, and what to threshold.",
+      markdown: alertingMarkdown({
+        databaseId: data.identity.databaseId,
+        system: data.system,
+        recommendationsUrl: data.recommendationsUrl,
+      }),
+    });
+  }
+
+  topics.push({
+    title: "What the agent collects",
+    summary: `The ${engineLabel} metrics the collector's ${getCollectorReceiverComponentName(data.engine)} receiver reads.`,
+    markdown: agentIntroParagraph(data.engine, engineLabel),
+  });
+
+  if (hasQueryEvents(data.engine)) {
+    topics.push(
+      getQueryEventsTopic({ engine: data.engine, namespace: data.namespace }),
+    );
+  }
+
+  topics.push(
+    {
+      title: "Environment variables",
+      summary: "Every setting the agent reads from its .env file.",
+      markdown: ENVIRONMENT_VARIABLES_TABLE,
+    },
+    getAgentFilesTopic(data.engine, data.system),
+    getUpgradeTopic({
+      engine: data.engine,
+      system: data.system,
+      connection: data.connection,
+    }),
+  );
+
+  const health: string = databaseHealthMarkdown({
+    dbSystem:
+      normalizeDatabaseSystem(data.database?.dbSystem || data.system) || "",
+    databaseHealthMonitorUrl: data.databaseHealthMonitorUrl,
+    database: data.database,
+  });
+  if (health) {
+    topics.push({
+      title: "No agent? Use a Database Health monitor",
+      summary:
+        "A probe-based check with alerting that needs no agent, for PostgreSQL, MySQL and SQL Server.",
+      markdown: health,
+    });
+  }
+
+  return topics;
+}
+
+/*
+ * What the collector logs when the database refuses the agent: a rejected
+ * login, and a login without the grants of step 2 — the messages
+ * troubleshoot.sh looks for, per engine.
+ */
+const LOGIN_ERRORS: Record<
+  DatabaseAgentEngine,
+  { rejected: Array<string>; missingGrant: Array<string> } | null
+> = {
+  postgresql: {
+    rejected: ["password authentication failed"],
+    missingGrant: ["permission denied", "must be superuser"],
+  },
+  mysql: {
+    rejected: ["Access denied for user"],
+    missingGrant: ["Access denied; you need … privilege(s)"],
+  },
+  redis: { rejected: ["WRONGPASS", "NOAUTH"], missingGrant: ["NOPERM"] },
+  mongodb: {
+    rejected: ["Authentication failed"],
+    missingGrant: ["not authorized"],
+  },
+  sqlserver: {
+    rejected: ["Login failed for user"],
+    missingGrant: ["VIEW SERVER STATE"],
+  },
+  oracledb: {
+    rejected: ["ORA-01017"],
+    missingGrant: ["ORA-00942", "ORA-01031"],
+  },
+  elasticsearch: {
+    rejected: ["status code 401"],
+    missingGrant: ["status code 403"],
+  },
+  memcached: null,
+};
+
+/*
+ * The server's own allow-list that can refuse the agent's connection, for
+ * the engines that have one by name.
+ */
+const ALLOW_LISTS: Partial<Record<DatabaseAgentEngine, string>> = {
+  postgresql: "`pg_hba.conf`",
+  mysql: "`bind-address`",
+  redis: "`bind`",
+  mongodb: "`net.bindIp`",
+};
+
+function inlineCodeList(values: Array<string>): string {
+  return values
+    .map((value: string): string => {
+      return `\`${value}\``;
+    })
+    .join(", ");
+}
+
+function getLoginErrorsTopic(data: {
+  engine: DatabaseAgentEngine;
+  namespace: string | null;
+}): SetupGuideTopic | null {
+  const errors: {
+    rejected: Array<string>;
+    missingGrant: Array<string>;
+  } | null = LOGIN_ERRORS[data.engine];
+  if (!errors) {
+    return null;
+  }
+
+  const logs: string =
+    data.namespace !== null
+      ? `\`docker compose logs --tail 100\` in the agent's folder, or \`kubectl -n ${data.namespace} logs deployment/oneuptime-database-agent\``
+      : "`docker compose logs --tail 100` in the agent's folder";
+
+  const bullets: Array<string> = [
+    `${inlineCodeList(errors.rejected)}: the database rejected the login. Check \`DATABASE_USERNAME\` and \`DATABASE_PASSWORD\` — the collector expands \`$\` inside them once more, so every \`$\` must be written as \`$$\` in \`.env\` or a Kubernetes Secret (the install script does this).${
+      data.engine === "sqlserver"
+        ? " A login containing `;` or `\"`, or with spaces around it, always fails: the receiver's connection string cannot carry them."
+        : ""
+    }`,
+    `${inlineCodeList(errors.missingGrant)}${
+      data.engine === "postgresql"
+        ? ", or connection counts that always read `1`"
+        : ""
+    }: the monitoring user is missing the grants from step 2.${
+      data.engine === "mysql"
+        ? " MySQL / MariaDB error 1227 names the privilege: `PROCESS`, or `SLAVE MONITOR` on MariaDB 10.5.9 and later."
+        : ""
+    }`,
+  ];
+
+  if (data.engine === "oracledb") {
+    bullets.push(
+      "`ORA-12514` or `ORA-12505`: the listener answers but does not know the service `DATABASE_ORACLE_SERVICE` names — `lsnrctl services` on the database host lists the ones it does.",
+      "`ORA-28000` or `ORA-28001`: the monitoring user is locked or its password expired.",
+    );
+  }
+
+  if (data.engine === "postgresql") {
+    bullets.push(
+      "`pg_stat_statements` errors: top queries are on without the extension — create it (see Query samples and top queries), or set `DATABASE_QUERY_EVENTS=false`.",
+      "`failed to explain` is not a missing grant: explain plans of top queries need `SELECT` on your tables, which `pg_monitor` deliberately does not give. Metrics and top queries are unaffected; only the plans stay empty.",
+    );
+  }
+
+  /*
+   * The SQL Server and Oracle drivers negotiate encryption themselves, so
+   * the TLS switches do not apply to them (install.sh's HAS_TLS).
+   */
+  const hasTlsSwitches: boolean =
+    data.engine !== "sqlserver" && data.engine !== "oracledb";
+  if (data.engine === "elasticsearch") {
+    bullets.push(
+      "TLS errors: the `http://` or `https://` of `DATABASE_ENDPOINT` decides whether the agent uses TLS. Set `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` for a certificate the collector image does not trust.",
+    );
+  } else if (hasTlsSwitches) {
+    bullets.push(
+      `TLS errors${
+        data.engine === "postgresql"
+          ? " (`SSL is not enabled on the server`)"
+          : ""
+      }: match \`DATABASE_TLS_INSECURE\` to the server — \`true\` when it does not speak TLS, \`false\` when it requires it, plus \`DATABASE_TLS_INSECURE_SKIP_VERIFY=true\` for a certificate the collector image does not trust.`,
+    );
+  }
+
+  return {
+    title: hasTlsSwitches
+      ? "Login, permission or TLS errors in the collector log"
+      : "Login or permission errors in the collector log",
+    markdown: `The collector's log (${logs}) names the problem:
+
+${bullets
+  .map((bullet: string): string => {
+    return `- ${bullet}`;
+  })
+  .join("\n")}
+
+After changing \`.env\`, apply it with \`docker compose up -d --force-recreate\`.`,
+  };
+}
+
+function getAgentTroubleshootingTopics(data: {
+  engine: DatabaseAgentEngine;
+  identity: DatabaseAgentIdentity;
+  database: DatabaseDocumentationTarget | null;
+  namespace: string | null;
+  // The number the verify step (the diagnostic script) has on screen.
+  verifyStepNumber: number;
+}): Array<SetupGuideTopic> {
+  const topics: Array<SetupGuideTopic> = [];
+  const kubernetesLogs: string =
+    data.namespace !== null
+      ? `\`kubectl -n ${data.namespace} logs deployment/oneuptime-database-agent\``
+      : "";
+
+  if (data.database) {
+    topics.push({
+      title: 'Engine metrics reads "Not connected" or "Disconnected"',
+      markdown: `_Not connected_: nothing has arrived for this database yet. _Disconnected_: the agent reported, then sent nothing for at least 15 minutes. Either way, run the diagnostic script from step ${data.verifyStepNumber} where the agent runs — it names the most likely problem. Also check that \`DATABASE_SERVER_ID\` is this database's id, \`${data.identity.databaseId}\`: the data joins it only when the id names a database in the project the ingestion key belongs to.`,
+    });
+  } else {
+    topics.push({
+      title: "The database does not appear under Databases",
+      markdown: `- \`DATABASE_SERVER_ADDRESS\` is \`localhost\`, \`127.0.0.1\` or \`host.docker.internal\`: OneUptime ignores addresses that only mean something on one machine. Use the host name your applications use.
+- It is a private IP, a single-label name or a cluster-local name (\`*.svc.cluster.local\`): such names never create a database on their own. Create the database under **Databases → Create Database** with that address and port, or install the agent from the database's own **Documentation** tab, which sets \`DATABASE_SERVER_ID\`.
+- The ingestion key is wrong — the diagnostic script from step ${data.verifyStepNumber} checks it.`,
+    });
+  }
+
+  const allowList: string | undefined = ALLOW_LISTS[data.engine];
+  topics.push({
+    title: "The agent cannot connect to the database",
+    markdown: `Inside the agent's container, \`localhost\` is the container itself. Use \`host.docker.internal:<port>\` (the compose file maps it to the machine on Linux too) with the database listening on the Docker bridge address as well — or uncomment \`network_mode: host\` in \`docker-compose.yml\` and use \`localhost:<port>\`. For a remote server, check DNS, firewalls and the server's own allow-list${
+      allowList ? ` (${allowList})` : ""
+    }.${
+      data.namespace !== null
+        ? ` In Kubernetes, point \`DATABASE_ENDPOINT\` at the database Service's full name (\`<service>.${data.namespace}.svc.cluster.local\`).`
+        : ""
+    }`,
+  });
+
+  const loginErrors: SetupGuideTopic | null = getLoginErrorsTopic({
+    engine: data.engine,
+    namespace: data.namespace,
+  });
+  if (loginErrors) {
+    topics.push(loginErrors);
+  }
+
+  topics.push(
+    {
+      title: 'The collector log shows "Exporting failed"',
+      markdown:
+        "The collector cannot deliver to `ONEUPTIME_URL`. `HTTP Status Code 401` or `422` in that line means OneUptime refused the ingestion key: it is unknown, revoked, disabled or expired — or a Browser key, which ingest only accepts from a browser. Pick a server key in step 1. Otherwise check the URL, outbound HTTPS from the agent's machine and, for a self-hosted OneUptime, its certificate.",
+    },
+    {
+      title: "The agent container keeps restarting",
+      markdown: `A restart loop is almost always a configuration error, which the collector names on its first log lines:
+
+${codeBlock("bash", `cd ${DATABASE_AGENT_INSTALL_DIRECTORY}\ndocker compose logs --tail 50`)}${
+        kubernetesLogs
+          ? `\n\nFor the Deployment, read them with ${kubernetesLogs}.`
+          : ""
+      }`,
+    },
+  );
+
+  return topics;
+}
+
+function getAgentLinks(showsHealthMonitor: boolean): Array<SetupGuideLink> {
+  const links: Array<SetupGuideLink> = [
+    {
+      title: "Database Agent documentation",
+      url: "/docs/telemetry/databases",
+    },
+  ];
+  if (showsHealthMonitor) {
+    links.push({
+      title: "Database Health monitor",
+      url: "/docs/monitor/database-health-monitor",
+    });
+  }
+  return links;
+}
+
+/**
+ * The Database Agent setup guide for one engine, filled in with the
+ * reader's OneUptime URL and ingestion key. Without `database` it is the
+ * product page's guide for the picked engine; with it, every value that
+ * identifies the database is prefilled for that row, its id included, and
+ * a Kubernetes database is offered a Deployment first.
+ */
+export function getDatabaseAgentSetupGuide(
+  options: DatabaseAgentSetupGuideOptions,
+): SetupGuideContent {
+  const engine: DatabaseAgentEngine = options.engine;
+  const database: DatabaseDocumentationTarget | null = options.database || null;
+  const system: string = getDatabaseAgentSystem(
+    engine,
+    options.system || database?.dbSystem,
+  );
+  const identity: DatabaseAgentIdentity = resolveDatabaseAgentIdentity(
+    system,
+    database,
+  );
+  const hasApiKey: boolean =
+    options.hasApiKey ?? options.apiKey !== SETUP_GUIDE_API_KEY_PLACEHOLDER;
+  const namespace: string | null =
+    database && database.isKubernetes
+      ? (database.kubernetesNamespace || "").trim() || "default"
+      : null;
+  const connection: Array<string> = prefilledConnectionWords({
+    oneuptimeUrl: options.oneuptimeUrl,
+    apiKey: options.apiKey,
+    hasApiKey: hasApiKey,
+  });
+
+  const installData: {
+    oneuptimeUrl: string;
+    apiKey: string;
+    hasApiKey: boolean;
+    engine: DatabaseAgentEngine;
+    system: string;
+    identity: DatabaseAgentIdentity;
+  } = {
+    oneuptimeUrl: options.oneuptimeUrl,
+    apiKey: options.apiKey,
+    hasApiKey: hasApiKey,
+    engine: engine,
+    system: system,
+    identity: identity,
+  };
+
+  const variants: Array<SetupGuideStepVariant> = [
+    getInstallScriptVariant({ ...installData, database: database }),
+    getDockerComposeVariant(installData),
+  ];
+  // A cluster-local name only resolves inside the cluster: the Deployment comes first.
+  if (namespace !== null) {
+    variants.unshift(
+      getKubernetesVariant({ ...installData, namespace: namespace }),
+    );
+  }
+
+  const steps: Array<SetupGuideStep> = [];
+  if (hasLogin(engine)) {
+    steps.push(getMonitoringUserStep(engine, system));
+  }
+  steps.push(
+    {
+      title: "Install the agent",
+      description:
+        namespace !== null
+          ? "Run it as a Deployment next to the database, or with Docker on any machine that can reach it. One agent monitors one database server."
+          : "Run it with Docker on any machine that can reach the database. One agent monitors one database server.",
+      variants: variants,
+    },
+    getAgentVerifyStep({ database: database, namespace: namespace }),
+  );
+
+  const advanced: Array<SetupGuideTopic> = getAgentAdvancedTopics({
+    engine: engine,
+    system: system,
+    identity: identity,
+    database: database,
+    namespace: namespace,
+    connection: connection,
+    databaseHealthMonitorUrl: options.databaseHealthMonitorUrl,
+    recommendationsUrl: options.recommendationsUrl,
+  });
+
+  return {
+    intro: database
+      ? `**This database**
+
+${thisDatabaseTable(system, identity)}
+
+${thisDatabaseNote(identity)}`
+      : undefined,
+    prerequisites: getAgentPrerequisites({
+      engine: engine,
+      namespace: namespace,
+      isProductPage: !database,
+    }),
+    steps: steps,
+    advanced: advanced,
+    troubleshooting: getAgentTroubleshootingTopics({
+      engine: engine,
+      identity: identity,
+      database: database,
+      namespace: namespace,
+      // Step 1 is the ingestion key, and the check is the last step.
+      verifyStepNumber: steps.length + 1,
+    }),
+    links: getAgentLinks(
+      advanced.some((topic: SetupGuideTopic): boolean => {
+        return topic.title === "No agent? Use a Database Health monitor";
+      }),
+    ),
+  };
+}
+
+/*
+ * ---- Your own collector ---------------------------------------------------
+ *
  * The `receivers:` block for each collector-contrib receiver the agent
  * ships no config for, keyed by receiver type (DatabaseSystemDescriptor.
  * receiverTypes). `__ENDPOINT__` / `__HOST__` are replaced with the row's
@@ -1118,20 +2258,38 @@ exporters:
       x-oneuptime-token: "${data.apiKey}"${pipeline}`;
 }
 
-/**
- * The guide for an engine the Database Agent ships no config for: where its
- * engine metrics come from (a contrib receiver, its own Prometheus endpoint,
- * its cloud provider's monitoring API — or nowhere, for an in-process
- * engine), with a complete collector config that stamps this database's
- * identity where there is one.
+const OWN_COLLECTOR_AGENT_INTRO: string =
+  "The OneUptime Database Agent ships configs for PostgreSQL, MySQL / MariaDB, Redis (and Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch and Memcached.";
+
+const OWN_COLLECTOR_ALONGSIDE: string =
+  "Its page shows everything your instrumented applications report about it either way: the queries they send (rate, errors and latency on the Overview and the Traces tab), the services that call it, and — when it runs in Kubernetes, Docker or Podman — its pods or containers with their logs.";
+
+/*
+ * Where an engine the agent has no config for gets its engine metrics from,
+ * and the collector config that sends them with this database's identity.
+ * `collector` is null for an in-process engine: there is no server.
  */
-export function getDatabaseOwnCollectorMarkdown(data: {
+interface OwnCollectorRecipe {
+  source: DatabaseEngineMetricsSource;
+  engineLabel: string;
+  system: string;
+  collector: {
+    identity: DatabaseAgentIdentity;
+    receiverName: string | null;
+    // What the config does, ending where the config follows.
+    lead: string;
+    config: string;
+    // One receiver per pipeline, no resourcedetection, credentials, address.
+    note: string;
+    hasCredentials: boolean;
+  } | null;
+}
+
+function getOwnCollectorRecipe(data: {
   oneuptimeUrl: string;
   apiKey: string;
   database: DatabaseDocumentationTarget;
-  databaseHealthMonitorUrl?: string | null | undefined;
-  recommendationsUrl?: string | null | undefined;
-}): string {
+}): OwnCollectorRecipe {
   const descriptor: DatabaseSystemDescriptor | null =
     getDatabaseSystemDescriptor(data.database.dbSystem);
   const engineLabel: string = getDatabaseSystemDisplayName(
@@ -1146,23 +2304,8 @@ export function getDatabaseOwnCollectorMarkdown(data: {
         reason: `OneUptime does not know ${engineLabel}'s engine yet; if a collector receiver or a Prometheus endpoint exposes its metrics, stamp them with the block below.`,
       };
 
-  const healthSection: string = databaseHealthSection({
-    dbSystem: system,
-    databaseHealthMonitorUrl: data.databaseHealthMonitorUrl,
-    database: data.database,
-  });
-  const agentIntro: string =
-    "The OneUptime Database Agent ships configs for PostgreSQL, MySQL / MariaDB, Redis (and Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch and Memcached.";
-  const alongside: string = `Its page shows everything your instrumented applications report about it either way: the queries they send (rate, errors and latency on the Overview and the Traces tab), the services that call it, and — when it runs in Kubernetes, Docker or Podman — its pods or containers with their logs.`;
-
   if (source.kind === "embedded") {
-    return `
-${agentIntro} ${engineLabel} runs inside your application's process, so there is no server to collect engine metrics from.
-
-${alongside}
-
-Database id (for \`${DATABASE_SERVER_ID_ATTRIBUTE_NAME}\`): \`${data.database.id}\`
-${healthSection}`;
+    return { source, engineLabel, system, collector: null };
   }
 
   const identity: DatabaseAgentIdentity = resolveDatabaseAgentIdentity(
@@ -1208,27 +2351,267 @@ ${healthSection}`;
     })
     .join("\n\n");
 
-  const credentials: string = receiverBlock.includes("${env:")
+  const hasCredentials: boolean = receiverBlock.includes("${env:");
+  const credentials: string = hasCredentials
     ? " Set the `${env:...}` variables in the collector's environment; the collector expands `$` inside them once more, so write every `$` in a password as `$$`."
     : "";
 
-  return `
-${agentIntro} ${lead}
+  return {
+    source,
+    engineLabel,
+    system,
+    collector: {
+      identity,
+      receiverName,
+      lead,
+      config,
+      note: `Keep one receiver instance per database server in this pipeline — every batch carries this database's identity — and no \`resourcedetection\` processor: its \`host.name\` would make the collector's machine look like the thing being monitored.${credentials}${
+        identity.isPrefilled
+          ? ""
+          : ` This database has no address yet, so replace \`${PLACEHOLDER_ADDRESS}\` with the host name your applications use to reach it.`
+      }`,
+      hasCredentials,
+    },
+  };
+}
 
-\`\`\`yaml
-${config}
-\`\`\`
+/**
+ * The guide for an engine the Database Agent ships no config for, as one
+ * markdown document: where its engine metrics come from (a contrib
+ * receiver, its own Prometheus endpoint, its cloud provider's monitoring
+ * API — or nowhere, for an in-process engine), with a complete collector
+ * config that stamps this database's identity where there is one. The
+ * Documentation card renders getDatabaseOwnCollectorSetupGuide.
+ */
+export function getDatabaseOwnCollectorMarkdown(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  database: DatabaseDocumentationTarget;
+  databaseHealthMonitorUrl?: string | null | undefined;
+  recommendationsUrl?: string | null | undefined;
+}): string {
+  const recipe: OwnCollectorRecipe = getOwnCollectorRecipe(data);
 
-Keep one receiver instance per database server in this pipeline — every batch carries this database's identity — and no \`resourcedetection\` processor: its \`host.name\` would make the collector's machine look like the thing being monitored.${credentials}${
-    identity.isPrefilled
-      ? ""
-      : ` This database has no address yet, so replace \`${PLACEHOLDER_ADDRESS}\` with the host name your applications use to reach it.`
+  const healthSection: string = databaseHealthSection({
+    dbSystem: recipe.system,
+    databaseHealthMonitorUrl: data.databaseHealthMonitorUrl,
+    database: data.database,
+  });
+
+  if (!recipe.collector) {
+    return `
+${OWN_COLLECTOR_AGENT_INTRO} ${recipe.engineLabel} runs inside your application's process, so there is no server to collect engine metrics from.
+
+${OWN_COLLECTOR_ALONGSIDE}
+
+Database id (for \`${DATABASE_SERVER_ID_ATTRIBUTE_NAME}\`): \`${data.database.id}\`
+${healthSection}`;
   }
 
-${alongside}
+  return `
+${OWN_COLLECTOR_AGENT_INTRO} ${recipe.collector.lead}
+
+${codeBlock("yaml", recipe.collector.config)}
+
+${recipe.collector.note}
+
+${OWN_COLLECTOR_ALONGSIDE}
 ${alertingSection({
   databaseId: data.database.id,
-  system: system,
+  system: recipe.system,
   recommendationsUrl: data.recommendationsUrl,
 })}${healthSection}`;
+}
+
+export interface DatabaseOwnCollectorSetupGuideOptions {
+  oneuptimeUrl: string;
+  apiKey: string;
+  hasApiKey?: boolean | undefined;
+  database: DatabaseDocumentationTarget;
+  databaseHealthMonitorUrl?: string | null | undefined;
+  recommendationsUrl?: string | null | undefined;
+}
+
+/*
+ * The collector step's heading: what the reader adds to their collector.
+ * The description says what the config holds; the lead under it says why.
+ */
+function getOwnCollectorStepHeading(recipe: OwnCollectorRecipe): {
+  title: string;
+  description: string;
+} {
+  if (recipe.source.kind === "receiver" && recipe.collector?.receiverName) {
+    return {
+      title: `Add the ${recipe.collector.receiverName} receiver to your collector`,
+      description: `One config: the ${recipe.collector.receiverName} receiver, this database's identity and the exporter to OneUptime.`,
+    };
+  }
+  if (recipe.source.kind === "prometheus") {
+    return {
+      title: `Scrape ${recipe.engineLabel}'s metrics endpoint`,
+      description:
+        "One config: the Prometheus scrape, this database's identity and the exporter to OneUptime.",
+    };
+  }
+  return {
+    title: "Stamp this database's identity on its metrics",
+    description:
+      "The processor that stamps this database's identity, and the exporter to OneUptime.",
+  };
+}
+
+/**
+ * The setup guide for an engine the Database Agent ships no config for:
+ * the collector config that sends its engine metrics with this database's
+ * identity, then how to check they arrive. An in-process engine has no
+ * server to collect from, so its guide is about the traces of the
+ * applications that use it instead.
+ */
+export function getDatabaseOwnCollectorSetupGuide(
+  options: DatabaseOwnCollectorSetupGuideOptions,
+): SetupGuideContent {
+  const recipe: OwnCollectorRecipe = getOwnCollectorRecipe(options);
+  const hasApiKey: boolean =
+    options.hasApiKey ?? options.apiKey !== SETUP_GUIDE_API_KEY_PLACEHOLDER;
+  const otlpEndpoint: string = `${options.oneuptimeUrl}/otlp`;
+  const links: Array<SetupGuideLink> = [
+    { title: "Databases documentation", url: "/docs/telemetry/databases" },
+  ];
+
+  const health: string = databaseHealthMarkdown({
+    dbSystem: recipe.system,
+    databaseHealthMonitorUrl: options.databaseHealthMonitorUrl,
+    database: options.database,
+  });
+  const healthTopics: Array<SetupGuideTopic> = health
+    ? [
+        {
+          title: "No agent? Use a Database Health monitor",
+          summary:
+            "A probe-based check with alerting that needs no collector, for PostgreSQL, MySQL and SQL Server.",
+          markdown: health,
+        },
+      ]
+    : [];
+  const pageTopic: SetupGuideTopic = {
+    title: "What this page shows without engine metrics",
+    summary:
+      "The queries, calling services and containers your applications and platforms report, with or without a collector.",
+    markdown: recipe.collector
+      ? OWN_COLLECTOR_ALONGSIDE
+      : `${OWN_COLLECTOR_ALONGSIDE}\n\nDatabase id (for \`${DATABASE_SERVER_ID_ATTRIBUTE_NAME}\`): \`${options.database.id}\``,
+  };
+
+  if (!recipe.collector) {
+    return {
+      keyStep: {
+        description:
+          "Your application's OpenTelemetry SDK sends its traces to OneUptime with this key. Pick an existing key or create a new one — the settings below update to use it.",
+        endpointLabel: "OTLP endpoint",
+        endpointValue: otlpEndpoint,
+      },
+      intro: `${OWN_COLLECTOR_AGENT_INTRO} ${recipe.engineLabel} runs inside your application's process, so there is no server to collect engine metrics from.`,
+      steps: [
+        {
+          title: "Instrument your application",
+          description:
+            "This database's page fills in from the traces of the applications that use it.",
+          markdown: [
+            "Send your application's traces with an [OpenTelemetry SDK](/docs/telemetry/open-telemetry), pointed at OneUptime with the key from step 1:",
+            codeBlock(
+              "bash",
+              `export OTEL_EXPORTER_OTLP_ENDPOINT=${shellQuote(otlpEndpoint)}
+export OTEL_EXPORTER_OTLP_HEADERS=${shellQuote(`x-oneuptime-token=${options.apiKey}`)}`,
+            ),
+            hasApiKey ? "" : PICK_KEY_NOTE,
+          ]
+            .filter((part: string): boolean => {
+              return part.length > 0;
+            })
+            .join("\n\n"),
+        },
+      ],
+      advanced: [pageTopic, ...healthTopics],
+      links: [
+        ...links,
+        {
+          title: "OpenTelemetry documentation",
+          url: "/docs/telemetry/open-telemetry",
+        },
+      ],
+    };
+  }
+
+  const collector: NonNullable<OwnCollectorRecipe["collector"]> =
+    recipe.collector;
+  const stepHeading: { title: string; description: string } =
+    getOwnCollectorStepHeading(recipe);
+
+  const prerequisites: Array<string> = [
+    "Your own OpenTelemetry Collector, built with the contrib components (`otel/opentelemetry-collector-contrib`)",
+  ];
+  if (collector.hasCredentials) {
+    prerequisites.push(
+      "A monitoring login on the database, set as `DATABASE_USERNAME` and `DATABASE_PASSWORD` in the collector's environment",
+    );
+  }
+
+  return {
+    keyStep: {
+      description:
+        "Your collector sends this database's metrics to OneUptime with this key. Pick an existing key or create a new one — the config below updates to use it.",
+      endpointLabel: "OTLP endpoint",
+      endpointValue: otlpEndpoint,
+    },
+    intro: `${OWN_COLLECTOR_AGENT_INTRO} ${recipe.engineLabel} is not one of them, so its engine metrics come through your own OpenTelemetry Collector.`,
+    prerequisites: prerequisites,
+    steps: [
+      {
+        title: stepHeading.title,
+        description: stepHeading.description,
+        markdown: [
+          collector.lead,
+          codeBlock("yaml", collector.config),
+          collector.note,
+          hasApiKey ? "" : PICK_KEY_NOTE,
+        ]
+          .filter((part: string): boolean => {
+            return part.length > 0;
+          })
+          .join("\n\n"),
+      },
+      {
+        title: "Verify the metrics arrive",
+        description: "Check that this database's engine metrics arrive.",
+        markdown:
+          "Restart your collector with the new config: it reads its config only when it starts. After its first collection, this database's **Engine metrics** status turns to Connected.",
+      },
+    ],
+    advanced: [
+      {
+        title: "Alert on this database",
+        summary:
+          "Metrics monitors whose alerts and incidents land on this database, and what to threshold.",
+        markdown: alertingMarkdown({
+          databaseId: options.database.id,
+          system: recipe.system,
+          recommendationsUrl: options.recommendationsUrl,
+        }),
+      },
+      pageTopic,
+      ...healthTopics,
+    ],
+    troubleshooting: [
+      {
+        title: 'Engine metrics reads "Not connected"',
+        markdown: `Look for export errors in your collector's log: \`HTTP Status Code 401\` or \`422\` means OneUptime refused the ingestion key. Check that the \`resource/database\` processor is in the pipeline that sends ${recipe.engineLabel}'s metrics — a receiver batch that names no server is ignored.`,
+      },
+      {
+        title: "The metrics land on a Host, or a new Service appears",
+        markdown:
+          "Keep the `service.name` delete in the `resource/database` processor — data with a `service.name` is routed to that Service first — and leave the `resourcedetection` processor out of this pipeline: its `host.name` makes the collector's machine look like the thing being monitored.",
+      },
+    ],
+    links: links,
+  };
 }

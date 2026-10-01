@@ -125,6 +125,24 @@ export type DatabaseServerResourceResolution = {
   allowCreate: boolean;
 };
 
+/*
+ * Which Serverless Function one resource batch belongs to, as
+ * OtelIngestBaseService.resolveServerlessFunctionIdentity decides it — the
+ * single rule behind both the ServerlessFunction row's functionIdentifier
+ * and the `resource.faas.name` the batch's rows store.
+ */
+export type ServerlessFunctionIdentity = {
+  // Trimmed; what findOrCreateByFunctionIdentifier keys the row on.
+  functionIdentifier: string;
+  /*
+   * Where it came from: the resource's own faas.name, or — on a FaaS
+   * cloud.platform whose detector sets no faas.name — its service.name.
+   */
+  source: "faas.name" | "service.name";
+  // Canonical cloud.platform (normalizeCloudPlatform), or null when absent.
+  cloudPlatform: string | null;
+};
+
 export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_NAMESPACE: string =
     "docker-container-name";
@@ -585,9 +603,12 @@ export default abstract class OtelIngestBaseService {
    *      service.instance.id in their resource processor and stamp only
    *      `proxmox.cluster.name` / `ceph.cluster.name`, so their batches
    *      land here instead of registering a phantom Service via #1.
-   *      Caveat: sources that keep a service.name (e.g. the PVE 9+
-   *      native OTLP push, which stamps service.name="proxmox-ve")
-   *      still route via #1 — cluster discovery and the
+   *      The PVE 9+ native OTLP push stamps service.name="proxmox-ve";
+   *      the metrics ingest drops it (and fills proxmox.cluster.name
+   *      from PVE's own proxmox.cluster) before routing — see
+   *      ProxmoxNativePush.normalizeProxmoxNativePushInPlace — so it
+   *      lands here too. Any other source that keeps a service.name
+   *      still routes via #1 — cluster discovery and the
    *      attribute-scoped dashboards work regardless, but per-cluster
    *      retention only applies to batches that land here.
    *   4c. Else if a VMwareVCenter was discovered → ServiceType.VMwareVCenter,
@@ -2112,11 +2133,173 @@ export default abstract class OtelIngestBaseService {
    */
 
   /*
+   * getStringAttribute's reading rule — the first `key` entry whose
+   * stringValue is a string with non-whitespace content, trimmed — without
+   * its one hazard: a null or non-object entry is skipped instead of
+   * throwing. Serverless reads every attribute through this: the identity,
+   * which stampServerlessFunctionNameAttribute applies in the ingest
+   * pre-pass, outside every discovery try/catch (the reason
+   * normalizeCloudPlatformAttribute is null-safe too), and everything
+   * autoDiscoverServerless reads after it, so the stamp and discovery read
+   * each attribute the same way.
+   */
+  private static readTrimmedStringAttribute(
+    attributes: JSONArray | null | undefined,
+    key: string,
+  ): string | null {
+    if (!Array.isArray(attributes)) {
+      return null;
+    }
+    for (const attribute of attributes) {
+      if (
+        !attribute ||
+        typeof attribute !== "object" ||
+        attribute["key"] !== key
+      ) {
+        continue;
+      }
+      const value: JSONValue | undefined = (
+        attribute["value"] as JSONObject | null | undefined
+      )?.["stringValue"];
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+    return null;
+  }
+
+  /*
+   * The one rule that says which Serverless Function a resource batch
+   * belongs to. autoDiscoverServerless keys the ServerlessFunction row on
+   * it (functionIdentifier) and stampServerlessFunctionNameAttribute writes
+   * it onto the batch as faas.name, which every span, log, metric and
+   * profile row stores as `resource.faas.name` — the attribute the
+   * Serverless pages, the resource facet and the AI resource tools filter
+   * on. Two copies of this rule would let those two values drift apart and
+   * leave a function's pages empty again, so there is only this one:
+   *
+   *   1. a usable faas.name is the identity, on any platform;
+   *   2. otherwise, on a FaaS cloud.platform (after alias normalisation, so
+   *      the Node detector's dotted "azure.functions" counts), the
+   *      service.name ATTRIBUTE is — never the x-oneuptime-service-name
+   *      header, which names a Service rather than describing a function;
+   *   3. otherwise the batch is not a function's (null).
+   *
+   * Pure, synchronous and null-safe.
+   */
+  protected static resolveServerlessFunctionIdentity(
+    attributes: JSONArray | null | undefined,
+  ): ServerlessFunctionIdentity | null {
+    const cloudPlatform: string | null = normalizeCloudPlatform(
+      this.readTrimmedStringAttribute(attributes, "cloud.platform"),
+    );
+
+    const faasName: string | null = this.readTrimmedStringAttribute(
+      attributes,
+      "faas.name",
+    );
+    if (faasName) {
+      return {
+        functionIdentifier: faasName,
+        source: "faas.name",
+        cloudPlatform,
+      };
+    }
+
+    if (!cloudPlatform || !FAAS_CLOUD_PLATFORM_VALUES.has(cloudPlatform)) {
+      return null;
+    }
+
+    const serviceName: string | null = this.readTrimmedStringAttribute(
+      attributes,
+      "service.name",
+    );
+    if (!serviceName) {
+      return null;
+    }
+
+    return {
+      functionIdentifier: serviceName,
+      source: "service.name",
+      cloudPlatform,
+    };
+  }
+
+  /*
+   * Give a FaaS resource the faas.name its Serverless Function is keyed on
+   * when the platform's own resource detector sets none. The Azure
+   * Functions host, the .NET isolated worker
+   * (Microsoft.Azure.Functions.Worker.OpenTelemetry) and the Node detector
+   * (@opentelemetry/resource-detector-azure) all describe a Function App by
+   * service.name (by default the app's name, WEBSITE_SITE_NAME) and
+   * cloud.platform, never faas.name, so discovery keys the function on
+   * service.name — and every row of its telemetry was stored without
+   * `resource.faas.name`, the attribute its pages filter by, so they showed
+   * nothing. Stamping the identity onto the wire-shaped list, before the
+   * discovery gates read it and before each signal's flatten stores it,
+   * puts the same value on the function row and on the rows.
+   *
+   * Acts only when resolveServerlessFunctionIdentity fell back to
+   * service.name, so a usable faas.name — even one that differs from
+   * service.name — is never touched. Any faas.name entries present are then
+   * all unusable (empty, whitespace, not a string), and each is rewritten in
+   * place instead of a second entry being appended: the flatten keeps the
+   * LAST entry for a key while the identity reads the FIRST usable one, so a
+   * leftover unusable entry would still win on the rows.
+   *
+   * Runs right after normalizeCloudPlatformAttribute in the four signal
+   * services, deliberately not inside autoDiscoverServerless: the ingest
+   * test harnesses stub that method, and it gives up when a cache or
+   * Postgres call throws, but the rows need the attribute either way.
+   * Routing does not change — selectPrimaryEntity still makes the Function
+   * App an OpenTelemetry Service by its service.name — and entity extraction
+   * never reads faas.*. Rows ingested before this existed keep no
+   * faas.name; there is no backfill. Not named autoDiscover*: the fence and
+   * L1-memo coverage suites enumerate that prefix.
+   */
+  protected static stampServerlessFunctionNameAttribute(
+    attributes: JSONArray,
+  ): void {
+    if (!Array.isArray(attributes)) {
+      return;
+    }
+
+    const identity: ServerlessFunctionIdentity | null =
+      this.resolveServerlessFunctionIdentity(attributes);
+    if (!identity || identity.source !== "service.name") {
+      return;
+    }
+
+    let rewroteExistingEntry: boolean = false;
+    for (const attribute of attributes) {
+      if (
+        !attribute ||
+        typeof attribute !== "object" ||
+        attribute["key"] !== "faas.name"
+      ) {
+        continue;
+      }
+      attribute["value"] = { stringValue: identity.functionIdentifier };
+      rewroteExistingEntry = true;
+    }
+
+    if (!rewroteExistingEntry) {
+      attributes.push({
+        key: "faas.name",
+        value: { stringValue: identity.functionIdentifier },
+      });
+    }
+  }
+
+  /*
    * Auto-discover a Serverless / FaaS function from OTel resource
-   * attributes. Gated on an explicit faas.name, or a cloud.platform in the
-   * FaaS set (falling back to service.name as the function identity). Runs
-   * on every ingest path so the function's telemetry tabs (which filter by
-   * resource.faas.name) work even when service.name is also set — the
+   * attributes. The identity — an explicit faas.name, else service.name on a
+   * FaaS cloud.platform — is resolveServerlessFunctionIdentity's, the same
+   * rule stampServerlessFunctionNameAttribute used to write it onto the
+   * batch as faas.name before this runs. Runs on every ingest path, so the
+   * function's telemetry tabs (which filter by resource.faas.name) work
+   * whether the function was named by faas.name or by service.name, and
+   * even when service.name also makes the batch a Service's — the
    * discriminator choice happens in resolveTelemetryResource.
    */
   @CaptureSpan()
@@ -2130,30 +2313,16 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const faasName: string | null = this.getStringAttribute(
-        data.attributes,
-        "faas.name",
-      );
-      const cloudPlatform: string | null = normalizeCloudPlatform(
-        this.getStringAttribute(data.attributes, "cloud.platform"),
-      );
-      const isFaasPlatform: boolean = cloudPlatform
-        ? FAAS_CLOUD_PLATFORM_VALUES.has(cloudPlatform)
-        : false;
+      const identity: ServerlessFunctionIdentity | null =
+        this.resolveServerlessFunctionIdentity(data.attributes);
 
-      // Identity: prefer faas.name; on a FaaS platform fall back to service.name.
-      let functionIdentifier: string | null = faasName;
-      if (!functionIdentifier && isFaasPlatform) {
-        functionIdentifier = this.getStringAttribute(
-          data.attributes,
-          "service.name",
-        );
-      }
-
-      // Gate: need a function identity AND a FaaS signal (faas.name or platform).
-      if (!functionIdentifier || (!faasName && !isFaasPlatform)) {
+      // Gate: no function identity, no function.
+      if (!identity) {
         return null;
       }
+
+      const functionIdentifier: string = identity.functionIdentifier;
+      const cloudPlatform: string | null = identity.cloudPlatform;
 
       const cacheKey: string = `${data.projectId.toString()}:${functionIdentifier}`;
       let functionIdStr: string | null = await this.getEntityIdFromCaches(
@@ -2188,7 +2357,12 @@ export default abstract class OtelIngestBaseService {
             scope: "serverless-function",
             id: functionIdStr,
           });
-          const agentVersion: string | null = this.getStringAttribute(
+          /*
+           * Read through the same null-safe reader as the identity, so a
+           * malformed entry cannot stop discovery half-way — the row found
+           * or created above, its heartbeat never written.
+           */
+          const agentVersion: string | null = this.readTrimmedStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
           );
@@ -2196,24 +2370,32 @@ export default abstract class OtelIngestBaseService {
             agentVersion: agentVersion || undefined,
             cloudPlatform: cloudPlatform || undefined,
             cloudProvider:
-              this.getStringAttribute(data.attributes, "cloud.provider") ||
-              undefined,
+              this.readTrimmedStringAttribute(
+                data.attributes,
+                "cloud.provider",
+              ) || undefined,
             cloudRegion:
-              this.getStringAttribute(data.attributes, "cloud.region") ||
-              undefined,
+              this.readTrimmedStringAttribute(
+                data.attributes,
+                "cloud.region",
+              ) || undefined,
             cloudAccountId:
-              this.getStringAttribute(data.attributes, "cloud.account.id") ||
-              undefined,
+              this.readTrimmedStringAttribute(
+                data.attributes,
+                "cloud.account.id",
+              ) || undefined,
             functionVersion:
-              this.getStringAttribute(data.attributes, "faas.version") ||
-              undefined,
+              this.readTrimmedStringAttribute(
+                data.attributes,
+                "faas.version",
+              ) || undefined,
             runtimeName:
-              this.getStringAttribute(
+              this.readTrimmedStringAttribute(
                 data.attributes,
                 "process.runtime.name",
               ) || undefined,
             runtimeVersion:
-              this.getStringAttribute(
+              this.readTrimmedStringAttribute(
                 data.attributes,
                 "process.runtime.version",
               ) || undefined,
@@ -2226,7 +2408,7 @@ export default abstract class OtelIngestBaseService {
         }
 
         // Live inventory: record this function instance (faas.instance).
-        const faasInstance: string | null = this.getStringAttribute(
+        const faasInstance: string | null = this.readTrimmedStringAttribute(
           data.attributes,
           "faas.instance",
         );

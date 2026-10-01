@@ -54,6 +54,11 @@ import SeriesResourceLabels from "../../../Server/Utils/Monitor/SeriesResourceLa
  * catalog: every engine with a receiver or a metrics endpoint gets a
  * complete, well-formed collector config, and "no engine metrics" is said
  * only of an engine that runs inside the application.
+ *
+ * These run against the guide as one markdown document. The Documentation
+ * card renders the same pieces as a SetupGuide (steps, Advanced,
+ * Troubleshooting); DatabaseSetupGuide.test.ts pins that layout and its
+ * parity with the document.
  */
 
 const REPO_ROOT: string = path.join(__dirname, "..", "..", "..", "..", "..");
@@ -96,14 +101,26 @@ function readAgentFile(...segments: Array<string>): string {
   return fs.readFileSync(path.join(AGENT_DIR, ...segments), "utf8");
 }
 
-/* Environment variable names the compose file passes to the collector. */
+/*
+ * Environment variable names the compose file passes to the collector: its
+ * oneuptime-database-agent service only (the OneUptime AI agent beside it
+ * reads the same .env and is documented on its own).
+ */
 function composeVariables(): Set<string> {
+  const compose: string = readAgentFile("docker-compose.yml");
+  const start: number = compose.indexOf("\n  oneuptime-database-agent:\n");
+  const next: number = compose.slice(start + 1).search(/\n {2}[a-z0-9-]+:\n/);
+  const collector: string =
+    next < 0 ? compose.slice(start) : compose.slice(start, start + 1 + next);
+
+  expect(start).toBeGreaterThanOrEqual(0);
+
   return new Set<string>(
-    Array.from(
-      readAgentFile("docker-compose.yml").matchAll(/^\s*-\s*([A-Z_]+)=\$\{/gm),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1]!;
-    }),
+    Array.from(collector.matchAll(/^\s*-\s*([A-Z_]+)=\$\{/gm)).map(
+      (match: RegExpMatchArray): string => {
+        return match[1]!;
+      },
+    ),
   );
 }
 

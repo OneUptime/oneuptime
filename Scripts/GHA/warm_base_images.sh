@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Seeds a Dockerfile's public.ecr.aws base images into the local image store
-# before `docker build` runs, falling back to Docker Hub when ECR will not
+# before anything builds from it, falling back to Docker Hub when ECR will not
 # serve them.
 #
 # Every Node base image in this repo is pulled from public.ecr.aws, which is
@@ -27,10 +27,22 @@
 # name the Dockerfile asks for. The build then finds it locally and the quota
 # never enters into it.
 #
-# This is deliberately only used by the Build workflow, whose jobs run a plain
-# single-platform `docker build`. The release workflows build multi-platform
-# images with buildx, where a single-architecture image in the local store is
-# not a valid substitute.
+# That holds only for a build on the runner's default builder -- the docker
+# driver, which is dockerd's own BuildKit and reads the daemon's image store --
+# and only for the runner's own platform, which is the one `docker pull`
+# fetches; a local image of another platform is passed over for the registry.
+# Every caller builds that way:
+#
+#   - the Build workflow and Tests/Ops run a plain `docker build`;
+#   - the Terraform Provider E2E bring-up and test-release's E2E jobs build from
+#     Scripts/Dev/docker-compose.dev.yml. Compose hands the build to
+#     `docker buildx bake`, and with no other builder set up in those jobs bake
+#     runs on the same default one, so it finds the seeded image the same way.
+#
+# The release workflows' image builds are deliberately not callers. They build
+# multi-platform images on a docker-container builder, which has its own store
+# and never sees the daemon's, so Scripts/GHA/build_docker_images.sh
+# substitutes the base image with --build-context there instead.
 #
 # Usage:
 #   warm_base_images.sh <dockerfile> [<dockerfile>...] [--image <reference>]...

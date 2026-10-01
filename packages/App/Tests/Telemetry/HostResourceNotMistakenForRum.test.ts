@@ -109,6 +109,35 @@ describe("getRumClientType — a machine host is not a phone (issue #3866)", () 
     });
 
     /*
+     * Issue #4107 stamps two more device.* keys onto host resources. The
+     * classifier reads the device.* namespace, so each has to be shown
+     * not to be a phone — alone, where no host identity can rescue it.
+     */
+    test.each([
+      ["device.firmware.version", "1.21.0"],
+      ["device.serial_number", "7XYZ123"],
+    ])(
+      "%s is not a mobile signal on its own (issue #4107)",
+      (key: string, value: string) => {
+        expect(classify({ [key]: value })).toBeNull();
+      },
+    );
+
+    test("a host stamped with every #4107 attribute is not RUM", () => {
+      expect(
+        classify({
+          "host.name": "wbprjdeais002",
+          "host.mac": "3C-7C-3F-1A-2B-3C",
+          "os.version": "10.0.22631",
+          "device.manufacturer": "Dell Inc.",
+          "device.model.name": "OptiPlex 7090",
+          "device.firmware.version": "1.21.0",
+          "host.serial_number": "7XYZ123",
+        }),
+      ).toBeNull();
+    });
+
+    /*
      * A DaemonSet collector and the eBPF profiler label a node with
      * k8s.node.name and no host.name. getServiceNameFromAttributes already
      * treats that as host identity via getHostNameFromAttributes, so this

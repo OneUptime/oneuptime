@@ -52,8 +52,8 @@ export const MAX_INVESTIGATION_ATTEMPTS: number = 2;
 
 /*
  * G4 cost guardrail: at most this many investigations may be Running in an
- * incident, alert or subjectless lane at once. Each lane has its own project
- * override; subjectless work keeps Project.aiMaxConcurrentInvestigations.
+ * incident, alert or subjectless lane at once. The incident and alert lanes
+ * have their own project override; subjectless work always uses the default.
  * Enforced at CLAIM time, so a storm queues (bounded by dedupe + severity
  * gates + this TTL) and drains at cap rate instead of being dropped.
  */
@@ -633,25 +633,22 @@ export default class AIInvestigationQueue {
 
     /*
      * Each subject lane owns its own concurrency pool. Insight triage and any
-     * future subjectless queue work retain the legacy project-wide fallback.
+     * future subjectless queue work use the default cap.
      */
-    const project: Project | null = await ProjectService.findOneById({
-      id: run.projectId,
-      select: {
-        aiMaxConcurrentInvestigations: true,
-        incidentAiMaxConcurrentInvestigations: true,
-        alertAiMaxConcurrentInvestigations: true,
-      },
-      props: { isRoot: true },
-    });
+    let configuredConcurrencyCap: number | undefined = undefined;
 
-    let configuredConcurrencyCap: number | undefined =
-      project?.aiMaxConcurrentInvestigations;
+    if (run.triggeredByIncidentId || run.triggeredByAlertId) {
+      const project: Project | null = await ProjectService.findOneById({
+        id: run.projectId,
+        select: run.triggeredByIncidentId
+          ? { incidentAiMaxConcurrentInvestigations: true }
+          : { alertAiMaxConcurrentInvestigations: true },
+        props: { isRoot: true },
+      });
 
-    if (run.triggeredByIncidentId) {
-      configuredConcurrencyCap = project?.incidentAiMaxConcurrentInvestigations;
-    } else if (run.triggeredByAlertId) {
-      configuredConcurrencyCap = project?.alertAiMaxConcurrentInvestigations;
+      configuredConcurrencyCap = run.triggeredByIncidentId
+        ? project?.incidentAiMaxConcurrentInvestigations
+        : project?.alertAiMaxConcurrentInvestigations;
     }
 
     const concurrencyCap: number = Math.min(

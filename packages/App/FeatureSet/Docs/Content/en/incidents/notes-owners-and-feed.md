@@ -54,6 +54,8 @@ Each note shows who wrote it, its **Posted At**, the rendered Markdown with its 
 
 No **Posted At**, no subscriber checkbox — the note is stamped when it is created.
 
+Both kinds of note are written in the Markdown editor, which nests list items with **Indent** and **Outdent** — or Tab and Shift+Tab — and keeps the lists, links and formatting of what you paste from Word, Google Docs or another OneUptime page. Ctrl+Z takes back an indent or an outdent, and in visual mode the blocks and pastes the editor put in too, in order with your typing. A code block copied from a note pastes back as a code block, and a word copied out of one as inline code. See [Declaring an Incident](/docs/incidents/declaring-incidents#step-1-incident-details).
+
 ## Attachments on notes
 
 Both note types accept file attachments through an **Attachments** field, and both render an attachment list under the note body with a per-file **Download attachment** link.
@@ -158,7 +160,7 @@ Feed items are written by the incident service itself, by both note services, by
 - **Notifications** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Automation** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
 
-Each type gets its own icon, so you can scan a long feed and pick out the state changes from the chatter. AI-generated root cause analysis is marked distinctly and rendered in a restricted Markdown mode.
+Each type gets its own icon, so you can scan a long feed and pick out the state changes from the chatter. AI-generated root cause analysis is marked distinctly and rendered in a restricted Markdown mode. The **Incident Created** item, the item that records a new title and the items for joining or leaving an episode escape `\`, `[`, `]` and \< in the titles they show, so a title cannot become an image, raw HTML, a Slack mention such as \<!here\> or a link whose text hides where it goes. A title is not always shown exactly as typed, though: an address in it still shows as a link to that same address, and `*`, `_`, `~` and backticks can still format it.
 
 Linking an alert is recorded on the alert too. Alerts keep a feed of their own, where the same change appears as **Linked to Incident** (`LinkedToIncident`) or **Unlinked from Incident** (`UnlinkedFromIncident`), naming the incident. Only the incident's **Alert Linked** and **Alert Unlinked** entries are posted to Slack and Microsoft Teams, so each link is announced once. An incident declared from alerts gets a single **Alert Linked** entry listing all of them instead of one per alert, and a private alert's or incident's title is left out of the other side's entry. See [Linked Alerts](/docs/incidents/linked-alerts).
 
@@ -180,9 +182,9 @@ Owner users and owner teams are separate records — adding a team makes every m
 
 There are four routes onto the owners list:
 
-- **From an incident template** — templates carry **Owner - Teams** and **Owner - Users** fields, described as the teams and users who own the incident and will be notified when it is created or updated. Creating an incident from the template prefills them. See [Declaring an Incident](/docs/incidents/declaring-incidents).
+- **From an incident template** — templates carry **Owner - Teams** and **Owner - Users** fields, described as the teams and users who own the incident and will be notified when it is created or updated. Creating an incident from the template prefills them, and they are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. The dashboard adds them without the "you were added" notification; an [incident form](/docs/incidents/forms) with a template notifies them, and holds the incident's **Incident created** notification until they are added. See [Declaring an Incident](/docs/incidents/declaring-incidents).
 - **From Incident Owner Rules** — matching rules add owners automatically at creation time.
-- **At creation through the API** — owner users and teams passed with the create call are added immediately, with a flag that controls whether they get the "you were added" email.
+- **At creation through the API** — owner users and teams passed with the create call are added the same way, once the channels exist, and without the "you were added" notification.
 - **By hand** — the **Add owner** control on the **Owners** page, at any point during the incident.
 
 Adding the same person twice is safe; owners already assigned are not duplicated.
@@ -212,7 +214,7 @@ Five jobs notify owners, each running once a minute:
 
 Each notification is built for email, SMS, voice call, push and WhatsApp and handed to the user's notification settings, which decide what actually gets sent. Every recipient can turn off each of these individually — the per-user settings are worded as sending you the incident created, note posted, state changed, owner added, member assigned, and still-open reminder notifications. Somebody who only wants a call for state changes can have exactly that.
 
-**Ownerless incidents are not silent.** If an incident has no owners at all, the notification jobs fall back to the project's owners, so nothing is dropped on the floor. Every person notified is also appended to the matching feed item, so you can see afterwards exactly who was told and at which address.
+**Ownerless incidents are not silent.** If an incident has no owners at all, the notification jobs fall back to the project's owners, so nothing is dropped on the floor. The **Incident created** notification of an incident reported through a form whose template has owners waits for those owners instead. Every person notified is also appended to the matching feed item, so you can see afterwards exactly who was told and at which address.
 
 ## Where to read next
 

@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
@@ -70,6 +71,29 @@ import {
   classifyErrorPattern,
   readEventKindFromLabel,
 } from "../../Utils/ErrorPatternInsights";
+import {
+  Bar,
+  BarChart,
+  ReferenceArea,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import useHistogramRangeSelection, {
+  HistogramRangeSelectionState,
+} from "Common/UI/Components/Charts/Utils/useHistogramRangeSelection";
+import {
+  ChartTimeRangeZoomContextValue,
+  useChartTimeRangeZoom,
+} from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
+import {
+  ErrorPatternTimelineRow,
+  buildErrorPatternTimelineRows,
+  isErrorPatternTimelineIntraday,
+} from "./ErrorPatternTimeline";
 
 /*
  * The drill-down the issue asked for: pick one error out of the Top Errors
@@ -142,49 +166,197 @@ const SectionHeading: FunctionComponent<{
   );
 };
 
-/*
- * A hand-rolled bar chart rather than a charting component: the timeline is
- * a single series of counts with no axes, legend or interaction, and the
- * panel it lives in is narrow. Bars carry a title attribute so the exact
- * bucket and count are still reachable on hover.
- */
-const Timeline: FunctionComponent<{
+export const ERROR_PATTERN_TIMELINE_TEST_ID: string = "error-pattern-timeline";
+
+interface TimelineTooltipProps {
+  active?: boolean;
+  payload?: Array<{ payload?: ErrorPatternTimelineRow }>;
+}
+
+const TimelineTooltip: FunctionComponent<TimelineTooltipProps> = (
+  props: TimelineTooltipProps,
+): ReactElement => {
+  const row: ErrorPatternTimelineRow | undefined = props.payload?.[0]?.payload;
+
+  if (!props.active || !row) {
+    return <></>;
+  }
+
+  return (
+    <div className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs shadow-lg">
+      <div className="font-medium text-gray-900">
+        {formatTimestamp(OneUptimeDate.fromString(row.time))}
+      </div>
+      <div className="mt-0.5 text-gray-600">
+        {row.count.toLocaleString()} occurrence{row.count === 1 ? "" : "s"}
+      </div>
+    </div>
+  );
+};
+
+interface TimelineProps {
   points: Array<ErrorPatternTimelinePoint>;
-}> = (props: { points: Array<ErrorPatternTimelinePoint> }): ReactElement => {
+  bucketSizeInMinutes: number;
+  window: InBetween<Date>;
+}
+
+/*
+ * When the error fired, one bar per bucket across the whole window (quiet
+ * buckets included, so the bars are spaced like the time they cover).
+ *
+ * Drag across it to zoom the whole Insights page into that stretch
+ * (issue #4105): the stat cards, the top errors and this panel all follow,
+ * and a double-click (or "Reset zoom" above this chart or beside the page's
+ * picker) puts the page back. Outside a page that zooms it is a plain chart.
+ */
+const Timeline: FunctionComponent<TimelineProps> = (
+  props: TimelineProps,
+): ReactElement => {
+  const pageZoom: ChartTimeRangeZoomContextValue | null =
+    useChartTimeRangeZoom();
+
+  const bucketIntervalMs: number | undefined =
+    Number.isFinite(props.bucketSizeInMinutes) && props.bucketSizeInMinutes > 0
+      ? props.bucketSizeInMinutes * 60 * 1000
+      : undefined;
+
+  const rows: Array<ErrorPatternTimelineRow> = useMemo(() => {
+    return buildErrorPatternTimelineRows({
+      points: props.points,
+      window: props.window,
+      bucketIntervalMs: bucketIntervalMs,
+    });
+  }, [props.points, props.window, bucketIntervalMs]);
+
+  /*
+   * Only a drag zooms; a plain click on a bar does not. The shared selection
+   * hook zooms into one bar on a click whenever it knows the bucket width -
+   * right for an explorer's volume chart, which exists to narrow the list
+   * beneath it - but this chart sits in a drawer and retimes the whole
+   * Insights page, so a casual click on a bar (to read it) must not. The
+   * width is withheld from the hook, which makes a single bar no window at
+   * all, and added back here for a real drag: the hook hands over the starts
+   * of the first and last bars dragged across, and the zoom runs to the end
+   * of the last one.
+   */
+  const onPageTimeRangeSelect:
+    | ((startTime: Date, endTime: Date) => void)
+    | undefined = pageZoom?.onTimeRangeSelect;
+
+  const zoomToDraggedBars: (
+    firstBucketStart: Date,
+    lastBucketStart: Date,
+  ) => void = useCallback(
+    (firstBucketStart: Date, lastBucketStart: Date): void => {
+      onPageTimeRangeSelect?.(
+        firstBucketStart,
+        new Date(lastBucketStart.getTime() + (bucketIntervalMs || 0)),
+      );
+    },
+    [onPageTimeRangeSelect, bucketIntervalMs],
+  );
+
+  const selection: HistogramRangeSelectionState = useHistogramRangeSelection({
+    onTimeRangeSelect: onPageTimeRangeSelect ? zoomToDraggedBars : undefined,
+    onZoomOut: pageZoom?.onTimeRangeReset,
+  });
+
   if (props.points.length === 0) {
+    /*
+     * A zoom into a stretch where the error did not fire lands here, with
+     * no bars to double-click; the message takes the double-click instead.
+     * select-none: that double-click would otherwise also select a word.
+     */
     return (
-      <p className="text-sm text-gray-500">
+      <p
+        className="select-none text-sm text-gray-500"
+        onDoubleClick={pageZoom?.onTimeRangeReset}
+      >
         No bucketed occurrences to chart in this window.
       </p>
     );
   }
 
-  const peak: number = Math.max(
-    ...props.points.map((point: ErrorPatternTimelinePoint): number => {
-      return point.count;
-    }),
-    1,
-  );
+  const isIntraday: boolean = isErrorPatternTimelineIntraday(props.window);
+
+  /*
+   * The crosshair goes on the chart root itself: recharts sets an inline
+   * `cursor: default` on the .recharts-wrapper that fills the plot, so the
+   * cursor on the box around it never shows over the bars. Left off
+   * entirely outside a page that zooms, so recharts keeps its default.
+   */
+  const chartRootCursorProps: { style?: React.CSSProperties } = pageZoom
+    ? { style: { cursor: "crosshair" } }
+    : {};
 
   return (
-    <div className="flex h-24 items-end gap-0.5">
-      {props.points.map(
-        (point: ErrorPatternTimelinePoint, index: number): ReactElement => {
-          const heightPercent: number = Math.max(
-            2,
-            Math.round((point.count / peak) * 100),
-          );
+    <div
+      className="h-28 select-none"
+      style={{ cursor: pageZoom ? "crosshair" : "default" }}
+      data-testid={ERROR_PATTERN_TIMELINE_TEST_ID}
+      onDoubleClick={selection.onDoubleClick}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={rows}
+          margin={{ top: 4, right: 4, bottom: 0, left: 4 }}
+          barCategoryGap="10%"
+          barGap={0}
+          onMouseDown={selection.onMouseDown}
+          {...selection.chartRootProps}
+          onMouseMove={selection.onMouseMove}
+          onMouseUp={selection.onMouseUp}
+          {...chartRootCursorProps}
+        >
+          <XAxis
+            dataKey="time"
+            tickFormatter={(value: string): string => {
+              const date: Date = OneUptimeDate.fromString(value);
 
-          return (
-            <div
-              key={`${point.time?.toISOString() || "bucket"}-${index}`}
-              className="flex-1 rounded-sm bg-red-400"
-              style={{ height: `${heightPercent}%` }}
-              title={`${formatTimestamp(point.time)} — ${point.count}`}
+              if (isNaN(date.getTime())) {
+                return value;
+              }
+
+              return isIntraday
+                ? OneUptimeDate.getLocalTimeString(date, {
+                    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+                  })
+                : OneUptimeDate.getDateAsLocalDayMonthString(date);
+            }}
+            tick={{ fontSize: 10, fill: "var(--ou-chart-tick, #9ca3af)" }}
+            axisLine={{ stroke: "var(--ou-chart-grid, #e5e7eb)" }}
+            tickLine={false}
+            minTickGap={40}
+            interval="preserveStartEnd"
+          />
+          <YAxis hide={true} allowDecimals={false} />
+          {/*
+           * Pinned shut for the length of a drag: it would otherwise sit
+           * over the very bars the reader is picking.
+           */}
+          <Tooltip
+            content={<TimelineTooltip />}
+            cursor={{ fill: "rgba(99,102,241,0.06)" }}
+            {...(selection.isDragging ? { active: false } : {})}
+          />
+          <Bar
+            dataKey="count"
+            fill="#f87171"
+            radius={[1.5, 1.5, 0, 0]}
+            isAnimationActive={false}
+          />
+          {selection.selectionStart && selection.selectionEnd && (
+            <ReferenceArea
+              x1={selection.selectionStart}
+              x2={selection.selectionEnd}
+              fill="rgba(99,102,241,0.12)"
+              stroke="rgba(99,102,241,0.5)"
+              strokeWidth={1}
+              radius={2}
             />
-          );
-        },
-      )}
+          )}
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 };
@@ -199,7 +371,22 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
 
   const patternText: string = props.pattern.pattern;
 
+  /*
+   * Staleness guard. The panel stays open while a zoom made on its own
+   * timeline, or the reset of one, moves the page's window, and every move
+   * asks for the correlation again. A wide window answers slower than a
+   * narrow one, so answers can land out of order: only the latest request
+   * may show its correlation or its error, or take the loader down.
+   * Otherwise the panel would describe a window the page has left.
+   */
+  const requestSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const load: () => Promise<void> = useCallback(async (): Promise<void> => {
+    const requestSequence: number = ++requestSequenceRef.current;
+    const isStale: () => boolean = (): boolean => {
+      return requestSequence !== requestSequenceRef.current;
+    };
+
     try {
       setIsLoading(true);
       setError("");
@@ -211,17 +398,29 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           CORRELATION_LIMIT,
         );
 
+      if (isStale()) {
+        return;
+      }
+
       setCorrelation(result);
     } catch (err) {
+      // A late failure of a superseded request must not replace newer data.
+      if (isStale()) {
+        return;
+      }
+
       setError(API.getFriendlyMessage(err as Error));
     } finally {
-      setIsLoading(false);
+      if (!isStale()) {
+        setIsLoading(false);
+      }
     }
     /*
      * Safe to depend on the scope object itself: the host page memoizes it
      * on the time range and the selected resources, so it is referentially
-     * stable between renders — and when it does change the host closes this
-     * panel rather than leaving it describing a window that moved.
+     * stable between renders. It changes under the open panel only through
+     * a zoom made from this panel's timeline or the reset of one; the panel
+     * then asks again for the new window. Any other scope change closes it.
      */
   }, [patternText, props.scope]);
 
@@ -502,11 +701,8 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           </p>
 
           <p className="mt-2 text-sm text-gray-600">
-            {describeOccurrenceCount(
-              props.pattern.count,
-              props.scope.timeRange,
-            )}
-            , across {props.pattern.resourceCount}{" "}
+            {describeOccurrenceCount(occurrenceTotal, props.scope.timeRange)},
+            across {props.pattern.resourceCount}{" "}
             {props.pattern.resourceCount === 1 ? "source" : "sources"}. First
             seen {formatTimestamp(props.pattern.firstSeenAt)}, last seen{" "}
             {formatTimestamp(props.pattern.lastSeenAt)}.
@@ -685,11 +881,31 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
 
         {/* When it happened */}
         <div className="py-5">
-          <SectionHeading
-            title="When it happened"
-            subtitle={`Occurrences per ${correlation.bucketSizeInMinutes} min bucket over ${describeTimeRange(props.scope.timeRange)}.`}
+          <div className="flex items-start justify-between gap-3">
+            <SectionHeading
+              title="When it happened"
+              subtitle={`Occurrences per ${correlation.bucketSizeInMinutes} min bucket over ${describeTimeRange(props.scope.timeRange)}.`}
+            />
+            {/*
+             * The way back sits here as well as beside the page's picker. A
+             * zoom made on this timeline keeps the panel open, and the wide
+             * panel covers the picker and its Reset zoom: without this, a
+             * reader who does not know the double-click (and anyone on a
+             * keyboard) would have to close the panel to undo the zoom. It
+             * reads the page's zoom and shows only while there is one. The
+             * row is the title's height, so the hint stays level with the
+             * title whether or not the button is there.
+             */}
+            <div className="flex h-5 shrink-0 items-center gap-2">
+              <TimeRangeZoomHint />
+              <ResetTimeRangeZoomButton />
+            </div>
+          </div>
+          <Timeline
+            points={correlation.timeline}
+            bucketSizeInMinutes={correlation.bucketSizeInMinutes}
+            window={patternWindow}
           />
-          <Timeline points={correlation.timeline} />
         </div>
 
         {/* What the occurrences have in common */}

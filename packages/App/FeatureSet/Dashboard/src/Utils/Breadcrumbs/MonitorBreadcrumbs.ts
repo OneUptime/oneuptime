@@ -9,7 +9,7 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_INOPERATIONAL, [
       "Project",
       "Monitors",
-      "Inoperational",
+      "Not Operational",
     ]),
     //slack connection
     ...BuildBreadcrumbLinksByTitles(

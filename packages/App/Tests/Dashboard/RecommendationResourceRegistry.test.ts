@@ -22,6 +22,9 @@ import RecommendationResourceRegistry, {
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import RumApplication from "Common/Models/DatabaseModels/RumApplication";
+import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
+import Permission from "Common/Types/Permission";
 import TechStack from "Common/Types/Service/TechStack";
 import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
 import {
@@ -1012,6 +1015,454 @@ describe("RecommendationResourceRegistry", () => {
       expect(notConnected).toContain("Database Agent");
       expect(noLibrary).toContain("Cassandra");
       expect(noLibrary).toContain("oneuptime.database.server.id");
+    });
+  });
+
+  /*
+   * The page fetches the row with every context column selected, and the API
+   * refuses a select naming a column the viewer may not read - the whole
+   * `ModelAPI.getItem` fails, not just that column, and the Recommendations
+   * page shows an error instead of cards. So anyone who can read the
+   * resource's name must be able to read every context column too.
+   */
+  describe("context columns are readable by whoever can read the name", () => {
+    test.each(
+      RecommendationResourceRegistry.getDefinitions().filter(
+        (definition: RecommendationResourceDefinition) => {
+          return Boolean(definition.contextFieldNames?.length);
+        },
+      ),
+    )("$resourceType", (definition: RecommendationResourceDefinition) => {
+      const model: BaseModel = new definition.modelType();
+      const nameAccess: ColumnAccessControl | null =
+        model.getColumnAccessControlFor(definition.displayNameFieldName);
+
+      expect(nameAccess?.read.length).toBeGreaterThan(0);
+
+      for (const contextFieldName of definition.contextFieldNames || []) {
+        const readers: Array<Permission> =
+          model.getColumnAccessControlFor(contextFieldName)?.read || [];
+
+        const missing: Array<Permission> = (nameAccess?.read || []).filter(
+          (permission: Permission) => {
+            return !readers.includes(permission);
+          },
+        );
+
+        expect(`${contextFieldName}: ${missing.join(", ")}`).toBe(
+          `${contextFieldName}: `,
+        );
+      }
+    });
+  });
+
+  /*
+   * A RUM application is offered its session replay budget alerts only once
+   * the budget sweep can write the series they watch: replay on and at least
+   * one replay recorded for the daily pair, plus a monthly budget for the
+   * monthly pair. All three facts are read off the fetched row, and a slip in
+   * any of them reads as a normal page - either every RUM application's badge
+   * grows by monitors that can never fire, or a recording application never
+   * sees them.
+   */
+  describe("RUM application context", () => {
+    function buildRumApplicationModel(values: {
+      isSessionReplayEnabled?: unknown;
+      sessionReplayLastChunkReceivedAt?: unknown;
+      sessionReplayMonthlyBudgetInGB?: unknown;
+    }): BaseModel {
+      const model: RumApplication = new RumApplication();
+      const record: Record<string, unknown> = model as unknown as Record<
+        string,
+        unknown
+      >;
+
+      record["isSessionReplayEnabled"] = values.isSessionReplayEnabled;
+      record["sessionReplayLastChunkReceivedAt"] =
+        values.sessionReplayLastChunkReceivedAt;
+      record["sessionReplayMonthlyBudgetInGB"] =
+        values.sessionReplayMonthlyBudgetInGB;
+
+      return model;
+    }
+
+    function readRumContext(values: {
+      isSessionReplayEnabled?: unknown;
+      sessionReplayLastChunkReceivedAt?: unknown;
+      sessionReplayMonthlyBudgetInGB?: unknown;
+    }): MonitorRecommendationContext {
+      return RecommendationResourceRegistry.readContext({
+        resourceType: MonitorRecommendationResourceType.RumApplication,
+        model: buildRumApplicationModel(values),
+      });
+    }
+
+    function describeRumContext(
+      context: MonitorRecommendationContext,
+    ): string | undefined {
+      return RecommendationResourceRegistry.describeContext({
+        resourceType: MonitorRecommendationResourceType.RumApplication,
+        context: context,
+      });
+    }
+
+    function offeredTemplateIds(
+      context: MonitorRecommendationContext,
+    ): Array<string> {
+      return MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.RumApplication,
+        context,
+      ).map((recommendation: MonitorRecommendation) => {
+        return recommendation.templateId;
+      });
+    }
+
+    const RECORDING_WITH_BUDGET: {
+      isSessionReplayEnabled: boolean;
+      sessionReplayLastChunkReceivedAt: Date;
+      sessionReplayMonthlyBudgetInGB: number;
+    } = {
+      isSessionReplayEnabled: true,
+      sessionReplayLastChunkReceivedAt: new Date("2026-09-29T10:00:00.000Z"),
+      sessionReplayMonthlyBudgetInGB: 10,
+    };
+
+    const DAILY_ONLY_NOTE: string =
+      "Of the session replay storage budget alerts, only the two for the project's shared daily limit are offered: this application has no monthly budget. Set a Monthly budget (GB) on its Replay Policy page and the monthly-budget alerts appear here too.";
+    const REPLAY_OFF_NOTE: string =
+      "Session replay is off for this application, so its storage budget alerts are not offered. Turn it back on under Replay Policy and they appear here.";
+    const REPLAY_OFF_NEVER_RECORDED_NOTE: string =
+      "Session replay is off for this application, so its storage budget alerts are not offered. Turn it on under Replay Policy and they appear here once it records its first replay.";
+    const NOT_RECORDED_NOTE: string =
+      "The session replay budget alerts appear here once this application records its first replay.";
+
+    test("selects the switch, the last chunk and the monthly budget along with the id and name", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.RumApplication,
+        ),
+      ).toEqual({
+        _id: true,
+        name: true,
+        isSessionReplayEnabled: true,
+        sessionReplayLastChunkReceivedAt: true,
+        sessionReplayMonthlyBudgetInGB: true,
+      });
+    });
+
+    test("reads a recording application with a budget", () => {
+      expect(readRumContext(RECORDING_WITH_BUDGET)).toEqual({
+        sessionReplayEnabled: true,
+        sessionReplayHasRecorded: true,
+        sessionReplayMonthlyBudgetInGB: 10,
+      });
+    });
+
+    test("accepts the last chunk as the JSON string the API may hand back", () => {
+      expect(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          sessionReplayLastChunkReceivedAt: "2026-09-29T10:00:00.000Z",
+        }).sessionReplayHasRecorded,
+      ).toBe(true);
+    });
+
+    test("reports an application that never recorded as such", () => {
+      for (const lastChunk of [undefined, null, "", "   ", 0, 1, {}, []]) {
+        expect(
+          readRumContext({
+            ...RECORDING_WITH_BUDGET,
+            sessionReplayLastChunkReceivedAt: lastChunk,
+          }).sessionReplayHasRecorded,
+        ).toBe(false);
+      }
+    });
+
+    test("reads the switch as a boolean, and anything else as not known", () => {
+      expect(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          isSessionReplayEnabled: false,
+        }).sessionReplayEnabled,
+      ).toBe(false);
+
+      for (const enabled of [undefined, null, "true", 1, 0]) {
+        expect(
+          readRumContext({
+            ...RECORDING_WITH_BUDGET,
+            isSessionReplayEnabled: enabled,
+          }).sessionReplayEnabled,
+        ).toBeNull();
+      }
+    });
+
+    /*
+     * "0 or blank means no application-level ceiling" is what the Replay
+     * Policy form tells the user, and the gate agrees - so neither may offer
+     * the monthly alerts. A numeric string is a real budget: JSON off the
+     * wire is not type checked.
+     */
+    test("reads only a finite budget above zero as a budget", () => {
+      for (const budget of [
+        undefined,
+        null,
+        0,
+        -1,
+        NaN,
+        Infinity,
+        "",
+        "   ",
+        "0",
+        "abc",
+        "10GB",
+        true,
+        {},
+      ]) {
+        expect(
+          readRumContext({
+            ...RECORDING_WITH_BUDGET,
+            sessionReplayMonthlyBudgetInGB: budget,
+          }).sessionReplayMonthlyBudgetInGB,
+        ).toBeNull();
+      }
+
+      expect(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          sessionReplayMonthlyBudgetInGB: 0.5,
+        }).sessionReplayMonthlyBudgetInGB,
+      ).toBe(0.5);
+      expect(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          sessionReplayMonthlyBudgetInGB: "10",
+        }).sessionReplayMonthlyBudgetInGB,
+      ).toBe(10);
+      expect(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          sessionReplayMonthlyBudgetInGB: " 2.5 ",
+        }).sessionReplayMonthlyBudgetInGB,
+      ).toBe(2.5);
+    });
+
+    test("the context narrows the catalog to what the sweep writes for the application", () => {
+      const all: Array<string> = offeredTemplateIds(
+        readRumContext(RECORDING_WITH_BUDGET),
+      );
+      const withoutBudget: Array<string> = offeredTemplateIds(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          sessionReplayMonthlyBudgetInGB: null,
+        }),
+      );
+      const disabled: Array<string> = offeredTemplateIds(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          isSessionReplayEnabled: false,
+        }),
+      );
+      const neverRecorded: Array<string> = offeredTemplateIds(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          sessionReplayLastChunkReceivedAt: null,
+        }),
+      );
+      // A row fetched without the context columns: nothing known.
+      const unselected: Array<string> = offeredTemplateIds(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.RumApplication,
+          model: new RumApplication(),
+        }),
+      );
+
+      expect(all).toHaveLength(11);
+      expect(withoutBudget).toHaveLength(9);
+      expect(withoutBudget).toContain(
+        "rum-session-replay-daily-budget-nearly-spent",
+      );
+      expect(withoutBudget).toContain("rum-session-replay-daily-budget-spent");
+      expect(withoutBudget).not.toContain(
+        "rum-session-replay-monthly-budget-nearly-spent",
+      );
+      expect(disabled).toHaveLength(7);
+      expect(neverRecorded).toHaveLength(7);
+      expect(unselected).toHaveLength(7);
+
+      for (const withheld of [disabled, neverRecorded, unselected]) {
+        for (const templateId of withheld) {
+          expect(templateId.startsWith("rum-session-replay-")).toBe(false);
+        }
+      }
+    });
+
+    test("explains a recording application with no monthly budget", () => {
+      expect(
+        describeRumContext(
+          readRumContext({
+            ...RECORDING_WITH_BUDGET,
+            sessionReplayMonthlyBudgetInGB: null,
+          }),
+        ),
+      ).toBe(DAILY_ONLY_NOTE);
+    });
+
+    test("explains an application whose replay was turned off after it recorded, or while it has a budget", () => {
+      // Recorded, then turned off - budget or not.
+      for (const budget of [10, null]) {
+        expect(
+          describeRumContext(
+            readRumContext({
+              ...RECORDING_WITH_BUDGET,
+              isSessionReplayEnabled: false,
+              sessionReplayMonthlyBudgetInGB: budget,
+            }),
+          ),
+        ).toBe(REPLAY_OFF_NOTE);
+      }
+
+      /*
+       * Never recorded, but someone set a budget: it clearly matters to them.
+       * Turning replay on is not the whole answer here - the alerts are only
+       * offered once the application has recorded - so the note says so.
+       */
+      const neverRecorded: MonitorRecommendationContext = readRumContext({
+        ...RECORDING_WITH_BUDGET,
+        isSessionReplayEnabled: false,
+        sessionReplayLastChunkReceivedAt: null,
+      });
+
+      expect(describeRumContext(neverRecorded)).toBe(
+        REPLAY_OFF_NEVER_RECORDED_NOTE,
+      );
+      expect(offeredTemplateIds(neverRecorded)).toHaveLength(7);
+
+      // Switched back on, it is still withheld until the first replay.
+      expect(
+        offeredTemplateIds(
+          readRumContext({
+            ...RECORDING_WITH_BUDGET,
+            isSessionReplayEnabled: true,
+            sessionReplayLastChunkReceivedAt: null,
+          }),
+        ),
+      ).toHaveLength(7);
+    });
+
+    test("explains a budget set on an application that has not recorded yet", () => {
+      expect(
+        describeRumContext(
+          readRumContext({
+            ...RECORDING_WITH_BUDGET,
+            sessionReplayLastChunkReceivedAt: null,
+          }),
+        ),
+      ).toBe(NOT_RECORDED_NOTE);
+    });
+
+    /*
+     * No note where nothing needs explaining: an application offered every
+     * alert, one that never used session replay (most RUM applications - it
+     * would be a permanent banner about a feature they do not use), and one
+     * whose facts are not known.
+     */
+    test("says nothing when everything is offered, when replay was never used, or when nothing is known", () => {
+      const silentContexts: Array<MonitorRecommendationContext> = [
+        readRumContext(RECORDING_WITH_BUDGET),
+        // On by default, never recorded, no budget: never used replay.
+        readRumContext({
+          isSessionReplayEnabled: true,
+          sessionReplayLastChunkReceivedAt: null,
+          sessionReplayMonthlyBudgetInGB: null,
+        }),
+        // Turned off before it ever recorded, no budget.
+        readRumContext({
+          isSessionReplayEnabled: false,
+          sessionReplayLastChunkReceivedAt: null,
+          sessionReplayMonthlyBudgetInGB: null,
+        }),
+        // The switch unreadable: not known, whatever the rest says.
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          isSessionReplayEnabled: undefined,
+        }),
+        readRumContext({}),
+        {},
+      ];
+
+      for (const context of silentContexts) {
+        expect(describeRumContext(context)).toBeUndefined();
+      }
+    });
+
+    /*
+     * The note and the list render from the same context, so each note has
+     * to describe what the catalog actually did with it.
+     */
+    test("each note matches what the catalog offers for the same context", () => {
+      const dailyOnly: MonitorRecommendationContext = readRumContext({
+        ...RECORDING_WITH_BUDGET,
+        sessionReplayMonthlyBudgetInGB: null,
+      });
+      const replayOff: MonitorRecommendationContext = readRumContext({
+        ...RECORDING_WITH_BUDGET,
+        isSessionReplayEnabled: false,
+      });
+      const notRecorded: MonitorRecommendationContext = readRumContext({
+        ...RECORDING_WITH_BUDGET,
+        sessionReplayLastChunkReceivedAt: null,
+      });
+
+      expect(describeRumContext(dailyOnly)).toBe(DAILY_ONLY_NOTE);
+      expect(offeredTemplateIds(dailyOnly)).toHaveLength(9);
+
+      expect(describeRumContext(replayOff)).toBe(REPLAY_OFF_NOTE);
+      expect(offeredTemplateIds(replayOff)).toHaveLength(7);
+
+      expect(describeRumContext(notRecorded)).toBe(NOT_RECORDED_NOTE);
+      expect(offeredTemplateIds(notRecorded)).toHaveLength(7);
+    });
+
+    test("the three notes are distinct and each names what to do", () => {
+      // Read off the registry, not the constants above, so this checks code.
+      const dailyOnly: string | undefined = describeRumContext(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          sessionReplayMonthlyBudgetInGB: null,
+        }),
+      );
+      const replayOff: string | undefined = describeRumContext(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          isSessionReplayEnabled: false,
+        }),
+      );
+      const notRecorded: string | undefined = describeRumContext(
+        readRumContext({
+          ...RECORDING_WITH_BUDGET,
+          sessionReplayLastChunkReceivedAt: null,
+        }),
+      );
+
+      expect(
+        new Set<string | undefined>([dailyOnly, replayOff, notRecorded]),
+      ).toEqual(
+        new Set<string>([DAILY_ONLY_NOTE, REPLAY_OFF_NOTE, NOT_RECORDED_NOTE]),
+      );
+      expect(dailyOnly).toContain("Monthly budget (GB)");
+      expect(dailyOnly).toContain("Replay Policy");
+      expect(replayOff).toContain("Replay Policy");
+      expect(notRecorded).toContain("first replay");
+    });
+
+    test("completes nothing from telemetry: the row says everything", () => {
+      const definition: RecommendationResourceDefinition = getDefinitionOrFail(
+        MonitorRecommendationResourceType.RumApplication,
+      );
+
+      expect(definition.readContext).toBeDefined();
+      expect(definition.describeContext).toBeDefined();
+      expect(definition.loadContext).toBeUndefined();
     });
   });
 });

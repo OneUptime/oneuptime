@@ -148,7 +148,6 @@
     "subtitle": "Log ind med din SSO-udbyder for at få adgang til din konto.",
     "submitButton": "Log ind med SSO",
     "useUsernameInstead": "Brug i stedet brugernavn og adgangskode.",
-    "enterpriseEditionRequired": "Single sign-on (SSO) er ikke tilgængelig på denne server: det kræver OneUptime Enterprise Edition med en aktiv licens. Log i stedet ind med din e-mail og adgangskode.",
     "noAccountPrompt": "Har du ikke en konto?",
     "registerLink": "Registrer.",
     "selectProjectTitle": "Vælg projekt",
@@ -177,6 +176,19 @@
     "wait": "Der blev for nylig sendt en bekræftelsesmail. Du kan anmode om en ny, når nedtællingen er slut.",
     "alreadyVerified": "Din e-mailadresse er allerede bekræftet. Du kan logge ind nu.",
     "failed": "Vi kunne ikke sende en ny bekræftelsesmail. Prøv igen om lidt."
+  },
+  "incidentForm": {
+    "title": "Titel",
+    "titleDescription": "En kort beskrivelse af, hvad der er galt.",
+    "description": "Beskrivelse",
+    "severity": "Alvorlighed",
+    "reporterName": "Dit navn",
+    "reporterEmail": "Din e-mail",
+    "successTitle": "Tak — din rapport er sendt.",
+    "incidentNumber": "Din rapport er hændelse {{incidentNumber}}.",
+    "submitAnother": "Send en ny rapport",
+    "retryAfter": "Du kan prøve igen {{when}}.",
+    "tryAgain": "Prøv igen"
   },
   "errors": {
     "forbidden": {
@@ -222,5 +234,25 @@
   "Complete:": "Opfyldt:",
   "Incomplete:": "Ikke opfyldt:",
   "Special character included (optional)": "Specialtegn inkluderet (valgfrit)",
-  "Special characters are optional. Try !, @, # or $.": "Specialtegn er valgfrie. Prøv !, @, # eller $."
+  "Special characters are optional. Try !, @, # or $.": "Specialtegn er valgfrie. Prøv !, @, # eller $.",
+  "This form is not available. It may have been turned off, or the link may be out of date.": "Denne formular er ikke tilgængelig. Den kan være slået fra, eller linket kan være forældet.",
+  "This form can only be opened from an allowed network.": "Denne formular kan kun åbnes fra et tilladt netværk.",
+  "Too many submissions from your network. Please wait a few minutes and try again.": "For mange indsendelser fra dit netværk. Vent et par minutter, og prøv igen.",
+  "This form is receiving too many reports right now. Please try again later.": "Denne formular modtager for mange rapporter lige nu. Prøv igen senere.",
+  "Too many requests. Please try again later.": "For mange anmodninger. Prøv igen senere.",
+  "Captcha token is missing. Please complete the verification challenge.": "Captcha-tokenet mangler. Gennemfør verifikationen.",
+  "Captcha verification failed. Please try again.": "Captcha-verifikationen mislykkedes. Prøv igen.",
+  "This form cannot declare an incident because it has no severity. Please let the team that shared it know.": "Denne formular kan ikke oprette en hændelse, fordi den ikke har nogen alvorlighed. Giv besked til det team, der delte den.",
+  "Reports cannot be accepted right now. Please try again in a few minutes.": "Rapporter kan ikke modtages lige nu. Prøv igen om et par minutter.",
+  "Your report could not be submitted. Please try again in a few minutes.": "Din rapport kunne ikke sendes. Prøv igen om et par minutter.",
+  "This form could not be loaded. Please try again in a few minutes.": "Denne formular kunne ikke indlæses. Prøv igen om et par minutter.",
+  "(Optional)": "(Valgfrit)",
+  "{{field}} is required.": "{{field}} er påkrævet.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} må ikke være mere end {{maxLength}} tegn.",
+  "Email is not valid.": "E-mailen er ugyldig.",
+  "{{field}} must be checked.": "{{field}} skal være markeret.",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Dette tidspunkt er i din tidszone - {{abbreviation}} ({{timezone}}).",
+  "Type your content here...": "Skriv dit indhold her...",
+  "Type your markdown here...": "Skriv din Markdown her...",
+  "Formatting help": "Hjælp til formatering"
 }

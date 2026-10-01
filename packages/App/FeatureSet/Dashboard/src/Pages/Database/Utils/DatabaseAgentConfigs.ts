@@ -136,6 +136,98 @@ export const DATABASE_AGENT_DOCKER_COMPOSE: string = `services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # The Database AI agent: runs the diagnostics OneUptime AI asks for while it
+  # investigates an incident or alert on this database — one operation at a
+  # time from a fixed catalog (\`db sessions\`, \`db long-queries\`, \`db locks\`,
+  # \`db replication\`, \`db settings work_mem\`, ...), never SQL or a command
+  # the model wrote. Read-only unless ONEUPTIME_AI_ALLOW_WRITES=true; then it
+  # may also cancel one running query or end one session, never its own. It
+  # connects to DATABASE_ENDPOINT with the collector's login from this same
+  # .env (OneUptime never sends it any), so that login's grants are the hard
+  # limit, and it registers as the database the collector reports. It shows
+  # up on the database's AI -> AI agent page. PostgreSQL, MySQL, MariaDB,
+  # Redis (Valkey, KeyDB, Dragonfly) and MongoDB; for any other engine it
+  # runs nothing and says so there. See README.md ("OneUptime AI agent").
+  # Remove this service if you do not use OneUptime AI.
+  oneuptime-database-ai-agent:
+    image: oneuptime/resource-ai-agent:release
+    # No container_name, like the collector: one install per database.
+    # It only talks to the database and to OneUptime: no root, no
+    # capabilities, a read-only root filesystem and a tmpfs for /tmp.
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # The same way to the database as the collector's (uncomment
+    # network_mode: host here too if you did it there).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # network_mode: host
+    # Uncomment (and set ONEUPTIME_AI_DATABASE_CA_FILE=/etc/oneuptime/database-ca.pem)
+    # to verify the server's TLS certificate against your own CA.
+    # volumes:
+    #   - ./database-ca.pem:/etc/oneuptime/database-ca.pem:ro
+    environment:
+      - ONEUPTIME_URL=\${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=\${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=database
+      # The database the collector reports: its id, or engine + address + port.
+      - DATABASE_SERVER_ID=\${DATABASE_SERVER_ID:-}
+      - DATABASE_SYSTEM=\${DATABASE_SYSTEM}
+      - DATABASE_SERVER_ADDRESS=\${DATABASE_SERVER_ADDRESS}
+      - DATABASE_SERVER_PORT=\${DATABASE_SERVER_PORT}
+      # Where and how it connects: the collector's own settings.
+      - DATABASE_ENDPOINT=\${DATABASE_ENDPOINT}
+      - DATABASE_ENDPOINT_HOST=\${DATABASE_ENDPOINT_HOST:-}
+      - DATABASE_ENDPOINT_PORT=\${DATABASE_ENDPOINT_PORT:-}
+      - DATABASE_USERNAME=\${DATABASE_USERNAME:-}
+      - DATABASE_PASSWORD=\${DATABASE_PASSWORD:-}
+      - DATABASE_TLS_INSECURE=\${DATABASE_TLS_INSECURE:-true}
+      - DATABASE_TLS_INSECURE_SKIP_VERIFY=\${DATABASE_TLS_INSECURE_SKIP_VERIFY:-false}
+      # Optional: a login of the AI agent's own, used instead of the
+      # collector's when set — one that may cancel queries and end sessions,
+      # which fixes need (see README.md). Written as it is: no $$ doubling.
+      - ONEUPTIME_AI_DATABASE_USERNAME=\${ONEUPTIME_AI_DATABASE_USERNAME:-}
+      - ONEUPTIME_AI_DATABASE_PASSWORD=\${ONEUPTIME_AI_DATABASE_PASSWORD:-}
+      # Optional: PostgreSQL's database to connect to (postgres by default),
+      # MongoDB's authentication database (admin by default).
+      - ONEUPTIME_AI_DATABASE_NAME=\${ONEUPTIME_AI_DATABASE_NAME:-}
+      - ONEUPTIME_AI_DATABASE_CA_FILE=\${ONEUPTIME_AI_DATABASE_CA_FILE:-}
+      # Read-only unless exactly "true". Then fixes may touch only the
+      # sessions ONEUPTIME_AI_WRITE_TARGETS matches (session:<id> globs; all
+      # when empty), never ONEUPTIME_AI_PROTECTED_TARGETS.
+      - ONEUPTIME_AI_ALLOW_WRITES=\${ONEUPTIME_AI_ALLOW_WRITES:-false}
+      - ONEUPTIME_AI_WRITE_TARGETS=\${ONEUPTIME_AI_WRITE_TARGETS:-}
+      - ONEUPTIME_AI_PROTECTED_TARGETS=\${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # Overrides the database identity above as the name the AI agent registers under.
+      - ONEUPTIME_AI_AGENT_RESOURCE_NAME=\${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}
+      # The AI agent's log level: debug, info, warn or error.
+      - LOG_LEVEL=\${LOG_LEVEL:-info}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:3877/status/live",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 `;
 
 export const DATABASE_AGENT_CONFIGS: Record<DatabaseAgentEngine, string> = {

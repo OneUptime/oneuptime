@@ -89,13 +89,13 @@ const products: Dictionary<Product> = {
     description:
       "PagerDuty is the market leader in incident management and on-call scheduling, trusted by many enterprises. However, it is primarily an alerting tool priced per user, and a complete setup requires separate monitoring integrations plus paid add-ons for status pages, AIOps, and live call routing. OneUptime provides a complete, unified observability platform where monitoring, status pages, on-call, and incidents all work together natively at flat, predictable pricing.",
     descriptionLine2:
-      "Simplify your reliability stack. Get monitoring, status pages, on-call, and incident management working together in one platform, without per-seat pricing or surprise add-ons.",
+      "Simplify your reliability stack. Get monitoring, status pages, on-call, and incident management working together in one platform, with on-call included rather than sold as a paid add-on.",
     migrationBenefits: [
       "Import existing on-call schedules and escalation policies seamlessly",
       "Webhooks and REST API enable gradual migration without disruption",
       "Run both platforms in parallel while your team adapts",
       "Consolidate monitoring, alerting, status pages, and AIOps into one tool",
-      "Escape per-user pricing and stacked add-on fees with flat, predictable costs",
+      "Replace stacked add-on fees with one per-user plan that includes status pages, on-call, and incidents",
       "Gain unified visibility across your entire infrastructure in one dashboard",
     ],
     competitorPricingTiers: [
@@ -180,8 +180,9 @@ const products: Dictionary<Product> = {
         scenario: "10-person engineering team with basic on-call",
         competitorSolution: "PagerDuty Professional + external monitoring",
         competitorCost: "$210/month + ~$100/month monitoring = ~$310/month",
-        oneuptimeSolution: "OneUptime with built-in monitoring and on-call",
-        oneuptimeCost: "$0/month (Free tier) or $99/month (Growth)",
+        oneuptimeSolution:
+          "OneUptime Growth for 10 users, with monitoring and on-call built in",
+        oneuptimeCost: "~$220/month (10 users) + $1 per active monitor",
       },
       {
         scenario: "25-person team with status pages and incident management",
@@ -190,15 +191,16 @@ const products: Dictionary<Product> = {
         competitorCost:
           "$1,025/month + $89/month + ~$200/month = ~$1,314/month",
         oneuptimeSolution:
-          "OneUptime with unlimited status pages and subscribers",
-        oneuptimeCost: "$0-299/month",
+          "OneUptime Growth for 25 users, with unlimited status pages and subscribers",
+        oneuptimeCost: "~$550/month (25 users) + $1 per active monitor",
       },
       {
         scenario: "Enterprise with 100 engineers, AIOps and stakeholder access",
         competitorSolution:
           "PagerDuty Enterprise + AIOps + stakeholder licenses",
         competitorCost: "$5,000+/month + $799/month AIOps + add-ons",
-        oneuptimeSolution: "OneUptime Enterprise with unlimited users",
+        oneuptimeSolution:
+          "OneUptime Enterprise, with free status page subscribers instead of stakeholder licenses",
         oneuptimeCost: "Contact for enterprise pricing",
       },
     ],
@@ -216,9 +218,9 @@ const products: Dictionary<Product> = {
         icon: "status-page",
       },
       {
-        title: "Scale Your Team Freely",
+        title: "No Cap on Team Members",
         description:
-          "Add team members as your organization grows without per-seat pricing that climbs with every hire.",
+          "Add as many team members as your organization needs. Paid plans are priced per user, with on-call and status pages included rather than sold as add-ons.",
         icon: "subscribers",
       },
       {
@@ -542,7 +544,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is OneUptime enterprise-ready?",
         answer:
-          "Absolutely. OneUptime is built on distributed, high-availability infrastructure across multiple cloud regions. We are SOC 2 Type II certified, ISO 27001 compliant, and GDPR compliant. Enterprise features include SSO/SAML, role-based access control, audit logs, and data residency options. The Apache 2.0 Community Edition can be self-hosted for complete infrastructure control; self-hosted SSO/SAML and audit logs need the Enterprise Edition and an Enterprise license.",
+          "Absolutely. OneUptime is built on distributed, high-availability infrastructure across multiple cloud regions. We are SOC 2 Type II certified, ISO 27001 compliant, and GDPR compliant. Enterprise features include SSO/SAML, role-based access control, audit logs, and data residency options. The Apache 2.0 Community Edition, SAML and OIDC single sign-on included, can be self-hosted for complete infrastructure control; self-hosted audit logs need the Enterprise Edition and an Enterprise license.",
       },
     ],
   },
@@ -1151,7 +1153,7 @@ const products: Dictionary<Product> = {
         competitorCost: "$50 + $210 + $99 = $359/month",
         oneuptimeSolution:
           "OneUptime at $1/active monitor, on-call and status included",
-        oneuptimeCost: "~$20/month (all included)",
+        oneuptimeCost: "~$20/month in monitors + $22 per user on Growth",
       },
       {
         scenario: "Growing company with 100 monitors and RUM",
@@ -1159,7 +1161,7 @@ const products: Dictionary<Product> = {
         competitorCost: "$95 + $10 + $400 + $99 = $604+/month",
         oneuptimeSolution:
           "OneUptime with monitoring, RUM, on-call, and status included",
-        oneuptimeCost: "~$100/month (all included)",
+        oneuptimeCost: "~$100/month in monitors + $22 per user on Growth",
       },
       {
         scenario: "E-commerce site with synthetic transactions",
@@ -1168,7 +1170,7 @@ const products: Dictionary<Product> = {
         competitorCost: "$249 + $400 + $99 = $748+/month",
         oneuptimeSolution:
           "OneUptime with synthetic transaction monitoring included",
-        oneuptimeCost: "$99-299/month (Growth tier)",
+        oneuptimeCost: "Growth at $22 per user per month + $1 per monitor",
       },
     ],
     keyDifferences: [
@@ -1536,7 +1538,7 @@ const products: Dictionary<Product> = {
     price: "",
     oneuptimePrice: "",
     tagline:
-      "One flat-priced unified platform vs metered per-host, per-seat SKUs",
+      "One unified platform vs metered per-host SKUs and per-seat add-ons",
     competitorFocus:
       "Datadog is the market leader in cloud monitoring, APM, and logs, but its status pages, on-call, and incident management are separate seat-based products layered on top of per-host and per-GB metering.",
     oneuptimeFocus:
@@ -1546,15 +1548,15 @@ const products: Dictionary<Product> = {
     productDescription:
       "Datadog is the industry leader in cloud monitoring, APM, and log management, with a deep observability suite and 800+ integrations. In 2025 it added native On-Call, Incident Management, and Status Pages, but each is a separate seat-based SKU stacked on top of per-host and per-GB metering, so a full deployment means juggling many priced modules.",
     oneUptimeDescription:
-      "OneUptime delivers monitoring, logs, metrics, traces, status pages, on-call, and incident management in one open-source platform with flat pricing. Active monitors are a flat $1/month each, telemetry ingestion is about $0.10/GB, and every reliability feature is included instead of sold as a separate seat.",
+      "OneUptime delivers monitoring, logs, metrics, traces, status pages, on-call, and incident management in one open-source platform with published pricing. Plans are priced per user, active monitors are a flat $1/month each, telemetry ingestion is about $0.10/GB, and every reliability feature is included in the plan instead of sold as a separate seat-based SKU.",
     description:
       "Datadog is the industry leader in cloud monitoring, APM, and log management, offering deep observability with 800+ integrations. It now bundles native On-Call, Incident Management, and Status Pages, but each is metered separately - per host, per GB, and per seat - so bills grow with usage and headcount and are hard to forecast. Standing up a complete reliability stack still means stitching together and paying for several priced modules.",
     descriptionLine2:
-      "OneUptime gives you monitoring, status pages, on-call, and incident management in one open-source platform at a flat, predictable price - no per-host, per-seat, or surprise per-GB bills.",
+      "OneUptime gives you monitoring, status pages, on-call, and incident management in one open-source platform with published per-user plans - no per-host meters, no separate on-call or incident seats, and no surprise per-GB bills.",
     migrationBenefits: [
-      "Flat $1 per active monitor - no per-host, per-seat, or per-GB surprises",
+      "Flat $1 per active monitor - no per-host or per-GB surprises",
       "Status pages with unlimited subscribers included, not a seat-based add-on",
-      "Built-in on-call rotations and escalations at no extra per-seat charge",
+      "Built-in on-call rotations and escalations included, not a separate paid add-on",
       "Full incident management with postmortems and action items included",
       "Self-host for free under Apache 2.0 for complete data control",
       "OpenTelemetry-native ingestion for a drop-in migration path",
@@ -1650,8 +1652,9 @@ const products: Dictionary<Product> = {
         competitorSolution:
           "Datadog Infrastructure + APM + logs + 5 Incident Response seats",
         competitorCost: "$150 + $350 + ~$150 logs + $200 = ~$850/month",
-        oneuptimeSolution: "OneUptime with everything included",
-        oneuptimeCost: "$0/month (Free tier) or $99/month (Growth)",
+        oneuptimeSolution:
+          "OneUptime Growth for 5 users, with everything included",
+        oneuptimeCost: "~$110/month (5 users) + $1 per monitor + telemetry",
       },
       {
         scenario:
@@ -1660,8 +1663,8 @@ const products: Dictionary<Product> = {
         competitorCost:
           "$750 infra + $1,750 APM + $500-1,500 logs + $600 seats = ~$3,600-4,600/month",
         oneuptimeSolution:
-          "OneUptime with monitoring, status, on-call, and incidents included",
-        oneuptimeCost: "$0-299/month",
+          "OneUptime Growth for 15 users, with monitoring, status, on-call, and incidents included",
+        oneuptimeCost: "~$330/month (15 users) + $1 per monitor + telemetry",
       },
       {
         scenario: "Enterprise with containers and microservices",
@@ -1677,7 +1680,7 @@ const products: Dictionary<Product> = {
       {
         title: "Predictable Flat Pricing",
         description:
-          "Active monitors at a flat $1/month each - no per-host, per-seat, or 99th-percentile billing to forecast",
+          "Active monitors at a flat $1/month each - no per-host or 99th-percentile billing to forecast",
         icon: "pricing",
       },
       {
@@ -1693,9 +1696,9 @@ const products: Dictionary<Product> = {
         icon: "subscribers",
       },
       {
-        title: "On-Call Without Per-Seat Fees",
+        title: "On-Call Included, Not an Add-On",
         description:
-          "Rotations, escalations, and SMS/voice alerting included rather than a $20+/seat add-on",
+          "Rotations and escalations built in rather than sold as a $20+/seat On-Call add-on",
         icon: "on-call",
       },
       {
@@ -1707,7 +1710,7 @@ const products: Dictionary<Product> = {
       {
         title: "No Metering Surprises",
         description:
-          "Transparent, published pricing instead of stacked per-host, per-GB, and per-seat meters",
+          "Transparent, published pricing instead of stacked per-host meters and per-product seat add-ons",
         icon: "transparent",
       },
     ],
@@ -2014,7 +2017,7 @@ const products: Dictionary<Product> = {
     descriptionLine2:
       "Get monitoring, telemetry, status pages, on-call scheduling, and incident management all working together in one open-source platform with predictable, flat pricing.",
     migrationBenefits: [
-      "Add unlimited team members with no per-user fees (New Relic charges $99-349/full platform user)",
+      "Paid plans from $22 per user per month, with no cap on team members (New Relic charges $99-349 per full platform user)",
       "Predictable flat pricing you can plan around: $1 per active monitor and $0.10/GB telemetry",
       "Public and private status pages included with unlimited subscribers and automatic updates",
       "On-call rotations and multi-level escalation policies built in (no separate PagerDuty needed)",
@@ -2097,8 +2100,8 @@ const products: Dictionary<Product> = {
           "New Relic Standard (5 users) + Atlassian Statuspage + PagerDuty",
         competitorCost: "$406 + $99 + $105 = ~$610/month",
         oneuptimeSolution:
-          "OneUptime with monitoring, status pages, on-call, and incidents included",
-        oneuptimeCost: "$0/month (Free tier)",
+          "OneUptime Growth for 5 users, with monitoring, status pages, on-call, and incidents included",
+        oneuptimeCost: "~$110/month (5 users) + usage",
       },
       {
         scenario: "10-person engineering team sending 500GB data/month",
@@ -2106,8 +2109,8 @@ const products: Dictionary<Product> = {
           "New Relic Pro + data overages + Statuspage + PagerDuty",
         competitorCost: "$3,490 + $240 + $99 + $290 = ~$4,119/month",
         oneuptimeSolution:
-          "OneUptime with unlimited users and telemetry at $0.10/GB",
-        oneuptimeCost: "$0-299/month",
+          "OneUptime Growth for 10 users, with 500GB of telemetry at $0.10/GB",
+        oneuptimeCost: "~$270/month ($220 in seats + $50 telemetry)",
       },
       {
         scenario: "Growing company with 25 engineers",
@@ -2119,9 +2122,9 @@ const products: Dictionary<Product> = {
     ],
     keyDifferences: [
       {
-        title: "No Per-User Pricing",
+        title: "Lower Per-User Pricing",
         description:
-          "Add team members without cost scaling - New Relic charges $99-349 per full platform user",
+          "Paid plans are $22-99 per user per month - New Relic charges $99-349 per full platform user",
         icon: "pricing",
       },
       {
@@ -2387,7 +2390,7 @@ const products: Dictionary<Product> = {
             title: "Per-User Pricing",
             description: "Fees per platform user",
             productColumn: "$99-349/user",
-            oneuptimeColumn: "No per-user fees",
+            oneuptimeColumn: "$22-99/user",
           },
           {
             title: "Predictable Flat Pricing",
@@ -2412,7 +2415,7 @@ const products: Dictionary<Product> = {
       {
         question: "What about New Relic's free tier?",
         answer:
-          "New Relic's free tier is generous: 100GB of data ingest and one full platform user. But once you need more than one power user or exceed 100GB, costs climb quickly through per-user fees and data overages. OneUptime's free tier includes unlimited team members and unlimited free manual monitors, with telemetry at a low $0.10/GB ingested, so it scales more affordably as your team grows.",
+          "New Relic's free tier is generous: 100GB of data ingest and one full platform user. But once you need more than one power user or exceed 100GB, costs climb quickly through per-user fees and data overages. OneUptime's free tier includes unlimited free manual monitors, paid plans start at $22 per user per month, and telemetry is a low $0.10/GB ingested, so it scales more affordably as your team grows.",
       },
       {
         question: "How does data pricing compare?",
@@ -2446,19 +2449,19 @@ const products: Dictionary<Product> = {
     competitorFocus:
       "A modern monitoring, status page, incident, and telemetry platform whose bill is built from a per-responder license plus separate monitor, status page, and telemetry add-ons.",
     oneuptimeFocus:
-      "One open-source, self-hostable platform that includes monitoring at a flat $1/active monitor, on-call, incidents, status pages, and telemetry with no per-responder or per-subscriber fees.",
+      "One open-source, self-hostable platform that includes monitoring at a flat $1/active monitor, on-call, incidents, status pages, and telemetry, with free status page subscribers and no separate responder license.",
     annualSavings: "",
     lastUpdated: "2026",
     productDescription:
       "Better Stack (formerly Better Uptime) offers uptime monitoring, status pages, on-call, incident management, and log and metric telemetry in one modern, developer-friendly product. Its pricing is modular: you start free, then pay a per-responder license and layer on packs for extra monitors, status page features, and telemetry volume. The polished UX is a real strength, but costs compound as your on-call team, monitor count, and subscriber list grow.",
     oneUptimeDescription:
-      "OneUptime provides monitoring at a flat $1/month per active monitor, status pages with unlimited subscribers, and full on-call scheduling and incident management included for the whole team at no extra per-person cost. It is OpenTelemetry-native for logs, metrics, and traces, and is open source under Apache 2.0 so you can self-host it on your own infrastructure. You get the same unified vision with transparent pricing and no vendor lock-in.",
+      "OneUptime provides monitoring at a flat $1/month per active monitor, status pages with unlimited subscribers, and full on-call scheduling and incident management included in its per-user plans rather than sold as a separate responder license. It is OpenTelemetry-native for logs, metrics, and traces, and is open source under Apache 2.0 so you can self-host it on your own infrastructure. You get the same unified vision with transparent pricing and no vendor lock-in.",
     description:
-      "Better Stack (formerly Better Uptime) and OneUptime share the same unified vision: monitoring, status pages, on-call, incidents, and telemetry in one place instead of a stack of point tools. The difference is how you pay and how much control you keep. Better Stack layers a $29-34/month per-responder license on top of add-on packs for monitors, status pages, and telemetry, so the bill scales with every engineer, subscriber, and gigabyte. OneUptime charges a flat $1/month per active monitor with on-call, incidents, and unlimited status page subscribers included, and is open source and self-hostable.",
+      "Better Stack (formerly Better Uptime) and OneUptime share the same unified vision: monitoring, status pages, on-call, incidents, and telemetry in one place instead of a stack of point tools. The difference is how you pay and how much control you keep. Better Stack layers a $29-34/month per-responder license on top of add-on packs for monitors, status pages, and telemetry, so the bill scales with every engineer, subscriber, and gigabyte. OneUptime charges per user on its plans plus a flat $1/month per active monitor, with on-call, incidents, and unlimited status page subscribers included, and is open source and self-hostable.",
     descriptionLine2:
-      "Both consolidate your observability tooling into one product. OneUptime adds predictable per-monitor pricing, no per-responder or per-subscriber fees, open-source transparency, and the option to self-host.",
+      "Both consolidate your observability tooling into one product. OneUptime adds predictable per-monitor pricing, on-call without a separate responder license, free status page subscribers, open-source transparency, and the option to self-host.",
     migrationBenefits: [
-      "Eliminate per-responder licenses - on-call and incident management for your whole team are included",
+      "On-call and incident management are part of the per-user plan, not a separate responder license",
       "Predictable $1/month per active monitor with no $21-25 per-50-monitor bundles to stack",
       "Unlimited status page subscribers with no $40 per additional 1,000 metering",
       "White-label, custom-domain status pages included rather than a $208-250 per-page add-on",
@@ -2550,8 +2553,8 @@ const products: Dictionary<Product> = {
           "Better Stack (Free 10 + 20 extra monitors + 4 responders)",
         competitorCost: "$0 + $21 + $116 = ~$137/month",
         oneuptimeSolution:
-          "OneUptime at $1/active monitor with on-call included for all 4 engineers",
-        oneuptimeCost: "~$30/month",
+          "OneUptime Growth for 4 engineers plus $1/active monitor, with on-call included",
+        oneuptimeCost: "~$118/month ($88 in seats + $30 monitors)",
       },
       {
         scenario:
@@ -2560,8 +2563,8 @@ const products: Dictionary<Product> = {
           "Better Stack (140 extra monitors + 5 responders + white-label page)",
         competitorCost: "$63 + $145 + $208 = ~$416/month",
         oneuptimeSolution:
-          "OneUptime monitors + custom-domain branded status page + on-call, all included",
-        oneuptimeCost: "~$150/month",
+          "OneUptime Growth for 5 responders + 150 monitors, with a custom-domain branded status page and on-call included",
+        oneuptimeCost: "~$260/month ($110 in seats + $150 monitors)",
       },
       {
         scenario:
@@ -2570,8 +2573,8 @@ const products: Dictionary<Product> = {
           "Better Stack (490 extra monitors + 10 responders + 10k subscribers)",
         competitorCost: "$210 + $290 + $400 = ~$900/month",
         oneuptimeSolution:
-          "OneUptime with unlimited subscribers and unlimited responders included",
-        oneuptimeCost: "~$500/month",
+          "OneUptime Growth for 10 responders + 500 monitors, with unlimited subscribers included",
+        oneuptimeCost: "~$720/month ($220 in seats + $500 monitors)",
       },
     ],
     keyDifferences: [
@@ -2582,9 +2585,9 @@ const products: Dictionary<Product> = {
         icon: "unlimited",
       },
       {
-        title: "No Responder Licenses",
+        title: "On-Call in the Base Plan",
         description:
-          "On-call and incidents included - Better Stack charges $29-34/month per responder",
+          "On-call and incidents are included in the $22/user Growth plan - Better Stack charges a $29-34/month responder license",
         icon: "on-call",
       },
       {
@@ -2608,7 +2611,7 @@ const products: Dictionary<Product> = {
       {
         title: "Simpler Pricing",
         description:
-          "No stacking monitor packs, responder seats, and telemetry bundles to model your bill",
+          "No monitor packs or telemetry bundles to model: a per-user plan, $1 per active monitor, and $0.10/GB",
         icon: "pricing",
       },
     ],
@@ -2903,7 +2906,7 @@ const products: Dictionary<Product> = {
             title: "Pricing Model",
             description: "How the bill is built",
             productColumn: "Per-responder + packs",
-            oneuptimeColumn: "$1/active monitor",
+            oneuptimeColumn: "Per user + $1/active monitor",
           },
         ],
       },
@@ -2912,18 +2915,18 @@ const products: Dictionary<Product> = {
       {
         question: "How does OneUptime compare to Better Stack (Better Uptime)?",
         answer:
-          "Better Stack (formerly Better Uptime) and OneUptime share a similar vision of unified observability. Both provide monitoring, status pages, incident management, and telemetry in one platform. The key differences are pricing and openness: Better Stack charges a $29-34/month per-responder license plus add-on packs for monitors ($21-25 per 50), status page features, and telemetry, while OneUptime offers simple usage-based pricing at $1/month per active monitor with on-call, incidents, and unlimited status page subscribers included. OneUptime is also open source under Apache 2.0 with self-hosting options, giving you complete control over your data and infrastructure.",
+          "Better Stack (formerly Better Uptime) and OneUptime share a similar vision of unified observability. Both provide monitoring, status pages, incident management, and telemetry in one platform. The key differences are pricing and openness: Better Stack charges a $29-34/month per-responder license plus add-on packs for monitors ($21-25 per 50), status page features, and telemetry, while OneUptime offers per-user plans plus $1/month per active monitor, with on-call, incidents, and unlimited status page subscribers included. OneUptime is also open source under Apache 2.0 with self-hosting options, giving you complete control over your data and infrastructure.",
       },
       {
         question: "What is Better Uptime and why did it become Better Stack?",
         answer:
-          "Better Uptime was a popular monitoring and status page tool that rebranded to Better Stack in 2023 to reflect an expanded suite that now includes logs, metrics, traces, and incident management. The core uptime monitoring product remains strong, but the pricing model is modular: you pay a per-responder license and add packs for monitors, status pages, and telemetry volume. OneUptime offers a simpler, more predictable model of a flat $1/month per active monitor with on-call and incidents included.",
+          "Better Uptime was a popular monitoring and status page tool that rebranded to Better Stack in 2023 to reflect an expanded suite that now includes logs, metrics, traces, and incident management. The core uptime monitoring product remains strong, but the pricing model is modular: you pay a per-responder license and add packs for monitors, status pages, and telemetry volume. OneUptime offers a simpler model: a per-user plan with on-call and incidents included, plus a flat $1/month per active monitor.",
       },
       {
         question:
           "How does Better Stack's per-responder pricing compare to OneUptime?",
         answer:
-          "Better Stack requires a Responder license, roughly $29/month per person on annual billing or $34/month monthly, for anyone who runs on-call rotations, acknowledges incidents, or receives phone and SMS alerts. That fee multiplies with every engineer you add to the pager. OneUptime includes on-call scheduling, escalation policies, and incident management for your entire team at no per-responder cost, so growing your on-call rotation does not grow your bill.",
+          "Better Stack requires a Responder license, roughly $29/month per person on annual billing or $34/month monthly, for anyone who runs on-call rotations, acknowledges incidents, or receives phone and SMS alerts. That fee multiplies with every engineer you add to the pager. OneUptime includes on-call scheduling, escalation policies, and incident management in its per-user plans (from $22 per user per month on Growth) rather than charging a separate responder license, and status page subscribers are free.",
       },
       {
         question:
@@ -2945,7 +2948,7 @@ const products: Dictionary<Product> = {
         question:
           "What features does OneUptime have that Better Stack charges extra for?",
         answer:
-          "OneUptime includes several things Better Stack meters or gates behind add-ons: on-call and incident management for the whole team (no per-responder license), unlimited status page subscribers (no $40 per 1,000), white-label custom-domain status pages (no $208-250 per-page fee), and native server and infrastructure monitoring. On top of that, OneUptime offers 1-second minimum check intervals, an open-source Apache 2.0 codebase you can audit and extend, and self-hosting on your own infrastructure.",
+          "OneUptime includes several things Better Stack meters or gates behind add-ons: on-call and incident management in every paid plan (no separate responder license), unlimited status page subscribers (no $40 per 1,000), white-label custom-domain status pages (no $208-250 per-page fee), and native server and infrastructure monitoring. On top of that, OneUptime offers 1-second minimum check intervals, an open-source Apache 2.0 codebase you can audit and extend, and self-hosting on your own infrastructure.",
       },
     ],
   },
@@ -3859,7 +3862,7 @@ const products: Dictionary<Product> = {
     productDescription:
       "Incident.io is a modern, beautifully designed incident management tool that excels at Slack- and Teams-native incident response. It provides polished coordination features for teams during incidents, plus built-in on-call (as a paid add-on) and basic status pages. It does not monitor anything, so incidents must be detected by separate tools.",
     oneUptimeDescription:
-      "OneUptime provides complete incident management plus integrated monitoring, full-featured status pages, and on-call scheduling in one platform. It covers the entire incident lifecycle from automatic detection to customer communication and post-incident learning, with predictable flat pricing instead of per-user seats.",
+      "OneUptime provides complete incident management plus integrated monitoring, full-featured status pages, and on-call scheduling in one platform. It covers the entire incident lifecycle from automatic detection to customer communication and post-incident learning, with on-call included in the plan instead of sold as a per-user add-on.",
     description:
       "Incident.io is a modern, beautifully designed incident management tool that excels at Slack- and Teams-native incident response, and it's excellent for coordinating teams during a live incident. It includes on-call (as a paid per-user add-on) and basic status pages. However, it has no monitoring to detect incidents in the first place, and its pricing scales per user with every hire. Complete reliability needs detection, response, and customer communication working together.",
     descriptionLine2:
@@ -3868,7 +3871,7 @@ const products: Dictionary<Product> = {
       "Add integrated monitoring to detect incidents automatically - incident.io monitors nothing",
       "Get full-featured status pages with unlimited subscribers and custom domains",
       "On-call scheduling and escalations included, not a per-user paid add-on",
-      "Flat pricing instead of per-user seats that grow with every hire",
+      "One per-user plan covering monitoring, status pages, on-call, and incidents - no stacked add-ons",
       "Slack and Microsoft Teams incident collaboration included on all plans",
       "Complete incident lifecycle in one unified, open-source platform",
     ],
@@ -3956,8 +3959,8 @@ const products: Dictionary<Product> = {
         competitorCost:
           "$250/mo (Team + on-call) + ~$150 monitoring = ~$400/month",
         oneuptimeSolution:
-          "OneUptime with monitoring, on-call, incidents, and status pages included",
-        oneuptimeCost: "$0/month (Free tier) or $99/month (Growth)",
+          "OneUptime Growth for 10 users, with monitoring, on-call, incidents, and status pages included",
+        oneuptimeCost: "~$220/month (10 users) + $1 per active monitor",
       },
       {
         scenario: "25-person team on Pro with private incidents and monitoring",
@@ -3966,8 +3969,8 @@ const products: Dictionary<Product> = {
         competitorCost:
           "$1,125/mo (Pro + on-call) + ~$200 monitoring = ~$1,325+/month",
         oneuptimeSolution:
-          "OneUptime with unlimited users and monitoring included",
-        oneuptimeCost: "$0-299/month",
+          "OneUptime Growth for 25 users, with monitoring and on-call included",
+        oneuptimeCost: "~$550/month (25 users) + $1 per active monitor",
       },
       {
         scenario: "Startup needing Slack-based incident response and on-call",
@@ -3975,8 +3978,8 @@ const products: Dictionary<Product> = {
           "Incident.io Team + On-call add-on (6 users) + basic monitoring",
         competitorCost: "$150/mo (Team + on-call) + monitoring",
         oneuptimeSolution:
-          "OneUptime Free tier with Slack and Teams integration",
-        oneuptimeCost: "$0/month (Free tier)",
+          "OneUptime Growth for 6 users, with Slack and Teams integration and on-call included",
+        oneuptimeCost: "~$132/month (6 users) + $1 per active monitor",
       },
     ],
     keyDifferences: [
@@ -3999,9 +4002,9 @@ const products: Dictionary<Product> = {
         icon: "on-call",
       },
       {
-        title: "No Per-User Pricing",
+        title: "One Plan, No Add-Ons",
         description:
-          "Add team members without cost scaling - incident.io bills per user, so cost grows with every hire",
+          "Monitoring, status pages, on-call, and incidents in one per-user plan - incident.io bills per user and charges extra for on-call",
         icon: "pricing",
       },
       {
@@ -4313,7 +4316,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is on-call included in OneUptime?",
         answer:
-          "Yes. Full on-call scheduling with rotations, multi-level escalation policies, and multi-channel alerts (SMS, phone call, push, email, Slack, Teams) is included in OneUptime on all plans. Incident.io charges on-call as a per-user add-on: +$10/user/month on Team (annual) and +$20/user/month on Pro. For a 10-person team, that's an extra $100-200/month just for on-call, on top of the base per-user seat cost.",
+          "Yes. Full on-call scheduling with rotations, multi-level escalation policies, and multi-channel alerts (SMS, phone call, push, email, Slack, Teams) is included in OneUptime on all paid plans. Incident.io charges on-call as a per-user add-on: +$10/user/month on Team (annual) and +$20/user/month on Pro. For a 10-person team, that's an extra $100-200/month just for on-call, on top of the base per-user seat cost.",
       },
       {
         question: "What about private incidents?",
@@ -4323,7 +4326,7 @@ const products: Dictionary<Product> = {
       {
         question: "Why choose OneUptime over Incident.io?",
         answer:
-          "Choose OneUptime if you want a complete reliability platform without assembling and paying for separate tools. With incident.io you still need a dedicated monitoring tool to detect incidents (incident.io monitors nothing), on-call is a paid add-on (+$10-20/user/month), and pricing scales per user with every hire. OneUptime includes monitoring, full-featured status pages, on-call, AND incident management - with predictable flat pricing and no per-seat costs, plus the option to self-host for free.",
+          "Choose OneUptime if you want a complete reliability platform without assembling and paying for separate tools. With incident.io you still need a dedicated monitoring tool to detect incidents (incident.io monitors nothing), on-call is a paid add-on (+$10-20/user/month), and pricing scales per user with every hire. OneUptime includes monitoring, full-featured status pages, on-call, AND incident management - in one per-user plan with no paid on-call add-on, plus the option to self-host for free.",
       },
     ],
   },
@@ -4676,7 +4679,7 @@ const products: Dictionary<Product> = {
             title: "SSO/SAML",
             description: "Enterprise identity",
             productColumn: "Enterprise only",
-            oneuptimeColumn: "Scale plan or Enterprise Edition",
+            oneuptimeColumn: "Community Edition; Scale plan on Cloud",
           },
           {
             title: "Full Reliability Stack",
@@ -4696,7 +4699,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is SigNoz really open source like OneUptime?",
         answer:
-          "Both are open source and self-hostable, and both follow an open-core model: the core is permissively licensed while an enterprise (ee) module is under a separate commercial license. SigNoz focuses on observability data. OneUptime's Apache 2.0 Community Edition covers the whole incident lifecycle - monitoring, on-call, incidents, status pages, and telemetry - and its enterprise module adds SSO, SCIM, audit logs, and instance administration. They solve related but different problems.",
+          "Both are open source and self-hostable, and both follow an open-core model: the core is permissively licensed while an enterprise (ee) module is under a separate commercial license. SigNoz focuses on observability data. OneUptime's Apache 2.0 Community Edition covers the whole incident lifecycle - monitoring, on-call, incidents, status pages, and telemetry - along with SAML and OIDC single sign-on, and its enterprise module adds SCIM, audit logs, and instance administration. They solve related but different problems.",
       },
       {
         question: "What about SigNoz's usage-based pricing?",
@@ -4743,7 +4746,7 @@ const products: Dictionary<Product> = {
     migrationBenefits: [
       "Escape the forced Atlassian migration and end-of-support deadline with a stable open-source platform you control",
       "Replace Opsgenie plus a separate monitor and status page with one unified tool and one data model",
-      "Stop paying per responder seat; pay a flat $1 per active monitor with no per-check tiers or caps",
+      "Get on-call, monitoring, incidents, and status pages in one per-user plan, with active monitors at a flat $1 each and no per-check tiers",
       "Get built-in website, API, server, container, synthetic, SSL, and cron monitoring with no third-party integrations to wire up",
       "Publish unlimited-subscriber status pages that update automatically from the same monitors that page your team",
       "Own your data and avoid vendor lock-in by self-hosting under Apache 2.0, or use predictable managed cloud pricing",
@@ -4826,8 +4829,9 @@ const products: Dictionary<Product> = {
         competitorCost:
           "~$300/mo for Opsgenie seats plus separate monitoring and status page bills",
         oneuptimeSolution:
-          "OneUptime covers on-call, monitoring, and status page in one platform; pay only for active monitors",
-        oneuptimeCost: "~$50/mo for 50 active monitors, or $0 self-hosted",
+          "OneUptime Growth for 15 users covers on-call, monitoring, and status page in one platform",
+        oneuptimeCost:
+          "~$380/mo ($330 in seats + 50 active monitors), or $0 self-hosted",
       },
       {
         scenario:
@@ -4837,8 +4841,9 @@ const products: Dictionary<Product> = {
         competitorCost:
           "Extra monthly cost for monitoring and Statuspage on top of Opsgenie",
         oneuptimeSolution:
-          "OneUptime generous free tier plus $1 per active monitor and unlimited status page subscribers",
-        oneuptimeCost: "~$30/mo, or $0 on the self-hosted or free tier",
+          "OneUptime Growth for 5 users plus $1 per active monitor, with unlimited status page subscribers",
+        oneuptimeCost:
+          "~$140/mo ($110 in seats + 30 monitors), or $0 self-hosted",
       },
       {
         scenario:
@@ -4848,9 +4853,9 @@ const products: Dictionary<Product> = {
         competitorCost:
           "~$3,000+/mo in JSM Premium seats, a jump over old Opsgenie pricing",
         oneuptimeSolution:
-          "Migrate to OneUptime and consolidate monitoring, on-call, incidents, and status pages with monitor-based billing",
+          "Migrate to OneUptime and consolidate monitoring, on-call, incidents, and status pages on one per-user plan",
         oneuptimeCost:
-          "Flat $1 per active monitor, predictable Growth tier ~$99/mo, or free self-hosted",
+          "~$1,320/mo on Growth (60 users) + $1 per active monitor, or free self-hosted",
       },
     ],
     keyDifferences: [
@@ -4881,7 +4886,7 @@ const products: Dictionary<Product> = {
       {
         title: "Flat, predictable pricing",
         description:
-          "Opsgenie bills per user per month across four tiers, and JSM is pricier still. OneUptime charges a flat $1 per active monitor with unlimited free manual monitors and no per-check tiers.",
+          "Opsgenie bills per user per month across four tiers, and JSM is pricier still. OneUptime has one per-user plan price that includes on-call, incidents, and status pages, plus a flat $1 per active monitor with unlimited free manual monitors and no per-check tiers.",
         icon: "pricing",
       },
       {
@@ -4935,12 +4940,6 @@ const products: Dictionary<Product> = {
             title: "Unlimited SMS on entry tier",
             description: "Not capped on the lowest paid plan",
             productColumn: "Standard+ only",
-            oneuptimeColumn: "tick",
-          },
-          {
-            title: "Included without per-seat billing",
-            description: "On-call not priced per responder",
-            productColumn: "",
             oneuptimeColumn: "tick",
           },
         ],
@@ -5161,10 +5160,10 @@ const products: Dictionary<Product> = {
             oneuptimeColumn: "tick",
           },
           {
-            title: "Priced per user seat",
-            description: "Cost scales with responders",
+            title: "Pricing model",
+            description: "How cost scales with your team",
             productColumn: "Per user",
-            oneuptimeColumn: "Unlimited users",
+            oneuptimeColumn: "Per user, all modules included",
           },
           {
             title: "REST API and native webhooks",
@@ -5218,7 +5217,7 @@ const products: Dictionary<Product> = {
       {
         question: "How does OneUptime pricing compare to Opsgenie?",
         answer:
-          "Opsgenie charges per user per month across Essentials, Standard, and Enterprise tiers, so costs grow with every responder. OneUptime charges a flat $1 per active monitor with unlimited free manual monitors and no per-check caps, plus a generous free tier and free self-hosting, so pricing stays predictable as your team grows.",
+          "Opsgenie charges per user per month across Essentials, Standard, and Enterprise tiers, so costs grow with every responder. OneUptime also prices paid plans per user, but one price covers on-call, incidents, and status pages, with a flat $1 per active monitor, unlimited free manual monitors, a free tier, and free self-hosting.",
       },
       {
         question: "Can I self-host OneUptime?",
@@ -5247,14 +5246,14 @@ const products: Dictionary<Product> = {
     productDescription:
       "Squadcast is a per-seat SRE platform focused on on-call alerting, escalation, and incident response, with SRE workflows like SLO tracking, service graphs, and runbooks on higher tiers. It ingests alerts from external monitoring tools rather than generating its own uptime or telemetry signals. Following its acquisition by SolarWinds, it is being folded into a broader incident-response portfolio.",
     oneUptimeDescription:
-      "OneUptime is an open-source, Apache 2.0 platform that combines uptime and infrastructure monitoring, public and private status pages, on-call and escalation, incident management, and OpenTelemetry logs, metrics, and traces. It is billed at a flat $1 per active monitor per month instead of per user, and can be self-hosted for free. That means one bill, one login, and no per-seat tax as your team grows.",
+      "OneUptime is an open-source, Apache 2.0 platform that combines uptime and infrastructure monitoring, public and private status pages, on-call and escalation, incident management, and OpenTelemetry logs, metrics, and traces. Paid plans are priced per user with on-call, incidents, and status pages included, active monitors are a flat $1 per month, and it can be self-hosted for free. That means one bill and one login instead of several vendors.",
     description:
       "Squadcast is a capable on-call and incident-response tool, but it does not monitor your systems itself. You still have to buy and connect a separate uptime monitor, an APM or telemetry backend, and often a separate status-page product, then pay Squadcast per user on top. OneUptime brings monitoring, status pages, on-call, incident management, and telemetry into one open-source platform. The result is fewer vendors, one predictable bill, and no tool sprawl.",
     descriptionLine2:
-      "Instead of paying per seat and wiring up external monitors, you get uptime checks, telemetry, alerting, and status pages in one place for a flat $1 per active monitor, with free self-hosting always available.",
+      "Instead of paying Squadcast per seat and wiring up external monitors, you get uptime checks, telemetry, alerting, and status pages in one per-user plan, with active monitors at a flat $1 each and free self-hosting always available.",
     migrationBenefits: [
       "Replace Squadcast plus a separate uptime monitor, telemetry backend, and status-page tool with one unified platform",
-      "Switch from per-seat pricing to a flat $1 per active monitor, so adding responders never inflates your bill",
+      "Replace Squadcast seats plus a separate monitoring bill with one per-user plan and a flat $1 per active monitor",
       "Get native website, API, server, container, synthetic, SSL, port, and cron monitoring built in, not just alert ingestion",
       "Ingest OpenTelemetry logs, metrics, and traces alongside incidents for real root-cause context Squadcast does not store",
       "Publish unlimited status page subscribers on every plan instead of Squadcast's 5,000-per-page cap on higher tiers",
@@ -5338,8 +5337,8 @@ const products: Dictionary<Product> = {
         competitorCost:
           "$190/mo for Squadcast seats, plus a separate monitoring subscription",
         oneuptimeSolution:
-          "OneUptime for on-call, incident management, status pages, and 50 active monitors, with unlimited team seats",
-        oneuptimeCost: "About $50/mo for 50 active monitors, seats included",
+          "OneUptime Growth for 10 users, with on-call, incident management, status pages, and 50 active monitors",
+        oneuptimeCost: "About $270/mo ($220 in seats + 50 active monitors)",
       },
       {
         scenario:
@@ -5349,9 +5348,9 @@ const products: Dictionary<Product> = {
         competitorCost:
           "$475/mo in Squadcast seats, plus a telemetry vendor billed by data volume",
         oneuptimeSolution:
-          "OneUptime for on-call, incidents, status pages, monitors, and OpenTelemetry ingestion, seats included",
+          "OneUptime Growth for 25 users, covering on-call, incidents, status pages, monitors, and OpenTelemetry ingestion",
         oneuptimeCost:
-          "$1 per active monitor plus about $0.10/GB telemetry, no per-seat fees",
+          "~$550/mo in seats, plus $1 per active monitor and about $0.10/GB telemetry",
       },
       {
         scenario:
@@ -5360,8 +5359,9 @@ const products: Dictionary<Product> = {
           "Squadcast Pro at $12/user, upgrading to Premium for status pages, plus external monitoring",
         competitorCost: "$12-19 per user every month, rising with headcount",
         oneuptimeSolution:
-          "Self-host OneUptime for free, or use the generous free cloud tier and pay only for active monitors",
-        oneuptimeCost: "$0 self-hosted, or $1 per active monitor on cloud",
+          "Self-host OneUptime for free, or use OneUptime Cloud on the Growth plan",
+        oneuptimeCost:
+          "$0 self-hosted, or $22 per user plus $1 per active monitor on cloud",
       },
     ],
     keyDifferences: [
@@ -5384,9 +5384,9 @@ const products: Dictionary<Product> = {
         icon: "open-source",
       },
       {
-        title: "Per-monitor pricing, not per-seat",
+        title: "One bill instead of several",
         description:
-          "OneUptime charges a flat $1 per active monitor so responders are free to add, while Squadcast bills $12 to $19 per user every month.",
+          "OneUptime's per-user plan plus $1 per active monitor covers monitoring and status pages too, while Squadcast bills $12 to $19 per user and still needs separate monitoring and telemetry vendors.",
         icon: "pricing",
       },
       {
@@ -5447,12 +5447,6 @@ const products: Dictionary<Product> = {
             title: "MTTR and incident analytics",
             description: "Measure response and resolution performance",
             productColumn: "tick",
-            oneuptimeColumn: "tick",
-          },
-          {
-            title: "Included without per-seat fees",
-            description: "Add responders without growing the bill",
-            productColumn: "",
             oneuptimeColumn: "tick",
           },
         ],
@@ -5674,12 +5668,6 @@ const products: Dictionary<Product> = {
             oneuptimeColumn: "tick",
           },
           {
-            title: "No per-seat fees",
-            description: "Add responders without growing the bill",
-            productColumn: "",
-            oneuptimeColumn: "tick",
-          },
-          {
             title: "Generous free tier",
             description: "Real capability without a credit card",
             productColumn: "Up to 5 users",
@@ -5710,7 +5698,7 @@ const products: Dictionary<Product> = {
       {
         question: "How does pricing compare between Squadcast and OneUptime?",
         answer:
-          "Squadcast charges per user, roughly $12 per user on Pro and $19 per user on Premium each month, so costs climb as your team grows. OneUptime charges a flat $1 per active monitor with no per-seat fees, plus about $0.10 per GB for telemetry, and self-hosting is free.",
+          "Squadcast charges per user, roughly $12 per user on Pro and $19 per user on Premium each month, so costs climb as your team grows. OneUptime's Growth plan is $22 per user per month and includes monitoring, status pages, on-call, and incidents, with a flat $1 per active monitor and about $0.10 per GB for telemetry, and self-hosting is free.",
       },
       {
         question: "Does Squadcast offer status pages?",
@@ -5764,10 +5752,10 @@ const products: Dictionary<Product> = {
     migrationBenefits: [
       "Replace FireHydrant plus a separate monitoring vendor with one unified platform that both detects and responds.",
       "Built-in website, API, server, container, synthetic, and SSL monitoring automatically opens and updates incidents.",
-      "Predictable pricing at $1 per active monitor per month instead of $25 per responder per month.",
+      "Growth at $22 per user per month with monitoring at $1 per active monitor, instead of $25 per responder per month plus a separate monitoring tool.",
       "SMS and phone-call alerts are included, not a paid add-on you buy on top of your plan.",
       "Unlimited status page subscribers with custom domain, free SSL, and full custom HTML, CSS, and JS branding.",
-      "Apache 2.0 open source and self-hostable, so you own your incident data with no per-seat lock-in.",
+      "Apache 2.0 open source and self-hostable, so you own your incident data with no vendor lock-in.",
     ],
     competitorPricingTiers: [
       {
@@ -5833,8 +5821,8 @@ const products: Dictionary<Product> = {
           "FireHydrant Pro at $25 per responder per month, plus a separate monitoring tool to detect outages, plus the SMS and voice add-on for reliable paging.",
         competitorCost: "~$250/mo + monitoring tool + SMS add-on",
         oneuptimeSolution:
-          "OneUptime unified: monitoring, on-call, incident management, and a branded status page in one platform.",
-        oneuptimeCost: "~$20-50/mo (monitors at $1 each)",
+          "OneUptime Growth for 10 users: monitoring, on-call, incident management, and a branded status page in one platform.",
+        oneuptimeCost: "~$220/mo (10 users) + $1 per active monitor",
       },
       {
         scenario:
@@ -5843,8 +5831,8 @@ const products: Dictionary<Product> = {
           "Requires FireHydrant Enterprise on a custom annual contract, and still has no monitoring or telemetry of its own.",
         competitorCost: "Custom Enterprise, roughly $9k-15k+/yr",
         oneuptimeSolution:
-          "OneUptime includes private status pages, MTTR analytics, RBAC, and audit logs on its standard predictable tiers.",
-        oneuptimeCost: "~$99/mo Growth tier",
+          "OneUptime includes private status pages, MTTR analytics, RBAC, and audit logs in the same per-user platform.",
+        oneuptimeCost: "From ~$660/mo (30 users on Growth)",
       },
       {
         scenario:
@@ -5877,9 +5865,9 @@ const products: Dictionary<Product> = {
         icon: "open-source",
       },
       {
-        title: "Predictable Flat Pricing",
+        title: "Predictable Pricing",
         description:
-          "OneUptime bills a flat $1 per active monitor with no per-seat charge, while FireHydrant charges $25 per responder per month plus add-ons.",
+          "OneUptime Growth is $22 per user per month with monitors at a flat $1 each, while FireHydrant charges $25 per responder per month plus add-ons and a separate monitoring tool.",
         icon: "pricing",
       },
       {
@@ -6165,9 +6153,9 @@ const products: Dictionary<Product> = {
           },
           {
             title: "Predictable pricing",
-            description: "Flat, per-monitor cost versus per-responder seats.",
+            description: "Published per-user plans with monitoring included.",
             productColumn: "Per responder",
-            oneuptimeColumn: "$1/monitor",
+            oneuptimeColumn: "Per user + $1/monitor",
           },
           {
             title: "REST API and webhooks",
@@ -6212,7 +6200,7 @@ const products: Dictionary<Product> = {
         question:
           "How does OneUptime pricing compare to FireHydrant's per-responder model?",
         answer:
-          "FireHydrant Pro is $25 per responder per month billed annually, so costs scale with your team size, and Enterprise features require a custom contract. OneUptime bills a flat $1 per active monitor per month with a generous free tier, unlimited free manual monitors, and no per-seat charge, making spend predictable as your team grows.",
+          "FireHydrant Pro is $25 per responder per month billed annually, so costs scale with your team size, and Enterprise features require a custom contract. OneUptime's Growth plan is $20 per user per month billed annually ($22 monthly) and includes monitoring, status pages, on-call, and incidents, with active monitors at a flat $1 per month, unlimited free manual monitors, and a free tier.",
       },
       {
         question:
@@ -6258,16 +6246,16 @@ const products: Dictionary<Product> = {
     productDescription:
       "Rootly is an AI-native, Slack-first incident management platform with a separately priced On-Call product. It excels at automating response workflows, retrospectives, and communications once an incident is declared, and connects to external tools like Datadog, Grafana, and Sentry as alert sources. It does not collect monitoring signals or store telemetry itself and depends on those third-party tools to detect problems.",
     oneUptimeDescription:
-      "OneUptime is an open-source, self-hostable reliability platform that combines monitoring, logs, metrics, traces, status pages, on-call, and incident management in one place. Because detection and response share one system, alerts from your own monitors flow straight into incidents and automatic status page updates. Active monitors are billed a flat $1 per month with no per-seat charges, and self-hosting is free.",
+      "OneUptime is an open-source, self-hostable reliability platform that combines monitoring, logs, metrics, traces, status pages, on-call, and incident management in one place. Because detection and response share one system, alerts from your own monitors flow straight into incidents and automatic status page updates. Paid plans are priced per user, active monitors are billed a flat $1 per month, and self-hosting is free.",
     description:
-      "Rootly is a capable, Slack-native incident management and on-call tool, but it only starts working after something else has already detected a problem. It has no built-in website, API, or infrastructure monitoring and no telemetry storage, so you still need Datadog, Grafana, or similar tools underneath it, each billed separately and per user. OneUptime takes a different approach: monitoring, telemetry, status pages, on-call, and incident management are one open-source platform, so detection and response are never in separate silos. You get the same incident and on-call capabilities plus the monitors that trigger them, at flat per-monitor pricing with no per-seat fees.",
+      "Rootly is a capable, Slack-native incident management and on-call tool, but it only starts working after something else has already detected a problem. It has no built-in website, API, or infrastructure monitoring and no telemetry storage, so you still need Datadog, Grafana, or similar tools underneath it, each billed separately and per user. OneUptime takes a different approach: monitoring, telemetry, status pages, on-call, and incident management are one open-source platform, so detection and response are never in separate silos. You get the same incident and on-call capabilities plus the monitors that trigger them, in one per-user plan instead of a separate per-user price for each product.",
     descriptionLine2:
       "Consolidate detection and response into one predictable, open-source platform instead of stitching Rootly to a stack of separate monitoring, telemetry, and status page tools.",
     migrationBenefits: [
       "Detect and respond in one platform, with your own monitors triggering incidents and status page updates automatically.",
       "Add native website, API, server, container, synthetic, SSL, and cron monitoring that Rootly does not provide at all.",
       "Store and query logs, metrics, and traces with OpenTelemetry-native observability instead of paying a separate telemetry vendor.",
-      "Replace per-user seat fees with a flat $1 per active monitor and unlimited free static monitors, so cost scales with infrastructure, not headcount.",
+      "Replace separate per-user Rootly products and a monitoring vendor with one per-user plan, a flat $1 per active monitor, and unlimited free static monitors.",
       "Run status pages with unlimited subscribers, custom domains, and free SSL rather than Rootly's one-status-page Essentials limit.",
       "Own your reliability stack with an Apache 2.0, self-hostable platform that avoids the incident-plus-on-call-plus-monitoring tool sprawl.",
     ],
@@ -6370,8 +6358,9 @@ const products: Dictionary<Product> = {
           "Rootly Incident Response Essentials plus On-Call Essentials at $20 + $20 per user per month.",
         competitorCost: "~$12,000 / year (25 users)",
         oneuptimeSolution:
-          "OneUptime includes incident management and on-call for all users at no per-seat cost; pay only for active monitors.",
-        oneuptimeCost: "~$600 / year for 50 monitors, $0 per user",
+          "OneUptime Growth includes incident management and on-call in one per-user price, with no separate on-call product.",
+        oneuptimeCost:
+          "~$6,600 / year (25 users billed annually, plus 50 monitors)",
       },
       {
         scenario:
@@ -6380,8 +6369,8 @@ const products: Dictionary<Product> = {
           "Rootly for incidents and on-call, plus a separate monitoring/telemetry vendor (Datadog, Grafana) as the detection layer.",
         competitorCost: "Rootly seats + separate monitoring bill",
         oneuptimeSolution:
-          "OneUptime covers monitoring, telemetry, status pages, on-call, and incidents in a single platform on the free tier and flat monitor pricing.",
-        oneuptimeCost: "Free tier + $1 / active monitor",
+          "OneUptime covers monitoring, telemetry, status pages, on-call, and incidents in a single platform on the Growth plan.",
+        oneuptimeCost: "$22 / user / month + $1 / active monitor",
       },
       {
         scenario:
@@ -6390,8 +6379,8 @@ const products: Dictionary<Product> = {
           "Rootly Incident Response plus On-Call at ~$40 per user per month, with a separate observability platform for logs, metrics, and traces.",
         competitorCost: "~$48,000 / year, before telemetry costs",
         oneuptimeSolution:
-          "OneUptime Growth tier plus flat per-monitor and per-GB telemetry pricing, with no per-user fees and self-hosting free.",
-        oneuptimeCost: "~$99 / month + usage",
+          "OneUptime Growth for 100 users plus per-monitor and per-GB telemetry pricing, with self-hosting free.",
+        oneuptimeCost: "~$24,000 / year (100 users billed annually) + usage",
       },
     ],
     keyDifferences: [
@@ -6420,9 +6409,9 @@ const products: Dictionary<Product> = {
         icon: "open-source",
       },
       {
-        title: "Flat, predictable pricing",
+        title: "One price per user, not per product",
         description:
-          "Rootly charges $20+ per user per month for each product, so cost grows with headcount. OneUptime bills a flat $1 per active monitor with unlimited free static monitors and no per-seat fees.",
+          "Rootly charges $20+ per user per month for each product. OneUptime charges one per-user price that covers incidents, on-call, status pages, and monitoring, plus a flat $1 per active monitor with unlimited free static monitors.",
         icon: "transparent",
       },
       {
@@ -6696,10 +6685,10 @@ const products: Dictionary<Product> = {
             oneuptimeColumn: "tick",
           },
           {
-            title: "Predictable flat pricing",
-            description: "Cost that does not scale with headcount.",
-            productColumn: "Per user",
-            oneuptimeColumn: "$1 / monitor",
+            title: "Pricing model",
+            description: "One per-user price, or one per product.",
+            productColumn: "Per user, per product",
+            oneuptimeColumn: "Per user, all products",
           },
           {
             title: "Free tier",
@@ -6749,12 +6738,12 @@ const products: Dictionary<Product> = {
       {
         question: "How much does Rootly cost in 2026?",
         answer:
-          "Rootly Incident Response Essentials and On-Call Essentials are each $20 per user per month, so a team using both effectively pays around $40 per user per month. Enterprise tiers and the AI SRE product are quote-based. OneUptime does not charge per user; you pay a flat $1 per active monitor with unlimited free static monitors.",
+          "Rootly Incident Response Essentials and On-Call Essentials are each $20 per user per month, so a team using both effectively pays around $40 per user per month. Enterprise tiers and the AI SRE product are quote-based. OneUptime's Growth plan is $22 per user per month ($20 billed annually) and covers incidents, on-call, status pages, and monitoring together, with active monitors at a flat $1 each and unlimited free static monitors.",
       },
       {
         question: "Is Rootly's on-call included with incident response?",
         answer:
-          "No. Rootly On-Call is a separate product with its own per-user price, and the Essentials tier caps you at 20 schedules and one live-call-routing number. OneUptime includes on-call scheduling and escalation for all users at no additional per-seat cost, with unlimited schedules.",
+          "No. Rootly On-Call is a separate product with its own per-user price, and the Essentials tier caps you at 20 schedules and one live-call-routing number. OneUptime includes on-call scheduling and escalation in every paid plan at no additional cost, with unlimited schedules.",
       },
       {
         question: "Can OneUptime fully replace Rootly?",
@@ -6764,7 +6753,7 @@ const products: Dictionary<Product> = {
       {
         question: "Does OneUptime charge per user like Rootly?",
         answer:
-          "No. OneUptime pricing is based on usage, not seats. Active monitors are billed a flat $1 per month each, manual and static monitors are free and unlimited, and telemetry ingestion is roughly $0.10 per GB. Self-hosting the open-source platform is free.",
+          "Yes, paid plans are priced per user, but one price (from $22 per user per month on Growth) covers incidents, on-call, status pages, and monitoring, where Rootly charges per user for each product. Active monitors are billed a flat $1 per month each, manual and static monitors are free and unlimited, and telemetry ingestion is roughly $0.10 per GB. Self-hosting the open-source platform is free.",
       },
       {
         question: "Does Rootly have status pages?",
@@ -6796,12 +6785,12 @@ const products: Dictionary<Product> = {
     oneUptimeDescription:
       "OneUptime is an open-source, Apache 2.0, self-hostable reliability platform that unifies monitoring, on-call, incident management, public status pages, and OpenTelemetry-based observability. It replaces several point tools with one system, so alerts arrive with full context from the same platform that detected the problem. Active monitors are billed at a flat one dollar per month, with a generous free tier and free self-hosting.",
     description:
-      "xMatters is one of the strongest names in enterprise on-call alerting and workflow automation, and it does that job well. But it is a single layer of the reliability stack: it does not run your monitors, store your logs and traces, or publish a public status page to your customers. That means teams pair xMatters with separate monitoring, observability, and status-page vendors, each with its own per-user or usage bill. OneUptime brings all of those functions into one open-source platform with predictable per-monitor pricing.",
+      "xMatters is one of the strongest names in enterprise on-call alerting and workflow automation, and it does that job well. But it is a single layer of the reliability stack: it does not run your monitors, store your logs and traces, or publish a public status page to your customers. That means teams pair xMatters with separate monitoring, observability, and status-page vendors, each with its own per-user or usage bill. OneUptime brings all of those functions into one open-source platform with published per-user and per-monitor pricing.",
     descriptionLine2:
-      "Consolidate alerting, monitoring, incidents, status pages, and telemetry into a single tool and pay a flat one dollar per active monitor instead of stacking per-user seats across multiple vendors.",
+      "Consolidate alerting, monitoring, incidents, status pages, and telemetry into a single tool and pay one per-user plan price plus a flat one dollar per active monitor, instead of stacking per-user seats across multiple vendors.",
     migrationBenefits: [
       "Replace xMatters plus separate monitoring, status-page, and observability tools with one unified platform.",
-      "Move from per-user metered pricing to a flat one dollar per active monitor, with no per-check tiers or seat caps.",
+      "Move to published per-user plans and a flat one dollar per active monitor, with no per-check tiers or seat caps.",
       "Publish public status pages with custom domains, free SSL, and unlimited subscribers at no extra cost.",
       "Add website, API, server, container, synthetic, SSL, and cron/heartbeat monitoring that xMatters does not provide.",
       "Ingest OpenTelemetry logs, metrics, and traces alongside alerting so incidents carry full context.",
@@ -6889,8 +6878,8 @@ const products: Dictionary<Product> = {
           "xMatters Base at $39 per user for alerting, plus a separate monitoring tool.",
         competitorCost: "$975+/mo (users only)",
         oneuptimeSolution:
-          "OneUptime unifies on-call, monitoring, and status pages in one platform.",
-        oneuptimeCost: "~$100/mo (100 monitors)",
+          "OneUptime Growth for 25 users unifies on-call, monitoring, and status pages in one platform.",
+        oneuptimeCost: "~$650/mo ($550 in seats + 100 monitors)",
       },
       {
         scenario:
@@ -6941,7 +6930,7 @@ const products: Dictionary<Product> = {
       {
         title: "Flat, predictable pricing",
         description:
-          "xMatters charges per user per month with metered SMS and voice allotments. OneUptime charges a flat one dollar per active monitor, with unlimited free manual monitors and no seat-based tiers.",
+          "xMatters charges per user per month with metered SMS and voice allotments. OneUptime charges one published per-user plan price plus a flat one dollar per active monitor, with unlimited free manual monitors.",
         icon: "pricing",
       },
       {
@@ -7218,9 +7207,9 @@ const products: Dictionary<Product> = {
           },
           {
             title: "Predictable flat pricing",
-            description: "Cost tied to monitors, not per-user seats.",
+            description: "Published per-user plans and per-monitor pricing.",
             productColumn: "Per-user, metered",
-            oneuptimeColumn: "$1/monitor",
+            oneuptimeColumn: "Per user + $1/monitor",
           },
           {
             title: "Free tier",
@@ -7269,7 +7258,7 @@ const products: Dictionary<Product> = {
       {
         question: "How does pricing compare?",
         answer:
-          "xMatters charges per user per month (roughly $9 Starter, $39 Base, and custom Advanced) with metered SMS and voice allotments. OneUptime charges a flat one dollar per active monitor, offers unlimited free manual monitors, and prices telemetry ingestion at about $0.10 per GB, so costs stay predictable as teams grow.",
+          "xMatters charges per user per month (roughly $9 Starter, $39 Base, and custom Advanced) with metered SMS and voice allotments. OneUptime prices paid plans per user (from $22 per month on Growth), charges a flat one dollar per active monitor, offers unlimited free manual monitors, and prices telemetry ingestion at about $0.10 per GB.",
       },
       {
         question: "Can I self-host instead of using SaaS?",
@@ -7410,7 +7399,7 @@ const products: Dictionary<Product> = {
         oneuptimeSolution:
           "Unified monitoring, telemetry, and a branded status page with unlimited subscribers",
         oneuptimeCost:
-          "Predictable Growth tier around $99/mo, status pages included",
+          "Growth at $22 per user per month, status pages included",
       },
       {
         scenario: "Team that wants full control and no vendor usage bills",
@@ -7656,7 +7645,7 @@ const products: Dictionary<Product> = {
             oneuptimeColumn: "tick",
           },
           {
-            title: "Included at no extra per-user fee",
+            title: "Included, not a paid add-on",
             description: "On-call bundled in the platform price",
             productColumn: "",
             oneuptimeColumn: "tick",
@@ -7948,7 +7937,7 @@ const products: Dictionary<Product> = {
           "Full-Stack Monitoring across 200 hosts plus Grail logs and RUM, plus a dedicated on-call tool for 30 seats and a dedicated status page product",
         competitorCost: "Six figures per year across DPS and add-ons",
         oneuptimeSolution:
-          "200 active monitors, telemetry ingestion, unlimited status page subscribers, and unlimited on-call responders on the Enterprise tier or self-hosted",
+          "200 active monitors, telemetry ingestion, unlimited status page subscribers, and on-call for all 30 responders on the Enterprise tier or self-hosted",
         oneuptimeCost: "A small fraction of DPS, or free self-hosted",
       },
     ],
@@ -8470,7 +8459,8 @@ const products: Dictionary<Product> = {
         competitorCost: "~$150,000+/yr before ingestion overages",
         oneuptimeSolution:
           "Active monitors at $1 each, on-call rotations and escalations included, OpenTelemetry logs/metrics/traces at ~$0.10/GB",
-        oneuptimeCost: "Growth tier ~$99/mo + usage, on-call included",
+        oneuptimeCost:
+          "~$550/mo on Growth (25 users) + usage, on-call included",
       },
       {
         scenario:
@@ -8968,8 +8958,8 @@ const products: Dictionary<Product> = {
           "Sentry Business for errors and telemetry, plus a separate status page tool and a separate on-call and paging tool",
         competitorCost: "$80/mo Sentry + extra status page and on-call tools",
         oneuptimeSolution:
-          "OneUptime unified: error and telemetry ingestion, 20 monitors, status page, and on-call in one platform",
-        oneuptimeCost: "~$20/mo (20 monitors at $1 each)",
+          "OneUptime Growth for 8 users: error and telemetry ingestion, 20 monitors, status page, and on-call in one platform",
+        oneuptimeCost: "~$196/mo ($176 in seats + 20 monitors)",
       },
       {
         scenario:
@@ -8989,7 +8979,7 @@ const products: Dictionary<Product> = {
         competitorCost: "$80/mo Sentry + three or four more tools",
         oneuptimeSolution:
           "OneUptime delivers the entire stack in one platform, self-hosted free or on a predictable managed tier",
-        oneuptimeCost: "One platform, ~$99/mo Growth",
+        oneuptimeCost: "One platform, ~$660/mo on Growth (30 users) + usage",
       },
     ],
     keyDifferences: [
@@ -9497,7 +9487,7 @@ const products: Dictionary<Product> = {
         competitorCost: "~$990/mo APM plus extra tools",
         oneuptimeSolution:
           "OpenTelemetry traces and metrics, uptime monitors, a branded status page, and on-call all in one plan",
-        oneuptimeCost: "~$99/mo (Growth)",
+        oneuptimeCost: "Growth at $22 per user per month + usage",
       },
       {
         scenario:
@@ -10388,7 +10378,7 @@ const products: Dictionary<Product> = {
         question:
           "Does OneUptime meet enterprise security and compliance needs?",
         answer:
-          "Yes. OneUptime supports SSO/SAML, RBAC, and audit logs, and maintains SOC 2 Type II, ISO 27001, and GDPR compliance. The core platform is open source (Apache 2.0) and self-hostable; SSO/SAML and audit logs are part of the Enterprise Edition, licensed under the OneUptime Enterprise License.",
+          "Yes. OneUptime supports SSO/SAML, RBAC, and audit logs, and maintains SOC 2 Type II, ISO 27001, and GDPR compliance. The core platform, SAML and OIDC single sign-on included, is open source (Apache 2.0) and self-hostable; audit logs are part of the Enterprise Edition, licensed under the OneUptime Enterprise License.",
       },
     ],
   },
@@ -10922,13 +10912,13 @@ const products: Dictionary<Product> = {
     productDescription:
       "Cronitor is a developer-focused monitoring service best known for its deep, schedule-aware cron job and heartbeat monitoring, alongside website and API uptime checks and hosted status pages. It offers clean analytics and strong alert-routing integrations, but pricing is per-monitor at $2 per month plus per-user charges, and it relies on tools like PagerDuty or Opsgenie for true on-call scheduling and escalation.",
     oneUptimeDescription:
-      "OneUptime is an open-source, self-hostable reliability platform that combines monitoring, status pages, on-call scheduling, incident management, and OpenTelemetry-based logs, metrics, and traces. Active monitors are a flat $1 per month each with unlimited team members, and you can run it in the managed cloud or on your own infrastructure for free.",
+      "OneUptime is an open-source, self-hostable reliability platform that combines monitoring, status pages, on-call scheduling, incident management, and OpenTelemetry-based logs, metrics, and traces. Active monitors are a flat $1 per month each, paid plans are priced per user with no cap on team members, and you can run it in the managed cloud or on your own infrastructure for free.",
     description:
-      "Cronitor is an excellent, developer-friendly tool for watching cron jobs, background tasks, and uptime, and its status pages are simple to stand up. But as your team grows you hit its edges: alerts route out to a separate on-call tool, incident management stops at the status page, and per-monitor plus per-user pricing climbs quickly. OneUptime covers the same cron and uptime monitoring while adding native on-call rotations, full incident management, and OpenTelemetry observability in a single platform. It is open-source, self-hostable, and bills active monitors at a flat $1 each with no per-user fees.",
+      "Cronitor is an excellent, developer-friendly tool for watching cron jobs, background tasks, and uptime, and its status pages are simple to stand up. But as your team grows you hit its edges: alerts route out to a separate on-call tool, incident management stops at the status page, and per-monitor plus per-user pricing climbs quickly. OneUptime covers the same cron and uptime monitoring while adding native on-call rotations, full incident management, and OpenTelemetry observability in a single platform. It is open-source, self-hostable, and bills active monitors at a flat $1 each, with on-call included in its per-user plans.",
     descriptionLine2:
       "Instead of stitching Cronitor together with PagerDuty and a separate observability stack, you get one predictable, unified platform you can even host yourself.",
     migrationBenefits: [
-      "Cut per-monitor cost in half with a flat $1 per month per active monitor versus Cronitor's $2, and pay nothing extra per user.",
+      "Cut per-monitor cost in half with a flat $1 per month per active monitor versus Cronitor's $2.",
       "Get built-in on-call rotations, multi-level escalation, and overrides so you can retire a separate PagerDuty or Opsgenie subscription.",
       "Run full incident management with severities, postmortems, action items, runbooks, and MTTR analytics instead of status-page-only incidents.",
       "Publish status pages with unlimited subscribers, free custom branding, and private pages, with no $25 to $50 per month add-ons or subscriber caps.",
@@ -10997,8 +10987,8 @@ const products: Dictionary<Product> = {
           "Business plan: 50 monitors at $2 each plus per-user charges",
         competitorCost: "~$125/month",
         oneuptimeSolution:
-          "50 active monitors at $1 each with unlimited team members included",
-        oneuptimeCost: "$50/month",
+          "50 active monitors at $1 each plus Growth for 5 users",
+        oneuptimeCost: "~$160/month ($110 in seats + $50 monitors)",
       },
       {
         scenario:
@@ -11049,7 +11039,7 @@ const products: Dictionary<Product> = {
       {
         title: "Predictable flat pricing",
         description:
-          "OneUptime charges a flat $1 per active monitor with no per-user fees; Cronitor is $2 per monitor plus $5 per user with paid page add-ons.",
+          "OneUptime charges a flat $1 per active monitor plus its per-user plan, with status pages included; Cronitor is $2 per monitor plus $5 per user with paid page add-ons.",
         icon: "pricing",
       },
       {
@@ -11344,7 +11334,7 @@ const products: Dictionary<Product> = {
             title: "Per-user charges",
             description: "Cost per additional team member.",
             productColumn: "$5/user/mo",
-            oneuptimeColumn: "Unlimited free",
+            oneuptimeColumn: "$22/user/mo (Growth)",
           },
           {
             title: "SSO and SAML",
@@ -11377,7 +11367,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is OneUptime a good alternative to Cronitor?",
         answer:
-          "Yes. OneUptime covers the cron job, heartbeat, website, and API monitoring Cronitor is known for, and adds native on-call scheduling, full incident management, and OpenTelemetry observability in one platform. It is open-source and self-hostable, with active monitors billed at a flat $1 per month and no per-user fees.",
+          "Yes. OneUptime covers the cron job, heartbeat, website, and API monitoring Cronitor is known for, and adds native on-call scheduling, full incident management, and OpenTelemetry observability in one platform. It is open-source and self-hostable, with active monitors billed at a flat $1 per month and paid plans priced per user.",
       },
       {
         question:
@@ -11388,7 +11378,7 @@ const products: Dictionary<Product> = {
       {
         question: "How does OneUptime pricing compare to Cronitor?",
         answer:
-          "Cronitor charges $2 per monitor per month plus $5 per user, with paid add-ons for branded and private status pages. OneUptime charges a flat $1 per active monitor per month with unlimited team members and status pages included, which typically cuts the bill roughly in half at the same monitor count.",
+          "Cronitor charges $2 per monitor per month plus $5 per user, with paid add-ons for branded and private status pages. OneUptime charges a flat $1 per active monitor per month, half Cronitor's rate, with status pages and on-call included; paid plans are priced per user (from $22 per month on Growth), so the total depends on team size as well as monitor count.",
       },
       {
         question: "Does Cronitor include on-call scheduling and escalation?",
@@ -12052,7 +12042,7 @@ const products: Dictionary<Product> = {
         competitorCost: "$300/mo, or $3,600/yr",
         oneuptimeSolution:
           "OneUptime with unlimited subscribers, full escalation policies, and pay-per-monitor pricing.",
-        oneuptimeCost: "About $99/mo Growth tier plus $1 per monitor",
+        oneuptimeCost: "Growth at $22 per user per month plus $1 per monitor",
       },
       {
         scenario:
@@ -12437,7 +12427,7 @@ const products: Dictionary<Product> = {
       {
         question: "How does Instatus pricing compare to OneUptime?",
         answer:
-          "Instatus uses flat plans: Free, Pro at $20 per month, and Business at $300 per month, with subscriber and monitor limits per tier. OneUptime charges a flat $1 per active monitor with unlimited free static monitors, telemetry at about $0.10 per GB, and predictable tiers such as Growth around $99 per month. Self-hosting OneUptime is free.",
+          "Instatus uses flat plans: Free, Pro at $20 per month, and Business at $300 per month, with subscriber and monitor limits per tier. OneUptime charges a flat $1 per active monitor with unlimited free static monitors, telemetry at about $0.10 per GB, and paid plans priced per user, from $22 per user per month on Growth. Self-hosting OneUptime is free.",
       },
       {
         question: "Can Instatus handle logs, metrics, and traces?",
@@ -12567,7 +12557,7 @@ const products: Dictionary<Product> = {
         competitorCost: "$36/mo + extra tools (e.g. PagerDuty ~$21/user/mo)",
         oneuptimeSolution:
           "OneUptime with monitors, on-call, escalation, and incidents all included",
-        oneuptimeCost: "About $99/mo Growth tier, all-in",
+        oneuptimeCost: "Growth at $22 per user per month plus $1 per monitor",
       },
       {
         scenario:
@@ -13583,7 +13573,7 @@ const products: Dictionary<Product> = {
         competitorCost: "$0 software + infra + eng time + extra tools",
         oneuptimeSolution:
           "Use OneUptime for monitoring, status pages, and on-call together; roughly 20 active monitors on the cloud plan.",
-        oneuptimeCost: "~$20/mo all-in (or free tier)",
+        oneuptimeCost: "~$20/mo in monitors + $22 per user on Growth",
       },
       {
         scenario:
@@ -13593,7 +13583,8 @@ const products: Dictionary<Product> = {
         competitorCost: "From $825/mo support + self-run infra",
         oneuptimeSolution:
           "Monitor 60 servers as active monitors on OneUptime, or move to the Growth tier, with alerting and dashboards included.",
-        oneuptimeCost: "~$60/mo, or Growth ~$99/mo",
+        oneuptimeCost:
+          "~$60/mo in monitors, plus $22 per user per month on Growth",
       },
       {
         scenario:
@@ -13955,7 +13946,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is Zabbix really free, and what does OneUptime cost?",
         answer:
-          "Zabbix software is free and open source, but real costs come from the infrastructure and staff time to run it, plus support subscriptions that start around $325 per month and scale per server and proxy. OneUptime is also free to self-host, or on the cloud it is a flat $1 per active monitor with a generous free tier and predictable tiers such as Growth around $99 per month.",
+          "Zabbix software is free and open source, but real costs come from the infrastructure and staff time to run it, plus support subscriptions that start around $325 per month and scale per server and proxy. OneUptime is also free to self-host, or on the cloud it is a flat $1 per active monitor with a generous free tier, and paid plans are priced per user, from $22 per user per month on Growth.",
       },
       {
         question: "Does Zabbix include status pages?",
@@ -14119,7 +14110,7 @@ const products: Dictionary<Product> = {
           "$6,490 license + ~20-25% annual maintenance + subscriptions",
         oneuptimeSolution:
           "200 active monitors with SLA-grade incident analytics, on-call, and status pages included",
-        oneuptimeCost: "$200/month all-in on Growth-tier features",
+        oneuptimeCost: "$200/month in monitors + $22 per user on Growth",
       },
       {
         scenario:

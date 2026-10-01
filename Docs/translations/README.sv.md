@@ -207,7 +207,7 @@ Lägg in kopiera-och-klistra-agenter **baserade på OpenTelemetry** för att bev
 | **Bäst för** | Självdriftare och små team | Reglerade team som behöver premiumsupport |
 | **Kostnad** | Gratis och öppen källkod | [Kontakta försäljning](mailto:sales@oneuptime.com) |
 | **Licens** | Apache 2.0 | Apache 2.0, plus [OneUptime Enterprise License](/ee/LICENSE) för katalogen `ee/` |
-| **Funktioner** | Allt i lådan ovan — övervakning, statussidor, incidenter, jour, loggar, traces, mätvärden, felspårning, arbetsflöden och AI | Allt i Community + SAML- och OIDC-single sign-on, SCIM-provisionering, granskningsloggar, team-compliance och dashboards för instansens hälsa, med prioriterad support, anpassade funktioner och dataresidens |
+| **Funktioner** | Allt i lådan ovan — övervakning, statussidor, incidenter, jour, loggar, traces, mätvärden, felspårning, arbetsflöden och AI — plus SAML- och OIDC-single sign-on | Allt i Community + SCIM-provisionering, granskningsloggar, team-compliance och dashboards för instansens hälsa, med prioriterad support, anpassade funktioner och dataresidens |
 
 Enterprise-funktionerna finns i katalogen [`ee/`](/ee) och levereras bara i Enterprise-imagen. Se [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) för hela jämförelsen.
 

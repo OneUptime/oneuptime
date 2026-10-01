@@ -34,6 +34,12 @@ const logsViewerProps: Mock<(props: Props) => void> =
 const occurrenceTableProps: Mock<(props: Props) => void> =
   jest.fn<(props: Props) => void>();
 
+// How many times the span list was mounted and unmounted.
+const tracesViewerLifecycle: { mounts: number; unmounts: number } = {
+  mounts: 0,
+  unmounts: 0,
+};
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TracesViewer",
   () => {
@@ -41,6 +47,12 @@ jest.mock(
       __esModule: true,
       default: (props: Props) => {
         tracesViewerProps(props);
+        React.useEffect(() => {
+          tracesViewerLifecycle.mounts += 1;
+          return () => {
+            tracesViewerLifecycle.unmounts += 1;
+          };
+        }, []);
         return <div data-testid="traces-viewer" />;
       },
     };
@@ -100,6 +112,8 @@ beforeEach(() => {
   tracesViewerProps.mockReset();
   logsViewerProps.mockReset();
   occurrenceTableProps.mockReset();
+  tracesViewerLifecycle.mounts = 0;
+  tracesViewerLifecycle.unmounts = 0;
 });
 
 afterEach(() => {
@@ -208,10 +222,14 @@ describe("ExceptionOccurrences", () => {
       />,
     );
 
+    expect(screen.getByTestId("traces-viewer")).toBeVisible();
+    expect(screen.queryByTestId("occurrence-table")).toBeNull();
+
     fireEvent.click(screen.getByTestId("exception-occurrences-view-details"));
 
-    expect(screen.getByTestId("occurrence-table")).toBeInTheDocument();
-    expect(screen.queryByTestId("traces-viewer")).not.toBeInTheDocument();
+    expect(screen.getByTestId("occurrence-table")).toBeVisible();
+    // The span list is hidden, not gone (see the next test for why).
+    expect(screen.getByTestId("traces-viewer")).not.toBeVisible();
     expect(lastProps(occurrenceTableProps)["exceptionFingerprint"]).toBe(
       FINGERPRINT,
     );
@@ -220,7 +238,53 @@ describe("ExceptionOccurrences", () => {
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("exception-occurrences-view-spans"));
-    expect(screen.getByTestId("traces-viewer")).toBeInTheDocument();
+    expect(screen.getByTestId("traces-viewer")).toBeVisible();
+    expect(screen.queryByTestId("occurrence-table")).toBeNull();
+  });
+
+  test("the span list stays mounted through a switch to the details and back", () => {
+    /*
+     * A zoom's way back (Reset zoom, the double-click) and the list's own
+     * search, filters and page live inside the viewer. Unmounting it on the
+     * switch came back on the zoomed window with no way back out of it.
+     */
+    render(
+      <ExceptionOccurrences
+        exception={exceptionWith({})}
+        fingerprint={FINGERPRINT}
+      />,
+    );
+    expect(tracesViewerLifecycle.mounts).toBe(1);
+
+    fireEvent.click(screen.getByTestId("exception-occurrences-view-details"));
+    fireEvent.click(screen.getByTestId("exception-occurrences-view-spans"));
+    fireEvent.click(screen.getByTestId("exception-occurrences-view-details"));
+
+    expect(tracesViewerLifecycle.mounts).toBe(1);
+    expect(tracesViewerLifecycle.unmounts).toBe(0);
+  });
+
+  test("a window picked in the span list survives the switch to the details and back", () => {
+    render(
+      <ExceptionOccurrences
+        exception={exceptionWith({})}
+        fingerprint={FINGERPRINT}
+      />,
+    );
+
+    const onTimeRangeChange: (range: unknown) => void = lastProps(
+      tracesViewerProps,
+    )["onTimeRangeChange"] as (range: unknown) => void;
+    React.act(() => {
+      onTimeRangeChange({ range: TimeRange.PAST_ONE_WEEK });
+    });
+
+    fireEvent.click(screen.getByTestId("exception-occurrences-view-details"));
+    fireEvent.click(screen.getByTestId("exception-occurrences-view-spans"));
+
+    expect(lastProps(tracesViewerProps)["timeRangeOverride"]).toEqual({
+      range: TimeRange.PAST_ONE_WEEK,
+    });
   });
 });
 

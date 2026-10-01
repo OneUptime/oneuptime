@@ -8,6 +8,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Exception from "Common/Types/Exception/Exception";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -789,6 +790,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                 "Monitors, services and infrastructure this maintenance affects.",
               headerLayout: "stacked",
             }}
+            createEditModalWidth={ModalWidth.Medium}
             isEditable={true}
             editButtonText="Edit"
             onSaveSuccess={() => {
@@ -1003,6 +1005,13 @@ const ScheduledMaintenanceView: FunctionComponent<
             ]}
             modelDetailProps={{
               showDetailsInNumberOfColumns: 1,
+              /*
+               * As on the incident and alert pages. The default style pulls
+               * its row out by -mx-3 at full width, which cut the display
+               * 24px short of the card's right edge, and washed the whole
+               * body in a rounded grey box on hover.
+               */
+              style: DetailStyle.Compact,
               modelType: ScheduledMaintenance,
               id: "model-detail-scheduled-maintenance-affected-resources",
               fields: [

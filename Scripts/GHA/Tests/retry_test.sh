@@ -7,7 +7,7 @@
 # 429 partway through the SBOM job, the step exited 1, and the publish job that
 # needs it never ran. The tests below pin both halves of the fix — that a
 # transient registry error is retried, and that a permanent one is not, since
-# retrying all 24 scans through the full backoff would bury a real failure
+# retrying all 28 scans through the full backoff would bury a real failure
 # under most of an hour of waiting.
 #
 # Run with: npm run test-gha-scripts   (or bash Scripts/GHA/Tests/retry_test.sh)

@@ -5,6 +5,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 
@@ -30,6 +31,12 @@ const TextArea: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  /*
+   * An id of its own for this field's error message, as Input has: a fixed
+   * one was shared by every text area in error on a form, so each was
+   * described by the first one's message.
+   */
+  const errorId: string = `textarea-error-${useId()}`;
   const [text, setText] = useState<string>(props.initialValue || "");
 
   let className: string = "";
@@ -75,7 +82,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
           spellCheck={!props.disableSpellCheck}
           aria-labelledby={props.ariaLabelledby}
           aria-invalid={props.error ? "true" : undefined}
-          aria-describedby={props.error ? "textarea-error-message" : undefined}
+          aria-describedby={props.error ? errorId : undefined}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
             const value: string = e.target.value;
 
@@ -108,7 +115,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
       </div>
       {props.error && (
         <p
-          id="textarea-error-message"
+          id={errorId}
           data-testid="error-message"
           className="mt-1 text-sm text-red-400"
           role="alert"

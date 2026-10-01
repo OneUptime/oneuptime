@@ -93,7 +93,10 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import MetricResourceAttributeUtil from "../../Utils/Metrics/MetricResourceAttributeUtil";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -171,10 +174,28 @@ interface AddedStatusPagesDecision {
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
+  /*
+   * The monitors the update takes off and puts on the incident. Both are
+   * empty unless the update sends the monitor list.
+   */
   monitorsRemoved: Array<Monitor>;
   monitorsAdded: Array<Monitor>;
+  /*
+   * Whether the incident was resolved before the update, which decides if
+   * the monitors taken off it are restored. Read before the write, since the
+   * same update may resolve or reopen it, and only when a monitor is taken
+   * off (undefined otherwise).
+   */
+  isResolvedBeforeUpdate?: boolean | undefined;
+  // The monitor status the incident put its monitors in before the update.
   oldChangeMonitorStatusIdTo: ObjectID | undefined;
+  // The monitor status the update writes; undefined when it writes none.
   newMonitorChangeStatusIdTo: ObjectID | undefined;
+  /*
+   * The update sets the incident's monitor status to nothing, so the
+   * incident no longer puts its monitors, old or added, in any status.
+   */
+  isChangeMonitorStatusToCleared?: boolean | undefined;
   statusPageScopeChange?: StatusPageScopeCarryForward | undefined;
 }>;
 
@@ -523,9 +544,10 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     /*
-     * get monitors for this incident.
-     * if the monitors are removed then change them to operational state.
-     * then change all of the monitors in this incident to the changeMonitorStatusToId.
+     * Records which monitors the update takes off and puts on each incident,
+     * the monitor status it writes, and whether the incident was resolved
+     * before it, for onUpdateSuccess to decide what that does to the
+     * monitors (updateMonitorsForIncidentEdit).
      */
 
     updateBy.query = applyIncidentSelfPrivacyFilter(
@@ -554,8 +576,19 @@ export class Service extends DatabaseService<Model> {
 
     const carryForward: UpdateCarryForward = {};
 
+    const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
+
+    /*
+     * Only an update that sends the monitor list changes which monitors the
+     * incident holds. One that sends just the monitor status (the API, the
+     * CLI or a workflow) takes no monitor off: reading the missing list as
+     * empty would restore every monitor, and walking it threw. A list set to
+     * null is sent: TypeORM clears a many-to-many set to null, like [].
+     */
+    const isMonitorListUpdated: boolean = data["monitors"] !== undefined;
+
     if (
-      updateBy.data.monitors ||
+      isMonitorListUpdated ||
       updateBy.data.changeMonitorStatusTo ||
       updateBy.data.changeMonitorStatusToId
     ) {
@@ -573,64 +606,69 @@ export class Service extends DatabaseService<Model> {
         props: updateBy.props,
       });
 
+      /*
+       * The monitor status the update writes, in any shape the API accepts
+       * (an id, a bare uuid string or a relation object), so the status an
+       * update writes is never mistaken for one it leaves alone.
+       */
+      const monitorStatusIdInUpdate: ObjectID | string | undefined =
+        resolveReferenceId(data["changeMonitorStatusToId"]) ||
+        resolveReferenceId(data["changeMonitorStatusTo"]);
+
+      const newMonitorChangeStatusIdTo: ObjectID | undefined =
+        monitorStatusIdInUpdate
+          ? new ObjectID(monitorStatusIdInUpdate.toString())
+          : undefined;
+
+      const isChangeMonitorStatusToCleared: boolean =
+        !newMonitorChangeStatusIdTo &&
+        (data["changeMonitorStatusToId"] === null ||
+          data["changeMonitorStatusTo"] === null);
+
+      const monitorIdsAfterUpdate: Array<string> = isMonitorListUpdated
+        ? this.getMonitorIdsInUpdate(data["monitors"])
+        : [];
+
       for (const incident of incidentsToUpdate) {
-        carryForward[incident.id!.toString()] = {
-          monitorsRemoved: [],
-          monitorsAdded: [],
-          oldChangeMonitorStatusIdTo: incident.changeMonitorStatusToId,
-          newMonitorChangeStatusIdTo:
-            (updateBy.data.changeMonitorStatusToId as ObjectID) ||
-            (updateBy.data.changeMonitorStatusTo as unknown as MonitorStatus)
-              ?._id ||
-            undefined,
-        };
+        const storedMonitors: Array<Monitor> = incident.monitors || [];
 
-        for (const monitor of incident.monitors || []) {
-          // check if this monitor is actually removed.
-          let isRemoved: boolean = true;
+        const storedMonitorIds: Array<string> = storedMonitors.map(
+          (monitor: Monitor): string => {
+            return this.getMonitorIdForComparison(monitor);
+          },
+        );
 
-          for (const updatedMonitor of updateBy.data
-            ?.monitors as unknown as Array<Monitor>) {
-            if (
-              updatedMonitor._id &&
-              updatedMonitor._id.toString() === monitor._id?.toString()
-            ) {
-              isRemoved = false;
-              break;
-            }
-          }
-
-          if (isRemoved) {
-            carryForward[incident.id!.toString()]?.monitorsRemoved?.push(
-              monitor,
-            );
-          }
-        }
-
-        if (updateBy.data.monitors && updateBy.data.monitors.length > 0) {
-          for (const monitor of updateBy.data
-            ?.monitors as unknown as Array<Monitor>) {
-            // check if this monitor is actually added.
-            let isAdded: boolean = true;
-
-            for (const existingMonitor of incident.monitors || []) {
-              if (
-                existingMonitor._id &&
-                existingMonitor._id.toString() === monitor._id?.toString()
-              ) {
-                isAdded = false;
-                break;
-              }
-            }
-
-            if (isAdded) {
-              // this monitor is added.
-              carryForward[incident.id!.toString()]?.monitorsAdded?.push(
-                monitor,
+        const monitorsRemoved: Array<Monitor> = isMonitorListUpdated
+          ? storedMonitors.filter((monitor: Monitor): boolean => {
+              return !monitorIdsAfterUpdate.includes(
+                this.getMonitorIdForComparison(monitor),
               );
-            }
-          }
-        }
+            })
+          : [];
+
+        carryForward[incident.id!.toString()] = {
+          monitorsRemoved: monitorsRemoved,
+          /*
+           * Read now, before the write: an update that resolves the incident
+           * and takes a monitor off must still restore that monitor, and one
+           * that reopens a resolved incident must not restore it twice.
+           * After the write, the state no longer tells these cases apart.
+           */
+          isResolvedBeforeUpdate:
+            monitorsRemoved.length > 0
+              ? await this.isIncidentResolved({ incidentId: incident.id! })
+              : undefined,
+          monitorsAdded: monitorIdsAfterUpdate
+            .filter((monitorId: string): boolean => {
+              return !storedMonitorIds.includes(monitorId);
+            })
+            .map((monitorId: string): Monitor => {
+              return new Monitor(new ObjectID(monitorId));
+            }),
+          oldChangeMonitorStatusIdTo: incident.changeMonitorStatusToId,
+          newMonitorChangeStatusIdTo: newMonitorChangeStatusIdTo,
+          isChangeMonitorStatusToCleared: isChangeMonitorStatusToCleared,
+        };
       }
     }
 
@@ -703,6 +741,35 @@ export class Service extends DatabaseService<Model> {
       updateBy: updateBy,
       carryForward: carryForward,
     };
+  }
+
+  /*
+   * The ids of the monitors an update's list holds, deduplicated and
+   * lowercased like getMonitorIdForComparison. The list reaches the hook as
+   * models, `{ _id }` objects, ObjectIDs or bare uuid strings (API update),
+   * and comparing only `_id` read every bare id as a monitor taken off and
+   * put back on again.
+   */
+  private getMonitorIdsInUpdate(monitors: unknown): Array<string> {
+    const monitorIds: Array<string> = [];
+
+    for (const monitorId of resolveReferenceIds(monitors)) {
+      const normalizedMonitorId: string = monitorId
+        .toString()
+        .trim()
+        .toLowerCase();
+
+      if (!monitorIds.includes(normalizedMonitorId)) {
+        monitorIds.push(normalizedMonitorId);
+      }
+    }
+
+    return monitorIds;
+  }
+
+  // A monitor's id as getMonitorIdsInUpdate writes it, for comparing the two.
+  private getMonitorIdForComparison(monitor: Monitor): string {
+    return (monitor._id?.toString() || "").trim().toLowerCase();
   }
 
   /*
@@ -2047,6 +2114,23 @@ export class Service extends DatabaseService<Model> {
         false;
     }
 
+    /*
+     * Owners handed over to be notified are added by onCreateSuccess's
+     * chain, once the incident's Slack / Microsoft Teams channels exist -
+     * seconds after the incident is written, with a workspace connected. The
+     * owners' "Incident Created" notification is sent by a job that runs
+     * every minute and takes every incident not yet marked as notified: run
+     * in between, it would find no owners, tell the project's owners
+     * instead, and mark the incident done, and the owners the create named
+     * would hear nothing of it ("owner added" is off by default). So such an
+     * incident is written as notified already, and the chain marks it not
+     * notified once it has added them (releaseCreatedNotificationHeldForOwners):
+     * the job then tells them on its next run.
+     */
+    if (this.isCreatedNotificationHeldForOwners(createBy)) {
+      createBy.data.isOwnerNotifiedOfResourceCreation = true;
+    }
+
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
@@ -2783,12 +2867,32 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * Owners handed over with the create: a template's owners, from the
+         * dashboard's Declare Incident page or from an incident form. Added
+         * here - after the incident's Slack / Microsoft Teams channels
+         * exist, which is when the owners' own hooks can invite them to
+         * those channels, and after "Incident Created" - rather than by the
+         * caller once the create returns, while this chain may still be
+         * creating the channels.
+         *
+         * Whether they are notified is the caller's to say, but only an
+         * internal (root) caller's: an incident form asks for its
+         * template's owners to be notified - they are the people a report
+         * through it is meant to reach. A user's request cannot: the
+         * dashboard's declare has always added them quietly, and misc data
+         * is whatever the request body says.
+         */
         try {
           if (
             onCreate.createBy.miscDataProps &&
             (onCreate.createBy.miscDataProps["ownerTeams"] ||
               onCreate.createBy.miscDataProps["ownerUsers"])
           ) {
+            const notifyOwners: boolean =
+              onCreate.createBy.props.isRoot === true &&
+              onCreate.createBy.miscDataProps["notifyOwners"] === true;
+
             return await this.addOwners(
               createdItem.projectId!,
               createdItem.id!,
@@ -2798,7 +2902,7 @@ export class Service extends DatabaseService<Model> {
               (onCreate.createBy.miscDataProps[
                 "ownerTeams"
               ] as Array<ObjectID>) || [],
-              false,
+              notifyOwners,
               onCreate.createBy.props,
             );
           }
@@ -2813,6 +2917,15 @@ export class Service extends DatabaseService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
+        } finally {
+          /*
+           * The owners the create handed over exist now - or could not be
+           * added, and this chain will not try again: either way the
+           * "Incident Created" notification held for them may go out.
+           */
+          if (this.isCreatedNotificationHeldForOwners(onCreate.createBy)) {
+            await this.releaseCreatedNotificationHeldForOwners(createdItem);
+          }
         }
       })
       .then(async () => {
@@ -3235,6 +3348,63 @@ export class Service extends DatabaseService<Model> {
       });
   }
 
+  /*
+   * Whether a create hands owners to its own onCreateSuccess chain to be
+   * notified, and so holds the incident's "Incident Created" notification
+   * until the chain has added them (see onBeforeCreate). Only an internal
+   * (root) caller can ask for owners to be notified - misc data is whatever
+   * a user's request body says - and today only an incident form does, for
+   * its template's owners. Every other create is written and notified as it
+   * always was. One predicate for the hold and the release alike, so the
+   * chain never releases an incident nobody held: the job may already have
+   * notified that one, and would do it again.
+   */
+  private isCreatedNotificationHeldForOwners(
+    createBy: CreateBy<Model>,
+  ): boolean {
+    const miscDataProps: JSONObject | undefined = createBy.miscDataProps;
+
+    return (
+      createBy.props.isRoot === true &&
+      miscDataProps?.["notifyOwners"] === true &&
+      Boolean(miscDataProps["ownerUsers"] || miscDataProps["ownerTeams"])
+    );
+  }
+
+  /*
+   * Marks an incident whose create held its "Incident Created" notification
+   * as not notified, so the owners' job sends it on its next run - to the
+   * owners the chain has just added. Without the update hooks, as the other
+   * notification markers on an incident are written: nothing they react to
+   * changed. It never throws, so the chain's later steps (the owner rules,
+   * on-call) still run; a failure is logged, and leaves the notification
+   * unsent.
+   */
+  private async releaseCreatedNotificationHeldForOwners(
+    incident: Model,
+  ): Promise<void> {
+    try {
+      await this.updateOneById({
+        id: incident.id!,
+        data: {
+          isOwnerNotifiedOfResourceCreation: false,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Releasing the Incident Created notification held for the owners failed in IncidentService.onCreateSuccess: ${error}`,
+        {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
   @CaptureSpan()
   private async handleIncidentWorkspaceOperationsAsync(
     createdItem: Model,
@@ -3335,9 +3505,19 @@ export class Service extends DatabaseService<Model> {
         incident.incidentNumberWithPrefix ||
         "#" + incident.incidentNumber?.toString();
 
+      /*
+       * The title is plain text - one line, typed by whoever declared the
+       * incident, which is anyone holding an incident form's link - placed
+       * into Markdown that is rendered without the viewer's safe mode and
+       * posted to Slack and Teams. Escaped as MarkdownEscape says a title
+       * must be, so "[Reset your password](...)" arrives as those
+       * characters, "![](https://tracker...)" is not fetched and "<!here>"
+       * is not a mention, while "Site 03 - payments (EU)" reads unchanged.
+       * The description stays Markdown: that is what it is written in.
+       */
       let feedInfoInMarkdown: string = `#### 🚨 Incident ${incidentNumberDisplay} Created:
         
-**${incident.title || "No title provided."}**:
+**${escapeMarkdownValue(incident.title || "No title provided.")}**:
 
 ${incident.description || "No description provided."}
 
@@ -4073,8 +4253,10 @@ ${incident.remediationNotes || "No remediation notes provided."}
         if (
           Object.prototype.hasOwnProperty.call(updatedIncidentData, "title")
         ) {
-          const title: string =
-            (updatedIncidentData.title as string) || "No title provided.";
+          // Plain text, escaped as in the "Incident Created" item.
+          const title: string = escapeMarkdownValue(
+            (updatedIncidentData.title as string) || "No title provided.",
+          );
           feedInfoInMarkdown += `\n\n**Title**: \n${title}\n`;
           shouldAddIncidentFeed = true;
         }
@@ -4352,12 +4534,6 @@ ${incidentSeverity.name}
                   },
                 });
 
-              // change these monitors back to operational state.
-              await this.markMonitorsActiveForMonitoring(
-                projectId!,
-                incidentCarryForward.monitorsRemoved,
-              );
-
               feedInfoInMarkdown += `\n\n**🗑️ Monitors Removed**:\n`;
 
               for (const monitor of monitorsRemoved) {
@@ -4417,9 +4593,11 @@ ${incidentSeverity.name}
               change: incidentCarryForward.statusPageScopeChange,
             });
 
+            // Saving the status the incident already had changes nothing.
             if (
               incidentCarryForward.oldChangeMonitorStatusIdTo &&
-              incidentCarryForward.newMonitorChangeStatusIdTo
+              incidentCarryForward.newMonitorChangeStatusIdTo &&
+              this.isMonitorStatusChangedByUpdate(incidentCarryForward)
             ) {
               const oldMonitorStatus: MonitorStatus | null =
                 await MonitorStatusService.findOneBy({
@@ -4453,45 +4631,13 @@ ${incidentSeverity.name}
               }
             }
 
-            const changeNewMonitorStatusTo: ObjectID | undefined =
-              incidentCarryForward.newMonitorChangeStatusIdTo ||
-              incidentCarryForward.oldChangeMonitorStatusIdTo;
-
-            if (incidentCarryForward.monitorsAdded?.length > 0) {
-              await this.disableActiveMonitoringIfManualIncident(incidentId);
-            }
-
-            if (changeNewMonitorStatusTo) {
-              const incident: Model | null = await this.findOneById({
-                id: incidentId,
-                select: {
-                  projectId: true,
-                  monitors: {
-                    _id: true,
-                  },
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-
-              const monitorsForThisIncident: Array<Monitor> =
-                incident?.monitors || [];
-
-              await MonitorService.changeMonitorStatus(
-                projectId!,
-                monitorsForThisIncident.map((monitor: Monitor) => {
-                  return new ObjectID(monitor._id?.toString() || "");
-                }),
-                changeNewMonitorStatusTo,
-                true, // notifyMonitorOwners
-                "Status was changed because Incident " +
-                  incidentNumberDisplay +
-                  " was updated.",
-                undefined,
-                onUpdate.updateBy.props,
-              );
-            }
+            await this.updateMonitorsForIncidentEdit({
+              projectId: projectId,
+              incidentId: incidentId,
+              incidentNumberDisplay: incidentNumberDisplay,
+              carryForward: incidentCarryForward,
+              props: onUpdate.updateBy.props,
+            });
           }
         }
 
@@ -4512,6 +4658,154 @@ ${incidentSeverity.name}
     }
 
     return onUpdate;
+  }
+
+  /*
+   * Whether an update puts the incident's monitors in a different status
+   * from the one it held: it writes a status, and not the same one again.
+   */
+  private isMonitorStatusChangedByUpdate(
+    carryForward: UpdateCarryForward[string],
+  ): boolean {
+    if (!carryForward.newMonitorChangeStatusIdTo) {
+      return false;
+    }
+
+    return (
+      carryForward.newMonitorChangeStatusIdTo.toString().toLowerCase() !==
+      (carryForward.oldChangeMonitorStatusIdTo?.toString() || "").toLowerCase()
+    );
+  }
+
+  /*
+   * What an edit of an incident's monitors, or of the status it puts them
+   * in, does to the monitors themselves. The feed item records the edit
+   * either way; this only decides which monitors change.
+   *
+   * The monitors taken off the incident are restored, unless another open
+   * incident still holds them (markMonitorsActiveForMonitoring), when the
+   * incident was open before the update. That includes an update that
+   * resolves it as well: resolving restores only the monitors it still
+   * holds (IncidentStateTimelineService), so this is the only restore the
+   * ones taken off get. A monitor taken off an incident that was resolved
+   * already was restored when it resolved, and restoring it again could
+   * overwrite a status set since (maintenance, or a manual monitor's status
+   * set by hand).
+   *
+   * A resolved incident, as it stands after the update, does nothing else
+   * to its monitors. Nothing would clear what it did: an added monitor of a
+   * manual incident would never be probed again, and the incident's status
+   * would sit on its monitors as false downtime.
+   *
+   * An open incident:
+   * - stops probing the monitors of a manual incident when one is added,
+   *   as creating it did (disableActiveMonitoringIfManualIncident);
+   * - puts the monitors added in its status, and all of its monitors only
+   *   when the edit changes that status. Every save used to put all of them
+   *   in it again, overwriting a status a probe had set since.
+   */
+  private async updateMonitorsForIncidentEdit(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    incidentNumberDisplay: string;
+    carryForward: UpdateCarryForward[string];
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const carryForward: UpdateCarryForward[string] = data.carryForward;
+
+    if (
+      carryForward.monitorsRemoved.length > 0 &&
+      !carryForward.isResolvedBeforeUpdate
+    ) {
+      // change these monitors back to operational state.
+      await this.markMonitorsActiveForMonitoring(
+        data.projectId,
+        carryForward.monitorsRemoved,
+      );
+    }
+
+    const isMonitorStatusChanged: boolean =
+      this.isMonitorStatusChangedByUpdate(carryForward);
+
+    if (carryForward.monitorsAdded.length === 0 && !isMonitorStatusChanged) {
+      return;
+    }
+
+    /*
+     * Read after the update is written, so an edit that resolves the
+     * incident as well counts as resolved: changing the state restored the
+     * monitors it holds, the added ones included.
+     */
+    if (await this.isIncidentResolved({ incidentId: data.incidentId })) {
+      return;
+    }
+
+    if (carryForward.monitorsAdded.length > 0) {
+      await this.disableActiveMonitoringIfManualIncident(data.incidentId);
+    }
+
+    // The status the incident puts its monitors in after the update.
+    const monitorStatusIdToApply: ObjectID | undefined =
+      carryForward.isChangeMonitorStatusToCleared
+        ? undefined
+        : carryForward.newMonitorChangeStatusIdTo ||
+          carryForward.oldChangeMonitorStatusIdTo;
+
+    if (
+      !monitorStatusIdToApply ||
+      (!isMonitorStatusChanged && carryForward.monitorsAdded.length === 0)
+    ) {
+      return;
+    }
+
+    const addedMonitorIds: Array<string> = carryForward.monitorsAdded.map(
+      (monitor: Monitor): string => {
+        return this.getMonitorIdForComparison(monitor);
+      },
+    );
+
+    /*
+     * The monitors the incident holds now, so a status is only ever put on
+     * a monitor the update left on it.
+     */
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        monitors: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const monitorIdsToChange: Array<ObjectID> = (incident?.monitors || [])
+      .filter((monitor: Monitor): boolean => {
+        return (
+          isMonitorStatusChanged ||
+          addedMonitorIds.includes(this.getMonitorIdForComparison(monitor))
+        );
+      })
+      .map((monitor: Monitor): ObjectID => {
+        return new ObjectID(monitor._id?.toString() || "");
+      });
+
+    if (monitorIdsToChange.length === 0) {
+      return;
+    }
+
+    await MonitorService.changeMonitorStatus(
+      data.projectId,
+      monitorIdsToChange,
+      monitorStatusIdToApply,
+      true, // notifyMonitorOwners
+      "Status was changed because Incident " +
+        data.incidentNumberDisplay +
+        " was updated.",
+      undefined,
+      data.props,
+    );
   }
 
   /*

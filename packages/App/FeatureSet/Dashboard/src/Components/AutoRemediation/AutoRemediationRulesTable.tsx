@@ -97,7 +97,7 @@ Instead of always proposing the same runbook, the AI reads the ${entityLabel} an
 
 ### Let AI Compose Commands
 
-When enabled (it wins over "Let AI Pick the Runbook"), the AI diagnoses the ${entityLabel} and composes a plan of Bash/SSH commands for opted-in Runners instead of picking a runbook. It requires the project's **Enable AI Command Execution** setting and at least one Runner with **Runs AI Remediation Commands** turned on; the Command Runners field narrows which Runners the AI may target (empty means any opted-in Runner).
+When enabled (it wins over "Let AI Pick the Runbook"), the AI diagnoses the ${entityLabel} and composes a plan of Bash/SSH commands for opted-in Runners instead of picking a runbook. It requires at least one Runner with **Runs AI Remediation Commands** turned on; the Command Runners field narrows which Runners the AI may target (empty means any opted-in Runner).
 
 - **Approval flow** — in Suggest mode the whole plan waits for one-click human approval. In Full Auto mode, a command auto-executes only when it matches a Command Allowlist pattern **and** contains no shell chaining (no \`;\`, \`&\`, \`|\`, backticks or command substitution); everything else in the plan still waits for approval.
 - **Command Allowlist** — operator-authored glob patterns like \`systemctl restart *\`. An empty allowlist means nothing auto-executes: every command requires approval.
@@ -106,7 +106,7 @@ When enabled (it wins over "Let AI Pick the Runbook"), the AI diagnoses the ${en
 
 ### Guardrails
 
-At most 3 suggestions per ${entityLabel}; a rule never re-proposes on the same ${entityLabel} (a dismissal is a "no"); AI planning is covered by the project's daily autonomous AI token budget; and auto-remediation can be disabled project-wide from Project Settings.
+At most 3 suggestions per ${entityLabel}; a rule never re-proposes on the same ${entityLabel} (a dismissal is a "no"); AI planning is covered by the project's daily autonomous AI token budget; and turning off **Enable AI** in Project Settings → AI Features stops auto-remediation for the whole project.
 `;
 };
 
@@ -346,7 +346,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           title: "Let AI Compose Commands",
           stepId: "remediation",
           description:
-            "Instead of picking a runbook, the AI diagnoses the issue and composes Bash/SSH commands for opted-in Runners. Suggest proposes the plan for one-click approval; Full Auto executes only commands matching the allowlist below. Requires the project's Enable AI Command Execution setting and at least one Runner with Runs AI Remediation Commands.",
+            "Instead of picking a runbook, the AI diagnoses the issue and composes Bash/SSH commands for opted-in Runners. Suggest proposes the plan for one-click approval; Full Auto executes only commands matching the allowlist below. Requires at least one Runner with Runs AI Remediation Commands.",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
         },

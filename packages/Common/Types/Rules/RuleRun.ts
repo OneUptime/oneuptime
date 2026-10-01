@@ -73,6 +73,8 @@ export enum RuleRunType {
   IoTFleetOwnerRule = "IoTFleetOwnerRule",
   KubernetesClusterLabelRule = "KubernetesClusterLabelRule",
   KubernetesClusterOwnerRule = "KubernetesClusterOwnerRule",
+  MessageQueueLabelRule = "MessageQueueLabelRule",
+  MessageQueueOwnerRule = "MessageQueueOwnerRule",
   MonitorLabelRule = "MonitorLabelRule",
   MonitorOwnerRule = "MonitorOwnerRule",
   NetworkDeviceLabelRule = "NetworkDeviceLabelRule",
@@ -245,6 +247,8 @@ export const RULE_RUN_TYPE_METADATA: Readonly<
     "Kubernetes cluster",
     "Kubernetes clusters",
   ),
+  [RuleRunType.MessageQueueLabelRule]: metadata(Labels, "queue", "queues"),
+  [RuleRunType.MessageQueueOwnerRule]: metadata(Owners, "queue", "queues"),
   [RuleRunType.MonitorLabelRule]: metadata(Labels, "monitor", "monitors"),
   [RuleRunType.MonitorOwnerRule]: metadata(Owners, "monitor", "monitors"),
   [RuleRunType.NetworkDeviceLabelRule]: metadata(

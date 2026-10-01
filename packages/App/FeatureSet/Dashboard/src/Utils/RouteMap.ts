@@ -109,6 +109,8 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: `${RouteParams.ModelID}/events`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_AI]: `${RouteParams.ModelID}/ai`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_COSTS]: `${RouteParams.ModelID}/costs`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
@@ -212,6 +214,8 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
   [PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
   [PageMap.DOCKER_HOST_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.DOCKER_HOST_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.DOCKER_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.DOCKER_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.DOCKER_HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
@@ -238,6 +242,8 @@ export const PodmanRoutePath: Dictionary<string> = {
   [PageMap.PODMAN_HOST_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
   [PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
   [PageMap.PODMAN_HOST_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.PODMAN_HOST_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.PODMAN_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.PODMAN_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.PODMAN_HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
@@ -269,6 +275,8 @@ export const ProxmoxRoutePath: Dictionary<string> = {
   [PageMap.PROXMOX_CLUSTER_VIEW_STORAGE_DETAIL]: `${RouteParams.ModelID}/storage/${RouteParams.SubModelID}`,
   [PageMap.PROXMOX_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.PROXMOX_CLUSTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.PROXMOX_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.PROXMOX_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.PROXMOX_CLUSTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
@@ -301,6 +309,8 @@ export const VMwareRoutePath: Dictionary<string> = {
   [PageMap.VMWARE_VCENTER_VIEW_RESOURCE_POOLS]: `${RouteParams.ModelID}/resource-pools`,
   [PageMap.VMWARE_VCENTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.VMWARE_VCENTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.VMWARE_VCENTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.VMWARE_VCENTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.VMWARE_VCENTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
@@ -359,6 +369,8 @@ export const DockerSwarmRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_VOLUMES]: `${RouteParams.ModelID}/volumes`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
@@ -387,6 +399,8 @@ export const CephRoutePath: Dictionary<string> = {
   [PageMap.CEPH_CLUSTER_VIEW_DAEMONS]: `${RouteParams.ModelID}/daemons`,
   [PageMap.CEPH_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.CEPH_CLUSTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.CEPH_CLUSTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.CEPH_CLUSTER_VIEW_CLUSTER_LOG]: `${RouteParams.ModelID}/cluster-log`,
   [PageMap.CEPH_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.CEPH_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -410,6 +424,8 @@ export const CephRoutePath: Dictionary<string> = {
 export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.HOST_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.HOST_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.HOST_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.HOST_VIEW_PROCESSES]: `${RouteParams.ModelID}/processes`,
   [PageMap.HOST_VIEW_PROCESS_VIEW]: `${RouteParams.ModelID}/processes/${RouteParams.SubModelID}`,
@@ -483,6 +499,8 @@ export const DatabaseRoutePath: Dictionary<string> = {
   [PageMap.DATABASE_SERVER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.DATABASE_SERVER_VIEW_ENDPOINTS]: `${RouteParams.ModelID}/endpoints`,
   [PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.DATABASE_SERVER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.DATABASE_SERVER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.DATABASE_SERVER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -492,6 +510,28 @@ export const DatabaseRoutePath: Dictionary<string> = {
   [PageMap.DATABASE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.DATABASE_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.DATABASE_ARCHIVED]: `archived`,
+};
+
+/*
+ * The Queues product, under /queues. The static product pages (archived,
+ * documentation, settings/...) sit next to the queue view's `:modelId`;
+ * React Router ranks static segments above a dynamic one, so a queue can
+ * never be shadowed by them nor they by a queue.
+ */
+export const MessageQueueRoutePath: Dictionary<string> = {
+  [PageMap.MESSAGE_QUEUE_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.MESSAGE_QUEUE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.MESSAGE_QUEUE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.MESSAGE_QUEUE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.MESSAGE_QUEUE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.MESSAGE_QUEUE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.MESSAGE_QUEUES_ARCHIVED]: `archived`,
+  [PageMap.MESSAGE_QUEUES_DOCUMENTATION]: `documentation`,
+  [PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
+  [PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
 };
 
 export const RumRoutePath: Dictionary<string> = {
@@ -578,6 +618,9 @@ export const WorkflowRoutePath: Dictionary<string> = {
 export const RunbookRoutePath: Dictionary<string> = {
   [PageMap.RUNBOOKS_EXECUTIONS]: "executions",
   [PageMap.RUNBOOKS_SECRETS]: "settings/secrets",
+  [PageMap.RUNBOOKS_RUNNERS]: "runners",
+  [PageMap.RUNBOOKS_RUNNER_VIEW]: `runners/${RouteParams.ModelID}`,
+  [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: "runner-credentials",
   [PageMap.RUNBOOK_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.RUNBOOK_VIEW_STEPS]: `${RouteParams.ModelID}/steps`,
   [PageMap.RUNBOOK_VIEW_EXECUTIONS]: `${RouteParams.ModelID}/executions`,
@@ -829,6 +872,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_SEVERITY]: "settings/severity",
   [PageMap.INCIDENTS_SETTINGS_TEMPLATES]: "settings/templates",
   [PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW]: `settings/templates/${RouteParams.ModelID}`,
+  [PageMap.INCIDENTS_SETTINGS_FORMS]: "settings/forms",
+  [PageMap.INCIDENTS_SETTINGS_FORMS_VIEW]: `settings/forms/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES]: "settings/note-templates",
   [PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES_VIEW]: `settings/note-templates/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES]:
@@ -998,12 +1043,9 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_NOTIFICATION_SETTINGS]: "notification-settings",
   [PageMap.SETTINGS_NOTIFICATION_LOGS]: "notification-logs",
   [PageMap.SETTINGS_MOBILE_APPS]: "mobile-apps",
+  [PageMap.SETTINGS_AI_FEATURES]: "ai-features",
   [PageMap.SETTINGS_AI_LLM_PROVIDERS]: "llm-providers",
   [PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW]: `llm-providers/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_AI_GUARDRAILS]: "ai-guardrails",
-  [PageMap.SETTINGS_RUNNERS]: "runners",
-  [PageMap.SETTINGS_RUNNER_VIEW]: `runners/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_RUNNER_CREDENTIALS]: "runner-credentials",
   [PageMap.SETTINGS_AI_CREDITS]: "ai-credits",
   [PageMap.SETTINGS_AI_LOGS]: "ai-logs",
   [PageMap.SETTINGS_MCP_SERVER]: "mcp-server",
@@ -2060,6 +2102,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENTS_SETTINGS_FORMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_FORMS_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS_VIEW]
+    }`,
+  ),
+
   [PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES]
@@ -2817,6 +2871,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT]
+    }`,
+  ),
+
   [PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS]
@@ -3358,6 +3424,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_AI_AGENT]
+    }`,
+  ),
+
   [PageMap.DOCKER_HOST_VIEW_METRICS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_HOST_VIEW_METRICS]
@@ -3502,6 +3580,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PODMAN_HOST_VIEW_RECOMMENDATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/podman/${
       PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_AI_AGENT]
     }`,
   ),
 
@@ -3679,6 +3769,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROXMOX_CLUSTER_VIEW_RECOMMENDATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/proxmox/${
       ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT]
     }`,
   ),
 
@@ -3862,6 +3964,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/vmware/${
       VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_AI_AGENT]
     }`,
   ),
 
@@ -4192,6 +4306,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT]
+    }`,
+  ),
+
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
       DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS]
@@ -4357,6 +4483,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_AI_AGENT]
+    }`,
+  ),
+
   [PageMap.CEPH_CLUSTER_VIEW_METRICS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ceph/${
       CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_METRICS]
@@ -4473,6 +4611,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.HOST_VIEW_RECOMMENDATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_AI_AGENT]
     }`,
   ),
 
@@ -4884,6 +5034,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_AI_AGENT]
+    }`,
+  ),
+
   [PageMap.DATABASE_SERVER_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/databases/${
       DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_SETTINGS]
@@ -4935,6 +5097,93 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATABASE_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/databases/${
       DatabaseRoutePath[PageMap.DATABASE_ARCHIVED]
+    }`,
+  ),
+
+  // Queues
+  [PageMap.MESSAGE_QUEUE_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/*`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES_VIEW]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES_VIEW]
     }`,
   ),
 
@@ -6316,6 +6565,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SETTINGS_AI_FEATURES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_FEATURES]
+    }`,
+  ),
+
   [PageMap.SETTINGS_AI_LLM_PROVIDERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_AI_LLM_PROVIDERS]
@@ -6328,33 +6583,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SETTINGS_RUNNERS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_RUNNERS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_RUNNER_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_RUNNER_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_RUNNER_CREDENTIALS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_RUNNER_CREDENTIALS]
-    }`,
-  ),
-
   [PageMap.SETTINGS_AI_CREDITS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_AI_CREDITS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_AI_GUARDRAILS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_AI_GUARDRAILS]
     }`,
   ),
 
@@ -6584,6 +6815,21 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUNBOOKS_SECRETS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/runbooks/${
       RunbookRoutePath[PageMap.RUNBOOKS_SECRETS]
+    }`,
+  ),
+  [PageMap.RUNBOOKS_RUNNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_RUNNERS]
+    }`,
+  ),
+  [PageMap.RUNBOOKS_RUNNER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_VIEW]
+    }`,
+  ),
+  [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_CREDENTIALS]
     }`,
   ),
   [PageMap.RUNBOOK_VIEW]: new Route(

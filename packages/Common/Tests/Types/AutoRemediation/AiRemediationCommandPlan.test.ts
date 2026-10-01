@@ -153,24 +153,30 @@ describe("AI command step id prefixes", () => {
 });
 
 describe("AI_COMMAND_STEP_TYPES", () => {
-  test("permits exactly Bash, SSH and Kubectl, in that order", () => {
+  test("permits exactly Bash, SSH, Kubectl and ResourceCommand, in that order", () => {
     /*
      * This array IS the whitelist parse checks against. Widening it (to
      * Kubernetes, JavaScript, ...) would let the AI compose step types the
      * command lane was never reviewed for. Kubectl is the one cluster lane
      * that was: a single kubectl argv, tiered by KubectlPolicy, on a Runner
-     * the cluster's AI page bound.
+     * the cluster's AI page bound. ResourceCommand is its counterpart for
+     * every other infrastructure resource: a single argv, tiered by the
+     * resource command policy, on the resource's own AI agent.
      */
     expect(AI_COMMAND_STEP_TYPES).toEqual([
       RunbookStepType.Bash,
       RunbookStepType.SSH,
       RunbookStepType.Kubectl,
+      RunbookStepType.ResourceCommand,
     ]);
   });
 
-  test("places Kubectl last, after the two host lanes, with no duplicates", () => {
-    expect(AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.Kubectl)).toBe(
+  test("places Kubectl after the two host lanes and ResourceCommand last, with no duplicates", () => {
+    expect(AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.ResourceCommand)).toBe(
       AI_COMMAND_STEP_TYPES.length - 1,
+    );
+    expect(AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.Kubectl)).toBe(
+      AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.ResourceCommand) - 1,
     );
     expect(AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.SSH)).toBeLessThan(
       AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.Kubectl),

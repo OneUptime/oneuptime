@@ -268,6 +268,9 @@ import "./Jobs/DatabaseServer/CleanupStaleResources";
 // Database workload discovery on connected Kubernetes clusters and Docker / Podman hosts.
 import "./Jobs/DatabaseServer/DiscoverContainerDatabases";
 
+// Auto-archive of stale discovered queues.
+import "./Jobs/MessageQueue/CleanupStaleResources";
+
 // Telemetry entity registry: TTL prune + span-derived service map edges.
 import "./Jobs/TelemetryEntity/PruneStaleEntities";
 import "./Jobs/TelemetryEntity/ComputeServiceDependencies";
@@ -293,6 +296,11 @@ import "./Jobs/Rum/CleanupStaleResources";
 import "./Jobs/Rum/MaterializePinnedSessions";
 // GDPR / CCPA erasure of recordings and their correlated telemetry.
 import "./Jobs/Rum/ProcessSessionErasureRequests";
+/*
+ * The storage budgets as oneuptime.rum.session.replay.budget.* metrics, so a
+ * budget about to run out can alert instead of recordings silently stopping.
+ */
+import "./Jobs/Rum/PublishSessionReplayBudgetMetrics";
 
 /*
  * NOTE: there is deliberately no in-app V2 -> V3 historical telemetry

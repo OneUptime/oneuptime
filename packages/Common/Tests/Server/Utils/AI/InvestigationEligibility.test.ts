@@ -18,6 +18,7 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import ObjectID from "../../../../Types/ObjectID";
+import logger from "../../../../Server/Utils/Logger";
 import InvestigationNotStartedReason, {
   InvestigationNotStartedCode,
 } from "../../../../Types/AI/InvestigationNotStartedReason";
@@ -33,6 +34,7 @@ const codes: Array<InvestigationNotStartedCode> = [
   "ai_disabled",
   "automatic_investigation_disabled",
   "provider_missing",
+  "insufficient_ai_balance",
   "severity_below_threshold",
   "monitor_cooldown",
   "daily_budget_exhausted",
@@ -45,8 +47,28 @@ const configurationCodes: Array<InvestigationNotStartedCode> = [
   "ai_disabled",
   "automatic_investigation_disabled",
   "provider_missing",
+  "insufficient_ai_balance",
   "severity_below_threshold",
 ];
+
+const BALANCE_BLOCKER: string =
+  "This project is out of AI credits. Add credits under Project Settings → AI Credits, or turn on auto-recharge.";
+
+/*
+ * AIService.getAiBalanceBlocker — the one AI balance predicate shared with
+ * the Kubernetes cluster's ai_balance_insufficient gap. null = no blocker.
+ */
+function mockBalanceBlocker(
+  outcome: string | null | Error = null,
+): jest.SpyInstance {
+  const spy: jest.SpyInstance = jest.spyOn(AIService, "getAiBalanceBlocker");
+  if (outcome instanceof Error) {
+    spy.mockRejectedValue(outcome);
+  } else {
+    spy.mockResolvedValue(outcome);
+  }
+  return spy;
+}
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -143,6 +165,7 @@ describe("investigation enablement reasons", () => {
     jest
       .spyOn(LlmProviderService, "getLLMProviderForProject")
       .mockResolvedValue(new LlmProvider());
+    mockBalanceBlocker(null);
     expect(
       await AIInvestigationEngine.getDisabledReason(projectId, "Incident"),
     ).toBeNull();
@@ -156,6 +179,256 @@ describe("investigation enablement reasons", () => {
       await AIInvestigationEngine.getDisabledReason(projectId, "Alert"),
     ).toBe("eligibility_check_failed");
   });
+});
+
+/*
+ * On OneUptime's own billed provider, a project with no AI credits (and
+ * auto-recharge off) has every model call refused with "Insufficient AI
+ * balance". Starting an investigation then only produces a failed run that
+ * is retried once, with nothing on the incident saying why — so the gate
+ * refuses up front with a reason people can act on. It is the same
+ * predicate as the cluster's ai_balance_insufficient gap, and it fails OPEN:
+ * the model call still enforces the balance.
+ */
+describe("the AI balance gate (insufficient_ai_balance)", () => {
+  function mockReadyProject(): jest.SpyInstance {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(enabledProject());
+    return jest
+      .spyOn(LlmProviderService, "getLLMProviderForProject")
+      .mockResolvedValue(new LlmProvider());
+  }
+
+  it.each(["Alert", "Incident"] as const)(
+    "refuses a %s investigation when the project is out of AI credits",
+    async (kind: "Alert" | "Incident") => {
+      mockReadyProject();
+      mockBalanceBlocker(BALANCE_BLOCKER);
+
+      expect(
+        await AIInvestigationEngine.getDisabledReason(projectId, kind),
+      ).toBe("insufficient_ai_balance");
+      expect(
+        await AIInvestigationEngine.isEnabledForProject(projectId, kind),
+      ).toBe(false);
+    },
+  );
+
+  it("asks the shared predicate about this project, handing it the provider it already resolved", async () => {
+    const llmProvider: LlmProvider = new LlmProvider();
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(enabledProject());
+    const providerLookup: jest.SpyInstance = jest
+      .spyOn(LlmProviderService, "getLLMProviderForProject")
+      .mockResolvedValue(llmProvider);
+    const blocker: jest.SpyInstance = mockBalanceBlocker(null);
+
+    await AIInvestigationEngine.getDisabledReason(projectId, "Incident");
+
+    expect(blocker).toHaveBeenCalledTimes(1);
+    expect(blocker).toHaveBeenCalledWith({ projectId, llmProvider });
+    // One provider lookup for the whole gate, not one per check.
+    expect(providerLookup).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets the investigation start when there is no blocker", async () => {
+    mockReadyProject();
+    mockBalanceBlocker(null);
+
+    expect(
+      await AIInvestigationEngine.getDisabledReason(projectId, "Alert"),
+    ).toBeNull();
+  });
+
+  it("an empty blocker string is not a blocker", async () => {
+    mockReadyProject();
+    mockBalanceBlocker("");
+
+    expect(
+      await AIInvestigationEngine.getDisabledReason(projectId, "Alert"),
+    ).toBeNull();
+  });
+
+  it("fails OPEN when the balance cannot be read — logged, never blocking", async () => {
+    mockReadyProject();
+    mockBalanceBlocker(new Error("billing store unavailable"));
+    const errorLog: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+
+    expect(
+      await AIInvestigationEngine.getDisabledReason(projectId, "Incident"),
+    ).toBeNull();
+    expect(errorLog).toHaveBeenCalledWith(
+      expect.stringContaining("could not check the AI balance"),
+    );
+  });
+
+  it.each([
+    ["AI is off", { enableAi: false }, "ai_disabled"],
+    [
+      "automatic investigation is off",
+      { enableAutomaticIncidentInvestigation: false },
+      "automatic_investigation_disabled",
+    ],
+  ] as const)(
+    "is not consulted when %s — the switch is the reason, not the balance",
+    async (
+      _label: string,
+      overrides: Partial<Project>,
+      expected: InvestigationNotStartedCode,
+    ) => {
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue(Object.assign(enabledProject(), overrides));
+      const blocker: jest.SpyInstance = mockBalanceBlocker(BALANCE_BLOCKER);
+
+      expect(
+        await AIInvestigationEngine.getDisabledReason(projectId, "Incident"),
+      ).toBe(expected);
+      expect(blocker).not.toHaveBeenCalled();
+    },
+  );
+
+  it("is not consulted without a provider — a missing provider is the reason", async () => {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(enabledProject());
+    jest
+      .spyOn(LlmProviderService, "getLLMProviderForProject")
+      .mockResolvedValue(null);
+    const blocker: jest.SpyInstance = mockBalanceBlocker(BALANCE_BLOCKER);
+
+    expect(
+      await AIInvestigationEngine.getDisabledReason(projectId, "Alert"),
+    ).toBe("provider_missing");
+    expect(blocker).not.toHaveBeenCalled();
+  });
+
+  describe("getProviderOrBalanceReason — the half of the gate that is not a switch", () => {
+    it("reports a missing provider first", async () => {
+      jest
+        .spyOn(LlmProviderService, "getLLMProviderForProject")
+        .mockResolvedValue(null);
+      const blocker: jest.SpyInstance = mockBalanceBlocker(BALANCE_BLOCKER);
+
+      expect(
+        await AIInvestigationEngine.getProviderOrBalanceReason(projectId),
+      ).toBe("provider_missing");
+      expect(blocker).not.toHaveBeenCalled();
+    });
+
+    it("reports an empty balance", async () => {
+      jest
+        .spyOn(LlmProviderService, "getLLMProviderForProject")
+        .mockResolvedValue(new LlmProvider());
+      mockBalanceBlocker(BALANCE_BLOCKER);
+
+      expect(
+        await AIInvestigationEngine.getProviderOrBalanceReason(projectId),
+      ).toBe("insufficient_ai_balance");
+    });
+
+    it("reports nothing when a model can be called and paid for", async () => {
+      jest
+        .spyOn(LlmProviderService, "getLLMProviderForProject")
+        .mockResolvedValue(new LlmProvider());
+      mockBalanceBlocker(null);
+
+      expect(
+        await AIInvestigationEngine.getProviderOrBalanceReason(projectId),
+      ).toBeNull();
+    });
+
+    it("never reads the project's switches — callers own those", async () => {
+      jest
+        .spyOn(LlmProviderService, "getLLMProviderForProject")
+        .mockResolvedValue(new LlmProvider());
+      mockBalanceBlocker(null);
+      const projectRead: jest.SpyInstance = jest.spyOn(
+        ProjectService,
+        "findOneById",
+      );
+
+      await AIInvestigationEngine.getProviderOrBalanceReason(projectId);
+
+      expect(projectRead).not.toHaveBeenCalled();
+    });
+  });
+
+  it.each(subjects)(
+    "explains the recorded reason in plain words for %o",
+    (subject: InvestigationSubject) => {
+      const reason: InvestigationNotStartedReason =
+        InvestigationEligibility.reason("insufficient_ai_balance", subject);
+
+      expect(reason.code).toBe("insufficient_ai_balance");
+      expect(reason.title).toBe(
+        "The project was out of AI credits at creation",
+      );
+      expect(reason.description).toBe(
+        `This project had no AI credits left when this ${
+          subject.alertId ? "alert" : "incident"
+        } was created, so its automatic investigation did not start.`,
+      );
+      expect(reason.nextStep).toContain("Project Settings → AI Credits");
+      expect(reason.nextStep).toContain("auto-recharge");
+    },
+  );
+
+  it.each(subjects)(
+    "explains the current condition, pointing at AI Credits, for %o",
+    async (subject: InvestigationSubject) => {
+      mockMissingDecision();
+      jest
+        .spyOn(AIInvestigationEngine, "getDisabledReason")
+        .mockResolvedValue("insufficient_ai_balance");
+
+      const reason: InvestigationNotStartedReason =
+        await InvestigationEligibility.getNotStartedReason(subject);
+
+      expect(reason.code).toBe("insufficient_ai_balance");
+      expect(reason.source).toBe("current_configuration");
+      expect(reason.title).toBe("The project is currently out of AI credits");
+      expect(reason.nextStep).toContain(
+        "Add AI credits under Project Settings → AI Credits",
+      );
+      expect(reason.nextStep).toContain("auto-recharge");
+      // The subject gate and the daily budget are never reached.
+      expect(
+        AIAlertInvestigationRunner.shouldInvestigateAlert,
+      ).not.toHaveBeenCalled();
+      expect(
+        AIIncidentInvestigationRunner.shouldInvestigateIncident,
+      ).not.toHaveBeenCalled();
+      expect(AIService.getAutonomousDailyBudgetStatus).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe("the AI switches page is named where AI is off", () => {
+  it.each(subjects)(
+    "recorded and current ai_disabled next steps name Project Settings → AI Features for %o",
+    async (subject: InvestigationSubject) => {
+      const recorded: InvestigationNotStartedReason =
+        InvestigationEligibility.reason("ai_disabled", subject);
+      expect(recorded.nextStep).toContain("Project Settings → AI Features");
+      expect(recorded.nextStep).not.toContain("AI Credits");
+
+      mockMissingDecision();
+      jest
+        .spyOn(AIInvestigationEngine, "getDisabledReason")
+        .mockResolvedValue("ai_disabled");
+      const current: InvestigationNotStartedReason =
+        await InvestigationEligibility.getNotStartedReason(subject);
+      expect(current.nextStep).toContain("Project Settings → AI Features");
+      expect(current.nextStep).not.toContain("AI Credits");
+    },
+  );
 });
 
 describe.each(subjects)(
@@ -296,6 +569,7 @@ describe.each(subjects)(
       "ai_disabled",
       "automatic_investigation_disabled",
       "provider_missing",
+      "insufficient_ai_balance",
     ] as const)(
       "labels %s as current conditions, never historical proof",
       async (code: InvestigationNotStartedCode) => {
@@ -502,6 +776,7 @@ describe.each(subjects)(
       "ai_disabled",
       "automatic_investigation_disabled",
       "provider_missing",
+      "insufficient_ai_balance",
     ] as const)(
       "records disabled admission %s",
       async (code: InvestigationNotStartedCode) => {
@@ -592,6 +867,41 @@ describe.each(subjects)(
         IncidentService.updateColumnsByIdWithoutHooks,
       ).not.toHaveBeenCalled();
       expect(AIInvestigationQueue.processRun).toHaveBeenCalled();
+    });
+    it("records an empty AI balance through the real engine gate and never creates a run", async () => {
+      (
+        AIInvestigationEngine.getDisabledReason as unknown as jest.SpyInstance
+      ).mockRestore();
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue(enabledProject());
+      jest
+        .spyOn(LlmProviderService, "getLLMProviderForProject")
+        .mockResolvedValue(new LlmProvider());
+      mockBalanceBlocker(BALANCE_BLOCKER);
+
+      expect(await trigger(subject)).toBe(false);
+      expectRecorded("insufficient_ai_balance");
+      expect(AIRunService.create).not.toHaveBeenCalled();
+      expect(AIInvestigationQueue.processRun).not.toHaveBeenCalled();
+    });
+    it("still starts the investigation through the real engine gate when the balance cannot be read", async () => {
+      (
+        AIInvestigationEngine.getDisabledReason as unknown as jest.SpyInstance
+      ).mockRestore();
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue(enabledProject());
+      jest
+        .spyOn(LlmProviderService, "getLLMProviderForProject")
+        .mockResolvedValue(new LlmProvider());
+      mockBalanceBlocker(new Error("billing store unavailable"));
+      jest.spyOn(logger, "error").mockImplementation((): void => {
+        return undefined;
+      });
+
+      expect(await trigger(subject)).toBe(true);
+      expect(AIRunService.create).toHaveBeenCalled();
     });
     it("records unexpected eligibility failures without stranding remediation", async () => {
       jest

@@ -336,21 +336,21 @@ describe("Register.describeKubernetesAgentRegistrationFailure", () => {
    */
   describe("a 403 that needs an operator", () => {
     const HOLDINGS: string =
-      'Runner "kubernetes-agent/prod-us" is offline, but it holds more than an in-cluster Runner\'s defaults. In Project Settings > Runners, turn off "Runs Runbooks" on it, or delete the Runner.';
+      'Runner "kubernetes-agent/prod-us" is offline, but it holds more than an in-cluster Runner\'s defaults. In Runbooks > Runners, turn off "Runs Runbooks" on it, or delete the Runner.';
     // The server's own words since round four: delete, then select.
     const OTHER_CLUSTER: string =
-      'Delete Runner "kubernetes-agent/prod-us" under Project Settings → Runners (an in-cluster Runner cannot be renamed) and, once the agent registers a fresh one on its next retry, select it on the AI page of cluster "prod-us" as its Runner.';
+      'Delete Runner "kubernetes-agent/prod-us" under Runbooks → Runners (an in-cluster Runner cannot be renamed) and, once the agent registers a fresh one on its next retry, select it on the AI page of cluster "prod-us" as its Runner.';
 
     test.each([
       [
         "runner_holds_more_than_defaults",
         HOLDINGS,
-        "take those away from that Runner, or delete it and then select the fresh Runner this pod registers on the cluster's AI page as its Runner",
+        "take those away from that Runner, or delete it — better still, upgrade the Kubernetes agent chart so the Kubernetes AI agent replaces this Runner",
       ],
       [
         "runner_belongs_to_another_cluster",
         OTHER_CLUSTER,
-        "Delete that Runner in Project Settings > Runners (an in-cluster Runner cannot be renamed) and then select the fresh Runner this pod registers on the cluster's AI page as its Runner",
+        "Delete that Runner in Runbooks > Runners (an in-cluster Runner cannot be renamed), or give this install its own clusterName on the Kubernetes agent chart — better still, upgrade the chart so the Kubernetes AI agent replaces this Runner",
       ],
     ])(
       "%s says an operator must act, never that it clears by itself",
@@ -414,6 +414,26 @@ describe("Register.describeKubernetesAgentRegistrationFailure", () => {
       expect(message).toContain("no action is needed");
       expect(message).not.toContain("an operator must act");
     });
+
+    /*
+     * The cluster's Kubernetes AI agent replaces this Runner and is online.
+     * Transient (a rolled-back chart stops the agent and this Runner may
+     * register again), but not a wait for a predecessor: the message says
+     * what replaced it and how to finish the upgrade.
+     */
+    test("superseded_by_ai_agent names the Kubernetes AI agent and the chart upgrade, not a predecessor", () => {
+      const message: string = describeFailure(
+        403,
+        "The Kubernetes AI agent of this cluster is online.",
+        "superseded_by_ai_agent",
+      );
+
+      expect(message).toContain("Kubernetes AI agent");
+      expect(message).toContain("Upgrade the Kubernetes agent chart");
+      expect(message).toContain("keeps retrying");
+      expect(message).not.toContain("still looks online");
+      expect(message).not.toContain("an operator must act");
+    });
   });
 });
 
@@ -450,7 +470,7 @@ describe("getServerReason", () => {
 
   test("keeps the whole of a refusal that needs an operator, even for a long cluster name", () => {
     const clusterName: string = `arn:aws:eks:eu-west-1:123456789012:cluster/${"c".repeat(60)}`;
-    const message: string = `Runner "kubernetes-agent/${clusterName}" for cluster "${clusterName}" is offline, but it holds more than an in-cluster Runner's defaults: "Runs Runbooks" is on, it is bound to other clusters' AI pages, and it has credentials assigned. A new Runner pod cannot prove it is the instance those were granted to, so it is not re-keyed with the ingestion key alone. In Project Settings > Runners, turn off "Runs Runbooks" and "Runs AI Code Fixes" on it, unassign its credentials and secrets and unbind it from other clusters' AI pages — or delete the Runner.`;
+    const message: string = `Runner "kubernetes-agent/${clusterName}" for cluster "${clusterName}" is offline, but it holds more than an in-cluster Runner's defaults: "Runs Runbooks" is on, it is bound to other clusters' AI pages, and it has credentials assigned. A new Runner pod cannot prove it is the instance those were granted to, so it is not re-keyed with the ingestion key alone. In Runbooks > Runners, turn off "Runs Runbooks" and "Runs AI Code Fixes" on it, unassign its credentials and secrets and unbind it from other clusters' AI pages — or delete the Runner.`;
 
     expect(message.length).toBeGreaterThan(500);
     expect(getServerReason({ message })).toBe(message);
@@ -535,6 +555,21 @@ describe("Register.getRetryDelaySeconds", () => {
         attempts: 5,
       }),
     ).toEqual([30, 60, 60, 60, 60]);
+  });
+
+  test("superseded_by_ai_agent is retried on the server's hint, never on the five-minute operator schedule", () => {
+    expect(
+      Register.getRetryDelaySeconds({
+        attempt: 2,
+        error: new RegistrationRefusedError({
+          message: "superseded",
+          statusCode: 403,
+          retryAfterSeconds: 60,
+          reason: "superseded_by_ai_agent",
+        }),
+        isKubernetesAgent: true,
+      }),
+    ).toBe(60);
   });
 
   test("the agent Runner retries a 403 every 20 seconds, or when the server says (within a minute)", () => {

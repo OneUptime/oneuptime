@@ -23,11 +23,22 @@ import {
   INLINE_COMMAND_STEP_ID_PREFIX,
   KUBECTL_ALWAYS_ASKS_SUMMARY,
   KUBECTL_SAFE_CHANGES_SUMMARY,
+  RESOURCE_ALWAYS_ASKS_SUMMARY,
+  RESOURCE_SAFE_CHANGES_SUMMARY,
 } from "../../Types/AutoRemediation/AiRemediationCommandPlan";
 import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
+import AiResourceType, {
+  AI_RESOURCE_TYPE_INFO,
+  ALL_AI_RESOURCE_TYPES,
+  isAiResourceType,
+} from "../../Types/ResourceAiAgent/AiResourceType";
+import {
+  ResourceAiAccessStatus,
+  ResourceAiRemediationMode,
+} from "../../Types/ResourceAiAgent/ResourceAiAccess";
 import RunnerJobOrigin from "../../Types/Runbook/RunnerJobOrigin";
 import { Indigo500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
@@ -41,6 +52,9 @@ import AutoRemediationSuggestionService from "./AutoRemediationSuggestionService
 import IncidentFeedService from "./IncidentFeedService";
 import KubernetesClusterAiAccessService from "./KubernetesClusterAiAccessService";
 import LlmProviderService from "./LlmProviderService";
+import ResourceAiAccessService, {
+  describeResourceNoun,
+} from "./ResourceAiAccessService";
 import ProjectService from "./ProjectService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import RunnerJobService from "./RunnerJobService";
@@ -85,6 +99,14 @@ export const DEFAULT_VERIFICATION_WINDOW_MINUTES: number = 15;
 export const MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT: number = 2;
 
 /*
+ * - Resource-level remediation (the AI page of a Docker or Podman host, a
+ *   Docker Swarm, Proxmox, VMware or Ceph cluster, a database server or a
+ *   host — no rule) gets the same two rounds per subject per resource: the
+ *   first plan, then one follow-up when verification fails.
+ */
+export const MAX_RESOURCE_REMEDIATION_ROUNDS_PER_SUBJECT: number = 2;
+
+/*
  * Upper bound on the rows the per-cluster circuit breaker and the in-flight
  * round check read for one cluster. The project-wide hourly AI-command cap
  * keeps the real numbers far below this; the bound only stops a runaway
@@ -121,6 +143,30 @@ const HELD_ROUND_LOOKBACK_HOURS: number = 24;
  */
 const UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE: string =
   "If the hourly circuit breaker for this cluster trips, or another unattended OneUptime AI round already holds the cluster (it is still changing it, or its fix is still being verified), this round becomes a proposal for your approval instead.";
+
+/*
+ * The same clause for a resource round, in the words of
+ * RESOURCE_UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY.
+ */
+function getResourceRoundProposalFeedSentence(noun: string): string {
+  return `If the hourly circuit breaker for this ${noun} trips, or another unattended OneUptime AI round already holds the ${noun} (it is still changing it, or its fix is still being verified), this round becomes a proposal for your approval instead.`;
+}
+
+/*
+ * The per-resource breaker lock: the rule engine's breaker is read under it
+ * by the command toolkit before a run's first inline change on a resource
+ * (RemediationCommandToolkit.reserveResourceSlot), in its own namespace so
+ * a resource's key can never collide with a cluster's.
+ */
+export const RESOURCE_BREAKER_LOCK_NAMESPACE: string =
+  "AutoRemediationResourceBreaker";
+
+export function getResourceBreakerLockKey(
+  resourceType: AiResourceType,
+  resourceId: string,
+): string {
+  return `${resourceType}:${resourceId.toLowerCase()}`;
+}
 
 // "a write ..." -> "A write ..." for copy that starts a sentence.
 function capitalizeFirst(text: string): string {
@@ -206,6 +252,73 @@ export function parseClusterRoundNameSnapshot(
   return { clusterName: match[1] || "" };
 }
 
+/*
+ * The resource-level siblings of the cluster breaker and hold types: the
+ * same shapes, keyed by (resourceType, resourceId) instead of a cluster.
+ */
+export type ResourceBreakerState = ClusterBreakerState;
+export type ResourceRoundReference = ClusterRoundReference;
+export type ResourceRoundHold = ClusterRoundHold;
+
+/*
+ * The name a resource-level round carries: 'AI remediation for Docker host
+ * "web-1"', 'AI remediation for host "web-2" (round 2)'. Server-written.
+ * Never "for cluster": parseClusterRoundNameSnapshot must not read a
+ * resource round as a deleted cluster's.
+ */
+export function getResourceRoundNameSnapshot(
+  resourceType: AiResourceType,
+  resourceName: string,
+  round: number,
+): string {
+  return `AI remediation for ${describeResourceNoun(resourceType)} "${resourceName}"${
+    round > 1 ? ` (round ${round})` : ""
+  }`;
+}
+
+const RESOURCE_ROUND_NAME_SUFFIX: RegExp = /" \(round (\d+)\)$/;
+
+/*
+ * The round a resource round's server-written name carries (see
+ * getResourceRoundNameSnapshot): N for '... "web-1" (round N)', 1 for
+ * anything else. The suffix always follows the closing quote, so a
+ * resource named 'web (round 2)' is never read as a round 2.
+ */
+export function parseResourceRoundNumber(
+  ruleNameSnapshot: string | undefined | null,
+): number {
+  const match: RegExpExecArray | null = RESOURCE_ROUND_NAME_SUFFIX.exec(
+    ruleNameSnapshot || "",
+  );
+
+  const round: number = match ? parseInt(match[1]!, 10) : 1;
+
+  return Number.isFinite(round) && round > 1 ? round : 1;
+}
+
+/*
+ * Does a resource on this mode run this round of a signal unattended?
+ * Bypass approval runs every round unattended; Automatic runs only the
+ * signal's FIRST round unattended and asks for its follow-ups; every other
+ * mode asks. The rule engine announces a round by it, and the execution
+ * runner and the toolkit re-check it against the LIVE mode — a follow-up
+ * announced under Bypass approval asks once the resource is on Automatic.
+ */
+export function doesResourceModeRunRoundUnattended(
+  mode: ResourceAiRemediationMode | undefined | null,
+  round: number,
+): boolean {
+  return (
+    mode === ResourceAiRemediationMode.BypassApproval ||
+    (round <= 1 && mode === ResourceAiRemediationMode.Automatic)
+  );
+}
+
+// 'Docker host "web-1"' — how a resource round names its resource in copy.
+function describeResourceForFeed(status: ResourceAiAccessStatus): string {
+  return `${describeResourceNoun(status.resourceType)} "${status.resourceName}"`;
+}
+
 // Is `row` ordered before the reference (createdAt, then id as tie-break)?
 function isRoundOrderedBefore(
   row: AutoRemediationSuggestion,
@@ -224,6 +337,19 @@ function isRoundOrderedBefore(
   }
 
   return (row.id?.toString() || "") < (reference.suggestionId.toString() || "");
+}
+
+/*
+ * Does any of these suggestions belong to a resource-level round? A signal
+ * with one is in the resource lane, so the cluster lane must not start a
+ * round on it (one AI fix lane per signal).
+ */
+function hasResourceRound(
+  suggestions: Array<AutoRemediationSuggestion>,
+): boolean {
+  return suggestions.some((suggestion: AutoRemediationSuggestion): boolean => {
+    return Boolean(suggestion.resourceId);
+  });
 }
 
 function isSameSubject(
@@ -543,6 +669,298 @@ class AutoRemediationRuleEngineServiceClass {
   }
 
   /*
+   * The per-resource hourly circuit breaker — getClusterBreakerState for an
+   * infrastructure resource reached through its resource AI agent, with the
+   * same limit (MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR) and the same three
+   * counts, the larger winning:
+   *   - resource-level rounds already settled AutoExecuted (their suggestion
+   *     carries the resource's type and id);
+   *   - distinct AI runs that executed at least one inline `ai-command-*`
+   *     job on the resource (RunnerJob.resourceType/resourceId);
+   *   - unattended resource rounds still IN FLIGHT: Planning with a
+   *     FullAuto snapshot, created before the asking round.
+   * In-flight rows are read first, for the same reason as the cluster's.
+   *
+   * Throws on a failed read: every caller fails safe to "no headroom".
+   */
+  @CaptureSpan()
+  public async getResourceBreakerState(data: {
+    resourceType: AiResourceType;
+    resourceId: string;
+    projectId?: ObjectID | undefined;
+    forRound?: ResourceRoundReference | undefined;
+  }): Promise<ResourceBreakerState> {
+    const since: Date = OneUptimeDate.getSomeHoursAgo(1);
+    const resourceId: ObjectID = new ObjectID(data.resourceId);
+    const selfId: string | undefined = data.forRound?.suggestionId.toString();
+
+    const inFlightRounds: Array<AutoRemediationSuggestion> =
+      await AutoRemediationSuggestionService.findBy({
+        query: {
+          ...(data.projectId ? { projectId: data.projectId } : {}),
+          resourceType: data.resourceType,
+          resourceId,
+          suggestionType: AutoRemediationSuggestionType.CommandPlan,
+          status: AutoRemediationSuggestionStatus.Planning,
+          executionMode: AutoRemediationExecutionMode.FullAuto,
+          createdAt: QueryHelper.greaterThan(since),
+        },
+        select: {
+          _id: true,
+          createdAt: true,
+        },
+        limit: MAX_CLUSTER_ROUND_ROWS,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const settledResourceRounds: number = (
+      await AutoRemediationSuggestionService.countBy({
+        query: {
+          ...(data.projectId ? { projectId: data.projectId } : {}),
+          resourceType: data.resourceType,
+          resourceId,
+          suggestionType: AutoRemediationSuggestionType.CommandPlan,
+          status: AutoRemediationSuggestionStatus.AutoExecuted,
+          createdAt: QueryHelper.greaterThan(since),
+        },
+        props: { isRoot: true },
+      })
+    ).toNumber();
+
+    const inlineResourceJobs: Array<RunnerJob> = await RunnerJobService.findBy({
+      query: {
+        ...(data.projectId ? { projectId: data.projectId } : {}),
+        resourceType: data.resourceType,
+        resourceId,
+        origin: RunnerJobOrigin.AiRemediation,
+        stepId: QueryHelper.startsWith(INLINE_COMMAND_STEP_ID_PREFIX),
+        createdAt: QueryHelper.greaterThan(since),
+      },
+      select: {
+        _id: true,
+        autoRemediationSuggestionId: true,
+      },
+      limit: MAX_CLUSTER_ROUND_ROWS,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const unattendedRuns: Set<string> = new Set<string>();
+
+    for (const job of inlineResourceJobs) {
+      unattendedRuns.add(
+        job.autoRemediationSuggestionId?.toString() || job.id?.toString() || "",
+      );
+    }
+
+    for (const round of inFlightRounds) {
+      if (isRoundOrderedBefore(round, data.forRound)) {
+        unattendedRuns.add(round.id?.toString() || "");
+      }
+    }
+
+    // The asking round never counts against itself.
+    if (selfId) {
+      unattendedRuns.delete(selfId);
+    }
+
+    const autoExecutedInWindow: number = Math.max(
+      settledResourceRounds,
+      unattendedRuns.size,
+    );
+
+    return {
+      autoExecutedInWindow,
+      hasHeadroom: autoExecutedInWindow < MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR,
+    };
+  }
+
+  /*
+   * Another AI run that holds this resource right now, or null — the
+   * resource sibling of findRoundHoldingCluster, with the same rules: a
+   * resource-level round holds its resource while it is still running
+   * unattended (only rounds created before the asking one, unless
+   * `anyOrder`) and while its executed fix is still being verified,
+   * whatever subject it is for; with `subject`, any round of that same
+   * signal still composing holds it too. A run that already changed the
+   * resource (an inline or approved job there, found through
+   * RunnerJob.resourceType/resourceId) holds it while it is still running
+   * and while its fix is being verified, whatever its order or mode.
+   *
+   * Throws on a failed read: callers fail safe to "held".
+   */
+  @CaptureSpan()
+  public async findRoundHoldingResource(data: {
+    projectId: ObjectID;
+    resourceType: AiResourceType;
+    resourceId: string;
+    forRound?: ResourceRoundReference | undefined;
+    anyOrder?: boolean | undefined;
+    subject?: SubjectLinkage | undefined;
+  }): Promise<ResourceRoundHold | null> {
+    const resourceId: ObjectID = new ObjectID(data.resourceId);
+
+    const rows: Array<AutoRemediationSuggestion> =
+      await AutoRemediationSuggestionService.findBy({
+        query: {
+          projectId: data.projectId,
+          resourceType: data.resourceType,
+          resourceId,
+          suggestionType: AutoRemediationSuggestionType.CommandPlan,
+          status: QueryHelper.any([
+            AutoRemediationSuggestionStatus.Planning,
+            AutoRemediationSuggestionStatus.AutoExecuted,
+            AutoRemediationSuggestionStatus.Approved,
+          ]),
+          createdAt: QueryHelper.greaterThan(
+            OneUptimeDate.getSomeHoursAgo(HELD_ROUND_LOOKBACK_HOURS),
+          ),
+        },
+        select: {
+          _id: true,
+          status: true,
+          executionMode: true,
+          verificationStatus: true,
+          verificationDeadlineAt: true,
+          incidentId: true,
+          alertId: true,
+          ruleNameSnapshot: true,
+          createdAt: true,
+        },
+        limit: MAX_CLUSTER_ROUND_ROWS,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const selfId: string | undefined = data.forRound?.suggestionId.toString();
+
+    for (const row of rows) {
+      const rowId: string = row.id?.toString() || "";
+
+      if (!rowId || rowId === selfId) {
+        continue;
+      }
+
+      const hold: ResourceRoundHold | null = this.getHold({
+        row,
+        rowId,
+        hasChangedCluster: false,
+        anyOrder: data.anyOrder === true,
+        forRound: data.forRound,
+        subject: data.subject,
+      });
+
+      if (hold) {
+        return hold;
+      }
+    }
+
+    // Runs that changed this resource, found through their jobs on it.
+    const seen: Set<string> = new Set<string>(
+      rows.map((row: AutoRemediationSuggestion): string => {
+        return row.id?.toString() || "";
+      }),
+    );
+
+    if (selfId) {
+      seen.add(selfId);
+    }
+
+    const resourceJobs: Array<RunnerJob> = await RunnerJobService.findBy({
+      query: {
+        projectId: data.projectId,
+        resourceType: data.resourceType,
+        resourceId,
+        origin: RunnerJobOrigin.AiRemediation,
+        createdAt: QueryHelper.greaterThan(
+          OneUptimeDate.getSomeHoursAgo(HELD_ROUND_LOOKBACK_HOURS),
+        ),
+      },
+      select: {
+        _id: true,
+        autoRemediationSuggestionId: true,
+        stepId: true,
+      },
+      limit: MAX_CLUSTER_ROUND_ROWS,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const changedBy: Set<string> = new Set<string>();
+
+    for (const job of resourceJobs) {
+      const suggestionId: string =
+        job.autoRemediationSuggestionId?.toString() || "";
+      const stepId: string = job.stepId || "";
+
+      // A rollback job belongs to a fix whose verification already failed.
+      const isForwardChange: boolean =
+        stepId.startsWith(INLINE_COMMAND_STEP_ID_PREFIX) ||
+        stepId.startsWith(APPROVED_COMMAND_STEP_ID_PREFIX);
+
+      if (suggestionId && isForwardChange && !seen.has(suggestionId)) {
+        changedBy.add(suggestionId);
+      }
+    }
+
+    if (changedBy.size === 0) {
+      return null;
+    }
+
+    const runs: Array<AutoRemediationSuggestion> =
+      await AutoRemediationSuggestionService.findBy({
+        query: {
+          projectId: data.projectId,
+          _id: QueryHelper.any(Array.from(changedBy)),
+          suggestionType: AutoRemediationSuggestionType.CommandPlan,
+          status: QueryHelper.any([
+            AutoRemediationSuggestionStatus.Planning,
+            AutoRemediationSuggestionStatus.AutoExecuted,
+            AutoRemediationSuggestionStatus.Approved,
+          ]),
+        },
+        select: {
+          _id: true,
+          status: true,
+          executionMode: true,
+          verificationStatus: true,
+          verificationDeadlineAt: true,
+          incidentId: true,
+          alertId: true,
+          ruleNameSnapshot: true,
+          createdAt: true,
+        },
+        limit: MAX_CLUSTER_ROUND_ROWS,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    for (const run of runs) {
+      const runId: string = run.id?.toString() || "";
+
+      if (!changedBy.has(runId)) {
+        continue;
+      }
+
+      const hold: ResourceRoundHold | null = this.getHold({
+        row: run,
+        rowId: runId,
+        hasChangedCluster: true,
+        anyOrder: data.anyOrder === true,
+        forRound: data.forRound,
+        subject: data.subject,
+      });
+
+      if (hold) {
+        return hold;
+      }
+    }
+
+    return null;
+  }
+
+  /*
    * Whether one other run holds the cluster — see findRoundHoldingCluster.
    * `hasChangedCluster`: the run already has a kubectl job on the cluster,
    * so while it is still running it holds whatever its order or mode.
@@ -742,20 +1160,20 @@ class AutoRemediationRuleEngineServiceClass {
     alert?: Alert | undefined;
   }): Promise<void> {
     /*
-     * Project-level kill switch. === false so a missing column (older rows,
-     * self-hosted defaults) counts as enabled — same semantics as enableAi.
+     * Project-level kill switch: Enable AI, the project's only AI switch,
+     * stops every lane below — cluster and resource rounds, AI rules and
+     * deterministic runbook rules alike. === false because the column is
+     * NOT NULL DEFAULT true: undefined means "not selected", never "off".
      */
     const project: Project | null = await ProjectService.findOneById({
       id: data.projectId,
       select: {
         enableAi: true,
-        enableAutoRemediation: true,
-        enableAiCommandExecution: true,
       },
       props: { isRoot: true },
     });
 
-    if (!project || project.enableAutoRemediation === false) {
+    if (!project || project.enableAi === false) {
       return;
     }
 
@@ -779,6 +1197,8 @@ class AutoRemediationRuleEngineServiceClass {
           _id: true,
           autoRemediationRuleId: true,
           kubernetesClusterId: true,
+          resourceType: true,
+          resourceId: true,
         },
         limit: MAX_SUGGESTIONS_PER_SUBJECT * 10,
         skip: 0,
@@ -802,13 +1222,36 @@ class AutoRemediationRuleEngineServiceClass {
     /*
      * Cluster-level remediation first: an operator who set a mode on the
      * cluster's AI page expressed a more specific intent than any project
-     * rule, and it needs no rule to fire.
+     * rule, and it needs no rule to fire. It starts nothing on a signal an
+     * earlier pass already gave a resource round (one lane per signal).
      */
-    remainingBudget -= await this.applyClusterLevelRemediation({
+    const clusterRoundsStarted: number =
+      await this.applyClusterLevelRemediation({
+        projectId: data.projectId,
+        linkage,
+        existingSuggestions,
+        budget: remainingBudget,
+      });
+
+    remainingBudget -= clusterRoundsStarted;
+
+    if (remainingBudget <= 0) {
+      return;
+    }
+
+    /*
+     * Resource-level remediation next, and only when the signal has no
+     * cluster round: a resource's AI page expresses the same specific
+     * intent a cluster's does, but one signal gets one AI fix lane — two
+     * agents changing a cluster and a host for the same signal would each
+     * verify and roll back on top of the other's change.
+     */
+    remainingBudget -= await this.applyResourceLevelRemediation({
       projectId: data.projectId,
       linkage,
       existingSuggestions,
       budget: remainingBudget,
+      clusterRoundStarted: clusterRoundsStarted > 0,
     });
 
     if (remainingBudget <= 0) {
@@ -883,7 +1326,10 @@ class AutoRemediationRuleEngineServiceClass {
         }),
     );
 
-    // Lazily evaluated once: AI rules need AI enabled and a provider.
+    /*
+     * Lazily evaluated once: AI rules need a provider. AI itself is on —
+     * the kill switch above already returned otherwise.
+     */
     let aiAvailable: boolean | null = null;
 
     for (const rule of matchedRules) {
@@ -902,7 +1348,6 @@ class AutoRemediationRuleEngineServiceClass {
       if (rule.aiComposesCommands) {
         if (aiAvailable === null) {
           aiAvailable =
-            project.enableAi !== false &&
             (await LlmProviderService.getLLMProviderForProject(
               data.projectId,
             )) !== null;
@@ -910,20 +1355,7 @@ class AutoRemediationRuleEngineServiceClass {
 
         if (!aiAvailable) {
           logger.debug(
-            `AutoRemediationRuleEngine: skipping AI command rule ${rule.id?.toString()} — AI disabled or no LLM provider configured.`,
-            { projectId: data.projectId.toString() } as LogAttributes,
-          );
-          continue;
-        }
-
-        /*
-         * Opt-in semantics (=== true): the project must have explicitly
-         * enabled AI command execution, on top of the AI/auto-remediation
-         * kill switches.
-         */
-        if (project.enableAiCommandExecution !== true) {
-          logger.debug(
-            `AutoRemediationRuleEngine: skipping AI command rule ${rule.id?.toString()} — the project has not enabled AI command execution.`,
+            `AutoRemediationRuleEngine: skipping AI command rule ${rule.id?.toString()} — no LLM provider configured.`,
             { projectId: data.projectId.toString() } as LogAttributes,
           );
           continue;
@@ -941,7 +1373,6 @@ class AutoRemediationRuleEngineServiceClass {
       if (rule.aiSelectsRunbook) {
         if (aiAvailable === null) {
           aiAvailable =
-            project.enableAi !== false &&
             (await LlmProviderService.getLLMProviderForProject(
               data.projectId,
             )) !== null;
@@ -949,7 +1380,7 @@ class AutoRemediationRuleEngineServiceClass {
 
         if (!aiAvailable) {
           logger.debug(
-            `AutoRemediationRuleEngine: skipping AI rule ${rule.id?.toString()} — AI disabled or no LLM provider configured.`,
+            `AutoRemediationRuleEngine: skipping AI rule ${rule.id?.toString()} — no LLM provider configured.`,
             { projectId: data.projectId.toString() } as LogAttributes,
           );
           continue;
@@ -1133,6 +1564,12 @@ class AutoRemediationRuleEngineServiceClass {
    * cluster or being verified on it asks instead (see
    * startClusterCommandRun and findRoundHoldingCluster). Returns how much
    * of the per-subject budget it used.
+   *
+   * One AI fix lane per signal holds both ways: a signal that already has
+   * a resource round (started by an earlier pass, while no linked cluster
+   * was ready) gets no cluster round now — the two would each verify and
+   * roll back on top of the other's change. A signal with no resource
+   * round is unaffected.
    */
   private async applyClusterLevelRemediation(data: {
     projectId: ObjectID;
@@ -1141,6 +1578,10 @@ class AutoRemediationRuleEngineServiceClass {
     budget: number;
   }): Promise<number> {
     let consumed: number = 0;
+
+    if (hasResourceRound(data.existingSuggestions)) {
+      return 0;
+    }
 
     let statuses: Array<KubernetesClusterAiAccessStatus> = [];
 
@@ -1220,11 +1661,11 @@ class AutoRemediationRuleEngineServiceClass {
     try {
       const project: Project | null = await ProjectService.findOneById({
         id: data.projectId,
-        select: { enableAutoRemediation: true },
+        select: { enableAi: true },
         props: { isRoot: true },
       });
 
-      if (!project || project.enableAutoRemediation === false) {
+      if (!project || project.enableAi === false) {
         return false;
       }
 
@@ -1252,6 +1693,34 @@ class AutoRemediationRuleEngineServiceClass {
       if (priorRounds >= MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT) {
         logger.debug(
           `AutoRemediationRuleEngine: cluster ${data.kubernetesClusterId.toString()} already used ${priorRounds} remediation round(s) on this subject; not asking again.`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        return false;
+      }
+
+      /*
+       * One AI fix lane per signal: a signal whose resource lane holds it
+       * (see applyClusterLevelRemediation) never gets another cluster
+       * round from here either. A signal with no resource round is
+       * unaffected.
+       */
+      const resourceRounds: Array<AutoRemediationSuggestion> =
+        await AutoRemediationSuggestionService.findBy({
+          query: {
+            ...(linkage.incidentId
+              ? { incidentId: linkage.incidentId }
+              : { alertId: linkage.alertId! }),
+            resourceId: QueryHelper.notNull(),
+          },
+          props: { isRoot: true },
+          select: { _id: true, resourceId: true },
+          limit: 1,
+          skip: 0,
+        });
+
+      if (hasResourceRound(resourceRounds)) {
+        logger.debug(
+          `AutoRemediationRuleEngine: this subject already has a resource AI round; not starting another round on cluster ${data.kubernetesClusterId.toString()}.`,
           { projectId: data.projectId.toString() } as LogAttributes,
         );
         return false;
@@ -1449,6 +1918,353 @@ class AutoRemediationRuleEngineServiceClass {
         data.round > 1
           ? `⚡ **OneUptime AI is composing another kubectl fix for cluster "${cluster.clusterName}"** (round ${data.round}) — the previous fix did not recover the service. This round asks first: nothing runs until you approve the new plan, which will appear here shortly.`
           : `⚡ **OneUptime AI is composing a kubectl fix for cluster "${cluster.clusterName}".** Nothing runs until you approve the plan — it will appear here shortly.`;
+    }
+
+    await this.postFeedItem({
+      projectId: data.projectId,
+      linkage: data.linkage,
+      markdown,
+      pingWorkspace: false,
+    });
+
+    return true;
+  }
+
+  /*
+   * Resource-level remediation: the signal is linked to infrastructure
+   * resources (Docker and Podman hosts, Docker Swarm, Proxmox, VMware and
+   * Ceph clusters, database servers, hosts) and a resource's AI page lets AI
+   * fix it. The first eligible resource — in ALL_AI_RESOURCE_TYPES order,
+   * with fixes on (mode not Disabled) and remediation ready — gets ONE AI
+   * command run with that resource as its only target, exactly as a
+   * cluster's round does: Automatic runs its first round FullAuto (safe
+   * changes, and allowlisted riskier ones, without a human; a riskier fix is
+   * proposed), BypassApproval runs every round FullAuto (what the policy
+   * says always needs a human still asks), RequireApproval runs Suggest.
+   *
+   * One resource lane per signal, and only when the signal has no cluster
+   * round (started now or earlier): a cluster round is the more established
+   * lane, and two AI rounds fixing different parts of one signal would each
+   * verify and roll back on top of the other. Returns how much of the
+   * per-subject budget it used (0 or 1). Never throws.
+   */
+  private async applyResourceLevelRemediation(data: {
+    projectId: ObjectID;
+    linkage: SubjectLinkage;
+    existingSuggestions: Array<AutoRemediationSuggestion>;
+    budget: number;
+    clusterRoundStarted: boolean;
+  }): Promise<number> {
+    if (data.budget <= 0 || data.clusterRoundStarted) {
+      return 0;
+    }
+
+    const hasOtherAiRound: boolean = data.existingSuggestions.some(
+      (suggestion: AutoRemediationSuggestion): boolean => {
+        return Boolean(suggestion.kubernetesClusterId || suggestion.resourceId);
+      },
+    );
+
+    if (hasOtherAiRound) {
+      return 0;
+    }
+
+    let statuses: Array<ResourceAiAccessStatus> = [];
+
+    try {
+      statuses = await ResourceAiAccessService.getStatusesForSubject({
+        projectId: data.projectId,
+        incidentId: data.linkage.incidentId,
+        alertId: data.linkage.alertId,
+      });
+    } catch (error) {
+      logger.error(
+        `AutoRemediationRuleEngine: could not resolve infrastructure access for the subject; skipping resource-level remediation: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      return 0;
+    }
+
+    const eligible: ResourceAiAccessStatus | undefined = statuses
+      .filter((status: ResourceAiAccessStatus): boolean => {
+        return (
+          isAiResourceType(status.resourceType) &&
+          status.aiRemediationMode !== ResourceAiRemediationMode.Disabled &&
+          status.isRemediationReady
+        );
+      })
+      .sort((a: ResourceAiAccessStatus, b: ResourceAiAccessStatus): number => {
+        return (
+          ALL_AI_RESOURCE_TYPES.indexOf(a.resourceType) -
+          ALL_AI_RESOURCE_TYPES.indexOf(b.resourceType)
+        );
+      })[0];
+
+    if (!eligible) {
+      return 0;
+    }
+
+    try {
+      const started: boolean = await this.startResourceCommandRun({
+        projectId: data.projectId,
+        resource: eligible,
+        linkage: data.linkage,
+        round: 1,
+      });
+
+      return started ? 1 : 0;
+    } catch (error) {
+      logger.error(
+        `AutoRemediationRuleEngine: could not start resource-level remediation for ${eligible.resourceType} ${eligible.resourceId}: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      return 0;
+    }
+  }
+
+  /*
+   * A follow-up round after a resource plan ran and verification failed —
+   * startFollowUpClusterRemediation for a resource: Suggest for
+   * RequireApproval and Automatic resources, unattended again for
+   * BypassApproval ones, capped by MAX_RESOURCE_REMEDIATION_ROUNDS_PER_SUBJECT,
+   * and asking first whatever the mode when `forceSuggest` is set (the
+   * failed round's rollback did not complete). Called by the verifier;
+   * never throws.
+   */
+  @CaptureSpan()
+  public async startFollowUpResourceRemediation(data: {
+    projectId: ObjectID;
+    resourceType: AiResourceType;
+    resourceId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+    forceSuggest?: boolean | undefined;
+    // Completes "this round asks first because ..." on the feed.
+    forceSuggestReason?: string | undefined;
+  }): Promise<boolean> {
+    try {
+      if (!isAiResourceType(data.resourceType)) {
+        return false;
+      }
+
+      const project: Project | null = await ProjectService.findOneById({
+        id: data.projectId,
+        select: { enableAi: true },
+        props: { isRoot: true },
+      });
+
+      if (!project || project.enableAi === false) {
+        return false;
+      }
+
+      const linkage: SubjectLinkage = {
+        incidentId: data.incidentId,
+        alertId: data.alertId,
+      };
+
+      if (!linkage.incidentId && !linkage.alertId) {
+        return false;
+      }
+
+      const priorRounds: number = (
+        await AutoRemediationSuggestionService.countBy({
+          query: {
+            ...(linkage.incidentId
+              ? { incidentId: linkage.incidentId }
+              : { alertId: linkage.alertId! }),
+            resourceType: data.resourceType,
+            resourceId: data.resourceId,
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (priorRounds >= MAX_RESOURCE_REMEDIATION_ROUNDS_PER_SUBJECT) {
+        logger.debug(
+          `AutoRemediationRuleEngine: ${data.resourceType} ${data.resourceId.toString()} already used ${priorRounds} remediation round(s) on this subject; not asking again.`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        return false;
+      }
+
+      const status: ResourceAiAccessStatus | null =
+        await ResourceAiAccessService.getStatusForResource({
+          projectId: data.projectId,
+          resourceType: data.resourceType,
+          resourceId: data.resourceId,
+        });
+
+      if (
+        !status ||
+        !status.isRemediationReady ||
+        status.aiRemediationMode === ResourceAiRemediationMode.Disabled
+      ) {
+        return false;
+      }
+
+      return await this.startResourceCommandRun({
+        projectId: data.projectId,
+        resource: status,
+        linkage,
+        round: priorRounds + 1,
+        askFirstReason:
+          data.forceSuggest === true
+            ? data.forceSuggestReason ||
+              "the previous fix's rollback did not complete, so its change may still be applied"
+            : undefined,
+      });
+    } catch (error) {
+      logger.error(
+        `AutoRemediationRuleEngine: follow-up resource remediation failed: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      return false;
+    }
+  }
+
+  /*
+   * startClusterCommandRun for a resource: the suggestion carries the
+   * resource's type and id, its snapshot mode follows the same rules
+   * (unattended for BypassApproval, and for Automatic on round 1 only;
+   * asking first when another round holds the resource or that cannot be
+   * checked), and the feed says exactly what the round does.
+   */
+  private async startResourceCommandRun(data: {
+    projectId: ObjectID;
+    resource: ResourceAiAccessStatus;
+    linkage: SubjectLinkage;
+    round: number;
+    // Set when a round that would run unattended must ask first anyway.
+    askFirstReason?: string | undefined;
+  }): Promise<boolean> {
+    const { resource } = data;
+    const noun: string = describeResourceNoun(resource.resourceType);
+    const label: string = describeResourceForFeed(resource);
+    const agentName: string =
+      AI_RESOURCE_TYPE_INFO[resource.resourceType].agentDisplayName;
+
+    const isBypass: boolean =
+      resource.aiRemediationMode === ResourceAiRemediationMode.BypassApproval;
+    const wantsUnattended: boolean = doesResourceModeRunRoundUnattended(
+      resource.aiRemediationMode,
+      data.round,
+    );
+
+    let askFirstReason: string | null = data.askFirstReason || null;
+
+    // One unattended round per resource at a time (see startClusterCommandRun).
+    if (wantsUnattended && !askFirstReason) {
+      try {
+        const hold: ResourceRoundHold | null =
+          await this.findRoundHoldingResource({
+            projectId: data.projectId,
+            resourceType: resource.resourceType,
+            resourceId: resource.resourceId,
+            anyOrder: true,
+          });
+
+        if (hold) {
+          askFirstReason = `another OneUptime AI round on this ${noun} ${hold.description}`;
+        }
+      } catch (error) {
+        logger.error(
+          `AutoRemediationRuleEngine: could not check ${resource.resourceType} ${resource.resourceId} for another AI round in flight; this round asks first: ${error}`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        askFirstReason = `OneUptime AI could not confirm that no other AI round is changing this ${noun}`;
+      }
+    }
+
+    const isAutomatic: boolean = wantsUnattended && !askFirstReason;
+
+    const suggestion: AutoRemediationSuggestion =
+      new AutoRemediationSuggestion();
+    suggestion.projectId = data.projectId;
+    suggestion.resourceType = resource.resourceType;
+    suggestion.resourceId = new ObjectID(resource.resourceId);
+    suggestion.ruleNameSnapshot = getResourceRoundNameSnapshot(
+      resource.resourceType,
+      resource.resourceName,
+      data.round,
+    );
+    suggestion.status = AutoRemediationSuggestionStatus.Planning;
+    suggestion.suggestionType = AutoRemediationSuggestionType.CommandPlan;
+    suggestion.executionMode = isAutomatic
+      ? AutoRemediationExecutionMode.FullAuto
+      : AutoRemediationExecutionMode.Suggest;
+    suggestion.verificationWindowMinutes = DEFAULT_VERIFICATION_WINDOW_MINUTES;
+    // Closed loop only when nobody approves: the human resolves otherwise.
+    suggestion.autoResolveOnRecovery = isAutomatic;
+    if (data.linkage.incidentId) {
+      suggestion.incidentId = data.linkage.incidentId;
+    }
+    if (data.linkage.alertId) {
+      suggestion.alertId = data.linkage.alertId;
+    }
+
+    const created: AutoRemediationSuggestion =
+      await AutoRemediationSuggestionService.create({
+        data: suggestion,
+        props: { isRoot: true },
+      });
+
+    const aiRunId: ObjectID | null = await AIInvestigationQueue.enqueue({
+      projectId: data.projectId,
+      subjectIncidentId: data.linkage.incidentId,
+      subjectAlertId: data.linkage.alertId,
+      subjectAutoRemediationSuggestionId: created.id!,
+      remediationRunType: AIRunType.RemediationExecution,
+    });
+
+    if (!aiRunId) {
+      await AutoRemediationSuggestionService.updateOneById({
+        id: created.id!,
+        data: {
+          status: AutoRemediationSuggestionStatus.NoneApplicable,
+          rationaleMarkdown:
+            "The AI remediation run could not be started — the daily autonomous AI budget is exhausted or no run could be queued. Re-enable by raising the budget or waiting for the daily reset.",
+        },
+        props: { isRoot: true },
+      });
+      return false;
+    }
+
+    await AutoRemediationSuggestionService.updateOneById({
+      id: created.id!,
+      data: { aiRunId },
+      props: { isRoot: true },
+    });
+
+    /*
+     * The feed states exactly what this round does, in the terms of the
+     * canonical ResourceAiRemediationMode comment — the resource wording of
+     * startClusterCommandRun's announcement.
+     */
+    const proposalSentence: string = getResourceRoundProposalFeedSentence(noun);
+    let markdown: string;
+
+    if (wantsUnattended && askFirstReason) {
+      markdown = `⚡ **OneUptime AI is composing ${
+        data.round > 1 ? "another" : "a"
+      } fix for ${label}**${
+        data.round > 1
+          ? ` (round ${data.round}) — the previous fix did not recover the service`
+          : ""
+      }. This round asks first because ${askFirstReason}: nothing runs until you approve the plan, which will appear here shortly.`;
+    } else if (isBypass) {
+      markdown =
+        data.round > 1
+          ? `⚡ **OneUptime AI is applying another fix on ${label}** (round ${data.round}) — the previous fix did not recover the service. Approvals are bypassed for this ${noun}, so the new fix runs on its own through its ${agentName}: every change the command policy allows, safe or riskier — except that ${RESOURCE_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${proposalSentence} Progress appears here.`
+          : `⚡ **OneUptime AI is fixing ${label}.** Approvals are bypassed for this ${noun}: AI is diagnosing through its ${agentName} and will apply whatever fix the command policy allows — safe or riskier — on its own, without asking, except that ${RESOURCE_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${proposalSentence} Progress appears here.`;
+    } else if (isAutomatic) {
+      markdown = `⚡ **OneUptime AI is fixing ${label}.** Automatic remediation is on for this ${noun}: AI is diagnosing through its ${agentName} and will apply safe changes (${RESOURCE_SAFE_CHANGES_SUMMARY}), plus riskier changes whose shape the ${noun}'s command allowlist names, on its own. A riskier change never runs on its own otherwise: if the round finds only riskier fixes, AI proposes exactly those for your one-click approval; if it also applied safe changes, a riskier fix is proposed only if verification shows the service did not recover. ${capitalizeFirst(
+        RESOURCE_ALWAYS_ASKS_SUMMARY,
+      )}, and destructive commands never run. ${proposalSentence} Progress appears here.`;
+    } else {
+      markdown =
+        data.round > 1
+          ? `⚡ **OneUptime AI is composing another fix for ${label}** (round ${data.round}) — the previous fix did not recover the service. This round asks first: nothing runs until you approve the new plan, which will appear here shortly.`
+          : `⚡ **OneUptime AI is composing a fix for ${label}.** Nothing runs until you approve the plan — it will appear here shortly.`;
     }
 
     await this.postFeedItem({

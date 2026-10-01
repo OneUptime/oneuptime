@@ -16,12 +16,12 @@ import React, { ReactElement, Suspense } from "react";
  * when this project may use the feature AND this build includes it, the
  * upsell card otherwise.
  *
- *   const SSOPage: FunctionComponent<PageComponentProps> = (
+ *   const SCIMPage: FunctionComponent<PageComponentProps> = (
  *     props: PageComponentProps,
  *   ): ReactElement => {
  *     return (
  *       <EnterprisePluginPage
- *         plugin={getDashboardPlugins().SettingsSSO}
+ *         plugin={getDashboardPlugins().SettingsSCIM}
  *         pluginProps={props}
  *         requiredPlan={IDENTITY_REQUIRED_PLAN}
  *         upsell={{ title: "...", description: "...", featureName: "...", benefits: [...] }}

@@ -1,0 +1,23 @@
+# A 14.0.x release that granted the Runner write access cluster-wide
+# (--set aiAccess.enabled=true --set aiAccess.remediation.enabled=true),
+# upgraded with --reuse-values. The write access carries over to the agent:
+# the same remediation and node-operations roles, bound cluster-wide.
+aiAgent: null
+aiAccess:
+  enabled: true
+  remediation:
+    enabled: true
+    namespaces: []
+    nodeOperations: true
+  image:
+    repository: oneuptime/runner
+    tag: ""
+    pullPolicy: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  extraEnv: []

@@ -571,7 +571,6 @@ describe("who may use the console", () => {
 
   test("a license that leaves out instance health is refused", async () => {
     installFakeEnterpriseModuleWithFeatures([
-      EnterpriseFeature.SSO,
       EnterpriseFeature.SCIM,
       EnterpriseFeature.TeamCompliance,
       EnterpriseFeature.AuditLogs,

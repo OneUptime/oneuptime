@@ -17,6 +17,10 @@ import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../../Models/DatabaseModels/Label";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../../Server/Enterprise/FakeEnterpriseModule";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -246,6 +250,18 @@ const DATABASE_SERVER_USER_UPDATE_COLUMNS: Array<string> = [
   "isArchived",
 ];
 
+/*
+ * OneUptime AI access settings (the Database AI agent's switches): never
+ * set on create, changed afterwards by the same roles as any other edit.
+ * Who may LOOSEN them is the service's check, not the column ACL's (see
+ * ResourceAiAccessColumns.test.ts).
+ */
+const DATABASE_SERVER_AI_ACCESS_SETTING_COLUMNS: Array<string> = [
+  "isAiInvestigationEnabled",
+  "aiRemediationMode",
+  "aiCommandAllowlist",
+];
+
 // Columns only the discovery / heartbeat / archive paths write, as root.
 const DATABASE_SERVER_ROOT_ONLY_COLUMNS: Array<string> = [
   "slug",
@@ -276,6 +292,10 @@ const DATABASE_SERVER_ROOT_ONLY_COLUMNS: Array<string> = [
   "archivedByUserId",
   "deletedByUser",
   "deletedByUserId",
+  // Written by the resource AI access service after each AI command.
+  "aiAccessLastVerifiedAt",
+  "aiAccessLastError",
+  "aiAccessConfiguredAt",
 ];
 
 const PERMISSION_PROPS: Array<PermissionProps> =
@@ -862,6 +882,7 @@ describe("Databases (DatabaseServer) models", () => {
        */
       const accounted: Set<string> = new Set([
         ...DATABASE_SERVER_USER_CREATE_COLUMNS,
+        ...DATABASE_SERVER_AI_ACCESS_SETTING_COLUMNS,
         ...DATABASE_SERVER_ROOT_ONLY_COLUMNS,
       ]);
       const unaccounted: Array<string> = ownColumns(model).filter(
@@ -1131,6 +1152,18 @@ describe("Databases (DatabaseServer) models", () => {
       },
     );
 
+    test.each(DATABASE_SERVER_AI_ACCESS_SETTING_COLUMNS)(
+      "%s is never set on create and is updatable by exactly the table's update roles",
+      (column: string) => {
+        const accessControl: ColumnAccessControl = columnAccess(model, column);
+
+        expect(accessControl.create || []).toEqual([]);
+        expect(sorted(accessControl.update || [])).toEqual(
+          sorted(model.getUpdatePermissions()),
+        );
+      },
+    );
+
     test.each(DATABASE_SERVER_ROOT_ONLY_COLUMNS)(
       "%s is root-only: nobody creates or updates it through the API",
       (column: string) => {
@@ -1180,7 +1213,10 @@ describe("Databases (DatabaseServer) models", () => {
       );
 
       expect(updatable.sort()).toEqual(
-        [...DATABASE_SERVER_USER_UPDATE_COLUMNS].sort(),
+        [
+          ...DATABASE_SERVER_USER_UPDATE_COLUMNS,
+          ...DATABASE_SERVER_AI_ACCESS_SETTING_COLUMNS,
+        ].sort(),
       );
     });
 
@@ -1210,16 +1246,31 @@ describe("Databases (DatabaseServer) models", () => {
       );
 
       test("a manual create with labels and retention passes too", () => {
-        const data: DatabaseServer = manualCreateData();
-        const label: Label = new Label();
-        label._id = ObjectID.generate().toString();
-        data.labels = [label];
-        data.retainTelemetryDataForDays = 7;
-        data.isArchived = false;
+        /*
+         * Retention overrides are an Enterprise feature: with billing off,
+         * setting one needs a license that includes them (the Community
+         * Edition refusal is pinned in
+         * Server/Types/Database/Permissions/RetentionOverrideColumns.test.ts).
+         * A licensed Enterprise Edition passes with billing on or off.
+         */
+        installFakeEnterpriseModule();
 
-        expect(
-          checkCreate(DatabaseServer, data, [Permission.CreateDatabaseServer]),
-        ).not.toThrow();
+        try {
+          const data: DatabaseServer = manualCreateData();
+          const label: Label = new Label();
+          label._id = ObjectID.generate().toString();
+          data.labels = [label];
+          data.retainTelemetryDataForDays = 7;
+          data.isArchived = false;
+
+          expect(
+            checkCreate(DatabaseServer, data, [
+              Permission.CreateDatabaseServer,
+            ]),
+          ).not.toThrow();
+        } finally {
+          uninstallEnterpriseModule();
+        }
       });
 
       test.each(

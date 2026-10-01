@@ -237,7 +237,7 @@ type WaitForLicenseStateFunction = (data: {
  * runs in the background (ee/Server/License/LicenseProvider.ts). So after the
  * lapse phase backdates GlobalConfig.enterpriseEditionFirstSeenAt the suite
  * must poll here until the status flips, and only then assert anything about
- * SSO, SCIM or audit logging.
+ * SCIM or audit logging.
  *
  * The timeout error names the last state seen, so a stuck poll reports what
  * the stack was actually saying rather than only that it timed out.

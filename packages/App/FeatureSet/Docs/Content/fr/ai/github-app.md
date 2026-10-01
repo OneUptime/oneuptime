@@ -14,7 +14,7 @@ Mentionnez-la sur une issue et elle ouvre une pull request. Mentionnez-la sur un
 
 ## Avant de commencer
 
-- Le dépôt doit être **connecté à un projet OneUptime** via la GitHub App. Voir [Intégration GitHub (auto-hébergé)](/docs/self-hosted/github-integration) pour l'installation, ou connectez-le depuis **Paramètres du projet → Dépôts de code** sur OneUptime Cloud.
+- Le dépôt doit être **connecté à un projet OneUptime** via la GitHub App. Voir [Intégration GitHub (auto-hébergé)](/docs/self-hosted/github-integration) pour l'installation, ou connectez-le depuis **Tâches → Dépôts de code** sur OneUptime Cloud.
 - Un **Runner doté de la capacité « Runs AI Code Fixes »** doit être en ligne — le même Runner que celui qui exécute les [tâches de correction IA](/docs/ai/ai-agent). Sans lui, les commandes sont acceptées puis échouent au bout de 30 minutes, avec un message indiquant qu'aucun agent ne les a prises en charge.
 - La GitHub App doit avoir la permission **Issues : Lecture & Écriture** et être abonnée aux événements de webhook listés dans [À quoi s'abonner](#à-quoi-sabonner).
 
@@ -129,13 +129,13 @@ Traitez une pull request écrite par l'IA comme vous traiteriez celle d'un nouve
 
 ## Dépannage
 
-**Rien ne se passe quand je la mentionne.** Vérifiez d'abord le handle — c'est le slug de l'application, pas son nom d'affichage. Vérifiez ensuite que le dépôt est connecté à un projet (**Paramètres du projet → Dépôts de code**), que **Respond to GitHub Commands** est activé, et que votre GitHub App est abonnée aux événements ci-dessus.
+**Rien ne se passe quand je la mentionne.** Vérifiez d'abord le handle — c'est le slug de l'application, pas son nom d'affichage. Vérifiez ensuite que le dépôt est connecté à un projet (**Tâches → Dépôts de code**), que **Respond to GitHub Commands** est activé, et que votre GitHub App est abonnée aux événements ci-dessus.
 
 **Elle réagit 😕 et ne dit rien.** Vous n'avez pas d'accès en écriture au dépôt.
 
 **Elle dit qu'elle travaille déjà là-dessus.** Une exécution de ce type est déjà en cours sur cette issue ou cette pull request. `@oneuptime status` vous dira laquelle, et `@oneuptime cancel` l'arrête.
 
-**Elle a accusé réception puis n'a plus rien dit pendant longtemps.** Vérifiez qu'un Runner doté de **Runs AI Code Fixes** est en ligne sous **Paramètres → Runners**. Sans lui, l'exécution est mise en échec au bout de 30 minutes et le fil en est informé.
+**Elle a accusé réception puis n'a plus rien dit pendant longtemps.** Vérifiez qu'un Runner doté de **Runs AI Code Fixes** est en ligne sous **Runbooks → Agents de runbook**. Sans lui, l'exécution est mise en échec au bout de 30 minutes et le fil en est informé.
 
 **Elle dit que la pull request vient d'un fork.** Les révisions ont besoin d'une branche dans ce dépôt. Demandez plutôt une revue, ou poussez la branche ici.
 

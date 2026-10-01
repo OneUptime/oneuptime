@@ -68,31 +68,15 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "LLM Providers",
       "View Provider",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_RUNNERS, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_FEATURES, [
       "Project",
       "Settings",
-      "Runners",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_RUNNER_VIEW, [
-      "Project",
-      "Settings",
-      "Runners",
-      "View Runner",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_RUNNER_CREDENTIALS, [
-      "Project",
-      "Settings",
-      "Runner Credentials",
+      "AI Features",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_CREDITS, [
       "Project",
       "Settings",
       "AI Credits",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_GUARDRAILS, [
-      "Project",
-      "Settings",
-      "AI Guardrails",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_LOGS, [
       "Project",

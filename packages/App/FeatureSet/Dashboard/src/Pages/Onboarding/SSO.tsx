@@ -17,11 +17,9 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   /*
-   * Set once the provider list has loaded empty. That happens when the
-   * project has no enabled SSO provider, and always on the Community Edition,
-   * where SSO login is not available (the server lists no providers there).
-   * The user is then told why and offered a way back to sign-in instead of a
-   * dead end.
+   * Set once the provider list has loaded empty, which happens when the
+   * project has no enabled SSO provider. The user is then told why and
+   * offered a way back to sign-in instead of a dead end.
    */
   const [hasNoProviders, setHasNoProviders] = useState<boolean>(false);
 
@@ -77,10 +75,7 @@ const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     >
                       <p>
                         This project has no single sign-on provider you can use
-                        to log in. Ask a project admin to enable one. Single
-                        sign-on is part of the OneUptime Enterprise Edition; on
-                        a Community Edition server, sign in with your email and
-                        password instead.
+                        to log in. Ask a project admin to enable one.
                       </p>
                       <div className="mt-4">
                         <Link

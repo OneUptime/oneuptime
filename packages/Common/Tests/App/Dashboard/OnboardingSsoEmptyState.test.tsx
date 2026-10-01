@@ -30,10 +30,10 @@ import { getJestSpyOn } from "../../Spy";
  * project requires SSO. It lists the project's providers from
  * /project-sso/:projectId/sso-list.
  *
- * That list is empty when the project has no enabled provider - and always on
- * the Community Edition, where SSO login is part of the Enterprise Edition and
- * the server lists no providers. The page must then explain why and offer a
- * way back to sign-in, rather than a dead end.
+ * That list is empty when the project has no enabled provider. The page must
+ * then explain why and offer a way back to sign-in, rather than a dead end.
+ * Single sign-on is part of every edition, so the explanation makes no claim
+ * about editions or licenses.
  */
 
 type ProviderRow = { _id: string; name: string };
@@ -127,7 +127,7 @@ describe("Dashboard project SSO sign-in page", () => {
     jest.restoreAllMocks();
   });
 
-  test("with no provider (always the case on the Community Edition) it explains why and links back to sign-in", async () => {
+  test("with no provider it explains why and links back to sign-in", async () => {
     await renderPage();
 
     const help: HTMLElement = await screen.findByTestId(
@@ -135,13 +135,7 @@ describe("Dashboard project SSO sign-in page", () => {
     );
 
     expect(help).toHaveTextContent(
-      "This project has no single sign-on provider you can use to log in.",
-    );
-    expect(help).toHaveTextContent(
-      "Single sign-on is part of the OneUptime Enterprise Edition",
-    );
-    expect(help).toHaveTextContent(
-      "sign in with your email and password instead",
+      "This project has no single sign-on provider you can use to log in. Ask a project admin to enable one.",
     );
 
     const backToSignIn: HTMLElement = screen.getByText("Back to sign in");
@@ -149,6 +143,27 @@ describe("Dashboard project SSO sign-in page", () => {
     expect(backToSignIn.closest("a")).toHaveAttribute(
       "href",
       RouteMap[PageMap.LOGOUT]!.toString(),
+    );
+  });
+
+  /*
+   * The help used to tell every user that single sign-on is part of the
+   * Enterprise Edition and to sign in with a password on a Community server,
+   * which is no longer true anywhere.
+   */
+  test("the help makes no claim about editions or licenses", async () => {
+    await renderPage();
+
+    const help: HTMLElement = await screen.findByTestId(
+      "sso-no-providers-help",
+    );
+
+    expect(help).not.toHaveTextContent(/Enterprise/i);
+    expect(help).not.toHaveTextContent(/Community/i);
+    expect(help).not.toHaveTextContent(/licen[cs]e/i);
+    expect(help).not.toHaveTextContent(/edition/i);
+    expect(help).not.toHaveTextContent(
+      "sign in with your email and password instead",
     );
   });
 

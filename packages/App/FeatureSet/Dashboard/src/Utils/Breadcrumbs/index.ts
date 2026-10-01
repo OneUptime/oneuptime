@@ -22,6 +22,7 @@ export * from "./DockerSwarmBreadcrumbs";
 export * from "./CephBreadcrumbs";
 export * from "./HostBreadcrumbs";
 export * from "./DatabaseBreadcrumbs";
+export * from "./MessageQueueBreadcrumbs";
 export * from "./DashboardBreadCrumbs";
 export * from "./AIAgentTasksBreadcrumbs";
 export * from "./AIInsightsBreadcrumbs";

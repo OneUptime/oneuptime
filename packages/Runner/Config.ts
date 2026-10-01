@@ -45,8 +45,11 @@ export const ONEUPTIME_BASE_URL: URL = URL.fromString(
 export const IS_CLUSTER_SCOPED: boolean = HasClusterKey;
 
 /*
- * KUBERNETES-AGENT MODE: the Runner the kubernetes-agent Helm chart installs
- * next to the OpenTelemetry collector (aiAccess.enabled=true). It has no
+ * KUBERNETES-AGENT MODE (deprecated): the Runner that kubernetes-agent Helm
+ * charts 14.0.2–14.0.8 installed next to the OpenTelemetry collector
+ * (aiAccess.enabled=true). Newer charts install the Kubernetes AI agent
+ * (agents/KubernetesAIAgent, image oneuptime/kubernetes-ai-agent) instead;
+ * this mode keeps those older installs working until they upgrade. It has no
  * dashboard-issued id and key; it presents the project's telemetry ingestion
  * key (the same one the agent ships telemetry with) plus the cluster's name,
  * and the server issues it a Runner identity bound to that cluster. That is
@@ -73,14 +76,14 @@ if (
   !process.env["ONEUPTIME_RUNNER_ID"]
 ) {
   logger.error(
-    "ONEUPTIME_RUNNER_ID is not set. Create a Runner in your OneUptime dashboard (Project Settings > Runners) and copy its id and key into this container. (The Kubernetes agent's in-cluster Runner instead sets ONEUPTIME_INGESTION_KEY and ONEUPTIME_KUBERNETES_CLUSTER_NAME.)",
+    "ONEUPTIME_RUNNER_ID is not set. Create a Runner in your OneUptime dashboard (Runbooks > Runners) and copy its id and key into this container. (The Kubernetes agent's in-cluster Runner instead sets ONEUPTIME_INGESTION_KEY and ONEUPTIME_KUBERNETES_CLUSTER_NAME.)",
   );
   process.exit(1);
 }
 
 if (!IS_KUBERNETES_AGENT_MODE && !process.env["ONEUPTIME_RUNNER_KEY"]) {
   logger.error(
-    "ONEUPTIME_RUNNER_KEY is not set. Create a Runner in your OneUptime dashboard (Project Settings > Runners) and copy its id and key into this container.",
+    "ONEUPTIME_RUNNER_KEY is not set. Create a Runner in your OneUptime dashboard (Runbooks > Runners) and copy its id and key into this container.",
   );
   process.exit(1);
 }
@@ -328,6 +331,14 @@ export const MAX_CONCURRENT_JOBS: number = NumberUtil.parseNumberWithDefault({
 });
 
 export const MAX_OUTPUT_BYTES: number = 50_000;
+
+/*
+ * kubectl output kept for the server. Larger than the other executors':
+ * `kubectl describe node` on a busy node or a pod's logs easily pass 50 KB,
+ * and the server pages long output to the model instead of cutting it, so
+ * everything kept here is readable by the investigation.
+ */
+export const MAX_KUBECTL_OUTPUT_BYTES: number = 1_000_000;
 
 // Health/metrics port (KEDA reads the code-fix queue depth from here).
 export const PORT: Port = new Port(

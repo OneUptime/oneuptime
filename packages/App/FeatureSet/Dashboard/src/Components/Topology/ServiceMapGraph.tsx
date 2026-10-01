@@ -1,7 +1,9 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -11,10 +13,13 @@ import ReactFlow, {
   BackgroundVariant,
   Controls,
   Edge,
+  FitViewOptions,
   MarkerType,
   Node,
+  NodeChange,
   NodeProps,
   ReactFlowInstance,
+  Viewport,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
@@ -31,6 +36,14 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import EntityDetailPanel, { EntityTrafficSummary } from "./EntityDetailPanel";
 import EdgeDetailPanel from "./EdgeDetailPanel";
+import FlowViewportGuard from "./FlowViewportGuard";
+import {
+  FlowExtent,
+  FlowViewportPosition,
+  UNBOUNDED_FLOW_EXTENT,
+  hasViewportMoved,
+  noticeOffsetInCanvas,
+} from "./FlowViewport";
 import TopologyNodeCard, {
   TOPOLOGY_NODE_HEIGHT,
   TOPOLOGY_NODE_WIDTH,
@@ -83,6 +96,28 @@ import {
 const COLUMN_GAP: number = TOPOLOGY_NODE_WIDTH + 110;
 const ROW_GAP: number = TOPOLOGY_NODE_HEIGHT + 20;
 const ROWS_PER_PAGE: number = 40;
+/* Every fit of the map frames it the same way: the guard, the toolbar, the controls. */
+export const SERVICE_MAP_FIT_VIEW_OPTIONS: FitViewOptions = {
+  padding: 0.18,
+  maxZoom: 1,
+};
+/*
+ * How far past the outermost cards the view may be moved, in flow units: a
+ * card's height of slack. It must stay smaller than the visible area at the
+ * closest zoom (a 460 px canvas at 1.5x shows about 300 units), or the view
+ * could come to rest wholly inside the slack, off the drawing's bounding
+ * box. (Inside the box a view zoomed in on an empty corner of the layout
+ * can still show no card; the out-of-view notice covers that.)
+ */
+export const SERVICE_MAP_PAN_MARGIN: number = TOPOLOGY_NODE_HEIGHT;
+/*
+ * How long the map must show nothing before it says so. A new drawing is
+ * hidden for a frame or two while React Flow measures it; that is not worth
+ * a notice.
+ */
+export const OUT_OF_VIEW_NOTICE_DELAY_MS: number = 800;
+/* The notice's distance from the canvas edges, in pixels. */
+export const OUT_OF_VIEW_NOTICE_INSET_PX: number = 16;
 /*
  * Past this many nodes a whole-project drawing stops being readable, so the
  * view opens as a table and the map is one search or focus away.
@@ -292,8 +327,59 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     setFocusKeyState(value);
     Navigation.setQueryString({ focus: value });
   };
+  /* The React Flow on screen, or null while none is (see FlowViewportGuard). */
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
+  /* The view is the automatic framing until the user pans or zooms it. */
+  const autoFrame: React.MutableRefObject<boolean> = useRef<boolean>(true);
+  /* Where the view was when the current pan or zoom gesture began. */
+  const gestureStart: React.MutableRefObject<FlowViewportPosition | null> =
+    useRef<FlowViewportPosition | null>(null);
+  /*
+   * The size React Flow measured for each node. React Flow keeps a node's
+   * size only if the node it is handed carries one: a new nodes array
+   * without sizes sends every node back to "unmeasured" (hidden, with no
+   * edges) until it is measured again — and when two arrays land in quick
+   * succession that second measurement can be skipped for good, leaving the
+   * whole map blank (issue #4117). Handing the sizes back keeps every drawn
+   * node drawn.
+   */
+  const measuredSizes: React.MutableRefObject<
+    Map<string, { width: number; height: number }>
+  > = useRef<Map<string, { width: number; height: number }>>(
+    new Map<string, { width: number; height: number }>(),
+  );
+  const onNodesChange: (changes: Array<NodeChange>) => void = useCallback(
+    (changes: Array<NodeChange>): void => {
+      for (const change of changes) {
+        if (
+          change.type === "dimensions" &&
+          change.dimensions &&
+          change.dimensions.width > 0 &&
+          change.dimensions.height > 0
+        ) {
+          measuredSizes.current.set(change.id, {
+            width: change.dimensions.width,
+            height: change.dimensions.height,
+          });
+        }
+      }
+    },
+    [],
+  );
+  const [panExtent, setPanExtent] = useState<FlowExtent>(UNBOUNDED_FLOW_EXTENT);
+  const [drawingInView, setDrawingInView] = useState<boolean>(true);
+  const [showOutOfView, setShowOutOfView] = useState<boolean>(false);
+  const canvasRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const noticeRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  /* Bumped to draw the canvas again from scratch (see fitToScreen). */
+  const [canvasGeneration, setCanvasGeneration] = useState<number>(0);
+  const onFlowInstance: (instance: ReactFlowInstance | null) => void =
+    useCallback((instance: ReactFlowInstance | null): void => {
+      flowInstance.current = instance;
+    }, []);
 
   useEffect(() => {
     return () => {
@@ -508,12 +594,17 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     });
   }, [visibility, model, view]);
 
-  const { nodes, edges } = useMemo((): {
-    nodes: Array<Node<ServiceNodeData>>;
-    edges: Array<Edge>;
-  } => {
+  /*
+   * Nodes and edges are built apart: hovering or selecting a connection
+   * changes edges only. Each new nodes array costs React Flow a pass over
+   * every card, and rebuilding all of them per edge the pointer crossed is
+   * what used to strand the whole map unmeasured (issue #4117).
+   */
+  const nodes: Array<Node<ServiceNodeData>> = useMemo((): Array<
+    Node<ServiceNodeData>
+  > => {
     if (view !== "map") {
-      return { nodes: [], edges: [] };
+      return [];
     }
     const builtNodes: Array<Node<ServiceNodeData>> = [];
     for (const [key, position] of layout.positions) {
@@ -522,10 +613,13 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         continue;
       }
       const runsOn: string | null = summarizeRunsOn(entry.runsOn);
+      const size: { width: number; height: number } | undefined =
+        measuredSizes.current.get(key);
       builtNodes.push({
         id: key,
         type: "serviceMapNode",
         position,
+        ...(size ? { width: size.width, height: size.height } : {}),
         data: {
           entry,
           label: entry.label,
@@ -541,8 +635,21 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         },
       });
     }
+    return builtNodes;
+  }, [
+    layout,
+    model,
+    visibility,
+    selectedKey,
+    props.metricsWindowSeconds,
+    view,
+  ]);
 
-    const builtEdges: Array<Edge> = model.edges
+  const edges: Array<Edge> = useMemo((): Array<Edge> => {
+    if (view !== "map") {
+      return [];
+    }
+    return model.edges
       .filter((edge: ServiceMapEdge): boolean => {
         return layout.positions.has(edge.from) && layout.positions.has(edge.to);
       })
@@ -605,15 +712,12 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
           },
         };
       });
-
-    return { nodes: builtNodes, edges: builtEdges };
   }, [
     layout,
     model,
     visibility,
     connectionMetric,
     hoveredEdgeId,
-    selectedKey,
     selectedEdgeId,
     props.metricsWindowSeconds,
     view,
@@ -632,35 +736,128 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     Math.min(880, Math.max(460, drawingHeight * 0.85 + 120)),
   );
 
-  const visibleGraphKey: string = Array.from(layout.positions.keys()).join("|");
+  /*
+   * What React Flow is given to draw. FlowViewportGuard fits the view to it
+   * whenever it changes (and once React Flow has drawn it).
+   */
+  const drawingKey: string = nodes
+    .map((node: Node<ServiceNodeData>): string => {
+      return node.id;
+    })
+    .join("|");
 
   /*
-   * Re-fit when the visible graph changes. A new controlled `nodes` array
-   * wipes React Flow's measured dimensions, and fitView no-ops (returns
-   * false) until nodes re-measure — retry on animation frames until it
-   * lands.
+   * Say so when nothing of the map is on the canvas, rather than leaving an
+   * empty box — but not for the frame or two a new drawing takes to measure.
+   * A hidden tab measures nothing (the browser runs no ResizeObserver for
+   * it), so a map that finished loading in the background is only judged
+   * once it can be seen: it is measured in the first frame back.
    */
   useEffect(() => {
-    if (view !== "map" || layout.positions.size === 0) {
+    if (drawingInView || view !== "map") {
+      setShowOutOfView(false);
       return undefined;
     }
-    let raf: number = 0;
-    let attempts: number = 20;
-    const tryFit: () => void = (): void => {
-      const didFit: boolean = Boolean(
-        flowInstance.current &&
-          flowInstance.current.fitView({ padding: 0.18, maxZoom: 1 }),
-      );
-      if (!didFit && attempts > 0) {
-        attempts--;
-        raf = requestAnimationFrame(tryFit);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const judgeWhenSeen: () => void = (): void => {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+      document.removeEventListener("visibilitychange", judgeWhenSeen);
+      timer = setTimeout(() => {
+        setShowOutOfView(true);
+      }, OUT_OF_VIEW_NOTICE_DELAY_MS);
+    };
+    document.addEventListener("visibilitychange", judgeWhenSeen);
+    judgeWhenSeen();
+    return () => {
+      document.removeEventListener("visibilitychange", judgeWhenSeen);
+      if (timer) {
+        clearTimeout(timer);
       }
     };
-    tryFit();
-    return () => {
-      cancelAnimationFrame(raf);
+  }, [drawingInView, view]);
+
+  /*
+   * Keep the notice where it can be read: in the middle of the part of the
+   * canvas on screen. The canvas can be taller than the window, and now that
+   * the wheel scrolls the page over it, either end of it may be off screen.
+   * Written straight to the notice's style, before the first paint and on
+   * every scroll frame after it, so following the page never re-renders the
+   * map. The placement depends on the notice's own height, which is only
+   * final once its styles are: the Dashboard's Tailwind generates the CSS
+   * for a class it has not seen before a moment after the element appears.
+   * So the notice is placed again whenever its size changes, after layout
+   * and before paint.
+   */
+  useLayoutEffect(() => {
+    if (!showOutOfView) {
+      return undefined;
+    }
+    let frame: number = 0;
+    const place: () => void = (): void => {
+      const canvas: HTMLDivElement | null = canvasRef.current;
+      const notice: HTMLDivElement | null = noticeRef.current;
+      if (!canvas || !notice) {
+        return;
+      }
+      const box: DOMRect = canvas.getBoundingClientRect();
+      notice.style.top = `${noticeOffsetInCanvas(
+        box.top,
+        box.height,
+        window.innerHeight,
+        notice.offsetHeight,
+        OUT_OF_VIEW_NOTICE_INSET_PX,
+      )}px`;
     };
-  }, [visibleGraphKey, view]);
+    const schedule: () => void = (): void => {
+      if (!frame) {
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          place();
+        });
+      }
+    };
+    place();
+    // Capture, so a scroll of whichever element scrolls the page counts.
+    document.addEventListener("scroll", schedule, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("resize", schedule);
+    const resized: ResizeObserver | null =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(place);
+    if (resized && noticeRef.current) {
+      resized.observe(noticeRef.current);
+    }
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("scroll", schedule, { capture: true });
+      window.removeEventListener("resize", schedule);
+      resized?.disconnect();
+    };
+  }, [showOutOfView]);
+
+  /*
+   * Frame the whole drawing again. When React Flow cannot (it has no
+   * measured node to frame), draw the canvas again from scratch: a fresh
+   * React Flow measures every node and fits on its own. Either way the map
+   * comes back without reloading the page.
+   */
+  const fitToScreen: () => void = (): void => {
+    autoFrame.current = true;
+    const instance: ReactFlowInstance | null = flowInstance.current;
+    if (
+      instance &&
+      instance.fitView({ ...SERVICE_MAP_FIT_VIEW_OPTIONS, duration: 300 })
+    ) {
+      return;
+    }
+    setShowOutOfView(false);
+    setCanvasGeneration((value: number): number => {
+      return value + 1;
+    });
+  };
 
   const selectedEntry: ServiceMapEntry | null =
     (selectedKey && model.entryByKey.get(selectedKey)) || null;
@@ -1039,39 +1236,78 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                   <option value="latency">{t("Average latency")}</option>
                 </select>
               </label>
-              <button
-                type="button"
-                className="ml-auto rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                onClick={() => {
-                  flowInstance.current?.fitView({
-                    padding: 0.18,
-                    maxZoom: 1,
-                    duration: 300,
-                  });
-                }}
-              >
-                {t("Fit to screen")}
-              </button>
+              <div className="ml-auto flex flex-wrap items-center gap-3">
+                <span
+                  className="text-xs text-gray-500"
+                  data-testid="service-map-zoom-hint"
+                >
+                  {t("Ctrl + scroll or pinch to zoom")}
+                </span>
+                <button
+                  type="button"
+                  data-testid="service-map-fit"
+                  className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                  onClick={fitToScreen}
+                >
+                  {t("Fit to screen")}
+                </button>
+              </div>
             </div>
             <div
+              ref={canvasRef}
               style={{ height: canvasHeight, width: "100%" }}
-              className="bg-slate-50"
+              className="relative bg-slate-50"
               data-testid="service-map-canvas"
             >
               <ReactFlow
+                key={canvasGeneration}
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={NODE_TYPES}
-                fitView={true}
-                fitViewOptions={{ padding: 0.18, maxZoom: 1 }}
+                onNodesChange={onNodesChange}
                 minZoom={0.1}
                 maxZoom={1.5}
+                translateExtent={panExtent}
+                /*
+                 * A map inside a page. The wheel scrolls the page, as it does
+                 * everywhere else on it; Ctrl + scroll or a pinch zooms. React
+                 * Flow's defaults took every wheel event over the canvas and
+                 * zoomed about the pointer, which on a large project's narrow
+                 * column of cards zoomed the whole map out of view (#4117).
+                 * A double-click no longer zooms, and cards are not dragged:
+                 * they have nowhere to go, and holding one past the edge only
+                 * panned the map away.
+                 */
+                zoomOnScroll={false}
+                preventScrolling={false}
+                zoomOnDoubleClick={false}
+                nodesDraggable={false}
                 proOptions={{ hideAttribution: true }}
-                nodesDraggable={true}
                 nodesConnectable={false}
                 elementsSelectable={true}
-                onInit={(instance: ReactFlowInstance) => {
-                  flowInstance.current = instance;
+                onMoveStart={(
+                  _event: MouseEvent | TouchEvent,
+                  viewport: Viewport,
+                ) => {
+                  gestureStart.current = viewport;
+                }}
+                onMoveEnd={(
+                  _event: MouseEvent | TouchEvent,
+                  viewport: Viewport,
+                ) => {
+                  /*
+                   * Only a gesture that moved the view takes it from the
+                   * automatic framing (see hasViewportMoved): a press on a
+                   * fitted large map moves nothing yet is reported as a
+                   * move, a floating-point ulp away, and the slip of a click
+                   * pans a smaller map a pixel or two.
+                   */
+                  const start: FlowViewportPosition | null =
+                    gestureStart.current;
+                  gestureStart.current = null;
+                  if (!start || hasViewportMoved(start, viewport)) {
+                    autoFrame.current = false;
+                  }
                 }}
                 onNodeClick={(_event: React.MouseEvent, node: Node) => {
                   selectNode(node.id);
@@ -1087,14 +1323,65 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                   setHoveredEdgeId(null);
                 }}
               >
-                <Controls showInteractive={false} />
+                <Controls
+                  showInteractive={false}
+                  fitViewOptions={SERVICE_MAP_FIT_VIEW_OPTIONS}
+                  onZoomIn={() => {
+                    autoFrame.current = false;
+                  }}
+                  onZoomOut={() => {
+                    autoFrame.current = false;
+                  }}
+                  onFitView={() => {
+                    autoFrame.current = true;
+                  }}
+                />
                 <Background
                   variant={BackgroundVariant.Dots}
                   gap={22}
                   size={1}
                   color="var(--ou-chart-grid, #cbd5e1)"
                 />
+                <FlowViewportGuard
+                  drawingKey={drawingKey}
+                  fitViewOptions={SERVICE_MAP_FIT_VIEW_OPTIONS}
+                  autoFrame={autoFrame}
+                  panMargin={SERVICE_MAP_PAN_MARGIN}
+                  onInstance={onFlowInstance}
+                  onExtentChange={setPanExtent}
+                  onDrawingInViewChange={setDrawingInView}
+                />
               </ReactFlow>
+              {showOutOfView && (
+                /*
+                 * On the left of the canvas, clear of a drawer open on the
+                 * right, and as high as the part of the canvas on screen puts
+                 * it (its top is set by the layout effect above).
+                 */
+                <div
+                  className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
+                  data-testid="service-map-out-of-view"
+                >
+                  <div
+                    ref={noticeRef}
+                    role="status"
+                    className="pointer-events-auto absolute flex flex-wrap items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
+                    style={{
+                      left: OUT_OF_VIEW_NOTICE_INSET_PX,
+                      maxWidth: `calc(100% - ${2 * OUT_OF_VIEW_NOTICE_INSET_PX}px)`,
+                    }}
+                  >
+                    <span>{t("The map is out of view.")}</span>
+                    <button
+                      type="button"
+                      className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                      onClick={fitToScreen}
+                    >
+                      {t("Fit to screen")}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-gray-200 px-5 py-3 text-xs text-gray-500">
               {(

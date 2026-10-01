@@ -9,7 +9,9 @@ import {
 } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
+import EnterpriseEdition, {
+  RUNTIME_ENTERPRISE_FEATURES,
+} from "../../../Server/Enterprise/EnterpriseEdition";
 import EnterpriseFeature, {
   ALL_ENTERPRISE_FEATURES,
 } from "../../../Server/Enterprise/EnterpriseFeature";
@@ -353,10 +355,10 @@ describe("EnterpriseEdition fails closed on an unknown license", () => {
     installFakeEnterpriseModule({ snapshot: null });
 
     expect(
-      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO),
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
     ).toBe(false);
     expect(() => {
-      EnterpriseEdition.assertFeatureAvailableSync(EnterpriseFeature.SSO);
+      EnterpriseEdition.assertFeatureAvailableSync(EnterpriseFeature.SCIM);
     }).toThrow(EnterpriseEdition.LICENSE_REQUIRED_MESSAGE);
   });
 
@@ -411,10 +413,10 @@ describe("EnterpriseEdition fails closed on an unknown license", () => {
     });
 
     expect(
-      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO),
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
     ).toBe(false);
     expect(
-      await EnterpriseEdition.isFeatureAvailable(EnterpriseFeature.SSO),
+      await EnterpriseEdition.isFeatureAvailable(EnterpriseFeature.SCIM),
     ).toBe(true);
   });
 
@@ -426,7 +428,7 @@ describe("EnterpriseEdition fails closed on an unknown license", () => {
     });
 
     expect(
-      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO),
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
     ).toBe(false);
   });
 
@@ -438,10 +440,10 @@ describe("EnterpriseEdition fails closed on an unknown license", () => {
     fake.licensing.getSnapshotError = new Error("never asked");
 
     expect(
-      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO),
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
     ).toBe(true);
     expect(
-      await EnterpriseEdition.isFeatureAvailable(EnterpriseFeature.SSO),
+      await EnterpriseEdition.isFeatureAvailable(EnterpriseFeature.SCIM),
     ).toBe(true);
   });
 });
@@ -455,17 +457,17 @@ describe("EnterpriseEdition reads billing at call time", () => {
     setTestBillingEnabled(false);
     expect(isTestBillingEnabled()).toBe(false);
     expect(
-      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO),
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
     ).toBe(false);
 
     setTestBillingEnabled(true);
     expect(
-      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO),
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
     ).toBe(true);
 
     setTestBillingEnabled(false);
     expect(
-      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO),
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
     ).toBe(false);
   });
 
@@ -518,10 +520,10 @@ describe("EnterpriseEdition unavailable messages", () => {
   test("the license message never claims existing configuration keeps working", () => {
     /*
      * Every configuration write refused on a lapsed license answers with
-     * this message - SSO, OIDC and SCIM models, and the audit log settings -
-     * and for those features nothing keeps working: SSO, SCIM and audit
-     * logging stop (EnterpriseEdition.isFeatureActive). The configuration is
-     * only kept.
+     * this message - SCIM and team compliance models, and the audit log
+     * settings - and for those features nothing keeps working: SCIM and
+     * audit logging stop (EnterpriseEdition.isFeatureActive). The
+     * configuration is only kept.
      */
     expect(EnterpriseEdition.LICENSE_REQUIRED_MESSAGE).not.toMatch(
       /keeps? (?:on )?working|keeps? running|continues? to work/i,
@@ -563,14 +565,16 @@ describe("EnterpriseEdition unavailable messages", () => {
 
   test("a valid license that does not include the feature gets the license message", () => {
     installFakeEnterpriseModule({
-      snapshot: createLicenseSnapshot({ features: [EnterpriseFeature.SSO] }),
+      snapshot: createLicenseSnapshot({
+        features: [EnterpriseFeature.AuditLogs],
+      }),
     });
 
     expect(() => {
       EnterpriseEdition.assertFeatureAvailableSync(EnterpriseFeature.SCIM);
     }).toThrow(EnterpriseEdition.LICENSE_REQUIRED_MESSAGE);
     expect(() => {
-      EnterpriseEdition.assertFeatureAvailableSync(EnterpriseFeature.SSO);
+      EnterpriseEdition.assertFeatureAvailableSync(EnterpriseFeature.AuditLogs);
     }).not.toThrow();
   });
 
@@ -578,7 +582,7 @@ describe("EnterpriseEdition unavailable messages", () => {
     let caught: unknown = undefined;
 
     try {
-      EnterpriseEdition.assertFeatureAvailableSync(EnterpriseFeature.SSO);
+      EnterpriseEdition.assertFeatureAvailableSync(EnterpriseFeature.SCIM);
     } catch (err) {
       caught = err;
     }
@@ -701,27 +705,43 @@ describe("EnterpriseEdition audit log recorder", () => {
 describe("EnterpriseEdition runtime state (isFeatureActive)", () => {
   /*
    * The full matrix, the unknown-state rule and the lapse log live in
-   * EnterpriseFeatureActive.test.ts. The old shouldEnforceSso() ("enforce SSO
-   * whenever ee is loaded, whatever the license says") is gone on purpose:
-   * SSO enforcement now follows isFeatureActive(SSO), so it relaxes when the
-   * license lapses.
+   * EnterpriseFeatureActive.test.ts. The facade never decides single
+   * sign-on: it is part of the Community Edition and works whatever the
+   * license says, so there is no SSO question here at all (the old
+   * shouldEnforceSso() is gone too).
    */
-  test("shouldEnforceSso no longer exists", () => {
-    expect(
-      (EnterpriseEdition as unknown as Record<string, unknown>)[
-        "shouldEnforceSso"
-      ],
-    ).toBeUndefined();
+  test("the facade has no single sign-on question", () => {
+    for (const name of [
+      "shouldEnforceSso",
+      "isSsoEnforced",
+      "isSsoActive",
+      "areSsoRoutesServed",
+    ]) {
+      expect(
+        (EnterpriseEdition as unknown as Record<string, unknown>)[name],
+      ).toBeUndefined();
+    }
+  });
+
+  test("the runtime features are SCIM, audit logging and retention overrides, in lapse-log order", () => {
+    expect([...RUNTIME_ENTERPRISE_FEATURES]).toEqual([
+      EnterpriseFeature.SCIM,
+      EnterpriseFeature.AuditLogs,
+      EnterpriseFeature.TelemetryRetention,
+    ]);
+    expect(RUNTIME_ENTERPRISE_FEATURES as ReadonlyArray<string>).not.toContain(
+      "sso",
+    );
   });
 
   test.each(ALL_STATUSES)(
-    "billing off, %s license: SSO is active exactly when the license entitles it",
+    "billing off, %s license: SCIM is active exactly when the license entitles it",
     (status: EnterpriseLicenseStatus) => {
       installFakeEnterpriseModule({
         snapshot: createLicenseSnapshotWithStatus(status),
       });
 
-      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
         status === "valid" || status === "grace",
       );
     },
@@ -730,14 +750,6 @@ describe("EnterpriseEdition runtime state (isFeatureActive)", () => {
 
 describe("EnterpriseEdition model to feature map", () => {
   test.each([
-    ["GlobalSSO", EnterpriseFeature.SSO],
-    ["GlobalOIDC", EnterpriseFeature.SSO],
-    ["GlobalSSOProject", EnterpriseFeature.SSO],
-    ["GlobalOIDCProject", EnterpriseFeature.SSO],
-    ["ProjectSSO", EnterpriseFeature.SSO],
-    ["ProjectOIDC", EnterpriseFeature.SSO],
-    ["StatusPageSSO", EnterpriseFeature.SSO],
-    ["StatusPageOIDC", EnterpriseFeature.SSO],
     ["ProjectSCIM", EnterpriseFeature.SCIM],
     ["StatusPageSCIM", EnterpriseFeature.SCIM],
     ["TeamComplianceSetting", EnterpriseFeature.TeamCompliance],
@@ -748,22 +760,24 @@ describe("EnterpriseEdition model to feature map", () => {
     },
   );
 
-  test("maps exactly the eleven enterprise configuration tables", () => {
+  test("maps exactly the three enterprise configuration tables", () => {
     expect(EnterpriseEdition.getMappedTableNames().sort()).toEqual(
-      [
-        "GlobalOIDC",
-        "GlobalOIDCProject",
-        "GlobalSSO",
-        "GlobalSSOProject",
-        "ProjectOIDC",
-        "ProjectSCIM",
-        "ProjectSSO",
-        "StatusPageOIDC",
-        "StatusPageSCIM",
-        "StatusPageSSO",
-        "TeamComplianceSetting",
-      ].sort(),
+      ["ProjectSCIM", "StatusPageSCIM", "TeamComplianceSetting"].sort(),
     );
+  });
+
+  // Single sign-on configuration is Community Edition configuration.
+  test.each([
+    "GlobalSSO",
+    "GlobalOIDC",
+    "GlobalSSOProject",
+    "GlobalOIDCProject",
+    "ProjectSSO",
+    "ProjectOIDC",
+    "StatusPageSSO",
+    "StatusPageOIDC",
+  ])("the single sign-on table %s maps to no feature", (tableName: string) => {
+    expect(EnterpriseEdition.getFeatureForTableName(tableName)).toBeNull();
   });
 
   test("unknown, empty and missing table names map to nothing", () => {
@@ -771,10 +785,13 @@ describe("EnterpriseEdition model to feature map", () => {
     expect(EnterpriseEdition.getFeatureForTableName("")).toBeNull();
     expect(EnterpriseEdition.getFeatureForTableName(null)).toBeNull();
     expect(EnterpriseEdition.getFeatureForTableName(undefined)).toBeNull();
-    expect(EnterpriseEdition.getFeatureForTableName("globalsso")).toBeNull();
+    expect(EnterpriseEdition.getFeatureForTableName("projectscim")).toBeNull();
   });
 
   test("getModelFeature reads the table name off a model instance", () => {
+    class FakeScimModel {
+      public tableName: string | null = "ProjectSCIM";
+    }
     class FakeSsoModel {
       public tableName: string | null = "ProjectSSO";
     }
@@ -791,9 +808,14 @@ describe("EnterpriseEdition model to feature map", () => {
 
     expect(
       EnterpriseEdition.getModelFeature(
+        FakeScimModel as unknown as ModelTypeArgument,
+      ),
+    ).toBe(EnterpriseFeature.SCIM);
+    expect(
+      EnterpriseEdition.getModelFeature(
         FakeSsoModel as unknown as ModelTypeArgument,
       ),
-    ).toBe(EnterpriseFeature.SSO);
+    ).toBeNull();
     expect(
       EnterpriseEdition.getModelFeature(
         FakePlainModel as unknown as ModelTypeArgument,

@@ -10,6 +10,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import OneUptimeDate from "Common/Types/Date";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 /**
  * This job sends automatic internal and public note reminders for incidents
@@ -255,7 +256,20 @@ function processTemplate(
   // Replace template variables
   let result: string = template;
 
-  result = result.replace(/\{\{incidentTitle\}\}/g, incident.title || "");
+  /*
+   * The note is Markdown, posted without anyone reading it first - a public
+   * one to the status page too - and the title is plain text, which anyone
+   * holding an incident form's link may have typed. Escaped as MarkdownEscape
+   * says a title must be (as the note composer's own {{incidentTitle}} is),
+   * so it cannot become an image, raw HTML or a link that hides where it
+   * goes; and put in by a function, so a "$&" in it is not read as a
+   * replacement pattern.
+   */
+  const incidentTitle: string = escapeMarkdownValue(incident.title || "");
+
+  result = result.replace(/\{\{incidentTitle\}\}/g, (): string => {
+    return incidentTitle;
+  });
   result = result.replace(
     /\{\{incidentNumber\}\}/g,
     incident.incidentNumberWithPrefix ||

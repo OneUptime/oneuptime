@@ -10,14 +10,25 @@ import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
+import AIAgentRunLimitsHelper, {
+  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
+  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
+  AIAgentRunLimits,
+} from "../../../../Types/AI/AIAgentRunLimits";
 import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import {
+  LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
+  RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+  isInfrastructureToolName,
+} from "../ResourceAccess/ResourceAccessToolNames";
 import Project from "../../../../Models/DatabaseModels/Project";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import AIRunService from "../../../Services/AIRunService";
 import AIRunEventService from "../../../Services/AIRunEventService";
+import AIService from "../../../Services/AIService";
 import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import AIInvestigationQueue from "./InvestigationQueue";
@@ -50,17 +61,20 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * Enablement + provider gating is shared via isEnabledForProject().
  */
 
-// Budgets — larger than an interactive chat-ops answer, small enough to stay cheap.
-const MAX_LLM_CALLS: number = 8;
-const MAX_TOOL_CALLS: number = 12;
 /*
- * The wall clock an investigation run gets by default. Exported because the
- * kubectl read toolkit plans every command's wait against this same budget
- * (the runners hand it to the engine AND to the toolkit as an absolute
- * deadline), and one definition is how the two can never disagree.
+ * Budgets. An investigation runs until it is done: no wall clock, and step
+ * counts that only guard against a runaway loop (see AIAgentRunLimits). A
+ * project that wants a hard time limit configures one per lane, and the
+ * runners pass it in as maxWallClockMs — and to the command toolkits as a
+ * deadline — so the loop and every command wait agree on one number.
  */
-export const MAX_WALL_CLOCK_MS: number = 150 * 1000;
-const MAX_OUTPUT_TOKENS: number = 2000;
+const MAX_LLM_CALLS: number = AI_AGENT_RUNAWAY_MAX_LLM_CALLS;
+const MAX_TOOL_CALLS: number = AI_AGENT_RUNAWAY_MAX_TOOL_CALLS;
+/*
+ * Room for a full report. An answer that still reaches the limit is
+ * finished with continuation calls, never published half-written.
+ */
+const MAX_OUTPUT_TOKENS: number = 4096;
 
 /*
  * Conditional recommendation persistence is idempotent, so transient
@@ -199,16 +213,17 @@ export interface InvestigationRequest {
   extraTools?: Array<ObservabilityAssistantExtraTool> | undefined;
   maxLlmCalls?: number | undefined;
   maxToolCalls?: number | undefined;
+  // Undefined means no time limit.
   maxWallClockMs?: number | undefined;
   maxOutputTokens?: number | undefined;
 }
 
 export default class AIInvestigationEngine {
   /*
-   * Shared gate: AI enabled, the subject's auto-investigation opt-in on, and an
-   * LLM provider configured. Incidents and alerts each have their own opt-in so
-   * they can be enabled independently. Runs before any (subject-specific)
-   * context assembly.
+   * Shared gate: AI enabled, the subject's auto-investigation opt-in on, an
+   * LLM provider configured, and AI credits to pay for it. Incidents and
+   * alerts each have their own opt-in so they can be enabled independently.
+   * Runs before any (subject-specific) context assembly.
    */
   @CaptureSpan()
   public static async isEnabledForProject(
@@ -249,14 +264,89 @@ export default class AIInvestigationEngine {
       return "automatic_investigation_disabled";
     }
 
+    return this.getProviderOrBalanceReason(projectId);
+  }
+
+  /*
+   * How far an investigation of this lane may run: no time limit unless the
+   * project configured one in its Incident / Alert AI settings. Fails open —
+   * a project that cannot be read runs unbounded rather than being cut
+   * short, since the time limit is an opt-in.
+   */
+  public static async getRunLimitsForProject(
+    projectId: ObjectID,
+    subjectType: AISubjectType,
+  ): Promise<AIAgentRunLimits> {
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: {
+          incidentAiInvestigationTimeLimitInMinutes: true,
+          alertAiInvestigationTimeLimitInMinutes: true,
+        },
+        props: { isRoot: true },
+      });
+
+      return AIAgentRunLimitsHelper.fromTimeLimitInMinutes(
+        subjectType === "Alert"
+          ? project?.alertAiInvestigationTimeLimitInMinutes
+          : project?.incidentAiInvestigationTimeLimitInMinutes,
+      );
+    } catch (error) {
+      logger.error(
+        `AI: could not read the investigation time limit for project ${projectId.toString()}; running without one: ${error}`,
+      );
+      return AIAgentRunLimitsHelper.getDefault();
+    }
+  }
+
+  /*
+   * The half of the gate that is not a switch: a model to call, and AI
+   * credits to pay for it. Shared with the other autonomous AI work that
+   * has its own switch (the postmortem draft on resolve), so the two can
+   * never disagree about whether AI can run at all.
+   *
+   * The balance check is the same predicate as the Kubernetes cluster's
+   * ai_balance_insufficient gap (AIService.getAiBalanceBlocker): on
+   * OneUptime's own billed provider, with no credits left and auto-recharge
+   * off, every model call would be refused with "Insufficient AI balance" —
+   * so a run started now would only fail, be retried, and fail again, and
+   * nobody would see why. It fails OPEN: a balance that cannot be read
+   * never blocks, because the model call itself still enforces the balance.
+   */
+  public static async getProviderOrBalanceReason(
+    projectId: ObjectID,
+  ): Promise<"provider_missing" | "insufficient_ai_balance" | null> {
     const llmProvider: LlmProvider | null =
       await LlmProviderService.getLLMProviderForProject(projectId);
 
     if (!llmProvider) {
       logger.debug(
-        `AI: skipping investigation for project ${projectId.toString()} — no LLM provider configured.`,
+        `AI: skipping autonomous AI work for project ${projectId.toString()} — no LLM provider configured.`,
       );
       return "provider_missing";
+    }
+
+    let balanceBlocker: string | null = null;
+
+    try {
+      balanceBlocker = await AIService.getAiBalanceBlocker({
+        projectId,
+        // Already resolved above — spares the predicate a second lookup.
+        llmProvider,
+      });
+    } catch (error) {
+      logger.error(
+        `AI: could not check the AI balance for project ${projectId.toString()}; not blocking on it: ${error}`,
+      );
+      balanceBlocker = null;
+    }
+
+    if (balanceBlocker) {
+      logger.debug(
+        `AI: skipping autonomous AI work for project ${projectId.toString()} — ${balanceBlocker}`,
+      );
+      return "insufficient_ai_balance";
     }
 
     return null;
@@ -310,6 +400,14 @@ export default class AIInvestigationEngine {
     let clusterToolCallCount: number = 0;
 
     /*
+     * The same for the tools that reach an infrastructure resource through
+     * its AI agent (run_infrastructure_command, list_infrastructure_access):
+     * commands on a host, a container engine, a hypervisor, a storage
+     * cluster or a database — never telemetry queries either.
+     */
+    let infrastructureToolCallCount: number = 0;
+
+    /*
      * Live narration: persist each LLM/tool step as an AIRunEvent so the UI can
      * "watch it think" by polling the run's events. Best-effort, ordered.
      */
@@ -321,6 +419,13 @@ export default class AIInvestigationEngine {
         CLUSTER_TOOL_NAMES.includes(step.toolName || "")
       ) {
         clusterToolCallCount++;
+      }
+
+      if (
+        step.type === "tool_started" &&
+        isInfrastructureToolName(step.toolName)
+      ) {
+        infrastructureToolCallCount++;
       }
 
       /*
@@ -396,7 +501,8 @@ export default class AIInvestigationEngine {
           }\n\n${request.contextSummary}`,
           maxLlmCalls: request.maxLlmCalls ?? MAX_LLM_CALLS,
           maxToolCalls: request.maxToolCalls ?? MAX_TOOL_CALLS,
-          maxWallClockMs: request.maxWallClockMs ?? MAX_WALL_CLOCK_MS,
+          // Null tells the loop "no time limit" (undefined = its chat default).
+          maxWallClockMs: request.maxWallClockMs ?? null,
           maxOutputTokens: request.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
           onStep,
           extraTools: request.extraTools,
@@ -556,6 +662,7 @@ export default class AIInvestigationEngine {
         result,
         analysis,
         clusterToolCallCount,
+        infrastructureToolCallCount,
       );
 
       await request.postAnalysis({
@@ -820,11 +927,17 @@ export default class AIInvestigationEngine {
    * model's). So a run that made no cluster call posts exactly what it
    * always has, and a run that did writes its telemetry count only when it
    * is not zero.
+   *
+   * Commands on infrastructure resources (run_infrastructure_command) are
+   * counted the same way, as their own "N infrastructure commands run"
+   * part appended only when a run used those tools — so every footer of a
+   * run that did not stays byte-for-byte what it was.
    */
   public static buildBrandedMarkdown(
     result: ObservabilityAssistantResult,
     analysisMarkdown: string,
     clusterToolCallCount: number = 0,
+    infrastructureToolCallCount: number = 0,
   ): string {
     let markdown: string = `## 🧠 AI — Automated Root Cause Analysis\n\n${analysisMarkdown}`;
 
@@ -845,7 +958,7 @@ export default class AIInvestigationEngine {
       }
     }
 
-    if (clusterToolCallCount <= 0) {
+    if (clusterToolCallCount <= 0 && infrastructureToolCallCount <= 0) {
       markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${
         result.toolCallCount === 1 ? "y" : "ies"
       } run across your own telemetry${
@@ -857,7 +970,9 @@ export default class AIInvestigationEngine {
 
     const telemetryQueryCount: number = Math.max(
       0,
-      result.toolCallCount - clusterToolCallCount,
+      result.toolCallCount -
+        Math.max(0, clusterToolCallCount) -
+        Math.max(0, infrastructureToolCallCount),
     );
     // Only commands that reached kubectl are cited, so only they are "run".
     const kubectlCommandCount: number = citations.filter(
@@ -883,8 +998,36 @@ export default class AIInvestigationEngine {
       );
     }
 
+    // Only commands that reached a resource are cited, so only they are "run".
+    const infrastructureCommandCount: number = citations.filter(
+      (citation: AIChatCitation): boolean => {
+        return citation.toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME;
+      },
+    ).length;
+
+    if (infrastructureCommandCount > 0) {
+      counts.push(
+        `${infrastructureCommandCount} infrastructure ${
+          infrastructureCommandCount === 1 ? "command" : "commands"
+        } run on your infrastructure`,
+      );
+    }
+
+    if (counts.length === 0 && infrastructureToolCallCount > 0) {
+      counts.push(
+        clusterToolCallCount > 0
+          ? "no telemetry queries, kubectl commands or infrastructure commands run"
+          : "no telemetry queries or infrastructure commands run",
+      );
+    }
+
     if (counts.length === 0) {
       counts.push("no telemetry queries or kubectl commands run");
+    }
+
+    // Three parts read "A, B and C"; one or two read exactly as they always have.
+    if (counts.length > 2) {
+      counts.splice(0, counts.length - 1, counts.slice(0, -1).join(", "));
     }
 
     markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${counts.join(
@@ -911,6 +1054,19 @@ export default class AIInvestigationEngine {
 
     if (citation.toolName === LIST_CLUSTER_ACCESS_TOOL_NAME) {
       return `${citation.rowCount} cluster(s)`;
+    }
+
+    /*
+     * A command on an infrastructure resource: 1 when it completed, 0 when
+     * it ran and the program returned an error; a listing of resources is
+     * the number it listed.
+     */
+    if (citation.toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
+      return citation.rowCount > 0 ? "succeeded" : "command returned an error";
+    }
+
+    if (citation.toolName === LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME) {
+      return `${citation.rowCount} resource(s)`;
     }
 
     return null;

@@ -4,10 +4,11 @@
 
 {{!--
   Two shapes of the same email. `isInvitationAccepted` is "true" when a master
-  admin ticked "accept the invitation automatically" on the invite form: the
-  membership is already accepted, so there is nothing for the recipient to
-  accept, and telling them to go and accept it would send them looking for an
-  invitation that is not there.
+  admin ticked "accept the invitation automatically" on the invite form, or
+  when the recipient is already a member of the project and has just been
+  added to another of its teams: the membership is already accepted, so there
+  is nothing for the recipient to accept, and telling them to go and accept it
+  would send them looking for an invitation that is not there.
 
   `ifCond` compares two values and takes no boolean operators, so the isNewUser
   split is nested inside each branch rather than combined. The `else` arms keep

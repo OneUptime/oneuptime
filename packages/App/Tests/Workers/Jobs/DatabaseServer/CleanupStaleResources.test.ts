@@ -4,17 +4,20 @@ import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 
 /*
  * DatabaseServer:CleanupStaleResources is the only scheduled caller of the
- * two Databases sweeps: flipping databases whose collector went quiet to
- * "disconnected", and auto-archiving discovered databases nobody has seen
- * or touched for days. These tests drive one full tick and pin the
- * contract the job's header promises:
+ * three Databases sweeps: flipping databases whose collector went quiet to
+ * "disconnected", deleting the databases application traces created for a
+ * client's end of a connection, and auto-archiving discovered databases
+ * nobody has seen or touched for days. These tests drive one full tick and
+ * pin the contract the job's header promises:
  *
  *   1. it registers under its documented name, every five minutes, not on
  *      startup — and the worker Index imports it (an unimported job never
  *      registers);
- *   2. both sweeps run on every tick, the disconnect sweep first;
- *   3. each sweep sits in its own try: one failing is logged and the other
- *      still runs, and the handler never throws;
+ *   2. every sweep runs on every tick: disconnect, then the client-socket
+ *      delete, then the archive (a row must be deleted before it can be
+ *      archived, or it keeps its endpoints and comes back);
+ *   3. each sweep sits in its own try: one failing is logged and the others
+ *      still run, and the handler never throws;
  *   4. it reports what changed once, and stays quiet when nothing did.
  *
  * The thresholds, the "untouched" definition and the SQL are the service's
@@ -66,6 +69,7 @@ jest.mock("Common/Server/Services/DatabaseServerService", () => {
     __esModule: true,
     default: {
       markDisconnectedDatabaseServers: jest.fn(),
+      deleteClientSocketDatabaseServers: jest.fn(),
       autoArchiveStaleDatabaseServers: jest.fn(),
     },
   };
@@ -81,6 +85,7 @@ const JOB_NAME: string = "DatabaseServer:CleanupStaleResources";
 
 interface ServiceMock {
   markDisconnectedDatabaseServers: jest.Mock;
+  deleteClientSocketDatabaseServers: jest.Mock;
   autoArchiveStaleDatabaseServers: jest.Mock;
 }
 
@@ -107,6 +112,7 @@ async function runTick(): Promise<void> {
 beforeEach(() => {
   jest.resetAllMocks();
   service.markDisconnectedDatabaseServers.mockResolvedValue(0);
+  service.deleteClientSocketDatabaseServers.mockResolvedValue(0);
   service.autoArchiveStaleDatabaseServers.mockResolvedValue(0);
 });
 
@@ -138,11 +144,12 @@ describe("the cron registers itself", () => {
   });
 });
 
-describe("both sweeps run on every tick", () => {
-  test("the disconnect sweep and the auto-archive sweep each run once", async () => {
+describe("every sweep runs on every tick", () => {
+  test("the disconnect, client-socket and auto-archive sweeps each run once", async () => {
     await runTick();
 
     expect(service.markDisconnectedDatabaseServers).toHaveBeenCalledTimes(1);
+    expect(service.deleteClientSocketDatabaseServers).toHaveBeenCalledTimes(1);
     expect(service.autoArchiveStaleDatabaseServers).toHaveBeenCalledTimes(1);
   });
 
@@ -156,30 +163,47 @@ describe("both sweeps run on every tick", () => {
     );
   });
 
+  test("client-socket rows are deleted before the archive sweep could archive them", async () => {
+    await runTick();
+
+    const deleteOrder: number =
+      service.deleteClientSocketDatabaseServers.mock.invocationCallOrder[0]!;
+
+    expect(
+      service.markDisconnectedDatabaseServers.mock.invocationCallOrder[0],
+    ).toBeLessThan(deleteOrder);
+    expect(deleteOrder).toBeLessThan(
+      service.autoArchiveStaleDatabaseServers.mock.invocationCallOrder[0]!,
+    );
+  });
+
   test("the sweeps are called with no arguments — all policy lives in the service", async () => {
     await runTick();
 
     expect(service.markDisconnectedDatabaseServers).toHaveBeenCalledWith();
+    expect(service.deleteClientSocketDatabaseServers).toHaveBeenCalledWith();
     expect(service.autoArchiveStaleDatabaseServers).toHaveBeenCalledWith();
   });
 
-  test("a second tick runs both sweeps again (nothing is remembered between ticks)", async () => {
+  test("a second tick runs every sweep again (nothing is remembered between ticks)", async () => {
     await runTick();
     await runTick();
 
     expect(service.markDisconnectedDatabaseServers).toHaveBeenCalledTimes(2);
+    expect(service.deleteClientSocketDatabaseServers).toHaveBeenCalledTimes(2);
     expect(service.autoArchiveStaleDatabaseServers).toHaveBeenCalledTimes(2);
   });
 });
 
 describe("each sweep is isolated", () => {
-  test("a failing disconnect sweep is logged and the auto-archive still runs", async () => {
+  test("a failing disconnect sweep is logged and the other sweeps still run", async () => {
     service.markDisconnectedDatabaseServers.mockRejectedValue(
       new Error("redis exploded"),
     );
 
     await expect(runTick()).resolves.toBeUndefined();
 
+    expect(service.deleteClientSocketDatabaseServers).toHaveBeenCalledTimes(1);
     expect(service.autoArchiveStaleDatabaseServers).toHaveBeenCalledTimes(1);
     expect(mockedLogger.error).toHaveBeenCalledTimes(1);
     expect(mockedLogger.error).toHaveBeenCalledWith(
@@ -187,6 +211,24 @@ describe("each sweep is isolated", () => {
     );
     expect(mockedLogger.error).toHaveBeenCalledWith(
       expect.stringContaining("redis exploded"),
+    );
+  });
+
+  test("a failing client-socket sweep is logged and the other sweeps still run", async () => {
+    service.deleteClientSocketDatabaseServers.mockRejectedValue(
+      new Error("delete refused"),
+    );
+
+    await expect(runTick()).resolves.toBeUndefined();
+
+    expect(service.markDisconnectedDatabaseServers).toHaveBeenCalledTimes(1);
+    expect(service.autoArchiveStaleDatabaseServers).toHaveBeenCalledTimes(1);
+    expect(mockedLogger.error).toHaveBeenCalledTimes(1);
+    expect(mockedLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining("deleteClientSocketDatabaseServers failed"),
+    );
+    expect(mockedLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining("delete refused"),
     );
   });
 
@@ -207,15 +249,18 @@ describe("each sweep is isolated", () => {
     );
   });
 
-  test("both failing still never throws, and each failure is logged once", async () => {
+  test("all failing still never throws, and each failure is logged once", async () => {
     service.markDisconnectedDatabaseServers.mockRejectedValue(
       new Error("redis exploded"),
+    );
+    service.deleteClientSocketDatabaseServers.mockRejectedValue(
+      new Error("delete refused"),
     );
     service.autoArchiveStaleDatabaseServers.mockRejectedValue("not an Error");
 
     await expect(runTick()).resolves.toBeUndefined();
 
-    expect(mockedLogger.error).toHaveBeenCalledTimes(2);
+    expect(mockedLogger.error).toHaveBeenCalledTimes(3);
     expect(mockedLogger.error).toHaveBeenCalledWith(
       expect.stringContaining("not an Error"),
     );
@@ -228,6 +273,7 @@ describe("each sweep is isolated", () => {
 
     await expect(runTick()).resolves.toBeUndefined();
 
+    expect(service.deleteClientSocketDatabaseServers).toHaveBeenCalledTimes(1);
     expect(service.autoArchiveStaleDatabaseServers).toHaveBeenCalledTimes(1);
     expect(mockedLogger.error).toHaveBeenCalledWith(
       expect.stringContaining("sync boom"),
@@ -236,8 +282,9 @@ describe("each sweep is isolated", () => {
 });
 
 describe("reporting", () => {
-  test("logs one debug line with both counts when something changed", async () => {
+  test("logs one debug line with every count when something changed", async () => {
     service.markDisconnectedDatabaseServers.mockResolvedValue(3);
+    service.deleteClientSocketDatabaseServers.mockResolvedValue(5);
     service.autoArchiveStaleDatabaseServers.mockResolvedValue(7);
 
     await runTick();
@@ -247,7 +294,26 @@ describe("reporting", () => {
       expect.stringContaining("marked 3 database(s) disconnected"),
     );
     expect(mockedLogger.debug).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "deleted 5 database(s) traces created for a client's end of a connection",
+      ),
+    );
+    expect(mockedLogger.debug).toHaveBeenCalledWith(
       expect.stringContaining("auto-archived 7 stale discovered database(s)"),
+    );
+  });
+
+  test("reports a delete-only tick", async () => {
+    service.deleteClientSocketDatabaseServers.mockResolvedValue(2);
+
+    await runTick();
+
+    expect(mockedLogger.debug).toHaveBeenCalledTimes(1);
+    expect(mockedLogger.debug).toHaveBeenCalledWith(
+      expect.stringContaining("deleted 2 database(s)"),
+    );
+    expect(mockedLogger.debug).toHaveBeenCalledWith(
+      expect.stringContaining("auto-archived 0"),
     );
   });
 

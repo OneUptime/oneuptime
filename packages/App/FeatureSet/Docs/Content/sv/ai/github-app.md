@@ -14,7 +14,7 @@ Nämn den i ett ärende så öppnar den en pull request. Nämn den i en pull req
 
 ## Innan du börjar
 
-- Repositoriet måste vara **anslutet till ett OneUptime-projekt** via GitHub App:en. Se [GitHub Integration (egenhostad)](/docs/self-hosted/github-integration) för uppsättningen, eller anslut det från **Projektinställningar → Kodförråd** på OneUptime Cloud.
+- Repositoriet måste vara **anslutet till ett OneUptime-projekt** via GitHub App:en. Se [GitHub Integration (egenhostad)](/docs/self-hosted/github-integration) för uppsättningen, eller anslut det från **Uppgifter → Kodförråd** på OneUptime Cloud.
 - En **Runner med förmågan "Kör AI-kodfixar"** måste vara online — samma Runner som utför [AI-fixuppgifter](/docs/ai/ai-agent). Utan en sådan tas kommandon emot och misslyckas sedan efter 30 minuter med ett meddelande om att ingen agent hämtade dem.
 - GitHub App:en måste ha behörigheten **Issues: Läs och skriv** och prenumerera på webhook-händelserna som listas under [Vad du ska prenumerera på](#vad-du-ska-prenumerera-på).
 
@@ -129,13 +129,13 @@ Behandla en AI-författad pull request som du skulle behandla en från en ny bid
 
 ## Felsökning
 
-**Ingenting händer när jag nämner den.** Kontrollera @-namnet först — det är appens slug, inte dess visningsnamn. Kontrollera sedan att repositoriet är anslutet till ett projekt (**Projektinställningar → Kodförråd**), att **Respond to GitHub Commands** är påslaget, och att din GitHub App prenumererar på händelserna ovan.
+**Ingenting händer när jag nämner den.** Kontrollera @-namnet först — det är appens slug, inte dess visningsnamn. Kontrollera sedan att repositoriet är anslutet till ett projekt (**Uppgifter → Kodförråd**), att **Respond to GitHub Commands** är påslaget, och att din GitHub App prenumererar på händelserna ovan.
 
 **Den reagerar 😕 och säger ingenting.** Du har inte write-åtkomst till repositoriet.
 
 **Den säger att den redan arbetar med det här.** En körning av det slaget är redan igång på det här ärendet eller den här pull requesten. `@oneuptime status` talar om vilken, och `@oneuptime cancel` stoppar den.
 
-**Den bekräftade och blev sedan tyst länge.** Kontrollera att en Runner med **Kör AI-kodfixar** är online under **Inställningar → Runbook-agenter**. Utan en sådan misslyckas körningen efter 30 minuter, och tråden får besked.
+**Den bekräftade och blev sedan tyst länge.** Kontrollera att en Runner med **Kör AI-kodfixar** är online under **Runbooks → Runbook-agenter**. Utan en sådan misslyckas körningen efter 30 minuter, och tråden får besked.
 
 **Den säger att pull requesten kommer från en fork.** Revideringar behöver en gren i det här repositoriet. Be om en granskning i stället, eller pusha grenen hit.
 

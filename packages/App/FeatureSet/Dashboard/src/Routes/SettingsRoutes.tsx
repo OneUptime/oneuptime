@@ -3,6 +3,7 @@ import SettingsLayout from "../Pages/Settings/Layout";
 
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, SettingsRoutePath } from "../Utils/RouteMap";
+import RouteParams from "../Utils/RouteParams";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, lazy, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
@@ -50,12 +51,10 @@ import SettingsLlmProviders from "../Pages/Settings/LlmProviders";
 
 import SettingsLlmProviderView from "../Pages/Settings/LlmProviderView";
 
-import SettingsRunners from "../Pages/Settings/Runners";
-import SettingsRunnerView from "../Pages/Settings/RunnerView";
-import SettingsRunnerCredentials from "../Pages/Settings/RunnerCredentials";
+import MovedRunnerPageRedirect from "../Components/Runner/MovedRunnerPageRedirect";
 
+import SettingsAIFeatures from "../Pages/Settings/AIFeatures";
 import SettingsAICredits from "../Pages/Settings/AICredits";
-import SettingsAIGuardrails from "../Pages/Settings/AIGuardrails";
 
 import SettingsAILogs from "../Pages/Settings/AILogs";
 
@@ -71,11 +70,50 @@ export interface ComponentProps extends PageComponentProps {
   onProjectDeleted: () => void;
 }
 
+/*
+ * Where the Runner pages used to be, relative to …/settings/. Spelled out
+ * because nothing in the RouteMap points here any more: these exist only so an
+ * old link still arrives somewhere.
+ */
+export const MOVED_RUNNER_SETTINGS_PATHS: {
+  runners: string;
+  runnerView: string;
+  runnerCredentials: string;
+} = {
+  runners: "runners",
+  runnerView: `runners/${RouteParams.ModelID}`,
+  runnerCredentials: "runner-credentials",
+};
+
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
     <Routes>
+      {/*
+       * The Runner pages moved to Runbooks. Their old Settings URLs forward
+       * there (see MovedRunnerPageRedirect) — outside the Settings layout, so
+       * the Settings menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_RUNNER_SETTINGS_PATHS.runners}
+        element={<MovedRunnerPageRedirect pageMap={PageMap.RUNBOOKS_RUNNERS} />}
+      />
+      <PageRoute
+        path={MOVED_RUNNER_SETTINGS_PATHS.runnerView}
+        element={
+          <MovedRunnerPageRedirect pageMap={PageMap.RUNBOOKS_RUNNER_VIEW} />
+        }
+      />
+      <PageRoute
+        path={MOVED_RUNNER_SETTINGS_PATHS.runnerCredentials}
+        element={
+          <MovedRunnerPageRedirect
+            pageMap={PageMap.RUNBOOKS_RUNNER_CREDENTIALS}
+          />
+        }
+      />
+
       <PageRoute
         path={SettingsRoutePath[PageMap.SETTINGS] || ""}
         element={<SettingsLayout {...props} />}
@@ -142,6 +180,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_FEATURES)}
+          element={
+            <SettingsAIFeatures
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_FEATURES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_LLM_PROVIDERS)}
           element={
             <SettingsLlmProviders
@@ -162,48 +210,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW] as Route
               }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_RUNNERS)}
-          element={
-            <SettingsRunners
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_RUNNERS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_RUNNER_VIEW, 2)}
-          element={
-            <SettingsRunnerView
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_RUNNER_VIEW] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.SETTINGS_RUNNER_CREDENTIALS,
-          )}
-          element={
-            <SettingsRunnerCredentials
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_RUNNER_CREDENTIALS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_GUARDRAILS)}
-          element={
-            <SettingsAIGuardrails
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_AI_GUARDRAILS] as Route}
             />
           }
         />

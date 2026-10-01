@@ -65,6 +65,20 @@ export const DATA_ONLY_RUN_TEXT: string =
   "This investigation used OneUptime data only — no kubectl commands were run.";
 
 /*
+ * The same fact for a run that ran no kubectl but did run commands on other
+ * infrastructure (a Docker host, a database server, … through its AI
+ * agent): "OneUptime data only" would be false there, so only the kubectl
+ * part is said.
+ */
+export const NO_KUBECTL_RUN_TEXT: string =
+  "No kubectl commands were run during this investigation.";
+
+// How the "tried kubectl, nothing came back" sentences end.
+const DATA_ONLY_SEE_ACTIVITY_TEXT: string =
+  " This investigation used OneUptime data only; see Investigation activity for why.";
+const SEE_ACTIVITY_TEXT: string = " See Investigation activity for why.";
+
+/*
  * How the sentence is presented:
  *  - "ran": at least one kubectl command completed on the cluster — the
  *    notice's "had access" styling;
@@ -93,27 +107,39 @@ function toCount(value: number | undefined): number {
 }
 
 /*
+ * What ran a cluster's kubectl commands, named without guessing which: the
+ * cluster's Kubernetes AI agent, the chart's previous in-cluster Runner, or
+ * an advanced Runner an operator bound. A run's events do not record which
+ * one took its commands, and the cluster's current target (clusterAccess)
+ * may not be the one the run had.
+ */
+export const CLUSTER_KUBECTL_RUNNER_NAME: string =
+  "the cluster's AI agent or Runner";
+
+/*
  * Why commands that did not run and commands whose result never came back
- * produced nothing, for a run where no command ran: "the cluster's Runner
- * took it but never reported back, so whether it ran is unknown".
+ * produced nothing, for a run where no command ran: "the cluster's AI agent
+ * or Runner took it but never reported back, so whether it ran is unknown".
  */
 function describeCommandsWithoutResult(
   notRun: number,
   unknown: number,
 ): string {
   if (notRun === 0) {
-    return `the cluster's Runner took ${
+    return `${CLUSTER_KUBECTL_RUNNER_NAME} took ${
       unknown === 1 ? "it" : "them"
     } but never reported back, so whether ${
       unknown === 1 ? "it" : "they"
     } ran is unknown`;
   }
 
-  return `${notRun.toLocaleString()} could not run (the cluster's Runner did not pick ${
+  return `${notRun.toLocaleString()} could not run (${CLUSTER_KUBECTL_RUNNER_NAME} did not pick ${
     notRun === 1 ? "it" : "them"
   } up, or ${
     notRun === 1 ? "it was" : "they were"
-  } refused), and the Runner took ${unknown.toLocaleString()} more but never reported back`;
+  } refused), and ${unknown.toLocaleString()} more ${
+    unknown === 1 ? "was" : "were"
+  } picked up but never reported back`;
 }
 
 /*
@@ -122,9 +148,9 @@ function describeCommandsWithoutResult(
  * not been loaded) — never guessed from the current configuration.
  *
  * "Ran" is only ever said of commands that reached kubectl. Commands that
- * returned an error, commands that never ran (the cluster's Runner did
- * not pick them up, or they were refused) and commands a Runner took but
- * never reported back on (whether they ran is unknown) are named
+ * returned an error, commands that never ran (the cluster's AI agent or
+ * Runner did not pick them up, or they were refused) and commands it took
+ * but never reported back on (whether they ran is unknown) are named
  * separately, so an unreachable cluster is never reported as inspected
  * and a command that may have run is never reported as never run.
  */
@@ -141,8 +167,24 @@ export function describeFinishedRunKubectlUsage(
   const notRun: number = toCount(activity.notRun);
   const unknown: number = toCount(activity.unknown);
 
+  /*
+   * Commands that ran on other infrastructure (through the resources' AI
+   * agents) brought back data of their own, so a run without kubectl
+   * output did not use OneUptime data only.
+   */
+  const ranInfrastructureCommands: boolean =
+    toCount(activity.infrastructure?.executed) > 0;
+  const seeActivityText: string = ranInfrastructureCommands
+    ? SEE_ACTIVITY_TEXT
+    : DATA_ONLY_SEE_ACTIVITY_TEXT;
+
   if (executed === 0 && notRun === 0 && unknown === 0) {
-    return { text: DATA_ONLY_RUN_TEXT, tone: "none" };
+    return {
+      text: ranInfrastructureCommands
+        ? NO_KUBECTL_RUN_TEXT
+        : DATA_ONLY_RUN_TEXT,
+      tone: "none",
+    };
   }
 
   if (executed === 0 && unknown > 0) {
@@ -152,7 +194,7 @@ export function describeFinishedRunKubectlUsage(
       )}, but no result came back from the cluster — ${describeCommandsWithoutResult(
         notRun,
         unknown,
-      )}. This investigation used OneUptime data only; see Investigation activity for why.`,
+      )}.${seeActivityText}`,
       tone: "failed",
     };
   }
@@ -161,11 +203,11 @@ export function describeFinishedRunKubectlUsage(
     return {
       text: `OneUptime AI tried ${pluralizeCommands(
         notRun,
-      )}, but none ran on the cluster — the cluster's Runner did not pick ${
+      )}, but none ran on the cluster — ${CLUSTER_KUBECTL_RUNNER_NAME} did not pick ${
         notRun === 1 ? "it" : "them"
       } up, or ${
         notRun === 1 ? "it was" : "they were"
-      } refused. This investigation used OneUptime data only; see Investigation activity for why.`,
+      } refused.${seeActivityText}`,
       tone: "failed",
     };
   }
@@ -269,12 +311,20 @@ export function getClusterAccessSignature(
   });
 }
 
-function getClusterAiPageRoute(clusterId: string): Route {
+/*
+ * Where a reader goes to fix a cluster's AI access: its AI agent page
+ * (AI → Agent), which shows the connection, the server's gaps and what AI
+ * may do there.
+ */
+export function getClusterAiAgentPageRoute(clusterId: string): Route {
   return RouteUtil.populateRouteParams(
-    RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI] as Route,
+    RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT] as Route,
     { modelId: new ObjectID(clusterId) },
   );
 }
+
+export const CLUSTER_AI_AGENT_PAGE_LINK_TEXT: string =
+  "Open the cluster's AI agent page";
 
 function describeRemediation(status: ClusterAccessNoticeRow): string {
   if (status.remediationMode === KubernetesAiRemediationMode.Disabled) {
@@ -316,19 +366,19 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
   // Tried kubectl but nothing came back: worth the reader's attention.
   const didKubectlFail: boolean = finishedRunUsage?.tone === "failed";
 
+  /*
+   * Each fact is one line under a small icon, in the report's own type. The
+   * icon alone carries the tone (green: the run reached a cluster, amber:
+   * something needs fixing, gray: neither), so the notice no longer adds a
+   * green, amber or gray box of its own to the card.
+   */
   return (
-    <div className="space-y-2" data-testid="cluster-access-notice">
+    <div className="space-y-3" data-testid="cluster-access-notice">
       {finishedRunUsage ? (
         <div
           data-testid="cluster-access-run-usage"
           data-tone={finishedRunUsage.tone}
-          className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${
-            didInspectCluster
-              ? "border-emerald-200 bg-emerald-50/70"
-              : didKubectlFail
-                ? "border-amber-200 bg-amber-50"
-                : "border-gray-200 bg-gray-50"
-          }`}
+          className="flex items-start gap-3"
         >
           <Icon
             icon={
@@ -338,23 +388,15 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
                   ? IconProp.Alert
                   : IconProp.Info
             }
-            className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
+            className={`mt-1 h-4 w-4 flex-shrink-0 ${
               didInspectCluster
                 ? "text-emerald-600"
                 : didKubectlFail
-                  ? "text-amber-600"
-                  : "text-gray-500"
+                  ? "text-amber-500"
+                  : "text-gray-400"
             }`}
           />
-          <p
-            className={`text-xs leading-5 ${
-              didInspectCluster
-                ? "text-emerald-900"
-                : didKubectlFail
-                  ? "text-amber-900"
-                  : "text-gray-700"
-            }`}
-          >
+          <p className="min-w-0 text-sm leading-6 text-gray-600">
             {finishedRunUsage.text}
           </p>
         </div>
@@ -365,13 +407,13 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
       {reachable.length > 0 ? (
         <div
           data-testid="cluster-access-reachable"
-          className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3"
+          className="flex items-start gap-3"
         >
           <Icon
             icon={IconProp.ShieldCheck}
-            className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600"
+            className="mt-1 h-4 w-4 flex-shrink-0 text-emerald-600"
           />
-          <p className="text-xs leading-5 text-emerald-900">
+          <p className="min-w-0 text-sm leading-6 text-gray-600">
             OneUptime AI {props.isRunFinished ? "currently has" : "has"}{" "}
             read-only kubectl access to{" "}
             {reachable.map((status: ClusterAccessNoticeRow, index: number) => {
@@ -379,8 +421,8 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
                 <span key={status.clusterId}>
                   {index > 0 ? ", " : ""}
                   <Link
-                    to={getClusterAiPageRoute(status.clusterId)}
-                    className="font-medium underline decoration-emerald-300 hover:text-emerald-950"
+                    to={getClusterAiAgentPageRoute(status.clusterId)}
+                    className="font-medium text-gray-900 underline decoration-gray-300 underline-offset-2 hover:decoration-gray-500"
                   >
                     {status.clusterName}
                   </Link>{" "}
@@ -407,42 +449,44 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
           <div
             key={status.clusterId}
             data-testid="cluster-access-unreachable"
-            className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
+            className="flex items-start gap-3"
           >
             <Icon
               icon={IconProp.Alert}
-              className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
+              className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500"
             />
             <div className="min-w-0">
-              <p className="text-sm font-medium text-amber-900">
+              <p className="text-sm font-medium text-gray-900">
                 {props.isRunFinished
                   ? `OneUptime AI cannot currently reach cluster "${status.clusterName}" with kubectl`
                   : `Investigating with OneUptime data only — no kubectl access to cluster "${status.clusterName}"`}
               </p>
               {first ? (
-                <p className="mt-1 text-xs leading-5 text-amber-800">
-                  <span className="font-semibold">Why: </span>
+                <p className="mt-1 text-sm leading-6 text-gray-600">
+                  <span className="font-medium text-gray-700">Why: </span>
                   {first.title}. {first.description}
                 </p>
               ) : (
                 <></>
               )}
               {first ? (
-                <p className="mt-1 text-xs leading-5 text-amber-800">
-                  <span className="font-semibold">What to do: </span>
+                <p className="mt-1 text-sm leading-6 text-gray-600">
+                  <span className="font-medium text-gray-700">
+                    What to do:{" "}
+                  </span>
                   {first.nextStep}
                   {blocking.length > 1
-                    ? ` (${blocking.length - 1} more to fix on the cluster's AI page.)`
+                    ? ` (${blocking.length - 1} more to fix on the cluster's AI agent page.)`
                     : ""}
                 </p>
               ) : (
                 <></>
               )}
               <Link
-                to={getClusterAiPageRoute(status.clusterId)}
-                className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 hover:text-indigo-900"
+                to={getClusterAiAgentPageRoute(status.clusterId)}
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800"
               >
-                <span>Give OneUptime AI access to this cluster</span>
+                <span>{CLUSTER_AI_AGENT_PAGE_LINK_TEXT}</span>
                 <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
               </Link>
             </div>

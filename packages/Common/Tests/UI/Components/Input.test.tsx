@@ -4,9 +4,46 @@ import Input, {
 } from "../../../UI/Components/Input/Input";
 import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import React from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import { describe, expect, afterEach, test } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
+
+type ReadValueAtMountFunction = (input: ReactElement) => Array<string>;
+
+/*
+ * What the <input> holds at the end of the commit that inserts it, before any
+ * passive effect has run. A parent's layout effect runs after its children's,
+ * in that same commit, and nothing the browser does (paint, a click, a
+ * keystroke, an automation tool's fill) can land before it. An empty string
+ * here is a field someone can see and type into while it is still blank.
+ */
+const readValueAtMount: ReadValueAtMountFunction = (
+  input: ReactElement,
+): Array<string> => {
+  const seen: Array<string> = [];
+
+  const Probe: FunctionComponent = (): ReactElement => {
+    const container: React.MutableRefObject<HTMLDivElement | null> =
+      useRef<HTMLDivElement | null>(null);
+
+    useLayoutEffect(() => {
+      seen.push(
+        container.current?.querySelector("input")?.value ?? "<no input>",
+      );
+    }, []);
+
+    return <div ref={container}>{input}</div>;
+  };
+
+  render(<Probe />);
+
+  return seen;
+};
 
 describe("Input", () => {
   afterEach(() => {
@@ -140,6 +177,48 @@ describe("Input", () => {
     rerender(<Input {...{ value: newValue }} />);
 
     expect(screen.getByDisplayValue(newValue)).toBeInTheDocument();
+  });
+
+  /*
+   * The SLO burn rate form's Incident Title mounted blank and filled its
+   * default template in a task later. A fill that selected the blank field and
+   * then inserted its text on either side of that task put the text after the
+   * default: "SLO burn rate: {{sloName}} — {{ruleName}}Coordinate response
+   * for {{sloName}}". A person clicking into the field as the step appeared
+   * got the same.
+   */
+  test("shows initialValue in the commit that mounts it", () => {
+    expect(
+      readValueAtMount(
+        <Input initialValue="SLO burn rate: {{sloName}} — {{ruleName}}" />,
+      ),
+    ).toEqual(["SLO burn rate: {{sloName}} — {{ruleName}}"]);
+  });
+
+  test("shows value over initialValue in the commit that mounts it", () => {
+    expect(
+      readValueAtMount(<Input value="value" initialValue="initial value" />),
+    ).toEqual(["value"]);
+  });
+
+  test("shows a date in the commit that mounts it", () => {
+    expect(
+      readValueAtMount(
+        <Input type={InputType.DATE} initialValue="2023-04-22T00:00:00" />,
+      ),
+    ).toEqual(["2023-04-22"]);
+  });
+
+  test("mounts empty when it has no value", () => {
+    expect(readValueAtMount(<Input placeholder="placeholder" />)).toEqual([""]);
+  });
+
+  test("follows an initialValue that arrives after mounting", () => {
+    const { rerender } = render(<Input initialValue="" />);
+
+    rerender(<Input initialValue="loaded later" />);
+
+    expect(screen.getByDisplayValue("loaded later")).toBeInTheDocument();
   });
 
   test("resets input to initialValue when value changes to empty string", () => {
@@ -276,6 +355,37 @@ describe("Input", () => {
 
     expect(screen.getByTestId(errorTestId)).toBeInTheDocument();
     expect(screen.getByText(error)).toBeInTheDocument();
+  });
+
+  /*
+   * Every Input's error message had the same fixed id, so on a form with
+   * several fields in error each field was described by the first one's
+   * message -- "Your Email" read out as "Title is required.".
+   */
+  test("describes each input by its own error message", () => {
+    render(
+      <>
+        <Input error="Title is required." dataTestId="title" />
+        <Input error="Your Email is required." dataTestId="email" />
+      </>,
+    );
+    const title: HTMLElement = screen.getByTestId("title");
+    const email: HTMLElement = screen.getByTestId("email");
+
+    expect(title).toHaveAccessibleDescription("Title is required.");
+    expect(email).toHaveAccessibleDescription("Your Email is required.");
+    expect(title.getAttribute("aria-describedby")).not.toBe(
+      email.getAttribute("aria-describedby"),
+    );
+    expect(screen.getAllByRole("alert")).toHaveLength(2);
+  });
+
+  test("keeps the caller's own description when it has no error", () => {
+    render(<Input ariaDescribedby="picker-message" dataTestId="field" />);
+
+    expect(screen.getByTestId("field").getAttribute("aria-describedby")).toBe(
+      "picker-message",
+    );
   });
 
   test("displays error icon", () => {

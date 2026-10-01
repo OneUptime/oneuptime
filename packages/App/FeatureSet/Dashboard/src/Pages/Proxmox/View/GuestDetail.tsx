@@ -32,6 +32,7 @@ import ResourceOverviewTab, {
 } from "../../../Components/Infrastructure/ResourceOverviewTab";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
 import ProxmoxRateChart from "../../../Components/Proxmox/ProxmoxRateChart";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import StatusBadge, {
   StatusBadgeType,
@@ -437,7 +438,7 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
             renderExtraCharts={(dateRange: InBetween<Date>): ReactElement => {
               return (
                 <div className="mt-4 space-y-6">
-                  <div>
+                  <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
                       Network Throughput
                       <InfoTooltip
@@ -445,6 +446,10 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
                         text={
                           PROXMOX_METRIC_DESCRIPTIONS.guestNetworkThroughput
                         }
+                      />
+                      <TimeRangeZoomHint
+                        revealOnHover={true}
+                        className="ml-auto font-normal"
                       />
                     </div>
                     <ProxmoxRateChart
@@ -464,12 +469,16 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
                       endDate={dateRange.endValue}
                     />
                   </div>
-                  <div>
+                  <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
                       Disk Throughput
                       <InfoTooltip
                         label="Disk Throughput"
                         text={PROXMOX_METRIC_DESCRIPTIONS.guestDiskThroughput}
+                      />
+                      <TimeRangeZoomHint
+                        revealOnHover={true}
+                        className="ml-auto font-normal"
                       />
                     </div>
                     <ProxmoxRateChart

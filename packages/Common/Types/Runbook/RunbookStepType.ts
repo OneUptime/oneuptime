@@ -14,6 +14,15 @@ enum RunbookStepType {
    * commands, remediations run policy-tiered writes); not authored in runbooks.
    */
   Kubectl = "Kubectl",
+  /*
+   * A single command for an infrastructure resource's AI agent (Docker,
+   * Podman, Docker Swarm, Proxmox, VMware, Ceph, a database server or a
+   * host), dispatched as an argv (never a shell line) to that resource's
+   * online ResourceAiAgent — never claimed by a Runner, never run by the
+   * Worker. Composed only by OneUptime AI and tiered by the resource command
+   * policy (Utils/AiRemediation/Resource); not authored in runbooks.
+   */
+  ResourceCommand = "ResourceCommand",
 }
 
 export default RunbookStepType;
@@ -65,4 +74,24 @@ export const PAYLOAD_CARRYING_STEP_TYPES: Array<RunbookStepType> = [
 
 export function isPayloadCarryingStepType(type: RunbookStepType): boolean {
   return PAYLOAD_CARRYING_STEP_TYPES.includes(type);
+}
+
+/*
+ * Step types executed by an infrastructure resource's AI agent (a
+ * ResourceAiAgent row), a third lane beside the Runner and the Worker. Such
+ * a job is written with targetResourceAiAgentId and no targetAgentId, so no
+ * Runner can claim it: RunnerJobService.enqueue refuses these types (they
+ * are not in RUNNER_EXECUTED_STEP_TYPES), a Runner may not ask for them on a
+ * claim, and the Worker's step switch has no case for them.
+ *
+ * Deliberately NOT in PAYLOAD_CARRYING_STEP_TYPES, which is the payload half
+ * of the Runner lane (a test asserts the two Runner halves are
+ * complementary); these jobs still carry their argv in RunnerJob.payload.
+ */
+export const AI_AGENT_EXECUTED_STEP_TYPES: Array<RunbookStepType> = [
+  RunbookStepType.ResourceCommand,
+];
+
+export function isAiAgentExecutedStepType(type: RunbookStepType): boolean {
+  return AI_AGENT_EXECUTED_STEP_TYPES.includes(type);
 }

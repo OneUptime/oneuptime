@@ -474,6 +474,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     useRef<HTMLDivElement | null>(null);
   const inputRef: React.MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
+  const valueButtonRef: React.MutableRefObject<HTMLButtonElement | null> =
+    useRef<HTMLButtonElement | null>(null);
   const debounceRef: React.MutableRefObject<number | null> = useRef<
     number | null
   >(null);
@@ -572,6 +574,67 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       document.removeEventListener("mousedown", handle);
     };
   }, []);
+
+  /*
+   * The keyboard's side of the click-outside above. Tabbing out of the
+   * dropdown - from the input, or on past the last option in the menu - onto
+   * the next field used to leave the menu open, and when that field opened a
+   * popup of its own (the next dropdown, the Affected Resources picker) the
+   * two stacked on top of each other. The menu is a DOM child of the
+   * container (laid out fixed, never portalled), so moving between the input,
+   * the chips, the menu's tabs and its options stays inside and keeps it open.
+   *
+   * Only a move onto another element closes it. With no element to go to
+   * (relatedTarget null, or the document itself) focus went nowhere in
+   * particular - the window lost focus, a press landed on something that
+   * takes no focus, the focused option unmounted - and presses are for the
+   * listener above to judge.
+   */
+  const closeWhenFocusLeaves: (
+    event: React.FocusEvent<HTMLDivElement>,
+  ) => void = (event: React.FocusEvent<HTMLDivElement>): void => {
+    const nextFocused: EventTarget | null = event.relatedTarget;
+
+    if (
+      !(nextFocused instanceof Element) ||
+      event.currentTarget.contains(nextFocused)
+    ) {
+      return;
+    }
+
+    setIsOpen(false);
+    setHighlightedIndex(-1);
+  };
+
+  /*
+   * A single-select showing its value swaps elements as the menu opens and
+   * closes: the value button while closed, the search input while open. Focus
+   * meant for the field across that swap has to wait for the element taking
+   * over, which is not mounted yet when the swap is asked for. Set by the
+   * value button, which hands focus to the search input as the menu opens,
+   * and by Escape, which hands it back to the value button as the menu
+   * closes (see closeMenuOnEscape). Without it focus went down with the
+   * element being replaced, to the page: typing did not search, focus could
+   * never leave the dropdown to close the menu (see closeWhenFocusLeaves),
+   * and a keyboard user was left outside the field they were working in.
+   */
+  const focusFieldAfterSwapRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  useLayoutEffect(() => {
+    if (!focusFieldAfterSwapRef.current) {
+      return;
+    }
+
+    focusFieldAfterSwapRef.current = false;
+
+    if (isOpen) {
+      inputRef.current?.focus();
+      return;
+    }
+
+    valueButtonRef.current?.focus();
+  }, [isOpen]);
 
   useEffect(() => {
     return () => {
@@ -1179,11 +1242,49 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   const showSingleSelectedText: boolean =
     !isMulti && !isOpen && selectedOptions.length > 0;
 
+  /*
+   * Escape while the menu is open closes just the menu, wherever focus is in
+   * the dropdown: the search input, or - reached with Tab - an option, one of
+   * the menu's tabs or footer buttons, a chip or the Clear button. It is
+   * claimed, so Modal's document listener never hears it: that listener
+   * closes the whole form and throws away its unsaved edits, which is what
+   * Escape on a Tab-reached option used to do while Escape in the input only
+   * closed the menu. With the menu already closed Escape is left alone, so
+   * the next press still closes the modal.
+   *
+   * Focus goes back to the field rather than down with the menu's buttons.
+   */
+  const closeMenuOnEscape: (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) => void = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key !== "Escape" || !isOpen) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (!isMulti && selectedOptions.length > 0) {
+      /*
+       * Closing swaps the search input for the value button, so focus waits
+       * for the button to mount (see focusFieldAfterSwapRef).
+       */
+      focusFieldAfterSwapRef.current = true;
+    } else {
+      // Focusing the input asks to open the menu; closing it after wins.
+      inputRef.current?.focus();
+    }
+
+    setIsOpen(false);
+    setHighlightedIndex(-1);
+  };
+
   return (
     <div
       ref={containerRef}
       id={props.id}
       className={props.className || "relative mt-2 mb-1 w-full"}
+      onBlur={closeWhenFocusLeaves}
+      onKeyDown={closeMenuOnEscape}
     >
       {isMulti && selectedOptions.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1.5">
@@ -1240,6 +1341,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
          */}
         {showSingleSelectedText && (
           <button
+            ref={valueButtonRef}
             type="button"
             disabled={props.disabled}
             aria-labelledby={props.ariaLabelledby}
@@ -1247,8 +1349,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
               if (props.disabled) {
                 return;
               }
+              focusFieldAfterSwapRef.current = true;
               setIsOpen(true);
-              inputRef.current?.focus();
             }}
             onFocus={() => {
               props.onFocus?.();
@@ -1406,16 +1508,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   }
                   return;
                 }
-                if (event.key === "Escape") {
-                  /*
-                   * The modal also listens for Escape. Consume it here so the
-                   * first press closes the menu without dismissing the form.
-                   */
-                  event.preventDefault();
-                  setIsOpen(false);
-                  setHighlightedIndex(-1);
-                  return;
-                }
+                /*
+                 * Escape bubbles to the container, which closes the menu for
+                 * every control in the dropdown alike (closeMenuOnEscape).
+                 */
                 if (
                   event.key === "Backspace" &&
                   searchQuery === "" &&

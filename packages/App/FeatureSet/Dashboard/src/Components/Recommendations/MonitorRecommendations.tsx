@@ -24,6 +24,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 
@@ -138,17 +139,37 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     Set<string>
   >(new Set<string>());
 
-  const [filterState, setFilterState] = useState<RecommendationFilterState>({
-    searchText: "",
-    /*
-     * Opens on the not-yet-set-up subset. This page's job is "what still needs
-     * doing here"; opening on All means a cluster with every monitor already
-     * created renders eighteen greyed-out cards and the user has to work out
-     * that there is nothing to do.
-     */
-    status: RecommendationStatusFilter.Available,
-    severity: RecommendationSeverityFilter.All,
-  });
+  /*
+   * `?search=` pre-fills the search box and `?status=` the status filter, so
+   * another page can link straight to a slice of this one: the Replay Health
+   * page's "Set up alerts" opens a RUM application's list on its storage
+   * budget alerts (`?search=budget&status=All`). They seed the first render
+   * only; from then on the filters are the user's.
+   */
+  const [filterState, setFilterState] = useState<RecommendationFilterState>(
+    (): RecommendationFilterState => {
+      const statusFromUrl: string | null =
+        Navigation.getQueryStringByName("status");
+
+      return {
+        searchText: Navigation.getQueryStringByName("search") || "",
+        /*
+         * Opens on the not-yet-set-up subset unless the link says otherwise.
+         * This page's job is "what still needs doing here"; opening on All
+         * means a cluster with every monitor already created renders eighteen
+         * greyed-out cards and the user has to work out that there is nothing
+         * to do. A link to a handful of named alerts is the exception: opened
+         * on Available after they were created, it would show an empty list.
+         */
+        status: Object.values(RecommendationStatusFilter).includes(
+          statusFromUrl as RecommendationStatusFilter,
+        )
+          ? (statusFromUrl as RecommendationStatusFilter)
+          : RecommendationStatusFilter.Available,
+        severity: RecommendationSeverityFilter.All,
+      };
+    },
+  );
 
   const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
     useState<Array<DropdownOption>>([]);

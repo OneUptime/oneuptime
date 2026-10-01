@@ -352,23 +352,25 @@ The receiver emits one `windows.service.status` gauge per service — the intege
 
 > **`include_services` has no effect?** The filter can only ever *narrow* the set, so if you list services and still see every one, the edited config almost certainly hasn't reached the running collector. Restart the service after editing (Step 3); make sure `include_services` is a populated list at the same indent as `collection_interval` (not left commented out or empty); and give the **Services** tab a few minutes so services reported before the change age out of its rolling window. The names are exact, case-sensitive Windows service _key_ names (e.g. `Spooler`, `W3SVC`), which you can list with `Get-Service | Select-Object Name`.
 
-### Inventory attributes (IP, serial number, make, model)
+### Inventory attributes (IP, MAC, serial number, make, model, firmware)
 
 Every host you monitor also gets an **Inventory** item — the record a CMDB export reads. Its *Details* section is filled straight from the resource attributes on the telemetry you send, so what arrives on the wire is what a CMDB sync can pull.
 
 | What you want | Attribute | Where it comes from |
 | ------------- | --------- | ------------------- |
 | IP addresses | `host.ip` | `resourcedetection`, comma-joined when the machine has several |
+| MAC addresses | `host.mac` | `resourcedetection`, one per interface that is up, comma-joined |
 | Architecture | `host.arch` | `resourcedetection` |
 | Machine id | `host.id` | `resourcedetection` — the machine GUID on Windows, `/etc/machine-id` on Linux |
-| OS | `os.type`, `os.description` | `resourcedetection` |
+| OS | `os.type`, `os.description`, `os.version` | `resourcedetection` |
 | Serial number | `host.serial_number` | Stamped by you — WMI / DMI |
 | Make | `device.manufacturer` | Stamped by you — WMI / DMI |
 | Model | `device.model.name` | Stamped by you — WMI / DMI |
+| Firmware (BIOS / UEFI) version | `device.firmware.version` | Stamped by you — WMI / DMI |
 
-Everything marked `resourcedetection` is handled by that processor, which every complete example below configures. `host.ip`, `host.arch`, `host.id` and `os.description` are opt-in in the system detector — only `host.name` and `os.type` are on by default — which is why those blocks list them explicitly under `resource_attributes`. If you assembled your own config from [Common pieces](#common-pieces-used-by-every-os) and the receiver blocks, copy the `resourcedetection` processor across too: without it there is no `host.name`, so no host and no inventory item at all.
+Everything marked `resourcedetection` is handled by that processor, which every complete example below configures. `host.ip`, `host.mac`, `host.arch`, `host.id`, `os.description` and `os.version` are opt-in in the system detector — only `host.name` and `os.type` are on by default — which is why those blocks list them explicitly under `resource_attributes`. If you assembled your own config from [Common pieces](#common-pieces-used-by-every-os) and the receiver blocks, copy the `resourcedetection` processor across too: without it there is no `host.name`, so no host and no inventory item at all.
 
-#### Serial number, make and model have no detector
+#### Serial number, make, model and firmware version have no detector
 
 They live in the machine's firmware, which the collector does not read. On Linux that is not an oversight you can configure away: the packaged unit runs the collector as the unprivileged `otelcol-contrib` user and `/sys/class/dmi/id/product_serial` is root-only. So read them once, when the machine is provisioned, and stamp them onto the resource with a `resource` processor:
 
@@ -385,6 +387,9 @@ processors:
       - key: device.model.name
         value: "OptiPlex 7090"
         action: upsert
+      - key: device.firmware.version
+        value: "1.21.0"
+        action: upsert
 
 service:
   pipelines:
@@ -394,7 +399,7 @@ service:
 
 **Append `resource/oneuptime-hardware` to the processor list you already have — do not paste this line over it.** The complete examples on this page run `[resourcedetection, resource, batch]`, and `resource` is what upserts `service.name`; drop it and the batch arrives without one, so the telemetry re-lands under a `host/<hostname>` pseudo-service instead of the service you had. Keep `resourcedetection` first either way — it is what attaches the batch to the host in the first place.
 
-`host.manufacturer` and `host.model.name` are accepted as alternative spellings and are stored under the `device.*` keys above, so a config written either way lands in one place. If both are present the `device.*` value wins.
+`host.manufacturer`, `host.model.name`, `host.firmware.version` and `host.bios.version` are accepted as alternative spellings and are stored under the `device.*` keys above, so a config written either way lands in one place. If both are present the `device.*` value wins. The one key that goes the other way is the serial number: `device.serial_number` is accepted and stored as `host.serial_number`.
 
 > **On a resource with no host identity, `device.manufacturer` still means "mobile app".** It is one of the attributes that marks a batch as mobile Real User Monitoring. A host resource always carries `host.name` or `host.id`, so a collector config like the one above is never mistaken for a phone — but don't reuse the same block in a mobile app's SDK configuration.
 
@@ -425,6 +430,9 @@ function Format-YamlValue($value) {
       - key: device.model.name
         value: $(Format-YamlValue $cs.Model)
         action: upsert
+      - key: device.firmware.version
+        value: $(Format-YamlValue $bios.SMBIOSBIOSVersion)
+        action: upsert
 "@
 ```
 
@@ -438,15 +446,17 @@ Use `Get-CimInstance`, not the deprecated `Get-WmiObject` — the latter is abse
 cat /sys/class/dmi/id/product_serial   # host.serial_number
 cat /sys/class/dmi/id/sys_vendor       # device.manufacturer
 cat /sys/class/dmi/id/product_name     # device.model.name
+cat /sys/class/dmi/id/bios_version     # device.firmware.version
 ```
 
-`dmidecode -s system-serial-number`, `-s system-manufacturer` and `-s system-product-name` return the same values on machines without `/sys/class/dmi`. Virtual machines report their hypervisor here (`QEMU`, `VMware, Inc.`, `Amazon EC2`), which is usually what you want in a CMDB.
+`bios_version` is the one of the four an unprivileged user can read. `dmidecode -s system-serial-number`, `-s system-manufacturer`, `-s system-product-name` and `-s bios-version` return the same values on machines without `/sys/class/dmi`. Virtual machines report their hypervisor here (`QEMU`, `VMware, Inc.`, `Amazon EC2`), which is usually what you want in a CMDB.
 
 **macOS**:
 
 ```bash
 ioreg -l | awk -F'"' '/IOPlatformSerialNumber/{print $4}'   # host.serial_number
 sysctl -n hw.model                                          # device.model.name
+system_profiler SPHardwareDataType | awk -F': ' '/System Firmware Version/{print $2}'   # device.firmware.version
 ```
 
 The manufacturer is `Apple Inc.`
@@ -474,9 +484,15 @@ Where the variable goes depends on how the collector runs. **Scope it to the col
 
 The `resource` processor is easier to get right, is scoped to the collector by construction, and the values never change for a given machine — prefer it unless you already template environment files.
 
+#### A MAC address is not a stamped value
+
+`host.mac` comes from the `system` detector like `host.ip`: one address per network interface that is up, loopback excluded, in the IEEE form OpenTelemetry specifies (`AC-DE-48-23-45-67`). A machine with Docker or Hyper-V running reports its virtual switches too, which is why the value is a list. An interface that reports the all-zero placeholder (`00-00-00-00-00-00`) is left out.
+
+There is no *available upgrade* firmware version: nothing on the machine reports one, so OneUptime records the version installed.
+
 #### Checking it worked
 
-Open the host in OneUptime, follow **Open inventory item** from the host page, and look at the *Details* section of the **Attributes** card. Values appear within a few minutes of the next batch. Because they are stamped rather than detected, they do not update themselves — re-run the steps above after a motherboard swap or a re-image.
+Open the host in OneUptime, follow **Open inventory item** from the host page, and look at the *Details* section of the **Attributes** card. Values appear within a few minutes of the next batch. Because they are stamped rather than detected, they do not update themselves — re-run the steps above after a motherboard swap, a firmware update or a re-image.
 
 ### Complete example — Linux host
 
@@ -532,7 +548,11 @@ processors:
           enabled: true
         host.ip:
           enabled: true
+        host.mac:
+          enabled: true
         os.description:
+          enabled: true
+        os.version:
           enabled: true
   resource:
     attributes:
@@ -602,7 +622,11 @@ processors:
           enabled: true
         host.ip:
           enabled: true
+        host.mac:
+          enabled: true
         os.description:
+          enabled: true
+        os.version:
           enabled: true
   resource:
     attributes:
@@ -683,7 +707,11 @@ processors:
           enabled: true
         host.ip:
           enabled: true
+        host.mac:
+          enabled: true
         os.description:
+          enabled: true
+        os.version:
           enabled: true
   resource:
     attributes:
@@ -716,10 +744,11 @@ service:
 
 ### Linux (systemd)
 
-The Debian / RPM packages already install a systemd unit. Just enable and start it:
+The Debian / RPM packages already install a systemd unit and start it with the package's own default config, so enable it and restart it to load your `config.yaml`:
 
 ```bash
-sudo systemctl enable --now otelcol-contrib
+sudo systemctl enable otelcol-contrib
+sudo systemctl restart otelcol-contrib
 sudo systemctl status otelcol-contrib
 ```
 
@@ -766,10 +795,9 @@ sudo launchctl list | grep otelcol-contrib
 From an **elevated** PowerShell prompt:
 
 ```powershell
-sc.exe create "otelcol-contrib" `
-  binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" `
-  start= auto `
-  DisplayName= "OpenTelemetry Collector (OneUptime)"
+# --% hands the rest of the line to sc.exe unchanged, so its quoting
+# survives PowerShell — keep the command on one line.
+sc.exe --% create "otelcol-contrib" binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" start= auto DisplayName= "OpenTelemetry Collector (OneUptime)"
 
 sc.exe description "otelcol-contrib" "Collects host telemetry and forwards it to OneUptime over OTLP."
 
@@ -1019,7 +1047,11 @@ processors:
           enabled: true
         host.ip:
           enabled: true
+        host.mac:
+          enabled: true
         os.description:
+          enabled: true
+        os.version:
           enabled: true
   resource:
     attributes:
@@ -1087,6 +1119,21 @@ The OpenTelemetry Collector respects the standard `HTTPS_PROXY` / `HTTP_PROXY` /
 - **`systemd` receiver logs a scrape error per unit, or the collector refuses to start over an unknown metric** — both are version skew. v0.142.0 looks for cgroup statistics on every unit (one error per non-`.service` unit per scrape) and calls its CPU metric `systemd.unit.cpu.time`; v0.143.0 and later limit that lookup to services and renamed the metric to `systemd.service.cpu.time`. Upgrade to v0.143.0+, and make sure any `metrics:` override names the key your build actually has.
 - **The Systemd Units tab is empty even though the receiver is running** — check that `resourcedetection` is in the same metrics pipeline. The receiver attaches only `systemd.unit.name` to each unit's resource, so without `resourcedetection` there is no `host.name` and the samples never attach to a host.
 - **High volume / cost** — see [Reducing the Volume of Data Collected](#reducing-the-volume-of-data-collected): narrow the receivers (specific Windows channels, systemd units, log files), raise the metrics `collection_interval`, drop the per-process scraper, or add a `filter` processor to drop low-severity records before export.
+
+## AI agent
+
+The collector sends what a host reports; the **Host AI agent** lets OneUptime AI ask the host itself while it investigates an incident or alert there. It runs read-only commands — `systemctl status nginx --no-pager -n 50`, `journalctl -u nginx -n 200 --no-pager`, `df -h`, `free -m`, `ps aux --sort=-%cpu`, `ss -tulpn` — and, only if you allow it, applies fixes such as restarting a named systemd unit. It is a Linux container (image `oneuptime/resource-ai-agent:release`) with its own installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+sudo bash install.sh
+```
+
+- It registers under `HOST_NAME`; leave it empty to use the host's own hostname, which is what this collector reports as `host.name` unless you set another name. The two must match, so the agent serves the Host this collector created. It shows up on the host's **AI → AI agent** page in OneUptime.
+- It runs the **host's own** programs, entering the host's namespaces with `nsenter`, so it runs privileged, as root, with `pid: host` — it is root on the host. The agent's command policy is the limit: read-only commands unless you set `ONEUPTIME_AI_ALLOW_WRITES=true`, never a shell, `sudo` or a program outside its list, and never itself, this collector's unit or anything in `ONEUPTIME_AI_PROTECTED_TARGETS`.
+- With `ONEUPTIME_AI_ALLOW_WRITES=true`, `ONEUPTIME_AI_WRITE_TARGETS` (full unit names such as `nginx.service,app-*`) limits which units a fix may touch. Then choose on the AI agent page whether each fix needs a person's approval.
+
+What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#hosts).
 
 ## Next steps
 

@@ -332,6 +332,21 @@ const pillFor: PillForFunction = (title: string): HTMLElement => {
   return pill;
 };
 
+// The pill is a tint of its colour; its dot is the colour itself.
+type PillColorFunction = (pill: HTMLElement) => string;
+
+const pillColor: PillColorFunction = (pill: HTMLElement): string => {
+  const dot: HTMLElement | null = pill.querySelector<HTMLElement>(
+    '[data-testid="pill-dot"]',
+  );
+
+  if (!dot) {
+    throw new Error("The pill rendered no dot");
+  }
+
+  return dot.style.backgroundColor;
+};
+
 // A stat bar cell: label span -> label row -> cell; the value is the 2nd child.
 type StatValueFunction = (label: string) => string;
 
@@ -456,7 +471,7 @@ describe("Incident Episode detail page: severity (issue #3374)", () => {
     const pill: HTMLElement = pillFor("Episode Severity");
 
     expect(pill.textContent).toContain("Critical");
-    expect(pill.style.backgroundColor).toEqual("rgb(239, 68, 68)");
+    expect(pillColor(pill)).toEqual("rgb(239, 68, 68)");
     expectNoCrash();
   });
 
@@ -480,7 +495,7 @@ describe("Incident Episode detail page: severity (issue #3374)", () => {
 
     expect(pill.textContent).toContain("Critical");
     // Black is the declared fallback in the page.
-    expect(pill.style.backgroundColor).toEqual("rgb(0, 0, 0)");
+    expect(pillColor(pill)).toEqual("rgb(0, 0, 0)");
     expectNoCrash();
   });
 });
@@ -505,7 +520,7 @@ describe("Incident Episode detail page: current state", () => {
     const pill: HTMLElement = pillFor("Current State");
 
     expect(pill.textContent).toContain("Acknowledged");
-    expect(pill.style.backgroundColor).toEqual("rgb(245, 158, 11)");
+    expect(pillColor(pill)).toEqual("rgb(245, 158, 11)");
     expectNoCrash();
   });
 
@@ -525,9 +540,7 @@ describe("Incident Episode detail page: current state", () => {
       state: buildState("Created", null),
     });
 
-    expect(pillFor("Current State").style.backgroundColor).toEqual(
-      "rgb(0, 0, 0)",
-    );
+    expect(pillColor(pillFor("Current State"))).toEqual("rgb(0, 0, 0)");
     expectNoCrash();
   });
 });

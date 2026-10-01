@@ -24,10 +24,47 @@ import {
   MAX_COMMAND_TIMEOUT_MS,
   MAX_PLAN_COMMANDS,
   MIN_COMMAND_TIMEOUT_MS,
+  RESOURCE_ALLOWLIST_SUMMARY,
+  RESOURCE_ALWAYS_ASKS_SUMMARY,
+  RESOURCE_NEVER_RUNS_SUMMARY,
+  RESOURCE_RISKIER_CHANGES_SUMMARY,
+  RESOURCE_SAFE_CHANGES_SUMMARY,
+  RESOURCE_UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY,
   getKubectlAlwaysAsksSummary,
   getKubectlRiskierChangesSummary,
   getKubectlSafeChangesSummary,
 } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
+import AiResourceType, {
+  AI_RESOURCE_TYPE_INFO,
+  ALL_AI_RESOURCE_TYPES,
+  AiResourceTypeInfo,
+  isAiResourceType,
+} from "../../../../Types/ResourceAiAgent/AiResourceType";
+import {
+  MAX_RESOURCE_COMMAND_TIMEOUT_MS,
+  RESOURCE_AI_ALLOW_WRITES_ENV,
+  RESOURCE_AI_WRITE_TARGETS_ENV,
+  ResourceAiAccessGap,
+  ResourceAiAccessStatus,
+  ResourceAiAgentPosture,
+  ResourceAiRemediationMode,
+  ResourceCommandTier,
+  isUnattendedResourceRemediationMode,
+} from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
+import ResourceCommandPolicy from "../../../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
+import {
+  ResourceAutoExecutionVerdict,
+  ResourceCommandPolicyResult,
+} from "../../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
+import ResourceAiAccessService, {
+  describeResourceNoun,
+} from "../../../Services/ResourceAiAccessService";
+import ResourceCommandJobRunner, {
+  RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
+  ResourceCommandJobOutcome,
+  ResourceCommandRunState,
+} from "../ResourceAccess/ResourceCommandJobRunner";
+import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "../ResourceAccess/ResourceAccessToolNames";
 import {
   KUBECTL_ALLOW_NODE_OPERATIONS_ENV,
   KUBECTL_WRITE_NAMESPACES_ENV,
@@ -36,8 +73,10 @@ import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
   KubernetesRunnerPosture,
+  MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM,
   isKubernetesAgentRunnerName,
   isKubernetesAgentRunnerPosture,
+  getKubernetesAiAccessTargetKind,
   isUnattendedRemediationMode,
   parseKubernetesRunnerPosture,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -60,6 +99,11 @@ import AutoRemediationRuleEngineService, {
   ClusterBreakerState,
   ClusterRoundHold,
   MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR,
+  RESOURCE_BREAKER_LOCK_NAMESPACE,
+  ResourceBreakerState,
+  ResourceRoundHold,
+  doesResourceModeRunRoundUnattended,
+  getResourceBreakerLockKey,
 } from "../../../Services/AutoRemediationRuleEngineService";
 import AutoRemediationSuggestionService from "../../../Services/AutoRemediationSuggestionService";
 import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
@@ -68,6 +112,7 @@ import RunbookCredentialService from "../../../Services/RunbookCredentialService
 import RunnerJobService, {
   isTerminalAgentJobStatus,
   MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR,
+  MAX_AI_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR,
 } from "../../../Services/RunnerJobService";
 import RunnerService from "../../../Services/RunnerService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
@@ -82,7 +127,10 @@ import KubectlJobRunner, {
   RedactedKubectlOutput,
 } from "../ClusterAccess/KubectlJobRunner";
 import KubectlOutputRedactor from "../../../../Utils/AiRemediation/KubectlOutputRedactor";
-import { UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY } from "../ClusterAccess/ClusterAccessContext";
+import {
+  UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY,
+  describeClusterAccessTarget,
+} from "../ClusterAccess/ClusterAccessContext";
 import logger from "../../Logger";
 
 /*
@@ -188,7 +236,12 @@ export const AI_COMMAND_CLAIM_TIMEOUT_MS: number = 60_000;
  */
 const HEARTBEAT_TOUCH_INTERVAL_MS: number = 15_000;
 
-const MAX_OUTPUT_CHARS_FOR_LLM: number = 6000;
+/*
+ * What the model sees of a Bash/SSH command's output — the same cap as a
+ * kubectl command's, generous enough that a diagnostic's answer is never
+ * cut off in the part that matters.
+ */
+const MAX_OUTPUT_CHARS_FOR_LLM: number = MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM;
 
 // A reason that already ends a sentence.
 const SENTENCE_END_PATTERN: RegExp = /[.!?]$/;
@@ -208,6 +261,39 @@ const KUBECTL_UNFINISHED_CHECK_FIRST: string =
 const CLUSTER_BREAKER_LOCK_NAMESPACE: string = "AutoRemediationClusterBreaker";
 const CLUSTER_BREAKER_LOCK_TIMEOUT_MS: number = 60_000;
 const CLUSTER_BREAKER_LOCK_ACQUIRE_TIMEOUT_MS: number = 20_000;
+
+/*
+ * What the model is told when a resource command ran but did not finish
+ * (no exit code): the change may have landed before the agent stopped it.
+ */
+const RESOURCE_UNFINISHED_CHECK_FIRST: string = `The command did not finish (the resource's AI agent stopped it before it reported an exit code), so it MAY have changed the resource. Before you reissue this command, or run anything that depends on it, check with a read (${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME}) whether it took effect. Do NOT resend it blindly.`;
+
+/*
+ * The key a resource target, and the commands aimed at it, are matched by:
+ * the type and the (case-insensitive) id.
+ */
+function getResourceKey(
+  resourceType: string | undefined,
+  resourceId: string | undefined,
+): string {
+  if (!resourceType || !resourceId) {
+    return "";
+  }
+
+  return `${resourceType}:${resourceId.toLowerCase()}`;
+}
+
+// 'Docker host "web-1"' — how the toolkit names a resource in copy.
+function describeResourceLabel(data: {
+  resourceType?: string | undefined;
+  resourceName?: string | undefined;
+}): string {
+  return `${
+    isAiResourceType(data.resourceType)
+      ? describeResourceNoun(data.resourceType)
+      : "resource"
+  } "${data.resourceName || "(unknown)"}"`;
+}
 
 export type RemediationCommandMode = "Suggest" | "FullAuto";
 
@@ -311,6 +397,37 @@ export interface RemediationCommandToolkitOptions {
           | undefined;
       }
     | undefined;
+  /*
+   * A resource round's one target: an infrastructure resource (a Docker or
+   * Podman host, a Docker Swarm, Proxmox, VMware or Ceph cluster, a
+   * database server, a host) whose AI page allows remediation, reached
+   * through its resource AI agent. Present (non-empty) only on a resource
+   * round, which then offers ResourceCommand steps — and only those.
+   */
+  resourceTargets?: Array<ResourceAiAccessStatus> | undefined;
+  /*
+   * clusterHold for a resource: how the run's FIRST change on the resource
+   * checks, under the per-resource breaker lock, that no other AI run holds
+   * it (AutoRemediationRuleEngineService.findRoundHoldingResource).
+   */
+  resourceHold?:
+    | {
+        anyOrder: boolean;
+        subject?:
+          | {
+              incidentId?: ObjectID | undefined;
+              alertId?: ObjectID | undefined;
+            }
+          | undefined;
+      }
+    | undefined;
+  /*
+   * A resource round's number for its signal (1 when absent). The live
+   * mode is re-checked against it before every change: Automatic runs only
+   * round 1 unattended, so a follow-up that started under Bypass approval
+   * stops running changes once the resource is on Automatic.
+   */
+  resourceRoundNumber?: number | undefined;
 }
 
 interface CommandArgsParseResult {
@@ -330,6 +447,11 @@ export default class RemediationCommandToolkit {
    * treats them as if they had never been targets.
    */
   private revokedClusterIds: Set<string> = new Set<string>();
+  /*
+   * The same for resource targets (by getResourceKey): their AI page
+   * stopped allowing this run to change them mid-run.
+   */
+  private revokedResourceKeys: Set<string> = new Set<string>();
   /*
    * Commands this run sent to a Runner that never reached kubectl. They are
    * not executed commands, but their jobs exist: their sequence numbers
@@ -360,8 +482,40 @@ export default class RemediationCommandToolkit {
   public getCommandsNeedingApproval(): Array<RemediationCommandNeedingApproval> {
     return this.commandsNeedingApproval.filter(
       (kept: RemediationCommandNeedingApproval) => {
-        return !this.revokedClusterIds.has(
-          kept.command.kubernetesClusterId || "",
+        return (
+          !this.revokedClusterIds.has(kept.command.kubernetesClusterId || "") &&
+          !this.revokedResourceKeys.has(
+            getResourceKey(kept.command.resourceType, kept.command.resourceId),
+          )
+        );
+      },
+    );
+  }
+
+  /*
+   * Is this a resource round? Fixed at construction (from the targets it was
+   * given, not the ones still allowed), so the tools the model was handed
+   * never change shape mid-run.
+   */
+  public isResourceRound(): boolean {
+    return (this.options.resourceTargets || []).length > 0;
+  }
+
+  /*
+   * The resources this run may still change: remediation-ready, with an AI
+   * agent, and not revoked by a live re-check.
+   */
+  public getResourceTargets(): Array<ResourceAiAccessStatus> {
+    return (this.options.resourceTargets || []).filter(
+      (resource: ResourceAiAccessStatus): boolean => {
+        return (
+          resource.isRemediationReady &&
+          isAiResourceType(resource.resourceType) &&
+          resource.agent !== null &&
+          Boolean(resource.agent?.agentId) &&
+          !this.revokedResourceKeys.has(
+            getResourceKey(resource.resourceType, resource.resourceId),
+          )
         );
       },
     );
@@ -403,8 +557,9 @@ export default class RemediationCommandToolkit {
     return {
       definition: {
         name: "list_command_targets",
-        description:
-          "List where this remediation may run commands: Runners (Bash runs on the Runner's host; SSH runs on an assigned credential's host) and Kubernetes clusters (Kubectl runs through the cluster's Runner). Call this before composing any command.",
+        description: this.isResourceRound()
+          ? "List where this remediation may run commands: the infrastructure resource this round is about (stepType ResourceCommand runs ONE command on it through its own AI agent), with its resourceId, programs, remediation mode, write scope and command allowlist. Call this before composing any command."
+          : "List where this remediation may run commands: Runners (Bash runs on the Runner's host; SSH runs on an assigned credential's host) and Kubernetes clusters (Kubectl runs through the cluster's Kubernetes AI agent or Runner). Call this before composing any command.",
         inputSchema: {
           type: "object",
           properties: {},
@@ -497,7 +652,7 @@ export default class RemediationCommandToolkit {
         kubernetesClusterId: cluster.clusterId,
         name: cluster.clusterName,
         stepTypes: "Kubectl",
-        via: `Runner "${cluster.runner?.name}"${
+        via: `${describeClusterAccessTarget(cluster)}${
           cluster.accessMethod === "in_cluster" ? " (in-cluster)" : ""
         }`,
         /*
@@ -519,6 +674,49 @@ export default class RemediationCommandToolkit {
             : "(none)",
         allowlistMatching: KUBECTL_ALLOWLIST_SUMMARY,
       });
+    }
+
+    for (const resource of this.getResourceTargets()) {
+      const info: AiResourceTypeInfo =
+        AI_RESOURCE_TYPE_INFO[resource.resourceType];
+
+      rows.push({
+        targetType: "Resource",
+        resourceType: resource.resourceType,
+        resourceId: resource.resourceId,
+        name: resource.resourceName,
+        stepTypes: "ResourceCommand",
+        via: `its ${info.agentDisplayName}`,
+        programs: info.programs.join(", "),
+        // One idea per field, as for clusters (the serializer caps each).
+        remediationMode: this.describeResourceModeForLlm(resource),
+        safeChanges: RESOURCE_SAFE_CHANGES_SUMMARY,
+        riskierChanges: RESOURCE_RISKIER_CHANGES_SUMMARY,
+        alwaysNeedsAHuman: RESOURCE_ALWAYS_ASKS_SUMMARY,
+        neverRuns: RESOURCE_NEVER_RUNS_SUMMARY,
+        writeScope:
+          RemediationCommandToolkit.describeResourceWriteScope(resource),
+        commandAllowlist:
+          resource.aiCommandAllowlist.length > 0
+            ? resource.aiCommandAllowlist.join(" | ")
+            : "(none)",
+        allowlistMatching: RESOURCE_ALLOWLIST_SUMMARY,
+      });
+    }
+
+    if (rows.length === 0 && this.isResourceRound()) {
+      return {
+        success: true,
+        textForLlm:
+          "The infrastructure resource this round is about no longer allows AI remediation (its AI agent page changed during this run, or its AI agent went away). You cannot run or propose commands — say so in your analysis.",
+        result: {
+          dataForLlm: "(no command targets available)",
+          rowCount: 0,
+          citationLabel: "Available command targets",
+          redactionCount: 0,
+          isTruncated: false,
+        },
+      };
     }
 
     if (rows.length === 0) {
@@ -580,6 +778,126 @@ export default class RemediationCommandToolkit {
     }
 
     return "RequireApproval: every kubectl change is proposed for one-click approval";
+  }
+
+  /*
+   * describeClusterModeForLlm for a resource: the canonical
+   * ResourceAiRemediationMode semantics in one field of at most the
+   * serializer's 500 characters.
+   */
+  private describeResourceModeForLlm(resource: ResourceAiAccessStatus): string {
+    if (
+      resource.aiRemediationMode === ResourceAiRemediationMode.BypassApproval
+    ) {
+      return `BypassApproval: AI does not ask — every change the policy allows, safeChanges AND riskierChanges, runs without a human, except alwaysNeedsAHuman${
+        this.options.proposesRefusedCommands
+          ? " (submit such a change anyway: it is refused, recorded, and proposed for one-click approval when this round ends if no other change ran)"
+          : ""
+      }; and ${RESOURCE_UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY}`;
+    }
+
+    if (resource.aiRemediationMode === ResourceAiRemediationMode.Automatic) {
+      return `Automatic: safeChanges run without a human; riskierChanges never run inline unless the commandAllowlist names their exact shape, and alwaysNeedsAHuman never does — ${
+        this.options.proposesRefusedCommands
+          ? "submit it anyway: it is refused, recorded, and proposed for one-click approval when this round ends if no other change ran; put it in your written recommendations too"
+          : "put it in your written recommendations for a human"
+      }; and ${RESOURCE_UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY}`;
+    }
+
+    return "RequireApproval: every change is proposed for one-click approval";
+  }
+
+  /*
+   * Where the resource's AI agent lets AI-composed writes land, as it last
+   * reported (its posture): read-only unless ONEUPTIME_AI_ALLOW_WRITES is
+   * true, never its protected targets, and — with ONEUPTIME_AI_WRITE_TARGETS
+   * set — only the targets its globs name.
+   */
+  public static describeResourceWriteScope(
+    resource: ResourceAiAccessStatus,
+  ): string {
+    const posture: ResourceAiAgentPosture | null | undefined =
+      resource.agent?.posture;
+
+    if (!posture) {
+      return "not reported by the agent yet, so it runs no change";
+    }
+
+    if (posture.allowWrites !== true) {
+      return `read-only (${RESOURCE_AI_ALLOW_WRITES_ENV} is not true on the agent): it refuses every change`;
+    }
+
+    const parts: Array<string> = [
+      posture.writeTargets.length > 0
+        ? `changes only targets matching ${RESOURCE_AI_WRITE_TARGETS_ENV}=${posture.writeTargets.join(",")} — name each target exactly`
+        : "changes any target its command policy allows",
+    ];
+
+    if (posture.protectedTargets.length > 0) {
+      parts.push(
+        `never its protected targets (${posture.protectedTargets
+          .slice(0, 10)
+          .join(", ")}): itself and what it runs in`,
+      );
+    }
+
+    return parts.join("; ");
+  }
+
+  /*
+   * Why the resource's AI agent would refuse this write, going by the
+   * posture it reported — or null when it would not. The rule is the
+   * agent's own (ResourceCommandPolicy.getWriteScopeRefusal: read-only
+   * unless ONEUPTIME_AI_ALLOW_WRITES is true, never a protected target,
+   * only the ONEUPTIME_AI_WRITE_TARGETS globs when set), the one the enqueue
+   * chokepoint asks too. Reads and Denied commands are not this rule's
+   * business (the policy refuses the latter on its own).
+   */
+  public static getResourceWriteScopeRefusal(data: {
+    resource: ResourceAiAccessStatus;
+    command: string;
+  }): string | null {
+    if (!isAiResourceType(data.resource.resourceType)) {
+      return "The resource type is unknown, so no change can run on it.";
+    }
+
+    const policy: ResourceCommandPolicyResult =
+      ResourceCommandPolicy.evaluateCommand({
+        resourceType: data.resource.resourceType,
+        command: data.command,
+      });
+
+    if (
+      policy.tier === ResourceCommandTier.Read ||
+      policy.tier === ResourceCommandTier.Denied
+    ) {
+      return null;
+    }
+
+    const posture: ResourceAiAgentPosture | null | undefined =
+      data.resource.agent?.posture;
+
+    return ResourceCommandPolicy.getWriteScopeRefusal({
+      result: policy,
+      allowWrites: posture?.allowWrites === true,
+      writeTargets: posture?.writeTargets || [],
+      protectedTargets: posture?.protectedTargets || [],
+      resourceType: data.resource.resourceType,
+    });
+  }
+
+  /*
+   * What to do about a resource write-scope refusal, for the approve route
+   * and the model: the agent's own environment decides.
+   */
+  public static getResourceScopeRefusalNextStep(
+    resourceType: AiResourceType,
+  ): string {
+    const agentName: string = isAiResourceType(resourceType)
+      ? AI_RESOURCE_TYPE_INFO[resourceType].agentDisplayName
+      : "resource's AI agent";
+
+    return `Dismiss the suggestion and let a new plan be composed, or change the ${agentName}'s write access (${RESOURCE_AI_ALLOW_WRITES_ENV} and ${RESOURCE_AI_WRITE_TARGETS_ENV} in its environment), restart it, and approve again.`;
   }
 
   /*
@@ -785,7 +1103,10 @@ export default class RemediationCommandToolkit {
     return refusal
       ? RemediationCommandToolkit.describeRunnerScopeRefusal({
           refusal,
-          runnerLabel: `the Runner of cluster "${data.cluster.clusterName}"`,
+          runnerLabel:
+            getKubernetesAiAccessTargetKind(data.cluster.runner) === "ai_agent"
+              ? `the Kubernetes AI agent of cluster "${data.cluster.clusterName}"`
+              : `the Runner of cluster "${data.cluster.clusterName}"`,
           settings: RemediationCommandToolkit.getRunnerScopeSettings(
             data.cluster,
           ),
@@ -794,14 +1115,29 @@ export default class RemediationCommandToolkit {
   }
 
   /*
-   * Where the bound Runner's write scope is set, for a refusal to name: the
-   * Kubernetes agent chart's values for the agent's in-cluster Runner (by
-   * its server-owned name, or its posture), the Runner's own environment
-   * for any other — a credential Runner, which no chart configures.
+   * Where the target's write scope is set, for a refusal to name — three
+   * ways, by who runs kubectl for the cluster:
+   *
+   * - the Kubernetes AI agent (runner.kind "ai_agent"): the chart's
+   *   aiAgent.remediation.* values;
+   * - the chart's previous in-cluster Runner (by its server-owned name, or
+   *   its posture): its values are aiAccess.remediation.*, and changing
+   *   them now means upgrading the chart to the AI agent, which replaces it;
+   * - any other Runner — a credential Runner, which no chart configures:
+   *   its own environment.
    */
-  private static getRunnerScopeSettings(
-    cluster: KubernetesClusterAiAccessStatus,
+  public static getRunnerScopeSettings(
+    cluster: Pick<KubernetesClusterAiAccessStatus, "runner">,
   ): { namespaces: string; nodeOperations: string } {
+    if (getKubernetesAiAccessTargetKind(cluster.runner) === "ai_agent") {
+      return {
+        namespaces:
+          "aiAgent.remediation.namespaces on the Kubernetes agent chart",
+        nodeOperations:
+          "aiAgent.remediation.nodeOperations=false on the Kubernetes agent chart",
+      };
+    }
+
     const isAgentRunner: boolean =
       isKubernetesAgentRunnerName(cluster.runner?.name) ||
       isKubernetesAgentRunnerPosture(cluster.runner?.posture);
@@ -809,9 +1145,9 @@ export default class RemediationCommandToolkit {
     if (isAgentRunner) {
       return {
         namespaces:
-          "aiAccess.remediation.namespaces on the Kubernetes agent chart",
+          "aiAccess.remediation.namespaces on the Kubernetes agent chart; after upgrading to the Kubernetes AI agent, aiAgent.remediation.namespaces",
         nodeOperations:
-          "aiAccess.remediation.nodeOperations=false on the Kubernetes agent chart",
+          "aiAccess.remediation.nodeOperations=false on the Kubernetes agent chart; after upgrading to the Kubernetes AI agent, aiAgent.remediation.nodeOperations",
       };
     }
 
@@ -910,6 +1246,29 @@ export default class RemediationCommandToolkit {
    */
 
   private buildExecuteTool(): ObservabilityAssistantExtraTool {
+    if (this.isResourceRound()) {
+      return {
+        definition: {
+          name: "execute_remediation_command",
+          description: this.describeResourceExecuteTool(),
+          inputSchema: {
+            type: "object",
+            properties: this.buildCommandSchemaProperties(),
+            required: [
+              "stepType",
+              "resourceId",
+              "command",
+              "rationale",
+              "expectedEffect",
+            ],
+          },
+        },
+        execute: async (args: JSONObject): Promise<ToolCallOutcome> => {
+          return this.executeCommand(args);
+        },
+      };
+    }
+
     return {
       definition: {
         name: "execute_remediation_command",
@@ -930,7 +1289,109 @@ export default class RemediationCommandToolkit {
     };
   }
 
+  /*
+   * What each resource this round may change accepts, by tier — its tool
+   * policy's own guide, once per policy.
+   */
+  private describeResourceWriteGuides(): string {
+    const sections: Array<string> = [];
+    const seenPolicies: Set<string> = new Set<string>();
+
+    for (const type of ALL_AI_RESOURCE_TYPES) {
+      const resources: Array<ResourceAiAccessStatus> = (
+        this.options.resourceTargets || []
+      ).filter((resource: ResourceAiAccessStatus): boolean => {
+        return resource.resourceType === type;
+      });
+
+      if (resources.length === 0) {
+        continue;
+      }
+
+      const policyName: string = ResourceCommandPolicy.getToolPolicy(type).name;
+
+      if (seenPolicies.has(policyName)) {
+        continue;
+      }
+
+      seenPolicies.add(policyName);
+
+      sections.push(
+        `${resources
+          .map((resource: ResourceAiAccessStatus): string => {
+            return `${AI_RESOURCE_TYPE_INFO[type].displayName} "${resource.resourceName}" (resourceId: ${resource.resourceId})`;
+          })
+          .join(
+            ", ",
+          )} — changes it accepts:\n${ResourceCommandPolicy.getWriteCommandGuide(
+          type,
+        )}`,
+      );
+    }
+
+    return sections.join("\n\n");
+  }
+
+  // execute_remediation_command's description on a resource round.
+  private describeResourceExecuteTool(): string {
+    return `Execute ONE remediation change immediately on the infrastructure resource this round is about, through its own AI agent: stepType ResourceCommand with the resource's resourceId. One command per call, written as the program followed by its arguments — never a shell line. This tool is for CHANGES only — a read-only command goes through ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME} and is refused here. Safe changes run (${RESOURCE_SAFE_CHANGES_SUMMARY}). Riskier changes (${RESOURCE_RISKIER_CHANGES_SUMMARY}) are refused unless the resource's command allowlist names their exact shape (${RESOURCE_ALLOWLIST_SUMMARY}) or the resource bypasses approvals — ${
+      this.options.proposesRefusedCommands
+        ? "a refused riskier change is recorded and proposed for one-click approval when this round ends, provided no other change ran"
+        : "put those in your recommendations"
+    }. Whatever the mode, ${RESOURCE_ALWAYS_ASKS_SUMMARY}; ${RESOURCE_UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY}; ${RESOURCE_NEVER_RUNS_SUMMARY}. A change the resource's AI agent would refuse (it runs read-only, or the target is protected or outside its writeScope in list_command_targets) is refused before it runs. At most ${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN} commands may be sent per remediation. Provide a rollbackCommand whenever the command changes state and an undo exists.\n\n${this.describeResourceWriteGuides()}`;
+  }
+
+  /*
+   * The command schema of a resource round: ResourceCommand only, on the
+   * round's resource — never a Runner, a cluster or a credential.
+   */
+  private buildResourceCommandSchemaProperties(): JSONObject {
+    return {
+      resourceId: {
+        type: "string",
+        description:
+          "The resource to change: its resourceId from list_command_targets.",
+      },
+      stepType: {
+        type: "string",
+        enum: ["ResourceCommand"],
+        description:
+          "ResourceCommand runs ONE command on the resource through its own AI agent.",
+      },
+      command: {
+        type: "string",
+        description:
+          'The exact command, one line starting with one of the resource\'s programs (list_command_targets), e.g. "docker restart web", "docker service update --force api", "systemctl restart nginx", "pvesh create /nodes/pve1/qemu/100/status/start", "govc vm.power -on /DC/vm/web-01", "ceph osd in 3" or "db cancel-query 4242". No pipes, redirects, chaining, substitution or sudo.',
+      },
+      timeoutInMs: {
+        type: "number",
+        description: `Execution timeout in milliseconds (default ${Math.min(
+          DEFAULT_COMMAND_TIMEOUT_MS,
+          MAX_RESOURCE_COMMAND_TIMEOUT_MS,
+        )}, max ${MAX_RESOURCE_COMMAND_TIMEOUT_MS}).`,
+      },
+      rationale: {
+        type: "string",
+        description:
+          "Why this command remediates the incident — shown to humans verbatim.",
+      },
+      expectedEffect: {
+        type: "string",
+        description: "What you expect to observe if it works.",
+      },
+      rollbackCommand: {
+        type: "string",
+        description:
+          "Optional undo command for the same resource, run unattended if verification later fails. Must pass the same policy, and — unless the resource bypasses approvals — be a safe change on ONE named object, e.g. docker start <container> after docker stop <container>, or systemctl start <unit> after systemctl stop <unit>.",
+      },
+    };
+  }
+
   private buildCommandSchemaProperties(): JSONObject {
+    if (this.isResourceRound()) {
+      return this.buildResourceCommandSchemaProperties();
+    }
+
     return {
       runnerId: {
         type: "string",
@@ -1052,6 +1513,44 @@ export default class RemediationCommandToolkit {
       }
     }
 
+    if (command.stepType === RunbookStepType.ResourceCommand) {
+      /*
+       * Reads belong to run_infrastructure_command, for the reason they
+       * belong to run_kubectl on a cluster: sent here, a read would count
+       * as an executed fix, take a breaker slot and could auto-resolve the
+       * signal in the name of a change that changed nothing.
+       */
+      if (command.resourceCommandTier === ResourceCommandTier.Read) {
+        return this.failure(
+          `"${command.command}" is read-only. Run it with ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME}, which does not count as a remediation command — this tool is for changes only. Nothing was executed.`,
+        );
+      }
+
+      // The resource as its AI page stands NOW, as for a cluster.
+      const liveRefusal: FullAutoRefusal | null =
+        await this.refreshResourceTarget(command);
+
+      if (liveRefusal) {
+        this.recordNeedingApproval(command, liveRefusal);
+        return this.failure(liveRefusal.text);
+      }
+
+      /*
+       * The agent's write scope as it reports it NOW: a write it would
+       * refuse is never enqueued — nor kept for a proposal, which no click
+       * could make runnable.
+       */
+      const liveResource: ResourceAiAccessStatus | undefined =
+        this.findResourceTarget(command.resourceType, command.resourceId);
+      const scopeRefusal: string | null = liveResource
+        ? this.getResourceCommandScopeRefusal(liveResource, command)
+        : null;
+
+      if (scopeRefusal) {
+        return this.failure(scopeRefusal);
+      }
+    }
+
     /*
      * FullAuto gate: the full policy. Anything that is not AutoApproved is
      * refused here; the model is told why so it can pick an allowlisted
@@ -1066,22 +1565,59 @@ export default class RemediationCommandToolkit {
 
     command.policyVerdict = AiRemediationCommandPolicyVerdict.AutoApproved;
 
-    // Project-wide hourly storm brake across all AI command jobs.
-    const jobsInLastHour: number = (
-      await RunnerJobService.countBy({
-        query: {
-          projectId: this.options.projectId,
-          origin: RunnerJobOrigin.AiRemediation,
-          createdAt: QueryHelper.greaterThan(OneUptimeDate.getSomeHoursAgo(1)),
-        },
-        props: { isRoot: true },
-      })
-    ).toNumber();
+    if (command.stepType === RunbookStepType.ResourceCommand) {
+      /*
+       * The resource lane's own hourly brake, counted the way the enqueue
+       * chokepoint counts it (ResourceCommand rows only): pre-checked here
+       * so the model gets a useful refusal instead of a thrown one.
+       */
+      const resourceJobsInLastHour: number = (
+        await RunnerJobService.countBy({
+          query: {
+            projectId: this.options.projectId,
+            origin: RunnerJobOrigin.AiRemediation,
+            stepType: RunbookStepType.ResourceCommand,
+            createdAt: QueryHelper.greaterThan(
+              OneUptimeDate.getSomeHoursAgo(1),
+            ),
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
 
-    if (jobsInLastHour >= MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR) {
-      return this.failure(
-        `This project has hit its hourly AI-command limit (${MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR}). No further commands can run this hour. Summarize and hand off to a human.`,
-      );
+      if (
+        resourceJobsInLastHour >=
+        MAX_AI_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR
+      ) {
+        return this.failure(
+          `This project has hit its hourly limit on AI commands on its infrastructure (${MAX_AI_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR}). No further commands can run this hour. Summarize and hand off to a human.`,
+        );
+      }
+    } else {
+      /*
+       * Project-wide hourly storm brake across the kubectl and Runner AI
+       * command jobs, counted the way the enqueue chokepoints count it:
+       * resource commands have their own brake above and never count here.
+       */
+      const jobsInLastHour: number = (
+        await RunnerJobService.countBy({
+          query: {
+            projectId: this.options.projectId,
+            origin: RunnerJobOrigin.AiRemediation,
+            stepType: QueryHelper.notEquals(RunbookStepType.ResourceCommand),
+            createdAt: QueryHelper.greaterThan(
+              OneUptimeDate.getSomeHoursAgo(1),
+            ),
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (jobsInLastHour >= MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR) {
+        return this.failure(
+          `This project has hit its hourly AI-command limit (${MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR}). No further commands can run this hour. Summarize and hand off to a human.`,
+        );
+      }
     }
 
     /*
@@ -1098,6 +1634,22 @@ export default class RemediationCommandToolkit {
     ) {
       const reservation: ClusterSlotReservation =
         await this.reserveClusterSlot(command);
+
+      if (reservation.refusal) {
+        this.recordNeedingApproval(command, reservation.refusal);
+        return this.failure(reservation.refusal.text);
+      }
+
+      clusterSlotLock = reservation.mutex;
+    }
+
+    // The same for the run's first change on a resource.
+    if (
+      command.stepType === RunbookStepType.ResourceCommand &&
+      !this.hasChangedResource(command.resourceType, command.resourceId)
+    ) {
+      const reservation: ClusterSlotReservation =
+        await this.reserveResourceSlot(command);
 
       if (reservation.refusal) {
         this.recordNeedingApproval(command, reservation.refusal);
@@ -1172,6 +1724,8 @@ export default class RemediationCommandToolkit {
      * whose wait broke): it may have run. Its citation says so.
      */
     let kubectlResultUnknown: boolean = false;
+    // The same for a resource command the agent took with no result back.
+    let resourceResultUnknown: boolean = false;
 
     try {
       if (command.stepType === RunbookStepType.Kubectl) {
@@ -1284,6 +1838,101 @@ export default class RemediationCommandToolkit {
         } else {
           outcomeText = KubectlJobRunner.describeForLlm(outcome);
         }
+      } else if (command.stepType === RunbookStepType.ResourceCommand) {
+        /*
+         * The kubectl lane's shape for a resource: enqueue through the
+         * resource chokepoint (which re-runs the policy, the binding, the
+         * switch and the agent's write scope), name the job on the record
+         * BEFORE the wait, release the breaker slot, wait, and read the
+         * finished job exactly as the investigation lane reads it
+         * (ResourceCommandJobRunner: run state, redaction, access failure).
+         */
+        const resourceType: AiResourceType =
+          command.resourceType as AiResourceType;
+        const resourceId: ObjectID = new ObjectID(command.resourceId!);
+
+        const job: RunnerJob = await RunnerJobService.enqueueAiResourceCommand({
+          projectId: this.options.projectId,
+          aiRunId: this.options.aiRunId,
+          origin: RunnerJobOrigin.AiRemediation,
+          autoRemediationSuggestionId: this.options.suggestionId,
+          resourceType,
+          resourceId,
+          stepId: `${INLINE_COMMAND_STEP_ID_PREFIX}${command.sequence}`,
+          targetResourceAiAgentId: new ObjectID(command.runnerId),
+          command: command.command,
+          timeoutInMs: command.timeoutInMs,
+          claimTimeoutInMs: RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
+        });
+
+        command.execution.runnerJobId = job.id?.toString();
+        await this.persistPlanProgress();
+
+        // The job row is the breaker reservation: the next holder counts it.
+        await afterEnqueue();
+
+        const terminalJob: RunnerJob = await this.waitForJobWithHeartbeat({
+          jobId: job.id!,
+          claimTimeoutInMs: RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
+          executionTimeoutInMs: command.timeoutInMs,
+        });
+
+        const outcome: ResourceCommandJobOutcome =
+          await ResourceCommandJobRunner.readFinishedJob({
+            job,
+            terminalJob,
+            command: command.command,
+            resourceType,
+            claimTimeoutInMs: RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
+            executionTimeoutInMs: command.timeoutInMs,
+          });
+
+        await ResourceCommandJobRunner.recordOutcomeOnResource({
+          resourceType,
+          resourceId,
+          outcome,
+        });
+
+        // Certainly never ran: a failed tool call, off the record.
+        if (outcome.runState === ResourceCommandRunState.NotRun) {
+          return await this.settleNeverRan(command, {
+            displayCommand: outcome.displayCommand,
+            errorMessage: outcome.errorMessage,
+            claimTimedOut: outcome.claimTimedOut === true,
+          });
+        }
+
+        command.execution.status = outcome.succeeded
+          ? AiRemediationCommandExecutionStatus.Succeeded
+          : AiRemediationCommandExecutionStatus.Failed;
+        command.execution.completedAt =
+          OneUptimeDate.getCurrentDate().toISOString();
+        command.execution.exitCode = outcome.exitCode;
+        command.execution.output = outcome.output;
+        redactionCount = outcome.redactionCount ?? 0;
+        isTruncated = outcome.isTruncated ?? false;
+        if (!outcome.succeeded) {
+          command.execution.errorMessage = outcome.errorMessage;
+        }
+
+        if (outcome.runState === ResourceCommandRunState.Unknown) {
+          resourceResultUnknown = true;
+          outcomeText = this.describeResultUnknown(command, {
+            displayCommand: outcome.displayCommand,
+            reason: outcome.errorMessage,
+          });
+        } else if (!outcome.succeeded && typeof outcome.exitCode !== "number") {
+          // The program ran but was stopped before it finished.
+          outcomeText = `${ResourceCommandJobRunner.describeForLlm({
+            outcome,
+            resourceType,
+          })}\n${RESOURCE_UNFINISHED_CHECK_FIRST}`;
+        } else {
+          outcomeText = ResourceCommandJobRunner.describeForLlm({
+            outcome,
+            resourceType,
+          });
+        }
       } else {
         const job: RunnerJob = await RunnerJobService.enqueueAiCommand({
           projectId: this.options.projectId,
@@ -1358,6 +2007,22 @@ export default class RemediationCommandToolkit {
         });
       }
 
+      /*
+       * The resource chokepoint refused the command (its policy, binding,
+       * switch, brake and write-scope checks run before the row is
+       * written): no job exists, so it certainly never ran.
+       */
+      if (
+        command.stepType === RunbookStepType.ResourceCommand &&
+        !command.execution.runnerJobId
+      ) {
+        return await this.settleNeverRan(command, {
+          displayCommand: command.command,
+          errorMessage: this.redactResourceText(command, message),
+          claimTimedOut: false,
+        });
+      }
+
       command.execution.status = AiRemediationCommandExecutionStatus.Failed;
       command.execution.completedAt =
         OneUptimeDate.getCurrentDate().toISOString();
@@ -1370,6 +2035,17 @@ export default class RemediationCommandToolkit {
        */
       if (command.stepType === RunbookStepType.Kubectl) {
         kubectlResultUnknown = true;
+        outcomeText = this.describeResultUnknown(command, {
+          displayCommand: command.command,
+          reason: `Waiting for its result failed: ${message}`,
+        });
+      } else if (command.stepType === RunbookStepType.ResourceCommand) {
+        // The same for a resource's agent.
+        command.execution.errorMessage = this.redactResourceText(
+          command,
+          message,
+        );
+        resourceResultUnknown = true;
         outcomeText = this.describeResultUnknown(command, {
           displayCommand: command.command,
           reason: `Waiting for its result failed: ${message}`,
@@ -1392,11 +2068,44 @@ export default class RemediationCommandToolkit {
             ? kubectlResultUnknown
               ? `Sent to cluster "${command.kubernetesClusterNameSnapshot}", result unknown: ${this.summarizeCommand(command.command)}`
               : `Executed on cluster "${command.kubernetesClusterNameSnapshot}": ${this.summarizeCommand(command.command)}`
-            : `Executed on Runner "${command.runnerNameSnapshot}": ${this.summarizeCommand(command.command)}`,
+            : command.stepType === RunbookStepType.ResourceCommand
+              ? resourceResultUnknown
+                ? `Sent to ${this.describeCommandResource(command)}, result unknown: ${this.summarizeCommand(command.command)}`
+                : `Executed on ${this.describeCommandResource(command)}: ${this.summarizeCommand(command.command)}`
+              : `Executed on Runner "${command.runnerNameSnapshot}": ${this.summarizeCommand(command.command)}`,
         redactionCount,
         isTruncated,
       },
     };
+  }
+
+  // 'Docker host "web-1"' for a ResourceCommand step, from its snapshot.
+  private describeCommandResource(command: AiRemediationCommand): string {
+    const info: AiResourceTypeInfo | null = isAiResourceType(
+      command.resourceType,
+    )
+      ? AI_RESOURCE_TYPE_INFO[command.resourceType]
+      : null;
+
+    return `${info ? info.displayName : "resource"} "${
+      command.resourceNameSnapshot || command.resourceId || "(unknown)"
+    }"`;
+  }
+
+  // A resource program's text, through the resource redaction.
+  private redactResourceText(
+    command: AiRemediationCommand,
+    text: string,
+  ): string {
+    if (!isAiResourceType(command.resourceType)) {
+      return ToolResultSerializer.redact(text).text;
+    }
+
+    return ResourceCommandJobRunner.redactAndCap({
+      output: text,
+      resourceType: command.resourceType,
+      program: command.command.trim().split(/\s+/)[0] || "",
+    }).text;
   }
 
   /*
@@ -1422,6 +2131,23 @@ export default class RemediationCommandToolkit {
     this.neverRanCount += 1;
     await this.persistPlanProgress();
 
+    if (command.stepType === RunbookStepType.ResourceCommand) {
+      const label: string = this.describeCommandResource(command);
+      const noun: string = isAiResourceType(command.resourceType)
+        ? describeResourceNoun(command.resourceType)
+        : "resource";
+
+      return this.failure(
+        `"${data.displayCommand}" did NOT run on ${label}: ${
+          data.errorMessage || "the job never reached the resource's AI agent."
+        } Nothing changed on the ${noun} and nothing was recorded as executed. ${
+          data.claimTimedOut
+            ? `Do NOT send more commands to this ${noun} in this run — its AI agent is not picking them up; say so in your analysis.`
+            : "Do NOT resend the same command; fix what the refusal names, or put the change in your recommendations for a human."
+        }`,
+      );
+    }
+
     return this.failure(
       `"${data.displayCommand}" did NOT run on cluster "${
         command.kubernetesClusterNameSnapshot || command.kubernetesClusterId
@@ -1443,6 +2169,31 @@ export default class RemediationCommandToolkit {
     command: AiRemediationCommand,
     data: { displayCommand: string; reason: string | undefined },
   ): string {
+    if (command.stepType === RunbookStepType.ResourceCommand) {
+      const resourceReason: string = this.redactResourceText(
+        command,
+        (data.reason || "No result came back for this command.").trim(),
+      ).trim();
+      const noun: string = isAiResourceType(command.resourceType)
+        ? describeResourceNoun(command.resourceType)
+        : "resource";
+
+      return [
+        `${data.displayCommand}`,
+        `RESULT UNKNOWN on ${this.describeCommandResource(command)}: ${
+          SENTENCE_END_PATTERN.test(resourceReason)
+            ? resourceReason
+            : `${resourceReason}.`
+        }`,
+        `The command reached the ${noun}'s AI agent, so it MAY have run and changed the ${noun}. It stays on this round's record as a command that may have run, and verification judges it${
+          command.rollbackCommand
+            ? "; if the service does not recover, its rollbackCommand is not run blind — a human is asked to check and undo it"
+            : ""
+        }.`,
+        `Before you reissue this command, or run anything that depends on it, check with a read (${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME}) whether it took effect. Do NOT resend it blindly.`,
+      ].join("\n");
+    }
+
     const reason: string = KubectlOutputRedactor.redact(
       (data.reason || "No result came back for this command.").trim(),
     ).text;
@@ -1494,6 +2245,40 @@ export default class RemediationCommandToolkit {
 
       if (rollback) {
         return `The rollbackCommand would be refused when it has to run: ${rollback} The command was neither run nor recorded — give a rollback the Runner may run, or omit it.`;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * getCommandScopeRefusal for a resource: whether its AI agent would
+   * refuse this command or its rollback (getResourceWriteScopeRefusal),
+   * worded for the model.
+   */
+  private getResourceCommandScopeRefusal(
+    resource: ResourceAiAccessStatus,
+    command: Pick<AiRemediationCommand, "command" | "rollbackCommand">,
+  ): string | null {
+    const forward: string | null =
+      RemediationCommandToolkit.getResourceWriteScopeRefusal({
+        resource,
+        command: command.command,
+      });
+
+    if (forward) {
+      return `${forward} The command was neither run nor recorded.`;
+    }
+
+    if (command.rollbackCommand) {
+      const rollback: string | null =
+        RemediationCommandToolkit.getResourceWriteScopeRefusal({
+          resource,
+          command: command.rollbackCommand,
+        });
+
+      if (rollback) {
+        return `The rollbackCommand would be refused when it has to run: ${rollback} The command was neither run nor recorded — give a rollback the agent may run, or omit it.`;
       }
     }
 
@@ -1579,6 +2364,10 @@ export default class RemediationCommandToolkit {
       }
 
       return null;
+    }
+
+    if (command.stepType === RunbookStepType.ResourceCommand) {
+      return this.getResourceFullAutoRefusal(command);
     }
 
     const policy: CommandPolicyResult = CommandPolicy.evaluateCommand({
@@ -1685,6 +2474,123 @@ export default class RemediationCommandToolkit {
   }
 
   /*
+   * The FullAuto gate for a resource command — the kubectl branch of
+   * getFullAutoRefusal, on the resource command policy: the resource's
+   * (live) mode must run unattended, the ladder
+   * (ResourceCommandPolicy.evaluateForAutoExecution with the resource's
+   * allowlist, bypass = BypassApproval) must auto-approve the command, and
+   * its rollback — which runs unattended — must auto-approve too. A refusal
+   * a human's click would lift carries an approvalReason.
+   */
+  private getResourceFullAutoRefusal(
+    command: AiRemediationCommand,
+  ): FullAutoRefusal | null {
+    const resource: ResourceAiAccessStatus | undefined =
+      this.findResourceTarget(command.resourceType, command.resourceId);
+
+    if (!resource) {
+      return {
+        text: "The resource is no longer a valid target. Use list_command_targets.",
+      };
+    }
+
+    const label: string = describeResourceLabel(resource);
+
+    if (!isUnattendedResourceRemediationMode(resource.aiRemediationMode)) {
+      return {
+        text: `${label.charAt(0).toUpperCase()}${label.slice(1)} requires human approval for every change, so nothing can execute inline in this run. ${this.describeWhereRefusedChangesGo()}`,
+        approvalReason: `${label} asks for approval of every change`,
+      };
+    }
+
+    const bypassApproval: boolean =
+      resource.aiRemediationMode === ResourceAiRemediationMode.BypassApproval;
+
+    const verdict: ResourceAutoExecutionVerdict =
+      ResourceCommandPolicy.evaluateForAutoExecution({
+        resourceType: resource.resourceType,
+        command: command.command,
+        allowlistPatterns: resource.aiCommandAllowlist,
+        bypassApproval,
+      });
+
+    if (verdict.verdict !== AiRemediationCommandPolicyVerdict.AutoApproved) {
+      if (verdict.verdict === AiRemediationCommandPolicyVerdict.Denied) {
+        return {
+          text: `${verdict.reason} The command was NOT executed.`,
+        };
+      }
+
+      return this.describeResourceNeedsAHuman({
+        resource,
+        verdict,
+        bypassApproval,
+      });
+    }
+
+    if (command.rollbackCommand) {
+      const rollbackVerdict: ResourceAutoExecutionVerdict =
+        ResourceCommandPolicy.evaluateForAutoExecution({
+          resourceType: resource.resourceType,
+          command: command.rollbackCommand,
+          allowlistPatterns: resource.aiCommandAllowlist,
+          bypassApproval,
+        });
+
+      if (
+        rollbackVerdict.verdict !==
+        AiRemediationCommandPolicyVerdict.AutoApproved
+      ) {
+        return {
+          text: `The rollbackCommand does not qualify for automatic execution: ${rollbackVerdict.reason} Nothing was executed. Provide a safe rollback on ONE named object (for example the start that undoes a stop), or omit it.`,
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * describeNeedsAHuman for a resource: named for what actually holds the
+   * change back — a change the policy says always needs a human (in every
+   * mode, Bypass approval and the allowlist included), or a riskier change
+   * on a resource that runs only safe changes on its own.
+   */
+  private describeResourceNeedsAHuman(data: {
+    resource: ResourceAiAccessStatus;
+    verdict: ResourceAutoExecutionVerdict;
+    bypassApproval: boolean;
+  }): FullAutoRefusal {
+    const { resource, verdict } = data;
+    const label: string = describeResourceLabel(resource);
+    const whereItGoes: string = this.describeWhereRefusedChangesGo();
+
+    if (verdict.requiresHuman === true) {
+      return {
+        text: `${verdict.reason} The command was NOT executed: this change always needs a human, in every mode — Bypass approval and the ${describeResourceNoun(
+          resource.resourceType,
+        )}'s allowlist included. ${whereItGoes} Do NOT hunt for a worse substitute that would need a human just the same.`,
+        approvalReason: `the command policy of ${label} says this change always needs a human, in every mode`,
+      };
+    }
+
+    if (
+      verdict.tier === ResourceCommandTier.RiskyWrite &&
+      !data.bypassApproval
+    ) {
+      return {
+        text: `${verdict.reason} The command was NOT executed. ${whereItGoes} Do NOT hunt for a worse safe substitute; use a safe change (${RESOURCE_SAFE_CHANGES_SUMMARY}) only when it is genuinely the right fix.`,
+        approvalReason: `it is a riskier change (${verdict.tier}), and ${label} runs only safe changes on its own unless its command allowlist names the exact command`,
+      };
+    }
+
+    return {
+      text: `${verdict.reason} The command was NOT executed. ${whereItGoes}`,
+      approvalReason: `${label} does not allow it without a human: ${verdict.reason}`,
+    };
+  }
+
+  /*
    * Keep a kubectl change refused only for want of a human's click, so a
    * cluster round that executes nothing can propose it when it settles.
    * Policy refusals (Denied, a bad rollback, a Read) carry no
@@ -1695,9 +2601,11 @@ export default class RemediationCommandToolkit {
     command: AiRemediationCommand,
     refusal: FullAutoRefusal,
   ): void {
+    // Kubectl changes on a cluster, and resource commands on a resource.
     if (
       !refusal.approvalReason ||
-      command.stepType !== RunbookStepType.Kubectl
+      (command.stepType !== RunbookStepType.Kubectl &&
+        command.stepType !== RunbookStepType.ResourceCommand)
     ) {
       return;
     }
@@ -1706,6 +2614,8 @@ export default class RemediationCommandToolkit {
       (kept: RemediationCommandNeedingApproval) => {
         return (
           kept.command.kubernetesClusterId === command.kubernetesClusterId &&
+          getResourceKey(kept.command.resourceType, kept.command.resourceId) ===
+            getResourceKey(command.resourceType, command.resourceId) &&
           kept.command.command === command.command
         );
       },
@@ -1783,7 +2693,7 @@ export default class RemediationCommandToolkit {
       return {
         text: `Cluster "${status.clusterName}" no longer allows AI remediation${
           gap ? ` (${gap.title})` : ""
-        } — its AI page changed during this run. ${stopText}`,
+        } — its AI agent page changed during this run. ${stopText}`,
       };
     }
 
@@ -1794,7 +2704,7 @@ export default class RemediationCommandToolkit {
     ) {
       this.revokeCluster(clusterId);
       return {
-        text: `Cluster "${status.clusterName}" was re-bound to a different Runner or credential during this run. ${stopText}`,
+        text: `Cluster "${status.clusterName}" was re-bound to a different Runner or credential during this run (or its Kubernetes AI agent took over from its Runner). ${stopText}`,
       };
     }
 
@@ -1967,6 +2877,283 @@ export default class RemediationCommandToolkit {
     }
   }
 
+  /*
+   * refreshClusterTarget for a resource: re-read the resource from its AI
+   * page before every inline change. Refuses — and stops the run from
+   * changing that resource again — when fixes were turned off or lost
+   * readiness (project switches, the agent going offline or read-only
+   * included: the status folds them in), when the resource is now reached
+   * through another AI agent than the one this run's command names (the
+   * agent was reset or replaced), or when the status cannot be read (fail
+   * closed). Otherwise the snapshot is replaced with the live status, so the
+   * verdict that follows uses the CURRENT mode and allowlist.
+   */
+  private async refreshResourceTarget(
+    command: AiRemediationCommand,
+  ): Promise<FullAutoRefusal | null> {
+    const key: string = getResourceKey(
+      command.resourceType,
+      command.resourceId,
+    );
+    const label: string = describeResourceLabel({
+      resourceType: command.resourceType,
+      resourceName: command.resourceNameSnapshot || command.resourceId,
+    });
+    const noun: string = isAiResourceType(command.resourceType)
+      ? describeResourceNoun(command.resourceType)
+      : "resource";
+    const stopText: string = `The command was NOT executed. Do NOT run any further command on this ${noun} in this run; summarize what happened and put the fix in your final recommendations.`;
+
+    if (
+      !isAiResourceType(command.resourceType) ||
+      !command.resourceId ||
+      !ObjectID.isValidUUID(command.resourceId)
+    ) {
+      return {
+        text: `The command names no valid resource. ${stopText}`,
+      };
+    }
+
+    let status: ResourceAiAccessStatus | null;
+
+    try {
+      status = await ResourceAiAccessService.getStatusForResource({
+        projectId: this.options.projectId,
+        resourceType: command.resourceType,
+        resourceId: new ObjectID(command.resourceId),
+      });
+    } catch (error) {
+      logger.error(
+        `RemediationCommandToolkit: could not re-read the AI access of ${command.resourceType} ${command.resourceId} before an inline change; refusing it: ${error}`,
+      );
+      return {
+        text: `Could not confirm that ${label} still allows AI remediation. ${stopText}`,
+      };
+    }
+
+    if (!status) {
+      this.revokeResource(key);
+      return {
+        text: `${label.charAt(0).toUpperCase()}${label.slice(1)} no longer exists in this project. ${stopText}`,
+      };
+    }
+
+    const liveLabel: string = describeResourceLabel(status);
+
+    if (!status.isRemediationReady) {
+      this.revokeResource(key);
+      const gap: ResourceAiAccessGap | undefined = status.gaps.find(
+        (candidate: ResourceAiAccessGap): boolean => {
+          return candidate.blocksRemediation;
+        },
+      );
+      return {
+        text: `${liveLabel.charAt(0).toUpperCase()}${liveLabel.slice(1)} no longer allows AI remediation${
+          gap ? ` (${gap.title})` : ""
+        } — its AI agent page changed during this run. ${stopText}`,
+      };
+    }
+
+    if (!status.agent || status.agent.agentId !== command.runnerId) {
+      this.revokeResource(key);
+      return {
+        text: `${liveLabel.charAt(0).toUpperCase()}${liveLabel.slice(1)} is no longer reached through the AI agent this run started with (its agent was reset or replaced). ${stopText}`,
+      };
+    }
+
+    const snapshot: ResourceAiAccessStatus | undefined =
+      this.findResourceTarget(command.resourceType, command.resourceId);
+
+    this.replaceResourceTarget(status);
+
+    const round: number = this.options.resourceRoundNumber || 1;
+
+    if (
+      snapshot &&
+      doesResourceModeRunRoundUnattended(snapshot.aiRemediationMode, round) &&
+      !doesResourceModeRunRoundUnattended(status.aiRemediationMode, round)
+    ) {
+      /*
+       * On a follow-up round, Automatic is still an unattended mode — but
+       * one that asks for every round after the first, so it stops this
+       * round's unattended changes like a move to "ask for approval" does.
+       */
+      if (
+        isUnattendedResourceRemediationMode(status.aiRemediationMode) &&
+        round > 1
+      ) {
+        return {
+          text: `The AI remediation mode of ${liveLabel} was changed to Automatic during this run, and Automatic asks for approval of every change after a signal's first round (this is round ${round}), so no change runs on it unattended any more. The command was NOT executed. ${this.describeWhereRefusedChangesGo()} Do NOT try other changes on this ${noun}.`,
+          approvalReason: `the AI remediation mode of ${liveLabel} was changed to Automatic during the round, which asks for approval after a signal's first round`,
+        };
+      }
+
+      return {
+        text: `The AI remediation mode of ${liveLabel} was changed to ask for approval during this run, so no change runs on it unattended any more. The command was NOT executed. ${this.describeWhereRefusedChangesGo()} Do NOT try other changes on this ${noun}.`,
+        approvalReason: `the AI remediation mode of ${liveLabel} was changed to ask for approval during the round`,
+      };
+    }
+
+    return null;
+  }
+
+  /*
+   * revokeCluster for a resource: the rest of the run treats it as never
+   * having been a target, and what was kept for its proposal is dropped.
+   */
+  private revokeResource(key: string): void {
+    this.revokedResourceKeys.add(key);
+    this.commandsNeedingApproval = this.commandsNeedingApproval.filter(
+      (kept: RemediationCommandNeedingApproval): boolean => {
+        return (
+          getResourceKey(kept.command.resourceType, kept.command.resourceId) !==
+          key
+        );
+      },
+    );
+  }
+
+  private replaceResourceTarget(status: ResourceAiAccessStatus): void {
+    const key: string = getResourceKey(status.resourceType, status.resourceId);
+
+    this.options.resourceTargets = (this.options.resourceTargets || []).map(
+      (resource: ResourceAiAccessStatus): ResourceAiAccessStatus => {
+        return getResourceKey(resource.resourceType, resource.resourceId) ===
+          key
+          ? status
+          : resource;
+      },
+    );
+  }
+
+  // Does this run already hold a slot on the resource (an inline job there)?
+  private hasChangedResource(
+    resourceType: string | undefined,
+    resourceId: string | undefined,
+  ): boolean {
+    const key: string = getResourceKey(resourceType, resourceId);
+
+    return this.executedCommands.some(
+      (executed: AiRemediationCommand): boolean => {
+        return (
+          executed.stepType === RunbookStepType.ResourceCommand &&
+          getResourceKey(executed.resourceType, executed.resourceId) === key &&
+          Boolean(executed.execution?.runnerJobId)
+        );
+      },
+    );
+  }
+
+  /*
+   * reserveClusterSlot for a resource: one of the resource's hourly
+   * unattended slots, taken under the per-resource breaker lock
+   * (RESOURCE_BREAKER_LOCK_NAMESPACE, keyed by type and id, never a
+   * cluster's key), which is returned HELD until this run's job row exists.
+   * Under the same lock, no other AI run may hold the resource
+   * (resourceHold). Fails closed.
+   */
+  private async reserveResourceSlot(
+    command: AiRemediationCommand,
+  ): Promise<ClusterSlotReservation> {
+    const resourceType: AiResourceType = command.resourceType as AiResourceType;
+    const resourceId: string = command.resourceId || "";
+    const label: string = describeResourceLabel({
+      resourceType,
+      resourceName: command.resourceNameSnapshot || resourceId,
+    });
+    const noun: string = isAiResourceType(resourceType)
+      ? describeResourceNoun(resourceType)
+      : "resource";
+    const couldNotCheck: FullAutoRefusal = {
+      text: `Could not check the hourly limit on unattended AI fixes for ${label}, so the command was NOT executed. ${this.describeWhereRefusedChangesGo()}`,
+      approvalReason: `the hourly limit on unattended AI fixes for ${label} could not be checked`,
+    };
+
+    if (!isAiResourceType(resourceType) || !resourceId) {
+      return { mutex: null, refusal: couldNotCheck };
+    }
+
+    let mutex: SemaphoreMutex | null = null;
+
+    try {
+      mutex = await Semaphore.lock({
+        key: getResourceBreakerLockKey(resourceType, resourceId),
+        namespace: RESOURCE_BREAKER_LOCK_NAMESPACE,
+        lockTimeout: CLUSTER_BREAKER_LOCK_TIMEOUT_MS,
+        acquireTimeout: CLUSTER_BREAKER_LOCK_ACQUIRE_TIMEOUT_MS,
+      });
+    } catch (error) {
+      logger.error(
+        `RemediationCommandToolkit: could not take the circuit-breaker lock of ${resourceType} ${resourceId}; refusing the inline change: ${error}`,
+      );
+      return { mutex: null, refusal: couldNotCheck };
+    }
+
+    try {
+      const breaker: ResourceBreakerState =
+        await AutoRemediationRuleEngineService.getResourceBreakerState({
+          resourceType,
+          resourceId,
+          projectId: this.options.projectId,
+          forRound: {
+            suggestionId: this.options.suggestionId,
+            createdAt: this.options.suggestionCreatedAt,
+          },
+        });
+
+      if (!breaker.hasHeadroom) {
+        await RemediationCommandToolkit.releaseLock(mutex);
+        logger.warn(
+          `RemediationCommandToolkit: ${resourceType} ${resourceId} hit its hourly circuit breaker (${breaker.autoExecutedInWindow} unattended AI fixes); refusing an inline change.`,
+        );
+        return {
+          mutex: null,
+          refusal: {
+            text: `The hourly circuit breaker for ${label} tripped: it already had ${breaker.autoExecutedInWindow} unattended AI fix(es) in the last hour (the limit is ${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR}). The command was NOT executed. ${this.describeWhereRefusedChangesGo()}`,
+            approvalReason: `the hourly circuit breaker for ${label} tripped (${breaker.autoExecutedInWindow} unattended AI fixes in the last hour)`,
+          },
+        };
+      }
+
+      if (this.options.resourceHold) {
+        const hold: ResourceRoundHold | null =
+          await AutoRemediationRuleEngineService.findRoundHoldingResource({
+            projectId: this.options.projectId,
+            resourceType,
+            resourceId,
+            forRound: {
+              suggestionId: this.options.suggestionId,
+              createdAt: this.options.suggestionCreatedAt,
+            },
+            anyOrder: this.options.resourceHold.anyOrder,
+            subject: this.options.resourceHold.subject,
+          });
+
+        if (hold) {
+          await RemediationCommandToolkit.releaseLock(mutex);
+          logger.warn(
+            `RemediationCommandToolkit: another AI run (${hold.suggestionId}) on ${resourceType} ${resourceId} ${hold.description}; refusing an inline change.`,
+          );
+          return {
+            mutex: null,
+            refusal: {
+              text: `Another OneUptime AI run on ${label} ${hold.description}, so this run may not change the ${noun} too — two unattended fixes on one ${noun} verify and roll back on top of each other. The command was NOT executed. ${this.describeWhereRefusedChangesGo()} Do NOT try other changes on this ${noun}.`,
+              approvalReason: `another OneUptime AI run on ${label} ${hold.description}`,
+            },
+          };
+        }
+      }
+
+      return { mutex };
+    } catch (error) {
+      await RemediationCommandToolkit.releaseLock(mutex);
+      logger.error(
+        `RemediationCommandToolkit: circuit-breaker or in-flight run check failed for ${resourceType} ${resourceId}; refusing the inline change: ${error}`,
+      );
+      return { mutex: null, refusal: couldNotCheck };
+    }
+  }
+
   private static async releaseLock(mutex: SemaphoreMutex): Promise<void> {
     try {
       await Semaphore.release(mutex);
@@ -2001,7 +3188,9 @@ export default class RemediationCommandToolkit {
     return {
       definition: {
         name: "propose_remediation_commands",
-        description: `Propose an ordered plan of at most ${MAX_PLAN_COMMANDS} remediation commands for one-click human approval. Nothing executes until a human approves the whole plan. Call this at most once with your final plan (a later call replaces the earlier one). Provide a rollbackCommand for every state-changing command that has an undo (for Kubectl, e.g. kubectl rollout undo deployment/<name> -n <namespace>). Kubectl commands run through the cluster's Runner, and a write outside its writeScope (list_command_targets) is refused; ${KUBECTL_NEVER_RUNS_SUMMARY}.`,
+        description: this.isResourceRound()
+          ? `Propose an ordered plan of at most ${MAX_PLAN_COMMANDS} remediation commands on the infrastructure resource this round is about (stepType ResourceCommand with its resourceId) for one-click human approval. Nothing executes until a human approves the whole plan. Call this at most once with your final plan (a later call replaces the earlier one). One command per step, written as the program followed by its arguments — never a shell line; a read-only command is not a fix (run it with ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME} instead). Provide a rollbackCommand for every state-changing command that has an undo — it runs unattended, so it must be a safe change on ONE named object. The commands run through the resource's own AI agent, and a change it would refuse (it runs read-only, or the target is protected or outside its writeScope in list_command_targets) is refused; ${RESOURCE_NEVER_RUNS_SUMMARY}.\n\n${this.describeResourceWriteGuides()}`
+          : `Propose an ordered plan of at most ${MAX_PLAN_COMMANDS} remediation commands for one-click human approval. Nothing executes until a human approves the whole plan. Call this at most once with your final plan (a later call replaces the earlier one). Provide a rollbackCommand for every state-changing command that has an undo (for Kubectl, e.g. kubectl rollout undo deployment/<name> -n <namespace>). Kubectl commands run through the cluster's Kubernetes AI agent or Runner, and a write outside its writeScope (list_command_targets) is refused; ${KUBECTL_NEVER_RUNS_SUMMARY}.`,
         inputSchema: {
           type: "object",
           properties: {
@@ -2012,12 +3201,15 @@ export default class RemediationCommandToolkit {
               items: {
                 type: "object",
                 properties: this.buildCommandSchemaProperties(),
-                required: [
-                  "stepType",
-                  "command",
-                  "rationale",
-                  "expectedEffect",
-                ],
+                required: this.isResourceRound()
+                  ? [
+                      "stepType",
+                      "resourceId",
+                      "command",
+                      "rationale",
+                      "expectedEffect",
+                    ]
+                  : ["stepType", "command", "rationale", "expectedEffect"],
               },
             },
           },
@@ -2077,6 +3269,21 @@ export default class RemediationCommandToolkit {
          * click. The tier (safe / riskier change) is recorded separately
          * for the card, and Denied was refused at parse time.
          */
+        parsed.command.policyVerdict =
+          AiRemediationCommandPolicyVerdict.RequiresApproval;
+      } else if (parsed.command.stepType === RunbookStepType.ResourceCommand) {
+        /*
+         * The same for a resource command: a proposal runs only after a
+         * click, so it is RequiresApproval whatever the resource's mode —
+         * and a read is not a fix a human needs to approve.
+         */
+        if (parsed.command.resourceCommandTier === ResourceCommandTier.Read) {
+          problems.push(
+            `Command ${i + 1}: "${parsed.command.command}" is read-only — it is not a fix. Run it with ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME} and propose only the change.`,
+          );
+          continue;
+        }
+
         parsed.command.policyVerdict =
           AiRemediationCommandPolicyVerdict.RequiresApproval;
       } else {
@@ -2142,9 +3349,37 @@ export default class RemediationCommandToolkit {
     const stepTypeRaw: string = ToolArgs.getString(args, "stepType") || "";
     const stepType: RunbookStepType = stepTypeRaw as RunbookStepType;
 
-    if (!AI_COMMAND_STEP_TYPES.includes(stepType)) {
+    /*
+     * The step types this round offers — what its schema's stepType enum
+     * lists: ResourceCommand on a resource round; Bash, SSH and Kubectl on
+     * every other round, where ResourceCommand is as unknown as it always
+     * was (so a Kubernetes or rule round's refusal keeps its words).
+     */
+    const offeredStepTypes: Array<RunbookStepType> = this.isResourceRound()
+      ? [RunbookStepType.ResourceCommand]
+      : AI_COMMAND_STEP_TYPES.filter((type: RunbookStepType): boolean => {
+          return type !== RunbookStepType.ResourceCommand;
+        });
+
+    if (
+      !AI_COMMAND_STEP_TYPES.includes(stepType) ||
+      (!this.isResourceRound() && stepType === RunbookStepType.ResourceCommand)
+    ) {
       return {
-        errorText: `stepType must be one of: ${AI_COMMAND_STEP_TYPES.join(", ")}.`,
+        errorText: `stepType must be one of: ${offeredStepTypes.join(", ")}.`,
+      };
+    }
+
+    /*
+     * A resource round runs resource commands on its resource and nothing
+     * else: it was given no Runner and no cluster.
+     */
+    if (
+      this.isResourceRound() &&
+      stepType !== RunbookStepType.ResourceCommand
+    ) {
+      return {
+        errorText: `This remediation round is about one infrastructure resource: use stepType ResourceCommand with its resourceId from list_command_targets. ${stepType} is not available here.`,
       };
     }
 
@@ -2177,6 +3412,31 @@ export default class RemediationCommandToolkit {
 
     if (stepType === RunbookStepType.Kubectl) {
       return this.parseKubectlCommand({
+        args,
+        sequence,
+        commandText,
+        rollbackCommand,
+        timeoutInMs,
+        rationale,
+        expectedEffect,
+      });
+    }
+
+    /*
+     * A resource command runs on the resource's own AI agent, never on a
+     * Runner, so it must never fall through to the Bash/SSH path below.
+     * Only a resource round (resourceTargets) offers it — any other round
+     * refused it with the step types it offers, above; this is the belt
+     * and braces.
+     */
+    if (stepType === RunbookStepType.ResourceCommand) {
+      if (!this.isResourceRound()) {
+        return {
+          errorText: `stepType must be one of: ${offeredStepTypes.join(", ")}.`,
+        };
+      }
+
+      return this.parseResourceCommand({
         args,
         sequence,
         commandText,
@@ -2440,6 +3700,176 @@ export default class RemediationCommandToolkit {
     return this.getClusterTargets().find(
       (cluster: KubernetesClusterAiAccessStatus) => {
         return cluster.clusterId === clusterId;
+      },
+    );
+  }
+
+  /*
+   * ResourceCommand: the target is the round's resource, the AI agent is
+   * whichever one its AI page reports online, and no credential ever
+   * travels. The model only names a resource it was shown (by resourceId);
+   * the tier the resource command policy gives the command is recorded for
+   * the card, and a command, or a rollback, the agent's write scope would
+   * refuse is never composed. Denied never is either.
+   */
+  private parseResourceCommand(data: {
+    args: JSONObject;
+    sequence: number;
+    commandText: string;
+    rollbackCommand: string | undefined;
+    timeoutInMs: number;
+    rationale: string;
+    expectedEffect: string;
+  }): CommandArgsParseResult {
+    const resourceIdRaw: string | undefined = ToolArgs.getString(
+      data.args,
+      "resourceId",
+    );
+
+    const resource: ResourceAiAccessStatus | undefined = resourceIdRaw
+      ? this.getResourceTargets().find(
+          (candidate: ResourceAiAccessStatus): boolean => {
+            return (
+              candidate.resourceId.toLowerCase() === resourceIdRaw.toLowerCase()
+            );
+          },
+        )
+      : undefined;
+
+    if (!resource || !resource.agent) {
+      return {
+        errorText:
+          "resourceId is required for ResourceCommand and must be the resource from list_command_targets that allows AI remediation.",
+      };
+    }
+
+    /*
+     * A resource's agent is never given a credential by OneUptime: a step
+     * that names one is refused, never silently stripped.
+     */
+    const credentialIdRaw: string | undefined = ToolArgs.getString(
+      data.args,
+      "credentialId",
+    );
+
+    if (credentialIdRaw) {
+      return {
+        errorText: `A ResourceCommand never carries a credential: the ${
+          AI_RESOURCE_TYPE_INFO[resource.resourceType].agentDisplayName
+        } uses only the credentials in its own environment. Omit credentialId.`,
+      };
+    }
+
+    const info: AiResourceTypeInfo =
+      AI_RESOURCE_TYPE_INFO[resource.resourceType];
+
+    const policy: ResourceCommandPolicyResult =
+      ResourceCommandPolicy.evaluateCommand({
+        resourceType: resource.resourceType,
+        command: data.commandText,
+      });
+
+    if (policy.tier === ResourceCommandTier.Denied) {
+      return {
+        errorText: `Denied by the ${info.displayName} command policy: ${policy.reason}. This command can never run, even with human approval — take a different approach.`,
+      };
+    }
+
+    let rollbackDisplay: string | undefined = undefined;
+
+    if (data.rollbackCommand) {
+      const rollbackPolicy: ResourceCommandPolicyResult =
+        ResourceCommandPolicy.evaluateCommand({
+          resourceType: resource.resourceType,
+          command: data.rollbackCommand,
+        });
+
+      if (rollbackPolicy.tier === ResourceCommandTier.Denied) {
+        return {
+          errorText: `The rollbackCommand is denied by the ${info.displayName} command policy: ${rollbackPolicy.reason}. Provide a safe rollback or omit it.`,
+        };
+      }
+
+      /*
+       * A rollback runs unattended after verification fails: a change that
+       * always needs a human can never be one, and a riskier one only on a
+       * resource whose operator bypassed approvals.
+       */
+      if (rollbackPolicy.requiresHuman === true) {
+        return {
+          errorText: `The rollbackCommand "${rollbackPolicy.displayCommand}" always needs a human (${rollbackPolicy.reason}), and rollbacks run unattended. Use a safe undo for ONE named object instead, or omit it.`,
+        };
+      }
+
+      if (
+        rollbackPolicy.tier === ResourceCommandTier.RiskyWrite &&
+        resource.aiRemediationMode !== ResourceAiRemediationMode.BypassApproval
+      ) {
+        return {
+          errorText: `The rollbackCommand "${rollbackPolicy.displayCommand}" is a risky change (${rollbackPolicy.reason}) and rollbacks run unattended. Use a safe undo for ONE named object instead (for example the start that undoes a stop), or omit it.`,
+        };
+      }
+
+      rollbackDisplay = rollbackPolicy.displayCommand;
+    }
+
+    // A write the agent has said it will refuse is never composed.
+    const scopeRefusal: string | null = this.getResourceCommandScopeRefusal(
+      resource,
+      {
+        command: policy.displayCommand,
+        rollbackCommand: rollbackDisplay,
+      },
+    );
+
+    if (scopeRefusal) {
+      return { errorText: scopeRefusal };
+    }
+
+    return {
+      command: {
+        sequence: data.sequence,
+        stepType: RunbookStepType.ResourceCommand,
+        /*
+         * The access target is the resource's AI agent (its row id and
+         * display name), as a Kubectl step through the Kubernetes AI agent
+         * names that agent.
+         */
+        runnerId: resource.agent.agentId,
+        runnerNameSnapshot: info.agentDisplayName,
+        resourceType: resource.resourceType,
+        resourceId: resource.resourceId,
+        resourceNameSnapshot: resource.resourceName,
+        resourceCommandTier: policy.tier,
+        // Stored in the canonical rendered form so the card shows exactly what runs.
+        command: policy.displayCommand,
+        timeoutInMs: Math.min(
+          data.timeoutInMs,
+          MAX_RESOURCE_COMMAND_TIMEOUT_MS,
+        ),
+        rationale: data.rationale,
+        expectedEffect: data.expectedEffect,
+        rollbackCommand: rollbackDisplay,
+        policyVerdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
+      },
+    };
+  }
+
+  private findResourceTarget(
+    resourceType: string | undefined,
+    resourceId: string | undefined,
+  ): ResourceAiAccessStatus | undefined {
+    const key: string = getResourceKey(resourceType, resourceId);
+
+    if (!key) {
+      return undefined;
+    }
+
+    return this.getResourceTargets().find(
+      (resource: ResourceAiAccessStatus): boolean => {
+        return (
+          getResourceKey(resource.resourceType, resource.resourceId) === key
+        );
       },
     );
   }

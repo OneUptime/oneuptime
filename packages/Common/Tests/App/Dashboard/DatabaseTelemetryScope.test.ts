@@ -1,7 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   DATABASE_ENDPOINT_CHIP_KEY,
+  DATABASE_ENDPOINT_MATCH_DESCRIPTION,
+  DATABASE_ENDPOINT_MATCH_LABEL,
+  DATABASE_ID_MATCH_DESCRIPTION,
+  DATABASE_ID_MATCH_LABEL,
   DATABASE_MEMBER_CHIP_KEY,
+  DATABASE_MEMBER_MATCH_DESCRIPTION,
+  DATABASE_MEMBER_MATCH_LABEL,
+  DATABASE_SCOPE_SUMMARY,
   DATABASE_SERVER_CHIP_KEY,
   buildDatabaseServerEntityKeyDisplays,
   getDatabaseServerEndpointScopeKeys,
@@ -272,13 +279,25 @@ describe("buildDatabaseServerEntityKeyDisplays", () => {
       port: 5433,
     });
 
+    // No id: the one database is grouped under its project.
+    const endpointGroup: Record<string, string> = {
+      id: `database:${PROJECT_ID}`,
+      displayKey: DATABASE_SERVER_CHIP_KEY,
+      displayValue: "PostgreSQL db.prod.internal:5432",
+      summary: DATABASE_SCOPE_SUMMARY,
+      memberLabel: DATABASE_ENDPOINT_MATCH_LABEL,
+      memberDescription: DATABASE_ENDPOINT_MATCH_DESCRIPTION,
+    };
+
     expect(displays[endpointKey]).toEqual({
       displayKey: DATABASE_ENDPOINT_CHIP_KEY,
       displayValue: "db.prod.internal:5432",
+      group: endpointGroup,
     });
     expect(displays[ipv6Key]).toEqual({
       displayKey: DATABASE_ENDPOINT_CHIP_KEY,
       displayValue: "[2001:db8::1]:5433",
+      group: endpointGroup,
     });
   });
 
@@ -295,6 +314,14 @@ describe("buildDatabaseServerEntityKeyDisplays", () => {
     expect(displays[POD_KEY]).toEqual({
       displayKey: DATABASE_MEMBER_CHIP_KEY,
       displayValue: `orders-db (${POD_KEY.substring(0, 8)})`,
+      group: {
+        id: `database:${PROJECT_ID}`,
+        displayKey: DATABASE_SERVER_CHIP_KEY,
+        displayValue: "orders-db",
+        summary: DATABASE_SCOPE_SUMMARY,
+        memberLabel: DATABASE_MEMBER_MATCH_LABEL,
+        memberDescription: DATABASE_MEMBER_MATCH_DESCRIPTION,
+      },
     });
   });
 
@@ -489,15 +516,32 @@ describe("the row key (telemetry linked by oneuptime.database.server.id)", () =>
   });
 
   test("the row key's chip reads 'Database: <name>', falling back to the engine", () => {
+    const rowGroup: (name: string) => Record<string, string> = (
+      name: string,
+    ): Record<string, string> => {
+      return {
+        id: `database:${ROW_ID}`,
+        displayKey: DATABASE_SERVER_CHIP_KEY,
+        displayValue: name,
+        summary: DATABASE_SCOPE_SUMMARY,
+        memberLabel: DATABASE_ID_MATCH_LABEL,
+        memberDescription: DATABASE_ID_MATCH_DESCRIPTION,
+        // Listed by its id: the chip already shows the name.
+        memberValue: ROW_ID,
+      };
+    };
+
     expect(buildDatabaseServerEntityKeyDisplays(source)[ROW_KEY]).toEqual({
       displayKey: DATABASE_SERVER_CHIP_KEY,
       displayValue: "Orders DB",
+      group: rowGroup("Orders DB"),
     });
     expect(
       buildDatabaseServerEntityKeyDisplays({ ...source, name: "  " })[ROW_KEY],
     ).toEqual({
       displayKey: DATABASE_SERVER_CHIP_KEY,
       displayValue: "PostgreSQL",
+      group: rowGroup("PostgreSQL"),
     });
     expect(
       buildDatabaseServerEntityKeyDisplays(source)[ROW_KEY],

@@ -95,7 +95,7 @@ jest.mock("../../../Server/Utils/Response", () => {
 });
 
 const AI_DISABLED_MESSAGE: string =
-  "AI features are disabled for this project. Enable them in Project Settings > AI Credits.";
+  "AI features are disabled for this project. Enable them in Project Settings → AI Features.";
 
 // The project that owns the incident / alert / maintenance being generated for.
 const PROJECT_ID: ObjectID = new ObjectID(

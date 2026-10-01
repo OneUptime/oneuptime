@@ -115,6 +115,19 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     {
       title: "AI",
       items: [
+        /*
+         * First, and outside the billing-only items below: the project's AI
+         * switches must be reachable on every install.
+         */
+        {
+          link: {
+            title: "AI Features",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_FEATURES] as Route,
+            ),
+          },
+          icon: IconProp.Sparkles,
+        },
         {
           link: {
             title: "LLM Providers",
@@ -123,15 +136,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           },
           icon: IconProp.Brain,
-        },
-        {
-          link: {
-            title: "AI Guardrails",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_AI_GUARDRAILS] as Route,
-            ),
-          },
-          icon: IconProp.Settings,
         },
         ...(BILLING_ENABLED
           ? [
@@ -163,34 +167,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           },
           icon: IconProp.Terminal,
-        },
-      ],
-    },
-    /*
-     * Runners execute runbook steps AND AI code fixes, so they sit on their
-     * own rather than under either — they used to live under Runbook settings,
-     * which stopped being true when the AI agent merged into them.
-     */
-    {
-      title: "Runners",
-      items: [
-        {
-          link: {
-            title: "Runners",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_RUNNERS] as Route,
-            ),
-          },
-          icon: IconProp.Terminal,
-        },
-        {
-          link: {
-            title: "Credentials",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_RUNNER_CREDENTIALS] as Route,
-            ),
-          },
-          icon: IconProp.Key,
         },
       ],
     },

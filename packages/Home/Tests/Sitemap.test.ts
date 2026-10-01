@@ -32,6 +32,7 @@ describe("Sitemap isRedirectPath", () => {
       "/product/monitoring",
       "/product/proxmox",
       "/product/vmware",
+      "/product/databases",
     ]) {
       expect(isRedirectPath(canonicalPath)).toBe(false);
     }
@@ -75,6 +76,13 @@ describe("Sitemap product page priorities", () => {
 
   test("the VMware product page is configured exactly once", () => {
     expect(sitemapSource.split('"/product/vmware"').length - 1).toBe(1);
+  });
+
+  test("the Databases product page is configured like the other product pages, once", () => {
+    expect(sitemapSource).toContain(
+      '"/product/databases": { priority: 0.9, changefreq: "weekly" }',
+    );
+    expect(sitemapSource.split('"/product/databases"').length - 1).toBe(1);
   });
 });
 

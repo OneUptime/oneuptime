@@ -55,7 +55,10 @@ describe("investigation drawer wiring", () => {
       "App/FeatureSet/Dashboard/src/Components/Metrics/MetricExplorer.tsx",
     );
     expect(explorer).toContain("<InvestigationDrawer");
-    expect(explorer).toContain("setIsInvestigationOpen(true)");
+    // A snapshot of the view, so an auto-refresh tick cannot re-pin it.
+    expect(explorer).toContain(
+      "setInvestigation({ window: investigatedWindow, viewData: metricViewData, });",
+    );
   });
 
   test("annotation clicks never leak into bucket pinning", () => {

@@ -21,6 +21,21 @@
  *     are known only by the node they run on (no deployment), with the
  *     services on those pods calling each other. Opening a node must show
  *     how its pods talk, not a grid of standalone cards.
+ *
+ *   largeServiceMap — the project in issue #4117, whose Service Map went
+ *     blank: 171 services reporting and 102 more last seen weeks ago, 19
+ *     databases and remote APIs, and 77 calls. Thirty-eight client services
+ *     call fifteen domain APIs, which call one platform service, which calls
+ *     every database and API. Drawn, that is 73 cards in four columns, the
+ *     first of them 38 cards tall: a narrow column fitted into a wide canvas
+ *     at a small zoom, so most of the canvas is empty. The shorter columns
+ *     are centred on the first, which leaves the drawing's box empty above
+ *     and below them; the tests zoom into those corners (top-right and
+ *     bottom-right) for the out-of-view notice, and use the first column's
+ *     height to move keyboard focus far up and down the map. The other 117
+ *     services call nothing and are listed below the map. With 190 entries
+ *     the Service Map opens on its table, so the tests ask for
+ *     `serviceView=map`.
  */
 
 const K8S_ALPHABET = "bcdfghjklmnpqrstvwxz2456789";
@@ -261,10 +276,199 @@ function buildAksNodeTraffic(api) {
   calls("wb-ims-backend", "db-ims", 91000, 12, 4);
 }
 
+const LARGE_MAP_DOMAINS = [
+  "accounts",
+  "billing",
+  "catalog",
+  "checkout",
+  "identity",
+  "inventory",
+  "ledger",
+  "notifications",
+  "orders",
+  "payments",
+  "pricing",
+  "profiles",
+  "search",
+  "shipping",
+  "subscriptions",
+];
+/* Databases as discovery records them: engine in db.system.name. */
+const LARGE_MAP_DATABASES = [
+  ["accounts-db", "postgresql"],
+  ["billing-db", "mysql"],
+  ["catalog-store", "mongodb"],
+  ["events-warehouse", "clickhouse"],
+  ["inventory-db", "mariadb"],
+  ["ledger-db", "mssql"],
+  ["orders-db", "postgresql"],
+  ["profiles-store", "cassandra"],
+  ["rate-limit-cache", "redis"],
+  ["search-index", "elasticsearch"],
+  ["session-cache", "redis"],
+];
+/* Remote APIs by server address, protocol in network.protocol.name. */
+const LARGE_MAP_REMOTE_APIS = [
+  ["payments-gateway.example.com", "http"],
+  ["fraud-score.example.com", "grpc"],
+  ["tax-rates.example.org", "http"],
+  ["fx-rates.example.org", "http"],
+  ["geo-lookup.example.net", "http"],
+  ["sms-relay.example.net", "http"],
+  ["email-relay.example.net", "http"],
+  ["feature-flags.example.io", "grpc"],
+];
+const LARGE_MAP_LANGUAGES = ["nodejs", "java", "go", "python", "dotnet"];
+
+/*
+ * `count` names from domain × role, domain first: accounts-web,
+ * billing-web, ..., subscriptions-web, accounts-worker, ...
+ */
+function largeMapNames(roles, count) {
+  const names = [];
+  for (let index = 0; index < count; index++) {
+    const role = roles[Math.floor(index / LARGE_MAP_DOMAINS.length)];
+    names.push(
+      `${LARGE_MAP_DOMAINS[index % LARGE_MAP_DOMAINS.length]}-${role}`,
+    );
+  }
+  return names;
+}
+
+function buildLargeServiceMap(api) {
+  const random = seededRandom(4117);
+  const service = (name, lastSeenAt, language) => {
+    const entity = api.addEntity(`service-${name}`, name, "service");
+    entity.lastSeenAt = new Date(lastSeenAt);
+    entity.firstSeenAt = new Date(lastSeenAt - 60 * DAY);
+    entity.descriptiveAttributes = { "telemetry.sdk.language": language };
+    return `service-${name}`;
+  };
+  const language = (index) => {
+    return LARGE_MAP_LANGUAGES[index % LARGE_MAP_LANGUAGES.length];
+  };
+
+  // 171 services reported in the last day.
+  const callers = largeMapNames(["web", "worker", "scheduler"], 38).map(
+    (name, index) => {
+      return service(
+        name,
+        NOW - (index % 40) * MINUTE,
+        name.endsWith("-web") ? "webjs" : language(index),
+      );
+    },
+  );
+  const domainApis = LARGE_MAP_DOMAINS.map((domain, index) => {
+    return service(
+      `${domain}-api`,
+      NOW - (index % 7) * MINUTE,
+      language(index),
+    );
+  });
+  const platform = service("platform-core", NOW - MINUTE, "go");
+  largeMapNames(
+    [
+      "exporter",
+      "importer",
+      "consumer",
+      "cron",
+      "reporter",
+      "migrator",
+      "backfill",
+      "auditor",
+    ],
+    117,
+  ).forEach((name, index) => {
+    service(name, NOW - (index % 55) * MINUTE, language(index));
+  });
+  // 102 more stopped reporting two to five weeks ago.
+  largeMapNames(
+    ["legacy", "canary", "shadow", "preview", "sandbox", "blue", "green"],
+    102,
+  ).forEach((name, index) => {
+    service(name, NOW - (14 + (index % 21)) * DAY, language(index));
+  });
+
+  // 19 dependencies: databases and remote APIs.
+  const databases = LARGE_MAP_DATABASES.map(([name, system]) => {
+    const entity = api.addEntity(`db-${name}`, name, "database");
+    entity.identifyingAttributes = {
+      "db.system.name": system,
+      "db.namespace": name,
+    };
+    entity.descriptiveAttributes = { "db.system.name": system };
+    return entity.key;
+  });
+  const remoteApis = LARGE_MAP_REMOTE_APIS.map(([host, protocol]) => {
+    const entity = api.addEntity(`remote-${host}`, host, "remote.service");
+    entity.identifyingAttributes = { "server.address": host };
+    entity.descriptiveAttributes = { "network.protocol.name": protocol };
+    return entity.key;
+  });
+
+  // 77 connections, each with the metrics of one aggregation window.
+  const calls = (from, to, callCount, errorRate, avgDurationMs) => {
+    api.connect(from, to, "depends-on", {
+      callCount,
+      errorCount: Math.round(callCount * errorRate),
+      avgDurationMs,
+    });
+  };
+  const between = (min, max) => {
+    return Math.round(min + random() * (max - min));
+  };
+  callers.forEach((caller, index) => {
+    // Most calls are clean; every ninth client sees errors.
+    const errorRate = index % 9 === 4 ? 0.06 : index % 5 === 0 ? 0.004 : 0;
+    calls(
+      caller,
+      domainApis[index % domainApis.length],
+      between(600, 48000),
+      errorRate,
+      between(18, 420),
+    );
+    // A few clients call a second domain API as well.
+    if (index < 3) {
+      calls(
+        caller,
+        domainApis[(index + 1) % domainApis.length],
+        between(300, 9000),
+        0,
+        between(25, 260),
+      );
+    }
+  });
+  domainApis.forEach((domainApi, index) => {
+    calls(
+      domainApi,
+      platform,
+      between(20000, 240000),
+      index === 6 ? 0.012 : 0.0005,
+      between(8, 90),
+    );
+  });
+  databases.forEach((database, index) => {
+    calls(
+      platform,
+      database,
+      between(90000, 2400000),
+      database === "db-ledger-db" ? 0.03 : 0,
+      index % 4 === 0 ? between(12, 40) : between(1, 9),
+    );
+  });
+  remoteApis.forEach((remoteApi) => {
+    calls(platform, remoteApi, between(400, 26000), 0.002, between(90, 780));
+  });
+  // Two domain APIs also read a store directly.
+  calls("service-search-api", "db-search-index", 64000, 0, 14);
+  calls("service-checkout-api", "db-session-cache", 210000, 0, 1);
+}
+
 const DATASETS = {
   selfHostedLegacy: buildSelfHostedLegacy,
   selfHostedDiscovered: buildSelfHostedDiscovered,
   aksNodeTraffic: buildAksNodeTraffic,
+  largeServiceMap: buildLargeServiceMap,
 };
 
 export function loadDataset(name, api) {

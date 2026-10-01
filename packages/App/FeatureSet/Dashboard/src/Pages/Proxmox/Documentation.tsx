@@ -8,8 +8,8 @@ const ProxmoxDocumentation: FunctionComponent<
   return (
     <Fragment>
       <ProxmoxDocumentationCard
-        title="Agent Installation Guide"
-        description="Install the OneUptime Proxmox Agent to connect your Proxmox cluster. Once installed, the cluster will appear automatically."
+        title="Connect a Proxmox Cluster"
+        description="Install the OneUptime Proxmox agent, or let Proxmox VE 9+ push its metrics itself. Pick how to connect, then follow the steps — the cluster appears automatically once data arrives."
       />
     </Fragment>
   );

@@ -1,10 +1,16 @@
 import { Gray500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
-import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
+import Icon, { ThickProp } from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 import Tooltip from "../Tooltip/Tooltip";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import {
+  getPillColors,
+  getPillDotStyle,
+  getPillToneStyle,
+  PillColors,
+} from "./PillColors";
 
 export enum PillSize {
   Small = "10px",
@@ -23,66 +29,70 @@ export interface ComponentProps {
   icon?: IconProp | undefined;
 }
 
+/*
+ * Spacing is in em, so each size is the same pill scaled: a Small pill in a
+ * dense table and an ExtraLarge one in a page header keep their proportions.
+ */
+const PILL_CLASS_NAME: string =
+  "inline-flex max-w-full items-center gap-[0.4em] rounded-full px-[0.6em] py-[0.2em] font-medium leading-[1.35]";
+
 const Pill: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const color: Color = props.color || Gray500;
-  const backgroundColor: string = color.toString();
-
-  if (props.isMinimal) {
-    return (
-      <span
-        className="relative inline-flex items-center rounded-full border px-3 py-0.5 text-sm"
-        style={{
-          borderColor: "var(--ou-border-strong, #d1d5db)",
-        }}
-      >
-        <span className="absolute flex flex-shrink-0 items-center justify-center">
-          <span
-            className="h-1.5 w-1.5 rounded-full bg-rose-500"
-            style={{
-              backgroundColor: backgroundColor,
-            }}
-            aria-hidden="true"
-          ></span>
-        </span>
-        <span
-          className="ml-3.5 font-medium"
-          style={{ color: "var(--ou-text-primary, #111827)" }}
-        >
-          {props.text}
-        </span>
-      </span>
-    );
-  }
+  const colors: PillColors = getPillColors(props.color || Gray500);
 
   const getPillElement: GetReactElementFunction = (): ReactElement => {
     return (
       <span
         data-testid="pill"
-        className="inline-flex items-center rounded-full border p-1 pl-3 pr-3"
+        data-ou-pill={props.isMinimal ? undefined : ""}
+        className={`${PILL_CLASS_NAME} ${
+          props.isMinimal ? "text-gray-700 ring-1 ring-inset ring-gray-200" : ""
+        }`}
         style={{
-          // https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
-
-          color:
-            props.style?.color || Color.shouldUseDarkText(color)
-              ? "#000000"
-              : "#ffffff",
-          backgroundColor: backgroundColor,
-          borderColor: "var(--ou-border-strong, #d1d5db)",
           fontSize: props.size ? props.size.toString() : PillSize.Normal,
+          // A minimal pill is a neutral outline: its classes colour it.
+          ...(props.isMinimal ? {} : getPillToneStyle(colors, props.style)),
           ...props.style,
         }}
       >
         {props.icon ? (
           <Icon
             icon={props.icon}
-            size={SizeProp.Small}
             thick={ThickProp.Thick}
-            className="mr-2"
+            className="h-[1em] w-[1em] flex-shrink-0"
           />
-        ) : null}
-        {props.text}
+        ) : (
+          <span
+            data-testid="pill-dot"
+            data-ou-pill-dot=""
+            className="h-[0.5em] w-[0.5em] flex-shrink-0 rounded-full"
+            style={getPillDotStyle(colors)}
+            aria-hidden="true"
+          ></span>
+        )}
+        <span
+          className="min-w-0 truncate"
+          onMouseEnter={(event: React.MouseEvent<HTMLSpanElement>) => {
+            /*
+             * A pill stays on one line and ellipsizes in a container too
+             * narrow for it, so the cut-short ones show their whole text on
+             * hover. A pill with a tooltip already has hover text.
+             */
+            const textElement: HTMLSpanElement = event.currentTarget;
+
+            if (
+              !props.tooltip &&
+              textElement.scrollWidth > textElement.clientWidth
+            ) {
+              textElement.title = props.text;
+            } else {
+              textElement.removeAttribute("title");
+            }
+          }}
+        >
+          {props.text}
+        </span>
       </span>
     );
   };

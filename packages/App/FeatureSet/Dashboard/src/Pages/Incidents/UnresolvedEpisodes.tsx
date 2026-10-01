@@ -13,7 +13,7 @@ const UnresolvedEpisodesPage: FunctionComponent<
         resolvedAt: null as any,
       }}
       title="Active Episodes"
-      description="Here is a list of active (unresolved) incident episodes for this project."
+      description="Episodes group related incidents so you can respond to them together. These are the episodes that are not resolved yet."
       noItemsMessage="No active episodes. All episodes are resolved."
       saveFilterProps={{
         tableId: "unresolved-incident-episodes-table",

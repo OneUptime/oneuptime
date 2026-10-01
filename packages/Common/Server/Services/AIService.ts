@@ -188,7 +188,7 @@ export const LEGACY_AUTONOMOUS_AI_FEATURES: Array<string> = [
 /*
  * Features that run WITHOUT a human in the loop. Incident-linked and
  * alert-linked calls use their respective daily token limits; subjectless
- * calls use Project.aiDailyAutonomousTokenLimit. Interactive chat and
+ * calls have no daily token limit. Interactive chat and
  * explicitly user-triggered AI are never budget-blocked.
  * Auto-postmortem is deliberately excluded for now: it is one call per
  * resolved incident, not storm-shaped; include it when it moves to the queue.
@@ -313,7 +313,14 @@ export const INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS: number = 4 * 60 * 1000;
  * screen where the switch can be turned back on.
  */
 export const AI_DISABLED_MESSAGE: string =
-  "AI features are disabled for this project. Enable them in Project Settings > AI Credits.";
+  "AI features are disabled for this project. Enable them in Project Settings → AI Features.";
+
+/*
+ * Why no AI run can start in a project whose OneUptime AI credits are used
+ * up (getAiBalanceBlocker), in the words every surface that says so shares.
+ */
+export const AI_BALANCE_INSUFFICIENT_MESSAGE: string =
+  "This project's AI credit balance is used up and auto-recharge is off, so OneUptime AI cannot run.";
 
 export interface AILogRequest {
   projectId: ObjectID;
@@ -487,6 +494,68 @@ export class Service extends BaseService {
   }
 
   /*
+   * Would an AI call in this project be refused for lack of AI credits?
+   * Returns why (AI_BALANCE_INSUFFICIENT_MESSAGE), or null when nothing
+   * about the balance stands in the way. The same test executeWithLogging
+   * applies to every call — billing is on, the project's provider is the
+   * OneUptime-hosted (global) one and it has a per-token cost, and the
+   * balance is at or below zero — plus one it cannot see: auto-recharge.
+   * A project with auto-recharge on is topped up when its balance runs low,
+   * so an empty balance there is not a standing blocker.
+   *
+   * Asked in advance by the readiness checks (the cluster AI status, the
+   * investigation eligibility), so "out of credits" is said once, up front,
+   * instead of as a failed run per incident. Takes the provider when the
+   * caller already resolved it, to spare a second lookup.
+   */
+  @CaptureSpan()
+  public async getAiBalanceBlocker(data: {
+    projectId: ObjectID;
+    llmProvider?: LlmProvider | null | undefined;
+  }): Promise<string | null> {
+    if (!IsBillingEnabled) {
+      return null;
+    }
+
+    const llmProvider: LlmProvider | null =
+      data.llmProvider !== undefined
+        ? data.llmProvider
+        : await LlmProviderService.getLLMProviderForProject(data.projectId);
+
+    // No provider is its own blocker, reported as such by the callers.
+    if (
+      !llmProvider ||
+      llmProvider.isGlobalLlm !== true ||
+      (llmProvider.costPerMillionTokensInUSDCents || 0) <= 0
+    ) {
+      return null;
+    }
+
+    const project: Project | null = await ProjectService.findOneById({
+      id: data.projectId,
+      select: {
+        aiCurrentBalanceInUSDCents: true,
+        enableAutoRechargeAiBalance: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!project) {
+      return null;
+    }
+
+    if ((project.aiCurrentBalanceInUSDCents || 0) > 0) {
+      return null;
+    }
+
+    if (project.enableAutoRechargeAiBalance === true) {
+      return null;
+    }
+
+    return AI_BALANCE_INSUFFICIENT_MESSAGE;
+  }
+
+  /*
    * G4 daily budget: has this project consumed the selected subject lane's
    * daily autonomous-token allowance (UTC day)? Counts only that lane's
    * AUTONOMOUS_AI_FEATURES tokens, so chat usage neither eats the autonomous
@@ -502,24 +571,23 @@ export class Service extends BaseService {
   ): Promise<AutonomousBudgetStatus> {
     this.assertSingleSubject(subject);
 
+    // Subjectless autonomous work has no daily token limit.
+    if (!subject?.incidentId && !subject?.alertId) {
+      return { exhausted: false, limitInTokens: null, usedTokensToday: 0 };
+    }
+
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
       select: {
-        aiDailyAutonomousTokenLimit: true,
         incidentAiDailyAutonomousTokenLimit: true,
         alertAiDailyAutonomousTokenLimit: true,
       },
       props: { isRoot: true },
     });
 
-    let limitInTokens: number | null =
-      project?.aiDailyAutonomousTokenLimit ?? null;
-
-    if (subject?.incidentId) {
-      limitInTokens = project?.incidentAiDailyAutonomousTokenLimit ?? null;
-    } else if (subject?.alertId) {
-      limitInTokens = project?.alertAiDailyAutonomousTokenLimit ?? null;
-    }
+    const limitInTokens: number | null = subject?.incidentId
+      ? project?.incidentAiDailyAutonomousTokenLimit ?? null
+      : project?.alertAiDailyAutonomousTokenLimit ?? null;
 
     if (limitInTokens === null) {
       return { exhausted: false, limitInTokens: null, usedTokensToday: 0 };
@@ -714,9 +782,7 @@ export class Service extends BaseService {
       if (budget.exhausted) {
         const settingsLocation: string = request.incidentId
           ? "Incidents > AI > Investigation"
-          : request.alertId
-            ? "Alerts > AI > Investigation"
-            : "Project Settings > AI > AI Guardrails";
+          : "Alerts > AI > Investigation";
         const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under ${settingsLocation}.`;
 
         logEntry.status = LlmLogStatus.BudgetExceeded;

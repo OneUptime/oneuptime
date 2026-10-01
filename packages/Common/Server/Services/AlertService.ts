@@ -35,6 +35,7 @@ import Model from "../../Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "../../Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "../../Models/DatabaseModels/AlertOwnerUser";
 import AlertState from "../../Models/DatabaseModels/AlertState";
+import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectScopedReferenceValidator, {
   HeldRelationIds,
@@ -44,7 +45,9 @@ import ProjectScopedReferenceValidator, {
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import Query from "../Types/Database/Query";
+import Select from "../Types/Database/Select";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
@@ -92,6 +95,32 @@ import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
+
+/*
+ * The two spellings a write of an alert's monitor arrives under: the FK
+ * column from the API and server code, the relation object from the
+ * dashboard's forms (see RelationIdUtil).
+ */
+const ALERT_MONITOR_KEYS: Array<string> = ["monitorId", "monitor"];
+
+/*
+ * What an update does to one alert's monitor: sets it, moves it or clears
+ * it. An alert whose monitor the update leaves as it was has none.
+ */
+interface AlertMonitorChange {
+  oldMonitorId: ObjectID | null;
+  newMonitorId: ObjectID | null;
+}
+
+/*
+ * Handed from onBeforeUpdate to onUpdateSuccess. Once the update has run the
+ * row holds the new monitor, so the one it held before is only known from
+ * the read made before the write.
+ */
+interface AlertUpdateCarryForward {
+  // Keyed by alert id.
+  monitorChanges: Dictionary<AlertMonitorChange>;
+}
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -281,6 +310,9 @@ export class Service extends DatabaseService<Model> {
       updateBy.props,
     );
 
+    const monitorChanges: Dictionary<AlertMonitorChange> =
+      await this.getMonitorChangesForUpdate(updateBy);
+
     await this.validateProjectScopedReferences(updateBy);
 
     /*
@@ -297,7 +329,171 @@ export class Service extends DatabaseService<Model> {
       updateBy: updateBy,
     });
 
-    return { updateBy, carryForward: null };
+    const carryForward: AlertUpdateCarryForward = {
+      monitorChanges: monitorChanges,
+    };
+
+    return { updateBy, carryForward: carryForward };
+  }
+
+  /*
+   * A manual alert's monitor can be set, changed or cleared after the alert
+   * is created. An alert raised automatically keeps the monitor it was raised
+   * with:
+   *
+   *   - Raised by a monitor, it keeps that one. The monitor finds its open
+   *     alerts by monitor (MonitorAlert): it dedupes each new breach against
+   *     them and resolves them when it recovers. Moved to another monitor, or
+   *     cleared, the alert would never be resolved automatically, and the
+   *     monitor it came from would raise a duplicate on its next breach.
+   *   - Raised without one (an SLO burn-rate or security-event alert), or left
+   *     without one when its monitor was deleted, it gets none. A monitor
+   *     attached to it would find it among its own open alerts though it
+   *     never raised it, and the rule above would then lock the alert to that
+   *     monitor for good.
+   *
+   * Every caller is checked, root included: the workflow "Update Alert"
+   * component writes as root, and no server code moves an alert's monitor on
+   * update.
+   *
+   * Returns what the update does to each matched alert's monitor, for the
+   * feed and the metrics in onUpdateSuccess. An update that does not write
+   * the monitor reads nothing.
+   */
+  private async getMonitorChangesForUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Dictionary<AlertMonitorChange>> {
+    const data: Record<string, unknown> = updateBy.data as Record<
+      string,
+      unknown
+    >;
+
+    /*
+     * An explicit null clears the monitor, so it is a write. An undefined
+     * value is not: TypeORM leaves such a column as it is.
+     */
+    const isMonitorWritten: boolean = ALERT_MONITOR_KEYS.some(
+      (key: string): boolean => {
+        return (
+          Object.prototype.hasOwnProperty.call(data, key) &&
+          data[key] !== undefined
+        );
+      },
+    );
+
+    if (!isMonitorWritten) {
+      return {};
+    }
+
+    /*
+     * readConsistent, not read: when a payload spells the monitor both ways
+     * and they disagree, TypeORM writes whichever one it prefers, so the
+     * payload is refused rather than judged on the spelling read first.
+     */
+    const newMonitorId: ObjectID | null = RelationIdUtil.readConsistent(
+      data,
+      ALERT_MONITOR_KEYS,
+      "Monitor",
+    );
+
+    const alerts: Array<Model> = await this.findAlertsForUpdateHook({
+      updateBy: updateBy,
+      select: {
+        _id: true,
+        isCreatedAutomatically: true,
+        monitorId: true,
+      },
+    });
+
+    const monitorChanges: Dictionary<AlertMonitorChange> = {};
+
+    for (const alert of alerts) {
+      const oldMonitorId: ObjectID | null = alert.monitorId || null;
+
+      if (this.isSameMonitorId(oldMonitorId, newMonitorId)) {
+        continue;
+      }
+
+      /*
+       * Only a real change gets here. Re-saving what the alert already has
+       * passes, including the null of an automatic alert with no monitor:
+       * the dashboard hides the Monitor field for such an alert, but
+       * ModelForm still submits the value it loaded.
+       *
+       * The message for an alert with no monitor says only that it has none,
+       * not that it was raised without one: a monitor's alert whose monitor
+       * was deleted reaches it too.
+       */
+      if (alert.isCreatedAutomatically) {
+        throw new BadDataException(
+          oldMonitorId
+            ? "This alert was raised automatically by its monitor, so its monitor cannot be changed or removed. That monitor resolves the alert when it recovers: moved to another monitor, the alert would stay open, and the monitor would raise a duplicate alert on its next breach."
+            : "This alert was raised automatically and has no monitor, so a monitor cannot be attached to it. An alert raised automatically cannot be given a monitor after it is raised.",
+        );
+      }
+
+      monitorChanges[alert.id!.toString()] = {
+        oldMonitorId: oldMonitorId,
+        newMonitorId: newMonitorId,
+      };
+    }
+
+    return monitorChanges;
+  }
+
+  /*
+   * Postgres answers a uuid in lower case, and an API caller may send the
+   * same id in upper case, so re-saving the monitor an alert already has must
+   * not read as a change.
+   */
+  private isSameMonitorId(
+    first: ObjectID | null,
+    second: ObjectID | null,
+  ): boolean {
+    return (
+      (first?.toString() || "").toLowerCase() ===
+      (second?.toString() || "").toLowerCase()
+    );
+  }
+
+  /*
+   * The alerts an update will write to, as they are stored, for the check
+   * above.
+   *
+   * Read as root: the answer only decides whether the update may go ahead,
+   * and the update itself is still checked against the caller's permissions
+   * afterwards. Reading with the caller's props would fail the whole edit for
+   * a role that may edit alerts but not read these columns. The query already
+   * carries the caller's privacy filter (applyAlertSelfPrivacyFilter), but
+   * not their tenant: the update's permission check adds it only after this
+   * hook runs. So a non-root caller's read is limited to their own project
+   * here, or a request for another project's alert id would be answered with
+   * that alert's state (a refusal that depends on it) instead of the usual
+   * "nothing updated".
+   */
+  private async findAlertsForUpdateHook(data: {
+    updateBy: UpdateBy<Model>;
+    select: Select<Model>;
+  }): Promise<Array<Model>> {
+    const updateBy: UpdateBy<Model> = data.updateBy;
+
+    const query: Query<Model> =
+      !updateBy.props.isRoot && updateBy.props.tenantId
+        ? {
+            ...updateBy.query,
+            projectId: updateBy.props.tenantId,
+          }
+        : updateBy.query;
+
+    return await this.findBy({
+      query: query,
+      select: data.select,
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   /*
@@ -1413,18 +1609,36 @@ ${alert.remediationNotes || "No remediation notes provided."}
       },
     );
 
-    if (anchorTimestampChanged) {
-      for (const itemId of updatedItemIds) {
-        this.refreshAlertMetrics({ alertId: itemId }).catch((err: Error) => {
-          logger.error(err);
+    // Only the alerts whose monitor this update actually set, moved or cleared.
+    const monitorChanges: Dictionary<AlertMonitorChange> =
+      (onUpdate.carryForward as AlertUpdateCarryForward | null | undefined)
+        ?.monitorChanges || {};
 
-          AlertMeasurementValueService.recomputeForAlert({
-            alertId: itemId,
-          }).catch((err: Error) => {
-            logger.error(err);
-          });
-        });
+    for (const itemId of updatedItemIds) {
+      /*
+       * Every alert metric and measurement point is stamped with the alert's
+       * monitor id and name, so an alert whose monitor moved is stamped
+       * again.
+       */
+      if (!anchorTimestampChanged && !monitorChanges[itemId.toString()]) {
+        continue;
       }
+
+      /*
+       * Side by side, not one in the other's failure handler: the
+       * measurement values hang off the same anchors and carry the same
+       * monitor, so they are recomputed whether or not the refresh works.
+       * Neither is awaited; a derived number must not fail the edit.
+       */
+      this.refreshAlertMetrics({ alertId: itemId }).catch((err: Error) => {
+        logger.error(err);
+      });
+
+      AlertMeasurementValueService.recomputeForAlert({
+        alertId: itemId,
+      }).catch((err: Error) => {
+        logger.error(err);
+      });
     }
 
     if (
@@ -1447,6 +1661,9 @@ ${alert.remediationNotes || "No remediation notes provided."}
     }
 
     if (updatedItemIds.length > 0) {
+      const monitorsById: Dictionary<Monitor> =
+        await this.getMonitorsForFeed(monitorChanges);
+
       for (const alertId of updatedItemIds) {
         let shouldAddAlertFeed: boolean = false;
 
@@ -1585,6 +1802,19 @@ ${alertSeverity.name}
           }
         }
 
+        const monitorChange: AlertMonitorChange | undefined =
+          monitorChanges[alertId.toString()];
+
+        if (monitorChange) {
+          feedInfoInMarkdown += await this.getMonitorChangeFeedMarkdown({
+            projectId: projectId,
+            monitorChange: monitorChange,
+            monitorsById: monitorsById,
+          });
+
+          shouldAddAlertFeed = true;
+        }
+
         // Re-evaluate reminder schedule when severity or labels change or reminders are toggled
         if (
           (onUpdate.updateBy.data.alertSeverity &&
@@ -1629,6 +1859,117 @@ ${alertSeverity.name}
     }
 
     return onUpdate;
+  }
+
+  /*
+   * The monitors an update moved alerts from or to, by lower-cased id, read
+   * once for every alert it wrote. As root and by id alone: the new monitor
+   * was checked against the alert's project before the write, and the old one
+   * was the alert's own.
+   */
+  private async getMonitorsForFeed(
+    monitorChanges: Dictionary<AlertMonitorChange>,
+  ): Promise<Dictionary<Monitor>> {
+    const monitorIds: Dictionary<ObjectID> = {};
+
+    for (const monitorChange of Object.values(monitorChanges)) {
+      for (const monitorId of [
+        monitorChange.oldMonitorId,
+        monitorChange.newMonitorId,
+      ]) {
+        if (monitorId) {
+          monitorIds[monitorId.toString().toLowerCase()] = monitorId;
+        }
+      }
+    }
+
+    if (Object.keys(monitorIds).length === 0) {
+      return {};
+    }
+
+    const monitors: Array<Monitor> = await MonitorService.findBy({
+      query: {
+        _id: QueryHelper.any(Object.values(monitorIds)),
+      },
+      select: {
+        _id: true,
+        name: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const monitorsById: Dictionary<Monitor> = {};
+
+    for (const monitor of monitors) {
+      if (monitor.id) {
+        monitorsById[monitor.id.toString().toLowerCase()] = monitor;
+      }
+    }
+
+    return monitorsById;
+  }
+
+  /*
+   * The "Alert updated" feed line for a monitor the edit set, moved or
+   * cleared, each monitor linked to its dashboard page.
+   */
+  private async getMonitorChangeFeedMarkdown(data: {
+    projectId: ObjectID;
+    monitorChange: AlertMonitorChange;
+    monitorsById: Dictionary<Monitor>;
+  }): Promise<string> {
+    const oldMonitor: string | null = await this.getMonitorFeedLink({
+      projectId: data.projectId,
+      monitorId: data.monitorChange.oldMonitorId,
+      monitorsById: data.monitorsById,
+    });
+
+    const newMonitor: string | null = await this.getMonitorFeedLink({
+      projectId: data.projectId,
+      monitorId: data.monitorChange.newMonitorId,
+      monitorsById: data.monitorsById,
+    });
+
+    if (oldMonitor && newMonitor) {
+      return `\n\n**🌎 Monitor**: changed from ${oldMonitor} to ${newMonitor}\n`;
+    }
+
+    if (newMonitor) {
+      return `\n\n**🌎 Monitor**: set to ${newMonitor}\n`;
+    }
+
+    if (oldMonitor) {
+      return `\n\n**🗑️ Monitor**: ${oldMonitor} removed\n`;
+    }
+
+    return "";
+  }
+
+  private async getMonitorFeedLink(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID | null;
+    monitorsById: Dictionary<Monitor>;
+  }): Promise<string | null> {
+    if (!data.monitorId) {
+      return null;
+    }
+
+    const monitor: Monitor | undefined =
+      data.monitorsById[data.monitorId.toString().toLowerCase()];
+
+    /*
+     * Deleted between the write and this read. There is no page left to link
+     * to, but the line still says the monitor changed.
+     */
+    if (!monitor) {
+      return "an unknown monitor";
+    }
+
+    return `[${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(data.projectId, data.monitorId)).toString()})`;
   }
 
   @CaptureSpan()

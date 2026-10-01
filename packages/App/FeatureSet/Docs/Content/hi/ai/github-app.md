@@ -14,7 +14,7 @@ OneUptime GitHub App सिर्फ़ आपके code तक का एक c
 
 ## शुरू करने से पहले
 
-- repository का GitHub App के ज़रिए **किसी OneUptime project से connected** होना ज़रूरी है। Setup के लिए [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) देखें, या OneUptime Cloud पर **प्रोजेक्ट सेटिंग्स → कोड रिपॉजिटरी** से इसे connect करें।
+- repository का GitHub App के ज़रिए **किसी OneUptime project से connected** होना ज़रूरी है। Setup के लिए [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) देखें, या OneUptime Cloud पर **कार्य → कोड रिपॉजिटरी** से इसे connect करें।
 - **"AI कोड सुधार चलाता है" capability वाला एक Runner** online होना चाहिए — वही Runner जो [AI Fix Tasks](/docs/ai/ai-agent) पूरे करता है। इसके बिना commands स्वीकार तो हो जाते हैं, लेकिन 30 मिनट बाद इस संदेश के साथ fail हो जाते हैं कि किसी agent ने उन्हें उठाया ही नहीं।
 - GitHub App के पास **Issues: Read & write** permission होनी चाहिए, और उसे [किन events को subscribe करना है](#किन-events-को-subscribe-करना-है) में दिए गए webhook events subscribe होने चाहिए।
 
@@ -129,13 +129,13 @@ AI के लिखे pull request को वैसे ही लें जै�
 
 ## समस्या निवारण
 
-**mention करने पर कुछ नहीं होता।** पहले handle जाँचें — वह app का slug है, उसका display name नहीं। फिर जाँचें कि repository किसी project से connected है (**प्रोजेक्ट सेटिंग्स → कोड रिपॉजिटरी**), **Respond to GitHub Commands** चालू है, और आपका GitHub App ऊपर बताए गए events को subscribe किए हुए है।
+**mention करने पर कुछ नहीं होता।** पहले handle जाँचें — वह app का slug है, उसका display name नहीं। फिर जाँचें कि repository किसी project से connected है (**कार्य → कोड रिपॉजिटरी**), **Respond to GitHub Commands** चालू है, और आपका GitHub App ऊपर बताए गए events को subscribe किए हुए है।
 
 **यह 😕 react करता है और कुछ कहता नहीं।** आपके पास repository का write access नहीं है।
 
 **यह कहता है कि वह पहले से इस पर काम कर रहा है।** इस issue या pull request पर उस तरह का एक run पहले से चल रहा है। `@oneuptime status` बताएगा कि कौन-सा, और `@oneuptime cancel` उसे रोक देगा।
 
-**इसने acknowledge किया और फिर लंबे समय तक चुप रहा।** **सेटिंग्स → Runbook एजेंट** में जाँचें कि **AI कोड सुधार चलाता है** वाला कोई Runner online है। इसके बिना run 30 मिनट बाद fail कर दिया जाता है और thread में यह बता दिया जाता है।
+**इसने acknowledge किया और फिर लंबे समय तक चुप रहा।** **रनबुक → Runbook एजेंट** में जाँचें कि **AI कोड सुधार चलाता है** वाला कोई Runner online है। इसके बिना run 30 मिनट बाद fail कर दिया जाता है और thread में यह बता दिया जाता है।
 
 **यह कहता है कि pull request किसी fork से आया है।** Revisions के लिए branch इसी repository में होनी चाहिए। इसके बजाय review माँगें, या branch यहाँ push करें।
 

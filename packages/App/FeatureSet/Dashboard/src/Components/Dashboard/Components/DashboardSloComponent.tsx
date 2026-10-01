@@ -13,6 +13,10 @@ import DashboardSloComponent, {
 } from "Common/Types/Dashboard/DashboardComponents/DashboardSloComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceList from "../Utils/DashboardResourceList";
+import DashboardWidgetTimeRangeZoom, {
+  DashboardWidgetTimeRangeZoomHandlers,
+} from "../Utils/DashboardWidgetTimeRangeZoom";
+import DashboardWidgetZoomHint from "./DashboardWidgetZoomHint";
 import SloWidgetData from "../Utils/SloWidgetData";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
@@ -409,6 +413,14 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
     fetchData();
   }, [fetchData, props.refreshTick]);
 
+  /*
+   * Drag-to-zoom on the history chart retimes the whole board, the same
+   * gesture the metric chart widgets beside it answer to. None in edit mode,
+   * and the reset only while the board is zoomed.
+   */
+  const timeRangeZoom: DashboardWidgetTimeRangeZoomHandlers =
+    DashboardWidgetTimeRangeZoom.getHandlers(props);
+
   const metricLabel: string = getSloMetricLabel(sloMetric);
   const title: string = getSloWidgetTitle({
     widgetTitle: props.component.arguments.widgetTitle,
@@ -533,14 +545,34 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
   // ── Chart ──────────────────────────────────────────────────────────────
   if (isChart) {
     if (chartPoints.length === 0) {
-      return getPlaceholder({
-        icon: IconProp.Percent,
-        iconClassName: "text-gray-300",
-        iconBackgroundClassName: "bg-gray-50",
-        title: title,
-        message:
-          "No history for the selected time range — the SLO is evaluated every few minutes.",
-      });
+      /*
+       * SLO history is written every few minutes, so a zoom into a narrow
+       * enough window lands here with no chart to double-click. The empty
+       * state takes the double-click instead (it is only armed while the
+       * board is zoomed), so the way back is where the pointer already is.
+       */
+      return (
+        <div
+          className={`group/zoomhint relative w-full h-full ${
+            timeRangeZoom.onTimeRangeReset ? "select-none" : ""
+          }`}
+          onDoubleClick={timeRangeZoom.onTimeRangeReset}
+        >
+          {getPlaceholder({
+            icon: IconProp.Percent,
+            iconClassName: "text-gray-300",
+            iconBackgroundClassName: "bg-gray-50",
+            title: title,
+            message:
+              "No history for the selected time range — the SLO is evaluated every few minutes.",
+          })}
+          <DashboardWidgetZoomHint
+            zoom={timeRangeZoom}
+            isChartShown={false}
+            className="absolute right-1 top-0"
+          />
+        </div>
+      );
     }
 
     const target: number | undefined = slo.targetPercentage;
@@ -604,7 +636,7 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
 
     return (
       <div
-        className="w-full h-full flex flex-col"
+        className="group/zoomhint relative w-full h-full flex flex-col"
         style={{
           opacity: isLoading ? 0.5 : 1,
           transition: "opacity 0.2s ease-in-out",
@@ -627,9 +659,31 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
             sync={false}
             syncid={`slo-widget-${props.componentId.toString()}`}
             referenceLines={referenceLines}
+            onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
+            onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
+            /*
+             * The chart's window is the board's and nothing else's: with no
+             * board gesture on offer (edit mode, a host that owns no range)
+             * it must not take up any other zoom it happens to sit under.
+             */
+            disableTimeRangeZoom={
+              !timeRangeZoom.onTimeRangeSelect &&
+              !timeRangeZoom.onTimeRangeReset
+            }
           />
         </div>
         <div className="flex justify-center pt-1">{statusPill}</div>
+        {/*
+         * The title row is centred and small, so the hint floats over the
+         * top corner instead of taking a row from the tile - as on an
+         * untitled log or trace widget - and it never takes the pointer
+         * from the chart beneath.
+         */}
+        <DashboardWidgetZoomHint
+          zoom={timeRangeZoom}
+          isChartShown={true}
+          className="absolute right-1 top-0"
+        />
       </div>
     );
   }
@@ -700,6 +754,7 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     prev.refreshTick !== next.refreshTick ||
     prev.isEditMode !== next.isEditMode ||
     prev.isSelected !== next.isSelected ||
+    !DashboardWidgetTimeRangeZoom.isSameZoom(prev, next) ||
     prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
     prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
   ) {

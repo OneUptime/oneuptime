@@ -1,66 +1,56 @@
 import { describe, expect, test } from "@jest/globals";
-import SSOPlugins, {
-  SSO_PAGE_LOADERS,
-  SSOPageLoader,
-  SSOPluginKey,
-} from "../../../Dashboard/SSO/Plugins";
-import GlobalSSOPlugins, {
-  GLOBAL_SSO_PAGE_LOADERS,
-  GlobalSSOPageLoader,
-  GlobalSSOPluginKey,
-} from "../../../AdminDashboard/GlobalSSO/Plugins";
+import IdentityPlugins, {
+  IDENTITY_PAGE_LOADERS,
+  IdentityPageLoader,
+  IdentityPluginKey,
+} from "../../../Dashboard/Identity/Plugins";
 import DashboardPlugin from "../../../Dashboard/Index";
 import AdminDashboardPlugin from "../../../AdminDashboard/Index";
-import SettingsSSOPage from "../../../Dashboard/SSO/Pages/Settings/SSO";
-import SettingsOIDCPage from "../../../Dashboard/SSO/Pages/Settings/OIDC";
-import SettingsSCIMPage from "../../../Dashboard/SSO/Pages/Settings/SCIM";
-import StatusPageSSOPage from "../../../Dashboard/SSO/Pages/StatusPages/SSO";
-import StatusPageOIDCPage from "../../../Dashboard/SSO/Pages/StatusPages/OIDC";
-import StatusPageSCIMPage from "../../../Dashboard/SSO/Pages/StatusPages/SCIM";
-import GlobalSSOListPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalSSO/Index";
-import GlobalSSOViewPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalSSO/View";
-import GlobalOIDCListPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalOIDC/Index";
-import GlobalOIDCViewPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalOIDC/View";
+import SettingsSCIMPage from "../../../Dashboard/Identity/Pages/Settings/SCIM";
+import StatusPageSCIMPage from "../../../Dashboard/Identity/Pages/StatusPages/SCIM";
 import { DASHBOARD_ENTERPRISE_PLUGIN_KEYS } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
-import { ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS } from "@oneuptime/admin-dashboard/Enterprise/EnterprisePlugins";
 import { getDashboardPlugins } from "@oneuptime/dashboard/Enterprise/Plugins";
 import { getAdminDashboardPlugins } from "@oneuptime/admin-dashboard/Enterprise/Plugins";
 
 /*
- * The identity plugin keys the core shells read, and the screens they load.
+ * The identity plugin keys the core SCIM shells read, and the screens they
+ * load.
  *
  * Each key is React.lazy over a loader; the loaders are exported so this can
- * prove every key opens the page it names (a swapped pair - Settings OIDC
- * opening the status page OIDC screen - would type-check fine). The ee ui jest
+ * prove every key opens the page it names (a swapped pair - Settings SCIM
+ * opening the status page SCIM screen - would type-check fine). The ee ui jest
  * project resolves "@oneuptime/ee-dashboard" to the real ee/Dashboard/Index,
  * so the door core reads is checked too.
+ *
+ * Single sign-on has no key: its screens are core pages in every edition, on
+ * both frontends, so neither assembled Enterprise plugin carries one.
  */
 
 const REACT_LAZY_TYPE: symbol = Symbol.for("react.lazy");
 
-const DASHBOARD_PAGES: Record<SSOPluginKey, unknown> = {
-  SettingsSSO: SettingsSSOPage,
-  SettingsOIDC: SettingsOIDCPage,
+const DASHBOARD_PAGES: Record<IdentityPluginKey, unknown> = {
   SettingsSCIM: SettingsSCIMPage,
-  StatusPageSSO: StatusPageSSOPage,
-  StatusPageOIDC: StatusPageOIDCPage,
   StatusPageSCIM: StatusPageSCIMPage,
 };
 
-const ADMIN_PAGES: Record<GlobalSSOPluginKey, unknown> = {
-  GlobalSSOList: GlobalSSOListPage,
-  GlobalSSOView: GlobalSSOViewPage,
-  GlobalOIDCList: GlobalOIDCListPage,
-  GlobalOIDCView: GlobalOIDCViewPage,
-};
-
-const DASHBOARD_KEYS: Array<SSOPluginKey> = Object.keys(
+const DASHBOARD_KEYS: Array<IdentityPluginKey> = Object.keys(
   DASHBOARD_PAGES,
-) as Array<SSOPluginKey>;
+) as Array<IdentityPluginKey>;
 
-const ADMIN_KEYS: Array<GlobalSSOPluginKey> = Object.keys(
-  ADMIN_PAGES,
-) as Array<GlobalSSOPluginKey>;
+// The keys that served the single sign-on screens from ee/ before they became core.
+const RETIRED_DASHBOARD_SSO_KEYS: Array<string> = [
+  "SettingsSSO",
+  "SettingsOIDC",
+  "StatusPageSSO",
+  "StatusPageOIDC",
+];
+
+const RETIRED_ADMIN_SSO_KEYS: Array<string> = [
+  "GlobalSSOList",
+  "GlobalSSOView",
+  "GlobalOIDCList",
+  "GlobalOIDCView",
+];
 
 const isLazy: (value: unknown) => boolean = (value: unknown): boolean => {
   return (
@@ -70,12 +60,18 @@ const isLazy: (value: unknown) => boolean = (value: unknown): boolean => {
   );
 };
 
-describe("Dashboard identity plugins (ee/Dashboard/SSO)", () => {
-  test("provide exactly the six identity screens", () => {
-    expect(Object.keys(SSOPlugins).sort()).toEqual([...DASHBOARD_KEYS].sort());
-    expect(Object.keys(SSO_PAGE_LOADERS).sort()).toEqual(
+describe("Dashboard identity plugins (ee/Dashboard/Identity)", () => {
+  test("provide exactly the two SCIM screens", () => {
+    expect(Object.keys(IdentityPlugins).sort()).toEqual(
       [...DASHBOARD_KEYS].sort(),
     );
+    expect(Object.keys(IDENTITY_PAGE_LOADERS).sort()).toEqual(
+      [...DASHBOARD_KEYS].sort(),
+    );
+    expect([...DASHBOARD_KEYS].sort()).toEqual([
+      "SettingsSCIM",
+      "StatusPageSCIM",
+    ]);
   });
 
   test("every key is one the Dashboard's plugin contract knows", () => {
@@ -86,8 +82,8 @@ describe("Dashboard identity plugins (ee/Dashboard/SSO)", () => {
 
   test.each(DASHBOARD_KEYS)(
     "%s loads its own page",
-    async (key: SSOPluginKey) => {
-      const loader: SSOPageLoader = SSO_PAGE_LOADERS[key];
+    async (key: IdentityPluginKey) => {
+      const loader: IdentityPageLoader = IDENTITY_PAGE_LOADERS[key];
       const loaded: { default: unknown } = await loader();
 
       expect(loaded.default).toBe(DASHBOARD_PAGES[key]);
@@ -96,13 +92,13 @@ describe("Dashboard identity plugins (ee/Dashboard/SSO)", () => {
 
   test.each(DASHBOARD_KEYS)(
     "%s is React.lazy, so the screen downloads only when opened",
-    (key: SSOPluginKey) => {
-      expect(isLazy(SSOPlugins[key])).toBe(true);
+    (key: IdentityPluginKey) => {
+      expect(isLazy(IdentityPlugins[key])).toBe(true);
     },
   );
 
-  test("the six pages are six different screens", () => {
-    expect(new Set(Object.values(DASHBOARD_PAGES)).size).toBe(6);
+  test("the two pages are two different screens", () => {
+    expect(new Set(Object.values(DASHBOARD_PAGES)).size).toBe(2);
   });
 
   test("the assembled Dashboard plugin carries them, and so does the door core reads", () => {
@@ -115,63 +111,39 @@ describe("Dashboard identity plugins (ee/Dashboard/SSO)", () => {
 
     for (const key of DASHBOARD_KEYS) {
       expect((DashboardPlugin as Record<string, unknown>)[key]).toBe(
-        SSOPlugins[key],
+        IdentityPlugins[key],
       );
-      expect(door[key]).toBe(SSOPlugins[key]);
+      expect(door[key]).toBe(IdentityPlugins[key]);
     }
   });
 });
 
-describe("Admin Dashboard identity plugins (ee/AdminDashboard/GlobalSSO)", () => {
-  test("provide exactly the four Global SSO / OIDC screens", () => {
-    expect(Object.keys(GlobalSSOPlugins).sort()).toEqual(
-      [...ADMIN_KEYS].sort(),
-    );
-    expect(Object.keys(GLOBAL_SSO_PAGE_LOADERS).sort()).toEqual(
-      [...ADMIN_KEYS].sort(),
-    );
-  });
-
-  test("every key is one the Admin Dashboard's plugin contract knows", () => {
-    for (const key of ADMIN_KEYS) {
-      expect(ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS).toContain(key);
+describe("single sign-on is not an Enterprise plugin", () => {
+  test("the Dashboard's plugin contract has no single sign-on screen", () => {
+    for (const key of RETIRED_DASHBOARD_SSO_KEYS) {
+      expect(
+        DASHBOARD_ENTERPRISE_PLUGIN_KEYS as ReadonlyArray<string>,
+      ).not.toContain(key);
     }
   });
 
-  test.each(ADMIN_KEYS)(
-    "%s loads its own page",
-    async (key: GlobalSSOPluginKey) => {
-      const loader: GlobalSSOPageLoader = GLOBAL_SSO_PAGE_LOADERS[key];
-      const loaded: { default: unknown } = await loader();
+  test("the assembled Dashboard plugin, and the door core reads, carry no single sign-on screen", () => {
+    const pluginKeys: Array<string> = Object.keys(DashboardPlugin);
+    const doorKeys: Array<string> = Object.keys(getDashboardPlugins());
 
-      expect(loaded.default).toBe(ADMIN_PAGES[key]);
-    },
-  );
-
-  test.each(ADMIN_KEYS)(
-    "%s is React.lazy, so the screen downloads only when opened",
-    (key: GlobalSSOPluginKey) => {
-      expect(isLazy(GlobalSSOPlugins[key])).toBe(true);
-    },
-  );
-
-  test("the four pages are four different screens", () => {
-    expect(new Set(Object.values(ADMIN_PAGES)).size).toBe(4);
+    for (const key of RETIRED_DASHBOARD_SSO_KEYS) {
+      expect(pluginKeys).not.toContain(key);
+      expect(doorKeys).not.toContain(key);
+    }
   });
 
-  test("the assembled Admin Dashboard plugin carries them, and so does the door core reads", () => {
-    const door: Record<string, unknown> = getAdminDashboardPlugins() as Record<
-      string,
-      unknown
-    >;
+  test("the assembled Admin Dashboard plugin, and its door, carry no Global SSO or Global OIDC screen", () => {
+    const pluginKeys: Array<string> = Object.keys(AdminDashboardPlugin);
+    const doorKeys: Array<string> = Object.keys(getAdminDashboardPlugins());
 
-    expect(door).toBe(AdminDashboardPlugin);
-
-    for (const key of ADMIN_KEYS) {
-      expect((AdminDashboardPlugin as Record<string, unknown>)[key]).toBe(
-        GlobalSSOPlugins[key],
-      );
-      expect(door[key]).toBe(GlobalSSOPlugins[key]);
+    for (const key of RETIRED_ADMIN_SSO_KEYS) {
+      expect(pluginKeys).not.toContain(key);
+      expect(doorKeys).not.toContain(key);
     }
   });
 });

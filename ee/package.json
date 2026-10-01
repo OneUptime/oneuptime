@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/ee",
-  "version": "14.0.8",
+  "version": "14.0.11",
   "description": "OneUptime Enterprise Edition modules. Licensed under ee/LICENSE, not Apache-2.0.",
   "private": true,
   "repository": {
@@ -17,11 +17,8 @@
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
-    "@xmldom/xmldom": "^0.9.10",
     "App": "file:../packages/App",
-    "Common": "file:../packages/Common",
-    "openid-client": "^5.7.1",
-    "xml-crypto": "^6.1.2"
+    "Common": "file:../packages/Common"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",

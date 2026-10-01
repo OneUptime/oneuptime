@@ -39,6 +39,7 @@ import CephResourceUtils, {
 } from "../Utils/CephResourceUtils";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
+import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 
 /*
  * Pool detail page. The route param (subModelId) is the CephResource
@@ -431,14 +432,24 @@ const CephClusterPoolDetail: FunctionComponent<
           <ResourceMetricsTab
             queryConfigs={queryConfigs}
             renderExtraCharts={(dateRange: InBetween<Date>): ReactElement => {
+              /*
+               * The tab's card hands these charts its zoom. Their headings
+               * name the drag, revealed while the pointer is over that
+               * chart (its named group), as the metric panels above name
+               * it in theirs.
+               */
               return (
                 <div className="mt-4 space-y-6">
-                  <div>
+                  <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
                       Client IOPS
                       <InfoTooltip
                         label="Client IOPS"
                         text={CEPH_METRIC_DESCRIPTIONS.poolClientIops}
+                      />
+                      <TimeRangeZoomHint
+                        revealOnHover={true}
+                        className="ml-auto font-normal"
                       />
                     </div>
                     <CephRateChart
@@ -455,12 +466,16 @@ const CephClusterPoolDetail: FunctionComponent<
                       emptyMessage="No I/O reported for this pool in the selected time range."
                     />
                   </div>
-                  <div>
+                  <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
                       Client Throughput
                       <InfoTooltip
                         label="Client Throughput"
                         text={CEPH_METRIC_DESCRIPTIONS.poolClientThroughput}
+                      />
+                      <TimeRangeZoomHint
+                        revealOnHover={true}
+                        className="ml-auto font-normal"
                       />
                     </div>
                     <CephRateChart

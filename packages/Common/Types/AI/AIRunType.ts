@@ -17,12 +17,18 @@ enum AIRunType {
   RemediationPlan = "RemediationPlan",
   /*
    * An auto-remediation run that COMPOSES commands instead of picking a
-   * runbook (rules with aiComposesCommands). In Suggest mode it
+   * runbook: rules with aiComposesCommands, and cluster rounds a
+   * Kubernetes cluster's AI agent page asks for. In Suggest mode it
    * investigates read-only and proposes a command plan for one-click
    * approval; in FullAuto mode it may also execute commands inline, but
-   * only ones that match the rule's operator-authored allowlist and pass
-   * the structural policy guard. Requires Project.enableAiCommandExecution
-   * and a target Runner with canRunAiCommands.
+   * only ones that pass the structural policy guard and match the rule's
+   * operator-authored allowlist (or the cluster's Fixes mode). Every run
+   * requires Project.enableAi, the project's only AI switch. Rule runs also
+   * need a target Runner with canRunAiCommands (Bash/SSH on Runners, and
+   * any kubectl a rule composes). A cluster round's consent is the
+   * cluster's Fixes mode plus the write access of whatever reaches the
+   * cluster: the Kubernetes agent chart's RBAC, or the Kubernetes
+   * credential of a Runner bound to the cluster.
    */
   RemediationExecution = "RemediationExecution",
 }

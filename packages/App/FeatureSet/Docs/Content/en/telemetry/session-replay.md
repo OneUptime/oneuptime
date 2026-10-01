@@ -268,7 +268,7 @@ The three modes, least to most private:
 | Mask inputs only | recorded | masked | masked |
 | Mask all text | masked | masked | masked |
 
-Under _Mask all text_ the replay is a wireframe: text nodes, the labels the recorder attaches to clicks, `identify()` traits and `track()` properties are all masked before upload.
+Under _Mask all text_ the replay is a wireframe: text nodes, the labels the recorder attaches to clicks, `identify()` traits and `track()` properties are all masked before upload, and the player loads none of the page's images or web fonts from their addresses. The recording still holds those addresses, and a session recorded in this mode plays back without them, with one exception: an image the page held as a `data:` URL is part of the recording itself, and still shows. Block elements that can show a personal image that way, such as the preview of a document the user uploads. Stylesheets still load, so the layout keeps its shape (see [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback)).
 
 If your pages render personal data, either move up a mode or add **mask** / **block** selectors for the specific elements — see *Marking your own content* below. Selectors are the right tool when only a few regions are sensitive; a stricter mode is the right tool when you cannot enumerate them.
 
@@ -295,7 +295,7 @@ Always masked regardless of mode, and not configurable:
 - **Card fields**, detected via `autocomplete` (`cc-number`, `cc-csc`, `cc-exp`), because card inputs are `type="text"` and otherwise invisible to type-based masking.
 - **One-time codes** (`autocomplete="one-time-code"`).
 - **File input values** — the browser exposes the real filename, and filenames are routinely personal.
-- **Query strings and fragments** are dropped from every recorded URL, and identifier-shaped path segments (UUIDs, emails, long digit runs, long opaque tokens) are replaced. This is the one channel text masking does not cover: a password-reset link would otherwise land in the session list.
+- **Query strings and fragments** are dropped from the page URLs the recording stores and from every network request's URL, and identifier-shaped path segments (UUIDs, emails, long digit runs, long opaque tokens) are replaced. This is the one channel text masking does not cover: a password-reset link would otherwise land in the session list. The addresses inside the page are a different matter. A link's target is scrubbed the same way only under _Mask all text_; in the other two modes it is recorded like the rest of the page. Image, stylesheet and font addresses are kept as the page wrote them in every mode, query string included, because playback loads them from there (under _Mask all text_, only the stylesheets; see [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback)). Block an element whose image address carries something sensitive, such as a signed token.
 - **Clipboard events** are never recorded.
 - **Keystroke timing** is quantised, because inter-keystroke intervals leak typed content even when the value is masked.
 - **Request and response bodies and headers** are never recorded. A network row in the player carries the method, URL, status, timing, byte counts and the trace id — nothing else. (The recorder does _add_ trace context to requests to your own origin; see [What your own requests carry](#what-your-own-requests-carry).)
@@ -378,7 +378,7 @@ connect-src 'self' https://oneuptime.com;
 
 If you self-host OneUptime, use your own host instead.
 
-One more CSP-adjacent detail: for playback to render your styles, your stylesheets must be readable by the recorder. A cross-origin stylesheet without `crossorigin="anonymous"` cannot be read, and the session will play back unstyled with a notice explaining why.
+One more CSP-adjacent detail, about stylesheets rather than your policy: the recorder can only store a stylesheet it can read. A stylesheet from another origin is readable only when its server sends an `Access-Control-Allow-Origin` header that allows your site **and** your `<link>` carries `crossorigin="anonymous"`. Otherwise the recording keeps only its address, and playback loads it from there in the viewer's browser; see [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback). Add the attribute only once the header is in place: `crossorigin` without the header makes your own page refuse the stylesheet.
 
 Use the **Test your installation** panel on the application's _Replay Policy_ page to confirm the token, the policy switches and the origin allowlists from the server's side. **It cannot check your CSP** — a CSP is a header your own site sends to your own visitors, and nothing server-side ever sees it. A CSP block shows up there only indirectly: `script-src` blocks the recorder, so the panel's _Recorder loaded on your site_ row stays waiting; `connect-src` blocks the upload, so that row passes while the recording-received row below it stays waiting. Either way the browser console on the blocked page logs the refusal, and that is the only positive proof.
 
@@ -525,7 +525,7 @@ Each row shows:
 | **Activity** | Duration, pages, clicks and the idle share ("idle 40%"). Counts are only shown once they have been measured; a session that is not finalized yet reads "counting". |
 | **Signals** | Errors, rage / dead / error clicks, refresh rage, traces, exception groups and _Slow_ (a performance budget fired). Each badge opens the player on the matching rail tab. A finalized session with nothing to report reads _Clean_; one that is not finalized yet _Not counted yet_. |
 | **Recording** | One badge that says honestly whether there is footage to watch, plus the trigger reason ("Always-on", "Sampled (25%)", "Error", "Frustration", "Slow page", "Manual"). |
-| **Actions** | **Watch**, and **from 1st error** when the session had one — it opens the player at the first error with the Errors tab selected. **Watch** is offered only where footage exists; otherwise the row reads _Signals only_. Click anywhere on a row to open it; Cmd/Ctrl-click opens a new tab. |
+| **Actions** | **Watch** is the row's button. When the session had an error, the row's **⋯** menu has **Watch from first error**, which opens the player at the first error with the Errors tab selected. **Watch** is offered only where footage exists; otherwise the row reads _Signals only_. Click anywhere on a row to open it; Cmd/Ctrl-click opens a new tab. |
 
 The Recording badge states:
 
@@ -578,7 +578,7 @@ A visitor row counts only the sessions in which nobody was identified; opening i
 | **Last seen** | When their newest session started. |
 | **Time** | Recorded time summed over their sessions, and the total number of pages. |
 | **Signals** | Error and frustration totals across their sessions (the error badge says how many sessions they fell in); _Clean_ when there are none. |
-| **Actions** | **Sessions** opens the session list filtered to that person, on the same time range — for an identified user the list shows `user:<reference>` in the search box, for a visitor `visitor:`, and the pseudonymous key when the label is hidden from you. The reference itself never travels in the URL: the link carries only the pseudonymous key, and the list looks the name up from your own browser tab. **Watch latest** opens their newest session in the player. |
+| **Actions** | **Sessions** opens the session list filtered to that person, on the same time range — for an identified user the list shows `user:<reference>` in the search box, for a visitor `visitor:`, and the pseudonymous key when the label is hidden from you. The reference itself never travels in the URL: the link carries only the pseudonymous key, and the list looks the name up from your own browser tab. **Watch latest** opens their newest session in the player — from the row's **⋯** menu when **Sessions** is offered, or as the row's own link when it is not. |
 
 Identified users are grouped by the pseudonymous key the server stores the reference under, so the rollup works for roles that cannot read identity; the label and traits are only sent to roles that can, and the row reads _Hidden_ otherwise. Visitors are grouped by visitor id. That is also the honest limit of the page: a person who browsed anonymously and then signed in on the same browser is counted under their visitor row for the sessions before `identify()` and under their user row after it. The player's other-sessions menu joins the two; the rollup does not. The **Unlinked sessions** row offers no **Sessions** filter — nothing on those sessions can select them as a group — though **Watch latest** still opens the newest of them.
 
@@ -621,7 +621,7 @@ Above the stage a URL bar shows the page the user was on at the playhead, with c
 
 Use **Select text** in that bar to pause the replay and copy visible text from the recorded page into a bug report, search, or terminal. The page remains read-only: links cannot navigate, controls and media cannot operate, and editing, paste, cut, drag and form submission are blocked. Any inspection-time scrolling is restored on exit; starting playback, seeking or switching recorded tabs leaves selection mode first. Copying cannot reveal content that was masked or blocked at capture time; _Mask all text_ recordings still contain placeholders rather than the original words.
 
-While the replay is paused, a screenshot dock in the bottom-right corner of the stage offers **Copy image** and **Download**. Both take the frame on the stage as a PNG — at the recorded viewport size, or up to twice that on a high-density screen, with the pointer where the stage draws it — and a thumbnail of it confirms what was taken. **Copy image** puts it on the clipboard, ready to paste into an issue or a chat; **Download** saves it as `session-replay-<session>-<offset>.png`, named after the session and the playhead (plus the tab, when the session has several). The picture is redrawn in your browser from the replay itself and nothing is fetched to make it, so a recorded image the stage could not load stays empty in the screenshot too, and content that was masked or blocked at capture time stays masked. Browsers only let a secure (`https`) page copy images; on a plain-http install **Copy image** says so and offers **Download** instead. The dock steps aside while **Select text** is on.
+While the replay is paused, a screenshot dock in the bottom-right corner of the stage offers **Copy image** and **Download**. Both take the frame on the stage as a PNG — at the recorded viewport size, or up to twice that on a high-density screen, with the pointer where the stage draws it — and a thumbnail of it confirms what was taken. **Copy image** puts it on the clipboard, ready to paste into an issue or a chat; **Download** saves it as `session-replay-<session>-<offset>.png`, named after the session and the playhead (plus the tab, when the session has several). The picture is redrawn in your browser from the replay itself and nothing is fetched to make it, so it can be plainer than the stage: most images the stage loaded from other sites are drawn as grey boxes of the same size, because the browser does not let a page read their pixels; CSS background images and web fonts are left out, so text is drawn in a fallback font; and the rules of a stylesheet from another site that the browser does not let the page read are left out, except that what it hides with `display: none` or `visibility` stays hidden. Screen-reader-only text, and anything else such a stylesheet clips, transforms or moves off screen, can therefore appear in the picture although the stage does not show it. An image the stage could not load is drawn broken; one still loading is left blank, including one whose address has just changed while the stage still shows the previous picture; and content that was masked or blocked at capture time stays masked. Browsers only let a secure (`https`) page copy images; on a plain-http install **Copy image** says so and offers **Download** instead. The dock steps aside while **Select text** is on.
 
 The controls under the stage sit on one row: play/pause, the current time and duration, −10s / +10s, a speed menu (0.25× to 8×), **Skip idle**, previous / next error, next frustration, a **?** button that lists every keyboard shortcut, and a menu for the mouse trail, rail following, the timeline's signal lanes and whether playback carries on across tabs.
 
@@ -643,7 +643,7 @@ It never overrides you. A tab you **paused** at the end of stays paused, and cho
 
 **Theater and links.** `F` or **Theater** goes fullscreen with the rail kept at the side; `Esc` leaves. **Link** (or `C`) copies a URL to the current moment, including the selected row and rail tab, so a teammate opens exactly what you are looking at. The URL parameters are `t` (seconds from the start), `at` (an absolute time in Unix milliseconds — what links from logs and exceptions use; it wins over `t`), `tab`, `rail`, `signal` and `q` (a rail search).
 
-**Details** (`I`) opens a side panel with three tabs: **Session** (the facts, trace ids and exception groups observed, the session's tags and traits), **Privacy** (the masking mode, consent state and recorder version the session was captured under) and **Fidelity** (every notice about what the recording could not capture — a cross-origin stylesheet, a canvas, an iframe, a snapshot too large to store, recorder errors — with what each means for playback).
+**Details** (`I`) opens a side panel with three tabs: **Session** (the facts, trace ids and exception groups observed, the session's tags and traits), **Privacy** (the masking mode, consent state and recorder version the session was captured under) and **Fidelity** (every notice about what the recording could not capture — a cross-origin stylesheet, a canvas, an iframe, a snapshot too large to store, recorder errors — with what each means for playback, and under **Missing assets** the images and stylesheets that did not load in your browser while you watched).
 
 ### The events rail
 
@@ -706,7 +706,7 @@ The **Health** page — _Real User Monitoring → your application → Session R
 | --- | --- | --- |
 | `disabled-project` | The project-wide master switch is off. | Turn it on under _RUM → Settings → Session Replay_. |
 | `disabled-app` | Session replay is off for this application. | Turn it on under _Replay Policy_. |
-| `budget-paused` | The application's monthly budget or the deployment's daily byte limit is spent; live recorders have been told to stop. | Raise the budget, or wait for the next day / month. |
+| `budget-paused` | The application's monthly budget or the deployment's daily byte limit is spent; live recorders have been told to stop. | Raise the budget, or wait for the next day / month. Set up [storage budget alerts](#storage-budget-alerts) to hear about it before it happens. |
 | `refusing` | Uploads are arriving and being refused — the diagnosis says the top reason and the count in the past 24 hours, for example `origin-not-allowed` (212 uploads from an origin that is not in your allowed origins) or `not-sampled`. | Follow the reason: edit the allowed origins, raise the sample percentage, and so on. |
 | `never-loaded` | No browser has ever fetched this application's policy. The script tag is not on the page, or the identifier does not match. | The setup guide on the sessions page walks through it. |
 | `loaded-never-uploaded` | The recorder fetched its policy recently but no chunk has ever arrived. The detail explains it from the policy: sampling is 0%, consent mode is _Require explicit_ and the page has not granted it, the trigger is _On error or frustration_ and nothing has fired — or, with a healthy policy, a CSP or ad blocker is refusing the ingest URL. | The action matches the cause. |
@@ -716,6 +716,65 @@ The **Health** page — _Real User Monitoring → your application → Session R
 | `unknown` | The status endpoint could not be read. | Retry; check the permission error the page shows. |
 
 Below the diagnosis, the page lays a recording out as four stages — **Recorder loaded**, **Recording allowed**, **Chunks received** and **Sessions in 24h** — each marked green, amber or red by what the server knows about it, so the first amber or red stage is where recordings stop. Under that it lists uploads refused at the gate and chunks dropped after acceptance by reason, bytes used today and this month against their limits, the policy as the recorder receives it, the published recorder artifact label and the capabilities of the newest recorder that reported. Counters that come from Valkey read **unknown** — never 0 — when Valkey is unreachable. At the bottom, **Ask the browser** takes the output of `getDiagnostics()` and explains every code in it.
+
+### Storage budget alerts
+
+The two storage budgets — the project's daily upload limit and an application's optional **Monthly budget (GB)** — are enforced quietly: once one is spent, recorders are told to stop and recordings simply stop arriving. So that someone hears about it, ideally before it happens, OneUptime writes how much of each is used as metrics every 5 minutes, and ordinary [Metrics monitors](/docs/monitor/metrics-monitor) alert on them.
+
+**Setting them up.** Four ready-made alerts watch these budgets, on the application's **Recommendations** tab under **Session Replay**:
+
+| Recommendation | Severity | Alerts when |
+| --- | --- | --- |
+| **Session Replay Daily Budget Nearly Spent** | Warning | The project has used 80% of today's limit. |
+| **Session Replay Daily Budget Spent** | Critical | The project's daily limit is spent: every recorder in the project has been told to stop until 00:00 UTC. |
+| **Session Replay Monthly Budget Nearly Spent** | Warning | The application has used 80% of its monthly budget. |
+| **Session Replay Monthly Budget Spent** | Critical | The application's monthly budget is spent: its recorders have been told to stop until the 1st of next month (UTC) or until the budget is raised. |
+
+While Session Replay is on for the application, the daily pair is offered once it has recorded a replay, and the monthly pair once it also has a **Monthly budget (GB)** on its _Replay Policy_ page; if one is missing on an application you use Session Replay on, the tab says why. Once the daily pair is offered, **Set up alerts** in the **Storage budget** panel of the **Health** page opens the tab filtered to the budget alerts, the ones you have already created included. Each one you create is an ordinary Metrics monitor on the application, and the incident and alert it opens say what to do. To make a budget last, lower the **Sample percentage**, upload only _On error or frustration_ or narrow the **Allowed origins** on _Replay Policy_ — each stops an upload before it is counted — or raise the **Monthly budget (GB)**. The daily limit cannot be raised from the dashboard; on a self-hosted installation it is `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (see [Self-hosted notes](#self-hosted-notes)).
+
+**One daily monitor covers the project.** The daily limit belongs to the project, not to an application: all of its applications spend it together, and every application that records carries the project's figure, so the daily pair is offered on each of them, and a daily monitor on any one of them covers them all. Create the daily pair on one application, one that keeps Session Replay on (its monitor sees only the points written for that application), and dismiss the daily cards on the others; otherwise one spent day alerts once per application. The monthly pair is each application's own: create it wherever you set a budget.
+
+**The metrics.**
+
+| Metric | Unit | Aggregation | What it holds |
+| --- | --- | --- | --- |
+| `oneuptime.rum.session.replay.budget.project.daily.used.bytes` | `By` | Max | Session replay upload bytes counted against the project's daily limit since 00:00 UTC, all of its applications together, as the recorders sent them (usually compressed). |
+| `oneuptime.rum.session.replay.budget.project.daily.used.percent` | `%` | Max | The same, as a percent of the daily limit. At 100 or more, every recorder in the project is told to stop until 00:00 UTC. |
+| `oneuptime.rum.session.replay.budget.application.monthly.used.bytes` | `By` | Max | Session replay upload bytes counted against the application's monthly budget since the 1st of the month (UTC). |
+| `oneuptime.rum.session.replay.budget.application.monthly.used.percent` | `%` | Max | The same, as a percent of its **Monthly budget (GB)**. At 100 or more, its recorders are told to stop until the 1st of next month (UTC) or until the budget is raised. |
+
+The percentages are rounded down to 0.01, so 100 or more means exactly what the upload gate means by spent. They are not capped: the upload that crosses a limit is refused but stays counted, so a spent budget can read a little over 100, and a monthly budget lowered below what was already used reads well over it.
+
+Every point is filed under the RUM application it was written for, which is how a monitor created from a recommendation watches only its own application. The project's daily figure is therefore written once for every application that records, with the same value on each: aggregate it with Max, never add it up.
+
+| Attribute | On | Value |
+| --- | --- | --- |
+| `projectId` | All four | ID of the project. |
+| `rumApplicationId` | The monthly pair | ID of the application. Filter on this one: it never changes. |
+| `rumApplicationName` | The monthly pair | Name of the application when the point was written; left out when it is blank. |
+
+The daily pair carries only `projectId`: its figure is the project's, and nothing in a daily point says which application used it.
+
+**When no point is written.** A missing point is a gap in the chart, never a 0:
+
+- No upload has been counted yet today, or for the monthly pair this month — for example between 00:00 UTC and the day's first upload.
+- The usage counters cannot be read from Valkey. An unknown figure is never written as 0, just as the Health page reads **unknown** rather than 0. Open alerts resolve once their window holds no point, and open again, notifying again, when the counters can be read and the budget is still over the threshold.
+- Session Replay is off for the application (_Replay Policy_) or for the whole project (_RUM → Settings → Session Replay_).
+- The application has never recorded a replay.
+- The application has no monthly budget: nothing is counted against a budget that is not set, so there is no monthly pair at all. Removing the budget silences its monthly monitors, and the monthly figure counts only uploads made while a budget is set: one first set mid-month counts from that moment, not from the 1st, while one removed and set again in the same month picks up that month's earlier count.
+
+**Building your own monitor.** A [Metrics monitor](/docs/monitor/metrics-monitor) you build yourself needs the same settings the recommendations use:
+
+- Find the metrics in the project's metrics explorer (**Metrics** in the main navigation), and in a monitor's metric picker, once their first point has been written. They are not listed on the application's own **Metrics** tab.
+- Set the [rolling time window](/docs/monitor/metrics-monitor#rolling-time-window) to 15 minutes or more. A point arrives every 5 minutes, so a shorter window can hold one point or none, and an empty window resolves the alert: one late sweep would make it flap.
+- Set the query's aggregation to **Max** and the criterion's to **Maximum Value**. **Sum** adds readings up — the daily figure's copies, one per application that records, and, in the criterion, every reading in the window — and **Count** counts the readings instead of using their values.
+- Filter the monthly pair on `rumApplicationId` to watch one application, or [group by](/docs/monitor/metrics-monitor#per-series-alerting-group-by) it for one alert per application. The daily pair needs no filter: one monitor covers the project.
+- Leave **If No Data** (in the criterion's **Advanced** settings) on **Ignore**. Gaps are normal here — nothing is written before the day's or the month's first upload, or while the counters cannot be read — and **Trigger** would alert on every one of them.
+- Alert on the percent, not the bytes. The limits are counted in binary units — the Health page's "GB" is 1024³ bytes — while charts scale bytes in decimal ones, so a day that spends the default 1 GB limit charts as about 1.07 GB.
+
+**When alerts open and resolve.** A crossing is written at the next 5-minute sweep, so an alert opens within about 6 minutes of it. It resolves 10–15 minutes after the value falls back below the threshold, once the last reading at or over it has left the 15-minute window: the daily alerts on their own at about 00:10–00:15 UTC, the monthly ones at the same time on the 1st of the month, or 10–15 minutes after the budget is raised. A daily limit spent in the last few minutes before 00:00 UTC may not alert at all: the day ends before the next sweep can write it.
+
+**Retention and usage.** These series are kept as long as monitor metrics: **30 days** by default, set on a self-hosted installation by **Monitor Metric Retention (Days)** in the Admin Dashboard's **Data Retention** settings. They are not counted as telemetry usage. Metric names that start with `oneuptime.rum.session.replay.`, in any letter case, are reserved for them: metrics your own applications send under such a name, or rename to one with a metric pipeline rule, are dropped at ingest, and a recording rule cannot be saved with one as its output.
 
 ## Performance capture triggers
 
@@ -757,22 +816,74 @@ A web page that is _loaded_ while offline does not record: the recorder has to f
 
 ## What is not recorded
 
-These are surfaced on the player's **Fidelity** tab rather than silently blank, so you always know what you are not seeing:
+Most of these are named on the player's **Fidelity** tab rather than left silently blank, and the same tab's **Missing assets** list names the images and stylesheets that did not load while you watched:
 
 | Not captured | Why |
 | --- | --- |
 | Canvas / WebGL | Off by default. Opt in per application; it is expensive and can capture rendered user data. |
 | Cross-origin iframes | Payment iframes stay black boxes. This is intentional. |
 | Closed shadow roots | Not traversable, so not recorded rather than recorded unmasked. |
-| Web fonts | Too large. Playback falls back to a system font stack. |
-| `<video>` / `<audio>` | Rendered as a labelled placeholder. |
-| Cross-origin stylesheets | Not readable without `crossorigin`; a notice explains it. |
+| Images | Kept as addresses rather than files, and loaded from the original site while you watch — never under _Mask all text_. An image embedded as a `data:` URL is part of the recording, and shows in every mode. See [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback). |
+| Web fonts | Too large to record. Playback loads them from their original addresses when the font's server allows it — never under _Mask all text_ — and falls back to a system font when it does not. See [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback). |
+| `<video>` / `<audio>` | They do not play in the replay: their sources are often signed URLs that expire, and playback position cannot be synchronized. A poster image shows where the page set one (not under _Mask all text_); a poster address the page wrote relative to itself is resolved against the recorded page's address first, so it is requested from your site, never from OneUptime. |
+| Cross-origin stylesheets | Not recorded unless served with `Access-Control-Allow-Origin` and linked with `crossorigin`. Playback loads them from their original addresses instead, and a notice says so. See [Recording a stylesheet from another origin](#recording-a-stylesheet-from-another-origin). |
 | A very large DOM snapshot | A snapshot the recorder could not store is reported, and playback starts from the next one. |
 | Signals past a cap | Console output, network requests and clicks are capped per session or per chunk; the rail marks where capture stopped. |
 | React Native image pixels | The image frame is preserved as an opaque placeholder; user photos and downloaded pixels are not copied. |
 | React Native WebViews | Outside the native view tree. Record the hosted page separately with the web recorder if needed. |
 | React Native canvas and custom drawing | Skia, OpenGL, maps, camera/video previews and similar surfaces are opaque placeholders. |
 | React Native animation frames | Native and UI-thread motion is sampled at snapshots rather than reproduced frame by frame. |
+
+## Images, styles and fonts during playback
+
+A recording keeps the page's structure, text and styles, but not the files the page loaded. For an image it keeps the address — `src`, `srcset`, a video's `poster`, a `url()` in the page's CSS — and never the image itself. A stylesheet the recorder can read is copied into the recording in full; one it cannot read, a stylesheet from another origin that is not shared with your page through CORS, is kept only as its address. Web fonts are kept as the addresses their `@font-face` rules name. The recorder never downloads an image or a font to store it (an image your page embeds as a `data:` URL is part of the markup, and is recorded with it).
+
+**Playback loads those files from their original addresses, in your browser, while you watch.** Images (including `srcset` candidates, video posters and CSS background images), the stylesheets the recorder could not read, and web fonts are requested from the sites your page loaded them from, the way your user's browser requested them, except that the request comes from your browser and from the OneUptime origin. A video poster whose address your page wrote relative to itself (`poster="/media/hero.jpg"`) is recorded that way, so before playback the player resolves it against the recorded page's address, as the recording keeps it (origin and path): it goes to your site too, never to OneUptime, and where the player has no page address to resolve it against, the poster is left out. It works for the recordings you already have, including those made before OneUptime loaded these files during playback: nothing in a recording has to change, because the player is what loads them.
+
+Everything else stays blocked inside the replay: scripts, `fetch`, XHR and WebSocket connections, loading a page into a frame, `<object>` and `<embed>`, video and audio, and form submission. A recorded page cannot run code, open a connection, embed another page or send a form while you watch it.
+
+Under _Mask all text_ the player loads neither images nor web fonts from their addresses. The recording keeps those addresses, but the replay stays the wireframe that mode promises, and a capture note under the player says _Images and web fonts are not loaded_. Stylesheets still load, so the layout keeps its shape, and your browser still contacts the sites they come from (see [What watching a replay reveals](#what-watching-a-replay-reveals)). An image your page held as a `data:` URL is the exception: it is part of the recording rather than an address, so it still shows, in this mode as in the others. Block an element that can show a personal image that way, such as the preview of a document the user uploads (see [Marking your own content](#marking-your-own-content)).
+
+A session whose masking mode was not reported, or is one this dashboard does not recognise, also plays back without its images and web fonts, to be safe; its text plays back as it was recorded. The player goes by the masking mode the session reports, which is the mode of its most recent page load: a session whose policy was relaxed while it was recording plays back under the relaxed mode, and loads its images.
+
+### What a file needs to show in the replay
+
+Because the request comes from your browser rather than your user's, and from the OneUptime origin rather than your site's, a file shows only when:
+
+- **It needs no sign-in.** Your browser has none of your user's session, so a file only a signed-in user can fetch — a private avatar, an attachment, an image behind a login — does not load.
+- **It does not insist on a `Referer` from your site.** Image and stylesheet requests from the replay carry no `Referer`, and requests made by the page's CSS (background images, fonts) carry your OneUptime origin in Chrome and Edge, so hotlink protection that accepts only your own site's address refuses them. Let it accept requests with no `Referer` and requests whose `Referer` is your OneUptime origin.
+- **Its server lets other sites use it.** `Cross-Origin-Resource-Policy: same-origin` or `same-site` refuses every other site, the replay included; send `cross-origin` on static files, or no such header. Web fonts, and images your page loads with a `crossorigin` attribute, also need `Access-Control-Allow-Origin` set to `*` or to your OneUptime origin.
+- **It still exists.** The replay asks for the file as it is now. A deploy that renamed its hashed files, a deleted image or an expired signed link leaves a gap where your user saw the file. Keeping the previous deploy's files online for as long as you keep recordings avoids it.
+- **Your browser can reach it.** Files on an intranet, behind a VPN or behind an IP allowlist load only on a network that can reach them.
+- **It is served over `https` when the dashboard is.** On an `https` dashboard the browser blocks `http://` stylesheets, fonts, `srcset` candidates and images inside `<picture>` as mixed content, and upgrades other `http://` images (a plain `<img src>`, a video poster, a CSS background) to `https://`, which fails where the host does not answer on `https`.
+- **Nothing in your own browser refuses it.** An ad or tracker blocker, or another extension, refuses the files of the hosts on its lists in a replay as it does anywhere else, even where your user saw them.
+
+Icons drawn from an SVG sprite file (`<use href="/icons.svg#close">`) never render. Browsers let `<use>` point only at a file on the page's own origin, and the replay's origin is OneUptime's, so a sprite on your own domain is out of reach too. A sprite inlined in the page (`<use href="#close">`) works.
+
+**Self-hosted:** if a reverse proxy in front of OneUptime adds a `Content-Security-Policy` header to the dashboard, that policy applies inside the replay as well. Its `img-src`, `style-src` and `font-src` have to allow the sites your recorded pages load files from (`https:` covers them), or those files do not show.
+
+### Recording a stylesheet from another origin
+
+A stylesheet the recorder could read is part of the recording, so its rules play back whatever the viewer's browser can reach (the images and fonts it names still load from their addresses). To have one from another origin recorded, serve it with an `Access-Control-Allow-Origin` header that allows your site (`*`, or your site's origin) **and** add `crossorigin="anonymous"` to its `<link>`:
+
+```html
+<link rel="stylesheet" href="https://cdn.example.com/app.css" crossorigin="anonymous" />
+```
+
+Set up the header first, and never add the attribute on its own: with `crossorigin` and no header, your own page refuses the stylesheet, for your users as well as in the replay.
+
+### What watching a replay reveals
+
+Loading these files makes your browser contact the sites the recorded page used:
+
+- Those sites see your IP address and user agent, and when you watched.
+- Image and stylesheet requests carry no `Referer`. The player also takes the recorded page's own referrer settings — a `referrerpolicy` attribute, a `<meta name="referrer">` — out of the recording before it plays, so nothing in the page can put one back. Requests made by the recorded page's CSS — its background images and fonts — carry your OneUptime origin (`https://oneuptime.com/`, or your own host) in Chrome and Edge, and the requests a stylesheet loaded from its own address makes carry at most that stylesheet's address, as they do on your site. No request to another site carries the replay's URL or the session id. A request the page's CSS makes back to the OneUptime host itself is the exception: Chrome and Edge send it with the player's full address.
+- An `<img>` whose `width` and `height` attributes are both 1 or less, as tracking and conversion pixels usually are, is never requested during playback. Any other image your page uses as a tracker (one sized or hidden with CSS, for example) is requested again, from your browser, each time the replay is watched, and can count another page view, conversion or sale in that service, sent with whatever cookies your browser keeps for it. Keep such elements out of the recording with **Block selectors** or `.oneuptime-block`.
+- Addresses are loaded as the page wrote them, query string included, so a signed link that is still valid works. To keep an element's addresses out of the recording altogether, block it with `.oneuptime-block` or a **Block selectors** entry (see [Marking your own content](#marking-your-own-content)): a blocked element is not recorded at all. Blocking does not reach an address written in a stylesheet: it is part of the stylesheet, not of the element.
+
+### When a file does not load
+
+The player tells you. When images or stylesheets fail to load in your browser, the first capture note under the player says so — _2 images didn't load in this replay_, with the sites they came from and what can stop a file, from your user's sign-in to an ad or tracker blocker in your own browser — and **Session details** (`I`) → **Fidelity** → **Missing assets** lists each address. Both cover every tab the player has played since you opened the session, not only the page on the stage. The list keeps the first 200 addresses: past that, the note says so, for example _At least 200 images didn't load in this replay_, and the list ends with _More failed than this; only the first 200 are listed._ Both link to [Images, icons or styles are missing in the replay](/docs/rum/session-replay-troubleshooting#images-icons-or-styles-are-missing-in-the-replay), which goes through the causes and what to change. The list covers `<img>` images and `<link>` stylesheets. A CSS background image or a font that fails is not listed, and neither is anything inside a shadow root or a frame, so look for those in your browser's developer tools. An image your page created in the browser (a `blob:` address, as upload previews and images fetched with a token often are) never loads in a replay, because the address means something only inside your user's tab, and it is not listed either.
 
 ## Retention and deletion
 
@@ -845,9 +956,12 @@ returns the last 250 of them together with the recorder's `state`, `decisions` a
 
 [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting) explains every code and what to do about it, and the **Test your installation** panel on the _Replay Policy_ page answers the same question from the server's side.
 
+If recordings arrive and play but images, icons or styles are missing from them, see [Images, icons or styles are missing in the replay](/docs/rum/session-replay-troubleshooting#images-icons-or-styles-are-missing-in-the-replay).
+
 ## Self-hosted notes
 
 - Session Replay is **on** at the deployment level by default. Set `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` to turn it off for the whole instance — recorders already running on customer pages then stop recording, not just uploading.
-- Set `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` to bound disk use. Replay is the largest table in the system, and an unbounded configuration can push ClickHouse into capacity pruning. When the limit is spent the **Health** page reads "Uploads paused for today".
+- Set `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` to bound disk use. Replay is the largest table in the system, and an unbounded configuration can push ClickHouse into capacity pruning. When the limit is spent the **Health** page reads "Uploads paused for today". The app enforces the limit, and the background worker computes the percentages behind the [storage budget alerts](#storage-budget-alerts) from its own copy of the variable, so both need the same value. On Docker Compose, set it in `config.env`: one `app` container runs both. On Helm, set it in the chart-wide `extraEnv`, and also in `app.extraEnv` or `worker.extraEnv` if you set either, because a component that sets its own `extraEnv` replaces the chart-wide list instead of adding to it. The usage counters are kept in Valkey, which runs without persistence by default, so a Valkey restart resets them: the day's usage, and each application's month, start again from 0.
 - Recordings are stored in ClickHouse. No object storage is required.
+- A `Content-Security-Policy` header that a reverse proxy adds to the OneUptime dashboard also applies inside the replay, so its `img-src`, `style-src` and `font-src` must allow the sites your recorded pages load images, stylesheets and fonts from. See [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback).
 - `SESSION_REPLAY_DEBUG=true` makes every recorder this deployment serves print its decisions to the browser console. It is the one diagnostics switch that does not need somebody at the failing browser, so it is useful when a customer reports "nothing happens" on a page you cannot open a console on. It changes no policy — not sampling, not masking, not consent — but it logs on **every** page every recorder runs on, so turn it on, collect one reload, and turn it off.

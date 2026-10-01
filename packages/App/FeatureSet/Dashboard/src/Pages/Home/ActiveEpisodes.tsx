@@ -64,7 +64,7 @@ const ActiveEpisodes: FunctionComponent<
           }}
           noItemsMessage="Nice work! No Active Episodes so far."
           title="Active Episodes"
-          description="Here is a list of all the Active Alert Episodes for this project."
+          description="Episodes group related alerts so you can respond to them together. These are the episodes that are not resolved yet."
         />
       )}
     </div>

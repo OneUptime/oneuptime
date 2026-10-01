@@ -13,6 +13,10 @@ import {
   toPanelClusterAccess,
 } from "../../../Server/API/AIInvestigationAPI";
 import Runner from "../../../Models/DatabaseModels/Runner";
+import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
+import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
+import RunnerService from "../../../Server/Services/RunnerService";
+import logger from "../../../Server/Utils/Logger";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Permission, { UserPermission } from "../../../Types/Permission";
@@ -168,6 +172,8 @@ function clusterAccessStatus(): KubernetesClusterAiAccessStatus {
       key: RUNNER_KEY,
     } as KubernetesClusterAiAccessStatus["runner"],
     accessMethod: "credential",
+    aiAgent: null,
+    automaticInvestigation: { incidents: false, alerts: false },
     credentialId: CREDENTIAL_ID,
     credentialName: "prod-sa-token",
     kubectlAllowlist: ["kubectl rollout restart deployment/*"],
@@ -1375,6 +1381,8 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
       runner: {
         id: RUNNER_ID,
         name: "kubernetes-agent/prod-us",
+        // A summary without a kind is a Runner (the documented default).
+        kind: "runner",
         isOnline: true,
         lastAliveAt: "2026-09-14T18:00:00.000Z",
         canRunAiCommands: true,
@@ -2289,9 +2297,15 @@ describe("toPanelClusterAccess gap next steps", () => {
   it("gives a project-level gap the project-settings step and everything else the cluster step", () => {
     for (const code of [
       "project_ai_disabled",
+      /*
+       * Retired with the switches Enable AI replaced, and never produced
+       * now; still project-level, so a status from an older server reads
+       * right on the panel.
+       */
       "project_auto_remediation_disabled",
       "project_ai_command_execution_disabled",
       "llm_provider_missing",
+      "ai_balance_insufficient",
     ]) {
       expect(getRestrictedGapNextStep(code)).toBe(
         RESTRICTED_PROJECT_GAP_NEXT_STEP,
@@ -2320,61 +2334,127 @@ describe("toPanelClusterAccess gap next steps", () => {
   });
 
   /*
-   * A contract with the service rather than a fixture: the gap the real
-   * KubernetesClusterAiAccessService builds for a registered but unbound
-   * agent Runner never reaches a restricted viewer's row with the Runner's
-   * name in it.
+   * A contract with the service rather than a fixture: the gaps the real
+   * KubernetesClusterAiAccessService builds name details a viewer who may
+   * not read the cluster is not shown — the previous in-cluster Runner's
+   * name, the Kubernetes AI agent's namespace — and never reach such a
+   * viewer's row.
    */
-  it("strips the Runner name from the service's own no_runner_bound gap", async () => {
-    const service: {
-      findAgentRunnerForCluster: (
-        cluster: KubernetesCluster,
-      ) => Promise<Runner | null>;
-      getRunnerPresence: (runner: Runner) => { isOnline: boolean };
-      getNoRunnerBoundGap: (
-        cluster: KubernetesCluster,
-      ) => Promise<KubernetesAiAccessGap>;
-    } = KubernetesClusterAiAccessService as unknown as {
-      findAgentRunnerForCluster: (
-        cluster: KubernetesCluster,
-      ) => Promise<Runner | null>;
-      getRunnerPresence: (runner: Runner) => { isOnline: boolean };
-      getNoRunnerBoundGap: (
-        cluster: KubernetesCluster,
-      ) => Promise<KubernetesAiAccessGap>;
-    };
-    const agentRunner: Runner = new Runner(new ObjectID(RUNNER_ID));
-    agentRunner.name = "kubernetes-agent/prod-us-identifier";
-    const findAgentRunner: SpyInstance<
-      (cluster: KubernetesCluster) => Promise<Runner | null>
-    > = jest
-      .spyOn(service, "findAgentRunnerForCluster")
-      .mockResolvedValue(agentRunner);
-    const presence: SpyInstance<(runner: Runner) => { isOnline: boolean }> =
-      jest.spyOn(service, "getRunnerPresence").mockReturnValue({
-        isOnline: true,
-      });
+  it("strips what the service's own gaps name from a restricted row", async () => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    const agentLookup: SpyInstance<
+      typeof KubernetesAiAgentService.findForCluster
+    > = jest.spyOn(KubernetesAiAgentService, "findForCluster");
+    const runnerLookup: SpyInstance<typeof RunnerService.findOneBy> =
+      jest.spyOn(RunnerService, "findOneBy");
+
+    const cluster: KubernetesCluster = new KubernetesCluster(
+      new ObjectID(CLUSTER_ID),
+    );
+    cluster.projectId = new ObjectID(PROJECT_ID);
+    cluster.clusterIdentifier = "prod-us";
+    cluster.isAiInvestigationEnabled = true;
 
     try {
-      const gap: KubernetesAiAccessGap = await service.getNoRunnerBoundGap(
-        new KubernetesCluster(new ObjectID(CLUSTER_ID)),
-      );
+      // An offline agent whose namespace names the team that runs it.
+      agentLookup.mockResolvedValue({
+        id: new ObjectID(RUNNER_ID),
+        connectionStatus: "connected",
+        lastAliveAt: new Date("2026-01-01T00:00:00.000Z"),
+        posture: {
+          inCluster: true,
+          clusterIdentifier: "prod-us",
+          podNamespace: "payments-team-agent-namespace",
+        },
+      } as unknown as KubernetesAiAgent);
+
+      const agentStatus: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster,
+          gates: {
+            isAiEnabled: true,
+            hasLlmProvider: true,
+          },
+        });
 
       // The service's text does name it...
-      expect(gap.nextStep).toContain("kubernetes-agent/prod-us-identifier");
-
-      const restricted: InvestigationPanelClusterAccess = toPanelClusterAccess(
-        statusWithGaps([gap]),
-        { canReadCluster: false, canReadCredentials: false },
+      expect(JSON.stringify(agentStatus.gaps)).toContain(
+        "payments-team-agent-namespace",
       );
-
       // ...and the restricted row does not.
-      expect(JSON.stringify(restricted)).not.toContain(
+      expect(
+        JSON.stringify(
+          toPanelClusterAccess(agentStatus, {
+            canReadCluster: false,
+            canReadCredentials: false,
+          }),
+        ),
+      ).not.toContain("payments-team-agent-namespace");
+
+      // The previous in-cluster Runner, bound and offline, by name.
+      agentLookup.mockResolvedValue(null);
+      const legacyRunner: Runner = new Runner(new ObjectID(RUNNER_ID));
+      legacyRunner.name = "kubernetes-agent/prod-us-identifier";
+      legacyRunner.hostInfo = {
+        kubernetes: {
+          inCluster: true,
+          clusterIdentifier: "prod-us-identifier",
+        },
+      };
+      runnerLookup.mockResolvedValue(legacyRunner);
+      cluster.aiAccessRunnerId = new ObjectID(RUNNER_ID);
+      cluster.clusterIdentifier = "prod-us-identifier";
+
+      const runnerStatus: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster,
+          gates: {
+            isAiEnabled: true,
+            hasLlmProvider: true,
+          },
+        });
+
+      expect(JSON.stringify(runnerStatus.gaps)).toContain(
         "kubernetes-agent/prod-us-identifier",
       );
+      expect(
+        JSON.stringify(
+          toPanelClusterAccess(runnerStatus, {
+            canReadCluster: false,
+            canReadCredentials: false,
+          }),
+        ),
+      ).not.toContain("kubernetes-agent/prod-us-identifier");
     } finally {
-      findAgentRunner.mockRestore();
-      presence.mockRestore();
+      jest.restoreAllMocks();
     }
+  });
+
+  it("carries the target's kind to the panel, so it can name the Kubernetes AI agent", () => {
+    const status: KubernetesClusterAiAccessStatus = clusterAccessStatus();
+    status.runner = {
+      ...status.runner!,
+      name: "Kubernetes AI agent",
+      kind: "ai_agent",
+    };
+
+    const row: InvestigationPanelClusterAccess = toPanelClusterAccess(status, {
+      canReadCluster: true,
+      canReadCredentials: true,
+    });
+
+    expect(row.runner?.kind).toBe("ai_agent");
+    expect(row.runner?.name).toBe("Kubernetes AI agent");
+  });
+
+  it("gives the out-of-credits gap the project-settings step", () => {
+    expect(getRestrictedGapNextStep("ai_balance_insufficient")).toBe(
+      RESTRICTED_PROJECT_GAP_NEXT_STEP,
+    );
+    expect(RESTRICTED_GAP_NEXT_STEP).toContain(
+      "the cluster's AI agent page (AI → Agent)",
+    );
   });
 });

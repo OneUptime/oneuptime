@@ -13,12 +13,22 @@
 ## Community and Enterprise Edition images
 
 OneUptime now ships the app as two images. The **Community Edition** is open
-source under the Apache License 2.0. The **Enterprise Edition** adds the
-enterprise modules from the repository's `ee/` directory: SAML SSO, OIDC, SCIM,
-team compliance, audit logs and the enterprise Health dashboards in the Admin
+source under the Apache License 2.0 and includes SAML and OIDC single sign-on,
+global SSO and "Require SSO for login". The **Enterprise Edition** adds the
+enterprise modules from the repository's `ee/` directory: SCIM, team
+compliance, audit logs and the enterprise Health dashboards in the Admin
 Dashboard. Before this change both editions ran the same code, and
 `IS_ENTERPRISE_EDITION` decided which features were switched on. Now the image
 decides, and the Community image does not contain the `ee/` directory.
+
+> **Releases after 14.0.10:** SAML and OIDC single sign-on, global SSO and
+> "Require SSO for login" are part of the Community Edition again, and no
+> license state switches them off. In 14.0.0 to 14.0.10 they needed the
+> Enterprise Edition and stopped when its license lapsed, which is what the
+> 13 → 14 notes below describe. A "Require SSO for login" setting that was
+> saved but not enforced (on the Community image, or under a lapsed license)
+> is enforced again after this upgrade, so check that its provider still works
+> before you upgrade.
 
 The [Enterprise Edition](/docs/self-hosted/enterprise) page has the full
 feature comparison, licensing details and what happens when you switch
@@ -26,7 +36,7 @@ editions.
 
 ### What to do before you upgrade
 
-- **Community Edition without SSO, OIDC or SCIM:** nothing. Upgrade as usual.
+- **Community Edition without SCIM:** nothing. Upgrade as usual.
 - **Helm with `image.type: enterprise-edition`:** nothing. The chart already
   pulls the `enterprise-` images, which now contain the enterprise modules.
 - **Docker Compose with `IS_ENTERPRISE_EDITION=true`:** switch to the
@@ -37,17 +47,16 @@ editions.
   `IS_ENTERPRISE_EDITION=true` (`release` becomes `enterprise-release`, a
   pinned `13.0.7` becomes `enterprise-13.0.7`) and prints what it changed.
   The App now **refuses to start** when `IS_ENTERPRISE_EDITION=true` is set on
-  the Community image, instead of silently no longer enforcing "Require SSO",
-  SSO, SCIM and audit logging. The error says what to set:
+  the Community image, instead of silently stopping SCIM provisioning and
+  audit logging. The error says what to set:
   `APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
   `IS_ENTERPRISE_EDITION=false` to run the Community Edition.
-- **Community image with SSO, OIDC or SCIM already configured:** SSO sign-in
-  and SCIM provisioning stop with this upgrade, and "Require SSO for login" is
-  no longer enforced. Switch to the Enterprise image to keep them. Otherwise,
-  read [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)
-  before you upgrade. It explains how users sign in afterwards and who to
-  remove first. To run the Community Edition, also set
-  `IS_ENTERPRISE_EDITION=false`.
+- **Community image with SCIM already configured:** SCIM provisioning stops
+  with this upgrade, including deprovisioning. Switch to the Enterprise image
+  to keep it. Otherwise, read [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)
+  before you upgrade. It explains what stops and who to remove first. To run
+  the Community Edition, also set `IS_ENTERPRISE_EDITION=false`. Single
+  sign-on is not affected: the Community image serves it too.
 
 Your configuration is never deleted, and no migration is needed to switch
 editions in either direction.
@@ -62,15 +71,13 @@ The Enterprise Edition now checks its license:
   for an install with no license.
 - **An install with no license**, for example one that ran the Enterprise
   Edition on `IS_ENTERPRISE_EDITION=true` alone, gets a 14-day trial from the
-  first start of this release. **If you use SSO, OIDC, SCIM or audit logging,
-  activate a license before the trial ends.** After the trial, SSO and OIDC
-  sign-in stop, "Require SSO for login" is no longer enforced (users sign in
-  with their password), SCIM provisioning stops and audit logging stops
-  recording. Enterprise configuration also becomes read-only and the
-  enterprise Health dashboards are locked. Everything resumes, without a
-  restart, as soon as you activate a license. The trial is for evaluation:
-  production use of the Enterprise Edition requires a OneUptime Enterprise
-  subscription. See
+  first start of this release. **If you use SCIM or audit logging, activate a
+  license before the trial ends.** After the trial, SCIM provisioning stops and
+  audit logging stops recording. Enterprise configuration also becomes
+  read-only and the enterprise Health dashboards are locked. Single sign-on is
+  not affected. Everything resumes, without a restart, as soon as you activate
+  a license. The trial is for evaluation: production use of the Enterprise
+  Edition requires a OneUptime Enterprise subscription. See
   [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing).
 - **Air-gapped installs** can activate with a signed license token instead of
   a key. See [Offline activation](/docs/self-hosted/enterprise#offline-activation-air-gapped-installs).
@@ -90,13 +97,18 @@ settings that used to show an upgrade prompt.
   admins. Other callers get the edition and the license status.
 - Self-hosted installs no longer serve the license-server endpoints under
   `/api/enterprise-license/`. Only oneuptime.com uses them.
-- The SSO, OIDC and SCIM endpoints keep their exact paths on the Enterprise
-  Edition, so identity provider configuration does not change. On the
-  Community Edition they return `404`. On the Enterprise Edition they refuse
-  requests while the license is lapsed (after the trial or grace period), and
-  answer again as soon as a license is activated.
+- The SCIM endpoints keep their exact paths on the Enterprise Edition, so
+  identity provider configuration does not change. On the Community Edition
+  they return `404`. On the Enterprise Edition they refuse requests while the
+  license is lapsed (after the trial or grace period), and answer again as
+  soon as a license is activated.
+- The SSO and OIDC endpoints (SAML sign-in and ACS URLs, OIDC redirect URIs,
+  and the global SSO endpoints) keep their exact paths and are served by both
+  editions in every license state.
 
 ## 从 OneUptime 13 升级到 14
+
+> **14.0.10 之后的版本：** SAML 与 OIDC 单点登录、全局 SSO 以及 "Require SSO for login" 重新成为 Community Edition 的一部分，任何许可证状态都不会关闭它们。本节中凡是说 Community 镜像不包含单点登录，或者说没有许可证时单点登录会停止、不再被强制的内容，描述的都是 14.0.0 至 14.0.10。本节关于 SCIM、团队合规设置、审计日志和 **Health** 仪表板的内容仍然适用。
 
 OneUptime 14 把应用拆分为两个版本，运行哪一个由你拉取的镜像决定。**Community Edition**（Apache-2.0，标签 `release` 与 `<version>`）不包含仓库中的 `ee/` 目录：SAML SSO、OpenID Connect、SCIM 预配、团队合规设置、审计日志、管理后台的 **Health** 仪表板和 **Query Console** 根本不在该镜像里。**Enterprise Edition**（标签 `enterprise-release` 与 `enterprise-<version>`）包含这些功能，并在运行期间校验 Enterprise 许可证——OneUptime 13 从不校验。
 
@@ -168,6 +180,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **管理后台的 Health 仪表板和 Query Console 需要 Enterprise Edition**，PostgreSQL 与 Valkey 的健康告警也是如此。在 13 上仅凭 `IS_ENTERPRISE_EDITION=true` 就能使用，因此对用过这些页面的 Community 部署来说，这是可见的功能减少。ClickHouse 容量视图与自动清理、迁移状态、全局探针和支持包在两个版本中都有。
 - **通过探针代理访问 IP 地址的 HTTPS 监控器又能正常工作了。** 探针原先把 IP 作为 TLS 服务器名发送，而 IP 不是合法的服务器名，Node 会直接拒绝，因此从设置了 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` 的全局探针监控 `https://<私网 IP>` 会在握手阶段失败。现在目标是 IP 时探针不再发送服务器名，并直接用该 IP 校验证书。目标为主机名时行为不变。
 - **`oneuptime` CLI 在 `--version` 中报告真实版本号**，不再是占位内容。
+- **Runner 已从项目设置移到运行手册。** Runner 现在位于 **运行手册 → Runbook 代理**（`…/runbooks/runners`），Runner Credentials 位于 **运行手册 → Runbook 代理 → 凭据**（`…/runbooks/runner-credentials`），就在由它们执行步骤的 Runbook 旁边。旧的 `…/settings/runners` 和 `…/settings/runner-credentials` URL 会重定向，书签仍然有效。其他都没有变化：Runner 的 ID、密钥、能力和权限保持不变，仍然执行 AI 代码修复和 AI 修复命令。早于此版本的 Runner 镜像仍会在日志消息中输出“Project Settings > Runners”；请将其理解为 运行手册 → Runbook 代理。
 - 哪些端点发生了移动或收紧，包括 `GET /api/global-config/license` 以及自托管部署不再提供的许可证服务器端点，见上面的 [API and endpoint changes](#api-and-endpoint-changes)。
 
 ### IPv6 监控器：Ping、Port 和 SSL
@@ -363,7 +376,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(Or open the Runner in **设置 → Runbook 代理** and use **显示设置说明**
+(Or open the Runner in **运行手册 → Runbook 代理** and use **显示设置说明**
 for a pre-filled command.)
 
 If you tuned the agent with environment variables, rename them — the old
@@ -384,7 +397,7 @@ The **设置 → 人工智能 → AI 代理** page is gone and the `oneuptime/ai
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
-1. Create a Runner under **设置 → Runbook 代理** and install it with the
+1. Create a Runner under **运行手册 → Runbook 代理** and install it with the
    command from **显示设置说明**.
 2. Enable **执行 AI 代码修复** on it. The change is picked up on the next
    heartbeat.
@@ -477,6 +490,11 @@ wiki links:
 
 Runbook Secrets stays where it was, under 运行手册 → 设置 → 密钥.
 
+That is where the pages were in 12 and 13. In 14 the two Runner pages moved
+again, to **运行手册 → Runbook 代理** (`…/runbooks/runners`) and
+**运行手册 → Runbook 代理 → 凭据** (`…/runbooks/runner-credentials`); the 12 and 13
+URLs in the table redirect there. See [14 中的其他变更](#14-中的其他变更).
+
 ### New in 12, nothing to enable by accident
 
 v12 adds AI-composed remediation commands: the AI can propose a command
@@ -496,6 +514,11 @@ it participate. Upgrading changes nothing here.
 
 ### Identity features (SSO, OIDC, SCIM) now require the Enterprise Edition
 
+> **Releases after 14.0.10:** SAML SSO, OIDC and global SSO are part of the
+> Community Edition again, together with "Require SSO for login", and need no
+> license. SCIM provisioning and team compliance settings still need the
+> Enterprise Edition. The rest of this section describes v11 to 14.0.10.
+
 In v11, the following authentication and access-management features moved to
 the **OneUptime Enterprise Edition** and are no longer part of the free,
 open-source (Community) build:
@@ -511,22 +534,26 @@ Community Edition build, the settings pages show an upgrade prompt instead of
 the configuration form, and the configuration can no longer be changed. Until
 the Community and Enterprise images were split, providers you had already
 configured could keep signing users in on a Community build, because it still
-contained the sign-in code. The Community image no longer contains any SSO,
-OIDC or SCIM code, so sign-in through them stops once you upgrade to it — see
+contained the sign-in code. The Community images of 14.0.0 to 14.0.10 contain
+no SSO, OIDC or SCIM code, so sign-in through them stops once you upgrade to
+one of those releases — see
 [Community and Enterprise Edition images](#community-and-enterprise-edition-images).
 Your existing provider records are **preserved in the database** — nothing is
 deleted — and they work again as soon as the instance runs the Enterprise
-Edition.
+Edition, or, for SSO and OIDC, any release after 14.0.10.
 
 **Availability:**
 
-- **Self-hosted:** requires the **Enterprise Edition** build.
+- **Self-hosted:** SCIM and team compliance settings require the
+  **Enterprise Edition** build. SSO and OIDC require it only on v11 to
+  14.0.10; releases after 14.0.10 include them in every edition.
 - **OneUptime Cloud:** requires the **Scale** plan (or above).
 
-**If you rely on SSO and self-host**, email
+**If you rely on SSO and self-host**, upgrade to a release after 14.0.10,
+where every edition serves SSO and OIDC. For SCIM, email
 [support@oneuptime.com](mailto:support@oneuptime.com) for an Enterprise Edition
-license so you can restore SSO/OIDC/SCIM. Mention that you upgraded from v10 to
-v11 and we'll help you get it back online. If your team is mid-upgrade and this
+license, mention that you upgraded from v10 to v11, and we'll help you get it
+back online. If your team is mid-upgrade and this
 is blocking sign-in, contact us before upgrading production so we can plan it
 with you.
 

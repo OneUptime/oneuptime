@@ -31,20 +31,23 @@ import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import useAsyncEffect from "use-async-effect";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
 import SummaryInfo from "../../../Components/Monitor/SummaryView/SummaryInfo";
-import { JSONObject } from "Common/Types/JSON";
-import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
-import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
 } from "Common/Types/Monitor/MonitorEvaluationSummary";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
+import MonitorLogSummaryUtil, {
+  INCOMING_EMAIL_NO_SUBJECT_LABEL,
+  INCOMING_EMAIL_SCHEDULED_CHECK_LABEL,
+  IncomingEmailLogEntry,
+  IncomingEmailLogEntryKind,
+} from "Common/Utils/Monitor/MonitorLogSummaryUtil";
+import { MonitorSummaryInfoProps } from "Common/Utils/Monitor/MonitorSummarySnapshotUtil";
 
 const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
-  const [logs, setLogs] = useState<JSONObject>({});
+  // The row whose "View Summary" is open.
+  const [selectedLog, setSelectedLog] = useState<MonitorLog | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [probes, setProbes] = useState<Array<Probe>>([]);
 
@@ -116,6 +119,49 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const isSyntheticMonitor: boolean =
     monitorType === MonitorType.SyntheticMonitor;
 
+  const isIncomingEmailMonitor: boolean =
+    monitorType === MonitorType.IncomingEmail;
+
+  type GetIncomingEmailCellFunction = (log: MonitorLog) => ReactElement;
+
+  const getIncomingEmailCell: GetIncomingEmailCellFunction = (
+    log: MonitorLog,
+  ): ReactElement => {
+    const entry: IncomingEmailLogEntry | null =
+      MonitorLogSummaryUtil.getIncomingEmailLogEntry(log.logBody);
+
+    if (!entry) {
+      return <span className="text-sm text-gray-400">—</span>;
+    }
+
+    if (entry.kind === IncomingEmailLogEntryKind.ScheduledCheck) {
+      return (
+        <span className="text-sm text-gray-500">
+          {INCOMING_EMAIL_SCHEDULED_CHECK_LABEL}
+        </span>
+      );
+    }
+
+    return (
+      <div className="min-w-0">
+        {entry.subject ? (
+          <div className="text-sm text-gray-900 break-words">
+            {entry.subject}
+          </div>
+        ) : (
+          <div className="text-sm italic text-gray-500">
+            {INCOMING_EMAIL_NO_SUBJECT_LABEL}
+          </div>
+        )}
+        {entry.from ? (
+          <div className="text-xs text-gray-500 break-all">{entry.from}</div>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  };
+
   type GetMaxAttemptsFunction = (logBody: unknown) => number;
 
   /*
@@ -148,6 +194,23 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       },
       0,
     );
+  };
+
+  type GetSummaryInfoPropsFunction = (
+    log: MonitorLog,
+  ) => MonitorSummaryInfoProps;
+
+  const getSummaryInfoProps: GetSummaryInfoPropsFunction = (
+    log: MonitorLog,
+  ): MonitorSummaryInfoProps => {
+    return MonitorLogSummaryUtil.toSummaryInfoProps({
+      monitorType: monitorType!,
+      logBody: log.logBody,
+      monitoredAt: log.time,
+      probeName: isProbableMonitor
+        ? getProbeNameById(MonitorLogSummaryUtil.getProbeId(log.logBody))
+        : undefined,
+    });
   };
 
   const getPageContent: GetReactElementFunction = (): ReactElement => {
@@ -209,8 +272,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
               item: MonitorLog,
               onCompleteAction: VoidFunction,
             ) => {
-              setLogs(item.logBody ? item.logBody : {});
-              setShowViewLogsModal(true);
+              setSelectedLog(item);
 
               onCompleteAction();
             },
@@ -235,6 +297,37 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Monitored At",
             type: FieldType.DateTime,
           },
+          /*
+           * Which email a row evaluated, so one can be found without
+           * opening every row - or that the row is the worker's scheduled
+           * check for missing email, which would otherwise read as its copy
+           * of the last email arriving again.
+           */
+          ...(isIncomingEmailMonitor
+            ? [
+                {
+                  field: {
+                    logBody: true,
+                  },
+                  title: "Email",
+                  type: FieldType.Text,
+                  // Backed by the whole logBody: there is nothing to sort on.
+                  disableSort: true,
+                  // A subject is the sender's prose; it wraps, not widens.
+                  wrapContent: true,
+                  getElement: (item: MonitorLog): ReactElement => {
+                    return getIncomingEmailCell(item);
+                  },
+                  getExportValue: (item: MonitorLog): string => {
+                    return MonitorLogSummaryUtil.formatIncomingEmailLogEntry(
+                      MonitorLogSummaryUtil.getIncomingEmailLogEntry(
+                        item.logBody,
+                      ),
+                    );
+                  },
+                },
+              ]
+            : []),
           // Conditionally add Probe column for probeable monitors
           ...(isProbableMonitor
             ? [
@@ -245,13 +338,9 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   title: "Probe",
                   type: FieldType.Text,
                   getElement: (item: MonitorLog): ReactElement => {
-                    const probeId: string | undefined = (
-                      item.logBody as unknown as {
-                        probeId?: string | undefined;
-                      }
-                    )?.probeId;
-
-                    const probeName: string = getProbeNameById(probeId);
+                    const probeName: string = getProbeNameById(
+                      MonitorLogSummaryUtil.getProbeId(item.logBody),
+                    );
 
                     return (
                       <span className="text-sm text-gray-700">{probeName}</span>
@@ -301,6 +390,12 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Evaluation Outcome",
             type: FieldType.Text,
+            /*
+             * Names an operator's criteria. Wrapping keeps a long name - or
+             * the Email column beside it - from pushing View Summary off the
+             * card.
+             */
+            wrapContent: true,
             getElement: (item: MonitorLog): ReactElement => {
               const evaluationSummary: MonitorEvaluationSummary | undefined = (
                 item.logBody as unknown as {
@@ -352,39 +447,19 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <DisabledWarning monitorId={modelId} />
       {getPageContent()}
-      {showViewLogsModal && monitorType && (
+      {selectedLog && monitorType && (
         <Modal
           title={"Monitoring Summary"}
           description={"Here is the summary of this monitor."}
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {
-            setShowViewLogsModal(false);
+            setSelectedLog(null);
           }}
           submitButtonText={"Close"}
           submitButtonStyleType={ButtonStyleType.NORMAL}
         >
-          <SummaryInfo
-            monitorType={monitorType!}
-            probeMonitorResponses={[logs as unknown as ProbeMonitorResponse]}
-            incomingMonitorRequest={logs as unknown as IncomingMonitorRequest}
-            serverMonitorResponse={logs as unknown as ServerMonitorResponse}
-            probeName={
-              isProbableMonitor
-                ? getProbeNameById(
-                    (logs as unknown as { probeId?: string | undefined })
-                      ?.probeId,
-                  )
-                : undefined
-            }
-            evaluationSummary={
-              (
-                logs as unknown as {
-                  evaluationSummary?: MonitorEvaluationSummary | undefined;
-                }
-              ).evaluationSummary
-            }
-          />
+          <SummaryInfo {...getSummaryInfoProps(selectedLog)} />
         </Modal>
       )}
     </Fragment>

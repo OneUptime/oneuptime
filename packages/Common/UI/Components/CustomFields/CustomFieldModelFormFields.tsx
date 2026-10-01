@@ -14,11 +14,7 @@ import {
 
 export { CUSTOM_FIELD_NO_VALUE_PLACEHOLDER } from "./CustomFieldFormFields";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import {
-  CustomFieldMappingSourceInfo,
-  getCustomFieldMappingSource,
-  hasCustomFieldMappingSource,
-} from "../../../Types/CustomField/CustomFieldMappingCatalog";
+import { isCustomFieldInheritedByRecord } from "../../../Types/CustomField/CustomFieldMappingCatalog";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import { isCustomFieldValueEmpty } from "../../../Types/CustomField/CustomFieldValueMapping";
 import { JSONObject } from "../../../Types/JSON";
@@ -69,32 +65,17 @@ export type IsCustomFieldInheritedFunction = (data: {
  * typed: it is mapped (an incident field from a monitor field) and the record
  * is attached to something to copy from (the incident has a monitor). The
  * server re-applies the mapping on create, so asking for such a value would
- * only have it replaced. The same rule the Custom Fields card uses.
+ * only have it replaced. The same rule the Custom Fields card uses, and the
+ * public incident forms (isCustomFieldInheritedByRecord).
  */
 export const isCustomFieldInherited: IsCustomFieldInheritedFunction = (data: {
   definitionTableName: string;
   definition: CustomFieldFormDefinition;
   values: JSONObject;
 }): boolean => {
-  if (
-    !data.definition.mapFromResourceType ||
-    !data.definition.mapFromCustomFieldName
-  ) {
-    return false;
-  }
-
-  const source: CustomFieldMappingSourceInfo | undefined =
-    getCustomFieldMappingSource({
-      definitionTableName: data.definitionTableName,
-      resource: data.definition.mapFromResourceType,
-    });
-
-  if (!source) {
-    return false;
-  }
-
-  return hasCustomFieldMappingSource({
-    source: source,
+  return isCustomFieldInheritedByRecord({
+    definitionTableName: data.definitionTableName,
+    definition: data.definition,
     record: data.values as Record<string, unknown>,
   });
 };

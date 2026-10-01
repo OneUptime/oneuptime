@@ -24,6 +24,7 @@ import SessionReplayMaskingMode, {
   doesMaskingModeRecordReadableContent,
 } from "Common/Types/Rum/SessionReplayMaskingMode";
 import Route from "Common/Types/API/Route";
+import { DOCS_URL } from "Common/UI/Config";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -57,6 +58,7 @@ import {
 } from "./ReplayRecorderKind";
 import { copyTextToClipboard } from "./ReplayHeader";
 import { DEVICE_TYPE_OPTIONS } from "./SessionReplayFilterFields";
+import { getReplayAssetFailureDocsHref } from "./ReplayRecordedAssets";
 
 /*
  * Everything the player knows about a session that is not the picture and
@@ -130,12 +132,14 @@ export interface ReplayCorrelationPanelProps {
   hasRecordingEnded?: boolean | undefined;
   fidelityNotices: Array<string>;
   /*
-   * Assets the recorder could not capture. Optional because nothing on the
-   * server produces them yet (player-shell-18): the shell was passing []
-   * only to satisfy a required prop, which read as "we checked and there
-   * are none" rather than "nobody measured".
+   * The recorded images and stylesheets that failed to load in this
+   * browser while the replay played (ReplayRecordedAssets.ts), by address.
+   * Optional because only a player that is watching can know: absent reads
+   * as "nobody measured", never as "we checked and there are none".
    */
   missingAssets?: Array<string> | undefined;
+  /* More failed than missingAssets lists (REPLAY_ASSET_FAILURE_MAX_LISTED). */
+  areMissingAssetsTruncated?: boolean | undefined;
   gaps: Array<SessionReplayGap>;
   /* Opens the rail on a tab (and closes nothing - the host decides). */
   onOpenRailTab?: ((tabId: ReplayRailTabId) => void) | undefined;
@@ -1470,7 +1474,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
       {(props.missingAssets?.length ?? 0) > 0 && (
         <DetailSection
           title="Missing assets"
-          description="Resources referenced by the page but unavailable to playback."
+          description="Images and stylesheets the recorded page used that did not load in your browser while you watched."
           icon={IconProp.LinkSlash}
           testId="details-section-missing-assets"
           badge={props.missingAssets?.length ?? 0}
@@ -1487,6 +1491,29 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
                 </div>
               );
             })}
+            {props.areMissingAssetsTruncated && (
+              <p
+                className="text-xs text-gray-500"
+                data-testid="replay-details-missing-assets-truncated"
+              >
+                More failed than this; only the first{" "}
+                {props.missingAssets?.length ?? 0} are listed.
+              </p>
+            )}
+            <a
+              href={getReplayAssetFailureDocsHref(DOCS_URL.toString())}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
+              data-testid="replay-details-missing-assets-docs"
+            >
+              {/* The visible words are the name; the tab warning is for screen readers. */}
+              <span>
+                Why they go missing, and how to allow them
+                <span className="sr-only"> (opens in a new tab)</span>
+              </span>
+              <Icon icon={IconProp.ExternalLink} className="h-3 w-3 shrink-0" />
+            </a>
           </div>
         </DetailSection>
       )}
@@ -1500,7 +1527,10 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
       id: "fidelity",
       label: "Fidelity",
       content: fidelityContent,
-      badge: props.gaps.length + props.fidelityNotices.length,
+      badge:
+        props.gaps.length +
+        props.fidelityNotices.length +
+        (props.missingAssets?.length ?? 0),
     },
   ];
 

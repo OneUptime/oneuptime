@@ -75,15 +75,15 @@ const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
 /*
  * What stops when the license lapses, in one sentence set, so every notice in
  * the dialog says it the same way. It has to be said plainly and before it
- * happens: after the trial or the grace period, single sign-on (SAML and
- * OIDC) and SCIM provisioning stop, "Require SSO" is no longer enforced (so
- * nobody is locked out: users sign in with their password), and audit logging
- * stops recording - the Community Edition's behaviour - until a license is
- * activated, when everything resumes without a restart. Core monitoring is
- * never touched.
+ * happens: after the trial or the grace period, SCIM provisioning stops and
+ * audit logging stops recording - the Community Edition's behaviour - until a
+ * license is activated, when everything resumes without a restart. Core
+ * monitoring is never touched. Single sign-on (SAML and OIDC) and "Require
+ * SSO" are not on this list: they are part of every edition (see
+ * communityFeatures below).
  */
 export const LICENSE_LAPSE_CONSEQUENCES: string =
-  'single sign-on (SAML and OIDC) stops and "Require SSO" is no longer enforced, so users sign in with their password; SCIM provisioning stops; audit logging stops recording; enterprise configuration becomes read-only; and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.';
+  "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.";
 
 /*
  * The two periods have different names and different lengths: an unlicensed
@@ -101,7 +101,7 @@ export const GRACE_ENFORCEMENT_SUMMARY: string = `Without a valid license (after
  * missing after the trial, or invalid), after the reason the notice gives.
  */
 export const LICENSE_LAPSED_STATE: string =
-  'Single sign-on (SAML and OIDC) and SCIM provisioning are off: "Require SSO" is not enforced, so users sign in with their password, and your identity provider\'s SCIM requests are refused. Audit logging is not recording. Enterprise configuration is read-only and the enterprise admin dashboards are locked. Everything resumes, without a restart, as soon as a valid license is added, and core monitoring is never affected.';
+  "SCIM provisioning is off and your identity provider's SCIM requests are refused. Audit logging is not recording. Enterprise configuration is read-only and the enterprise admin dashboards are locked. Everything resumes, without a restart, as soon as a valid license is added, and core monitoring is never affected.";
 
 type LicenseStatus = "valid" | "grace" | "expired" | "missing" | "invalid";
 
@@ -949,7 +949,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
 
     if (!licenseValid) {
-      return "Add a valid license to turn single sign-on, SCIM and audit logging back on and make enterprise configuration editable.";
+      return "Add a valid license to turn SCIM provisioning and audit logging back on and make enterprise configuration editable.";
     }
 
     return "License, version, seat usage, and the instances covered by this key.";
@@ -958,6 +958,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const communityFeatures: Array<string> = useMemo(() => {
     return [
       "Full OneUptime platform with incident response, status pages, and workflow automation.",
+      'SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including "Require SSO for login".',
       "Community support, documentation, and tutorials to help teams get started quickly.",
       "Regular updates, bug fixes, and open-source extensibility.",
       "Integrations with popular DevOps tools through community-maintained connectors.",
@@ -1324,8 +1325,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           <p className="mt-2 text-xs leading-relaxed text-amber-800">
             {canManageLicense
               ? hasLicenseInstalled
-                ? "Re-activate the license below before the trial ends, or let the daily license sync fetch its expiry from OneUptime, to keep single sign-on, SCIM and audit logging running and enterprise configuration editable."
-                : "Add a license below before the trial ends to keep single sign-on, SCIM and audit logging running and enterprise configuration editable."
+                ? "Re-activate the license below before the trial ends, or let the daily license sync fetch its expiry from OneUptime, to keep SCIM provisioning and audit logging running and enterprise configuration editable."
+                : "Add a license below before the trial ends to keep SCIM provisioning and audit logging running and enterprise configuration editable."
               : hasLicenseInstalled
                 ? "Ask a master admin of this installation to re-activate the license."
                 : "Ask a master admin of this installation to add a license."}
@@ -1597,8 +1598,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   </h4>
                   <p className="mt-0.5 text-xs text-indigo-700">
                     {canManageLicense
-                      ? "A valid license that includes them keeps single sign-on, SCIM provisioning and audit logging running, enterprise configuration (SSO, SCIM, team compliance, audit log settings) editable and the enterprise admin dashboards unlocked."
-                      : "A master admin can add the license to keep single sign-on, SCIM provisioning and audit logging running and enterprise configuration editable."}{" "}
+                      ? "A valid license that includes them keeps SCIM provisioning and audit logging running, enterprise configuration (SCIM, team compliance, audit log settings) editable and the enterprise admin dashboards unlocked."
+                      : "A master admin can add the license to keep SCIM provisioning and audit logging running and enterprise configuration editable."}{" "}
                     Core monitoring never depends on it.
                   </p>
                   <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">

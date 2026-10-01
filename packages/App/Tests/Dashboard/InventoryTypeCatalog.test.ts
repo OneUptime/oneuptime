@@ -194,6 +194,31 @@ describe("the two database types read differently", () => {
   });
 });
 
+describe("the message-queue type", () => {
+  test("message.queue reads as a Message Queue, next to the other dependency types", () => {
+    /*
+     * Membership-only like the database endpoint: it keys telemetry for the
+     * Queues product. Its label must not collide with Remote Service, the
+     * node a queue's broker becomes on the service map.
+     */
+    expect(getInventoryTypeLabel(EntityType.MessageQueue)).toBe(
+      "Message Queue",
+    );
+    expect(getInventoryTypePluralLabel(EntityType.MessageQueue)).toBe(
+      "Message Queues",
+    );
+    expect(getInventoryTypeIcon(EntityType.MessageQueue)).toBe(
+      IconProp.QueueList,
+    );
+    expect(getInventoryTypeCategory(EntityType.MessageQueue)).toBe(
+      getInventoryTypeCategory(EntityType.RemoteService),
+    );
+    expect(getInventoryTypeLabel(EntityType.MessageQueue)).not.toBe(
+      getInventoryTypeLabel(EntityType.RemoteService),
+    );
+  });
+});
+
 describe("unknown types degrade instead of breaking", () => {
   const UNKNOWN: string = "quantum.flux.capacitor";
 

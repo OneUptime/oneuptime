@@ -7,6 +7,12 @@ import React, {
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
+import { VoidFunction } from "Common/Types/FunctionTypes";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import RowActions from "Common/UI/Components/ActionButton/RowActions";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import {
@@ -198,6 +204,47 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
       return difference !== 0 ? difference : b.sessions - a.sessions;
     },
   );
+
+  /*
+   * A Pages row gets one button and a ⋯ menu, like every other table row.
+   * "Paths after" is the button: forward is what a click on a page means
+   * everywhere else on this screen - the page chips, the map - so it is the
+   * question a row is most often asked. "Paths before" is the same map turned
+   * round, one click further away in the menu.
+   *
+   * The two are listed in the order the row used to show them, and both have
+   * the same style, so left to itself the split would make the first one the
+   * button. The placement is what puts "Paths after" there.
+   *
+   * Anchoring is over the moment onAnchor returns, so each action says so
+   * straight away: an action still marked as running would draw the row's
+   * button as a spinner the next time the table renders.
+   */
+  const pageActions: Array<ActionButtonSchema<UserFlowPageStats>> = [
+    {
+      title: "Paths before",
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      onClick: (
+        page: UserFlowPageStats,
+        onCompleteAction: VoidFunction,
+      ): void => {
+        props.onAnchor(page.page, "backward");
+        onCompleteAction();
+      },
+    },
+    {
+      title: "Paths after",
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      placement: ActionButtonPlacement.Primary,
+      onClick: (
+        page: UserFlowPageStats,
+        onCompleteAction: VoidFunction,
+      ): void => {
+        props.onAnchor(page.page, "forward");
+        onCompleteAction();
+      },
+    },
+  ];
 
   return (
     <div data-testid="user-flow-tables">
@@ -443,24 +490,10 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                       )}
                     </td>
                     <td className={`${CELL} whitespace-nowrap`}>
-                      <button
-                        type="button"
-                        className="mr-3 text-xs font-medium text-indigo-700 hover:underline"
-                        onClick={(): void => {
-                          props.onAnchor(page.page, "backward");
-                        }}
-                      >
-                        Paths before
-                      </button>
-                      <button
-                        type="button"
-                        className="text-xs font-medium text-indigo-700 hover:underline"
-                        onClick={(): void => {
-                          props.onAnchor(page.page, "forward");
-                        }}
-                      >
-                        Paths after
-                      </button>
+                      <RowActions<UserFlowPageStats>
+                        item={page}
+                        actionButtons={pageActions}
+                      />
                     </td>
                   </tr>
                 );

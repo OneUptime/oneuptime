@@ -450,6 +450,10 @@ const DocsNav: NavGroup[] = [
         title: "Incident Settings & Automation",
         url: "/docs/incidents/settings",
       },
+      {
+        title: "Incident Forms",
+        url: "/docs/incidents/forms",
+      },
     ],
   },
   {
@@ -727,6 +731,10 @@ const DocsNav: NavGroup[] = [
       { title: "OpenTelemetry", url: "/docs/telemetry/open-telemetry" },
       { title: "Search Syntax", url: "/docs/telemetry/search-syntax" },
       {
+        title: "Zooming Into a Time Range",
+        url: "/docs/telemetry/charts-and-time-ranges",
+      },
+      {
         title: "AI / LLM Observability",
         url: "/docs/telemetry/ai-llm-observability",
       },
@@ -829,6 +837,16 @@ const DocsNav: NavGroup[] = [
         title: "Databases",
         url: "/docs/telemetry/databases",
       },
+      /*
+       * The Queues hub (discovery from messaging spans, broker health
+       * metrics per messaging system). Its URL contains no other link's
+       * path and no other link contains it, so the substring match in
+       * Docs/Index.ts resolves it only to itself.
+       */
+      {
+        title: "Queues",
+        url: "/docs/telemetry/queues",
+      },
       {
         title: "Serverless Functions",
         url: "/docs/telemetry/serverless-functions",
@@ -894,6 +912,10 @@ const DocsNav: NavGroup[] = [
     links: [
       { title: "Ask AI", url: "/docs/ai/ask-ai" },
       { title: "AI SRE", url: "/docs/ai/ai-sre" },
+      {
+        title: "Infrastructure AI Agents",
+        url: "/docs/ai/infrastructure-ai-agents",
+      },
       { title: "Fix Tasks", url: "/docs/ai/ai-agent" },
       { title: "GitHub App", url: "/docs/ai/github-app" },
       { title: "LLM Providers", url: "/docs/ai/llm-provider" },

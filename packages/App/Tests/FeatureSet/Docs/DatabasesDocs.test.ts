@@ -3,6 +3,7 @@ import {
   DATABASE_SYSTEMS,
   DatabaseSystemDescriptor,
   getCollectorReceiverComponentName,
+  getDefaultDatabasePort,
   getDatabaseSystemDescriptor,
   getDatabaseSystemDisplayName,
   getDatabaseReceiverSystemHint,
@@ -20,8 +21,10 @@ import {
   buildDatabaseServerDisplayName,
   canonicalizeDatabaseEndpoint,
   DatabaseEndpoint,
+  EPHEMERAL_PORT_RANGE_START,
   formatDatabaseEndpoint,
   getDatabaseEndpointScope,
+  isClientSocketDatabaseEndpoint,
   isHostRelativeDatabaseHost,
   isLoopbackDatabaseHost,
   NETWORK_SCOPED_NAME_SUFFIXES,
@@ -82,6 +85,15 @@ const CONFIG_DIR: string = path.join(AGENT_DIR, "configs");
 const PAGE: string = "telemetry/databases";
 const PAGE_URL: string = `/docs/${PAGE}`;
 
+/*
+ * The services of the agent's docker-compose.yml: the collector, and the
+ * OneUptime AI agent beside it, which reads the same .env and has its own
+ * section on the page.
+ */
+const COLLECTOR_SERVICE: string = "oneuptime-database-agent";
+const AI_AGENT_SERVICE: string = "oneuptime-database-ai-agent";
+const AI_AGENT_HEADING: string = "## AI agent";
+
 /* The engines the agent ships a config for, by file name (= receiver type). */
 const AGENT_ENGINES: ReadonlyArray<string> = [
   "postgresql",
@@ -127,8 +139,10 @@ const CONFIG_SYSTEM: Readonly<Record<string, string>> = {
 const FENCE_LINE: RegExp = /^\s*```/;
 /* A key (or comment) at the receiver's own level or above: a block ends. */
 const RECEIVER_LEVEL_LINE: RegExp = /^ {0,4}[a-z#]/;
-/* Bare environment variable names in the compose file's environment block. */
-const COMPOSE_ENV_LINE: RegExp = /^\s*-\s*([A-Z][A-Z0-9_]+)=/;
+/* An environment variable of a compose service: its name, and its value. */
+const COMPOSE_ENV_LINE: RegExp = /^\s*-\s*([A-Z][A-Z0-9_]+)=(.*)$/;
+// A service of docker-compose.yml: a key two spaces in, under services:.
+const COMPOSE_SERVICE_LINE: RegExp = /^ {2}([a-z0-9][a-z0-9-]*):\s*$/;
 /* A backticked token shaped like an environment variable. */
 const ENV_TOKEN: RegExp = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$/;
 /* The image pin, wherever it is written. */
@@ -267,21 +281,72 @@ function firstColumnTokens(markdown: string): Array<string> {
   return tokens;
 }
 
-/* Environment variables the agent's docker-compose.yml passes to the collector. */
-function composeEnvironmentVariables(): Array<string> {
-  const names: Array<string> = [];
+/*
+ * The environment one service of the agent's docker-compose.yml gets, as
+ * name and value. The collector (the default) and the OneUptime AI agent
+ * read the same .env, but each is documented in its own place on the page.
+ */
+function composeEnvironment(
+  service: string = COLLECTOR_SERVICE,
+): Array<{ name: string; value: string }> {
+  const variables: Array<{ name: string; value: string }> = [];
+  let inService: boolean = false;
 
   for (const line of readAgentFile("docker-compose.yml").split("\n")) {
-    const match: RegExpMatchArray | null = line.match(COMPOSE_ENV_LINE);
+    const serviceLine: RegExpMatchArray | null =
+      line.match(COMPOSE_SERVICE_LINE);
+
+    if (serviceLine) {
+      inService = serviceLine[1] === service;
+      continue;
+    }
+
+    const match: RegExpMatchArray | null = inService
+      ? line.match(COMPOSE_ENV_LINE)
+      : null;
 
     if (match) {
-      names.push(match[1] as string);
+      variables.push({
+        name: match[1] as string,
+        value: (match[2] as string).trim(),
+      });
     }
   }
 
-  expect(names.length).toBeGreaterThan(0);
+  expect({ service, variables: variables.length > 0 }).toEqual({
+    service,
+    variables: true,
+  });
 
-  return names;
+  return variables;
+}
+
+/* Environment variable names one compose service gets (the collector's by default). */
+function composeEnvironmentVariables(
+  service: string = COLLECTOR_SERVICE,
+): Array<string> {
+  return composeEnvironment(service).map(
+    (variable: { name: string; value: string }): string => {
+      return variable.name;
+    },
+  );
+}
+
+/*
+ * The variables the AI agent reads from the .env that the collector does
+ * not: its own settings. (A value without ${...} is fixed in the compose
+ * file, like the resource type, and is not the operator's to set.)
+ */
+function aiAgentOwnVariables(): Array<string> {
+  const collector: Set<string> = new Set<string>(composeEnvironmentVariables());
+
+  return composeEnvironment(AI_AGENT_SERVICE)
+    .filter((variable: { name: string; value: string }): boolean => {
+      return variable.value.includes("${") && !collector.has(variable.name);
+    })
+    .map((variable: { name: string; value: string }): string => {
+      return variable.name;
+    });
 }
 
 /* Every ${env:NAME} a config reads. */
@@ -625,7 +690,12 @@ describe("Databases docs", (): void => {
 
     it("mentions no variable the agent does not have, apart from the app-side tuning table", (): void => {
       const markdown: string = readPage();
-      const known: Set<string> = new Set<string>([
+      const aiAgent: string = section(markdown, AI_AGENT_HEADING);
+
+      expect(markdown.includes(aiAgent)).toBe(true);
+
+      // The collector's variables everywhere but the AI agent's section ...
+      const collectorKnown: Set<string> = new Set<string>([
         ...composeEnvironmentVariables(),
         ...firstColumnTokens(section(markdown, "## Self-hosted tuning")),
         // install.sh's install directory, which is not passed to the collector.
@@ -633,15 +703,52 @@ describe("Databases docs", (): void => {
         // Oracle's built-in role, which only looks like a variable.
         "SELECT_CATALOG_ROLE",
       ]);
+      // ... and there, the AI agent service's.
+      const aiAgentKnown: Set<string> = new Set<string>([
+        ...composeEnvironmentVariables(AI_AGENT_SERVICE),
+        // MySQL's privilege for ending other sessions, which only looks like a variable.
+        "CONNECTION_ADMIN",
+      ]);
 
-      for (const token of backtickedTokens(markdown)) {
-        if (ENV_TOKEN.test(token)) {
-          expect({ token, known: known.has(token) }).toEqual({
-            token,
-            known: true,
-          });
+      const check: (text: string, known: Set<string>, where: string) => void = (
+        text: string,
+        known: Set<string>,
+        where: string,
+      ): void => {
+        for (const token of backtickedTokens(text)) {
+          if (ENV_TOKEN.test(token)) {
+            expect({ where, token, known: known.has(token) }).toEqual({
+              where,
+              token,
+              known: true,
+            });
+          }
         }
-      }
+      };
+
+      check(markdown.replace(aiAgent, ""), collectorKnown, "the page");
+      check(aiAgent, aiAgentKnown, AI_AGENT_HEADING);
+    });
+
+    it("documents every variable of the AI agent's own in its section, and nothing it does not read", (): void => {
+      const own: Array<string> = aiAgentOwnVariables();
+
+      // The switch, the targets and the agent's own login at least.
+      expect(own).toEqual(
+        expect.arrayContaining([
+          "ONEUPTIME_AI_ALLOW_WRITES",
+          "ONEUPTIME_AI_WRITE_TARGETS",
+          "ONEUPTIME_AI_PROTECTED_TARGETS",
+          "ONEUPTIME_AI_DATABASE_USERNAME",
+          "ONEUPTIME_AI_DATABASE_PASSWORD",
+        ]),
+      );
+
+      const table: Array<string> = firstColumnTokens(
+        section(readPage(), AI_AGENT_HEADING),
+      );
+
+      expect([...table].sort()).toEqual([...own].sort());
     });
 
     it("sets every compose variable in the Kubernetes manifest, and runs the pinned image there", (): void => {
@@ -1946,6 +2053,83 @@ describe("Databases docs", (): void => {
       );
       expect(markdown).not.toContain("_Not connected_ after");
       expect(markdown).not.toContain("reads Not connected (minimum");
+    });
+
+    /*
+     * Regression: eBPF instrumentation swapped the two ends of long-lived
+     * Redis connections, and traces created one database per connection,
+     * each named after the client's ephemeral port. The page states the
+     * port rule the create policy applies, and how the ones created before
+     * go away.
+     */
+    it("states the ephemeral-port rule at the port the create policy starts refusing", (): void => {
+      const markdown: string = readPage();
+      const traces: string = section(markdown, "### From application traces");
+      const start: number = EPHEMERAL_PORT_RANGE_START;
+      const at: (port: number, system?: string) => boolean = (
+        port: number,
+        system: string = "redis",
+      ): boolean => {
+        return isClientSocketDatabaseEndpoint({
+          system,
+          endpoint: { host: "cache.example.com", port },
+        });
+      };
+
+      expect(at(start - 1)).toBe(false);
+      expect(at(start)).toBe(true);
+      expect(at(65535)).toBe(true);
+      expect(traces).toContain(`from port ${start} up`);
+      expect(traces).toContain(`a port from ${start} up never creates`);
+      expect(traces).toContain("49152–65535");
+
+      // The one engine whose own default port is in the range.
+      const exempt: Array<string> = DATABASE_SYSTEMS.filter(
+        (descriptor: DatabaseSystemDescriptor): boolean => {
+          return (
+            descriptor.defaultPort !== null && descriptor.defaultPort >= start
+          );
+        },
+      ).map((descriptor: DatabaseSystemDescriptor): string => {
+        return `${getDatabaseSystemDisplayName(descriptor.system)}'s ${descriptor.defaultPort}`;
+      });
+      expect(exempt).toEqual(["IBM Db2's 50000"]);
+      expect(getDefaultDatabasePort("ibm.db2")).toBe(50000);
+      expect(at(50000, "ibm.db2")).toBe(false);
+      expect(traces).toContain(exempt[0]!);
+
+      expect(
+        section(markdown, "### A database my applications use was not created"),
+      ).toContain(`a port from ${start} up that is not the engine's default`);
+
+      // The cleanup runs in the five-minute cleanup job, before the archive.
+      const job: string = fs.readFileSync(
+        path.join(
+          REPO_ROOT,
+          "packages/App/FeatureSet/Workers/Jobs/DatabaseServer/CleanupStaleResources.ts",
+        ),
+        "utf8",
+      );
+      expect(job).toContain("schedule: EVERY_FIVE_MINUTE");
+      expect(job.indexOf("deleteClientSocketDatabaseServers()")).toBeLessThan(
+        job.indexOf("autoArchiveStaleDatabaseServers()"),
+      );
+      const troubleshooting: string = section(
+        markdown,
+        "### One database per connection, each on a different high port",
+      );
+      expect(troubleshooting).toContain("deleted within 5 minutes");
+      expect(troubleshooting).toContain(
+        "(see [From application traces](#from-application-traces))",
+      );
+      expect(
+        section(markdown, "## Lifecycle, archiving and retention"),
+      ).toContain(
+        "[One database per connection](#one-database-per-connection-each-on-a-different-high-port)",
+      );
+      expect(
+        slugify("One database per connection, each on a different high port"),
+      ).toBe("one-database-per-connection-each-on-a-different-high-port");
     });
 
     it("states the Kubernetes and container discovery rules the job applies", (): void => {

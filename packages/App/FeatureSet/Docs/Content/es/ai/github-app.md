@@ -14,7 +14,7 @@ Menciónala en un issue y abrirá un pull request. Menciónala en un pull reques
 
 ## Antes de empezar
 
-- El repositorio debe estar **conectado a un proyecto de OneUptime** a través de la GitHub App. Consulta [Integración con GitHub (autohospedado)](/docs/self-hosted/github-integration) para la configuración, o conéctalo desde **Ajustes del proyecto → Repositorios de código** en OneUptime Cloud.
+- El repositorio debe estar **conectado a un proyecto de OneUptime** a través de la GitHub App. Consulta [Integración con GitHub (autohospedado)](/docs/self-hosted/github-integration) para la configuración, o conéctalo desde **Tareas → Repositorios de código** en OneUptime Cloud.
 - Debe estar en línea un **Runner con la capacidad "Ejecuta correcciones de código con IA"**, el mismo Runner que lleva a cabo las [Tareas de corrección con IA](/docs/ai/ai-agent). Sin él, los comandos se aceptan y luego fallan a los 30 minutos con un mensaje que dice que ningún agente los recogió.
 - La GitHub App debe tener el permiso **Incidencias: Lectura y escritura** y estar suscrita a los eventos de webhook que se listan en [A qué suscribirse](#a-qué-suscribirse).
 
@@ -129,13 +129,13 @@ Trata un pull request escrito por IA como tratarías el de un colaborador nuevo 
 
 ## Solución de problemas
 
-**No pasa nada cuando la menciono.** Comprueba primero el identificador: es el slug de la app, no su nombre visible. Después comprueba que el repositorio esté conectado a un proyecto (**Ajustes del proyecto → Repositorios de código**), que **Responder a comandos de GitHub** esté activado y que tu GitHub App esté suscrita a los eventos de arriba.
+**No pasa nada cuando la menciono.** Comprueba primero el identificador: es el slug de la app, no su nombre visible. Después comprueba que el repositorio esté conectado a un proyecto (**Tareas → Repositorios de código**), que **Responder a comandos de GitHub** esté activado y que tu GitHub App esté suscrita a los eventos de arriba.
 
 **Reacciona con 😕 y no dice nada.** No tienes acceso de escritura al repositorio.
 
 **Dice que ya está trabajando en esto.** Ya hay en marcha una ejecución de ese tipo en este issue o pull request. `@oneuptime status` te dirá cuál, y `@oneuptime cancel` la detiene.
 
-**Acusó recibo y luego se quedó callada mucho rato.** Comprueba en **Ajustes → Agentes de runbook** que haya un Runner con **Ejecuta correcciones de código con IA** en línea. Sin él, la ejecución se da por fallida a los 30 minutos y se avisa en el hilo.
+**Acusó recibo y luego se quedó callada mucho rato.** Comprueba en **Runbooks → Agentes de runbook** que haya un Runner con **Ejecuta correcciones de código con IA** en línea. Sin él, la ejecución se da por fallida a los 30 minutos y se avisa en el hilo.
 
 **Dice que el pull request viene de un fork.** Las modificaciones necesitan una rama en este repositorio. Pide una revisión en su lugar, o envía la rama aquí.
 

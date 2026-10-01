@@ -4,29 +4,36 @@ import fs from "fs";
 import path from "path";
 
 /*
- * No doc, Helm text, README, config comment, email template or UI string may
- * claim that SSO, SCIM or audit logging keep running once the Enterprise
- * license lapses.
+ * What a lapsed Enterprise license does, as every doc, Helm text, README,
+ * config comment, email template and UI string must tell it.
  *
- * They used to say exactly that. The edition split first shipped "soft
+ * SCIM and audit logging stop. The edition split first shipped "soft
  * enforcement" (a lapsed license only made configuration read-only), and the
- * promise was written into the docs in 17 languages, the Helm chart,
- * config.example.env and the edition dialog. The owner then decided the
- * opposite: after the 14-day trial (an install with no license) or the 30-day
- * grace period (after a license expires), SSO and OIDC sign-in stop
- * (and "Require SSO" is no longer enforced, so users sign in with a
- * password), SCIM provisioning stops and audit logging stops recording - the
- * Community Edition's behaviour - until a license is activated. A sentence
- * left behind would tell an admin that SSO still guards an install where
- * anyone with an account can now set a password and sign in.
+ * promise that everything keeps running was written into the docs in 17
+ * languages, the Helm chart, config.example.env and the edition dialog. The
+ * owner then decided the opposite: after the 14-day trial (an install with no
+ * license) or the 30-day grace period (after a license expires), SCIM
+ * provisioning stops and audit logging stops recording - the Community
+ * Edition's behaviour - until a license is activated. A sentence left behind
+ * would tell an admin that their identity provider still deprovisions people,
+ * or that changes are still recorded, when neither is true.
  *
- * The scan is phrase-based, like the retired "100% open source" claims in
+ * Single sign-on does not stop. SAML and OIDC sign-in, global SSO and "Require
+ * SSO for login" are part of every edition, the Community Edition included,
+ * from the first release after 14.0.10 (in 14.0.0 to 14.0.10 they were
+ * Enterprise features that stopped with the license). So no text may say
+ * single sign-on stops, is refused or is not enforced when the license lapses,
+ * or that it needs the Enterprise Edition - except where a sentence says it
+ * describes 14.0.10 or earlier, and in the upgrade notes of released versions,
+ * which stay as history.
+ *
+ * Both scans are phrase-based, like the retired "100% open source" claims in
  * EnterpriseEditionDocs.test.ts: every pattern carries the published sentence
  * it was written for (it must catch it), and the accurate copy that replaced
  * those sentences must pass. Sentences about an UNREADABLE license state are
- * exempt: while the license cannot be read the server keeps SSO, SCIM and
- * audit logging on, and the docs say so - but not when the same sentence also
- * talks about a lapse.
+ * exempt from the first scan: while the license cannot be read the server
+ * keeps SCIM and audit logging on, and the docs say so - but not when the same
+ * sentence also talks about a lapse.
  *
  * ee/ is deleted in the core CI jobs, so ee/README.md and the ee UI are not
  * scanned here; the ee UI copy is pinned by ee/Tests/UI.
@@ -35,9 +42,11 @@ import path from "path";
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
 const REPOSITORY_ROOT: string = path.resolve(PACKAGES_ROOT, "..");
 
-// Who (or what) the claim is about.
-const SUBJECT: string =
-  '(?:SSO|single sign-on|OIDC|SCIM|audit log(?:s|ging)?|"Require SSO"|Require SSO for login)';
+/*
+ * Who (or what) a "keeps running" claim is about: what stops with the
+ * license. Single sign-on is not among them - it does keep running.
+ */
+const SUBJECT: string = "(?:SCIM|audit log(?:s|ging)?)";
 
 // Up to one clause of the same sentence between the subject and the verb.
 const SAME_CLAUSE: string = "[^.;:!?]{0,100}?";
@@ -89,17 +98,26 @@ const RETIRED_LAPSE_CLAIMS: Array<RetiredLapseClaim> = [
       "Enforcement is soft. Losing a license never locks anyone out and never weakens a security control.",
   },
   {
-    pattern: /\bnever tied to the licen[cs]e\b/i,
+    pattern: new RegExp(
+      `\\b${SUBJECT}\\b${SAME_CLAUSE}\\bnever tied to the licen[cs]e\\b`,
+      "i",
+    ),
     example:
-      "SSO enforcement is never tied to the license, so a lapsed license never silently weakens a security control.",
+      "SCIM provisioning is never tied to the license, so a lapsed license never stops deprovisioning.",
   },
   {
-    pattern: /\bkeeps? working either way\b/i,
+    pattern: new RegExp(
+      `\\b${SUBJECT}\\b${SAME_CLAUSE}\\bkeeps? working either way\\b`,
+      "i",
+    ),
     example:
       "You can still change this configuration during the grace period; after it ends the configuration becomes read-only. Single sign-on and SCIM keep working either way.",
   },
   {
-    pattern: /\bmembers can still sign in\b/i,
+    pattern: new RegExp(
+      `\\b(?:identity provider|IdP)\\b${SAME_CLAUSE}\\bcan still (?:provision|deprovision)\\b`,
+      "i",
+    ),
     example:
       "Members can still sign in, and your identity provider can still provision and deprovision users.",
   },
@@ -112,18 +130,32 @@ const RETIRED_LAPSE_CLAIMS: Array<RetiredLapseClaim> = [
  */
 const ACCURATE_LAPSE_COPY: Array<string> = [
   "Every enterprise feature keeps working during the 14-day trial, and for 30 days after a license expires (the grace period).",
-  "After that, **SSO, OIDC, SCIM and audit logging stop** until a license is activated, the same as on the Community Edition.",
-  'After the trial, SSO and OIDC sign-in stop, "Require SSO for login" is no longer enforced (users sign in with their password), SCIM provisioning stops and audit logging stops recording.',
+  "After that, **SCIM and audit logging stop** until a license is activated, the same as on the Community Edition, and enterprise configuration becomes read-only.",
+  "After the trial, SCIM provisioning stops and audit logging stops recording.",
   "If the license expires, everything keeps working for a 30-day grace period, and after that the same happens as for an install with no license.",
-  "While it cannot read the license state, for example for a moment while the server starts, SSO enforcement, SCIM and audit logging stay on.",
-  "While the license state cannot be read, SSO, SCIM and audit logging keep running.",
+  "While it cannot read the license state, for example for a moment while the server starts, SCIM and audit logging stay on.",
+  "While the license state cannot be read, SCIM and audit logging keep running.",
   "**Core monitoring is never affected**: monitors, alerts, incidents, on-call, status pages and telemetry all keep working.",
   "ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it.",
   "**Master admins can always sign in with their password.**",
-  "A valid license that includes them keeps single sign-on, SCIM provisioning and audit logging running, enterprise configuration editable and the enterprise admin dashboards unlocked.",
-  'Losing a license never locks anyone out: "Require SSO for login" stops being enforced at the same moment SSO sign-in stops, so users sign in with a password.',
+  "A valid license that includes them keeps SCIM provisioning and audit logging running, enterprise configuration editable and the enterprise admin dashboards unlocked.",
+  "When the grace period ends, until a renewed license is activated: SCIM provisioning stops, so your identity provider can no longer provision or deprovision users; audit logging stops recording; and enterprise configuration becomes read-only.",
   "Everything resumes, without a restart, as soon as a license is activated, and core monitoring is never affected.",
   "Your self-hosted OneUptime instances keep every enterprise feature for 30 days after the expiry date above (the grace period).",
+];
+
+/*
+ * Retired claims about single sign-on that are true now, so they must pass:
+ * the scan above was narrowed to what really stops, not to keep the old
+ * promise out of the SSO copy.
+ */
+const NOW_ACCURATE_SSO_COPY: Array<string> = [
+  "SSO enforcement is never tied to the license.",
+  "Members can still sign in.",
+  "Single sign-on keeps working either way.",
+  'Single sign-on keeps working when the license lapses: SAML and OIDC sign-in, global SSO and "Require SSO for login" are part of every edition.',
+  "SSO, OIDC and global SSO keep running after the trial and the grace period, because they are part of the Community Edition.",
+  "Single sign-on never stops with the license.",
 ];
 
 // An unreadable license state keeps things on - unless the sentence also talks about a lapse.
@@ -131,6 +163,133 @@ const UNREADABLE_LICENSE_STATE: RegExp =
   /\b(?:cannot (?:be )?read|could not be read|unreadable|unknown)\b/i;
 const LAPSE_WORDS: RegExp =
   /\b(?:laps(?:e|es|ed|ing)|expire[sd]?|expiry|missing|invalid|after the (?:\d+-day )?(?:trial|grace))\b/i;
+
+/*
+ * Single sign-on, in the names the copy gives it: "SSO", "single sign-on",
+ * "SAML SSO", "OIDC", "OpenID Connect", "SSO/SAML", and the "sign-in through
+ * these providers" the provider pages said.
+ */
+const SSO_NAME: string =
+  "(?:single sign-on|SSO(?:\\/SAML)?|OIDC|OpenID Connect|SAML(?: SSO)?|sign-in through (?:these|this|SSO|OIDC) providers?)";
+const FEATURE: string = `(?:${SSO_NAME}|SCIM(?: provisioning)?|audit logging|audit logs)`;
+// ", ", ", and ", " and ", " or ": between the names of a list.
+const LIST_SEPARATOR: string =
+  "(?:,\\s*(?:and\\s+|or\\s+)?|\\s+(?:and|or)\\s+)";
+// "(SAML and OIDC)" after a name.
+const ASIDE: string = "(?:\\s*\\([^)]{0,40}\\))?";
+// "SSO", "SSO and OIDC", "SSO, OIDC, SCIM and audit logging": a list naming single sign-on.
+const LIST_NAMING_SSO: string = `(?:${FEATURE}${ASIDE}${LIST_SEPARATOR})*${SSO_NAME}${ASIDE}(?:${LIST_SEPARATOR}${FEATURE}${ASIDE})*`;
+// Text between a name and its verb that does not change the subject to another feature.
+const SAME_SUBJECT: string =
+  "(?:(?!SCIM|audit|team compliance|Health)[^.;:!?])";
+
+// A sentence that is about the license or the editions.
+const LICENSE_CONTEXT: RegExp =
+  /\b(?:licen[cs]e[sd]?|trial|grace|laps(?:e|es|ed|ing)|expir(?:e|es|ed|y)|Community Edition|Enterprise Edition)\b/i;
+
+// A sentence that names single sign-on at all.
+const NAMES_SINGLE_SIGN_ON: RegExp = /\bSSO\b|single sign-on/i;
+
+// A sentence dated to the releases where single sign-on was an Enterprise feature.
+const DATED_TO_OLD_RELEASES: RegExp = /\b14\.0\.10\b/;
+
+interface RetiredSsoClaim extends RetiredLapseClaim {
+  // Only a claim when the sentence is about the license or the editions.
+  needsLicenseContext: boolean;
+}
+
+const RETIRED_SSO_CLAIMS: Array<RetiredSsoClaim> = [
+  {
+    // Single sign-on stops, is refused or is off.
+    pattern: new RegExp(
+      `\\b${LIST_NAMING_SSO}(?:\\*\\*)?\\s+(?:sign-in\\s+|sign-on\\s+|login\\s+|enforcement\\s+)?(?:stops?|stopped|(?:is|are)\\s+(?:refused|off|unavailable|not available|switched off|turned off))\\b`,
+      "i",
+    ),
+    needsLicenseContext: true,
+    example:
+      'Without a valid license (after the 14-day trial, or 30 days after a license expires), SSO sign-in stops and "Require SSO" is not enforced until a license is activated.',
+  },
+  {
+    // "Require SSO" is not enforced.
+    pattern:
+      /Require SSO(?: for login)?["”»“」]?(?:\*\*)?\s+(?:is|are)\s+(?:no longer|not)\s+enforced/i,
+    needsLicenseContext: true,
+    example:
+      'After the trial (or 30 days after a license expires), SSO, OIDC, SCIM and audit logging stop, "Require SSO" is no longer enforced and enterprise configuration becomes read-only, until a license is activated.',
+  },
+  {
+    // Single sign-on is (part of) the Enterprise Edition.
+    pattern: new RegExp(
+      `\\b${LIST_NAMING_SSO}(?:\\*\\*)?\\s+(?:is|are)\\s+(?:part of|a|an|only available (?:on|in)${SAME_SUBJECT}{0,40}?)\\s+(?:the\\s+)?(?:\\*\\*)?(?:OneUptime\\s+)?Enterprise Edition`,
+      "i",
+    ),
+    needsLicenseContext: false,
+    example:
+      "Global SSO is a **OneUptime Enterprise Edition** feature and is only available on instances running the Enterprise Edition build.",
+  },
+  {
+    // Single sign-on needs the Enterprise Edition or an Enterprise license.
+    pattern: new RegExp(
+      `\\b${LIST_NAMING_SSO}${SAME_SUBJECT}{0,60}?\\b(?:needs?|requires?)\\s+(?:the\\s+|an?\\s+)?(?:OneUptime\\s+)?Enterprise (?:Edition|license)`,
+      "i",
+    ),
+    needsLicenseContext: false,
+    example:
+      "Self-hosted SSO/SAML and audit logs need the Enterprise Edition and an Enterprise license.",
+  },
+  {
+    // The enterprise features, listed with single sign-on among them.
+    pattern: new RegExp(
+      `\\benterprise (?:features|modules)\\b[^.;]{0,80}?[(:]\\s*(?:${FEATURE}${ASIDE}${LIST_SEPARATOR})*${SSO_NAME}`,
+      "i",
+    ),
+    needsLicenseContext: false,
+    example:
+      "They add the enterprise features (SSO/SAML, OIDC, SCIM, audit logs, team compliance, instance health dashboards), licensed under the OneUptime Enterprise License.",
+  },
+];
+
+/*
+ * The other sentences the single sign-on patterns were written for, as they
+ * were published (docs, Helm chart, README, edition dialog, email, locales).
+ */
+const FORMERLY_PUBLISHED_SSO_CLAIMS: Array<string> = [
+  "After that, **SSO, OIDC, SCIM and audit logging stop** until a license is activated, the same as on the Community Edition.",
+  'After the trial, SSO and OIDC sign-in stop, "Require SSO for login" is no longer enforced (users sign in with their password), SCIM provisioning stops and audit logging stops recording.',
+  "> **Edition:** SSO is part of the OneUptime Enterprise Edition.",
+  'Without a valid license (after the 14-day trial, or 30 days after a license expires), global SSO sign-in stops and instance-wide "Require SSO" is not enforced until a license is activated.',
+  'After the trial (or 30 days after a license expires), until a license is activated, SSO, OIDC, SCIM and audit logging stop: SSO sign-in is refused and "Require SSO" is no longer enforced (users sign in with their password), your identity provider\'s SCIM requests are refused, and audit logging stops recording.',
+  'Without a valid license (after the 30-day grace period), single sign-on (SAML and OIDC) stops and "Require SSO" is no longer enforced, so users sign in with their password.',
+  "When the grace period ends, until a renewed license is activated: SSO and OIDC sign-in stop and &quot;Require SSO&quot; is no longer enforced, so your users sign in with their password.",
+  "Everything in the Community Edition plus the enterprise features (SSO/SAML, OIDC, SCIM, audit logs, team compliance, instance health dashboards), licensed under the OneUptime Enterprise License.",
+  "The **Enterprise Edition** adds the enterprise modules from the repository's `ee/` directory: SAML SSO, OIDC, SCIM, team compliance, audit logs and the enterprise Health dashboards in the Admin Dashboard.",
+  "Single sign-on (SSO) is not available on this server: it needs the OneUptime Enterprise Edition with an active license.",
+  "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security.",
+  "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated.",
+  "Single sign-on is part of the OneUptime Enterprise Edition; on a Community Edition server, sign in with your email and password instead.",
+];
+
+/*
+ * Accurate copy about single sign-on, including sentences that name it next
+ * to what does stop. None may be flagged.
+ */
+const ACCURATE_SSO_COPY: Array<string> = [
+  '> **Edition:** SSO, including "Require SSO for login", is part of every OneUptime edition: self-hosted installations get it in the Community Edition, with no license needed.',
+  "On OneUptime Cloud it is available on the **Scale** plan and above.",
+  'Single sign-on is not an enterprise feature: SAML and OIDC sign-in, global SSO and "Require SSO for login" work the same in every license state.',
+  "After that, **SCIM and audit logging stop** until a license is activated, the same as on the Community Edition, and enterprise configuration becomes read-only.",
+  "On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).",
+  "The **Enterprise Edition** adds the enterprise modules from the repository's `ee/` directory: SCIM, team compliance, audit logs and the enterprise Health dashboards in the Admin Dashboard.",
+  "They add the enterprise features (SCIM, audit logs, team compliance, instance health dashboards), licensed under the OneUptime Enterprise License.",
+  'Single sign-on (SAML, OIDC and "Require SSO for login") is part of both editions and does not depend on the license.',
+  "OneUptime Cloud runs the Enterprise Edition, and your plan still decides which features you get: SSO, OIDC, SCIM and team compliance on the Scale plan and above, and audit logs on the Enterprise plan.",
+  "The SSO and OIDC endpoints (SAML sign-in and ACS URLs, OIDC redirect URIs, and the global SSO endpoints) keep their exact paths and are served by both editions in every license state.",
+  // Not about the license: a status page with no provider says so.
+  "Single sign-on is not available for this status page. Sign in with your email and password instead.",
+  // Dated to the releases where it was true.
+  "On OneUptime 14.0.10 and earlier, SSO and OIDC sign-in stop too and &quot;Require SSO&quot; is no longer enforced, so your users sign in with their password.",
+  "In 14.0.0 to 14.0.10 they were Enterprise Edition features that stopped when the license lapsed; releases after 14.0.10 serve them in both editions.",
+];
 
 /*
  * The text a file shows its reader, one sentence per entry: comment markers
@@ -169,6 +328,79 @@ function violationsIn(label: string, text: string): Array<string> {
     const found: Array<string> = retiredClaimsIn(sentence);
 
     if (found.length > 0) {
+      violations.push(`${label}: ${sentence}`);
+    }
+  }
+
+  return violations;
+}
+
+function retiredSsoClaimsIn(sentence: string): Array<string> {
+  if (DATED_TO_OLD_RELEASES.test(sentence)) {
+    return [];
+  }
+
+  return RETIRED_SSO_CLAIMS.filter((claim: RetiredSsoClaim) => {
+    return (
+      claim.pattern.test(sentence) &&
+      (!claim.needsLicenseContext || LICENSE_CONTEXT.test(sentence))
+    );
+  }).map((claim: RetiredSsoClaim) => {
+    return claim.pattern.source;
+  });
+}
+
+// A version section of the upgrade notes: "## Upgrading from OneUptime 13 → 14".
+const VERSION_SECTION_HEADING: RegExp = /^## \D*\d+\D{1,24}\d+\b/;
+
+// A released Helm upgrade-notes entry: "- **14.0.0 (2026-09-21)** — ...".
+const RELEASED_HELM_ENTRY_TITLE: RegExp =
+  /^- \*\*\d+\.\d+\.\d+ \(\d{4}-\d{2}-\d{2}\)\*\*/;
+
+/*
+ * What of a file describes the product as it is now. The upgrade notes of
+ * released versions stay as history: in upgrading.md every version section
+ * (they follow the general guidance and the edition section), and in the
+ * Helm chart's upgrade notes every entry with a released title.
+ */
+function currentTextOf(relativePath: string, text: string): string {
+  if (relativePath.endsWith(path.join("installation", "upgrading.md"))) {
+    const lines: Array<string> = text.split("\n");
+    const firstVersionSection: number = lines.findIndex((line: string) => {
+      return VERSION_SECTION_HEADING.test(line);
+    });
+
+    return firstVersionSection === -1
+      ? text
+      : lines.slice(0, firstVersionSection).join("\n");
+  }
+
+  if (relativePath.endsWith(path.join("docs", "upgrade-notes.md"))) {
+    return text
+      .split(/^(?=## )/m)
+      .map((section: string) => {
+        if (!section.startsWith("## Upgrade notes")) {
+          return section;
+        }
+
+        return section
+          .split(/^(?=- \*\*)/m)
+          .filter((entry: string) => {
+            return !RELEASED_HELM_ENTRY_TITLE.test(entry);
+          })
+          .join("");
+      })
+      .join("");
+  }
+
+  return text;
+}
+
+function ssoViolationsIn(label: string, text: string): Array<string> {
+  const violations: Array<string> = [];
+
+  for (const sentence of sentencesOf(currentTextOf(label, text))) {
+    if (retiredSsoClaimsIn(sentence).length > 0) {
       violations.push(`${label}: ${sentence}`);
     }
   }
@@ -263,7 +495,15 @@ describe("the retired license-lapse claims", () => {
     expect(violationsIn("copy", sentence)).toEqual([]);
   });
 
-  it("does not exempt a sentence about an unreadable license state that also claims SSO survives a lapse", () => {
+  it.each(NOW_ACCURATE_SSO_COPY)(
+    "leaves alone what became true of single sign-on: %s",
+    (sentence: string) => {
+      expect(violationsIn("copy", sentence)).toEqual([]);
+      expect(ssoViolationsIn("copy", sentence)).toEqual([]);
+    },
+  );
+
+  it("does not exempt a sentence about an unreadable license state that also claims SCIM survives a lapse", () => {
     expect(
       violationsIn(
         "copy",
@@ -332,7 +572,7 @@ describe("the retired license-lapse claims", () => {
   });
 });
 
-describe("no doc, Helm text, README, template or UI string claims SSO, SCIM or audit logging survive a lapse", () => {
+describe("no doc, Helm text, README, template or UI string claims SCIM or audit logging survive a lapse", () => {
   it("scans the files it says it does", () => {
     const files: Array<string> = scannedFiles().map((file: string) => {
       return path.relative(REPOSITORY_ROOT, file);
@@ -376,6 +616,157 @@ describe("no doc, Helm text, README, template or UI string claims SSO, SCIM or a
   });
 });
 
+describe("the retired single sign-on license claims", () => {
+  it.each(RETIRED_SSO_CLAIMS)("catches: $example", (claim: RetiredSsoClaim) => {
+    expect(claim.pattern.test(claim.example)).toBe(true);
+    expect(retiredSsoClaimsIn(claim.example)).toContain(claim.pattern.source);
+  });
+
+  it.each(FORMERLY_PUBLISHED_SSO_CLAIMS)("catches: %s", (sentence: string) => {
+    expect(ssoViolationsIn("example", sentence).length).toBeGreaterThan(0);
+  });
+
+  it.each(ACCURATE_SSO_COPY)("leaves alone: %s", (sentence: string) => {
+    expect(ssoViolationsIn("copy", sentence)).toEqual([]);
+  });
+
+  it("dates a claim to 14.0.10 and earlier only when the sentence says so", () => {
+    const claim: string =
+      'SSO and OIDC sign-in stop too and "Require SSO" is no longer enforced once the license lapses.';
+
+    expect(ssoViolationsIn("copy", claim).length).toBeGreaterThan(0);
+    expect(
+      ssoViolationsIn("copy", `On OneUptime 14.0.10 and earlier, ${claim}`),
+    ).toEqual([]);
+    // Another version is not the one single sign-on left the Enterprise Edition after.
+    expect(
+      ssoViolationsIn("copy", `On OneUptime 14.0.100 and earlier, ${claim}`)
+        .length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("reads the upgrade notes of released versions as history, and everything else as now", () => {
+    const claim: string =
+      "After the trial, SSO and OIDC sign-in stop until a license is activated.";
+    const upgrading: string = [
+      "# Upgrading OneUptime",
+      "",
+      "## Community and Enterprise Edition images",
+      "",
+      "Single sign-on is in both editions.",
+      "",
+      "## Upgrading from OneUptime 13 → 14",
+      "",
+      claim,
+    ].join("\n");
+
+    expect(
+      ssoViolationsIn(
+        path.join("Content", "de", "installation", "upgrading.md"),
+        upgrading,
+      ),
+    ).toEqual([]);
+    // Above the first version section, the same sentence is a claim about now.
+    expect(
+      ssoViolationsIn(
+        path.join("Content", "de", "installation", "upgrading.md"),
+        upgrading.replace(
+          "Single sign-on is in both editions.",
+          `Single sign-on is in both editions. ${claim}`,
+        ),
+      ).length,
+    ).toBeGreaterThan(0);
+    // Any other page is read as now.
+    expect(
+      ssoViolationsIn(
+        path.join("Content", "de", "installation", "docker-compose.md"),
+        upgrading,
+      ).length,
+    ).toBeGreaterThan(0);
+
+    const upgradeNotes: string = [
+      "## Upgrade notes",
+      "",
+      "- **Unreleased (after 14.0.10)** — Single sign-on is in both editions.",
+      `- **14.0.0 (2026-09-21)** — ${claim}`,
+    ].join("\n");
+
+    expect(
+      ssoViolationsIn(
+        path.join("oneuptime", "docs", "upgrade-notes.md"),
+        upgradeNotes,
+      ),
+    ).toEqual([]);
+    // An entry that has not shipped yet describes the release that ships it.
+    expect(
+      ssoViolationsIn(
+        path.join("oneuptime", "docs", "upgrade-notes.md"),
+        upgradeNotes.replace("- **14.0.0 (2026-09-21)**", "- **Unreleased**"),
+      ).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("catches the claim when it is added back to a page that is clean today", () => {
+    const relativePath: string =
+      "packages/App/FeatureSet/Docs/Content/en/identity/sso.md";
+    const page: string = readFile(fromRepository(relativePath));
+
+    expect(ssoViolationsIn(relativePath, page)).toEqual([]);
+    expect(
+      ssoViolationsIn(
+        relativePath,
+        `${page}\nWithout a valid license (after the 14-day trial, or 30 days after a license expires), SSO sign-in stops.\n`,
+      ).length,
+    ).toBeGreaterThan(0);
+  });
+});
+
+describe("no doc, Helm text, README, template or UI string says single sign-on stops with the license or needs the Enterprise Edition", () => {
+  it("reads the edition section of every language's upgrade notes, and none of their version sections", () => {
+    const upgradingPages: Array<string> = scannedFiles().filter(
+      (file: string) => {
+        return file.endsWith(path.join("installation", "upgrading.md"));
+      },
+    );
+
+    expect(upgradingPages).toHaveLength(17);
+
+    for (const file of upgradingPages) {
+      const current: string = currentTextOf(
+        path.relative(REPOSITORY_ROOT, file),
+        readFile(file),
+      );
+
+      expect({
+        file: path.relative(REPOSITORY_ROOT, file),
+        edition: current.includes("## Community and Enterprise Edition images"),
+        versionSections: current.split("\n").some((line: string) => {
+          return VERSION_SECTION_HEADING.test(line);
+        }),
+      }).toEqual({
+        file: path.relative(REPOSITORY_ROOT, file),
+        edition: true,
+        versionSections: false,
+      });
+    }
+  });
+
+  it("finds none", () => {
+    const violations: Array<string> = [];
+
+    for (const file of scannedFiles()) {
+      violations.push(
+        ...ssoViolationsIn(
+          path.relative(REPOSITORY_ROOT, file),
+          readFile(file),
+        ),
+      );
+    }
+
+    expect(violations).toEqual([]);
+  });
+});
+
 /*
  * Not claiming the opposite is not enough: the places a self-hoster reads
  * before the lapse must say what stops, and when. (The docs page, the upgrade
@@ -383,32 +774,47 @@ describe("no doc, Helm text, README, template or UI string claims SSO, SCIM or a
  */
 describe("the lapse is announced where people read about the license", () => {
   it("config.example.env says what stops after the trial and that a license brings it back", () => {
-    const example: string = sentencesOf(
+    const sentences: Array<string> = sentencesOf(
       readFile(fromRepository("config.example.env")),
-    ).join(" ");
+    );
+    const example: string = sentences.join(" ");
 
     expect(example).toContain(
-      `After the trial (or ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS} days after a license expires), SSO, OIDC, SCIM and audit logging stop`,
+      `After the trial (or ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS} days after a license expires), SCIM and audit logging stop`,
     );
-    expect(example).toContain('"Require SSO" is no longer enforced');
     expect(example).toContain("until a license is activated");
+    expect(example).toContain("Single sign-on does not depend on the license");
+
+    // What stops after the trial names no single sign-on.
+    const afterTheTrial: Array<string> = sentences.filter(
+      (sentence: string) => {
+        return sentence.includes("After the trial");
+      },
+    );
+
+    expect(afterTheTrial.length).toBeGreaterThan(0);
+
+    for (const sentence of afterTheTrial) {
+      expect(sentence).not.toMatch(/SSO|single sign-on|OIDC|SAML/i);
+    }
+
+    expect(example).not.toContain("Require SSO");
   });
 
   it("the license expiry reminder email says when the grace period ends and what stops then", () => {
-    const template: string = sentencesOf(
+    const sentences: Array<string> = sentencesOf(
       readFile(
         path.join(
           PACKAGES_ROOT,
           "App/FeatureSet/Notification/Templates/EnterpriseLicenseExpiryReminder.hbs",
         ),
       ),
-    ).join(" ");
+    );
+    const template: string = sentences.join(" ");
 
     for (const expected of [
       `keep every enterprise feature for ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS} days after the expiry date above (the grace period)`,
       "When the grace period ends, until a renewed license is activated",
-      "SSO and OIDC sign-in stop",
-      "is no longer enforced, so your users sign in with their password",
       "SCIM provisioning stops",
       "audit logging stops recording",
       "enterprise configuration becomes read-only",
@@ -423,5 +829,23 @@ describe("the lapse is announced where people read about the license", () => {
 
     // The old line said features "will stop working" at expiry, with no grace period.
     expect(template).not.toContain("enterprise features will stop working");
+
+    /*
+     * oneuptime.com sends this email to installs on any version. Single sign-on
+     * stops with the license only on 14.0.10 and earlier, so every sentence
+     * that says it stops says so, and one does.
+     */
+    const ssoSentences: Array<string> = sentences.filter((sentence: string) => {
+      return NAMES_SINGLE_SIGN_ON.test(sentence);
+    });
+
+    expect(ssoSentences.length).toBeGreaterThan(0);
+
+    for (const sentence of ssoSentences) {
+      expect({
+        sentence: sentence,
+        dated: sentence.includes("14.0.10"),
+      }).toEqual({ sentence: sentence, dated: true });
+    }
   });
 });
