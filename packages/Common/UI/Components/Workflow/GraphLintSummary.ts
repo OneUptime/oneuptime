@@ -11,13 +11,21 @@
  * The other half of the panel — taking the builder to the step a group is
  * about — needs to look a node up by id, so that lives here too.
  *
+ * So does what a single step on the canvas says about itself: a "Click to set
+ * up" prompt while its required settings are empty, and a badge for anything
+ * else the checks found.
+ *
  * Kept apart from the components that render it so all of it is testable
  * without a DOM.
  */
 
 import Dictionary from "../../../Types/Dictionary";
-import { NodeType } from "../../../Types/Workflow/Component";
-import { WorkflowLintIssue, WorkflowLintSeverity } from "./GraphLint";
+import { NodeDataProp, NodeType } from "../../../Types/Workflow/Component";
+import {
+  WorkflowLintIssue,
+  WorkflowLintRule,
+  WorkflowLintSeverity,
+} from "./GraphLint";
 
 /** The part of a lint result a summary is built from. */
 export interface WorkflowLintCounts {
@@ -203,6 +211,138 @@ export const findStepNodeToOpen: FindStepNodeToOpenFunction = <
 
   return node;
 };
+
+/**
+ * What the checks say about one step, sorted into what the canvas shows for
+ * it. Derived on every render and never saved with the workflow.
+ */
+export interface WorkflowNodeIssueSummary {
+  /**
+   * One line per required setting that is still empty, worded by the checks.
+   *
+   * These are kept apart from the other errors because the canvas shows them
+   * differently. A step whose required settings are empty has not been set up
+   * yet. That is a job left to do rather than a mistake, and it is the normal
+   * state of every step for the moment after it is added, so the step says
+   * "Click to set up" instead of carrying a red badge. Dashboard widgets do the
+   * same with their "Click to configure" prompt.
+   */
+  missingSettingMessages: Array<string>;
+  /** Everything else that stops the step from working. */
+  errorMessages: Array<string>;
+  /** Things that are probably not what was meant, like a step nothing runs. */
+  warningMessages: Array<string>;
+}
+
+/**
+ * A step's data as the canvas renders it: what is saved, plus what the checks
+ * say about it. The extra field must never reach the saved graph, so whatever
+ * hands this data back for saving strips it.
+ */
+export interface WorkflowNodeRenderData extends NodeDataProp {
+  issueSummary?: WorkflowNodeIssueSummary | undefined;
+}
+
+export type BuildNodeIssueSummariesFunction = (
+  issues: Array<WorkflowLintIssue>,
+) => Dictionary<WorkflowNodeIssueSummary>;
+
+/**
+ * The checks' issues, keyed by react-flow node id and sorted into the three
+ * things a step on the canvas can say. Issues about the graph as a whole
+ * belong to no step and are left out. A message repeated for the same step is
+ * kept once, as the issues panel does.
+ */
+export const buildNodeIssueSummaries: BuildNodeIssueSummariesFunction = (
+  issues: Array<WorkflowLintIssue>,
+): Dictionary<WorkflowNodeIssueSummary> => {
+  const summaries: Dictionary<WorkflowNodeIssueSummary> = {};
+
+  for (const issue of issues || []) {
+    if (!issue || !issue.nodeId) {
+      continue;
+    }
+
+    let summary: WorkflowNodeIssueSummary | undefined = summaries[issue.nodeId];
+
+    if (!summary) {
+      summary = {
+        missingSettingMessages: [],
+        errorMessages: [],
+        warningMessages: [],
+      };
+      summaries[issue.nodeId] = summary;
+    }
+
+    let messages: Array<string> = summary.warningMessages;
+
+    if (issue.rule === WorkflowLintRule.MissingRequiredArgument) {
+      messages = summary.missingSettingMessages;
+    } else if (issue.severity === WorkflowLintSeverity.Error) {
+      messages = summary.errorMessages;
+    }
+
+    if (!messages.includes(issue.message)) {
+      messages.push(issue.message);
+    }
+  }
+
+  return summaries;
+};
+
+/** What one step on the canvas shows about itself. */
+export interface WorkflowNodeIssuePresentation {
+  /** Show "Click to set up": a required setting is still empty. */
+  needsSetup: boolean;
+  /** Which required settings are still empty, one per line. */
+  setupHint: string;
+  /**
+   * The badge in the step's corner. Clean means no badge. An error also turns
+   * the step's border red. A warning only colours the badge, amber, as the
+   * toolbar and the issues panel colour warnings.
+   */
+  badgeTone: WorkflowLintTone;
+  /** What the badge says when hovered: errors first, then warnings. */
+  badgeText: string;
+}
+
+export type GetWorkflowNodeIssuePresentationFunction = (params: {
+  issueSummary?: WorkflowNodeIssueSummary | undefined;
+  /**
+   * The step's plain error text. Only read when there is no summary, so a
+   * caller that sets nothing but the text still gets a red badge for it.
+   */
+  error?: string | undefined;
+}) => WorkflowNodeIssuePresentation;
+
+export const getWorkflowNodeIssuePresentation: GetWorkflowNodeIssuePresentationFunction =
+  (params: {
+    issueSummary?: WorkflowNodeIssueSummary | undefined;
+    error?: string | undefined;
+  }): WorkflowNodeIssuePresentation => {
+    const summary: WorkflowNodeIssueSummary = params.issueSummary || {
+      missingSettingMessages: [],
+      errorMessages: params.error ? [params.error] : [],
+      warningMessages: [],
+    };
+
+    let badgeTone: WorkflowLintTone = WorkflowLintTone.Clean;
+
+    if (summary.errorMessages.length > 0) {
+      badgeTone = WorkflowLintTone.Error;
+    } else if (summary.warningMessages.length > 0) {
+      badgeTone = WorkflowLintTone.Warning;
+    }
+
+    return {
+      needsSetup: summary.missingSettingMessages.length > 0,
+      setupHint: summary.missingSettingMessages.join("\n"),
+      badgeTone: badgeTone,
+      badgeText: [...summary.errorMessages, ...summary.warningMessages].join(
+        "\n",
+      ),
+    };
+  };
 
 type GetGroupKeyFunction = (issue: WorkflowLintIssue) => string;
 
