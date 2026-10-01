@@ -3465,7 +3465,6 @@
   "Monitors are up and operating normally.": "监视器已启动并正常运行。",
   "Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor.": "从此模板创建或关联到此模板的监视器。使用上方卡片上的同步按钮将模板的条件、监控间隔或标签推送到每个关联的监视器。",
   "Monitors in Group": "组内监视器",
-  "Monitors which have access to this secret": "有权访问此密钥的监视器",
   "Monitors with all probes disabled": "所有探测器均已禁用的监视器",
   "Monitors with all probes disconnected": "所有探测器均已断开连接的监视器",
   "Monitors with current operational status.": "具有当前运行状态的监视器。",
@@ -5675,7 +5674,6 @@
   "Whether this is the top-level span of a trace": "这是否为跟踪的顶级跨度",
   "Whether this rule is active.": "此规则是否处于活动状态。",
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "此过滤器适用于哪些日志。使用严重程度、正文、服务或自定义属性等字段构建规则。",
-  "Which monitors should have access to this secret?": "哪些监视器应有权访问此密钥？",
   "Which OID configured on this monitor should this criteria evaluate?": "此条件应评估在此监视器上配置的哪个 OID？",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "要清理日志的哪些部分：日志正文（消息）、属性值或两者。",
   "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "要清理跨度的哪些部分：跨度名称、属性值、事件属性值或全部。",
@@ -6910,5 +6908,16 @@
   "Token URL": "令牌 URL",
   "Refresh Token": "刷新令牌",
   "Additional Parameters": "附加参数",
-  "Client Authentication": "客户端认证"
+  "Client Authentication": "客户端认证",
+  "Which monitors can use this secret?": "哪些监视器可以使用此密钥？",
+  "These monitors can use this secret.": "这些监视器可以使用此密钥。",
+  "Monitors with at least one of these labels can use this secret.": "带有这些标签中至少一个的监视器可以使用此密钥。",
+  "Select labels": "选择标签",
+  "All monitors": "所有监视器",
+  "Specific monitors": "特定监视器",
+  "Monitors with labels": "带标签的监视器",
+  "Every monitor in this project can use this secret, including monitors you create later.": "此项目中的每个监视器都可以使用此密钥，包括您以后创建的监视器。",
+  "Only the monitors you pick can use this secret.": "只有您选择的监视器可以使用此密钥。",
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "带有您所选任一标签的监视器都可以使用此密钥。为监视器添加其中一个标签即可使其获得访问权限。",
+  "You can change this at any time.": "您可以随时更改此设置。"
 }

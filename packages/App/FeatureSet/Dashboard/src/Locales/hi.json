@@ -3465,7 +3465,6 @@
   "Monitors are up and operating normally.": "मॉनिटर चालू हैं और सामान्य रूप से काम कर रहे हैं।",
   "Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor.": "इस टेम्पलेट से बनाए गए या इससे लिंक किए गए मॉनिटर। टेम्पलेट के मानदंड, निगरानी अंतराल, या लेबल को प्रत्येक लिंक किए गए मॉनिटर पर पुश करने के लिए ऊपर के कार्ड पर sync बटन का उपयोग करें।",
   "Monitors in Group": "समूह में मॉनिटर",
-  "Monitors which have access to this secret": "इस सीक्रेट तक पहुँच वाले मॉनिटर",
   "Monitors with all probes disabled": "सभी प्रोब अक्षम वाले मॉनिटर",
   "Monitors with all probes disconnected": "सभी प्रोब डिस्कनेक्ट वाले मॉनिटर",
   "Monitors with current operational status.": "वर्तमान परिचालन स्थिति वाले मॉनिटर।",
@@ -5675,7 +5674,6 @@
   "Whether this is the top-level span of a trace": "क्या यह किसी ट्रेस का शीर्ष-स्तरीय स्पैन है",
   "Whether this rule is active.": "क्या यह नियम सक्रिय है।",
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "यह फ़िल्टर किन लॉग्स पर लागू होता है। severity, body, सेवा, या कस्टम विशेषताओं जैसे फ़ील्ड के साथ नियम बनाएँ।",
-  "Which monitors should have access to this secret?": "किन मॉनिटर के पास इस सीक्रेट तक पहुँच होनी चाहिए?",
   "Which OID configured on this monitor should this criteria evaluate?": "इस मॉनिटर पर कॉन्फ़िगर किए गए किस OID का मूल्यांकन इस मानदंड को करना चाहिए?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "लॉग के किन हिस्सों को स्क्रब करना है: लॉग body (संदेश), विशेषता मान, या दोनों।",
   "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "स्पैन के किन हिस्सों को स्क्रब करना है: स्पैन नाम, विशेषता मान, घटना विशेषता मान, या सभी।",
@@ -6910,5 +6908,16 @@
   "Token URL": "टोकन URL",
   "Refresh Token": "रिफ्रेश टोकन",
   "Additional Parameters": "अतिरिक्त पैरामीटर",
-  "Client Authentication": "क्लाइंट प्रमाणीकरण"
+  "Client Authentication": "क्लाइंट प्रमाणीकरण",
+  "Which monitors can use this secret?": "कौन-से मॉनिटर इस सीक्रेट का उपयोग कर सकते हैं?",
+  "These monitors can use this secret.": "ये मॉनिटर इस सीक्रेट का उपयोग कर सकते हैं।",
+  "Monitors with at least one of these labels can use this secret.": "इनमें से कम से कम एक लेबल वाले मॉनिटर इस सीक्रेट का उपयोग कर सकते हैं।",
+  "Select labels": "लेबल चुनें",
+  "All monitors": "सभी मॉनिटर",
+  "Specific monitors": "विशिष्ट मॉनिटर",
+  "Monitors with labels": "लेबल वाले मॉनिटर",
+  "Every monitor in this project can use this secret, including monitors you create later.": "इस प्रोजेक्ट का हर मॉनिटर इस सीक्रेट का उपयोग कर सकता है, जिसमें बाद में बनाए गए मॉनिटर भी शामिल हैं।",
+  "Only the monitors you pick can use this secret.": "केवल आपके चुने हुए मॉनिटर इस सीक्रेट का उपयोग कर सकते हैं।",
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "आपके चुने हुए लेबलों में से किसी भी लेबल वाले मॉनिटर इस सीक्रेट का उपयोग कर सकते हैं। किसी मॉनिटर में इनमें से कोई लेबल जोड़ने पर उसे एक्सेस मिल जाता है।",
+  "You can change this at any time.": "आप इसे कभी भी बदल सकते हैं।"
 }

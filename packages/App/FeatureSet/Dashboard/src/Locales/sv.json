@@ -3465,7 +3465,6 @@
   "Monitors are up and operating normally.": "Övervakare är uppe och fungerar normalt.",
   "Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor.": "Övervakare som skapats från eller länkats till denna mall. Använd synkroniseringsknapparna på korten ovan för att överföra mallens kriterier, övervakningsintervall eller etiketter till varje länkad övervakare.",
   "Monitors in Group": "Övervakare i grupp",
-  "Monitors which have access to this secret": "Övervakare som har åtkomst till denna hemlighet",
   "Monitors with all probes disabled": "Övervakare med alla sonder inaktiverade",
   "Monitors with all probes disconnected": "Övervakare med alla sonder frånkopplade",
   "Monitors with current operational status.": "Övervakare med aktuell driftstatus.",
@@ -5675,7 +5674,6 @@
   "Whether this is the top-level span of a trace": "Huruvida detta är det översta spannet i ett spår",
   "Whether this rule is active.": "Huruvida denna regel är aktiv.",
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "Vilka loggar detta filter gäller. Bygg regler med fält som allvarlighetsgrad, brödtext, tjänst eller anpassade attribut.",
-  "Which monitors should have access to this secret?": "Vilka övervakare ska ha åtkomst till denna hemlighet?",
   "Which OID configured on this monitor should this criteria evaluate?": "Vilken OID som konfigurerats på denna övervakare ska detta kriterium utvärdera?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Vilka delar av loggen som ska maskeras: loggens brödtext (meddelande), attributvärden eller båda.",
   "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Vilka delar av spannet som ska maskeras: spannamn, attributvärden, händelseattributvärden eller alla.",
@@ -6910,5 +6908,16 @@
   "Token URL": "Token-URL",
   "Refresh Token": "Uppdateringstoken",
   "Additional Parameters": "Ytterligare parametrar",
-  "Client Authentication": "Klientautentisering"
+  "Client Authentication": "Klientautentisering",
+  "Which monitors can use this secret?": "Vilka övervakare kan använda denna hemlighet?",
+  "These monitors can use this secret.": "Dessa övervakare kan använda denna hemlighet.",
+  "Monitors with at least one of these labels can use this secret.": "Övervakare med minst en av dessa etiketter kan använda denna hemlighet.",
+  "Select labels": "Välj etiketter",
+  "All monitors": "Alla övervakare",
+  "Specific monitors": "Specifika övervakare",
+  "Monitors with labels": "Övervakare med etiketter",
+  "Every monitor in this project can use this secret, including monitors you create later.": "Alla övervakare i det här projektet kan använda denna hemlighet, även övervakare som du skapar senare.",
+  "Only the monitors you pick can use this secret.": "Endast de övervakare som du väljer kan använda denna hemlighet.",
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Övervakare med någon av etiketterna som du väljer kan använda denna hemlighet. Om du lägger till en av dessa etiketter på en övervakare får den åtkomst.",
+  "You can change this at any time.": "Du kan ändra detta när som helst."
 }
