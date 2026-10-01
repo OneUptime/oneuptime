@@ -82,7 +82,11 @@ const WORKFLOW_TEMPLATE_CATEGORY_INFO: Record<
 > = {
   [WorkflowTemplateCategory.Basics]: {
     category: WorkflowTemplateCategory.Basics,
-    label: "Basics",
+    /*
+     * Not "Basics": that key is a form step's in the Dashboard's locales,
+     * where it reads "basic information", and these are first workflows.
+     */
+    label: "Learn the basics",
     description:
       "Small workflows that show how a trigger, its steps and their values fit together.",
     icon: IconProp.BookOpen,

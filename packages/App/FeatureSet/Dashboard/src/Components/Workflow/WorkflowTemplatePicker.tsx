@@ -104,7 +104,8 @@ export const workflowTemplateOptionDomId: OptionDomIdFunction = (
 
 type ViewDomIdFunction = (view: WorkflowTemplatePickerView) => string;
 
-const viewDomId: ViewDomIdFunction = (
+// The DOM id, and test id, of a view's entry in the list of categories.
+export const workflowTemplateViewDomId: ViewDomIdFunction = (
   view: WorkflowTemplatePickerView,
 ): string => {
   return `workflow-template-view-${String(view)
@@ -113,6 +114,28 @@ const viewDomId: ViewDomIdFunction = (
 };
 
 type TranslateFunction = (value: string) => string;
+
+type CountTextFunction = (
+  tx: TranslateFunction,
+  count: number,
+  one: string,
+  many: string,
+) => string;
+
+/*
+ * A count and its noun, translated as one phrase - "1 result", "{count}
+ * results" - so each language can put the number where its grammar wants it
+ * (Russian "Результатов: 12"), rather than a number glued to a word
+ * translated on its own. "{count}" has single braces so i18next leaves it be.
+ */
+export const workflowTemplateCountText: CountTextFunction = (
+  tx: TranslateFunction,
+  count: number,
+  one: string,
+  many: string,
+): string => {
+  return count === 1 ? tx(one) : tx(many).replace("{count}", String(count));
+};
 
 interface HighlightedTextProps {
   text: string;
@@ -196,7 +219,7 @@ const TemplateOption: FunctionComponent<TemplateOptionProps> = (
       </div>
       {props.showCategory ? (
         <span
-          data-testid="workflow-template-option-category"
+          data-testid="workflow-template-row-category"
           className={`mt-0.5 flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium text-gray-600 max-sm:hidden sm:inline-flex ${
             props.isActive ? "bg-white" : "bg-gray-100"
           }`}
@@ -292,7 +315,12 @@ const TemplatePreview: FunctionComponent<TemplatePreviewProps> = (
             {[
               tx(getWorkflowTemplateCategoryLabel(template.category)),
               template.subcategory ? tx(template.subcategory) : "",
-              `${preview.blockCount} ${tx("blocks")}`,
+              workflowTemplateCountText(
+                tx,
+                preview.blockCount,
+                "1 block",
+                "{count} blocks",
+              ),
             ]
               .filter((part: string) => {
                 return part.length > 0;
@@ -307,7 +335,7 @@ const TemplatePreview: FunctionComponent<TemplatePreviewProps> = (
       </p>
 
       <h4 className="mt-5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-        {tx("How it works")}
+        {tx("How It Works")}
       </h4>
       {/*
        * What starts it, then the other blocks it is made of: the shape of the
@@ -346,7 +374,7 @@ const TemplatePreview: FunctionComponent<TemplatePreviewProps> = (
       </dl>
 
       <h4 className="mt-5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-        {tx("You'll need")}
+        {tx("What you'll need")}
       </h4>
       {preview.settings.length > 0 ? (
         <ul
@@ -372,7 +400,7 @@ const TemplatePreview: FunctionComponent<TemplatePreviewProps> = (
                       aria-hidden="true"
                       className="flex h-5 w-4 flex-shrink-0 items-center justify-center"
                     >
-                      <div className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+                      <div className="h-1.5 w-1.5 rounded-full bg-gray-300" />
                     </div>
                   )}
                   <span className="min-w-0">
@@ -657,15 +685,18 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
     const next: WorkflowTemplatePickerViewInfo = views[nextIndex]!;
 
     selectView(next.view);
-    document.getElementById(viewDomId(next.view))?.focus();
+    document.getElementById(workflowTemplateViewDomId(next.view))?.focus();
   };
 
   const isSearching: boolean = list.isSearching;
   const resultCount: number = list.templates.length;
   const allMatchCount: number = counts.get(WorkflowTemplateCollection.All) || 0;
-  const resultCountText: string = `${resultCount} ${
-    resultCount === 1 ? tx("result") : tx("results")
-  }`;
+  const resultCountText: string = workflowTemplateCountText(
+    tx,
+    resultCount,
+    "1 result",
+    "{count} results",
+  );
 
   /*
    * A row names its category only in search results that mix categories,
@@ -819,13 +850,15 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
               return (
                 <button
                   key={String(info.view)}
-                  id={viewDomId(info.view)}
+                  id={workflowTemplateViewDomId(info.view)}
                   type="button"
                   role="radio"
                   aria-checked={isSelected}
                   aria-label={`${tx(info.label)} (${count})`}
+                  // A long translated name is cut short; this says it whole.
+                  title={tx(info.label)}
                   tabIndex={isSelected ? 0 : -1}
-                  data-testid={viewDomId(info.view)}
+                  data-testid={workflowTemplateViewDomId(info.view)}
                   onClick={() => {
                     selectView(info.view);
                   }}
