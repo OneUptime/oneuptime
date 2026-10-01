@@ -488,6 +488,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/McpOAuthPostgres.test.ts --forceExit
 
+      # Clones the migrated MonitorSecret, Monitor and Label tables and their
+      # junction tables into an isolated schema and runs MonitorSecretService
+      # against them (#1467): which secrets each monitor of a probe batch may
+      # use under every access mode, that nothing crosses projects, and that
+      # switching a secret's mode really deletes the list it stops reading.
+      - name: Test monitor secret access on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_SECRET_ACCESS_TESTS: "true"
+          MONITOR_SECRET_ACCESS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_SECRET_ACCESS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_SECRET_ACCESS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MonitorSecretAccessPostgres.test.ts --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service
