@@ -414,6 +414,22 @@ configurations that set `enableAutoRemediation` or `enableAiCommandExecution`
 (`enable_auto_remediation` or `enable_ai_command_execution` in Terraform)
 should stop setting them.
 
+### New projects start with every AI feature on
+
+A project created after the upgrade starts with every AI feature switched on,
+not only automatic incident and alert investigation: postmortem drafts,
+automatic code fixes and instrumentation fixes (Incidents or Alerts → AI →
+Investigation), and AI Insights with its fix pull requests and auto-archiving
+of expected-denial exceptions (AI → Insights → Settings).
+
+Projects that already exist keep the settings they have; the upgrade switches
+nothing on. On also does not mean running: each feature still needs an LLM
+provider (and AI credits on OneUptime Cloud), and the ones that open pull
+requests need a connected repository and a Runner with the code-fix
+capability. Turn any of them off on its settings page, or all of them with
+**Enable AI**. A project created through the API or Terraform that sets one of
+these fields to `false` keeps it off.
+
 ### Verify the edition and the license
 
 - The **edition label in the Admin Dashboard header** names the edition that is
