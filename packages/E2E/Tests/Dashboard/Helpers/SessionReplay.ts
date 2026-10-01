@@ -837,6 +837,17 @@ export const postShortSession: PostShortSessionFunction = async (
   };
 };
 
+/*
+ * The RUM applications card's own Create button. An empty list offers the
+ * same action again under its "No RUM applications yet." message, with the
+ * same name, so the name alone matches two buttons on a new project.
+ */
+const rumCardCreateButton: (page: Page) => Locator = (page: Page): Locator => {
+  return page
+    .getByTestId("card-button")
+    .and(page.getByRole("button", { name: "Create RUM Application" }));
+};
+
 type CreateRumApplicationFunction = (data: {
   page: Page;
   projectId: string;
@@ -871,10 +882,10 @@ export const createRumApplication: CreateRumApplicationFunction = async (data: {
     page,
     projectId: data.projectId,
     url: rumUrl,
-    ready: page.getByRole("button", { name: "Create RUM Application" }),
+    ready: rumCardCreateButton(page),
   });
 
-  await page.getByRole("button", { name: "Create RUM Application" }).click();
+  await rumCardCreateButton(page).click();
   await page.getByTestId("modal").waitFor({ state: "visible" });
 
   await page
@@ -899,9 +910,10 @@ export const createRumApplication: CreateRumApplicationFunction = async (data: {
 
   await identifierInput.fill(data.appIdentifier);
 
+  // The form's own submit, not one of the list's two Create buttons.
   await page
+    .getByTestId("modal")
     .getByRole("button", { name: "Create RUM Application" })
-    .last()
     .click();
 
   /* The modal closes only on a successful create. */
@@ -930,7 +942,7 @@ export const openRumApplications: OpenRumApplicationsFunction = async (data: {
     page: data.page,
     projectId: data.projectId,
     url: rumUrl,
-    ready: data.page.getByRole("button", { name: "Create RUM Application" }),
+    ready: rumCardCreateButton(data.page),
   });
 };
 
