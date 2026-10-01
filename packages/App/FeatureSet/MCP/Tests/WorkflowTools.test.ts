@@ -125,7 +125,7 @@ describe("WorkflowTools", () => {
         expect.objectContaining({
           method: "POST",
           path: "/api/incident-state/get-list",
-          apiKey: API_KEY,
+          credential: API_KEY,
           body: expect.objectContaining({
             query: { isAcknowledgedState: true },
           }),
@@ -136,7 +136,7 @@ describe("WorkflowTools", () => {
         expect.objectContaining({
           method: "POST",
           path: "/api/incident-state-timeline",
-          apiKey: API_KEY,
+          credential: API_KEY,
           body: {
             data: {
               incidentId: VALID_UUID,
@@ -295,7 +295,7 @@ describe("WorkflowTools", () => {
         expect.objectContaining({
           method: "POST",
           path: "/api/project/get-list",
-          apiKey: API_KEY,
+          credential: API_KEY,
         }),
       );
       expect(result["success"]).toBe(true);

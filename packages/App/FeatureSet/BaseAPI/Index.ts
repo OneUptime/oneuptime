@@ -940,6 +940,9 @@ import OnCallDutyPolicyScheduleService, {
 import UserOnCallCalendarFeedService, {
   Service as UserOnCallCalendarFeedServiceType,
 } from "Common/Server/Services/UserOnCallCalendarFeedService";
+import McpOAuthGrantService, {
+  Service as McpOAuthGrantServiceType,
+} from "Common/Server/Services/McpOAuthGrantService";
 import OnCallDutyPolicyScheduleCalendarFeedService, {
   Service as OnCallDutyPolicyScheduleCalendarFeedServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyScheduleCalendarFeedService";
@@ -1405,6 +1408,7 @@ import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDut
 import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import UserOnCallCalendarFeed from "Common/Models/DatabaseModels/UserOnCallCalendarFeed";
+import McpOAuthGrant from "Common/Models/DatabaseModels/McpOAuthGrant";
 import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "Common/Models/DatabaseModels/ProjectOnCallCalendarFeed";
 import UserOnCallShiftReminder from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
@@ -5019,6 +5023,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<UserOnCallCalendarFeed, UserOnCallCalendarFeedServiceType>(
         UserOnCallCalendarFeed,
         UserOnCallCalendarFeedService,
+      ).getRouter(),
+    );
+
+    /*
+     * The MCP clients members have connected by signing in
+     * (/mcp-client-authorization). Mounted so that a member can list and
+     * revoke their own, and an administrator everybody's; the model's create
+     * and update lists are empty, so reading and deleting are all the CRUD
+     * router will do. A grant is only ever MADE by the consent endpoint
+     * (FeatureSet/MCP/OAuth/ConsentEndpoint).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<McpOAuthGrant, McpOAuthGrantServiceType>(
+        McpOAuthGrant,
+        McpOAuthGrantService,
       ).getRouter(),
     );
 

@@ -154,6 +154,20 @@ enum Permission {
   EditProjectApiKey = "EditProjectApiKey",
   EditProjectApiKeyPermissions = "EditProjectApiKeyPermissions",
 
+  /*
+   * MCP clients that sign in with OAuth (Settings -> MCP Server).
+   *
+   * AuthorizeMcpClient is unlike the others in this file: every member of a
+   * project may connect an MCP client by signing in, so nobody has to be
+   * granted it. It exists to be BLOCKED - a block row for it on a team stops
+   * that team's members from authorizing clients for the project, and stops
+   * the tokens they already issued. The other two let somebody other than the
+   * member see, and revoke, what members have connected.
+   */
+  AuthorizeMcpClient = "AuthorizeMcpClient",
+  ReadMcpClientAuthorization = "ReadMcpClientAuthorization",
+  DeleteMcpClientAuthorization = "DeleteMcpClientAuthorization",
+
   CreateTelemetryIngestionKey = "CreateTelemetryIngestionKey",
   DeleteTelemetryIngestionKey = "DeleteTelemetryIngestionKey",
   ReadTelemetryIngestionKey = "ReadTelemetryIngestionKey",
@@ -16895,6 +16909,36 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Project,
+      },
+      {
+        permission: Permission.AuthorizeMcpClient,
+        title: "Authorize MCP Client",
+        description:
+          "Every project member can connect an MCP client (an AI agent) to this project by signing in. Add this as a block permission on a team to stop its members from connecting MCP clients and to stop the clients they already connected.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadMcpClientAuthorization,
+        title: "Read MCP Client Authorization",
+        description:
+          "This permission can see which MCP clients every member has connected to this project. Members can always see their own.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteMcpClientAuthorization,
+        title: "Revoke MCP Client Authorization",
+        description:
+          "This permission can revoke an MCP client any member has connected to this project. Members can always revoke their own.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
       },
     ];
 

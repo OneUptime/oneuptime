@@ -16,8 +16,14 @@
  *
  * Stateless mode is safe here because the OneUptime tools carry no per-session
  * state: `tools/list` is derived from the tool list bound at route setup and
- * every `tools/call` authenticates with the API key supplied on that same
- * request (x-api-key / Authorization header).
+ * every `tools/call` authenticates with the credential supplied on that same
+ * request - an API key (x-api-key / Authorization header) or the access token
+ * of a client that signed in with OAuth (Authorization: Bearer).
+ *
+ * Who is calling is settled before anything else (OAuth/RequestGate): a call
+ * to a tool that needs an identity, made without one, is refused at the HTTP
+ * layer with a WWW-Authenticate challenge, because that - and not an error
+ * inside a 200 - is what makes an MCP client sign its user in.
  *
  * Before a request reaches the SDK transport it goes through the compatibility
  * negotiation in Utils/TransportNegotiation: the protocol version is negotiated
@@ -38,6 +44,10 @@ import {
 } from "Common/Server/Utils/Express";
 import { createMCPServerInstance, McpServer } from "../Server/MCPServer";
 import { registerToolHandlers } from "./ToolHandler";
+import { BearerChallenge } from "../OAuth/BearerChallenge";
+import { setupMcpOAuthRoutes } from "../OAuth/OAuthRoutes";
+import RequestGate, { CredentialResolution } from "../OAuth/RequestGate";
+import { McpCredential } from "../Types/McpCredential";
 import { McpToolInfo } from "../Types/McpTypes";
 import { ROUTE_PREFIXES, API_KEY_HEADERS } from "../Config/ServerConfig";
 import {
@@ -60,6 +70,9 @@ import {
   setRequestHeader,
 } from "../Utils/TransportNegotiation";
 import logger from "Common/Server/Utils/Logger";
+import McpOAuthConfig from "Common/Server/Utils/Mcp/McpOAuthConfig";
+
+const WWW_AUTHENTICATE_HEADER: string = "WWW-Authenticate";
 
 // Type for MCP handler function
 type McpHandlerFunction = (
@@ -97,6 +110,9 @@ export function setupMCPRoutes(
     setupRoutesForPrefix(app, prefix, tools);
   });
 
+  // The authorization server MCP clients sign in through (OAuth/OAuthRoutes).
+  setupMcpOAuthRoutes(app);
+
   logger.info(
     `MCP routes setup complete (stateless mode) for prefixes: ${ROUTE_PREFIXES.join(", ")}`,
   );
@@ -106,6 +122,13 @@ export function setupMCPRoutes(
  * Middleware to add MCP-specific CORS headers so browser-based MCP clients can
  * send the auth and protocol headers. The stateless server never issues an
  * `mcp-session-id`, so that header is neither allowed nor exposed.
+ *
+ * `WWW-Authenticate` IS exposed, while OAuth sign-in is on. A browser hides
+ * every response header from script unless it is named here, and that header
+ * is where a client reads that it must sign in and where to start - hidden, a
+ * browser-based client sees a bare 401 and nothing to do about it. With
+ * sign-in switched off the endpoint never sends the header, and says nothing
+ * about it: its responses are then what they were before sign-in existed.
  */
 function mcpCorsMiddleware(
   _req: ExpressRequest,
@@ -116,7 +139,32 @@ function mcpCorsMiddleware(
     "Access-Control-Allow-Headers",
     "Content-Type, Accept, Authorization, mcp-protocol-version, x-api-key",
   );
+
+  if (McpOAuthConfig.isEnabled()) {
+    // Added to whatever the app's own CORS middleware already exposes.
+    const alreadyExposed: unknown = res.getHeader(
+      "Access-Control-Expose-Headers",
+    );
+
+    res.header(
+      "Access-Control-Expose-Headers",
+      typeof alreadyExposed === "string" && alreadyExposed
+        ? `${alreadyExposed}, ${WWW_AUTHENTICATE_HEADER}`
+        : WWW_AUTHENTICATE_HEADER,
+    );
+  }
+
   next();
+}
+
+/*
+ * Refuse a request with a Bearer challenge (RFC 6750). The header is the
+ * signal a client acts on; the body is for whoever reads the response by hand.
+ */
+function sendChallenge(res: ExpressResponse, challenge: BearerChallenge): void {
+  res.setHeader(WWW_AUTHENTICATE_HEADER, challenge.headerValue);
+  res.setHeader("Cache-Control", "no-store");
+  res.status(challenge.statusCode).json(challenge.body);
 }
 
 /**
@@ -182,6 +230,7 @@ function createMCPHandler(tools: McpToolInfo[]): McpHandlerFunction {
               "This is a Model Context Protocol (MCP) server endpoint. Use an MCP client to connect.",
             protocolVersions: KNOWN_PROTOCOL_VERSIONS,
             latestProtocolVersion: getLatestSupportedProtocolVersion(),
+            ...describeOAuth(),
           });
           return;
         }
@@ -235,8 +284,33 @@ async function handleStatelessRequest(
   res: ExpressResponse,
   tools: McpToolInfo[],
 ): Promise<void> {
-  // API key is read fresh from this request's headers (optional for public tools).
-  const apiKey: string = extractApiKey(req) || "";
+  /*
+   * Who is calling, read fresh from this request's headers: an API key, an
+   * OAuth access token, or nobody (which is enough for the public tools). A
+   * request that presents an access token which does not check out stops
+   * here, as does a call that needs an identity or a scope it does not have -
+   * both BEFORE the SDK, since a refusal from inside it would be a 200.
+   */
+  const resolution: CredentialResolution =
+    await RequestGate.resolveCredential(req);
+
+  if ("challenge" in resolution) {
+    sendChallenge(res, resolution.challenge);
+    return;
+  }
+
+  const credential: McpCredential = resolution.credential;
+
+  const challenge: BearerChallenge | null = RequestGate.getChallenge({
+    body: req.body,
+    tools,
+    credential,
+  });
+
+  if (challenge) {
+    sendChallenge(res, challenge);
+    return;
+  }
 
   /*
    * Record what the client sent before either negotiation overwrites it — the
@@ -281,7 +355,7 @@ async function handleStatelessRequest(
         : {},
     );
 
-  registerToolHandlers(mcpServer, tools, apiKey);
+  registerToolHandlers(mcpServer, tools, credential);
 
   transport.onerror = (error: Error): void => {
     /*
@@ -579,6 +653,29 @@ function setupHealthEndpoint(
        */
       protocolVersions: KNOWN_PROTOCOL_VERSIONS,
       latestProtocolVersion: getLatestSupportedProtocolVersion(),
+      ...describeOAuth(),
     });
   });
+}
+
+/*
+ * Where OAuth discovery starts, for a person reading the discovery payload or
+ * the health check to find out whether clients can sign in on this instance.
+ * Absent when OAuth is switched off, so those two responses are then exactly
+ * what they were before sign-in existed. A client never reads this: it is
+ * told the same URL by the 401 it gets when it first needs an identity.
+ */
+function describeOAuth(): {
+  oauth?: { protectedResourceMetadata: string };
+} {
+  if (!McpOAuthConfig.isEnabled()) {
+    return {};
+  }
+
+  return {
+    oauth: {
+      protectedResourceMetadata:
+        McpOAuthConfig.getProtectedResourceMetadataUrl(),
+    },
+  };
 }

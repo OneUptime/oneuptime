@@ -30,6 +30,7 @@ import useEnterpriseLicenseMode from "../Identity/License/UseEnterpriseLicenseMo
 import {
   ResourceLink,
   ResourceMeta,
+  getActorCredentialLabel,
   getActorInitials,
   getAuditLogsQuery,
   getResourceLink,
@@ -167,6 +168,8 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
     userType: true,
     apiKeyName: true,
     apiKeyId: true,
+    mcpClientName: true,
+    mcpOAuthGrantId: true,
     changes: true,
   };
 
@@ -536,6 +539,15 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
               const initials: string = getActorInitials(
                 item.userName || item.userEmail,
               );
+              /*
+               * A person's change that came through something other than the
+               * dashboard: an MCP client they connected, or the master key.
+               */
+              const credentialLabel: string | null = getActorCredentialLabel({
+                userType: item.userType,
+                apiKeyName: item.apiKeyName,
+                mcpClientName: item.mcpClientName,
+              });
               return (
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold">
@@ -553,6 +565,16 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                       <span className="text-[11px] text-gray-500">
                         {userType || "User"}
                       </span>
+                    )}
+                    {credentialLabel ? (
+                      <span
+                        className="text-[11px] text-violet-700 truncate"
+                        data-testid="audit-actor-credential"
+                      >
+                        {credentialLabel}
+                      </span>
+                    ) : (
+                      <Fragment />
                     )}
                   </div>
                 </div>

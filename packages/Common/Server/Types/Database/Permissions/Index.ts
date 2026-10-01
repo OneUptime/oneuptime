@@ -49,6 +49,8 @@ export default class ModelPermission {
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
+
     try {
       return await DeletePermission.checkDeletePermissionByModel(data);
     } catch (error) {
@@ -64,6 +66,8 @@ export default class ModelPermission {
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
+
     try {
       return await UpdatePermission.checkUpdatePermissionByModel(data);
     } catch (error) {
@@ -77,6 +81,8 @@ export default class ModelPermission {
     query: Query<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): Promise<Query<TBaseModel>> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
     try {
       return await DeletePermission.checkDeletePermission(
         modelType,
@@ -95,6 +101,8 @@ export default class ModelPermission {
     data: QueryDeepPartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): Promise<Query<TBaseModel>> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
     try {
       return await UpdatePermission.checkUpdatePermissions(
         modelType,
@@ -113,6 +121,8 @@ export default class ModelPermission {
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
   ): void {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
     try {
       return CreatePermission.checkCreatePermissions(modelType, data, props);
     } catch (error) {

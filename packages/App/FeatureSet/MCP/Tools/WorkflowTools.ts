@@ -10,6 +10,11 @@ import { McpToolInfo, JSONSchema } from "../Types/McpTypes";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import OneUptimeApiService from "../Services/OneUptimeApiService";
+import McpCredentialUtil, {
+  McpCredential,
+  McpCredentialInput,
+  McpCredentialType,
+} from "../Types/McpCredential";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject, JSONArray } from "Common/Types/JSON";
 
@@ -155,7 +160,7 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
     name: "oneuptime_whoami",
     title: "Who Am I",
     description:
-      "Get the project your API key belongs to (ID and name). Call this first to understand your context. Note: create tools infer projectId from the API key automatically, so you never need to pass it.",
+      "Get the project your credentials belong to (ID and name), and - when signed in with OAuth - who you are signed in as and whether you may make changes. Call this first to understand your context. Note: create tools infer projectId from your credentials automatically, so you never need to pass it.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -194,12 +199,24 @@ export function generateWorkflowTools(): McpToolInfo[] {
 }
 
 /**
- * Check if a tool is a workflow tool (requires an API key)
+ * Check if a tool is a workflow tool (requires an API key or a sign-in)
  */
 export function isWorkflowTool(toolName: string): boolean {
   return WORKFLOW_TOOL_DEFINITIONS.some(
     (definition: WorkflowToolDefinition) => {
       return definition.name === toolName;
+    },
+  );
+}
+
+/**
+ * Whether a workflow tool only reads. The rest change something, which a
+ * client that signed in read-only may not do.
+ */
+export function isReadOnlyWorkflowTool(toolName: string): boolean {
+  return WORKFLOW_TOOL_DEFINITIONS.some(
+    (definition: WorkflowToolDefinition) => {
+      return definition.name === toolName && definition.readOnly;
     },
   );
 }
@@ -211,7 +228,8 @@ export function isWorkflowTool(toolName: string): boolean {
 export async function handleWorkflowTool(
   toolName: string,
   args: Record<string, unknown>,
-  apiKey: string,
+  // An API key (a bare string) or an OAuth credential. See Types/McpCredential.
+  credential: McpCredentialInput,
 ): Promise<JSONObject> {
   switch (toolName) {
     case "acknowledge_incident":
@@ -219,35 +237,35 @@ export async function handleWorkflowTool(
         kind: "incident",
         id: requireUuid(args, "incidentId"),
         flag: "isAcknowledgedState",
-        apiKey,
+        credential,
       });
     case "resolve_incident":
       return changeState({
         kind: "incident",
         id: requireUuid(args, "incidentId"),
         flag: "isResolvedState",
-        apiKey,
+        credential,
       });
     case "acknowledge_alert":
       return changeState({
         kind: "alert",
         id: requireUuid(args, "alertId"),
         flag: "isAcknowledgedState",
-        apiKey,
+        credential,
       });
     case "resolve_alert":
       return changeState({
         kind: "alert",
         id: requireUuid(args, "alertId"),
         flag: "isResolvedState",
-        apiKey,
+        credential,
       });
     case "add_incident_note":
-      return addIncidentNote(args, apiKey);
+      return addIncidentNote(args, credential);
     case "add_alert_note":
-      return addAlertNote(args, apiKey);
+      return addAlertNote(args, credential);
     case "oneuptime_whoami":
-      return whoami(apiKey);
+      return whoami(credential);
     default:
       throw new Error(`Unknown workflow tool: ${toolName}`);
   }
@@ -281,7 +299,7 @@ function requireString(args: Record<string, unknown>, key: string): string {
 async function findStateId(data: {
   kind: "incident" | "alert";
   flag: StateFlag;
-  apiKey: string;
+  credential: McpCredentialInput;
 }): Promise<{ stateId: string; stateName: string }> {
   const statePath: string =
     data.kind === "incident" ? "/incident-state" : "/alert-state";
@@ -295,7 +313,7 @@ async function findStateId(data: {
       skip: 0,
       limit: 1,
     } as JSONObject,
-    apiKey: data.apiKey,
+    credential: data.credential,
   });
 
   const rows: JSONArray =
@@ -306,7 +324,7 @@ async function findStateId(data: {
     const friendlyFlag: string =
       data.flag === "isAcknowledgedState" ? "Acknowledged" : "Resolved";
     throw new Error(
-      `Could not find the project's '${friendlyFlag}' ${data.kind} state. The API key may lack permission to read ${data.kind} states.`,
+      `Could not find the project's '${friendlyFlag}' ${data.kind} state. ${describeCaller(data.credential)} may lack permission to read ${data.kind} states.`,
     );
   }
 
@@ -324,12 +342,12 @@ async function changeState(data: {
   kind: "incident" | "alert";
   id: string;
   flag: StateFlag;
-  apiKey: string;
+  credential: McpCredentialInput;
 }): Promise<JSONObject> {
   const { stateId, stateName } = await findStateId({
     kind: data.kind,
     flag: data.flag,
-    apiKey: data.apiKey,
+    credential: data.credential,
   });
 
   const timelinePath: string =
@@ -349,7 +367,7 @@ async function changeState(data: {
         [stateField]: stateId,
       },
     } as JSONObject,
-    apiKey: data.apiKey,
+    credential: data.credential,
   });
 
   return {
@@ -369,7 +387,7 @@ function toolNameForState(kind: "incident" | "alert", flag: StateFlag): string {
 
 async function addIncidentNote(
   args: Record<string, unknown>,
-  apiKey: string,
+  credential: McpCredentialInput,
 ): Promise<JSONObject> {
   const incidentId: string = requireUuid(args, "incidentId");
   const note: string = requireString(args, "note");
@@ -390,7 +408,7 @@ async function addIncidentNote(
         note,
       },
     } as JSONObject,
-    apiKey,
+    credential,
   });
 
   return {
@@ -408,7 +426,7 @@ async function addIncidentNote(
 
 async function addAlertNote(
   args: Record<string, unknown>,
-  apiKey: string,
+  credential: McpCredentialInput,
 ): Promise<JSONObject> {
   const alertId: string = requireUuid(args, "alertId");
   const note: string = requireString(args, "note");
@@ -422,7 +440,7 @@ async function addAlertNote(
         note,
       },
     } as JSONObject,
-    apiKey,
+    credential,
   });
 
   return {
@@ -435,10 +453,22 @@ async function addAlertNote(
 }
 
 /**
- * Return the project the API key is scoped to. Project is tenant-scoped by
- * _id, so a project-scoped key sees exactly its own project.
+ * How to refer to the caller in a message an agent will read: by the kind of
+ * credential it holds, so the advice that follows ("ask an admin to grant the
+ * key…", "your account lacks…") points at the right thing to fix.
  */
-async function whoami(apiKey: string): Promise<JSONObject> {
+function describeCaller(input: McpCredentialInput): string {
+  return McpCredentialUtil.isOAuth(input) ? "Your account" : "The API key";
+}
+
+/**
+ * Return the project the credential is scoped to. Project is tenant-scoped by
+ * _id, so a project-scoped key - or a sign-in, which is for one project -
+ * sees exactly its own project.
+ */
+async function whoami(input: McpCredentialInput): Promise<JSONObject> {
+  const credential: McpCredential = McpCredentialUtil.from(input);
+
   const response: unknown = await OneUptimeApiService.makeAuthenticatedApiCall({
     method: "POST",
     path: "/api/project/get-list",
@@ -448,7 +478,7 @@ async function whoami(apiKey: string): Promise<JSONObject> {
       skip: 0,
       limit: 10,
     } as JSONObject,
-    apiKey,
+    credential: input,
   });
 
   const rows: JSONArray =
@@ -460,6 +490,30 @@ async function whoami(apiKey: string): Promise<JSONObject> {
       projectName: projectRow["name"] || null,
     };
   });
+
+  if (credential.type === McpCredentialType.OAuth) {
+    const canWrite: boolean = McpCredentialUtil.canWrite(credential);
+
+    return {
+      success: true,
+      operation: "oneuptime_whoami",
+      projects,
+      authentication: "oauth",
+      signedInAs: {
+        email: credential.principal.user.email.toString(),
+        name: credential.principal.user.name,
+      },
+      client: credential.principal.grant.name || null,
+      access: canWrite ? "read-and-write" : "read-only",
+      message:
+        (projects.length > 0
+          ? "You are signed in with OAuth and act as this OneUptime user in the project above, with that user's permissions. projectId is inferred automatically on create operations."
+          : "You are signed in with OAuth, but this user cannot read the project - their teams may not grant read permission on Project.") +
+        (canWrite
+          ? ""
+          : " This connection is read-only: tools that create, update, delete, acknowledge or resolve will be refused until the user authorizes read and write access."),
+    } as JSONObject;
+  }
 
   return {
     success: true,
