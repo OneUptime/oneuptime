@@ -13,6 +13,7 @@ import { describe, expect, it, jest, beforeEach } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 
 describe("ConfirmModal", () => {
   const mockProps: ComponentProps = {
@@ -268,7 +269,7 @@ describe("ConfirmModal initial focus", () => {
   });
 
   it("presses the focused action with the keyboard", () => {
-    const onSubmit: jest.Mock = jest.fn();
+    const onSubmit: MockFunction = getJestMockFunction();
 
     render(
       <ConfirmModal
