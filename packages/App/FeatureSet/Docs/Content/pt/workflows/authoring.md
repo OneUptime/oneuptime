@@ -1,6 +1,13 @@
 # Criar um workflow
 
-Para criar um workflow, abra **Fluxos de trabalho** e clique em **Criar fluxo de trabalho**. Um assistente chamado **Create a workflow** conduz você: primeiro **Start from** — escolha **Start from scratch** ou um dos modelos —, depois **Nome** e, por fim, uma etapa **Configurar**, que só aparece quando o modelo escolhido pede configurações próprias.
+Para criar um workflow, abra **Fluxos de trabalho** e clique em **Criar fluxo de trabalho**. Um assistente chamado **Create a workflow** conduz você: primeiro **Start from**, depois **Nome** e, por fim, uma etapa **Configurar**, que só aparece quando o modelo escolhido pede configurações próprias.
+
+Em **Start from**, escolha como começar:
+
+- **Começar do zero**, ao lado da caixa de pesquisa, dá a você uma tela em branco.
+- Um modelo dá a você um workflow que já funciona, pronto para ser alterado. A etapa abre com alguns modelos em **Recomendados**. Os demais ficam nas suas categorias, como **Incidentes**, **Monitores** e **Jira**, cada uma com quantos modelos tem, e **Todos os modelos** lista todos. Uma pesquisa procura em todos eles: cada palavra que você digitar precisa corresponder, e cada categoria mostra quantos dos seus modelos corresponderam.
+
+Clique em um modelo para ver o que ele faz antes de escolhê-lo: o trigger, as etapas que o compõem e as configurações que ele vai pedir. **Usar este modelo** leva você com ele para **Nome**, e o mesmo fazem **Enter** e um clique duplo. As setas percorrem a lista, e `/` volta para a caixa de pesquisa.
 
 Criado o workflow, abra **Construtor** no menu à esquerda. É ali que fica o canvas onde você desenha o workflow.
 

@@ -237,13 +237,16 @@ describe("the builder loads the webhook secret key only for those who may see it
 
       /*
        * The name names a run downloaded from the builder's run modal, and
-       * isEnabled sets the Enabled switch at the top of the page.
+       * isEnabled sets the Enabled switch at the top of the page. The
+       * incoming email key is read by the same people, for the Incoming
+       * Email trigger (WorkflowBuilderIncomingEmailSecretKey.test.tsx).
        */
       expect(getItemCall().select).toEqual({
         graph: true,
         name: true,
         isEnabled: true,
         webhookSecretKey: true,
+        incomingEmailSecretKey: true,
       });
       expect(getItemCall().id.toString()).toBe(WORKFLOW_ID.toString());
       expect(canvas().webhookSecretKey).toBe(SECRET);

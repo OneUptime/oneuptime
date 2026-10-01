@@ -300,6 +300,9 @@ describe("the searches from the report, on the real catalog", () => {
     );
     expect(titles(TRIGGER_INDEX, "webhook")[0]).toBe("Webhook");
     expect(titles(TRIGGER_INDEX, "every hour")[0]).toBe("Schedule");
+    expect(titles(TRIGGER_INDEX, "email")[0]).toBe("Incoming Email");
+    expect(titles(TRIGGER_INDEX, "incoming email")[0]).toBe("Incoming Email");
+    expect(titles(TRIGGER_INDEX, "inbox")[0]).toBe("Incoming Email");
   });
 });
 

@@ -1,6 +1,13 @@
 # Authoring a Workflow
 
-To create a workflow, open **Workflows** and click **Create Workflow**. A wizard called **Create a workflow** walks you through it: first **Start from** — pick **Start from scratch** or one of the templates — then **Name**, and finally a **Configure** step, which only appears when the template you picked asks for settings of its own.
+To create a workflow, open **Workflows** and click **Create Workflow**. A wizard called **Create a workflow** walks you through it: first **Start from**, then **Name**, and finally a **Configure** step, which only appears when the template you picked asks for settings of its own.
+
+On **Start from**, choose how to begin:
+
+- **Start from scratch**, beside the search box, gives you an empty canvas.
+- A template gives you a working workflow to change. The step opens on a few **Recommended** templates. The rest are under their categories, such as **Incidents**, **Monitors** and **Jira**, each with how many templates it holds, and **All templates** lists every one. A search looks through all of them: every word you type has to match, and each category shows how many of its templates did.
+
+Click a template to see what it does before you choose it: its trigger, the steps it is made of, and the settings it will ask for. **Use this template** takes it on to **Name**, and so do **Enter** and a double-click. The arrow keys move through the list, and `/` goes back to the search box.
 
 Once it's created, open **Builder** in the left menu. That's the canvas where you design the workflow.
 
@@ -66,7 +73,7 @@ In the setting, a value shows as a chip such as **Webhook › Request Body**. Ho
 - **Only values that will exist are offered.** That's the trigger and the blocks that run before this one. A block that runs later has no output yet. Until a block is connected, only the trigger's values are listed, and the list says so.
 - **A record opens to its fields.** A Find One or On Create block returns a whole record. Pick it to see its fields, starting with the ones the block's **Select Fields** reads. A JSON value or a set of headers can be opened to a box where you type a path, such as `title` or `alerts[0].status`.
 - **Once a block has run, the list knows what's inside its values.** Each value says what it held in the latest run — `"production"`, or `3 fields` — and a JSON value or a set of headers opens to the fields it had, each with what it held. So from a Webhook's **Request Body** you pick **incident.title** instead of typing a path. Searching finds these fields too: type `title`, or `{{` and the start of a path. A record's fields show what they held as well. The fields come from the latest run, so one that a later request leaves out is empty in that run. A value that looks like a secret, such as an `Authorization` header, a token or a password, is listed without what it held.
-- **A Webhook that hasn't received a request yet says so** at the top of its values, with **Copy test request**: a `curl` command that sends `{"message": "Hello"}` to the workflow's webhook URL. Run it in a terminal while the list is open, and the request's fields turn up in it once the run it starts has finished, usually within seconds. The workflow has to be enabled, or the request is turned away. Only people who can see the webhook URL get the button.
+- **A Webhook that hasn't received a request yet says so** at the top of its values, with **Copy test request**: a `curl` command that sends `{"message": "Hello"}` to the workflow's webhook URL. Run it in a terminal while the list is open, and the request's fields turn up in it once the run it starts has finished, usually within seconds. The workflow has to be enabled, or the request is turned away. Only people who can see the webhook URL get the button. An Incoming Email trigger that hasn't received an email yet says so in the same place; send an email to its address, and its headers and attachments turn up the same way.
 - **Code editors have Insert value in their toolbar.** In JSON it adds the quotes a value needs inside a document. **Run Custom JavaScript** reads values through its **Arguments**, so its code has no picker.
 - **Numbers, passwords, switches and dates keep their own control,** with **{ }** beside it. A picked value replaces the control, and **abc** goes back to typing one.
 

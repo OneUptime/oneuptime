@@ -1,6 +1,13 @@
 # Opret et workflow
 
-For at oprette et workflow åbner du **Arbejdsgange** og klikker **Opret arbejdsgang**. En guide, der hedder **Create a workflow**, fører dig igennem: først **Start from** — vælg **Start from scratch** eller en af skabelonerne — dernæst **Navn**, og til sidst trinnet **Konfigurer**, som kun dukker op, når den skabelon, du valgte, selv beder om indstillinger.
+For at oprette et workflow åbner du **Arbejdsgange** og klikker **Opret arbejdsgang**. En guide, der hedder **Create a workflow**, fører dig igennem: først **Start from**, dernæst **Navn**, og til sidst trinnet **Konfigurer**, som kun dukker op, når den skabelon, du valgte, selv beder om indstillinger.
+
+På **Start from** vælger du, hvordan du vil begynde:
+
+- **Start fra bunden**, ved siden af søgefeltet, giver dig et tomt lærred.
+- En skabelon giver dig et workflow, der allerede virker, klar til at blive ændret. Trinnet åbner med nogle få skabeloner under **Anbefalet**. Resten ligger under deres kategorier, fx **Hændelser**, **Monitorer** og **Jira**, hver med antallet af skabeloner, og **Alle skabeloner** viser dem alle. En søgning kigger i dem alle: hvert ord, du skriver, skal passe, og hver kategori viser, hvor mange af dens skabeloner der passede.
+
+Klik på en skabelon for at se, hvad den gør, før du vælger den: dens trigger, de trin, den består af, og de indstillinger, den vil spørge om. **Brug denne skabelon** fører den videre til **Navn**, og det gør **Enter** og et dobbeltklik også. Piletasterne flytter rundt i listen, og `/` fører dig tilbage til søgefeltet.
 
 Når det er oprettet, åbner du **Bygger** i menuen til venstre. Det er lærredet, hvor du designer workflowet.
 

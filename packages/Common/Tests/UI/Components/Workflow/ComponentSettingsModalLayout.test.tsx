@@ -76,6 +76,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
  */
 const PRIMARY_SECTION_BY_COMPONENT: Record<string, string> = {
   [ComponentID.Webhook]: "webhook-url",
+  [ComponentID.IncomingEmail]: "email-address",
   [ComponentID.Manual]: "how-to-run",
 };
 

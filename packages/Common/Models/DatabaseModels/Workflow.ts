@@ -638,6 +638,54 @@ export default class Workflow extends BaseModel {
   })
   public webhookSecretKey?: string = undefined;
 
+  @ColumnAccessControl({
+    /*
+     * Not settable on create: the column is unique across every project, so
+     * an import or a duplicated workflow carrying it over would fail the copy.
+     * WorkflowService gives a workflow its key once its graph has an Incoming
+     * Email trigger.
+     */
+    create: [],
+    /*
+     * The same lists as webhookSecretKey, for the same reason: this key IS
+     * the Incoming Email trigger's address (workflow-{key}@{inbound domain}),
+     * and anyone who has the address can start the workflow - which running
+     * it by hand needs the workflow's update permissions for. So only people
+     * who may reset the key may read it.
+     * https://github.com/OneUptime/oneuptime/issues/3360
+     *
+     * The dashboard asks for this column only when PermissionGate says it may
+     * (Common/UI/Components/Workflow/WorkflowIncomingEmailSecretKey.ts).
+     */
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditWorkflow,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditWorkflow,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    unique: true,
+    type: TableColumnType.ObjectID,
+    title: "Incoming Email Secret Key",
+    description:
+      "The secret part of the Incoming Email trigger's address (workflow-<key>@<inbound email domain>). Anyone who has the address can start the workflow, so only people who can edit the workflow can read the key. Given to the workflow when its graph first has an Incoming Email trigger; set a new UUID to reset the address. Unique across all workflows.",
+    example: "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    unique: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incomingEmailSecretKey?: ObjectID = undefined;
+
   // This is a BullMQ job key that is used to schedule job for this workflow. This is used internally to remove existing job.
   @ColumnAccessControl({
     create: [],

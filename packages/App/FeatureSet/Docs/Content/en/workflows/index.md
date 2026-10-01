@@ -16,7 +16,7 @@ Think of workflows as background helpers for your project: they react to events,
 
 Every workflow has three parts:
 
-1. **A trigger** — what starts the workflow. This can be a manual button, a schedule, an incoming webhook, or an event in OneUptime (like a new incident).
+1. **A trigger** — what starts the workflow. This can be a manual button, a schedule, an incoming webhook, an incoming email, or an event in OneUptime (like a new incident).
 2. **One or more components** — what the workflow does. Send a message, make an HTTP call, run a quick check, branch based on a condition.
 3. **Connections between them** — you draw lines from one block to the next to decide the order.
 
@@ -53,7 +53,7 @@ Open a single workflow and its own left menu holds:
 ## Building your first workflow
 
 1. **Create** — pick a starting point, then give your workflow a name.
-2. **Pick a trigger** — manual, scheduled, webhook, or an event from OneUptime.
+2. **Pick a trigger** — manual, scheduled, webhook, incoming email, or an event from OneUptime.
 3. **Add components** — add actions to the canvas and connect them.
 4. **Turn it on** — switch **Enabled** on at the top of the **Builder**. A disabled workflow can't run at all, not even by hand.
 5. **Test** — click **Run Workflow** on the Builder and watch the run log.

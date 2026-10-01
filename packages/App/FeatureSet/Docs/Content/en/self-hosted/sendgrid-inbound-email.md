@@ -2,6 +2,8 @@
 
 OneUptime's **Incoming Email Monitor** allows you to create and resolve alerts based on emails sent to unique monitor-specific email addresses. This is useful for integrating with legacy systems, alerting tools, or any service that can send emails.
 
+The same setup lets workflows receive email: a workflow with the **Incoming Email** trigger gets an address of its own on the same domain, and each email to it starts the workflow. See [Triggers](/docs/workflows/triggers#incoming-email).
+
 This guide explains how to set up SendGrid Inbound Parse to forward incoming emails to your self-hosted OneUptime instance.
 
 ## Prerequisites
@@ -47,7 +49,7 @@ You'll need a subdomain dedicated to receiving inbound emails. We recommend usin
 - `email.yourdomain.com`
 - `monitor.yourdomain.com`
 
-This subdomain will be used exclusively for OneUptime monitor emails.
+This subdomain will be used exclusively for email to OneUptime monitors and workflows.
 
 ### Step 2: Configure DNS MX Record
 
@@ -132,6 +134,8 @@ Use the same secret in the Destination URL from Step 4. Restart your OneUptime s
 7. Click **Create**
 
 After creation, you'll see the unique email address for this monitor (e.g., `monitor-abc123def456@inbound.yourdomain.com`).
+
+Workflows use the same domain. Add the **Incoming Email** trigger to a workflow and click it: its address (`workflow-…@inbound.yourdomain.com`) is at the top of its settings. Until the inbound email variables above are set, the trigger says the server isn't set up to receive email.
 
 ### Step 7: Test the Integration
 

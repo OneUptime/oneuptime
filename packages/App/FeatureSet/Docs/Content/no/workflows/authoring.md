@@ -1,6 +1,13 @@
 # Opprette en arbeidsflyt
 
-For å lage en arbeidsflyt åpner du **Arbeidsflyter** og klikker **Opprett arbeidsflyt**. En veiviser som heter **Create a workflow** tar deg gjennom det: først **Start from** — velg **Start from scratch** eller en av malene — så **Navn**, og til slutt et **Konfigurer**-trinn, som bare dukker opp når malen du valgte ber om egne innstillinger.
+For å lage en arbeidsflyt åpner du **Arbeidsflyter** og klikker **Opprett arbeidsflyt**. En veiviser som heter **Create a workflow** tar deg gjennom det: først **Start from**, så **Navn**, og til slutt et **Konfigurer**-trinn, som bare dukker opp når malen du valgte ber om egne innstillinger.
+
+På **Start from** velger du hvordan du vil begynne:
+
+- **Start fra bunnen**, ved siden av søkefeltet, gir deg et tomt lerret.
+- En mal gir deg en arbeidsflyt som allerede virker, klar til å endres. Trinnet åpner med noen få maler under **Anbefalt**. Resten ligger under kategoriene sine, som **Hendelser**, **Monitorer** og **Jira**, hver med antallet maler den har, og **Alle maler** viser hver eneste en. Et søk ser gjennom alle: hvert ord du skriver må passe, og hver kategori viser hvor mange av malene sine som passet.
+
+Klikk på en mal for å se hva den gjør før du velger den: triggeren, trinnene den består av, og innstillingene den vil spørre om. **Bruk denne malen** tar den videre til **Navn**, og det gjør **Enter** og et dobbeltklikk også. Piltastene flytter deg gjennom listen, og `/` tar deg tilbake til søkefeltet.
 
 Så snart den er opprettet, åpner du **Bygger** i venstremenyen. Der ligger lerretet du utformer arbeidsflyten på.
 

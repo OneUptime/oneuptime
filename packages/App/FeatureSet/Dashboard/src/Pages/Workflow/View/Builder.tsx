@@ -53,6 +53,10 @@ import {
   getWebhookSecretKeySelect,
   resetWebhookSecretKey,
 } from "Common/UI/Components/Workflow/WorkflowWebhookSecretKey";
+import {
+  getIncomingEmailSecretKeySelect,
+  resetIncomingEmailSecretKey,
+} from "Common/UI/Components/Workflow/WorkflowIncomingEmailSecretKey";
 import Select from "Common/Types/BaseDatabase/Select";
 import { WORKFLOW_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -90,6 +94,14 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const [webhookSecretKey, setWebhookSecretKey] = useState<string>("");
   const [canSeeWebhookSecretKey, setCanSeeWebhookSecretKey] =
+    useState<boolean>(false);
+  /*
+   * The same for the Incoming Email trigger's address, which is built from
+   * this key: see WorkflowIncomingEmailSecretKey.
+   */
+  const [incomingEmailSecretKey, setIncomingEmailSecretKey] =
+    useState<string>("");
+  const [canSeeIncomingEmailSecretKey, setCanSeeIncomingEmailSecretKey] =
     useState<boolean>(false);
   // Names a run downloaded from the run modal, and heads its log.
   const [workflowName, setWorkflowName] = useState<string>("");
@@ -238,6 +250,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
        */
       const webhookSecretKeySelect: Select<WorkflowModel> =
         getWebhookSecretKeySelect();
+      const incomingEmailSecretKeySelect: Select<WorkflowModel> =
+        getIncomingEmailSecretKeySelect();
 
       const workflow: WorkflowModel | null = await ModelAPI.getItem({
         modelType: WorkflowModel,
@@ -248,6 +262,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           // Read by the Enabled switch and the notice shown while it is off.
           isEnabled: true,
           ...webhookSecretKeySelect,
+          ...incomingEmailSecretKeySelect,
         },
         requestOptions: {},
       });
@@ -257,6 +272,12 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           Boolean(webhookSecretKeySelect.webhookSecretKey),
         );
         setWebhookSecretKey(workflow.webhookSecretKey || "");
+        setCanSeeIncomingEmailSecretKey(
+          Boolean(incomingEmailSecretKeySelect.incomingEmailSecretKey),
+        );
+        setIncomingEmailSecretKey(
+          workflow.incomingEmailSecretKey?.toString() || "",
+        );
         setWorkflowName(workflow.name || "");
         workflowEnabled.setLoadedIsEnabled(
           typeof workflow.isEnabled === "boolean" ? workflow.isEnabled : null,
@@ -694,6 +715,20 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               const secretKey: string = await resetWebhookSecretKey(modelId);
 
               setWebhookSecretKey(secretKey);
+            }}
+            incomingEmailSecretKey={incomingEmailSecretKey}
+            canSeeIncomingEmailSecretKey={canSeeIncomingEmailSecretKey}
+            onResetIncomingEmailSecretKey={async (): Promise<void> => {
+              /*
+               * Saved straight away, like the webhook URL's reset: the old
+               * address stops working the moment this resolves. Also gives a
+               * workflow its first address, when the Incoming Email trigger
+               * is opened before the graph that added it was saved.
+               */
+              const secretKey: string =
+                await resetIncomingEmailSecretKey(modelId);
+
+              setIncomingEmailSecretKey(secretKey);
             }}
             showComponentsPickerModal={showComponentPickerModal}
             onComponentPickerModalUpdate={(value: boolean) => {

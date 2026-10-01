@@ -1,5 +1,8 @@
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import IncomingEmailTrigger, {
+  INCOMING_EMAIL_TRIGGER_LOCAL_PART_PREFIX,
+} from "../../Types/Workflow/IncomingEmailTrigger";
 
 /*
  * The inbound address of an Incoming Email monitor.
@@ -17,6 +20,11 @@ import ObjectID from "../../Types/ObjectID";
  * So exactly one address is live per monitor. The two namespaces cannot
  * collide, because a custom name may not take the generated shape -- an
  * inbound recipient therefore resolves to at most one monitor.
+ *
+ * Workflows receive mail on the same domain: a workflow with an Incoming Email
+ * trigger has the address `workflow-{incomingEmailSecretKey}@`
+ * (Types/Workflow/IncomingEmailTrigger.ts). A custom name may not take that
+ * shape either, so a recipient is a workflow's or a monitor's, never both.
  *
  * Shared by the dashboard (to show the address and validate the form), the
  * monitor service (to validate and store a custom name) and the ingest path
@@ -74,11 +82,14 @@ const GENERATED_LOCAL_PART_PATTERN: RegExp = new RegExp(
 export enum IncomingEmailRecipientKind {
   Generated = "Generated",
   Custom = "Custom",
+  // A workflow's Incoming Email trigger: `workflow-{secretKey}@`.
+  Workflow = "Workflow",
 }
 
 export type IncomingEmailRecipient =
   | { kind: IncomingEmailRecipientKind.Generated; secretKey: string }
-  | { kind: IncomingEmailRecipientKind.Custom; localPart: string };
+  | { kind: IncomingEmailRecipientKind.Custom; localPart: string }
+  | { kind: IncomingEmailRecipientKind.Workflow; secretKey: string };
 
 export default class IncomingEmailMonitorAddress {
   public static getGeneratedLocalPart(secretKey: ObjectID | string): string {
@@ -178,6 +189,10 @@ export default class IncomingEmailMonitorAddress {
       return `Names in the form "${GENERATED_LOCAL_PART_PREFIX}<id>" are reserved for generated addresses. Please choose a different name.`;
     }
 
+    if (IncomingEmailTrigger.isLocalPart(localPart)) {
+      return `Names in the form "${INCOMING_EMAIL_TRIGGER_LOCAL_PART_PREFIX}<id>" are reserved for workflow email addresses. Please choose a different name.`;
+    }
+
     if (RESERVED_CUSTOM_LOCAL_PARTS.includes(localPart)) {
       return `"${localPart}" is reserved and cannot be used as a monitor email address. Please choose a different name.`;
     }
@@ -233,9 +248,14 @@ export default class IncomingEmailMonitorAddress {
   }
 
   /*
-   * Which monitor address an inbound recipient names, or null when it cannot
-   * be a monitor address at all (another domain, or a local part no monitor
-   * could have). Resolving it to an actual monitor is the caller's job.
+   * Which address an inbound recipient names -- a monitor's, generated or
+   * custom, or a workflow's -- or null when it cannot be one at all (another
+   * domain, or a local part nothing could have). Resolving it to an actual
+   * monitor or workflow is the caller's job.
+   *
+   * A workflow's shape is checked before a custom name's. Custom names of
+   * that shape are refused when they are chosen, and one chosen before
+   * workflow addresses existed would have had to end in a whole random UUID.
    *
    * Accepts "addr@domain" and "Name <addr@domain>".
    */
@@ -280,6 +300,16 @@ export default class IncomingEmailMonitorAddress {
       };
     }
 
+    const workflowSecretKey: string | null =
+      IncomingEmailTrigger.getSecretKeyFromLocalPart(localPart);
+
+    if (workflowSecretKey) {
+      return {
+        kind: IncomingEmailRecipientKind.Workflow,
+        secretKey: workflowSecretKey,
+      };
+    }
+
     if (!this.isStructurallyValidLocalPart(localPart)) {
       return null;
     }
@@ -288,5 +318,44 @@ export default class IncomingEmailMonitorAddress {
       kind: IncomingEmailRecipientKind.Custom,
       localPart: localPart,
     };
+  }
+
+  /*
+   * Every monitor and workflow address among the addresses one email was
+   * delivered to, in order and each once. Addresses on other domains, and
+   * local parts nothing could own, are left out: an email to a team's own
+   * mailbox with a monitor copied in is still for the monitor.
+   */
+  public static parseRecipients(data: {
+    emailAddresses: Array<string>;
+    inboundDomain: string | null | undefined;
+  }): Array<IncomingEmailRecipient> {
+    const recipients: Array<IncomingEmailRecipient> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const emailAddress of data.emailAddresses) {
+      const recipient: IncomingEmailRecipient | null = this.parseRecipient({
+        emailAddress: emailAddress,
+        inboundDomain: data.inboundDomain,
+      });
+
+      if (!recipient) {
+        continue;
+      }
+
+      const identity: string =
+        recipient.kind === IncomingEmailRecipientKind.Custom
+          ? `${recipient.kind}:${recipient.localPart}`
+          : `${recipient.kind}:${recipient.secretKey}`;
+
+      if (seen.has(identity)) {
+        continue;
+      }
+
+      seen.add(identity);
+      recipients.push(recipient);
+    }
+
+    return recipients;
   }
 }

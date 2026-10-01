@@ -306,3 +306,191 @@ describe("WorkflowService trigger denormalization on update", () => {
     ).toContain(`/workflow/update/${WORKFLOW_ID}`);
   });
 });
+
+/*
+ * A workflow whose trigger is Incoming Email needs an address, and the
+ * address is built from Workflow.incomingEmailSecretKey. Nobody can set that
+ * column on create, so the service gives it whenever a graph with the trigger
+ * is saved - by the builder, through the API, or with an import or a
+ * duplicate - and only when the workflow has none: a key it already has,
+ * including one just reset, is never replaced.
+ */
+describe("WorkflowService gives an Incoming Email trigger its address", () => {
+  function incomingEmailGraph(): JSONObject {
+    return {
+      nodes: [
+        {
+          id: "node-1",
+          data: {
+            metadataId: "incoming-email",
+            componentType: "Trigger",
+            nodeType: "Node",
+            arguments: {},
+          },
+        },
+        {
+          id: "node-2",
+          data: {
+            metadataId: "log",
+            componentType: "Component",
+            nodeType: "Node",
+            arguments: {},
+          },
+        },
+      ],
+      edges: [],
+    };
+  }
+
+  function spyOnCompareAndSet(written: boolean = true): jest.SpyInstance {
+    return jest
+      .spyOn(WorkflowService, "compareAndSetColumnsByIdWithoutHooks")
+      .mockResolvedValue(written as never) as unknown as jest.SpyInstance;
+  }
+
+  type CompareAndSetArgs = {
+    id: ObjectID;
+    data: JSONObject;
+    expectedData: JSONObject;
+  };
+
+  function compareAndSetArgs(
+    spy: jest.SpyInstance,
+    call: number = 0,
+  ): CompareAndSetArgs {
+    return spy.mock.calls[call]![0] as unknown as CompareAndSetArgs;
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("saving a graph with the trigger gives the workflow a key, only if it has none", async () => {
+    spyOnUpdateOneById();
+    spyOnApiPost();
+    const casSpy: jest.SpyInstance = spyOnCompareAndSet();
+
+    await onUpdateSuccess(incomingEmailGraph());
+
+    expect(casSpy).toHaveBeenCalledTimes(1);
+
+    const args: CompareAndSetArgs = compareAndSetArgs(casSpy);
+
+    expect(args.id.toString()).toBe(WORKFLOW_ID);
+    expect(Object.keys(args.data)).toEqual(["incomingEmailSecretKey"]);
+    expect(
+      ObjectID.isValidUUID(
+        (args.data["incomingEmailSecretKey"] as unknown as ObjectID).toString(),
+      ),
+    ).toBe(true);
+    // Compare-and-set on "no key yet": an existing key is never replaced.
+    expect(args.expectedData).toEqual({ incomingEmailSecretKey: null });
+  });
+
+  test("the trigger is still written, before the key", async () => {
+    const updateSpy: jest.SpyInstance = spyOnUpdateOneById();
+    spyOnApiPost();
+    spyOnCompareAndSet();
+
+    await onUpdateSuccess(incomingEmailGraph());
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(
+      ((updateSpy.mock.calls[0]![0] as JSONObject)["data"] as JSONObject)[
+        "triggerId"
+      ],
+    ).toBe("incoming-email");
+  });
+
+  test("every new key is a fresh random one", async () => {
+    spyOnUpdateOneById();
+    spyOnApiPost();
+    const casSpy: jest.SpyInstance = spyOnCompareAndSet(false);
+
+    await onUpdateSuccess(incomingEmailGraph());
+    await onUpdateSuccess(incomingEmailGraph());
+
+    const first: string = (
+      compareAndSetArgs(casSpy, 0).data[
+        "incomingEmailSecretKey"
+      ] as unknown as ObjectID
+    ).toString();
+    const second: string = (
+      compareAndSetArgs(casSpy, 1).data[
+        "incomingEmailSecretKey"
+      ] as unknown as ObjectID
+    ).toString();
+
+    expect(first).not.toBe(second);
+    expect(first).not.toBe(WORKFLOW_ID);
+  });
+
+  test("a workflow created with the trigger already in its graph - an import or a duplicate - gets a key", async () => {
+    spyOnUpdateOneById();
+    spyOnApiPost();
+    const casSpy: jest.SpyInstance = spyOnCompareAndSet();
+
+    await onCreateSuccess(createdWorkflow(incomingEmailGraph()));
+
+    expect(casSpy).toHaveBeenCalledTimes(1);
+    expect(compareAndSetArgs(casSpy).id.toString()).toBe(WORKFLOW_ID);
+  });
+
+  test("other triggers get no email key", async () => {
+    spyOnUpdateOneById();
+    spyOnApiPost();
+    const casSpy: jest.SpyInstance = spyOnCompareAndSet();
+
+    await onUpdateSuccess(scheduleGraph());
+    await onCreateSuccess(createdWorkflow(scheduleGraph()));
+
+    expect(casSpy).not.toHaveBeenCalled();
+  });
+
+  test("an Incoming Email step that is not the trigger node gets no key", async () => {
+    spyOnUpdateOneById();
+    spyOnApiPost();
+    const casSpy: jest.SpyInstance = spyOnCompareAndSet();
+
+    await onUpdateSuccess({
+      nodes: [
+        {
+          id: "node-1",
+          data: {
+            metadataId: "incoming-email",
+            componentType: "Trigger",
+            nodeType: "PlaceholderNode",
+            arguments: {},
+          },
+        },
+      ],
+      edges: [],
+    });
+
+    expect(casSpy).not.toHaveBeenCalled();
+  });
+
+  test("an update that does not carry the graph leaves the key alone", async () => {
+    spyOnUpdateOneById();
+    spyOnApiPost();
+    const casSpy: jest.SpyInstance = spyOnCompareAndSet();
+
+    await onUpdateSuccess(undefined);
+
+    expect(casSpy).not.toHaveBeenCalled();
+  });
+
+  test("says whether it wrote a key", async () => {
+    spyOnCompareAndSet(true);
+    await expect(
+      WorkflowService.ensureIncomingEmailSecretKey(new ObjectID(WORKFLOW_ID)),
+    ).resolves.toBe(true);
+
+    jest.restoreAllMocks();
+
+    spyOnCompareAndSet(false);
+    await expect(
+      WorkflowService.ensureIncomingEmailSecretKey(new ObjectID(WORKFLOW_ID)),
+    ).resolves.toBe(false);
+  });
+});

@@ -49,11 +49,17 @@ jest.mock("Common/UI/Utils/API/API", () => {
 });
 
 import CreateWorkflowModal from "../../../../App/FeatureSet/Dashboard/src/Components/Workflow/CreateWorkflowModal";
+import { workflowTemplateViewDomId } from "../../../../App/FeatureSet/Dashboard/src/Components/Workflow/WorkflowTemplatePicker";
+import {
+  WorkflowTemplateCollection,
+  WorkflowTemplatePickerView,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/Workflow/WorkflowTemplatePickerUtil";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  RECOMMENDED_WORKFLOW_TEMPLATE_IDS,
   WorkflowTemplate,
   WorkflowTemplateCategories,
   WorkflowTemplateCategory,
@@ -86,6 +92,8 @@ interface JiraKind {
   noun: string;
   /** The other kind's record, which nothing of this kind should mention. */
   otherNoun: string;
+  /** The part of the Jira category the picker lists them under. */
+  part: string;
   /** In the order the picker shows them. */
   templateIds: Array<string>;
   createIssueTemplateId: string;
@@ -98,6 +106,7 @@ interface JiraKind {
 const INCIDENT_JIRA_KIND: JiraKind = {
   noun: "incident",
   otherNoun: "alert",
+  part: "Incidents",
   templateIds: [
     "jira-create-issue-for-incident",
     "jira-transition-issue-on-incident-state",
@@ -120,6 +129,7 @@ const INCIDENT_JIRA_KIND: JiraKind = {
 const ALERT_JIRA_KIND: JiraKind = {
   noun: "alert",
   otherNoun: "incident",
+  part: "Alerts",
   templateIds: [
     "jira-create-issue-for-alert",
     "jira-transition-issue-on-alert-state",
@@ -217,24 +227,54 @@ const getTemplate: GetTemplateFunction = (
   return template;
 };
 
-type SelectTemplateFunction = (templateId: string) => WorkflowTemplate;
+const OPTION_TEST_ID_PREFIX: string = "workflow-template-option-";
+const VARIABLE_INPUT_TEST_ID_PREFIX: string = "workflow-variable-";
 
-const selectTemplate: SelectTemplateFunction = (
+type ShowViewFunction = (view: WorkflowTemplatePickerView) => void;
+
+/** Choose a category (or a collection) in the picker's list of them. */
+const showView: ShowViewFunction = (view: WorkflowTemplatePickerView): void => {
+  fireEvent.click(screen.getByTestId(workflowTemplateViewDomId(view)));
+};
+
+type HighlightTemplateFunction = (templateId: string) => WorkflowTemplate;
+
+/**
+ * Click a template's row, which previews it. Opens All templates first when
+ * the row is not on the list being shown.
+ */
+const highlightTemplate: HighlightTemplateFunction = (
   templateId: string,
 ): WorkflowTemplate => {
   const template: WorkflowTemplate = getTemplate(templateId);
 
-  fireEvent.click(
-    screen.getByTestId(`workflow-template-card-${template.name}`),
-  );
+  if (!screen.queryByTestId(`${OPTION_TEST_ID_PREFIX}${templateId}`)) {
+    showView(WorkflowTemplateCollection.All);
+  }
+
+  fireEvent.click(screen.getByTestId(`${OPTION_TEST_ID_PREFIX}${templateId}`));
 
   return template;
 };
 
 type SubmitFunction = () => void;
 
+/** The footer's primary button: Use this template, Next or Create Workflow. */
 const submit: SubmitFunction = (): void => {
   fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+};
+
+type SelectTemplateFunction = (templateId: string) => WorkflowTemplate;
+
+/** Pick a template and use it: the wizard moves on to Name. */
+const selectTemplate: SelectTemplateFunction = (
+  templateId: string,
+): WorkflowTemplate => {
+  const template: WorkflowTemplate = highlightTemplate(templateId);
+
+  submit();
+
+  return template;
 };
 
 type GoToConfigureFunction = (templateId: string) => WorkflowTemplate;
@@ -318,8 +358,17 @@ const getStepContent: GetStepContentFunction = (): HTMLElement => {
   return screen.getByTestId("workflow-wizard-step-content");
 };
 
-const TEMPLATE_CARD_TEST_ID_PREFIX: string = "workflow-template-card-";
-const VARIABLE_INPUT_TEST_ID_PREFIX: string = "workflow-variable-";
+type GetListboxFunction = () => HTMLElement;
+
+const getListbox: GetListboxFunction = (): HTMLElement => {
+  return screen.getByRole("listbox");
+};
+
+type GetPreviewFunction = () => HTMLElement;
+
+const getPreview: GetPreviewFunction = (): HTMLElement => {
+  return screen.getByTestId("workflow-template-preview");
+};
 
 type TestIdSuffixesFunction = (
   container: HTMLElement,
@@ -340,33 +389,43 @@ const testIdSuffixes: TestIdSuffixesFunction = (
     });
 };
 
-type SectionHeadingsFunction = () => Array<string>;
+type OptionIdsInFunction = (container: HTMLElement) => Array<string>;
 
-/** The section headings of the pick step, in the order they show. */
-const sectionHeadings: SectionHeadingsFunction = (): Array<string> => {
-  return within(getStepContent())
-    .queryAllByRole("heading")
-    .map((heading: HTMLElement): string => {
-      return heading.textContent || "";
+/** The ids of the templates listed in a part of the picker, in the order shown. */
+const optionIdsIn: OptionIdsInFunction = (
+  container: HTMLElement,
+): Array<string> => {
+  return testIdSuffixes(container, OPTION_TEST_ID_PREFIX);
+};
+
+type GroupNamesFunction = () => Array<string>;
+
+/** The headed parts of the list, in the order they show. */
+const groupNames: GroupNamesFunction = (): Array<string> => {
+  return within(getListbox())
+    .queryAllByRole("group")
+    .map((group: HTMLElement): string => {
+      return group.getAttribute("aria-label") || "";
     });
 };
 
-type SectionOfFunction = (heading: string) => HTMLElement;
+type ActiveOptionIdFunction = () => string | null;
 
-/** A pick-step section: its heading and the cards under it. */
-const sectionOf: SectionOfFunction = (heading: string): HTMLElement => {
-  return within(getStepContent()).getByRole("heading", { name: heading })
-    .parentElement as HTMLElement;
-};
+/** The template the list has highlighted. */
+const activeOptionId: ActiveOptionIdFunction = (): string | null => {
+  const active: Array<HTMLElement> = within(getListbox())
+    .queryAllByRole("option")
+    .filter((option: HTMLElement) => {
+      return option.getAttribute("aria-selected") === "true";
+    });
 
-type TemplateNamesFunction = (templateIds: Array<string>) => Array<string>;
+  expect(active.length).toBeLessThanOrEqual(1);
 
-const templateNames: TemplateNamesFunction = (
-  templateIds: Array<string>,
-): Array<string> => {
-  return templateIds.map((templateId: string): string => {
-    return getTemplate(templateId).name;
-  });
+  return active[0]
+    ? (active[0].getAttribute("data-testid") || "").slice(
+        OPTION_TEST_ID_PREFIX.length,
+      )
+    : null;
 };
 
 type ArgumentsOfComponentFunction = (
@@ -467,6 +526,20 @@ describe("CreateWorkflowModal standard form steps", () => {
     expect(within(progress).queryByText("Configure")).not.toBeInTheDocument();
   });
 
+  /*
+   * The rail sits beside a picker whose rows are as wide as their longest
+   * description. Free to shrink, it was squeezed until "Start from" broke
+   * over two lines.
+   */
+  test("the progress rail keeps its width beside the picker", () => {
+    renderModal();
+
+    expect(screen.getByTestId("workflow-wizard-steps")).toHaveStyle({
+      flex: "0 0 auto",
+    });
+    expect(getStepContent()).toHaveClass("min-w-0");
+  });
+
   test("only adds Configure for templates that declare variables", () => {
     renderModal();
 
@@ -498,6 +571,250 @@ describe("CreateWorkflowModal standard form steps", () => {
 
     expect(screen.getByTestId("workflow-template-search")).toBeInTheDocument();
     expectActiveStep("Start from");
+  });
+});
+
+describe("CreateWorkflowModal's Start from step", () => {
+  /*
+   * Two ways in, and one primary button: Use this template, in the footer.
+   * Start from scratch is the other way, drawn plain beside the search.
+   */
+  test("offers Start from scratch and Use this template, and only the second is primary", () => {
+    renderModal();
+
+    const useTemplate: HTMLElement = screen.getByTestId(
+      "modal-footer-submit-button",
+    );
+    const scratch: HTMLElement = screen.getByTestId(
+      "workflow-start-from-scratch",
+    );
+
+    expect(useTemplate).toHaveTextContent("Use this template");
+    expect(useTemplate).toBeEnabled();
+    expect(scratch).toHaveTextContent("Start from scratch");
+    expect(scratch.tagName).toBe("BUTTON");
+    expect(scratch).toHaveAttribute("aria-pressed", "false");
+    expect(scratch.className).not.toMatch(/bg-indigo-600/);
+    // No Back on the first step.
+    expect(
+      screen.queryByTestId("workflow-wizard-back"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("opens on the recommended templates, with the first one highlighted and previewed", () => {
+    renderModal();
+
+    expect(optionIdsIn(getListbox())).toEqual([
+      ...RECOMMENDED_WORKFLOW_TEMPLATE_IDS,
+    ]);
+    expect(activeOptionId()).toBe(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[0]);
+    expect(
+      within(getPreview()).getByRole("heading", {
+        name: getTemplate(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[0]!).name,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("the search box has the focus, so typing searches straight away", () => {
+    renderModal();
+
+    expect(screen.getByTestId("workflow-template-search")).toHaveFocus();
+  });
+
+  test("Use this template, with nothing picked, takes the highlighted first recommendation", () => {
+    renderModal();
+
+    submit();
+
+    const first: WorkflowTemplate = getTemplate(
+      RECOMMENDED_WORKFLOW_TEMPLATE_IDS[0]!,
+    );
+
+    expectActiveStep("Name");
+    expect(screen.getByTestId("workflow-name-input")).toHaveValue(
+      first.workflowName,
+    );
+    expect(screen.getByTestId("workflow-description-input")).toHaveValue(
+      first.workflowDescription,
+    );
+  });
+
+  test("Start from scratch moves on to Name with nothing filled in, and creates an empty, switched-off workflow", async () => {
+    const created: Workflow = createdWorkflow();
+
+    mockCreate.mockResolvedValue({ data: created });
+
+    const harness: ModalHarness = renderModal();
+
+    fireEvent.click(screen.getByTestId("workflow-start-from-scratch"));
+
+    expectActiveStep("Name");
+    expect(
+      within(getProgress()).queryByText("Configure"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("workflow-name-input")).toHaveValue("");
+    expect(screen.getByTestId("workflow-description-input")).toHaveValue("");
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      "Create Workflow",
+    );
+
+    fireEvent.change(screen.getByTestId("workflow-name-input"), {
+      target: { value: "My own workflow" },
+    });
+    submit();
+
+    await waitFor(() => {
+      expect(harness.onCreated).toHaveBeenCalledWith(created);
+    });
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+
+    const workflow: Workflow = (
+      mockCreate.mock.calls[0]?.[0] as ModelCreateArguments
+    ).model as Workflow;
+
+    expect(workflow.name).toBe("My own workflow");
+    expect(workflow.isEnabled).toBe(false);
+    expect(workflow.graph).toEqual({ nodes: [], edges: [] });
+  });
+
+  test("after Start from scratch, Back shows it as the start chosen", () => {
+    renderModal();
+
+    fireEvent.click(screen.getByTestId("workflow-start-from-scratch"));
+    fireEvent.click(screen.getByTestId("workflow-wizard-back"));
+
+    expect(screen.getByTestId("workflow-start-from-scratch")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  test("Enter in the search box uses the highlighted template", () => {
+    renderModal();
+    searchTemplates("discord");
+
+    fireEvent.keyDown(screen.getByTestId("workflow-template-search"), {
+      key: "Enter",
+    });
+
+    expectActiveStep("Name");
+    expect(screen.getByTestId("workflow-name-input")).toHaveValue(
+      getTemplate("incident-created-discord").workflowName,
+    );
+  });
+
+  test("a double-click on a template uses it", () => {
+    renderModal();
+    showView(WorkflowTemplateCategory.Monitors);
+
+    fireEvent.doubleClick(
+      screen.getByTestId(
+        `${OPTION_TEST_ID_PREFIX}monitor-status-changed-forward`,
+      ),
+    );
+
+    expectActiveStep("Name");
+    expect(screen.getByTestId("workflow-name-input")).toHaveValue(
+      getTemplate("monitor-status-changed-forward").workflowName,
+    );
+  });
+
+  test("Use this template is disabled when a search matches nothing", () => {
+    renderModal();
+    searchTemplates("pagerduty");
+
+    expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+    expect(screen.getByTestId("workflow-template-empty")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    expectActiveStep("Start from");
+  });
+
+  /*
+   * Escape clears a search first. Only an empty search lets it through to
+   * the dialog, which then closes.
+   */
+  test("Escape clears the search first, and closes the dialog only once it is empty", () => {
+    const harness: ModalHarness = renderModal();
+    const search: HTMLElement = screen.getByTestId("workflow-template-search");
+
+    searchTemplates("slack");
+    fireEvent.keyDown(search, { key: "Escape" });
+
+    expect(search).toHaveValue("");
+    expect(harness.onClose).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(search, { key: "Escape" });
+
+    expect(harness.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test("Back from Name finds the picker as it was left: the same search, category and template", () => {
+    renderModal();
+
+    searchTemplates("slack");
+    showView(WorkflowTemplateCategory.Monitors);
+    highlightTemplate("monitor-offline-only-slack");
+    submit();
+
+    expectActiveStep("Name");
+
+    fireEvent.click(screen.getByTestId("workflow-wizard-back"));
+
+    expectActiveStep("Start from");
+    expect(screen.getByTestId("workflow-template-search")).toHaveValue("slack");
+    expect(
+      screen.getByTestId(
+        workflowTemplateViewDomId(WorkflowTemplateCategory.Monitors),
+      ),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(activeOptionId()).toBe("monitor-offline-only-slack");
+  });
+
+  test("taking the same template again keeps the name typed for it", () => {
+    renderModal();
+    selectTemplate(SLACK_TEMPLATE_ID);
+
+    fireEvent.change(screen.getByTestId("workflow-name-input"), {
+      target: { value: "Page the team in #incidents" },
+    });
+    fireEvent.click(screen.getByTestId("workflow-wizard-back"));
+
+    submit();
+
+    expect(screen.getByTestId("workflow-name-input")).toHaveValue(
+      "Page the team in #incidents",
+    );
+  });
+
+  test("taking another template starts from that template's own suggestions", () => {
+    renderModal();
+    selectTemplate(SLACK_TEMPLATE_ID);
+
+    fireEvent.change(screen.getByTestId("workflow-name-input"), {
+      target: { value: "Page the team in #incidents" },
+    });
+    fireEvent.click(screen.getByTestId("workflow-wizard-back"));
+
+    selectTemplate("incident-created-teams");
+
+    expect(screen.getByTestId("workflow-name-input")).toHaveValue(
+      getTemplate("incident-created-teams").workflowName,
+    );
+  });
+
+  test("the Name step still says what the chosen template shows you", () => {
+    renderModal();
+    const template: WorkflowTemplate = selectTemplate("webhook-branch");
+
+    expect(
+      within(getStepContent()).getByText(template.name),
+    ).toBeInTheDocument();
+    expect(
+      within(getStepContent()).getByText(template.teaches),
+    ).toBeInTheDocument();
   });
 });
 
@@ -740,13 +1057,6 @@ describe("CreateWorkflowModal creation orchestration", () => {
   });
 });
 
-type CardNamesInFunction = (heading: string) => Array<string>;
-
-/** The template names on the cards under one heading, in the order they show. */
-const cardNamesIn: CardNamesInFunction = (heading: string): Array<string> => {
-  return testIdSuffixes(sectionOf(heading), TEMPLATE_CARD_TEST_ID_PREFIX);
-};
-
 type AcceptEveryCreateFunction = (created: Workflow) => void;
 
 /** The API accepts the workflow and every variable row the wizard sends after it. */
@@ -820,39 +1130,85 @@ const expectedJiraRow: ExpectedRowFunction = (name: string): WrittenRow => {
 };
 
 describe("CreateWorkflowModal Jira templates", () => {
-  test("the picker has a Jira section holding the seventeen Jira templates, the incident ones first", () => {
+  /*
+   * Seventeen Jira templates in one run read as a wall. The Jira category
+   * splits them by the record they work on, in the order the Jira guide
+   * lists them.
+   */
+  test("the Jira category holds the seventeen Jira templates: nine for incidents, then eight for alerts", () => {
     renderModal();
+    showView(WorkflowTemplateCategory.Jira);
 
     expect(JIRA_TEMPLATE_IDS).toHaveLength(17);
-    expect(cardNamesIn(WorkflowTemplateCategory.Jira)).toEqual(
-      templateNames(JIRA_TEMPLATE_IDS),
-    );
+    expect(groupNames()).toEqual([
+      INCIDENT_JIRA_KIND.part,
+      ALERT_JIRA_KIND.part,
+    ]);
+
+    for (const kind of JIRA_KINDS) {
+      expect(
+        optionIdsIn(
+          within(getListbox()).getByRole("group", { name: kind.part }),
+        ),
+      ).toEqual(kind.templateIds);
+    }
+
+    expect(
+      screen.getByTestId(
+        workflowTemplateViewDomId(WorkflowTemplateCategory.Jira),
+      ),
+    ).toHaveAccessibleName("Jira (17)");
   });
 
   /*
-   * The picker walks WorkflowTemplateCategories, not the templates, so a
-   * category missing from that list would hide all of its templates with no
-   * error anywhere.
+   * The picker lists the categories from WorkflowTemplateCategories, not from
+   * the templates, so a category missing from that list would hide all of its
+   * templates with no error anywhere.
    */
-  test("sections follow the declared category order, Jira included", () => {
+  test("the categories follow the declared order, between Recommended and All templates, Jira included", () => {
     renderModal();
 
-    expect(sectionHeadings()).toEqual([
-      "Blank",
+    const radios: Array<HTMLElement> = within(
+      screen.getByRole("radiogroup", { name: "Template categories" }),
+    ).getAllByRole("radio");
+
+    expect(
+      radios.map((radio: HTMLElement): string => {
+        return radio.getAttribute("data-testid") || "";
+      }),
+    ).toEqual([
+      workflowTemplateViewDomId(WorkflowTemplateCollection.Recommended),
       ...WorkflowTemplateCategories.filter(
         (category: WorkflowTemplateCategory) => {
           return getWorkflowTemplatesByCategory(category).length > 0;
         },
-      ),
+      ).map((category: WorkflowTemplateCategory): string => {
+        return workflowTemplateViewDomId(category);
+      }),
+      workflowTemplateViewDomId(WorkflowTemplateCollection.All),
     ]);
-    expect(sectionHeadings()).toContain(WorkflowTemplateCategory.Jira);
+    expect(
+      screen.getByTestId(
+        workflowTemplateViewDomId(WorkflowTemplateCategory.Jira),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("All templates lists the Jira templates under Jira, in the same order", () => {
+    renderModal();
+    showView(WorkflowTemplateCollection.All);
+
+    expect(groupNames()).toContain("Jira");
+    expect(
+      optionIdsIn(within(getListbox()).getByRole("group", { name: "Jira" })),
+    ).toEqual(JIRA_TEMPLATE_IDS);
   });
 
   /*
    * Search reads the name, description, teaches line and category, trimmed
-   * and case-insensitively. The category alone brings every Jira template
-   * back, and nothing outside Jira mentions it, so the result is exactly the
-   * Jira section — with no "Start from scratch" card above it.
+   * and case-insensitively. Every Jira template names Jira, and nothing
+   * outside Jira mentions it, so the results are exactly the seventeen, in
+   * the catalog's order: their names match equally well.
    */
   test("searching for jira shows exactly the seventeen Jira templates", () => {
     renderModal();
@@ -862,23 +1218,24 @@ describe("CreateWorkflowModal Jira templates", () => {
 
       expect({
         query: query,
-        headings: sectionHeadings(),
-        cards: testIdSuffixes(getStepContent(), TEMPLATE_CARD_TEST_ID_PREFIX),
+        results: optionIdsIn(getListbox()),
+        jiraCount: screen
+          .getByTestId(workflowTemplateViewDomId(WorkflowTemplateCategory.Jira))
+          .getAttribute("aria-label"),
       }).toEqual({
         query: query,
-        headings: [WorkflowTemplateCategory.Jira],
-        cards: templateNames(JIRA_TEMPLATE_IDS),
+        results: JIRA_TEMPLATE_IDS,
+        jiraCount: "Jira (17)",
       });
     }
   });
 
   /*
    * Someone looking for what OneUptime can do with alerts finds the Jira
-   * versions next to the alert templates they already know, under their own
-   * heading. The incident Jira templates never mention alerts, so they stay
-   * out of it.
+   * versions after the alert templates they already know. The incident Jira
+   * templates never mention alerts, so they stay out of it.
    */
-  test("searching for alert shows the alert Jira templates under Jira, after the Alerts templates", () => {
+  test("searching for alert shows the Alerts templates, then the alert Jira templates", () => {
     renderModal();
 
     const alertCategoryTemplateIds: Array<string> =
@@ -895,80 +1252,116 @@ describe("CreateWorkflowModal Jira templates", () => {
 
       expect({
         query: query,
-        headings: sectionHeadings(),
-        alerts: cardNamesIn(WorkflowTemplateCategory.Alerts),
-        jira: cardNamesIn(WorkflowTemplateCategory.Jira),
+        results: optionIdsIn(getListbox()),
       }).toEqual({
         query: query,
-        headings: [
-          WorkflowTemplateCategory.Alerts,
-          WorkflowTemplateCategory.Jira,
-        ],
-        alerts: templateNames(alertCategoryTemplateIds),
-        jira: templateNames(ALERT_JIRA_KIND.templateIds),
+        results: [...alertCategoryTemplateIds, ...ALERT_JIRA_KIND.templateIds],
       });
     }
   });
 
   /*
    * Each kind's text names only its own record, so searching for one never
-   * turns up the other's Jira templates — someone after the alert versions
-   * does not have to pick them out from among the incident ones.
+   * turns up the other's Jira templates. Narrowed to Jira, the search shows
+   * exactly that kind's.
    */
   test.each(JIRA_KINDS)(
-    "searching for $noun leaves only the $noun templates in the Jira section",
+    "searching for $noun, narrowed to Jira, leaves only the $noun templates",
     (kind: JiraKind) => {
       renderModal();
       searchTemplates(kind.noun);
+      showView(WorkflowTemplateCategory.Jira);
 
-      expect(cardNamesIn(WorkflowTemplateCategory.Jira)).toEqual(
-        templateNames(kind.templateIds),
-      );
+      expect(optionIdsIn(getListbox())).toEqual(kind.templateIds);
     },
   );
 
   /*
-   * The badge is how someone can tell, before choosing, which Jira templates
-   * need a Jira API token. The four webhook-only ones need nothing at all.
+   * The preview is how someone can tell, before choosing, which Jira
+   * templates need a Jira API token. The four webhook-only ones need nothing
+   * at all.
    */
-  test("each Jira card says how many settings it needs", () => {
+  test("each Jira template's preview lists the settings it will ask for", () => {
     renderModal();
+    showView(WorkflowTemplateCategory.Jira);
 
-    const expectedBadges: Record<string, string | null> = {
-      "jira-create-issue-for-incident": "Needs 5 settings",
-      "jira-transition-issue-on-incident-state": "Needs 2 settings",
-      "jira-comment-from-incident-private-note": "Needs 2 settings",
-      "jira-comment-from-incident-public-note": "Needs 2 settings",
-      "jira-comment-on-incident-update": "Needs 2 settings",
-      "jira-declare-incident-from-issue": "Needs 2 settings",
-      "jira-status-to-incident-state": null,
-      "jira-comment-to-incident-private-note": "Needs 2 settings",
-      "jira-issue-changes-to-incident-private-note": null,
-      "jira-create-issue-for-alert": "Needs 5 settings",
-      "jira-transition-issue-on-alert-state": "Needs 2 settings",
-      "jira-comment-from-alert-private-note": "Needs 2 settings",
-      "jira-comment-on-alert-update": "Needs 2 settings",
-      "jira-create-alert-from-issue": "Needs 2 settings",
-      "jira-status-to-alert-state": null,
-      "jira-comment-to-alert-private-note": "Needs 2 settings",
-      "jira-issue-changes-to-alert-private-note": null,
+    const expectedSettings: Record<string, Array<string>> = {
+      "jira-create-issue-for-incident": Object.keys(JIRA_VALUES),
+      "jira-transition-issue-on-incident-state": [
+        "jiraBaseUrl",
+        JIRA_TOKEN_VARIABLE,
+      ],
+      "jira-comment-from-incident-private-note": [
+        "jiraBaseUrl",
+        JIRA_TOKEN_VARIABLE,
+      ],
+      "jira-comment-from-incident-public-note": [
+        "jiraBaseUrl",
+        JIRA_TOKEN_VARIABLE,
+      ],
+      "jira-comment-on-incident-update": ["jiraBaseUrl", JIRA_TOKEN_VARIABLE],
+      "jira-declare-incident-from-issue": ["jiraBaseUrl", JIRA_TOKEN_VARIABLE],
+      "jira-status-to-incident-state": [],
+      "jira-comment-to-incident-private-note": [
+        "jiraBaseUrl",
+        JIRA_TOKEN_VARIABLE,
+      ],
+      "jira-issue-changes-to-incident-private-note": [],
+      "jira-create-issue-for-alert": Object.keys(JIRA_VALUES),
+      "jira-transition-issue-on-alert-state": [
+        "jiraBaseUrl",
+        JIRA_TOKEN_VARIABLE,
+      ],
+      "jira-comment-from-alert-private-note": [
+        "jiraBaseUrl",
+        JIRA_TOKEN_VARIABLE,
+      ],
+      "jira-comment-on-alert-update": ["jiraBaseUrl", JIRA_TOKEN_VARIABLE],
+      "jira-create-alert-from-issue": ["jiraBaseUrl", JIRA_TOKEN_VARIABLE],
+      "jira-status-to-alert-state": [],
+      "jira-comment-to-alert-private-note": [
+        "jiraBaseUrl",
+        JIRA_TOKEN_VARIABLE,
+      ],
+      "jira-issue-changes-to-alert-private-note": [],
     };
 
-    expect(Object.keys(expectedBadges)).toEqual(JIRA_TEMPLATE_IDS);
+    expect(Object.keys(expectedSettings)).toEqual(JIRA_TEMPLATE_IDS);
 
     for (const templateId of JIRA_TEMPLATE_IDS) {
-      const card: HTMLElement = screen.getByTestId(
-        `${TEMPLATE_CARD_TEST_ID_PREFIX}${getTemplate(templateId).name}`,
-      );
+      highlightTemplate(templateId);
+
+      const preview: HTMLElement = getPreview();
 
       expect({
         template: templateId,
-        badge: within(card).queryByText(/^Needs \d+ settings?$/)?.textContent,
+        settings: testIdSuffixes(preview, "workflow-template-preview-setting-"),
+        saysNothingToFill: Boolean(
+          within(preview).queryByTestId(
+            "workflow-template-preview-no-settings",
+          ),
+        ),
       }).toEqual({
         template: templateId,
-        badge: expectedBadges[templateId] || undefined,
+        settings: expectedSettings[templateId],
+        saysNothingToFill: expectedSettings[templateId]?.length === 0,
       });
     }
+  });
+
+  test("the preview marks the Jira API token as the secret among the settings", () => {
+    renderModal();
+    highlightTemplate(INCIDENT_JIRA_KIND.createIssueTemplateId);
+
+    const token: HTMLElement = screen.getByTestId(
+      `workflow-template-preview-setting-${JIRA_TOKEN_VARIABLE}`,
+    );
+    const siteUrl: HTMLElement = screen.getByTestId(
+      "workflow-template-preview-setting-jiraBaseUrl",
+    );
+
+    expect(token).toHaveTextContent("Secret");
+    expect(siteUrl).not.toHaveTextContent("Secret");
   });
 
   describe.each(JIRA_KINDS)(
