@@ -440,10 +440,10 @@ function renderOAuthProviderHint(
 
 /*
  * The provider picker. Not a column: it only fills in the form, through
- * applyOAuthIdentityProviderPreset, and the create form drops it from the
- * request before the variable is saved. It is registered against the token
- * URL column (overrideField) because that is what it fills in, so whoever may
- * not set the token URL is not offered it either.
+ * applyOAuthIdentityProviderPreset, and is never sent (formOnly). It is
+ * registered against the token URL column (overrideField) because that is
+ * what it fills in, so whoever may not set the token URL is not offered it
+ * either.
  */
 export function getOAuthIdentityProviderFormField(data?: {
   stepId?: string | undefined;
@@ -453,6 +453,7 @@ export function getOAuthIdentityProviderFormField(data?: {
       oauthTokenUrl: true,
     },
     overrideFieldKey: OAUTH_IDENTITY_PROVIDER_FIELD_KEY,
+    formOnly: true,
     title: "Identity Provider",
     stepId: data?.stepId,
     description:

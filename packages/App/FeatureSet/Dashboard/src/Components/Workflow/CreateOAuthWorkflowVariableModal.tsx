@@ -7,12 +7,11 @@
  *
  * It walks four steps (OAUTH_VARIABLE_FORM_STEPS): Variable, Provider,
  * Credentials and Advanced. Picking an identity provider fills in its token
- * URL; the provider itself is not saved, so it is taken out of the request
- * here and the variable is created exactly as before the form had steps.
+ * URL; the provider itself is a form-only field, never sent, so the variable
+ * is created exactly as before the form had steps.
  */
 
 import React, { FunctionComponent, ReactElement } from "react";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { WorkflowVariableType } from "Common/Types/Workflow/WorkflowVariableOAuth";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -23,7 +22,6 @@ import {
   OAUTH_VARIABLE_FORM_STEPS,
   getOAuthVariableCreateFormFields,
 } from "../../Utils/Workflow/WorkflowVariableUtil";
-import { OAUTH_IDENTITY_PROVIDER_FIELD_KEY } from "../../Utils/Workflow/OAuthIdentityProviders";
 
 export interface ComponentProps {
   /*
@@ -50,21 +48,12 @@ const CreateOAuthWorkflowVariableModal: FunctionComponent<ComponentProps> = (
       submitButtonText="Create OAuth 2.0 Variable"
       onClose={props.onClose}
       onSuccess={props.onSuccess}
-      onBeforeCreate={(
-        item: WorkflowVariable,
-        miscDataProps: JSONObject,
-      ): Promise<WorkflowVariable> => {
+      onBeforeCreate={(item: WorkflowVariable): Promise<WorkflowVariable> => {
         item.variableType = WorkflowVariableType.OAuth2;
 
         if (props.workflowId) {
           item.workflowId = props.workflowId;
         }
-
-        /*
-         * The identity provider only filled in the form. It is no column of
-         * the variable, and the server has no use for it.
-         */
-        delete miscDataProps[OAUTH_IDENTITY_PROVIDER_FIELD_KEY];
 
         return Promise.resolve(item);
       }}

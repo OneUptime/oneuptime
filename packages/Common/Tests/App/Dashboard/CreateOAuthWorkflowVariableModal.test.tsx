@@ -32,6 +32,7 @@ type FormFieldEntry = {
   field?: Record<string, unknown> | undefined;
   overrideField?: Record<string, unknown> | undefined;
   overrideFieldKey?: string | undefined;
+  formOnly?: boolean | undefined;
   title?: string | undefined;
   stepId?: string | undefined;
   fieldType?: string | undefined;
@@ -637,6 +638,21 @@ describe("the identity provider", () => {
     expect(field.overrideFieldKey).toBe("oauthIdentityProvider");
   });
 
+  // It only fills in the form: ModelForm never sends a form-only field.
+  test("is form-only, so the request never carries it", () => {
+    expect(
+      formField(renderLocal().props, "oauthIdentityProvider").formOnly,
+    ).toBe(true);
+  });
+
+  test("is the only form-only field", () => {
+    for (const entry of renderLocal().props.formProps.fields) {
+      expect(Boolean(entry.formOnly)).toBe(
+        fieldName(entry) === "oauthIdentityProvider",
+      );
+    }
+  });
+
   test("fills in the token URL of the provider picked", () => {
     const props: CapturedModalProps = renderLocal().props;
 
@@ -1008,27 +1024,11 @@ describe("before the variable is created", () => {
     expect(result.variableType).toBe(WorkflowVariableType.OAuth2);
   });
 
-  /*
-   * The identity provider only fills in the form: it is no column, and the
-   * request goes out as it did before the form had a provider picker.
-   */
-  test("takes the identity provider out of the request, and nothing else", async () => {
-    const props: CapturedModalProps = renderLocal().props;
-
-    const miscDataProps: Record<string, unknown> = {
-      oauthIdentityProvider: "Microsoft Entra ID",
-      somethingElse: "kept",
-    };
-
-    await runBeforeCreate(props, new WorkflowVariable(), miscDataProps);
-
-    expect(miscDataProps).toEqual({ somethingElse: "kept" });
-  });
-
-  test("is fine with no misc data at all", async () => {
+  // The provider never reaches it: the field is form-only.
+  test("leaves the misc data alone", async () => {
     const props: CapturedModalProps = renderGlobal().props;
 
-    const miscDataProps: Record<string, unknown> = {};
+    const miscDataProps: Record<string, unknown> = { somethingElse: "kept" };
 
     const result: WorkflowVariable = await runBeforeCreate(
       props,
@@ -1036,7 +1036,7 @@ describe("before the variable is created", () => {
       miscDataProps,
     );
 
-    expect(miscDataProps).toEqual({});
+    expect(miscDataProps).toEqual({ somethingElse: "kept" });
     expect(result.variableType).toBe(WorkflowVariableType.OAuth2);
   });
 
