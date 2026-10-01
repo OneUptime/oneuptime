@@ -7,7 +7,9 @@ import {
   KubernetesAiAutomaticInvestigationSettings,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  KUBECTL_ALLOW_WRITES_ENV,
   KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
+  KUBERNETES_AI_AGENT_DISPLAY_NAME,
   getKubernetesAiAccessTargetKind,
   isKubernetesAgentRunnerName,
   isKubernetesAgentRunnerPosture,
@@ -545,7 +547,7 @@ export function getAttentionGaps(
 }
 
 /*
- * The one action a "Needs attention" row offers, or null when its next
+ * The one action a "Needs attention" step offers, or null when its next
  * step is a command already on the page (install, logs, write access).
  */
 export type AiAgentGapAction =
@@ -583,6 +585,191 @@ export function getAiAgentGapAction(
     default:
       return null;
   }
+}
+
+/*
+ * "Needs attention" is one item, not a row per gap: a headline saying what
+ * OneUptime AI cannot do on this cluster, then the steps that fix it — the
+ * same item the other resources' AI agent pages show.
+ *
+ * The headline reads what each gap blocks. Fixes only count while they are
+ * on: a missing agent blocks both investigation and fixes for the server,
+ * but "can't run fixes" says nothing to someone who turned fixes off.
+ */
+export function getAiAgentAttentionTitle(
+  status: KubernetesClusterAiAccessStatus,
+): string {
+  const gaps: Array<KubernetesAiAccessGap> = getAttentionGaps(status);
+  const blocksInvestigation: boolean = gaps.some(
+    (gap: KubernetesAiAccessGap): boolean => {
+      return gap.blocks === "investigation" || gap.blocks === "both";
+    },
+  );
+  const blocksFixes: boolean = gaps.some(
+    (gap: KubernetesAiAccessGap): boolean => {
+      return gap.blocks === "remediation" || gap.blocks === "both";
+    },
+  );
+  // A mode this build does not know reads as off, like the settings card.
+  const areFixesOn: boolean =
+    Object.values(KubernetesAiRemediationMode).includes(
+      status.remediationMode,
+    ) && status.remediationMode !== KubernetesAiRemediationMode.Disabled;
+
+  if (blocksInvestigation && blocksFixes && areFixesOn) {
+    return "OneUptime AI can't investigate this cluster or run fixes on it";
+  }
+
+  if (blocksInvestigation) {
+    return "OneUptime AI can't investigate this cluster";
+  }
+
+  if (blocksFixes) {
+    return "OneUptime AI can't run fixes on this cluster";
+  }
+
+  return "OneUptime AI can't do all of its job on this cluster";
+}
+
+// The server's own words, for a gap this page has none for.
+function getServerStepText(gap: KubernetesAiAccessGap): string {
+  return gap.nextStep || gap.title;
+}
+
+/*
+ * A Runner gap, for the Runner the cluster is reached through. The previous
+ * in-cluster Runner is not fixed but replaced: the chart upgrade the card
+ * shows moves the cluster to its AI agent. A Runner an operator bound is
+ * fixed on the Runner, or swapped for a credential or the AI agent in the
+ * Change modal.
+ */
+function getRunnerStepText(
+  gap: KubernetesAiAccessGap,
+  status: KubernetesClusterAiAccessStatus,
+): string {
+  if (isLegacyRunnerTarget(status)) {
+    return `Upgrade the Kubernetes agent chart with the command above. The ${KUBERNETES_AI_AGENT_DISPLAY_NAME} replaces the previous in-cluster Runner.`;
+  }
+
+  if (!isAdvancedRunnerTarget(status)) {
+    return getServerStepText(gap);
+  }
+
+  switch (gap.code) {
+    case "runner_offline":
+      return "Start the Runner and make sure it can reach your OneUptime URL.";
+    case "runner_ai_commands_disabled":
+      return 'Turn on "Runs AI Remediation Commands" on the Runner.';
+    case "credential_on_agent_runner":
+      return `With Change below, choose a Runner created in the dashboard, or clear the Runner to use the ${KUBERNETES_AI_AGENT_DISPLAY_NAME}.`;
+    default:
+      // credential_missing, and a Runner that did not say which cluster.
+      return `With Change below, choose a Kubernetes credential the Runner may use, or clear the Runner to use the ${KUBERNETES_AI_AGENT_DISPLAY_NAME}.`;
+  }
+}
+
+/*
+ * One gap as a step, in this page's words. The server's next steps are
+ * written for every surface that shows a gap (incident pages, the
+ * investigation panel), so they send the reader to "the cluster's AI agent
+ * page (AI → Agent)" — this page — and repeat the helm command the agent
+ * card already shows. Here a step points at what is on the page instead. A
+ * gap this build does not know keeps the server's next step.
+ */
+export function getAiAgentAttentionStepText(
+  gap: KubernetesAiAccessGap,
+  status: KubernetesClusterAiAccessStatus,
+  now: Date = OneUptimeDate.getCurrentDate(),
+): string {
+  const agentName: string = KUBERNETES_AI_AGENT_DISPLAY_NAME;
+
+  switch (gap.code) {
+    case "ai_agent_not_connected":
+    case "no_runner_bound":
+      return `Install the ${agentName} with the command above.`;
+    case "ai_agent_offline":
+      // Right after a sign-off or reset the card says it reconnects itself.
+      return getAiAgentOfflineReason(status, now) === "signed_off"
+        ? `Wait a few minutes for the ${agentName} to reconnect. If it does not, its logs say why (the command is above).`
+        : `Bring the ${agentName} back online. Its logs say why it is offline (the command is above).`;
+    case "runner_missing":
+      return "Reload this page. The Runner this cluster was bound to was just deleted.";
+    case "runner_cluster_mismatch":
+      return getKubernetesAiAccessTargetKind(status.runner) === "ai_agent"
+        ? `Reset the ${agentName}. It reconnects on its own within a few minutes.`
+        : getRunnerStepText(gap, status);
+    case "runner_offline":
+    case "runner_ai_commands_disabled":
+    case "credential_missing":
+    case "credential_on_agent_runner":
+      return getRunnerStepText(gap, status);
+    case "investigation_disabled":
+      return "Turn on AI investigation with kubectl.";
+    case "remediation_write_access_missing":
+      // The commands are below for the agent and the previous Runner alike.
+      if (shouldShowWriteAccessCommands(status)) {
+        return isLegacyRunnerTarget(status)
+          ? `Upgrade to the ${agentName} with write access, using the commands below.`
+          : `Give the ${agentName} write access with the commands below.`;
+      }
+      return isAdvancedRunnerTarget(status)
+        ? `Set ${KUBECTL_ALLOW_WRITES_ENV}=true on the Runner's host and restart it.`
+        : getServerStepText(gap);
+    case "project_ai_disabled":
+      return "Turn on AI for this project.";
+    case "project_auto_remediation_disabled":
+      return "Turn on auto-remediation for this project.";
+    case "project_ai_command_execution_disabled":
+      return "Turn on AI command execution for this project.";
+    case "llm_provider_missing":
+      return "Add an AI provider for this project, or use OneUptime AI credits.";
+    case "ai_balance_insufficient":
+      return "Add AI credits to this project, or turn on auto-recharge.";
+    case "last_access_check_failed":
+      // Nothing to test before anything can reach the cluster.
+      return status.runner
+        ? "Test the connection again."
+        : getServerStepText(gap);
+    default:
+      return getServerStepText(gap);
+  }
+}
+
+export interface AiAgentAttentionStep {
+  gap: KubernetesAiAccessGap;
+  text: string;
+  action: AiAgentGapAction | null;
+}
+
+export interface AiAgentAttention {
+  title: string;
+  steps: Array<AiAgentAttentionStep>;
+}
+
+/*
+ * The "Needs attention" item, or null when there is nothing to show: one
+ * step per gap, in the server's order.
+ */
+export function getAiAgentAttention(
+  status: KubernetesClusterAiAccessStatus,
+  now: Date = OneUptimeDate.getCurrentDate(),
+): AiAgentAttention | null {
+  const gaps: Array<KubernetesAiAccessGap> = getAttentionGaps(status);
+
+  if (gaps.length === 0) {
+    return null;
+  }
+
+  return {
+    title: getAiAgentAttentionTitle(status),
+    steps: gaps.map((gap: KubernetesAiAccessGap): AiAgentAttentionStep => {
+      return {
+        gap,
+        text: getAiAgentAttentionStepText(gap, status, now),
+        action: getAiAgentGapAction(gap, status),
+      };
+    }),
+  };
 }
 
 /*

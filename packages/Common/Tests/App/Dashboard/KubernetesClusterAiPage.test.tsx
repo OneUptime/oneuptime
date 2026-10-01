@@ -89,7 +89,8 @@ jest.mock("react-i18next", () => {
  * the permission snapshot stubbed. It is three cards at most: the
  * "Kubernetes AI agent" card in each of its states (connected, offline,
  * not installed, the previous in-cluster Runner, an advanced Runner),
- * "Needs attention" only when the server has gaps, and "What AI may do"
+ * "Needs attention" only when the server has gaps — as ONE item: a
+ * headline and a short step per gap — and "What AI may do"
  * with its Change modal — whose loosening rules, confirmations and
  * advanced-binding pickers carry over from the old AI page, with Off ->
  * enabled now needing the admin set.
@@ -1136,7 +1137,7 @@ describe("Needs attention", () => {
     expect(screen.getByTestId("ai-agent-ready")).toBeInTheDocument();
   });
 
-  test("lists one row per server gap with its title and next step", async () => {
+  test("merges every server gap into one item: a headline, then a numbered step each", async () => {
     serve(
       makeStatus({
         isInvestigationReady: false,
@@ -1149,15 +1150,331 @@ describe("Needs attention", () => {
     );
     openAgentPage();
 
-    const list: HTMLElement = await findTestId("ai-agent-gaps");
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    expect(screen.getAllByTestId("ai-agent-attention")).toHaveLength(1);
     expect(screen.getByText(GAPS_CARD_TITLE)).toBeInTheDocument();
-    const rows: Array<HTMLElement> = within(list).getAllByRole("listitem");
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toHaveTextContent("Title of ai_balance_insufficient");
-    expect(rows[0]).toHaveTextContent("Next step for ai_balance_insufficient");
-    expect(rows[1]).toHaveTextContent("Title of llm_provider_missing");
+    expect(
+      within(item).getByTestId("ai-agent-attention-title"),
+    ).toHaveTextContent("OneUptime AI can't investigate this cluster");
+
+    // The fixes-off choice is not a step.
+    const steps: Array<HTMLElement> = within(
+      within(item).getByTestId("ai-agent-gaps"),
+    ).getAllByRole("listitem");
+    expect(steps).toHaveLength(2);
+    expect(steps[0]).toHaveAttribute(
+      "data-testid",
+      "ai-agent-gap-ai_balance_insufficient",
+    );
+    expect(
+      within(steps[0]!).getByTestId("ai-agent-gap-number"),
+    ).toHaveTextContent("1.");
+    expect(steps[0]).toHaveTextContent(
+      "Add AI credits to this project, or turn on auto-recharge.",
+    );
+    expect(steps[1]).toHaveAttribute(
+      "data-testid",
+      "ai-agent-gap-llm_provider_missing",
+    );
+    expect(
+      within(steps[1]!).getByTestId("ai-agent-gap-number"),
+    ).toHaveTextContent("2.");
+    expect(steps[1]).toHaveTextContent(
+      "Add an AI provider for this project, or use OneUptime AI credits.",
+    );
+
+    // Not a row per gap with the server's title and next step any more.
+    expect(item).not.toHaveTextContent("Title of");
+    expect(item).not.toHaveTextContent("Next step for");
+    expect(screen.queryByText(/Each item stops/)).not.toBeInTheDocument();
     // Not ready: no ready line either.
     expect(screen.queryByTestId("ai-agent-ready")).not.toBeInTheDocument();
+  });
+
+  test("a new cluster: what is wrong in one line, and the two steps that fix it", async () => {
+    serve(
+      notInstalledStatus({
+        isInvestigationEnabled: false,
+        // The server's own words, written for every surface that shows them.
+        gaps: [
+          {
+            code: "ai_agent_not_connected",
+            title: "The Kubernetes AI agent is not connected",
+            description:
+              "OneUptime AI runs kubectl on this cluster through the Kubernetes AI agent, and no agent has connected for this cluster yet.",
+            nextStep: `Install the Kubernetes AI agent (use your own release name and namespace if they differ):\n\n${getAiAgentHelmCommands().install}\n\nAlready installed? Check its logs: kubectl logs -n <namespace> -l component=ai-agent --tail=100`,
+            blocks: "both",
+          },
+          {
+            code: "investigation_disabled",
+            title: "AI investigation is turned off for this cluster",
+            description:
+              "OneUptime AI will investigate incidents and alerts on this cluster with OneUptime data only — it will not run kubectl.",
+            nextStep:
+              'Turn on "Investigate with kubectl" on the cluster\'s AI agent page (AI → Agent).',
+            blocks: "investigation",
+          },
+          {
+            code: "remediation_disabled",
+            title: "AI fixes are turned off for this cluster",
+            description:
+              "OneUptime AI will diagnose but never propose or apply a fix on this cluster.",
+            nextStep:
+              'Set "Fixes" to "Ask for approval", "Automatic" or "Bypass approval" on the cluster\'s AI agent page (AI → Agent).',
+            blocks: "remediation",
+          },
+        ],
+      }),
+    );
+    openAgentPage();
+
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    expect(
+      within(item).getByTestId("ai-agent-attention-title"),
+    ).toHaveTextContent("OneUptime AI can't investigate this cluster");
+    const steps: Array<HTMLElement> = within(item).getAllByRole("listitem");
+    expect(steps).toHaveLength(2);
+    expect(steps[0]).toHaveTextContent(
+      "Install the Kubernetes AI agent with the command above.",
+    );
+    expect(within(steps[0]!).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(steps[0]!).queryByRole("link")).not.toBeInTheDocument();
+    expect(steps[1]).toHaveTextContent(
+      "Turn on AI investigation with kubectl.",
+    );
+
+    // Nothing sends the reader to the page they are on, or repeats a command.
+    expect(item).not.toHaveTextContent("AI → Agent");
+    expect(item).not.toHaveTextContent("AI agent page");
+    expect(item).not.toHaveTextContent("helm");
+    expect(item).not.toHaveTextContent("kubectl logs");
+
+    // The command it points at is on the page, above it.
+    const install: HTMLElement = screen.getByTestId("ai-agent-install-command");
+    expect(codeIn(install)).toBe(getAiAgentHelmCommands().install);
+    expect(
+      install.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.click(
+      within(steps[1]!).getByTestId("ai-agent-gap-turn-on-investigation"),
+    );
+    expect(await waitForOneUpdate()).toEqual({
+      isAiInvestigationEnabled: true,
+    });
+    expect(await findTestId("ai-agent-action-notice")).toHaveTextContent(
+      "AI may now investigate this cluster with kubectl.",
+    );
+  });
+
+  test("a single gap is a single sentence, without a number", async () => {
+    serve(
+      makeStatus({
+        isInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps: [gap("investigation_disabled", "investigation")],
+      }),
+    );
+    openAgentPage();
+
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    expect(within(item).getAllByRole("listitem")).toHaveLength(1);
+    expect(
+      within(item).queryByTestId("ai-agent-gap-number"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(item).getByTestId("ai-agent-gap-investigation_disabled"),
+    ).toHaveTextContent("Turn on AI investigation with kubectl.");
+  });
+
+  test("fixes on and nothing installed: the headline names both", async () => {
+    serve(
+      notInstalledStatus({
+        remediationMode: KubernetesAiRemediationMode.RequireApproval,
+      }),
+    );
+    openAgentPage();
+
+    expect(await findTestId("ai-agent-attention-title")).toHaveTextContent(
+      "OneUptime AI can't investigate this cluster or run fixes on it",
+    );
+    expect(
+      screen.getByTestId("ai-agent-gap-ai_agent_not_connected"),
+    ).toHaveTextContent(
+      "Install the Kubernetes AI agent with the command above.",
+    );
+  });
+
+  test("fixes on with a read-only agent: only fixes are blocked, and the commands are below", async () => {
+    serve(
+      makeStatus({
+        remediationMode: KubernetesAiRemediationMode.RequireApproval,
+        gaps: [gap("remediation_write_access_missing", "remediation")],
+      }),
+    );
+    openAgentPage();
+
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    expect(
+      within(item).getByTestId("ai-agent-attention-title"),
+    ).toHaveTextContent("OneUptime AI can't run fixes on this cluster");
+    const step: HTMLElement = within(item).getByTestId(
+      "ai-agent-gap-remediation_write_access_missing",
+    );
+    expect(step).toHaveTextContent(
+      "Give the Kubernetes AI agent write access with the commands below.",
+    );
+    expect(within(step).queryByRole("button")).not.toBeInTheDocument();
+    // Investigation still works, so the agent card still says it is ready.
+    expect(screen.getByTestId("ai-agent-ready")).toBeInTheDocument();
+    const writeCommands: HTMLElement = screen.getByTestId(
+      "ai-access-write-commands",
+    );
+    expect(
+      item.compareDocumentPosition(writeCommands) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("an offline agent: bring it back, with the logs command above", async () => {
+    serve(
+      makeStatus(
+        {
+          isInvestigationReady: false,
+          gaps: [gap("ai_agent_offline")],
+        },
+        silentAgent(),
+      ),
+    );
+    openAgentPage();
+
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    expect(
+      within(item).getByTestId("ai-agent-attention-title"),
+    ).toHaveTextContent("OneUptime AI can't investigate this cluster");
+    expect(item).toHaveTextContent(
+      "Bring the Kubernetes AI agent back online. Its logs say why it is offline (the command is above).",
+    );
+    expect(
+      screen
+        .getByTestId("ai-agent-logs-command")
+        .compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("an agent that just signed off: wait for it, as the card says", async () => {
+    serve(
+      makeStatus(
+        {
+          isInvestigationReady: false,
+          gaps: [gap("ai_agent_offline")],
+        },
+        signedOffAgent(),
+      ),
+    );
+    openAgentPage();
+
+    expect(await findTestId("ai-agent-gap-ai_agent_offline")).toHaveTextContent(
+      "Wait a few minutes for the Kubernetes AI agent to reconnect. If it does not, its logs say why (the command is above).",
+    );
+    expect(screen.getByTestId("ai-agent-sentence")).toHaveTextContent(
+      AI_AGENT_SIGNED_OFF_TEXT,
+    );
+  });
+
+  test("the previous in-cluster Runner offline: upgrade with the command above", async () => {
+    serve(
+      legacyStatus({
+        runner: {
+          ...legacyStatus().runner!,
+          isOnline: false,
+          lastAliveAt: minutesAgo(20),
+        },
+        isInvestigationReady: false,
+        gaps: [gap("runner_offline")],
+      }),
+    );
+    openAgentPage();
+
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    const step: HTMLElement = within(item).getByTestId(
+      "ai-agent-gap-runner_offline",
+    );
+    expect(step).toHaveTextContent(
+      "Upgrade the Kubernetes agent chart with the command above. The Kubernetes AI agent replaces the previous in-cluster Runner.",
+    );
+    // Nothing to fix on a Runner that is being replaced.
+    expect(within(step).queryByRole("link")).not.toBeInTheDocument();
+    expect(within(step).queryByRole("button")).not.toBeInTheDocument();
+    expect(
+      screen
+        .getByTestId("ai-agent-install-command")
+        .compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a member gets the button they may use and is told who to ask for the rest, in the same item", async () => {
+    serve(
+      makeStatus({
+        isInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps: [
+          gap("investigation_disabled", "investigation"),
+          gap("llm_provider_missing"),
+        ],
+      }),
+    );
+    openAgentPage();
+
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    const investigation: HTMLElement = within(item).getByTestId(
+      "ai-agent-gap-investigation_disabled",
+    );
+    const provider: HTMLElement = within(item).getByTestId(
+      "ai-agent-gap-llm_provider_missing",
+    );
+    expect(
+      within(investigation).getByTestId("ai-agent-gap-turn-on-investigation"),
+    ).toBeInTheDocument();
+    expect(
+      within(investigation).queryByTestId("ai-agent-gap-ask"),
+    ).not.toBeInTheDocument();
+    expect(within(provider).getByTestId("ai-agent-gap-ask")).toHaveTextContent(
+      "Ask a project owner or admin.",
+    );
+    expect(
+      within(provider).queryByText("Open LLM Providers"),
+    ).not.toBeInTheDocument();
+    expect(within(item).getAllByTestId("ai-agent-gap-ask")).toHaveLength(1);
+  });
+
+  test("the item goes away once its last gap is fixed", async () => {
+    serve(
+      makeStatus({
+        isInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps: [gap("investigation_disabled", "investigation")],
+      }),
+    );
+    openAgentPage();
+
+    const button: HTMLElement = await findTestId(
+      "ai-agent-gap-turn-on-investigation",
+    );
+    // What the server says once investigation is on.
+    serve(makeStatus());
+    fireEvent.click(button);
+
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByTestId("ai-agent-attention"),
+        ).not.toBeInTheDocument();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(screen.queryByText(GAPS_CARD_TITLE)).not.toBeInTheDocument();
+    expect(await findTestId("ai-agent-ready")).toBeInTheDocument();
   });
 
   test("a cluster editor turns investigation on from its row", async () => {
@@ -1302,7 +1619,8 @@ describe("Needs attention", () => {
     const row: HTMLElement = await findTestId(
       "ai-agent-gap-last_access_check_failed",
     );
-    fireEvent.click(within(row).getByText("Test connection"));
+    expect(row).toHaveTextContent("Test the connection again.");
+    fireEvent.click(within(row).getByTestId("ai-agent-gap-test-connection"));
 
     await waitFor(
       () => {
@@ -1324,9 +1642,37 @@ describe("Needs attention", () => {
     openAgentPage();
 
     const row: HTMLElement = await findTestId("ai-agent-gap-runner_offline");
+    expect(row).toHaveTextContent(
+      "Start the Runner and make sure it can reach your OneUptime URL.",
+    );
     expect(
       within(row).getByText("View Runner").closest("a")?.getAttribute("href"),
     ).toBe(`/dashboard/${PROJECT_ID}/settings/runners/${HOST_RUNNER_ID}`);
+  });
+
+  test("an advanced Runner without a credential: choose one or clear it, with Change below", async () => {
+    serve(
+      advancedStatus({
+        accessMethod: "none",
+        credentialId: undefined,
+        credentialName: undefined,
+        isInvestigationReady: false,
+        gaps: [gap("credential_missing")],
+      }),
+    );
+    openAgentPage();
+
+    const item: HTMLElement = await findTestId("ai-agent-attention");
+    expect(
+      within(item).getByTestId("ai-agent-gap-credential_missing"),
+    ).toHaveTextContent(
+      "With Change below, choose a Kubernetes credential the Runner may use, or clear the Runner to use the Kubernetes AI agent.",
+    );
+    expect(
+      item.compareDocumentPosition(
+        screen.getByTestId("ai-access-change-button"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   test("the not-installed gap has no extra action: the command is on the card", async () => {
@@ -1335,6 +1681,9 @@ describe("Needs attention", () => {
 
     const row: HTMLElement = await findTestId(
       "ai-agent-gap-ai_agent_not_connected",
+    );
+    expect(row).toHaveTextContent(
+      "Install the Kubernetes AI agent with the command above.",
     );
     expect(within(row).queryByRole("button")).not.toBeInTheDocument();
     expect(within(row).queryByRole("link")).not.toBeInTheDocument();
