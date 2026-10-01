@@ -54,6 +54,8 @@ export enum IncomingEmailTriggerDeliveryStatus {
   NotIncomingEmailTrigger = "NotIncomingEmailTrigger",
   // The workflow is off, so it starts no runs.
   WorkflowDisabled = "WorkflowDisabled",
+  // The workflow is archived, so it starts no runs until it is unarchived.
+  WorkflowArchived = "WorkflowArchived",
 }
 
 /*

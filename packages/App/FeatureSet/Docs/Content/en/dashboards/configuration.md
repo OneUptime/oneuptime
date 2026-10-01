@@ -60,6 +60,14 @@ To copy an existing dashboard, open the dashboards list and pick **Duplicate**. 
 
 This is the right move when you want to fork a template (like "our on-call dashboard") into a service-specific copy.
 
+## Archiving a dashboard
+
+Archive a dashboard you don't use any more but want to keep. An archived dashboard leaves the **Dashboards** list and, if it is public, its public link stops working — its URL and custom domains answer "Dashboard not found". Its widgets, variables, branding, domains and public settings are all kept, so unarchiving it puts it back exactly as it was, public link included.
+
+To archive one dashboard, open it and go to **Settings → Archive dashboard**. To archive several, select them in the **Dashboards** list and choose **Archive**. To bring one back, open **Dashboards → Archived**, select it and choose **Unarchive**, or open it and click **Unarchive** on the banner at the top of its pages.
+
+Archiving is the reversible alternative to deleting: reach for it first when you're not sure.
+
 ## Deleting a dashboard
 
 Under **Dashboard → Delete**. This can't be undone — the dashboard's layout and any custom domains attached to it are removed. Your telemetry data is unaffected.

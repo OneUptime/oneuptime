@@ -11,6 +11,8 @@ import ModelProgress from "Common/UI/Components/ModelProgress/ModelProgress";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import { WORKFLOW_ARCHIVE_COPY } from "../../Components/Archive/ResourceArchiveCopy";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -56,6 +58,15 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ownerTeamModelType: WorkflowOwnerTeam,
       resourceIdField: "workflowId",
     });
+
+  // Archived workflows leave this list; they are on the Archived page.
+  const { archiveBulkActions } = useBulkArchiveActions<Workflow>({
+    modelType: Workflow,
+    singularName: WORKFLOW_ARCHIVE_COPY.singularName,
+    pluralName: WORKFLOW_ARCHIVE_COPY.pluralName,
+    archiveConfirmMessage: WORKFLOW_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+    unarchiveConfirmMessage: WORKFLOW_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+  });
 
   const workflowExtraFacets: Array<ResourceFacet> = [
     {
@@ -123,7 +134,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           topContent={filterBar}
           currentFacetState={facetSaveState}
           onFacetStateRestored={restoreFacetState}
-          query={mergeFiltersIntoQuery(undefined)}
+          query={mergeFiltersIntoQuery({ isArchived: false })}
           onFetchSuccess={(data: Array<Workflow>) => {
             onResourcesFetched(data);
           }}
@@ -143,7 +154,11 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
             setShowCreateModal(true);
           }}
           bulkActions={{
-            buttons: [...labelBulkActions, ...ownerBulkActions],
+            buttons: [
+              ...labelBulkActions,
+              ...ownerBulkActions,
+              ...archiveBulkActions,
+            ],
           }}
           name="Workflows"
           isViewable={true}

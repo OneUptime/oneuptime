@@ -16,6 +16,9 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import SnmpTrap from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorPauseState, {
+  MONITOR_PAUSE_FLAGS_SELECT,
+} from "Common/Utils/Monitor/MonitorPauseState";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceHydrationUtil, {
@@ -216,11 +219,7 @@ export async function processSnmpTrapFromQueue(
   let matchedSteps: number = 0;
 
   for (const monitor of monitors) {
-    if (
-      monitor.disableActiveMonitoring ||
-      monitor.disableActiveMonitoringBecauseOfManualIncident ||
-      monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
-    ) {
+    if (MonitorPauseState.isPaused(monitor)) {
       continue;
     }
 
@@ -376,9 +375,7 @@ const INCOMING_EMAIL_MONITOR_SELECT: Select<Monitor> = {
   projectId: true,
   incomingEmailSecretKey: true,
   incomingEmailCustomLocalPart: true,
-  disableActiveMonitoring: true,
-  disableActiveMonitoringBecauseOfManualIncident: true,
-  disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+  ...MONITOR_PAUSE_FLAGS_SELECT,
 };
 
 /*
@@ -553,13 +550,9 @@ export async function processIncomingEmailFromQueue(
    * the CheckOnlineStatus cron skips disabled monitors and resumes afterwards,
    * relying on that timestamp.
    */
-  if (
-    monitor.disableActiveMonitoring ||
-    monitor.disableActiveMonitoringBecauseOfManualIncident ||
-    monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
-  ) {
+  if (MonitorPauseState.isPaused(monitor)) {
     logger.debug(
-      `Incoming email received for disabled monitor ${monitor._id.toString()}. Skipping evaluation.`,
+      `Incoming email received for archived or disabled monitor ${monitor._id.toString()}. Skipping evaluation.`,
     );
     return;
   }

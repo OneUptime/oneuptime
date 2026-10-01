@@ -1,6 +1,7 @@
 import RunCron from "../../Utils/Cron";
 import OneUptimeDate from "Common/Types/Date";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { ON_CALL_POLICY_ARCHIVED_EXECUTION_STOPPED_MESSAGE } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import OnCallDutyPolicyEscalationRuleService from "Common/Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
@@ -45,6 +46,7 @@ RunCron(
           createdAt: true,
           onCallDutyPolicy: {
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
+            isArchived: true,
           },
           onCallPolicyExecutionRepeatCount: true,
         },
@@ -72,6 +74,26 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
 ): Promise<void> => {
   try {
     logger.debug(`Executing on-call policy execution log: ${executionLog.id}`);
+
+    /*
+     * The policy was archived while this execution was escalating: an
+     * archived policy pages no one, so it stops here. Whoever the earlier
+     * rules already paged was paged; nobody else is.
+     */
+    if (executionLog.onCallDutyPolicy?.isArchived === true) {
+      await OnCallDutyPolicyExecutionLogService.updateOneById({
+        id: executionLog.id!,
+        data: {
+          status: OnCallDutyPolicyStatus.Completed,
+          statusMessage: ON_CALL_POLICY_ARCHIVED_EXECUTION_STOPPED_MESSAGE,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return;
+    }
 
     // get trigger by alert
     if (executionLog.triggeredByAlertId) {

@@ -63,10 +63,13 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import WorkflowModel from "Common/Models/DatabaseModels/Workflow";
+import { WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE } from "Common/Types/Workflow/WorkflowArchive";
+import { subscribeToArchiveStateChanges } from "../../../Components/Archive/ArchiveStateEvents";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -87,6 +90,12 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [nodes, setNodes] = useState<Array<Node>>([]);
   const [edges, setEdges] = useState<Array<Edge>>([]);
   const [error, setError] = useState<string>("");
+  /*
+   * An archived workflow does not run, from any trigger, whatever its
+   * Enabled switch says. The banner above every one of its pages says so and
+   * offers Unarchive; the Builder only has to stop offering to turn it on.
+   */
+  const [isArchived, setIsArchived] = useState<boolean>(false);
   /*
    * The Webhook trigger's URL is built from this key, and its settings show,
    * copy and reset it. Only loaded when the user may read it: see
@@ -209,6 +218,32 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     },
   });
 
+  // Unarchived from the banner on this page: the Builder follows at once.
+  useEffect(() => {
+    return subscribeToArchiveStateChanges({
+      modelType: WorkflowModel,
+      modelId: modelId,
+      onChange: (newValue: boolean) => {
+        setIsArchived(newValue);
+      },
+    });
+  }, [modelId.toString()]);
+
+  /*
+   * A run of an archived workflow is refused by the server whether or not
+   * the workflow is on, so it is not held behind the "turn it on" dialog -
+   * turning it on would change the switch and still not run it. Say why
+   * instead, in the server's own words.
+   */
+  const refuseRunWhileArchived: () => boolean = (): boolean => {
+    if (!isArchived) {
+      return false;
+    }
+
+    setError(WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE);
+    return true;
+  };
+
   /*
    * Turning the workflow on or off is an edit of the workflow, gated like
    * one. Someone who may not still sees the switch, disabled, with the
@@ -261,6 +296,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           name: true,
           // Read by the Enabled switch and the notice shown while it is off.
           isEnabled: true,
+          isArchived: true,
           ...webhookSecretKeySelect,
           ...incomingEmailSecretKeySelect,
         },
@@ -279,6 +315,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           workflow.incomingEmailSecretKey?.toString() || "",
         );
         setWorkflowName(workflow.name || "");
+        setIsArchived(Boolean(workflow.isArchived));
         workflowEnabled.setLoadedIsEnabled(
           typeof workflow.isEnabled === "boolean" ? workflow.isEnabled : null,
         );
@@ -668,7 +705,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
          * Said up front, so nobody has to find out from a refused run that
          * the workflow is off, with the one thing to do about it.
          */}
-        {workflowEnabled.isEnabled === false ? (
+        {workflowEnabled.isEnabled === false && !isArchived ? (
           <div style={{ marginBottom: "0.75rem" }}>
             <WorkflowTurnedOffNotice
               onTurnOn={
@@ -756,6 +793,10 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               await saveGraph(nodes, edges);
             }}
             onRunStep={async (component: NodeDataProp) => {
+              if (refuseRunWhileArchived()) {
+                return;
+              }
+
               await workflowEnabled.run({
                 kind: WorkflowRunKind.Step,
                 stepTitle: component.metadata?.title || component.id,
@@ -765,6 +806,10 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               });
             }}
             onRun={async (component: NodeDataProp) => {
+              if (refuseRunWhileArchived()) {
+                return;
+              }
+
               await workflowEnabled.run({
                 kind: WorkflowRunKind.Workflow,
                 run: async (): Promise<void> => {

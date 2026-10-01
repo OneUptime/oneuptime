@@ -6,6 +6,8 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import ArchivedResourceBanner from "../../../Components/Archive/ArchivedResourceBanner";
+import { STATUS_PAGE_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
@@ -24,6 +26,11 @@ const StatusPageViewLayout: FunctionComponent<
       breadcrumbLinks={getStatusPagesBreadcrumbs(path)}
       sideMenu={<SideMenu modelId={modelId} />}
     >
+      <ArchivedResourceBanner<StatusPage>
+        modelType={StatusPage}
+        modelId={modelId}
+        copy={STATUS_PAGE_ARCHIVE_COPY}
+      />
       <Outlet />
     </ModelPage>
   );

@@ -154,11 +154,16 @@ export class Service extends DatabaseService<Model> {
           ipWhitelist: true,
           enableMasterPassword: true,
           masterPassword: true,
+          isArchived: true,
         },
       });
 
-      // If dashboard is not public, deny access
-      if (dashboard && !dashboard.isPublicDashboard) {
+      /*
+       * If dashboard is not public, deny access. An archived dashboard is
+       * not public either, whatever its public setting says: the setting is
+       * kept so unarchiving puts the public link back exactly as it was.
+       */
+      if (dashboard && (!dashboard.isPublicDashboard || dashboard.isArchived)) {
         return {
           hasReadAccess: false,
           error: new NotAuthenticatedException(

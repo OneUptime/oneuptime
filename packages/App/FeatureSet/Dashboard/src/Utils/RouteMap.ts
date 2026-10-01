@@ -9,6 +9,7 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_INOPERATIONAL]: "inoperational",
   [PageMap.MONITOR_CREATE]: "create",
   [PageMap.MONITORS_DISABLED]: "disabled",
+  [PageMap.MONITORS_ARCHIVED]: "archived",
   [PageMap.MONITORS_PROBE_DISCONNECTED]: "probe-disconnected",
   [PageMap.MONITORS_PROBE_DISABLED]: "probe-disabled",
   [PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
@@ -598,6 +599,7 @@ export const RumRoutePath: Dictionary<string> = {
 
 export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOWS_LOGS]: "logs",
+  [PageMap.WORKFLOWS_ARCHIVED]: "archived",
   [PageMap.WORKFLOWS_VARIABLES]: "variables",
   [PageMap.WORKFLOWS_VARIABLE_VIEW]: `variables/${RouteParams.ModelID}`,
   [PageMap.WORKFLOW_VARIABLES]: `${RouteParams.ModelID}/variables`,
@@ -767,6 +769,7 @@ export const LlmRoutePath: Dictionary<string> = {
 };
 
 export const DashboardsRoutePath: Dictionary<string> = {
+  [PageMap.DASHBOARDS_ARCHIVED]: "archived",
   [PageMap.DASHBOARD_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.DASHBOARD_VIEW_OVERVIEW]: `${RouteParams.ModelID}/overview`,
   [PageMap.DASHBOARD_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -785,6 +788,7 @@ export const DashboardsRoutePath: Dictionary<string> = {
 };
 
 export const StatusPagesRoutePath: Dictionary<string> = {
+  [PageMap.STATUS_PAGES_ARCHIVED]: "archived",
   [PageMap.STATUS_PAGE_ANNOUNCEMENTS]: "announcements",
   [PageMap.ANNOUNCEMENT_CREATE]: "announcements/create",
   [PageMap.ANNOUNCEMENT_VIEW]: `announcements/${RouteParams.ModelID}`,
@@ -1118,11 +1122,13 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_AUDIT_LOGS]: `schedules/${RouteParams.ModelID}/audit-logs`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS]: `schedules/${RouteParams.ModelID}/settings`,
   [PageMap.ON_CALL_DUTY_POLICIES]: "policies",
+  [PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED]: "policies/archived",
   [PageMap.ON_CALL_DUTY_READINESS]: "readiness",
   [PageMap.ON_CALL_DUTY_CALENDAR_FEEDS]: "calendar-feeds",
   [PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE]: "schedule-timeline",
   [PageMap.ON_CALL_DUTY_POLICY_VIEW]: `policies/${RouteParams.ModelID}`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: `policies/${RouteParams.ModelID}/delete`,
+  [PageMap.ON_CALL_DUTY_POLICY_VIEW_SETTINGS]: `policies/${RouteParams.ModelID}/settings`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]: `policies/${RouteParams.ModelID}/execution-logs`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS]: `policies/${RouteParams.ModelID}/custom-fields`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]: `policies/${RouteParams.ModelID}/execution-logs/${RouteParams.SubModelID}`,
@@ -1251,6 +1257,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_DISABLED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_DISABLED]
+    }`,
+  ),
+
+  [PageMap.MONITORS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_ARCHIVED]
     }`,
   ),
 
@@ -5341,6 +5353,12 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/dashboards`,
   ),
 
+  [PageMap.DASHBOARDS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARDS_ARCHIVED]
+    }`,
+  ),
+
   [PageMap.DASHBOARD_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/dashboards/${
       DashboardsRoutePath[PageMap.DASHBOARD_VIEW]
@@ -5433,6 +5451,12 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.STATUS_PAGES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages`,
+  ),
+
+  [PageMap.STATUS_PAGES_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGES_ARCHIVED]
+    }`,
   ),
 
   [PageMap.STATUS_PAGE_ANNOUNCEMENTS]: new Route(
@@ -5801,6 +5825,12 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`,
   ),
 
+  [PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED]
+    }`,
+  ),
+
   [PageMap.ON_CALL_DUTY_READINESS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_READINESS]
@@ -5884,6 +5914,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_POLICY_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_SETTINGS]
     }`,
   ),
 
@@ -6709,6 +6745,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.WORKFLOWS_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/workflows/${
       WorkflowRoutePath[PageMap.WORKFLOWS_LOGS]
+    }`,
+  ),
+
+  [PageMap.WORKFLOWS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/workflows/${
+      WorkflowRoutePath[PageMap.WORKFLOWS_ARCHIVED]
     }`,
   ),
 

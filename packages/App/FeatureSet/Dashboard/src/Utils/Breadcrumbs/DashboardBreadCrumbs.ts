@@ -9,6 +9,11 @@ export function getDashboardBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Dashboards",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARDS_ARCHIVED, [
+      "Project",
+      "Dashboards",
+      "Archived",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARD_VIEW, [
       "Project",
       "Dashboards",

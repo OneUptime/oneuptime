@@ -99,10 +99,18 @@ interface WorkflowRunOutcome {
   recentFailures: number;
 }
 
+/*
+ * An archived workflow never runs, whatever its enabled switch says. The list
+ * leaves archived workflows out (as the Workflows page does); read by id, one
+ * is still returned, flagged, so "why did this stop running?" has its answer.
+ */
+export const ARCHIVED_WORKFLOW_NOTE: string =
+  "This workflow is archived, so it does not run from any trigger. Unarchive it to run it again.";
+
 export const QueryWorkflowsTool: ObservabilityTool = {
   name: "query_workflows",
   description:
-    "Query automation workflows in this project. List mode returns each workflow (name, description, enabled) with its recent run outcomes — last run status/time and how many of the recent runs failed. Pass workflowId (from the list mode `id` field) to get detail mode: the workflow plus its most recent runs (status, startedAt, completedAt, duration) including the tail of the run log for failed runs — use that to answer 'why did this workflow fail?'.",
+    "Query automation workflows in this project. List mode returns each workflow (name, description, enabled) with its recent run outcomes — last run status/time and how many of the recent runs failed. Archived workflows are left out of the list, as they never run. Pass workflowId (from the list mode `id` field) to get detail mode: the workflow plus its most recent runs (status, startedAt, completedAt, duration) including the tail of the run log for failed runs — use that to answer 'why did this workflow fail?'.",
   inputSchema: {
     type: "object",
     properties: {
@@ -147,6 +155,7 @@ export const QueryWorkflowsTool: ObservabilityTool = {
           name: true,
           description: true,
           isEnabled: true,
+          isArchived: true,
           createdAt: true,
         },
         props: ctx.props,
@@ -207,6 +216,7 @@ export const QueryWorkflowsTool: ObservabilityTool = {
         name: workflow.name,
         description: workflow.description,
         enabled: Boolean(workflow.isEnabled),
+        archived: workflow.isArchived === true ? true : undefined,
         createdAt: workflow.createdAt,
       };
 
@@ -240,7 +250,10 @@ export const QueryWorkflowsTool: ObservabilityTool = {
         ToolResultSerializer.serializeRows(rows);
 
       return {
-        dataForLlm: serialized.text,
+        dataForLlm:
+          workflow.isArchived === true
+            ? `${ARCHIVED_WORKFLOW_NOTE}\n${serialized.text}`
+            : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `Workflow "${workflow.name}" (${runs.length} recent runs)`,
         citationTarget: {
@@ -253,9 +266,12 @@ export const QueryWorkflowsTool: ObservabilityTool = {
           runRows.length > 0
             ? WidgetBuilder.table({
                 title: `Workflow "${workflow.name}" — recent runs`,
-                description: workflow.isEnabled
-                  ? undefined
-                  : "This workflow is disabled.",
+                description:
+                  workflow.isArchived === true
+                    ? ARCHIVED_WORKFLOW_NOTE
+                    : workflow.isEnabled
+                      ? undefined
+                      : "This workflow is disabled.",
                 columns: [
                   { key: "status", title: "Status", type: "text" },
                   { key: "startedAt", title: "Started", type: "date" },
@@ -282,6 +298,9 @@ export const QueryWorkflowsTool: ObservabilityTool = {
                     label: "Enabled",
                     value: workflow.isEnabled ? "Yes" : "No",
                   },
+                  ...(workflow.isArchived === true
+                    ? [{ label: "Archived", value: "Yes - does not run" }]
+                    : []),
                   { label: "Recent runs", value: "0" },
                 ],
                 link: {
@@ -304,7 +323,7 @@ export const QueryWorkflowsTool: ObservabilityTool = {
     });
 
     const workflows: Array<Workflow> = await WorkflowService.findBy({
-      query: {},
+      query: { isArchived: false },
       select: {
         _id: true,
         name: true,
@@ -322,7 +341,7 @@ export const QueryWorkflowsTool: ObservabilityTool = {
 
     const totalCount: number = (
       await WorkflowService.countBy({
-        query: {},
+        query: { isArchived: false },
         props: ctx.props,
       })
     ).toNumber();

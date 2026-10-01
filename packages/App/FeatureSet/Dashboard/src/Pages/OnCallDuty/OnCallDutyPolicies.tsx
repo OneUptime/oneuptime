@@ -5,6 +5,8 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import { ON_CALL_POLICY_ARCHIVE_COPY } from "../../Components/Archive/ResourceArchiveCopy";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -29,6 +31,17 @@ const OnCallDutyPage: FunctionComponent<
       ownerTeamModelType: OnCallDutyPolicyOwnerTeam,
       resourceIdField: "onCallDutyPolicyId",
     });
+
+  // Archived policies leave this list; they are on the Archived page.
+  const { archiveBulkActions } = useBulkArchiveActions<OnCallDutyPolicy>({
+    modelType: OnCallDutyPolicy,
+    singularName: ON_CALL_POLICY_ARCHIVE_COPY.singularName,
+    pluralName: ON_CALL_POLICY_ARCHIVE_COPY.pluralName,
+    archiveConfirmMessage:
+      ON_CALL_POLICY_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+    unarchiveConfirmMessage:
+      ON_CALL_POLICY_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+  });
 
   /*
    * One chip per custom field this project has defined. They arrive a render
@@ -69,7 +82,7 @@ const OnCallDutyPage: FunctionComponent<
         topContent={filterBar}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
-        query={mergeFiltersIntoQuery(undefined)}
+        query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<OnCallDutyPolicy>) => {
           onResourcesFetched(data);
         }}
@@ -83,7 +96,11 @@ const OnCallDutyPage: FunctionComponent<
         isCreateable={true}
         isViewable={true}
         bulkActions={{
-          buttons: [...labelBulkActions, ...ownerBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         cardProps={{
           title: "On-Call Duty Policies",

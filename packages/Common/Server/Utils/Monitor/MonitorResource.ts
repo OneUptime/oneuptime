@@ -33,6 +33,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import { MONITOR_PAUSE_FLAGS_SELECT } from "../../../Utils/Monitor/MonitorPauseState";
 import MonitorProbe, {
   MonitorStepProbeResponse,
 } from "../../../Models/DatabaseModels/MonitorProbe";
@@ -143,9 +144,7 @@ export default class MonitorResourceUtil {
         monitorSteps: true,
         monitorType: true,
         projectId: true,
-        disableActiveMonitoring: true,
-        disableActiveMonitoringBecauseOfManualIncident: true,
-        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+        ...MONITOR_PAUSE_FLAGS_SELECT,
         currentMonitorStatusId: true,
         _id: true,
         name: true,
@@ -206,6 +205,20 @@ export default class MonitorResourceUtil {
     }
 
     dataToProcess.projectId = monitor.projectId;
+
+    /*
+     * Archived first: an archived monitor is out of service whatever its
+     * other flags say, and a result that still reaches it (a probe that
+     * claimed it just before it was archived, an incoming request, an email)
+     * must open nothing and change nothing.
+     */
+    if (monitor.isArchived) {
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} Monitor is archived. Unarchive it to start monitoring again.`,
+      );
+
+      throw new BadDataException(ExceptionMessages.MonitorArchived);
+    }
 
     if (monitor.disableActiveMonitoring) {
       logger.debug(

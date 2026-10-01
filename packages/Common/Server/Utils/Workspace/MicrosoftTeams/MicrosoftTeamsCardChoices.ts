@@ -361,6 +361,8 @@ export default class MicrosoftTeamsCardChoices {
       await OnCallDutyPolicyService.findBy({
         query: {
           projectId: projectId,
+          // Archived policies page no one, so they are not offered.
+          isArchived: false,
         },
         select: {
           _id: true,
@@ -385,6 +387,8 @@ export default class MicrosoftTeamsCardChoices {
               await OnCallDutyPolicyService.countBy({
                 query: {
                   projectId: projectId,
+                  // The total counts what the list offers: live policies.
+                  isArchived: false,
                 },
                 props: {
                   isRoot: true,

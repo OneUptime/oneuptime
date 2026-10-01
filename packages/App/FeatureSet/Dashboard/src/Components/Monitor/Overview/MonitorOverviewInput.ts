@@ -104,6 +104,7 @@ export function getCurrentStatusRef(
  */
 export function isMonitorScheduled(monitor: Monitor): boolean {
   return !(
+    Boolean(monitor.isArchived) ||
     Boolean(monitor.disableActiveMonitoring) ||
     Boolean(monitor.disableActiveMonitoringBecauseOfManualIncident) ||
     Boolean(monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent)
@@ -346,6 +347,7 @@ export function toPresentationInput(data: {
       now: data.now,
     }),
     pause: {
+      isArchived: Boolean(monitor.isArchived),
       isDisabled: Boolean(monitor.disableActiveMonitoring),
       byManualIncident: Boolean(
         monitor.disableActiveMonitoringBecauseOfManualIncident,

@@ -153,6 +153,7 @@ export default class IncomingEmailWorkflowTrigger extends TriggerCode {
         projectId: true,
         triggerId: true,
         isEnabled: true,
+        isArchived: true,
       },
       props: {
         isRoot: true,
@@ -177,6 +178,14 @@ export default class IncomingEmailWorkflowTrigger extends TriggerCode {
         logAttributes,
       );
       return IncomingEmailTriggerDeliveryStatus.NotIncomingEmailTrigger;
+    }
+
+    if (workflow.isArchived) {
+      logger.debug(
+        "Incoming email for a workflow that is archived. Ignoring.",
+        logAttributes,
+      );
+      return IncomingEmailTriggerDeliveryStatus.WorkflowArchived;
     }
 
     if (!workflow.isEnabled) {

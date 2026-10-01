@@ -8,10 +8,12 @@ import ExportModelCard from "Common/UI/Components/ImportExport/ExportModelCard";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
+import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import { WORKFLOW_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
- * Duplicate and export: things done to the workflow as a whole.
+ * Duplicate, export and archive: things done to the workflow as a whole.
  *
  * The webhook secret key used to be a card here too. It is the secret part of
  * the Webhook trigger's URL, so it now lives with that trigger: open the
@@ -60,6 +62,25 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       <div className="mt-5">
         <ExportModelCard modelId={modelId} modelType={Workflow} />
+      </div>
+
+      <div className="mt-5">
+        <ArchiveResourceCard<Workflow>
+          modelType={Workflow}
+          modelId={modelId}
+          singularName={WORKFLOW_ARCHIVE_COPY.singularName}
+          listRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.WORKFLOWS] as Route,
+          )}
+          archiveCardDescription={WORKFLOW_ARCHIVE_COPY.archiveCardDescription}
+          unarchiveCardDescription={
+            WORKFLOW_ARCHIVE_COPY.unarchiveCardDescription
+          }
+          archiveConfirmMessage={WORKFLOW_ARCHIVE_COPY.archiveConfirmMessage}
+          unarchiveConfirmMessage={
+            WORKFLOW_ARCHIVE_COPY.unarchiveConfirmMessage
+          }
+        />
       </div>
     </Fragment>
   );

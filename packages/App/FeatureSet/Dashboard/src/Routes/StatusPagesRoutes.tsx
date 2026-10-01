@@ -23,6 +23,7 @@ import StatusPagesViewDomains from "../Pages/StatusPages/View/Domains";
 import StatusPagesViewResources from "../Pages/StatusPages/View/Resources";
 import StatusPagesViewAnnouncement from "../Pages/StatusPages/View/Announcements";
 import StatusPagesViewAdvancedOptions from "../Pages/StatusPages/View/AdvancedOptions";
+import StatusPagesArchived from "../Pages/StatusPages/Archived";
 import StatusPagesViewCustomHtmlCss from "../Pages/StatusPages/View/CustomHtmlCss";
 import StatusPagesViewHeaderStyle from "../Pages/StatusPages/View/HeaderStyle";
 import StatusPagesViewFooterStyle from "../Pages/StatusPages/View/FooterStyle";
@@ -110,6 +111,17 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             <StatusPageAnnouncements
               {...props}
               pageRoute={RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route}
+            />
+          }
+        />
+
+        {/* Static `archived` outranks the status page view's `:id`. */}
+        <PageRoute
+          path={StatusPagesRoutePath[PageMap.STATUS_PAGES_ARCHIVED] || ""}
+          element={
+            <StatusPagesArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGES_ARCHIVED] as Route}
             />
           }
         />

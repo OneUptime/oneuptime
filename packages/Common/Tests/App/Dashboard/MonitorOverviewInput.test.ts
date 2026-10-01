@@ -852,6 +852,7 @@ describe("toPresentationInput: the rest of the row", () => {
 
   test("pause and probe flags are booleans even when the columns are unset", () => {
     expect(buildInput().pause).toEqual({
+      isArchived: false,
       isDisabled: false,
       byManualIncident: false,
       byScheduledMaintenance: false,
@@ -863,6 +864,7 @@ describe("toPresentationInput: the rest of the row", () => {
 
     const input: MonitorOverviewPresentationInput = buildInput({
       monitor: buildMonitor({
+        isArchived: true,
         disableActiveMonitoring: true,
         disableActiveMonitoringBecauseOfManualIncident: true,
         disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
@@ -872,6 +874,7 @@ describe("toPresentationInput: the rest of the row", () => {
     });
 
     expect(input.pause).toEqual({
+      isArchived: true,
       isDisabled: true,
       byManualIncident: true,
       byScheduledMaintenance: true,

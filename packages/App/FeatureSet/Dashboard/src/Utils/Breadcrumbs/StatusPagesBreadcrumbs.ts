@@ -44,6 +44,11 @@ export function getStatusPagesBreadcrumbs(
       "Project",
       "Status Pages",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGES_ARCHIVED, [
+      "Project",
+      "Status Pages",
+      "Archived",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS, [
       "Project",
       "Status Pages",
