@@ -1,19 +1,32 @@
 import Icon from "../Icon/Icon";
 import useTranslateValue from "../../Utils/Translation";
 import IconProp from "../../../Types/Icon/IconProp";
+import { startsCollapsed } from "./SideMenuSectionState";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 
 export interface ComponentProps {
   title: string;
   children: ReactElement | Array<ReactElement>;
+  /*
+   * Leave unset to follow the product rule: a section titled "Advanced"
+   * starts collapsed, every other section starts open (see
+   * SideMenuSectionState.ts). Set it to decide for this section either way.
+   */
   defaultCollapsed?: boolean;
   collapsible?: boolean;
   icon?: IconProp;
+  /*
+   * Whether the page the user is on is inside this section, which keeps it
+   * open. SideMenu works this out and passes it in, for sections in its
+   * `sections` array and for <SideMenuSection> elements written as its
+   * children alike.
+   */
   isActive?: boolean;
 }
 
@@ -25,15 +38,29 @@ export interface ComponentProps {
  * mount, and unmounting a collapsed section would restart those fetches every
  * time it was reopened. The `max-h-0 / opacity-0` pair is also the contract
  * the side-menu tests read collapse state from.
+ *
+ * Collapsed also means `invisible` (visibility: hidden). max-h-0 and
+ * opacity-0 only stop the rows being SEEN: they were still tab stops, so a
+ * keyboard user walked through every link of a folded section on a focus
+ * ring nobody could see, and a screen reader read them out. visibility:hidden
+ * takes them out of the tab order and the accessibility tree while they stay
+ * mounted, and the transition flips it only once the fold has finished, so
+ * the animation is unchanged.
  */
 const SideMenuSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
   const { translateString } = useTranslateValue();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
-    Boolean(props.defaultCollapsed && !props.isActive),
+    startsCollapsed({
+      title: props.title,
+      defaultCollapsed: props.defaultCollapsed,
+      collapsible: props.collapsible,
+      isActive: props.isActive,
+    }),
   );
   const translatedTitle: string = translateString(props.title) || props.title;
+  const bodyId: string = `side-menu-section-${useId()}`;
 
   const isCollapsible: boolean = props.collapsible ?? true;
 
@@ -88,6 +115,7 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
           onClick={handleToggle}
           className={`${headerClassName} cursor-pointer transition-colors duration-150 hover:bg-gray-50`}
           aria-expanded={!isCollapsed}
+          aria-controls={bodyId}
         >
           {heading}
           <Icon
@@ -101,10 +129,21 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
         <div className={`${headerClassName} cursor-default`}>{heading}</div>
       )}
 
-      {/* Section Content with Animation */}
+      {/*
+       * Section Content with Animation.
+       *
+       * A transition follows the property list of the state it goes TO.
+       * Folding transitions visibility with the rest, so the rows only turn
+       * invisible once the fold has finished. Opening leaves visibility out,
+       * so the rows are focusable and announced at once rather than a frame
+       * later.
+       */}
       <div
-        className={`overflow-hidden transition-all duration-200 ease-in-out ${
-          isCollapsed ? "max-h-0 opacity-0" : "max-h-[2000px] opacity-100"
+        id={bodyId}
+        className={`overflow-hidden duration-200 ease-in-out ${
+          isCollapsed
+            ? "max-h-0 opacity-0 invisible transition-all"
+            : "max-h-[2000px] opacity-100 transition-[max-height,opacity]"
         }`}
       >
         <div className="mt-0.5 space-y-0.5">{props.children}</div>
