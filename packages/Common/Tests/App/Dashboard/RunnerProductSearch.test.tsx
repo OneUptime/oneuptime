@@ -22,8 +22,12 @@ import * as React from "react";
  * titles and descriptions a person actually sees rather than over i18n keys.
  */
 jest.mock("react-i18next", () => {
-  const fileSystem: typeof import("fs") = jest.requireActual("fs");
-  const filePath: typeof import("path") = jest.requireActual("path");
+  const fileSystem: typeof import("fs") = jest.requireActual(
+    "fs",
+  ) as typeof import("fs");
+  const filePath: typeof import("path") = jest.requireActual(
+    "path",
+  ) as typeof import("path");
 
   const english: Record<string, unknown> = JSON.parse(
     fileSystem.readFileSync(
