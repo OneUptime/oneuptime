@@ -56,20 +56,29 @@ export interface ComponentProps {
  * footer, put the focus ring round Cancel and made it look like the main
  * action. A destructive confirmation (a DANGER submit) is the exception and
  * starts on Cancel, the least destructive choice, so a stray Enter never
- * deletes anything. The header's X is never the starting point.
+ * deletes anything. The header's X is never the starting point, and nor is
+ * anything else in the header: a control there (rightElement) is an aside -
+ * a way to the help, say - and starting on it would take the focus away from
+ * the field the dialog is for.
  */
 export const pickInitialFocusElement: (data: {
   focusableElements: Array<HTMLElement>;
   footer: HTMLElement | null;
   isSubmitDestructive: boolean;
+  header?: HTMLElement | null | undefined;
 }) => HTMLElement | undefined = (data: {
   focusableElements: Array<HTMLElement>;
   footer: HTMLElement | null;
   isSubmitDestructive: boolean;
+  header?: HTMLElement | null | undefined;
 }): HTMLElement | undefined => {
+  const header: HTMLElement | null | undefined = data.header;
   const candidates: Array<HTMLElement> = data.focusableElements.filter(
     (element: HTMLElement) => {
-      return element.getAttribute("data-testid") !== "close-button";
+      return (
+        element.getAttribute("data-testid") !== "close-button" &&
+        !(header && header.contains(element))
+      );
     },
   );
 
@@ -302,11 +311,18 @@ const Modal: FunctionComponent<ComponentProps> = (
         return child.getAttribute("data-testid") === "modal-footer";
       }) as HTMLElement | undefined) || null;
 
+    // Found the same way, for the same reason.
+    const header: HTMLElement | null =
+      (Array.from(modal.children).find((child: Element) => {
+        return child.getAttribute("data-testid") === "modal-header";
+      }) as HTMLElement | undefined) || null;
+
     const initialFocusElement: HTMLElement | undefined =
       pickInitialFocusElement({
         focusableElements: getFocusableElements(),
         footer,
         isSubmitDestructive: isSubmitDestructiveRef.current,
+        header,
       });
 
     if (isTopmostDialog()) {
@@ -515,6 +531,7 @@ const Modal: FunctionComponent<ComponentProps> = (
             tabIndex={-1}
           >
             <div
+              data-testid="modal-header"
               className={`relative z-10 flex shrink-0 items-start gap-3 rounded-t-2xl border-b border-gray-100 bg-white px-5 py-4 transition-shadow duration-200 sm:gap-4 sm:rounded-t-xl sm:px-6 ${
                 isContentHiddenAbove
                   ? "shadow-[0_6px_10px_-10px_var(--ou-modal-scroll-shadow,rgb(15_23_42_/_0.35))]"
