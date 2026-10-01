@@ -244,6 +244,9 @@ data:
             - job_name: kube-state-metrics
               scrape_interval: {{ .Values.kubeStateMetrics.scrapeInterval }}
               {{- if eq .Values.kubeStateMetrics.mode "external" }}
+              {{- if hasPrefix "https://" .Values.kubeStateMetrics.endpoint }}
+              scheme: https
+              {{- end }}
               # External KSM — operator-provided endpoint.
               static_configs:
                 - targets:
@@ -260,6 +263,7 @@ data:
                   action: keep
             {{- end }}
             {{- if and .Values.cost.enabled .Values.cost.metrics.enabled }}
+            {{- $costMetricsEndpoint := default (include "kubernetes-agent.costEngineUrl" .) .Values.cost.metrics.endpoint }}
             # Cost metrics from the in-cluster cost engine (OpenCost /
             # Kubecost cost-model): node hourly costs, per-container
             # resource allocation, PV and load-balancer costs. Powers
@@ -268,13 +272,16 @@ data:
             # the cost agent's Allocation API poller instead.
             - job_name: cost-engine
               scrape_interval: {{ .Values.cost.metrics.scrapeInterval }}
+              {{- if hasPrefix "https://" $costMetricsEndpoint }}
+              scheme: https
+              {{- end }}
               static_configs:
                 - targets:
                     # Prometheus targets must be bare host:port — strip
                     # any scheme/path (metrics_path defaults to /metrics).
                     # Resolution order: explicit metrics endpoint, else
                     # the engine URL (external or bundled OpenCost).
-                    - {{ (default (include "kubernetes-agent.costEngineUrl" .) .Values.cost.metrics.endpoint) | trimPrefix "http://" | trimPrefix "https://" | trimSuffix "/metrics" | trimSuffix "/" | quote }}
+                    - {{ $costMetricsEndpoint | trimPrefix "http://" | trimPrefix "https://" | trimSuffix "/metrics" | trimSuffix "/" | quote }}
               metric_relabel_configs:
                 - source_labels: [__name__]
                   regex: "^({{ join "|" .Values.cost.metrics.metricsAllowlist }})$"
