@@ -35,6 +35,20 @@ import React, {
 export const INSERT_VALUE_LABEL: string =
   "Insert a value from an earlier step or a variable";
 
+/*
+ * The { } button, the same in every field that has one. Bordered, so it reads
+ * as a button at a glance: it is how values get into a step, and a faint
+ * glyph in the corner of the box was easy to miss.
+ */
+export const INSERT_VALUE_BUTTON_CLASS: string =
+  "shrink-0 rounded border px-1.5 py-0.5 font-mono text-xs leading-4 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+export const INSERT_VALUE_BUTTON_IDLE_CLASS: string =
+  "border-gray-200 bg-white text-gray-500 hover:bg-indigo-50 hover:text-indigo-600";
+
+export const INSERT_VALUE_BUTTON_OPEN_CLASS: string =
+  "border-indigo-200 bg-indigo-50 text-indigo-600";
+
 export interface ValueTextFieldProps {
   value: unknown;
   onChange: (value: string) => void;
@@ -62,6 +76,7 @@ const ValueTextField: FunctionComponent<ValueTextFieldProps> = (
   const id: string = useId();
   const errorId: string = `${id}-error`;
   const inlinePopupId: string = `${id}-inline`;
+  const popoverId: string = `${id}-popover`;
   const inlineListboxId: string = `${id}-inline-values`;
   const dataTestId: string = props.dataTestId || "value-text-field";
 
@@ -190,26 +205,47 @@ const ValueTextField: FunctionComponent<ValueTextFieldProps> = (
           }}
           onBlur={(event: React.FocusEvent<HTMLDivElement>) => {
             const next: EventTarget | null = event.relatedTarget;
-            const popup: HTMLElement | null =
-              document.getElementById(inlinePopupId);
+            type IsInFunction = (elementId: string) => boolean;
+
+            const isIn: IsInFunction = (elementId: string): boolean => {
+              const element: HTMLElement | null =
+                document.getElementById(elementId);
+              return Boolean(
+                next instanceof Node && element && element.contains(next),
+              );
+            };
 
             // Into the list's own path box is not leaving the field.
-            if (!(next instanceof Node && popup && popup.contains(next))) {
+            if (!isIn(inlinePopupId)) {
               setTrigger(null);
             }
 
-            props.onBlur?.();
+            /*
+             * Nor is going to its { } button or its list: the field is not
+             * done with yet, and saying "Value is required." just as the
+             * value is being picked would be wrong.
+             */
+            const staysInField: boolean =
+              Boolean(
+                next instanceof Node && boxRef.current?.contains(next),
+              ) ||
+              isIn(inlinePopupId) ||
+              isIn(popoverId);
+
+            if (!staysInField) {
+              props.onBlur?.();
+            }
           }}
         />
         {canPick && (
           <button
             type="button"
-            className={`shrink-0 self-start rounded px-1.5 py-1 font-mono text-[11px] leading-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+            className={`self-start ${INSERT_VALUE_BUTTON_CLASS} ${
               props.isCompact ? "m-0.5" : "m-1"
             } ${
               isPopoverOpen
-                ? "bg-indigo-50 text-indigo-600"
-                : "text-gray-400 hover:bg-gray-100 hover:text-indigo-600"
+                ? INSERT_VALUE_BUTTON_OPEN_CLASS
+                : INSERT_VALUE_BUTTON_IDLE_CLASS
             }`}
             aria-label={INSERT_VALUE_LABEL}
             title={INSERT_VALUE_LABEL}
@@ -254,6 +290,7 @@ const ValueTextField: FunctionComponent<ValueTextFieldProps> = (
 
       {isPopoverOpen && (
         <ValuePickerPopup
+          id={popoverId}
           anchorRef={boxRef}
           mode={ValuePickerPopupMode.Popover}
           ariaLabel="Insert a value"

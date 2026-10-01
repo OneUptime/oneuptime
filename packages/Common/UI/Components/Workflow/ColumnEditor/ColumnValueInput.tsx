@@ -27,6 +27,9 @@ import ValuePickerPopup, {
 } from "../ValuePicker/ValuePickerPopup";
 import { TYPE_A_VALUE_LABEL } from "../ValuePicker/ValueSingleField";
 import ValueTextField, {
+  INSERT_VALUE_BUTTON_CLASS,
+  INSERT_VALUE_BUTTON_IDLE_CLASS,
+  INSERT_VALUE_BUTTON_OPEN_CLASS,
   INSERT_VALUE_LABEL,
 } from "../ValuePicker/ValueTextField";
 import { ColumnValueMode, ModelColumnControl } from "./ColumnRow";
@@ -114,10 +117,10 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
       aria-haspopup="dialog"
       aria-expanded={isPickerOpen}
       data-testid={`${dataTestId}-insert-value`}
-      className={`shrink-0 rounded-md px-1.5 py-1 font-mono text-[11px] leading-none transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+      className={`${INSERT_VALUE_BUTTON_CLASS} ${
         isPickerOpen
-          ? "bg-indigo-50 text-indigo-600"
-          : "text-gray-400 hover:bg-gray-50 hover:text-indigo-600"
+          ? INSERT_VALUE_BUTTON_OPEN_CLASS
+          : INSERT_VALUE_BUTTON_IDLE_CLASS
       }`}
       onClick={() => {
         setIsPickerOpen(!isPickerOpen);

@@ -766,11 +766,24 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
       selectionRef.current = caret;
     };
 
+    type IsOnlyChipsFunction = (text: string) => boolean;
+
+    const isOnlyChips: IsOnlyChipsFunction = (text: string): boolean => {
+      return splitTemplateText(text).every((segment: TemplateSegment) => {
+        return segment.kind === TemplateSegmentKind.Reference;
+      });
+    };
+
+    type FixLineEdgeFunction = (edge: "start" | "end") => void;
+
     /*
-     * Home lands after a chip that opens the line, in Chromium: there is no
-     * text before it to put the caret in. Put it before the chip.
+     * Home and End stop short of a chip at the edge of the line: Chromium's
+     * Home lands after a chip that opens the line, Firefox's End (and
+     * Ctrl+End) before one that ends it - there is no text on the far side
+     * of the chip to put the caret in. When only chips are left between the
+     * caret and the edge of the line, the caret goes to the edge.
      */
-    const fixHome: ActionFunction = (): void => {
+    const fixLineEdge: FixLineEdgeFunction = (edge: "start" | "end"): void => {
       const root: HTMLDivElement | null = rootRef.current;
       const selection: TemplateSelection | null = root
         ? readTemplateSelection(root)
@@ -781,20 +794,23 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
       }
 
       const value: string = valueRef.current;
-      const lineStart: number = value.lastIndexOf("\n", selection.start - 1) + 1;
+      const caret: number = selection.start;
 
-      if (lineStart >= selection.start) {
+      if (edge === "start") {
+        const lineStart: number = value.lastIndexOf("\n", caret - 1) + 1;
+
+        if (lineStart < caret && isOnlyChips(value.slice(lineStart, caret))) {
+          placeCaret(lineStart);
+        }
+
         return;
       }
 
-      const onlyChips: boolean = splitTemplateText(
-        value.slice(lineStart, selection.start),
-      ).every((segment: TemplateSegment) => {
-        return segment.kind === TemplateSegmentKind.Reference;
-      });
+      const newline: number = value.indexOf("\n", caret);
+      const lineEnd: number = newline === -1 ? value.length : newline;
 
-      if (onlyChips) {
-        placeCaret(lineStart);
+      if (caret < lineEnd && isOnlyChips(value.slice(caret, lineEnd))) {
+        placeCaret(lineEnd);
       }
     };
 
@@ -911,8 +927,52 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
               }
             }
 
-            if (event.key === "Home" && !event.shiftKey) {
-              window.setTimeout(fixHome, 0);
+            if (
+              (event.key === "Home" || event.key === "End") &&
+              !event.shiftKey &&
+              !event.altKey
+            ) {
+              const edge: "start" | "end" =
+                event.key === "Home" ? "start" : "end";
+
+              // The start or the end of everything: offsets known exactly.
+              if (isModified) {
+                event.preventDefault();
+                placeCaret(edge === "start" ? 0 : valueRef.current.length);
+                return;
+              }
+
+              const domSelection:
+                | (Selection & {
+                    modify?: (
+                      alter: string,
+                      direction: string,
+                      granularity: string,
+                    ) => void;
+                  })
+                | null = window.getSelection();
+
+              /*
+               * The move is made here, and corrected at once: a correction
+               * made after the browser's own move would race the next key,
+               * which a browser handles before any timer.
+               */
+              if (domSelection && typeof domSelection.modify === "function") {
+                event.preventDefault();
+                domSelection.modify(
+                  "move",
+                  edge === "start" ? "backward" : "forward",
+                  "lineboundary",
+                );
+                fixLineEdge(edge);
+                rememberSelection();
+                return;
+              }
+
+              // No Selection.modify (jsdom): after the browser has moved it.
+              window.setTimeout(() => {
+                fixLineEdge(edge);
+              }, 0);
             }
           }}
           onKeyUp={rememberSelection}

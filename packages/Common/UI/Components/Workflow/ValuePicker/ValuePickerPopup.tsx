@@ -223,14 +223,22 @@ const ValuePickerPopup: FunctionComponent<ValuePickerPopupProps> = (
     const handleKeyDown: (event: KeyboardEvent) => void = (
       event: KeyboardEvent,
     ): void => {
-      if (!popupRef.current?.contains(document.activeElement)) {
-        return;
-      }
+      const isInPopup: boolean = Boolean(
+        popupRef.current?.contains(document.activeElement),
+      );
+      const isInField: boolean = Boolean(
+        props.anchorRef.current?.contains(document.activeElement),
+      );
 
-      if (event.key === "Escape") {
+      // Wherever the focus is in the list or its field, Escape is the list's.
+      if (event.key === "Escape" && (isInPopup || isInField)) {
         event.preventDefault();
         event.stopPropagation();
         onCloseRef.current(ValuePickerCloseReason.Escape);
+        return;
+      }
+
+      if (!isInPopup) {
         return;
       }
 
@@ -251,7 +259,7 @@ const ValuePickerPopup: FunctionComponent<ValuePickerPopupProps> = (
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, [props.mode]);
+  }, [props.mode, props.anchorRef]);
 
   if (typeof document === "undefined") {
     return null;
@@ -289,7 +297,11 @@ const ValuePickerPopup: FunctionComponent<ValuePickerPopupProps> = (
         }
       }}
     >
-      {props.children}
+      {/*
+       * Drawn once it has been placed: until then it is hidden, and a hidden
+       * element cannot take the focus the list's search box asks for.
+       */}
+      {position ? props.children : null}
     </div>,
     document.body,
   );

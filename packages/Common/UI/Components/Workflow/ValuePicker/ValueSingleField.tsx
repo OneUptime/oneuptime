@@ -19,7 +19,12 @@ import ValuePickerPopup, {
   ValuePickerCloseReason,
   ValuePickerPopupMode,
 } from "./ValuePickerPopup";
-import ValueTextField, { INSERT_VALUE_LABEL } from "./ValueTextField";
+import ValueTextField, {
+  INSERT_VALUE_BUTTON_CLASS,
+  INSERT_VALUE_BUTTON_IDLE_CLASS,
+  INSERT_VALUE_BUTTON_OPEN_CLASS,
+  INSERT_VALUE_LABEL,
+} from "./ValueTextField";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -113,10 +118,10 @@ const ValueSingleField: FunctionComponent<ValueSingleFieldProps> = (
   const insertButton: ReactElement | null = canPick ? (
     <button
       type="button"
-      className={`shrink-0 rounded px-1.5 py-1 font-mono text-[11px] leading-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+      className={`${INSERT_VALUE_BUTTON_CLASS} ${
         isPopoverOpen
-          ? "bg-indigo-50 text-indigo-600"
-          : "text-gray-400 hover:bg-gray-100 hover:text-indigo-600"
+          ? INSERT_VALUE_BUTTON_OPEN_CLASS
+          : INSERT_VALUE_BUTTON_IDLE_CLASS
       }`}
       aria-label={INSERT_VALUE_LABEL}
       title={INSERT_VALUE_LABEL}
