@@ -55,6 +55,109 @@ export const WorkflowTemplateCategories: Array<WorkflowTemplateCategory> = [
 ];
 
 /*
+ * How the picker shows a category: an icon in its list of categories, and a
+ * line under its heading saying what the templates in it are for. The icons
+ * are the ones the product's own navigation uses for the same area, so
+ * Incidents looks the same here as it does in the menu.
+ */
+export interface WorkflowTemplateCategoryInfo {
+  category: WorkflowTemplateCategory;
+  /**
+   * The name the picker shows. Mostly the category itself; shorter where the
+   * full name does not fit beside its count in the list of categories.
+   */
+  label: string;
+  /** One line, said as what someone wants to get done. */
+  description: string;
+  icon: IconProp;
+}
+
+/*
+ * A Record rather than a list, so a new category that is not described here
+ * fails to compile instead of showing up in the picker without an icon.
+ */
+const WORKFLOW_TEMPLATE_CATEGORY_INFO: Record<
+  WorkflowTemplateCategory,
+  WorkflowTemplateCategoryInfo
+> = {
+  [WorkflowTemplateCategory.Basics]: {
+    category: WorkflowTemplateCategory.Basics,
+    label: "Basics",
+    description:
+      "Small workflows that show how a trigger, its steps and their values fit together.",
+    icon: IconProp.BookOpen,
+  },
+  [WorkflowTemplateCategory.Incidents]: {
+    category: WorkflowTemplateCategory.Incidents,
+    label: "Incidents",
+    description:
+      "Tell your team and your other tools the moment an incident opens or changes.",
+    icon: IconProp.Alert,
+  },
+  [WorkflowTemplateCategory.Alerts]: {
+    category: WorkflowTemplateCategory.Alerts,
+    label: "Alerts",
+    description: "Send new alerts to the chat your team already watches.",
+    icon: IconProp.ExclaimationCircle,
+  },
+  [WorkflowTemplateCategory.Monitors]: {
+    category: WorkflowTemplateCategory.Monitors,
+    label: "Monitors",
+    description:
+      "Act when a monitor goes down, comes back up or changes status.",
+    icon: IconProp.AltGlobe,
+  },
+  [WorkflowTemplateCategory.OnCall]: {
+    category: WorkflowTemplateCategory.OnCall,
+    label: "On-Call",
+    description: "Follow an on-call escalation from start to finish.",
+    icon: IconProp.Call,
+  },
+  [WorkflowTemplateCategory.StatusPage]: {
+    category: WorkflowTemplateCategory.StatusPage,
+    label: "Status Pages",
+    description:
+      "Pass new status page subscribers on once they have confirmed.",
+    icon: IconProp.CheckCircle,
+  },
+  [WorkflowTemplateCategory.ScheduledMaintenance]: {
+    category: WorkflowTemplateCategory.ScheduledMaintenance,
+    label: "Maintenance",
+    description: "Let people know as soon as maintenance is scheduled.",
+    icon: IconProp.Clock,
+  },
+  [WorkflowTemplateCategory.Scheduled]: {
+    category: WorkflowTemplateCategory.Scheduled,
+    label: "On a Schedule",
+    description: "Run checks, heartbeats and emails at set times.",
+    icon: IconProp.Calendar,
+  },
+  [WorkflowTemplateCategory.Jira]: {
+    category: WorkflowTemplateCategory.Jira,
+    label: "Jira",
+    description:
+      "Keep Jira issues in step with your incidents and alerts, both ways.",
+    icon: IconProp.Ticket,
+  },
+  [WorkflowTemplateCategory.Integrations]: {
+    category: WorkflowTemplateCategory.Integrations,
+    label: "Integrations",
+    description:
+      "Use a workflow's own webhook URL to join two other systems together.",
+    icon: IconProp.Integrations,
+  },
+};
+
+export type GetWorkflowTemplateCategoryInfoFunction = (
+  category: WorkflowTemplateCategory,
+) => WorkflowTemplateCategoryInfo;
+
+export const getWorkflowTemplateCategoryInfo: GetWorkflowTemplateCategoryInfoFunction =
+  (category: WorkflowTemplateCategory): WorkflowTemplateCategoryInfo => {
+    return WORKFLOW_TEMPLATE_CATEGORY_INFO[category];
+  };
+
+/*
  * A variable name becomes two things that must match exactly: the `name` column
  * on the created WorkflowVariable row, and the tail of the
  * {{local.variables.<name>}} reference inside the graph. Runtime lookup is a
@@ -90,6 +193,13 @@ export interface WorkflowTemplate {
   /** What the builder should look at once it opens. */
   teaches: string;
   category: WorkflowTemplateCategory;
+  /**
+   * Splits a large category into parts the picker shows under headings of
+   * their own: the Jira templates come in an incident and an alert version,
+   * and seventeen of them in one run read as one long list. Absent on the
+   * categories that are short enough to read at a glance.
+   */
+  subcategory?: string | undefined;
   icon: IconProp;
   /** Suggested name for the created workflow. */
   workflowName: string;
@@ -3256,7 +3366,11 @@ type JiraTemplatesForKindFunction = (
   kind: JiraRecordKind,
 ) => Array<TemplateDefinition>;
 
-/** One kind's set, OneUptime -> Jira first. Public notes exist only on incidents. */
+/*
+ * One kind's set, OneUptime -> Jira first. Public notes exist only on
+ * incidents. Each is filed under its kind ("Incidents" or "Alerts"), which is
+ * how the picker splits the seventeen into two lists.
+ */
 const jiraTemplatesForKind: JiraTemplatesForKindFunction = (
   kind: JiraRecordKind,
 ): Array<TemplateDefinition> => {
@@ -3270,7 +3384,9 @@ const jiraTemplatesForKind: JiraTemplatesForKindFunction = (
     jiraStatusToStateTemplate(kind),
     jiraCommentToNoteTemplate(kind),
     jiraIssueChangesToNoteTemplate(kind),
-  ];
+  ].map((definition: TemplateDefinition): TemplateDefinition => {
+    return { ...definition, subcategory: kind.Plural };
+  });
 };
 
 const JIRA_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
@@ -5402,6 +5518,163 @@ export const buildGraphForTemplate: BuildGraphForTemplateFunction = (
   }
 
   return buildTemplateGraph(spec, generateId);
+};
+
+/*
+ * The handful the picker opens on. Forty-odd templates shown at once, each as
+ * large as the next, is a wall nobody can choose from, so the picker starts
+ * on these and leaves the rest to the categories and the search. They cover
+ * the jobs people most often come to workflows for: tell the team's chat
+ * about a new incident (in Slack or in Teams), hear about a monitor only when
+ * it is down, open a Jira issue, send each incident to another system, and
+ * watch an endpoint on a schedule. Each works with nothing more than the
+ * settings it asks for - no AI provider, no Jira webhook to register first.
+ * In the order the picker lists them.
+ */
+export const RECOMMENDED_WORKFLOW_TEMPLATE_IDS: ReadonlyArray<string> = [
+  "incident-created-slack",
+  "incident-created-teams",
+  "monitor-offline-only-slack",
+  "jira-create-issue-for-incident",
+  "incident-created-forward",
+  "scheduled-check-alert-slack",
+];
+
+export type GetRecommendedWorkflowTemplatesFunction =
+  () => Array<WorkflowTemplate>;
+
+export const getRecommendedWorkflowTemplates: GetRecommendedWorkflowTemplatesFunction =
+  (): Array<WorkflowTemplate> => {
+    return RECOMMENDED_WORKFLOW_TEMPLATE_IDS.map(
+      (templateId: string): WorkflowTemplate | null => {
+        return getWorkflowTemplate(templateId);
+      },
+    ).filter(
+      (template: WorkflowTemplate | null): template is WorkflowTemplate => {
+        return template !== null;
+      },
+    );
+  };
+
+/*
+ * What a template is made of, for the picker's preview: its trigger, then
+ * every other kind of block in it.
+ */
+export interface WorkflowTemplateOutline {
+  /** The trigger's component id, such as "incident-on-create". */
+  triggerComponentId: string;
+  /**
+   * Every other kind of block, once each. In the order a run can reach them
+   * from the trigger, the way things go when they work before the ways they
+   * fail, so the part the template is about comes first. Log goes last:
+   * nearly every path in a template ends in one, and it would otherwise lead
+   * the list.
+   */
+  stepComponentIds: Array<string>;
+  /** How many blocks the created workflow has, the trigger included. */
+  blockCount: number;
+}
+
+/*
+ * Ports a run leaves by when things go wrong, or when a check says no. Their
+ * blocks are listed after the ones on the way that works. Not a reason to
+ * leave them out: "Check an API and notify Slack if it fails" posts to Slack
+ * from its Error port, and that is the whole point of it.
+ */
+const SIDE_PORTS: ReadonlyArray<string> = ["no", "error"];
+
+export type GetWorkflowTemplateOutlineFunction = (
+  templateId: string,
+) => WorkflowTemplateOutline | null;
+
+export const getWorkflowTemplateOutline: GetWorkflowTemplateOutlineFunction = (
+  templateId: string,
+): WorkflowTemplateOutline | null => {
+  const spec: TemplateGraphSpec | null = getTemplateGraphSpec(templateId);
+
+  if (!spec) {
+    return null;
+  }
+
+  const trigger: TemplateNodeSpec | undefined = spec.nodes.find(
+    (node: TemplateNodeSpec) => {
+      return node.componentType === ComponentType.Trigger;
+    },
+  );
+
+  if (!trigger) {
+    return null;
+  }
+
+  const nodeByComponentId: Map<string, TemplateNodeSpec> = new Map();
+
+  for (const node of spec.nodes) {
+    nodeByComponentId.set(node.componentId, node);
+  }
+
+  type PortRankFunction = (edge: TemplateEdgeSpec) => number;
+
+  const portRank: PortRankFunction = (edge: TemplateEdgeSpec): number => {
+    return SIDE_PORTS.includes(edge.fromPort) ? 1 : 0;
+  };
+
+  // Breadth first from the trigger, so blocks near the start come first.
+  const visitOrder: Array<TemplateNodeSpec> = [];
+  const visited: Set<string> = new Set([trigger.componentId]);
+  const queue: Array<string> = [trigger.componentId];
+
+  while (queue.length > 0) {
+    const componentId: string = queue.shift() as string;
+
+    const outgoing: Array<TemplateEdgeSpec> = spec.edges
+      .filter((edge: TemplateEdgeSpec) => {
+        return edge.fromComponentId === componentId;
+      })
+      .sort((a: TemplateEdgeSpec, b: TemplateEdgeSpec): number => {
+        return portRank(a) - portRank(b);
+      });
+
+    for (const edge of outgoing) {
+      const next: TemplateNodeSpec | undefined = nodeByComponentId.get(
+        edge.toComponentId,
+      );
+
+      if (next && !visited.has(next.componentId)) {
+        visited.add(next.componentId);
+        visitOrder.push(next);
+        queue.push(next.componentId);
+      }
+    }
+  }
+
+  // Anything no edge reaches still exists in the workflow, so it is listed too.
+  for (const node of spec.nodes) {
+    if (!visited.has(node.componentId)) {
+      visited.add(node.componentId);
+      visitOrder.push(node);
+    }
+  }
+
+  const stepComponentIds: Array<string> = [];
+
+  for (const node of visitOrder) {
+    if (!stepComponentIds.includes(node.metadataId)) {
+      stepComponentIds.push(node.metadataId);
+    }
+  }
+
+  const logIndex: number = stepComponentIds.indexOf(ComponentID.Log);
+
+  if (logIndex !== -1) {
+    stepComponentIds.splice(logIndex, 1);
+    stepComponentIds.push(ComponentID.Log);
+  }
+
+  return {
+    triggerComponentId: trigger.metadataId,
+    stepComponentIds: stepComponentIds,
+    blockCount: spec.nodes.length,
+  };
 };
 
 export default getWorkflowTemplates;
