@@ -402,6 +402,15 @@ describe("the project's stepped forms", () => {
       "ModelTable: Runbooks > Runner Credentials",
       ["credential", "ssh", "ssh-authentication", "kubernetes", "runners"],
     ],
+    /*
+     * Its one Rules step drew the whole rule (its own form, so the scan sees
+     * one field there - see LongFormStepsGuard for that form).
+     */
+    [
+      `${DASHBOARD}/Components/Workspace/WorkspaceNotificationRulesTable.tsx`,
+      "ModelTable: Settings > Workspace Notification Rules",
+      ["basic", "conditions", "destination"],
+    ],
     [
       `${DASHBOARD}/Pages/Alerts/Settings/AlertGroupingRules.tsx`,
       "ModelTable: Settings > Alert Grouping Rules",

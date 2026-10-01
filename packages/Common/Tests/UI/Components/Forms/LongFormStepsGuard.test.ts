@@ -95,7 +95,7 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     file: `${DASHBOARD}/Components/Workspace/NotificationRuleForm/NotificationRuleForm.tsx`,
     form: "BasicForm #1",
     reason:
-      "The conditions and channel options of a workspace notification rule, drawn as one field inside the Rules step of the rule's own wizard (WorkspaceNotificationRulesTable); a stepper inside a step would nest one wizard in another. Most of its fields appear only for the posting option picked.",
+      "One half of a workspace notification rule, drawn as one field on a step of the rule's own wizard (WorkspaceNotificationRulesTable): its Conditions step, or its Destination step, which is the long one. A stepper inside a step would nest one wizard in another. At rest the Destination step is two or three switches (an existing channel, a Microsoft Teams chat, a new channel), and each one's own options appear only when it is switched on.",
   },
   {
     file: `${DASHBOARD}/Pages/SecurityEvents/ThreatIntel.tsx`,
