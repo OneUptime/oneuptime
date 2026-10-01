@@ -734,7 +734,17 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.runbooksTitle"),
-      keywords: ["playbooks", "procedures", "remediation", "response guides"],
+      /*
+       * "runners": Runners are set up inside Runbooks, and someone who only
+       * uses one for AI code fixes has no other reason to look here.
+       */
+      keywords: [
+        "playbooks",
+        "procedures",
+        "remediation",
+        "response guides",
+        "runners",
+      ],
       description: t("navbar.items.runbooksDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.RUNBOOKS] as Route),
       activeRoute: RouteMap[PageMap.RUNBOOKS],
