@@ -6825,5 +6825,17 @@
   "The log could not be copied. Download it instead.": "The log could not be copied. Download it instead.",
   "Download log": "Download log",
   "Download run as JSON": "Download run as JSON",
-  "This run could not be downloaded. Try again.": "This run could not be downloaded. Try again."
+  "This run could not be downloaded. Try again.": "This run could not be downloaded. Try again.",
+  "This workflow is off": "This workflow is off",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "Its trigger is ignored and it can't be run or tested until you turn it on.",
+  "Turn on workflow": "Turn on workflow",
+  "Only people who can edit this workflow can turn it on.": "Only people who can edit this workflow can turn it on.",
+  "Turn on this workflow?": "Turn on this workflow?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "This workflow is off, so it can't run. Turn it on to run it now.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "Once it's on, its {{trigger}} trigger starts it too.",
+  "You can turn it off again with the Enabled switch above the canvas.": "You can turn it off again with the Enabled switch above the canvas.",
+  "Turn on and run step": "Turn on and run step",
+  "Turn on and run": "Turn on and run",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on."
 }

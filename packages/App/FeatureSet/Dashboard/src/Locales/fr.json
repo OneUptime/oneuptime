@@ -6825,5 +6825,17 @@
   "The log could not be copied. Download it instead.": "Le journal n'a pas pu être copié. Téléchargez-le à la place.",
   "Download log": "Télécharger le journal",
   "Download run as JSON": "Télécharger l'exécution en JSON",
-  "This run could not be downloaded. Try again.": "Cette exécution n'a pas pu être téléchargée. Veuillez réessayer."
+  "This run could not be downloaded. Try again.": "Cette exécution n'a pas pu être téléchargée. Veuillez réessayer.",
+  "This workflow is off": "Ce flux de travail est désactivé",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "Son déclencheur est ignoré, et il ne peut être ni exécuté ni testé tant que vous ne l'activez pas.",
+  "Turn on workflow": "Activer le flux de travail",
+  "Only people who can edit this workflow can turn it on.": "Seules les personnes pouvant modifier ce flux de travail peuvent l'activer.",
+  "Turn on this workflow?": "Activer ce flux de travail ?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "Ce flux de travail est désactivé, donc « {{step}} » ne peut pas s'exécuter. Activez le flux de travail pour exécuter cette étape maintenant.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "Ce flux de travail est désactivé, il ne peut donc pas s'exécuter. Activez-le pour l'exécuter maintenant.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "Une fois activé, son déclencheur « {{trigger}} » le lance aussi.",
+  "You can turn it off again with the Enabled switch above the canvas.": "Vous pouvez le désactiver à nouveau avec l'interrupteur « Activé » au-dessus du canevas.",
+  "Turn on and run step": "Activer et exécuter l'étape",
+  "Turn on and run": "Activer et exécuter",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Ce flux de travail est désactivé, il ne peut donc pas s'exécuter. Seules les personnes pouvant modifier ce flux de travail peuvent l'activer."
 }

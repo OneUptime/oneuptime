@@ -6825,5 +6825,17 @@
   "The log could not be copied. Download it instead.": "Het logboek kon niet worden gekopieerd. Download het in plaats daarvan.",
   "Download log": "Logboek downloaden",
   "Download run as JSON": "Uitvoering downloaden als JSON",
-  "This run could not be downloaded. Try again.": "Deze uitvoering kon niet worden gedownload. Probeer het opnieuw."
+  "This run could not be downloaded. Try again.": "Deze uitvoering kon niet worden gedownload. Probeer het opnieuw.",
+  "This workflow is off": "Deze workflow staat uit",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "De trigger wordt genegeerd en de workflow kan pas worden uitgevoerd of getest als je hem inschakelt.",
+  "Turn on workflow": "Workflow inschakelen",
+  "Only people who can edit this workflow can turn it on.": "Alleen mensen die deze workflow kunnen bewerken, kunnen hem inschakelen.",
+  "Turn on this workflow?": "Deze workflow inschakelen?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "Deze workflow staat uit, dus \"{{step}}\" kan niet worden uitgevoerd. Schakel de workflow in om deze stap nu uit te voeren.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "Deze workflow staat uit, dus hij kan niet worden uitgevoerd. Schakel hem in om hem nu uit te voeren.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "Zodra hij aan staat, start ook de trigger \"{{trigger}}\" hem.",
+  "You can turn it off again with the Enabled switch above the canvas.": "Je kunt hem weer uitschakelen met de schakelaar \"Ingeschakeld\" boven het canvas.",
+  "Turn on and run step": "Inschakelen en stap uitvoeren",
+  "Turn on and run": "Inschakelen en uitvoeren",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Deze workflow staat uit, dus hij kan niet worden uitgevoerd. Alleen mensen die deze workflow kunnen bewerken, kunnen hem inschakelen."
 }

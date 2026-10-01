@@ -6825,5 +6825,17 @@
   "The log could not be copied. Download it instead.": "No se pudo copiar el registro. Descárgalo en su lugar.",
   "Download log": "Descargar registro",
   "Download run as JSON": "Descargar ejecución como JSON",
-  "This run could not be downloaded. Try again.": "No se pudo descargar esta ejecución. Inténtalo de nuevo."
+  "This run could not be downloaded. Try again.": "No se pudo descargar esta ejecución. Inténtalo de nuevo.",
+  "This workflow is off": "Este flujo de trabajo está desactivado",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "Su disparador se ignora y no se puede ejecutar ni probar hasta que lo actives.",
+  "Turn on workflow": "Activar flujo de trabajo",
+  "Only people who can edit this workflow can turn it on.": "Solo las personas que pueden editar este flujo de trabajo pueden activarlo.",
+  "Turn on this workflow?": "¿Activar este flujo de trabajo?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "Este flujo de trabajo está desactivado, así que «{{step}}» no se puede ejecutar. Activa el flujo de trabajo para ejecutar este paso ahora.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "Este flujo de trabajo está desactivado, así que no se puede ejecutar. Actívalo para ejecutarlo ahora.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "Una vez activado, su disparador «{{trigger}}» también lo inicia.",
+  "You can turn it off again with the Enabled switch above the canvas.": "Puedes volver a desactivarlo con el interruptor «Habilitado» que está encima del lienzo.",
+  "Turn on and run step": "Activar y ejecutar paso",
+  "Turn on and run": "Activar y ejecutar",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Este flujo de trabajo está desactivado, así que no se puede ejecutar. Solo las personas que pueden editar este flujo de trabajo pueden activarlo."
 }

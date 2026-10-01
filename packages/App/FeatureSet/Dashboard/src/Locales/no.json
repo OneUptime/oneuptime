@@ -6825,5 +6825,17 @@
   "The log could not be copied. Download it instead.": "Loggen kunne ikke kopieres. Last den ned i stedet.",
   "Download log": "Last ned logg",
   "Download run as JSON": "Last ned kjøring som JSON",
-  "This run could not be downloaded. Try again.": "Kjøringen kunne ikke lastes ned. Prøv igjen."
+  "This run could not be downloaded. Try again.": "Kjøringen kunne ikke lastes ned. Prøv igjen.",
+  "This workflow is off": "Denne arbeidsflyten er slått av",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "Utløseren blir ignorert, og den kan ikke kjøres eller testes før du slår den på.",
+  "Turn on workflow": "Slå på arbeidsflyt",
+  "Only people who can edit this workflow can turn it on.": "Bare personer som kan redigere denne arbeidsflyten, kan slå den på.",
+  "Turn on this workflow?": "Slå på denne arbeidsflyten?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "Denne arbeidsflyten er slått av, så «{{step}}» kan ikke kjøres. Slå på arbeidsflyten for å kjøre dette trinnet nå.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "Denne arbeidsflyten er slått av, så den kan ikke kjøres. Slå den på for å kjøre den nå.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "Når den er slått på, starter også utløseren «{{trigger}}» den.",
+  "You can turn it off again with the Enabled switch above the canvas.": "Du kan slå den av igjen med bryteren «Aktivert» over lerretet.",
+  "Turn on and run step": "Slå på og kjør trinn",
+  "Turn on and run": "Slå på og kjør",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Denne arbeidsflyten er slått av, så den kan ikke kjøres. Bare personer som kan redigere denne arbeidsflyten, kan slå den på."
 }

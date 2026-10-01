@@ -6825,5 +6825,17 @@
   "The log could not be copied. Download it instead.": "Не удалось скопировать журнал. Вместо этого скачайте его.",
   "Download log": "Скачать журнал",
   "Download run as JSON": "Скачать запуск в формате JSON",
-  "This run could not be downloaded. Try again.": "Не удалось скачать этот запуск. Попробуйте снова."
+  "This run could not be downloaded. Try again.": "Не удалось скачать этот запуск. Попробуйте снова.",
+  "This workflow is off": "Этот рабочий процесс выключен",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "Его триггер игнорируется, а сам процесс нельзя запустить или протестировать, пока вы его не включите.",
+  "Turn on workflow": "Включить рабочий процесс",
+  "Only people who can edit this workflow can turn it on.": "Включить его могут только те, кто может редактировать этот рабочий процесс.",
+  "Turn on this workflow?": "Включить этот рабочий процесс?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "Этот рабочий процесс выключен, поэтому «{{step}}» не может выполниться. Включите рабочий процесс, чтобы выполнить этот шаг сейчас.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "Этот рабочий процесс выключен, поэтому его нельзя запустить. Включите его, чтобы запустить сейчас.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "После включения его также будет запускать триггер «{{trigger}}».",
+  "You can turn it off again with the Enabled switch above the canvas.": "Выключить его снова можно переключателем «Включено» над холстом.",
+  "Turn on and run step": "Включить и выполнить шаг",
+  "Turn on and run": "Включить и запустить",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Этот рабочий процесс выключен, поэтому его нельзя запустить. Включить его могут только те, кто может редактировать этот рабочий процесс."
 }

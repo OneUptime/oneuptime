@@ -6825,5 +6825,17 @@
   "The log could not be copied. Download it instead.": "로그를 복사하지 못했습니다. 대신 다운로드하세요.",
   "Download log": "로그 다운로드",
   "Download run as JSON": "실행을 JSON으로 다운로드",
-  "This run could not be downloaded. Try again.": "이 실행을 다운로드하지 못했습니다. 다시 시도하세요."
+  "This run could not be downloaded. Try again.": "이 실행을 다운로드하지 못했습니다. 다시 시도하세요.",
+  "This workflow is off": "이 워크플로가 꺼져 있습니다",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "켜기 전까지는 트리거가 무시되며 실행하거나 테스트할 수 없습니다.",
+  "Turn on workflow": "워크플로 켜기",
+  "Only people who can edit this workflow can turn it on.": "이 워크플로를 편집할 수 있는 사람만 켤 수 있습니다.",
+  "Turn on this workflow?": "이 워크플로를 켜시겠습니까?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "이 워크플로가 꺼져 있어 \"{{step}}\"을(를) 실행할 수 없습니다. 지금 이 단계를 실행하려면 워크플로를 켜세요.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "이 워크플로가 꺼져 있어 실행할 수 없습니다. 지금 실행하려면 워크플로를 켜세요.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "켜고 나면 \"{{trigger}}\" 트리거로도 시작됩니다.",
+  "You can turn it off again with the Enabled switch above the canvas.": "캔버스 위의 \"활성화됨\" 스위치로 언제든 다시 끌 수 있습니다.",
+  "Turn on and run step": "켜고 단계 실행",
+  "Turn on and run": "켜고 실행",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "이 워크플로가 꺼져 있어 실행할 수 없습니다. 이 워크플로를 편집할 수 있는 사람만 켤 수 있습니다."
 }

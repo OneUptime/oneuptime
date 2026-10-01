@@ -6825,5 +6825,17 @@
   "The log could not be copied. Download it instead.": "ログをコピーできませんでした。代わりにダウンロードしてください。",
   "Download log": "ログをダウンロード",
   "Download run as JSON": "実行を JSON でダウンロード",
-  "This run could not be downloaded. Try again.": "この実行をダウンロードできませんでした。もう一度お試しください。"
+  "This run could not be downloaded. Try again.": "この実行をダウンロードできませんでした。もう一度お試しください。",
+  "This workflow is off": "このワークフローはオフです",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "オンにするまで、トリガーは無視され、実行もテストもできません。",
+  "Turn on workflow": "ワークフローをオンにする",
+  "Only people who can edit this workflow can turn it on.": "このワークフローを編集できるユーザーだけがオンにできます。",
+  "Turn on this workflow?": "このワークフローをオンにしますか？",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "このワークフローはオフのため、「{{step}}」を実行できません。このステップを今すぐ実行するには、ワークフローをオンにしてください。",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "このワークフローはオフのため、実行できません。今すぐ実行するには、オンにしてください。",
+  "Once it's on, its {{trigger}} trigger starts it too.": "オンにすると、トリガー「{{trigger}}」でも開始されるようになります。",
+  "You can turn it off again with the Enabled switch above the canvas.": "キャンバスの上にある「有効」スイッチで、いつでもオフに戻せます。",
+  "Turn on and run step": "オンにしてステップを実行",
+  "Turn on and run": "オンにして実行",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "このワークフローはオフのため、実行できません。このワークフローを編集できるユーザーだけがオンにできます。"
 }

@@ -6825,5 +6825,17 @@
   "The log could not be copied. Download it instead.": "Não foi possível copiar o log. Baixe-o em vez disso.",
   "Download log": "Baixar log",
   "Download run as JSON": "Baixar execução como JSON",
-  "This run could not be downloaded. Try again.": "Não foi possível baixar esta execução. Tente novamente."
+  "This run could not be downloaded. Try again.": "Não foi possível baixar esta execução. Tente novamente.",
+  "This workflow is off": "Este fluxo de trabalho está desativado",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "O gatilho dele é ignorado, e ele não pode ser executado nem testado até que você o ative.",
+  "Turn on workflow": "Ativar fluxo de trabalho",
+  "Only people who can edit this workflow can turn it on.": "Somente pessoas que podem editar este fluxo de trabalho podem ativá-lo.",
+  "Turn on this workflow?": "Ativar este fluxo de trabalho?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "Este fluxo de trabalho está desativado, então \"{{step}}\" não pode ser executado. Ative o fluxo de trabalho para executar esta etapa agora.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "Este fluxo de trabalho está desativado, então não pode ser executado. Ative-o para executá-lo agora.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "Depois de ativado, o gatilho \"{{trigger}}\" também o inicia.",
+  "You can turn it off again with the Enabled switch above the canvas.": "Você pode desativá-lo novamente com a chave \"Habilitado\" acima da tela.",
+  "Turn on and run step": "Ativar e executar etapa",
+  "Turn on and run": "Ativar e executar",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Este fluxo de trabalho está desativado, então não pode ser executado. Somente pessoas que podem editar este fluxo de trabalho podem ativá-lo."
 }
