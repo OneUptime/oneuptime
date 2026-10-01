@@ -194,6 +194,8 @@ import { WorkflowVariableType } from "../../../Types/Workflow/WorkflowVariableOA
 
 type Page = "global" | "local";
 
+const PAGES: Array<Page> = ["global", "local"];
+
 const NAME_PLACEHOLDER: string = "API_KEY";
 const DESCRIPTION_PLACEHOLDER: string = "What this variable is for";
 const CONTENT_PLACEHOLDER: string = "Content of the variable";
@@ -273,7 +275,7 @@ function createdModel(): WorkflowVariable {
     .model;
 }
 
-describe.each<Page>(["global", "local"])(
+describe.each(PAGES)(
   "Create Workflow Variable, on the %s variables page",
   (page: Page) => {
     beforeEach(() => {
