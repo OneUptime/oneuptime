@@ -47,7 +47,6 @@ import React, {
   ReactElement,
   forwardRef,
   useCallback,
-  useEffect,
   useImperativeHandle,
   useLayoutEffect,
   useRef,
@@ -561,8 +560,14 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
       draw(valueRef.current, selection);
     }, [props.describeReference]);
 
-    // The events React does not pass on faithfully: beforeinput and input.
-    useEffect(() => {
+    /*
+     * The events React does not pass on faithfully: beforeinput and input.
+     * Added in a layout effect, as the box is put on the page: a passive
+     * effect runs some time after that - later still on a busy page, or for a
+     * box drawn once its form has loaded - and what was typed in between was
+     * never read back, so a reference typed then stayed text.
+     */
+    useLayoutEffect(() => {
       const root: HTMLDivElement | null = rootRef.current;
 
       if (!root) {

@@ -31,7 +31,7 @@ import {
   placeCaret,
 } from "./ValuePickerTestUtils";
 import getJestMockFunction, { MockFunction } from "../../../../MockType";
-import React, { ReactElement, useRef, useState } from "react";
+import React, { ReactElement, useLayoutEffect, useRef, useState } from "react";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -240,6 +240,53 @@ describe("typing", () => {
     // And the caret is after it: typing goes on after the chip.
     await user.keyboard(".");
     expect(last(onChange)).toBe(`Env: ${DEPLOY_ENV}.`);
+  });
+
+  test("it reads what is typed from the moment it is on the page", () => {
+    /*
+     * A parent's layout effect runs once the box is on the page, and before
+     * any passive effect has run. A box that only started listening in a
+     * passive effect missed typing that came then - on a busy page, or in a
+     * cell drawn once its form had loaded - and the reference stayed text.
+     */
+    const onChange: MockFunction = getJestMockFunction();
+    let chipsWhenFirstTyped: number = -1;
+
+    const TypesAtOnce: () => ReactElement = (): ReactElement => {
+      const holder: React.MutableRefObject<HTMLDivElement | null> =
+        useRef<HTMLDivElement | null>(null);
+
+      useLayoutEffect(() => {
+        const box: HTMLElement = holder.current!.querySelector<HTMLElement>(
+          "[data-template-editor]",
+        )!;
+
+        box.textContent = DEPLOY_ENV;
+        box.dispatchEvent(new Event("input", { bubbles: true }));
+        chipsWhenFirstTyped = chipsIn(box).length;
+      }, []);
+
+      return (
+        <div ref={holder}>
+          <TemplateTextEditor
+            value=""
+            multiline={false}
+            ariaLabel="Message"
+            describeReference={(reference: string) => {
+              return describeReference(reference, {});
+            }}
+            onChange={(value: string) => {
+              onChange(value);
+            }}
+          />
+        </div>
+      );
+    };
+
+    render(<TypesAtOnce />);
+
+    expect(chipsWhenFirstTyped).toBe(1);
+    expect(last(onChange)).toBe(DEPLOY_ENV);
   });
 
   test("text next to a chip is typed on the right side of it", async () => {
