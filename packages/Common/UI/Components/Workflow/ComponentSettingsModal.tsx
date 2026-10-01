@@ -13,6 +13,7 @@ import ComponentReturnValueViewer from "./ComponentReturnValueViewer";
 import ComponentSettingsSection from "./ComponentSettingsSection";
 import DocumentationViewer from "./DocumentationViewer";
 import { StepValueSources } from "./ValuePicker/StepGraph";
+import { WORKFLOW_URL } from "../../Config";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
@@ -21,6 +22,7 @@ import { NodeDataProp } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import ComponentDocumentation from "../../../Types/Workflow/Documentation/ComponentDocumentation";
 import { getComponentDocumentation } from "../../../Types/Workflow/Documentation/Index";
+import { getWebhookTriggerUrl } from "../../../Types/Workflow/WebhookTrigger";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -154,6 +156,19 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   });
 
   /*
+   * Where a test request goes. A step after a Webhook that nothing has called
+   * yet offers one to copy in its value picker, so its fields can be seen.
+   * Built only for someone who may see the key, as the Webhook's own URL is.
+   */
+  const webhookUrl: string | undefined =
+    props.canSeeWebhookSecretKey !== false && props.webhookSecretKey
+      ? getWebhookTriggerUrl({
+          workflowServiceUrl: WORKFLOW_URL.toString(),
+          secretKey: props.webhookSecretKey,
+        })
+      : undefined;
+
+  /*
    * An If / Else step's settings are one thing, its condition, and are
    * called that (see Condition/ConditionEditor).
    */
@@ -169,6 +184,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         graphComponents={props.graphComponents}
         valueSources={props.valueSources}
         workflowId={props.workflowId}
+        webhookUrl={webhookUrl}
         component={component}
         onFormChange={(c: NodeDataProp) => {
           setComponent({ ...c });

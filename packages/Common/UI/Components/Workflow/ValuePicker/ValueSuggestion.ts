@@ -4,9 +4,10 @@
  * The picker lists values a step can use in a setting: the return values of
  * the steps that run before it, and the workflow's variables. Each comes from
  * a source (see ValueSuggestionSource), and the list is the sources' groups
- * merged together - so a source added later, such as one offering the fields
- * of the last request a webhook actually received, plugs in without the
- * picker changing.
+ * merged together. The steps' values come from their metadata; what was
+ * inside them the last times they ran - the fields of the request a webhook
+ * received - comes from a second source that adds to the same groups (see
+ * StepSampleSource).
  *
  * Nothing here touches the DOM or the API.
  */
@@ -42,6 +43,24 @@ export interface ValueDrillIn {
   allowsPath: boolean;
   /** An example path for the box, e.g. "title or alerts[0].status". */
   pathPlaceholder?: string | undefined;
+  /**
+   * A line above the values inside: where they come from ("Fields of the
+   * request received 5 minutes ago.") or why there are none yet.
+   */
+  note?: string | undefined;
+}
+
+/**
+ * Makes an item one that only a search lists: a field deep inside a value,
+ * which browsing reaches by opening the value it is in.
+ */
+export interface ValueSuggestionSearchOnly {
+  /**
+   * The words that say where it sits - the value it is inside, as named and
+   * as referenced. A search made only of these, or of the step's own name,
+   * finds the value, not every field in it.
+   */
+  context: Array<string>;
 }
 
 export interface ValueSuggestion {
@@ -56,6 +75,41 @@ export interface ValueSuggestion {
   /** Short facts worth a badge, e.g. "Secret". */
   badges?: Array<string> | undefined;
   drillIn?: ValueDrillIn | undefined;
+  /**
+   * What it held the last time its step ran, in a few words: "production",
+   * "3 fields". Shown beside its name.
+   */
+  sample?: string | undefined;
+  /**
+   * What it held is not shown: it looks like a secret, or the run hid it.
+   */
+  isSampleHidden?: boolean | undefined;
+  /** Listed only by a search that names it (see ValueSuggestionSearchOnly). */
+  searchOnly?: ValueSuggestionSearchOnly | undefined;
+  /**
+   * Adds its sample to an item another source lists - a record's field, say -
+   * and is dropped where no other source lists it.
+   */
+  annotatesOnly?: boolean | undefined;
+}
+
+/**
+ * A word about a whole group, under its name: why a step has nothing to look
+ * inside yet, and how to change that.
+ */
+export interface ValueSuggestionNote {
+  text: string;
+  /** Text for a Copy button beside it, e.g. a request to send. */
+  copyText?: string | undefined;
+  /** That button's label. */
+  copyLabel?: string | undefined;
+  /**
+   * The source to ask again every few seconds while the list is open,
+   * because what the note waits for - a request - can arrive at any moment.
+   */
+  refreshSourceId?: string | undefined;
+  /** Said while it waits, e.g. "Waiting for a request…". */
+  waitingText?: string | undefined;
 }
 
 export interface ValueSuggestionGroup {
@@ -70,6 +124,7 @@ export interface ValueSuggestionGroup {
   /** Lower comes first. */
   order: number;
   items: Array<ValueSuggestion>;
+  note?: ValueSuggestionNote | undefined;
 }
 
 /** What a source knows about the step whose settings are being edited. */
@@ -79,6 +134,11 @@ export interface ValueSuggestionContext {
   component?: NodeDataProp | undefined;
   /** The steps it can read from, in run order (see StepGraph). */
   upstreamComponents: Array<NodeDataProp>;
+  /**
+   * The URL that starts the workflow through its Webhook trigger, secret key
+   * and all, when the reader may see it. Never shown, only copied.
+   */
+  webhookUrl?: string | undefined;
 }
 
 /**
@@ -91,6 +151,11 @@ export interface ValueSuggestionContext {
  */
 export interface ValueSuggestionSource {
   id: string;
+  /**
+   * An extra the picker works without, such as values from earlier runs: it
+   * loads without a "Loading" line, and a failure is not reported.
+   */
+  isBackground?: boolean | undefined;
   getGroups?:
     | ((context: ValueSuggestionContext) => Array<ValueSuggestionGroup>)
     | undefined;
@@ -251,6 +316,7 @@ const mergeDrillIns: MergeDrillInsFunction = (
     wholeValueLabel: first.wholeValueLabel,
     allowsPath: first.allowsPath || second.allowsPath,
     pathPlaceholder: first.pathPlaceholder || second.pathPlaceholder,
+    note: first.note || second.note,
     loadChildren:
       loaders.length === 0
         ? undefined
@@ -291,7 +357,25 @@ const mergeDrillIns: MergeDrillInsFunction = (
               throw results[0]!.error;
             }
 
-            return dedupeSuggestions(loaded.flat());
+            const children: Array<ValueSuggestion> = dedupeSuggestions(
+              loaded.flat(),
+            );
+
+            /*
+             * The loaders that worked only had samples to add, and the one
+             * that lists the fields failed: that failure is the answer.
+             */
+            const failure: LoaderResult | undefined = results.find(
+              (result: LoaderResult) => {
+                return result.items === null;
+              },
+            );
+
+            if (children.length === 0 && failure) {
+              throw failure.error;
+            }
+
+            return children;
           },
   };
 };
@@ -300,7 +384,11 @@ export type DedupeSuggestionsFunction = (
   items: Array<ValueSuggestion>,
 ) => Array<ValueSuggestion>;
 
-/** One item per reference; the first source to offer it names it. */
+/**
+ * One item per reference. The first source to list it names it; the others
+ * add what it lacks - a sample, a way inside. An item that only annotates is
+ * dropped where no source lists it.
+ */
 export const dedupeSuggestions: DedupeSuggestionsFunction = (
   items: Array<ValueSuggestion>,
 ): Array<ValueSuggestion> => {
@@ -309,17 +397,37 @@ export const dedupeSuggestions: DedupeSuggestionsFunction = (
     ValueSuggestion
   >();
 
-  for (const item of items) {
+  /*
+   * The items that list a value go first, each source's in its order, so an
+   * annotation never names the item it adds to.
+   */
+  const ordered: Array<ValueSuggestion> = [
+    ...items.filter((item: ValueSuggestion) => {
+      return !item.annotatesOnly;
+    }),
+    ...items.filter((item: ValueSuggestion) => {
+      return Boolean(item.annotatesOnly);
+    }),
+  ];
+
+  for (const item of ordered) {
     const existing: ValueSuggestion | undefined = byReference.get(
       item.reference,
     );
 
     if (!existing) {
-      byReference.set(item.reference, item);
+      if (!item.annotatesOnly) {
+        byReference.set(item.reference, item);
+      }
+
       continue;
     }
 
-    byReference.set(item.reference, {
+    // The first source to say what it held - or that it is hidden - says it.
+    const sampleFrom: ValueSuggestion =
+      existing.sample || existing.isSampleHidden ? existing : item;
+
+    const merged: ValueSuggestion = {
       ...existing,
       description: existing.description || item.description,
       typeLabel: existing.typeLabel || item.typeLabel,
@@ -333,7 +441,25 @@ export const dedupeSuggestions: DedupeSuggestionsFunction = (
             )
           : undefined,
       drillIn: mergeDrillIns(existing.drillIn, item.drillIn),
-    });
+      sample: sampleFrom.sample,
+      isSampleHidden: sampleFrom.isSampleHidden,
+      // Listed whenever either source lists it.
+      searchOnly:
+        existing.searchOnly && item.searchOnly
+          ? existing.searchOnly
+          : undefined,
+    };
+
+    if (!merged.sample && !merged.isSampleHidden) {
+      delete merged.sample;
+      delete merged.isSampleHidden;
+    }
+
+    if (!merged.searchOnly) {
+      delete merged.searchOnly;
+    }
+
+    byReference.set(item.reference, merged);
   }
 
   return Array.from(byReference.values());
@@ -369,6 +495,7 @@ export const mergeSuggestionGroups: MergeSuggestionGroupsFunction = (
       iconProp: existing.iconProp || group.iconProp,
       order: Math.min(existing.order, group.order),
       items: [...existing.items, ...group.items],
+      note: existing.note || group.note,
     });
   }
 
@@ -377,7 +504,10 @@ export const mergeSuggestionGroups: MergeSuggestionGroupsFunction = (
       return { ...group, items: dedupeSuggestions(group.items) };
     })
     .filter((group: ValueSuggestionGroup) => {
-      return group.items.length > 0;
+      // A group of fields only a search lists has nothing to browse to.
+      return group.items.some((item: ValueSuggestion) => {
+        return !item.searchOnly;
+      });
     })
     .sort((a: ValueSuggestionGroup, b: ValueSuggestionGroup) => {
       return a.order - b.order;
@@ -389,6 +519,23 @@ type NormalizeFunction = (text: string | undefined) => string;
 const normalize: NormalizeFunction = (text: string | undefined): string => {
   return (text || "").toLowerCase();
 };
+
+type QueryWordsFunction = (query: string) => Array<string>;
+
+const queryWords: QueryWordsFunction = (query: string): Array<string> => {
+  return normalize(query)
+    .split(/\s+/)
+    .filter((word: string) => {
+      return word.length > 0;
+    });
+};
+
+/*
+ * The most fields one group lists for a search. A short query can match a
+ * hundred fields of one big body; the first of them, and a longer query,
+ * serve better than a list too long to read.
+ */
+export const MAX_SEARCH_ONLY_RESULTS_PER_GROUP: number = 30;
 
 export type SuggestionMatchesFunction = (
   item: ValueSuggestion,
@@ -406,11 +553,7 @@ export const suggestionMatches: SuggestionMatchesFunction = (
   group: ValueSuggestionGroup | null,
   query: string,
 ): boolean => {
-  const words: Array<string> = normalize(query)
-    .split(/\s+/)
-    .filter((word: string) => {
-      return word.length > 0;
-    });
+  const words: Array<string> = queryWords(query);
 
   if (words.length === 0) {
     return true;
@@ -420,6 +563,7 @@ export const suggestionMatches: SuggestionMatchesFunction = (
     item.label,
     item.description,
     item.typeLabel,
+    item.isSampleHidden ? undefined : item.sample,
     ...(item.badges || []),
     item.reference,
     group?.title,
@@ -433,26 +577,94 @@ export const suggestionMatches: SuggestionMatchesFunction = (
   });
 };
 
+export type IsListedForQueryFunction = (
+  item: ValueSuggestion,
+  group: ValueSuggestionGroup | null,
+  query: string,
+) => boolean;
+
+/**
+ * Whether the list shows an item for this search. Most items: when they
+ * match. A field only a search lists (searchOnly): when it matches and the
+ * search says something about the field itself - "title", "production",
+ * "request-body.inc" - and not just the step or the value it is in, which
+ * would bring up every field of a body at once.
+ */
+export const isListedForQuery: IsListedForQueryFunction = (
+  item: ValueSuggestion,
+  group: ValueSuggestionGroup | null,
+  query: string,
+): boolean => {
+  const words: Array<string> = queryWords(query);
+
+  if (!item.searchOnly) {
+    return suggestionMatches(item, group, query);
+  }
+
+  if (words.length === 0 || !suggestionMatches(item, group, query)) {
+    return false;
+  }
+
+  const context: string = [
+    group?.title,
+    group?.subtitle,
+    ...item.searchOnly.context,
+  ]
+    .map(normalize)
+    .join(" \u0000 ");
+
+  return words.some((word: string) => {
+    return !context.includes(word);
+  });
+};
+
 export type FilterSuggestionGroupsFunction = (
   groups: Array<ValueSuggestionGroup>,
   query: string,
 ) => Array<ValueSuggestionGroup>;
 
-/** The groups, holding only the items that match; empty groups dropped. */
+/**
+ * The groups, holding only the items listed for the search (see
+ * isListedForQuery); empty groups dropped. With no search, every item a
+ * search does not have to find.
+ */
 export const filterSuggestionGroups: FilterSuggestionGroupsFunction = (
   groups: Array<ValueSuggestionGroup>,
   query: string,
 ): Array<ValueSuggestionGroup> => {
   if (query.trim() === "") {
-    return groups;
+    return groups
+      .map((group: ValueSuggestionGroup) => {
+        return {
+          ...group,
+          items: group.items.filter((item: ValueSuggestion) => {
+            return !item.searchOnly;
+          }),
+        };
+      })
+      .filter((group: ValueSuggestionGroup) => {
+        return group.items.length > 0;
+      });
   }
 
   return groups
     .map((group: ValueSuggestionGroup) => {
+      let searchOnlyListed: number = 0;
+
       return {
         ...group,
         items: group.items.filter((item: ValueSuggestion) => {
-          return suggestionMatches(item, group, query);
+          if (!isListedForQuery(item, group, query)) {
+            return false;
+          }
+
+          if (!item.searchOnly) {
+            return true;
+          }
+
+          searchOnlyListed++;
+
+          return searchOnlyListed <= MAX_SEARCH_ONLY_RESULTS_PER_GROUP;
         }),
       };
     })
