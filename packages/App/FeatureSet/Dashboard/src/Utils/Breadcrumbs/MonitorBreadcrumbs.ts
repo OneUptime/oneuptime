@@ -26,6 +26,11 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "Monitors",
       "Disabled",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_ARCHIVED, [
+      "Project",
+      "Monitors",
+      "Archived",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_CREATE, [
       "Project",
       "Monitors",

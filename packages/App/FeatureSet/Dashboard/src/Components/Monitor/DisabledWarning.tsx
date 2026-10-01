@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import { subscribeToArchiveStateChanges } from "../Archive/ArchiveStateEvents";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -20,6 +21,17 @@ export const getDisabledMessage: (monitor: Monitor | null) => string = (
   monitor: Monitor | null,
 ): string => {
   if (!monitor || monitor.monitorType === MonitorType.Manual) {
+    return "";
+  }
+
+  /*
+   * An archived monitor is not checked either, but the archived banner at the
+   * top of its pages already says so and offers the way back. Two banners
+   * saying "not monitoring" for two reasons would only make the reader
+   * decide which one matters; once it is unarchived, this one speaks again
+   * if the monitor is also disabled.
+   */
+  if (monitor.isArchived) {
     return "";
   }
 
@@ -64,6 +76,7 @@ const DisabledWarning: FunctionComponent<ComponentProps> = (
             disableActiveMonitoringBecauseOfManualIncident: true,
             disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
             monitorType: true,
+            isArchived: true,
           },
         });
 
@@ -86,8 +99,20 @@ const DisabledWarning: FunctionComponent<ComponentProps> = (
       // load() handles its own failures.
     });
 
+    // Read again when the monitor is archived or unarchived on this page.
+    const unsubscribe: () => void = subscribeToArchiveStateChanges({
+      modelType: Monitor,
+      modelId: props.monitorId,
+      onChange: () => {
+        load().catch(() => {
+          // load() handles its own failures.
+        });
+      },
+    });
+
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, [monitorIdString, props.refreshToggle]);
 

@@ -33,6 +33,19 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           },
           icon: IconProp.Variable,
         },
+        /*
+         * Archived workflows are filtered out of the list above, so without
+         * this entry the only way back to one would be its URL.
+         */
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.WORKFLOWS_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
     /*

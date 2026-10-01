@@ -392,15 +392,17 @@ describe("Home page request waterfall", () => {
       (entry: string): boolean => {
         return (
           entry.includes("ModelAPI.count<Monitor>") &&
-          queryOf(entry) === "{ projectId: props.projectId }"
+          queryOf(entry) === "{ projectId: props.projectId, isArchived: false }"
         );
       },
     );
 
     /*
-     * Every monitor, whatever its status or whether it is enabled: zero
-     * means the project never created one. A narrower query would call a
-     * project whose monitors are all disabled "not set up".
+     * Every monitor that is not archived, whatever its status or whether it
+     * is enabled: zero means the project has none in its Monitors list. A
+     * narrower query would call a project whose monitors are all disabled
+     * "not set up"; archived ones are gone from that list, like archived
+     * SLOs below.
      */
     expect(monitorTotals).toHaveLength(1);
 

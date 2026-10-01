@@ -245,6 +245,7 @@ export class Service extends DatabaseService<MonitorProbe> {
           AND mp."isEnabled" = true
           AND mp."deletedAt" IS NULL
           AND (mp."nextPingAt" IS NULL OR mp."nextPingAt" <= $2)
+          AND m."isArchived" = false
           AND m."disableActiveMonitoring" = false
           AND m."disableActiveMonitoringBecauseOfManualIncident" = false
           AND m."disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false

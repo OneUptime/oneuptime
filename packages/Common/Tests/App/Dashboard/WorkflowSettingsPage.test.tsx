@@ -17,8 +17,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * The maintainer's question was whether the key belonged in the Webhook
  * component rather than in workflow settings. It now lives with the Webhook
  * trigger (WebhookTriggerPanel); this page keeps what applies to the workflow
- * as a whole - Duplicate and Export - and no longer loads the workflow's graph
- * to decide whether to show a webhook card.
+ * as a whole - Duplicate, Export and Archive - and no longer loads the
+ * workflow's graph to decide whether to show a webhook card. The only read it
+ * makes is the Archive card's, of `isArchived`.
  */
 
 const mockGetItem: MockFunction = getJestMockFunction();
@@ -65,6 +66,9 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
+import Workflow from "../../../Models/DatabaseModels/Workflow";
+import Permission from "../../../Types/Permission";
+import { WORKFLOW_ARCHIVE_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/Archive/ResourceArchiveCopy";
 
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "0198c8ec-2a1d-7f0c-9e75-384194161002",
@@ -113,11 +117,44 @@ describe("workflow Settings", () => {
     expect(mockDuplicateProps?.["modelId"]).toBe(WORKFLOW_ID);
   });
 
-  test("no longer reads the workflow at all, so a Viewer gets no failing request", () => {
+  test("reads only isArchived, which every workflow reader may read, so a Viewer gets no failing request", () => {
+    mockGetItem.mockReturnValue(new Promise<never>(() => {}));
+
     render(<Settings {...PAGE_PROPS} />);
 
-    expect(mockGetItem).not.toHaveBeenCalled();
+    // The Archive card's read, and nothing else: no graph, no secret key.
+    expect(mockGetItem).toHaveBeenCalledTimes(1);
+    expect(
+      (mockGetItem.mock.calls[0]![0] as { select: Record<string, unknown> })
+        .select,
+    ).toEqual({ isArchived: true });
+    expect(
+      new Workflow().getColumnAccessControlFor("isArchived")?.read,
+    ).toEqual(
+      expect.arrayContaining([Permission.Viewer, Permission.ReadWorkflow]),
+    );
     expect(mockUpdateById).not.toHaveBeenCalled();
+  });
+
+  test("ends with the Archive card, after Duplicate and Export", async () => {
+    mockGetItem.mockResolvedValue({ isArchived: false });
+
+    render(<Settings {...PAGE_PROPS} />);
+
+    const archiveTitle: HTMLElement =
+      await screen.findByText("Archive workflow");
+
+    expect(
+      screen
+        .getByTestId("export-workflow")
+        .compareDocumentPosition(archiveTitle) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Says what archiving a workflow does, not the telemetry default.
+    expect(
+      screen.getByText(WORKFLOW_ARCHIVE_COPY.archiveCardDescription),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/telemetry/i)).toBeNull();
   });
 
   test("a duplicate is given a key of its own by the server, never a copy of this one", () => {

@@ -12,6 +12,7 @@ import Workflows from "../Pages/Workflow/Workflows";
 import WorkflowsVariables from "../Pages/Workflow/Variable";
 import WorkflowsVariableView from "../Pages/Workflow/VariableView";
 import WorkflowsLogs from "../Pages/Workflow/Logs";
+import WorkflowsArchived from "../Pages/Workflow/Archived";
 import WorkflowLogs from "../Pages/Workflow/View/Logs";
 import WorkflowDelete from "../Pages/Workflow/View/Delete";
 import WorkflowBuilder from "../Pages/Workflow/View/Builder";
@@ -71,6 +72,20 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
             <WorkflowsLogs
               {...props}
               pageRoute={RouteMap[PageMap.WORKFLOWS_LOGS] as Route}
+            />
+          }
+        />
+
+        {/*
+         * Inside the list layout, so it keeps the list's side menu. Its static
+         * `archived` segment outranks the `:id` of the view routes.
+         */}
+        <PageRoute
+          path={WorkflowRoutePath[PageMap.WORKFLOWS_ARCHIVED] || ""}
+          element={
+            <WorkflowsArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOWS_ARCHIVED] as Route}
             />
           }
         />

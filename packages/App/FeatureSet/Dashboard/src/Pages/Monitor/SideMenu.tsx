@@ -45,6 +45,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               },
             ]
           : []),
+        /*
+         * Archived monitors are left out of every list above, so without
+         * this entry the only way back to one would be its URL.
+         */
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
     {
@@ -62,6 +75,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           modelType: Monitor,
           countQuery: {
             projectId: props.project?._id,
+            isArchived: false,
             currentMonitorStatus: {
               isOperationalState: false,
             },
@@ -79,6 +93,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           modelType: Monitor,
           countQuery: {
             projectId: props.project?._id,
+            isArchived: false,
             disableActiveMonitoring: true,
           },
         },
@@ -94,6 +109,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           modelType: Monitor,
           countQuery: {
             projectId: props.project?._id,
+            isArchived: false,
             isAllProbesDisconnectedFromThisMonitor: true,
           },
         },
@@ -109,6 +125,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           modelType: Monitor,
           countQuery: {
             projectId: props.project?._id,
+            isArchived: false,
             isNoProbeEnabledOnThisMonitor: true,
           },
         },

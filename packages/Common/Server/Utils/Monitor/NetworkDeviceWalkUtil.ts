@@ -1,4 +1,7 @@
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorPauseState, {
+  MONITOR_PAUSE_FLAGS_SELECT,
+} from "../../../Utils/Monitor/MonitorPauseState";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import MonitorService from "../../Services/MonitorService";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
@@ -289,11 +292,7 @@ export default class NetworkDeviceWalkUtil {
       });
 
     for (const monitor of monitors) {
-      if (
-        monitor.disableActiveMonitoring ||
-        monitor.disableActiveMonitoringBecauseOfManualIncident ||
-        monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
-      ) {
+      if (MonitorPauseState.isPaused(monitor)) {
         continue;
       }
 
@@ -477,9 +476,7 @@ export default class NetworkDeviceWalkUtil {
           _id: true,
           projectId: true,
           monitorSteps: true,
-          disableActiveMonitoring: true,
-          disableActiveMonitoringBecauseOfManualIncident: true,
-          disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+          ...MONITOR_PAUSE_FLAGS_SELECT,
         },
         sort: {
           _id: SortOrder.Ascending,

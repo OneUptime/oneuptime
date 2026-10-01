@@ -476,13 +476,15 @@ export default class DashboardAPI extends BaseAPI<
                 description: true,
                 pageTitle: true,
                 pageDescription: true,
+                isArchived: true,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!dashboard) {
+          // An archived dashboard's public page is gone: it reads as missing.
+          if (!dashboard || dashboard.isArchived) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -688,13 +690,14 @@ export default class DashboardAPI extends BaseAPI<
                   file: true,
                   fileType: true,
                 },
+                isArchived: true,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!dashboard) {
+          if (!dashboard || dashboard.isArchived) {
             throw new NotFoundException("Dashboard not found");
           }
 
@@ -1533,13 +1536,14 @@ export default class DashboardAPI extends BaseAPI<
                 masterPassword: true,
                 masterPasswordSalt: true,
                 isPublicDashboard: true,
+                isArchived: true,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!dashboard) {
+          if (!dashboard || dashboard.isArchived) {
             throw new NotFoundException("Dashboard not found");
           }
 

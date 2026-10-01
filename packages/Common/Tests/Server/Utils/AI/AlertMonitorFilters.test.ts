@@ -455,7 +455,9 @@ describe("query_monitors — problemsOnly filter", () => {
     );
 
     const callArgs: JSONObject = findBySpy.mock.calls[0]?.[0] as JSONObject;
+    // Archived monitors are never listed: they are not monitored.
     expect(callArgs["query"]).toEqual({
+      isArchived: false,
       currentMonitorStatus: { isOperationalState: false },
     });
     expect(callArgs["props"]).toBe(ctx.props);

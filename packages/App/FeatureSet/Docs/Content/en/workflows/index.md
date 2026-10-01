@@ -38,6 +38,7 @@ Open **Workflows** in the left navigation. That section holds:
 
 - **Workflows** — your list of workflows. Create a new one or open an existing one.
 - **Global Variables** — values shared across all your workflows.
+- **Archived** — workflows you archived. They never run and are left out of the list; unarchive them from here. See [Archiving a workflow](/docs/workflows/configuration#archiving-a-workflow).
 - **Logs → Runs** — execution history across every workflow in your project.
 
 Open a single workflow and its own left menu holds:
@@ -46,7 +47,7 @@ Open a single workflow and its own left menu holds:
 - **Builder** — the canvas where you design the workflow, with the **Enabled** switch at the top.
 - **Workflow Variables** — values scoped to this one workflow.
 - **Logs → Runs** — every run of this workflow, with details.
-- **Settings** — duplicate and export.
+- **Settings** — duplicate, export and archive.
 
 **Settings** sits in the menu's **Advanced** section with **Audit Logs** and **Delete Workflow**. **Advanced** starts collapsed, in this menu and every other one, so the pages you use every day come first. Click **Advanced** to show its pages. It opens by itself whenever you are on one of them.
 

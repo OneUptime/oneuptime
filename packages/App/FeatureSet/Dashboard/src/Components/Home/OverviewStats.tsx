@@ -152,10 +152,16 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
         await Promise.all([
           fetchActiveIncidentsCount(),
           fetchActiveAlertsCount(),
+          /*
+           * Archived monitors are left out of both monitor counts: they are
+           * not checked, so a frozen "Offline" must not count as a problem,
+           * and they are gone from the Monitors list these tiles open.
+           */
           ModelAPI.count<Monitor>({
             modelType: Monitor,
             query: {
               projectId: props.projectId,
+              isArchived: false,
               currentMonitorStatus: {
                 isOperationalState: false,
               },
@@ -203,6 +209,7 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
             modelType: Monitor,
             query: {
               projectId: props.projectId,
+              isArchived: false,
             },
           }),
           /*

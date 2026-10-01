@@ -178,6 +178,17 @@ export default interface Field<TEntity> {
   doNotShowWhenEditing?: boolean | undefined;
   doNotShowWhenCreating?: boolean | undefined;
 
+  /*
+   * The field only drives the form: it fills in, or edits a part of,
+   * fields that are saved, and its own value is never sent. ModelForm
+   * leaves it out of the request's misc data, where the value of a field
+   * with an overrideFieldKey otherwise goes. Examples: the identity
+   * provider picker that fills in an OAuth 2.0 variable's token URL, and
+   * the Destination step that edits a part of a workspace notification
+   * rule.
+   */
+  formOnly?: boolean | undefined;
+
   //
   jsonKeysForDictionary?: Array<string> | undefined;
   isLoadingDictionaryKeys?: boolean | undefined;

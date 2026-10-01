@@ -7,6 +7,9 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorPauseState, {
+  MONITOR_PAUSE_FLAGS_SELECT,
+} from "Common/Utils/Monitor/MonitorPauseState";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -368,10 +371,11 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   }
 
   /*
-   * Paused guard: if every attached monitor is disabled (manually, because of
-   * a manual incident, or because of a scheduled maintenance event — the same
-   * three flags MonitorService.getEnabledMonitorQuery filters on), there is
-   * no live signal: mark Paused and skip evaluation and alerts.
+   * Paused guard: if every attached monitor is archived or disabled
+   * (manually, because of a manual incident, or because of a scheduled
+   * maintenance event — the same four flags MonitorService.getEnabledMonitorQuery
+   * filters on, read through MonitorPauseState), there is no live signal:
+   * mark Paused and skip evaluation and alerts.
    */
   const monitors: Array<Monitor> = await MonitorService.findBy({
     query: {
@@ -380,9 +384,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     },
     select: {
       _id: true,
-      disableActiveMonitoring: true,
-      disableActiveMonitoringBecauseOfManualIncident: true,
-      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      ...MONITOR_PAUSE_FLAGS_SELECT,
     },
     skip: 0,
     limit: LIMIT_PER_PROJECT,
@@ -405,11 +407,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   }
 
   const areAllMonitorsDisabled: boolean = monitors.every((monitor: Monitor) => {
-    return (
-      monitor.disableActiveMonitoring === true ||
-      monitor.disableActiveMonitoringBecauseOfManualIncident === true ||
-      monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent === true
-    );
+    return MonitorPauseState.isPaused(monitor);
   });
 
   if (areAllMonitorsDisabled) {
@@ -421,7 +419,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       now: now,
       isSloStillEvaluated: checkSloStillEvaluated,
       reason:
-        "Every monitor attached to this SLO is disabled - by hand, by a manual incident or by a scheduled maintenance event - so there is no live signal to measure.",
+        "Every monitor attached to this SLO is archived or disabled - by hand, by a manual incident or by a scheduled maintenance event - so there is no live signal to measure.",
     });
     return;
   }

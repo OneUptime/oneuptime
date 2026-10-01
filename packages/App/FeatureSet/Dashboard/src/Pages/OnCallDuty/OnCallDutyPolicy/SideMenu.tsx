@@ -128,6 +128,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.TableCells}
         />
+        {/*
+         * Settings holds what is done to the policy as a whole - export and
+         * archive - like a workflow's or a monitor's Settings page.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_SETTINGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
+        />
         <SideMenuItem
           link={{
             title: "Audit Logs",

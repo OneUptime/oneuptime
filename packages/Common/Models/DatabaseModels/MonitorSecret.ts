@@ -1,3 +1,4 @@
+import Label from "./Label";
 import Monitor from "./Monitor";
 import Project from "./Project";
 import User from "./User";
@@ -18,6 +19,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
+import MonitorSecretAccess from "../../Types/Monitor/MonitorSecretAccess";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import {
@@ -244,11 +246,53 @@ export default class MonitorSecret extends BaseModel {
   })
   public secretValue?: string = undefined;
 
+  /*
+   * Which monitors can use this secret (issue #1467); see MonitorSecretAccess
+   * for the rule. Specific Monitors is the default because it was the only
+   * behaviour before this column existed: the migration gives every existing
+   * secret that value, and an API client that never heard of the column keeps
+   * getting what it got.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
+      Permission.CreateMonitorSecret,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
       Permission.ReadMonitorSecret,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditMonitorSecret,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "Monitor Access",
+    description:
+      "Which monitors can use this secret. All Monitors: every monitor in this project, including monitors created later. Specific Monitors: only the monitors in Monitors. Monitors With Labels: monitors that carry at least one of the labels in Labels. Setting this empties whichever of Monitors and Labels it does not use.",
+    defaultValue: MonitorSecretAccess.SpecificMonitors,
+    example: MonitorSecretAccess.AllMonitors,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: MonitorSecretAccess.SpecificMonitors,
+  })
+  public monitorAccess?: MonitorSecretAccess = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateMonitorSecret,
     ],
     read: [
       Permission.ProjectOwner,
@@ -266,7 +310,8 @@ export default class MonitorSecret extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Monitor,
     title: "Monitors",
-    description: "List of monitors that can access this secret",
+    description:
+      "The monitors that can use this secret when Monitor Access is Specific Monitors. Ignored otherwise.",
     example: '["5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e"]',
   })
   @ManyToMany(
@@ -287,6 +332,53 @@ export default class MonitorSecret extends BaseModel {
     },
   })
   public monitors?: Array<Monitor> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateMonitorSecret,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.ReadMonitorSecret,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.EditMonitorSecret,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Labels",
+    description:
+      "When Monitor Access is Monitors With Labels, monitors that carry at least one of these labels can use this secret. Ignored otherwise.",
+    example: '["5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e"]',
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "MonitorSecretLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "monitorSecretId",
+      referencedColumnName: "_id",
+    },
+  })
+  public labels?: Array<Label> = undefined;
 
   @ColumnAccessControl({
     create: [

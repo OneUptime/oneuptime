@@ -36,6 +36,11 @@ import {
   truncateTraceValues,
 } from "Common/Types/Workflow/StepTrace";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
+import {
+  WORKFLOW_ARCHIVED_BEFORE_RUN_MESSAGE,
+  WORKFLOW_ARCHIVED_WHILE_WAITING_MESSAGE,
+  getChildWorkflowArchivedMessage,
+} from "Common/Types/Workflow/WorkflowArchive";
 import { getChildWorkflowTurnedOffMessage } from "Common/Types/Workflow/WorkflowEnabled";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
@@ -418,6 +423,56 @@ export default class RunWorkflow {
     } as LogAttributes;
   }
 
+  /*
+   * A queued run of a workflow that has since been archived. One that has a
+   * log (queued from the Run button, a webhook, ...) is closed with a line
+   * saying why it did not run. A scheduled firing has no log yet: it gets
+   * none - a skipped tick is not a run - and the schedule it came from is
+   * removed, so it does not fire again.
+   */
+  private async stopRunOfArchivedWorkflow(runProps: RunProps): Promise<void> {
+    if (runProps.workflowLogId) {
+      const existingLog: WorkflowLog | null =
+        await WorkflowLogService.findOneById({
+          id: runProps.workflowLogId,
+          select: {
+            logs: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (existingLog?.logs) {
+        this.logs = [existingLog.logs as string];
+      }
+
+      this.log(WORKFLOW_ARCHIVED_BEFORE_RUN_MESSAGE);
+
+      await WorkflowLogService.updateColumnsByIdWithoutHooks({
+        id: runProps.workflowLogId,
+        data: {
+          workflowStatus: WorkflowStatus.Error,
+          logs: this.logs.join("\n"),
+          completedAt: OneUptimeDate.getCurrentDate(),
+        },
+      });
+
+      return;
+    }
+
+    logger.debug(
+      "A scheduled run of an archived workflow came due. Skipping it and removing its schedule.",
+      this.getLogAttributes(),
+    );
+
+    try {
+      await QueueWorkflow.removeWorkflow(runProps.workflowId);
+    } catch (err) {
+      logger.error(err, this.getLogAttributes());
+    }
+  }
+
   public async runWorkflow(runProps: RunProps): Promise<void> {
     // get nodes and edges.
 
@@ -438,6 +493,7 @@ export default class RunWorkflow {
           graph: true,
           projectId: true,
           isEnabled: true,
+          isArchived: true,
         },
         props: {
           isRoot: true,
@@ -520,7 +576,8 @@ export default class RunWorkflow {
         };
 
         /*
-         * If the workflow was disabled while it was waiting, cancel the run.
+         * If the workflow was archived or disabled while it was waiting,
+         * cancel the run.
          *
          * All WorkflowLog status stamps in this file use the hookless
          * fast-path: WorkflowLog has no workflow/audit/realtime decorators
@@ -528,6 +585,21 @@ export default class RunWorkflow {
          * overhead for these per-run bookkeeping writes (the dashboard log
          * viewer polls; it does not rely on realtime events).
          */
+        if (workflow.isArchived) {
+          this.log(WORKFLOW_ARCHIVED_WHILE_WAITING_MESSAGE);
+          await WorkflowLogService.updateColumnsByIdWithoutHooks({
+            id: runProps.workflowLogId,
+            data: {
+              workflowStatus: WorkflowStatus.Error,
+              logs: this.logs.join("\n"),
+              completedAt: OneUptimeDate.getCurrentDate(),
+              resumeData: null!,
+              resumeAt: null!,
+            },
+          });
+          return;
+        }
+
         if (!workflow.isEnabled) {
           this.log(
             "Workflow was disabled while it was waiting. Cancelling the run.",
@@ -544,6 +616,17 @@ export default class RunWorkflow {
           });
           return;
         }
+      }
+
+      /*
+       * The queue refuses to start a run of an archived workflow, but a run
+       * can be in the queue already when the workflow is archived - queued a
+       * moment before, or the next firing of a schedule whose job was not yet
+       * removed. It does not start.
+       */
+      if (workflow.isArchived && !runProps.isResume) {
+        await this.stopRunOfArchivedWorkflow(runProps);
+        return;
       }
 
       if (!runProps.workflowLogId) {
@@ -1696,6 +1779,7 @@ export default class RunWorkflow {
               select: {
                 projectId: true,
                 isEnabled: true,
+                isArchived: true,
                 name: true,
               },
               props: {
@@ -1719,13 +1803,24 @@ export default class RunWorkflow {
           }
 
           /*
-           * QueueWorkflow refuses a workflow that is turned off too, but in
-           * words written for the workflow being run: "This workflow is
-           * turned off". In this run's log that reads as the workflow doing
-           * the calling, which is plainly running. Name the one it called
-           * instead. Checked after the project, so a workflow in another
-           * project is never named.
+           * QueueWorkflow refuses a workflow that is archived or turned off
+           * too, but in words written for the workflow being run: "This
+           * workflow is archived" / "turned off". In this run's log that
+           * reads as the workflow doing the calling, which is plainly
+           * running. Name the one it called instead. Checked after the
+           * project, so a workflow in another project is never named.
+           * Archived first, as QueueWorkflow does: turning an archived
+           * workflow on would not make it run.
            */
+          if (targetWorkflow.isArchived) {
+            throw new BadDataException(
+              getChildWorkflowArchivedMessage({
+                workflowId: child.workflowId.toString(),
+                workflowName: targetWorkflow.name,
+              }),
+            );
+          }
+
           if (!targetWorkflow.isEnabled) {
             throw new BadDataException(
               getChildWorkflowTurnedOffMessage({

@@ -54,8 +54,19 @@ const RunbookCredentials: FunctionComponent<
            * and reads as though both were required.
            */
           {
-            title: "SSH",
+            title: "SSH Host",
             id: "ssh",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.SSH;
+            },
+          },
+          /*
+           * Where to connect, then how to sign in: one SSH step of six
+           * fields before. A key or a password - the two are alternatives.
+           */
+          {
+            title: "SSH Authentication",
+            id: "ssh-authentication",
             showIf: (item: FormValues<RunbookCredential>): boolean => {
               return item.credentialType === RunbookCredentialType.SSH;
             },
@@ -148,7 +159,7 @@ const RunbookCredentials: FunctionComponent<
           {
             field: { sshPrivateKey: true },
             title: "Private Key (PEM)",
-            stepId: "ssh",
+            stepId: "ssh-authentication",
             showIf: (item: FormValues<RunbookCredential>): boolean => {
               return item.credentialType === RunbookCredentialType.SSH;
             },
@@ -161,7 +172,7 @@ const RunbookCredentials: FunctionComponent<
           {
             field: { sshPassphrase: true },
             title: "Private Key Passphrase",
-            stepId: "ssh",
+            stepId: "ssh-authentication",
             showIf: (item: FormValues<RunbookCredential>): boolean => {
               return item.credentialType === RunbookCredentialType.SSH;
             },
@@ -172,7 +183,7 @@ const RunbookCredentials: FunctionComponent<
           {
             field: { sshPassword: true },
             title: "Password",
-            stepId: "ssh",
+            stepId: "ssh-authentication",
             showIf: (item: FormValues<RunbookCredential>): boolean => {
               return item.credentialType === RunbookCredentialType.SSH;
             },

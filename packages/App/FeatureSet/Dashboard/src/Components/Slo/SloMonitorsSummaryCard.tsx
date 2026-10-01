@@ -3,6 +3,9 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SloOverviewActionLink from "./SloOverviewActionLink";
 import SloOverviewEmptyState from "./SloOverviewEmptyState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorPauseState, {
+  MONITOR_PAUSE_FLAGS_SELECT,
+} from "Common/Utils/Monitor/MonitorPauseState";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -80,11 +83,8 @@ const toStatusInput: ToStatusInputFunction = (
     isOperationalState: monitor.currentMonitorStatus?.isOperationalState,
     isOfflineState: monitor.currentMonitorStatus?.isOfflineState,
     statusPriority: monitor.currentMonitorStatus?.priority,
-    isMonitoringPaused: Boolean(
-      monitor.disableActiveMonitoring ||
-        monitor.disableActiveMonitoringBecauseOfManualIncident ||
-        monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent,
-    ),
+    // Archived counts as paused: it is not checked, like a disabled monitor.
+    isMonitoringPaused: MonitorPauseState.isPaused(monitor),
   };
 };
 
@@ -150,9 +150,7 @@ const SloMonitorsSummaryCard: FunctionComponent<ComponentProps> = (
               isOfflineState: true,
               priority: true,
             },
-            disableActiveMonitoring: true,
-            disableActiveMonitoringBecauseOfManualIncident: true,
-            disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+            ...MONITOR_PAUSE_FLAGS_SELECT,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,

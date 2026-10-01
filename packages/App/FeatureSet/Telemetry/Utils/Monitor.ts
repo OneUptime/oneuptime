@@ -1,6 +1,5 @@
 import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import IP from "Common/Types/IP/IP";
 import { JSONObject } from "Common/Types/JSON";
@@ -13,81 +12,65 @@ import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 export default class MonitorUtil {
+  /*
+   * The secrets one monitor may use: the ones every monitor in its project
+   * may use, the ones it is listed on, and the ones for any label it carries
+   * (see MonitorSecretAccess).
+   */
   public static async loadMonitorSecrets(
     monitorId: ObjectID,
   ): Promise<MonitorSecret[]> {
-    const secrets: Array<MonitorSecret> = await MonitorSecretService.findBy({
-      query: {
-        monitors: QueryHelper.inRelationArray([monitorId]),
-      },
-      select: {
-        secretValue: true,
-        name: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    const secretsByMonitorId: Map<
+      string,
+      Array<MonitorSecret>
+    > = await MonitorUtil.loadMonitorSecretsForMonitors([monitorId]);
 
-    return secrets;
+    return secretsByMonitorId.get(monitorId.toString()) || [];
   }
 
   /*
-   * Batched variant of loadMonitorSecrets: one query for a whole list of
-   * monitors (e.g. every monitor claimed by a probe fetch cycle) instead of
-   * one query per monitor. Secrets are grouped strictly by their own
-   * `monitors` relation, so a monitor can never receive a secret that is not
-   * attached to it.
+   * Batched variant of loadMonitorSecrets for a whole list of monitors (e.g.
+   * every monitor claimed by a probe fetch cycle): the number of queries does
+   * not grow with the list. A monitor that may use no secret has no entry, and
+   * a secret only ever lands in the entry of a monitor its access mode covers.
    */
   public static async loadMonitorSecretsForMonitors(
     monitorIds: Array<ObjectID>,
   ): Promise<Map<string, Array<MonitorSecret>>> {
-    const secretsByMonitorId: Map<string, Array<MonitorSecret>> = new Map();
+    return await MonitorSecretService.getSecretsForMonitors({
+      monitorIds: monitorIds,
+    });
+  }
 
-    if (monitorIds.length === 0) {
-      return secretsByMonitorId;
+  /*
+   * The secrets a monitor test runs with. A test names its monitor by id, and
+   * that id is not checked against the test's own project when the test is
+   * written, so the monitor's secrets apply only while the monitor is in the
+   * test's project. A test of a monitor that is not saved yet (run from the
+   * Create Monitor form) gets the secrets every monitor in the project may
+   * use.
+   */
+  public static async loadMonitorSecretsForMonitorTest(data: {
+    monitorId: ObjectID | undefined;
+    projectId: ObjectID;
+  }): Promise<Array<MonitorSecret>> {
+    if (!data.monitorId) {
+      return await MonitorSecretService.getSecretsForUnsavedMonitor({
+        projectId: data.projectId,
+      });
     }
 
-    const secrets: Array<MonitorSecret> = await MonitorSecretService.findBy({
-      query: {
-        monitors: QueryHelper.inRelationArray(monitorIds),
-      },
-      select: {
-        secretValue: true,
-        name: true,
-        monitors: {
-          _id: true,
-        },
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
+    const secretsByMonitorId: Map<
+      string,
+      Array<MonitorSecret>
+    > = await MonitorSecretService.getSecretsForMonitors({
+      monitorIds: [data.monitorId],
+      projectId: data.projectId,
     });
 
-    for (const secret of secrets) {
-      for (const monitor of secret.monitors || []) {
-        const monitorKey: string | undefined = monitor.id?.toString();
-
-        if (!monitorKey) {
-          continue;
-        }
-
-        if (!secretsByMonitorId.has(monitorKey)) {
-          secretsByMonitorId.set(monitorKey, []);
-        }
-
-        secretsByMonitorId.get(monitorKey)!.push(secret);
-      }
-    }
-
-    return secretsByMonitorId;
+    return secretsByMonitorId.get(data.monitorId.toString()) || [];
   }
 
   // True when any part of the monitor steps references a {{monitorSecrets.*}} value.
@@ -100,7 +83,8 @@ export default class MonitorUtil {
   public static async populateSecretsInMonitorSteps(data: {
     monitorSteps: MonitorSteps;
     monitorType: MonitorType;
-    monitorId: ObjectID;
+    // Not needed when preloadedSecrets is given.
+    monitorId?: ObjectID | undefined;
     preloadedSecrets?: Array<MonitorSecret> | undefined;
   }): Promise<MonitorSteps> {
     /*
@@ -117,7 +101,9 @@ export default class MonitorUtil {
       MonitorSecret[]
     > => {
       if (!monitorSecretsPromise) {
-        monitorSecretsPromise = MonitorUtil.loadMonitorSecrets(data.monitorId);
+        monitorSecretsPromise = data.monitorId
+          ? MonitorUtil.loadMonitorSecrets(data.monitorId)
+          : Promise.resolve([]);
       }
 
       return monitorSecretsPromise;
@@ -142,7 +128,14 @@ export default class MonitorUtil {
               secrets: monitorSecrets,
               populateSecretsIn: monitorStep.data.requestHeaders,
             })) as Dictionary<string>;
-        } else if (
+        }
+
+        /*
+         * Not an else: a request that sends a secret in a header can send
+         * one in its body too, and used to go out with the body's
+         * placeholder unfilled.
+         */
+        if (
           monitorStep.data?.requestBody &&
           this.hasSecrets(JSONFunctions.toString(monitorStep.data.requestBody))
         ) {
@@ -470,9 +463,9 @@ export default class MonitorUtil {
   public static async populateSecretsOnMonitorTest(
     monitorTest: MonitorTest,
   ): Promise<MonitorTest> {
-    const monitorId: ObjectID | undefined = monitorTest.monitorId;
+    const projectId: ObjectID | undefined = monitorTest.projectId;
 
-    if (!monitorId) {
+    if (!projectId) {
       return monitorTest;
     }
 
@@ -488,10 +481,18 @@ export default class MonitorUtil {
       return monitorTest;
     }
 
+    // Most tests reference no secret; they need no query at all.
+    if (!MonitorUtil.monitorStepsReferenceSecrets(monitorTest.monitorSteps)) {
+      return monitorTest;
+    }
+
     monitorTest.monitorSteps = await MonitorUtil.populateSecretsInMonitorSteps({
       monitorSteps: monitorTest.monitorSteps,
       monitorType: monitorTest.monitorType,
-      monitorId: monitorId,
+      preloadedSecrets: await MonitorUtil.loadMonitorSecretsForMonitorTest({
+        monitorId: monitorTest.monitorId,
+        projectId: projectId,
+      }),
     });
 
     return monitorTest;

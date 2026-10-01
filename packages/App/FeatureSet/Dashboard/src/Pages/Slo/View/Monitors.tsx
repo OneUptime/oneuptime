@@ -474,6 +474,7 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         selectMoreFields={{
+          isArchived: true,
           disableActiveMonitoring: true,
           isNoProbeEnabledOnThisMonitor: true,
           isAllProbesDisconnectedFromThisMonitor: true,
@@ -508,6 +509,20 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Current Status",
             type: FieldType.Entity,
             getElement: (item: Monitor): ReactElement => {
+              /*
+               * An archived monitor stays attached to the SLO but is not
+               * checked, so its last status is frozen: say so.
+               */
+              if (item.isArchived) {
+                return (
+                  <Statusbubble
+                    shouldAnimate={false}
+                    color={Gray500}
+                    text={"Archived"}
+                  />
+                );
+              }
+
               if (item.disableActiveMonitoring) {
                 return (
                   <Statusbubble

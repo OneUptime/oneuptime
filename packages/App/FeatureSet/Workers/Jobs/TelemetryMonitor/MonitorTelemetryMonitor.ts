@@ -20,6 +20,9 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorPauseState, {
+  MONITOR_PAUSE_FLAGS_SELECT,
+} from "Common/Utils/Monitor/MonitorPauseState";
 import { Service as MonitorProbeService } from "Common/Server/Services/MonitorProbeService";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
@@ -147,9 +150,7 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
 
     const telemetryMonitors: Array<Monitor> = await MonitorService.findAllBy({
       query: {
-        disableActiveMonitoring: false,
-        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
-        disableActiveMonitoringBecauseOfManualIncident: false,
+        ...MonitorService.getEnabledMonitorQuery(),
 
         monitorType: DatabaseQueryHelper.any([
           MonitorType.Logs,
@@ -320,9 +321,7 @@ export const processTelemetryMonitorEvaluationFromQueue: (
       monitorSteps: true,
       monitorType: true,
       projectId: true,
-      disableActiveMonitoring: true,
-      disableActiveMonitoringBecauseOfManualIncident: true,
-      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      ...MONITOR_PAUSE_FLAGS_SELECT,
     },
     props: {
       isRoot: true,
@@ -334,13 +333,10 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     return;
   }
 
-  if (
-    monitor.disableActiveMonitoring ||
-    monitor.disableActiveMonitoringBecauseOfManualIncident ||
-    monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
-  ) {
+  // Archived or disabled since the job was queued.
+  if (MonitorPauseState.isPaused(monitor)) {
     logger.debug(
-      `Telemetry monitor ${data.monitorId} is disabled. Skipping evaluation.`,
+      `Telemetry monitor ${data.monitorId} is archived or disabled. Skipping evaluation.`,
     );
     return;
   }

@@ -83,6 +83,12 @@ import { resolveClientIp } from "../Utils/ClientIp";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
+import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorResources";
+import {
+  STATUS_PAGE_ARCHIVED_SENDS_NOTHING_MESSAGE,
+  STATUS_PAGE_NOT_FOUND_MESSAGE,
+} from "../../Types/StatusPage/StatusPageArchive";
 import MasterPasswordRequiredException from "../../Types/Exception/MasterPasswordRequiredException";
 import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
@@ -263,6 +269,8 @@ export class Service extends DatabaseService<StatusPage> {
       query: {
         _id: statusPageId,
         enableMcpServer: true,
+        // An archived status page is offline, its MCP server included.
+        isArchived: false,
       },
       select: {
         _id: true,
@@ -273,6 +281,27 @@ export class Service extends DatabaseService<StatusPage> {
     });
 
     return Boolean(statusPage);
+  }
+
+  /*
+   * Whether this status page exists and is archived. For the places that
+   * find nothing because archived pages are filtered out, and want to say
+   * so to a dashboard user rather than report the page missing.
+   */
+  @CaptureSpan()
+  public async isStatusPageArchived(statusPageId: ObjectID): Promise<boolean> {
+    const statusPage: StatusPage | null = await this.findOneById({
+      id: statusPageId,
+      select: {
+        _id: true,
+        isArchived: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return statusPage?.isArchived === true;
   }
 
   public static getDefaultEmailFooterText(): string {
@@ -593,7 +622,7 @@ export class Service extends DatabaseService<StatusPage> {
     req: ExpressRequest;
   }): Promise<{
     hasReadAccess: boolean;
-    error?: NotAuthenticatedException | ForbiddenException;
+    error?: NotAuthenticatedException | ForbiddenException | NotFoundException;
   }> {
     const statusPageId: ObjectID = data.statusPageId;
     const req: ExpressRequest = data.req;
@@ -611,8 +640,23 @@ export class Service extends DatabaseService<StatusPage> {
           ipWhitelist: true,
           enableMasterPassword: true,
           masterPassword: true,
+          isArchived: true,
         },
       });
+
+      /*
+       * An archived status page is offline: nobody reads it, signed in or
+       * not, and it answers exactly as a page that does not exist would, so
+       * a visitor cannot tell an archived page from a missing one. This is
+       * the gate every public read goes through (StatusPageAPI's
+       * checkHasReadAccess), so one check takes the whole page down.
+       */
+      if (statusPage?.isArchived) {
+        return {
+          hasReadAccess: false,
+          error: new NotFoundException(STATUS_PAGE_NOT_FOUND_MESSAGE),
+        };
+      }
 
       if (statusPage?.ipWhitelist && statusPage.ipWhitelist.length > 0) {
         const ipWhitelist: Array<string> = statusPage.ipWhitelist?.split("\n");
@@ -1209,6 +1253,15 @@ export class Service extends DatabaseService<StatusPage> {
       ]);
 
     if (statusPages.length === 0) {
+      /*
+       * getStatusPagesToSendNotification leaves archived pages out, so a
+       * test report sent from the dashboard for one lands here. Say why,
+       * rather than "not found" for a page the sender is looking at.
+       */
+      if (await this.isStatusPageArchived(data.statusPageId)) {
+        throw new BadDataException(STATUS_PAGE_ARCHIVED_SENDS_NOTHING_MESSAGE);
+      }
+
       throw new BadDataException("Status page not found");
     }
 
@@ -2104,6 +2157,7 @@ export class Service extends DatabaseService<StatusPage> {
           monitor: {
             _id: true,
             currentMonitorStatusId: true,
+            isArchived: true,
           },
           monitorGroupId: true,
           order: true,
@@ -2121,13 +2175,17 @@ export class Service extends DatabaseService<StatusPage> {
         },
       });
 
-    // sort by order and then return
-
-    return statusPageResources.sort(
-      (a: StatusPageResource, b: StatusPageResource) => {
-        return a.order! - b.order!;
-      },
-    );
+    /*
+     * An archived monitor is retired and its status frozen, so it is not
+     * shown (see ArchivedMonitorResources). Everything that works out which
+     * monitors are on the page - incidents, maintenance, reports - reads it
+     * from here and so skips it too.
+     */
+    return ArchivedMonitorResources.withoutArchivedMonitors(
+      statusPageResources,
+    ).sort((a: StatusPageResource, b: StatusPageResource) => {
+      return a.order! - b.order!;
+    });
   }
 
   @CaptureSpan()

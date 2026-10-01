@@ -10,6 +10,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Polcies
 import OnCallDutyPoliciesPage from "../Pages/OnCallDuty/OnCallDutyPolicies";
+import OnCallDutyPoliciesArchivedPage from "../Pages/OnCallDuty/OnCallDutyPoliciesArchived";
 import OnCallDutyExecutionLogs from "../Pages/OnCallDuty/OnCallDutyExecutionLogs";
 
 import OnCallDutyUserOverrides from "../Pages/OnCallDuty/UserOverrides";
@@ -20,6 +21,7 @@ import OnCallDutyScheduleTimeline from "../Pages/OnCallDuty/ScheduleTimeline";
 import OnCallDutyPolicyViewUserOverrides from "../Pages/OnCallDuty/OnCallDutyPolicy/UserOverrides";
 import OnCallDutyPolicyExecutionLogTimeline from "../Pages/OnCallDuty/OnCallDutyExecutionLogView";
 import OnCallDutyPolicyView from "../Pages/OnCallDuty/OnCallDutyPolicy/Index";
+import OnCallDutyPolicyViewSettings from "../Pages/OnCallDuty/OnCallDutyPolicy/Settings";
 import OnCallDutyPolicyViewOwners from "../Pages/OnCallDuty/OnCallDutyPolicy/Owners";
 import OnCallDutyPolicyViewAuditLogs from "../Pages/OnCallDuty/OnCallDutyPolicy/AuditLogs";
 
@@ -148,6 +150,21 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
             <OnCallDutyPoliciesPage
               {...props}
               pageRoute={RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route}
+            />
+          }
+        />
+
+        {/* Static `policies/archived` outranks `policies/:id`. */}
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED] || ""
+          }
+          element={
+            <OnCallDutyPoliciesArchivedPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED] as Route
+              }
             />
           }
         />
@@ -439,6 +456,20 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_POLICY_VIEW_SETTINGS,
+          )}
+          element={
+            <OnCallDutyPolicyViewSettings
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_SETTINGS] as Route
               }
             />
           }

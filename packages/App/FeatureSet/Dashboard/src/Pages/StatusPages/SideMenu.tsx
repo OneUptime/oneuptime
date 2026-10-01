@@ -24,6 +24,19 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.CheckCircle,
         },
+        /*
+         * Archived status pages are filtered out of the list above, so
+         * without this entry the only way back to one would be its URL.
+         */
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGES_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
     {

@@ -248,6 +248,41 @@ describe("monitor update payment admission", () => {
     expectPaymentCheckedFor(projectId);
   });
 
+  /*
+   * Unarchiving puts a monitor back into service the way enabling it does, so
+   * it passes the same gate. Archiving only ever stops work and is never
+   * gated.
+   */
+  test("requires payment to unarchive an active monitor", async () => {
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([storedMonitor(projectId, MonitorType.Website)]);
+    await expect(
+      hooks.onBeforeUpdate(updateInput({ isArchived: false })),
+    ).rejects.toBeInstanceOf(PaymentRequiredException);
+    expectPaymentCheckedFor(projectId);
+  });
+
+  test("never gates archiving a monitor", async () => {
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([storedMonitor(projectId, MonitorType.Website)]);
+    await expect(
+      hooks.onBeforeUpdate(updateInput({ isArchived: true })),
+    ).resolves.toBeDefined();
+    expect(PayAsYouGoBillingService.canUsePayAsYouGo).not.toHaveBeenCalled();
+  });
+
+  test("allows unarchiving a Manual monitor without payment setup", async () => {
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([storedMonitor(projectId, MonitorType.Manual)]);
+    await expect(
+      hooks.onBeforeUpdate(updateInput({ isArchived: false })),
+    ).resolves.toBeDefined();
+    expect(PayAsYouGoBillingService.canUsePayAsYouGo).not.toHaveBeenCalled();
+  });
+
   test("guards internal Manual-to-active changes using the stored project", async () => {
     jest
       .spyOn(MonitorService, "findBy")

@@ -845,11 +845,17 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    /*
+     * Unarchiving puts a monitor back into service the way enabling it does,
+     * so it passes the same pay-as-you-go gate. Archiving is never gated: it
+     * only ever stops work.
+     */
     if (
       IsBillingEnabled &&
       ((updateBy.data.monitorType &&
         updateBy.data.monitorType !== MonitorType.Manual) ||
-        updateBy.data.disableActiveMonitoring === false)
+        updateBy.data.disableActiveMonitoring === false ||
+        updateBy.data.isArchived === false)
     ) {
       const monitors: Array<Model> = await this.findBy({
         query:
@@ -1529,8 +1535,16 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
+  /*
+   * The monitors that are checked: none of the four pause flags set (see
+   * MonitorPauseState, which is the same rule for a monitor already read).
+   * An archived monitor is out of service whatever its other flags say, so
+   * every worker, probe and ingest path that finds monitors through this
+   * query leaves it alone.
+   */
   public getEnabledMonitorQuery(): Query<Model> {
     return {
+      isArchived: false,
       disableActiveMonitoring: false, // do not fetch if disabled is true.
       disableActiveMonitoringBecauseOfManualIncident: false,
       disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
