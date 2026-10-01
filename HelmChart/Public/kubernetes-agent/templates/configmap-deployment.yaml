@@ -397,23 +397,31 @@ data:
       {{- include "kubernetes-agent.filterProcessor" (dict "root" . "signals" $signals) | nindent 6 }}
       {{- end }}
 
-      {{- if eq (include "kubernetes-agent.dropUnlinkedDatabaseSpans" .) "true" }}
-      # Drop eBPF database spans that belong to no trace: the span OBI records
-      # inside the database server for every command it receives (database
-      # wire protocols carry no trace context, so it can never join the
-      # caller's trace), and calls made outside any request (queue workers
-      # polling Redis, pool pings). Each would otherwise reach OneUptime as a
-      # one-span "trace" named after the bare command — `set`, `evalsha` — and
-      # on a busy cluster they are most of what OBI sends. Database spans
-      # inside a request trace have a parent and are kept; spans applications
-      # push from their own SDKs are not OBI's and are kept. OBI computes its
-      # database metrics before export, so those still count every command.
-      # See ebpf.dropUnlinkedDatabaseSpans.
+      {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true" }}
+      # Drop eBPF database spans that belong to no trace. Each would
+      # otherwise reach OneUptime as a one-span "trace" named after the bare
+      # command (`set`, `evalsha`), and on a busy cluster they are most of
+      # what OBI sends.
+      #   - kind == SERVER: the span OBI records inside the database server
+      #     for every command it receives (ebpf.dropDatabaseServerSpans).
+      #     Database wire protocols carry no trace context, so it joins the
+      #     caller's trace only when the caller runs on the same node, and it
+      #     duplicates the client span the caller already recorded.
+      #   - any other kind: an application's own database call made outside
+      #     any request — queue workers polling Redis, pool pings, cron jobs
+      #     (ebpf.dropUnlinkedDatabaseCalls). These also feed OneUptime's
+      #     database discovery; see that value for the trade-off.
+      # Database spans inside a request trace have a parent and are kept;
+      # spans applications push from their own SDKs are not OBI's and are
+      # kept. OBI computes its database metrics before export, so those still
+      # count every command.
       filter/ebpf-unlinked-db:
         error_mode: ignore
         traces:
           span:
-            - '{{ include "kubernetes-agent.ebpfUnlinkedDatabaseSpanCondition" . | replace "'" "''" }}'
+            {{- range (include "kubernetes-agent.ebpfUnlinkedDatabaseSpanConditions" . | fromJsonArray) }}
+            - '{{ . | replace "'" "''" }}'
+            {{- end }}
       {{- end }}
 
       {{- if eq (include "kubernetes-agent.traceSamplingEnabled" .) "true" }}
@@ -526,7 +534,7 @@ data:
             - memory_limiter
             - k8sattributes
             - resource
-            {{- if eq (include "kubernetes-agent.dropUnlinkedDatabaseSpans" .) "true" }}
+            {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true" }}
             # Before the user's filters and the sampler, so neither spends
             # work on spans that are about to be dropped anyway.
             - filter/ebpf-unlinked-db

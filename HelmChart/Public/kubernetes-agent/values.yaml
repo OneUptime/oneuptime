@@ -919,8 +919,8 @@ ebpf:
     # still install. It mapped to OBI's `application_host` feature, which
     # only ever emitted a host-info gauge (`traces_host_info`) — never the
     # per-process CPU and memory this used to promise — and which OBI v0.14
-    # removed. OBI v0.13+ refuses to start on a feature it does not know, so
-    # the chart no longer passes it. Per-node CPU, memory, disk and network
+    # removed. Current OBI (since v0.12) refuses to start on a feature it
+    # does not know, so the chart no longer passes it. Per-node CPU, memory, disk and network
     # metrics come from the top-level `hostMetrics` (the collector's
     # hostmetrics receiver), which is unrelated.
     hostMetrics: false
@@ -935,7 +935,10 @@ ebpf:
     networkInterZoneMetrics: false
     # Node-level TCP statistics: RTT histograms, failed connection
     # counts, and retransmits. Aggregated across all processes on the
-    # node, not per-service. Maps to feature: `stats`.
+    # node, not per-service. Maps to features `stats_tcp_rtt`,
+    # `stats_tcp_failed_connections` and `stats_tcp_retransmits` — not
+    # `stats`, which in current OBI also turns on `stats_tcp_io` (a probe on
+    # every TCP send and receive) and successful-connection counts.
     tcpStats: true
 
   # Distributed trace context propagation. OBI injects a W3C `traceparent`
@@ -1020,9 +1023,16 @@ ebpf:
   # templates — "POST /api/items/:id" — do not come from this agent: OBI reads
   # them from the app's files whether it is on or not; see `routes` below.)
   #
+  # The inspector is open only while the agent is injected — about a second,
+  # a few on a loaded node — and closed again; it is never reachable from
+  # outside the pod. Node itself prints that it was, so each app logs
+  # "Debugger listening on ws://127.0.0.1:9229/…" and "Debugger attached." to
+  # its stderr once, when OBI first finds it. That is this, not an intrusion.
+  #
   # OBI skips the injection for a process that handles SIGUSR1 itself. Turn
   # this off if your security policy forbids an inspector socket in your pods,
-  # even a loopback-only one; Node.js traces then keep working, unlinked.
+  # even a brief loopback-only one; Node.js traces then keep working,
+  # unlinked.
   nodejs:
     enabled: true
 
@@ -1071,7 +1081,9 @@ ebpf:
   # Entries are trimmed; blanks and repeats are dropped, and "*" is ignored:
   # it would turn on every optional attribute, db.query.text and gen_ai
   # prompt and completion payloads included. OBI matches entries as globs.
-  # Maps to OBI's `attributes.select.traces.include`.
+  # Maps to OBI's `attributes.select.traces.include`, which the chart only
+  # renders for OBI v0.14 and later (ebpf.image.tag): older OBI has other
+  # defaults and sends service.peer.name anyway.
   extraSpanAttributes: []
 
   # Drop eBPF database spans that are not part of any trace.
@@ -1080,28 +1092,38 @@ ebpf:
   # that sends it AND on the database server that receives it. When the
   # command is made while handling a request, the client span is a child of
   # that request and shows up inside its trace. But most database traffic is
-  # not like that:
+  # not like that, and each of these becomes a "trace" of exactly one span
+  # named after the bare command — `set`, `evalsha`, `SELECT`. On a cluster
+  # with a busy queue they are the large majority of everything OBI sends,
+  # burying the request traces you actually want to read.
   #
-  #   - The server-side span (Valkey/Redis, PostgreSQL, MySQL, MongoDB, ...)
-  #     can never join the caller's trace: database wire protocols carry no
-  #     trace context. It is always a new one-span trace, and it duplicates
-  #     the client span the caller already recorded.
-  #   - Calls made outside any request — queue workers polling Redis
-  #     (BRPOP/BZPOPMIN/EVALSHA), connection pools pinging, cron jobs — have
-  #     no request to belong to.
+  # Each switch makes the agent's collector drop one kind of eBPF span that
+  # has a database system (`db.system.name`) AND no parent. Database spans
+  # inside a request trace are always kept. Only OBI's spans are considered —
+  # spans that applications push to the agent's OTLP endpoint from their own
+  # SDKs are never touched. Database RED metrics
+  # (`db.client.operation.duration`, …) are computed by OBI before export, so
+  # they still count every command.
   #
-  # Each of those becomes a "trace" of exactly one span named after the bare
-  # command — `set`, `evalsha`, `SELECT` — and on a cluster with a busy queue
-  # they are the large majority of everything OBI sends, burying the request
-  # traces you actually want to read.
+  # The span OBI records inside a database server (Valkey/Redis, PostgreSQL,
+  # MySQL, MongoDB, ...). Database wire protocols carry no trace context, so
+  # it joins the caller's trace only when the caller runs on the same node
+  # (OBI links the two ends of a connection it sees both of); otherwise it
+  # is a trace of one that duplicates the client span the caller already
+  # recorded. Nothing in OneUptime reads it.
+  dropDatabaseServerSpans: true
+  # An application's own database call that belongs to no trace: work no
+  # request triggered — queue workers polling Redis (BRPOP / BZPOPMIN /
+  # EVALSHA), connection-pool pings, cron jobs — and calls OBI could not
+  # place in their request's trace.
   #
-  # With this on, the agent's collector drops an eBPF span when it has a
-  # database system (`db.system.name`) AND no parent. Database spans inside a
-  # request trace are kept. Only OBI's spans are considered — spans that
-  # applications push to the agent's OTLP endpoint from their own SDKs are
-  # never touched. Database RED metrics (`db.client.operation.duration`, …)
-  # are computed by OBI before export, so they still count every command.
-  dropUnlinkedDatabaseSpans: true
+  # Trade-off: OneUptime discovers databases, and draws them on the service
+  # map, from database client spans. A database that ONLY background work
+  # talks to is then no longer discovered from traces (an existing entry
+  # stops being seen and is eventually archived) and shows on the service
+  # map as a remote endpoint rather than a database. Its metrics are
+  # unaffected. Set false to keep these spans — and the one-span traces.
+  dropUnlinkedDatabaseCalls: true
 
   # Log ↔ trace correlation. OBI's log enricher attaches a uprobe to
   # the `write()` syscall in every instrumented process, looks up the

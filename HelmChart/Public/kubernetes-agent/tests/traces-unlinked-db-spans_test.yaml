@@ -4,14 +4,16 @@
 # one-span "trace" named after the bare command (set, evalsha, eval, get):
 #
 #   - valkey-server's own span for every command it received. RESP carries no
-#     trace context, so it can never join the caller's trace — and the caller
-#     already recorded the same command as a client span.
+#     trace context, so it joins the caller's trace only when the caller runs
+#     on the same node — and the caller already recorded the same command as
+#     a client span (ebpf.dropDatabaseServerSpans).
 #   - BullMQ queue workers polling Redis, which runs outside any request and
-#     so has no parent either.
+#     so has no parent either (ebpf.dropUnlinkedDatabaseCalls).
 #
 # Those buried every request trace in the Traces list. The filter drops an
-# OBI span when it has a database system and no parent. These tests pin the
-# condition text (its behaviour against a real collector is covered by
+# OBI span when it has a database system and no parent, one condition per
+# switch, split on the span kind. These tests pin the condition text (its
+# behaviour against a real collector is covered by
 # Tests/Ops/agent-trace-filter-behaviour.sh), its scope — OBI spans only — and
 # its position in the traces pipeline.
 suite: collector drops unlinked eBPF database spans
@@ -26,12 +28,38 @@ set:
   oneuptime.url: https://oneuptime.example.com
   oneuptime.apiKey: key-123
 tests:
-  - it: defines the filter by default, scoped to OBI spans with a database system and no parent
+  - it: defines the filter by default, one condition for database servers' spans and one for unlinked calls, both scoped to OBI spans with a database system and no parent
     asserts:
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  filter/ebpf-unlinked-db:\\n    error_mode: ignore\\n    traces:\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and parent_span_id == SpanID\\(0x0000000000000000\\) and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\)'\\n"
+          pattern: "\\n  filter/ebpf-unlinked-db:\\n    error_mode: ignore\\n    traces:\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and parent_span_id == SpanID\\(0x0000000000000000\\) and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and kind == SPAN_KIND_SERVER'\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and parent_span_id == SpanID\\(0x0000000000000000\\) and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and kind != SPAN_KIND_SERVER'\\n"
+
+  - it: keeps an application's unlinked calls when asked, still dropping database servers' own spans
+    set:
+      ebpf.dropUnlinkedDatabaseCalls: false
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and parent_span_id == SpanID\\(0x0000000000000000\\) and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and kind == SPAN_KIND_SERVER'\\n(?:\\n|  [#a-z])"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "kind != SPAN_KIND_SERVER"
+
+  - it: keeps database servers' spans when asked, still dropping unlinked calls
+    set:
+      ebpf.dropDatabaseServerSpans: false
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and parent_span_id == SpanID\\(0x0000000000000000\\) and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and kind != SPAN_KIND_SERVER'\\n(?:\\n|  [#a-z])"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "kind == SPAN_KIND_SERVER"
 
   - it: runs it right after the metadata processors, before batch
     asserts:
@@ -68,7 +96,8 @@ tests:
 
   - it: can be turned off, leaving neither the definition nor a dangling pipeline reference
     set:
-      ebpf.dropUnlinkedDatabaseSpans: false
+      ebpf.dropDatabaseServerSpans: false
+      ebpf.dropUnlinkedDatabaseCalls: false
     asserts:
       # A processor referenced but not defined (or the reverse) is a collector
       # that refuses to start.
@@ -83,8 +112,13 @@ tests:
 
   - it: stays on for a release upgraded with --reuse-values from values that predate it
     set:
-      ebpf.dropUnlinkedDatabaseSpans: null
+      ebpf.dropDatabaseServerSpans: null
+      ebpf.dropUnlinkedDatabaseCalls: null
     asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "and kind == SPAN_KIND_SERVER'\\n        - [^\\n]* and kind != SPAN_KIND_SERVER'\\n"
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]

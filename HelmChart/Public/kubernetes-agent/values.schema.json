@@ -827,7 +827,7 @@
             },
             "tcpStats": {
               "type": "boolean",
-              "description": "Node-level TCP stats (RTT, failed connections, retransmits) (OBI `stats`)."
+              "description": "Node-level TCP stats (RTT, failed connections, retransmits): OBI `stats_tcp_rtt`, `stats_tcp_failed_connections`, `stats_tcp_retransmits` (not `stats`, which also adds the per-send/receive `stats_tcp_io`)."
             }
           },
           "additionalProperties": false
@@ -882,9 +882,13 @@
           "items": { "type": "string", "minLength": 1 },
           "description": "Span attributes OBI exports in addition to the chart's fixed set (OBI's defaults plus service.peer.name), e.g. 'http.request.body.size', 'http.response.body.size', 'obi.http.response.observed', 'db.query.text' (raw query text, may carry personal data). Rendered into OBI's attributes.select.traces.include; entries are trimmed, blanks and repeats dropped, and '*' is ignored. null (a values file from before this key) means none."
         },
-        "dropUnlinkedDatabaseSpans": {
+        "dropDatabaseServerSpans": {
           "type": "boolean",
-          "description": "Drop eBPF database spans (db.system.name set) that have no parent: server-side spans recorded inside database processes, and calls made outside any request. Each would otherwise be a one-span trace named after the bare command. Spans pushed by application SDKs are never touched, and database metrics are unaffected."
+          "description": "Drop the span OBI records inside a database server (db.system.name set, kind SERVER) when it has no parent, i.e. when its caller runs on another node. It would be a one-span trace duplicating the caller's client span. Spans pushed by application SDKs are never touched, and database metrics are unaffected."
+        },
+        "dropUnlinkedDatabaseCalls": {
+          "type": "boolean",
+          "description": "Drop an application's eBPF database call (db.system.name set, not SERVER) that has no parent: background work such as queue workers polling Redis, pool pings, cron jobs. Trade-off: a database that only such work talks to is no longer discovered from traces and shows on the service map as a remote endpoint. Spans pushed by application SDKs are never touched, and database metrics are unaffected."
         },
         "logToTraceCorrelation": {
           "type": "boolean",

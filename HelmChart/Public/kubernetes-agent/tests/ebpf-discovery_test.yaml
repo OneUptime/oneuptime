@@ -799,3 +799,62 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
+
+  # The span-attribute list is v0.14's. An older OBI has other defaults — v0.9
+  # keeps url.query off, so the list would start exporting query strings — and
+  # sends service.peer.name anyway. A release upgraded with --reuse-values
+  # keeps its old ebpf.image.tag, so this is the case that matters.
+  - it: leaves span attributes to OBI's own defaults on OBI v0.9
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.9.0
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "(?m)^attributes:"
+
+  - it: leaves span attributes to OBI's own defaults on OBI v0.13
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.13.0
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "(?m)^attributes:"
+
+  - it: selects span attributes for a tag that is not a version (a branch build, a digest)
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.image.tag: main@sha256:8f2d6d40f42991abc2cf68bb5b64953684e8c02ce8e24b75e0d6dea1e28e565d
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\nattributes:\\n  select:\\n    traces:\\n      include:\\n"
+
+  - it: selects span attributes for a v0.14 release candidate
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.14.0-rc.1
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\nattributes:\\n  select:\\n    traces:\\n      include:\\n"
+
+  # A brace alternative is ONE glob to OBI, and was one entry when the whole
+  # string went to OTEL_EBPF_AUTO_TARGET_EXE: splitting it at its comma would
+  # leave "*/{python" and "java}", and Java would silently stop being traced.
+  - it: keeps brace alternatives in one selector, splitting only on commas outside braces
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.autoTargetExe: "*/{python,java}"
+      ebpf.excludeExePaths: "{*/sh,*/bash}, */a.{x,{y,z}},*/sleep"
+      namespaceFilters.rules: []
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "^discovery:\\n  instrument:\\n    - exe_path: \"\\*/\\{python,java\\}\"\\n      k8s_namespace: \"\\*\"\\n  exclude_instrument:\\n    - exe_path: \"\\{\\*/sh,\\*/bash\\}\"\\n    - exe_path: \"\\*/a\\.\\{x,\\{y,z\\}\\}\"\\n    - exe_path: \"\\*/sleep\"\\n"
