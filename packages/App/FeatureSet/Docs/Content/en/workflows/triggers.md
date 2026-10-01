@@ -66,6 +66,8 @@ Good for: acting on email from systems that can't call a webhook — alerts from
 - **Attachments** — the name, type and size of each attached file. The files themselves are not kept.
 - **Received At** — when OneUptime received the email.
 
+Once an email has arrived, the value picker in every block after the trigger knows what was in it: it lists each header and each attachment the email had, with what it held, so you can pick `headers.message-id` instead of typing a path. Until then it says that no email has reached the address yet. See [Using values from earlier blocks](/docs/workflows/authoring#using-values-from-earlier-blocks).
+
 To try the workflow without sending an email, click **Run Workflow** on the **Builder** page and fill in a sender, a subject and a body. The values you leave out arrive empty.
 
 Email starts the workflow only while it is on. Email to a workflow that is off is ignored, and so is email to a workflow whose trigger is no longer Incoming Email.
