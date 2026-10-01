@@ -476,3 +476,134 @@ describe("IncomingEmailMonitorAddress.parseRecipient", () => {
     });
   });
 });
+
+/*
+ * Workflows receive mail on the same inbound domain: a workflow with an
+ * Incoming Email trigger has the address workflow-{secretKey}@. A recipient
+ * must resolve to a workflow or a monitor, never be claimable by both.
+ */
+describe("workflow addresses on the shared inbound domain", () => {
+  const WORKFLOW_SECRET: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+
+  it("reads a workflow's key out of its address", () => {
+    expect(parse(`workflow-${WORKFLOW_SECRET}@${DOMAIN}`)).toEqual({
+      kind: IncomingEmailRecipientKind.Workflow,
+      secretKey: WORKFLOW_SECRET,
+    });
+  });
+
+  it('reads it whatever the case, and from "Name <address>"', () => {
+    expect(
+      parse(
+        `Ops Inbox <WORKFLOW-${WORKFLOW_SECRET.toUpperCase()}@${DOMAIN.toUpperCase()}>`,
+      ),
+    ).toEqual({
+      kind: IncomingEmailRecipientKind.Workflow,
+      secretKey: WORKFLOW_SECRET,
+    });
+  });
+
+  it("a workflow- name that is not a key is still a custom monitor name", () => {
+    expect(parse(`workflow-backups@${DOMAIN}`)).toEqual({
+      kind: IncomingEmailRecipientKind.Custom,
+      localPart: "workflow-backups",
+    });
+  });
+
+  it("a workflow's address on another domain is nobody's", () => {
+    expect(parse(`workflow-${WORKFLOW_SECRET}@acme.example`)).toBeNull();
+    expect(parse(`workflow-${WORKFLOW_SECRET}@sub.${DOMAIN}`)).toBeNull();
+  });
+
+  it("a monitor's custom name may not take a workflow's shape", () => {
+    expect(
+      IncomingEmailMonitorAddress.getCustomLocalPartError(
+        `workflow-${WORKFLOW_SECRET}`,
+      ),
+    ).toBe(
+      'Names in the form "workflow-<id>" are reserved for workflow email addresses. Please choose a different name.',
+    );
+    expect(() => {
+      return normalize(`Workflow-${WORKFLOW_SECRET.toUpperCase()}`);
+    }).toThrow(BadDataException);
+  });
+
+  it("names that only start with workflow- stay available to monitors", () => {
+    expect(
+      IncomingEmailMonitorAddress.getCustomLocalPartError("workflow-alerts"),
+    ).toBeNull();
+  });
+});
+
+describe("IncomingEmailMonitorAddress.parseRecipients", () => {
+  const WORKFLOW_SECRET: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+
+  it("finds every monitor and workflow address among an email's recipients, in order", () => {
+    expect(
+      IncomingEmailMonitorAddress.parseRecipients({
+        emailAddresses: [
+          "team@acme.example",
+          `workflow-${WORKFLOW_SECRET}@${DOMAIN}`,
+          `monitor-${SECRET}@${DOMAIN}`,
+          `nightly-backups@${DOMAIN}`,
+        ],
+        inboundDomain: DOMAIN,
+      }),
+    ).toEqual([
+      { kind: IncomingEmailRecipientKind.Workflow, secretKey: WORKFLOW_SECRET },
+      { kind: IncomingEmailRecipientKind.Generated, secretKey: SECRET },
+      { kind: IncomingEmailRecipientKind.Custom, localPart: "nightly-backups" },
+    ]);
+  });
+
+  it("names each address once, however often the email repeats it", () => {
+    expect(
+      IncomingEmailMonitorAddress.parseRecipients({
+        emailAddresses: [
+          `workflow-${WORKFLOW_SECRET}@${DOMAIN}`,
+          `WORKFLOW-${WORKFLOW_SECRET.toUpperCase()}@${DOMAIN}`,
+          `nightly-backups@${DOMAIN}`,
+          `Nightly-Backups@${DOMAIN}`,
+        ],
+        inboundDomain: DOMAIN,
+      }),
+    ).toEqual([
+      { kind: IncomingEmailRecipientKind.Workflow, secretKey: WORKFLOW_SECRET },
+      { kind: IncomingEmailRecipientKind.Custom, localPart: "nightly-backups" },
+    ]);
+  });
+
+  it("a workflow and a monitor with the same key are two recipients", () => {
+    /*
+     * Keys are random UUIDs, so this does not happen - but if it did, the
+     * kinds keep the two apart rather than dropping one.
+     */
+    expect(
+      IncomingEmailMonitorAddress.parseRecipients({
+        emailAddresses: [
+          `workflow-${SECRET}@${DOMAIN}`,
+          `monitor-${SECRET}@${DOMAIN}`,
+        ],
+        inboundDomain: DOMAIN,
+      }),
+    ).toHaveLength(2);
+  });
+
+  it("is empty when nothing is on the inbound domain", () => {
+    expect(
+      IncomingEmailMonitorAddress.parseRecipients({
+        emailAddresses: ["team@acme.example", "not-an-address"],
+        inboundDomain: DOMAIN,
+      }),
+    ).toEqual([]);
+  });
+
+  it("is empty when the server has no inbound domain", () => {
+    expect(
+      IncomingEmailMonitorAddress.parseRecipients({
+        emailAddresses: [`workflow-${WORKFLOW_SECRET}@${DOMAIN}`],
+        inboundDomain: undefined,
+      }),
+    ).toEqual([]);
+  });
+});

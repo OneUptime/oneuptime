@@ -49,6 +49,7 @@ export const POPULAR_COMPONENT_IDS: Readonly<
     ComponentID.Manual,
     ComponentID.Schedule,
     ComponentID.Webhook,
+    ComponentID.IncomingEmail,
     "incident-on-create",
     "incident-on-update",
     "alert-on-create",

@@ -2,6 +2,7 @@ import { record } from "rrweb";
 import {
   SESSION_REPLAY_CHECKOUT_INTERVAL_MS,
   SESSION_REPLAY_FLUSH_INTERVAL_MS,
+  SESSION_REPLAY_IDLE_ROLLOVER_MS,
   SESSION_REPLAY_INPUT_SAMPLING,
   SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
   SESSION_REPLAY_MAX_CAPTURE_REASON_LENGTH,
@@ -515,6 +516,23 @@ export default class Recorder {
   private lastTouchedUnixMs: number = 0;
 
   /*
+   * The idle rollover ended this tab's session and nobody has come back
+   * since.
+   *
+   * The rollover used to start the next session the moment it sealed the
+   * last one - on a tab nobody was looking at. That session opened on a
+   * snapshot, sat through the whole idle window and was sealed in turn, so
+   * a tab left open all day filed a new "session" every half hour: one
+   * still frame each, listed as half an hour long (#4207). Now the tab
+   * waits. Nothing is uploaded and no id goes on the page's requests until
+   * the user does something, and THAT starts the next session
+   * (wakeFromIdle) - as does a return from the back/forward cache, an
+   * explicit captureSession(), or a sibling tab that already started one.
+   */
+  private sealedForIdle: boolean = false;
+  private wakeFromIdleScheduled: boolean = false;
+
+  /*
    * Scrubbed URL this recorder started on. Set once in start() so the
    * envelope's meta.entryUrl stays the ENTRY url even on the final chunk,
    * which is also built from meta.
@@ -715,10 +733,16 @@ export default class Recorder {
        * before an OnErrorOrFrustration trigger, or for a session rotated
        * onto an unsampled id - an id with no recording behind it would be
        * an orphan on every backend span and a stable identifier sent for
-       * nothing. The visitor id is never propagated.
+       * nothing. Nor once the idle rollover sealed the session: a
+       * background poll on an abandoned tab is no part of a recording that
+       * ended at the user's last activity. The visitor id is never
+       * propagated.
        */
       getSessionIdForPropagation: (): string | null => {
-        return !this.stopped && this.uploading && this.consent.isUploadAllowed()
+        return !this.stopped &&
+          this.uploading &&
+          !this.sealedForIdle &&
+          this.consent.isUploadAllowed()
           ? this.identity.sessionId
           : null;
       },
@@ -817,7 +841,7 @@ export default class Recorder {
       blockSelectors: this.config.blockSelectors,
       onClick: (atUnixMs: number, _click: SessionReplayClickPayload): void => {
         this.chunker.countSignal("clickCount");
-        this.lastUserActivityUnixMs = atUnixMs;
+        this.noteUserActivity(atUnixMs);
       },
     });
 
@@ -1481,8 +1505,13 @@ export default class Recorder {
        * chunk behind the seal, so the event goes nowhere. Counted, so that
        * if the page ever comes back (a bfcache restore, which records on as
        * a new tab) the next chunk discloses the loss rather than hiding it.
+       *
+       * Not after an idle seal: nothing is lost there. The session is over,
+       * and the next one opens on a snapshot of its own.
        */
-      this.droppedEvents++;
+      if (!this.sealedForIdle) {
+        this.droppedEvents++;
+      }
     } else if (this.uploading) {
       this.chunker.add(buffered);
 
@@ -1678,8 +1707,9 @@ export default class Recorder {
      * "idle rollover never fires" bug in a subtler form.
      */
     if (event.data["source"] !== SOURCE_MUTATION) {
-      this.lastUserActivityUnixMs =
-        typeof event.timestamp === "number" ? event.timestamp : Date.now();
+      this.noteUserActivity(
+        typeof event.timestamp === "number" ? event.timestamp : Date.now(),
+      );
       return;
     }
 
@@ -1691,6 +1721,105 @@ export default class Recorder {
     this.frustrationDetector.notifyActivity(
       typeof event.timestamp === "number" ? event.timestamp : Date.now(),
     );
+  }
+
+  /*
+   * The end user did something: the idle rollover's clock, and on a tab the
+   * rollover sealed, the cue to start the next session.
+   *
+   * It can also be the first thing after a session that has ALREADY gone
+   * idle without the flush tick noticing yet - the user back within one
+   * tick of the window closing, or a laptop woken from sleep whose mouse
+   * moved before its timers caught up. That activity is the next session's.
+   * The expired one is sealed here, at the activity before, so neither this
+   * event nor the absence before it lands in the session that ended.
+   */
+  private noteUserActivity(atUnixMs: number): void {
+    const previousUnixMs: number = this.lastUserActivityUnixMs;
+
+    /*
+     * Never backwards. The click recorder dates a click when it sees it,
+     * and rrweb then reports the same click - and batches mouse moves - with
+     * timestamps that can be a little earlier.
+     */
+    if (atUnixMs > previousUnixMs) {
+      this.lastUserActivityUnixMs = atUnixMs;
+
+      if (
+        !this.sealedForIdle &&
+        this.started &&
+        !this.stopped &&
+        previousUnixMs > 0 &&
+        atUnixMs - previousUnixMs >= SESSION_REPLAY_IDLE_ROLLOVER_MS &&
+        SessionId.isActivityAfterIdleExpiry(atUnixMs)
+      ) {
+        this.sealForIdle(previousUnixMs);
+      }
+    }
+
+    if (this.sealedForIdle) {
+      this.scheduleWakeFromIdle();
+    }
+  }
+
+  /*
+   * Deferred a tick rather than run here: activity is reported from inside
+   * rrweb's emit callback, and starting a session takes a full snapshot,
+   * which must not re-enter rrweb from within its own emit. The event that
+   * woke the tab is not lost to anything that matters - it happened before
+   * the new session's first snapshot, so that snapshot shows its result.
+   */
+  private scheduleWakeFromIdle(): void {
+    if (this.wakeFromIdleScheduled) {
+      return;
+    }
+
+    this.wakeFromIdleScheduled = true;
+
+    setTimeout((): void => {
+      this.wakeFromIdleScheduled = false;
+      this.wakeFromIdle();
+    }, 0);
+  }
+
+  /*
+   * Start the next session on a tab the idle rollover sealed.
+   *
+   * Through maybeRotateSession, told the user is back: storage holds either
+   * the session this tab sealed, which is idle and rotates, or one a sibling
+   * tab already started, which is adopted - so one browser does not mint two
+   * sessions for one return. Should storage instead hold this tab's own id
+   * as a LIVE session (a sibling still running an older recorder touched it
+   * after the seal), this tab's part of it is sealed and stays sealed, so it
+   * records on as a new tab, as a page restored from the back/forward cache
+   * does.
+   */
+  private wakeFromIdle(): void {
+    if (!this.sealedForIdle || this.stopped || !this.started) {
+      return;
+    }
+
+    const now: number = Date.now();
+
+    this.maybeRotateSession(now, true);
+
+    if (!this.sealedForIdle || this.consent.isRevoked()) {
+      return;
+    }
+
+    if (SessionId.readStoredSessionId() !== this.identity.sessionId) {
+      return;
+    }
+
+    const tabId: string = SessionId.rotateTabId();
+
+    SessionId.resetChunkIndex(tabId);
+
+    this.identity = { ...this.identity, tabId: tabId };
+    this.customEventsInChunk = 0;
+    this.customEventsDroppedInChunk = 0;
+
+    this.recordOnInSameSession(now);
   }
 
   private onFrustrationSignal(signal: FrustrationSignal): void {
@@ -1733,6 +1862,16 @@ export default class Recorder {
 
   private startUploadingIfAllowed(): void {
     if (this.uploading || this.triggerReason === null) {
+      return;
+    }
+
+    /*
+     * The only id this tab holds is the session that ended. A trigger on an
+     * abandoned tab - an error a background poll threw - starts nothing;
+     * the next session begins uploading when the user comes back, and
+     * switchSession forgets the trigger along with the rest of the old one.
+     */
+    if (this.sealedForIdle) {
       return;
     }
 
@@ -1860,6 +1999,22 @@ export default class Recorder {
       return;
     }
 
+    /*
+     * Activity the stored session had already gone idle before belongs to
+     * the NEXT session. Written through, it revived the expired one - the
+     * rotation that runs straight after this in the same tick then read
+     * fresh activity and kept the session going, with the whole absence
+     * (a lunch break, a night with the laptop shut) as a dead zone in the
+     * middle of it. Left unwritten, that rotation sees the expiry and starts
+     * the new session, which writes its own activity.
+     */
+    if (
+      this.sealedForIdle ||
+      SessionId.isActivityAfterIdleExpiry(this.lastUserActivityUnixMs)
+    ) {
+      return;
+    }
+
     SessionId.touch(this.lastUserActivityUnixMs);
     this.lastTouchedUnixMs = this.lastUserActivityUnixMs;
   }
@@ -1870,9 +2025,16 @@ export default class Recorder {
    * Both decisions live in Common/Utils/Rum/SessionIdentity, but until now
    * they were only ever consulted at construction and on a bfcache restore,
    * so neither could fire in a tab that simply stayed open. Returns true when
-   * the session was rotated.
+   * the session was rotated - or sealed as idle, which leaves this tab just
+   * as finished with the session it held.
+   *
+   * isUserBack: the caller knows the user is here (wakeFromIdle). An idle
+   * session then rotates at once instead of being sealed to wait for them.
    */
-  private maybeRotateSession(nowUnixMs: number): boolean {
+  private maybeRotateSession(
+    nowUnixMs: number,
+    isUserBack: boolean = false,
+  ): boolean {
     if (this.stopped || !this.started) {
       return false;
     }
@@ -1941,9 +2103,46 @@ export default class Recorder {
       return false;
     }
 
+    /*
+     * Idle, and nobody has come back: the session ENDED, at its last
+     * activity. It is sealed there and this tab waits for the user rather
+     * than starting a session nobody is in (see sealedForIdle). A user who
+     * is already back - activity this tab saw after the session expired,
+     * such as the first mouse move after a laptop wakes - starts the next
+     * one now.
+     */
+    if (
+      decision.reason === SessionRotationReason.Idle &&
+      !isUserBack &&
+      !SessionId.isActivityAfterIdleExpiry(this.lastUserActivityUnixMs)
+    ) {
+      this.sealForIdle(this.lastUserActivityUnixMs);
+      return true;
+    }
+
     this.rotateSession(nowUnixMs, decision.reason);
 
     return true;
+  }
+
+  /*
+   * End this tab's session as idle: sealed at the moment the user left, and
+   * the tab left waiting for them (see sealedForIdle).
+   */
+  private sealForIdle(endedAtUnixMs: number): void {
+    if (!this.sealedForIdle) {
+      debugLog(
+        "session-ended-idle",
+        "Nothing happened for the idle window, so the session ended at the last activity. The next one starts when the user comes back.",
+        {
+          sessionId: this.identity.sessionId,
+          idleForMs: Math.max(0, Date.now() - endedAtUnixMs),
+        },
+      );
+    }
+
+    this.sealedForIdle = true;
+    this.sealCurrentSession(endedAtUnixMs);
   }
 
   /*
@@ -2040,7 +2239,7 @@ export default class Recorder {
    * ORDINARY send, not the keepalive one: the page is alive, and the
    * keepalive path can only carry 56 KB.
    */
-  private sealCurrentSession(): void {
+  private sealCurrentSession(endedAtUnixMs?: number): void {
     if (!this.uploading || this.hasSentFinalChunk) {
       return;
     }
@@ -2051,10 +2250,36 @@ export default class Recorder {
      * still cannot seal twice.
      */
     try {
-      this.chunker.close(true);
+      this.chunker.close(
+        true,
+        endedAtUnixMs === undefined
+          ? this.getRecordingEndUnixMs(Date.now())
+          : endedAtUnixMs,
+      );
     } finally {
       this.hasSentFinalChunk = true;
     }
+  }
+
+  /*
+   * When this tab's part of the session really ended, for a seal: now -
+   * unless the user has been gone for the whole idle window, and then the
+   * moment they left. A seal that late is the recorder noticing the
+   * absence, not anything the user did, and the seal's time is the
+   * session's end: dated now, every abandoned session was listed as half an
+   * hour longer than anything the player could show (#4207). Between the
+   * two (someone reading without touching anything) the page was in front
+   * of them, so the seal stays at now.
+   */
+  private getRecordingEndUnixMs(nowUnixMs: number): number {
+    if (
+      this.lastUserActivityUnixMs > 0 &&
+      nowUnixMs - this.lastUserActivityUnixMs >= SESSION_REPLAY_IDLE_ROLLOVER_MS
+    ) {
+      return this.lastUserActivityUnixMs;
+    }
+
+    return nowUnixMs;
   }
 
   /*
@@ -2083,6 +2308,7 @@ export default class Recorder {
     this.uploading = false;
     this.triggerReason = null;
     this.hasSentFinalChunk = false;
+    this.sealedForIdle = false;
     this.droppedEvents = 0;
     this.customEventsInChunk = 0;
     this.customEventsDroppedInChunk = 0;
@@ -2354,6 +2580,32 @@ export default class Recorder {
   }
 
   /*
+   * The same session, a new tab - the tab id and its counter already
+   * changed by the caller. switchSession does all of this for a rotated
+   * session; here the chunker is kept (its session start, and the fidelity
+   * notices that still describe this page) and only its sequence starts
+   * over with the index.
+   */
+  private recordOnInSameSession(nowUnixMs: number): void {
+    this.hasSentFinalChunk = false;
+    this.sealedForIdle = false;
+    this.chunker.beginNewTab();
+
+    /*
+     * Where THIS tab began, like any page load: chunk 0 carries it as
+     * meta.entryUrl, and routes[] starts with it.
+     */
+    this.entryUrl = this.scrubUrl(this.windowRef.location.href);
+    this.chunker.addRoute(this.entryUrl);
+
+    /* Returning is activity; written through on the next tick. */
+    this.lastUserActivityUnixMs = nowUnixMs;
+
+    this.takeFullSnapshot();
+    this.notifySessionChange();
+  }
+
+  /*
    * The page came back from the back/forward cache with its JavaScript
    * state intact but an unknown amount of wall-clock time elapsed. The
    * session may have aged out, the URL may have changed, and rrweb's node
@@ -2425,32 +2677,15 @@ export default class Recorder {
      * recording - and this used to STOP the recorder for the rest of the
      * page's life, so a user coming Back after lunch got no recording at
      * all. Now it rotates (or adopts a sibling tab's session) exactly as the
-     * flush timer would, onto the new tab id.
+     * flush timer would, onto the new tab id. Coming back IS the user
+     * returning, so an idle session rotates here rather than being sealed
+     * to wait for them.
      */
-    const rotated: boolean = this.maybeRotateSession(now);
+    const rotated: boolean = this.maybeRotateSession(now, true);
 
     if (!rotated) {
-      /*
-       * 4. The same session, a new tab. switchSession did all of this for a
-       * rotated one; here the chunker is kept (its session start, and the
-       * fidelity notices that still describe this page) and only its
-       * sequence starts over with the index.
-       */
-      this.hasSentFinalChunk = false;
-      this.chunker.beginNewTab();
-
-      /*
-       * Where THIS tab began, like any page load: chunk 0 carries it as
-       * meta.entryUrl, and routes[] starts with it.
-       */
-      this.entryUrl = this.scrubUrl(this.windowRef.location.href);
-      this.chunker.addRoute(this.entryUrl);
-
-      /* Returning is activity; written through on the next tick. */
-      this.lastUserActivityUnixMs = now;
-
-      this.takeFullSnapshot();
-      this.notifySessionChange();
+      /* 4. */
+      this.recordOnInSameSession(now);
     }
 
     this.chunker.addFidelityNotice(SessionReplayFidelityNotice.BfcacheRestore);
@@ -3157,6 +3392,9 @@ export default class Recorder {
     this.uploading = false;
     this.triggerReason = null;
     this.hasSentFinalChunk = false;
+
+    /* No session is left to have ended idle; a grant starts a fresh one. */
+    this.sealedForIdle = false;
   }
 
   /*
@@ -3246,6 +3484,15 @@ export default class Recorder {
    * moment it was asked for.
    */
   public captureSession(reason?: string): void {
+    /*
+     * An explicit ask for a recording, on a tab whose session ended idle,
+     * starts the next session first - so the marker below lands in it
+     * rather than behind the seal of the one that ended.
+     */
+    if (this.sealedForIdle) {
+      this.wakeFromIdle();
+    }
+
     if (typeof reason === "string" && reason.trim()) {
       this.track("captureSession", {
         reason: reason

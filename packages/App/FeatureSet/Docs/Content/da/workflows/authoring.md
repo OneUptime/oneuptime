@@ -1,6 +1,13 @@
 # Opret et workflow
 
-For at oprette et workflow åbner du **Arbejdsgange** og klikker **Opret arbejdsgang**. En guide, der hedder **Create a workflow**, fører dig igennem: først **Start from** — vælg **Start from scratch** eller en af skabelonerne — dernæst **Navn**, og til sidst trinnet **Konfigurer**, som kun dukker op, når den skabelon, du valgte, selv beder om indstillinger.
+For at oprette et workflow åbner du **Arbejdsgange** og klikker **Opret arbejdsgang**. En guide, der hedder **Create a workflow**, fører dig igennem: først **Start from**, dernæst **Navn**, og til sidst trinnet **Konfigurer**, som kun dukker op, når den skabelon, du valgte, selv beder om indstillinger.
+
+På **Start from** vælger du, hvordan du vil begynde:
+
+- **Start fra bunden**, ved siden af søgefeltet, giver dig et tomt lærred.
+- En skabelon giver dig et workflow, der allerede virker, klar til at blive ændret. Trinnet åbner med nogle få skabeloner under **Anbefalet**. Resten ligger under deres kategorier, fx **Hændelser**, **Monitorer** og **Jira**, hver med antallet af skabeloner, og **Alle skabeloner** viser dem alle. En søgning kigger i dem alle: hvert ord, du skriver, skal passe, og hver kategori viser, hvor mange af dens skabeloner der passede.
+
+Klik på en skabelon for at se, hvad den gør, før du vælger den: dens trigger, de trin, den består af, og de indstillinger, den vil spørge om. **Brug denne skabelon** fører den videre til **Navn**, og det gør **Enter** og et dobbeltklik også. Piletasterne flytter rundt i listen, og `/` fører dig tilbage til søgefeltet.
 
 Når det er oprettet, åbner du **Bygger** i menuen til venstre. Det er lærredet, hvor du designer workflowet.
 
@@ -67,7 +74,7 @@ Den hurtigste måde at få fornemmelse for lærredet på:
 1. Klik på den stiplede pladsholderblok, og klik derefter **Manual** i panelet **Add Trigger**.
 2. Klik **Tilføj komponent**, og klik derefter **Log** under **Popular**. Den nye blok lander under triggeren. Forbind triggerens **Execute**-prik ned til Log-blokkens input-prik.
 3. Klik på Log-blokken, hvor der står **Click to set up**, og sæt dens **Værdi** til `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` er triggerens **Identifier**, som står på trigger-blokken — tjek, at det passer.
-4. Gå til **Oversigt**, klik **Rediger arbejdsgang** på kortet **Arbejdsgangsdetaljer**, og slå **Aktiveret** til. Et deaktiveret workflow kan slet ikke køres, heller ikke i hånden.
+4. Slå **Aktiveret** til øverst i Bygger. Et deaktiveret workflow kan slet ikke køres, heller ikke i hånden; springer du dette trin over, spørger **Kør arbejdsgang** først, om det skal slås til.
 5. Tilbage på **Bygger** klikker du **Kør arbejdsgang**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker **Run Workflow Manually** og bekræfter med **Run**.
 6. Et **Workflow Run**-panel åbner af sig selv og følger kørslen. Loggen viser `Value:` efterfulgt af `Hello from Ada`.
 
@@ -75,11 +82,13 @@ Den cyklus — tilføj, forbind, konfigurer, kør, læs loggen — er sådan, du
 
 ## Sådan slår du det til
 
-Nye workflows starter deaktiveret, og det samme gør ethvert workflow, du duplikerer eller importerer.
+Nye workflows starter deaktiveret, og det samme gør ethvert workflow, du duplikerer eller importerer. Så længe et workflow er slået fra, siger Bygger det over lærredet, med en knap **Slå arbejdsgang til**.
 
-Kontakten **Aktiveret** sidder på workflowets side **Oversigt**, i kortet **Arbejdsgangsdetaljer** — ikke på indstillingssiden. Det samme kort viser den aktuelle tilstand som en grøn **Aktiveret**- eller rød **Deaktiveret**-pille.
+Kontakten **Aktiveret** sidder øverst i **Bygger**, ved siden af **Tilføj komponent** og **Kør arbejdsgang**. Den findes også på workflowets side **Oversigt**: klik **Rediger arbejdsgang** på kortet **Arbejdsgangsdetaljer**, som viser den aktuelle tilstand som en grøn **Aktiveret**- eller rød **Deaktiveret**-pille. Kun dem, der må redigere workflowet, kan slå det til eller fra; alle andre ser kontakten nedtonet.
 
-Et deaktiveret workflow kan slet ikke køre. Manuelle kørsler afvises med "This workflow is not enabled" præcis som udløste kørsler, så rækkefølgen er: slå det til, test det med **Kør arbejdsgang**, læs kørselsloggen, og slå **Aktiveret** fra igen, hvis du ikke er klar til, at triggeren fyrer. Vil du teste en enkelt blok uden at køre det hele, bruger du **Run just this step** i den bloks indstillinger.
+Et deaktiveret workflow kan slet ikke køre: dets trigger ignoreres, og det samme gør **Kør arbejdsgang** og **Run just this step**. Kører du det, eller en af dets blokke, mens det er slået fra, spørger Bygger i stedet **Slå denne arbejdsgang til?**. **Slå til og kør** (eller **Slå til og kør trin**) slår workflowet til og kører derefter det, du bad om, med de værdier, du gav. Så rækkefølgen er: byg det, test det med **Kør arbejdsgang**, læs kørselsloggen, og slå **Aktiveret** fra igen, hvis du ikke er klar til, at triggeren fyrer. Vil du teste en enkelt blok uden at køre det hele, bruger du **Run just this step** i den bloks indstillinger.
+
+Alt andet, der starter et deaktiveret workflow, afvises med samme råd. Et kald til dets webhook-URL får HTTP 400 og "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again." En **Execute Workflow**-blok, der kalder det, tager sin **Error**-vej, og fejlen nævner det workflow, den kaldte.
 
 Vil du sætte et workflow på pause uden at slette det, slår du **Aktiveret** fra. Der starter ingen nye kørsler. En kørsel, der er midt i det, gør sig færdig, men en, der er parkeret på en **Sleep**-blok, bliver annulleret, når den vågner, og registreret som en fejl.
 

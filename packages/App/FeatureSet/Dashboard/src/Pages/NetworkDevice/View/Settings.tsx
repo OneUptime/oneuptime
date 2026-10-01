@@ -267,10 +267,25 @@ const NetworkDeviceSettings: FunctionComponent<
             // handled inside.
           });
         }}
+        /*
+         * What the device is, where it is, and how it is watched: one step
+         * of seven fields before. Device Details and Address are the
+         * Overview card's own steps, so a field sits under the same step
+         * name on both cards. Monitoring comes last, right before the SNMP
+         * step its method shows or hides - never on that step itself.
+         */
         formSteps={[
           {
             title: "Device Details",
             id: "device-details",
+          },
+          {
+            title: "Address",
+            id: "address",
+          },
+          {
+            title: "Monitoring",
+            id: "monitoring",
           },
           {
             /*
@@ -299,7 +314,7 @@ const NetworkDeviceSettings: FunctionComponent<
               monitoringMethod: true,
             },
             title: "Monitoring Method",
-            stepId: "device-details",
+            stepId: "monitoring",
             description: MONITORING_METHOD_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: MONITORING_METHOD_OPTIONS,
@@ -311,7 +326,7 @@ const NetworkDeviceSettings: FunctionComponent<
               monitor: true,
             },
             title: "Monitor",
-            stepId: "device-details",
+            stepId: "monitoring",
             showIf: isMonitorBackedDevice,
             description: MONITOR_BINDING_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
@@ -352,7 +367,7 @@ const NetworkDeviceSettings: FunctionComponent<
               hostname: true,
             },
             title: "Hostname",
-            stepId: "device-details",
+            stepId: "address",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
@@ -364,7 +379,7 @@ const NetworkDeviceSettings: FunctionComponent<
            * operator corrects one the router got wrong or types one no
            * router will ever learn.
            */
-          getMacAddressFormField({ stepId: "device-details" }),
+          getMacAddressFormField({ stepId: "address" }),
           {
             field: {
               snmpCredentialProfile: true,

@@ -277,9 +277,15 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
           onSaveSuccess={(item: RumApplication): void => {
             setApplication(item);
           }}
+          /*
+           * Privacy was one step of seven settings. Masking asks what a
+           * recording hides; Consent & Identity asks whether it may be
+           * uploaded and what it says about the person recorded.
+           */
           formSteps={[
             { title: "Recording", id: "recording" },
-            { title: "Privacy", id: "privacy" },
+            { title: "Masking", id: "privacy" },
+            { title: "Consent & Identity", id: "consent" },
             { title: "Performance & Tracing", id: "performance" },
             { title: "Limits", id: "limits" },
           ]}
@@ -354,7 +360,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
             {
               field: { sessionReplayConsentMode: true },
               title: "Consent",
-              stepId: "privacy",
+              stepId: "consent",
               fieldType: FormFieldSchemaType.Dropdown,
               dropdownOptions:
                 DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
@@ -387,7 +393,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
             {
               field: { sessionReplayCaptureUserIdentity: true },
               title: "Capture end-user identity",
-              stepId: "privacy",
+              stepId: "consent",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
               description:
@@ -396,7 +402,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
             {
               field: { sessionReplayCaptureGeo: true },
               title: "Capture country",
-              stepId: "privacy",
+              stepId: "consent",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
               description:

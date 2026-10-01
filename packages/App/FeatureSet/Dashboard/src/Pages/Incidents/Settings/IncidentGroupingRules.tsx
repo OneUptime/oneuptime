@@ -255,9 +255,20 @@ const IncidentGroupingRulesPage: FunctionComponent<
             id: "group-by",
             columns: 2,
           },
+          /*
+           * Four on/off windows, each with its minutes and a paragraph of
+           * help, were one step of eight fields. Split by the question each
+           * answers: does a new incident join an existing episode (the time
+           * window and the reopen window), and when does an episode resolve
+           * on its own (the resolve delay and the inactivity timeout).
+           */
           {
-            title: "Time Settings",
+            title: "Time Windows",
             id: "time-settings",
+          },
+          {
+            title: "Auto-Resolve",
+            id: "auto-resolve",
           },
           {
             title: "Episode Template",
@@ -519,7 +530,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
               enableResolveDelay: true,
             },
             title: "Enable Resolve Delay",
-            stepId: "time-settings",
+            stepId: "auto-resolve",
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             description:
@@ -530,7 +541,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
               resolveDelayMinutes: true,
             },
             title: "Resolve Delay (minutes)",
-            stepId: "time-settings",
+            stepId: "auto-resolve",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "5",
@@ -571,7 +582,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
               enableInactivityTimeout: true,
             },
             title: "Enable Inactivity Timeout",
-            stepId: "time-settings",
+            stepId: "auto-resolve",
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             description:
@@ -582,7 +593,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
               inactivityTimeoutMinutes: true,
             },
             title: "Inactivity Timeout (minutes)",
-            stepId: "time-settings",
+            stepId: "auto-resolve",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "60",

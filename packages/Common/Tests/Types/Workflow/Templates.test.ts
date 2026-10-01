@@ -28,14 +28,20 @@
  */
 
 import {
+  RECOMMENDED_WORKFLOW_TEMPLATE_IDS,
   WORKFLOW_TEMPLATE_VARIABLE_NAME_REGEX,
   WorkflowTemplate,
   WorkflowTemplateCategories,
   WorkflowTemplateCategory,
+  WorkflowTemplateCategoryInfo,
+  WorkflowTemplateOutline,
   WorkflowTemplateVariable,
   buildGraphForTemplate,
+  getRecommendedWorkflowTemplates,
   getTemplateGraphSpec,
   getWorkflowTemplate,
+  getWorkflowTemplateCategoryInfo,
+  getWorkflowTemplateOutline,
   getWorkflowTemplates,
   getWorkflowTemplatesByCategory,
 } from "../../../Types/Workflow/Templates";
@@ -406,9 +412,348 @@ describe("workflow templates", () => {
           "variables",
           "workflowDescription",
           "workflowName",
+          // Only the Jira templates are split into parts.
+          ...(template.category === WorkflowTemplateCategory.Jira
+            ? ["subcategory"]
+            : []),
         ].sort(),
       );
     }
+  });
+});
+
+/*
+ * What the template picker is built from. The picker used to show every
+ * template at once, as equally large cards; it now opens on a handful of
+ * recommended ones and keeps the rest under categories, and previews a
+ * template's blocks before anything is created. All of that is read from the
+ * catalog, so the catalog holds the rules.
+ */
+describe("workflow template categories, as the picker shows them", () => {
+  test("every category says what it is for, under a label and with an icon that exists", () => {
+    const iconValues: Array<string> = Object.values(IconProp);
+
+    for (const category of WorkflowTemplateCategories) {
+      const info: WorkflowTemplateCategoryInfo =
+        getWorkflowTemplateCategoryInfo(category);
+
+      expect(info.category).toBe(category);
+      expect(info.label.length).toBeGreaterThan(0);
+      expect(info.description.length).toBeGreaterThan(0);
+      expect(iconValues).toContain(info.icon);
+    }
+  });
+
+  test("every category the enum declares is shown, and described", () => {
+    expect([...WorkflowTemplateCategories].sort()).toEqual(
+      Object.values(WorkflowTemplateCategory).sort(),
+    );
+  });
+
+  test("labels are short enough to sit beside a count, and differ from one another", () => {
+    const labels: Array<string> = WorkflowTemplateCategories.map(
+      (category: WorkflowTemplateCategory): string => {
+        return getWorkflowTemplateCategoryInfo(category).label;
+      },
+    );
+
+    expect(new Set(labels).size).toBe(labels.length);
+
+    for (const label of labels) {
+      expect(label.length).toBeLessThanOrEqual(16);
+    }
+  });
+
+  test("a label is the category's own name, or a shorter form of it", () => {
+    type StemsFunction = (text: string) => Array<string>;
+
+    // Words of two letters or more, singular: "Status Pages" and "Status Page" agree.
+    const stems: StemsFunction = (text: string): Array<string> => {
+      return text
+        .toLowerCase()
+        .split(/[^a-z]+/)
+        .filter((word: string) => {
+          return word.length > 1;
+        })
+        .map((word: string) => {
+          return word.replace(/s$/, "");
+        });
+    };
+
+    for (const category of WorkflowTemplateCategories) {
+      const categoryStems: Array<string> = stems(category);
+
+      expect({
+        category: category,
+        sharesAWord: stems(
+          getWorkflowTemplateCategoryInfo(category).label,
+        ).some((stem: string) => {
+          return categoryStems.includes(stem);
+        }),
+      }).toEqual({ category: category, sharesAWord: true });
+    }
+  });
+
+  test("each description is one sentence, said as something to get done", () => {
+    for (const category of WorkflowTemplateCategories) {
+      const description: string =
+        getWorkflowTemplateCategoryInfo(category).description;
+
+      expect(description).toMatch(/^[A-Z][^.]*\.$/);
+      expect(description.length).toBeLessThanOrEqual(90);
+    }
+  });
+
+  /*
+   * A search reads a template's category name, not its description: the
+   * Jira one names incidents and alerts both, and would otherwise bring back
+   * every Jira template for "alert". It is still worth saying here.
+   */
+  test("the Jira category says it works both ways, for incidents and alerts", () => {
+    expect(
+      getWorkflowTemplateCategoryInfo(WorkflowTemplateCategory.Jira)
+        .description,
+    ).toMatch(/incidents and alerts, both ways/);
+  });
+});
+
+describe("the recommended workflow templates", () => {
+  const recommended: Array<WorkflowTemplate> =
+    getRecommendedWorkflowTemplates();
+
+  test("are a handful: enough to start from, few enough to choose between", () => {
+    expect(recommended.length).toBeGreaterThanOrEqual(4);
+    expect(recommended.length).toBeLessThanOrEqual(8);
+  });
+
+  test("each is a real template, named once, in the order declared", () => {
+    expect(new Set(RECOMMENDED_WORKFLOW_TEMPLATE_IDS).size).toBe(
+      RECOMMENDED_WORKFLOW_TEMPLATE_IDS.length,
+    );
+    expect(
+      recommended.map((template: WorkflowTemplate): string => {
+        return template.id;
+      }),
+    ).toEqual([...RECOMMENDED_WORKFLOW_TEMPLATE_IDS]);
+  });
+
+  test("span several kinds of job, not one category", () => {
+    const categories: Set<WorkflowTemplateCategory> = new Set(
+      recommended.map(
+        (template: WorkflowTemplate): WorkflowTemplateCategory => {
+          return template.category;
+        },
+      ),
+    );
+
+    expect(categories.size).toBeGreaterThanOrEqual(4);
+  });
+
+  /*
+   * A recommendation should work with what the wizard asks for. A template
+   * that needs an AI provider set up first, or a Jira webhook registered
+   * before it does anything, is a poor first workflow.
+   */
+  test("each works with only the settings it asks for", () => {
+    for (const template of recommended) {
+      const spec: {
+        nodes: Array<{ metadataId: string; componentType: string }>;
+      } | null = getTemplateGraphSpec(template.id);
+
+      expect(spec).not.toBeNull();
+
+      const metadataIds: Array<string> = (spec?.nodes || []).map(
+        (node: { metadataId: string }): string => {
+          return node.metadataId;
+        },
+      );
+
+      expect({
+        template: template.id,
+        usesAi: metadataIds.includes(ComponentID.AIGenerateText),
+      }).toEqual({
+        template: template.id,
+        usesAi: false,
+      });
+
+      const trigger: { metadataId: string; componentType: string } | undefined =
+        (spec?.nodes || []).find((node: { componentType: string }): boolean => {
+          return node.componentType === ComponentType.Trigger;
+        });
+
+      expect({
+        template: template.id,
+        trigger: trigger?.metadataId,
+      }).not.toEqual({
+        template: template.id,
+        trigger: ComponentID.Webhook,
+      });
+    }
+  });
+
+  test("the one Jira template among them is the one the Jira guide says to start with", () => {
+    const jira: Array<WorkflowTemplate> = recommended.filter(
+      (template: WorkflowTemplate) => {
+        return template.category === WorkflowTemplateCategory.Jira;
+      },
+    );
+
+    expect(
+      jira.map((template: WorkflowTemplate): string => {
+        return template.id;
+      }),
+    ).toEqual(["jira-create-issue-for-incident"]);
+  });
+});
+
+describe("the Jira templates' parts", () => {
+  const jira: Array<WorkflowTemplate> = getWorkflowTemplatesByCategory(
+    WorkflowTemplateCategory.Jira,
+  );
+
+  test("every Jira template is filed under Incidents or Alerts, and no other template has a part", () => {
+    for (const template of templates) {
+      if (template.category === WorkflowTemplateCategory.Jira) {
+        expect(["Incidents", "Alerts"]).toContain(template.subcategory);
+      } else {
+        expect(template.subcategory).toBeUndefined();
+      }
+    }
+  });
+
+  test("nine for incidents, then eight for alerts, as the Jira guide lists them", () => {
+    expect(
+      jira.map((template: WorkflowTemplate): string => {
+        return template.subcategory || "";
+      }),
+    ).toEqual([...Array(9).fill("Incidents"), ...Array(8).fill("Alerts")]);
+  });
+
+  test("a template's part is the record it works on", () => {
+    for (const template of jira) {
+      const noun: string =
+        template.subcategory === "Incidents" ? "incident" : "alert";
+
+      expect({
+        template: template.id,
+        namesItsRecord: template.id.includes(`-${noun}`),
+      }).toEqual({
+        template: template.id,
+        namesItsRecord: true,
+      });
+    }
+  });
+});
+
+describe("a workflow template's outline", () => {
+  type OutlineFunction = (templateId: string) => WorkflowTemplateOutline;
+
+  const outlineOf: OutlineFunction = (
+    templateId: string,
+  ): WorkflowTemplateOutline => {
+    const outline: WorkflowTemplateOutline | null =
+      getWorkflowTemplateOutline(templateId);
+
+    if (!outline) {
+      throw new Error(`No outline for "${templateId}".`);
+    }
+
+    return outline;
+  };
+
+  test("an unknown template has none", () => {
+    expect(getWorkflowTemplateOutline("does-not-exist")).toBeNull();
+  });
+
+  test("a notification template: its trigger, its message, then Log", () => {
+    expect(outlineOf("incident-created-slack")).toEqual({
+      triggerComponentId: "incident-on-create",
+      stepComponentIds: [
+        ComponentID.SlackSendMessageToChannel,
+        ComponentID.Log,
+      ],
+      blockCount: 3,
+    });
+  });
+
+  /*
+   * Slack is reached from the API call's Error port here, and the template
+   * is named for it. Following only the way that works would leave it out.
+   */
+  test("a block reached only when something fails is listed, after the ones on the way that works", () => {
+    expect(outlineOf("scheduled-check-alert-slack").stepComponentIds).toEqual([
+      ComponentID.ApiGet,
+      ComponentID.SlackSendMessageToChannel,
+      ComponentID.Log,
+    ]);
+  });
+
+  test("a check's Yes side is listed before its No side", () => {
+    expect(outlineOf("monitor-offline-only-slack").stepComponentIds).toEqual([
+      ComponentID.IfElse,
+      ComponentID.SlackSendMessageToChannel,
+      ComponentID.Log,
+    ]);
+  });
+
+  test("a template that only logs has Log as its one step", () => {
+    expect(outlineOf("manual-log")).toEqual({
+      triggerComponentId: ComponentID.Manual,
+      stepComponentIds: [ComponentID.Log],
+      blockCount: 2,
+    });
+  });
+
+  describe.each(
+    templates.map((template: WorkflowTemplate): [string] => {
+      return [template.id];
+    }),
+  )("for %s", (templateId: string) => {
+    const spec: {
+      nodes: Array<{ metadataId: string; componentType: string }>;
+    } = getTemplateGraphSpec(templateId) as {
+      nodes: Array<{ metadataId: string; componentType: string }>;
+    };
+
+    test("names the template's one trigger", () => {
+      const triggers: Array<string> = spec.nodes
+        .filter((node: { componentType: string }) => {
+          return node.componentType === ComponentType.Trigger;
+        })
+        .map((node: { metadataId: string }) => {
+          return node.metadataId;
+        });
+
+      expect(triggers).toEqual([outlineOf(templateId).triggerComponentId]);
+    });
+
+    test("lists every other kind of block it uses, each once", () => {
+      const steps: Array<string> = outlineOf(templateId).stepComponentIds;
+      const used: Set<string> = new Set(
+        spec.nodes
+          .filter((node: { componentType: string }) => {
+            return node.componentType !== ComponentType.Trigger;
+          })
+          .map((node: { metadataId: string }) => {
+            return node.metadataId;
+          }),
+      );
+
+      expect(new Set(steps)).toEqual(used);
+      expect(new Set(steps).size).toBe(steps.length);
+    });
+
+    test("puts Log last, when there is one", () => {
+      const steps: Array<string> = outlineOf(templateId).stepComponentIds;
+
+      if (steps.includes(ComponentID.Log)) {
+        expect(steps[steps.length - 1]).toBe(ComponentID.Log);
+      }
+    });
+
+    test("counts every block, the trigger too", () => {
+      expect(outlineOf(templateId).blockCount).toBe(spec.nodes.length);
+    });
   });
 });
 

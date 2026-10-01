@@ -390,8 +390,17 @@ export default class Chunker {
    * to know a session ended cleanly rather than inferring it from ten
    * minutes of silence - the difference between sealedReason "final-chunk"
    * and "idle-timeout".
+   *
+   * endedAtUnixMs is when the recording really ended, for a seal that is
+   * sent LATER than that: the idle rollover only learns the user left once
+   * the idle window has passed. An empty final chunk is dated there rather
+   * than now, because its end is the session's end - dated now, it
+   * stretched every abandoned session by the whole idle window, and the
+   * list advertised half an hour of recording the player could not show.
+   * It never moves a chunk that has events of its own: those are dated by
+   * their events.
    */
-  public close(isFinal: boolean): void {
+  public close(isFinal: boolean, endedAtUnixMs?: number): void {
     const open: OpenChunk | null = this.open;
 
     this.open = null;
@@ -411,7 +420,7 @@ export default class Chunker {
 
     if (!open || open.eventCount === 0) {
       if (isFinal) {
-        this.emitEmptyFinalChunk();
+        this.emitEmptyFinalChunk(endedAtUnixMs);
       }
       return;
     }
@@ -735,8 +744,8 @@ export default class Chunker {
     return this.open !== null && this.open.hasFullSnapshot;
   }
 
-  private emitEmptyFinalChunk(): void {
-    const nowOffsetMs: number = this.getEmptyChunkOffset();
+  private emitEmptyFinalChunk(endedAtUnixMs?: number): void {
+    const nowOffsetMs: number = this.getEmptyChunkOffset(endedAtUnixMs);
 
     this.closedChunkCount++;
 
@@ -1029,11 +1038,19 @@ export default class Chunker {
   }
 
   /*
-   * Where a chunk with no events sits: now, but never before the end of the
-   * chunk ahead of it. See lastEmittedEndOffsetMs. Its start and end are the
-   * same instant, so start <= end holds by construction.
+   * Where a chunk with no events sits: now - or the moment the caller says
+   * the recording ended, which can be earlier but never later than now -
+   * and never before the end of the chunk ahead of it. See
+   * lastEmittedEndOffsetMs. Its start and end are the same instant, so
+   * start <= end holds by construction.
    */
-  private getEmptyChunkOffset(): number {
-    return Math.max(this.getOffset(Date.now()), this.lastEmittedEndOffsetMs);
+  private getEmptyChunkOffset(atUnixMs?: number): number {
+    const nowUnixMs: number = Date.now();
+    const endedAtUnixMs: number =
+      typeof atUnixMs === "number" && Number.isFinite(atUnixMs)
+        ? Math.min(atUnixMs, nowUnixMs)
+        : nowUnixMs;
+
+    return Math.max(this.getOffset(endedAtUnixMs), this.lastEmittedEndOffsetMs);
   }
 }

@@ -47,7 +47,7 @@ Lancer une exécution depuis le **Constructeur** ouvre cette même vue, déjà e
 
 ### « Mon workflow ne s'est pas exécuté. »
 
-1. Vérifiez que le workflow est **Activé** sur sa page **Vue d'ensemble**. Les nouveaux workflows démarrent désactivés, et un workflow désactivé refuse toutes les exécutions — y compris les manuelles.
+1. Vérifiez que le workflow est **Activé** : l'interrupteur se trouve en haut de son **Constructeur**, qui l'indique au-dessus du canevas quand le workflow est désactivé. Les nouveaux workflows démarrent désactivés, et un workflow désactivé refuse toutes les exécutions — y compris les manuelles. Un appel à son webhook reçoit un HTTP 400 avec un message qui explique comment l'activer.
 2. Pour un déclencheur d'événement OneUptime : confirmez que l'événement a bien eu lieu. Ouvrez l'enregistrement et consultez son historique.
 3. Pour un déclencheur webhook : confirmez que l'autre système envoie bien vers la bonne URL. La plupart des outils consignent leurs envois de webhook — regardez de ce côté.
 4. Pour un déclencheur planifié : confirmez que l'expression cron correspond à l'horaire que vous attendez.

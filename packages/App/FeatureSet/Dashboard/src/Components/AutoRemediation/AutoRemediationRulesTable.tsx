@@ -195,10 +195,16 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         },
       ]}
       viewPageRoute={Navigation.getCurrentRoute()}
+      /*
+       * What to run, what the AI may run instead, and how a fix is checked:
+       * three questions that were one step of eight fields.
+       */
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria" },
         { title: "Remediation", id: "remediation" },
+        { title: "AI Commands", id: "ai-commands" },
+        { title: "Verification", id: "verification" },
       ]}
       formFields={[
         {
@@ -344,7 +350,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { aiComposesCommands: true },
           title: "Let AI Compose Commands",
-          stepId: "remediation",
+          stepId: "ai-commands",
           description:
             "Instead of picking a runbook, the AI diagnoses the issue and composes Bash/SSH commands for opted-in Runners. Suggest proposes the plan for one-click approval; Full Auto executes only commands matching the allowlist below. Requires at least one Runner with Runs AI Remediation Commands.",
           fieldType: FormFieldSchemaType.Toggle,
@@ -353,7 +359,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { commandAllowlist: true },
           title: "Command Allowlist",
-          stepId: "remediation",
+          stepId: "ai-commands",
           description:
             "One glob pattern per entry, e.g. systemctl restart *. Only matching, chain-free commands auto-execute under Full Auto. Leave empty to require approval for every command.",
           fieldType: FormFieldSchemaType.JSON,
@@ -363,7 +369,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { commandRunners: true },
           title: "Command Runners",
-          stepId: "remediation",
+          stepId: "ai-commands",
           description:
             "Which Runners the AI may target with composed commands. Leave empty to allow any Runner with AI commands enabled. In-cluster Runners installed by the Kubernetes agent chart are not listed: they only ever run kubectl for their own cluster, never Bash or SSH commands.",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -391,7 +397,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { verificationWindowMinutes: true },
           title: "Verification Window (Minutes)",
-          stepId: "remediation",
+          stepId: "verification",
           sectionTitle: "Verify the Outcome",
           sectionDescription:
             "A remediation is verified when the monitors return to an operational state within this window after the runbook starts. Verification never delays or suppresses on-call escalation.",
@@ -402,7 +408,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { autoResolveOnVerifiedRecovery: true },
           title: "Auto-Resolve on Verified Recovery",
-          stepId: "remediation",
+          stepId: "verification",
           description:
             "When verification confirms the monitors recovered, automatically resolve the incident/alert. Off by default.",
           fieldType: FormFieldSchemaType.Toggle,

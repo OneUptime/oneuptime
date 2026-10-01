@@ -31,7 +31,10 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import NotificationRuleForm from "./NotificationRuleForm/NotificationRuleForm";
+import NotificationRuleForm, {
+  NOTIFICATION_RULE_DESTINATION_FIELD_KEY,
+  NotificationRuleFormPart,
+} from "./NotificationRuleForm/NotificationRuleForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
@@ -423,6 +426,45 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
+  /*
+   * One half of the rule, on its own step of the rule wizard: when it fires
+   * (Conditions), then where it posts (Destination). Both halves read and
+   * write the same notificationRule.
+   */
+  type RenderRuleFormFunction = (
+    part: NotificationRuleFormPart,
+    values: FormValues<WorkspaceNotificationRule>,
+    elementProps: CustomElementProps,
+  ) => ReactElement;
+
+  const renderRuleForm: RenderRuleFormFunction = (
+    part: NotificationRuleFormPart,
+    values: FormValues<WorkspaceNotificationRule>,
+    elementProps: CustomElementProps,
+  ): ReactElement => {
+    return (
+      <NotificationRuleForm
+        {...elementProps}
+        part={part}
+        value={values.notificationRule as IncidentNotificationRule}
+        eventType={props.eventType}
+        monitors={monitors}
+        labels={labels}
+        alertStates={alertStates}
+        alertSeverities={alertSeverities}
+        incidentSeverities={incidentSeverities}
+        incidentStates={incidentStates}
+        scheduledMaintenanceStates={scheduledMaintenanceStates}
+        monitorStatus={monitorStatus}
+        workspaceType={props.workspaceType}
+        teams={teams}
+        microsoftTeamsTeams={microsoftTeamsTeams}
+        microsoftTeamsChats={microsoftTeamsChats}
+        users={users}
+      />
+    );
+  };
+
   type RemoveFilterWithNoValues = (
     notificationRule: IncidentNotificationRule,
   ) => IncidentNotificationRule;
@@ -493,6 +535,17 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         isDeleteable={true}
         isEditable={true}
         createEditModalWidth={ModalWidth.Large}
+        /*
+         * A new rule starts with no conditions - it fires for every event
+         * until some are added - so its Conditions step can be left as it
+         * opens.
+         */
+        createInitialValues={{
+          notificationRule: {
+            filterCondition: FilterCondition.Any,
+            filters: [],
+          },
+        }}
         isCreateable={true}
         cardProps={{
           title: `${props.eventType} - ${getWorkspaceTypeDisplayName(props.workspaceType)} Notification Rules`,
@@ -546,56 +599,109 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             title: `Notify ${getWorkspaceTypeDisplayName(props.workspaceType)} on ${props.eventType} when...`,
             description: `Set the conditions to notify ${getWorkspaceTypeDisplayName(props.workspaceType)} on ${props.eventType}. If you do not set any conditions, then this rule will trigger for every ${props.eventType}.`,
             fieldType: FormFieldSchemaType.CustomComponent,
-            required: true,
-            stepId: "rules",
+            /*
+             * No conditions is a rule that fires for every event, so the
+             * step can be left as it opens: a new rule starts with none
+             * (createInitialValues below).
+             */
+            required: false,
+            stepId: "conditions",
             customValidation: (
               values: FormValues<WorkspaceNotificationRule>,
-            ) => {
-              const error: string | null =
-                NotificationRuleConditionUtil.getValidationError({
+            ): string | null => {
+              return NotificationRuleConditionUtil.getConditionsValidationError(
+                {
+                  notificationRule:
+                    values.notificationRule as IncidentNotificationRule,
+                },
+              );
+            },
+            getCustomElement: (
+              values: FormValues<WorkspaceNotificationRule>,
+              elementProps: CustomElementProps,
+            ): ReactElement => {
+              return renderRuleForm(
+                NotificationRuleFormPart.Conditions,
+                values,
+                elementProps,
+              );
+            },
+          },
+          /*
+           * The rule's other half, on a step of its own: where it posts. It
+           * edits the same notificationRule column, so it is registered under
+           * a key of its own (overrideFieldKey) and is form-only: what it
+           * changes is written into notificationRule, and its own value - a
+           * carrier, present from the start so the destination check runs
+           * before anything on the step is touched - is never sent.
+           */
+          {
+            overrideField: {
+              notificationRule: true,
+            },
+            overrideFieldKey: NOTIFICATION_RULE_DESTINATION_FIELD_KEY,
+            formOnly: true,
+            title: `Then, in ${getWorkspaceTypeDisplayName(props.workspaceType)}...`,
+            description: `Where the notification goes when the conditions are met.`,
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            hideOptionalLabel: true,
+            stepId: "destination",
+            getDefaultValue: (): boolean => {
+              return true;
+            },
+            customValidation: (
+              values: FormValues<WorkspaceNotificationRule>,
+            ): string | null => {
+              return NotificationRuleConditionUtil.getDestinationValidationError(
+                {
                   notificationRule:
                     values.notificationRule as IncidentNotificationRule,
                   eventType: props.eventType,
                   workspaceType: props.workspaceType,
-                });
-
-              return error;
+                },
+              );
+            },
+            onChange: (
+              value: IncidentNotificationRule,
+              currentValues: FormValues<WorkspaceNotificationRule>,
+              setNewFormValues: (
+                values: FormValues<WorkspaceNotificationRule>,
+              ) => void,
+            ): void => {
+              setNewFormValues({
+                ...currentValues,
+                notificationRule: value,
+              } as FormValues<WorkspaceNotificationRule>);
             },
             getCustomElement: (
-              value: FormValues<WorkspaceNotificationRule>,
+              values: FormValues<WorkspaceNotificationRule>,
               elementProps: CustomElementProps,
             ): ReactElement => {
-              return (
-                <NotificationRuleForm
-                  {...elementProps}
-                  value={value.notificationRule as IncidentNotificationRule}
-                  eventType={props.eventType}
-                  monitors={monitors}
-                  labels={labels}
-                  alertStates={alertStates}
-                  alertSeverities={alertSeverities}
-                  incidentSeverities={incidentSeverities}
-                  incidentStates={incidentStates}
-                  scheduledMaintenanceStates={scheduledMaintenanceStates}
-                  monitorStatus={monitorStatus}
-                  workspaceType={props.workspaceType}
-                  teams={teams}
-                  microsoftTeamsTeams={microsoftTeamsTeams}
-                  microsoftTeamsChats={microsoftTeamsChats}
-                  users={users}
-                />
+              return renderRuleForm(
+                NotificationRuleFormPart.Destination,
+                values,
+                elementProps,
               );
             },
           },
         ]}
+        /*
+         * When the rule fires, then where it posts. The two were one Rules
+         * step that could show a dozen fields at once.
+         */
         formSteps={[
           {
             title: "Basic",
             id: "basic",
           },
           {
-            title: "Rules",
-            id: "rules",
+            title: "Conditions",
+            id: "conditions",
+          },
+          {
+            title: "Destination",
+            id: "destination",
           },
         ]}
         showRefreshButton={true}

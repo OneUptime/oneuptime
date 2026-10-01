@@ -4,14 +4,14 @@ Questa pagina raccoglie le impostazioni e i limiti di sicurezza che vale la pena
 
 ## Accendere o spegnere un workflow
 
-Ogni workflow ha un interruttore **Abilitato** in **Impostazioni**. Quando è spento, il workflow non viene eseguito — chiamate al webhook, orari pianificati ed eventi di OneUptime vengono tutti ignorati. I workflow nuovi partono disabilitati.
+Ogni workflow ha un interruttore **Abilitato** in cima al suo **Costruttore** e nella sua pagina **Panoramica**. Quando è spento, il workflow non viene eseguito — chiamate al webhook, orari pianificati ed eventi di OneUptime vengono tutti ignorati, e così **Esegui flusso di lavoro** e **Run just this step**. I workflow nuovi partono disabilitati.
 
 Usa quell'interruttore come tuo cancello del "pronto a partire":
 
 1. Costruisci il workflow.
-2. Clicca **Esegui flusso di lavoro** nel **Costruttore** con valori realistici.
+2. Clicca **Esegui flusso di lavoro** nel **Costruttore** con valori realistici. Un workflow disabilitato non si esegue nemmeno a mano, quindi il Costruttore chiede prima di attivarlo: clicca **Attiva ed esegui**.
 3. Controlla i **Registri** — assicurati che ogni blocco sia andato dove ti aspettavi.
-4. Accendi **Abilitato**.
+4. Lascia **Abilitato** acceso se è pronto. Se non lo è, spegnilo finché non lo sarà: mentre è acceso, il suo trigger scatta con eventi reali.
 
 Spegnere un workflow non ferma le esecuzioni già in corso; impedisce soltanto che ne partano di nuove.
 

@@ -137,6 +137,18 @@ export default class SessionId {
   }
 
   /*
+   * Had the stored session already gone idle by the time of this activity?
+   * Then the activity opens a new session and must not be written through
+   * to the old one. See SessionIdentity.isActivityAfterIdleExpiry.
+   */
+  public static isActivityAfterIdleExpiry(activityUnixMs: number): boolean {
+    return SessionIdentity.isActivityAfterIdleExpiry(
+      SessionId.readStoredSession(),
+      activityUnixMs,
+    );
+  }
+
+  /*
    * Has another tab moved the shared session on from `currentSessionId`?
    *
    * Two tabs both idle past the rollover: the first to tick rotates, writes

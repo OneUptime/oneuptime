@@ -47,7 +47,7 @@ Att starta en körning från **Byggare** öppnar samma vy, redan inställd på a
 
 ### "Mitt arbetsflöde kördes inte."
 
-1. Kontrollera att arbetsflödet är **Aktiverad** på sin sida **Översikt**. Nya arbetsflöden startar inaktiverade, och ett inaktiverat arbetsflöde avvisar varje körning — även manuella.
+1. Kontrollera att arbetsflödet är **Aktiverad**: växeln sitter högst upp i dess **Byggare**, som säger till ovanför arbetsytan när arbetsflödet är avstängt. Nya arbetsflöden startar inaktiverade, och ett inaktiverat arbetsflöde avvisar varje körning — även manuella. Ett anrop till dess webhook får HTTP 400 med ett meddelande om hur det slås på.
 2. För en OneUptime-händelseutlösare: bekräfta att händelsen verkligen inträffade. Öppna posten och kontrollera dess historik.
 3. För en webhook-utlösare: bekräfta att det andra systemet skickar till rätt URL. De flesta verktyg loggar när de skickar en webhook — kolla där.
 4. För en schemautlösare: bekräfta att cron-uttrycket matchar tiden du förväntar dig.

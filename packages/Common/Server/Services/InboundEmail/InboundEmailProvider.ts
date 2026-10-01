@@ -1,8 +1,24 @@
 import { JSONObject } from "../../../Types/JSON";
+import EmailAddressList from "../../../Utils/Email/EmailAddressList";
 
 export interface ParsedInboundEmail {
   from: string;
   to: string;
+  /*
+   * Every address in the To and Cc headers, lowercased. `to` above is kept as
+   * it always was, because Incoming Email monitors evaluate it.
+   */
+  toAddresses?: Array<string> | undefined;
+  ccAddresses?: Array<string> | undefined;
+  /*
+   * Who this delivery is for: the SMTP recipients (RCPT TO) on the inbound
+   * domain, when the provider says. They need not appear in To or Cc at all -
+   * a Bcc, a forwarding rule, a mailing list - and when they are known they
+   * are the only recipients that count. SendGrid posts one webhook per
+   * recipient, so routing by the headers instead would hand an email sent to
+   * two addresses to both of them twice.
+   */
+  envelopeRecipients?: Array<string> | undefined;
   subject: string;
   body: string;
   bodyHtml?: string | undefined;
@@ -16,6 +32,34 @@ export interface ParsedInboundEmail {
       }>
     | undefined;
 }
+
+/*
+ * The addresses an inbound delivery is for, in the order to try them: the
+ * envelope's recipients when the provider gave them, else everyone in To and
+ * Cc, else the one `to` address. Lowercased, and each once.
+ */
+export const getInboundEmailRecipientAddresses: (
+  email: ParsedInboundEmail,
+) => Array<string> = (email: ParsedInboundEmail): Array<string> => {
+  const envelope: Array<string> = EmailAddressList.merge(
+    email.envelopeRecipients,
+  );
+
+  if (envelope.length > 0) {
+    return envelope;
+  }
+
+  const headers: Array<string> = EmailAddressList.merge(
+    email.toAddresses,
+    email.ccAddresses,
+  );
+
+  if (headers.length > 0) {
+    return headers;
+  }
+
+  return EmailAddressList.merge(email.to ? [email.to] : []);
+};
 
 export interface InboundEmailProviderConfig {
   webhookSecret?: string | undefined;

@@ -2,7 +2,8 @@ import InboundEmailProvider, {
   InboundEmailProviderConfig,
   ParsedInboundEmail,
 } from "../InboundEmailProvider";
-import { JSONObject } from "../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../Types/JSON";
+import EmailAddressList from "../../../../Utils/Email/EmailAddressList";
 import IncomingEmailMonitorAddress, {
   IncomingEmailRecipient,
   IncomingEmailRecipientKind,
@@ -18,6 +19,7 @@ export type SendGridInboundConfig = InboundEmailProviderConfig;
  * SendGrid sends emails to the webhook as multipart/form-data with the following fields:
  * - from: Email sender
  * - to: Email recipient(s)
+ * - cc: Copied recipient(s)
  * - subject: Email subject
  * - text: Plain text body
  * - html: HTML body
@@ -45,6 +47,15 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
     const to: string = this.extractEmailAddress(
       rawData["to"]?.toString() || "",
     );
+    const toAddresses: Array<string> = EmailAddressList.parse(
+      rawData["to"]?.toString(),
+    );
+    const ccAddresses: Array<string> = EmailAddressList.parse(
+      rawData["cc"]?.toString(),
+    );
+    const envelopeRecipients: Array<string> = this.parseEnvelopeRecipients(
+      rawData["envelope"],
+    );
     const subject: string = rawData["subject"]?.toString() || "";
     const body: string = rawData["text"]?.toString() || "";
     const bodyHtml: string | undefined = rawData["html"]?.toString();
@@ -58,12 +69,57 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
     return {
       from,
       to,
+      toAddresses,
+      ccAddresses,
+      envelopeRecipients,
       subject,
       body,
       bodyHtml,
       headers,
       attachments,
     };
+  }
+
+  /*
+   * SendGrid's `envelope` field is JSON: {"to": ["rcpt@inbound..."], "from":
+   * "bounce@sender..."}. `to` holds the address this POST was delivered for.
+   * Anything that is not that shape is no envelope at all, and the router
+   * falls back to the To and Cc headers.
+   */
+  private parseEnvelopeRecipients(
+    rawEnvelope: JSONValue | undefined,
+  ): Array<string> {
+    let envelope: JSONValue | undefined = rawEnvelope;
+
+    if (typeof envelope === "string") {
+      try {
+        envelope = JSON.parse(envelope) as JSONValue;
+      } catch {
+        return [];
+      }
+    }
+
+    if (!envelope || typeof envelope !== "object" || Array.isArray(envelope)) {
+      return [];
+    }
+
+    const recipients: JSONValue | undefined = (envelope as JSONObject)["to"];
+
+    if (typeof recipients === "string") {
+      return EmailAddressList.parse(recipients);
+    }
+
+    if (!Array.isArray(recipients)) {
+      return [];
+    }
+
+    return EmailAddressList.merge(
+      recipients.flatMap((recipient: JSONValue): Array<string> => {
+        return typeof recipient === "string"
+          ? EmailAddressList.parse(recipient)
+          : [];
+      }),
+    );
   }
 
   public async validateWebhook(data: {

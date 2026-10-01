@@ -103,6 +103,37 @@ export default class SessionIdentity {
     return { shouldRotate: false };
   }
 
+  /*
+   * Did activity at `activityUnixMs` happen after the stored session had
+   * already gone idle?
+   *
+   * The idle rule says a session ends at its last activity once the idle
+   * window has passed with nothing in it. Activity that arrives AFTER that -
+   * the user back from lunch, a laptop woken from sleep - is the first thing
+   * of a NEW session, never more of the old one. Written through to the
+   * stored record it would revive the expired session instead: its
+   * lastActivity moves forward, shouldRotateSession() answers "no", and the
+   * one session now holds a dead zone as long as the user was away.
+   *
+   * False with no stored session: there is nothing to have expired, and
+   * shouldRotateSession() already answers that case.
+   */
+  public static isActivityAfterIdleExpiry(
+    stored: StoredSessionState | null,
+    activityUnixMs: number,
+    idleRolloverMs: number = SESSION_REPLAY_IDLE_ROLLOVER_MS,
+  ): boolean {
+    if (
+      !stored ||
+      !Number.isFinite(activityUnixMs) ||
+      !Number.isFinite(stored.lastActivityUnixMs)
+    ) {
+      return false;
+    }
+
+    return activityUnixMs - stored.lastActivityUnixMs >= idleRolloverMs;
+  }
+
   public static isStoredStateValid(
     stored: StoredSessionState,
     nowUnixMs: number,

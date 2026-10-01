@@ -10,8 +10,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * "Specific Monitors" and keeps exactly the monitors it had. The label list
  * cascades both ways: deleting a secret or a label removes the link.
  */
-export class AddMonitorSecretAccess1797000000000 implements MigrationInterface {
-  public name: string = "AddMonitorSecretAccess1797000000000";
+export class AddMonitorSecretAccess1797100000000 implements MigrationInterface {
+  public name: string = "AddMonitorSecretAccess1797100000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
