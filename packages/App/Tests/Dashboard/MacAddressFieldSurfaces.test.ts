@@ -22,14 +22,14 @@ import path from "path";
  * sources, comments stripped, whitespace squashed. The App suite has no
  * React renderer and these pages are JSX with no extractable logic.
  *
- * Two things about the CALL matter as well as its presence. Three of the
- * surfaces are stepped wizards, and BasicForm places a field on a step
- * purely from its `stepId` - an unstamped field renders on EVERY step. The
- * Overview card is a single-page form and a stamped field there would name a
- * step the form does not declare, which renders it on NONE. And the field
- * sits beside the hostname on every surface, because it is the device's
- * other address: an operator who learns where it lives on one form finds it
- * in the same place on the next.
+ * Two things about the CALL matter as well as its presence. All four
+ * surfaces are stepped forms, and BasicForm places a field on a step purely
+ * from its `stepId` - an unstamped field in a stepped form renders on no
+ * step at all. The Overview card's edit form walks Device Details, Address
+ * and Site & Labels, with the MAC on the Address step. And the field sits
+ * beside the hostname on every surface, because it is the device's other
+ * address: an operator who learns where it lives on one form finds it in
+ * the same place on the next.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -79,7 +79,8 @@ const SURFACES: Array<MacAddressSurface> = [
   {
     name: "the device Overview card",
     parts: ["Pages", "NetworkDevice", "View", "Index.tsx"],
-    stepId: undefined,
+    // Its edit form puts the hostname and the MAC on its Address step.
+    stepId: "address",
   },
   {
     name: "the topology map's Add to Monitoring dialog",

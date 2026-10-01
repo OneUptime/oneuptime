@@ -350,7 +350,9 @@
       "amountNotPositive": "Сумма должна быть больше нуля.",
       "amountTooLarge": "Сумма не может превышать {{max}} USD за одну корректировку.",
       "amountTooPrecise": "Сумма не может содержать более двух знаков после запятой.",
-      "reasonRequired": "Пожалуйста, введите причину этой корректировки."
+      "reasonRequired": "Пожалуйста, введите причину этой корректировки.",
+      "adjustBalanceStepBalance": "Баланс",
+      "adjustBalanceStepAmount": "Сумма и причина"
     },
     "projectSupport": {
       "title": "Доступ службы поддержки",

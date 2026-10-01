@@ -21,15 +21,6 @@ Dashboard. Before this change both editions ran the same code, and
 `IS_ENTERPRISE_EDITION` decided which features were switched on. Now the image
 decides, and the Community image does not contain the `ee/` directory.
 
-> **Releases after 14.0.10:** SAML and OIDC single sign-on, global SSO and
-> "Require SSO for login" are part of the Community Edition again, and no
-> license state switches them off. In 14.0.0 to 14.0.10 they needed the
-> Enterprise Edition and stopped when its license lapsed, which is what the
-> 13 → 14 notes below describe. A "Require SSO for login" setting that was
-> saved but not enforced (on the Community image, or under a lapsed license)
-> is enforced again after this upgrade, so check that its provider still works
-> before you upgrade.
-
 The [Enterprise Edition](/docs/self-hosted/enterprise) page has the full
 feature comparison, licensing details and what happens when you switch
 editions.
@@ -108,21 +99,19 @@ settings that used to show an upgrade prompt.
 
 ## OneUptime 13 → 14 へのアップグレード
 
-> **14.0.10 より後のリリース:** SAML・OIDC シングルサインオン、グローバル SSO、「Require SSO for login」は再び Community Edition に含まれ、ライセンスの状態によって無効になることはありません。このセクションのうち、Community イメージにシングルサインオンが含まれないこと、またはライセンスがないとシングルサインオンが停止する・適用されないことを述べた箇所は、14.0.0〜14.0.10 について説明したものです。SCIM、チームのコンプライアンス設定、監査ログ、**Health** ダッシュボードに関する記述は引き続き有効です。
-
-OneUptime 14 はアプリケーションを 2 つのエディションに分割し、取得するイメージがどちらを実行するかを決めます。**Community Edition**（Apache-2.0、タグ `release` および `<version>`）にはリポジトリの `ee/` ディレクトリが含まれません。SAML SSO、OpenID Connect、SCIM プロビジョニング、チームのコンプライアンス設定、監査ログ、管理画面の **Health** ダッシュボード、**Query Console** はこのイメージには一切含まれていません。**Enterprise Edition**（タグ `enterprise-release` および `enterprise-<version>`）はこれらを含み、実行中に Enterprise ライセンスを確認します。OneUptime 13 はライセンスを確認したことがありませんでした。
+OneUptime 14 はアプリケーションを 2 つのエディションに分割し、取得するイメージがどちらを実行するかを決めます。**Community Edition**（Apache-2.0、タグ `release` および `<version>`）には SAML SSO、OpenID Connect、グローバル SSO、「Require SSO for login」が含まれます。リポジトリの `ee/` ディレクトリは含まないため、SCIM プロビジョニング、チームのコンプライアンス設定、監査ログ、管理画面の **Health** ダッシュボード、**Query Console** はこのイメージには一切含まれていません。**Enterprise Edition**（タグ `enterprise-release` および `enterprise-<version>`）はこれらを含み、実行中に Enterprise ライセンスを確認します。OneUptime 13 はライセンスを確認したことがありませんでした。シングルサインオンはこのライセンスに依存しません。
 
 上の [Community and Enterprise Edition images](#community-and-enterprise-edition-images) がこの変更のリファレンスです。各エディションに何が含まれるか、デプロイ方法ごとに何を設定するか、ライセンスが何をするかが書かれています。この節はアップグレードそのものについて説明します。13 からアップグレードしてください。まだ 12 の場合は、先に 12 → 13 を実施します。
 
-どちらのエディションでも何も削除されません。SSO、OIDC、SCIM の設定、「Require SSO for login」の設定、これまでに記録された監査ログはデータベースに残ります。Community Edition はそれらを提供せず、強制もしないだけです。エディションの切り替えは、どちらの方向でもマイグレーションを必要としません。
+どちらのエディションでも何も削除されません。シングルサインオンは両方のエディションで同じように動作し、SSO と OIDC の設定、「Require SSO for login」の設定はそのまま引き継がれます。SCIM の設定とこれまでに記録された監査ログはデータベースに残ります。Community Edition はそれらを提供しないだけです。エディションの切り替えは、どちらの方向でもマイグレーションを必要としません。
 
 ### 必要な作業
 
-1. **このインストールがどちらのエディションを実行するか決めます。** SAML SSO、OpenID Connect、SCIM プロビジョニング、チームのコンプライアンス設定、監査ログを使っている場合、または管理画面の **Health** ダッシュボードが必要な場合は Enterprise Edition です。そうでなければ決めることはありません。すでにお使いのものが Community Edition です。
+1. **このインストールがどちらのエディションを実行するか決めます。** SCIM プロビジョニング、チームのコンプライアンス設定、監査ログを使っている場合、または管理画面の **Health** ダッシュボードが必要な場合は Enterprise Edition です。そうでなければ決めることはありません。すでにお使いのものが Community Edition であり、SAML SSO と OpenID Connect も含まれています。
 2. **Helm では values ファイルでエディションを指定します。** `image.type: enterprise-edition`（既定値は `community-edition`）。`image.tag` は変更しないでください。チャートが自分で `enterprise-` という接頭辞を付けるため、`image.tag: release` は `oneuptime/app:enterprise-release` を取得します。この値は新しいものではありません。すでに `enterprise-edition` で動かしているなら変更は不要で、これまで取得していたタグに今回から `ee/` が含まれます。
-3. **Docker Compose では `config.env` に `APP_TAG=enterprise-release`** を設定します（バージョンを固定する場合は `enterprise-<version>`）。`APP_TAG=release` は Community イメージです。13 のインストールが止まるのはこの点です。13 では Compose の Enterprise インストールは `APP_TAG=release` と `IS_ENTERPRISE_EDITION=true` の組み合わせでしたが、その組み合わせは今後 **起動を拒否** します。SSO 設定を強制しない Community Edition として黙って立ち上がることはありません。`IS_ENTERPRISE_EDITION=true` の間は `npm run update` が `APP_TAG` を書き換え（`release` は `enterprise-release` に、固定した `13.0.8` は `enterprise-13.0.8` に）、変更内容を表示します。イメージを手動で取得する場合は、先に自分で `APP_TAG` を設定してください。
+3. **Docker Compose では `config.env` に `APP_TAG=enterprise-release`** を設定します（バージョンを固定する場合は `enterprise-<version>`）。`APP_TAG=release` は Community イメージです。13 のインストールが止まるのはこの点です。13 では Compose の Enterprise インストールは `APP_TAG=release` と `IS_ENTERPRISE_EDITION=true` の組み合わせでしたが、その組み合わせは今後 **起動を拒否** します。SCIM プロビジョニングと監査ログの記録が黙って停止した状態の Community Edition として立ち上がることはありません。`IS_ENTERPRISE_EDITION=true` の間は `npm run update` が `APP_TAG` を書き換え（`release` は `enterprise-release` に、固定した `13.0.8` は `enterprise-13.0.8` に）、変更内容を表示します。イメージを手動で取得する場合は、先に自分で `APP_TAG` を設定してください。
 4. **Enterprise Edition ではライセンスを有効化します。** ライセンスのないインストールには 14 日間の試用期間があり、Enterprise Edition を初めて起動した時点から数えます。アップグレードの場合はアップグレードした日であり、OneUptime を最初にインストールした日ではありません。マスター管理者が管理画面ヘッダーのエディションラベルから有効化します。インターネットに接続しないインストールは署名済みトークンで有効化します。[Licensing](/docs/self-hosted/enterprise#licensing) を参照してください。
-5. **SSO の強制を設定したまま Community Edition を実行する場合は、アップグレードの前に誰がアクセスできるかを確認してください。** 「Require SSO for login」は強制されなくなり、パスワードによるサインインが再び受け付けられます。アカウントとそのメールボックスにアクセスできる人は誰でも「パスワードを忘れた場合」からパスワードを設定できます。SCIM のデプロビジョニングも停止するため、ID プロバイダー側で削除した人も含まれます。まずそのようなユーザーを削除してください: [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)。
+5. **SCIM でユーザーをデプロビジョニングする ID プロバイダーを使いながらこのインストールで Community Edition を実行する場合は、アップグレードの前に誰がアクセスできるかを確認してください。** SCIM のデプロビジョニングが停止するため、ID プロバイダー側で削除した人は OneUptime のアカウントを持ったままになります。その人たちに「Require SSO for login」が適用されていない限り、そうしたアカウントのメールボックスにまだアクセスできる人は誰でも「パスワードを忘れた場合」からパスワードを設定してサインインできます。まずそのようなユーザーを削除してください: [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)。
 6. **Ping、Port、SSL モニターで IPv6 アドレスを監視している場合は、アップグレード後にそのモニターを保存し直してください。** 14 より前に保存した宛先は切り詰められて保存されている可能性があります（下記参照）。
 
 ### エディション: 変わった点と変わらない点
@@ -133,7 +122,8 @@ OneUptime 14 はアプリケーションを 2 つのエディションに分割�
 | Helm での選択 | `image.type` | `image.type` — 変更なし。ただしイメージの中身が実際に異なる |
 | Compose での選択 | `IS_ENTERPRISE_EDITION=true` | `APP_TAG=enterprise-release` |
 | Enterprise ライセンス | 実行中に確認されなかった | 起動時と 1 日 1 回確認される |
-| SSO、OIDC、SCIM のエンドポイント | 両エディションで同じパス | Enterprise では同じパス、Community では `404` |
+| SSO と OIDC のエンドポイント | 両エディションで同じパス | ライセンスの状態にかかわらず両エディションで同じパス |
+| SCIM のエンドポイント | 両エディションで同じパス | Enterprise では同じパス、Community では `404` |
 | Enterprise の設定 | 保存され、強制される | どちらでも保存され、Enterprise で強制される |
 
 マイグレーションは 1 件実行されます。1 行だけのテーブル `GlobalConfig` に NULL 許容の列 `enterpriseEditionFirstSeenAt` を追加するもので、即座に完了します。ClickHouse のマイグレーションはなく、何も削除されず、エディションの切り替えはどちらの方向でもマイグレーションを必要としません。
@@ -142,8 +132,8 @@ OneUptime 14 はアプリケーションを 2 つのエディションに分割�
 
 - **ライセンスのないインストール** は、Enterprise Edition の初回起動から数えて 14 日間の試用期間で動作します。その間はすべての Enterprise 機能が動作し、終了前にエディションラベルが警告します。試用は評価目的です。Enterprise Edition の本番利用には OneUptime Enterprise License に基づくサブスクリプションが必要です。
 - **期限切れになるライセンス** には、期限日から 30 日間の猶予期間があります。その間はすべての Enterprise 機能が動作し、エディションラベルが警告します。
-- **試用期間の後、またはその猶予期間の後**、ライセンスが有効化されるまでは次の状態になります。SSO と OIDC でのサインインは拒否され、「Require SSO for login」は強制されなくなり（ユーザーはパスワードでサインインします）、ID プロバイダーからの SCIM リクエストは拒否され、監査ログの記録が停止します。Enterprise の設定は読み取り専用になります。閲覧と削除、SSO または OIDC プロバイダーの無効化、SCIM ベアラートークンのリセットは引き続き可能で、これはインシデント対応に必要な操作です。Health ダッシュボードと Query Console はロックされます。
-- **何も削除されず、コアの監視は一切影響を受けません。** モニター、アラート、インシデント、オンコール、ステータスページ、テレメトリーはライセンスの対象外で、パスワードによるサインインはマスター管理者を含むすべてのユーザーで引き続き利用できます。ライセンスを有効化すると、SSO サインイン、SSO の強制、SCIM プロビジョニング、監査ログの記録が、すでにある設定のまま再開されます。再起動は不要です。
+- **試用期間の後、またはその猶予期間の後**、ライセンスが有効化されるまでは次の状態になります。ID プロバイダーからの SCIM リクエストは拒否され、監査ログの記録が停止します。Enterprise の設定は読み取り専用になります。閲覧と削除、SCIM ベアラートークンのリセットは引き続き可能で、これはインシデント対応に必要な操作です。Health ダッシュボードと Query Console はロックされます。
+- **何も削除されず、コアの監視は一切影響を受けません。** モニター、アラート、インシデント、オンコール、ステータスページ、テレメトリーはライセンスの対象外で、サインインも同様です。SSO と OIDC でのサインイン、「Require SSO for login」、そしてマスター管理者を含むすべてのユーザーのパスワードによるサインインは、ライセンスがどの状態でも同じように動作します。ライセンスを有効化すると、SCIM プロビジョニングと監査ログの記録が、すでにある設定のまま再開されます。再起動は不要です。
 - **すでにお持ちのライセンスキーは受け付けられます。** 「unverified」なライセンスとして扱われ、期限日とシート数はライセンスサーバーがこのインストールに通知済みの内容から取得され、その期限後も同じ 30 日間の猶予期間が適用されます。これ以降に発行されるライセンスは署名され、アプリケーション自身が検証します。このアップグレードのために新しいキーを取得する必要はありません。
 - **このインストールが期限を一度も記録していないキー** は、すべてを停止させるのではなく、試用期間のあいだ動作し続けます。ライセンスサーバーはキーと期限日を別々に書き込むため、期限を一度も通知されていないキーを保持したままのインストールが起こり得ます。そのインストールはライセンスのないインストールとまったく同じ扱いになります。Enterprise Edition の初回起動から数えて 14 日間の試用期間中はすべての Enterprise 機能が動作し、試用期間の後は上記と同じことが起こります。この状態ではシート数の上限は適用されません。インストールが保持しているライセンスの記録がすでに不完全だからです。マスター管理者がエディションラベルからライセンスを有効化し直すか、1 日 1 回のライセンス同期が oneuptime.com から期限を取得すれば、再起動なしにすべて元に戻ります。
 
@@ -159,7 +149,7 @@ npm run update
 
 - **`IS_ENTERPRISE_EDITION=true` の間、`npm run update` は `APP_TAG` を** 同じリリースの Enterprise イメージへ移し、変更内容を表示します。コメントと引用符はそのまま保たれ、すでに `enterprise-` タグになっている `APP_TAG` はそのまま残り、2 回目の実行では何も変わりません。
 - **イメージを手動で取得すると、この処理は行われません。** その場合アプリケーションは起動時に終了し、何を設定すべきかを正確に示すエラーを出します。Enterprise Edition を維持するなら `APP_TAG=enterprise-<version>`、Community Edition を実行するなら `IS_ENTERPRISE_EDITION=false` です。
-- **意図して Community Edition に移る場合** は `APP_TAG=release` と `IS_ENTERPRISE_EDITION=false` を設定します。このインストールが SSO を強制している場合は、先に上記の項目 5 を読んでください。
+- **意図して Community Edition に移る場合** は `APP_TAG=release` と `IS_ENTERPRISE_EDITION=false` を設定します。ID プロバイダーが SCIM でユーザーをデプロビジョニングしている場合は、先に上記の項目 5 を読んでください。
 - このリリースのために `config.env` で他に変更すべき点はありません。
 
 ### Helm: イメージタイプを選ぶ
@@ -170,7 +160,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 
 - **すでに `image.type: enterprise-edition` で動いているインストールは values の変更が不要です。** チャートは以前からタグに接頭辞を付けています。新しいのは `enterprise-` イメージに `ee/` が含まれることです。このリリース以降、上の時系列に従ってライセンスが適用されます。
-- **`image.tag: release` が既定値** なので、この浮動タグのままのチャートは次回のアップグレードで values を一切変えずに 14 に移ります。そのインストールが `community-edition` で SSO、OIDC、SCIM を設定している場合は、同じアップグレードで `image.type: enterprise-edition` を設定してください。
+- **`image.tag: release` が既定値** なので、この浮動タグのままのチャートは次回のアップグレードで values を一切変えずに 14 に移ります。そのインストールが `community-edition` で SCIM を設定している場合は、同じアップグレードで `image.type: enterprise-edition` を設定してください。
 - **`IS_ENTERPRISE_EDITION` は今もチャートが出力します。** `image.type` から導出されるため両者が矛盾することはありません。この変数は何も制御しません。Community イメージで `extraEnv` から `true` を強制しても、アプリケーションが起動を拒否するだけです。`ONEUPTIME_EDITION` をチャートから設定しないでください。
 - **チャートのプローブが再び `probes.<key>.allowPrivateNetworkMonitors` を尊重します**（[#3879](https://github.com/OneUptime/oneuptime/issues/3879)）。この値を設定しなければ何も変わりません（既定は `false` のままです）。チャートのプローブはグローバルプローブなので、設定するとインスタンス上の **すべてのプロジェクト** のモニターに適用されます。ループバック、リンクローカル、`169.254.169.254` は値に関係なくブロックされたままです。
 
@@ -194,7 +184,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **管理画面ヘッダーのエディションラベル** が実行中のエディションを示し、Enterprise Edition ではライセンスの状態も示します。
 - **Compose:** `docker compose images` で実行中のタグを一覧できます。Enterprise Edition では OneUptime のすべてのイメージに `enterprise-` の接頭辞が付きます。
 - **Helm:** `kubectl get pods -n <namespace> -o jsonpath='{..image}'` で Pod が実行しているイメージを表示できます。接頭辞の規則は同じです。
-- SSO、OIDC、SCIM のエンドポイントで 2 つのケースを区別できます。`404` はそのイメージに `ee/` が含まれない（Community Edition）ことを意味し、`402` または `403` は Enterprise Edition が動作しており、ライセンスに対処が必要であることを意味します。
+- SCIM のエンドポイントで 2 つのケースを区別できます。`404` はそのイメージに `ee/` が含まれない（Community Edition）ことを意味し、`402` または `403` は Enterprise Edition が動作しており、ライセンスに対処が必要であることを意味します。
 
 ### 13 へのロールバック
 
@@ -203,7 +193,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **Helm:** `helm rollback my-oneuptime`、または `image.tag` を `13.0.8` に固定します。
 - 14 を実行しても Enterprise の設定には手が加わらないため、ロールバック後もそのまま残っています。
 
-> ヒント: Enterprise Edition では、試用期間の終わりではなくアップグレードした当日にライセンスを有効化してください。シングルサインオンの強制を維持するのは有効化であり、試用期間は最初にインストールした日ではなくこのアップグレードから数えられます。
+> ヒント: Enterprise Edition では、試用期間の終わりではなくアップグレードした当日にライセンスを有効化してください。SCIM プロビジョニングと監査ログの記録を動作させ続けるのは有効化であり、試用期間は最初にインストールした日ではなくこのアップグレードから数えられます。
 
 ## OneUptime 12 → 13 へのアップグレード
 
@@ -510,52 +500,38 @@ it participate. Upgrading changes nothing here.
 
 ## OneUptime 10 → 11 へのアップグレード
 
-<!-- TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for v11 SSO->Enterprise change). -->
+<!-- TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for the v11 SCIM and team compliance change). -->
 
-### Identity features (SSO, OIDC, SCIM) now require the Enterprise Edition
+### SCIM and team compliance settings now require the Enterprise Edition
 
-> **Releases after 14.0.10:** SAML SSO, OIDC and global SSO are part of the
-> Community Edition again, together with "Require SSO for login", and need no
-> license. SCIM provisioning and team compliance settings still need the
-> Enterprise Edition. The rest of this section describes v11 to 14.0.10.
+In v11, the following access-management features moved to the **OneUptime
+Enterprise Edition** and are no longer part of the free, open-source
+(Community) build:
 
-In v11, the following authentication and access-management features moved to
-the **OneUptime Enterprise Edition** and are no longer part of the free,
-open-source (Community) build:
-
-- **SAML SSO** — both project login and status-page login
-- **OpenID Connect（OIDC）** — both project login and status-page login
 - **SCIM user provisioning** — project and status page
-- **Global (instance-wide) SSO / OIDC**
 - **Team compliance settings**
 
-**What you'll see after upgrading:** if you configured any of these on a
-Community Edition build, the settings pages show an upgrade prompt instead of
-the configuration form, and the configuration can no longer be changed. Until
-the Community and Enterprise images were split, providers you had already
-configured could keep signing users in on a Community build, because it still
-contained the sign-in code. The Community images of 14.0.0 to 14.0.10 contain
-no SSO, OIDC or SCIM code, so sign-in through them stops once you upgrade to
-one of those releases — see
+SAML SSO, OpenID Connect（OIDC） and global (instance-wide) SSO, for both
+project login and status-page login, are part of the Community Edition — see
 [Community and Enterprise Edition images](#community-and-enterprise-edition-images).
-Your existing provider records are **preserved in the database** — nothing is
-deleted — and they work again as soon as the instance runs the Enterprise
-Edition, or, for SSO and OIDC, any release after 14.0.10.
+
+**What you'll see after upgrading:** if you configured SCIM or team compliance
+settings on a Community Edition build, the settings pages show an upgrade
+prompt instead of the configuration form, and the configuration can no longer
+be changed. Your existing configuration is **preserved in the database** —
+nothing is deleted — and it works again as soon as the instance runs the
+Enterprise Edition.
 
 **Availability:**
 
-- **Self-hosted:** SCIM and team compliance settings require the
-  **Enterprise Edition** build. SSO and OIDC require it only on v11 to
-  14.0.10; releases after 14.0.10 include them in every edition.
+- **Self-hosted:** requires the **Enterprise Edition** build.
 - **OneUptime Cloud:** requires the **Scale** plan (or above).
 
-**If you rely on SSO and self-host**, upgrade to a release after 14.0.10,
-where every edition serves SSO and OIDC. For SCIM, email
+**If you rely on SCIM and self-host**, email
 [support@oneuptime.com](mailto:support@oneuptime.com) for an Enterprise Edition
 license, mention that you upgraded from v10 to v11, and we'll help you get it
-back online. If your team is mid-upgrade and this
-is blocking sign-in, contact us before upgrading production so we can plan it
-with you.
+back online. If your team is mid-upgrade and this is blocking provisioning,
+contact us before upgrading production so we can plan it with you.
 
 OneUptime 11 は ClickHouse のテレメトリーストレージを再構築します。このページでは、何が変わるのか、誰が対応する必要があるのか、そして過去のテレメトリーを引き継ぎたいインストール環境向けに、そのために必要なすべてのクエリを説明します。
 

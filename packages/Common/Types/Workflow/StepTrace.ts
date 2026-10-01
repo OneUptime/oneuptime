@@ -19,6 +19,39 @@ export enum WorkflowStepStatus {
   Error = "Error",
 }
 
+/** A step that the port taken is wired to: where the step led. */
+export interface WorkflowStepTraceNextStep {
+  /** The step's id on the canvas ("slack-1"). */
+  componentId: string;
+  /** Its component's title ("Send Message to Slack"). */
+  title: string;
+}
+
+/** An argument's or a return value's name, as the step's settings show it. */
+export interface WorkflowStepTraceFieldName {
+  id: string;
+  name: string;
+}
+
+/** Something the runner noticed about a step that did not stop it. */
+export interface WorkflowStepTraceWarning {
+  /**
+   * What happened, in the same words as the run's full log, less the log's
+   * "Warning:" label.
+   */
+  message: string;
+  /** The argument the warning is about, when it is about one. */
+  argumentId?: string | undefined;
+  /** The {{...}} references that resolved to nothing, as they were written. */
+  unresolvedReferences?: Array<string> | undefined;
+}
+
+/*
+ * Everything after `errorMessage` is optional and was added later, so a trace
+ * written before it reads the same as one where the runner had nothing to say.
+ * Readers must not treat an absent field as "none": an absent `nextSteps` means
+ * "not recorded", where an empty one means "nothing is connected".
+ */
 export interface WorkflowStepTraceEntry {
   /** The step's user-facing id ("api-get-1") — matches a node on the canvas. */
   componentId: string;
@@ -30,14 +63,46 @@ export interface WorkflowStepTraceEntry {
   startedAt: string;
   completedAt: string;
   durationInMs: number;
-  /** Resolved arguments, already redacted for sensitive fields. */
+  /**
+   * The arguments the step received, resolved and already redacted for
+   * sensitive fields. Captured before the component ran, since components
+   * rewrite their own arguments as they work.
+   */
   argumentValues: JSONObject;
   /** Returned values, already redacted for sensitive fields. */
   returnValues: JSONObject;
-  /** The out port taken, or null when the step ended the run. */
+  /** The id of the out port taken ("no"), or null when the step took none. */
   executedPort: string | null;
   /** Present only on a failed step. */
   errorMessage?: string | undefined;
+  /** The taken port's label, as the canvas shows it ("No"). */
+  executedPortTitle?: string | undefined;
+  /** What the taken port is for, as the canvas's tooltip says it. */
+  executedPortDescription?: string | undefined;
+  /**
+   * The steps wired to the port taken, in the order the canvas connects them.
+   * Empty when nothing is connected to that port. Recorded only when a port
+   * was taken.
+   */
+  nextSteps?: Array<WorkflowStepTraceNextStep> | undefined;
+  /**
+   * The step's arguments in the order its settings list them, with their
+   * names. A list rather than a map because the row is JSONB, which keeps an
+   * object's keys in an order of its own (shortest first), not the order they
+   * were written in.
+   */
+  argumentNames?: Array<WorkflowStepTraceFieldName> | undefined;
+  /** The component's return values, in order, with their names. */
+  returnValueNames?: Array<WorkflowStepTraceFieldName> | undefined;
+  /**
+   * For each argument whose configured value refers to another step or to a
+   * variable, that value as configured, {{...}} and all, so it can be read
+   * next to what it resolved to. Redacted like argumentValues, and never kept
+   * for a sensitive argument.
+   */
+  argumentTemplates?: JSONObject | undefined;
+  /** What the runner noticed about this step that did not stop it. */
+  warnings?: Array<WorkflowStepTraceWarning> | undefined;
 }
 
 export interface WorkflowStepTrace {
@@ -47,6 +112,23 @@ export interface WorkflowStepTrace {
    * rather than quietly showing a partial run as if it were complete.
    */
   truncated?: boolean | undefined;
+  /**
+   * Set when the run tested one step on its own ("Run this step" in the
+   * builder), to that step's id. Nothing ran before it, so whatever it reads
+   * from earlier steps is empty, and the steps after it were not started.
+   */
+  singleStepComponentId?: string | undefined;
+  /**
+   * Why the run stopped, when no step's own entry says: it timed out between
+   * steps, found a cycle, or failed before its first step ran.
+   */
+  runErrorMessage?: string | undefined;
+  /**
+   * Set while the run sleeps on a Sleep step, to when it carries on (an ISO
+   * date). The steps after the Sleep have not run yet rather than not at all.
+   * Cleared when the run resumes.
+   */
+  resumesAt?: string | undefined;
 }
 
 /*
@@ -168,14 +250,69 @@ export const parseTrace: ParseTraceFunction = (
     return emptyTrace();
   }
 
-  const steps: JSONValue | undefined = (value as JSONObject)["steps"];
+  const traceObject: JSONObject = value as JSONObject;
+  const steps: JSONValue | undefined = traceObject["steps"];
 
   if (!Array.isArray(steps)) {
     return emptyTrace();
   }
 
-  return {
-    steps: steps as unknown as Array<WorkflowStepTraceEntry>,
-    truncated: Boolean((value as JSONObject)["truncated"]),
+  const trace: WorkflowStepTrace = {
+    // An entry that is not even an object cannot be drawn as a step at all.
+    steps: steps.filter((step: JSONValue): boolean => {
+      return Boolean(step) && typeof step === "object" && !Array.isArray(step);
+    }) as unknown as Array<WorkflowStepTraceEntry>,
+    truncated: Boolean(traceObject["truncated"]),
   };
+
+  const singleStepComponentId: JSONValue | undefined =
+    traceObject["singleStepComponentId"];
+
+  if (typeof singleStepComponentId === "string" && singleStepComponentId) {
+    trace.singleStepComponentId = singleStepComponentId;
+  }
+
+  const runErrorMessage: JSONValue | undefined = traceObject["runErrorMessage"];
+
+  if (typeof runErrorMessage === "string" && runErrorMessage) {
+    trace.runErrorMessage = runErrorMessage;
+  }
+
+  const resumesAt: JSONValue | undefined = traceObject["resumesAt"];
+
+  if (typeof resumesAt === "string" && !isNaN(Date.parse(resumesAt))) {
+    trace.resumesAt = resumesAt;
+  }
+
+  return trace;
+};
+
+export type GetStepPortTitleFunction = (
+  step: Pick<WorkflowStepTraceEntry, "executedPort" | "executedPortTitle">,
+) => string | null;
+
+/**
+ * The name of the port a step took, as the canvas labels it ("No"), or null
+ * when it took none.
+ *
+ * Traces written before the title was kept have only the port's id. Every
+ * built-in port's title is its id with a capital ("no" is "No", "error" is
+ * "Error"), so that is the best reading of an old one. The one exception, the
+ * manual trigger's "success" port titled "Execute", reads as "Success" there,
+ * which is still what it means.
+ */
+export const getStepPortTitle: GetStepPortTitleFunction = (
+  step: Pick<WorkflowStepTraceEntry, "executedPort" | "executedPortTitle">,
+): string | null => {
+  if (typeof step.executedPortTitle === "string" && step.executedPortTitle) {
+    return step.executedPortTitle;
+  }
+
+  if (typeof step.executedPort !== "string" || !step.executedPort.trim()) {
+    return null;
+  }
+
+  const words: string = step.executedPort.trim().replace(/[-_]+/g, " ");
+
+  return words.charAt(0).toUpperCase() + words.slice(1);
 };

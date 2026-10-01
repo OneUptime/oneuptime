@@ -24,6 +24,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import React from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -397,6 +398,226 @@ describe("WorkflowLogModal", () => {
       expect(screen.getByText("Run finished successfully.")).toHaveClass(
         "text-gray-600",
       );
+    });
+  });
+
+  describe("the steps tab's count", () => {
+    const badge: () => HTMLElement = (): HTMLElement => {
+      return stepsTab().querySelector("span") as HTMLElement;
+    };
+
+    /*
+     * The count takes the colour of the worst thing in the run, so a failure
+     * or a warning shows before the tab is opened - from the Full Log tab too.
+     */
+    test("is red when a step failed", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={{
+            steps: [aStep(), aStep({ status: WorkflowStepStatus.Error })],
+          }}
+          initialTabName={FULL_LOG_TAB_NAME}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(badge()).toHaveClass("bg-red-500");
+    });
+
+    test("is red when the run stopped for a reason of its own", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={{ steps: [aStep()], runErrorMessage: "timed out" }}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(badge()).toHaveClass("bg-red-500");
+    });
+
+    test("is amber when a step has a warning and nothing failed", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={{
+            steps: [aStep({ warnings: [{ message: "did not resolve" }] })],
+          }}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(badge()).toHaveClass("bg-yellow-500");
+    });
+
+    test("keeps its usual colour for a clean run", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={traceWithOneStep()}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(badge()).toHaveClass("bg-indigo-500");
+    });
+
+    test("counts only real steps", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={{
+            steps: [
+              aStep(),
+              null as unknown as WorkflowStepTraceEntry,
+              aStep({ componentId: "b" }),
+            ],
+          }}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(stepsTab()).toHaveTextContent("2");
+    });
+  });
+
+  describe("which way each step went", () => {
+    /*
+     * The maintainer's report, read through the modal: the port a step took
+     * is on the Steps tab itself, not only in the Full Log's "Executing Port".
+     */
+    test("is on the steps tab, without opening a step", () => {
+      render(
+        <WorkflowLogModal
+          logs={"Executing Port: No"}
+          stepTrace={{
+            steps: [
+              aStep(),
+              aStep({
+                componentId: "if-else-1",
+                title: "If / Else",
+                executedPort: "no",
+                executedPortTitle: "No",
+                nextSteps: [],
+              }),
+            ],
+          }}
+          onClose={jest.fn()}
+        />,
+      );
+
+      const outcomes: Array<HTMLElement> = screen.getAllByTestId(
+        "workflow-run-step-outcome",
+      );
+
+      expect(outcomes[1]).toHaveTextContent("Took No");
+    });
+
+    test("says the steps are still to come while the run goes", () => {
+      render(
+        <WorkflowLogModal
+          logs=""
+          stepTrace={emptyTrace()}
+          isRunning={true}
+          statusMessage="Run running…"
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(
+        screen.getByText("The steps show here once the run finishes."),
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe("the toolbar", () => {
+    /*
+     * Actions on the run as a whole (downloading it, say) sit beside the
+     * status line, above the tabs, so they work from either tab.
+     */
+    test("sits beside the status line", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={traceWithOneStep()}
+          statusMessage="Run finished successfully."
+          toolbar={<button type="button">Download</button>}
+          onClose={jest.fn()}
+        />,
+      );
+
+      const row: HTMLElement = screen.getByTestId("workflow-run-status-row");
+
+      expect(row).toHaveTextContent("Run finished successfully.");
+      expect(
+        within(row).getByRole("button", { name: "Download" }),
+      ).toBeInTheDocument();
+    });
+
+    test("stays put whichever tab is open", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={traceWithOneStep()}
+          toolbar={<button type="button">Download</button>}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(
+        screen.getByRole("button", { name: "Download" }),
+      ).toBeInTheDocument();
+
+      openLogTab();
+
+      expect(
+        screen.getByRole("button", { name: "Download" }),
+      ).toBeInTheDocument();
+    });
+
+    test("shows on its own when there is no status line", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={traceWithOneStep()}
+          toolbar={<button type="button">Download</button>}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(screen.getByTestId("workflow-run-toolbar")).toHaveTextContent(
+        "Download",
+      );
+    });
+
+    test("is not there unless given", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={traceWithOneStep()}
+          statusMessage="Run finished successfully."
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId("workflow-run-toolbar"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("leaves no empty row when there is neither", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={traceWithOneStep()}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId("workflow-run-status-row"),
+      ).not.toBeInTheDocument();
     });
   });
 

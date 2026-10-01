@@ -6,7 +6,10 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
 import SubscribeSideMenu from "./SideMenu";
-import { SubscribePageProps } from "./SubscribePageUtils";
+import {
+  SubscribePageProps,
+  getSubscribeFormSteps,
+} from "./SubscribePageUtils";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -32,6 +35,7 @@ import React, {
 import { useTranslation } from "react-i18next";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 export type ComponentProps = SubscribePageProps;
@@ -109,6 +113,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
         subscriberWebhook: true,
       },
       title: t("subscribe.webhook.webhookUrl"),
+      stepId: "details",
       description: t("subscribe.webhook.webhookUrlDescription"),
       fieldType: FormFieldSchemaType.URL,
       required: true,
@@ -122,6 +127,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
         isSubscribedToAllResources: true,
       },
       title: t("subscribe.resources.all"),
+      stepId: "preferences",
       description: t("subscribe.resources.allDescription"),
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
@@ -133,6 +139,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
         statusPageResources: true,
       },
       title: t("subscribe.resources.select"),
+      stepId: "preferences",
       description: t("subscribe.resources.selectDescription"),
       fieldType: FormFieldSchemaType.CategoryCheckbox,
       required: false,
@@ -149,6 +156,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
         isSubscribedToAllEventTypes: true,
       },
       title: t("subscribe.eventTypes.all"),
+      stepId: "preferences",
       description: t("subscribe.eventTypes.allDescription"),
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
@@ -160,6 +168,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
         statusPageEventTypes: true,
       },
       title: t("subscribe.eventTypes.select"),
+      stepId: "preferences",
       description: t("subscribe.eventTypes.selectDescription"),
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
       required: false,
@@ -170,6 +179,19 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
     });
   }
 
+  const formSteps: Array<FormStep<StatusPageSubscriber>> | undefined =
+    getSubscribeFormSteps({
+      allowSubscribersToChooseResources: Boolean(
+        props.allowSubscribersToChooseResources,
+      ),
+      allowSubscribersToChooseEventTypes: Boolean(
+        props.allowSubscribersToChooseEventTypes,
+      ),
+      translate: (key: string): string => {
+        return t(key);
+      },
+    });
+
   const getNewSubscriptionContentElement: GetReactElementFunction =
     (): ReactElement => {
       return (
@@ -178,6 +200,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
           modelAPI={StatusPageModelAPI}
           id="webhook-form"
           name="Status Page > Webhook Subscribe"
+          steps={formSteps}
           fields={fields}
           createOrUpdateApiUrl={URL.fromString(
             STATUS_PAGE_API_URL.toString(),

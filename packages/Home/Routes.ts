@@ -51,6 +51,7 @@ import { generateNostrWellKnown } from "./Utils/Nostr";
 import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { getDatabasesPageContent } from "./Utils/Databases";
+import { getQueuesPageContent } from "./Utils/Queues";
 import { redirectPreservingQuery } from "./Utils/Redirect";
 import { BackToMetal } from "./Utils/Books/BookCatalog";
 import { DefaultBookStore } from "./Utils/Books/BookStore";
@@ -955,6 +956,18 @@ const HomeFeatureSet: FeatureSet = {
         });
       },
     );
+
+    app.get("/product/queues", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/queues",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/queues`, {
+        enableGoogleTagManager: GoogleTagManagerEnabled,
+        seo,
+        queues: getQueuesPageContent(),
+      });
+    });
 
     app.get(
       "/product/profiles",

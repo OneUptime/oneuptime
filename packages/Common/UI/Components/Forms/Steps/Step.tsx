@@ -1,11 +1,17 @@
 import { FormStep, FormStepState } from "../Types/FormStep";
 import GenericObject from "../../../../Types/GenericObject";
+import useTranslateValue from "../../../Utils/Translation";
 import React, { ReactElement } from "react";
 
 export interface ComponentProps<T> {
   step: FormStep<T>;
   onClick: (step: FormStep<T>) => void;
   state: FormStepState;
+  /*
+   * Whether pressing the step opens it. A completed step always can be; a
+   * step not reached yet only on a form that allows any step.
+   */
+  isClickable?: boolean | undefined;
 }
 
 const Step: <T extends GenericObject>(
@@ -13,15 +19,28 @@ const Step: <T extends GenericObject>(
 ) => ReactElement = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+
+  /*
+   * Looked up the same way as the "Step 2 of 3" title narrow screens show
+   * in place of this list, so the two never name a step differently.
+   */
+  const title: string = translateString(props.step.title) ?? props.step.title;
+
+  const isClickable: boolean =
+    props.isClickable ?? props.state === FormStepState.COMPLETED;
+
   return (
     <li
       onClick={() => {
-        if (props.state === FormStepState.COMPLETED) {
+        if (isClickable && props.state !== FormStepState.ACTIVE) {
           props.onClick(props.step);
         }
       }}
       className={`${
-        props.state === FormStepState.COMPLETED ? "cursor-pointer" : ""
+        isClickable && props.state !== FormStepState.ACTIVE
+          ? "cursor-pointer"
+          : ""
       }`}
     >
       {props.state === FormStepState.COMPLETED && (
@@ -42,7 +61,7 @@ const Step: <T extends GenericObject>(
               </svg>
             </span>
             <span className="ml-3 text-sm font-medium text-gray-500 group-hover:text-gray-900">
-              {props.step.title}
+              {title}
             </span>
           </span>
         </div>
@@ -58,7 +77,7 @@ const Step: <T extends GenericObject>(
             <span className="relative block h-2 w-2 rounded-full bg-indigo-600"></span>
           </span>
           <span className="ml-3 text-sm font-medium text-indigo-600">
-            {props.step.title}
+            {title}
           </span>
         </div>
       )}
@@ -72,8 +91,12 @@ const Step: <T extends GenericObject>(
             >
               <div className="h-2 w-2 rounded-full bg-gray-300"></div>
             </div>
-            <p className="ml-3 text-sm font-medium text-gray-500 w-max">
-              {props.step.title}
+            <p
+              className={`ml-3 text-sm font-medium text-gray-500 w-max ${
+                isClickable ? "group-hover:text-gray-900" : ""
+              }`}
+            >
+              {title}
             </p>
           </div>
         </div>

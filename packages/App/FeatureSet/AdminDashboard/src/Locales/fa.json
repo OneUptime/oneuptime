@@ -350,7 +350,9 @@
       "amountNotPositive": "مبلغ باید بزرگ‌تر از صفر باشد.",
       "amountTooLarge": "مبلغ در هر تنظیم نمی‌تواند بیشتر از {{max}} دلار باشد.",
       "amountTooPrecise": "مبلغ نمی‌تواند بیش از دو رقم اعشار داشته باشد.",
-      "reasonRequired": "لطفاً دلیلی برای این تنظیم وارد کنید."
+      "reasonRequired": "لطفاً دلیلی برای این تنظیم وارد کنید.",
+      "adjustBalanceStepBalance": "موجودی",
+      "adjustBalanceStepAmount": "مبلغ و دلیل"
     },
     "projectSupport": {
       "title": "دسترسی پشتیبانی مشتری",

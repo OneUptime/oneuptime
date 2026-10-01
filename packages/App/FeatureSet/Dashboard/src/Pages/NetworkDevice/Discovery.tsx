@@ -165,7 +165,10 @@ const SCAN_NAME_FORM_FIELD: ModelField<NetworkDeviceDiscoveryScan> = {
  * asked. Declared once and handed to BOTH the create wizard on the table and
  * the Edit dialog below, because a step the edit form does not have is a
  * setting that can be created and then never corrected — which is the whole
- * of OneUptime issue #3444.
+ * of OneUptime issue #3444. Both walk them: long forms are stepped, edit
+ * forms included, and an edit dialog saves from any step and opens any step
+ * from its step list, so the toggle an operator came to flip is one click
+ * away rather than behind every step before it.
  */
 const DISCOVERY_SCAN_FORM_STEPS: Array<FormStep<NetworkDeviceDiscoveryScan>> = [
   { title: "Scan Target", id: "scan-target" },
@@ -606,52 +609,6 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
   ];
 };
 
-/*
- * The same fields, laid out for the Edit dialog: one page, grouped under the
- * headings the create wizard uses as step titles.
- *
- * NOT a wizard. A stepped form has no Back button — the only way backwards is
- * the step rail, which BasicForm hides below the `lg` breakpoint — and walking
- * three steps to reach the toggle you came to flip is the wrong shape for a
- * repair. The headings come from DISCOVERY_SCAN_FORM_STEPS rather than being
- * written out again, so the two layouts can never describe the same field as
- * belonging to two different things.
- *
- * BasicForm renders every field when a form declares no steps, and Validation
- * skips its step guard for the same reason, so the fields keep the `stepId`
- * the wizard needs and it simply goes unread here.
- */
-const getDiscoveryScanEditFormFields: GetDiscoveryScanFormFieldsFunction = (
-  probes: Array<Probe>,
-): Array<ModelField<NetworkDeviceDiscoveryScan>> => {
-  const titledStepIds: Set<string> = new Set<string>();
-
-  return getDiscoveryScanFormFields(probes).map(
-    (field: ModelField<NetworkDeviceDiscoveryScan>) => {
-      const stepId: string | undefined = field.stepId;
-
-      if (!stepId || titledStepIds.has(stepId)) {
-        return field;
-      }
-
-      const step: FormStep<NetworkDeviceDiscoveryScan> | undefined =
-        DISCOVERY_SCAN_FORM_STEPS.find(
-          (candidate: FormStep<NetworkDeviceDiscoveryScan>) => {
-            return candidate.id === stepId;
-          },
-        );
-
-      if (!step) {
-        return field;
-      }
-
-      titledStepIds.add(stepId);
-
-      // The first field of each group carries the group's heading.
-      return { ...field, sectionTitle: step.title };
-    },
-  );
-};
 /**
  * Create the optional Ping monitor for a ping-only host — the one-click path
  * to incidents, alerts and status pages for a device the probe already pings
@@ -2039,7 +1996,8 @@ const NetworkDeviceDiscovery: FunctionComponent<
             name: "Edit Discovery Scan",
             modelType: NetworkDeviceDiscoveryScan,
             id: "edit-network-device-discovery-scan-form",
-            fields: getDiscoveryScanEditFormFields(probes),
+            steps: DISCOVERY_SCAN_FORM_STEPS,
+            fields: getDiscoveryScanFormFields(probes),
             formType: FormType.Update,
           }}
         />

@@ -8,12 +8,17 @@ There are two variable scopes, plus component outputs produced during a run.
 
 Project-wide values you save once and reuse anywhere. Think API keys, URLs, channel names — anything you don't want to copy into ten different workflows.
 
-Find them under **Workflows → Global Variables**. **Create Workflow Variable** creates a static variable, which has:
+Find them under **Workflows → Global Variables**. **Create Workflow Variable** creates a static variable in two steps. The **Variable** step asks:
 
 - **Name** — how you'll reference it. At least two characters, no spaces, and only letters, numbers, hyphens and underscores. `UPPER_SNAKE_CASE` is a good habit because it stands out in your blocks.
 - **Description** — optional, free text to remind you what it's for.
+
+Click **Next** for the **Value** step:
+
 - **Content** — the actual value. It's a long-text field, so multi-line values work.
 - **Secret** — when on, the value is scrubbed out of run logs and step traces.
+
+To change the name or description before you save, click **Variable** in the list of steps beside the form (shown on wider screens). What you typed in either step is kept.
 
 To create an **OAuth 2.0 access token** variable instead, open the **More** menu (**⋯**) next to **Create Workflow Variable** and choose **Create OAuth 2.0 Variable**. OAuth 2.0 variables have [their own section](#oauth-20-variables-tokens-that-refresh-themselves) below. A variable's type can't be changed after it's saved.
 
@@ -205,7 +210,7 @@ Two things to watch:
 
 - **Use the pickers.** They insert the exact component, return-value, and variable ids the runner expects, and keep references independent of display labels.
 - **Variable names are case-sensitive.** `{{global.variables.MyKey}}` and `{{global.variables.mykey}}` are different.
-- **A reference that doesn't resolve is left as-is, not blanked.** Referring to something that doesn't exist is not an error, and it doesn't give you an empty string either: the braces are passed straight through, so `{{local.components.api-get-1.returnValues.body}}` with a mistyped step id ends up in your Slack message, URL or request body verbatim, and the run still reports **Executed**. The run log carries a warning line naming any reference that slipped through.
+- **A reference that doesn't resolve is left as-is, not blanked.** Referring to something that doesn't exist is not an error, and it doesn't give you an empty string either: the braces are passed straight through, so `{{local.components.api-get-1.returnValues.body}}` with a mistyped step id ends up in your Slack message, URL or request body verbatim, and the run still reports **Executed**. The run's **Steps** tab shows a warning on the step naming any reference that slipped through, and marks the setting it was in **Did not resolve**; the run log carries the same warning line.
 - **The builder can't check variable names.** It flags component references it can't match — an unknown step id, an unknown return value, a malformed root — before you save. It can't tell whether a variable exists, so a renamed variable is caught only by the run log.
 - **Spaces inside the braces are not trimmed.** `{{ local.variables.NAME }}` is a different lookup from `{{local.variables.NAME}}` and never resolves. The one exception is inside an `{{#each}}` block, where names are trimmed.
 

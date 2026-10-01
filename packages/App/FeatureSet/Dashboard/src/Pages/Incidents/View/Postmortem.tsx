@@ -15,6 +15,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import API from "Common/UI/Utils/API/API";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -42,12 +43,22 @@ import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 
+/*
+ * What the postmortem says, then whether and when it goes on the status page.
+ * Shared by the card's Edit form and the form a template or AI draft opens in.
+ */
+const POSTMORTEM_FORM_STEPS: Array<FormStep<Incident>> = [
+  { title: "Postmortem", id: "postmortem" },
+  { title: "Status Page", id: "status-page" },
+];
+
 const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
   {
     field: {
       postmortemNote: true,
     },
     title: "Postmortem Note",
+    stepId: "postmortem",
     fieldType: FormFieldSchemaType.Markdown,
     required: false,
     placeholder: "Postmortem Note",
@@ -60,6 +71,7 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
       postmortemAttachments: true,
     },
     title: "Postmortem Attachments",
+    stepId: "postmortem",
     fieldType: FormFieldSchemaType.MultipleFiles,
     required: false,
     description:
@@ -70,6 +82,7 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
       postmortemPostedAt: true,
     },
     title: "Postmortem Published At",
+    stepId: "status-page",
     fieldType: FormFieldSchemaType.DateTime,
     required: false,
     description: "Set the posted-on timestamp subscribers will see. ",
@@ -83,6 +96,7 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
       showPostmortemOnStatusPage: true,
     },
     title: "Publish on Status Page",
+    stepId: "status-page",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
     description:
@@ -94,6 +108,7 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
       notifySubscribersOnPostmortemPublished: true,
     },
     title: "Notify Subscribers",
+    stepId: "status-page",
     fieldType: FormFieldSchemaType.Checkbox,
     required: false,
     description: "Notify subscribers when this postmortem is published.",
@@ -318,6 +333,7 @@ const IncidentPostmortem: FunctionComponent<
             return !previous;
           });
         }}
+        formSteps={POSTMORTEM_FORM_STEPS}
         formFields={POSTMORTEM_FORM_FIELDS}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
@@ -518,6 +534,7 @@ const IncidentPostmortem: FunctionComponent<
           initialValues={templateInitialValues || undefined}
           formProps={{
             id: "incident-postmortem-note-template-form",
+            steps: POSTMORTEM_FORM_STEPS,
             fields: POSTMORTEM_FORM_FIELDS,
             formType: FormType.Update,
             modelType: Incident,

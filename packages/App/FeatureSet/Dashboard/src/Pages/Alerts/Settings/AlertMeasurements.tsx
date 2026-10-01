@@ -170,12 +170,19 @@ const AlertMeasurementsPage: FunctionComponent<
             },
           },
         ]}
+        formSteps={[
+          { title: "Basics", id: "basics" },
+          { title: "Start Anchor", id: "start-anchor" },
+          { title: "End Anchor", id: "end-anchor" },
+          { title: "Reporting", id: "reporting" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "basics",
             sectionTitle: "Basics",
             sectionDescription:
               "What this measurement is called and what it means to your team.",
@@ -193,6 +200,7 @@ const AlertMeasurementsPage: FunctionComponent<
               key: true,
             },
             title: "Key",
+            stepId: "basics",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "time-to-acknowledge",
@@ -204,6 +212,7 @@ const AlertMeasurementsPage: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "basics",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder:
@@ -214,6 +223,7 @@ const AlertMeasurementsPage: FunctionComponent<
               startAnchorType: true,
             },
             title: "Start Anchor",
+            stepId: "start-anchor",
             sectionTitle: "Start Anchor",
             sectionDescription:
               "Where the measurement starts. Pick a timestamp on the alert, or the moment a state was entered.",
@@ -229,6 +239,7 @@ const AlertMeasurementsPage: FunctionComponent<
               startAlertState: true,
             },
             title: "Start Alert State",
+            stepId: "start-anchor",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: AlertState,
@@ -251,6 +262,7 @@ const AlertMeasurementsPage: FunctionComponent<
               startAlertStateRole: true,
             },
             title: "Start Alert State Role",
+            stepId: "start-anchor",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions:
               DropdownUtil.getDropdownOptionsFromEnum(AlertStateRole),
@@ -270,6 +282,7 @@ const AlertMeasurementsPage: FunctionComponent<
               startStateOccurrence: true,
             },
             title: "Start State Occurrence",
+            stepId: "start-anchor",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               MeasurementOccurrence,
@@ -292,6 +305,7 @@ const AlertMeasurementsPage: FunctionComponent<
               endAnchorType: true,
             },
             title: "End Anchor",
+            stepId: "end-anchor",
             sectionTitle: "End Anchor",
             sectionDescription:
               "Where the measurement ends. If the end never happens for an alert, the measurement reads Not Applicable and no number is recorded.",
@@ -307,6 +321,7 @@ const AlertMeasurementsPage: FunctionComponent<
               endAlertState: true,
             },
             title: "End Alert State",
+            stepId: "end-anchor",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: AlertState,
@@ -328,6 +343,7 @@ const AlertMeasurementsPage: FunctionComponent<
               endAlertStateRole: true,
             },
             title: "End Alert State Role",
+            stepId: "end-anchor",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions:
               DropdownUtil.getDropdownOptionsFromEnum(AlertStateRole),
@@ -347,6 +363,7 @@ const AlertMeasurementsPage: FunctionComponent<
               endStateOccurrence: true,
             },
             title: "End State Occurrence",
+            stepId: "end-anchor",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               MeasurementOccurrence,
@@ -369,6 +386,7 @@ const AlertMeasurementsPage: FunctionComponent<
               unit: true,
             },
             title: "Unit",
+            stepId: "reporting",
             sectionTitle: "Reporting",
             sectionDescription:
               "How the computed duration is stored and charted.",
@@ -382,6 +400,7 @@ const AlertMeasurementsPage: FunctionComponent<
               aggregationType: true,
             },
             title: "Aggregation Type",
+            stepId: "reporting",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               MeasurementAggregationType,
@@ -396,6 +415,7 @@ const AlertMeasurementsPage: FunctionComponent<
               isEnabled: true,
             },
             title: "Enabled",
+            stepId: "reporting",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -406,6 +426,7 @@ const AlertMeasurementsPage: FunctionComponent<
               order: true,
             },
             title: "Order",
+            stepId: "reporting",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "1",

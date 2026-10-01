@@ -45,13 +45,11 @@ import path from "path";
  * reappear.
  *
  * Single sign-on is not part of that. SAML and OIDC sign-in, global SSO and
- * "Require SSO for login" are in the Community Edition (from the first release
- * after 14.0.10; in 14.0.0 to 14.0.10 they were Enterprise features that
- * stopped with the license). The feature matrix, the identity pages in every
- * language, the edition section of the upgrade notes and the Helm chart say
- * so, and none of them may still tie single sign-on to the license. The
- * upgrade notes for 14.0.0 to 14.0.10 stay as history, under a note that says
- * which of their single sign-on statements no longer apply.
+ * "Require SSO for login" are in the Community Edition. The feature matrix,
+ * the identity pages in every language, the upgrade notes (the edition
+ * section, the 13 -> 14 notes and the 10 -> 11 notes) and the Helm chart say
+ * so, and none of them may still say single sign-on is Enterprise-only, tie it
+ * to the license, or date such a claim to 14.0.10 and earlier.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -125,6 +123,20 @@ const MATRIX_ROW_FOR_FEATURE: Record<EnterpriseFeature, string> = {
  */
 // Any name the docs give single sign-on.
 const SINGLE_SIGN_ON_WORDS: RegExp = /SSO|single sign-on|SAML|OpenID|OIDC/i;
+
+/*
+ * The same names as whole words, for running prose in any language, where
+ * "sso" also sits inside words such as "processors".
+ */
+const SINGLE_SIGN_ON_NAMES: RegExp =
+  /\bSSO\b|\bSAML\b|\bOIDC\b|\bOpenID\b|single sign-on/i;
+
+// The names of single sign-on that every translation keeps as they are.
+const UNTRANSLATED_SINGLE_SIGN_ON_NAMES: RegExp = /SSO|OIDC/;
+
+// A markdown heading below "##", a numbered or bulleted bold item, or a quote.
+const HEADING_ITEM_OR_QUOTE_PATTERN: RegExp =
+  /^(?:#{3,6} |\d+\. \*\*|- \*\*|> )/;
 
 const SSO_MATRIX_ROWS: Array<{ phrase: string; cloud: string }> = [
   {
@@ -476,10 +488,6 @@ const HELM_UNRELEASED_ENTRY_TITLE_PATTERN: RegExp =
 // The entry for the Community / Enterprise split, which shipped in 14.0.0.
 const HELM_SPLIT_ENTRY_TITLE: string = "- **14.0.0 (2026-09-21)**";
 
-// The entry that puts single sign-on back in the Community Edition.
-const HELM_SSO_ENTRY_MARKER: string =
-  "Single sign-on is part of the Community Edition again.";
-
 // The chart's upgrade-notes entries, newest first, one string per "- **" item.
 function helmUpgradeNoteEntries(): Array<string> {
   const section: string = sectionBetween(
@@ -799,7 +807,7 @@ describe("Enterprise Edition docs page", () => {
     );
   });
 
-  it("says in its introduction that single sign-on is in the Community Edition, and since when", () => {
+  it("says in its introduction that single sign-on is in the Community Edition", () => {
     const introduction: string = normalized(
       readPage().split("\n## ")[0]!.replace(/^> ?/gm, ""),
     );
@@ -810,28 +818,19 @@ describe("Enterprise Edition docs page", () => {
     expect(introduction).toContain(
       "Those modules add SCIM provisioning, governance and instance-administration features.",
     );
-    expect(introduction).toContain("**Single sign-on is in every edition.**");
     expect(introduction).toContain(
-      "releases after 14.0.10 serve them in both editions",
+      '**Single sign-on is in every edition.** SAML and OIDC sign-in for projects and status pages, global SSO and "Require SSO for login" are part of the Community Edition, and no license state switches them off.',
     );
     expect(introduction).not.toContain("identity, governance");
   });
 
-  it("no longer ties single sign-on to the license or the Enterprise Edition anywhere", () => {
-    const sentences: Array<string> = normalized(
-      readPage().replace(/^> ?/gm, ""),
-    )
-      .split(/(?<=[.!?])\s+/)
-      .filter((sentence: string) => {
-        // The one dated sentence about 14.0.0 to 14.0.10 is history.
-        return !sentence.includes("14.0.10");
-      });
+  it("no longer ties single sign-on to the license or the Enterprise Edition anywhere, not even for older releases", () => {
+    const page: string = normalized(readPage().replace(/^> ?/gm, ""));
 
-    expect(
-      sentences.filter((sentence: string) => {
-        return ssoLicenseWordingIn(sentence).length > 0;
-      }),
-    ).toEqual([]);
+    expect(ssoLicenseWordingIn(page)).toEqual([]);
+    // The sentence that dated single sign-on in the Enterprise Edition to 14.0.0 to 14.0.10.
+    expect(page).not.toContain("14.0.10");
+    expect(page).not.toContain("were Enterprise Edition features");
   });
 
   it("keeps ClickHouse capacity and pruning in the Community Edition", () => {
@@ -1241,10 +1240,10 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
   );
 
   /*
-   * The edition section describes the editions as they are now, and says
-   * once, dated, what changed for single sign-on after 14.0.10. Everything
-   * else it says about single sign-on must hold in every edition and license
-   * state.
+   * The edition section describes the editions as they are now. Everything it
+   * says about single sign-on must hold in every edition and license state,
+   * and it does not date single sign-on in the Enterprise Edition to 14.0.10
+   * and earlier either.
    */
   it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
     "%s puts single sign-on in the Community Edition and ties it to no license",
@@ -1260,9 +1259,8 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
       for (const expected of [
         'The **Community Edition** is open source under the Apache License 2.0 and includes SAML and OIDC single sign-on, global SSO and "Require SSO for login".',
         "The **Enterprise Edition** adds the enterprise modules from the repository's `ee/` directory: SCIM, team compliance, audit logs and the enterprise Health dashboards in the Admin Dashboard.",
-        '**Releases after 14.0.10:** SAML and OIDC single sign-on, global SSO and "Require SSO for login" are part of the Community Edition again, and no license state switches them off.',
-        "is enforced again after this upgrade, so check that its provider still works before you upgrade.",
         "instead of silently stopping SCIM provisioning and audit logging.",
+        "Single sign-on is not affected: the Community image serves it too.",
       ]) {
         expect({
           lang: lang,
@@ -1271,18 +1269,12 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
         }).toEqual({ lang: lang, expected: expected, present: true });
       }
 
-      const undatedSentences: Array<string> = section
-        .split(/(?<=[.!?])\s+/)
-        .filter((sentence: string) => {
-          return !sentence.includes("14.0.10");
-        });
-
       expect({
         lang: lang,
-        ssoLicenseWording: undatedSentences.filter((sentence: string) => {
-          return ssoLicenseWordingIn(sentence).length > 0;
-        }),
+        ssoLicenseWording: ssoLicenseWordingIn(section),
       }).toEqual({ lang: lang, ssoLicenseWording: [] });
+      // The note that single sign-on needed the Enterprise Edition until 14.0.10.
+      expect(section).not.toContain("14.0.10");
       expect(section).not.toContain("SAML SSO, OIDC, SCIM");
       expect(section).not.toContain(
         'silently no longer enforcing "Require SSO"',
@@ -1291,14 +1283,17 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
   );
 
   /*
-   * The 13 -> 14 notes are history: they describe 14.0.0 to 14.0.10, when
-   * single sign-on was an Enterprise feature. Each language opens them with a
-   * note, in that language, saying which of their single sign-on statements
-   * no longer apply. The version numbers and the setting's name are the same
-   * in every language.
+   * The 13 -> 14 notes describe the upgrade as it is today: single sign-on is
+   * in the Community image and does not depend on the license, and SCIM, team
+   * compliance, audit logs, the Health dashboards and the Query Console are
+   * what the Community image leaves out. They open with the edition split, not
+   * with a note dating single sign-on in the Enterprise Edition to 14.0.10 and
+   * earlier. The checks that run in every language rely only on what every
+   * translation keeps as it is: version numbers, the setting's name, feature
+   * names and code spans.
    */
   it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
-    "%s opens the 13 → 14 notes with a note that single sign-on is Community after 14.0.10",
+    "%s puts single sign-on in the Community image in the 13 → 14 notes",
     (lang: string) => {
       const lines: Array<string> = readContent(
         lang,
@@ -1315,64 +1310,140 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
 
       expect([Number(hop![1]), Number(hop![2])]).toEqual([13, 14]);
 
-      // The first paragraph under the heading is the note.
-      expect(lines[headingIndex + 1]).toBe("");
+      const sectionLines: Array<string> = [];
 
-      const note: Array<string> = [];
-
-      for (const line of lines.slice(headingIndex + 2)) {
-        if (!line.startsWith(">")) {
+      for (const line of lines.slice(headingIndex + 1)) {
+        if (line.startsWith("## ")) {
           break;
         }
 
-        note.push(line.replace(/^> ?/, ""));
+        sectionLines.push(line);
       }
 
-      const text: string = normalized(note.join(" "));
-
-      expect({ lang: lang, noteLines: note.length > 0 }).toEqual({
+      // The heading, a blank line, then the edition split: no note above it.
+      expect(sectionLines[0]).toBe("");
+      expect({ lang: lang, note: sectionLines[1]!.startsWith(">") }).toEqual({
         lang: lang,
-        noteLines: true,
+        note: false,
+      });
+      expect({
+        lang: lang,
+        dated: sectionLines.join("\n").includes("14.0.10"),
+      }).toEqual({ lang: lang, dated: false });
+
+      // The opening paragraph names "Require SSO for login" among what the Community image includes.
+      const opening: Array<string> = [];
+
+      for (const line of sectionLines.slice(1)) {
+        if (line.trim() === "") {
+          break;
+        }
+
+        opening.push(line);
+      }
+
+      expect({
+        lang: lang,
+        namesRequireSso: opening.join(" ").includes("Require SSO for login"),
+      }).toEqual({ lang: lang, namesRequireSso: true });
+
+      /*
+       * The editions table gives single sign-on and SCIM a row each: only the
+       * SCIM endpoints answer 404 on the Community Edition.
+       */
+      const rows: Array<string> = sectionLines.filter((line: string) => {
+        return line.startsWith("|");
+      });
+      const ssoRows: Array<string> = rows.filter((row: string) => {
+        return UNTRANSLATED_SINGLE_SIGN_ON_NAMES.test(row);
+      });
+      const scimRows: Array<string> = rows.filter((row: string) => {
+        return row.includes("SCIM");
       });
 
-      // What it is about, which versions, and what still applies.
-      for (const expected of [
-        "14.0.10",
-        "14.0.0",
-        "SAML",
-        "OIDC",
-        "Require SSO for login",
-        "Community",
-        "SCIM",
-        "Health",
-      ]) {
-        expect({
-          lang: lang,
-          expected: expected,
-          present: text.includes(expected),
-        }).toEqual({ lang: lang, expected: expected, present: true });
-      }
-
-      if (lang === "en") {
-        expect(text).toBe(
-          '**Releases after 14.0.10:** SAML and OIDC single sign-on, global SSO and "Require SSO for login" are part of the Community Edition again, and no license state switches them off. Where this section says that the Community image leaves single sign-on out, or that single sign-on stops or is not enforced without a license, it describes 14.0.0 to 14.0.10. What it says about SCIM, team compliance, audit logs and the Health dashboards still applies.',
-        );
-      } else {
-        // Translated, like the section it sits in: not the English note.
-        expect(text).not.toContain("Releases after 14.0.10");
-        expect(text).not.toContain("still applies");
-      }
+      expect({ lang: lang, ssoRows: ssoRows.length }).toEqual({
+        lang: lang,
+        ssoRows: 1,
+      });
+      expect({ lang: lang, ssoRow404: ssoRows[0]!.includes("`404`") }).toEqual({
+        lang: lang,
+        ssoRow404: false,
+      });
+      expect({ lang: lang, scimRows: scimRows.length }).toEqual({
+        lang: lang,
+        scimRows: 1,
+      });
+      expect({
+        lang: lang,
+        scimRow404: scimRows[0]!.includes("`404`"),
+        scimRowNamesSso: UNTRANSLATED_SINGLE_SIGN_ON_NAMES.test(scimRows[0]!),
+      }).toEqual({ lang: lang, scimRow404: true, scimRowNamesSso: false });
     },
   );
 
+  it("says in English, step by step, that single sign-on stays on the Community image when upgrading to 14", () => {
+    const section: string = normalized(
+      sectionBetween(
+        readContent("en", "installation/upgrading"),
+        "## Upgrading from OneUptime 13 → 14",
+        "\n## ",
+      ).replace(/^> ?/gm, ""),
+    );
+
+    for (const expected of [
+      'The **Community Edition** (Apache-2.0, the `release` and `<version>` tags) includes SAML SSO, OpenID Connect, global SSO and "Require SSO for login".',
+      "so SCIM provisioning, team compliance settings, audit logs, the Admin **Health** dashboards and the Admin **Query Console** are not in that image at all.",
+      "Single sign-on does not depend on that license.",
+      'Single sign-on works the same on both: your SSO and OIDC configuration and your "Require SSO for login" settings carry over as they are.',
+      "the Community Edition is what you already have, and it includes SAML SSO and OpenID Connect.",
+      "rather than coming up as the Community Edition with SCIM provisioning and audit logging silently stopped.",
+      "**If this install will run the Community Edition while your identity provider deprovisions users through SCIM, review who has access before you upgrade.**",
+      "| SSO and OIDC endpoints | the same paths in both editions | the same paths in both editions, whatever the license state |",
+      "| SCIM endpoints | the same paths in both editions | the same paths on Enterprise; `404` on Community |",
+      "until a license is activated: your identity provider's SCIM requests are refused and audit logging stops recording.",
+      'SSO and OIDC sign-in, "Require SSO for login" and password sign-in for every user, master admins included, work the same in every license state.',
+      "Activating a license restores SCIM provisioning and audit logging with the configuration you already have, without a restart.",
+      "Read point 5 above first if your identity provider deprovisions users through SCIM.",
+      "If that install has SCIM configured on `community-edition`, set `image.type: enterprise-edition` in the same upgrade.",
+      "The SCIM endpoints tell the two cases apart",
+      "Activation is what keeps SCIM provisioning and audit logging running",
+    ]) {
+      expect({
+        expected: expected,
+        present: section.includes(expected),
+      }).toEqual({ expected: expected, present: true });
+    }
+
+    // What the notes said while single sign-on was an Enterprise feature.
+    for (const retired of [
+      "Releases after 14.0.10",
+      "SAML SSO, OpenID Connect, SCIM provisioning",
+      "with your SSO configuration no longer enforced",
+      "SSO and OIDC sign-in are refused",
+      "disable an SSO or OIDC provider",
+      "Activating a license restores SSO sign-in",
+      "if this install enforces SSO",
+      "has SSO, OIDC or SCIM configured",
+      "The SSO, OIDC and SCIM endpoints",
+      "Activation is what keeps single sign-on enforced",
+    ]) {
+      expect({ retired: retired, present: section.includes(retired) }).toEqual({
+        retired: retired,
+        present: false,
+      });
+    }
+
+    expect(ssoLicenseWordingIn(section)).toEqual([]);
+  });
+
   /*
-   * The v10 -> v11 notes say SSO, OIDC and SCIM "now require the Enterprise
-   * Edition". They stay as history too, with a note that SSO and OIDC are in
-   * the Community Edition again after 14.0.10, and without the present-tense
-   * claim that the Community image has no single sign-on code.
+   * The 10 -> 11 notes name what moved to the Enterprise Edition in v11 and
+   * still needs it: SCIM provisioning and team compliance settings. No
+   * heading, list item or note in them names single sign-on as moving, and
+   * the "Releases after 14.0.10" note is gone.
    */
   it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
-    "%s scopes the v11 identity notes to the releases before single sign-on returned",
+    "%s no longer lists single sign-on among what moved to the Enterprise Edition in v11",
     (lang: string) => {
       const page: string = readContent(lang, "installation/upgrading");
       const headings: Array<string> = page
@@ -1387,50 +1458,67 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
       });
 
       const section: string = sectionBetween(page, headings[0]!, "\n## ");
-      const note: string | undefined = section
+      const headingsAndItems: Array<string> = section
         .split("\n")
-        .find((line: string) => {
-          return line.startsWith("> **") && line.includes("14.0.10");
+        .filter((line: string) => {
+          return HEADING_ITEM_OR_QUOTE_PATTERN.test(line);
         });
 
-      expect({ lang: lang, note: note }).toEqual({
+      expect({
         lang: lang,
-        note: expect.stringContaining("OIDC"),
+        namingSingleSignOn: headingsAndItems.filter((line: string) => {
+          return SINGLE_SIGN_ON_NAMES.test(line);
+        }),
+      }).toEqual({ lang: lang, namingSingleSignOn: [] });
+      expect({ lang: lang, dated: section.includes("14.0.10") }).toEqual({
+        lang: lang,
+        dated: false,
       });
       expect(section).toContain("(#community-and-enterprise-edition-images)");
       expect(section).not.toContain(
         "The Community image no longer contains any SSO,",
       );
-      expect(section).not.toContain(
-        "- **Self-hosted:** requires the **Enterprise Edition** build.",
-      );
       expect(section).not.toContain("so you can restore SSO/OIDC/SCIM");
     },
   );
 
-  it("says in English that the v11 identity notes describe v11 to 14.0.10", () => {
-    const page: string = readContent("en", "installation/upgrading");
+  it("says in English that SCIM and team compliance moved to the Enterprise Edition in v11, and single sign-on is in the Community Edition", () => {
+    const page: string = normalized(
+      readContent("en", "installation/upgrading"),
+    );
     const section: string = normalized(
       sectionBetween(
-        page,
-        "### Identity features (SSO, OIDC, SCIM) now require the Enterprise Edition",
+        readContent("en", "installation/upgrading"),
+        "### SCIM and team compliance settings now require the Enterprise Edition",
         "\n### ",
-      ).replace(/^> ?/gm, ""),
+      ),
+    );
+
+    expect(page).toContain(
+      "1. **SCIM provisioning and team compliance settings moved to the Enterprise Edition** — if you use them on a self-hosted Community build, read this first.",
     );
 
     for (const expected of [
-      '**Releases after 14.0.10:** SAML SSO, OIDC and global SSO are part of the Community Edition again, together with "Require SSO for login", and need no license.',
-      "SCIM provisioning and team compliance settings still need the Enterprise Edition.",
-      "The rest of this section describes v11 to 14.0.10.",
-      "The Community images of 14.0.0 to 14.0.10 contain no SSO, OIDC or SCIM code",
-      "**Self-hosted:** SCIM and team compliance settings require the **Enterprise Edition** build.",
-      "**If you rely on SSO and self-host**, upgrade to a release after 14.0.10, where every edition serves SSO and OIDC.",
+      "In v11, the following access-management features moved to the **OneUptime Enterprise Edition**",
+      "- **SCIM user provisioning** — project and status page - **Team compliance settings**",
+      "SAML SSO, OpenID Connect (OIDC) and global (instance-wide) SSO, for both project login and status-page login, are part of the Community Edition — see [Community and Enterprise Edition images](#community-and-enterprise-edition-images).",
+      "if you configured SCIM or team compliance settings on a Community Edition build, the settings pages show an upgrade prompt",
+      "- **Self-hosted:** requires the **Enterprise Edition** build.",
+      "**If you rely on SCIM and self-host**",
     ]) {
       expect({
         expected: expected,
         present: section.includes(expected),
       }).toEqual({ expected: expected, present: true });
     }
+
+    expect(page).not.toContain(
+      "Identity features (SSO, OIDC, SCIM) now require the Enterprise Edition",
+    );
+    expect(page).not.toContain(
+      "Identity features (SSO, OIDC, SCIM) moved to the Enterprise Edition",
+    );
+    expect(ssoLicenseWordingIn(section)).toEqual([]);
   });
 });
 
@@ -1803,7 +1891,7 @@ describe("Helm chart upgrade notes for the Community / Enterprise split", () => 
     const entries: Array<string> = helmUpgradeNoteEntries();
 
     // The older entries are still there, so the split parsed the list.
-    expect(entries.length).toBeGreaterThanOrEqual(6);
+    expect(entries.length).toBeGreaterThanOrEqual(5);
     expect(
       entries.some((entry: string) => {
         return entry.startsWith("- **13.0.0 (2026-09-07)**");
@@ -1824,16 +1912,19 @@ describe("Helm chart upgrade notes for the Community / Enterprise split", () => 
   });
 
   /*
-   * The 14.0.0 entry is history: it says what 14.0.0 did, single sign-on
-   * included. The entry above it says what changed after 14.0.10.
+   * What an operator upgrading to 14 needs to know, single sign-on included:
+   * it is in the Community images, and only SCIM and audit logging stop with
+   * the license.
    */
   it("covers every case an operator could be in when upgrading to 14.0.0", () => {
     const entry: string = normalized(helmSplitEntry());
 
     for (const expected of [
-      // Community Edition installs with no SSO, OIDC or SCIM: nothing to do.
-      "**Community Edition with no SSO, OIDC or SCIM configured:** nothing to do.",
-      "do not contain the repository's `ee/` directory",
+      // What each image contains: single sign-on is in the Community images.
+      'are Apache-2.0, include SAML and OIDC single sign-on, global SSO and "Require SSO for login", and do not contain the repository\'s `ee/` directory.',
+      "add the enterprise modules from `ee/`: SCIM, team compliance, audit logs and the Admin Dashboard Health dashboards",
+      // Community Edition installs with no SCIM: nothing to do.
+      "**Community Edition with no SCIM configured:** nothing to do.",
       // Enterprise Edition installs: the enterprise- images now contain ee/.
       "The chart already pulls the `enterprise-` images, which now contain `ee/`.",
       // Unlicensed Enterprise Edition installs: the trial, then read-only.
@@ -1842,19 +1933,24 @@ describe("Helm chart upgrade notes for the Community / Enterprise split", () => 
       // A license that expires later: the grace period, not the trial's length.
       `A license that expires later gets a ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period before the same happens.`,
       "enterprise configuration becomes read-only and the Health dashboards are locked",
-      // What stopped after the trial in 14.0.0, and the warning to act before it ended.
-      "**If you use SSO, OIDC, SCIM or audit logging, activate a license before the trial ends.**",
-      "SSO, OIDC, SCIM and audit logging stop",
+      // What stops after the trial, and the warning to act before it ends.
+      "**If you use SCIM or audit logging, activate a license before the trial ends.**",
+      "SCIM and audit logging stop",
       "Everything resumes, without a restart, when a license is activated",
-      // Community Edition installs with SSO, OIDC or SCIM configured.
-      "**Community Edition with SSO, OIDC or SCIM configured:** set `image.type: enterprise-edition` before you upgrade to keep them.",
+      // Community Edition installs with SCIM configured.
+      "**Community Edition with SCIM configured:** set `image.type: enterprise-edition` before you upgrade to keep it.",
+      "Single sign-on is not affected: the Community images serve it too.",
       // IS_ENTERPRISE_EDITION.
       "`IS_ENTERPRISE_EDITION` is deprecated and informational only.",
     ]) {
-      expect(entry).toContain(expected);
+      expect({ expected: expected, present: entry.includes(expected) }).toEqual(
+        { expected: expected, present: true },
+      );
     }
 
     expect(entry).not.toMatch(/keep running|never stop/);
+    expect(ssoLicenseWordingIn(entry)).toEqual([]);
+    expect(licensePeriodLengthProblems(entry)).toEqual([]);
   });
 
   it("links the split entry to the Enterprise Edition page and the upgrading guide, and every link resolves", () => {
@@ -1881,81 +1977,53 @@ describe("Helm chart upgrade notes for the Community / Enterprise split", () => 
   });
 });
 
-describe("Helm chart upgrade notes for single sign-on in the Community Edition", () => {
-  const ssoEntryIndex: () => number = (): number => {
-    return helmUpgradeNoteEntries().findIndex((entry: string) => {
-      return normalized(entry).includes(HELM_SSO_ENTRY_MARKER);
-    });
-  };
-
-  it("has one entry, above the split entry, titled as unreleased or as a release after 14.0.10", () => {
+describe("Helm chart upgrade notes put single sign-on in the Community images", () => {
+  /*
+   * Single sign-on is described where the split is, in the 14.0.0 entry. No
+   * entry still says it is Enterprise-only or stops with the license, and no
+   * entry dates that to 14.0.10 and earlier or announces single sign-on
+   * "again" in the Community Edition.
+   */
+  it("has no entry that ties single sign-on to the Enterprise Edition, in any release", () => {
     const entries: Array<string> = helmUpgradeNoteEntries();
-    const index: number = ssoEntryIndex();
-    const splitIndex: number = entries.indexOf(helmSplitEntry());
 
+    expect(
+      entries.map((entry: string) => {
+        return {
+          title: entry.split("\n")[0],
+          ssoLicenseWording: ssoLicenseWordingIn(normalized(entry)),
+          dated: entry.includes("14.0.10"),
+        };
+      }),
+    ).toEqual(
+      entries.map((entry: string) => {
+        return {
+          title: entry.split("\n")[0],
+          ssoLicenseWording: [],
+          dated: false,
+        };
+      }),
+    );
     expect(
       entries.filter((entry: string) => {
-        return normalized(entry).includes(HELM_SSO_ENTRY_MARKER);
+        return normalized(entry).includes(
+          "Single sign-on is part of the Community Edition again.",
+        );
       }),
-    ).toHaveLength(1);
-    expect(index).toBeGreaterThanOrEqual(0);
-    expect(index).toBeLessThan(splitIndex);
-
-    // Renamed to "- **<semver> (<date>)**" when it ships; either title is fine.
-    const title: string = entries[index]!.split("\n")[0]!;
-
-    expect(
-      HELM_UNRELEASED_ENTRY_TITLE_PATTERN.test(title) ||
-        HELM_RELEASED_ENTRY_TITLE_PATTERN.test(title),
-    ).toBe(true);
-
-    if (HELM_UNRELEASED_ENTRY_TITLE_PATTERN.test(title)) {
-      expect(title).toContain("- **Unreleased (after 14.0.10)**");
-    }
+    ).toEqual([]);
   });
 
-  it("tells each edition what changes, and that nothing needs to be set", () => {
-    const entry: string = normalized(
-      helmUpgradeNoteEntries()[ssoEntryIndex()]!,
-    );
+  it("titles every entry as a release or as unreleased", () => {
+    for (const entry of helmUpgradeNoteEntries()) {
+      const title: string = entry.split("\n")[0]!;
 
-    for (const expected of [
-      HELM_SSO_ENTRY_MARKER,
-      'SAML and OIDC sign-in for projects and status pages, global SSO and "Require SSO for login" run on both `image.type` values, and no license state switches them off.',
-      "No values change and no migration",
-      "(SAML ACS URLs, OIDC redirect URIs) stay the same",
-      // Community Edition: served again, and a saved requirement is enforced again.
-      "**`image.type: community-edition`:** single sign-on you configured is served again.",
-      'A "Require SSO for login" setting that was saved but not enforced is enforced again after the upgrade',
-      // Enterprise Edition: a lapse now stops only SCIM and audit logging.
-      "**`image.type: enterprise-edition`:**",
-      `after the **${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial**, or ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS} days after a license expires, only SCIM and audit logging stop`,
-      "Single sign-on is not affected.",
-      "SCIM, team compliance, audit logs and the Health dashboards still need the Enterprise Edition.",
-    ]) {
-      expect({ expected: expected, present: entry.includes(expected) }).toEqual(
-        {
-          expected: expected,
-          present: true,
-        },
-      );
+      expect({
+        title: title,
+        titled:
+          HELM_RELEASED_ENTRY_TITLE_PATTERN.test(title) ||
+          HELM_UNRELEASED_ENTRY_TITLE_PATTERN.test(title),
+      }).toEqual({ title: title, titled: true });
     }
-
-    expect(entry).not.toMatch(/keep running|never stop/);
-    expect(ssoLicenseWordingIn(entry)).toEqual([]);
-    expect(licensePeriodLengthProblems(entry)).toEqual([]);
-  });
-
-  it("links to the Enterprise Edition page and the upgrading guide, and every link resolves", () => {
-    const links: string = absoluteDocsLinksAsRelative(
-      helmUpgradeNoteEntries()[ssoEntryIndex()]!,
-    );
-
-    expect(links).toContain("(/docs/self-hosted/enterprise)");
-    expect(links).toContain(
-      "(/docs/installation/upgrading#community-and-enterprise-edition-images)",
-    );
-    expect(unresolvedDocsLinks(links)).toEqual([]);
   });
 });
 

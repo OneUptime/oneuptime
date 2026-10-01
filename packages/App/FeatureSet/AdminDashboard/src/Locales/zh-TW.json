@@ -350,7 +350,9 @@
       "amountNotPositive": "金額必須大於零。",
       "amountTooLarge": "單次調整的金額不得超過 {{max}} USD。",
       "amountTooPrecise": "金額的小數位數不得超過兩位。",
-      "reasonRequired": "請輸入此次調整的原因。"
+      "reasonRequired": "請輸入此次調整的原因。",
+      "adjustBalanceStepBalance": "餘額",
+      "adjustBalanceStepAmount": "金額和原因"
     },
     "projectSupport": {
       "title": "客戶支援存取權",

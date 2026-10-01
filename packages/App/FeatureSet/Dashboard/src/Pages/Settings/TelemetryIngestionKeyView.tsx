@@ -41,12 +41,18 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
         }}
         refresher={refresher}
         isEditable={true}
+        formSteps={[
+          { title: "Details", id: "details" },
+          { title: "Access & Limits", id: "access-and-limits" },
+          { title: "Browser Settings", id: "browser-settings" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Telemetry Ingestion Key Name",
@@ -59,6 +65,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
               description: true,
             },
             title: "Description",
+            stepId: "details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Telemetry Ingestion Key Description",
@@ -68,6 +75,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
               isEnabled: true,
             },
             title: "Enabled",
+            stepId: "access-and-limits",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -78,12 +86,27 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
               expiresAt: true,
             },
             title: "Expires At",
+            stepId: "access-and-limits",
             fieldType: FormFieldSchemaType.Date,
             required: false,
             description:
               "After this date the key stops being accepted. Leave it empty for a key that never expires. An expiry bounds how long a copy of a published browser key stays useful to whoever took it.",
             validation: {
               dateShouldBeInTheFuture: true,
+            },
+          },
+          {
+            field: {
+              requestsPerMinuteLimit: true,
+            },
+            title: "Requests Per Minute Limit",
+            stepId: "access-and-limits",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE.toString(),
+            description: `Ingest requests per minute accepted with this key. The limit is per key and shared by every client using it, so it has to clear your whole fleet at peak, not one browser tab. Leave it empty to use the default for a browser key (${DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE} per minute) and to leave a server key unlimited.`,
+            validation: {
+              minValue: 1,
             },
           },
           {
@@ -99,6 +122,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
               allowedOrigins: true,
             },
             title: "Allowed Origins",
+            stepId: "browser-settings",
             fieldType: FormFieldSchemaType.JSON,
             required: false,
             /*
@@ -134,24 +158,12 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
               pinnedServiceName: true,
             },
             title: "Pinned Service Name",
+            stepId: "browser-settings",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "storefront-web",
             description:
               "Forces service.name to this value on everything the key writes, replacing whatever the sender set. Anyone who copies the key out of your page can then only write into this one service, instead of forging telemetry that looks like it came from one of your backend services.",
-          },
-          {
-            field: {
-              requestsPerMinuteLimit: true,
-            },
-            title: "Requests Per Minute Limit",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE.toString(),
-            description: `Ingest requests per minute accepted with this key. The limit is per key and shared by every client using it, so it has to clear your whole fleet at peak, not one browser tab. Leave it empty to use the default for a browser key (${DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE} per minute) and to leave a server key unlimited.`,
-            validation: {
-              minValue: 1,
-            },
           },
         ]}
         modelDetailProps={{

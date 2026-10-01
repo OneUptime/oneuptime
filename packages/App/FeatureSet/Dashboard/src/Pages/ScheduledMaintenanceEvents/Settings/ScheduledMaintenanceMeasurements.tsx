@@ -179,12 +179,19 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
             },
           },
         ]}
+        formSteps={[
+          { title: "Basics", id: "basics" },
+          { title: "Start Anchor", id: "start-anchor" },
+          { title: "End Anchor", id: "end-anchor" },
+          { title: "Reporting", id: "reporting" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "basics",
             sectionTitle: "Basics",
             sectionDescription:
               "What this measurement is called and what it means to your team.",
@@ -202,6 +209,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               key: true,
             },
             title: "Key",
+            stepId: "basics",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "start-delay",
@@ -213,6 +221,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "basics",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder:
@@ -223,6 +232,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               startAnchorType: true,
             },
             title: "Start Anchor",
+            stepId: "start-anchor",
             sectionTitle: "Start Anchor",
             sectionDescription:
               "Where the measurement starts. Pick a timestamp on the event, or the moment a state was entered.",
@@ -238,6 +248,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               startScheduledMaintenanceState: true,
             },
             title: "Start Maintenance State",
+            stepId: "start-anchor",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: ScheduledMaintenanceState,
@@ -262,6 +273,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               startScheduledMaintenanceStateRole: true,
             },
             title: "Start Maintenance State Role",
+            stepId: "start-anchor",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               ScheduledMaintenanceStateRole,
@@ -284,6 +296,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               startStateOccurrence: true,
             },
             title: "Start State Occurrence",
+            stepId: "start-anchor",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               MeasurementOccurrence,
@@ -308,6 +321,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               endAnchorType: true,
             },
             title: "End Anchor",
+            stepId: "end-anchor",
             sectionTitle: "End Anchor",
             sectionDescription:
               "Where the measurement ends. If the end never happens for an event, the measurement reads Not Applicable and no number is recorded.",
@@ -323,6 +337,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               endScheduledMaintenanceState: true,
             },
             title: "End Maintenance State",
+            stepId: "end-anchor",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: ScheduledMaintenanceState,
@@ -347,6 +362,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               endScheduledMaintenanceStateRole: true,
             },
             title: "End Maintenance State Role",
+            stepId: "end-anchor",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               ScheduledMaintenanceStateRole,
@@ -369,6 +385,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               endStateOccurrence: true,
             },
             title: "End State Occurrence",
+            stepId: "end-anchor",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               MeasurementOccurrence,
@@ -393,6 +410,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               unit: true,
             },
             title: "Unit",
+            stepId: "reporting",
             sectionTitle: "Reporting",
             sectionDescription:
               "How the computed duration is stored and charted.",
@@ -406,6 +424,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               aggregationType: true,
             },
             title: "Aggregation Type",
+            stepId: "reporting",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               MeasurementAggregationType,
@@ -420,6 +439,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               isEnabled: true,
             },
             title: "Enabled",
+            stepId: "reporting",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -430,6 +450,7 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               order: true,
             },
             title: "Order",
+            stepId: "reporting",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "1",

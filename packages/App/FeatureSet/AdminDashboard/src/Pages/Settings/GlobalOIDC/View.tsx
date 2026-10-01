@@ -91,12 +91,19 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           }}
           isEditable={true}
           editButtonText={"Edit Configuration"}
+          formSteps={[
+            { title: "Basic Info", id: "basic" },
+            { title: "Provider", id: "provider" },
+            { title: "Claims", id: "claims" },
+            { title: "More", id: "more" },
+          ]}
           formFields={[
             {
               field: {
                 name: true,
               },
               title: "Name",
+              stepId: "basic",
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "Okta OIDC (Company-wide)",
@@ -109,6 +116,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 description: true,
               },
               title: "Description",
+              stepId: "basic",
               fieldType: FormFieldSchemaType.LongText,
               required: true,
               placeholder: "Sign in with Okta",
@@ -118,6 +126,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 discoveryURL: true,
               },
               title: "Discovery URL",
+              stepId: "provider",
               fieldType: FormFieldSchemaType.URL,
               required: true,
               placeholder:
@@ -128,6 +137,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 issuerURL: true,
               },
               title: "Issuer",
+              stepId: "provider",
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "https://accounts.google.com",
@@ -137,6 +147,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 clientId: true,
               },
               title: "Client ID",
+              stepId: "provider",
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "1234567890-abcdefgh.apps.googleusercontent.com",
@@ -146,6 +157,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 clientSecret: true,
               },
               title: "Client Secret",
+              stepId: "provider",
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "Paste your client secret here.",
@@ -155,6 +167,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 scopes: true,
               },
               title: "Scopes",
+              stepId: "claims",
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "openid email profile",
@@ -164,6 +177,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 emailClaimName: true,
               },
               title: "Email Claim Name",
+              stepId: "claims",
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "email",
@@ -173,6 +187,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 nameClaimName: true,
               },
               title: "Name Claim Name",
+              stepId: "claims",
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "name",
@@ -182,6 +197,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 disableSignUpWithSso: true,
               },
               title: "Disable Sign Up with SSO",
+              stepId: "more",
               fieldType: FormFieldSchemaType.Toggle,
             },
             {
@@ -189,6 +205,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 restrictToAttachedProjects: true,
               },
               title: "Restrict to Attached Projects",
+              stepId: "more",
               description:
                 "When on, this provider only satisfies SSO enforcement for the projects attached below. Off by default, where attachments control provisioning only.",
               fieldType: FormFieldSchemaType.Toggle,
@@ -198,6 +215,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 isEnabled: true,
               },
               title: "Enabled",
+              stepId: "more",
               fieldType: FormFieldSchemaType.Toggle,
             },
           ]}

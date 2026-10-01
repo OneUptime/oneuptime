@@ -266,6 +266,11 @@ export const gotoProjectPage: GotoProjectPageFunction = async (data: {
  * by the Proxmox/VMware/Ceph DocumentationCard (form id "create-ingestion-key").
  * The caller clicks the trigger button first — either the empty-state
  * "Create Ingestion Key" CTA or the "New Key" button next to the dropdown.
+ *
+ * The form walks the create wizard's steps - Details, Key Type and, on the
+ * Free plan, Billing - and its footer button reads "Next" until the last.
+ * It is pressed until the modal closes, waiting for the step to move on
+ * between presses, keeping the Server key the Key Type step preselects.
  */
 type SubmitIngestionKeyModalFunction = (data: {
   page: Page;
@@ -279,6 +284,26 @@ export const submitIngestionKeyModal: SubmitIngestionKeyModalFunction =
       .locator("#create-ingestion-key input[type='text']")
       .first()
       .fill(data.keyName);
-    await data.page.getByTestId("modal-footer-submit-button").click();
-    await data.page.getByTestId("modal").waitFor({ state: "hidden" });
+
+    const modal: Locator = data.page.getByTestId("modal");
+    const submit: Locator = data.page.getByTestId("modal-footer-submit-button");
+    const activeStep: Locator = modal.locator('[aria-current="step"]').first();
+
+    for (let press: number = 0; press < 5; press++) {
+      const label: string = ((await submit.textContent()) || "").trim();
+      const stepBefore: string =
+        (await activeStep.count()) > 0
+          ? ((await activeStep.textContent()) || "").trim()
+          : "";
+
+      await submit.click();
+
+      if (label !== "Next") {
+        break;
+      }
+
+      await expect(activeStep).not.toHaveText(stepBefore);
+    }
+
+    await modal.waitFor({ state: "hidden" });
   };

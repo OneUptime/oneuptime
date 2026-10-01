@@ -94,12 +94,18 @@ const NetworkDeviceView: FunctionComponent<
             "Name, address, and organization for this device. SNMP credentials are managed in Settings.",
         }}
         isEditable={true}
+        formSteps={[
+          { title: "Device Details", id: "device-details" },
+          { title: "Address", id: "address" },
+          { title: "Site & Labels", id: "site-and-labels" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "device-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "core-switch-01",
@@ -109,6 +115,7 @@ const NetworkDeviceView: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "device-details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Core switch in the US East datacenter",
@@ -118,17 +125,19 @@ const NetworkDeviceView: FunctionComponent<
               hostname: true,
             },
             title: "Hostname",
+            stepId: "address",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
             description: HOSTNAME_FIELD_DESCRIPTION,
           },
-          getMacAddressFormField(),
+          getMacAddressFormField({ stepId: "address" }),
           {
             field: {
               site: true,
             },
             title: "Site",
+            stepId: "site-and-labels",
             description:
               "The network site this device belongs to. Site health rolls up from its devices.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -145,6 +154,7 @@ const NetworkDeviceView: FunctionComponent<
               labels: true,
             },
             title: "Labels",
+            stepId: "site-and-labels",
             description: "Organize and filter devices with labels.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {

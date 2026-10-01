@@ -65,21 +65,17 @@ const NetworkSiteLinks: FunctionComponent<
             type: FieldType.Text,
           },
         ]}
+        formSteps={[
+          { title: "Sites", id: "sites" },
+          { title: "Details", id: "details" },
+        ]}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "MPLS to Springfield",
-          },
           {
             field: {
               fromSite: true,
             },
             title: "From Site",
+            stepId: "sites",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkSite,
@@ -94,6 +90,7 @@ const NetworkSiteLinks: FunctionComponent<
               toSite: true,
             },
             title: "To Site",
+            stepId: "sites",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkSite,
@@ -105,9 +102,20 @@ const NetworkSiteLinks: FunctionComponent<
           },
           {
             field: {
+              name: true,
+            },
+            title: "Name",
+            stepId: "details",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "MPLS to Springfield",
+          },
+          {
+            field: {
               monitor: true,
             },
             title: "Monitor",
+            stepId: "details",
             description:
               "Optional. The monitor watching this link — its status colors the edge on the map.",
             fieldType: FormFieldSchemaType.Dropdown,

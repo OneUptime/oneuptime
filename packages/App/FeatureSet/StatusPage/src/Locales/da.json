@@ -235,6 +235,10 @@
       "invalidLink": "Dette afmeldingslink er ugyldigt. Det kan være ufuldstændigt, eller abonnementet kan være fjernet. Brug afmeldingslinket i en nylig besked fra denne statusside for at afmelde dig.",
       "failed": "Vi kunne ikke afmelde dig. Prøv igen.",
       "loadFailed": "Vi kunne ikke indlæse dette afmeldingslink. Prøv igen senere."
+    },
+    "steps": {
+      "details": "Detaljer",
+      "preferences": "Præferencer"
     }
   },
   "accounts": {
@@ -327,5 +331,6 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}} må ikke være mindre end {{minValue}}.",
   "{{field}} is required.": "{{field}} er påkrævet.",
   "{{field}} should match {{matchField}}": "{{field}} skal matche {{matchField}}",
-  "Email is not valid.": "E-mailen er ugyldig."
+  "Email is not valid.": "E-mailen er ugyldig.",
+  "Next": "Næste"
 }

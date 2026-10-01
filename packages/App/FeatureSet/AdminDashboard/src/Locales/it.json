@@ -350,7 +350,9 @@
       "amountNotPositive": "L'importo deve essere maggiore di zero.",
       "amountTooLarge": "L'importo non può superare {{max}} USD per singola rettifica.",
       "amountTooPrecise": "L'importo non può avere più di due cifre decimali.",
-      "reasonRequired": "Inserisci un motivo per questa rettifica."
+      "reasonRequired": "Inserisci un motivo per questa rettifica.",
+      "adjustBalanceStepBalance": "Saldo",
+      "adjustBalanceStepAmount": "Importo e motivo"
     },
     "projectSupport": {
       "title": "Accesso dell'assistenza clienti",

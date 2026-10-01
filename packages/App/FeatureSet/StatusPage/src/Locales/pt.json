@@ -235,6 +235,10 @@
       "invalidLink": "Este link de cancelamento não é válido. Ele pode estar incompleto ou a inscrição pode ter sido removida. Para cancelar a inscrição, use o link de uma mensagem recente desta página de status.",
       "failed": "Não foi possível cancelar a inscrição. Tente novamente.",
       "loadFailed": "Não foi possível carregar este link de cancelamento. Tente novamente mais tarde."
+    },
+    "steps": {
+      "details": "Detalhes",
+      "preferences": "Preferências"
     }
   },
   "accounts": {
@@ -327,5 +331,6 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}} não deve ser menor que {{minValue}}.",
   "{{field}} is required.": "{{field}} é obrigatório.",
   "{{field}} should match {{matchField}}": "{{field}} deve corresponder a {{matchField}}",
-  "Email is not valid.": "O e-mail não é válido."
+  "Email is not valid.": "O e-mail não é válido.",
+  "Next": "Próximo"
 }

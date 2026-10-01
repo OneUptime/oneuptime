@@ -287,7 +287,7 @@ describe("the Runner form's fields", () => {
     ).toEqual(["name", "description", "canRunAiCommands", "labels"]);
   });
 
-  test("the list page's wizard puts every field on its step", () => {
+  test("the wizard puts every field on its step", () => {
     const steps: Array<string | undefined> = getRunnerFormFields({
       withSteps: true,
       restrictions: NO_RUNNER_FORM_RESTRICTIONS,
@@ -302,7 +302,7 @@ describe("the Runner form's fields", () => {
       "capabilities",
       "labels",
     ]);
-    // The detail page's form has no steps.
+    // Without withSteps the fields carry no step.
     for (const field of getRunnerFormFields({
       withSteps: false,
       restrictions: NO_RUNNER_FORM_RESTRICTIONS,
@@ -497,20 +497,25 @@ describe("the Runner pages, rendered", () => {
     const dialog: HTMLElement = await openRunnerEditModal(
       "kubernetes-agent/prod-east",
     );
-    await within(dialog).findByText(
-      "Runs AI Remediation Commands",
-      {},
-      { timeout: WAIT_TIMEOUT },
-    );
+
+    // The Runner step: the description and the note, and no name.
     expect(
       within(dialog).getByText("In-cluster Runner (Kubernetes agent)"),
     ).toBeInTheDocument();
     expect(dialog).toHaveTextContent(AGENT_NOTE_START);
     expect(hasFieldTitled(dialog, "Name")).toBe(false);
+
+    // The Capabilities step: only the switch the server lets it change.
+    fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
+    await within(dialog).findByText(
+      "Runs AI Remediation Commands",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
     expect(hasFieldTitled(dialog, "Runs Runbooks")).toBe(false);
     expect(hasFieldTitled(dialog, "Runs AI Code Fixes")).toBe(false);
 
-    // Saving posts none of the fields the server refuses.
+    // Saving - from any step of an edit form - posts none of the fields the server refuses.
     fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
     await waitFor(
       () => {
@@ -531,12 +536,15 @@ describe("the Runner pages, rendered", () => {
     openRunnerView(HOST_RUNNER_ID);
 
     const dialog: HTMLElement = await openRunnerEditModal("bash-runner");
+    expect(hasFieldTitled(dialog, "Name")).toBe(true);
+    expect(dialog).not.toHaveTextContent(AGENT_NOTE_START);
+
+    fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
     await within(dialog).findByText(
       "Runs AI Remediation Commands",
       {},
       { timeout: WAIT_TIMEOUT },
     );
-    expect(hasFieldTitled(dialog, "Name")).toBe(true);
     expect(hasFieldTitled(dialog, "Runs Runbooks")).toBe(true);
     expect(hasFieldTitled(dialog, "Runs AI Code Fixes")).toBe(true);
     expect(dialog).not.toHaveTextContent(AGENT_NOTE_START);
