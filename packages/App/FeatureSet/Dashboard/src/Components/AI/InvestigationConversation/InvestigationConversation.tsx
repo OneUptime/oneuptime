@@ -1,22 +1,25 @@
 import ChatActivityFeed, {
   hasRenderableActivity,
 } from "../../AIChat/ChatActivityFeed";
-import ChatInput from "../../AIChat/ChatInput";
-import CitationChips from "../../AIChat/CitationChips";
-import PermissionModePicker from "../../AIChat/PermissionModePicker";
 import { navigateToCitationTarget } from "../../AIChat/CitationTargetNav";
+import { AIInvestigationStage } from "../AIInvestigationStatus";
+import InvestigationNotice, { noticeFailedIcon } from "../InvestigationNotice";
 import { CITATION_CHIP_CLASS_NAME } from "../InvestigationReport/InvestigationCitationChip";
 import ToolApprovalCard, { ToolDecision } from "../../AIChat/ToolApprovalCard";
 import WidgetRenderer from "../../AIChat/Widgets/WidgetRenderer";
+import AnswerSources from "./AnswerSources";
+import ConversationComposer from "./ConversationComposer";
 import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "Common/Types/AI/AIChatMessageStatus";
-import { AIChatCitation, AIChatWidget } from "Common/Types/AI/AIChatTypes";
+import {
+  AIChatCitation,
+  AIChatToolAction,
+  AIChatWidget,
+} from "Common/Types/AI/AIChatTypes";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, {
   FunctionComponent,
@@ -32,17 +35,22 @@ import {
   SuggestedPrompt,
   ThreadAuthor,
   ThreadMessage,
+  ThreadTail,
   ThreadView,
+  ToolActionOutcome,
   describeAuthor,
-  describePermissionMode,
+  describeConversation,
   describeThreadActivity,
+  describeToolActionOutcome,
   findActiveAssistantMessage,
   getAvatarTone,
   getInitials,
   getSendBlocker,
   getSuggestedPrompts,
+  getThreadTail,
   getVisibleWidgets,
   isThreadBusy,
+  isToolActionAwaitingApproval,
   isViewer,
 } from "./InvestigationConversationData";
 import useInvestigationConversation, {
@@ -53,15 +61,22 @@ export interface ComponentProps {
   subjectType: InvestigationConversationSubjectType;
   subjectId: ObjectID;
   /*
-   * "embedded" (default): a section at the bottom of the AI Investigation
-   * card. "card": its own card, for a subject no investigation ran on — the
-   * conversation is useful either way.
+   * Where the automatic investigation above the conversation stands (see
+   * AIInvestigationStage). The card passes it so the conversation can say
+   * "follow-up" only under a report, and lead its suggestions with the
+   * root-cause question when there is no report to read. Left out, the
+   * conversation behaves as it does while one is underway.
    */
-  variant?: "embedded" | "card" | undefined;
+  investigationStage?: AIInvestigationStage | undefined;
 }
 
-// Close enough to the bottom that new messages should keep it pinned there.
-const PINNED_TO_BOTTOM_THRESHOLD_PX: number = 120;
+/*
+ * One heading and one description style for the section, the same ones the
+ * card's other rows use ("Act on this investigation", the verdict), so the
+ * conversation reads as the next row of the card and not as a card of its
+ * own: it used to open with an icon tile and its own header.
+ */
+export const CONVERSATION_TITLE: string = `Ask ${AI_DISPLAY_NAME}`;
 
 const PersonAvatar: FunctionComponent<{
   author: ThreadAuthor;
@@ -83,13 +98,18 @@ const PersonAvatar: FunctionComponent<{
   );
 };
 
+/*
+ * OneUptime AI's mark in the thread: the solid indigo sparkle the event
+ * header uses for its root-cause summary, so the AI looks like one author
+ * across the page.
+ */
 const AIAvatar: FunctionComponent = (): ReactElement => {
   return (
     <div
       aria-hidden="true"
-      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 shadow-sm"
+      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white"
     >
-      <Icon icon={IconProp.Sparkles} className="h-4 w-4 text-white" />
+      <Icon icon={IconProp.Sparkles} className="h-4 w-4" />
     </div>
   );
 };
@@ -153,18 +173,42 @@ const MessageTime: FunctionComponent<{ date: Date | null }> = (props: {
 };
 
 /*
- * The conversation inside the AI investigation box: one shared thread per
- * incident or alert, where every responder can ask OneUptime AI follow-up
- * questions and ask it to act. Questions carry who asked them, answers
- * cite their evidence, the answer being written narrates its steps live,
- * and an action waiting for approval can be decided by anyone on the
- * incident.
+ * A message is its author's mark, a line saying who and when, and what was
+ * said. From sm up the mark stands beside both, so the text lines up under
+ * the name. On a phone the text takes the row under the mark instead, at the
+ * card's full width: an answer with a table or its sources in it has no 44px
+ * to give away there.
+ */
+const MESSAGE_CLASS_NAME: string =
+  "grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3";
+const MESSAGE_MARK_CLASS_NAME: string = "self-start sm:row-span-2";
+const MESSAGE_BYLINE_CLASS_NAME: string =
+  "flex min-w-0 flex-wrap items-baseline gap-x-2 self-center";
+const MESSAGE_BODY_CLASS_NAME: string =
+  "col-span-2 mt-1.5 min-w-0 sm:col-span-1 sm:col-start-2 sm:mt-0";
+
+const SPINNER_CLASS_NAME: string =
+  "h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 border-indigo-200 border-t-indigo-600 motion-safe:animate-spin";
+
+/*
+ * The conversation that closes the AI Investigation card: one shared thread
+ * per incident or alert, where every responder can ask OneUptime AI
+ * questions and ask it to act. Questions carry who asked them, answers cite
+ * their evidence, the answer being written narrates its steps live, and an
+ * action waiting for approval can be decided by anyone on the incident.
+ *
+ * It is a section of the card, drawn like the rest of it: the card's
+ * heading style, plain text, and no panel of its own. The thread is part of
+ * the page rather than a scrolling box inside the card, so a long one opens
+ * on its newest messages.
  */
 const InvestigationConversation: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const subjectType: InvestigationConversationSubjectType = props.subjectType;
   const subjectIdString: string = props.subjectId.toString();
+  const subjectKey: string = `${subjectType}:${subjectIdString}`;
+  const stage: AIInvestigationStage | undefined = props.investigationStage;
 
   const conversation: UseInvestigationConversation =
     useInvestigationConversation({
@@ -179,8 +223,8 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     findActiveAssistantMessage(view);
   const activityLine: string | null = describeThreadActivity(view);
   const suggestions: Array<SuggestedPrompt> = useMemo(() => {
-    return getSuggestedPrompts(subjectType);
-  }, [subjectType]);
+    return getSuggestedPrompts(subjectType, stage);
+  }, [subjectType, stage]);
 
   const sendBlocker: string | null = getSendBlocker({
     view,
@@ -189,6 +233,33 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
   });
 
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+
+  /*
+   * The subject whose whole thread the reader asked to see. Keyed by the
+   * subject, so the next incident opens folded again.
+   */
+  const [unfoldedSubjectKey, setUnfoldedSubjectKey] = useState<string | null>(
+    null,
+  );
+  const tail: ThreadTail = getThreadTail(
+    view.messages,
+    unfoldedSubjectKey === subjectKey,
+  );
+  const threadRef: React.RefObject<HTMLOListElement> =
+    useRef<HTMLOListElement>(null);
+  const shouldFocusThreadRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  /*
+   * Unfolding removes the button that was pressed. Hand focus to the thread
+   * it revealed, or a keyboard reader is dropped at the top of the page.
+   */
+  useEffect(() => {
+    if (shouldFocusThreadRef.current) {
+      shouldFocusThreadRef.current = false;
+      threadRef.current?.focus({ preventScroll: true });
+    }
+  }, [unfoldedSubjectKey]);
 
   // Everyone who has asked something, in order of first question.
   const participants: Array<ThreadAuthor> = useMemo(() => {
@@ -210,47 +281,6 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
 
     return list;
   }, [view.messages]);
-
-  /*
-   * Keep the newest message in view while the reader is at the bottom;
-   * someone scrolled up to re-read an answer is left where they are. A
-   * question the viewer just sent always scrolls to show its answer coming.
-   */
-  const scrollRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null);
-  const isPinnedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
-  const activeEventCount: number = view.activeRun?.events.length || 0;
-  const lastMessage: ThreadMessage | undefined =
-    view.messages[view.messages.length - 1];
-
-  useEffect(() => {
-    const container: HTMLDivElement | null = scrollRef.current;
-
-    if (!container) {
-      return;
-    }
-
-    if (isPinnedRef.current || lastMessage?.isOptimistic) {
-      container.scrollTop = container.scrollHeight;
-    }
-  }, [
-    view.messages.length,
-    activeEventCount,
-    lastMessage?.id,
-    lastMessage?.status,
-  ]);
-
-  const onScroll: () => void = (): void => {
-    const container: HTMLDivElement | null = scrollRef.current;
-
-    if (!container) {
-      return;
-    }
-
-    isPinnedRef.current =
-      container.scrollHeight - container.scrollTop - container.clientHeight <
-      PINNED_TO_BOTTOM_THRESHOLD_PX;
-  };
 
   const copyAnswer: (message: ThreadMessage) => void = (
     message: ThreadMessage,
@@ -291,25 +321,58 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     return (
       <li
         key={message.id}
-        className="flex gap-3"
+        className={MESSAGE_CLASS_NAME}
         data-testid="investigation-conversation-question"
       >
-        <PersonAvatar author={message.author} />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-sm font-semibold text-gray-900">
-              {describeAuthor(message.author, viewerUserId)}
-            </span>
-            {message.isOptimistic ? (
-              <span className="text-xs text-gray-400">Sending…</span>
-            ) : (
-              <MessageTime date={message.createdAt} />
-            )}
-          </div>
-          <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-6 text-gray-800">
+        <div className={MESSAGE_MARK_CLASS_NAME}>
+          <PersonAvatar author={message.author} />
+        </div>
+        <div className={MESSAGE_BYLINE_CLASS_NAME}>
+          <span className="text-sm font-semibold text-gray-900">
+            {describeAuthor(message.author, viewerUserId)}
+          </span>
+          {message.isOptimistic ? (
+            <span className="text-xs text-gray-400">Sending…</span>
+          ) : (
+            <MessageTime date={message.createdAt} />
+          )}
+        </div>
+        <div className={MESSAGE_BODY_CLASS_NAME}>
+          <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-6 text-gray-900">
             {message.content}
           </p>
         </div>
+      </li>
+    );
+  };
+
+  /*
+   * An action nobody is waiting on any more: a mark, what it was and how it
+   * ended, as a line of the answer. It used to be a bordered gray row with
+   * a coloured chip in it.
+   */
+  const renderSettledAction: (action: AIChatToolAction) => ReactElement = (
+    action: AIChatToolAction,
+  ): ReactElement => {
+    const outcome: ToolActionOutcome = describeToolActionOutcome(action.status);
+
+    return (
+      <li
+        key={action.id}
+        data-status={action.status}
+        className="flex items-start gap-2 text-sm leading-6"
+      >
+        {/* A div, not a span: Icon renders its own div around the svg. */}
+        <div className="flex h-6 flex-shrink-0 items-center">
+          <Icon
+            icon={outcome.icon}
+            className={`h-4 w-4 ${outcome.iconClassName}`}
+          />
+        </div>
+        <p className="min-w-0 break-words text-gray-700">
+          {action.title}
+          <span className="text-gray-500"> · {outcome.label}</span>
+        </p>
       </li>
     );
   };
@@ -332,42 +395,54 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
         (view.activeRun.assistantMessageId === null ||
           view.activeRun.assistantMessageId === message.id),
     );
+    const awaitingApproval: Array<AIChatToolAction> =
+      message.toolActions.filter(isToolActionAwaitingApproval);
+    const settledActions: Array<AIChatToolAction> = message.toolActions.filter(
+      (action: AIChatToolAction): boolean => {
+        return !isToolActionAwaitingApproval(action);
+      },
+    );
 
     if (message.status === AIChatMessageStatus.Cancelled) {
       return (
-        <p className="mt-1 flex items-center gap-2 text-sm text-gray-500">
-          <Icon icon={IconProp.StopCircle} className="h-4 w-4" />
-          {message.content || "Stopped."}
-        </p>
+        <div className="mt-0.5 flex items-start gap-2 text-sm leading-6 text-gray-500">
+          <div className="flex h-6 flex-shrink-0 items-center">
+            <Icon icon={IconProp.StopCircle} className="h-4 w-4" />
+          </div>
+          <p className="min-w-0 break-words">{message.content || "Stopped."}</p>
+        </div>
       );
     }
 
+    /*
+     * A failed answer is a line with a red mark, like the card's own "The
+     * investigation stopped before it could report": no red box.
+     */
     if (message.status === AIChatMessageStatus.Error) {
       return (
-        <div className="mt-1.5 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">
-          <div className="flex items-start gap-2">
-            <Icon
-              icon={IconProp.Alert}
-              className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-500"
-            />
-            <div>
-              <p>
-                {message.errorMessage ||
-                  "Something went wrong while answering."}
-              </p>
-              <p className="mt-0.5 text-xs text-rose-500">
-                Ask again to retry.
-              </p>
-            </div>
+        <div
+          data-testid="investigation-conversation-answer-error"
+          className="mt-0.5 flex items-start gap-2 text-sm leading-6"
+        >
+          <div className="flex h-6 flex-shrink-0 items-center">
+            <Icon icon={IconProp.Alert} className="h-4 w-4 text-red-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="break-words text-gray-900">
+              {message.errorMessage || "Something went wrong while answering."}
+            </p>
+            <p className="text-xs leading-5 text-gray-500">
+              Ask again to retry.
+            </p>
           </div>
         </div>
       );
     }
 
     return (
-      <div className="mt-1 space-y-3">
+      <div className="mt-0.5 space-y-3">
         {message.content ? (
-          <div className="text-sm leading-6 text-gray-800">
+          <div className="text-sm leading-6 text-gray-700">
             {/*
               Safe mode: the answer is shaped by telemetry an attacker can
               influence, so links and images never render — navigation is
@@ -394,16 +469,16 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           </div>
         ) : isWaiting ? (
           <p className="text-sm leading-6 text-gray-700">
-            {message.toolActions.length > 1
+            {awaitingApproval.length > 1
               ? "I'd like to take these actions. Review them and approve to continue."
               : "I'd like to take this action. Review it and approve to continue."}
           </p>
         ) : isWorking ? (
           <div
             role="status"
-            className="flex items-center gap-2 text-sm text-gray-500"
+            className="flex items-center gap-2 text-sm leading-6 text-gray-600"
           >
-            <span className="h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 border-indigo-200 border-t-indigo-600 motion-safe:animate-spin" />
+            <span className={SPINNER_CLASS_NAME} />
             <span>
               {activityLine || `${AI_DISPLAY_NAME} is looking into it…`}
             </span>
@@ -412,12 +487,17 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
+        {/*
+          The steps of the answer being written hang from a rule on their
+          left, the way a quote does: a trail of the answer above them, with
+          no box around it.
+        */}
         {isWorking &&
         isActiveRunMessage &&
         view.activeRun &&
         hasRenderableActivity(view.activeRun.events) ? (
           <div
-            className="rounded-lg border border-gray-100 bg-gray-50/70 px-3 py-2.5"
+            className="border-l-2 border-gray-200 pl-3"
             data-testid="investigation-conversation-live-steps"
           >
             <ChatActivityFeed
@@ -431,41 +511,65 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {widgets.length > 0 ? <WidgetRenderer widgets={widgets} /> : <></>}
-
-        {message.toolActions.length > 0 ? (
-          <ToolApprovalCard
-            toolActions={message.toolActions}
-            interactive={isWaiting}
-            isSubmitting={conversation.isSubmittingApproval}
-            onRespond={(decisions: Array<ToolDecision>) => {
-              conversation
-                .respondToApproval(message.id, decisions)
-                .catch(() => {
-                  // handled inside respondToApproval
-                });
-            }}
-          />
-        ) : (
-          <></>
-        )}
-
-        {message.citations.length > 0 ? (
-          <div className="border-t border-gray-100 pt-2.5">
-            <CitationChips citations={message.citations} />
+        {/*
+          Charts and tables are figures: each keeps the frame it has
+          everywhere else it is drawn, grouped and named for a screen reader.
+        */}
+        {widgets.length > 0 ? (
+          <div role="group" aria-label="Data from this answer">
+            <WidgetRenderer widgets={widgets} />
           </div>
         ) : (
           <></>
         )}
 
+        {settledActions.length > 0 ? (
+          <ul
+            role="list"
+            aria-label="Actions"
+            data-testid="investigation-conversation-actions"
+            className="space-y-0.5"
+          >
+            {settledActions.map(renderSettledAction)}
+          </ul>
+        ) : (
+          <></>
+        )}
+
+        {/*
+          The one place the card raises its voice: OneUptime AI is about to
+          change something and is waiting for a person to say yes. It keeps
+          the approval prompt of the Ask AI panel, as a group of controls.
+        */}
+        {awaitingApproval.length > 0 ? (
+          <div role="group" aria-label="Actions waiting for approval">
+            <ToolApprovalCard
+              toolActions={awaitingApproval}
+              interactive={isWaiting}
+              isSubmitting={conversation.isSubmittingApproval}
+              onRespond={(decisions: Array<ToolDecision>) => {
+                conversation
+                  .respondToApproval(message.id, decisions)
+                  .catch(() => {
+                    // handled inside respondToApproval
+                  });
+              }}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+
+        <AnswerSources citations={message.citations} />
+
         {message.status === AIChatMessageStatus.Completed && message.content ? (
-          <div className="flex items-center gap-2">
+          <div>
             <button
               type="button"
               onClick={() => {
                 copyAnswer(message);
               }}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className="-ml-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               <Icon
                 icon={
@@ -473,7 +577,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
                     ? IconProp.Check
                     : IconProp.Copy
                 }
-                className="h-3 w-3"
+                className="h-3.5 w-3.5"
               />
               {copiedMessageId === message.id ? "Copied" : "Copy"}
             </button>
@@ -491,24 +595,27 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     return (
       <li
         key={message.id}
-        className="flex gap-3"
+        className={MESSAGE_CLASS_NAME}
         data-testid="investigation-conversation-answer"
+        data-status={message.status}
       >
-        <AIAvatar />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-sm font-semibold text-gray-900">
-              {AI_DISPLAY_NAME}
+        <div className={MESSAGE_MARK_CLASS_NAME}>
+          <AIAvatar />
+        </div>
+        <div className={MESSAGE_BYLINE_CLASS_NAME}>
+          <span className="text-sm font-semibold text-gray-900">
+            {AI_DISPLAY_NAME}
+          </span>
+          {!isViewer(message.author, viewerUserId) && message.author.name ? (
+            <span className="text-xs text-gray-400">
+              to {message.author.name}
             </span>
-            {!isViewer(message.author, viewerUserId) && message.author.name ? (
-              <span className="text-xs text-gray-400">
-                to {message.author.name}
-              </span>
-            ) : (
-              <></>
-            )}
-            <MessageTime date={message.createdAt} />
-          </div>
+          ) : (
+            <></>
+          )}
+          <MessageTime date={message.createdAt} />
+        </div>
+        <div className={MESSAGE_BODY_CLASS_NAME}>
           {renderAnswerBody(message)}
         </div>
       </li>
@@ -517,19 +624,13 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
 
   const header: ReactElement = (
     <div className="flex items-start justify-between gap-4">
-      <div className="flex min-w-0 items-start gap-3">
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-          <Icon icon={IconProp.ChatBubbleLeftRight} className="h-4 w-4" />
-        </div>
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-gray-900">
-            Ask {AI_DISPLAY_NAME}
-          </h3>
-          <p className="mt-0.5 text-xs leading-5 text-gray-500">
-            Ask a follow-up question, or ask it to act. Everyone on this{" "}
-            {subjectType} sees this conversation.
-          </p>
-        </div>
+      <div className="min-w-0">
+        <h3 className="text-sm font-semibold text-gray-900">
+          {CONVERSATION_TITLE}
+        </h3>
+        <p className="mt-1 text-xs leading-5 text-gray-500">
+          {describeConversation(subjectType, stage)}
+        </p>
       </div>
       {participants.length > 0 ? (
         <div
@@ -543,7 +644,11 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
             })
             .join(", ")}
         >
-          <div className="flex -space-x-2">
+          {/*
+            Barely overlapped: these are initials, and a deeper overlap
+            covers the second letter of every avatar but the last.
+          */}
+          <div className="flex -space-x-1">
             {participants.slice(0, 4).map((author: ThreadAuthor) => {
               return (
                 <PersonAvatar
@@ -568,113 +673,154 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     </div>
   );
 
+  const loading: ReactElement = (
+    <p role="status" className="flex items-center gap-2 text-sm text-gray-500">
+      <span className="h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 border-gray-200 border-t-gray-500 motion-safe:animate-spin" />
+      Loading the conversation…
+    </p>
+  );
+
   /*
-   * Plain text and suggestion chips, not a tinted box: inline, this sits in
-   * the AI investigation card, which draws no panel inside itself.
+   * Nobody has asked yet: the questions worth asking first, one click away,
+   * straight above the box they would otherwise be typed in. Plain chips
+   * and nothing else: a sentence saying the thread is empty only repeated
+   * what the empty space already says.
    */
-  const emptyState: ReactElement = (
-    <div data-testid="investigation-conversation-empty">
-      <p className="text-sm text-gray-600">
-        Nobody has asked anything yet. Start with one of these, or type your
-        own:
-      </p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {suggestions.map((suggestion: SuggestedPrompt) => {
-          return (
-            <button
-              key={suggestion.label}
-              type="button"
-              disabled={conversation.isSending}
-              onClick={() => {
-                applySuggestion(suggestion);
-              }}
-              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
-            >
+  const suggestionChips: ReactElement = (
+    <div
+      role="group"
+      aria-label="Suggested questions"
+      data-testid="investigation-conversation-empty"
+      className="flex flex-wrap gap-2"
+    >
+      {suggestions.map((suggestion: SuggestedPrompt) => {
+        return (
+          <button
+            key={suggestion.label}
+            type="button"
+            disabled={conversation.isSending}
+            data-suggestion-kind={suggestion.isAction ? "action" : "question"}
+            onClick={() => {
+              applySuggestion(suggestion);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {/*
+              Only a request to change something carries a mark: it is put
+              in the box for the responder to send, where a question is
+              asked on the click.
+            */}
+            {suggestion.isAction ? (
               <Icon
-                icon={suggestion.isAction ? IconProp.Bolt : IconProp.Sparkles}
+                icon={IconProp.Bolt}
                 className="h-3.5 w-3.5 text-gray-400"
               />
-              {suggestion.label}
-            </button>
-          );
-        })}
-      </div>
+            ) : (
+              <></>
+            )}
+            {suggestion.label}
+          </button>
+        );
+      })}
     </div>
   );
 
-  const body: ReactElement = (
+  let body: ReactElement;
+
+  if (!conversation.hasLoaded) {
+    body = loading;
+  } else if (conversation.loadError && view.messages.length === 0) {
+    body = (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
+        <span>Could not load the conversation: {conversation.loadError}</span>
+        <button
+          type="button"
+          onClick={() => {
+            conversation.refresh().catch(() => {
+              // handled inside refresh
+            });
+          }}
+          className="-mx-2 rounded-md px-2 py-1 text-sm font-medium text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  } else if (view.messages.length === 0) {
+    /*
+     * The suggestions depend on whether the card has a report, so they wait
+     * for the card to know: showing five and then squeezing a sixth in
+     * front of them would move the chips under the pointer.
+     */
+    body = stage === "checking" ? loading : suggestionChips;
+  } else {
+    body = (
+      <div className="space-y-5">
+        {tail.hiddenCount > 0 ? (
+          <button
+            type="button"
+            data-testid="investigation-conversation-show-earlier"
+            onClick={() => {
+              shouldFocusThreadRef.current = true;
+              setUnfoldedSubjectKey(subjectKey);
+            }}
+            className="-mx-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            <Icon icon={IconProp.ChevronUp} className="h-3.5 w-3.5" />
+            {/* Always plural: a thread never folds fewer than two away. */}
+            Show {tail.hiddenCount} earlier messages
+          </button>
+        ) : (
+          <></>
+        )}
+        <ol
+          ref={threadRef}
+          tabIndex={-1}
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          className="space-y-5 focus:outline-none"
+        >
+          {tail.messages.map((message: ThreadMessage) => {
+            return message.role === AIChatMessageRole.User
+              ? renderQuestion(message)
+              : renderAnswer(message);
+          })}
+        </ol>
+      </div>
+    );
+  }
+
+  return (
     <section
       aria-label={`Conversation with ${AI_DISPLAY_NAME}`}
       data-testid="investigation-conversation"
-      className={
-        props.variant === "card" ? "" : "border-t border-gray-200 pt-6"
-      }
+      className="space-y-4 border-t border-gray-200 pt-5"
     >
-      {props.variant === "card" ? <></> : header}
+      {header}
 
-      {!conversation.hasLoaded ? (
-        <p
-          role="status"
-          className="mt-4 flex items-center gap-2 text-sm text-gray-500"
-        >
-          <span className="h-3.5 w-3.5 rounded-full border-2 border-gray-200 border-t-gray-500 motion-safe:animate-spin" />
-          Loading the conversation…
-        </p>
-      ) : conversation.loadError && view.messages.length === 0 ? (
-        <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-gray-600">
-          <span>Could not load the conversation: {conversation.loadError}</span>
-          <button
-            type="button"
-            onClick={() => {
-              conversation.refresh().catch(() => {
-                // handled inside refresh
-              });
-            }}
-            className="rounded-md px-2 py-1 text-sm font-medium text-indigo-600 hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          >
-            Try again
-          </button>
-        </div>
-      ) : view.messages.length === 0 ? (
-        <div className="mt-4">{emptyState}</div>
-      ) : (
-        <div
-          ref={scrollRef}
-          onScroll={onScroll}
-          className="mt-5 max-h-[40rem] overflow-y-auto overscroll-contain pr-1"
-        >
-          <ol
-            role="log"
-            aria-live="polite"
-            aria-relevant="additions"
-            className="space-y-6"
-          >
-            {view.messages.map((message: ThreadMessage) => {
-              return message.role === AIChatMessageRole.User
-                ? renderQuestion(message)
-                : renderAnswer(message);
-            })}
-          </ol>
-        </div>
-      )}
+      {body}
 
+      {/*
+        A question that was refused, a decision or a stop that did not go
+        through: said in the card's own notice, where it was a red box
+        between the thread and the composer.
+      */}
       {conversation.actionError ? (
-        <div className="mt-4">
-          <Alert
-            type={AlertType.DANGER}
-            title={conversation.actionError}
-            onClose={() => {
-              conversation.clearActionError();
-            }}
-            dataTestId="investigation-conversation-error"
-          />
-        </div>
+        <InvestigationNotice
+          role="alert"
+          testId="investigation-conversation-error"
+          indicator={noticeFailedIcon}
+          title={conversation.actionError}
+          onDismiss={() => {
+            conversation.clearActionError();
+          }}
+        />
       ) : (
         <></>
       )}
 
-      <ChatInput
-        className="mt-4"
+      <ConversationComposer
         value={conversation.input}
         onChange={conversation.setInput}
         onSend={() => {
@@ -694,40 +840,17 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
             : undefined
         }
         isStopping={conversation.isCancelling}
-        autoFocus={false}
-        footerHint="Answers cite the data they used"
+        label={CONVERSATION_TITLE}
         placeholder={
           isBusy
             ? "Type your next question — send it when this answer finishes…"
             : `Ask about this ${subjectType}, or ask ${AI_DISPLAY_NAME} to act…`
         }
-        leading={
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <PermissionModePicker
-              value={conversation.permissionMode}
-              onChange={conversation.setPermissionMode}
-            />
-            <span className="text-[11px] leading-4 text-gray-500">
-              {describePermissionMode(conversation.permissionMode)}
-            </span>
-          </div>
-        }
+        permissionMode={conversation.permissionMode}
+        onPermissionModeChange={conversation.setPermissionMode}
       />
     </section>
   );
-
-  if (props.variant === "card") {
-    return (
-      <Card
-        title={`Ask ${AI_DISPLAY_NAME}`}
-        description={`Ask a follow-up question about this ${subjectType}, or ask ${AI_DISPLAY_NAME} to act. Everyone on this ${subjectType} sees this conversation.`}
-      >
-        {body}
-      </Card>
-    );
-  }
-
-  return body;
 };
 
 export default InvestigationConversation;

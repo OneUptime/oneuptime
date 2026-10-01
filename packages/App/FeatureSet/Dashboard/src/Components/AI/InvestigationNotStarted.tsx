@@ -1,7 +1,4 @@
-import { AI_INVESTIGATION_PANEL_ID } from "./AIInvestigationStatus";
-import InvestigationStatusBadge, {
-  InvestigationStatusIndicator,
-} from "./InvestigationStatusBadge";
+import { InvestigationStatusIndicator } from "./InvestigationStatusBadge";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import InvestigationNotStartedReason, {
@@ -15,7 +12,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import PermissionUtil from "Common/UI/Utils/Permission";
@@ -29,6 +25,31 @@ interface ComponentProps {
   hasSuccessfulResponse: boolean;
   isRefreshing: boolean;
   onRefresh: () => void;
+}
+
+export interface InvestigationNotStartedStatus {
+  text: string;
+  indicator: InvestigationStatusIndicator;
+}
+
+/*
+ * What the card's status pill says while there is no run to show: the card
+ * is still asking, the answer could not be loaded, or nothing ran.
+ */
+export function getInvestigationNotStartedStatus(data: {
+  isLoading: boolean;
+  hasError: boolean;
+  hasSuccessfulResponse: boolean;
+}): InvestigationNotStartedStatus {
+  if (data.isLoading) {
+    return { text: "Checking", indicator: "checking" };
+  }
+
+  if (data.hasError && !data.hasSuccessfulResponse) {
+    return { text: "Unable to check", indicator: "attention" };
+  }
+
+  return { text: "Not investigated", indicator: "idle" };
 }
 
 export interface SettingsAction {
@@ -168,7 +189,17 @@ export function getSettingsAction(
   };
 }
 
-const InvestigationNotStartedCard: FunctionComponent<ComponentProps> = (
+/*
+ * What the AI Investigation card says when there is no run to show: why
+ * OneUptime AI did not investigate (or that the card is still asking, or
+ * could not find out), and what a reader can do about it.
+ *
+ * It is the card's body, not a card: InvestigationPanel draws the one card,
+ * its header and its status pill for every state, and closes it with the
+ * conversation. This state used to be a card of its own, with the
+ * conversation in a second card under it.
+ */
+const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { subjectType, isLoading, hasError, hasSuccessfulResponse } = props;
@@ -215,126 +246,88 @@ const InvestigationNotStartedCard: FunctionComponent<ComponentProps> = (
       })
     : null;
 
-  const statusText: string = isLoading
-    ? "Checking"
-    : isUnavailable
-      ? "Unable to check"
-      : "Not investigated";
-  const statusIndicator: InvestigationStatusIndicator = isLoading
-    ? "checking"
-    : isUnavailable
-      ? "attention"
-      : "idle";
-
-  /*
-   * The same card, header and badge as a run's panel, so the slot looks the
-   * same whether or not OneUptime AI investigated: this state used to be a
-   * differently built box, with its own icon tile, a tinted body and a
-   * second column split off by a rule.
-   */
   return (
-    <Card
-      title="AI Investigation"
-      bodyClassName="mt-6"
-      description={`OneUptime AI's root-cause investigation for this ${subjectType}.`}
-      rightElement={
-        <InvestigationStatusBadge
-          text={statusText}
-          indicator={statusIndicator}
-        />
-      }
+    <div
+      aria-live="polite"
+      data-testid="investigation-not-started"
+      className="space-y-6"
     >
-      <div
-        id={AI_INVESTIGATION_PANEL_ID}
-        tabIndex={-1}
-        role="region"
-        aria-label="AI Investigation"
-        aria-busy={isLoading}
-        className="scroll-mt-32 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-4"
-      >
-        <div aria-live="polite" className="space-y-6">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-            <p className="mt-1 text-sm leading-6 text-gray-600">
-              {description}
-            </p>
-            {!isLoading && !isUnavailable ? (
-              <div className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-relaxed text-gray-500">
-                <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
-                <span>{sourceLabel}</span>
-                {checkedAt && reason ? (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <time dateTime={reason.evaluatedAt}>{checkedAt}</time>
-                  </>
-                ) : null}
-              </div>
-            ) : null}
-            {reason?.source === "current_configuration" &&
-            !isLoading &&
-            !isUnavailable ? (
-              <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                Settings may have changed since this {subjectType} was created;
-                this is not a recorded decision from that time.
-              </p>
+      <div>
+        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+        <p className="mt-1 text-sm leading-6 text-gray-600">{description}</p>
+        {!isLoading && !isUnavailable ? (
+          <div className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-relaxed text-gray-500">
+            <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
+            <span>{sourceLabel}</span>
+            {checkedAt && reason ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <time dateTime={reason.evaluatedAt}>{checkedAt}</time>
+              </>
             ) : null}
           </div>
+        ) : null}
+        {reason?.source === "current_configuration" &&
+        !isLoading &&
+        !isUnavailable ? (
+          <p className="mt-1 text-xs leading-relaxed text-gray-500">
+            Settings may have changed since this {subjectType} was created; this
+            is not a recorded decision from that time.
+          </p>
+        ) : null}
+      </div>
 
-          {!isLoading && !isUnavailable ? (
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900">
-                What you can do
-              </h3>
-              <p className="mt-1 text-sm leading-6 text-gray-600">{nextStep}</p>
-              {action && canReviewSettings ? (
-                <Link
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[action.page] as Route,
-                  )}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded text-sm font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                >
-                  <span>{action.label}</span>
-                  <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
-                </Link>
-              ) : action ? (
-                <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                  {action.whoCanAct}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          {hasError && !isLoading ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-5">
-              {/* A div, not a p: Icon renders its own div around the svg. */}
-              <div className="flex min-w-0 items-start gap-2 text-sm leading-6 text-gray-700">
-                <Icon
-                  icon={IconProp.Alert}
-                  className="mt-1 h-4 w-4 flex-shrink-0 text-amber-500"
-                />
-                <p>
-                  {hasSuccessfulResponse
-                    ? "Could not refresh this status. Showing the last successful check."
-                    : "Try again to check this investigation."}
-                </p>
-              </div>
-              <Button
-                title="Retry"
-                ariaLabel="Retry investigation status"
-                icon={IconProp.Refresh}
-                buttonSize={ButtonSize.Small}
-                buttonStyle={ButtonStyleType.OUTLINE}
-                isLoading={props.isRefreshing}
-                disabled={props.isRefreshing}
-                onClick={props.onRefresh}
-                className="!ml-0"
-              />
-            </div>
+      {!isLoading && !isUnavailable ? (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">
+            What you can do
+          </h3>
+          <p className="mt-1 text-sm leading-6 text-gray-600">{nextStep}</p>
+          {action && canReviewSettings ? (
+            <Link
+              to={RouteUtil.populateRouteParams(RouteMap[action.page] as Route)}
+              className="mt-2 inline-flex items-center gap-1.5 rounded text-sm font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            >
+              <span>{action.label}</span>
+              <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
+            </Link>
+          ) : action ? (
+            <p className="mt-2 text-xs leading-relaxed text-gray-500">
+              {action.whoCanAct}
+            </p>
           ) : null}
         </div>
-      </div>
-    </Card>
+      ) : null}
+
+      {hasError && !isLoading ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-5">
+          {/* A div, not a p: Icon renders its own div around the svg. */}
+          <div className="flex min-w-0 items-start gap-2 text-sm leading-6 text-gray-700">
+            <Icon
+              icon={IconProp.Alert}
+              className="mt-1 h-4 w-4 flex-shrink-0 text-amber-500"
+            />
+            <p>
+              {hasSuccessfulResponse
+                ? "Could not refresh this status. Showing the last successful check."
+                : "Try again to check this investigation."}
+            </p>
+          </div>
+          <Button
+            title="Retry"
+            ariaLabel="Retry investigation status"
+            icon={IconProp.Refresh}
+            buttonSize={ButtonSize.Small}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            isLoading={props.isRefreshing}
+            disabled={props.isRefreshing}
+            onClick={props.onRefresh}
+            className="!ml-0"
+          />
+        </div>
+      ) : null}
+    </div>
   );
 };
 
-export default InvestigationNotStartedCard;
+export default InvestigationNotStarted;

@@ -64,7 +64,9 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import IconProp from "Common/Types/Icon/IconProp";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
-import InvestigationPanel from "../../../Components/AI/InvestigationPanel";
+import InvestigationPanel, {
+  InvestigationConversationSlot,
+} from "../../../Components/AI/InvestigationPanel";
 import InvestigationConversation from "../../../Components/AI/InvestigationConversation/InvestigationConversation";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
@@ -973,12 +975,12 @@ const IncidentView: FunctionComponent<
             onReportSummaryChange={onAIInvestigationReportSummaryChange}
             onVerdictChange={onAIInvestigationVerdictChange}
             onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
-            renderConversation={(variant: "embedded" | "card") => {
+            renderConversation={(slot: InvestigationConversationSlot) => {
               return (
                 <InvestigationConversation
                   subjectType="incident"
                   subjectId={modelId}
-                  variant={variant}
+                  investigationStage={slot.investigationStage}
                 />
               );
             }}
