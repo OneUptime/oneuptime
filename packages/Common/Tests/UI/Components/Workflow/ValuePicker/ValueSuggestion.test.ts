@@ -153,7 +153,11 @@ describe("mergeSuggestionGroups", () => {
 
   test("groups come in order, and an empty one is dropped", () => {
     const merged: Array<ValueSuggestionGroup> = mergeSuggestionGroups([
-      group("variables", [{ reference: "{{local.variables.a}}", label: "a" }], 1000),
+      group(
+        "variables",
+        [{ reference: "{{local.variables.a}}", label: "a" }],
+        1000,
+      ),
       group("empty", [], 5),
       group("step:webhook-1", [{ reference: BODY, label: "Request Body" }], 0),
     ]);
@@ -183,7 +187,9 @@ describe("mergeSuggestionGroups", () => {
           wholeValueLabel: "ignored",
           allowsPath: false,
           loadChildren: async () => {
-            return [{ reference: `${BODY.slice(0, -2)}.title}}`, label: "title" }];
+            return [
+              { reference: `${BODY.slice(0, -2)}.title}}`, label: "title" },
+            ];
           },
         },
       },
@@ -279,7 +285,11 @@ describe("searching", () => {
         description: "What the request sent.",
         typeLabel: "JSON",
       },
-      { reference: HEADERS, label: "Request Headers", typeLabel: "Key / value" },
+      {
+        reference: HEADERS,
+        label: "Request Headers",
+        typeLabel: "Key / value",
+      },
     ]),
     {
       id: "variables:workflow",

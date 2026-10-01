@@ -97,7 +97,10 @@ export const argumentControlFor: ArgumentControlForFunction = (data: {
     return ArgumentControl.MultiLineText;
   }
 
-  if (type === ComponentInputType.Number || type === ComponentInputType.Decimal) {
+  if (
+    type === ComponentInputType.Number ||
+    type === ComponentInputType.Decimal
+  ) {
     return ArgumentControl.Number;
   }
 

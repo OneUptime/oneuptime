@@ -38,7 +38,10 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 type StepFunction = (metadataId: ComponentID, id: string) => NodeDataProp;
 
-const step: StepFunction = (metadataId: ComponentID, id: string): NodeDataProp => {
+const step: StepFunction = (
+  metadataId: ComponentID,
+  id: string,
+): NodeDataProp => {
   const metadata: ComponentMetadata = Components.find(
     (component: ComponentMetadata) => {
       return component.id === metadataId;
@@ -73,10 +76,12 @@ type ProbeFunction = (captured: Captured) => () => ReactElement;
 
 // Renders nothing; keeps what the provider hands down.
 const probe: ProbeFunction = (captured: Captured): (() => ReactElement) => {
-  return (): ReactElement => {
+  const Probe: () => ReactElement = (): ReactElement => {
     captured.current = useValuePicker();
     return <></>;
   };
+
+  return Probe;
 };
 
 type RenderProviderFunction = (props: {

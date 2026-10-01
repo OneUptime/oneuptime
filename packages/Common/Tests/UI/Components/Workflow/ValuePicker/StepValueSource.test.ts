@@ -283,9 +283,9 @@ describe("the fields a database step reads", () => {
   });
 
   test("an On Delete trigger is only ever given the ID", () => {
-    expect(selectedColumnIds(step("incident-on-delete", "on-delete-1"))).toEqual(
-      ["_id"],
-    );
+    expect(
+      selectedColumnIds(step("incident-on-delete", "on-delete-1")),
+    ).toEqual(["_id"]);
   });
 
   test("nothing selected, unreadable, or no such setting: unknown", () => {

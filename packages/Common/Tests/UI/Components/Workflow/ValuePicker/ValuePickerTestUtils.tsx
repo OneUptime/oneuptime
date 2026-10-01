@@ -145,7 +145,9 @@ export const placeCaret: PlaceCaretFunction = (
 type EditorValueFunction = (editor: HTMLElement) => string;
 
 /** The string the editor's content stands for. */
-export const editorValue: EditorValueFunction = (editor: HTMLElement): string => {
+export const editorValue: EditorValueFunction = (
+  editor: HTMLElement,
+): string => {
   return serializeTemplateEditor(editor);
 };
 

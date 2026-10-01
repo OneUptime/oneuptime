@@ -226,9 +226,7 @@ const ValueTextField: FunctionComponent<ValueTextFieldProps> = (
              * value is being picked would be wrong.
              */
             const staysInField: boolean =
-              Boolean(
-                next instanceof Node && boxRef.current?.contains(next),
-              ) ||
+              Boolean(next instanceof Node && boxRef.current?.contains(next)) ||
               isIn(inlinePopupId) ||
               isIn(popoverId);
 

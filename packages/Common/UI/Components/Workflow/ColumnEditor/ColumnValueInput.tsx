@@ -19,7 +19,10 @@ import { DictionaryFilterOperatorOption } from "../../Dictionary/DictionaryFilte
 import ColorPicker from "../../Forms/Fields/ColorPicker";
 import Icon from "../../Icon/Icon";
 import Input, { InputType } from "../../Input/Input";
-import { ValuePickerContextValue, useValuePicker } from "../ValuePicker/ValuePickerContext";
+import {
+  ValuePickerContextValue,
+  useValuePicker,
+} from "../ValuePicker/ValuePickerContext";
 import ValuePickerMenu from "../ValuePicker/ValuePickerMenu";
 import ValuePickerPopup, {
   ValuePickerCloseReason,
@@ -34,7 +37,12 @@ import ValueTextField, {
 } from "../ValuePicker/ValueTextField";
 import { ColumnValueMode, ModelColumnControl } from "./ColumnRow";
 import { containsTemplateExpression } from "./ColumnRowSerialization";
-import React, { FunctionComponent, ReactElement, useRef, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useRef,
+  useState,
+} from "react";
 
 export interface ComponentProps {
   control: ModelColumnControl;

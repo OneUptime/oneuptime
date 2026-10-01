@@ -72,7 +72,9 @@ describe("FormField — a field its caller draws", () => {
       },
     });
 
-    expect(screen.getByRole("textbox", { name: "Message" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("textbox", { name: "Message" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -81,18 +83,21 @@ describe("FormField — a code field's toolbar", () => {
     [FormFieldSchemaType.JSON],
     [FormFieldSchemaType.HTML],
     [FormFieldSchemaType.JavaScript],
-  ])("a %s field shows the buttons it is given", (fieldType: FormFieldSchemaType) => {
-    renderField({
-      fieldType: fieldType,
-      codeEditorToolbarActions: (_editor: CodeEditorActions): ReactNode => {
-        return <button type="button">Insert value</button>;
-      },
-    });
+  ])(
+    "a %s field shows the buttons it is given",
+    (fieldType: FormFieldSchemaType) => {
+      renderField({
+        fieldType: fieldType,
+        codeEditorToolbarActions: (_editor: CodeEditorActions): ReactNode => {
+          return <button type="button">Insert value</button>;
+        },
+      });
 
-    expect(
-      screen.getByRole("button", { name: "Insert value" }),
-    ).toBeInTheDocument();
-  });
+      expect(
+        screen.getByRole("button", { name: "Insert value" }),
+      ).toBeInTheDocument();
+    },
+  );
 
   test("and none when it is given none", () => {
     renderField({ fieldType: FormFieldSchemaType.JSON });

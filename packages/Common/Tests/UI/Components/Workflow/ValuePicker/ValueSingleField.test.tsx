@@ -91,7 +91,9 @@ describe("a number", () => {
   test("is a number box with { } beside it, and what is typed is stored", async () => {
     const { onChange, user } = renderField(ValueSingleFieldKind.Number);
 
-    const box: HTMLElement = screen.getByRole("spinbutton", { name: "Setting" });
+    const box: HTMLElement = screen.getByRole("spinbutton", {
+      name: "Setting",
+    });
     expect(screen.getByTestId("setting-insert-value")).toHaveAccessibleName(
       INSERT_VALUE_LABEL,
     );
@@ -109,9 +111,7 @@ describe("a number", () => {
 
     expect(onChange).toHaveBeenLastCalledWith(DEPLOY_ENV);
     await waitFor(() => {
-      expect(
-        screen.queryByRole("spinbutton", { name: "Setting" }),
-      ).toBeNull();
+      expect(screen.queryByRole("spinbutton", { name: "Setting" })).toBeNull();
     });
     expect(chipsIn(screen.getByTestId("setting"))).toHaveLength(1);
   });
@@ -125,9 +125,9 @@ describe("a number", () => {
     await user.click(screen.getByRole("button", { name: TYPE_A_VALUE_LABEL }));
 
     expect(onChange).toHaveBeenLastCalledWith("");
-    expect(
-      screen.getByRole("spinbutton", { name: "Setting" }),
-    ).toHaveValue(null);
+    expect(screen.getByRole("spinbutton", { name: "Setting" })).toHaveValue(
+      null,
+    );
   });
 });
 

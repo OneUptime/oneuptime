@@ -82,7 +82,10 @@ type RenderFieldFunction = (
 
 const renderField: RenderFieldFunction = (
   props: FieldHarnessProps,
-  options: { withoutPicker?: boolean; graphComponents?: Array<NodeDataProp> } = {},
+  options: {
+    withoutPicker?: boolean;
+    graphComponents?: Array<NodeDataProp>;
+  } = {},
 ): Rendered => {
   const onChange: MockFunction = getJestMockFunction();
   const field: ReactElement = <Field {...props} onChange={onChange} />;
@@ -116,11 +119,9 @@ const insertButton: InsertButtonFunction = (): HTMLElement => {
 type OptionFunction = (reference: string) => HTMLElement;
 
 const option: OptionFunction = (reference: string): HTMLElement => {
-  return screen
-    .getAllByRole("option")
-    .find((candidate: HTMLElement) => {
-      return candidate.getAttribute("data-reference") === reference;
-    })!;
+  return screen.getAllByRole("option").find((candidate: HTMLElement) => {
+    return candidate.getAttribute("data-reference") === reference;
+  })!;
 };
 
 afterEach(() => {
@@ -415,7 +416,10 @@ describe("outside a step's settings", () => {
 
 describe("an error", () => {
   test("is shown under the field and read with it", () => {
-    const { editor } = renderField({ initial: "", error: "Value is required." });
+    const { editor } = renderField({
+      initial: "",
+      error: "Value is required.",
+    });
 
     const message: HTMLElement = screen.getByTestId("error-message");
 

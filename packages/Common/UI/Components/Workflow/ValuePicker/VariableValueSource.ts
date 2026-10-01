@@ -37,7 +37,9 @@ export interface WorkflowVariableSummary {
   isOAuth?: boolean | undefined;
 }
 
-type VariableItemFunction = (variable: WorkflowVariableSummary) => ValueSuggestion;
+type VariableItemFunction = (
+  variable: WorkflowVariableSummary,
+) => ValueSuggestion;
 
 const variableItem: VariableItemFunction = (
   variable: WorkflowVariableSummary,

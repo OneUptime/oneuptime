@@ -237,9 +237,11 @@ export const describeReference: DescribeReferenceFunction = (
     },
   );
 
-  const step: NodeDataProp | undefined = steps.find((candidate: NodeDataProp) => {
-    return candidate.id === componentId;
-  });
+  const step: NodeDataProp | undefined = steps.find(
+    (candidate: NodeDataProp) => {
+      return candidate.id === componentId;
+    },
+  );
 
   if (!step) {
     const parts: Array<string> = deeper
@@ -279,7 +281,10 @@ export const describeReference: DescribeReferenceFunction = (
 
   if (!returnValue) {
     problem = `"${title}" does not return anything called "${returnValueId}".`;
-  } else if (context.editedComponentId && componentId === context.editedComponentId) {
+  } else if (
+    context.editedComponentId &&
+    componentId === context.editedComponentId
+  ) {
     problem =
       "This is this step's own value, which does not exist yet while its settings are read.";
   } else if ((context.downstreamIds || []).includes(componentId)) {

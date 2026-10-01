@@ -83,9 +83,9 @@ describe("drawing a value and reading it back", () => {
   test("only a value ending in a line break gets the empty-last-line <br>", () => {
     renderTemplateValue(root, "a\n", build);
     expect(root.lastChild?.nodeName).toBe("BR");
-    expect((root.lastChild as HTMLElement).hasAttribute(LINE_END_ATTRIBUTE)).toBe(
-      true,
-    );
+    expect(
+      (root.lastChild as HTMLElement).hasAttribute(LINE_END_ATTRIBUTE),
+    ).toBe(true);
 
     renderTemplateValue(root, "a", build);
     expect(root.querySelector("br")).toBeNull();

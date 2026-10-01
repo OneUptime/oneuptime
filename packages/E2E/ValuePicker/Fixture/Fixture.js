@@ -105,13 +105,26 @@ function BuilderScenario() {
 
   const nodes = [
     stepNode(ComponentID.Webhook, "webhook-1", { x: 80, y: 40 }),
-    stepNode(ComponentID.ApiPost, "api-post-1", { x: 80, y: 260 }, {
-      url: "https://api.example.com/incidents",
+    stepNode(
+      ComponentID.ApiPost,
+      "api-post-1",
+      { x: 80, y: 260 },
+      {
+        url: "https://api.example.com/incidents",
+      },
+    ),
+    stepNode(
+      ComponentID.Log,
+      "log-1",
+      { x: 80, y: 480 },
+      {
+        value: `Body: ${BODY}`,
+      },
+    ),
+    stepNode(ComponentID.SlackSendMessageToChannel, "slack-1", {
+      x: 80,
+      y: 700,
     }),
-    stepNode(ComponentID.Log, "log-1", { x: 80, y: 480 }, {
-      value: `Body: ${BODY}`,
-    }),
-    stepNode(ComponentID.SlackSendMessageToChannel, "slack-1", { x: 80, y: 700 }),
     stepNode(ComponentID.Log, "loose-1", { x: 520, y: 480 }),
   ];
 
@@ -223,7 +236,9 @@ function Field(props) {
 }
 
 // The webhook the fields' references read from, for the chips' names.
-const FIELD_GRAPH = [stepNode(ComponentID.Webhook, "webhook-1", { x: 0, y: 0 }).data];
+const FIELD_GRAPH = [
+  stepNode(ComponentID.Webhook, "webhook-1", { x: 0, y: 0 }).data,
+];
 
 function FieldsScenario() {
   return (
@@ -272,5 +287,9 @@ function FieldsScenario() {
 const root = createRoot(document.getElementById("root"));
 
 root.render(
-  params.get("scenario") === "fields" ? <FieldsScenario /> : <BuilderScenario />,
+  params.get("scenario") === "fields" ? (
+    <FieldsScenario />
+  ) : (
+    <BuilderScenario />
+  ),
 );

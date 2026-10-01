@@ -74,7 +74,8 @@ export interface TemplateTextEditorHandle {
 export interface TemplateTextEditorProps {
   /** What is stored; anything that is not a string is shown as text. */
   value: unknown;
-  onChange: (value: string) => void;
+  // Read through propsRef, by listeners added once; the rule cannot see that.
+  onChange: (value: string) => void; // eslint-disable-line react/no-unused-prop-types
   /** Enter starts a new line. Otherwise there is only ever one line. */
   multiline: boolean;
   /** The words a chip shows for a reference; null leaves it as text. */
@@ -99,7 +100,9 @@ export interface TemplateTextEditorProps {
   onFocus?: (() => void) | undefined;
   onBlur?: ((event: React.FocusEvent<HTMLDivElement>) => void) | undefined;
   /** Runs first; a handler that calls preventDefault keeps the key from the box. */
-  onKeyDown?: ((event: React.KeyboardEvent<HTMLDivElement>) => void) | undefined;
+  onKeyDown?:
+    | ((event: React.KeyboardEvent<HTMLDivElement>) => void)
+    | undefined;
   /** A "{{" being typed, so values can be offered for it; null when there is none. */
   onTriggerChange?: ((trigger: ReferenceTrigger | null) => void) | undefined;
   /** Enter, in a one-line box. */
@@ -185,7 +188,8 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
     const initialText: string = toEditorText(props.value);
 
     // The value the DOM shows - read back after every change, set by every edit.
-    const valueRef: React.MutableRefObject<string> = useRef<string>(initialText);
+    const valueRef: React.MutableRefObject<string> =
+      useRef<string>(initialText);
     const selectionRef: React.MutableRefObject<TemplateSelection> =
       useRef<TemplateSelection>({
         start: initialText.length,
@@ -199,7 +203,8 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
           selectionEnd: initialText.length,
         }),
       );
-    const composingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+    const composingRef: React.MutableRefObject<boolean> =
+      useRef<boolean>(false);
     const selectionBeforeRef: React.MutableRefObject<TemplateSelection | null> =
       useRef<TemplateSelection | null>(null);
     const pendingKindRef: React.MutableRefObject<TemplateTextChangeKind> =
@@ -364,7 +369,10 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
         root.focus();
       }
 
-      const caret: TemplateSelection = { start: result.caret, end: result.caret };
+      const caret: TemplateSelection = {
+        start: result.caret,
+        end: result.caret,
+      };
       writeTemplateSelection(root, caret);
       commit(result.value, caret, kind, target);
     };
@@ -372,7 +380,9 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
     type ReconcileFunction = (kind: TemplateTextChangeKind) => void;
 
     // After the browser changed the DOM: read it back, and tidy it if needed.
-    const reconcile: ReconcileFunction = (kind: TemplateTextChangeKind): void => {
+    const reconcile: ReconcileFunction = (
+      kind: TemplateTextChangeKind,
+    ): void => {
       const root: HTMLDivElement | null = rootRef.current;
 
       if (!root) {
@@ -481,7 +491,7 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
 
       renderTemplateValue(root, valueRef.current, buildChip);
 
-      if (propsRef.current.autoFocus) {
+      if (props.autoFocus) {
         root.focus();
         writeTemplateSelection(root, {
           start: valueRef.current.length,
@@ -598,7 +608,10 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
           return;
         }
 
-        if (inputType === "insertParagraph" || inputType === "insertLineBreak") {
+        if (
+          inputType === "insertParagraph" ||
+          inputType === "insertLineBreak"
+        ) {
           event.preventDefault();
 
           if (!current.multiline) {
@@ -1001,7 +1014,9 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
             const end: number = domPointToOffset(root, root, index + 1);
             const rect: DOMRect = chip.getBoundingClientRect();
 
-            placeCaret(event.clientX > rect.left + rect.width / 2 ? end : start);
+            placeCaret(
+              event.clientX > rect.left + rect.width / 2 ? end : start,
+            );
           }}
           onMouseUp={(event: React.MouseEvent<HTMLDivElement>) => {
             const root: HTMLDivElement | null = rootRef.current;
@@ -1027,7 +1042,8 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
               rect: DOMRect,
             ): boolean => {
               return (
-                event.clientY >= rect.top - 2 && event.clientY <= rect.bottom + 2
+                event.clientY >= rect.top - 2 &&
+                event.clientY <= rect.bottom + 2
               );
             };
 
@@ -1040,7 +1056,11 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
             if (next) {
               const rect: DOMRect = next.element.getBoundingClientRect();
 
-              if (rect.width > 0 && event.clientX >= rect.right && isOnLine(rect)) {
+              if (
+                rect.width > 0 &&
+                event.clientX >= rect.right &&
+                isOnLine(rect)
+              ) {
                 placeCaret(next.end);
                 return;
               }
@@ -1055,7 +1075,11 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
             if (previous) {
               const rect: DOMRect = previous.element.getBoundingClientRect();
 
-              if (rect.width > 0 && event.clientX <= rect.left && isOnLine(rect)) {
+              if (
+                rect.width > 0 &&
+                event.clientX <= rect.left &&
+                isOnLine(rect)
+              ) {
                 placeCaret(previous.start);
               }
             }

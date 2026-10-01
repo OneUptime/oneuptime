@@ -73,7 +73,8 @@ const recordGroup: RecordGroupFunction = (
 
 const INCIDENT_FIELDS: Array<ValueSuggestion> = [
   {
-    reference: "{{local.components.incident-on-create-1.returnValues.model.title}}",
+    reference:
+      "{{local.components.incident-on-create-1.returnValues.model.title}}",
     label: "Title",
     typeLabel: "Text",
   },
@@ -190,11 +191,7 @@ describe("what it lists", () => {
               .textContent
           : "";
       }),
-    ).toEqual([
-      "Webhookwebhook-1",
-      "Workflow variables",
-      "Global variables",
-    ]);
+    ).toEqual(["Webhookwebhook-1", "Workflow variables", "Global variables"]);
   });
 
   test("each value by its name, with what it holds and its shape", () => {
@@ -203,7 +200,9 @@ describe("what it lists", () => {
     const body: HTMLElement = options()[0]!;
 
     expect(within(body).getByText("Request Body")).toBeInTheDocument();
-    expect(within(body).getByText("What the request sent.")).toBeInTheDocument();
+    expect(
+      within(body).getByText("What the request sent."),
+    ).toBeInTheDocument();
     expect(within(body).getByText("JSON")).toBeInTheDocument();
     // The reference itself is there for whoever hovers.
     expect(body).toHaveAttribute("title", BODY);
@@ -214,9 +213,7 @@ describe("what it lists", () => {
   test("badges say what matters about a value", () => {
     renderMenu();
 
-    expect(
-      within(options()[2]!).getByText("Secret"),
-    ).toBeInTheDocument();
+    expect(within(options()[2]!).getByText("Secret")).toBeInTheDocument();
   });
 
   test("the first value is where the keys start", () => {
@@ -307,7 +304,9 @@ describe("a record opens to its fields", () => {
     });
     expect(options()[0]).toHaveTextContent("The whole Incident");
     expect(within(options()[2]!).getByText("Not selected")).toBeInTheDocument();
-    expect(screen.getByText("from On Create Incident", { exact: false })).toBeInTheDocument();
+    expect(
+      screen.getByText("from On Create Incident", { exact: false }),
+    ).toBeInTheDocument();
 
     fireEvent.click(options()[1]!);
     expect(onPick).toHaveBeenCalledWith(INCIDENT_FIELDS[0]!.reference);
@@ -392,7 +391,9 @@ describe("a JSON value opens to a path", () => {
   test("the row inserts the whole value; its arrow opens it", () => {
     const { onPick } = renderMenu();
 
-    fireEvent.click(within(options()[0]!).getByTestId("value-picker-look-inside"));
+    fireEvent.click(
+      within(options()[0]!).getByTestId("value-picker-look-inside"),
+    );
     expect(onPick).not.toHaveBeenCalled();
     expect(options()[0]).toHaveTextContent("The whole Request Body");
 
@@ -419,7 +420,9 @@ describe("a JSON value opens to a path", () => {
   test("a path that could not be followed is explained, not inserted", async () => {
     const { user, onPick } = renderMenu();
 
-    fireEvent.click(within(options()[0]!).getByTestId("value-picker-look-inside"));
+    fireEvent.click(
+      within(options()[0]!).getByTestId("value-picker-look-inside"),
+    );
     await user.type(screen.getByTestId("value-picker-path"), "a b");
     fireEvent.click(screen.getByTestId("value-picker-path-insert"));
 
@@ -575,7 +578,10 @@ describe("inline, under a field where {{ was typed", () => {
     ).toBe(false);
 
     act(() => {
-      menuRef.current!.handleKeyDown({ key: "Enter", preventDefault: prevented });
+      menuRef.current!.handleKeyDown({
+        key: "Enter",
+        preventDefault: prevented,
+      });
     });
 
     expect(onPick).toHaveBeenCalledWith(HEADERS);

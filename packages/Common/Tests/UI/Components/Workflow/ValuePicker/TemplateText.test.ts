@@ -35,7 +35,11 @@ describe("splitTemplateText", () => {
         text: ENV,
         start: 10 + BODY.length,
       },
-      { kind: TemplateSegmentKind.Text, text: ".", start: 10 + BODY.length + ENV.length },
+      {
+        kind: TemplateSegmentKind.Text,
+        text: ".",
+        start: 10 + BODY.length + ENV.length,
+      },
     ]);
   });
 
@@ -116,7 +120,10 @@ describe("replaceRange", () => {
       value: "abc!",
       caret: 4,
     });
-    expect(replaceRange("abc", -5, 0, "!")).toEqual({ value: "!abc", caret: 1 });
+    expect(replaceRange("abc", -5, 0, "!")).toEqual({
+      value: "!abc",
+      caret: 1,
+    });
   });
 });
 
@@ -135,9 +142,7 @@ describe("findReferenceTrigger", () => {
       query: "request bo",
       end: 18,
     });
-    expect(findReferenceTrigger("{{local.comp", 12)!.query).toBe(
-      "local.comp",
-    );
+    expect(findReferenceTrigger("{{local.comp", 12)!.query).toBe("local.comp");
   });
 
   test("a closing }} already there is replaced along with it", () => {

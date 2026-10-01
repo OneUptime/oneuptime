@@ -41,11 +41,14 @@ const EXPECTED: Record<ComponentInputType, ArgumentControl> = {
 };
 
 describe("argumentControlFor", () => {
-  test.each(Object.values(ComponentInputType))("%s", (type: ComponentInputType) => {
-    expect(
-      argumentControlFor({ type: type, value: null, isRowsDictionary: true }),
-    ).toBe(EXPECTED[type]);
-  });
+  test.each(Object.values(ComponentInputType))(
+    "%s",
+    (type: ComponentInputType) => {
+      expect(
+        argumentControlFor({ type: type, value: null, isRowsDictionary: true }),
+      ).toBe(EXPECTED[type]);
+    },
+  );
 
   test("a dictionary the rows cannot show stays JSON", () => {
     expect(

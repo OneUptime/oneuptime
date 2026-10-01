@@ -47,7 +47,9 @@ describe("TemplateTextHistory", () => {
   });
 
   test("a picked value is its own step, and so is the typing after it", () => {
-    const history: TemplateTextHistory = new TemplateTextHistory(snap("Body: "));
+    const history: TemplateTextHistory = new TemplateTextHistory(
+      snap("Body: "),
+    );
     const withReference: string = "Body: {{local.variables.x}}";
 
     history.record(snap(withReference), TemplateTextChangeKind.Other, 1000);
@@ -107,7 +109,9 @@ describe("TemplateTextHistory", () => {
   });
 
   test("only the caret moving is not a step", () => {
-    const history: TemplateTextHistory = new TemplateTextHistory(snap("abc", 3));
+    const history: TemplateTextHistory = new TemplateTextHistory(
+      snap("abc", 3),
+    );
 
     history.record(snap("abc", 1), TemplateTextChangeKind.Other, 1000);
 

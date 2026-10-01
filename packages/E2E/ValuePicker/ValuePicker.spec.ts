@@ -35,7 +35,11 @@ const valueOf: ValueOfFunction = async (
 
 type ChipFunction = (page: Page, id: string, index?: number) => Locator;
 
-const chip: ChipFunction = (page: Page, id: string, index: number = 0): Locator => {
+const chip: ChipFunction = (
+  page: Page,
+  id: string,
+  index: number = 0,
+): Locator => {
   return field(page, id).locator("[data-template-reference]").nth(index);
 };
 
@@ -56,10 +60,12 @@ const clickChip: ClickSideFunction = async (
     throw new Error("The chip is not on screen");
   }
 
-  await target.page().mouse.click(
-    box.x + (side === "left" ? 3 : box.width - 3),
-    box.y + box.height / 2,
-  );
+  await target
+    .page()
+    .mouse.click(
+      box.x + (side === "left" ? 3 : box.width - 3),
+      box.y + box.height / 2,
+    );
 };
 
 type OpenFieldsFunction = (page: Page, theme?: string) => Promise<void>;
@@ -102,6 +108,8 @@ const optionReferences: OptionReferencesFunction = async (
 test.describe("a reference is a chip", () => {
   test("it says what it reads, and the field stores the reference", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openFields(page);
 
@@ -110,7 +118,11 @@ test.describe("a reference is a chip", () => {
     expect(await valueOf(page, "message")).toBe(`Body: ${BODY} end`);
   });
 
-  test("Backspace right after it removes all of it", async ({ page }) => {
+  test("Backspace right after it removes all of it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openFields(page);
 
     await clickChip(chip(page, "message"), "right");
@@ -120,7 +132,11 @@ test.describe("a reference is a chip", () => {
     await expect(chip(page, "message")).toHaveCount(0);
   });
 
-  test("the arrow keys step over it in one press", async ({ page }) => {
+  test("the arrow keys step over it in one press", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openFields(page);
 
     await clickChip(chip(page, "message"), "right");
@@ -135,7 +151,11 @@ test.describe("a reference is a chip", () => {
     expect(await valueOf(page, "message")).toBe(`Body: X${BODY}Y end`);
   });
 
-  test("a press on it puts the caret on that side of it", async ({ page }) => {
+  test("a press on it puts the caret on that side of it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openFields(page);
 
     await clickChip(chip(page, "message"), "left");
@@ -148,6 +168,8 @@ test.describe("a reference is a chip", () => {
 
   test("Home before a value that opens the field, then typing goes before it", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openFields(page);
 
@@ -161,6 +183,8 @@ test.describe("a reference is a chip", () => {
 
   test("the left arrow gets back past a value that opens the field", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openFields(page);
 
@@ -178,6 +202,8 @@ test.describe("a reference is a chip", () => {
 
   test("End, and Ctrl+End, go past a value that ends the field", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openFields(page);
 
@@ -194,6 +220,8 @@ test.describe("a reference is a chip", () => {
 
   test("a click past a value that ends the field puts the caret after it", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openFields(page);
 
@@ -209,6 +237,8 @@ test.describe("a reference is a chip", () => {
 
   test("a reference to a step that is not there is a warning that says why", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openFields(page);
 
@@ -223,6 +253,8 @@ test.describe("a reference is a chip", () => {
 test.describe("typing", () => {
   test("Enter starts a new line and the browser's own markup never gets in", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openFields(page);
 
@@ -244,7 +276,7 @@ test.describe("typing", () => {
     ).toHaveCount(0);
   });
 
-  test("a one-line field stays one line", async ({ page }) => {
+  test("a one-line field stays one line", async ({ page }: { page: Page }) => {
     await openFields(page);
 
     await field(page, "subject").click();
@@ -255,7 +287,7 @@ test.describe("typing", () => {
     expect(await valueOf(page, "subject")).toBe("one line");
   });
 
-  test("undo and redo", async ({ page }) => {
+  test("undo and redo", async ({ page }: { page: Page }) => {
     await openFields(page);
 
     await field(page, "subject").click();
@@ -272,6 +304,9 @@ test.describe("typing", () => {
   test("copying carries the reference, and pasting it brings back a chip", async ({
     page,
     browserName,
+  }: {
+    page: Page;
+    browserName: string;
   }) => {
     test.skip(
       browserName === "firefox",
@@ -300,6 +335,8 @@ test.describe("typing", () => {
 test.describe("{ }: the list of values", () => {
   test("it opens under the field with the focus in its search box", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openFields(page);
 
@@ -320,6 +357,8 @@ test.describe("{ }: the list of values", () => {
 
   test("search, the keys, and the value lands where the caret was", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openFields(page);
 
@@ -345,7 +384,7 @@ test.describe("{ }: the list of values", () => {
     );
   });
 
-  test("a path inside a JSON value", async ({ page }) => {
+  test("a path inside a JSON value", async ({ page }: { page: Page }) => {
     await openFields(page);
 
     await page.getByTestId("subject-field-insert-value").click();
@@ -363,6 +402,8 @@ test.describe("{ }: the list of values", () => {
 
   test("typing {{ opens it under the field; Enter takes the value", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openFields(page);
 
@@ -378,7 +419,11 @@ test.describe("{ }: the list of values", () => {
     await expect(page.getByTestId("value-picker-inline")).toHaveCount(0);
   });
 
-  test("Escape closes {{'s list and leaves what was typed", async ({ page }) => {
+  test("Escape closes {{'s list and leaves what was typed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openFields(page);
 
     await field(page, "subject").click();
@@ -393,6 +438,8 @@ test.describe("{ }: the list of values", () => {
 test.describe("in the builder", () => {
   test("a step's list has the steps before it, and not the one after", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openStep(page, "log-1");
 
@@ -416,6 +463,8 @@ test.describe("in the builder", () => {
 
   test("a step not connected yet offers the trigger and says why", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openStep(page, "loose-1");
 
@@ -433,7 +482,11 @@ test.describe("in the builder", () => {
     ]);
   });
 
-  test("Escape closes the list, not the step's settings", async ({ page }) => {
+  test("Escape closes the list, not the step's settings", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openStep(page, "log-1");
 
     await page.getByTestId("workflow-argument-value-insert-value").click();
@@ -446,7 +499,11 @@ test.describe("in the builder", () => {
     await expect(page.getByTestId("workflow-argument-value")).toBeFocused();
   });
 
-  test("a picked value is saved with the step", async ({ page }) => {
+  test("a picked value is saved with the step", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openStep(page, "log-1");
 
     const value: Locator = page.getByTestId("workflow-argument-value");
@@ -459,7 +516,9 @@ test.describe("in the builder", () => {
     await page.keyboard.press("Enter");
 
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByTestId("workflow-component-settings")).toHaveCount(0);
+    await expect(page.getByTestId("workflow-component-settings")).toHaveCount(
+      0,
+    );
 
     // The builder hands the saved step on a moment after the dialog closes.
     await expect
@@ -477,6 +536,8 @@ test.describe("in the builder", () => {
 
   test("a JSON body gets the reference in quotes where JSON needs them", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openStep(page, "api-post-1");
 
@@ -486,7 +547,9 @@ test.describe("in the builder", () => {
       element.setSelectionRange(16, 16);
     });
 
-    await page.getByTestId("workflow-argument-request-body-insert-value").click();
+    await page
+      .getByTestId("workflow-argument-request-body-insert-value")
+      .click();
     await page.keyboard.type("deploy");
     await page.keyboard.press("Enter");
 
@@ -495,7 +558,11 @@ test.describe("in the builder", () => {
 });
 
 test.describe("dark theme", () => {
-  test("chips and the list take the dark colours", async ({ page }) => {
+  test("chips and the list take the dark colours", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openFields(page, "dark");
 
     const chipBackground: string = await chip(page, "message").evaluate(

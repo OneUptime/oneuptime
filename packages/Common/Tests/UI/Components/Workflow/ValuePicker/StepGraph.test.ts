@@ -256,11 +256,7 @@ describe("getStepValueSources", () => {
   });
 
   test("a step reached twice is listed once", () => {
-    const nodes: Array<StepGraphNode> = [
-      trigger,
-      node("api-1"),
-      node("log-1"),
-    ];
+    const nodes: Array<StepGraphNode> = [trigger, node("api-1"), node("log-1")];
     const edges: Array<StepGraphEdge> = [
       edge("webhook-1", "api-1"),
       edge("webhook-1", "log-1"),

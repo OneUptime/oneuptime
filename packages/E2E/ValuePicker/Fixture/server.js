@@ -11,7 +11,10 @@ const { createConfig } = require("../../../Common/UI/esbuild-config.js");
 const esbuild = require("../../../Common/node_modules/esbuild");
 
 const repository = path.resolve(__dirname, "../../../..");
-const output = path.join(repository, "output/playwright/value-picker-ui/fixture");
+const output = path.join(
+  repository,
+  "output/playwright/value-picker-ui/fixture",
+);
 const port = Number(process.env["VALUE_PICKER_FIXTURE_PORT"] || 4251);
 const config = createConfig({
   serviceName: "value-picker-fixture",

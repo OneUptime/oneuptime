@@ -173,14 +173,17 @@ describe("a cell with a control of its own", () => {
     [ModelColumnControl.Boolean],
     [ModelColumnControl.Date],
     [ModelColumnControl.Color],
-  ])("%s keeps its control, with { } beside it", (control: ModelColumnControl) => {
-    renderCell({ control: control });
+  ])(
+    "%s keeps its control, with { } beside it",
+    (control: ModelColumnControl) => {
+      renderCell({ control: control });
 
-    expect(screen.getByTestId("cell-insert-value")).toHaveAccessibleName(
-      INSERT_VALUE_LABEL,
-    );
-    expect(screen.queryByTestId("cell-type-a-value")).toBeNull();
-  });
+      expect(screen.getByTestId("cell-insert-value")).toHaveAccessibleName(
+        INSERT_VALUE_LABEL,
+      );
+      expect(screen.queryByTestId("cell-type-a-value")).toBeNull();
+    },
+  );
 
   test("a picked value replaces the number, as a reference", () => {
     const { onChange } = renderCell({

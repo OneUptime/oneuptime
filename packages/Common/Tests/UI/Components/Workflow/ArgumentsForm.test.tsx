@@ -537,7 +537,9 @@ describe("ArgumentsForm — every setting that can take a value offers one", () 
   test("JavaScript gets no picker in the code, and one in its Arguments", () => {
     renderStep(step(ComponentID.JavaScriptCode));
 
-    expect(screen.queryByTestId("workflow-argument-code-insert-value")).toBeNull();
+    expect(
+      screen.queryByTestId("workflow-argument-code-insert-value"),
+    ).toBeNull();
     expect(
       screen.getByTestId("workflow-argument-arguments-insert-value"),
     ).toBeInTheDocument();
@@ -706,9 +708,7 @@ describe("ArgumentsForm — a setting with a control of its own", () => {
     renderStep(step(ComponentID.SendEmail));
 
     expect(insertValue("secure")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("workflow-argument-secure"),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("workflow-argument-secure")).toBeInTheDocument();
   });
 });
 
@@ -727,7 +727,9 @@ describe("ArgumentsForm — request headers", () => {
     await user.type(keyInput, "Authorization");
 
     await user.click(
-      screen.getByTestId("workflow-argument-request-headers-value-0-insert-value"),
+      screen.getByTestId(
+        "workflow-argument-request-headers-value-0-insert-value",
+      ),
     );
     await pick(API_KEY);
 

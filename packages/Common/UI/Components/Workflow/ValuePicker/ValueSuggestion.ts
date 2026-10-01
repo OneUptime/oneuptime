@@ -199,7 +199,9 @@ export const appendPathToReference: AppendPathFunction = (
   const inner: string = reference.slice(2, -2);
   const leadingIndex: string =
     trimmedPath.match(LEADING_INDEX_PATTERN)?.[0] || "";
-  const rest: string = trimmedPath.slice(leadingIndex.length).replace(/^\./, "");
+  const rest: string = trimmedPath
+    .slice(leadingIndex.length)
+    .replace(/^\./, "");
 
   if (rest !== "" && !PATH_PATTERN.test(rest)) {
     return null;
@@ -253,39 +255,43 @@ const mergeDrillIns: MergeDrillInsFunction = (
       loaders.length === 0
         ? undefined
         : async (): Promise<Array<ValueSuggestion>> => {
-            const settled: Array<PromiseSettledResult<Array<ValueSuggestion>>> =
-              await Promise.allSettled(
-                loaders.map(
-                  (
-                    loader: () => Promise<Array<ValueSuggestion>>,
-                  ): Promise<Array<ValueSuggestion>> => {
-                    return loader();
-                  },
-                ),
-              );
+            interface LoaderResult {
+              items: Array<ValueSuggestion> | null;
+              error?: unknown;
+            }
 
-            const fulfilled: Array<Array<ValueSuggestion>> = settled
+            const results: Array<LoaderResult> = await Promise.all(
+              loaders.map(
+                async (
+                  loader: () => Promise<Array<ValueSuggestion>>,
+                ): Promise<LoaderResult> => {
+                  try {
+                    return { items: await loader() };
+                  } catch (error: unknown) {
+                    return { items: null, error: error };
+                  }
+                },
+              ),
+            );
+
+            const loaded: Array<Array<ValueSuggestion>> = results
+              .map((result: LoaderResult) => {
+                return result.items;
+              })
               .filter(
                 (
-                  result: PromiseSettledResult<Array<ValueSuggestion>>,
-                ): result is PromiseFulfilledResult<Array<ValueSuggestion>> => {
-                  return result.status === "fulfilled";
-                },
-              )
-              .map(
-                (
-                  result: PromiseFulfilledResult<Array<ValueSuggestion>>,
-                ): Array<ValueSuggestion> => {
-                  return result.value;
+                  items: Array<ValueSuggestion> | null,
+                ): items is Array<ValueSuggestion> => {
+                  return items !== null;
                 },
               );
 
             // Every loader failed: say so, rather than showing an empty list.
-            if (fulfilled.length === 0 && settled.length > 0) {
-              throw (settled[0] as PromiseRejectedResult).reason;
+            if (loaded.length === 0 && results.length > 0) {
+              throw results[0]!.error;
             }
 
-            return dedupeSuggestions(fulfilled.flat());
+            return dedupeSuggestions(loaded.flat());
           },
   };
 };

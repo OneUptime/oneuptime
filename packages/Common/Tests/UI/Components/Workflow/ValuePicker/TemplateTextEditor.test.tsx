@@ -219,7 +219,9 @@ describe("typing", () => {
     const { user, editor, onChange } = setup({ initial: "" });
 
     placeCaret(editor, 0);
-    await user.keyboard(keys("_Heads up_: *{{local.variables.service_name}}* is down"));
+    await user.keyboard(
+      keys("_Heads up_: *{{local.variables.service_name}}* is down"),
+    );
 
     expect(last(onChange)).toBe(
       "_Heads up_: *{{local.variables.service_name}}* is down",
@@ -635,7 +637,9 @@ describe("put in from outside", () => {
 
     placeCaret(editor, 5);
     await user.keyboard("!");
-    await user.click(screen.getByRole("button", { name: "Load another value" }));
+    await user.click(
+      screen.getByRole("button", { name: "Load another value" }),
+    );
 
     expect(editorValue(editor)).toBe("Set from outside");
 
@@ -649,16 +653,17 @@ describe("put in from outside", () => {
   test("new words for the chips redraw them; the value is untouched", () => {
     const onChange: MockFunction = getJestMockFunction();
 
-    const words: (label: string) => (reference: string) => ReferenceDescription =
-      (label: string) => {
-        return (reference: string): ReferenceDescription => {
-          return {
-            ...describeReference(reference, {})!,
-            source: label,
-            parts: [],
-          };
+    const words: (
+      label: string,
+    ) => (reference: string) => ReferenceDescription = (label: string) => {
+      return (reference: string): ReferenceDescription => {
+        return {
+          ...describeReference(reference, {})!,
+          source: label,
+          parts: [],
         };
       };
+    };
 
     const { rerender } = render(
       <TemplateTextEditor

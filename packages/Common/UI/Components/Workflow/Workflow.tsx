@@ -350,29 +350,27 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
    * step before it - and the ones after it, whose values never exist yet when
    * it runs. Its value picker offers only the first.
    */
-  const selectedStepValueSources: StepValueSources | undefined =
-    useMemo(() => {
-      if (!selectedNodeData) {
-        return undefined;
-      }
+  const selectedStepValueSources: StepValueSources | undefined = useMemo(() => {
+    if (!selectedNodeData) {
+      return undefined;
+    }
 
-      const selectedNode: Node | undefined = nodes.find((node: Node) => {
-        return (
-          (node.data as NodeDataProp).internalId ===
-          selectedNodeData.internalId
-        );
-      });
+    const selectedNode: Node | undefined = nodes.find((node: Node) => {
+      return (
+        (node.data as NodeDataProp).internalId === selectedNodeData.internalId
+      );
+    });
 
-      if (!selectedNode) {
-        return undefined;
-      }
+    if (!selectedNode) {
+      return undefined;
+    }
 
-      return getStepValueSources({
-        nodes: nodes as unknown as Array<StepGraphNode>,
-        edges: edges as unknown as Array<StepGraphEdge>,
-        nodeId: selectedNode.id,
-      });
-    }, [nodes, edges, selectedNodeData]);
+    return getStepValueSources({
+      nodes: nodes as unknown as Array<StepGraphNode>,
+      edges: edges as unknown as Array<StepGraphEdge>,
+      nodeId: selectedNode.id,
+    });
+  }, [nodes, edges, selectedNodeData]);
 
   const nodesToRender: Array<Node> = useMemo(() => {
     return nodes.map((node: Node) => {

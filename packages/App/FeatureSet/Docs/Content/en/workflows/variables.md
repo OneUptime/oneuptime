@@ -113,7 +113,7 @@ A variable's type is fixed once it's saved. Delete the static variable and creat
 
 ## Component outputs (data from earlier blocks)
 
-Every trigger and component can produce output during an execution. Use the component-value picker in the editor to create the reference rather than typing it — it inserts the exact ids the runner expects.
+Every trigger and component can produce output during an execution. Insert a reference with the **{ }** button in any setting, or by typing `{{` there, rather than typing it out — it inserts the exact ids the runner expects, and shows the value as a chip naming the block and the value. See [Using values from earlier blocks](/docs/workflows/authoring#using-values-from-earlier-blocks).
 
 You can also start from the block that produces the value: its settings list each output under **Returns**, with the exact reference and a button to copy it.
 
@@ -176,7 +176,7 @@ The key stays out of the workflow and the logs.
 
 The first call gives you an ID the second one needs:
 
-1. **API** component `lookup-order`: use the picker to insert the manual trigger's JSON email field in `GET /orders?email=...`.
+1. **API** component `lookup-order`: in its **URL**, after `/orders?email=`, use **{ }** to insert the manual trigger's JSON with the path `email`.
 2. **API** component `cancel-order`: `POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`.
 
 If `lookup-order` fails, its **Error** output fires instead of **Success**. Connect that to an Email or Slack block so failures don't go unnoticed.
@@ -208,10 +208,10 @@ Two things to watch:
 
 ## Gotchas
 
-- **Use the pickers.** They insert the exact component, return-value, and variable ids the runner expects, and keep references independent of display labels.
+- **Use { } (or type `{{`).** It inserts the exact component, return-value and variable ids the runner expects, and only offers values that exist when the block runs.
 - **Variable names are case-sensitive.** `{{global.variables.MyKey}}` and `{{global.variables.mykey}}` are different.
 - **A reference that doesn't resolve is left as-is, not blanked.** Referring to something that doesn't exist is not an error, and it doesn't give you an empty string either: the braces are passed straight through, so `{{local.components.api-get-1.returnValues.body}}` with a mistyped step id ends up in your Slack message, URL or request body verbatim, and the run still reports **Executed**. The run's **Steps** tab shows a warning on the step naming any reference that slipped through, and marks the setting it was in **Did not resolve**; the run log carries the same warning line.
-- **The builder can't check variable names.** It flags component references it can't match — an unknown step id, an unknown return value, a malformed root — before you save. It can't tell whether a variable exists, so a renamed variable is caught only by the run log.
+- **The issues panel can't check variable names.** It flags component references it can't match — an unknown step id, an unknown return value, a malformed root — before you save. It can't tell whether a variable exists. A block's settings can: a reference to a missing variable shows there as an amber chip. Otherwise a renamed variable is caught only by the run log.
 - **Spaces inside the braces are not trimmed.** `{{ local.variables.NAME }}` is a different lookup from `{{local.variables.NAME}}` and never resolves. The one exception is inside an `{{#each}}` block, where names are trimmed.
 
 ## Where to read next

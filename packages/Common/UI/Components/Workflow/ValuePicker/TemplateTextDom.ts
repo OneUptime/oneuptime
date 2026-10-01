@@ -67,9 +67,7 @@ export type BuildChipFunction = (reference: string) => HTMLElement;
 
 type IsChipFunction = (node: Node | null) => boolean;
 
-export const isChipNode: IsChipFunction = (
-  node: Node | null,
-): boolean => {
+export const isChipNode: IsChipFunction = (node: Node | null): boolean => {
   return Boolean(
     node &&
       node.nodeType === ELEMENT_NODE &&
@@ -175,13 +173,21 @@ const walk: WalkFunction = (
 
   const mark: MarkFunction = (node: Node, offset: number, at: number): void => {
     points.forEach((point: DomPoint, index: number) => {
-      if (found[index] === -1 && point.node === node && point.offset === offset) {
+      if (
+        found[index] === -1 &&
+        point.node === node &&
+        point.offset === offset
+      ) {
         found[index] = at;
       }
     });
   };
 
-  type MarkInsideFunction = (container: Node, start: number, end: number) => void;
+  type MarkInsideFunction = (
+    container: Node,
+    start: number,
+    end: number,
+  ) => void;
 
   // A point anywhere inside `container` (a chip): before it at offset 0, else after.
   const markInside: MarkInsideFunction = (

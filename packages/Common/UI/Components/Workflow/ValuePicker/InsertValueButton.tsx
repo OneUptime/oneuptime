@@ -58,7 +58,9 @@ const InsertValueButton: FunctionComponent<InsertValueButtonProps> = (
         ref={anchorRef}
         type="button"
         className={props.className || DEFAULT_CLASS}
-        aria-label={props.ariaLabel || (props.children ? undefined : INSERT_VALUE_LABEL)}
+        aria-label={
+          props.ariaLabel || (props.children ? undefined : INSERT_VALUE_LABEL)
+        }
         title={props.ariaLabel || INSERT_VALUE_LABEL}
         aria-haspopup="dialog"
         aria-expanded={isOpen}

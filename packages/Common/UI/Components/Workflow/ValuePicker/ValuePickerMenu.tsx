@@ -104,7 +104,8 @@ const BADGE_CLASS: Record<string, string> = {
   [NOT_SELECTED_BADGE]: "border-gray-200 bg-gray-50 text-gray-500",
 };
 
-const DEFAULT_BADGE_CLASS: string = "border-amber-200 bg-amber-50 text-amber-700";
+const DEFAULT_BADGE_CLASS: string =
+  "border-amber-200 bg-amber-50 text-amber-700";
 
 const ValuePickerMenu: React.ForwardRefExoticComponent<
   ValuePickerMenuProps & React.RefAttributes<ValuePickerMenuHandle>
@@ -179,8 +180,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
         return [
           {
             key: "drill",
-            options:
-              childQuery.trim() === "" ? [whole, ...children] : children,
+            options: childQuery.trim() === "" ? [whole, ...children] : children,
           },
         ];
       }
@@ -390,7 +390,10 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
       !picker.isTrigger &&
       !picker.hasIncomingConnection;
 
-    type RenderOptionFunction = (option: MenuOption, index: number) => ReactElement;
+    type RenderOptionFunction = (
+      option: MenuOption,
+      index: number,
+    ) => ReactElement;
 
     const renderOption: RenderOptionFunction = (
       option: MenuOption,
@@ -514,7 +517,10 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
           <div className="border-b border-gray-100 p-2">
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
-                <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
+                <Icon
+                  icon={IconProp.Search}
+                  className="h-4 w-4 text-gray-400"
+                />
               </div>
               <input
                 ref={searchRef}
@@ -525,7 +531,9 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 aria-controls={listboxId}
                 aria-activedescendant={activeOptionId}
                 aria-autocomplete="list"
-                aria-label={drill ? `Search ${drill.item.label}` : "Search values"}
+                aria-label={
+                  drill ? `Search ${drill.item.label}` : "Search values"
+                }
                 placeholder={
                   drill
                     ? `Search the fields of ${drill.item.label}`

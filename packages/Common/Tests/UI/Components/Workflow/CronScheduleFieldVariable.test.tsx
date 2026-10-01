@@ -12,7 +12,6 @@ import {
   SAMPLE_GROUPS,
   withPicker,
 } from "./ValuePicker/ValuePickerTestUtils";
-import ObjectID from "../../../../Types/ObjectID";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 import React from "react";
 import "@testing-library/jest-dom";
@@ -33,11 +32,7 @@ const renderField: RenderFieldFunction = (
 
   render(
     withPicker(
-      <CronScheduleField
-        workflowId={ObjectID.generate()}
-        initialValue={initialValue}
-        onChange={onChange}
-      />,
+      <CronScheduleField initialValue={initialValue} onChange={onChange} />,
       { groups: options.groups },
     ),
   );
@@ -91,9 +86,13 @@ describe("CronScheduleField — a schedule from a variable", () => {
   test("a schedule already in a variable opens on it, and can be changed", async () => {
     const { onChange, user } = renderField(DEPLOY_ENV);
 
-    expect(screen.getByTestId("template-reference-chip")).toHaveTextContent("Variable›DEPLOY_ENV");
+    expect(screen.getByTestId("template-reference-chip")).toHaveTextContent(
+      "Variable›DEPLOY_ENV",
+    );
 
-    await user.click(screen.getByRole("button", { name: "Change the variable" }));
+    await user.click(
+      screen.getByRole("button", { name: "Change the variable" }),
+    );
     fireEvent.click(
       screen.getAllByRole("option").find((option: HTMLElement) => {
         return option.getAttribute("data-reference") === API_KEY;

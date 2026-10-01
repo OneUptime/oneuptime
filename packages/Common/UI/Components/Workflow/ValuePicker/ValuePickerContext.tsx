@@ -197,36 +197,42 @@ export const ValuePickerProvider: FunctionComponent<
       return next;
     });
 
-    for (const source of asyncSources) {
-      void (async (): Promise<void> => {
-        try {
-          const groups: Array<ValueSuggestionGroup> =
-            await source.loadGroups!(suggestionContext);
+    type LoadSourceFunction = (source: ValueSuggestionSource) => Promise<void>;
 
-          if (!cancelled) {
-            setLoaded((previous: Record<string, LoadedGroups>) => {
-              return {
-                ...previous,
-                [source.id]: { groups: groups, isLoading: false },
-              };
-            });
-          }
-        } catch (err: unknown) {
-          if (!cancelled) {
-            setLoaded((previous: Record<string, LoadedGroups>) => {
-              return {
-                ...previous,
-                [source.id]: {
-                  groups: [],
-                  isLoading: false,
-                  error: API.getFriendlyMessage(err),
-                },
-              };
-            });
-          }
+    const loadSource: LoadSourceFunction = async (
+      source: ValueSuggestionSource,
+    ): Promise<void> => {
+      try {
+        const groups: Array<ValueSuggestionGroup> =
+          await source.loadGroups!(suggestionContext);
+
+        if (!cancelled) {
+          setLoaded((previous: Record<string, LoadedGroups>) => {
+            return {
+              ...previous,
+              [source.id]: { groups: groups, isLoading: false },
+            };
+          });
         }
-      })();
-    }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setLoaded((previous: Record<string, LoadedGroups>) => {
+            return {
+              ...previous,
+              [source.id]: {
+                groups: [],
+                isLoading: false,
+                error: API.getFriendlyMessage(err),
+              },
+            };
+          });
+        }
+      }
+    };
+
+    asyncSources.forEach((source: ValueSuggestionSource) => {
+      void loadSource(source);
+    });
 
     return () => {
       cancelled = true;
@@ -297,19 +303,18 @@ export const ValuePickerProvider: FunctionComponent<
   const downstreamIds: Array<string> | undefined =
     props.valueSources?.downstreamIds;
 
-  const describeReference: (
-    reference: string,
-  ) => ReferenceDescription | null = useCallback(
-    (reference: string): ReferenceDescription | null => {
-      return describeReferenceFor(reference, {
-        graphComponents: props.graphComponents,
-        editedComponentId: editedId,
-        downstreamIds: downstreamIds,
-        variableNames: variableNames,
-      });
-    },
-    [props.graphComponents, editedId, downstreamIds, variableNames],
-  );
+  const describeReference: (reference: string) => ReferenceDescription | null =
+    useCallback(
+      (reference: string): ReferenceDescription | null => {
+        return describeReferenceFor(reference, {
+          graphComponents: props.graphComponents,
+          editedComponentId: editedId,
+          downstreamIds: downstreamIds,
+          variableNames: variableNames,
+        });
+      },
+      [props.graphComponents, editedId, downstreamIds, variableNames],
+    );
 
   const [childrenByReference, setChildrenByReference] = useState<
     Record<string, ChildrenState>
@@ -319,9 +324,9 @@ export const ValuePickerProvider: FunctionComponent<
    * What has been asked for, kept outside state: two asks before the next
    * render would both see an idle entry in state, and load it twice.
    */
-  const requestedRef: React.MutableRefObject<Set<string>> = useRef<
-    Set<string>
-  >(new Set<string>());
+  const requestedRef: React.MutableRefObject<Set<string>> = useRef<Set<string>>(
+    new Set<string>(),
+  );
 
   const getChildren: (item: ValueSuggestion) => ChildrenState = useCallback(
     (item: ValueSuggestion): ChildrenState => {

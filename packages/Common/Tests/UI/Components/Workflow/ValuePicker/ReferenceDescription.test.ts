@@ -25,7 +25,10 @@ import { describe, expect, test } from "@jest/globals";
 
 type StepFunction = (metadataId: ComponentID, id: string) => NodeDataProp;
 
-const step: StepFunction = (metadataId: ComponentID, id: string): NodeDataProp => {
+const step: StepFunction = (
+  metadataId: ComponentID,
+  id: string,
+): NodeDataProp => {
   const metadata: ComponentMetadata = Components.find(
     (component: ComponentMetadata) => {
       return component.id === metadataId;
@@ -48,7 +51,10 @@ const step: StepFunction = (metadataId: ComponentID, id: string): NodeDataProp =
 const webhook: NodeDataProp = step(ComponentID.Webhook, "webhook-1");
 const postA: NodeDataProp = step(ComponentID.ApiPost, "api-post-1");
 const postB: NodeDataProp = step(ComponentID.ApiPost, "api-post-2");
-const slack: NodeDataProp = step(ComponentID.SlackSendMessageToChannel, "slack-1");
+const slack: NodeDataProp = step(
+  ComponentID.SlackSendMessageToChannel,
+  "slack-1",
+);
 
 const graph: Array<NodeDataProp> = [webhook, postA, postB, slack];
 
@@ -67,7 +73,9 @@ const describeInGraph: DescribeFunction = (
 describe("isChipReference", () => {
   test("a well-formed reference is a chip", () => {
     expect(
-      isChipReference("{{local.components.webhook-1.returnValues.request-body}}"),
+      isChipReference(
+        "{{local.components.webhook-1.returnValues.request-body}}",
+      ),
     ).toBe(true);
     expect(isChipReference("{{local.variables.DEPLOY_ENV}}")).toBe(true);
     expect(isChipReference("{{global.variables.API_KEY}}")).toBe(true);
@@ -154,9 +162,10 @@ describe("describeReference", () => {
       ReferenceKind.GlobalVariable,
       `Global variable${LABEL_SEPARATOR}API_KEY`,
     ]);
-    expect(
-      describeInGraph("{{local.variables.config.region}}").parts,
-    ).toEqual(["config", "region"]);
+    expect(describeInGraph("{{local.variables.config.region}}").parts).toEqual([
+      "config",
+      "region",
+    ]);
   });
 
   test("not a chip, no description", () => {
@@ -184,7 +193,9 @@ describe("describeReference", () => {
 
       expect(description.tone).toBe(ReferenceTone.Warning);
       expect(description.parts).toEqual(["body"]);
-      expect(description.problem).toMatch(/does not return anything called "body"/);
+      expect(description.problem).toMatch(
+        /does not return anything called "body"/,
+      );
     });
 
     test("it is this step's own value", () => {

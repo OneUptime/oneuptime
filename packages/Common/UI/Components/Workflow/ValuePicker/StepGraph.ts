@@ -208,10 +208,7 @@ export const getStepValueSources: GetStepValueSourcesFunction = (graph: {
    * chain feeding into this step that no trigger reaches yet goes last,
    * farthest first, so it still reads top to bottom.
    */
-  const runOrder: Array<string> = [
-    ...triggerIds,
-    ...walk(triggerIds, forward),
-  ];
+  const runOrder: Array<string> = [...triggerIds, ...walk(triggerIds, forward)];
 
   const ordered: Array<string> = [];
 

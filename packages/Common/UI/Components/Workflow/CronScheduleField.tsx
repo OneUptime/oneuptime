@@ -11,7 +11,6 @@ import {
   ValueSuggestionGroupKind,
 } from "./ValuePicker/ValueSuggestion";
 import IconProp from "../../../Types/Icon/IconProp";
-import ObjectID from "../../../Types/ObjectID";
 import CronTab from "../../../Utils/CronTab";
 import React, {
   FunctionComponent,
@@ -21,7 +20,6 @@ import React, {
 } from "react";
 
 export interface ComponentProps {
-  workflowId: ObjectID;
   initialValue?: string | null | undefined;
   onChange: (value: string) => void;
   error?: string | undefined;
@@ -422,7 +420,6 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
           {props.error}
         </p>
       )}
-
     </div>
   );
 };

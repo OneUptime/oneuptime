@@ -242,35 +242,37 @@ export const buildStepValueGroups: BuildStepValueGroupsFunction = (
     },
   );
 
-  return steps.map((step: NodeDataProp, index: number): ValueSuggestionGroup => {
-    return {
-      id: stepGroupId(step.id),
-      kind: ValueSuggestionGroupKind.Step,
-      title: step.metadata.title || step.id,
-      /*
-       * Two steps of the same kind - two HTTP POSTs - share a title, and the
-       * id is what tells them apart.
-       */
-      subtitle: step.id,
-      iconProp: step.metadata.iconProp,
-      order: index,
-      items: (step.metadata.returnValues || []).map(
-        (returnValue: ReturnValue): ValueSuggestion => {
-          return {
-            reference: componentReturnValueReference(step.id, returnValue.id),
-            label: returnValue.name || returnValue.id,
-            description: returnValue.description,
-            typeLabel: typeLabelForInputType(returnValue.type),
-            drillIn: drillInFor({
-              component: step,
-              returnValue: returnValue,
-              options: options,
-            }),
-          };
-        },
-      ),
-    };
-  });
+  return steps.map(
+    (step: NodeDataProp, index: number): ValueSuggestionGroup => {
+      return {
+        id: stepGroupId(step.id),
+        kind: ValueSuggestionGroupKind.Step,
+        title: step.metadata.title || step.id,
+        /*
+         * Two steps of the same kind - two HTTP POSTs - share a title, and the
+         * id is what tells them apart.
+         */
+        subtitle: step.id,
+        iconProp: step.metadata.iconProp,
+        order: index,
+        items: (step.metadata.returnValues || []).map(
+          (returnValue: ReturnValue): ValueSuggestion => {
+            return {
+              reference: componentReturnValueReference(step.id, returnValue.id),
+              label: returnValue.name || returnValue.id,
+              description: returnValue.description,
+              typeLabel: typeLabelForInputType(returnValue.type),
+              drillIn: drillInFor({
+                component: step,
+                returnValue: returnValue,
+                options: options,
+              }),
+            };
+          },
+        ),
+      };
+    },
+  );
 };
 
 export type CreateStepValueSourceFunction = (

@@ -99,7 +99,10 @@ describe("the 'Pick this value' links are gone for good", () => {
 
   test("a step's settings put nothing under their fields", () => {
     const argumentsForm: string = codeOf(
-      path.join(PACKAGES_DIR, "Common/UI/Components/Workflow/ArgumentsForm.tsx"),
+      path.join(
+        PACKAGES_DIR,
+        "Common/UI/Components/Workflow/ArgumentsForm.tsx",
+      ),
     );
 
     expect(argumentsForm).not.toContain("footerElement");

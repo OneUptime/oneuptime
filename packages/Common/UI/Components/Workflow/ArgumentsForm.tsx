@@ -76,14 +76,15 @@ export interface ComponentProps {
   onFormChange: (value: NodeDataProp) => void;
 }
 
-const SINGLE_FIELD_KINDS: Partial<Record<ArgumentControl, ValueSingleFieldKind>> =
-  {
-    [ArgumentControl.Number]: ValueSingleFieldKind.Number,
-    [ArgumentControl.Password]: ValueSingleFieldKind.Password,
-    [ArgumentControl.Boolean]: ValueSingleFieldKind.Boolean,
-    [ArgumentControl.Date]: ValueSingleFieldKind.Date,
-    [ArgumentControl.DateTime]: ValueSingleFieldKind.DateTime,
-  };
+const SINGLE_FIELD_KINDS: Partial<
+  Record<ArgumentControl, ValueSingleFieldKind>
+> = {
+  [ArgumentControl.Number]: ValueSingleFieldKind.Number,
+  [ArgumentControl.Password]: ValueSingleFieldKind.Password,
+  [ArgumentControl.Boolean]: ValueSingleFieldKind.Boolean,
+  [ArgumentControl.Date]: ValueSingleFieldKind.Date,
+  [ArgumentControl.DateTime]: ValueSingleFieldKind.DateTime,
+};
 
 type ValidateTypedValueFunction = (
   type: ComponentInputType,
@@ -446,7 +447,6 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         ): ReactElement => {
           return (
             <CronScheduleField
-              workflowId={props.workflowId}
               initialValue={customProps.initialValue as string | null}
               onChange={(value: string) => {
                 void customProps.onChange?.(value);

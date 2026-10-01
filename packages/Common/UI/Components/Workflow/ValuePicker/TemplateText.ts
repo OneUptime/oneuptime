@@ -30,7 +30,9 @@ export interface TemplateSegment {
   start: number;
 }
 
-export type SplitTemplateTextFunction = (value: string) => Array<TemplateSegment>;
+export type SplitTemplateTextFunction = (
+  value: string,
+) => Array<TemplateSegment>;
 
 /**
  * The value as runs of text and references. Only a well-formed reference is
