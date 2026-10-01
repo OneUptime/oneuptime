@@ -233,7 +233,8 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
      * Everyone else invites, and the invited person accepts for themselves. A
      * project admin who could accept on someone's behalf would be able to pull
      * an account into their project - and into whatever the team's permissions
-     * grant - without that person ever agreeing to it.
+     * grant - without that person ever agreeing to it. The one exception is a
+     * person who has already accepted joining this project, further down.
      */
     const canCreateAcceptedInvitation: boolean = Boolean(
       createBy.props.isRoot || createBy.props.isMasterAdmin,
@@ -243,21 +244,14 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       createBy.data.hasAcceptedInvitation = false;
     }
 
-    const isInvitationAcceptedOnCreate: boolean = Boolean(
-      createBy.data.hasAcceptedInvitation,
-    );
-
     /*
-     * The acceptance timestamp is stamped here rather than taken from the
-     * request, so it can never disagree with hasAcceptedInvitation - a row that
-     * says "Member" with no accepted-at date, or an accepted-at date on a row
-     * that is still only invited.
+     * Set when the member is invited by email: who they are, and whether they
+     * still have to register. The invitation email is sent once everything
+     * below has decided what this membership is.
      */
-    if (isInvitationAcceptedOnCreate) {
-      createBy.data.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
-    } else {
-      delete createBy.data.invitationAcceptedAt;
-    }
+    let invitedUser: User | null = null;
+    let invitedEmail: Email | null = null;
+    let isNewUser: boolean = false;
 
     if (createBy.miscDataProps && createBy.miscDataProps["email"]) {
       const email: Email = new Email(createBy.miscDataProps["email"] as string);
@@ -289,8 +283,6 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           isRoot: true,
         },
       });
-
-      let isNewUser: boolean = false;
 
       if (!user) {
         isNewUser = true;
@@ -333,6 +325,77 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       }
 
       createBy.data.userId = user.id!;
+
+      invitedUser = user;
+      invitedEmail = email;
+    }
+
+    /*
+     * Check if this user is already invited. Before the invitation email
+     * below, so a repeated invite fails without mailing anybody or minting a
+     * registration token for a membership that is never created.
+     */
+    const member: TeamMember | null = await this.findOneBy({
+      query: {
+        userId: createBy.data.userId!,
+        teamId: createBy.data.teamId || new ObjectID(createBy.data.team!._id!),
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+      },
+    });
+
+    if (member) {
+      throw new BadDataException(Errors.TeamMemberService.ALREADY_INVITED);
+    }
+
+    /*
+     * Acceptance is per project, not per team. Someone who has accepted an
+     * invitation to any team of this project has already agreed to be in it,
+     * so adding them to another of its teams is a change to their teams - the
+     * project admins' call, like changing what a team they are already on may
+     * do - and not a new invitation for them to accept. Without this they were
+     * asked to accept the same project again for every team they were added
+     * to. The permission and SCIM checks above have already run, so this
+     * grants nothing the inviter could not grant to an existing teammate.
+     *
+     * A pending invitee is not a member yet (see isUserMemberOfProject), so a
+     * second team they are invited to stays an invitation, and accepting
+     * either one accepts both (acceptPendingInvitationsInProject).
+     */
+    if (
+      !createBy.data.hasAcceptedInvitation &&
+      createBy.data.userId &&
+      (await this.isUserMemberOfProject({
+        projectId: projectId,
+        userId: createBy.data.userId,
+      }))
+    ) {
+      createBy.data.hasAcceptedInvitation = true;
+    }
+
+    const isInvitationAcceptedOnCreate: boolean = Boolean(
+      createBy.data.hasAcceptedInvitation,
+    );
+
+    /*
+     * The acceptance timestamp is stamped here rather than taken from the
+     * request, so it can never disagree with hasAcceptedInvitation - a row that
+     * says "Member" with no accepted-at date, or an accepted-at date on a row
+     * that is still only invited.
+     */
+    if (isInvitationAcceptedOnCreate) {
+      createBy.data.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+    } else {
+      delete createBy.data.invitationAcceptedAt;
+    }
+
+    if (invitedUser && invitedEmail) {
+      const user: User = invitedUser;
+      const email: Email = invitedEmail;
 
       const project: Project | null = await ProjectService.findOneById({
         id: createBy.data.projectId!,
@@ -396,9 +459,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
               registerLink: registerLink,
               isNewUser: needsRegistration.toString(),
               /*
-               * An auto-accepted member has nothing left to accept, so the
-               * template drops the "sign in to accept your invitation" framing
-               * and tells them they are already in.
+               * An auto-accepted member - accepted by a master admin, or
+               * already in the project through another team - has nothing
+               * left to accept, so the template drops the "sign in to accept
+               * your invitation" framing and tells them they are already in.
                */
               isInvitationAccepted: isInvitationAcceptedOnCreate.toString(),
               projectName: project.name!,
@@ -416,29 +480,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         ).catch((err: Error) => {
           logger.error(err, {
             projectId: createBy.data.projectId?.toString(),
-            userId: user?.id?.toString(),
+            userId: user.id?.toString(),
           } as LogAttributes);
         });
       }
-    }
-
-    //check if this user is already invited.
-
-    const member: TeamMember | null = await this.findOneBy({
-      query: {
-        userId: createBy.data.userId!,
-        teamId: createBy.data.teamId || new ObjectID(createBy.data.team!._id!),
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-      },
-    });
-
-    if (member) {
-      throw new BadDataException(Errors.TeamMemberService.ALREADY_INVITED);
     }
 
     return { createBy, carryForward: null };
@@ -549,11 +594,75 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     }
   }
 
+  /**
+   * Accept every invitation still pending for this user in this project.
+   *
+   * Acceptance is per project, not per team: a person who accepts one
+   * invitation into a project has agreed to be in it, and must not be asked
+   * again for each of the other teams of that project they were invited to.
+   * Both hooks call this whenever a membership becomes accepted - the invitee
+   * accepting one, a master admin creating one accepted, SSO or SCIM adding
+   * one - so a member of a project never has invitations left there.
+   *
+   * Written with ignoreHooks: every caller refreshes this user's permissions
+   * in this project and adds their notification defaults right after, which
+   * is all onUpdateSuccess would do for these rows. Call it before that
+   * refresh, so the permissions include these teams. Best effort: the
+   * membership that triggered it is already committed, and an invitation left
+   * pending can still be accepted by hand. Returns how many were accepted.
+   */
+  @CaptureSpan()
+  public async acceptPendingInvitationsInProject(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<number> {
+    try {
+      return await this.updateBy({
+        query: {
+          userId: data.userId,
+          projectId: data.projectId,
+          hasAcceptedInvitation: false,
+        },
+        data: {
+          hasAcceptedInvitation: true,
+          invitationAcceptedAt: OneUptimeDate.getCurrentDate(),
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+
+      return 0;
+    }
+  }
+
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<TeamMember>,
     createdItem: TeamMember,
   ): Promise<TeamMember> {
+    /*
+     * An accepted membership puts the person in the project, so whatever else
+     * they were invited to there is accepted with it.
+     */
+    if (createdItem.hasAcceptedInvitation) {
+      await this.acceptPendingInvitationsInProject({
+        userId: onCreate.createBy.data.userId!,
+        projectId: onCreate.createBy.data.projectId!,
+      });
+    }
+
     await this.refreshTokens(
       onCreate.createBy.data.userId!,
       onCreate.createBy.data.projectId!,
@@ -614,7 +723,32 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       },
     });
 
+    /*
+     * The (user, project) pairs whose remaining invitations have been
+     * accepted already. Accepting every invitation of a project at once
+     * updates several rows of the same pair, and one pass covers them all.
+     */
+    const acceptedProjectKeys: Set<string> = new Set<string>();
+
     for (const item of items) {
+      /*
+       * Accepting one invitation into a project accepts the person's other
+       * invitations there too: they have just agreed to be in the project.
+       */
+      const projectKey: string = `${item.userId?.toString()}:${item.projectId?.toString()}`;
+
+      if (
+        updateBy.data.hasAcceptedInvitation &&
+        !acceptedProjectKeys.has(projectKey)
+      ) {
+        acceptedProjectKeys.add(projectKey);
+
+        await this.acceptPendingInvitationsInProject({
+          userId: item.userId!,
+          projectId: item.projectId!,
+        });
+      }
+
       await this.refreshTokens(item.userId!, item.projectId!);
 
       if (updateBy.data.hasAcceptedInvitation) {
