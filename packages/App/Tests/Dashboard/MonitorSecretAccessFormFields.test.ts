@@ -187,7 +187,9 @@ describe("monitor secret Access step configuration", () => {
     ).toEqual(MonitorSecretAccessUtil.ALL_ACCESS_MODES);
 
     options.forEach((option: CardSelectOption, index: number) => {
-      expect(option.title).toBe(MONITOR_SECRET_ACCESS_OPTIONS[index]!.title.toUpperCase());
+      expect(option.title).toBe(
+        MONITOR_SECRET_ACCESS_OPTIONS[index]!.title.toUpperCase(),
+      );
       expect(option.description).toBe(
         MONITOR_SECRET_ACCESS_OPTIONS[index]!.description.toUpperCase(),
       );
@@ -204,7 +206,7 @@ describe("the Monitor Secrets page", () => {
   test("builds its Access step from these fields, translated", () => {
     expect(source).toContain("...getMonitorSecretAccessFormFields(translate)");
     expect(source).toContain(
-      "{ title: \"Access\", id: MONITOR_SECRET_ACCESS_STEP_ID }",
+      '{ title: "Access", id: MONITOR_SECRET_ACCESS_STEP_ID }',
     );
   });
 

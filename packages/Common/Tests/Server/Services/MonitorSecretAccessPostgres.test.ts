@@ -328,11 +328,13 @@ describePostgres("monitor secret access against a migrated Postgres", () => {
     monitorIds: Array<ObjectID>,
     projectId?: ObjectID,
   ): Promise<Map<string, Array<string>>> {
-    const secretsByMonitorId: Map<string, Array<MonitorSecret>> =
-      await MonitorSecretService.getSecretsForMonitors({
-        monitorIds: monitorIds,
-        projectId: projectId,
-      });
+    const secretsByMonitorId: Map<
+      string,
+      Array<MonitorSecret>
+    > = await MonitorSecretService.getSecretsForMonitors({
+      monitorIds: monitorIds,
+      projectId: projectId,
+    });
 
     const names: Map<string, Array<string>> = new Map();
 
@@ -399,10 +401,7 @@ describePostgres("monitor secret access against a migrated Postgres", () => {
         MonitorSecretAccess.SpecificMonitors,
       );
 
-      const result: Map<string, Array<string>> = await resolve([
-        listed,
-        other,
-      ]);
+      const result: Map<string, Array<string>> = await resolve([listed, other]);
 
       expect(result.get(listed.toString())).toEqual(["legacy"]);
       expect(result.has(other.toString())).toBe(false);
@@ -452,10 +451,12 @@ describePostgres("monitor secret access against a migrated Postgres", () => {
         ]),
       );
 
-      const secrets: Map<string, Array<MonitorSecret>> =
-        await MonitorSecretService.getSecretsForMonitors({
-          monitorIds: [a2],
-        });
+      const secrets: Map<
+        string,
+        Array<MonitorSecret>
+      > = await MonitorSecretService.getSecretsForMonitors({
+        monitorIds: [a2],
+      });
       const allA: MonitorSecret | undefined = secrets
         .get(a2.toString())!
         .find((secret: MonitorSecret): boolean => {
@@ -649,10 +650,9 @@ describePostgres("monitor secret access against a migrated Postgres", () => {
 
       for (let i: number = 0; i < 40; i++) {
         many.push(
-          await seedMonitor(
-            i % 2 === 0 ? projectA : projectB,
-            [i % 2 === 0 ? prod : prodB],
-          ),
+          await seedMonitor(i % 2 === 0 ? projectA : projectB, [
+            i % 2 === 0 ? prod : prodB,
+          ]),
         );
       }
 
@@ -826,10 +826,12 @@ describePostgres("monitor secret access against a migrated Postgres", () => {
         labelIds: [],
       });
 
-      const secrets: Map<string, Array<MonitorSecret>> =
-        await MonitorSecretService.getSecretsForMonitors({
-          monitorIds: [m1],
-        });
+      const secrets: Map<
+        string,
+        Array<MonitorSecret>
+      > = await MonitorSecretService.getSecretsForMonitors({
+        monitorIds: [m1],
+      });
       expect(secrets.get(m1.toString())![0]!.secretValue).toBe("rotated");
     });
 

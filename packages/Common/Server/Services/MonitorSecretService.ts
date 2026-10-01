@@ -337,8 +337,9 @@ export class Service extends DatabaseService<MonitorSecret> {
     };
 
     if (data.list) {
-      (query as Dictionary<unknown>)[data.list] =
-        QueryHelper.inRelationArray(data.listIds || []);
+      (query as Dictionary<unknown>)[data.list] = QueryHelper.inRelationArray(
+        data.listIds || [],
+      );
       (select as Dictionary<unknown>)[data.list] = {
         _id: true,
       };

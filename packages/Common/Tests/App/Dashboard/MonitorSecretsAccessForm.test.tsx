@@ -276,10 +276,7 @@ async function choose(
   });
 }
 
-async function pick(
-  combobox: HTMLElement,
-  optionName: string,
-): Promise<void> {
+async function pick(combobox: HTMLElement, optionName: string): Promise<void> {
   fireEvent.focus(combobox);
   fireEvent.click(await screen.findByRole("option", { name: optionName }));
 
@@ -585,7 +582,9 @@ describe("Monitor secrets table", () => {
 
     const accessColumn: ModelTableProps<MonitorSecret>["columns"][number] =
       capturedTableProps!.columns.find(
-        (column: ModelTableProps<MonitorSecret>["columns"][number]): boolean => {
+        (
+          column: ModelTableProps<MonitorSecret>["columns"][number],
+        ): boolean => {
           return column.title === "Access";
         },
       )!;
@@ -629,7 +628,9 @@ describe("Monitor secrets table", () => {
 
     const accessColumn: ModelTableProps<MonitorSecret>["columns"][number] =
       capturedTableProps!.columns.find(
-        (column: ModelTableProps<MonitorSecret>["columns"][number]): boolean => {
+        (
+          column: ModelTableProps<MonitorSecret>["columns"][number],
+        ): boolean => {
           return column.title === "Access";
         },
       )!;
@@ -681,7 +682,9 @@ describe("Monitor secrets table", () => {
 
     const accessColumn: ModelTableProps<MonitorSecret>["columns"][number] =
       capturedTableProps!.columns.find(
-        (column: ModelTableProps<MonitorSecret>["columns"][number]): boolean => {
+        (
+          column: ModelTableProps<MonitorSecret>["columns"][number],
+        ): boolean => {
           return column.title === "Access";
         },
       )!;

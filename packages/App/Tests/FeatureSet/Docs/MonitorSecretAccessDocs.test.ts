@@ -1,7 +1,5 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import {
-  MONITOR_SECRET_ACCESS_TITLES,
-} from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorSecretAccessFormFields";
+import { MONITOR_SECRET_ACCESS_TITLES } from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorSecretAccessFormFields";
 import MonitorSecretAccess from "Common/Types/Monitor/MonitorSecretAccess";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -71,9 +69,11 @@ describe("monitor secrets docs: which monitors can use a secret", () => {
           MONITOR_SECRET_ACCESS_TITLES[access],
         );
 
-        expect({ language, access, quoted: page.includes(`**${label}**`) }).toEqual(
-          { language, access, quoted: true },
-        );
+        expect({
+          language,
+          access,
+          quoted: page.includes(`**${label}**`),
+        }).toEqual({ language, access, quoted: true });
       }
     },
   );
@@ -122,6 +122,8 @@ describe("monitor secrets docs: which monitors can use a secret", () => {
 
     expect(page).not.toContain("Monitor Secret Permissions");
     expect(page).not.toContain("selected monitors to have access to it");
-    expect(page).toContain("A secret is never available to monitors in another project.");
+    expect(page).toContain(
+      "A secret is never available to monitors in another project.",
+    );
   });
 });

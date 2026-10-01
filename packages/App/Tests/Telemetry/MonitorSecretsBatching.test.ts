@@ -124,7 +124,10 @@ interface GetSecretsForMonitorsArgs {
   projectId?: ObjectID | undefined;
 }
 
-function makeSecret(data: { name: string; secretValue: string }): MonitorSecret {
+function makeSecret(data: {
+  name: string;
+  secretValue: string;
+}): MonitorSecret {
   const secret: MonitorSecret = new MonitorSecret();
   secret.name = data.name;
   secret.secretValue = data.secretValue;
@@ -192,12 +195,24 @@ function makeSteps(steps: Array<MonitorStep>): MonitorSteps {
 function makeTest(data: {
   monitorId?: ObjectID | undefined;
   projectId?: ObjectID | undefined;
+  monitorType?: MonitorType | null | undefined;
   steps?: MonitorSteps | undefined;
 }): MonitorTest {
   const monitorTest: MonitorTest = new MonitorTest();
-  monitorTest.projectId = data.projectId;
-  monitorTest.monitorId = data.monitorId;
-  monitorTest.monitorType = MonitorType.API;
+
+  if (data.projectId) {
+    monitorTest.projectId = data.projectId;
+  }
+
+  if (data.monitorId) {
+    monitorTest.monitorId = data.monitorId;
+  }
+
+  // null leaves the test without a type.
+  if (data.monitorType !== null) {
+    monitorTest.monitorType = data.monitorType || MonitorType.API;
+  }
+
   monitorTest.monitorSteps =
     data.steps ||
     makeSteps([
@@ -267,9 +282,9 @@ describe("MonitorUtil secret loading", () => {
         secretsFor([[MONITOR_A_ID, [secret]]]),
       );
 
-      await expect(MonitorUtil.loadMonitorSecrets(MONITOR_A_ID)).resolves.toEqual(
-        [secret],
-      );
+      await expect(
+        MonitorUtil.loadMonitorSecrets(MONITOR_A_ID),
+      ).resolves.toEqual([secret]);
       expect(
         monitorSecretService.getSecretsForMonitors.mock.calls[0]![0],
       ).toEqual({
@@ -284,9 +299,9 @@ describe("MonitorUtil secret loading", () => {
         ]),
       );
 
-      await expect(MonitorUtil.loadMonitorSecrets(MONITOR_A_ID)).resolves.toEqual(
-        [],
-      );
+      await expect(
+        MonitorUtil.loadMonitorSecrets(MONITOR_A_ID),
+      ).resolves.toEqual([]);
     });
   });
 
@@ -462,7 +477,10 @@ describe("MonitorUtil secret loading", () => {
     test("a secret the monitor may not use is left as its placeholder, never filled from elsewhere", async () => {
       monitorSecretService.getSecretsForMonitors.mockResolvedValue(
         secretsFor([
-          [MONITOR_B_ID, [makeSecret({ name: "apiKey", secretValue: "b-only" })]],
+          [
+            MONITOR_B_ID,
+            [makeSecret({ name: "apiKey", secretValue: "b-only" })],
+          ],
         ]),
       );
 
@@ -487,13 +505,17 @@ describe("MonitorUtil secret loading", () => {
     test("a test of a saved monitor asks for that monitor's secrets within the test's own project", async () => {
       monitorSecretService.getSecretsForMonitors.mockResolvedValue(
         secretsFor([
-          [MONITOR_A_ID, [makeSecret({ name: "apiKey", secretValue: "test-1" })]],
+          [
+            MONITOR_A_ID,
+            [makeSecret({ name: "apiKey", secretValue: "test-1" })],
+          ],
         ]),
       );
 
-      const populated: MonitorTest = await MonitorUtil.populateSecretsOnMonitorTest(
-        makeTest({ monitorId: MONITOR_A_ID, projectId: PROJECT_ID }),
-      );
+      const populated: MonitorTest =
+        await MonitorUtil.populateSecretsOnMonitorTest(
+          makeTest({ monitorId: MONITOR_A_ID, projectId: PROJECT_ID }),
+        );
 
       expect(monitorSecretService.getSecretsForMonitors).toHaveBeenCalledTimes(
         1,
@@ -529,9 +551,10 @@ describe("MonitorUtil secret loading", () => {
         },
       );
 
-      const populated: MonitorTest = await MonitorUtil.populateSecretsOnMonitorTest(
-        makeTest({ monitorId: MONITOR_B_ID, projectId: PROJECT_ID }),
-      );
+      const populated: MonitorTest =
+        await MonitorUtil.populateSecretsOnMonitorTest(
+          makeTest({ monitorId: MONITOR_B_ID, projectId: PROJECT_ID }),
+        );
 
       expect(firstStep(populated.monitorSteps).data!.requestHeaders).toEqual({
         Authorization: "Bearer {{monitorSecrets.apiKey}}",
@@ -543,9 +566,10 @@ describe("MonitorUtil secret loading", () => {
         makeSecret({ name: "apiKey", secretValue: "shared-2" }),
       ]);
 
-      const populated: MonitorTest = await MonitorUtil.populateSecretsOnMonitorTest(
-        makeTest({ monitorId: undefined, projectId: PROJECT_ID }),
-      );
+      const populated: MonitorTest =
+        await MonitorUtil.populateSecretsOnMonitorTest(
+          makeTest({ monitorId: undefined, projectId: PROJECT_ID }),
+        );
 
       expect(
         monitorSecretService.getSecretsForUnsavedMonitor,
@@ -597,8 +621,10 @@ describe("MonitorUtil secret loading", () => {
       withoutSteps.projectId = PROJECT_ID;
       withoutSteps.monitorType = MonitorType.API;
 
-      const withoutType: MonitorTest = makeTest({ projectId: PROJECT_ID });
-      withoutType.monitorType = undefined;
+      const withoutType: MonitorTest = makeTest({
+        projectId: PROJECT_ID,
+        monitorType: null,
+      });
 
       await expect(
         MonitorUtil.populateSecretsOnMonitorTest(withoutSteps),
@@ -672,7 +698,10 @@ describe("MonitorUtil secret loading", () => {
     test("without preloadedSecrets the lazy lookup runs once, for this monitor", async () => {
       monitorSecretService.getSecretsForMonitors.mockResolvedValue(
         secretsFor([
-          [MONITOR_A_ID, [makeSecret({ name: "apiKey", secretValue: "lazy-101" })]],
+          [
+            MONITOR_A_ID,
+            [makeSecret({ name: "apiKey", secretValue: "lazy-101" })],
+          ],
         ]),
       );
 

@@ -264,59 +264,56 @@ beforeEach(() => {
   labelFindByCalls = [];
   secretFindByCalls = [];
 
-  jest
-    .spyOn(MonitorService, "findBy")
-    .mockImplementation(((call: FindByCall): Promise<Array<Monitor>> => {
-      monitorFindByCalls.push(call);
+  jest.spyOn(MonitorService, "findBy").mockImplementation(((
+    call: FindByCall,
+  ): Promise<Array<Monitor>> => {
+    monitorFindByCalls.push(call);
 
-      const ids: Array<string> = readIds(call.query["_id"]);
-      const projectId: string | undefined = call.query["projectId"]
-        ? String(call.query["projectId"])
-        : undefined;
+    const ids: Array<string> = readIds(call.query["_id"]);
+    const projectId: string | undefined = call.query["projectId"]
+      ? String(call.query["projectId"])
+      : undefined;
 
-      return Promise.resolve(
-        monitorRows
-          .filter((row: MonitorRow): boolean => {
-            return (
-              ids.includes(row.id) &&
-              (!projectId || row.projectId === projectId)
-            );
-          })
-          .map((row: MonitorRow): Monitor => {
-            return toMonitor(row, Boolean(call.select["labels"]));
-          }),
-      );
-    }) as never);
+    return Promise.resolve(
+      monitorRows
+        .filter((row: MonitorRow): boolean => {
+          return (
+            ids.includes(row.id) && (!projectId || row.projectId === projectId)
+          );
+        })
+        .map((row: MonitorRow): Monitor => {
+          return toMonitor(row, Boolean(call.select["labels"]));
+        }),
+    );
+  }) as never);
 
-  jest
-    .spyOn(LabelService, "findBy")
-    .mockImplementation(((call: FindByCall): Promise<Array<Label>> => {
-      labelFindByCalls.push(call);
+  jest.spyOn(LabelService, "findBy").mockImplementation(((
+    call: FindByCall,
+  ): Promise<Array<Label>> => {
+    labelFindByCalls.push(call);
 
-      const ids: Array<string> = readIds(call.query["_id"]);
+    const ids: Array<string> = readIds(call.query["_id"]);
 
-      return Promise.resolve(
-        labelRows
-          .filter((row: LabelRow): boolean => {
-            return ids.includes(row.id);
-          })
-          .map((row: LabelRow): Label => {
-            const label: Label = new Label(new ObjectID(row.id));
-            label.projectId = new ObjectID(row.projectId);
-            label.name = row.name;
-            return label;
-          }),
-      );
-    }) as never);
+    return Promise.resolve(
+      labelRows
+        .filter((row: LabelRow): boolean => {
+          return ids.includes(row.id);
+        })
+        .map((row: LabelRow): Label => {
+          const label: Label = new Label(new ObjectID(row.id));
+          label.projectId = new ObjectID(row.projectId);
+          label.name = row.name;
+          return label;
+        }),
+    );
+  }) as never);
 
-  jest
-    .spyOn(MonitorSecretService, "findBy")
-    .mockImplementation(((call: FindByCall): Promise<
-      Array<MonitorSecret>
-    > => {
-      secretFindByCalls.push(call);
-      return Promise.resolve(secretsFindBy(call));
-    }) as never);
+  jest.spyOn(MonitorSecretService, "findBy").mockImplementation(((
+    call: FindByCall,
+  ): Promise<Array<MonitorSecret>> => {
+    secretFindByCalls.push(call);
+    return Promise.resolve(secretsFindBy(call));
+  }) as never);
 });
 
 afterEach(() => {
@@ -459,15 +456,18 @@ describe("MonitorSecretService.onBeforeCreate", () => {
     ["the enum key", "AllMonitors"],
     ["a different case", "all monitors"],
     ["a boolean (the shape of the old toggle)", true],
-  ])("refuses %s and names the three modes", async (_name, value) => {
-    await expect(
-      runBeforeCreate(newSecret({ monitorAccess: value })),
-    ).rejects.toThrow(
-      new BadDataException(
-        "Monitor access must be one of: All Monitors, Specific Monitors, Monitors With Labels.",
-      ),
-    );
-  });
+  ])(
+    "refuses %s and names the three modes",
+    async (_name: string, value: unknown) => {
+      await expect(
+        runBeforeCreate(newSecret({ monitorAccess: value })),
+      ).rejects.toThrow(
+        new BadDataException(
+          "Monitor access must be one of: All Monitors, Specific Monitors, Monitors With Labels.",
+        ),
+      );
+    },
+  );
 
   test("refuses a monitor from another project", async () => {
     await expect(
@@ -621,7 +621,7 @@ describe("MonitorSecretService.onBeforeUpdate", () => {
     ["null", null],
     ["an unknown mode", "Nobody"],
     ["a different case", "specific monitors"],
-  ])("refuses %s", async (_name, value) => {
+  ])("refuses %s", async (_name: string, value: unknown) => {
     await expect(runBeforeUpdate({ monitorAccess: value })).rejects.toThrow(
       /Monitor access must be one of/,
     );
@@ -671,9 +671,9 @@ describe("MonitorSecretService.onBeforeUpdate", () => {
     ).resolves.toEqual({ monitors: [MONITOR_A1, MONITOR_B1] });
 
     // ...but it cannot be used to bring in another one.
-    await expect(
-      runBeforeUpdate({ labels: [LABEL_B_PROD] }),
-    ).rejects.toThrow(/belong to a different project/);
+    await expect(runBeforeUpdate({ labels: [LABEL_B_PROD] })).rejects.toThrow(
+      /belong to a different project/,
+    );
   });
 
   test("without a tenant, the project is the one of the secret the update matches", async () => {
@@ -802,8 +802,10 @@ describe("MonitorSecretService.getSecretsForMonitors", () => {
       MONITOR_A3,
     ]);
 
-    // A1 is listed on the label-scoped secret and carries the label of the
-    // listed one, and gets neither.
+    /*
+     * A1 is listed on the label-scoped secret and carries the label of the
+     * listed one, and gets neither.
+     */
     expect(result.has(MONITOR_A1)).toBe(false);
     expect(names(result.get(MONITOR_A3))).toEqual([
       "labelsButListsA1",
@@ -830,7 +832,10 @@ describe("MonitorSecretService.getSecretsForMonitors", () => {
 
   test("a monitor id that matches no monitor gets nothing, and an all-missing batch queries no secrets", async () => {
     secretRows = [
-      secretRow({ name: "allA", monitorAccess: MonitorSecretAccess.AllMonitors }),
+      secretRow({
+        name: "allA",
+        monitorAccess: MonitorSecretAccess.AllMonitors,
+      }),
     ];
 
     const result: Map<string, Array<MonitorSecret>> = await getSecrets([
@@ -968,7 +973,10 @@ describe("MonitorSecretService.getSecretsForMonitors", () => {
 
   test("hands back each monitor's secrets sorted by name", async () => {
     secretRows = [
-      secretRow({ name: "zeta", monitorAccess: MonitorSecretAccess.AllMonitors }),
+      secretRow({
+        name: "zeta",
+        monitorAccess: MonitorSecretAccess.AllMonitors,
+      }),
       secretRow({
         name: "alpha",
         monitorAccess: MonitorSecretAccess.SpecificMonitors,
@@ -1007,7 +1015,10 @@ describe("MonitorSecretService.getSecretsForMonitors", () => {
   test("a monitor read back without a project is skipped rather than matched", async () => {
     monitorRows = [{ id: MONITOR_A1, projectId: "", labelIds: [] }];
     secretRows = [
-      secretRow({ name: "allA", monitorAccess: MonitorSecretAccess.AllMonitors }),
+      secretRow({
+        name: "allA",
+        monitorAccess: MonitorSecretAccess.AllMonitors,
+      }),
     ];
 
     jest.spyOn(MonitorService, "findBy").mockImplementation((() => {
@@ -1026,7 +1037,10 @@ describe("MonitorSecretService.getSecretsForMonitors", () => {
 describe("MonitorSecretService.getSecretsForUnsavedMonitor", () => {
   test("gets the project's All Monitors secrets, and only those, in one query", async () => {
     secretRows = [
-      secretRow({ name: "allA", monitorAccess: MonitorSecretAccess.AllMonitors }),
+      secretRow({
+        name: "allA",
+        monitorAccess: MonitorSecretAccess.AllMonitors,
+      }),
       secretRow({
         name: "listedA1",
         monitorAccess: MonitorSecretAccess.SpecificMonitors,

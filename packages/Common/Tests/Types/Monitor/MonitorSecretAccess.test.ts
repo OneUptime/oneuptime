@@ -85,9 +85,12 @@ describe("MonitorSecretAccess values", () => {
 });
 
 describe("MonitorSecretAccessUtil.isValid", () => {
-  test.each(Object.values(MonitorSecretAccess))("accepts %s", (value) => {
-    expect(MonitorSecretAccessUtil.isValid(value)).toBe(true);
-  });
+  test.each(Object.values(MonitorSecretAccess))(
+    "accepts %s",
+    (value: MonitorSecretAccess) => {
+      expect(MonitorSecretAccessUtil.isValid(value)).toBe(true);
+    },
+  );
 
   test.each([
     ["the enum key instead of its value", "AllMonitors"],
@@ -281,10 +284,7 @@ describe("MonitorSecretAccessUtil.canMonitorUseSecret - Monitors With Labels", (
 
   test("ignores blank ids on either side instead of matching them", () => {
     expect(
-      canUse(
-        { ...withLabels, labelIds: ["", "  "] },
-        { labelIds: ["", "  "] },
-      ),
+      canUse({ ...withLabels, labelIds: ["", "  "] }, { labelIds: ["", "  "] }),
     ).toBe(false);
   });
 
