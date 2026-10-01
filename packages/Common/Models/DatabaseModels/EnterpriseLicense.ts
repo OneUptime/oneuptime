@@ -26,6 +26,8 @@ import { Column, Entity, Index } from "typeorm";
   pluralName: "Enterprise Licenses",
   icon: IconProp.Lock,
   tableDescription: "Enterprise license keys issued by OneUptime.",
+  // A license is known by the company it was issued to, not its contact email.
+  displayNameColumn: "companyName",
 })
 @Entity({
   name: "EnterpriseLicense",
