@@ -505,7 +505,7 @@ A rule without a \`level\`, or with one not listed here, is treated as \`${SIGMA
 
 Alert severities are defined per project, so OneUptime picks one of *yours*, in this order:
 
-1. **The severity set on the rule.** *Alert Severity* on the rule's Evaluation step always wins.
+1. **The severity set on the rule.** *Alert Severity* on the rule's On Match step always wins.
 2. **A severity named after the level.** A \`high\` rule uses your alert severity named *High* (case-insensitive), if there is one.
 3. **By rank.** Otherwise ${codeList(SEVERE_LEVELS)} rules use your **most severe** alert severity, and ${codeList(OTHER_LEVELS)} rules your **least severe**.
 

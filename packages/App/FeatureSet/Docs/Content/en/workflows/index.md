@@ -43,7 +43,7 @@ Open **Workflows** in the left navigation. That section holds:
 Open a single workflow and its own left menu holds:
 
 - **Overview** — name, description, labels, and the **Enabled** switch.
-- **Builder** — the canvas where you design the workflow.
+- **Builder** — the canvas where you design the workflow, with the **Enabled** switch at the top.
 - **Workflow Variables** — values scoped to this one workflow.
 - **Logs → Runs** — every run of this workflow, with details.
 - **Settings** — duplicate and export.
@@ -55,7 +55,7 @@ Open a single workflow and its own left menu holds:
 1. **Create** — pick a starting point, then give your workflow a name.
 2. **Pick a trigger** — manual, scheduled, webhook, incoming email, or an event from OneUptime.
 3. **Add components** — add actions to the canvas and connect them.
-4. **Turn it on** — switch **Enabled** on from the **Overview** page. A disabled workflow can't run at all, not even by hand.
+4. **Turn it on** — switch **Enabled** on at the top of the **Builder**. A disabled workflow can't run at all, not even by hand.
 5. **Test** — click **Run Workflow** on the Builder and watch the run log.
 
 ## A quick example

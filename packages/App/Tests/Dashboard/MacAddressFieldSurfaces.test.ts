@@ -74,7 +74,8 @@ const SURFACES: Array<MacAddressSurface> = [
   {
     name: "the Device Settings card",
     parts: ["Pages", "NetworkDevice", "View", "Settings.tsx"],
-    stepId: STEP_ID,
+    // Its edit form, like the Overview card's, has an Address step.
+    stepId: "address",
   },
   {
     name: "the device Overview card",

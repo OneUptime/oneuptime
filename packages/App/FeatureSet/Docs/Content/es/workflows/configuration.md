@@ -4,14 +4,14 @@ Esta página cubre los ajustes y los límites de seguridad que conviene conocer 
 
 ## Encender o apagar un flujo de trabajo
 
-Todo flujo de trabajo tiene un interruptor **Habilitado** en **Ajustes**. Cuando está apagado, el flujo no se ejecuta — se ignoran las llamadas al webhook, las horas programadas y los eventos de OneUptime. Los flujos de trabajo nuevos nacen deshabilitados.
+Todo flujo de trabajo tiene un interruptor **Habilitado** en la parte superior de su **Constructor** y en su página **Vista General**. Cuando está apagado, el flujo no se ejecuta — se ignoran las llamadas al webhook, las horas programadas y los eventos de OneUptime, y también **Ejecutar flujo de trabajo** y **Run just this step**. Los flujos de trabajo nuevos nacen deshabilitados.
 
 Usa este interruptor como tu puerta de «listo para salir»:
 
 1. Construye el flujo de trabajo.
-2. Haz clic en **Ejecutar flujo de trabajo** en el **Constructor** con valores realistas.
+2. Haz clic en **Ejecutar flujo de trabajo** en el **Constructor** con valores realistas. Un flujo deshabilitado no se ejecuta ni siquiera a mano, así que el Constructor te pide activarlo primero: haz clic en **Activar y ejecutar**.
 3. Revisa los **Registros** — asegúrate de que cada bloque fue adonde esperabas.
-4. Activa **Habilitado**.
+4. Deja **Habilitado** encendido si está listo. Si no, apágalo hasta que lo esté: mientras está encendido, su disparador salta con eventos reales.
 
 Apagar un flujo de trabajo no detiene las ejecuciones que ya están en marcha; solo impide que empiecen nuevas.
 

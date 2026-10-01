@@ -107,6 +107,8 @@ A rule's **Evaluation** step controls when it runs and how much has to match bef
 
 Names that are not typed event columns are looked up in the event's attributes map, so `groupByField` and `distinctCountField` accept the same field vocabulary as the Sigma rule itself.
 
+The next step, **On Match**, says what a match does: open an alert (with an optional **Alert Severity**), open an incident (with an optional **Incident Severity**), and write a Detection Finding back into the event stream.
+
 #### Count-based detections
 
 Set a threshold above `1` to express "N of this, from the same thing, inside a window" on the rule itself — you do not need a monitor on top of it. The rule above fires on a single failed login; to require five from one source instead:

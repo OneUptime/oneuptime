@@ -43,7 +43,7 @@ Apri **Flussi di lavoro** nella navigazione a sinistra. Quella sezione contiene:
 Apri un singolo workflow e il suo menu a sinistra contiene:
 
 - **Panoramica** — nome, descrizione, etichette e l'interruttore **Abilitato**.
-- **Costruttore** — la tela su cui progetti il workflow.
+- **Costruttore** — la tela su cui progetti il workflow, con l'interruttore **Abilitato** in cima.
 - **Variabili del flusso** — valori validi solo per questo workflow.
 - **Registri → Esecuzioni** — ogni esecuzione di questo workflow, con i dettagli.
 - **Impostazioni** — duplicazione ed esportazione.
@@ -53,7 +53,7 @@ Apri un singolo workflow e il suo menu a sinistra contiene:
 1. **Crea** — scegli un punto di partenza, poi dai un nome al tuo workflow.
 2. **Scegli un trigger** — manuale, pianificato, webhook o un evento di OneUptime.
 3. **Aggiungi i componenti** — metti le azioni sulla tela e collegale.
-4. **Accendilo** — attiva **Abilitato** nella pagina **Panoramica**. Un workflow disabilitato non può essere eseguito in alcun modo, nemmeno a mano.
+4. **Accendilo** — attiva **Abilitato** in cima al **Costruttore**. Un workflow disabilitato non può essere eseguito in alcun modo, nemmeno a mano.
 5. **Provalo** — clicca **Esegui flusso di lavoro** nel Costruttore e osserva il registro dell'esecuzione.
 
 ## Un esempio veloce

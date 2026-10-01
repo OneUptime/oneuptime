@@ -43,7 +43,7 @@ Ouvrez **Flux de travail** dans la navigation de gauche. Cette section contient 
 Ouvrez un workflow en particulier et son propre menu de gauche contient :
 
 - **Vue d'ensemble** — nom, description, étiquettes et interrupteur **Activé**.
-- **Constructeur** — le canevas sur lequel vous le concevez.
+- **Constructeur** — le canevas sur lequel vous le concevez, avec l'interrupteur **Activé** en haut.
 - **Variables de flux de travail** — les valeurs limitées à ce seul workflow.
 - **Journaux → Exécutions** — chaque exécution de ce workflow, avec ses détails.
 - **Paramètres** — duplication et export.
@@ -53,7 +53,7 @@ Ouvrez un workflow en particulier et son propre menu de gauche contient :
 1. **Créez-le** — choisissez un point de départ, puis donnez un nom à votre workflow.
 2. **Choisissez un déclencheur** — manuel, planifié, webhook, ou un événement venu d'OneUptime.
 3. **Ajoutez des composants** — posez des actions sur le canevas et reliez-les.
-4. **Activez-le** — basculez **Activé** depuis la page **Vue d'ensemble**. Un workflow désactivé ne peut pas s'exécuter du tout, pas même à la main.
+4. **Activez-le** — basculez **Activé** en haut du **Constructeur**. Un workflow désactivé ne peut pas s'exécuter du tout, pas même à la main.
 5. **Testez-le** — cliquez sur **Exécuter le flux de travail** dans le Constructeur et regardez le journal d'exécution.
 
 ## Un exemple rapide

@@ -4,6 +4,11 @@
  * the kind almost everybody wants - so this form is the one place that asks
  * for a token URL, a client ID and credentials, and it never asks which kind of
  * variable it is creating: it stamps OAuth 2.0 itself before it saves.
+ *
+ * It walks four steps (OAUTH_VARIABLE_FORM_STEPS): Variable, Provider,
+ * Credentials and Advanced. Picking an identity provider fills in its token
+ * URL; the provider itself is a form-only field, never sent, so the variable
+ * is created exactly as before the form had steps.
  */
 
 import React, { FunctionComponent, ReactElement } from "react";

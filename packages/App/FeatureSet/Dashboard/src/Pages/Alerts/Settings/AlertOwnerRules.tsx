@@ -130,6 +130,11 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },
         { title: "Owners", id: "owners", columns: 2 },
+        /*
+         * Who to assign, then which resources to inherit owners from:
+         * two questions that were one step of eight fields.
+         */
+        { title: "Inherit Owners", id: "inherit-owners", columns: 2 },
       ]}
       formFields={[
         {
@@ -286,7 +291,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         {
           field: { inheritOwnersFromMonitors: true },
           title: "Inherit Owners From Monitors",
-          stepId: "owners",
+          stepId: "inherit-owners",
           sectionTitle: "Inherit Owners",
           sectionDescription:
             "Optionally assign owners from related entities to the alert.",
@@ -298,7 +303,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         {
           field: { inheritOwnersFromHosts: true },
           title: "Inherit Owners From Hosts",
-          stepId: "owners",
+          stepId: "inherit-owners",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
@@ -307,7 +312,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         {
           field: { inheritOwnersFromKubernetesClusters: true },
           title: "Inherit Owners From Kubernetes Clusters",
-          stepId: "owners",
+          stepId: "inherit-owners",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
@@ -316,7 +321,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         {
           field: { inheritOwnersFromDockerHosts: true },
           title: "Inherit Owners From Docker Hosts",
-          stepId: "owners",
+          stepId: "inherit-owners",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
@@ -325,7 +330,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         {
           field: { inheritOwnersFromPodmanHosts: true },
           title: "Inherit Owners From Podman Hosts",
-          stepId: "owners",
+          stepId: "inherit-owners",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
@@ -334,7 +339,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         {
           field: { inheritOwnersFromServices: true },
           title: "Inherit Owners From Services",
-          stepId: "owners",
+          stepId: "inherit-owners",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:

@@ -43,7 +43,7 @@ Das alles bauen Sie sichtbar auf einer Arbeitsfläche. Für die meisten Workflow
 Öffnen Sie einen einzelnen Workflow, enthält dessen eigenes linkes Menü:
 
 - **Übersicht** – Name, Beschreibung, Beschriftungen und den Schalter **Aktiviert**.
-- **Builder** – die Arbeitsfläche, auf der Sie den Workflow entwerfen.
+- **Builder** – die Arbeitsfläche, auf der Sie den Workflow entwerfen, mit dem Schalter **Aktiviert** oben.
 - **Workflow-Variablen** – Werte, die nur für diesen einen Workflow gelten.
 - **Protokolle → Ausführungen** – jede Ausführung dieses Workflows, mit Details.
 - **Einstellungen** – Duplizieren und Export.
@@ -53,7 +53,7 @@ Das alles bauen Sie sichtbar auf einer Arbeitsfläche. Für die meisten Workflow
 1. **Anlegen** – wählen Sie einen Startpunkt und geben Sie Ihrem Workflow einen Namen.
 2. **Trigger wählen** – von Hand, nach Zeitplan, per Webhook oder ein Ereignis aus OneUptime.
 3. **Komponenten hinzufügen** – setzen Sie Aktionen auf die Arbeitsfläche und verbinden Sie sie.
-4. **Einschalten** – schalten Sie **Aktiviert** auf der Seite **Übersicht** ein. Ein deaktivierter Workflow läuft überhaupt nicht, nicht einmal von Hand.
+4. **Einschalten** – schalten Sie **Aktiviert** oben im **Builder** ein. Ein deaktivierter Workflow läuft überhaupt nicht, nicht einmal von Hand.
 5. **Testen** – klicken Sie im Builder auf **Arbeitsablauf ausführen** und verfolgen Sie das Ausführungsprotokoll.
 
 ## Ein kurzes Beispiel

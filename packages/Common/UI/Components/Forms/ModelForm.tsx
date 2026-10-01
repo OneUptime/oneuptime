@@ -915,6 +915,11 @@ const ModelForm: <TBaseModel extends BaseModel>(
     const result: JSONObject = {};
 
     for (const field of fields) {
+      // A form-only field drives the form; nothing of it is sent.
+      if (field.formOnly) {
+        continue;
+      }
+
       if (field.overrideFieldKey && values[field.overrideFieldKey]) {
         result[field.overrideFieldKey] =
           (values[field.overrideFieldKey] as JSONObject) || null;

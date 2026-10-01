@@ -111,10 +111,15 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           shouldCreateIncident: false,
           matchCountThreshold: 1,
         }}
+        /*
+         * Evaluation asks how matches are counted; On Match asks what a
+         * match does. They were one step of nine fields.
+         */
         formSteps={[
           { title: "Basic Info", id: "basic-info" },
           { title: "Sigma Rule", id: "sigma-rule" },
           { title: "Evaluation", id: "evaluation" },
+          { title: "On Match", id: "on-match" },
         ]}
         formFields={[
           {
@@ -231,7 +236,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               shouldCreateAlert: true,
             },
             title: "Create Alert on Match",
-            stepId: "evaluation",
+            stepId: "on-match",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -240,7 +245,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               alertSeverity: true,
             },
             title: "Alert Severity",
-            stepId: "evaluation",
+            stepId: "on-match",
             description:
               "Optional. Severity of alerts this rule opens. When unset, the Sigma rule's level is mapped onto this project's severities.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -260,7 +265,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               shouldCreateIncident: true,
             },
             title: "Create Incident on Match",
-            stepId: "evaluation",
+            stepId: "on-match",
             description:
               "Incidents are the heavier machinery — on-call escalation, SLAs, status pages. Off by default; alerts usually suffice for detections.",
             fieldType: FormFieldSchemaType.Toggle,
@@ -271,7 +276,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               incidentSeverity: true,
             },
             title: "Incident Severity",
-            stepId: "evaluation",
+            stepId: "on-match",
             description:
               "Optional. Severity of incidents this rule opens. When unset, the Sigma rule's level is mapped onto this project's incident severities.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -291,7 +296,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               shouldWriteDetectionFinding: true,
             },
             title: "Write Detection Finding on Match",
-            stepId: "evaluation",
+            stepId: "on-match",
             description:
               "Write a Detection Finding security event back into the event stream when this rule matches.",
             fieldType: FormFieldSchemaType.Toggle,
