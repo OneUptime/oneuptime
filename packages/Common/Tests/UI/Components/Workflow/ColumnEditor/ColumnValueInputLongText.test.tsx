@@ -2,17 +2,21 @@
  * A long-text column in the record editor - an incident's description, a
  * note - is a multi-line box that grows with what is typed, like the
  * multi-line arguments around it, rather than a box six lines tall on every
- * row whatever it holds.
+ * row whatever it holds. Since the value picker it is the same chip editor as
+ * every other text setting, so a description can be built from the
+ * webhook's values.
  */
 import ColumnValueInput from "../../../../../UI/Components/Workflow/ColumnEditor/ColumnValueInput";
 import {
   ColumnValueMode,
   ModelColumnControl,
 } from "../../../../../UI/Components/Workflow/ColumnEditor/ColumnRow";
+import { editorValue, placeCaret } from "../ValuePicker/ValuePickerTestUtils";
 import getJestMockFunction, { MockFunction } from "../../../../MockType";
 import React from "react";
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent, { UserEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 afterEach(() => {
@@ -34,16 +38,17 @@ describe("ColumnValueInput — a long-text column", () => {
 
     const box: HTMLElement = screen.getByTestId("description-value");
 
-    expect(box.tagName).toBe("TEXTAREA");
-    expect(box).toHaveAttribute("data-auto-grow", "true");
-    expect(box).toHaveAttribute("rows", "3");
-    expect((box as HTMLTextAreaElement).value).toBe(
-      "Checkout is failing.\nCustomers see a 500.",
-    );
+    expect(box).toHaveAttribute("role", "textbox");
+    expect(box).toHaveAttribute("aria-multiline", "true");
+    // Three lines when short, and it scrolls only once it is long.
+    expect(box.className).toContain("min-h-[4.75rem]");
+    expect(box.className).toContain("max-h-80");
+    expect(editorValue(box)).toBe("Checkout is failing.\nCustomers see a 500.");
   });
 
-  test("reports every line typed into it", () => {
+  test("reports every line typed into it", async () => {
     const onChange: MockFunction = getJestMockFunction();
+    const user: UserEvent = userEvent.setup({ delay: null });
 
     render(
       <ColumnValueInput
@@ -56,16 +61,16 @@ describe("ColumnValueInput — a long-text column", () => {
       />,
     );
 
-    fireEvent.change(screen.getByTestId("description-value"), {
-      target: { value: "First line\nSecond line" },
-    });
+    placeCaret(screen.getByTestId("description-value"), 0);
+    await user.keyboard("First line{Enter}Second line");
 
     expect(onChange).toHaveBeenLastCalledWith({
       text: "First line\nSecond line",
+      valueMode: ColumnValueMode.Literal,
     });
   });
 
-  test("a one-line column is still a one-line input", () => {
+  test("a one-line column is still one line", () => {
     render(
       <ColumnValueInput
         control={ModelColumnControl.Text}
@@ -77,6 +82,9 @@ describe("ColumnValueInput — a long-text column", () => {
       />,
     );
 
-    expect(screen.getByTestId("name-value").tagName).toBe("INPUT");
+    expect(screen.getByTestId("name-value")).toHaveAttribute(
+      "aria-multiline",
+      "false",
+    );
   });
 });
