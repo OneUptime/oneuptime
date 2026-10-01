@@ -251,8 +251,8 @@ export default class BaseModelComponent {
         outPorts: [
           {
             title: "Success",
-            description:
-              "This is executed when the query executes successfully",
+            // A trigger runs no query of its own; this fired on a delete.
+            description: `This is executed when the ${model.singularName} is deleted.`,
             id: "success",
           },
         ],

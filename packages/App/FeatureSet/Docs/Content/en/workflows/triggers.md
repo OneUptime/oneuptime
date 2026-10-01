@@ -28,6 +28,8 @@ If the system is briefly unavailable, the run is picked up as soon as it recover
 
 OneUptime creates a unique URL. Anything that hits that URL starts the workflow. The headers, query parameters, and body of the request are passed in.
 
+To get the URL, click the Webhook trigger on the canvas. The URL is at the top of its settings, with a **Copy URL** button, the methods it accepts, and a `curl` command you can paste into a terminal to try it.
+
 Good for: receiving data into OneUptime from another tool — CI/CD callbacks, alerts from other monitoring, signups in your CRM.
 
 **Output**:

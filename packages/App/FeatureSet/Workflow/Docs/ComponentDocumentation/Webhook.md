@@ -1,11 +1,5 @@
-This trigger lets you start the workflow with the incoming HTTP request.
+This trigger starts the workflow when another app or service calls its URL. The URL, the methods it accepts and a request to try it with are at the top of this dialog.
 
-**URL of this trigger:**
+The call is answered straight away with `{"status": "Scheduled"}`, and the workflow runs in the background. While the workflow is disabled, calls are refused with "This workflow is not enabled".
 
-```text
-{{serverUrl}}workflow/trigger/{{webhookSecretKey}}
-```
-
-This URL uses a secret key unique to this workflow. You can reset this secret key from the Workflow Settings page if it is compromised.
-
-This can be a GET or POST request. You can send request headers, and body to the Webhook trigger and that can be accessed by any other components downstream.
+The request's headers, query parameters and body are passed to the next steps. **Returns** lists the reference for each. To read one field of a JSON body, add the field's name to the end of the reference, as in `request-body.message`.
