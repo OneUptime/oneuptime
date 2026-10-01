@@ -18,7 +18,7 @@ De MCP-server wordt gehost naast uw OneUptime-instantie en is toegankelijk via h
 - **~155 tools**: Volledige CRUD-tools voor 22 resourcetypen (incidenten, meldingen, monitors, statuspagina's, piket en meer), alleen-lezen telemetrietools, plus workflow- en hulptools
 - **Realtime bewerkingen**: Resources aanmaken, lezen, bijwerken en verwijderen in realtime
 - **Type-veilige interface**: Volledig getypeerd met uitgebreide invoervalidatie
-- **Veilige authenticatie**: API-sleutelauthenticatie per verzoek met correcte foutafhandeling
+- **Veilige authenticatie**: Inloggen met uw OneUptime-account (OAuth 2.1), of per verzoek een API-sleutel meesturen voor agenten die onbeheerd draaien
 - **Veiligheidsannotaties**: Alleen-lezen tools dragen `readOnlyHint` en verwijdertools dragen `destructiveHint`, zodat MCP-clients veilige aanroepen automatisch kunnen goedkeuren en om bevestiging kunnen vragen bij destructieve
 - **Eenvoudige integratie**: Werkt met Claude Desktop en andere MCP-compatibele clients
 - **Stateless by design**: Geen sessie-ID's — elk verzoek is op zichzelf staand, zodat de server werkt achter load balancers en implementaties met meerdere replica's
@@ -39,9 +39,48 @@ Met de OneUptime MCP Server kunnen AI-assistenten u helpen bij:
 
 - OneUptime-instantie (cloud of zelf-gehost)
 - MCP-compatibele client (Claude Desktop, VS Code met GitHub Copilot, enz.)
-- Geldige OneUptime API-sleutel (alleen vereist voor geauthenticeerde bewerkingen — publieke tools werken zonder)
+- Een OneUptime-account om mee in te loggen, of een OneUptime API-sleutel voor een agent die onbeheerd draait (alleen vereist voor geauthenticeerde bewerkingen — publieke tools werken zonder een van beide)
+
+## Inloggen met OneUptime
+
+De eenvoudigste manier om verbinding te maken is uw MCP-client de server-URL te geven en verder niets. De eerste keer dat de client uw gegevens nodig heeft, opent hij een OneUptime-pagina in uw browser. Daar doet u het volgende:
+
+1. Log in bij OneUptime, als u nog niet bent ingelogd
+2. Kies het project waarin de client moet werken
+3. Kies of de client mag **lezen en schrijven**, of **alleen lezen**
+4. Klik op **Autoriseren**
+
+De client handelt daarna namens u in dat project. Er is geen API-sleutel om aan te maken, te kopiëren of te roteren, en er wordt niets geheims in een configuratiebestand opgeslagen.
+
+Wat een gekoppelde client kan doen:
+
+- **Hij heeft uw machtigingen, en nooit meer.** Wat uw teams u in het project toestaan, is wat de client kan doen. Als uw rol verandert of u het project verlaat, geldt dat al voor het eerstvolgende verzoek van de client.
+- **Alleen lezen betekent alleen lezen.** Een client die voor alleen lezen is geautoriseerd, kan de `get_`-, `list_`- en `count_`-tools gebruiken. Tools die aanmaken, bijwerken, verwijderen, bevestigen of oplossen worden geweigerd, zowel door de MCP-server als door de OneUptime API erachter. U kunt een client nooit meer toegang geven dan waar hij om heeft gevraagd.
+- **Hij geldt voor één project.** Om een tweede project te gebruiken, koppelt u de client opnieuw en kiest u dat project.
+- **Hij werkt alleen via de MCP-server.** Het toegangstoken van de client wordt geaccepteerd door het MCP-eindpunt en nergens anders. Het kan niet worden gebruikt om de OneUptime REST API rechtstreeks aan te roepen.
+- **Instantiebeheerders krijgen geen speciale behandeling.** Een client die door een master admin is gekoppeld, heeft wat de teams van die persoon in het project toekennen, en geen toegang tot de hele instantie.
+
+### Gekoppelde clients beheren
+
+Elke client die door in te loggen is gekoppeld, staat vermeld onder **Projectinstellingen** → **MCP-server** → **Connected MCP Clients** (gekoppelde MCP-clients), met wie hem heeft gekoppeld, wat hij mag doen en wanneer hij voor het laatst is gebruikt. U ziet de clients die u zelf hebt gekoppeld; projecteigenaren en -beheerders zien die van iedereen.
+
+Klik op **Disconnect** (loskoppelen) om een client uit te loggen. Hij werkt dan onmiddellijk niet meer.
+
+Een client blijft gekoppeld zolang hij wordt gebruikt. Een client die 30 dagen niet is gebruikt, moet opnieuw inloggen.
+
+### Bepalen wie clients mag koppelen
+
+Standaard kan elk projectlid een MCP-client koppelen. Om de leden van een team dat te beletten, opent u het team, gaat u naar **Machtigingen blokkeren** en voegt u de machtiging **Authorize MCP Client** (MCP-client autoriseren) toe. Clients die deze leden al hadden gekoppeld, werken dan meteen niet meer.
+
+Als het project Single Sign-On vereist, logt u in uw browser met SSO in bij het project voordat u een client autoriseert. De koppeling van de client blijft bestaan zolang die SSO-login geldig is; wanneer die verloopt, koppelt u de client opnieuw.
+
+Op OneUptime Cloud is het koppelen van een MCP-client beschikbaar in dezelfde abonnementen als API-sleutels (Growth en hoger).
+
+In de Enterprise Edition wordt elke wijziging die een gekoppelde client aanbrengt, vastgelegd in het auditlogboek onder de persoon die de client heeft gekoppeld, samen met de naam van de client. Wijzigingen die met een API-sleutel zijn aangebracht, tonen de naam van de sleutel.
 
 ## Uw API-sleutel ophalen
+
+Gebruik een API-sleutel voor een agent die onbeheerd draait — een geplande taak of een CI-pipeline — waarbij niemand aanwezig is om in te loggen.
 
 1. Log in op uw OneUptime-instantie
 2. Navigeer naar **Projectinstellingen** → **API-sleutels**
@@ -55,6 +94,53 @@ API-sleutels zijn projectgebonden: de MCP-server leidt uw project af uit de sleu
 > **Waarschuwing — geef een AI-agent nooit een master-sleutel.** Een OneUptime *master*-API-sleutel wordt ook op deze header geaccepteerd en verleent beheerderstoegang tot de hele instantie. Gebruik altijd een project-API-sleutel met de minste rechten die de agent nodig heeft (een alleen-lezen sleutel volstaat voor alle `get_`/`list_`/`count_`-tools).
 
 ## Configuratie
+
+### Verbinding maken door in te loggen
+
+Voeg de server-URL toe aan uw client, zonder inloggegevens. Gebruik `https://your-oneuptime-domain.com/mcp` voor een zelf-gehoste instantie.
+
+**Claude Code**
+
+```bash
+claude mcp add --transport http oneuptime https://oneuptime.com/mcp
+```
+
+Voer daarna `/mcp` uit in Claude Code en kies **oneuptime** om in te loggen.
+
+**Claude (web en desktop)**
+
+Open **Customize** → **Connectors**, kies **Add custom connector** en voer `https://oneuptime.com/mcp` in. Claude vraagt u om in te loggen bij OneUptime zodra het voor het eerst uw gegevens nodig heeft.
+
+**VS Code met GitHub Copilot**
+
+Voeg dit toe aan uw MCP-configuratie (zie [VS Code met GitHub Copilot](#vs-code-met-github-copilot) voor de locatie van dat bestand). VS Code opent OneUptime zodat u kunt inloggen wanneer u de server start:
+
+```json
+{
+  "servers": {
+    "oneuptime": {
+      "type": "http",
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+
+**Cursor**
+
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+
+Elke andere client die MCP-autorisatie ondersteunt, werkt op dezelfde manier: geef hem de URL en hij ontdekt al het andere zelf. Zie [Inloggen (OAuth 2.1)](#inloggen-oauth-21) voor de protocoldetails.
+
+De rest van deze sectie toont dezelfde clients, maar dan geconfigureerd met een API-sleutel.
 
 ### Claude Desktop-configuratie
 
@@ -214,9 +300,20 @@ De bovenstaande configuratie gebruikt invoervariabelen met `"password": true` om
 | `/mcp/health` | GET    | Gezondheidscontrolepunt                                                                                                           |
 | `/mcp/tools`  | GET    | REST API om beschikbare tools te vermelden                                                                                        |
 
+MCP-clients die inloggen, gebruiken ook de onderstaande OAuth-eindpunten. Een client vindt ze zelf; ze staan hier vermeld voor wie een client schrijft of een proxy configureert.
+
+| Eindpunt                                      | Methode | Beschrijving |
+| --------------------------------------------- | ------ | ------------------------------------------------------------------------ |
+| `/mcp/.well-known/oauth-protected-resource`   | GET    | Metadata van de beschermde resource (RFC 9728). Ook op `/.well-known/oauth-protected-resource/mcp` |
+| `/.well-known/oauth-authorization-server/mcp` | GET    | Metadata van de autorisatieserver (RFC 8414). Ook op `/mcp/.well-known/oauth-authorization-server` |
+| `/mcp/oauth/authorize`                        | GET    | Autorisatie-eindpunt: waar de client uw browser naartoe stuurt om in te loggen |
+| `/mcp/oauth/token`                            | POST   | Token-eindpunt: wisselt een autorisatiecode of een vernieuwingstoken in |
+| `/mcp/oauth/register`                         | POST   | Dynamische clientregistratie (RFC 7591) |
+| `/mcp/oauth/revoke`                           | POST   | Intrekking van tokens (RFC 7009) |
+
 ## Authenticatie
 
-De MCP-server ondersteunt twee bedrijfsmodi:
+De MCP-server ondersteunt drie bedrijfsmodi:
 
 ### Publieke tools (geen authenticatie vereist)
 
@@ -231,14 +328,30 @@ U kunt verbinding maken met de MCP-server zonder API-sleutel om toegang te krijg
 
 Publieke statuspagina-tools accepteren een statuspagina-ID (UUID) of de domeinnaam van de statuspagina.
 
-### Geauthenticeerde tools (API-sleutel vereist)
+### Inloggen (OAuth 2.1)
 
-Voor alle andere bewerkingen (monitors, incidenten, teams beheren, enz.) is authenticatie vereist via een van de volgende headers:
+Voor alle andere bewerkingen (monitors, incidenten, teams beheren, enz.) moet de aanroeper worden geïdentificeerd. Een client die geen inloggegevens meestuurt en een van deze tools aanroept, krijgt als antwoord `401 Unauthorized` en een `WWW-Authenticate`-header die verwijst naar de metadata van de beschermde resource van de server. Dat is het signaal waarop een MCP-client reageert om u te laten inloggen; `initialize`, `tools/list` en de publieke tools vragen daar nooit om.
+
+De server implementeert de [MCP-autorisatiespecificatie](https://modelcontextprotocol.io/specification/latest/basic/authorization):
+
+- **Flow**: OAuth 2.1-autorisatiecode met PKCE (alleen `S256`). Toegangstokens worden verstuurd als `Authorization: Bearer`.
+- **Discovery**: metadata van de beschermde resource (RFC 9728) en metadata van de autorisatieserver (RFC 8414). De issuer en de resource zijn beide `https://<host>/mcp`.
+- **Clientidentiteit**: een Client ID Metadata Document (de client-ID is een `https`-URL die de server ophaalt), of dynamische clientregistratie (Dynamic Client Registration, RFC 7591). Geen enkele client hoeft door een beheerder te worden geregistreerd.
+- **Scopes**: `mcp:read` voor de `get_`-, `list_`- en `count_`-tools; `mcp:write` voegt elke tool toe die iets wijzigt, en omvat `mcp:read`. Een alleen-lezen token dat een schrijftool aanroept, krijgt als antwoord `403` en `error="insufficient_scope"`.
+- **Levensduur van tokens**: een toegangstoken is één uur geldig. Een vernieuwingstoken (refresh token) is 30 dagen geldig en wordt bij elk gebruik vervangen; het gebruik van een vernieuwingstoken dat al is vervangen, beëindigt de koppeling.
+- **Resource-indicatoren** (RFC 8707): een token wordt uitgegeven voor `https://<host>/mcp` en wordt nergens anders geaccepteerd.
+- **Intrekking** (RFC 7009): het intrekken van een van beide tokens beëindigt de koppeling.
+
+### API-sleutel
+
+Een agent die onbeheerd draait, authenticeert zich met een OneUptime API-sleutel in een van de volgende headers:
 
 - `x-api-key`: Uw OneUptime API-sleutel
 - `Authorization`: Bearer-token met uw API-sleutel (bijv. `Bearer your-api-key-here`)
 
-Het `Bearer`-schema is hoofdletterongevoelig. Toolfouten worden geretourneerd als in-band toolresultaten (`isError: true`) met een `statusCode`, details en een suggestie — niet als MCP-protocolfouten — zodat agenten de fout kunnen lezen en zichzelf kunnen corrigeren.
+Het `Bearer`-schema is hoofdletterongevoelig. Een verzoek dat een API-sleutel bevat, krijgt nooit de vraag om in te loggen.
+
+Toolfouten worden geretourneerd als in-band toolresultaten (`isError: true`) met een `statusCode`, details en een suggestie — niet als MCP-protocolfouten — zodat agenten de fout kunnen lezen en zichzelf kunnen corrigeren.
 
 ## Workflowtools
 
@@ -253,7 +366,7 @@ Een typische lus: `list_incidents` → `acknowledge_incident` → onderzoeken me
 
 ## Wie ben ik
 
-De tool **`oneuptime_whoami`** retourneert het project waartoe uw API-sleutel behoort (ID en naam). Het is een nuttige eerste aanroep waarmee een agent zich kan oriënteren — en omdat aanmaaktools `projectId` afleiden uit de API-sleutel, hoeft de agent nooit een project-ID mee te geven.
+De tool **`oneuptime_whoami`** retourneert het project waartoe uw inloggegevens behoren (ID en naam). Voor een client die is ingelogd, retourneert de tool ook als wie de client is ingelogd en of hij wijzigingen mag aanbrengen. Het is een nuttige eerste aanroep waarmee een agent zich kan oriënteren — en omdat aanmaaktools `projectId` afleiden uit de inloggegevens, hoeft de agent nooit een project-ID mee te geven.
 
 ## Telemetrie opvragen
 
@@ -388,11 +501,32 @@ Voor volledige toegang om resources aan te maken, bij te werken en te verwijdere
 - Houd gebruik bij: Volg het gebruik van API-sleutels in OneUptime
 - Aparte sleutels: Gebruik verschillende API-sleutels voor verschillende omgevingen
 
+## Configuratie voor zelf-gehoste instanties
+
+Inloggen werkt direct op een zelf-gehoste instantie, zonder extra configuratie. Er zijn twee instellingen beschikbaar:
+
+| Omgevingsvariabele | Helm-waarde | Wat het doet |
+| --- | --- | --- |
+| `DISABLE_MCP_OAUTH` | `mcpOAuth.disabled` | Stel in op `true` om inloggen uit te schakelen. De OAuth-eindpunten worden dan niet meer aangeboden en de MCP-server accepteert alleen API-sleutels. Er wordt niets verwijderd; gekoppelde clients werken weer zodra de instelling wordt teruggezet. |
+| `DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS` | `mcpOAuth.disableClientIdMetadataDocuments` | Stel in op `true` op een instantie die het internet niet kan bereiken. Een client kan zich identificeren met een URL die OneUptime ophaalt; met deze instelling registreren clients zich in plaats daarvan rechtstreeks bij uw instantie, waarvoor geen uitgaand verzoek nodig is. |
+
+Als u een eigen reverse proxy vóór OneUptime gebruikt, stuur dan `/.well-known/oauth-protected-resource` en `/.well-known/oauth-authorization-server` (en alles daaronder) samen met `/mcp` door naar OneUptime. De meegeleverde ingress doet dat al.
+
+De server bouwt elke OAuth-URL op uit de instellingen `HOST` en `HTTP_PROTOCOL`, dus die moeten overeenkomen met het adres waarmee mensen uw instantie bereiken.
+
 ## Probleemoplossing
+
+### Inlogproblemen
+
+- **De client vraagt me nooit om in te loggen**: mogelijk ondersteunt de client geen MCP-autorisatie, of is hij geconfigureerd met een API-sleutelheader, die voorrang heeft. Verwijder de header om in plaats daarvan in te loggen.
+- **Mijn project is uitgegrijsd op de autorisatiepagina**: de pagina vermeldt de reden naast de projectnaam — het abonnement van het project omvat het koppelen van MCP-clients niet, het project vereist SSO en in deze browser is niet met SSO bij het project ingelogd, of het koppelen van clients is voor uw team geblokkeerd.
+- **Een tool wordt geweigerd met "read-only"**: de client is voor alleen lezen geautoriseerd. Koppel hem opnieuw en kies **Lezen en schrijven**.
+- **De client werkt niet meer**: hij is losgekoppeld, is 30 dagen niet gebruikt, u bent uit het project verwijderd, of de SSO-login van het project is verlopen. Koppel hem opnieuw.
+- **Zelf-gehost — de client meldt dat hij de autorisatieserver niet kan vinden**: controleer of `HOST` en `HTTP_PROTOCOL` overeenkomen met uw openbare adres, en of uw proxy de `/.well-known/oauth-*`-paden doorstuurt.
 
 ### Machtigingsfouten
 
-Zorg dat uw API-sleutel de benodigde machtigingen heeft:
+Zorg dat uw API-sleutel — of, voor een client die is ingelogd, uw eigen account — de benodigde machtigingen heeft:
 
 - Leestoegang voor het weergeven van resources
 - Schrijftoegang voor het aanmaken/bijwerken van resources
