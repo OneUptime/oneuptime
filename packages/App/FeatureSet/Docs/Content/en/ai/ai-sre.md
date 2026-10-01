@@ -30,7 +30,7 @@ Under the report, the **AI Investigation** box has a conversation — **Ask OneU
 
 ## Enabling AI investigations
 
-Autonomous investigations are **on by default for new projects**. A project created before this default keeps its setting; turn investigations on as in step 3, or with **Turn on** on any Kubernetes cluster's **AI agent** page (Project Owner or Project Admin). To check or change them:
+Autonomous investigations are **on by default for new projects**. So is every other AI feature on this page: postmortem drafts, automatic code fixes and AI Insights. A project created before this default keeps its setting; turn investigations on as in step 3, or with **Turn on** on any Kubernetes cluster's **AI agent** page (Project Owner or Project Admin). To check or change them:
 
 1. **Configure an LLM provider.** Self-hosted installations bring their own key (or run fully air-gapped with local Ollama) — see [LLM Providers](/docs/ai/llm-provider). OneUptime Cloud users can use the pre-configured global provider, billed as metered AI tokens, so the project needs AI credits (Project Settings > AI Credits) or auto-recharge.
 2. **Make sure AI is enabled for the project** (it is by default) — Project Settings > AI > AI Features > Enable AI.
@@ -40,7 +40,7 @@ Autonomous investigations are **on by default for new projects**. A project crea
 
 Incidents and alerts are configured independently, so you can give each signal type its own concurrency cap, daily token budget, fix-task budget, and follow-up pull request policy. Changing an alert AI setting does not change the corresponding incident setting, or vice versa.
 
-One further setting builds on top of investigations: **Enable Automatic Code Fixes** (off by default and configured independently on each signal type's AI settings page) lets an investigation that confidently identifies a repository code change open a fix pull request automatically — see **Automatic code fixes** below.
+One further setting builds on top of investigations: **Enable Automatic Code Fixes** (on for new projects and configured independently on each signal type's AI settings page) lets an investigation that confidently identifies a repository code change open a fix pull request automatically — see **Automatic code fixes** below.
 
 ## Cluster access — let OneUptime AI run kubectl
 
@@ -160,7 +160,7 @@ Whether an analysis counts as confident is decided by a server-verified signal, 
 
 ## Automatic code fixes
 
-For projects that opt in, a confident analysis that recommends a repository code change can go one step further than notifying: it opens the fix. **Enable Automatic Code Fixes** is configured independently under **Incidents > AI > Investigation** and **Alerts > AI > Investigation** (both are **off by default**). A signal type with this setting enabled automatically queues the same fix task as the **Open Fix PR from this analysis** button on the investigation panel: an AI agent task that turns the posted analysis into a pull request, ready for review. The button uses the same recommendation and is hidden for analyses whose remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive.
+A confident analysis that recommends a repository code change can go one step further than notifying: it opens the fix. **Enable Automatic Code Fixes** is configured independently under **Incidents > AI > Investigation** and **Alerts > AI > Investigation** (both are **on by default for new projects**; a project created before this default keeps its setting). Nothing opens until the project has a GitHub-App-connected repository and a Runner with the code-fix capability. A signal type with this setting enabled automatically queues the same fix task as the **Open Fix PR from this analysis** button on the investigation panel: an AI agent task that turns the posted analysis into a pull request, ready for review. The button uses the same recommendation and is hidden for analyses whose remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive.
 
 The same constrained, server-verified classification that decides confidence also decides whether a repository change is appropriate. Only a positive code-fix classification offers or automatically opens the pull request. An investigation that gathered no server-verified evidence, recommends a non-code remedy, or whose classification failed never opens one — PR creation always fails toward doing nothing. Everything else matches the manual button: the pull request opens ready for review, needs a GitHub-App-connected repository and a Runner with the code-fix capability, counts against that signal type's daily fix-task budget and each repository's open-PR cap, and at most one fix task per incident or alert can be active at a time. The investigation itself stays read-only — the fix runs as a separate, fully-logged agent task. See [Fix Tasks](/docs/ai/ai-agent) for how fix pull requests work, including the build-and-test verification that runs before each pull request opens.
 
@@ -198,7 +198,7 @@ Alert volume can be much higher than incident volume, so autonomous investigatio
 
 ## Auto-postmortem
 
-Separately from investigations, OneUptime AI can draft a postmortem automatically when an incident is resolved. It is its own switch — **Draft a postmortem automatically when an incident resolves**, on the incident AI settings page (Incidents > AI) — and it is **off by default**, so investigations being on for new projects does not start writing postmortems. Projects that already drafted postmortems keep doing so. The draft never overwrites an existing postmortem note. This uses the same LLM provider and appears in the incident's postmortem tab for human review.
+Separately from investigations, OneUptime AI can draft a postmortem automatically when an incident is resolved. It is its own switch — **Draft a postmortem automatically when an incident resolves**, on the incident AI settings page (Incidents > AI) — so you can investigate without drafting, or draft without investigating. It is **on by default for new projects**; a project created before this default keeps its setting. The draft never overwrites an existing postmortem note. This uses the same LLM provider and appears in the incident's postmortem tab for human review.
 
 ## Insights — proactive detection
 
@@ -220,7 +220,7 @@ When an LLM provider is configured, each new insight also gets a **triage analys
 
 Optionally, OneUptime AI can also open a **fix pull request** for the insight types with the strongest evidence: new and spiking exceptions (through the existing exception-fix pipeline) and trace latency regressions (grounded in the span evidence recorded on the insight). Error-log spikes and metric drift are never auto-fixed. Every automatic fix PR opens ready for review, counts against the built-in limit of 25 fix tasks per day for AI work outside incidents and alerts and each repository's open-PR cap, and requires human review — auto-merge does not exist.
 
-Both settings are **off by default**, at **AI > Insights > Settings**:
+Both settings are **on by default for new projects** (a project created before this default keeps its setting), at **AI > Insights > Settings**:
 
 1. **Enable AI Insights** — turns on the watch loop, the inbox, and triage.
 2. **Automatically open fix PRs from insights** — turns on fix-task creation for eligible insights. This needs the same setup as the manual "Fix with AI" flow: a GitHub-App-connected repository and an LLM provider.

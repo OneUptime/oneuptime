@@ -891,7 +891,7 @@ describe("Incidents → Settings → AI", () => {
     );
   }
 
-  test("has its own card for the postmortem draft, off by default here", async () => {
+  test("has its own card for the postmortem draft, off in this project", async () => {
     openIncidentAiSettings();
 
     expect(await findText("Automatic Postmortem Draft")).toBeInTheDocument();
