@@ -61,7 +61,7 @@ OneUptime की लगभग हर चीज़ — मॉनिटर, घट
 - **Status Page Subscriber** — जो किसी स्थिति पृष्ठ की सदस्यता ले, उसका स्वागत कीजिए।
 - **On-Call Duty Policy** — schedule के बदलाव किसी दूसरे roster सिस्टम से मिलाइए।
 
-जो चाहिए वह ढूँढने के लिए **Add Trigger** panel में नाम से खोजिए।
+**Add Trigger** panel में ये **OneUptime resources** के नीचे हैं: resource पर क्लिक कीजिए, फिर trigger पर। **Browse all resources** में सभी हैं, और खोज बॉक्स कुछ शब्दों से, जैसे `incident created`, trigger ढूँढ देता है।
 
 ## मुझे कौन-सा trigger चुनना चाहिए?
 

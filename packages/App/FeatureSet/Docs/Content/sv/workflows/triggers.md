@@ -61,7 +61,7 @@ Hela posten skickas vidare till nästa block. Utlösaren **Incident → On Creat
 - **Statussida Prenumerant** — välkomna någon som prenumererar på en statussida.
 - **On-Call Duty Policy** — synka schemaändringar till ett annat joursystem.
 
-Sök på namn i panelen **Add Trigger** för att hitta den du vill ha.
+I panelen **Add Trigger** ligger de under **OneUptime resources**: klicka på resursen och sedan på utlösaren. **Browse all resources** har alla, och sökrutan hittar en utlösare utifrån några få ord, till exempel `incident created`.
 
 ## Vilken utlösare ska jag använda?
 

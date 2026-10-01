@@ -50,6 +50,8 @@ import {
  */
 let mockFlowProps: ReactFlowProps | null = null;
 let mockSettingsProps: SettingsProps | null = null;
+// Every render of either picker, in order.
+let mockPickerProps: Array<PickerProps> = [];
 const mockSetCenter: MockFunction = getJestMockFunction();
 const mockSetViewport: MockFunction = getJestMockFunction();
 const mockGetViewport: MockFunction = getJestMockFunction();
@@ -141,6 +143,8 @@ jest.mock("../../../../UI/Components/Workflow/ComponentsModal", () => {
   return {
     __esModule: true,
     default: (props: PickerProps): ReactElement => {
+      mockPickerProps.push(props);
+
       return (
         <div data-testid={`picker-${props.componentsType}`}>
           {props.components.map((metadata: ComponentMetadata): ReactElement => {
@@ -476,6 +480,7 @@ const pressKey: PressKeyFunction = (
 beforeEach(() => {
   mockFlowProps = null;
   mockSettingsProps = null;
+  mockPickerProps = [];
   mockSetCenter.mockReset();
   mockSetCenter.mockResolvedValue(true);
   mockSetViewport.mockReset();
@@ -619,6 +624,51 @@ describe("Workflow builder: adding a step leaves its settings closed", () => {
 
     expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
     expect(getRenderedNodes()).toHaveLength(1);
+  });
+
+  test("the component picker is handed the same catalog every time it opens, so it is organised and indexed once", () => {
+    const harness: BuilderHarness = renderBuilder();
+
+    // Three openings, with steps added (and the canvas redrawn) in between.
+    addAction(harness);
+    addAction(harness);
+    openPicker(harness);
+
+    const opened: Array<PickerProps> = mockPickerProps.filter(
+      (props: PickerProps): boolean => {
+        return props.componentsType === ComponentType.Component;
+      },
+    );
+
+    expect(opened.length).toBeGreaterThanOrEqual(3);
+    expect(opened[0]!.components).toEqual([ACTION_METADATA]);
+
+    for (const props of opened) {
+      expect(props.components).toBe(opened[0]!.components);
+      expect(props.categories).toBe(opened[0]!.categories);
+    }
+  });
+
+  test("the trigger picker is handed the triggers, the same array each time it opens", () => {
+    const placeholder: Node = getPlaceholderTriggerNode();
+    renderBuilder({ initialNodes: [placeholder] });
+
+    fireEvent.click(screen.getByTestId(`workflow-node-${placeholder.id}`));
+    fireEvent.click(screen.getByRole("button", { name: "Close picker" }));
+    fireEvent.click(screen.getByTestId(`workflow-node-${placeholder.id}`));
+
+    const opened: Array<PickerProps> = mockPickerProps.filter(
+      (props: PickerProps): boolean => {
+        return props.componentsType === ComponentType.Trigger;
+      },
+    );
+
+    expect(opened.length).toBeGreaterThanOrEqual(2);
+    expect(opened[0]!.components).toEqual([TRIGGER_METADATA]);
+
+    for (const props of opened) {
+      expect(props.components).toBe(opened[0]!.components);
+    }
   });
 });
 

@@ -131,7 +131,7 @@ Konverter mellom tekst og JSON.
 
 ## Conditions
 
-Forgrening basert på en sammenligning. I **Legg til komponent**-panelet heter denne blokken **If / Else**, under Betingelser-kategorien.
+Forgrening basert på en sammenligning. I **Legg til komponent**-panelet heter denne blokken **If / Else**, under **Popular**.
 
 **Innstillinger**:
 
@@ -159,7 +159,7 @@ Det finnes en sikkerhetsgrense så arbeidsflyter ikke kan kalle hverandre i det 
 
 ## OneUptime-datakomponenter
 
-For hver posttype i OneUptime (monitorer, hendelser, varsler, statussider, vaktpolicyer og mange flere) har **Legg til komponent**-panelet disse komponentene — søk etter navnet på typen. Hver tittel genereres ut fra posttypen, så Monitor-settet ser slik ut:
+For hver posttype i OneUptime (monitorer, hendelser, varsler, statussider, vaktpolicyer og mange flere) har **Legg til komponent**-panelet disse komponentene: klikk på posttypen under **OneUptime resources** (**Browse all resources** har de som ikke vises), eller søk etter navnet på typen. Hver tittel genereres ut fra posttypen, så Monitor-settet ser slik ut:
 
 - **Find One Monitor** — les én post som matcher spørringen.
 - **Find Many Monitors** — les en liste med poster som matcher spørringen.

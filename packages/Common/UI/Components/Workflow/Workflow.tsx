@@ -239,6 +239,23 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     setAllComponentMetadata(value.components);
   }, []);
 
+  /*
+   * The same arrays every time a picker opens: it organises and indexes the
+   * catalog once per array (ComponentPicker), so only the first opening
+   * pays for that.
+   */
+  const actionComponents: Array<ComponentMetadata> = useMemo(() => {
+    return allComponentMetadata.filter((comp: ComponentMetadata) => {
+      return comp.componentType === ComponentType.Component;
+    });
+  }, [allComponentMetadata]);
+
+  const triggerComponents: Array<ComponentMetadata> = useMemo(() => {
+    return allComponentMetadata.filter((comp: ComponentMetadata) => {
+      return comp.componentType === ComponentType.Trigger;
+    });
+  }, [allComponentMetadata]);
+
   const edgeUpdateSuccessful: any = useRef(true);
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
@@ -974,9 +991,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             setShowComponentsModal(false);
           }}
           categories={allComponentCategories}
-          components={allComponentMetadata.filter((comp: ComponentMetadata) => {
-            return comp.componentType === ComponentType.Component;
-          })}
+          components={actionComponents}
           onComponentClick={(component: ComponentMetadata) => {
             setShowComponentsModal(false);
 
@@ -992,9 +1007,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             setShowTriggersModal(false);
           }}
           categories={allComponentCategories}
-          components={allComponentMetadata.filter((comp: ComponentMetadata) => {
-            return comp.componentType === ComponentType.Trigger;
-          })}
+          components={triggerComponents}
           onComponentClick={(component: ComponentMetadata) => {
             setShowTriggersModal(false);
 

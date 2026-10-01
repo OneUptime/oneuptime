@@ -69,7 +69,7 @@ This is how you build "when X happens in OneUptime, do Y" without needing to che
 - **Status Page Subscriber** — welcome someone who subscribes to a status page.
 - **On-Call Duty Policy** — sync schedule changes to another roster system.
 
-Search the **Add Trigger** panel by name to find the one you want.
+In the **Add Trigger** panel these are under **OneUptime resources**: click the resource, then the trigger. **Browse all resources** has every one, and the search box finds a trigger from a few words, such as `incident created`.
 
 ## Which trigger should I use?
 
