@@ -184,6 +184,38 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       );
     }
 
+    /*
+     * An invitation by email is for whoever has that address. They are only
+     * looked up here, so that the member limits below can tell whether they
+     * are in the project already. Someone with no account yet gets one
+     * further down, once the invitation has been allowed, so a refused
+     * invitation never leaves a user behind.
+     *
+     * `password` comes back too, because whether this person has finished
+     * registering decides both which link the invitation carries and whether
+     * that link needs a registration token. UserService.findByEmail selects
+     * only the id, so it cannot answer that.
+     */
+    const inviteeEmail: Email | null =
+      createBy.miscDataProps && createBy.miscDataProps["email"]
+        ? new Email(createBy.miscDataProps["email"] as string)
+        : null;
+
+    const existingInvitee: User | null = inviteeEmail
+      ? await UserService.findOneBy({
+          query: {
+            email: inviteeEmail,
+          },
+          select: {
+            _id: true,
+            password: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      : null;
+
     // check if this project can have more members.
     if (IsBillingEnabled && createBy.data.projectId) {
       const project: Project | null = await ProjectService.findOneById({
@@ -196,32 +228,51 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         },
       });
 
+      const hasMemberLimit: boolean = Boolean(
+        project &&
+          (project.seatLimit || createBy.props.currentPlan === PlanType.Free),
+      );
+
+      const inviteeUserId: ObjectID | null | undefined = inviteeEmail
+        ? existingInvitee?.id
+        : createBy.data.userId;
+
       /*
-       * Billing can lag after a provider outage. Admission limits must use
-       * persisted memberships, including pending invitations.
+       * Both limits count people, not memberships, and a pending invitation
+       * counts as much as an accepted one (see
+       * getUniqueTeamMemberCountInProject). Someone who already has either in
+       * this project is in that count already: adding them to another team
+       * leaves it where it was, so neither limit applies to them.
        */
-      const numberOfMembers: number =
-        project &&
-        (project.seatLimit || createBy.props.currentPlan === PlanType.Free)
-          ? await this.getUniqueTeamMemberCountInProject(projectId)
-          : 0;
+      const isInviteeAlreadyCounted: boolean = Boolean(
+        hasMemberLimit &&
+          inviteeUserId &&
+          (await this.hasMembershipInProject({
+            projectId: projectId,
+            userId: inviteeUserId,
+          })),
+      );
 
-      if (
-        project &&
-        project.seatLimit &&
-        numberOfMembers >= project.seatLimit
-      ) {
-        throw new BadDataException(Errors.TeamMemberService.LIMIT_REACHED);
-      }
+      if (project && hasMemberLimit && !isInviteeAlreadyCounted) {
+        /*
+         * Billing can lag after a provider outage. Admission limits must use
+         * persisted memberships, including pending invitations.
+         */
+        const numberOfMembers: number =
+          await this.getUniqueTeamMemberCountInProject(projectId);
 
-      if (
-        createBy.props.currentPlan === PlanType.Free &&
-        project &&
-        numberOfMembers >= 1
-      ) {
-        throw new BadDataException(
-          Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
-        );
+        if (project.seatLimit && numberOfMembers >= project.seatLimit) {
+          throw new BadDataException(Errors.TeamMemberService.LIMIT_REACHED);
+        }
+
+        if (
+          createBy.props.currentPlan === PlanType.Free &&
+          numberOfMembers >= 1
+        ) {
+          throw new BadDataException(
+            Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
+          );
+        }
       }
     }
 
@@ -259,36 +310,17 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       delete createBy.data.invitationAcceptedAt;
     }
 
-    if (createBy.miscDataProps && createBy.miscDataProps["email"]) {
-      const email: Email = new Email(createBy.miscDataProps["email"] as string);
-
+    if (inviteeEmail) {
       /*
        * Optional name supplied on the invite form. Used only to set the name on
        * a brand-new user, or to backfill an existing user who has no name yet —
        * we never overwrite a name the user has already set.
        */
-      const nameValue: string | undefined = createBy.miscDataProps["name"]
+      const nameValue: string | undefined = createBy.miscDataProps?.["name"]
         ? (createBy.miscDataProps["name"] as string).trim()
         : undefined;
 
-      /*
-       * `password` comes back too, because whether this person has finished
-       * registering decides both which link the invitation carries and whether
-       * that link needs a registration token. UserService.findByEmail selects
-       * only the id, so it cannot answer that.
-       */
-      let user: User | null = await UserService.findOneBy({
-        query: {
-          email: email,
-        },
-        select: {
-          _id: true,
-          password: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      let user: User | null = existingInvitee;
 
       let isNewUser: boolean = false;
 
@@ -296,7 +328,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         isNewUser = true;
 
         user = await UserService.createByEmail({
-          email,
+          email: inviteeEmail,
           name: nameValue ? new Name(nameValue) : undefined,
           // Record who invited this brand-new user, so it can be surfaced later.
           createdByUserId: createBy.props.userId,
@@ -367,7 +399,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           ? (
               await UserRegistrationToken.generateRegistrationLink({
                 userId: user.id!,
-                email: email,
+                email: inviteeEmail,
               })
             ).toString()
           : URL.fromString(
@@ -378,12 +410,12 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
               ).toString(),
             )
               .addRoute("/register")
-              .addQueryParam("email", email.toString(), true)
+              .addQueryParam("email", inviteeEmail.toString(), true)
               .toString();
 
         MailService.sendMail(
           {
-            toEmail: email,
+            toEmail: inviteeEmail,
             templateType: EmailTemplateType.InviteMember,
             vars: {
               signInLink: URL.fromString(
@@ -1395,6 +1427,30 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       });
 
     return [...new Set(memberIds)].length; //get unique member ids.
+  }
+
+  /*
+   * Whether the user has any membership in the project, a pending invitation
+   * included - which is what getUniqueTeamMemberCountInProject counts them
+   * by. isUserMemberOfProject answers the narrower question of whether they
+   * have accepted one.
+   */
+  @CaptureSpan()
+  private async hasMembershipInProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<boolean> {
+    const count: PositiveNumber = await this.countBy({
+      query: {
+        projectId: data.projectId,
+        userId: data.userId,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return count.toNumber() > 0;
   }
 
   /**
