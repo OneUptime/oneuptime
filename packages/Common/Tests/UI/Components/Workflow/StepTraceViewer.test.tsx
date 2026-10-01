@@ -370,9 +370,9 @@ describe("StepTraceViewer", () => {
       test("says a step that worked but took no port ended the run", () => {
         renderTrace({ steps: [aStep({ executedPort: null })] });
 
-        expect(screen.getByTestId("workflow-run-step-outcome")).toHaveTextContent(
-          "Took no output, so the run ended here.",
-        );
+        expect(
+          screen.getByTestId("workflow-run-step-outcome"),
+        ).toHaveTextContent("Took no output, so the run ended here.");
         expect(
           screen.queryByTestId("workflow-run-step-port"),
         ).not.toBeInTheDocument();
@@ -587,6 +587,76 @@ describe("StepTraceViewer", () => {
     });
   });
 
+  describe("a run sleeping on a Sleep step", () => {
+    const sleepingTrace: () => WorkflowStepTrace = (): WorkflowStepTrace => {
+      return {
+        steps: [
+          aStep({
+            title: "Sleep",
+            componentId: "sleep-1",
+            executedPortTitle: "Out",
+            nextSteps: [{ componentId: "email-1", title: "Send Email" }],
+          }),
+        ],
+        resumesAt: "2026-10-01T10:45:00.000Z",
+      };
+    };
+
+    /*
+     * The step after the Sleep has not run yet. "Did not run" would read like
+     * a run that broke.
+     */
+    test("says the next step has not run yet", () => {
+      renderTrace(sleepingTrace());
+
+      expect(screen.getByTestId("workflow-run-step-next")).toHaveTextContent(
+        "Send Email email-1 (not run yet)",
+      );
+    });
+
+    test("ends the path saying when the run carries on", () => {
+      renderTrace(sleepingTrace());
+
+      const sleeping: HTMLElement = screen.getByTestId("workflow-run-sleeping");
+
+      expect(sleeping).toHaveTextContent("Sleeping");
+      expect(sleeping).toHaveTextContent(/carries on by itself at .+2026/);
+      expect(screen.getByRole("list").lastElementChild).toBe(sleeping);
+    });
+
+    test("draws the path on from the last step to it", () => {
+      renderTrace(sleepingTrace());
+
+      const lastStep: HTMLElement = stepCards()[0]!;
+
+      expect(
+        Array.from(lastStep.children).some((child: Element) => {
+          return child.classList.contains("w-0.5");
+        }),
+      ).toBe(true);
+    });
+
+    test("a finished run has no such end", () => {
+      renderTrace({ steps: [aStep()] });
+
+      expect(
+        screen.queryByTestId("workflow-run-sleeping"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("a run that stopped says so instead", () => {
+      renderTrace({ ...sleepingTrace(), runErrorMessage: "timed out" });
+
+      expect(screen.getByTestId("workflow-run-stopped")).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("workflow-run-sleeping"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("workflow-run-step-next")).toHaveTextContent(
+        "(did not run)",
+      );
+    });
+  });
+
   describe("status and duration", () => {
     test("names the step and the component it came from", () => {
       renderTrace({
@@ -740,10 +810,7 @@ describe("StepTraceViewer", () => {
       renderTrace({
         steps: [
           aStep({
-            warnings: [
-              { message: "first thing" },
-              { message: "second thing" },
-            ],
+            warnings: [{ message: "first thing" }, { message: "second thing" }],
           }),
         ],
       });
@@ -975,7 +1042,9 @@ describe("StepTraceViewer", () => {
         ],
       });
 
-      expect(screen.getByTestId("workflow-run-step-template")).toHaveTextContent(
+      expect(
+        screen.getByTestId("workflow-run-step-template"),
+      ).toHaveTextContent(
         "from Deploy to {{local.variables.environment}} failed",
       );
     });

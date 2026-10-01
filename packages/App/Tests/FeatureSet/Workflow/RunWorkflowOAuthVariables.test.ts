@@ -574,6 +574,22 @@ describe("RunWorkflow with OAuth 2.0 variables", () => {
     expect(lastPersisted(harness)["logs"] as string).toContain(
       "Could not refresh the OAuth 2.0 access token for {{global.variables.API_TOKEN}}: Could not reach the token endpoint: it did not answer within 20 seconds. Using the cached token, which expires at",
     );
+
+    /*
+     * The run's Steps view shows it on the step that went ahead, not only in
+     * the full log - and the token it went ahead with is not in it.
+     */
+    const step: WorkflowStepTraceEntry = lastTrace(harness)
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(step.warnings).toHaveLength(1);
+    expect(step.warnings?.[0]?.message).toContain(
+      "Could not refresh the OAuth 2.0 access token for {{global.variables.API_TOKEN}}",
+    );
+    expect(step.warnings?.[0]?.argumentId).toBeUndefined();
+    expect(JSON.stringify(lastTrace(harness))).not.toContain(
+      "nearly-expired-token",
+    );
   });
 
   /*
