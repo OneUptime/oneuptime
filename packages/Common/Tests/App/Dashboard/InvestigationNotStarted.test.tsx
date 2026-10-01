@@ -24,9 +24,10 @@ import InvestigationPanel, {
 import { AI_INVESTIGATION_PANEL_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AIInvestigationStatus";
 import {
   SettingsAction,
+  getInvestigationNotStartedStatus,
   getSettingsAction,
   parseInvestigationNotStartedReason,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationNotStartedCard";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationNotStarted";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Project from "../../../Models/DatabaseModels/Project";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -1298,5 +1299,137 @@ describe("the not-started card's layout", () => {
         });
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * The explanation is the AI Investigation card's body, not a card. With no
+ * run the page used to show two cards (this explanation in one, the
+ * conversation in a second under it); the panel now draws one card for every
+ * state, so this component must never bring a header, a status pill or a
+ * card of its own back.
+ */
+describe("the not-started state is the card's body", () => {
+  test.each([
+    [
+      "still asking",
+      { isLoading: true, hasError: false, hasSuccessfulResponse: false },
+      { text: "Checking", indicator: "checking" },
+    ],
+    [
+      "still asking after an earlier failure",
+      { isLoading: true, hasError: true, hasSuccessfulResponse: false },
+      { text: "Checking", indicator: "checking" },
+    ],
+    [
+      "never loaded",
+      { isLoading: false, hasError: true, hasSuccessfulResponse: false },
+      { text: "Unable to check", indicator: "attention" },
+    ],
+    [
+      "a refresh failed after a successful check",
+      { isLoading: false, hasError: true, hasSuccessfulResponse: true },
+      { text: "Not investigated", indicator: "idle" },
+    ],
+    [
+      "nothing ran",
+      { isLoading: false, hasError: false, hasSuccessfulResponse: true },
+      { text: "Not investigated", indicator: "idle" },
+    ],
+  ] as Array<
+    [
+      string,
+      { isLoading: boolean; hasError: boolean; hasSuccessfulResponse: boolean },
+      { text: string; indicator: string },
+    ]
+  >)(
+    "the status pill for %s",
+    (
+      _when: string,
+      state: {
+        isLoading: boolean;
+        hasError: boolean;
+        hasSuccessfulResponse: boolean;
+      },
+      expected: { text: string; indicator: string },
+    ) => {
+      expect(getInvestigationNotStartedStatus(state)).toEqual(expected);
+    },
+  );
+
+  test("is one block inside the card's region, with no header or pill of its own", async () => {
+    postMock.mockResolvedValue(noRunResponse());
+    renderPanel();
+    await flush();
+
+    const region: HTMLElement = screen.getByRole("region", {
+      name: "AI Investigation",
+    });
+    const body: HTMLElement = screen.getByTestId("investigation-not-started");
+
+    expect(body.parentElement).toBe(region);
+    // The card's title and pill belong to the card, above the region.
+    expect(within(body).queryByRole("heading", { level: 2 })).toBeNull();
+    expect(within(body).queryByLabelText("Investigation status")).toBeNull();
+    expect(within(body).queryByTestId("card")).toBeNull();
+    expect(screen.getAllByLabelText("Investigation status")).toHaveLength(1);
+    expect(screen.getAllByTestId("card")).toHaveLength(1);
+  });
+
+  test("announces its changes politely and marks the region busy only while checking", async () => {
+    let resolveStatus: (response: HTTPResponse<JSONObject>) => void = () => {};
+    postMock.mockReturnValue(
+      new Promise<HTTPResponse<JSONObject>>(
+        (resolve: (response: HTTPResponse<JSONObject>) => void) => {
+          resolveStatus = resolve;
+        },
+      ),
+    );
+    renderPanel();
+    await flush();
+
+    const region: HTMLElement = screen.getByRole("region", {
+      name: "AI Investigation",
+    });
+    expect(region).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByTestId("investigation-not-started")).toHaveAttribute(
+      "aria-live",
+      "polite",
+    );
+
+    await act(async (): Promise<void> => {
+      resolveStatus(noRunResponse());
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await flush();
+
+    expect(region).toHaveAttribute("aria-busy", "false");
+  });
+
+  test("a run that appears takes the body's place in the same card", async () => {
+    postMock
+      .mockResolvedValueOnce(noRunResponse())
+      .mockResolvedValue(runResponse(AIRunStatus.Running));
+    renderPanel();
+    await flush();
+
+    const card: HTMLElement = screen.getByTestId("card");
+    const region: HTMLElement = screen.getByRole("region", {
+      name: "AI Investigation",
+    });
+    expect(screen.getByTestId("investigation-not-started")).toBeVisible();
+
+    await advance();
+
+    // The same card and region elements, not a second pair.
+    expect(screen.getByTestId("card")).toBe(card);
+    expect(screen.getByRole("region", { name: "AI Investigation" })).toBe(
+      region,
+    );
+    expect(screen.queryByTestId("investigation-not-started")).toBeNull();
+    expect(
+      screen.getByRole("region", { name: "Live investigation" }),
+    ).toBeVisible();
   });
 });

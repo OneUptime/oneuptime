@@ -35,19 +35,6 @@ export interface ComponentProps {
    */
   contextChip?: ReactElement | undefined;
   placeholder?: string | undefined;
-  /*
-   * Focus the composer when it mounts. Defaults to true (the chat panel and
-   * Copilot page open to type); a composer embedded in a page — the incident
-   * investigation box — passes false so loading the page never jumps to it.
-   */
-  autoFocus?: boolean | undefined;
-  /*
-   * The hint on the right of the footer. Defaults to the chat's
-   * "Every answer cites its queries".
-   */
-  footerHint?: string | undefined;
-  // Extra classes for the outer wrapper (spacing and borders per surface).
-  className?: string | undefined;
 }
 
 const MAX_TEXTAREA_HEIGHT_PX: number = 160;
@@ -83,11 +70,7 @@ const ChatInput: FunctionComponent<ComponentProps> = (
   const isSendable: boolean = Boolean(props.value.trim()) && props.canSend;
 
   return (
-    <div
-      className={
-        props.className ?? "border-t border-gray-200 bg-white px-4 pb-4 pt-3"
-      }
-    >
+    <div className="border-t border-gray-200 bg-white px-4 pb-4 pt-3">
       <div className="rounded-2xl border border-gray-200 bg-white px-3.5 py-2.5 transition-all focus-within:border-gray-300 focus-within:ring-4 focus-within:ring-gray-900/[0.04]">
         {props.contextChip && (
           <div className="mb-2 flex min-w-0">{props.contextChip}</div>
@@ -97,7 +80,7 @@ const ChatInput: FunctionComponent<ComponentProps> = (
             ref={textareaRef}
             rows={1}
             value={props.value}
-            autoFocus={props.autoFocus ?? true}
+            autoFocus={true}
             placeholder={
               props.placeholder ||
               (props.isWorking
@@ -167,7 +150,7 @@ const ChatInput: FunctionComponent<ComponentProps> = (
             a new line
           </span>
           <span className="max-sm:hidden flex-shrink-0 sm:inline">
-            {props.footerHint ?? "Every answer cites its queries"}
+            Every answer cites its queries
           </span>
         </div>
       </div>

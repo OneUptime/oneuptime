@@ -21,12 +21,12 @@ An investigation runs until it is done: it has **no time limit** and no small qu
 
 ## Talk to OneUptime AI about the incident
 
-Under the report, the **AI Investigation** box has a conversation — **Ask OneUptime AI** — shared by everyone who can see the incident or alert. It works the same when no automatic investigation ran.
+The **AI Investigation** card ends with a conversation — **Ask OneUptime AI** — shared by everyone who can see the incident or alert. It is one card whatever happened above it: under a report you ask follow-ups, and when no automatic investigation ran (or it stopped before reporting) the first suggestion is **What is the root cause?**, which has OneUptime AI investigate on demand.
 
 - **Ask follow-up questions** — "which pods use the most memory?", "what changed right before this started?", "is anything else affected?". OneUptime AI builds on its report, queries fresh data (and runs read-only kubectl or infrastructure commands where it has access), and cites every claim.
 - **Ask it to act** — "acknowledge this incident", "post a status update saying we're investigating", "page the database on-call", "raise the severity". It uses the same actions as Ask AI and always acts **with your own permissions**, so it can never do more than you could.
-- **Choose how it acts** with the switch under the message box: _Auto-run_ (the default — it acts on a clear request right away), _Ask to act_ (it shows an approval card first, which anyone on the incident can approve or deny), or _Read-only_.
-- **One shared thread.** Every question shows who asked it, everyone sees the same conversation live, and anyone can stop an answer in progress. Charts and tables in an answer are shown to the person who asked; everyone else sees the cited answer.
+- **Choose how it acts** with the switch in the message box, which says beside it what the chosen mode means: _Auto-run_ (the default — it acts on a clear request right away), _Ask to act_ (it shows an approval card first, which anyone on the incident can approve or deny), or _Read-only_.
+- **One shared thread.** Every question shows who asked it, everyone sees the same conversation live, and anyone can stop an answer in progress. Charts and tables in an answer are shown to the person who asked; everyone else sees the cited answer. Each answer lists its **Sources**, and a source with a page of its own (logs, metrics, a monitor) opens it. A long thread opens on its newest messages, with a button above them (for example **Show 6 earlier messages**) that brings back the rest.
 
 ## Enabling AI investigations
 

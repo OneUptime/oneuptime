@@ -11,11 +11,11 @@ import path from "path";
  *
  * The AI Investigation card was rebuilt as one flat card: plain sections, a
  * neutral status pill, hairlines, and a row wash painted on ::before. These
- * read the sources of the card (InvestigationPanel and every component it
- * imports from Components/AI, followed transitively) and hold every colour
- * class to what Theme.css actually remaps. Rendering is covered in
- * Common/Tests/App/Dashboard/Investigation*.test.tsx and the browser suite in
- * packages/E2E/EventOverview.
+ * read the sources of the card (InvestigationPanel, the conversation that
+ * closes it, and every module either imports from Components/AI, followed
+ * transitively) and hold every colour class to what Theme.css actually
+ * remaps. Rendering is covered in Common/Tests/App/Dashboard/Investigation*
+ * and the browser suite in packages/E2E/EventOverview.
  */
 
 const AI_COMPONENTS_DIR: string = path.join(
@@ -29,10 +29,20 @@ const AI_COMPONENTS_DIR: string = path.join(
   "AI",
 );
 
-const ENTRY_FILE: string = path.join(
-  AI_COMPONENTS_DIR,
-  "InvestigationPanel.tsx",
-);
+/*
+ * Two places to start. The conversation that closes the card is handed to
+ * the panel by the page (so the panel stays independent of it), which means
+ * no import leads from the panel to it: before it was listed here, its
+ * colours were never checked.
+ */
+const ENTRY_FILES: Array<string> = [
+  path.join(AI_COMPONENTS_DIR, "InvestigationPanel.tsx"),
+  path.join(
+    AI_COMPONENTS_DIR,
+    "InvestigationConversation",
+    "InvestigationConversation.tsx",
+  ),
+];
 
 const THEME_CSS_PATH: string = path.join(
   __dirname,
@@ -58,13 +68,17 @@ function readCodeAt(absolutePath: string): string {
 }
 
 /*
- * The panel plus every .tsx component it imports from Components/AI, keyed
- * by their path inside that folder. The chat feed and widgets it borrows
- * live in Components/AIChat and are not part of the card's own styling.
+ * The panel and the conversation, plus every module they import from
+ * Components/AI, keyed by their path inside that folder. Plain .ts modules
+ * count too: a colour class kept in a data file (the avatar tones, a
+ * status's mark) reaches the page just the same, and one of them, a lime
+ * avatar with no dark rule, went unnoticed while only .tsx was read. The
+ * chat feed and widgets the card borrows live in Components/AIChat and are
+ * not part of the card's own styling.
  */
 function getCardModules(): Map<string, string> {
   const modules: Map<string, string> = new Map();
-  const pending: Array<string> = [ENTRY_FILE];
+  const pending: Array<string> = [...ENTRY_FILES];
 
   while (pending.length > 0) {
     const absolutePath: string = pending.shift()!;
@@ -81,16 +95,18 @@ function getCardModules(): Map<string, string> {
     modules.set(moduleKey, code);
 
     for (const match of code.matchAll(/from "(\.\.?\/[A-Za-z0-9_/.]+)"/g)) {
-      const candidate: string = path.resolve(
-        path.dirname(absolutePath),
-        `${match[1]!}.tsx`,
-      );
+      for (const extension of [".tsx", ".ts"]) {
+        const candidate: string = path.resolve(
+          path.dirname(absolutePath),
+          `${match[1]!}${extension}`,
+        );
 
-      if (
-        candidate.startsWith(`${AI_COMPONENTS_DIR}${path.sep}`) &&
-        fs.existsSync(candidate)
-      ) {
-        pending.push(candidate);
+        if (
+          candidate.startsWith(`${AI_COMPONENTS_DIR}${path.sep}`) &&
+          fs.existsSync(candidate)
+        ) {
+          pending.push(candidate);
+        }
       }
     }
   }
@@ -221,13 +237,18 @@ function tokensIn(code: string): Array<string> {
 }
 
 describe("the AI Investigation card in the dark theme", () => {
-  test("the walk starts at the panel and reaches every part of the card", () => {
+  test("the walk starts at the panel and the conversation and reaches every part of the card", () => {
     const modules: Map<string, string> = getCardModules();
 
     expect(Array.from(modules.keys()).sort()).toEqual(
       expect.arrayContaining([
         "ClusterAccessNotice.tsx",
-        "InvestigationNotStartedCard.tsx",
+        "InvestigationConversation/AnswerSources.tsx",
+        "InvestigationConversation/ConversationComposer.tsx",
+        "InvestigationConversation/InvestigationConversation.tsx",
+        "InvestigationConversation/InvestigationConversationData.ts",
+        "InvestigationNotStarted.tsx",
+        "InvestigationNotice.tsx",
         "InvestigationPanel.tsx",
         "InvestigationReport/InvestigationCitationChip.tsx",
         "InvestigationReport/InvestigationEvidenceList.tsx",
@@ -237,6 +258,8 @@ describe("the AI Investigation card in the dark theme", () => {
         "InvestigationStatusBadge.tsx",
       ]),
     );
+    // The file the not-started state lived in while it was a card of its own.
+    expect(modules.has("InvestigationNotStartedCard.tsx")).toBe(false);
     // Borrowed chat components are not the card's own styling.
     for (const moduleKey of modules.keys()) {
       expect(moduleKey.startsWith("..")).toBe(false);
@@ -318,6 +341,108 @@ describe("the AI Investigation card in the dark theme", () => {
     expect(
       getCardModules().get("InvestigationReport/InvestigationEvidenceList.tsx"),
     ).toContain("before:bg-indigo-50/70");
+  });
+
+  /*
+   * The conversation became part of the card's checked styling when it
+   * became part of the card. These are its own: the composer's frame and
+   * focus, OneUptime AI's mark, a source's C# mark, the rule the live steps
+   * hang from, and the responders' avatar tones.
+   */
+  test("the conversation's colours are among those checked", () => {
+    const modules: Map<string, string> = getCardModules();
+    const tokensOf: (moduleKey: string) => Array<string> = (
+      moduleKey: string,
+    ): Array<string> => {
+      return tokensIn(modules.get(moduleKey) || "");
+    };
+
+    expect(
+      tokensOf("InvestigationConversation/ConversationComposer.tsx"),
+    ).toEqual(
+      expect.arrayContaining([
+        "border-gray-300",
+        "bg-white",
+        "focus-within:border-indigo-500",
+        "focus-within:ring-indigo-500",
+        "bg-indigo-600",
+        "hover:bg-indigo-500",
+        "bg-gray-100",
+        "text-gray-400",
+        "bg-gray-900",
+        "hover:bg-gray-800",
+      ]),
+    );
+    expect(
+      tokensOf("InvestigationConversation/InvestigationConversation.tsx"),
+    ).toEqual(
+      expect.arrayContaining([
+        "bg-indigo-600",
+        "border-gray-200",
+        "ring-white",
+        "hover:border-gray-300",
+        "hover:bg-gray-50",
+        "text-red-600",
+      ]),
+    );
+    expect(tokensOf("InvestigationConversation/AnswerSources.tsx")).toEqual(
+      expect.arrayContaining([
+        "bg-gray-100",
+        "ring-gray-200",
+        "hover:bg-gray-50",
+        "group-hover:text-gray-600",
+      ]),
+    );
+    expect(tokensOf("InvestigationNotice.tsx")).toEqual(
+      expect.arrayContaining(["text-red-600", "text-emerald-600"]),
+    );
+  });
+
+  test("every avatar tone has a dark rule; lime, the tone it replaced, has none", () => {
+    const TONE_SHADE: RegExp = /-(100|700|800)$/;
+    const tones: Array<string> = tokensIn(
+      getCardModules().get(
+        "InvestigationConversation/InvestigationConversationData.ts",
+      ) || "",
+    ).filter((token: string): boolean => {
+      return TONE_SHADE.test(token);
+    });
+    const AVATAR_TONE: RegExp = /^(bg-[a-z]+-100|text-[a-z]+-[78]00)$/;
+
+    // Eight tones, a ground and a letter colour each.
+    expect(
+      tones.filter((token: string): boolean => {
+        return AVATAR_TONE.test(token);
+      }),
+    ).toHaveLength(16);
+    for (const token of tones) {
+      expect({ token, remapped: isRemapped(token) }).toEqual({
+        token,
+        remapped: true,
+      });
+    }
+    expect(tones).toEqual(
+      expect.arrayContaining(["bg-cyan-100", "text-cyan-700"]),
+    );
+    expect(tones.join(" ")).not.toMatch(/lime/);
+
+    // The control: the eighth tone as it used to be keeps its light colours.
+    expect(isRemapped("bg-lime-100")).toBe(false);
+    expect(isRemapped("text-lime-800")).toBe(false);
+  });
+
+  test("the composer's dark stop button keeps its ground: both classes sit on one element", () => {
+    /*
+     * Theme.css re-colours a gray-900 control only as `.bg-gray-900.text-white`
+     * (a bare .bg-gray-900 would catch dark code blocks too), so the two
+     * must be on the same element or the button merges into the dark card.
+     */
+    expect(THEME_CSS).toContain("html.dark .bg-gray-900.text-white");
+    expect(
+      getCardModules().get(
+        "InvestigationConversation/ConversationComposer.tsx",
+      ),
+    ).toContain("bg-gray-900 text-white");
   });
 
   test("the guard itself tells a remapped class from one that is not", () => {

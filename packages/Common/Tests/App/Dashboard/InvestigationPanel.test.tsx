@@ -138,6 +138,7 @@ jest.mock(
 );
 
 import InvestigationPanel, {
+  InvestigationConversationSlot,
   InvestigationSubjectType,
   VERDICT_QUESTION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationPanel";
@@ -4787,20 +4788,24 @@ describe("InvestigationPanel as one flat card", () => {
 
 /*
  * The conversation with OneUptime AI is supplied by the page and placed by
- * the panel: at the bottom of the investigation card while there is a run,
- * or as its own card under the "not investigated" explanation — the box is
- * two-way whether or not an automatic investigation ran.
+ * the panel, which closes the AI Investigation card with it in every state.
+ * With no run the page used to show two cards: the explanation of why
+ * nothing was investigated, and the conversation in a card of its own under
+ * it. There is one AI card now, whatever OneUptime AI did.
  */
 describe("InvestigationPanel conversation slot", () => {
   const renderConversationMock: MockFunction = getJestMockFunction();
 
   function renderWithConversation(): ReturnType<typeof render> {
     renderConversationMock.mockImplementation(((
-      variant: "embedded" | "card",
+      slot: InvestigationConversationSlot,
     ): React.ReactElement => {
       return React.createElement(
         "div",
-        { "data-testid": `conversation-${variant}` },
+        {
+          "data-testid": "conversation",
+          "data-stage": slot.investigationStage,
+        },
         "Ask OneUptime AI",
       );
     }) as never);
@@ -4809,72 +4814,188 @@ describe("InvestigationPanel conversation slot", () => {
       <InvestigationPanel
         subjectType="incident"
         subjectId={INCIDENT_ID}
-        renderConversation={(variant: "embedded" | "card") => {
-          return renderConversationMock(variant) as React.ReactElement;
+        renderConversation={(slot: InvestigationConversationSlot) => {
+          return renderConversationMock(slot) as React.ReactElement;
         }}
       />,
     );
   }
 
+  function noReportResponse(): ApiResponse {
+    return successfulResponse(
+      investigationPayload({ status: AIRunStatus.Completed }),
+    );
+  }
+
+  interface SlotState {
+    name: string;
+    arrange: () => void;
+    badge: string;
+    stage: string;
+  }
+
+  const STATES: Array<SlotState> = [
+    {
+      name: "the status is still loading",
+      arrange: (): void => {
+        postMock.mockReturnValue(new Promise<never>(() => {}) as never);
+      },
+      badge: "Checking",
+      stage: "checking",
+    },
+    {
+      name: "no investigation ran",
+      arrange: (): void => {
+        postMock.mockResolvedValue(noInvestigationResponse() as never);
+      },
+      badge: "Not investigated",
+      stage: "none",
+    },
+    {
+      name: "the status could not be loaded",
+      arrange: (): void => {
+        postMock.mockRejectedValue(new Error("Offline") as never);
+      },
+      badge: "Unable to check",
+      stage: "none",
+    },
+    {
+      name: "an investigation is queued",
+      arrange: (): void => {
+        postMock.mockResolvedValue(
+          successfulResponse(
+            investigationPayload({ status: AIRunStatus.Queued }),
+          ) as never,
+        );
+      },
+      badge: "Queued",
+      stage: "underway",
+    },
+    {
+      name: "an investigation is running",
+      arrange: (): void => {
+        postMock.mockResolvedValue(
+          successfulResponse(
+            investigationPayload({
+              status: AIRunStatus.Running,
+              events: [activityEvent],
+            }),
+          ) as never,
+        );
+      },
+      badge: "Investigating…",
+      stage: "underway",
+    },
+    {
+      name: "the report is being written",
+      arrange: (): void => {
+        postMock.mockResolvedValue(
+          successfulResponse(
+            investigationPayload({
+              status: AIRunStatus.Completed,
+              isAnalysisPending: true,
+            }),
+          ) as never,
+        );
+      },
+      badge: "Preparing report…",
+      stage: "underway",
+    },
+    {
+      name: "a report is on screen",
+      arrange: (): void => {
+        postMock.mockResolvedValue(completedResponse() as never);
+      },
+      badge: "Completed",
+      stage: "reported",
+    },
+    {
+      name: "the run finished without a report",
+      arrange: (): void => {
+        postMock.mockResolvedValue(noReportResponse() as never);
+      },
+      badge: "No report",
+      stage: "none",
+    },
+    {
+      name: "the run stopped before it could report",
+      arrange: (): void => {
+        postMock.mockResolvedValue(
+          successfulResponse(
+            investigationPayload({
+              status: AIRunStatus.Error,
+              errorMessage: "The provider timed out.",
+              events: [activityEvent],
+            }),
+          ) as never,
+        );
+      },
+      badge: "Did not finish",
+      stage: "none",
+    },
+  ];
+
   afterEach(() => {
     renderConversationMock.mockReset();
   });
 
-  test("closes a completed investigation card with the embedded conversation", async () => {
-    postMock.mockResolvedValue(completedResponse() as never);
+  test.each(
+    STATES.map((state: SlotState): [string, SlotState] => {
+      return [state.name, state];
+    }),
+  )(
+    "is one card that the conversation closes when %s",
+    async (_name: string, state: SlotState) => {
+      state.arrange();
 
-    renderWithConversation();
-    await flush();
+      renderWithConversation();
+      await flush();
 
-    const embedded: HTMLElement = screen.getByTestId("conversation-embedded");
-    const region: HTMLElement = screen.getByRole("region", {
-      name: "AI Investigation",
-    });
+      expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
+        state.badge,
+      );
 
-    expect(region).toContainElement(embedded);
-    expect(screen.queryByTestId("conversation-card")).toBeNull();
+      // One card, one titled header, one region: never a second card.
+      const cards: Array<HTMLElement> = screen.getAllByTestId("card");
+      expect(cards).toHaveLength(1);
+      expect(
+        screen.getAllByRole("heading", { level: 2, name: "AI Investigation" }),
+      ).toHaveLength(1);
 
-    // It is the last thing in the card, after the report and its actions.
-    expect(region.lastElementChild).toBe(embedded);
-  });
+      const region: HTMLElement = screen.getByRole("region", {
+        name: "AI Investigation",
+      });
+      const conversation: HTMLElement = screen.getByTestId("conversation");
 
-  test("is embedded while the investigation is still running", async () => {
-    postMock.mockResolvedValue(
-      successfulResponse(
-        investigationPayload({
-          status: AIRunStatus.Running,
-          events: [activityEvent],
-        }),
-      ) as never,
-    );
+      expect(cards[0]).toContainElement(region);
+      expect(region).toContainElement(conversation);
+      // It is the last thing in the card, after whatever the state shows.
+      expect(region.lastElementChild).toBe(conversation);
+      expect(region.children.length).toBeGreaterThan(1);
+      expect(screen.getAllByTestId("conversation")).toHaveLength(1);
+    },
+  );
 
-    renderWithConversation();
-    await flush();
+  test.each(
+    STATES.map((state: SlotState): [string, string, SlotState] => {
+      return [state.stage, state.name, state];
+    }),
+  )(
+    "tells the conversation the investigation is %s when %s",
+    async (stage: string, _name: string, state: SlotState) => {
+      state.arrange();
 
-    expect(screen.getByTestId("conversation-embedded")).toBeInTheDocument();
-    expect(renderConversationMock).not.toHaveBeenCalledWith("card");
-  });
+      renderWithConversation();
+      await flush();
 
-  test("stands as its own card when no investigation ran", async () => {
-    postMock.mockResolvedValue(noInvestigationResponse() as never);
+      expect(screen.getByTestId("conversation")).toHaveAttribute(
+        "data-stage",
+        stage,
+      );
+    },
+  );
 
-    renderWithConversation();
-    await flush();
-
-    expect(
-      screen.getByText("No investigation has been recorded"),
-    ).toBeVisible();
-
-    const card: HTMLElement = screen.getByTestId("conversation-card");
-    expect(card).toBeInTheDocument();
-    expect(screen.queryByTestId("conversation-embedded")).toBeNull();
-    // Its own card, beside the explanation rather than inside it.
-    expect(
-      screen.getByRole("region", { name: "AI Investigation" }),
-    ).not.toContainElement(card);
-  });
-
-  test("waits for the investigation status before showing it", async () => {
+  test("shows the conversation at once, before the investigation status arrives", async () => {
     const deferred: Deferred<ApiResponse> = createDeferred<ApiResponse>();
     postMock.mockReturnValue(deferred.promise as never);
 
@@ -4882,12 +5003,182 @@ describe("InvestigationPanel conversation slot", () => {
     await flush();
 
     expect(screen.getByText("Checking investigation status…")).toBeVisible();
-    expect(screen.queryByTestId("conversation-card")).toBeNull();
-    expect(screen.queryByTestId("conversation-embedded")).toBeNull();
+    expect(screen.getByTestId("conversation")).toHaveAttribute(
+      "data-stage",
+      "checking",
+    );
 
     await resolveDeferred(deferred, completedResponse());
 
-    expect(screen.getByTestId("conversation-embedded")).toBeInTheDocument();
+    expect(screen.getByTestId("conversation")).toHaveAttribute(
+      "data-stage",
+      "reported",
+    );
+    expect(screen.getAllByTestId("card")).toHaveLength(1);
+  });
+
+  /*
+   * The conversation used to be handed a different place for a subject with
+   * a run and one without, so React threw it away and built it again the
+   * moment an investigation appeared: whatever a responder was typing went
+   * with it. It now keeps one slot in the card for every state.
+   */
+  describe("stays mounted while the card around it changes", () => {
+    let mountCount: number = 0;
+    let unmountCount: number = 0;
+
+    const TypingConversation: React.FunctionComponent<{
+      stage: string;
+    }> = (props: { stage: string }): React.ReactElement => {
+      const [draft, setDraft] = React.useState<string>("");
+
+      React.useEffect(() => {
+        mountCount += 1;
+
+        return () => {
+          unmountCount += 1;
+        };
+      }, []);
+
+      return (
+        <div data-testid="conversation" data-stage={props.stage}>
+          <textarea
+            aria-label="Ask OneUptime AI"
+            value={draft}
+            onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
+              setDraft(event.target.value);
+            }}
+          />
+        </div>
+      );
+    };
+
+    function renderWithTypingConversation(
+      subjectId: ObjectID = INCIDENT_ID,
+    ): React.ReactElement {
+      return (
+        <InvestigationPanel
+          subjectType="incident"
+          subjectId={subjectId}
+          renderConversation={(slot: InvestigationConversationSlot) => {
+            return <TypingConversation stage={slot.investigationStage} />;
+          }}
+        />
+      );
+    }
+
+    function draft(): HTMLTextAreaElement {
+      return screen.getByRole("textbox", {
+        name: "Ask OneUptime AI",
+      }) as HTMLTextAreaElement;
+    }
+
+    beforeEach(() => {
+      mountCount = 0;
+      unmountCount = 0;
+    });
+
+    test("a question being typed survives an investigation starting and reporting", async () => {
+      postMock
+        .mockResolvedValueOnce(noInvestigationResponse() as never)
+        .mockResolvedValueOnce(
+          successfulResponse(
+            investigationPayload({ status: AIRunStatus.Queued }),
+          ) as never,
+        )
+        .mockResolvedValueOnce(
+          successfulResponse(
+            investigationPayload({
+              status: AIRunStatus.Running,
+              events: [activityEvent],
+            }),
+          ) as never,
+        )
+        .mockResolvedValue(completedResponse() as never);
+
+      render(renderWithTypingConversation());
+      await flush();
+
+      expect(screen.getByText("Not investigated")).toBeVisible();
+      fireEvent.change(draft(), {
+        target: { value: "Which deploy changed the pool size?" },
+      });
+      const element: HTMLTextAreaElement = draft();
+
+      const seen: Array<string> = [];
+
+      for (const badge of ["Queued", "Investigating…", "Completed"]) {
+        await advanceFastPolls();
+        expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
+          badge,
+        );
+        // The very same element, with what was typed still in it.
+        expect(draft()).toBe(element);
+        expect(draft().value).toBe("Which deploy changed the pool size?");
+        seen.push(
+          screen.getByTestId("conversation").getAttribute("data-stage") || "",
+        );
+      }
+
+      expect(seen).toEqual(["underway", "underway", "reported"]);
+      expect(mountCount).toBe(1);
+      expect(unmountCount).toBe(0);
+    });
+
+    test("it survives the status loading, a failed run and a retry of the status", async () => {
+      const deferred: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+      postMock.mockReturnValueOnce(deferred.promise as never).mockResolvedValue(
+        successfulResponse(
+          investigationPayload({
+            status: AIRunStatus.Error,
+            errorMessage: "The provider timed out.",
+          }),
+        ) as never,
+      );
+
+      render(renderWithTypingConversation());
+      await flush();
+
+      // Typed while the card is still asking whether a run exists.
+      fireEvent.change(draft(), { target: { value: "Is this the pool?" } });
+      const element: HTMLTextAreaElement = draft();
+
+      await resolveDeferred(deferred, noInvestigationResponse());
+      expect(screen.getByText("Not investigated")).toBeVisible();
+      expect(draft()).toBe(element);
+
+      await advanceFastPolls();
+      expect(screen.getByText("Did not finish")).toBeVisible();
+      expect(draft()).toBe(element);
+      expect(draft().value).toBe("Is this the pool?");
+      expect(mountCount).toBe(1);
+      expect(unmountCount).toBe(0);
+    });
+
+    test("the page still decides what a new incident starts with", async () => {
+      postMock.mockResolvedValue(completedResponse() as never);
+
+      const view: ReturnType<typeof render> = render(
+        renderWithTypingConversation(),
+      );
+      await flush();
+      expect(screen.getByTestId("conversation")).toHaveAttribute(
+        "data-stage",
+        "reported",
+      );
+
+      // The next incident's status is not known yet: no stale "reported".
+      postMock.mockReset();
+      postMock.mockReturnValue(new Promise<never>(() => {}) as never);
+      view.rerender(renderWithTypingConversation(ALERT_ID));
+      await flush();
+
+      expect(screen.getByTestId("conversation")).toHaveAttribute(
+        "data-stage",
+        "checking",
+      );
+      expect(screen.getAllByTestId("card")).toHaveLength(1);
+    });
   });
 
   test("renders nothing extra when the page supplies no conversation", async () => {
@@ -4896,7 +5187,188 @@ describe("InvestigationPanel conversation slot", () => {
     renderPanel();
     await flush();
 
-    expect(screen.queryByTestId("conversation-card")).toBeNull();
+    expect(screen.queryByTestId("conversation")).toBeNull();
     expect(screen.getAllByTestId("card")).toHaveLength(1);
+    expect(
+      screen.getByRole("region", { name: "AI Investigation" }).lastElementChild,
+    ).toBe(screen.getByTestId("investigation-not-started"));
+  });
+});
+
+/*
+ * What came of pressing a button in the card (a fix task, a verdict) is said
+ * the way the card says everything else: a mark, a sentence and a quieter
+ * line. They were green and red alert boxes, the loudest things in a card
+ * that draws no boxes.
+ */
+describe("InvestigationPanel says what happened in a notice, not a box", () => {
+  const BOX_CLASS: RegExp =
+    /(^|\s)(bg-(red|green|emerald|rose|amber|blue)-(50|100)|border-(red|green|emerald|rose|amber|blue)-\d{3}|rounded-xl|rounded-2xl|shadow(-sm|-md|-lg)?)(\s|$)/;
+
+  function boxesInside(element: HTMLElement): Array<string> {
+    return [element, ...Array.from(element.querySelectorAll("*"))]
+      .filter((node: Element): boolean => {
+        return BOX_CLASS.test(node.getAttribute("class") || "");
+      })
+      .map((node: Element): string => {
+        return `<${node.tagName.toLowerCase()} class="${node.getAttribute("class")}">`;
+      });
+  }
+
+  test("a created fix task is a line with a green mark and a link to the task", async () => {
+    postMock
+      .mockResolvedValueOnce(completedResponse() as never)
+      .mockResolvedValueOnce(
+        successfulResponse({ aiRunId: FIX_RUN_ID }) as never,
+      );
+
+    renderPanel();
+    await flush();
+    fireEvent.click(fixButton()!);
+    await flush();
+
+    const notice: HTMLElement = screen.getByTestId(
+      "investigation-fix-task-created",
+    );
+    expect(notice).toHaveAttribute("role", "alert");
+    expect(notice).toHaveTextContent(
+      "Fix task createdAI will open a pull request from this analysis. View task progress.",
+    );
+    expect(boxesInside(notice)).toEqual([]);
+    expect(notice.querySelector("svg")).not.toBeNull();
+    expect(notice.querySelector(".text-emerald-600")).not.toBeNull();
+    expect(
+      within(notice).getByRole("link", { name: "View task progress" }),
+    ).toHaveAttribute("href", expect.stringContaining(FIX_RUN_ID));
+    // It sits in the action's own row of the card.
+    expect(screen.getByTestId("investigation-actions")).toContainElement(
+      notice,
+    );
+  });
+
+  test("a fix task that could not be created is a line with a red mark", async () => {
+    postMock
+      .mockResolvedValueOnce(completedResponse() as never)
+      .mockResolvedValueOnce(
+        new HTTPErrorResponse(
+          400,
+          { message: "No connected repository exists." },
+          {},
+        ) as never,
+      );
+
+    renderPanel();
+    await flush();
+    fireEvent.click(fixButton()!);
+    await flush();
+
+    const notice: HTMLElement = screen.getByTestId(
+      "investigation-fix-task-error",
+    );
+    expect(notice).toHaveAttribute("role", "alert");
+    expect(notice).toHaveTextContent(
+      "Could not create the fix taskNo connected repository exists. View AI tasks.",
+    );
+    expect(boxesInside(notice)).toEqual([]);
+    expect(notice.querySelector(".text-red-600")).not.toBeNull();
+    expect(
+      within(notice).getByRole("link", { name: "View AI tasks" }),
+    ).toBeVisible();
+  });
+
+  test("a verdict that could not be saved is a line with a red mark", async () => {
+    postMock
+      .mockResolvedValueOnce(completedResponse() as never)
+      .mockResolvedValueOnce(
+        new HTTPErrorResponse(
+          500,
+          { message: "Verdict storage is unavailable." },
+          {},
+        ) as never,
+      );
+
+    renderPanel();
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Rejected" }));
+    await flush();
+
+    const notice: HTMLElement = screen.getByTestId(
+      "investigation-verdict-error",
+    );
+    expect(notice).toHaveAttribute("role", "alert");
+    expect(notice).toHaveTextContent(
+      "Could not save your verdictVerdict storage is unavailable.",
+    );
+    expect(boxesInside(notice)).toEqual([]);
+    expect(notice.querySelector(".text-red-600")).not.toBeNull();
+  });
+
+  test("the run's own failure uses the same notice", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({
+          status: AIRunStatus.Error,
+          errorMessage: "The provider timed out.",
+        }),
+      ) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const failure: HTMLElement = screen.getByTestId("investigation-error");
+    expect(failure).toHaveTextContent(
+      "The investigation stopped before it could report.The provider timed out.",
+    );
+    expect(boxesInside(failure)).toEqual([]);
+
+    // One notice component: the same skeleton as the messages above.
+    expect(failure.className).toBe("flex items-start gap-3");
+  });
+
+  test("none of the card's messages nests a block inside a paragraph", async () => {
+    const consoleError: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    try {
+      postMock
+        .mockResolvedValueOnce(completedResponse() as never)
+        .mockResolvedValueOnce(
+          new HTTPErrorResponse(
+            400,
+            { message: "No repository." },
+            {},
+          ) as never,
+        )
+        .mockResolvedValueOnce(
+          new HTTPErrorResponse(500, { message: "No storage." }, {}) as never,
+        );
+
+      renderPanel();
+      await flush();
+      fireEvent.click(fixButton()!);
+      await flush();
+      fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
+      await flush();
+
+      expect(screen.getAllByRole("alert")).toHaveLength(2);
+      expect(
+        screen
+          .getByRole("region", { name: "AI Investigation" })
+          .querySelectorAll("p div"),
+      ).toHaveLength(0);
+      expect(
+        consoleError.mock.calls.some((args: Array<unknown>): boolean => {
+          return args.some((value: unknown): boolean => {
+            return (
+              typeof value === "string" && value.includes("validateDOMNesting")
+            );
+          });
+        }),
+      ).toBe(false);
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });
