@@ -3235,8 +3235,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   /*
    * The way forward from an empty table: the "Create X" button the card's
    * header already shows - same handler, same permission gate, same label -
-   * repeated as the primary action under "No X yet.", where a new user is
-   * looking.
+   * repeated under "No X yet.", where a new user is looking. It is drawn the
+   * way the header's is, as a NORMAL button: a filled indigo one in the
+   * middle of an otherwise quiet empty card shouted, and made the two
+   * buttons that do the same thing look like different actions.
    *
    * Only under the table's own "No X yet.". A page that words its empty
    * state itself is describing a slice of the list ("Nice work! No Active
@@ -3284,7 +3286,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       <Button
         title={createButton.title}
         icon={createButton.icon}
-        buttonStyle={ButtonStyleType.PRIMARY}
+        buttonStyle={ButtonStyleType.NORMAL}
         disabled={createButton.disabled}
         tooltip={createButton.tooltip}
         dataTestId="empty-table-create-button"
