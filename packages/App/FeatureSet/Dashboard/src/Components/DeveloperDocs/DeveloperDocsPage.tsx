@@ -114,8 +114,14 @@ export function getDeveloperDocsRecordSelect(data: {
 }): JSONObject {
   const select: JSONObject = { _id: true };
   const nameColumn: string | null = getNameColumn(data.modelType);
+  const attributes: Array<TerraformAttributeDescriptor> =
+    getTerraformAttributes(data.modelType);
+  const nameAttribute: TerraformAttributeDescriptor | undefined =
+    attributes.find((descriptor: TerraformAttributeDescriptor): boolean => {
+      return descriptor.columnName === nameColumn;
+    });
 
-  if (nameColumn) {
+  if (nameColumn && (!nameAttribute || data.canRead(nameAttribute))) {
     select[nameColumn] = true;
   }
 
@@ -123,7 +129,7 @@ export function getDeveloperDocsRecordSelect(data: {
     return select;
   }
 
-  for (const descriptor of getTerraformAttributes(data.modelType)) {
+  for (const descriptor of attributes) {
     if (
       descriptor.secretKind ||
       descriptor.kind === TerraformValueKind.Unsupported ||
