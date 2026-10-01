@@ -1,0 +1,401 @@
+import "@testing-library/jest-dom";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import React from "react";
+import {
+  AI_ACCESS_ALLOWLIST_EMPTY_TEXT,
+  AI_ACCESS_ALLOWLIST_INTRO_TEXT,
+  AiAccessActionPanel,
+  AiAccessAllowlist,
+  AiAccessBadgeElement,
+  AiAccessHint,
+  AiAccessPermissionNote,
+  AiAccessProtections,
+  AiAccessRow,
+  AiAccessRows,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAccessRow";
+import {
+  AI_ACCESS_PROTECTIONS_TITLE,
+  AiAccessBadgeTone,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAccessModes";
+import IconProp from "../../../Types/Icon/IconProp";
+
+jest.mock("react-i18next", () => {
+  return {
+    useTranslation: () => {
+      return {
+        t: (value: string): string => {
+          return value;
+        },
+      };
+    },
+  };
+});
+
+/*
+ * The building blocks of "What AI may do", rendered on their own: a row
+ * (icon, title, badge, sentence, and whatever the row carries), the badge
+ * in each tone, the hint, the allowlist in effect, the folded every-mode
+ * protections, the admin note and the to-do panel.
+ */
+
+let consoleErrorSpy: ReturnType<typeof jest.spyOn> | null = null;
+
+// React warns through console.error, e.g. a <div> inside a <p>.
+function watchConsoleErrors(): void {
+  consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {
+    // collected, asserted on below
+  });
+}
+
+function consoleErrors(): Array<string> {
+  return (consoleErrorSpy?.mock.calls || []).map(
+    (call: Array<unknown>): string => {
+      return call.map(String).join(" ");
+    },
+  );
+}
+
+afterEach(() => {
+  cleanup();
+  jest.restoreAllMocks();
+  consoleErrorSpy = null;
+});
+
+describe("a row", () => {
+  test("shows the title, the badge and the sentence under its own test ids", () => {
+    render(
+      <AiAccessRow
+        icon={IconProp.MagnifyingGlass}
+        title="Investigation"
+        badge={{ text: "On", tone: "on" }}
+        sentence="AI may run read-only db diagnostics on this database server."
+        dataTestId="ai-access-investigation"
+      />,
+    );
+
+    const row: HTMLElement = screen.getByTestId("ai-access-investigation");
+    expect(row).toHaveTextContent("Investigation");
+    expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent(
+      "Investigation",
+    );
+    expect(
+      screen.getByTestId("ai-access-investigation-badge"),
+    ).toHaveTextContent("On");
+    expect(
+      screen.getByTestId("ai-access-investigation-value"),
+    ).toHaveTextContent(
+      "AI may run read-only db diagnostics on this database server.",
+    );
+  });
+
+  test("the badge sits right after the title, not across the card", () => {
+    render(
+      <AiAccessRow
+        icon={IconProp.WrenchScrewdriver}
+        title="Fixes"
+        badge={{ text: "Off", tone: "off" }}
+        sentence="AI never proposes or runs a fix."
+        dataTestId="ai-access-fixes"
+      />,
+    );
+
+    const heading: HTMLElement = screen.getByRole("heading", { level: 3 });
+    expect(heading.nextElementSibling).toBe(
+      screen.getByTestId("ai-access-fixes-badge"),
+    );
+  });
+
+  test("renders what it carries under the sentence", () => {
+    render(
+      <AiAccessRow
+        icon={IconProp.WrenchScrewdriver}
+        title="Fixes"
+        badge={{ text: "Off", tone: "off" }}
+        sentence="AI never proposes or runs a fix."
+        dataTestId="ai-access-fixes"
+      >
+        <p data-testid="carried">A next step</p>
+      </AiAccessRow>,
+    );
+
+    const sentence: HTMLElement = screen.getByTestId("ai-access-fixes-value");
+    const carried: HTMLElement = screen.getByTestId("carried");
+    expect(
+      sentence.compareDocumentPosition(carried) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a row whose children were all left out has no empty block under it", () => {
+    const { container } = render(
+      <AiAccessRow
+        icon={IconProp.WrenchScrewdriver}
+        title="Fixes"
+        badge={{ text: "Ask for approval", tone: "on" }}
+        sentence="AI proposes fixes."
+        dataTestId="ai-access-fixes"
+      >
+        {null}
+        {false}
+        {undefined}
+      </AiAccessRow>,
+    );
+
+    const sentence: HTMLElement = screen.getByTestId("ai-access-fixes-value");
+    expect(sentence.nextElementSibling).toBeNull();
+    expect(container.querySelector(".mt-3.space-y-3")).toBeNull();
+  });
+
+  test.each<[AiAccessBadgeTone, string]>([
+    ["off", "bg-gray-100"],
+    ["on", "bg-emerald-50"],
+    ["automatic", "bg-indigo-50"],
+    ["bypass", "bg-amber-50"],
+  ])(
+    "the icon tile takes the %s tone",
+    (tone: AiAccessBadgeTone, tileClass: string) => {
+      render(
+        <AiAccessRow
+          icon={IconProp.WrenchScrewdriver}
+          title="Fixes"
+          badge={{ text: "x", tone }}
+          sentence="s"
+          dataTestId="row"
+        />,
+      );
+
+      const tile: Element | null = screen.getByTestId("row").firstElementChild;
+      expect(tile).toHaveClass(tileClass);
+      // Decorative: the title and badge already say it.
+      expect(tile).toHaveAttribute("aria-hidden", "true");
+    },
+  );
+
+  test("rows sit in one divided list", () => {
+    render(
+      <AiAccessRows>
+        <AiAccessRow
+          icon={IconProp.MagnifyingGlass}
+          title="Investigation"
+          badge={{ text: "On", tone: "on" }}
+          sentence="a"
+          dataTestId="first"
+        />
+        <AiAccessRow
+          icon={IconProp.WrenchScrewdriver}
+          title="Fixes"
+          badge={{ text: "Off", tone: "off" }}
+          sentence="b"
+          dataTestId="second"
+        />
+      </AiAccessRows>,
+    );
+
+    const rows: HTMLElement = screen.getByTestId("ai-access-rows");
+    expect(rows).toHaveClass("divide-y");
+    expect(rows.children).toHaveLength(2);
+    expect(rows.children[0]).toBe(screen.getByTestId("first"));
+    expect(rows.children[1]).toBe(screen.getByTestId("second"));
+  });
+});
+
+describe("the badge", () => {
+  test.each<[AiAccessBadgeTone, string]>([
+    ["off", "text-gray-600"],
+    ["on", "text-emerald-700"],
+    ["automatic", "text-indigo-700"],
+    ["bypass", "text-amber-800"],
+  ])("in the %s tone", (tone: AiAccessBadgeTone, textClass: string) => {
+    render(
+      <AiAccessBadgeElement
+        badge={{ text: "Label", tone }}
+        dataTestId="badge"
+      />,
+    );
+
+    const badge: HTMLElement = screen.getByTestId("badge");
+    expect(badge).toHaveTextContent("Label");
+    expect(badge).toHaveClass(textClass);
+    expect(badge).toHaveAttribute("data-tone", tone);
+  });
+
+  test("its dot is decorative", () => {
+    render(
+      <AiAccessBadgeElement
+        badge={{ text: "On", tone: "on" }}
+        dataTestId="badge"
+      />,
+    );
+
+    expect(
+      screen.getByTestId("badge").querySelector("[aria-hidden='true']"),
+    ).not.toBeNull();
+  });
+});
+
+describe("the hint", () => {
+  test("shows its text under its test id", () => {
+    render(
+      <AiAccessHint
+        text="Want AI to propose fixes? Click Change and choose Ask for approval."
+        dataTestId="ai-access-fixes-off-hint"
+      />,
+    );
+
+    expect(screen.getByTestId("ai-access-fixes-off-hint")).toHaveTextContent(
+      "Want AI to propose fixes? Click Change and choose Ask for approval.",
+    );
+  });
+
+  /*
+   * Icon renders its svg inside a div, so the hint (and the action panel's
+   * heading) must not be a <p>: React reports a <div> inside a <p>.
+   */
+  test("nests its icon validly", () => {
+    watchConsoleErrors();
+    render(
+      <>
+        <AiAccessHint text="Hint" dataTestId="hint" />
+        <AiAccessActionPanel
+          title="Give the agent write access"
+          dataTestId="panel"
+        >
+          <p>Body</p>
+        </AiAccessActionPanel>
+        <AiAccessPermissionNote
+          canText="can"
+          cannotText="cannot"
+          dataTestId="note"
+        />
+        <AiAccessProtections protections={["One."]} />
+      </>,
+    );
+
+    expect(screen.getByTestId("hint").tagName).toBe("DIV");
+    expect(
+      consoleErrors().filter((message: string): boolean => {
+        return message.includes("validateDOMNesting");
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("the allowlist in effect", () => {
+  test("lists each pattern, in order, after saying what they do", () => {
+    render(
+      <AiAccessAllowlist
+        title="Command allowlist"
+        patterns={["docker stop web", "docker restart api"]}
+        dataTestId="ai-command-allowlist-in-effect"
+      />,
+    );
+
+    const allowlist: HTMLElement = screen.getByTestId(
+      "ai-command-allowlist-in-effect",
+    );
+    expect(allowlist).toHaveTextContent("Command allowlist");
+    expect(allowlist).toHaveTextContent(AI_ACCESS_ALLOWLIST_INTRO_TEXT);
+    expect(
+      screen.getAllByRole("listitem").map((item: HTMLElement): string => {
+        return item.textContent || "";
+      }),
+    ).toEqual(["docker stop web", "docker restart api"]);
+    expect(allowlist).not.toHaveTextContent(AI_ACCESS_ALLOWLIST_EMPTY_TEXT);
+  });
+
+  test("the same pattern twice is listed twice", () => {
+    render(
+      <AiAccessAllowlist
+        title="kubectl allowlist"
+        patterns={["kubectl rollout restart *", "kubectl rollout restart *"]}
+        dataTestId="kubectl-allowlist-in-effect"
+      />,
+    );
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  test("an empty list says None, and what that means", () => {
+    render(
+      <AiAccessAllowlist
+        title="Command allowlist"
+        patterns={[]}
+        dataTestId="ai-command-allowlist-in-effect"
+      />,
+    );
+
+    expect(
+      screen.getByTestId("ai-command-allowlist-in-effect"),
+    ).toHaveTextContent("None — riskier fixes always wait for approval.");
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+  });
+});
+
+describe("the every-mode protections", () => {
+  test("are folded until asked for, then list every clause", () => {
+    render(
+      <AiAccessProtections
+        protections={["Denied commands never run.", "A drain needs a human."]}
+      />,
+    );
+
+    const details: HTMLElement = screen.getByTestId("ai-access-protections");
+    expect(details.tagName).toBe("DETAILS");
+    expect(details).not.toHaveAttribute("open");
+    expect(details).toHaveTextContent(AI_ACCESS_PROTECTIONS_TITLE);
+
+    fireEvent.click(screen.getByText(AI_ACCESS_PROTECTIONS_TITLE));
+    // jsdom does not toggle <details> on a click; open it the way the browser does.
+    (details as HTMLDetailsElement).open = true;
+    expect(details).toHaveAttribute("open");
+
+    expect(
+      Array.from(
+        screen.getByTestId("ai-access-protections-list").querySelectorAll("li"),
+      ).map((item: Element): string => {
+        return item.textContent || "";
+      }),
+    ).toEqual(["Denied commands never run.", "A drain needs a human."]);
+  });
+});
+
+describe("the admin note", () => {
+  test("says what the editor can change first, then what needs more", () => {
+    render(
+      <AiAccessPermissionNote
+        canText="You can turn investigation on or off."
+        cannotText="Turning fixes on needs Project Owner."
+        dataTestId="note"
+      />,
+    );
+
+    const lines: Array<string> = Array.from(
+      screen.getByTestId("note").querySelectorAll("p"),
+    ).map((line: Element): string => {
+      return line.textContent || "";
+    });
+    expect(lines).toEqual([
+      "You can turn investigation on or off.",
+      "Turning fixes on needs Project Owner.",
+    ]);
+  });
+});
+
+describe("the to-do panel", () => {
+  test("shows its title, then what it carries", () => {
+    render(
+      <AiAccessActionPanel
+        title="Give the agent write access"
+        dataTestId="ai-access-write-commands"
+      >
+        <p data-testid="body">The agent is read-only.</p>
+      </AiAccessActionPanel>,
+    );
+
+    const panel: HTMLElement = screen.getByTestId("ai-access-write-commands");
+    expect(panel).toHaveTextContent("Give the agent write access");
+    expect(panel).toHaveClass("border-amber-200");
+    expect(panel).toContainElement(screen.getByTestId("body"));
+  });
+});

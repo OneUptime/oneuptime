@@ -40,9 +40,21 @@ import {
   getAiAgentWriteDisclosure,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSetup";
 import {
-  REMEDIATION_MODE_LABELS,
+  INVESTIGATION_ON_SENTENCE,
+  KUBECTL_ALLOWLIST_FIELD_DESCRIPTION,
+  REMEDIATION_MODE_OPTION_DESCRIPTIONS,
+  REMEDIATION_MODE_SHORT_NAMES,
   REMEDIATION_MODE_SUMMARIES,
+  getEveryModeProtections,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSettings";
+import {
+  AI_ACCESS_PROTECTIONS_TITLE,
+  AI_FIXES_MODE_TONES,
+  formatAiAccessProtections,
+  getAiFixesFieldDescription,
+  getAiFixesOffHint,
+  getAiInvestigationOffSentence,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAccessModes";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
@@ -90,6 +102,8 @@ jest.mock("react-i18next", () => {
  * "Kubernetes AI agent" card in each of its states (connected, offline,
  * not installed, the previous in-cluster Runner, an advanced Runner),
  * "Needs attention" only when the server has gaps, and "What AI may do"
+ * (one row for investigation, one for fixes, each with a badge and one
+ * plain sentence)
  * with its Change modal — whose loosening rules, confirmations and
  * advanced-binding pickers carry over from the old AI page, with Off ->
  * enabled now needing the admin set.
@@ -572,21 +586,46 @@ async function openDropdown(
   });
 }
 
-async function pickOption(
+// The Change modal's Fixes picker: one card (role "radio") per mode.
+function modeField(dialog: HTMLElement): HTMLElement {
+  return within(dialog).getByTestId("ai-remediation-mode-field");
+}
+
+function modeCards(dialog: HTMLElement): Array<HTMLElement> {
+  return within(modeField(dialog)).getAllByRole("radio");
+}
+
+// Each card's title, in the order the picker shows them.
+function modeCardTitles(dialog: HTMLElement): Array<string> {
+  return modeCards(dialog).map((card: HTMLElement): string => {
+    return card.querySelector("span.font-semibold")?.textContent || "";
+  });
+}
+
+function modeCard(
   dialog: HTMLElement,
-  name: RegExp,
-  optionText: string,
-): Promise<void> {
-  await openDropdown(dialog, name);
-  const option: HTMLElement | undefined = menuOptions().find(
-    (candidate: HTMLElement): boolean => {
-      return candidate.textContent === optionText;
-    },
-  );
-  if (!option) {
-    throw new Error(`No option "${optionText}" in the ${name} dropdown.`);
+  mode: KubernetesAiRemediationMode,
+): HTMLElement {
+  return within(modeField(dialog)).getByTestId(`card-select-option-${mode}`);
+}
+
+function pickMode(
+  dialog: HTMLElement,
+  mode: KubernetesAiRemediationMode,
+): void {
+  fireEvent.click(modeCard(dialog, mode));
+  expect(modeCard(dialog, mode)).toHaveAttribute("aria-checked", "true");
+}
+
+// The "What AI may do" card, by its title.
+async function settingsCard(): Promise<HTMLElement> {
+  const card: HTMLElement | null = (
+    await findText(SETTINGS_CARD_TITLE)
+  ).closest('[data-testid="card"]');
+  if (!card) {
+    throw new Error(`"${SETTINGS_CARD_TITLE}" is not inside a card.`);
   }
-  fireEvent.click(option);
+  return card;
 }
 
 /*
@@ -1342,17 +1381,36 @@ describe("Needs attention", () => {
 });
 
 describe("What AI may do", () => {
-  test("shows investigation and fixes in plain words, with the fixes-off hint", async () => {
+  test("one row for investigation and one for fixes, each with a badge and one plain sentence", async () => {
     openAgentPage();
 
-    expect(await findTestId("ai-access-investigation-value")).toHaveTextContent(
-      "Yes — read-only",
+    const card: HTMLElement = await settingsCard();
+    expect(
+      within(card)
+        .getAllByRole("heading", { level: 3 })
+        .map((heading: HTMLElement): string => {
+          return heading.textContent || "";
+        }),
+    ).toEqual(["Investigation", "Fixes"]);
+    expect(within(card).getByTestId("card-description")).toHaveTextContent(
+      "For incidents and alerts on this cluster. Changes apply from the next one.",
+    );
+
+    expect(
+      screen.getByTestId("ai-access-investigation-badge"),
+    ).toHaveTextContent("On");
+    expect(
+      screen.getByTestId("ai-access-investigation-value"),
+    ).toHaveTextContent(INVESTIGATION_ON_SENTENCE);
+    expect(screen.getByTestId("ai-access-fixes-badge")).toHaveTextContent(
+      "Off",
     );
     expect(screen.getByTestId("ai-access-fixes-value")).toHaveTextContent(
-      `Off — ${REMEDIATION_MODE_SUMMARIES[KubernetesAiRemediationMode.Disabled]}`,
+      REMEDIATION_MODE_SUMMARIES[KubernetesAiRemediationMode.Disabled],
     );
+    // A member may not turn fixes on: told who may.
     expect(screen.getByTestId("ai-access-fixes-off-hint")).toHaveTextContent(
-      "Want AI to propose fixes? Choose Ask for approval.",
+      getAiFixesOffHint(false),
     );
     // Off: no write commands, no allowlist.
     expect(
@@ -1372,9 +1430,81 @@ describe("What AI may do", () => {
     );
     openAgentPage();
 
-    expect(await findTestId("ai-access-investigation-value")).toHaveTextContent(
-      "No — AI investigates with OneUptime data only",
+    expect(await findTestId("ai-access-investigation-badge")).toHaveTextContent(
+      "Off",
     );
+    expect(
+      screen.getByTestId("ai-access-investigation-value"),
+    ).toHaveTextContent(getAiInvestigationOffSentence("cluster"));
+    const card: HTMLElement = await settingsCard();
+    expect(card).not.toHaveTextContent("only investigates");
+    expect(card).not.toHaveTextContent("No — AI investigates");
+  });
+
+  test("an admin on fixes Off is told to click Change and choose Ask for approval", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+
+    expect(await findTestId("ai-access-fixes-off-hint")).toHaveTextContent(
+      "Want AI to propose fixes? Click Change and choose Ask for approval.",
+    );
+  });
+
+  test.each(Object.values(KubernetesAiRemediationMode))(
+    "fixes in %s: the badge names the mode in its tone, the sentence says what it does",
+    async (mode: KubernetesAiRemediationMode) => {
+      serve(makeStatus({ remediationMode: mode }));
+      openAgentPage();
+
+      const badge: HTMLElement = await findTestId("ai-access-fixes-badge");
+      expect(badge).toHaveTextContent(REMEDIATION_MODE_SHORT_NAMES[mode]);
+      expect(badge).toHaveAttribute("data-tone", AI_FIXES_MODE_TONES[mode]);
+      expect(screen.getByTestId("ai-access-fixes-value")).toHaveTextContent(
+        REMEDIATION_MODE_SUMMARIES[mode],
+      );
+    },
+  );
+
+  test("the write-access command and the credential note sit in the Fixes row", async () => {
+    serve(
+      makeStatus({
+        remediationMode: KubernetesAiRemediationMode.RequireApproval,
+      }),
+    );
+    openAgentPage();
+
+    const fixes: HTMLElement = await findTestId("ai-access-fixes");
+    expect(
+      within(fixes).getByTestId("ai-access-write-commands"),
+    ).toHaveTextContent("Give the agent write access");
+    cleanup();
+
+    serve(
+      advancedStatus({
+        remediationMode: KubernetesAiRemediationMode.Automatic,
+      }),
+    );
+    openAgentPage();
+    expect(
+      within(await findTestId("ai-access-fixes")).getByTestId(
+        "ai-access-credential-rbac-note",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("the project's automatic-investigation line sits in the Investigation row", async () => {
+    openAgentPage();
+
+    expect(
+      within(await findTestId("ai-access-investigation")).getByTestId(
+        "ai-access-automatic-investigation",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("ai-access-fixes")).queryByTestId(
+        "ai-access-automatic-investigation",
+      ),
+    ).not.toBeInTheDocument();
   });
 
   /*
@@ -1468,7 +1598,7 @@ describe("What AI may do", () => {
       }),
     );
     openAgentPage();
-    expect(await findTestId("ai-access-fixes-value")).toHaveTextContent(
+    expect(await findTestId("ai-access-fixes-badge")).toHaveTextContent(
       "Bypass approval",
     );
     expect(
@@ -1483,7 +1613,7 @@ describe("What AI may do", () => {
     openAgentPage();
 
     expect(await findTestId("kubectl-allowlist-in-effect")).toHaveTextContent(
-      "None",
+      "None — riskier fixes always wait for approval.",
     );
   });
 
@@ -1640,6 +1770,107 @@ describe("automatic investigation footer", () => {
   });
 });
 
+describe("the Change modal: the mode cards", () => {
+  test("one card per mode, each saying what it does, the saved one chosen", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    expect(modeCards(dialog)).toHaveLength(4);
+    for (const mode of Object.values(KubernetesAiRemediationMode)) {
+      const card: HTMLElement = modeCard(dialog, mode);
+      expect(card).toHaveTextContent(
+        REMEDIATION_MODE_OPTION_DESCRIPTIONS[mode],
+      );
+      expect(card).toHaveAttribute(
+        "aria-checked",
+        mode === KubernetesAiRemediationMode.RequireApproval ? "true" : "false",
+      );
+    }
+    expect(
+      within(dialog).getByText(getAiFixesFieldDescription("cluster")),
+    ).toBeInTheDocument();
+    expect(dialog).not.toHaveTextContent("Off: AI only investigates.");
+    expect(
+      within(dialog).queryByRole("combobox", { name: /^Fixes/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("what stays protected in every mode is folded under the cards, every clause listed", async () => {
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    const protections: HTMLElement = within(dialog).getByTestId(
+      "ai-access-protections",
+    );
+    expect(protections).not.toHaveAttribute("open");
+    expect(protections).toHaveTextContent(AI_ACCESS_PROTECTIONS_TITLE);
+    expect(
+      Array.from(
+        within(protections)
+          .getByTestId("ai-access-protections-list")
+          .querySelectorAll("li"),
+      ).map((item: Element): string => {
+        return item.textContent || "";
+      }),
+    ).toEqual(formatAiAccessProtections(getEveryModeProtections()));
+  });
+
+  test("a member's note says what they can change first, then what needs more", async () => {
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    const note: HTMLElement = within(dialog).getByTestId(
+      "kubernetes-ai-access-admin-note",
+    );
+    expect(note).toHaveTextContent(
+      "You can turn investigation on or off, lower fixes and remove allowlist patterns.",
+    );
+    expect(note).toHaveTextContent(
+      "Turning fixes on or up, adding allowlist patterns, or choosing a Runner needs Project Owner, Project Admin or Edit Auto Remediation Rule.",
+    );
+  });
+
+  test("the kubectl allowlist help is the short one, without the permission rules", async () => {
+    grant(ADMIN_PERMISSIONS);
+    serveCluster({ aiRemediationMode: KubernetesAiRemediationMode.Automatic });
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    await within(dialog).findByTestId(
+      "kubectl-allowlist-field",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(
+      within(dialog).getByText(KUBECTL_ALLOWLIST_FIELD_DESCRIPTION),
+    ).toBeInTheDocument();
+  });
+
+  test("a card chosen from the keyboard is saved like a clicked one", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    fireEvent.keyDown(modeCard(dialog, KubernetesAiRemediationMode.Disabled), {
+      key: " ",
+    });
+    await waitFor(
+      () => {
+        expect(
+          modeCard(dialog, KubernetesAiRemediationMode.Disabled),
+        ).toHaveAttribute("aria-checked", "true");
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    saveChangeModal(dialog);
+
+    expect(await waitForOneUpdate()).toEqual({
+      aiRemediationMode: KubernetesAiRemediationMode.Disabled,
+    });
+  });
+});
+
 describe("the Change modal: who may loosen", () => {
   test("a member on an Ask-for-approval cluster is offered only Off and the current mode, and told why", async () => {
     openAgentPage();
@@ -1654,9 +1885,9 @@ describe("the Change modal: who may loosen", () => {
     ).not.toBeInTheDocument();
     expect(within(dialog).queryByText("Runner")).not.toBeInTheDocument();
 
-    expect(await openDropdown(dialog, /^Fixes/)).toEqual([
-      REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.Disabled],
-      `${REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.RequireApproval]} (current)`,
+    expect(modeCardTitles(dialog)).toEqual([
+      "Off",
+      "Ask for approval (current)",
     ]);
     expect(listRequestsFor(Runner)).toHaveLength(0);
     expect(listRequestsFor(RunbookCredential)).toHaveLength(0);
@@ -1671,9 +1902,7 @@ describe("the Change modal: who may loosen", () => {
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
-    expect(await openDropdown(dialog, /^Fixes/)).toEqual([
-      REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.Disabled],
-    ]);
+    expect(modeCardTitles(dialog)).toEqual(["Off (current)"]);
   });
 
   test("an admin is offered every mode", async () => {
@@ -1684,13 +1913,12 @@ describe("the Change modal: who may loosen", () => {
     expect(
       within(dialog).queryByTestId("kubernetes-ai-access-admin-note"),
     ).not.toBeInTheDocument();
-    expect(await openDropdown(dialog, /^Fixes/)).toEqual(
-      Object.values(KubernetesAiRemediationMode).map(
-        (mode: KubernetesAiRemediationMode): string => {
-          return REMEDIATION_MODE_LABELS[mode];
-        },
-      ),
-    );
+    expect(modeCardTitles(dialog)).toEqual([
+      "Off",
+      "Ask for approval (current)",
+      "Automatic",
+      "Bypass approval",
+    ]);
   });
 
   test("an admin turns fixes on from Off", async () => {
@@ -1699,11 +1927,7 @@ describe("the Change modal: who may loosen", () => {
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
-    await pickOption(
-      dialog,
-      /^Fixes/,
-      REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.RequireApproval],
-    );
+    pickMode(dialog, KubernetesAiRemediationMode.RequireApproval);
     saveChangeModal(dialog);
 
     expect(await waitForOneUpdate()).toEqual({
@@ -1718,21 +1942,14 @@ describe("the Change modal: who may loosen", () => {
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
-    expect(await openDropdown(dialog, /^Fixes/)).toEqual([
-      REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.Disabled],
-      REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.RequireApproval],
-      REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.Automatic],
-      `${REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.BypassApproval]} (current)`,
+    expect(modeCardTitles(dialog)).toEqual([
+      "Off",
+      "Ask for approval",
+      "Automatic",
+      "Bypass approval (current)",
     ]);
 
-    fireEvent.click(
-      menuOptions().find((option: HTMLElement): boolean => {
-        return (
-          option.textContent ===
-          REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.Automatic]
-        );
-      })!,
-    );
+    pickMode(dialog, KubernetesAiRemediationMode.Automatic);
     saveChangeModal(dialog);
 
     expect(await waitForOneUpdate()).toEqual({
@@ -1753,8 +1970,8 @@ describe("the Change modal: who may loosen", () => {
     const dialog: HTMLElement = await openChangeModal();
 
     expect(
-      within(dialog).getByText(/You can remove patterns or clear the list/),
-    ).toBeInTheDocument();
+      within(dialog).getByTestId("kubernetes-ai-access-admin-note"),
+    ).toHaveTextContent("remove allowlist patterns");
     await setAllowlistText(dialog, SET_IMAGE_PATTERN);
     saveChangeModal(dialog);
 
@@ -1801,11 +2018,7 @@ describe("the Change modal: who may loosen", () => {
       ),
     ).toBeInTheDocument();
 
-    await pickOption(
-      dialog,
-      /^Fixes/,
-      REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.RequireApproval],
-    );
+    pickMode(dialog, KubernetesAiRemediationMode.RequireApproval);
     await waitFor(
       () => {
         expect(
@@ -1892,11 +2105,7 @@ describe("the Change modal: confirmations", () => {
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
-    await pickOption(
-      dialog,
-      /^Fixes/,
-      REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.BypassApproval],
-    );
+    pickMode(dialog, KubernetesAiRemediationMode.BypassApproval);
     saveChangeModal(dialog);
 
     const confirm: HTMLElement = await findDialogTitled(
@@ -1995,9 +2204,30 @@ describe("the Change modal: confirmations", () => {
     );
     expect(description).toHaveTextContent("flags must be written out");
     expect(description).toHaveTextContent('a leading "kubectl" is optional');
-    expect(description).toHaveTextContent(
-      "Write the verb (and the subcommand of rollout, set or create) out, never as *, and use more than one word",
-    );
+  });
+
+  /*
+   * The help no longer lists every rule up front. A rule is explained
+   * where it bites: by the pattern's own validation error, before anything
+   * is sent.
+   */
+  test("a pattern with * for the verb is explained when it is saved, and nothing is sent", async () => {
+    grant(ADMIN_PERMISSIONS);
+    serveCluster({ aiRemediationMode: KubernetesAiRemediationMode.Automatic });
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    await setAllowlistText(dialog, "kubectl * deployment/web -n web");
+    saveChangeModal(dialog);
+
+    expect(
+      await within(dialog).findByText(
+        /has a \* where the kubectl verb goes\. .* so write the verb out/,
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toBeInTheDocument();
+    expect(updateByIdSpy).not.toHaveBeenCalled();
   });
 });
 
