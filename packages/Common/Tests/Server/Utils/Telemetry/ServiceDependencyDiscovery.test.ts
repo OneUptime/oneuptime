@@ -1970,3 +1970,187 @@ describe("client spans named with either generation of semantic conventions", ()
     });
   });
 });
+
+/*
+ * OBI v0.14 (the Kubernetes agent's eBPF tracer) made `service.peer.name`
+ * opt-in; the agent's chart selects it again. A client span OBI could name
+ * the callee of carries the callee's service name twice: as
+ * `service.peer.name` and, resolved the same way, as `server.address`
+ * (OBI's PeerServiceFromSpan and HostAsServer). These pin what the Service
+ * Map makes of such a span with and without the peer name — the identity a
+ * RemoteService is keyed by changes with it, which is why the chart must
+ * keep selecting it.
+ */
+describe("OBI v0.14 client spans: what service.peer.name decides", () => {
+  // An OBI HTTP client span, as stored (server.port is a string column here).
+  function obiHttpCall(
+    host: string,
+    servicePeerName?: string,
+  ): StoredAttributes {
+    return {
+      "server.address": host,
+      "server.port": "8080",
+      "http.request.method": "POST",
+      "url.path": "/v1/charges",
+      ...(servicePeerName !== undefined
+        ? { "service.peer.name": servicePeerName }
+        : {}),
+    };
+  }
+
+  // An OBI Kafka client span: the application producing to the broker.
+  function obiKafkaProduce(servicePeerName?: string): StoredAttributes {
+    return {
+      "server.address": "kafka",
+      "server.port": "9092",
+      "messaging.system": "kafka",
+      "messaging.destination.name": "orders",
+      "messaging.operation.type": "send",
+      ...(servicePeerName !== undefined
+        ? { "service.peer.name": servicePeerName }
+        : {}),
+    };
+  }
+
+  function entityKeyOf(resolved: DependencyTarget | null): string {
+    if (resolved?.kind !== "dependency") {
+      throw new Error(`Not a dependency: ${JSON.stringify(resolved)}`);
+    }
+    return toExtractedDependencyEntity({
+      projectId: PROJECT_ID,
+      entity: resolved.entity,
+    }).entityKey;
+  }
+
+  test("service.peer.name 'payments' with server.address 'payments' is the known service", () => {
+    expect(
+      resolveClientSpanTarget(
+        dependencyRowForSpan(obiHttpCall("payments", "payments")),
+        KNOWN,
+      ),
+    ).toEqual({ kind: "service", serviceName: "payments" });
+    // The bare address names it too: a single label may be a service.
+    expect(
+      resolveClientSpanTarget(
+        dependencyRowForSpan(obiHttpCall("payments")),
+        KNOWN,
+      ),
+    ).toEqual({ kind: "service", serviceName: "payments" });
+  });
+
+  test("an unknown host is a RemoteService keyed by peer.service with the peer name, by server.address without it: two different nodes", () => {
+    const withPeerName: DependencyTarget | null = resolveClientSpanTarget(
+      dependencyRowForSpan(obiHttpCall("stripe-proxy", "stripe-proxy")),
+      KNOWN,
+    );
+    const withoutPeerName: DependencyTarget | null = resolveClientSpanTarget(
+      dependencyRowForSpan(obiHttpCall("stripe-proxy")),
+      KNOWN,
+    );
+
+    expect(withPeerName).toEqual({
+      kind: "dependency",
+      entity: {
+        entityType: EntityType.RemoteService,
+        identifyingAttributes: { "peer.service": "stripe-proxy" },
+        descriptiveAttributes: { "network.protocol.name": "http" },
+      },
+    });
+    expect(withoutPeerName).toEqual({
+      kind: "dependency",
+      entity: {
+        entityType: EntityType.RemoteService,
+        identifyingAttributes: { "server.address": "stripe-proxy" },
+        descriptiveAttributes: { "network.protocol.name": "http" },
+      },
+    });
+    /*
+     * Same callee, two entity keys: an agent whose OBI stopped sending
+     * service.peer.name would start a second node beside the first.
+     */
+    expect(entityKeyOf(withPeerName)).not.toBe(entityKeyOf(withoutPeerName));
+  });
+
+  test("the same holds for a broker: a Kafka client span is keyed by peer.service with the peer name, by messaging.system and server.address without it", () => {
+    const withPeerName: DependencyTarget | null = resolveClientSpanTarget(
+      dependencyRowForSpan(obiKafkaProduce("kafka")),
+      KNOWN,
+    );
+    const withoutPeerName: DependencyTarget | null = resolveClientSpanTarget(
+      dependencyRowForSpan(obiKafkaProduce()),
+      KNOWN,
+    );
+
+    expect(withPeerName).toEqual({
+      kind: "dependency",
+      entity: {
+        entityType: EntityType.RemoteService,
+        identifyingAttributes: { "peer.service": "kafka" },
+        descriptiveAttributes: {},
+      },
+    });
+    expect(withoutPeerName).toEqual({
+      kind: "dependency",
+      entity: {
+        entityType: EntityType.RemoteService,
+        identifyingAttributes: {
+          "messaging.system": "kafka",
+          "server.address": "kafka",
+        },
+        descriptiveAttributes: { "network.protocol.name": "kafka" },
+      },
+    });
+    expect(entityKeyOf(withPeerName)).not.toBe(entityKeyOf(withoutPeerName));
+  });
+
+  test("a peer in another namespace (OBI's 'name.namespace' form) does not link to the known service — current behaviour", () => {
+    /*
+     * OBI names a callee in a different service namespace HostName + '.' +
+     * namespace, in both service.peer.name and server.address (its
+     * PeerServiceFromSpan and HostAsServer). In Kubernetes the service
+     * namespace defaults to the pod's namespace, so an unlinked call from
+     * `shop` to the `payments` service in `billing` arrives as
+     * 'payments.billing'. Neither the peer name (matched whole) nor the
+     * address (only a cluster-local suffix offers its first label) finds
+     * the known service `payments`, so the call becomes a RemoteService of
+     * its own. Recorded as it is today, not as it should be: OBI v0.13 sent
+     * the same form, so this is not new with v0.14. A trace-linked call (the
+     * agent's context propagation) still lands on `payments` itself.
+     */
+    expect(
+      resolveClientSpanTarget(
+        dependencyRowForSpan(
+          obiHttpCall("payments.billing", "payments.billing"),
+        ),
+        KNOWN,
+      ),
+    ).toEqual({
+      kind: "dependency",
+      entity: {
+        entityType: EntityType.RemoteService,
+        identifyingAttributes: { "peer.service": "payments.billing" },
+        descriptiveAttributes: { "network.protocol.name": "http" },
+      },
+    });
+    expect(
+      resolveClientSpanTarget(
+        dependencyRowForSpan(obiHttpCall("payments.billing")),
+        KNOWN,
+      ),
+    ).toEqual({
+      kind: "dependency",
+      entity: {
+        entityType: EntityType.RemoteService,
+        identifyingAttributes: { "server.address": "payments.billing" },
+        descriptiveAttributes: { "network.protocol.name": "http" },
+      },
+    });
+    // The cluster-local form of the same callee does link, by its first label.
+    expect(
+      resolveClientSpanTarget(
+        dependencyRowForSpan(obiHttpCall("payments.billing.svc.cluster.local")),
+        KNOWN,
+      ),
+    ).toEqual({ kind: "service", serviceName: "payments" });
+  });
+});

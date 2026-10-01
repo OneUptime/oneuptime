@@ -126,6 +126,13 @@ const METRIC_TABLE: string = `oneuptime.${AnalyticsTableName.Metric}`;
  * mapping saved through the API may write the NUMBER 2, which the stamper
  * sees and the kind column keeps as the text "2", and the core reads both
  * as SERVER.
+ *
+ * It also leaves out the Kafka, MQTT and NATS spans OBI records on the
+ * receiving side of a connection (a broker serving a produce or fetch, a
+ * subscriber handed a delivery): OBI v0.14 sends them as PRODUCER /
+ * CONSUMER, and the App's trace ingest stores them as SERVER, as v0.13 sent
+ * them (ObiReceivingSideMessagingSpan), so no broker counts as a producer
+ * or consumer of its own topics.
  */
 export const MESSAGE_QUEUE_DISCOVERY_EXCLUDED_SPAN_KIND: SpanKind =
   SpanKind.Server;
