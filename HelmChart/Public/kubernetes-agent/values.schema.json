@@ -884,7 +884,7 @@
         },
         "dropDatabaseServerSpans": {
           "type": "boolean",
-          "description": "Drop the span OBI records inside a database server (db.system.name set, kind SERVER) when it has no parent, i.e. when its caller runs on another node. It would be a one-span trace duplicating the caller's client span. Spans pushed by application SDKs are never touched, and database metrics are unaffected."
+          "description": "Drop the span OBI records inside a database server (db.system.name set, kind SERVER), linked or not. It duplicates the caller's client span: a one-span trace when the caller runs on another node, a doubled database call inside the request trace when it runs on the same node. Spans pushed by application SDKs are never touched, and database metrics are unaffected."
         },
         "dropUnlinkedDatabaseCalls": {
           "type": "boolean",

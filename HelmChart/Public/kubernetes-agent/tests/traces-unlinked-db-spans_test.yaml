@@ -6,13 +6,14 @@
 #   - valkey-server's own span for every command it received. RESP carries no
 #     trace context, so it joins the caller's trace only when the caller runs
 #     on the same node — and the caller already recorded the same command as
-#     a client span (ebpf.dropDatabaseServerSpans).
+#     a client span, so it is dropped linked or not
+#     (ebpf.dropDatabaseServerSpans).
 #   - BullMQ queue workers polling Redis, which runs outside any request and
 #     so has no parent either (ebpf.dropUnlinkedDatabaseCalls).
 #
-# Those buried every request trace in the Traces list. The filter drops an
-# OBI span when it has a database system and no parent, one condition per
-# switch, split on the span kind. These tests pin the condition text (its
+# Those buried every request trace in the Traces list. The filter has one
+# condition per switch, split on the span kind: every OBI database server
+# span, and an OBI database call with no parent. These tests pin the condition text (its
 # behaviour against a real collector is covered by
 # Tests/Ops/agent-trace-filter-behaviour.sh), its scope — OBI spans only — and
 # its position in the traces pipeline.
@@ -28,12 +29,12 @@ set:
   oneuptime.url: https://oneuptime.example.com
   oneuptime.apiKey: key-123
 tests:
-  - it: defines the filter by default, one condition for database servers' spans and one for unlinked calls, both scoped to OBI spans with a database system and no parent
+  - it: defines the filter by default, scoped to OBI database spans — every database server span, and an application's calls that have no parent
     asserts:
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  filter/ebpf-unlinked-db:\\n    error_mode: ignore\\n    traces:\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and parent_span_id == SpanID\\(0x0000000000000000\\) and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and kind == SPAN_KIND_SERVER'\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and parent_span_id == SpanID\\(0x0000000000000000\\) and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and kind != SPAN_KIND_SERVER'\\n"
+          pattern: "\\n  filter/ebpf-unlinked-db:\\n    error_mode: ignore\\n    traces:\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and kind == SPAN_KIND_SERVER'\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and parent_span_id == SpanID\\(0x0000000000000000\\) and kind != SPAN_KIND_SERVER'\\n"
 
   - it: keeps an application's unlinked calls when asked, still dropping database servers' own spans
     set:
@@ -42,7 +43,7 @@ tests:
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and parent_span_id == SpanID\\(0x0000000000000000\\) and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and kind == SPAN_KIND_SERVER'\\n(?:\\n|  [#a-z])"
+          pattern: "\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and kind == SPAN_KIND_SERVER'\\n(?:\\n|  [#a-z])"
       - template: templates/configmap-deployment.yaml
         notMatchRegex:
           path: data["otel-collector-config.yaml"]
@@ -55,7 +56,7 @@ tests:
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and parent_span_id == SpanID\\(0x0000000000000000\\) and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and kind != SPAN_KIND_SERVER'\\n(?:\\n|  [#a-z])"
+          pattern: "\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and parent_span_id == SpanID\\(0x0000000000000000\\) and kind != SPAN_KIND_SERVER'\\n(?:\\n|  [#a-z])"
       - template: templates/configmap-deployment.yaml
         notMatchRegex:
           path: data["otel-collector-config.yaml"]
@@ -143,3 +144,19 @@ tests:
         notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "filter/ebpf-unlinked-db"
+
+  # Regression (seen end to end on KinD): with a "no parent" requirement on
+  # server spans, a database server span OBI had linked under a same-node
+  # client call survived while the calls condition dropped that call, leaving
+  # nearly half the traces without a root; the linked ones also doubled every
+  # database call inside request traces. Server spans go whatever their parent.
+  - it: drops database server spans whether or not they have a parent
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "parent_span_id[^\\n]*kind == SPAN_KIND_SERVER"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "parent_span_id == SpanID\\(0x0000000000000000\\) and kind != SPAN_KIND_SERVER'"

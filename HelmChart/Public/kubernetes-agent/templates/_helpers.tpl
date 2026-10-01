@@ -310,7 +310,7 @@ name.
 
 {{/*
 Base OTTL span condition for `filter/ebpf-unlinked-db`: an eBPF (OBI) span
-with a database system and no parent. See ebpf.dropDatabaseServerSpans and
+with a database system. See ebpf.dropDatabaseServerSpans and
 ebpf.dropUnlinkedDatabaseCalls.
 
   - telemetry.distro.name scopes it to OBI. The receiver also takes spans
@@ -319,8 +319,9 @@ ebpf.dropUnlinkedDatabaseCalls.
   - db.system.name is the current semantic-convention key and what OBI
     emits; db.system is the older one, kept so an OBI that still emits it is
     covered too.
-  - parent_span_id == SpanID(0x0000000000000000) is "no parent" in a form
-    the pinned collector (0.96.0) understands; IsRootSpan() is newer.
+  - The calls condition adds parent_span_id == SpanID(0x0000000000000000),
+    "no parent" in a form the pinned collector (0.96.0) understands;
+    IsRootSpan() is newer.
 */}}
 {{/*
 Whether to drop each kind of unlinked eBPF database span in
@@ -345,24 +346,33 @@ Usage: {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true"
 
 {{/*
 The OTTL span conditions of `filter/ebpf-unlinked-db`, as a JSON array: one
-per enabled switch. Both share the base below; the server one adds
-`kind == SPAN_KIND_SERVER` (the span OBI recorded inside the database server),
-the calls one `kind != SPAN_KIND_SERVER` (the application's own call).
+per enabled switch, both on the base below.
+
+  - server (ebpf.dropDatabaseServerSpans): `kind == SPAN_KIND_SERVER`, with
+    or without a parent. It is the span OBI records inside the database
+    server, and it duplicates the caller's client span either way: unlinked
+    it is a one-span trace, and linked (OBI links the two ends of a
+    connection when the caller runs on the same node) it doubles every
+    database call in the request trace. Keeping the linked ones would also
+    leave them pointing at a missing parent whenever the calls switch drops
+    the client span they hang from.
+  - calls (ebpf.dropUnlinkedDatabaseCalls): `kind != SPAN_KIND_SERVER` and no
+    parent — the application's own call, outside any trace.
 */}}
 {{- define "kubernetes-agent.ebpfUnlinkedDatabaseSpanConditions" -}}
-{{- $base := include "kubernetes-agent.ebpfUnlinkedDatabaseSpanCondition" . -}}
+{{- $base := include "kubernetes-agent.ebpfDatabaseSpanCondition" . -}}
 {{- $conds := list -}}
 {{- if eq (include "kubernetes-agent.dropDatabaseServerSpans" .) "true" -}}
 {{- $conds = append $conds (printf "%s and kind == SPAN_KIND_SERVER" $base) -}}
 {{- end -}}
 {{- if eq (include "kubernetes-agent.dropUnlinkedDatabaseCalls" .) "true" -}}
-{{- $conds = append $conds (printf "%s and kind != SPAN_KIND_SERVER" $base) -}}
+{{- $conds = append $conds (printf "%s and parent_span_id == SpanID(0x0000000000000000) and kind != SPAN_KIND_SERVER" $base) -}}
 {{- end -}}
 {{- toJson $conds -}}
 {{- end -}}
 
-{{- define "kubernetes-agent.ebpfUnlinkedDatabaseSpanCondition" -}}
-resource.attributes["telemetry.distro.name"] == "opentelemetry-ebpf-instrumentation" and parent_span_id == SpanID(0x0000000000000000) and (attributes["db.system.name"] != nil or attributes["db.system"] != nil)
+{{- define "kubernetes-agent.ebpfDatabaseSpanCondition" -}}
+resource.attributes["telemetry.distro.name"] == "opentelemetry-ebpf-instrumentation" and (attributes["db.system.name"] != nil or attributes["db.system"] != nil)
 {{- end }}
 
 {{/*

@@ -108,8 +108,8 @@ fs.writeFileSync(`${outDir}/image`, image);
 }
 
 # Each span is named for what must happen to it: SERVER (a database server's
-# own unlinked span) and CALL (an application's unlinked database call) are
-# dropped while their switch is on; KEEP is always kept. Ids are hex: the
+# own span, linked or not) and CALL (an application's unlinked database call)
+# are dropped while their switch is on; KEEP is always kept. Ids are hex: the
 # collector's OTLP/JSON decoder reads trace and span ids as hex, not base64.
 node -e '
 const fs = require("fs");
@@ -143,9 +143,11 @@ const PRODUCER = 4;
 const PARENT = "00000000000000aa";
 const payload = {
   resourceSpans: [
-    // valkey-server: its own span for every command it receives. Never linked.
+    // valkey-server: its own span for every command it receives, unlinked
+    // (caller on another node) or linked (same node).
     resource(OBI, "oneuptime-valkey", [
       span("SERVER valkey server set", SERVER, "", { "db.system.name": "redis", "db.operation.name": "set" }),
+      span("SERVER valkey server get linked under the call", SERVER, PARENT, { "db.system.name": "redis", "db.operation.name": "get" }),
     ]),
     // A queue worker polling Redis outside any request, and one inside one.
     resource(OBI, "oneuptime-worker", [
@@ -161,8 +163,9 @@ const payload = {
     ]),
     resource(OBI, "oneuptime-postgresql", [
       span("SERVER postgres server SELECT", SERVER, "", { "db.system.name": "postgresql" }),
-      // Linked by OBI on the same node (black-box propagation): a real child.
-      span("KEEP postgres server SELECT with a parent", SERVER, PARENT, { "db.system.name": "postgresql" }),
+      // Linked by OBI under a same-node call (black-box propagation): still a
+      // duplicate of that call, and dropped like the unlinked one.
+      span("SERVER postgres server SELECT linked under the call", SERVER, PARENT, { "db.system.name": "postgresql" }),
     ]),
     // An application pushing its own SDK spans to the agent: never touched.
     resource(null, "sdk-app", [

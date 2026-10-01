@@ -402,16 +402,18 @@ data:
       # otherwise reach OneUptime as a one-span "trace" named after the bare
       # command (`set`, `evalsha`), and on a busy cluster they are most of
       # what OBI sends.
-      #   - kind == SERVER: the span OBI records inside the database server
-      #     for every command it receives (ebpf.dropDatabaseServerSpans).
-      #     Database wire protocols carry no trace context, so it joins the
-      #     caller's trace only when the caller runs on the same node, and it
-      #     duplicates the client span the caller already recorded.
+      #   - kind == SERVER, linked or not: the span OBI records inside the
+      #     database server for every command it receives
+      #     (ebpf.dropDatabaseServerSpans). It duplicates the client span the
+      #     caller already recorded: unlinked (caller on another node) it is
+      #     a one-span trace, linked (same node) it doubles every database
+      #     call in the request trace, and it would point at a missing parent
+      #     whenever the switch below drops the call it hangs from.
       #   - any other kind: an application's own database call made outside
       #     any request — queue workers polling Redis, pool pings, cron jobs
       #     (ebpf.dropUnlinkedDatabaseCalls). These also feed OneUptime's
       #     database discovery; see that value for the trade-off.
-      # Database spans inside a request trace have a parent and are kept;
+      # An application's database calls inside a request trace are kept;
       # spans applications push from their own SDKs are not OBI's and are
       # kept. OBI computes its database metrics before export, so those still
       # count every command.
