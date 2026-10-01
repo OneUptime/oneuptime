@@ -151,7 +151,7 @@ Ersetzen Sie die Account-GUID durch den Account, zu dem diese Cases gehören. **
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-Schalten Sie den Workflow nun ein – **Übersicht → Workflow bearbeiten → Aktiviert** –, erklären Sie einen Test-Vorfall und lesen Sie die Ausführung unter **Ausführungen & Protokolle**. Der Baustein `create-case` sollte einen `201` zeigen und einen Body, der die neue `incidentid` enthält. Änderungen auf der Arbeitsfläche speichern sich selbst; es gibt keinen Speichern-Knopf.
+Schalten Sie den Workflow nun ein – **Übersicht → Workflow bearbeiten → Aktiviert** –, erklären Sie einen Test-Vorfall und lesen Sie die Ausführung unter **Protokolle → Ausführungen**. Der Baustein `create-case` sollte einen `201` zeigen und einen Body, der die neue `incidentid` enthält. Änderungen auf der Arbeitsfläche speichern sich selbst; es gibt keinen Speichern-Knopf.
 
 ### Schweregrad und Status zuordnen
 
@@ -323,7 +323,7 @@ Ein Workflow hat genau einen Trigger, Vorfälle und Warnungen brauchen also je e
 
 ## Fehlerbehebung
 
-Lesen Sie zuerst den fehlgeschlagenen Baustein in **Ausführungen & Protokolle** – beide Microsoft-Endpunkte liefern einen erklärenden JSON-Body zurück, und die API-Komponente hält ihn in `response-body` fest.
+Lesen Sie zuerst den fehlgeschlagenen Baustein in **Protokolle → Ausführungen** – beide Microsoft-Endpunkte liefern einen erklärenden JSON-Body zurück, und die API-Komponente hält ihn in `response-body` fest.
 
 **Die Token-Anfrage scheitert mit `400` und `invalid_request` oder einem nicht unterstützten Grant-Typ.** Der Header `Content-Type` lautet nicht exakt `Content-Type: application/x-www-form-urlencoded`, der Body ist also als JSON hinausgegangen. Prüfen Sie die Groß- und Kleinschreibung.
 
@@ -343,7 +343,7 @@ Lesen Sie zuerst den fehlgeschlagenen Baustein in **Ausführungen & Protokolle**
 
 **`429 Too Many Requests`.** Die Service-Protection-Grenzen von Dataverse – ungefähr 6.000 Anfragen und 20 Minuten Ausführungszeit pro Benutzer in einem beliebigen Fünf-Minuten-Fenster, pro Webserver. Die Antwort trägt ein `Retry-After` in Sekunden. Wenn ein Workflow stoßweise arbeitet, setzen Sie einen Baustein **Delay** hinein oder verlagern Sie die Arbeit in einen geplanten Workflow, der bündelt.
 
-**Bei OneUptime kommt nichts an.** Senden Sie selbst mit `curl` eine Anfrage an die Webhook-URL und prüfen Sie **Ausführungen & Protokolle** des Workflows. Wenn Ihre eigene Anfrage auftaucht und die von Dynamics nicht, liegt das Problem weiter oben: bei Power Automate im Ausführungsverlauf des Flows, bei einem nativen Webhook unter **Settings → System Jobs**, gefiltert auf Fehlschläge.
+**Bei OneUptime kommt nichts an.** Senden Sie selbst mit `curl` eine Anfrage an die Webhook-URL und prüfen Sie **Protokolle → Ausführungen** des Workflows. Wenn Ihre eigene Anfrage auftaucht und die von Dynamics nicht, liegt das Problem weiter oben: bei Power Automate im Ausführungsverlauf des Flows, bei einem nativen Webhook unter **Settings → System Jobs**, gefiltert auf Fehlschläge.
 
 **Der Workflow läuft, aber der Vorfall ändert sich nicht.** Ein Baustein **Update One Incident** meldet `Items Updated: 0`, wenn die Query nichts getroffen hat – das ist ein Erfolg, kein Fehler. Prüfen Sie, ob die ID in der Payload die OneUptime-Vorfall-ID ist und ob Sie nach `_id` abfragen.
 

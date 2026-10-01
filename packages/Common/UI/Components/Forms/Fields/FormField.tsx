@@ -394,13 +394,23 @@ const FormField: <T extends GenericObject>(
         ? props.field.defaultValue
         : storedInputValue;
 
+    /*
+     * A checkbox and a switch draw their own label, beside the control: the
+     * title names it and pressing the title flips it. A switch drawn under a
+     * label and a paragraph of help read as a stray control at the bottom of
+     * the paragraph, a long way from the word that said what it was for.
+     * Neither says "(Optional)" either: on or off, a switch always has an
+     * answer, so there is nothing to leave out.
+     */
+    const drawsOwnLabel: boolean =
+      props.field.fieldType === FormFieldSchemaType.Checkbox ||
+      props.field.fieldType === FormFieldSchemaType.Toggle;
+
     return (
       <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>
-        {/*** Do not display label on checkbox because checkbox can display its own label */}
-
         {props.field.showHorizontalRuleAbove && <HorizontalRule />}
 
-        {props.field.fieldType !== FormFieldSchemaType.Checkbox && (
+        {!drawsOwnLabel && (
           <FieldLabelElement
             title={props.field.title || ""}
             id={fieldLabelId}
@@ -413,7 +423,16 @@ const FormField: <T extends GenericObject>(
           />
         )}
 
-        <div className="mt-2">
+        {/*
+         * The gap is the one between a label and its control. A switch's
+         * label is beside it, so its row starts where a label would, level
+         * with the label of the field next to it in a two-column form.
+         */}
+        <div
+          className={
+            props.field.fieldType === FormFieldSchemaType.Toggle ? "" : "mt-2"
+          }
+        >
           {/* Time Picker */}
           {props.field.fieldType === FormFieldSchemaType.Time && (
             <TimePicker
@@ -914,8 +933,17 @@ const FormField: <T extends GenericObject>(
 
           {props.field.fieldType === FormFieldSchemaType.Toggle && (
             <Toggle
-              ariaLabelledby={fieldLabelId}
+              id={fieldId}
+              title={
+                translateString(props.field.title) ?? props.field.title ?? ""
+              }
+              description={translateValue(props.field.description) || ""}
               error={props.touched && props.error ? props.error : undefined}
+              /*
+               * As every other input here: refused while the form saves,
+               * and wherever the field itself is switched off.
+               */
+              disabled={props.isDisabled || props.field.disabled}
               onChange={async (value: boolean) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);

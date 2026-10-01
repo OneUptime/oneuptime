@@ -170,7 +170,7 @@ Connect the API block's **Error** port to a **Slack** (or Email) block: a circui
 
 ## Step 4 — Test it
 
-1. **Dry-run the workflow**: alerts can be created by hand (**Alerts → Create Alert**). Create one titled `LLM budget exceeded: test`, then check the workflow fired under **Workflows → Runs & Logs**, and that your endpoint received the post.
+1. **Dry-run the workflow**: alerts can be created by hand (**Alerts → Create Alert**). Create one titled `LLM budget exceeded: test`, then check the workflow fired under **Workflows → Logs → Runs**, and that your endpoint received the post.
 2. **Test the real signal**: create a scoped budget with a tiny limit (for example $0.01) against a dev service, point your monitor at its `oneuptime.llm.budget.percent.used` series, and let your agent run — you should see the metric cross 100, the alert, the workflow run, and the breaker trip end-to-end. For Option B, point a test agent at a stubbed failing tool and watch the loop trip the traces monitor.
 3. **Verify idempotency** by firing the alert twice.
 

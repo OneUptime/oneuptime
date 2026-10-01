@@ -151,7 +151,7 @@ Vervang de account-GUID door het account waar deze cases bij horen. **`customeri
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-Zet de workflow nu aan — **Overzicht → Workflow bewerken → Ingeschakeld** — roep een testincident uit, en lees de run onder **Runs & logboeken**. Het blok `create-case` hoort een `201` te tonen en een body met het nieuwe `incidentid`. Wijzigingen op het canvas slaan zichzelf op; er is geen opslaanknop.
+Zet de workflow nu aan — **Overzicht → Workflow bewerken → Ingeschakeld** — roep een testincident uit, en lees de run onder **Logboeken → Uitvoeringen**. Het blok `create-case` hoort een `201` te tonen en een body met het nieuwe `incidentid`. Wijzigingen op het canvas slaan zichzelf op; er is geen opslaanknop.
 
 ### Ernst en status mappen
 
@@ -323,7 +323,7 @@ Een workflow heeft precies één trigger, dus incidenten en alerts vragen elk om
 
 ## Probleemoplossing
 
-Lees eerst het mislukte blok in **Runs & logboeken** — beide Microsoft-eindpunten geven een verklarende JSON-body terug, en het API-component bewaart die in `response-body`.
+Lees eerst het mislukte blok in **Logboeken → Uitvoeringen** — beide Microsoft-eindpunten geven een verklarende JSON-body terug, en het API-component bewaart die in `response-body`.
 
 **Het tokenverzoek mislukt met `400` en `invalid_request` of een niet-ondersteund grant type.** De `Content-Type`-header is niet precies `Content-Type: application/x-www-form-urlencoded`, waardoor de body als JSON de deur uit ging. Controleer de hoofdletters.
 
@@ -343,7 +343,7 @@ Lees eerst het mislukte blok in **Runs & logboeken** — beide Microsoft-eindpun
 
 **`429 Too Many Requests`.** De service protection-limieten van Dataverse — ruwweg 6.000 verzoeken en 20 minuten uitvoeringstijd per gebruiker in elk venster van vijf minuten, per webserver. Het antwoord bevat een `Retry-After` in seconden. Zit een workflow te bursten, zet er dan een **Delay**-blok in of verplaats het werk naar een geplande workflow die batcht.
 
-**Er komt niets aan aan de OneUptime-kant.** Stuur zelf een verzoek naar de webhook-URL met `curl` en controleer de **Runs & logboeken** van de workflow. Verschijnt jouw eigen verzoek wel en dat van Dynamics niet, dan zit het probleem stroomopwaarts: kijk voor Power Automate in de eigen runhistorie van de flow, en voor een native webhook onder **Settings → System Jobs**, gefilterd op mislukkingen.
+**Er komt niets aan aan de OneUptime-kant.** Stuur zelf een verzoek naar de webhook-URL met `curl` en controleer **Logboeken → Uitvoeringen** bij de workflow. Verschijnt jouw eigen verzoek wel en dat van Dynamics niet, dan zit het probleem stroomopwaarts: kijk voor Power Automate in de eigen runhistorie van de flow, en voor een native webhook onder **Settings → System Jobs**, gefilterd op mislukkingen.
 
 **De workflow draait, maar het incident verandert niet.** Een **Update One Incident**-blok meldt `Items Updated: 0` wanneer de query niets matchte — dat is een succes, geen fout. Controleer of de id in de payload het OneUptime-incident-id is en of je op `_id` bevraagt.
 

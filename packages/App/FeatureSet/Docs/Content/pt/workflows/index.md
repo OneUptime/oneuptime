@@ -38,14 +38,14 @@ Abra **Fluxos de trabalho** na navegação à esquerda. Essa seção guarda:
 
 - **Fluxos de trabalho** — sua lista de workflows. Crie um novo ou abra um existente.
 - **Variáveis globais** — valores compartilhados entre todos os seus workflows.
-- **Execuções e registros** — o histórico de execuções de todos os workflows do projeto.
+- **Registros → Execuções** — o histórico de execuções de todos os workflows do projeto.
 
 Abra um workflow específico e o menu à esquerda dele traz:
 
 - **Visão geral** — nome, descrição, rótulos e a chave **Habilitado**.
 - **Construtor** — o canvas onde você desenha o workflow.
 - **Variáveis do fluxo** — valores restritos a este workflow.
-- **Execuções e registros** — cada execução deste workflow, com detalhes.
+- **Registros → Execuções** — cada execução deste workflow, com detalhes.
 - **Configurações** — duplicação e exportação.
 
 ## Construindo seu primeiro workflow
@@ -80,5 +80,5 @@ Na próxima vez que alguém abrir um incidente com "Sev 1" no título, o Slack a
 - [Gatilhos de workflow](/docs/workflows/triggers) — as diferentes formas de um workflow começar.
 - [Componentes de workflow](/docs/workflows/components) — os blocos de construção que você pode adicionar.
 - [Variáveis de workflow](/docs/workflows/variables) — usando valores entre blocos e workflows.
-- [Execuções e registros de workflow](/docs/workflows/runs-and-logs) — verificando o que aconteceu.
+- [Execuções de workflow](/docs/workflows/runs-and-logs) — verificando o que aconteceu.
 - [Configuração e segurança de workflow](/docs/workflows/configuration) — configurações que vale a pena conhecer.

@@ -217,5 +217,5 @@ Two things to watch:
 ## Where to read next
 
 - [Components](/docs/workflows/components) — the full list of outputs each block produces.
-- [Runs & Logs](/docs/workflows/runs-and-logs) — see the actual value of every variable after a run.
+- [Runs](/docs/workflows/runs-and-logs) — see the actual value of every variable after a run.
 - [Configuration & Safety](/docs/workflows/configuration) — what's safe to put in a global variable.

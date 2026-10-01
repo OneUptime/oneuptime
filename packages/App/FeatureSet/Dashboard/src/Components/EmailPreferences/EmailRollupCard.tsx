@@ -1,6 +1,7 @@
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationEmailRollupSetting from "Common/Models/DatabaseModels/UserNotificationEmailRollupSetting";
@@ -167,12 +168,6 @@ const EmailRollupCard: FunctionComponent = (): ReactElement => {
     }
   };
 
-  const trackClasses: string = isEnabled
-    ? "bg-emerald-500 border-emerald-500"
-    : "bg-gray-200 border-gray-300";
-
-  const knobClasses: string = isEnabled ? "translate-x-5" : "translate-x-0.5";
-
   return (
     <Card
       title="Email Rollup"
@@ -196,21 +191,26 @@ const EmailRollupCard: FunctionComponent = (): ReactElement => {
             </div>
           ) : null}
           <div className="flex items-start gap-4">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isEnabled}
-              aria-label={`Roll up notification emails: ${isEnabled ? "On" : "Off"}. Click to ${isEnabled ? "disable" : "enable"}.`}
-              onClick={handleToggle}
+            {/*
+             * The product's one switch, as on every other page. Named for
+             * what it controls; whether it is on is aria-checked, and the
+             * sentence beside it says it in words. Disabled while a write is
+             * in flight - aria-disabled, so it keeps focus - so a second
+             * press cannot race the first.
+             */}
+            <Toggle
+              ariaLabel="Roll up notification emails"
+              value={isEnabled}
               disabled={isBusy}
-              className={`relative mt-0.5 inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60 ${trackClasses}`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${knobClasses}`}
-              />
-            </button>
+              onChange={() => {
+                handleToggle().catch(() => {
+                  // persistRollupEnabled reports its own failure on the card.
+                });
+              }}
+            />
             <div>
-              <div className="text-sm font-medium text-gray-900">
+              {/* leading-6: the line is the switch's 24px, so they sit level. */}
+              <div className="text-sm font-medium leading-6 text-gray-900">
                 {isEnabled
                   ? "On: notifications that arrive together are delivered as one email."
                   : "Off: every notification arrives as its own email, immediately."}

@@ -135,5 +135,5 @@ Dos cosas a vigilar:
 ## Qué leer a continuación
 
 - [Componentes de flujo de trabajo](/docs/workflows/components) — la lista completa de salidas que produce cada bloque.
-- [Ejecuciones y registros de flujo de trabajo](/docs/workflows/runs-and-logs) — ver el valor real de cada variable tras una ejecución.
+- [Ejecuciones de flujo de trabajo](/docs/workflows/runs-and-logs) — ver el valor real de cada variable tras una ejecución.
 - [Configuración y seguridad del flujo de trabajo](/docs/workflows/configuration) — qué es seguro poner en una variable global.

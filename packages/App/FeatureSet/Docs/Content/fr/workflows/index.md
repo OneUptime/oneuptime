@@ -38,14 +38,14 @@ Ouvrez **Flux de travail** dans la navigation de gauche. Cette section contient 
 
 - **Flux de travail** — la liste de vos workflows. Créez-en un ou ouvrez-en un existant.
 - **Variables globales** — les valeurs partagées par tous vos workflows.
-- **Exécutions & journaux** — l'historique des exécutions de tous les workflows de votre projet.
+- **Journaux → Exécutions** — l'historique des exécutions de tous les workflows de votre projet.
 
 Ouvrez un workflow en particulier et son propre menu de gauche contient :
 
 - **Vue d'ensemble** — nom, description, étiquettes et interrupteur **Activé**.
 - **Constructeur** — le canevas sur lequel vous le concevez.
 - **Variables de flux de travail** — les valeurs limitées à ce seul workflow.
-- **Exécutions & journaux** — chaque exécution de ce workflow, avec ses détails.
+- **Journaux → Exécutions** — chaque exécution de ce workflow, avec ses détails.
 - **Paramètres** — duplication et export.
 
 ## Construire votre premier workflow
@@ -80,5 +80,5 @@ La prochaine fois que quelqu'un ouvrira un incident avec « Sev 1 » dans le tit
 - [Déclencheurs de workflow](/docs/workflows/triggers) — les différentes façons de démarrer un workflow.
 - [Composants de workflow](/docs/workflows/components) — les briques que vous pouvez ajouter.
 - [Variables de workflow](/docs/workflows/variables) — faire circuler des valeurs entre les blocs et entre les workflows.
-- [Exécutions et journaux de workflow](/docs/workflows/runs-and-logs) — vérifier ce qui s'est passé.
+- [Exécutions de workflow](/docs/workflows/runs-and-logs) — vérifier ce qui s'est passé.
 - [Configuration et sécurité des workflows](/docs/workflows/configuration) — les réglages qu'il vaut mieux connaître.

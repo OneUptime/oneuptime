@@ -78,4 +78,4 @@ Un flujo de trabajo solo puede tener un disparador. Si necesitas dos formas de a
 
 - [Componentes de flujo de trabajo](/docs/workflows/components) — las acciones que añades después del disparador.
 - [Variables de flujo de trabajo](/docs/workflows/variables) — leer la salida del disparador desde bloques posteriores.
-- [Ejecuciones y registros de flujo de trabajo](/docs/workflows/runs-and-logs) — confirmar que tu disparador saltó.
+- [Ejecuciones de flujo de trabajo](/docs/workflows/runs-and-logs) — confirmar que tu disparador saltó.

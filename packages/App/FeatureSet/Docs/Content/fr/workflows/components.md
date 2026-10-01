@@ -105,7 +105,7 @@ Envoyer un e-mail via un serveur SMTP que vous saisissez dans le bloc.
 - **Succès** — part quand le serveur SMTP a accepté le message.
 - **Erreur** — part quand l'hôte SMTP est refusé, que le serveur est injoignable ou qu'il rejette le message. Transmet le message d'erreur. L'absence de **To Email**, **From Email**, **SMTP Host** ou **SMTP Port** arrête plutôt l'exécution.
 
-Le bloc se connecte directement au serveur indiqué dans ses paramètres. Il n'utilise ni les paramètres [SMTP](/docs/emails/smtp) de votre projet ni le propre serveur de messagerie de OneUptime, et les e-mails qu'il envoie n'apparaissent pas dans les Journaux de notification. Pour vérifier ce qu'il a fait, consultez les [Exécutions et journaux](/docs/workflows/runs-and-logs) du workflow.
+Le bloc se connecte directement au serveur indiqué dans ses paramètres. Il n'utilise ni les paramètres [SMTP](/docs/emails/smtp) de votre projet ni le propre serveur de messagerie de OneUptime, et les e-mails qu'il envoie n'apparaissent pas dans les Journaux de notification. Pour vérifier ce qu'il a fait, consultez les [Exécutions](/docs/workflows/runs-and-logs) du workflow.
 
 Les connexions vers les adresses de bouclage (`localhost`, `127.0.0.1`), de lien local et de métadonnées cloud sont refusées. Sur OneUptime Cloud, un hôte SMTP situé sur une adresse de réseau privé, ou un nom qui se résout vers une telle adresse, est également refusé. Les installations auto-hébergées peuvent atteindre un serveur de messagerie sur leur propre réseau, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` est défini sur `true`. Un hôte refusé emprunte la sortie **Erreur**, et rien n'est envoyé.
 
@@ -217,5 +217,5 @@ Quelques règles rapides :
 ## Où lire ensuite
 
 - [Variables de workflow](/docs/workflows/variables) — faire passer les données d'un bloc à l'autre.
-- [Exécutions et journaux de workflow](/docs/workflows/runs-and-logs) — vérifier ce qu'a fait chaque bloc lors d'une exécution.
+- [Exécutions de workflow](/docs/workflows/runs-and-logs) — vérifier ce qu'a fait chaque bloc lors d'une exécution.
 - [Configuration et sécurité des workflows](/docs/workflows/configuration) — limites, propriétaires et secrets.

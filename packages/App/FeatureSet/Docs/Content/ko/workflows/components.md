@@ -105,7 +105,7 @@ Microsoft Teams 채널에 메시지를 게시합니다.
 - **Success** — SMTP 서버가 메시지를 수락했을 때 발생합니다.
 - **Error** — SMTP 호스트가 거부되었거나, 서버에 연결할 수 없거나, 서버가 메시지를 거부했을 때 발생합니다. 오류 메시지를 함께 넘깁니다. **To Email**, **From Email**, **SMTP Host**, **SMTP Port** 중 하나라도 비어 있으면 대신 실행 자체가 중지됩니다.
 
-이 블록은 설정에 있는 서버에 바로 연결합니다. 프로젝트의 [SMTP](/docs/emails/smtp) 설정이나 OneUptime 자체 메일 서버를 사용하지 않으며, 이 블록이 보낸 이메일은 알림 로그에 나타나지 않습니다. 블록이 한 일을 확인하려면 워크플로의 [실행 및 로그](/docs/workflows/runs-and-logs)를 보세요.
+이 블록은 설정에 있는 서버에 바로 연결합니다. 프로젝트의 [SMTP](/docs/emails/smtp) 설정이나 OneUptime 자체 메일 서버를 사용하지 않으며, 이 블록이 보낸 이메일은 알림 로그에 나타나지 않습니다. 블록이 한 일을 확인하려면 워크플로의 [실행 기록](/docs/workflows/runs-and-logs)을 보세요.
 
 루프백(`localhost`, `127.0.0.1`), 링크 로컬, 클라우드 메타데이터 주소로의 연결은 거부됩니다. OneUptime Cloud에서는 사설 네트워크 주소에 있는 SMTP 호스트나, 그런 주소로 해석되는 이름도 거부됩니다. 셀프 호스팅 설치는 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`가 `true`로 설정되어 있지 않다면 자체 네트워크의 메일 서버에 연결할 수 있습니다. 거부된 호스트는 **Error** 출력으로 이어지며, 아무것도 전송되지 않습니다.
 
@@ -217,5 +217,5 @@ Create One의 **JSON Object**, Create Many의 **JSON Array**, Update 구성 요�
 ## 다음으로 읽을거리
 
 - [워크플로우 변수](/docs/workflows/variables) — 블록 사이로 데이터 넘기기.
-- [워크플로우 실행 및 로그](/docs/workflows/runs-and-logs) — 실행에서 각 블록이 한 일 확인하기.
+- [워크플로우 실행 기록](/docs/workflows/runs-and-logs) — 실행에서 각 블록이 한 일 확인하기.
 - [워크플로우 설정 및 보안](/docs/workflows/configuration) — 한도, 소유자, 시크릿.

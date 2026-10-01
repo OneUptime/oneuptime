@@ -105,7 +105,7 @@ Eine E-Mail über einen SMTP-Server versenden, den Sie im Baustein angeben.
 - **Erfolg** – feuert, wenn der SMTP-Server die Nachricht angenommen hat.
 - **Fehler** – feuert, wenn der SMTP-Host abgelehnt wird, der Server nicht erreichbar ist oder der Server die Nachricht zurückweist. Reicht die Fehlermeldung weiter. Fehlt **To Email**, **From Email**, **SMTP Host** oder **SMTP Port**, wird stattdessen die Ausführung gestoppt.
 
-Der Baustein verbindet sich direkt mit dem Server aus seinen Einstellungen. Er verwendet weder die [SMTP](/docs/emails/smtp)-Einstellungen Ihres Projekts noch den eigenen Mailserver von OneUptime, und die E-Mails, die er versendet, erscheinen nicht in den Benachrichtigungsprotokollen. Um nachzusehen, was er getan hat, schauen Sie in die [Ausführungen & Protokolle](/docs/workflows/runs-and-logs) des Workflows.
+Der Baustein verbindet sich direkt mit dem Server aus seinen Einstellungen. Er verwendet weder die [SMTP](/docs/emails/smtp)-Einstellungen Ihres Projekts noch den eigenen Mailserver von OneUptime, und die E-Mails, die er versendet, erscheinen nicht in den Benachrichtigungsprotokollen. Um nachzusehen, was er getan hat, schauen Sie in die [Ausführungen](/docs/workflows/runs-and-logs) des Workflows.
 
 Verbindungen zu Loopback-Adressen (`localhost`, `127.0.0.1`), Link-Local-Adressen und Cloud-Metadaten-Adressen werden abgelehnt. In OneUptime Cloud wird außerdem ein SMTP-Host auf einer privaten Netzwerkadresse abgelehnt, ebenso ein Name, der zu einer solchen Adresse aufgelöst wird. Selbst gehostete Installationen können einen Mailserver in ihrem eigenen Netzwerk erreichen, es sei denn, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist auf `true` gesetzt. Ein abgelehnter Host führt zum Output **Fehler**, und es wird nichts gesendet.
 
@@ -217,5 +217,5 @@ Ein paar schnelle Faustregeln:
 ## Weiterführende Themen
 
 - [Workflow-Variablen](/docs/workflows/variables) – Daten zwischen Bausteinen weitergeben.
-- [Workflow-Ausführungen & Protokolle](/docs/workflows/runs-and-logs) – nachsehen, was jeder Baustein bei einer Ausführung getan hat.
+- [Workflow-Ausführungen](/docs/workflows/runs-and-logs) – nachsehen, was jeder Baustein bei einer Ausführung getan hat.
 - [Workflow-Konfiguration & Sicherheit](/docs/workflows/configuration) – Grenzen, Owners und Geheimnisse.

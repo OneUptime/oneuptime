@@ -135,5 +135,5 @@ Deux points de vigilance :
 ## Où lire ensuite
 
 - [Composants de workflow](/docs/workflows/components) — la liste complète des sorties produites par chaque bloc.
-- [Exécutions et journaux de workflow](/docs/workflows/runs-and-logs) — voir la valeur réelle de chaque variable après une exécution.
+- [Exécutions de workflow](/docs/workflows/runs-and-logs) — voir la valeur réelle de chaque variable après une exécution.
 - [Configuration et sécurité des workflows](/docs/workflows/configuration) — ce qu'il est prudent de mettre dans une variable globale.

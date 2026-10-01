@@ -78,4 +78,4 @@ OneUptime 裡幾乎每一種東西——監測器、事件、警示、排定維�
 
 - [工作流程元件](/docs/workflows/components)——觸發器之後你會加上的那些動作。
 - [工作流程變數](/docs/workflows/variables)——在後面的區塊裡讀取觸發器的輸出。
-- [工作流程執行與日誌](/docs/workflows/runs-and-logs)——確認你的觸發器真的觸發了。
+- [工作流程執行記錄](/docs/workflows/runs-and-logs)——確認你的觸發器真的觸發了。

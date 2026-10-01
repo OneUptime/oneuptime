@@ -6,7 +6,7 @@ Una vez creado, abre **Constructor** en el menú izquierdo. Ese es el lienzo don
 
 ## El lienzo
 
-Un flujo de trabajo empezado desde cero se abre con un único bloque punteado que dice **Please click here to add trigger**. Ese bloque es el punto de partida — haz clic en él para elegir un disparador. Un flujo de trabajo creado a partir de una plantilla se abre con sus bloques ya colocados.
+Un flujo de trabajo empezado desde cero se abre con un único bloque punteado que dice **Choose what starts this workflow**. Ese bloque es el punto de partida — haz clic en él para elegir un disparador. Un flujo de trabajo creado a partir de una plantilla se abre con sus bloques ya colocados.
 
 Todo flujo de trabajo tiene exactamente un **disparador** arriba del todo. Lo demás son **componentes**, y cada uno hace algo. Si añades un segundo disparador, sustituye al primero; si eliminas el último, vuelve el bloque punteado.
 
@@ -17,7 +17,7 @@ Para añadir bloques:
 
 Los dos paneles tienen buscador — pulsa `/` para saltar al cuadro de búsqueda — y están agrupados por categoría. Selecciona un bloque y haz clic en **Add to Workflow**.
 
-Los bloques nuevos aparecen siempre en el mismo punto del lienzo, así que uno recién añadido puede caer encima de otro que ya habías colocado. Arrástralo a un hueco libre; el lienzo se ajusta a una cuadrícula mientras lo mueves. Las posiciones se guardan, de modo que la siguiente persona verá la misma disposición que dejaste tú.
+Un bloque nuevo aparece debajo del bloque más bajo del lienzo, y un disparador nuevo ocupa arriba el lugar del anterior. El bloque nuevo queda seleccionado y, si aparece fuera de la vista, el lienzo se desplaza lo justo para mostrarlo. Sus ajustes no se abren solos: haz clic en el bloque cuando quieras configurarlo. Mientras falten sus ajustes obligatorios, el bloque dice **Click to set up**. Arrastra los bloques adonde quieras; el lienzo se ajusta a una cuadrícula mientras los mueves. Las posiciones se guardan, de modo que la siguiente persona verá la misma disposición que dejaste tú.
 
 Los cambios se guardan solos. Una píldora en la barra de herramientas te lo cuenta: **Saving…** mientras el cambio va en camino, después **Saved**, o **Could not save** si algo falló. No hay botón de guardar ni un paso de publicación aparte.
 
@@ -42,7 +42,7 @@ Puedes conectar una misma salida a varios bloques. Se ejecutan todos, pero uno d
 
 ## Configurar un bloque
 
-Haz clic en un bloque para abrir sus ajustes en un diálogo. Cada ajuste tiene el tipo de campo que le corresponde — texto, desplegables, editores de código, interruptores, y así. Rellénalo y haz clic en **Guardar**.
+Haz clic en un bloque para abrir sus ajustes en un diálogo (o llega hasta él con **Tab** y pulsa **Enter**). Cada ajuste tiene el tipo de campo que le corresponde — texto, desplegables, editores de código, interruptores, y así. Rellénalo y haz clic en **Guardar**.
 
 En ese mismo diálogo encuentras:
 
@@ -54,7 +54,7 @@ Casi todos los campos de texto aceptan variables — así es como fluyen los dat
 
 ## Comprobaciones mientras construyes
 
-El Constructor revisa el grafo entero cada vez que lo cambias e informa de lo que encuentra en una píldora de la barra de herramientas. Haz clic en la píldora para abrir **Problems with this workflow**, que enumera cada problema y te lleva al bloque responsable. Los bloques con algún problema llevan además un distintivo rojo en el lienzo.
+El Constructor revisa el grafo entero cada vez que lo cambias e informa de lo que encuentra en una píldora de la barra de herramientas. Haz clic en la píldora para abrir **Problems with this workflow**, que enumera cada problema y te lleva al bloque responsable. En el lienzo, un bloque con ajustes obligatorios aún vacíos dice **Click to set up**, y un bloque con cualquier otro problema lleva un distintivo en la esquina: rojo para un error, ámbar para una advertencia. Pasa el ratón por encima del distintivo para leer qué falla.
 
 Detecta los fallos que, si no, no ves hasta que una ejecución sale mal — que no haya disparador, que dos bloques compartan id, que un id lleve un punto, que un bloque no esté conectado a nada, que un ajuste obligatorio esté vacío, JSON mal formado, espacios dentro de `{{ }}` y referencias a un paso o a un valor de retorno que no existe.
 
@@ -65,8 +65,8 @@ Hay una cosa que no puede comprobar: si un nombre de variable existe. Una variab
 La forma más rápida de cogerle el pulso al lienzo:
 
 1. Haz clic en el bloque punteado, elige **Manual** en el panel **Add Trigger** y haz clic en **Add to Workflow**.
-2. Haz clic en **Añadir componente**, elige **Log** (dentro de **Utils**) y haz clic en **Add to Workflow**. Aparta el bloque nuevo del disparador y conecta el punto **Execute** del disparador con el punto de entrada del bloque Log.
-3. Abre el bloque Log y pon en su **Valor** `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` es el **Identifier** del disparador, visible en su bloque — comprueba que coincide.
+2. Haz clic en **Añadir componente**, elige **Log** (dentro de **Utils**) y haz clic en **Add to Workflow**. El bloque nuevo aparece debajo del disparador. Conecta el punto **Execute** del disparador con el punto de entrada del bloque Log.
+3. Haz clic en el bloque Log, que dice **Click to set up**, y pon en su **Valor** `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` es el **Identifier** del disparador, visible en su bloque — comprueba que coincide.
 4. Ve a **Vista General**, haz clic en **Editar flujo de trabajo** en la tarjeta **Detalles del flujo de trabajo** y activa **Habilitado**. Un flujo de trabajo deshabilitado no se puede ejecutar de ninguna manera, ni siquiera a mano.
 5. Vuelve al **Constructor**, haz clic en **Ejecutar flujo de trabajo**, pon `{ "name": "Ada" }` en el campo **JSON**, haz clic en **Run Workflow Manually** y confirma con **Run**.
 6. Se abre solo un panel **Workflow Run** que sigue la ejecución. El registro muestra `Value:` seguido de `Hello from Ada`.
@@ -96,4 +96,4 @@ Para pausar un flujo de trabajo sin eliminarlo, apaga **Habilitado**. No arranca
 - [Disparadores de flujo de trabajo](/docs/workflows/triggers) — las cuatro formas de arrancar un flujo de trabajo.
 - [Componentes de flujo de trabajo](/docs/workflows/components) — todos los bloques que puedes añadir.
 - [Variables de flujo de trabajo](/docs/workflows/variables) — mover datos entre bloques.
-- [Ejecuciones y registros de flujo de trabajo](/docs/workflows/runs-and-logs) — comprobar qué pasó.
+- [Ejecuciones de flujo de trabajo](/docs/workflows/runs-and-logs) — comprobar qué pasó.

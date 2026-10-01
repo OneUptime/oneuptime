@@ -104,7 +104,7 @@ Si votre organisation utilise la gestion centralisée des utilisateurs d'Atlassi
 
 La description paraît lourde parce que l'API v3 de Jira Cloud attend le texte enrichi au format **Atlassian Document Format** — un arbre de document, pas une chaîne. La forme ci-dessus est le document valide minimal : un paragraphe contenant un nœud de texte. Il en va de même pour `environment` et pour tout champ personnalisé de texte multiligne ; les champs personnalisés de texte sur une seule ligne acceptent encore une chaîne simple.
 
-Activez maintenant le workflow depuis **Vue d'ensemble → Modifier le flux de travail → Activé**, déclarez un incident de test, et ouvrez **Exécutions & journaux**. Le bloc `create-issue` devrait afficher un `201` et un corps contenant l'`id`, la `key` et le `self` du nouveau ticket. Les modifications faites sur le canevas s'enregistrent d'elles-mêmes — il n'y a pas de bouton Enregistrer, et un workflow désactivé ne peut pas s'exécuter du tout, pas même à la main.
+Activez maintenant le workflow depuis **Vue d'ensemble → Modifier le flux de travail → Activé**, déclarez un incident de test, et ouvrez **Journaux → Exécutions**. Le bloc `create-issue` devrait afficher un `201` et un corps contenant l'`id`, la `key` et le `self` du nouveau ticket. Les modifications faites sur le canevas s'enregistrent d'elles-mêmes — il n'y a pas de bouton Enregistrer, et un workflow désactivé ne peut pas s'exécuter du tout, pas même à la main.
 
 La clé du nouveau ticket est disponible pour tout bloc situé après celui-ci :
 
@@ -270,7 +270,7 @@ Laissez le workflow activé. Il reste à donner à Jira quelque chose à appeler
 
      Si vous avez utilisé un label plutôt qu'un champ personnalisé à l'Étape 3, envoyez `"labels": "{{issue.labels}}"` et extrayez l'id avec un bloc **Run Custom JavaScript** côté OneUptime.
 
-4. Activez la règle, faites passer un ticket de test à Done, et vérifiez des deux côtés : le journal d'audit de la règle dans Jira, et **Exécutions & journaux** dans OneUptime.
+4. Activez la règle, faites passer un ticket de test à Done, et vérifiez des deux côtés : le journal d'audit de la règle dans Jira, et **Journaux → Exécutions** dans OneUptime.
 
 Ce qu'il faut savoir avant de compter sur ce mécanisme :
 
@@ -342,7 +342,7 @@ Un workflow n'a qu'un seul déclencheur : incidents et alertes demandent donc un
 
 ## Dépannage
 
-Ouvrez d'abord le bloc en échec dans **Exécutions & journaux**. Jira renvoie un corps JSON nommant exactement ce qu'il a rejeté, et le composant API le conserve dans `response-body`.
+Ouvrez d'abord le bloc en échec dans **Journaux → Exécutions**. Jira renvoie un corps JSON nommant exactement ce qu'il a rejeté, et le composant API le conserve dans `response-body`.
 
 **`401 Unauthorized`.** Ré-encodez `email:api_token` avec `printf` et mettez `JIRA_AUTH` à jour ; un retour à la ligne final laissé par `echo` en est la cause habituelle. Confirmez ensuite que le compte propriétaire du jeton peut créer des tickets dans ce projet. Sur Data Center, vérifiez que vous envoyez `Bearer`, et non `Basic`.
 
@@ -356,7 +356,7 @@ Ouvrez d'abord le bloc en échec dans **Exécutions & journaux**. Jira renvoie u
 
 **L'appel de transition renvoie `400`.** L'identifiant de transition n'est pas valide depuis le statut *actuel* du ticket. Récupérez `/transitions` pour ce ticket et utilisez un identifiant issu de la réponse.
 
-**La règle d'automatisation apparaît comme réussie mais rien n'arrive dans OneUptime.** Vérifiez d'abord le port — voir la liste restreinte ci-dessus. Envoyez ensuite vous-même une requête à l'URL de webhook avec `curl` et regardez si elle apparaît dans **Exécutions & journaux** ; si la vôtre arrive et pas celle de Jira, le problème est du côté de Jira.
+**La règle d'automatisation apparaît comme réussie mais rien n'arrive dans OneUptime.** Vérifiez d'abord le port — voir la liste restreinte ci-dessus. Envoyez ensuite vous-même une requête à l'URL de webhook avec `curl` et regardez si elle apparaît dans **Journaux → Exécutions** ; si la vôtre arrive et pas celle de Jira, le problème est du côté de Jira.
 
 **Le workflow s'exécute mais l'incident ne change pas.** Un bloc **Update One Incident** rapporte `Items Updated: 0` quand sa requête n'a rien trouvé, et cela compte comme un succès, pas comme une erreur. Vérifiez que l'id présent dans la charge utile est bien l'id de l'incident OneUptime et que vous interrogez `_id`.
 

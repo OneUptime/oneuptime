@@ -1,4 +1,4 @@
-# Ejecuciones y Registros
+# Ejecuciones
 
 Cada vez que se ejecuta un flujo de trabajo, OneUptime guarda constancia de lo ocurrido — cuándo se ejecutó, si funcionó y qué hizo cada bloque. A esa constancia la llamamos **ejecución**. Las ejecuciones son la forma de confirmar que un flujo de trabajo funcionó, depurar el que no lo hizo y repasar la actividad pasada.
 
@@ -6,8 +6,8 @@ Cada vez que se ejecuta un flujo de trabajo, OneUptime guarda constancia de lo o
 
 | Página                        | Qué ves                                                                                       |
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Flujos de Trabajo → Ejecuciones y Registros** | Todas las ejecuciones de todos los flujos de trabajo del proyecto. Filtra por nombre de flujo, estado y hora.           |
-| **Flujo de trabajo → Ejecuciones y Registros**  | Solo las ejecuciones de este flujo de trabajo. Aquí, en lugar del filtro por flujo, tienes uno de **ID de ejecución**.  |
+| **Flujos de Trabajo → Registros → Ejecuciones** | Todas las ejecuciones de todos los flujos de trabajo del proyecto. Filtra por nombre de flujo, estado y hora.           |
+| **Flujo de trabajo → Registros → Ejecuciones**  | Solo las ejecuciones de este flujo de trabajo. Aquí, en lugar del filtro por flujo, tienes uno de **ID de ejecución**.  |
 | **Una ejecución concreta**            | Se abre con el botón **Ver registros** de la fila de la ejecución — las filas en sí no son clicables.           |
 
 ## Estados de ejecución

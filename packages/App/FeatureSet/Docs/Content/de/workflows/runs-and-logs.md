@@ -1,4 +1,4 @@
-# Ausführungen & Protokolle
+# Ausführungen
 
 Jedes Mal, wenn ein Workflow läuft, hält OneUptime fest, was passiert ist – wann er lief, ob es geklappt hat und was jeder Baustein getan hat. Dieser Datensatz heißt **Ausführung**. Über Ausführungen bestätigen Sie, dass ein Workflow funktioniert hat, suchen den Fehler, wenn nicht, und schauen sich zurückliegende Aktivität an.
 
@@ -6,8 +6,8 @@ Jedes Mal, wenn ein Workflow läuft, hält OneUptime fest, was passiert ist – 
 
 | Seite                                       | Was Sie sehen                                                                                      |
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Arbeitsabläufe → Ausführungen & Protokolle** | Jede Ausführung jedes Workflows im Projekt. Filtern Sie nach Workflow-Name, Status und Zeit.    |
-| **Workflow → Ausführungen & Protokolle**  | Nur die Ausführungen dieses einen Workflows. Hier gibt es statt des Workflow-Filters einen Filter **Ausführungs-ID**. |
+| **Arbeitsabläufe → Protokolle → Ausführungen** | Jede Ausführung jedes Workflows im Projekt. Filtern Sie nach Workflow-Name, Status und Zeit.    |
+| **Workflow → Protokolle → Ausführungen**  | Nur die Ausführungen dieses einen Workflows. Hier gibt es statt des Workflow-Filters einen Filter **Ausführungs-ID**. |
 | **Eine einzelne Ausführung**            | Wird über den Knopf **Protokolle anzeigen** in einer Ausführungszeile geöffnet – die Zeilen selbst sind nicht anklickbar. |
 
 ## Status einer Ausführung

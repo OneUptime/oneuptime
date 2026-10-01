@@ -104,7 +104,7 @@ Atlassian API tokens के बारे में दो बातें, ज�
 
 description भारी लगता है क्योंकि Jira Cloud का v3 API rich text को **Atlassian Document Format** के रूप में लेता है — एक document tree, न कि string। ऊपर दिखाया गया आकार सबसे छोटा वैध document है: एक paragraph जिसमें एक text node है। यही बात `environment` पर और किसी भी multi-line text custom field पर लागू होती है; single-line text custom fields अब भी सादा string लेते हैं।
 
-अब **अवलोकन → Edit Workflow → सक्षम** से वर्कफ़्लो चालू करें, एक test incident घोषित करें, और **रन और लॉग** खोलें। `create-issue` ब्लॉक को `201` और ऐसा body दिखाना चाहिए जिसमें नई issue का `id`, `key` और `self` हो। कैनवास पर किए गए बदलाव अपने-आप सहेजे जाते हैं — कोई Save बटन नहीं है, और बंद पड़ा वर्कफ़्लो बिल्कुल नहीं चल सकता, हाथ से भी नहीं।
+अब **अवलोकन → Edit Workflow → सक्षम** से वर्कफ़्लो चालू करें, एक test incident घोषित करें, और **लॉग → रन** खोलें। `create-issue` ब्लॉक को `201` और ऐसा body दिखाना चाहिए जिसमें नई issue का `id`, `key` और `self` हो। कैनवास पर किए गए बदलाव अपने-आप सहेजे जाते हैं — कोई Save बटन नहीं है, और बंद पड़ा वर्कफ़्लो बिल्कुल नहीं चल सकता, हाथ से भी नहीं।
 
 नई issue की key इसके बाद के किसी भी ब्लॉक को उपलब्ध रहती है:
 
@@ -270,7 +270,7 @@ Jira में सबको एक-क्लिक में वापस लौ
 
      यदि आपने चरण 3 में custom field की बजाय label इस्तेमाल किया है, तो `"labels": "{{issue.labels}}"` भेजें और OneUptime की तरफ़ एक **Run Custom JavaScript** ब्लॉक से id निकाल लें।
 
-4. rule चालू करें, किसी test issue को Done पर ले जाएँ, और दोनों तरफ़ जाँचें: Jira में rule का अपना audit log, और OneUptime में **रन और लॉग**।
+4. rule चालू करें, किसी test issue को Done पर ले जाएँ, और दोनों तरफ़ जाँचें: Jira में rule का अपना audit log, और OneUptime में **लॉग → रन**।
 
 इस पर भरोसा करने से पहले जानने लायक बातें:
 
@@ -342,7 +342,7 @@ Self-managed Jira कुछ प्रतिस्थापनों के स�
 
 ## समस्या निवारण
 
-पहले **रन और लॉग** में विफल ब्लॉक खोलें। Jira एक JSON body लौटाता है जो ठीक-ठीक बताती है कि उसने क्या reject किया, और API कंपोनेंट उसे `response-body` में रखता है।
+पहले **लॉग → रन** में विफल ब्लॉक खोलें। Jira एक JSON body लौटाता है जो ठीक-ठीक बताती है कि उसने क्या reject किया, और API कंपोनेंट उसे `response-body` में रखता है।
 
 **`401 Unauthorized`।** `email:api_token` को `printf` से फिर से encode करें और `JIRA_AUTH` अपडेट करें; `echo` से आया trailing newline आम कारण है। फिर पुष्टि करें कि token का मालिक account उस project में issues बना सकता है। Data Center पर जाँचें कि आप `Basic` नहीं, `Bearer` भेज रहे हैं।
 
@@ -356,7 +356,7 @@ Self-managed Jira कुछ प्रतिस्थापनों के स�
 
 **transition कॉल `400` लौटाता है।** वह transition id issue की *मौजूदा* status से वैध नहीं है। उस issue के लिए `/transitions` fetch करें और response में से कोई id इस्तेमाल करें।
 
-**automation rule सफल दिखता है लेकिन OneUptime तक कुछ नहीं पहुँचता।** पहले port जाँचें — ऊपर दी प्रतिबंधित सूची देखें। फिर खुद `curl` से webhook URL पर एक request भेजें और देखें कि वह **रन और लॉग** में दिखती है या नहीं; यदि आपकी request पहुँचती है और Jira की नहीं, तो समस्या Jira की तरफ़ है।
+**automation rule सफल दिखता है लेकिन OneUptime तक कुछ नहीं पहुँचता।** पहले port जाँचें — ऊपर दी प्रतिबंधित सूची देखें। फिर खुद `curl` से webhook URL पर एक request भेजें और देखें कि वह **लॉग → रन** में दिखती है या नहीं; यदि आपकी request पहुँचती है और Jira की नहीं, तो समस्या Jira की तरफ़ है।
 
 **वर्कफ़्लो चलता है लेकिन incident बदलता नहीं।** जब **Update One Incident** ब्लॉक की query से कुछ मेल नहीं खाता तो वह `Items Updated: 0` रिपोर्ट करता है, और यह सफलता गिनी जाती है, त्रुटि नहीं। जाँचें कि payload में दी गई id वाक़ई OneUptime incident id है और आप `_id` पर query कर रहे हैं।
 

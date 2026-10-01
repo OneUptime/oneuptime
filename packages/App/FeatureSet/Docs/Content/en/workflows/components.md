@@ -98,7 +98,7 @@ Send an email through an SMTP server that you enter on the block.
 - **Success** — fires when the SMTP server accepted the message.
 - **Error** — fires when the SMTP host is refused, the server can't be reached, or it rejects the message. Passes along the error message. A missing **To Email**, **From Email**, **SMTP Host** or **SMTP Port** stops the run instead.
 
-The block connects straight to the server in its settings. It does not use your project's [SMTP](/docs/emails/smtp) settings or OneUptime's own mail server, and the emails it sends do not appear in Notification Logs. To check what it did, look at the workflow's [Runs & Logs](/docs/workflows/runs-and-logs).
+The block connects straight to the server in its settings. It does not use your project's [SMTP](/docs/emails/smtp) settings or OneUptime's own mail server, and the emails it sends do not appear in Notification Logs. To check what it did, look at the workflow's [Runs](/docs/workflows/runs-and-logs).
 
 Connections to loopback (`localhost`, `127.0.0.1`), link-local and cloud metadata addresses are refused. On OneUptime Cloud, an SMTP host on a private network address, or a name that resolves to one, is refused too. Self-hosted installs can reach a mail server on their own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is set to `true`. A refused host takes the **Error** output, and nothing is sent.
 
@@ -223,5 +223,5 @@ A few quick rules:
 ## Where to read next
 
 - [Variables](/docs/workflows/variables) — passing data between blocks.
-- [Runs & Logs](/docs/workflows/runs-and-logs) — checking what each block did on a run.
+- [Runs](/docs/workflows/runs-and-logs) — checking what each block did on a run.
 - [Configuration & Safety](/docs/workflows/configuration) — limits, owners, and secrets.

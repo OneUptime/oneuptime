@@ -104,7 +104,7 @@ Si tu organización usa la gestión centralizada de usuarios de Atlassian, hay u
 
 La descripción parece pesada porque la API v3 de Jira Cloud recibe el texto enriquecido como **Atlassian Document Format** — un árbol de documento, no una cadena. La estructura anterior es el documento válido mínimo: un párrafo que contiene un nodo de texto. Lo mismo aplica a `environment` y a cualquier campo personalizado de texto multilínea; los campos personalizados de texto de una sola línea siguen aceptando una cadena simple.
 
-Ahora enciende el workflow desde **Vista General → Editar flujo de trabajo → Habilitado**, declara un incidente de prueba y abre **Ejecuciones y Registros**. El bloque `create-issue` debería mostrar un `201` y un cuerpo que contiene el `id`, la `key` y el `self` del nuevo issue. Los cambios en el lienzo se guardan solos — no hay botón de guardar, y un workflow deshabilitado no puede ejecutarse de ninguna manera, ni siquiera a mano.
+Ahora enciende el workflow desde **Vista General → Editar flujo de trabajo → Habilitado**, declara un incidente de prueba y abre **Registros → Ejecuciones**. El bloque `create-issue` debería mostrar un `201` y un cuerpo que contiene el `id`, la `key` y el `self` del nuevo issue. Los cambios en el lienzo se guardan solos — no hay botón de guardar, y un workflow deshabilitado no puede ejecutarse de ninguna manera, ni siquiera a mano.
 
 La key del nuevo issue está disponible para cualquier bloque posterior a este:
 
@@ -270,7 +270,7 @@ Deja el workflow habilitado. Ahora dale a Jira algo a lo que llamar.
 
      Si en el Paso 3 usaste una label en lugar de un campo personalizado, envía `"labels": "{{issue.labels}}"` y extrae el id con un bloque **Run Custom JavaScript** del lado de OneUptime.
 
-4. Activa la regla, mueve un issue de prueba a Done y comprueba ambos lados: el propio registro de auditoría de la regla en Jira y **Ejecuciones y Registros** en OneUptime.
+4. Activa la regla, mueve un issue de prueba a Done y comprueba ambos lados: el propio registro de auditoría de la regla en Jira y **Registros → Ejecuciones** en OneUptime.
 
 Cosas que conviene saber antes de depender de esto:
 
@@ -342,7 +342,7 @@ Un workflow tiene exactamente un disparador, así que los incidentes y las alert
 
 ## Solución de problemas
 
-Abre primero el bloque que falla en **Ejecuciones y Registros**. Jira devuelve un cuerpo JSON que nombra exactamente lo que rechazó, y el componente API lo conserva en `response-body`.
+Abre primero el bloque que falla en **Registros → Ejecuciones**. Jira devuelve un cuerpo JSON que nombra exactamente lo que rechazó, y el componente API lo conserva en `response-body`.
 
 **`401 Unauthorized`.** Vuelve a codificar `email:api_token` con `printf` y actualiza `JIRA_AUTH`; un salto de línea final procedente de `echo` es la causa habitual. Después confirma que la cuenta propietaria del token puede crear issues en ese proyecto. En Data Center, comprueba que estás enviando `Bearer`, no `Basic`.
 
@@ -356,7 +356,7 @@ Abre primero el bloque que falla en **Ejecuciones y Registros**. Jira devuelve u
 
 **La llamada de transición devuelve `400`.** El id de transición no es válido desde el estado *actual* del issue. Recupera `/transitions` para ese issue y usa un id de la respuesta.
 
-**La regla de automatización aparece como correcta pero no llega nada a OneUptime.** Comprueba primero el puerto — consulta la lista restringida de arriba. Después envía tú mismo una petición a la URL del webhook con `curl` y mira si aparece en **Ejecuciones y Registros**; si la tuya llega y la de Jira no, el problema está del lado de Jira.
+**La regla de automatización aparece como correcta pero no llega nada a OneUptime.** Comprueba primero el puerto — consulta la lista restringida de arriba. Después envía tú mismo una petición a la URL del webhook con `curl` y mira si aparece en **Registros → Ejecuciones**; si la tuya llega y la de Jira no, el problema está del lado de Jira.
 
 **El workflow se ejecuta pero el incidente no cambia.** Un bloque **Update One Incident** informa de `Items Updated: 0` cuando su consulta no encontró nada, y eso cuenta como éxito, no como error. Comprueba que el id de la carga útil es realmente el id del incidente de OneUptime y que estás consultando `_id`.
 

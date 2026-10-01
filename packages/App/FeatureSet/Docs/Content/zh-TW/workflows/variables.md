@@ -135,5 +135,5 @@
 ## 接下來可以閱讀
 
 - [工作流程元件](/docs/workflows/components)——每個區塊會產出哪些輸出的完整清單。
-- [工作流程執行與日誌](/docs/workflows/runs-and-logs)——執行過後查看每個變數的實際值。
+- [工作流程執行記錄](/docs/workflows/runs-and-logs)——執行過後查看每個變數的實際值。
 - [工作流程設定與安全](/docs/workflows/configuration)——什麼東西適合放進全域變數。

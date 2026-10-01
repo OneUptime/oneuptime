@@ -30,9 +30,20 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           },
           icon: IconProp.Variable,
         },
+      ],
+    },
+    /*
+     * Runs get a Logs section of their own, open and second in the menu: the
+     * run history is where people go to check that a workflow worked, so it
+     * should not read as one more thing to build. The page keeps its old
+     * /workflows/logs URL, which the section's name now matches.
+     */
+    {
+      title: "Logs",
+      items: [
         {
           link: {
-            title: "Runs & Logs",
+            title: "Runs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.WORKFLOWS_LOGS] as Route,
             ),
