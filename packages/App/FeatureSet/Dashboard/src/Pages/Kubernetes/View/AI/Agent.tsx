@@ -2,7 +2,6 @@ import PageComponentProps from "../../../PageComponentProps";
 import PageMap from "../../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import {
-  AI_AGENT_FIXES_OFF_HINT,
   AI_AGENT_OTHER_RELEASE_TEXT,
   AI_AGENT_PAGE_SUBTITLE,
   AI_AGENT_PAGE_TITLE,
@@ -39,6 +38,7 @@ import {
   getAiAgentLogsCommand,
   getAiAgentScopedCommandNote,
   getAiAgentWriteDisclosure,
+  formatNameList,
 } from "../../Utils/KubernetesAiAccessSetup";
 import {
   KubernetesAiAccessConfirmation,
@@ -48,7 +48,9 @@ import {
   KubernetesAiCredentialDirectoryEntry,
   KubernetesAiCredentialRunner,
   KubernetesAiRunnerDirectoryEntry,
-  REMEDIATION_MODE_LABELS,
+  INVESTIGATION_ON_SENTENCE,
+  KUBECTL_ALLOWLIST_FIELD_DESCRIPTION,
+  REMEDIATION_MODE_OPTION_DESCRIPTIONS,
   REMEDIATION_MODE_SHORT_NAMES,
   REMEDIATION_MODE_SUMMARIES,
   buildKubernetesAiCredentialDirectory,
@@ -57,6 +59,7 @@ import {
   buildKubernetesAiRunnerOptions,
   capitalizeFirst,
   getAllowlistInEffect,
+  getEveryModeProtections,
   getKubectlAllowlistRemovalOnlyError,
   getKubernetesAiAccessAdminPermissionTitles,
   getKubernetesAiAccessBindingError,
@@ -68,7 +71,6 @@ import {
   getKubernetesAiAccessSettingsInitialValues,
   getKubernetesAiAccessSubmittedFields,
   getKubernetesAiCredentialFieldDescription,
-  getRemediationModeFieldDescription,
   isAllowlistFieldShown,
   isRemediationModeOpenToEveryEditor,
   readKubernetesAiAccessSavedSettings,
@@ -88,6 +90,28 @@ import {
   getKubernetesCredentialPermissionTitles,
   getKubernetesRunnerPermissionTitles,
 } from "../../Utils/KubernetesAiAccessPermissions";
+import {
+  AI_ACCESS_FIXES_ROW_TITLE,
+  AI_ACCESS_INVESTIGATION_ROW_TITLE,
+  AI_FIXES_MODE_ICONS,
+  formatAiAccessProtections,
+  getAiAccessCardDescription,
+  getAiFixesBadge,
+  getAiFixesFieldDescription,
+  getAiFixesModeCardTitle,
+  getAiFixesOffHint,
+  getAiInvestigationBadge,
+  getAiInvestigationOffSentence,
+} from "../../../../Components/AiAccess/AiAccessModes";
+import {
+  AiAccessActionPanel,
+  AiAccessAllowlist,
+  AiAccessHint,
+  AiAccessPermissionNote,
+  AiAccessProtections,
+  AiAccessRow,
+  AiAccessRows,
+} from "../../../../Components/AiAccess/AiAccessRow";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -129,6 +153,7 @@ import Button, {
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import Card from "Common/UI/Components/Card/Card";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
+import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -166,8 +191,11 @@ import { Navigate, useParams } from "react-router-dom";
  *     are any — a headline saying what AI cannot do here, then one short
  *     step per gap with its action. The page never builds a readiness
  *     checklist of its own.
- *  C. "What AI may do": investigation and fixes, the write-access command
- *     when fixes need it, and the project's automatic-investigation line.
+ *  C. "What AI may do": one row for investigation (with the project's
+ *     automatic-investigation line) and one for fixes (with the
+ *     write-access command when fixes need it), each with a badge that says
+ *     where it stands and one plain sentence — the rows are shared with
+ *     every other resource's page (Components/AiAccess).
  *
  * What AI did on the cluster lives on the AI Insights page (AI → Insights).
  */
@@ -251,28 +279,19 @@ function parseAccessTestResult(data: JSONObject): AccessTestResult {
   };
 }
 
+// What an editor without the admin set may change here, and what they may not.
 function AdminPermissionNote(): ReactElement {
   return (
-    <p
-      className="text-xs leading-5 text-gray-500"
-      data-testid="kubernetes-ai-access-admin-note"
-    >
-      Turning fixes on or up, adding allowlist patterns, or choosing a Runner
-      needs one of these permissions:{" "}
-      {getKubernetesAiAccessAdminPermissionTitles().join(", ")}. You can still
-      turn investigation on or off, lower fixes and remove allowlist patterns.
-    </p>
+    <AiAccessPermissionNote
+      canText="You can turn investigation on or off, lower fixes and remove allowlist patterns."
+      cannotText={`Turning fixes on or up, adding allowlist patterns, or choosing a Runner needs ${formatNameList(
+        getKubernetesAiAccessAdminPermissionTitles(),
+        "or",
+      )}.`}
+      dataTestId="kubernetes-ai-access-admin-note"
+    />
   );
 }
-
-/*
- * What an allowlist entry is, in KubectlPolicy's words: matched word by
- * word, the verb (and the subcommand of rollout, set or create) written
- * out rather than `*`, more than one word, and never promoting a drain, a
- * taint, a patch of a node or a protected-namespace write.
- */
-const ALLOWLIST_FIELD_DESCRIPTION: string =
-  'Optional. One pattern per line: a riskier kubectl command that matches a pattern also runs without approval. Patterns are compared word by word — * matches exactly one word, and flags must be written out; a leading "kubectl" is optional — for example: kubectl set image deployment/web * -n web. Write the verb (and the subcommand of rollout, set or create) out, never as *, and use more than one word. A wildcard for the object or the namespace pre-approves a whole class of changes, and saving one asks you to confirm. Destructive commands, node drains, taints and patches, and the protected namespaces never run unattended.';
 
 interface SettingsModalProps {
   clusterId: ObjectID;
@@ -558,22 +577,25 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         dataTestId: "ai-investigation-field",
       },
       {
+        // One card per mode, each saying what it does.
         field: { aiRemediationMode: true },
-        title: "Fixes",
-        description: getRemediationModeFieldDescription(),
-        fieldType: FormFieldSchemaType.Dropdown,
+        title: AI_ACCESS_FIXES_ROW_TITLE,
+        description: getAiFixesFieldDescription("cluster"),
+        fieldType: FormFieldSchemaType.CardSelect,
+        cardSelectSingleColumn: true,
         required: true,
         dataTestId: "ai-remediation-mode-field",
-        dropdownOptions: modes.map(
-          (mode: KubernetesAiRemediationMode): DropdownOption => {
+        cardSelectOptions: modes.map(
+          (mode: KubernetesAiRemediationMode): CardSelectOption => {
             return {
               value: mode,
-              label:
-                !canConfigureUnattended &&
-                mode === saved.aiRemediationMode &&
-                mode !== KubernetesAiRemediationMode.Disabled
-                  ? `${REMEDIATION_MODE_LABELS[mode]} (current)`
-                  : REMEDIATION_MODE_LABELS[mode],
+              title: getAiFixesModeCardTitle({
+                mode,
+                savedMode: saved.aiRemediationMode,
+                shortNames: REMEDIATION_MODE_SHORT_NAMES,
+              }),
+              description: REMEDIATION_MODE_OPTION_DESCRIPTIONS[mode],
+              icon: AI_FIXES_MODE_ICONS[mode],
             };
           },
         ),
@@ -584,9 +606,8 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       result.push({
         field: { kubectlAllowlistText: true },
         title: "kubectl allowlist",
-        description: offered.allowlistRemoveOnly
-          ? `You can remove patterns or clear the list; adding or changing one needs one of these permissions: ${getKubernetesAiAccessAdminPermissionTitles().join(", ")}. ${ALLOWLIST_FIELD_DESCRIPTION}`
-          : ALLOWLIST_FIELD_DESCRIPTION,
+        // Who may add patterns is the admin note's, at the top of the modal.
+        description: KUBECTL_ALLOWLIST_FIELD_DESCRIPTION,
         fieldType: FormFieldSchemaType.LongText,
         required: false,
         placeholder: "kubectl set image deployment/web * -n web",
@@ -759,11 +780,10 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     });
   };
 
+  // Why a Runner or credential picker is missing, for an admin.
   const notes: Array<ReactElement> = [];
 
-  if (!canConfigureUnattended) {
-    notes.push(<AdminPermissionNote key="admin" />);
-  } else if (props.isAdvancedBinding) {
+  if (canConfigureUnattended && props.isAdvancedBinding) {
     if (!props.capabilities.canPickRunner) {
       notes.push(
         <p
@@ -807,6 +827,8 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         }}
       >
         <div className="space-y-4">
+          {!canConfigureUnattended ? <AdminPermissionNote /> : <></>}
+
           {notes.length > 0 ? (
             <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
               {notes}
@@ -851,6 +873,14 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
             />
           )}
 
+          {saved ? (
+            <AiAccessProtections
+              protections={formatAiAccessProtections(getEveryModeProtections())}
+            />
+          ) : (
+            <></>
+          )}
+
           {saveError ? (
             <Alert
               type={AlertType.DANGER}
@@ -887,24 +917,6 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     </>
   );
 };
-
-function SettingRow(props: {
-  label: string;
-  children: ReactElement | string;
-  dataTestId: string;
-}): ReactElement {
-  return (
-    <div className="grid gap-1 sm:grid-cols-3 sm:gap-4">
-      <dt className="text-sm font-medium text-gray-500">{props.label}</dt>
-      <dd
-        className="text-sm text-gray-900 sm:col-span-2"
-        data-testid={props.dataTestId}
-      >
-        {props.children}
-      </dd>
-    </div>
-  );
-}
 
 const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -1761,166 +1773,136 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
 
       <Card
         title="What AI may do"
-        description="Changes apply to the next incident or alert."
+        description={getAiAccessCardDescription("cluster")}
         buttons={settingsButtons}
       >
-        <div className="space-y-4">
-          <dl className="space-y-3">
-            <SettingRow
-              label="Investigate with kubectl"
-              dataTestId="ai-access-investigation-value"
-            >
-              {status.isInvestigationEnabled
-                ? "Yes — read-only (get, describe, logs, events, top)"
-                : "No — AI investigates with OneUptime data only"}
-            </SettingRow>
-            <SettingRow label="Fixes" dataTestId="ai-access-fixes-value">
-              <span>
-                <span className="font-medium">
-                  {REMEDIATION_MODE_SHORT_NAMES[remediationMode]}
-                </span>
-                {" — "}
-                {REMEDIATION_MODE_SUMMARIES[remediationMode]}
-              </span>
-            </SettingRow>
-            {remediationMode === KubernetesAiRemediationMode.Automatic ? (
-              <SettingRow
-                label="kubectl allowlist"
-                dataTestId="kubectl-allowlist-in-effect"
+        <AiAccessRows>
+          <AiAccessRow
+            icon={IconProp.MagnifyingGlass}
+            title={AI_ACCESS_INVESTIGATION_ROW_TITLE}
+            badge={getAiInvestigationBadge(status.isInvestigationEnabled)}
+            sentence={
+              status.isInvestigationEnabled
+                ? INVESTIGATION_ON_SENTENCE
+                : getAiInvestigationOffSentence("cluster")
+            }
+            dataTestId="ai-access-investigation"
+          >
+            {automaticInvestigation ? (
+              <div
+                className="flex flex-col gap-2 rounded-lg border border-gray-200 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                data-testid="ai-access-automatic-investigation"
               >
-                {allowlistInEffect.length > 0 ? (
-                  <ul className="space-y-0.5">
-                    {allowlistInEffect.map(
-                      (pattern: string, index: number): ReactElement => {
-                        return (
-                          <li
-                            key={`${index}:${pattern}`}
-                            className="break-words font-mono text-xs text-gray-800"
-                          >
-                            {pattern}
-                          </li>
-                        );
-                      },
-                    )}
-                  </ul>
-                ) : (
-                  "None"
-                )}
-              </SettingRow>
-            ) : (
-              <></>
-            )}
-          </dl>
-
-          {remediationMode === KubernetesAiRemediationMode.Disabled ? (
-            <p
-              className="text-sm text-gray-600"
-              data-testid="ai-access-fixes-off-hint"
-            >
-              {AI_AGENT_FIXES_OFF_HINT}
-            </p>
-          ) : (
-            <></>
-          )}
-
-          {isAdvanced &&
-          remediationMode !== KubernetesAiRemediationMode.Disabled ? (
-            <p
-              className="text-xs text-gray-500"
-              data-testid="ai-access-credential-rbac-note"
-            >
-              What a fix may change is limited by the Runner&apos;s credential.
-            </p>
-          ) : (
-            <></>
-          )}
-
-          {shouldShowWriteAccessCommands(status) ? (
-            <div
-              className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-              data-testid="ai-access-write-commands"
-            >
-              <p className="text-sm font-medium text-gray-900">
-                Give the agent write access
-              </p>
-              <p className="text-xs leading-5 text-gray-600">
-                The agent is read-only, so fixes cannot run yet. Recommended:
-                allow only the namespaces AI may fix.
-              </p>
-              <div data-testid="ai-access-helm-remediation-scoped-command">
-                <CodeBlock
-                  language="bash"
-                  code={helmCommands.enableRemediationScoped}
-                />
-              </div>
-              <p
-                className="text-xs leading-5 text-gray-500"
-                data-testid="ai-access-helm-remediation-scoped-note"
-              >
-                {getAiAgentScopedCommandNote()}
-              </p>
-              <p className="text-xs leading-5 text-gray-600">
-                Or allow the whole cluster:
-              </p>
-              <div data-testid="ai-access-helm-remediation-command">
-                <CodeBlock
-                  language="bash"
-                  code={helmCommands.enableRemediation}
-                />
-              </div>
-              <p
-                className="text-xs leading-5 text-gray-500"
-                data-testid="ai-access-helm-remediation-note"
-              >
-                {getAiAgentClusterWideCommandNote()}
-              </p>
-              <p
-                className="text-xs leading-5 text-gray-700"
-                data-testid="ai-access-write-disclosure"
-              >
-                {getAiAgentWriteDisclosure()}
-              </p>
-            </div>
-          ) : (
-            <></>
-          )}
-
-          {automaticInvestigation ? (
-            <div
-              className="flex flex-col gap-2 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between"
-              data-testid="ai-access-automatic-investigation"
-            >
-              <p className="text-xs text-gray-600">
-                {getAutomaticInvestigationLine(automaticInvestigation)}
-              </p>
-              {automaticInvestigation.incidents &&
-              automaticInvestigation.alerts ? (
-                <></>
-              ) : canChangeProjectSettings ? (
-                <Button
-                  title="Turn on"
-                  buttonStyle={ButtonStyleType.NORMAL}
-                  buttonSize={ButtonSize.Small}
-                  disabled={isActing}
-                  dataTestId="ai-access-automatic-investigation-turn-on"
-                  onClick={() => {
-                    setConfirmationError("");
-                    setPendingConfirmation("automatic_investigation");
-                  }}
-                />
-              ) : (
-                <p
-                  className="text-xs font-medium text-gray-500"
-                  data-testid="ai-access-automatic-investigation-ask"
-                >
-                  {ASK_PROJECT_ADMIN_TEXT}
+                <p className="text-xs leading-5 text-gray-600">
+                  {getAutomaticInvestigationLine(automaticInvestigation)}
                 </p>
-              )}
-            </div>
-          ) : (
-            <></>
-          )}
-        </div>
+                {automaticInvestigation.incidents &&
+                automaticInvestigation.alerts ? (
+                  <></>
+                ) : canChangeProjectSettings ? (
+                  <Button
+                    title="Turn on"
+                    buttonStyle={ButtonStyleType.NORMAL}
+                    buttonSize={ButtonSize.Small}
+                    disabled={isActing}
+                    dataTestId="ai-access-automatic-investigation-turn-on"
+                    onClick={() => {
+                      setConfirmationError("");
+                      setPendingConfirmation("automatic_investigation");
+                    }}
+                  />
+                ) : (
+                  <p
+                    className="text-xs font-medium text-gray-500"
+                    data-testid="ai-access-automatic-investigation-ask"
+                  >
+                    {ASK_PROJECT_ADMIN_TEXT}
+                  </p>
+                )}
+              </div>
+            ) : null}
+          </AiAccessRow>
+          <AiAccessRow
+            icon={IconProp.WrenchScrewdriver}
+            title={AI_ACCESS_FIXES_ROW_TITLE}
+            badge={getAiFixesBadge({
+              mode: remediationMode,
+              shortNames: REMEDIATION_MODE_SHORT_NAMES,
+            })}
+            sentence={REMEDIATION_MODE_SUMMARIES[remediationMode]}
+            dataTestId="ai-access-fixes"
+          >
+            {remediationMode === KubernetesAiRemediationMode.Disabled ? (
+              <AiAccessHint
+                text={getAiFixesOffHint(
+                  settingsGate.isAllowed && canConfigureUnattended,
+                )}
+                dataTestId="ai-access-fixes-off-hint"
+              />
+            ) : null}
+            {remediationMode === KubernetesAiRemediationMode.Automatic ? (
+              <AiAccessAllowlist
+                title="kubectl allowlist"
+                patterns={allowlistInEffect}
+                dataTestId="kubectl-allowlist-in-effect"
+              />
+            ) : null}
+            {isAdvanced &&
+            remediationMode !== KubernetesAiRemediationMode.Disabled ? (
+              <p
+                className="text-xs leading-5 text-gray-500"
+                data-testid="ai-access-credential-rbac-note"
+              >
+                What a fix may change is limited by the Runner&apos;s
+                credential.
+              </p>
+            ) : null}
+            {shouldShowWriteAccessCommands(status) ? (
+              <AiAccessActionPanel
+                title="Give the agent write access"
+                dataTestId="ai-access-write-commands"
+              >
+                <p className="text-xs leading-5 text-gray-600">
+                  The agent is read-only, so fixes cannot run yet. Recommended:
+                  allow only the namespaces AI may fix.
+                </p>
+                <div data-testid="ai-access-helm-remediation-scoped-command">
+                  <CodeBlock
+                    language="bash"
+                    code={helmCommands.enableRemediationScoped}
+                  />
+                </div>
+                <p
+                  className="text-xs leading-5 text-gray-500"
+                  data-testid="ai-access-helm-remediation-scoped-note"
+                >
+                  {getAiAgentScopedCommandNote()}
+                </p>
+                <p className="text-xs leading-5 text-gray-600">
+                  Or allow the whole cluster:
+                </p>
+                <div data-testid="ai-access-helm-remediation-command">
+                  <CodeBlock
+                    language="bash"
+                    code={helmCommands.enableRemediation}
+                  />
+                </div>
+                <p
+                  className="text-xs leading-5 text-gray-500"
+                  data-testid="ai-access-helm-remediation-note"
+                >
+                  {getAiAgentClusterWideCommandNote()}
+                </p>
+                <p
+                  className="text-xs leading-5 text-gray-700"
+                  data-testid="ai-access-write-disclosure"
+                >
+                  {getAiAgentWriteDisclosure()}
+                </p>
+              </AiAccessActionPanel>
+            ) : null}
+          </AiAccessRow>
+        </AiAccessRows>
       </Card>
 
       {isEditingSettings && editCapabilities ? (

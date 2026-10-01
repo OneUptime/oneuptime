@@ -2,7 +2,6 @@ import { describe, expect, test } from "@jest/globals";
 import {
   RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
   RESOURCE_REMEDIATION_MODES_BY_AUTONOMY,
-  RESOURCE_REMEDIATION_MODE_LABELS,
   RESOURCE_REMEDIATION_MODE_SHORT_NAMES,
   RESOURCE_REMEDIATION_MODE_SUMMARIES,
   ResourceAiAccessConfirmation,
@@ -11,6 +10,7 @@ import {
   ResourceAiAccessSettingsFormValues,
   capitalizeFirst,
   formatNameList,
+  getEveryModeProtections,
   getEveryModeProtectionsSentence,
   getPermissionTitles,
   getResourceAiAccessAdminPermissionTitles,
@@ -23,7 +23,8 @@ import {
   getResourceAllowlistFieldDescription,
   getResourceAllowlistInEffect,
   getResourceAllowlistRemovalOnlyError,
-  getResourceRemediationModeFieldDescription,
+  getResourceInvestigationOnSentence,
+  getResourceRemediationModeOptionDescriptions,
   isResourceAllowlistFieldShown,
   isResourceRemediationModeOpenToEveryEditor,
   normalizeSavedResourceAllowlist,
@@ -38,6 +39,7 @@ import {
   ResourceAiAgentDescriptor,
   getResourceAiAgentDescriptor,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import { joinAiAccessProtections } from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAccessModes";
 import { JSONObject } from "../../../Types/JSON";
 import { RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS as SERVER_RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS } from "../../../Types/AI/ResourceAiAccessPermissions";
 import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
@@ -148,20 +150,128 @@ const ALL_OFFERED: ResourceAiAccessOfferedFields = {
 };
 
 describe("the words for each mode", () => {
-  test("every mode has a label, a short name and a summary", () => {
-    for (const mode of Object.values(ResourceAiRemediationMode)) {
-      expect(RESOURCE_REMEDIATION_MODE_LABELS[mode].length).toBeGreaterThan(0);
-      expect(
-        RESOURCE_REMEDIATION_MODE_SHORT_NAMES[mode].length,
-      ).toBeGreaterThan(0);
-      expect(RESOURCE_REMEDIATION_MODE_SUMMARIES[mode].length).toBeGreaterThan(
-        0,
-      );
-      // The label starts with the short name, so the two always agree.
-      expect(RESOURCE_REMEDIATION_MODE_LABELS[mode]).toMatch(
-        new RegExp(`^${RESOURCE_REMEDIATION_MODE_SHORT_NAMES[mode]} — `),
-      );
+  test("every mode has its own short name, summary and card description", () => {
+    for (const type of ALL_AI_RESOURCE_TYPES) {
+      const descriptions: Record<ResourceAiRemediationMode, string> =
+        getResourceRemediationModeOptionDescriptions(
+          getResourceAiAgentDescriptor(type),
+        );
+
+      for (const record of [
+        RESOURCE_REMEDIATION_MODE_SHORT_NAMES,
+        RESOURCE_REMEDIATION_MODE_SUMMARIES,
+        descriptions,
+      ]) {
+        const values: Array<string> = Object.values(
+          ResourceAiRemediationMode,
+        ).map((mode: ResourceAiRemediationMode): string => {
+          return record[mode];
+        });
+        expect(
+          values.every((value: string): boolean => {
+            return value.trim().length > 0;
+          }),
+        ).toBe(true);
+        // No two modes read the same.
+        expect(new Set(values).size).toBe(values.length);
+      }
     }
+  });
+
+  /*
+   * The card used to say "No — AI investigates with OneUptime data only"
+   * beside "Off — AI only investigates": two rows that contradict each
+   * other when investigation is off too. Fixes Off speaks of fixes alone.
+   */
+  test("Off speaks of fixes only, never of investigating", () => {
+    expect(
+      RESOURCE_REMEDIATION_MODE_SUMMARIES[ResourceAiRemediationMode.Disabled],
+    ).toBe("AI never proposes or runs a fix.");
+    for (const summary of Object.values(RESOURCE_REMEDIATION_MODE_SUMMARIES)) {
+      expect(summary).not.toMatch(/only investigates/);
+    }
+  });
+
+  test("the summaries say who runs a fix, in increasing autonomy", () => {
+    expect(
+      RESOURCE_REMEDIATION_MODE_SUMMARIES[
+        ResourceAiRemediationMode.RequireApproval
+      ],
+    ).toContain("A person approves each one before it runs.");
+    expect(
+      RESOURCE_REMEDIATION_MODE_SUMMARIES[ResourceAiRemediationMode.Automatic],
+    ).toMatch(
+      /Safe fixes run on their own\. Riskier ones wait for your one-click approval\./,
+    );
+    expect(
+      RESOURCE_REMEDIATION_MODE_SUMMARIES[
+        ResourceAiRemediationMode.BypassApproval
+      ],
+    ).toContain("Changes that always need a person still ask.");
+  });
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: each mode card says what the mode does, with this type's own examples",
+    (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      const descriptions: Record<ResourceAiRemediationMode, string> =
+        getResourceRemediationModeOptionDescriptions(descriptor);
+
+      expect(descriptions[ResourceAiRemediationMode.Disabled]).toBe(
+        "AI never proposes or runs a fix. It can still investigate.",
+      );
+      expect(descriptions[ResourceAiRemediationMode.RequireApproval]).toMatch(
+        /a person approves it with one click before it runs\. A follow-up fix asks again\.$/,
+      );
+
+      // Automatic names this type's riskier changes, without the prefix.
+      const riskier: string = descriptor.riskierExamples.replace(
+        /^riskier changes such as /,
+        "",
+      );
+      expect(descriptions[ResourceAiRemediationMode.Automatic]).toContain(
+        `Riskier ones, such as ${riskier}, wait for one-click approval unless the command allowlist names them.`,
+      );
+      expect(descriptions[ResourceAiRemediationMode.Automatic]).not.toContain(
+        "riskier changes such as",
+      );
+
+      // Bypass approval says AI does not ask, then what still asks.
+      const bypass: string =
+        descriptions[ResourceAiRemediationMode.BypassApproval];
+      expect(bypass).toMatch(/^AI does not ask: /);
+      expect(bypass).toContain("follow-up rounds included");
+      if (descriptor.alwaysHumanExamples) {
+        expect(bypass).toContain(
+          `Changes such as ${descriptor.alwaysHumanExamples} still ask a person.`,
+        );
+      } else {
+        expect(bypass).not.toContain("still ask a person");
+      }
+    },
+  );
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: investigation on says what AI may run, and that it changes nothing",
+    (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+
+      expect(getResourceInvestigationOnSentence(descriptor)).toBe(
+        `AI may run ${descriptor.readOnlyCommandsPhrase} on this ${descriptor.noun}: ${descriptor.readExamples}. They never change anything.`,
+      );
+    },
+  );
+
+  test("a database server's investigation sentence, in full", () => {
+    expect(
+      getResourceInvestigationOnSentence(
+        getResourceAiAgentDescriptor(AiResourceType.DatabaseServer),
+      ),
+    ).toBe(
+      "AI may run read-only db diagnostics on this database server: sessions, locks, long-running queries, replication, sizes, settings. They never change anything.",
+    );
   });
 
   test("the short names are a Kubernetes cluster's", () => {
@@ -175,12 +285,16 @@ describe("the words for each mode", () => {
 
   test("never speak of Kubernetes or kubectl", () => {
     const words: string = JSON.stringify([
-      RESOURCE_REMEDIATION_MODE_LABELS,
       RESOURCE_REMEDIATION_MODE_SUMMARIES,
-      ...ALL_AI_RESOURCE_TYPES.map((type: AiResourceType): string => {
-        return getResourceRemediationModeFieldDescription(
-          getResourceAiAgentDescriptor(type),
-        );
+      ...ALL_AI_RESOURCE_TYPES.map((type: AiResourceType): unknown => {
+        const descriptor: ResourceAiAgentDescriptor =
+          getResourceAiAgentDescriptor(type);
+        return [
+          getResourceRemediationModeOptionDescriptions(descriptor),
+          getEveryModeProtections(descriptor),
+          getResourceInvestigationOnSentence(descriptor),
+          getResourceAllowlistFieldDescription(descriptor),
+        ];
       }),
     ]);
     expect(words).not.toMatch(/kubectl|namespace|Kubernetes/i);
@@ -218,13 +332,45 @@ describe("what holds in every mode", () => {
       } else {
         expect(sentence).not.toContain("always need a human");
       }
-
-      const field: string =
-        getResourceRemediationModeFieldDescription(descriptor);
-      expect(field).toContain(sentence);
-      expect(field).toContain("Bypass approval");
     },
   );
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: the list the modal shows is the sentence the confirmations say, clause for clause",
+    (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      const clauses: Array<string> = getEveryModeProtections(descriptor);
+
+      expect(clauses).toHaveLength(descriptor.alwaysHumanExamples ? 4 : 3);
+      expect(getEveryModeProtectionsSentence(descriptor)).toBe(
+        joinAiAccessProtections(clauses),
+      );
+      // The last clause is joined with "and", every one before with "; ".
+      expect(getEveryModeProtectionsSentence(descriptor)).toContain(
+        `; and ${clauses[clauses.length - 1]}`,
+      );
+      for (const clause of clauses) {
+        expect(clause).toBe(clause.trim());
+        expect(clause).not.toMatch(/[.;]$/);
+      }
+    },
+  );
+
+  /*
+   * The sentence the confirmations have always said, word for word — the
+   * list the Change modal now shows must not have changed what it
+   * promises.
+   */
+  test("a Docker Swarm cluster's protections, in full", () => {
+    expect(
+      getEveryModeProtectionsSentence(
+        getResourceAiAgentDescriptor(AiResourceType.DockerSwarmCluster),
+      ),
+    ).toBe(
+      "commands the policy denies (a shell, exec, deleting data, anything that reads credentials, anything it does not know) never run; changes such as draining or pausing a node always need a human; the Docker Swarm AI agent changes nothing unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true, and then never itself, the collector beside it or a target outside ONEUPTIME_AI_WRITE_TARGETS; and an unattended run becomes a proposal when the hourly circuit breaker trips or another unattended round already holds this Docker Swarm cluster",
+    );
+  });
 });
 
 describe("who may loosen", () => {
@@ -916,6 +1062,27 @@ describe("small words", () => {
       expect(help).toContain(`for example: ${descriptor.allowlistPlaceholder}`);
       expect(help).toContain(`at most ${RESOURCE_ALLOWLIST_MAX_PATTERNS}`);
       expect(help).toContain("a * stands for exactly one whole word");
+      expect(help).toContain(
+        "A riskier fix that matches an entry runs without approval.",
+      );
+    },
+  );
+
+  /*
+   * The help used to be a paragraph that also restated the permission
+   * rules, the broad-entry confirmation and the every-mode protections —
+   * each of which the modal says where it applies. It stays short.
+   */
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: the allowlist field's help stays short and leaves permissions to the admin note",
+    (type: AiResourceType) => {
+      const help: string = getResourceAllowlistFieldDescription(
+        getResourceAiAgentDescriptor(type),
+      );
+
+      expect(help.split(/\s+/).length).toBeLessThan(60);
+      expect(help).not.toMatch(/permission|Project Owner|Project Admin/);
+      expect(help).not.toMatch(/^Optional\./);
     },
   );
 });

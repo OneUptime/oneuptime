@@ -17,10 +17,12 @@ import ResourceCommandPolicy, {
 } from "Common/Utils/AiRemediation/Resource/ResourceCommandPolicy";
 import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
+import { joinAiAccessProtections } from "../AiAccess/AiAccessModes";
 
 /*
  * The pure pieces behind "What AI may do" on a resource's AI agent page and
- * its Change modal: the words for each fixes mode, who may loosen what
+ * its Change modal: the words for each fixes mode (the looks shared with a
+ * Kubernetes cluster's page live in ../AiAccess), who may loosen what
  * (relative to the saved settings, as the server decides it), what an edit
  * actually sends, when a save is confirmed first, and how the command
  * allowlist is read and checked — by ResourceCommandPolicy, the matcher's
@@ -45,25 +47,6 @@ import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
 export const RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS: ReadonlyArray<Permission> =
   SERVER_RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS;
 
-/*
- * What each mode does, in the words of the canonical description on
- * ResourceAiRemediationMode (Common/Types/ResourceAiAgent/
- * ResourceAiAccess.ts). The labels are the dropdown's; the summaries are
- * the one line "What AI may do" shows for the current mode.
- */
-export const RESOURCE_REMEDIATION_MODE_LABELS: Record<
-  ResourceAiRemediationMode,
-  string
-> = {
-  [ResourceAiRemediationMode.Disabled]: "Off — AI only investigates",
-  [ResourceAiRemediationMode.RequireApproval]:
-    "Ask for approval — a person approves each fix",
-  [ResourceAiRemediationMode.Automatic]:
-    "Automatic — safe fixes run on their own, riskier ones wait for your one-click approval",
-  [ResourceAiRemediationMode.BypassApproval]:
-    "Bypass approval — every allowed fix runs on its own, except changes that always need a person, and when the circuit breaker trips or another unattended round is running",
-};
-
 // The mode's short name, as the card, the feed and the refusals say it.
 export const RESOURCE_REMEDIATION_MODE_SHORT_NAMES: Record<
   ResourceAiRemediationMode,
@@ -75,12 +58,18 @@ export const RESOURCE_REMEDIATION_MODE_SHORT_NAMES: Record<
   [ResourceAiRemediationMode.BypassApproval]: "Bypass approval",
 };
 
+/*
+ * What each mode does, in the words of the canonical description on
+ * ResourceAiRemediationMode (Common/Types/ResourceAiAgent/
+ * ResourceAiAccess.ts): the one line the Fixes row of "What AI may do"
+ * shows for the current mode. Off says nothing about investigating — that
+ * is the Investigation row's, and may be off too.
+ */
 export const RESOURCE_REMEDIATION_MODE_SUMMARIES: Record<
   ResourceAiRemediationMode,
   string
 > = {
-  [ResourceAiRemediationMode.Disabled]:
-    "AI only investigates. It never proposes or runs a fix.",
+  [ResourceAiRemediationMode.Disabled]: "AI never proposes or runs a fix.",
   [ResourceAiRemediationMode.RequireApproval]:
     "AI proposes fixes. A person approves each one before it runs.",
   [ResourceAiRemediationMode.Automatic]:
@@ -88,6 +77,16 @@ export const RESOURCE_REMEDIATION_MODE_SUMMARIES: Record<
   [ResourceAiRemediationMode.BypassApproval]:
     "Every allowed fix runs on its own. Changes that always need a person still ask.",
 };
+
+/*
+ * What the Investigation row of "What AI may do" says while investigation
+ * is on: what AI may run, and that it changes nothing.
+ */
+export function getResourceInvestigationOnSentence(
+  descriptor: ResourceAiAgentDescriptor,
+): string {
+  return `AI may run ${descriptor.readOnlyCommandsPhrase} on this ${descriptor.noun}: ${descriptor.readExamples}. They never change anything.`;
+}
 
 // A stored mode the page does not know reads as Off, as the server reads it.
 export function readResourceRemediationMode(
@@ -114,27 +113,58 @@ export function capitalizeFirst(value: string): string {
 /*
  * What holds in every mode, Bypass approval included — the canonical
  * comment's "In EVERY mode" paragraph, clause for clause, with the
- * resource's own always-a-person changes named.
+ * resource's own always-a-person changes named. The Change modal lists
+ * the clauses under "What stays protected in every mode"; the
+ * confirmations say them as one sentence.
  */
+export function getEveryModeProtections(
+  descriptor: ResourceAiAgentDescriptor,
+): Array<string> {
+  return [
+    "commands the policy denies (a shell, exec, deleting data, anything that reads credentials, anything it does not know) never run",
+    ...(descriptor.alwaysHumanExamples
+      ? [
+          `changes such as ${descriptor.alwaysHumanExamples} always need a human`,
+        ]
+      : []),
+    `the ${descriptor.agentName} changes nothing unless it was started with ${RESOURCE_AI_ALLOW_WRITES_ENV}=true, and then never itself, the collector beside it or a target outside ${RESOURCE_AI_WRITE_TARGETS_ENV}`,
+    `an unattended run becomes a proposal when the hourly circuit breaker trips or another unattended round already holds this ${descriptor.noun}`,
+  ];
+}
+
 export function getEveryModeProtectionsSentence(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  const alwaysHuman: string = descriptor.alwaysHumanExamples
-    ? `changes such as ${descriptor.alwaysHumanExamples} always need a human; `
-    : "";
-
-  return `commands the policy denies (a shell, exec, deleting data, anything that reads credentials, anything it does not know) never run; ${alwaysHuman}the ${descriptor.agentName} changes nothing unless it was started with ${RESOURCE_AI_ALLOW_WRITES_ENV}=true, and then never itself, the collector beside it or a target outside ${RESOURCE_AI_WRITE_TARGETS_ENV}; and an unattended run becomes a proposal when the hourly circuit breaker trips or another unattended round already holds this ${descriptor.noun}`;
+  return joinAiAccessProtections(getEveryModeProtections(descriptor));
 }
 
-export function getResourceRemediationModeFieldDescription(
+/*
+ * What each mode does, one card each in the Change modal's Fixes picker:
+ * the canonical description on ResourceAiRemediationMode, a mode at a
+ * time, with this resource type's riskier and always-a-person changes
+ * named. What holds in every mode is listed under the cards
+ * (getEveryModeProtections), not repeated on each.
+ */
+export function getResourceRemediationModeOptionDescriptions(
   descriptor: ResourceAiAgentDescriptor,
-): string {
-  return `Off: AI only investigates. Ask for approval: AI proposes the exact fix and a person approves it with one click; a follow-up fix asks again. Automatic: safe changes — each on one named object — run on their own. A riskier change (${descriptor.riskierExamples.replace(
+): Record<ResourceAiRemediationMode, string> {
+  const riskier: string = descriptor.riskierExamples.replace(
     /^riskier changes such as /,
     "",
-  )}, anything touching several objects) never runs without a human: when the round could only find riskier fixes, it ends by proposing exactly those for one-click approval. Riskier shapes on the command allowlist also run on their own. Bypass approval: AI does not ask — every change the policy allows, safe and riskier, runs on its own, follow-up rounds included, except for what always asks. In every mode, Bypass approval included: ${getEveryModeProtectionsSentence(
-    descriptor,
-  )}.`;
+  );
+
+  return {
+    [ResourceAiRemediationMode.Disabled]:
+      "AI never proposes or runs a fix. It can still investigate.",
+    [ResourceAiRemediationMode.RequireApproval]:
+      "AI proposes the exact fix, and a person approves it with one click before it runs. A follow-up fix asks again.",
+    [ResourceAiRemediationMode.Automatic]: `Safe changes, each on one named object, run on their own. Riskier ones, such as ${riskier}, wait for one-click approval unless the command allowlist names them.`,
+    [ResourceAiRemediationMode.BypassApproval]: `AI does not ask: every change the command policy allows runs on its own, riskier ones and follow-up rounds included.${
+      descriptor.alwaysHumanExamples
+        ? ` Changes such as ${descriptor.alwaysHumanExamples} still ask a person.`
+        : ""
+    }`,
+  };
 }
 
 /*
@@ -732,9 +762,15 @@ export function getResourceAllowlistInEffect(
     : [];
 }
 
-// The allowlist field's help text.
+/*
+ * The allowlist field's help text: what an entry does and how it is
+ * matched, with an example. The rest is said where it applies — a broken
+ * entry by its validation error (validateResourceAllowlistText), a broad
+ * one by the confirmation before saving, and what never runs unattended
+ * by the modal's every-mode protections.
+ */
 export function getResourceAllowlistFieldDescription(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `Optional. One entry per line, at most ${RESOURCE_ALLOWLIST_MAX_PATTERNS}: a riskier command that matches an entry also runs without approval. Entries are compared word by word — a * stands for exactly one whole word (never part of one), and flags must be written out — for example: ${descriptor.allowlistPlaceholder}. Start with the program, write the command itself out (never as *), and use more than one word after it. A * for the object a change touches pre-approves a whole class of changes, and saving one asks you to confirm. Denied commands and changes that always need a person never run unattended.`;
+  return `One command per line, at most ${RESOURCE_ALLOWLIST_MAX_PATTERNS}. A riskier fix that matches an entry runs without approval. Entries are matched word by word: a * stands for exactly one whole word, and flags must be written out — for example: ${descriptor.allowlistPlaceholder}.`;
 }
