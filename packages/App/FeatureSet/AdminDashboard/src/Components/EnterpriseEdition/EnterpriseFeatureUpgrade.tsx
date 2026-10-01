@@ -35,10 +35,14 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
     <Card
       title={props.title}
       description={props.description}
+      /*
+       * The same call to action as the one under the pitch below, so it is
+       * drawn plain: one card, one primary button.
+       */
       rightElement={
         <Button
           title="Learn about Enterprise Edition"
-          buttonStyle={ButtonStyleType.PRIMARY}
+          buttonStyle={ButtonStyleType.NORMAL}
           icon={IconProp.Info}
           onClick={() => {
             window.open(ENTERPRISE_OVERVIEW_URL, "_blank");

@@ -1876,10 +1876,7 @@ const OnCallReadinessPage: FunctionComponent<
           title={`Coverage for ${coverageRow.responder}`}
           description="Which severities this responder has a notification rule for, and how a page would reach them."
           modalWidth={ModalWidth.Large}
-          submitButtonText="Close"
-          onSubmit={() => {
-            setCoverageRow(null);
-          }}
+          closeButtonText="Close"
           onClose={() => {
             setCoverageRow(null);
           }}

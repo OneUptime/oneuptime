@@ -46,6 +46,70 @@ export interface ComponentProps {
   disableCloseOnBackdropClick?: boolean | undefined;
 }
 
+/*
+ * Where focus starts when a dialog opens.
+ *
+ * A field in the body comes first, so a form can be typed into straight away.
+ * A dialog with nothing to fill in - a confirmation, a notice - starts on the
+ * button the dialog is for: the affirmative action, so Enter does what the
+ * one highlighted button says. Starting on Cancel, the first button in the
+ * footer, put the focus ring round Cancel and made it look like the main
+ * action. A destructive confirmation (a DANGER submit) is the exception and
+ * starts on Cancel, the least destructive choice, so a stray Enter never
+ * deletes anything. The header's X is never the starting point.
+ */
+export const pickInitialFocusElement: (data: {
+  focusableElements: Array<HTMLElement>;
+  footer: HTMLElement | null;
+  isSubmitDestructive: boolean;
+}) => HTMLElement | undefined = (data: {
+  focusableElements: Array<HTMLElement>;
+  footer: HTMLElement | null;
+  isSubmitDestructive: boolean;
+}): HTMLElement | undefined => {
+  const candidates: Array<HTMLElement> = data.focusableElements.filter(
+    (element: HTMLElement) => {
+      return element.getAttribute("data-testid") !== "close-button";
+    },
+  );
+
+  const footer: HTMLElement | null = data.footer;
+
+  const firstOutsideTheFooter: HTMLElement | undefined = candidates.find(
+    (element: HTMLElement) => {
+      return !footer || !footer.contains(element);
+    },
+  );
+
+  if (firstOutsideTheFooter || !footer) {
+    return firstOutsideTheFooter || candidates[0];
+  }
+
+  const findFooterButton: (testId: string) => HTMLElement | undefined = (
+    testId: string,
+  ): HTMLElement | undefined => {
+    return candidates.find((element: HTMLElement) => {
+      return (
+        footer.contains(element) &&
+        element.getAttribute("data-testid") === testId
+      );
+    });
+  };
+
+  const submitButton: HTMLElement | undefined = findFooterButton(
+    "modal-footer-submit-button",
+  );
+  const cancelButton: HTMLElement | undefined = findFooterButton(
+    "modal-footer-close-button",
+  );
+
+  const preferred: HTMLElement | undefined = data.isSubmitDestructive
+    ? cancelButton || submitButton
+    : submitButton || cancelButton;
+
+  return preferred || candidates[0];
+};
+
 const Modal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -77,6 +141,13 @@ const Modal: FunctionComponent<ComponentProps> = (
   const onCloseRef: React.MutableRefObject<(() => void) | undefined> = useRef<
     (() => void) | undefined
   >(props.onClose);
+  const submitButtonStyleType: ButtonStyleType =
+    props.submitButtonStyleType ?? ButtonStyleType.PRIMARY;
+  const isSubmitDestructiveRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  isSubmitDestructiveRef.current =
+    submitButtonStyleType === ButtonStyleType.DANGER ||
+    submitButtonStyleType === ButtonStyleType.DANGER_OUTLINE;
   const backdropPressStartedOutsideRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
   const backdropPressEndedInsideRef: React.MutableRefObject<boolean> =
@@ -221,9 +292,21 @@ const Modal: FunctionComponent<ComponentProps> = (
         });
       };
 
+    /*
+     * The footer is a direct child of the panel. Searching the whole panel
+     * would find a nested dialog's footer first, since a dialog opened from
+     * inside this one renders in its body.
+     */
+    const footer: HTMLElement | null =
+      (Array.from(modal.children).find((child: Element) => {
+        return child.getAttribute("data-testid") === "modal-footer";
+      }) as HTMLElement | undefined) || null;
+
     const initialFocusElement: HTMLElement | undefined =
-      getFocusableElements().find((element: HTMLElement) => {
-        return element.getAttribute("data-testid") !== "close-button";
+      pickInitialFocusElement({
+        focusableElements: getFocusableElements(),
+        footer,
+        isSubmitDestructive: isSubmitDestructiveRef.current,
       });
 
     if (isTopmostDialog()) {
@@ -505,15 +588,13 @@ const Modal: FunctionComponent<ComponentProps> = (
                   ? props.submitButtonType
                   : ButtonType.Button
               }
-              submitButtonStyleType={
-                props.submitButtonStyleType
-                  ? props.submitButtonStyleType
-                  : ButtonStyleType.PRIMARY
-              }
+              /*
+               * `??`, not a truthiness test: ButtonStyleType.PRIMARY is 0, so
+               * `style ? style : default` threw an explicit PRIMARY away.
+               */
+              submitButtonStyleType={submitButtonStyleType}
               closeButtonStyleType={
-                props.closeButtonStyleType
-                  ? props.closeButtonStyleType
-                  : ButtonStyleType.NORMAL
+                props.closeButtonStyleType ?? ButtonStyleType.NORMAL
               }
               submitButtonText={
                 translatedSubmitButtonText

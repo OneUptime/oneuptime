@@ -1047,7 +1047,10 @@ html.dark [class*="focus-visible:ring-red-"]:focus-visible {
 
 html.dark [class*="focus:ring-blue-"]:focus,
 html.dark [class*="focus:ring-emerald-"]:focus,
-html.dark [class*="focus:ring-green-"]:focus {
+html.dark [class*="focus:ring-green-"]:focus,
+html.dark [class*="focus-visible:ring-blue-"]:focus-visible,
+html.dark [class*="focus-visible:ring-emerald-"]:focus-visible,
+html.dark [class*="focus-visible:ring-green-"]:focus-visible {
   --tw-ring-color: rgb(96 165 250 / 50%) !important;
 }
 

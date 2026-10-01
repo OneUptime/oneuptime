@@ -202,7 +202,7 @@ const ArchiveResourceCard: <TBaseModel extends BaseModel>(
           title={title}
           description={confirmMessage}
           submitButtonText={isArchived ? "Unarchive" : "Archive"}
-          submitButtonType={ButtonStyleType.NORMAL}
+          submitButtonType={ButtonStyleType.PRIMARY}
           isLoading={isSaving}
           onClose={() => {
             setShowConfirm(false);

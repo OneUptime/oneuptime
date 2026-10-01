@@ -1534,11 +1534,17 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             description={
               "Escalation rules decide who gets paged and how quickly the alert climbs the ladder when no one responds. Add your first rule to get started."
             }
+            /*
+             * The header's "Add Escalation Rule" is the page's primary
+             * button. This repeats it where an empty list leaves the eye,
+             * drawn plain the way an empty table repeats its Create button,
+             * so the page still has one.
+             */
             footer={
               <Button
                 title="Add Escalation Rule"
                 icon={IconProp.Add}
-                buttonStyle={ButtonStyleType.PRIMARY}
+                buttonStyle={ButtonStyleType.NORMAL}
                 onClick={() => {
                   return openCreateModal();
                 }}

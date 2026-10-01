@@ -276,10 +276,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
         onClose={() => {
           setMetricInfoModalChart(null);
         }}
-        onSubmit={() => {
-          setMetricInfoModalChart(null);
-        }}
-        submitButtonText="Close"
+        closeButtonText="Close"
         modalWidth={ModalWidth.Normal}
       >
         <div className="space-y-4">

@@ -1385,7 +1385,7 @@ const MonitorTemplatesView: FunctionComponent<
           title={syncResultTitle}
           description={syncResultMessage}
           submitButtonText="OK"
-          submitButtonType={ButtonStyleType.PRIMARY}
+          submitButtonType={ButtonStyleType.NORMAL}
           onSubmit={() => {
             setSyncResultMessage("");
           }}

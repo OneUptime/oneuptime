@@ -505,6 +505,7 @@ function useBulkLabelActions<T extends BaseModel>(
             isLoading={isLoadingRemoveLabels}
             onClose={closeRemoveModal}
             submitButtonText="Remove Labels"
+            submitButtonStyleType={ButtonStyleType.DANGER}
             onSubmit={async (formData: { labelIds: Array<string> }) => {
               await applyLabels(formData.labelIds || [], "remove");
             }}
