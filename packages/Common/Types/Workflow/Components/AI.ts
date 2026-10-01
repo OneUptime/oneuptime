@@ -1,4 +1,3 @@
-import Route from "../../API/Route";
 import IconProp from "../../Icon/IconProp";
 import ComponentID from "../ComponentID";
 import ComponentMetadata, {
@@ -15,7 +14,6 @@ const components: Array<ComponentMetadata> = [
       "Generate text from an instruction and explicit workflow context using the project's configured LLM provider.",
     iconProp: IconProp.Sparkles,
     componentType: ComponentType.Component,
-    documentationLink: Route.fromString("/workflow/docs/AI.md"),
     arguments: [
       {
         type: ComponentInputType.LongText,

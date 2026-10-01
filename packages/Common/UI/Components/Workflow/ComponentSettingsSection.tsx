@@ -14,8 +14,8 @@ import React, {
  * - primary: what someone opens this step for, when that is not one of its
  *   settings (the Webhook trigger's URL). Tinted, so it reads as the place to
  *   start; there is at most one per dialog, and it is always the first.
- * - info: the documentation, which is about a whole family of steps rather
- *   than this one.
+ * - info: the step's "How to use" help, which is about using the step
+ *   rather than one of its settings.
  */
 export type ComponentSettingsSectionTone = "default" | "primary" | "info";
 
@@ -29,6 +29,12 @@ export interface ComponentProps {
   title: string;
   description?: string | undefined;
   tone?: ComponentSettingsSectionTone | undefined;
+  /*
+   * Whether something may move the focus here: the dialog's "How to use"
+   * button does, so a keyboard or screen reader user lands on the help it
+   * scrolled to. Not in the tab order either way.
+   */
+  isFocusTarget?: boolean | undefined;
   children: ReactNode;
 }
 
@@ -64,8 +70,13 @@ const ComponentSettingsSection: FunctionComponent<ComponentProps> = (
 
   return (
     <section
-      className={tone.container}
+      className={`${tone.container}${
+        props.isFocusTarget
+          ? " scroll-mt-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+          : ""
+      }`}
       aria-labelledby={headingId}
+      tabIndex={props.isFocusTarget ? -1 : undefined}
       data-testid={`workflow-component-section-${props.id}`}
     >
       <div className="mb-3">

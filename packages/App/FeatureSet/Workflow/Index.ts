@@ -9,12 +9,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import FeatureSet from "Common/Server/Types/FeatureSet";
-import Express, {
-  ExpressApplication,
-  ExpressRequest,
-  ExpressResponse,
-} from "Common/Server/Utils/Express";
-import path from "path";
+import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import {
   DisableQueueWorkers,
@@ -35,31 +30,12 @@ const WorkflowFeatureSet: FeatureSet = {
 
       app.use(`/${APP_NAME}`, new WorkflowAPI().router);
 
-      app.get(
-        `/${APP_NAME}/docs/:componentName`,
-        (req: ExpressRequest, res: ExpressResponse) => {
-          const docsDir: string =
-            "/usr/src/app/FeatureSet/Workflow/Docs/ComponentDocumentation";
-          const componentName: string = path.basename(
-            req.params["componentName"] || "",
-          );
-
-          if (!componentName) {
-            res.status(404).send("Not Found");
-            return;
-          }
-
-          const filePath: string = path.join(docsDir, componentName);
-
-          // Ensure resolved path is within the docs directory
-          if (!filePath.startsWith(docsDir + "/")) {
-            res.status(404).send("Not Found");
-            return;
-          }
-
-          res.sendFile(filePath);
-        },
-      );
+      /*
+       * There is no /workflow/docs route any more. Each step's "How to use"
+       * help is built in the dashboard from the step itself
+       * (Common/Types/Workflow/Documentation), so there are no Markdown files
+       * left to serve.
+       */
 
       const componentCodeAPI: ComponentCodeAPI = new ComponentCodeAPI();
       componentCodeAPI.init();
