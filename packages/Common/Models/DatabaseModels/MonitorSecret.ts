@@ -1,3 +1,4 @@
+import Label from "./Label";
 import Monitor from "./Monitor";
 import Project from "./Project";
 import User from "./User";
@@ -287,6 +288,87 @@ export default class MonitorSecret extends BaseModel {
     },
   })
   public monitors?: Array<Monitor> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateMonitorSecret,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.ReadMonitorSecret,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.EditMonitorSecret,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Available to all monitors",
+    description:
+      "When this is on, every monitor in this project can access this secret. Use this for shared credentials that all monitors should be able to reference.",
+    example: "false",
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public isAvailableToAllMonitors?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateMonitorSecret,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.ReadMonitorSecret,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.EditMonitorSecret,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Labels",
+    description:
+      "Monitors with any of these labels can access this secret. Useful when a set of monitors shares a credential and you would rather tag the monitors than list them one by one.",
+    example: '["5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e"]',
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "MonitorSecretLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "monitorSecretId",
+      referencedColumnName: "_id",
+    },
+  })
+  public labels?: Array<Label> = undefined;
 
   @ColumnAccessControl({
     create: [

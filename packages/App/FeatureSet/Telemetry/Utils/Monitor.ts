@@ -7,60 +7,29 @@ import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorSecretService from "Common/Server/Services/MonitorSecretService";
+import MonitorService from "Common/Server/Services/MonitorService";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
+import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import FindBy from "Common/Server/Types/Database/FindBy";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 export default class MonitorUtil {
   public static async loadMonitorSecrets(
     monitorId: ObjectID,
   ): Promise<MonitorSecret[]> {
-    const secrets: Array<MonitorSecret> = await MonitorSecretService.findBy({
+    const monitors: Array<Monitor> = await MonitorService.findBy({
       query: {
-        monitors: QueryHelper.inRelationArray([monitorId]),
+        _id: QueryHelper.any([monitorId]),
       },
       select: {
-        secretValue: true,
-        name: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return secrets;
-  }
-
-  /*
-   * Batched variant of loadMonitorSecrets: one query for a whole list of
-   * monitors (e.g. every monitor claimed by a probe fetch cycle) instead of
-   * one query per monitor. Secrets are grouped strictly by their own
-   * `monitors` relation, so a monitor can never receive a secret that is not
-   * attached to it.
-   */
-  public static async loadMonitorSecretsForMonitors(
-    monitorIds: Array<ObjectID>,
-  ): Promise<Map<string, Array<MonitorSecret>>> {
-    const secretsByMonitorId: Map<string, Array<MonitorSecret>> = new Map();
-
-    if (monitorIds.length === 0) {
-      return secretsByMonitorId;
-    }
-
-    const secrets: Array<MonitorSecret> = await MonitorSecretService.findBy({
-      query: {
-        monitors: QueryHelper.inRelationArray(monitorIds),
-      },
-      select: {
-        secretValue: true,
-        name: true,
-        monitors: {
+        _id: true,
+        projectId: true,
+        labels: {
           _id: true,
         },
       },
@@ -71,23 +40,183 @@ export default class MonitorUtil {
       },
     });
 
-    for (const secret of secrets) {
-      for (const monitor of secret.monitors || []) {
-        const monitorKey: string | undefined = monitor.id?.toString();
+    const secretsByMonitorId: Map<
+      string,
+      Array<MonitorSecret>
+    > = await MonitorUtil.loadMonitorSecretsForMonitors(monitors);
 
-        if (!monitorKey) {
+    return secretsByMonitorId.get(monitorId.toString()) || [];
+  }
+
+  /*
+   * Resolves the explicit, all-monitors and label grants (#1467) for a batch of
+   * already-loaded monitors.
+   */
+  public static async loadMonitorSecretsForMonitors(
+    monitors: Array<Monitor>,
+  ): Promise<Map<string, Array<MonitorSecret>>> {
+    const secretsByMonitorId: Map<string, Array<MonitorSecret>> = new Map();
+
+    const usableMonitors: Array<Monitor> = [];
+    const monitorIds: Array<ObjectID> = [];
+    const projectIds: Set<string> = new Set<string>();
+    const labelIds: Set<string> = new Set<string>();
+
+    for (const monitor of monitors) {
+      if (!monitor.id || !monitor.projectId) {
+        continue;
+      }
+
+      monitorIds.push(monitor.id);
+      projectIds.add(monitor.projectId.toString());
+
+      for (const label of monitor.labels || []) {
+        if (label.id) {
+          labelIds.add(label.id.toString());
+        }
+      }
+
+      usableMonitors.push(monitor);
+    }
+
+    if (usableMonitors.length === 0) {
+      return secretsByMonitorId;
+    }
+
+    const queryProjectIds: Array<ObjectID> = [...projectIds].map(
+      (id: string) => {
+        return new ObjectID(id);
+      },
+    );
+
+    const select: FindBy<MonitorSecret>["select"] = {
+      secretValue: true,
+      name: true,
+      isAvailableToAllMonitors: true,
+      projectId: true,
+      monitors: {
+        _id: true,
+      },
+      labels: {
+        _id: true,
+      },
+    };
+
+    const queries: Array<FindBy<MonitorSecret>["query"]> = [
+      {
+        projectId: QueryHelper.any(queryProjectIds),
+        monitors: QueryHelper.inRelationArray(monitorIds),
+      },
+      {
+        projectId: QueryHelper.any(queryProjectIds),
+        isAvailableToAllMonitors: true,
+      },
+    ];
+
+    if (labelIds.size > 0) {
+      queries.push({
+        projectId: QueryHelper.any(queryProjectIds),
+        labels: QueryHelper.inRelationArray(
+          [...labelIds].map((id: string) => {
+            return new ObjectID(id);
+          }),
+        ),
+      });
+    }
+
+    // The candidate queries can overlap, so dedupe by secret id.
+    const secretsById: Map<string, MonitorSecret> = new Map<
+      string,
+      MonitorSecret
+    >();
+
+    const results: Array<Array<MonitorSecret>> = await Promise.all(
+      queries.map((query: FindBy<MonitorSecret>["query"]) => {
+        return MonitorSecretService.findBy({
+          query: query,
+          select: select,
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+      }),
+    );
+
+    for (const secrets of results) {
+      for (const secret of secrets) {
+        if (secret.id) {
+          secretsById.set(secret.id.toString(), secret);
+        }
+      }
+    }
+
+    for (const secret of secretsById.values()) {
+      for (const monitor of usableMonitors) {
+        if (!MonitorUtil.monitorCanAccessSecret(monitor, secret)) {
           continue;
         }
 
-        if (!secretsByMonitorId.has(monitorKey)) {
-          secretsByMonitorId.set(monitorKey, []);
-        }
+        const monitorKey: string = monitor.id!.toString();
+        const existing: Array<MonitorSecret> | undefined =
+          secretsByMonitorId.get(monitorKey);
 
-        secretsByMonitorId.get(monitorKey)!.push(secret);
+        if (existing) {
+          existing.push(secret);
+        } else {
+          secretsByMonitorId.set(monitorKey, [secret]);
+        }
       }
     }
 
     return secretsByMonitorId;
+  }
+
+  // Grants only apply within the secret's project; a missing or mismatched
+  // project denies.
+  private static monitorCanAccessSecret(
+    monitor: Monitor,
+    secret: MonitorSecret,
+  ): boolean {
+    const monitorProjectId: string | undefined = monitor.projectId?.toString();
+    const secretProjectId: string | undefined = secret.projectId?.toString();
+
+    if (!monitorProjectId || !secretProjectId) {
+      return false;
+    }
+
+    if (monitorProjectId !== secretProjectId) {
+      return false;
+    }
+
+    if (secret.isAvailableToAllMonitors) {
+      return true;
+    }
+
+    const monitorId: string | undefined = monitor.id?.toString();
+
+    if (
+      monitorId &&
+      (secret.monitors || []).some((each: Monitor) => {
+        return each.id?.toString() === monitorId;
+      })
+    ) {
+      return true;
+    }
+
+    const monitorLabelIds: Array<string> = (monitor.labels || [])
+      .map((label: Label) => {
+        return label.id?.toString();
+      })
+      .filter((id: string | undefined): id is string => {
+        return Boolean(id);
+      });
+
+    return (secret.labels || []).some((label: Label) => {
+      const labelId: string | undefined = label.id?.toString();
+      return labelId ? monitorLabelIds.includes(labelId) : false;
+    });
   }
 
   // True when any part of the monitor steps references a {{monitorSecrets.*}} value.

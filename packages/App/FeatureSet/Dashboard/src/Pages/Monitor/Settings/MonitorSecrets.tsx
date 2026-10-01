@@ -12,6 +12,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 import React, {
@@ -120,6 +121,17 @@ const MonitorSecrets: FunctionComponent<
           },
           {
             field: {
+              isAvailableToAllMonitors: true,
+            },
+            title: "Available to all monitors",
+            stepId: "access",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "When this is on, every monitor in this project can use this secret. Leave it off to grant access to specific monitors and/or monitors with certain labels.",
+          },
+          {
+            field: {
               monitors: true,
             },
             title: "Monitors which have access to this secret",
@@ -130,9 +142,33 @@ const MonitorSecrets: FunctionComponent<
               labelField: "name",
               valueField: "_id",
             },
-            required: true,
-            description: "Which monitors should have access to this secret?",
+            required: false,
+            showIf: (item: MonitorSecret): boolean => {
+              return !item.isAvailableToAllMonitors;
+            },
+            description:
+              "Which monitors should have access to this secret? You can also (or instead) grant access by label below.",
             placeholder: "Select monitors",
+          },
+          {
+            field: {
+              labels: true,
+            },
+            title: "Monitors with these labels have access to this secret",
+            stepId: "access",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            showIf: (item: MonitorSecret): boolean => {
+              return !item.isAvailableToAllMonitors;
+            },
+            description:
+              "Any monitor carrying at least one of these labels can use this secret.",
+            placeholder: "Select labels",
           },
         ]}
         sortBy="name"
@@ -181,17 +217,56 @@ const MonitorSecrets: FunctionComponent<
           },
           {
             field: {
+              isAvailableToAllMonitors: true,
               monitors: {
                 name: true,
                 _id: true,
-                projectId: true,
+              },
+              labels: {
+                name: true,
+                _id: true,
               },
             },
-            title: "Monitors which have access to this secret",
+            title: "Access",
             type: FieldType.EntityArray,
 
             getElement: (item: MonitorSecret): ReactElement => {
-              return <MonitorsElement monitors={item["monitors"] || []} />;
+              if (item.isAvailableToAllMonitors) {
+                return (
+                  <span className="text-sm font-medium text-indigo-600">
+                    All monitors
+                  </span>
+                );
+              }
+
+              const monitors: Array<Monitor> = item.monitors || [];
+              const labels: Array<Label> = item.labels || [];
+
+              if (monitors.length === 0 && labels.length === 0) {
+                return (
+                  <span className="text-sm text-gray-500">
+                    No monitors have access
+                  </span>
+                );
+              }
+
+              return (
+                <div>
+                  {monitors.length > 0 && (
+                    <MonitorsElement monitors={monitors} />
+                  )}
+                  {labels.length > 0 && (
+                    <div className="text-sm text-gray-600">
+                      Monitors with labels:{" "}
+                      {labels
+                        .map((label: Label) => {
+                          return label.name;
+                        })
+                        .join(", ")}
+                    </div>
+                  )}
+                </div>
+              );
             },
           },
         ]}

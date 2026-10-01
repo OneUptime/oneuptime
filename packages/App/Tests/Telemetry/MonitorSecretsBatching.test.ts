@@ -10,33 +10,24 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 
 /*
- * Regression tests for the probe-ingest MonitorSecret batching optimization.
- *
- * Every probe fetch cycle used to issue one MonitorSecret query PER monitor
- * (and — because populateSecretsInMonitorSteps lost its isSecretsLoaded flag
- * in 4 of its branches — up to one query PER SECRET-REFERENCING FIELD of a
- * single monitor). The fix:
- *   1. loadMonitorSecretsForMonitors: ONE findBy for a whole list of monitor
- *      ids, grouped into a Map STRICTLY by each secret's own `monitors`
- *      relation — a secret must never leak to a monitor it is not attached
- *      to, so the grouping (not the query) is the security boundary,
- *   2. populateSecretsInMonitorSteps memoizes the lazy secret load in a
- *      promise, so a monitor whose steps reference secrets in several fields
- *      issues EXACTLY ONE query (previously 3 for headers+body+destination),
- *   3. preloadedSecrets skips the query entirely — including the empty-array
- *      case, which must behave like "the DB returned zero secrets" (leave
- *      placeholders untouched), NOT fall back to a query,
- *   4. monitorStepsReferenceSecrets is the coarse pre-filter the batch path
- *      uses to decide which monitors need secrets at all.
- *
- * MonitorSecretService is mocked to count queries. VMUtil is mocked because
- * the real replaceValueInPlace lives next to the isolated-vm sandbox runner;
- * the mock performs the same {{monitorSecrets.<name>}} substitution from the
- * storageMap it receives, so substitution assertions still prove the secrets
- * that were loaded are the ones that got filled in.
+ * Regression tests for the probe-ingest MonitorSecret batching: the batch path
+ * resolves a whole probe cycle's secrets with a constant number of queries,
+ * and a secret only reaches a monitor its grants cover. MonitorSecretService
+ * and MonitorService are mocked to count queries; VMUtil is mocked with the
+ * same {{monitorSecrets.<name>}} substitution so the values that were loaded
+ * can still be asserted.
  */
 
 jest.mock("Common/Server/Services/MonitorSecretService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findBy: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/MonitorService", () => {
   return {
     __esModule: true,
     default: {
@@ -98,6 +89,8 @@ jest.mock("Common/Server/Utils/VM/VMAPI", () => {
 });
 
 import MonitorSecretService from "Common/Server/Services/MonitorSecretService";
+import MonitorService from "Common/Server/Services/MonitorService";
+import Label from "Common/Models/DatabaseModels/Label";
 import MonitorUtil from "../../FeatureSet/Telemetry/Utils/Monitor";
 
 interface MonitorSecretServiceMock {
@@ -107,12 +100,32 @@ interface MonitorSecretServiceMock {
 const monitorSecretService: MonitorSecretServiceMock =
   MonitorSecretService as unknown as MonitorSecretServiceMock;
 
+interface MonitorServiceMock {
+  findBy: jest.Mock;
+}
+
+const monitorService: MonitorServiceMock =
+  MonitorService as unknown as MonitorServiceMock;
+
+const PROJECT_ID: string = "project-1";
+
+function makeMonitor(
+  id: ObjectID,
+  data: { projectId?: string | undefined; labelIds?: Array<ObjectID> } = {},
+): Monitor {
+  const monitor: Monitor = new Monitor(id);
+  monitor.projectId = new ObjectID(data.projectId || PROJECT_ID);
+  monitor.labels = (data.labelIds || []).map((labelId: ObjectID) => {
+    return new Label(labelId);
+  });
+  return monitor;
+}
+
 const MONITOR_A_ID: ObjectID = new ObjectID("monitor-a");
 const MONITOR_B_ID: ObjectID = new ObjectID("monitor-b");
-const MONITOR_C_ID: ObjectID = new ObjectID("monitor-c");
 
 interface FindByArgs {
-  query: { monitors: Array<ObjectID> };
+  query: { monitors?: Array<ObjectID>; projectId?: unknown };
   select: JSONObject;
   limit: number;
   skip: number;
@@ -122,13 +135,24 @@ interface FindByArgs {
 function makeSecret(data: {
   name: string;
   secretValue: string;
+  projectId?: string | undefined;
   monitors?: Array<Monitor> | undefined;
+  labels?: Array<Label> | undefined;
+  isAvailableToAllMonitors?: boolean | undefined;
 }): MonitorSecret {
   const secret: MonitorSecret = new MonitorSecret();
+  secret._id = data.name;
   secret.name = data.name;
   secret.secretValue = data.secretValue;
+  secret.projectId = new ObjectID(data.projectId || PROJECT_ID);
   if (data.monitors) {
     secret.monitors = data.monitors;
+  }
+  if (data.labels) {
+    secret.labels = data.labels;
+  }
+  if (data.isAvailableToAllMonitors) {
+    secret.isAvailableToAllMonitors = true;
   }
   return secret;
 }
@@ -156,11 +180,8 @@ function makeApiStep(data: {
 }
 
 /*
- * URL.fromString cannot carry a {{monitorSecrets.*}} placeholder — Hostname
- * and Route validation both reject "{" / "}" — so a secret-bearing
- * destination is built in its serialized {_type, value} shape, which is all
- * the util ever looks at (it JSON-stringifies the destination to detect and
- * substitute secrets).
+ * Hostname and Route validation reject "{" / "}", so a secret-bearing URL is
+ * built in the serialized {_type, value} shape the util JSON-stringifies.
  */
 function makeSecretDestination(urlTemplate: string): URL {
   const serialized: JSONObject = { _type: "URL", value: urlTemplate };
@@ -183,47 +204,52 @@ describe("MonitorUtil secret batching", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     monitorSecretService.findBy.mockResolvedValue([]);
+    monitorService.findBy.mockResolvedValue([makeMonitor(MONITOR_A_ID)]);
   });
 
   describe("loadMonitorSecretsForMonitors", () => {
-    test("groups secrets strictly by each secret's own monitors relation", async () => {
-      const secretForAOnly: MonitorSecret = makeSecret({
+    test("delivers a secret to a monitor covered by any of its grants (explicit, all-monitors, label)", async () => {
+      const labelId: ObjectID = new ObjectID("label-beta");
+      const explicitForA: MonitorSecret = makeSecret({
         name: "apiKey",
         secretValue: "secret-a-only",
         monitors: [new Monitor(MONITOR_A_ID)],
       });
-      const sharedSecret: MonitorSecret = makeSecret({
-        name: "sharedToken",
-        secretValue: "secret-shared",
-        monitors: [new Monitor(MONITOR_A_ID), new Monitor(MONITOR_B_ID)],
+      const allMonitors: MonitorSecret = makeSecret({
+        name: "allMonitors",
+        secretValue: "secret-all",
+        isAvailableToAllMonitors: true,
+      });
+      const labelSecret: MonitorSecret = makeSecret({
+        name: "labelSecret",
+        secretValue: "secret-label",
+        labels: [new Label(labelId)],
       });
 
       monitorSecretService.findBy.mockResolvedValue([
-        secretForAOnly,
-        sharedSecret,
+        explicitForA,
+        allMonitors,
+        labelSecret,
       ]);
 
       const result: Map<
         string,
         Array<MonitorSecret>
       > = await MonitorUtil.loadMonitorSecretsForMonitors([
-        MONITOR_A_ID,
-        MONITOR_B_ID,
-        MONITOR_C_ID,
+        makeMonitor(MONITOR_A_ID, { labelIds: [labelId] }),
+        makeMonitor(MONITOR_B_ID),
       ]);
 
       expect(result.get(MONITOR_A_ID.toString())).toEqual([
-        secretForAOnly,
-        sharedSecret,
+        explicitForA,
+        allMonitors,
+        labelSecret,
       ]);
-      expect(result.get(MONITOR_B_ID.toString())).toEqual([sharedSecret]);
 
-      // monitor-c requested secrets but none are attached to it: no entry.
-      expect(result.has(MONITOR_C_ID.toString())).toBe(false);
-      expect(result.size).toBe(2);
+      expect(result.get(MONITOR_B_ID.toString())).toEqual([allMonitors]);
     });
 
-    test("a secret with an empty or missing monitors relation appears nowhere (never leaks to unattached monitors)", async () => {
+    test("a secret with no grant appears nowhere", async () => {
       const orphanUndefined: MonitorSecret = makeSecret({
         name: "orphanUndefined",
         secretValue: "must-not-leak-1",
@@ -250,39 +276,81 @@ describe("MonitorUtil secret batching", () => {
         string,
         Array<MonitorSecret>
       > = await MonitorUtil.loadMonitorSecretsForMonitors([
-        MONITOR_A_ID,
-        MONITOR_B_ID,
+        makeMonitor(MONITOR_A_ID),
+        makeMonitor(MONITOR_B_ID),
       ]);
 
       expect(result.size).toBe(1);
       expect(result.get(MONITOR_A_ID.toString())).toEqual([attached]);
 
-      // Security invariant: the orphan secrets are in NO bucket at all.
       for (const secrets of result.values()) {
         expect(secrets).not.toContain(orphanUndefined);
         expect(secrets).not.toContain(orphanEmpty);
       }
     });
 
-    test("issues exactly ONE findBy for the whole id list, selecting monitors._id for grouping", async () => {
-      await MonitorUtil.loadMonitorSecretsForMonitors([
-        MONITOR_A_ID,
-        MONITOR_B_ID,
+    test("an all-monitors secret from another project reaches no monitor", async () => {
+      const foreignSecret: MonitorSecret = makeSecret({
+        name: "foreignAllMonitors",
+        secretValue: "must-not-leak",
+        projectId: "project-2",
+        isAvailableToAllMonitors: true,
+      });
+
+      monitorSecretService.findBy.mockResolvedValue([foreignSecret]);
+
+      const result: Map<
+        string,
+        Array<MonitorSecret>
+      > = await MonitorUtil.loadMonitorSecretsForMonitors([
+        makeMonitor(MONITOR_A_ID),
       ]);
 
-      expect(monitorSecretService.findBy).toHaveBeenCalledTimes(1);
+      expect(result.size).toBe(0);
+    });
+
+    test("a label-scoped secret does not cross projects even when the label id is shared", async () => {
+      const sharedLabelId: ObjectID = new ObjectID("shared-label");
+      const foreignSecret: MonitorSecret = makeSecret({
+        name: "foreignLabel",
+        secretValue: "must-not-leak",
+        projectId: "project-2",
+        labels: [new Label(sharedLabelId)],
+      });
+
+      monitorSecretService.findBy.mockResolvedValue([foreignSecret]);
+
+      const result: Map<
+        string,
+        Array<MonitorSecret>
+      > = await MonitorUtil.loadMonitorSecretsForMonitors([
+        makeMonitor(MONITOR_A_ID, { labelIds: [sharedLabelId] }),
+      ]);
+
+      expect(result.size).toBe(0);
+    });
+
+    test("the explicit-grant query carries every requested id and the monitors' project", async () => {
+      await MonitorUtil.loadMonitorSecretsForMonitors([
+        makeMonitor(MONITOR_A_ID),
+        makeMonitor(MONITOR_B_ID),
+      ]);
 
       const args: FindByArgs = monitorSecretService.findBy.mock
         .calls[0]![0] as FindByArgs;
 
-      // QueryHelper.inRelationArray of ALL requested ids in one query.
       expect(args.query.monitors).toEqual([MONITOR_A_ID, MONITOR_B_ID]);
+      expect(args.query.projectId).toBeDefined();
 
-      // The monitors relation _id is what the map is keyed by - it must be selected.
       expect(args.select).toEqual({
         secretValue: true,
         name: true,
+        isAvailableToAllMonitors: true,
+        projectId: true,
         monitors: {
+          _id: true,
+        },
+        labels: {
           _id: true,
         },
       });
@@ -291,7 +359,24 @@ describe("MonitorUtil secret batching", () => {
       expect(args.props).toEqual({ isRoot: true });
     });
 
-    test("empty monitorIds input returns an empty map without issuing any query", async () => {
+    test("issues a constant number of MonitorSecret queries however many monitors are requested", async () => {
+      for (const count of [1, 20, 200]) {
+        jest.clearAllMocks();
+        monitorSecretService.findBy.mockResolvedValue([]);
+
+        const monitors: Array<Monitor> = [];
+        for (let i: number = 0; i < count; i++) {
+          monitors.push(makeMonitor(new ObjectID(`monitor-${i}`)));
+        }
+
+        await MonitorUtil.loadMonitorSecretsForMonitors(monitors);
+
+        // explicit + all-monitors (these monitors carry no labels).
+        expect(monitorSecretService.findBy).toHaveBeenCalledTimes(2);
+      }
+    });
+
+    test("empty input returns an empty map without issuing any query", async () => {
       const result: Map<
         string,
         Array<MonitorSecret>
@@ -299,16 +384,14 @@ describe("MonitorUtil secret batching", () => {
 
       expect(result.size).toBe(0);
       expect(monitorSecretService.findBy).not.toHaveBeenCalled();
+      expect(monitorService.findBy).not.toHaveBeenCalled();
     });
   });
 
   describe("populateSecretsInMonitorSteps memoization", () => {
-    test("a monitor referencing secrets in requestHeaders AND requestBody AND monitorDestination issues EXACTLY ONE query (was 3 before the memoized promise)", async () => {
-      /*
-       * requestHeaders/requestBody are checked in an if/else-if per step, so
-       * two steps are used to exercise BOTH fields; the destination check is
-       * a separate loop, so the pre-fix code issued one query per branch.
-       */
+    test("a monitor referencing secrets in requestHeaders AND requestBody AND monitorDestination loads them once (was 3 before the memoized promise)", async () => {
+      // requestHeaders and requestBody are checked if/else-if per step, so two
+      // steps are needed to exercise both.
       const stepWithHeadersAndDestination: MonitorStep = makeApiStep({
         requestHeaders: {
           Authorization: "Bearer {{monitorSecrets.apiKey}}",
@@ -323,8 +406,16 @@ describe("MonitorUtil secret batching", () => {
       });
 
       monitorSecretService.findBy.mockResolvedValue([
-        makeSecret({ name: "apiKey", secretValue: "key-123" }),
-        makeSecret({ name: "host", secretValue: "internal.example.com" }),
+        makeSecret({
+          name: "apiKey",
+          secretValue: "key-123",
+          monitors: [new Monitor(MONITOR_A_ID)],
+        }),
+        makeSecret({
+          name: "host",
+          secretValue: "internal.example.com",
+          monitors: [new Monitor(MONITOR_A_ID)],
+        }),
       ]);
 
       const populated: MonitorSteps =
@@ -337,8 +428,8 @@ describe("MonitorUtil secret batching", () => {
           monitorId: MONITOR_A_ID,
         });
 
-      // THE regression this change removed: one query per secret-bearing field.
-      expect(monitorSecretService.findBy).toHaveBeenCalledTimes(1);
+      // explicit + all-monitors, not one load per secret-bearing field.
+      expect(monitorSecretService.findBy).toHaveBeenCalledTimes(2);
 
       const steps: Array<MonitorStep> =
         populated.data!.monitorStepsInstanceArray;
@@ -379,12 +470,8 @@ describe("MonitorUtil secret batching", () => {
     });
 
     test("EMPTY preloadedSecrets array means 'zero secrets exist' - no query, placeholder left as-is", async () => {
-      /*
-       * The batch caller passes [] for a monitor whose steps reference
-       * secrets but where no secret is attached. Falling back to a query
-       * here would resurrect the N+1; substituting nothing matches what
-       * loading zero rows from the DB did before.
-       */
+      // [] means the batch found no secret for this monitor; it must not fall
+      // back to a query (that would resurrect the N+1).
       const step: MonitorStep = makeApiStep({
         requestHeaders: {
           Authorization: "Bearer {{monitorSecrets.apiKey}}",
@@ -489,9 +576,13 @@ describe("MonitorUtil secret batching", () => {
       ).toBe('{"token": "threaded-789"}');
     });
 
-    test("without preloadedSecrets the lazy per-monitor query still runs exactly once", async () => {
+    test("without preloadedSecrets the lazy path still runs the loader's query set once", async () => {
       monitorSecretService.findBy.mockResolvedValue([
-        makeSecret({ name: "apiKey", secretValue: "lazy-101" }),
+        makeSecret({
+          name: "apiKey",
+          secretValue: "lazy-101",
+          monitors: [new Monitor(MONITOR_A_ID)],
+        }),
       ]);
 
       const monitor: Monitor = new Monitor(MONITOR_A_ID);
@@ -504,7 +595,8 @@ describe("MonitorUtil secret batching", () => {
 
       const populated: Monitor = await MonitorUtil.populateSecrets(monitor);
 
-      expect(monitorSecretService.findBy).toHaveBeenCalledTimes(1);
+      // explicit + all-monitors.
+      expect(monitorSecretService.findBy).toHaveBeenCalledTimes(2);
 
       const lazyArgs: FindByArgs = monitorSecretService.findBy.mock
         .calls[0]![0] as FindByArgs;
