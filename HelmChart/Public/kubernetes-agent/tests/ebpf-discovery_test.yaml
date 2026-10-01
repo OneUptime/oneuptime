@@ -1,0 +1,864 @@
+# Which processes OBI instruments, and how that reaches it.
+#
+# OBI only reads process selection from its YAML config file —
+# `discovery.instrument` / `discovery.exclude_instrument`. The chart used to
+# pass it as environment variables instead:
+#
+#   OTEL_EBPF_EXCLUDE_AUTO_TARGET_EXE      (ebpf.excludeExePaths)
+#   OTEL_EBPF_DISCOVERY_NAMESPACE          (namespaceFilters, ebpfDiscovery include)
+#   OTEL_EBPF_DISCOVERY_EXCLUDE_NAMESPACE  (namespaceFilters, ebpfDiscovery exclude)
+#
+# None of those is an OBI setting, in any release. Nothing was ever excluded:
+# on the test cluster OBI instrumented bash, dash, Playwright's chrome and
+# ClickHouse (whose exclusion values.yaml calls essential), and its one-span
+# traces from them went straight to OneUptime. Rendering the selectors into
+# the config file is the fix; these tests pin both halves of it — that the
+# file says the right thing, and that the dead variables never come back.
+#
+# OBI also compiles each `exe_path` as ONE glob, where a comma is a literal
+# character, so a comma-separated list has to be split into one selector per
+# entry. The old OTEL_EBPF_AUTO_TARGET_EXE="*/python,*/java" matched nothing.
+#
+# The same file selects the span attributes OBI exports; the exact-equality
+# cases below therefore end with that block, and its own cases are under
+# "OBI config: span attributes".
+suite: eBPF process discovery reaches OBI through its config file
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+  # The full config, as an OBI that takes all of it (v0.14+) gets it. The
+  # chart's default pin is older and gets it without the span-attribute
+  # selection; see ebpf-default-pin_test.yaml and the version cases below.
+  ebpf.image.tag: v0.14.0
+tests:
+  # ---------------------------------------------------------------- DaemonSet
+  - it: always points OBI at its config file
+    templates:
+      - templates/daemonset-ebpf.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_CONFIG_PATH
+            value: /etc/obi/obi-config.yaml
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: obi-config
+            mountPath: /etc/obi
+            readOnly: true
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: obi-config
+            configMap:
+              name: oneuptime-agent-kubernetes-agent-ebpf
+
+  - it: still mounts the config file when log correlation is on
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.logToTraceCorrelation: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_CONFIG_PATH
+            value: /etc/obi/obi-config.yaml
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: obi-config
+            mountPath: /etc/obi
+            readOnly: true
+
+  - it: rolls the eBPF pods when the OBI config changes
+    templates:
+      - templates/daemonset-ebpf.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.metadata.annotations["checksum/config"]
+          pattern: ^[0-9a-f]{64}$
+
+  - it: never renders the env vars OBI does not read
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: "*/sh,*/bash"
+      namespaceFilters.rules:
+        - action: include
+          namespaces: [payments]
+          scopes: [ebpfDiscovery]
+        - action: exclude
+          namespaces: [kube-system]
+          scopes: [ebpfDiscovery]
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_EXCLUDE_AUTO_TARGET_EXE
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_DISCOVERY_NAMESPACE
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_DISCOVERY_EXCLUDE_NAMESPACE
+          any: true
+
+  - it: does not set OTEL_EBPF_AUTO_TARGET_EXE, which OBI would OR in as an extra selector
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      namespaceFilters.rules:
+        - action: include
+          namespaces: [payments]
+          scopes: [ebpfDiscovery]
+    asserts:
+      # With it set, OBI appends {exe_path: <it>} to discovery.instrument and
+      # instruments every namespace again, include rules or not.
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_AUTO_TARGET_EXE
+          any: true
+
+  # ------------------------------------------------- OBI config: what it says
+  - it: instruments everything and skips the default exclusions out of the box
+    templates:
+      - templates/configmap-ebpf.yaml
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "^discovery:\\n  instrument:\\n    - exe_path: \"\\*\"\\n      k8s_namespace: \"\\*\"\\n  exclude_instrument:\\n"
+      # The binaries values.yaml singles out: ClickHouse refuses to start with
+      # a uprobe attached; Playwright's browser and its crash reporter churn
+      # through processes fast enough to peg OBI.
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    - exe_path: \"\\*/clickhouse\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    - exe_path: \"\\*/chrome\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    - exe_path: \"\\*/chrome_crashpad_handler\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    - exe_path: \"\\*/bash\"\\n"
+      # The default namespace rule (kube-system, ebpfDiscovery scope).
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    - k8s_namespace: \"kube-system\"\\n"
+
+  - it: gives every comma-separated exclusion its own selector, trimmed and de-duplicated
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: " */sh , */bash,,*/sh "
+      namespaceFilters.rules: []
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+                  k8s_namespace: "*"
+              exclude_instrument:
+                - exe_path: "*/sh"
+                - exe_path: "*/bash"
+            # Span attributes. A list here replaces OBI's default set rather than adding
+            # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+            attributes:
+              select:
+                traces:
+                  include:
+                    - "dns.question.name"
+                    - "url.query"
+                    - "error.type"
+                    - "http.request.method_original"
+                    - "db.query.summary"
+                    - "user_agent.original"
+                    - "network.peer.address"
+                    - "network.peer.port"
+                    - "network.protocol.version"
+                    - "service.peer.name"
+
+  - it: renders no exclude_instrument at all when there is nothing to exclude
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules: []
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+                  k8s_namespace: "*"
+            # Span attributes. A list here replaces OBI's default set rather than adding
+            # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+            attributes:
+              select:
+                traces:
+                  include:
+                    - "dns.question.name"
+                    - "url.query"
+                    - "error.type"
+                    - "http.request.method_original"
+                    - "db.query.summary"
+                    - "user_agent.original"
+                    - "network.peer.address"
+                    - "network.peer.port"
+                    - "network.protocol.version"
+                    - "service.peer.name"
+
+  - it: splits a comma-separated autoTargetExe into one selector per glob
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.autoTargetExe: "*/python,*/java"
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules: []
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*/python"
+                  k8s_namespace: "*"
+                - exe_path: "*/java"
+                  k8s_namespace: "*"
+            # Span attributes. A list here replaces OBI's default set rather than adding
+            # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+            attributes:
+              select:
+                traces:
+                  include:
+                    - "dns.question.name"
+                    - "url.query"
+                    - "error.type"
+                    - "http.request.method_original"
+                    - "db.query.summary"
+                    - "user_agent.original"
+                    - "network.peer.address"
+                    - "network.peer.port"
+                    - "network.protocol.version"
+                    - "service.peer.name"
+
+  - it: falls back to every process when autoTargetExe is blank, rather than an empty selector OBI rejects
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.autoTargetExe: " , "
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules: []
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+                  k8s_namespace: "*"
+            # Span attributes. A list here replaces OBI's default set rather than adding
+            # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+            attributes:
+              select:
+                traces:
+                  include:
+                    - "dns.question.name"
+                    - "url.query"
+                    - "error.type"
+                    - "http.request.method_original"
+                    - "db.query.summary"
+                    - "user_agent.original"
+                    - "network.peer.address"
+                    - "network.peer.port"
+                    - "network.protocol.version"
+                    - "service.peer.name"
+
+  - it: turns namespace include rules into (executable, namespace) selectors, so a process must match both
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.autoTargetExe: "*/python,*/java"
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules:
+        - action: include
+          namespaces: ["team-*", payments]
+          scopes: [ebpfDiscovery]
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*/python"
+                  k8s_namespace: "team-*"
+                - exe_path: "*/java"
+                  k8s_namespace: "team-*"
+                - exe_path: "*/python"
+                  k8s_namespace: "payments"
+                - exe_path: "*/java"
+                  k8s_namespace: "payments"
+            # Span attributes. A list here replaces OBI's default set rather than adding
+            # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+            attributes:
+              select:
+                traces:
+                  include:
+                    - "dns.question.name"
+                    - "url.query"
+                    - "error.type"
+                    - "http.request.method_original"
+                    - "db.query.summary"
+                    - "user_agent.original"
+                    - "network.peer.address"
+                    - "network.peer.port"
+                    - "network.protocol.version"
+                    - "service.peer.name"
+
+  - it: turns namespace exclude rules into k8s_namespace exclusions next to the executable ones
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: "*/sh"
+      namespaceFilters.rules:
+        - action: exclude
+          namespaces: [kube-system, "batch-*"]
+          scopes: [ebpfDiscovery, podLogs]
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+                  k8s_namespace: "*"
+              exclude_instrument:
+                - exe_path: "*/sh"
+                - k8s_namespace: "kube-system"
+                - k8s_namespace: "batch-*"
+            # Span attributes. A list here replaces OBI's default set rather than adding
+            # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+            attributes:
+              select:
+                traces:
+                  include:
+                    - "dns.question.name"
+                    - "url.query"
+                    - "error.type"
+                    - "http.request.method_original"
+                    - "db.query.summary"
+                    - "user_agent.original"
+                    - "network.peer.address"
+                    - "network.peer.port"
+                    - "network.protocol.version"
+                    - "service.peer.name"
+
+  - it: ignores namespace rules that do not carry the ebpfDiscovery scope
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules:
+        - action: exclude
+          namespaces: [noisy]
+          scopes: [podLogs, traces]
+        - action: include
+          namespaces: [only-these-logs]
+          scopes: [podLogs]
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+                  k8s_namespace: "*"
+            # Span attributes. A list here replaces OBI's default set rather than adding
+            # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+            attributes:
+              select:
+                traces:
+                  include:
+                    - "dns.question.name"
+                    - "url.query"
+                    - "error.type"
+                    - "http.request.method_original"
+                    - "db.query.summary"
+                    - "user_agent.original"
+                    - "network.peer.address"
+                    - "network.peer.port"
+                    - "network.protocol.version"
+                    - "service.peer.name"
+
+  # OBI v0.10+ forwards processes outside any pod (kubelet, containerd,
+  # sshd) to the matcher, and a bare exe_path "*" instruments them. Requiring
+  # a namespace keeps them out — metadata selectors need the key present —
+  # and holds a pod's process back until its pod metadata arrives, so a
+  # namespace exclusion cannot be skipped in that window.
+  - it: requires a Kubernetes namespace on every selector, so node daemons are never instrumented
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.autoTargetExe: "*/python,*"
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "^discovery:\\n  instrument:\\n    - exe_path: \"\\*/python\"\\n      k8s_namespace: \"\\*\"\\n    - exe_path: \"\\*\"\\n      k8s_namespace: \"\\*\"\\n"
+      # And nothing but those two selectors: every instrument entry is an
+      # exe_path followed by its namespace requirement, up to the exclusions.
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "^discovery:\\n  instrument:\\n(?:    - exe_path: \"[^\"]*\"\\n      k8s_namespace: \"[^\"]*\"\\n){2}  exclude_instrument:\\n"
+
+  - it: leaves route naming to OBI's default unless asked
+    templates:
+      - templates/configmap-ebpf.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "(?m)^routes:"
+
+  - it: passes route patterns and the unmatched policy through
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules: []
+      ebpf.routes.patterns: ["/api/items/{id}", "/otlp/v1/{signal}"]
+      ebpf.routes.unmatched: low-cardinality
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+                  k8s_namespace: "*"
+            routes:
+              unmatched: "low-cardinality"
+              patterns:
+                - "/api/items/{id}"
+                - "/otlp/v1/{signal}"
+            # Span attributes. A list here replaces OBI's default set rather than adding
+            # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+            attributes:
+              select:
+                traces:
+                  include:
+                    - "dns.question.name"
+                    - "url.query"
+                    - "error.type"
+                    - "http.request.method_original"
+                    - "db.query.summary"
+                    - "user_agent.original"
+                    - "network.peer.address"
+                    - "network.peer.port"
+                    - "network.protocol.version"
+                    - "service.peer.name"
+
+  - it: passes route patterns alone, keeping OBI's default unmatched policy
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules: []
+      ebpf.routes.patterns: ["/otlp/v1/{signal}"]
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+                  k8s_namespace: "*"
+            routes:
+              patterns:
+                - "/otlp/v1/{signal}"
+            # Span attributes. A list here replaces OBI's default set rather than adding
+            # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+            attributes:
+              select:
+                traces:
+                  include:
+                    - "dns.question.name"
+                    - "url.query"
+                    - "error.type"
+                    - "http.request.method_original"
+                    - "db.query.summary"
+                    - "user_agent.original"
+                    - "network.peer.address"
+                    - "network.peer.port"
+                    - "network.protocol.version"
+                    - "service.peer.name"
+
+  - it: rejects an unmatched policy OBI does not know
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.routes.unmatched: guess
+    asserts:
+      - failedTemplate: {}
+
+  - it: keeps the log enricher selector out of the config unless log correlation is on
+    templates:
+      - templates/configmap-ebpf.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "log_enricher"
+
+  - it: adds the log enricher selector when log correlation is on
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.logToTraceCorrelation: true
+      ebpf.logEnricher.services:
+        - service:
+            - languages: "python,go"
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\nebpf:\\n  log_enricher:\\n    services:\\n      - service:\\n        - languages: python,go\\n"
+      # JSON lines only: OBI v0.11+ would otherwise also rewrite every
+      # plain-text line with a trace_id/span_id suffix.
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    plain_text:\\n      enabled: false\\n"
+      # Process selection is still there; the enricher is added, not swapped in.
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "^discovery:\\n  instrument:\\n"
+
+  # ------------------------------------------ OBI config: span attributes
+  # OBI v0.14 made service.peer.name opt-in (OBI #3559), and OneUptime's
+  # service map names the service a client call went to from it. A non-empty
+  # include list REPLACES OBI's default span attributes rather than adding to
+  # them (AttrSelector.For, pkg/export/attributes/attr_selector.go), so the
+  # chart repeats the defaults: the `true` entries of Traces.Section in
+  # pkg/export/attributes/attr_defs.go, OBI v0.14. Each name is asserted on
+  # its own, inside the include list, so dropping any one of them fails.
+  - it: asks OBI for service.peer.name and repeats every one of its default span attributes
+    templates:
+      - templates/configmap-ebpf.yaml
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\nattributes:\\n  select:\\n    traces:\\n      include:\\n        - \""
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n      include:\\n(?:        - \"[^\"]*\"\\n)*        - \"dns\\.question\\.name\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n      include:\\n(?:        - \"[^\"]*\"\\n)*        - \"url\\.query\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n      include:\\n(?:        - \"[^\"]*\"\\n)*        - \"error\\.type\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n      include:\\n(?:        - \"[^\"]*\"\\n)*        - \"http\\.request\\.method_original\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n      include:\\n(?:        - \"[^\"]*\"\\n)*        - \"db\\.query\\.summary\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n      include:\\n(?:        - \"[^\"]*\"\\n)*        - \"user_agent\\.original\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n      include:\\n(?:        - \"[^\"]*\"\\n)*        - \"network\\.peer\\.address\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n      include:\\n(?:        - \"[^\"]*\"\\n)*        - \"network\\.peer\\.port\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n      include:\\n(?:        - \"[^\"]*\"\\n)*        - \"network\\.protocol\\.version\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n      include:\\n(?:        - \"[^\"]*\"\\n)*        - \"service\\.peer\\.name\"\\n"
+
+  # "*" would also export db.query.text (whole SQL / Redis commands, values
+  # included) and the gen_ai prompt and completion payloads; the HTTP body
+  # sizes and obi.http.response.observed have no reader in OneUptime.
+  - it: never asks for every span attribute, or for the opt-in ones, by default
+    templates:
+      - templates/configmap-ebpf.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n        - \"[^\"]*\\*"
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "db\\.query\\.text"
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "gen_ai"
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "graphql\\.document"
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "http\\.request\\.body\\.size"
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "http\\.response\\.body\\.size"
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "obi\\.http\\.response\\.observed"
+
+  - it: appends extraSpanAttributes trimmed and once each, ignoring blanks and a bare "*"
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules: []
+      ebpf.extraSpanAttributes:
+        - http.request.body.size
+        - " db.query.text "
+        - "*"
+        - " "
+        - service.peer.name
+        - db.query.text
+        - error.type
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+                  k8s_namespace: "*"
+            # Span attributes. A list here replaces OBI's default set rather than adding
+            # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+            attributes:
+              select:
+                traces:
+                  include:
+                    - "dns.question.name"
+                    - "url.query"
+                    - "error.type"
+                    - "http.request.method_original"
+                    - "db.query.summary"
+                    - "user_agent.original"
+                    - "network.peer.address"
+                    - "network.peer.port"
+                    - "network.protocol.version"
+                    - "service.peer.name"
+                    - "http.request.body.size"
+                    - "db.query.text"
+
+  # What a release upgraded with --reuse-values from before
+  # ebpf.extraSpanAttributes existed has: no such key.
+  - it: still asks for exactly the fixed set when extraSpanAttributes is missing
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.extraSpanAttributes: null
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n      include:\\n(?:        - \"[^\"]*\"\\n){9}        - \"service\\.peer\\.name\"\\n$"
+
+  - it: rejects an extraSpanAttributes entry that is not a name
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.extraSpanAttributes: [""]
+    asserts:
+      - failedTemplate:
+          errorPattern: "ebpf.extraSpanAttributes.0: String length must be greater than or equal to 1"
+
+  # The log enricher owns the file's one top-level `ebpf:` key. yaml.v3, which
+  # OBI decodes the file with, refuses a repeated key, so a second `ebpf:` or
+  # `attributes:` would stop OBI from starting.
+  - it: renders the span attributes once, beside a single ebpf key, with log correlation on
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules: []
+      ebpf.logToTraceCorrelation: true
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+                  k8s_namespace: "*"
+            # Span attributes. A list here replaces OBI's default set rather than adding
+            # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+            attributes:
+              select:
+                traces:
+                  include:
+                    - "dns.question.name"
+                    - "url.query"
+                    - "error.type"
+                    - "http.request.method_original"
+                    - "db.query.summary"
+                    - "user_agent.original"
+                    - "network.peer.address"
+                    - "network.peer.port"
+                    - "network.protocol.version"
+                    - "service.peer.name"
+            # The log enricher's process selector has no env var equivalent either.
+            ebpf:
+              log_enricher:
+                services:
+                  - service:
+                    - exe_path: '*'
+                # JSON lines only, as documented on ebpf.logToTraceCorrelation. Since
+                # v0.11 OBI also appends " trace_id=… span_id=…" to plain-text lines by
+                # default, which the node collector does not parse and which changes
+                # every non-JSON log line the app writes.
+                plain_text:
+                  enabled: false
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "(?s)(?:^|\\n)ebpf:.*\\nebpf:"
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "(?s)(?:^|\\n)attributes:.*\\nattributes:"
+
+  - it: renders the span attributes once, after the routes, with namespace include rules and routes set
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules:
+        - action: include
+          namespaces: [payments]
+          scopes: [ebpfDiscovery]
+      ebpf.routes.patterns: ["/api/items/{id}"]
+      ebpf.routes.unmatched: low-cardinality
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+                  k8s_namespace: "payments"
+            routes:
+              unmatched: "low-cardinality"
+              patterns:
+                - "/api/items/{id}"
+            # Span attributes. A list here replaces OBI's default set rather than adding
+            # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+            attributes:
+              select:
+                traces:
+                  include:
+                    - "dns.question.name"
+                    - "url.query"
+                    - "error.type"
+                    - "http.request.method_original"
+                    - "db.query.summary"
+                    - "user_agent.original"
+                    - "network.peer.address"
+                    - "network.peer.port"
+                    - "network.protocol.version"
+                    - "service.peer.name"
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "(?s)(?:^|\\n)attributes:.*\\nattributes:"
+
+  # The profiler's OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT (see
+  # ebpf-env_test.yaml) is an env var, not ebpf.populate_trace_context in
+  # this file, because the log enricher block owns the file's `ebpf:` key.
+  - it: keeps the config file's single ebpf key with both the profiler and log correlation on
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      profiling.enabled: true
+      ebpf.logToTraceCorrelation: true
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "(?s)(?:^|\\n)ebpf:.*\\nebpf:"
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "populate_trace_context"
+
+  - it: renders neither the config nor the DaemonSet when eBPF is off
+    templates:
+      - templates/configmap-ebpf.yaml
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # The span-attribute list is v0.14's. An older OBI has other defaults — v0.9
+  # keeps url.query off, so the list would start exporting query strings — and
+  # sends service.peer.name anyway. A release upgraded with --reuse-values
+  # keeps its old ebpf.image.tag, so this is the case that matters.
+  - it: leaves span attributes to OBI's own defaults on OBI v0.9
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.9.0
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "(?m)^attributes:"
+
+  - it: leaves span attributes to OBI's own defaults on OBI v0.13
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.13.0
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "(?m)^attributes:"
+
+  - it: selects span attributes for a tag that is not a version (a branch build, a digest)
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.image.tag: main@sha256:8f2d6d40f42991abc2cf68bb5b64953684e8c02ce8e24b75e0d6dea1e28e565d
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\nattributes:\\n  select:\\n    traces:\\n      include:\\n"
+
+  - it: selects span attributes for a v0.14 release candidate
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.14.0-rc.1
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\nattributes:\\n  select:\\n    traces:\\n      include:\\n"
+
+  # A brace alternative is ONE glob to OBI, and was one entry when the whole
+  # string went to OTEL_EBPF_AUTO_TARGET_EXE: splitting it at its comma would
+  # leave "*/{python" and "java}", and Java would silently stop being traced.
+  - it: keeps brace alternatives in one selector, splitting only on commas outside braces
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.autoTargetExe: "*/{python,java}"
+      ebpf.excludeExePaths: "{*/sh,*/bash}, */a.{x,{y,z}},*/sleep"
+      namespaceFilters.rules: []
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "^discovery:\\n  instrument:\\n    - exe_path: \"\\*/\\{python,java\\}\"\\n      k8s_namespace: \"\\*\"\\n  exclude_instrument:\\n    - exe_path: \"\\{\\*/sh,\\*/bash\\}\"\\n    - exe_path: \"\\*/a\\.\\{x,\\{y,z\\}\\}\"\\n    - exe_path: \"\\*/sleep\"\\n"

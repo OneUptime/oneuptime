@@ -414,7 +414,6 @@ Alle på som standard. Slå av hvilken som helst med `--set ebpf.features.<name>
 | `httpMetrics`             | på       | HTTP/gRPC RED-metrikker (forespørselsrate, latens, feil) per tjeneste        |
 | `spanMetrics`             | på       | Forespørsels-/svarstørrelse og varighet per span                             |
 | `serviceGraph`            | på       | Anroper → anropt kantmetrikker; driver service-kartet                        |
-| `hostMetrics`             | på       | CPU og minne per instrumentert prosess                                       |
 | `networkMetrics`          | på       | TCP/UDP flyttellere pod-til-pod                                              |
 | `networkInterZoneMetrics` | av       | Inter-sone-variant av nettverksmetrikker (dobler kardinaliteten)             |
 | `tcpStats`                | på       | TCP RTT på node-nivå, tellere for mislykkede tilkoblinger og retransmisjoner |
