@@ -23,8 +23,8 @@ import {
  * "Refresh?" under it. On a project that simply has none yet that reads like
  * a failed load, and the only way on was a button in the card's header.
  * Under the table's own "No X yet." the header's create button - same
- * handler, same permission gate, same label - now appears again as the
- * primary action, where a new user is looking.
+ * handler, same permission gate, same label - now appears again, drawn the
+ * same way, where a new user is looking.
  *
  * Just as important is where it does NOT appear:
  *
@@ -333,18 +333,39 @@ describe("an empty table with a create action", () => {
   });
 
   /*
-   * The header button is a NORMAL button; the one in the empty state is the
-   * PRIMARY one, because in an empty list it is the next thing to do.
+   * Both are NORMAL buttons. The empty state's used to be the filled indigo
+   * PRIMARY one, which shouted from the middle of an otherwise quiet card.
    */
-  test("is the primary button, the header's stays as it was", async () => {
+  test("is drawn like the header's button, not as a filled primary one", async () => {
     renderTable();
 
     const cta: HTMLElement = await waitForCta();
+    const header: HTMLElement = screen.getByTestId("card-button");
 
-    expect(cta.className).toContain("bg-indigo-600");
-    expect(screen.getByTestId("card-button").className).not.toContain(
-      "bg-indigo-600",
-    );
+    expect(cta.className).not.toContain("bg-indigo");
+    expect(cta.className).toContain("bg-white");
+    expect(cta.className).toContain("border-gray-300");
+    expect(header.className).toContain("bg-white");
+    expect(header.className).toContain("border-gray-300");
+  });
+
+  test("stays a plain button when the header's own create button is PRIMARY", async () => {
+    renderTable({
+      isCreateable: false,
+      cardButtons: [
+        {
+          title: "Create Monitor",
+          buttonStyle: ButtonStyleType.PRIMARY,
+          icon: IconProp.Add,
+          onClick: () => {},
+        },
+      ],
+    });
+
+    const cta: HTMLElement = await waitForCta();
+
+    expect(cta.className).not.toContain("bg-indigo");
+    expect(cta.className).toContain("bg-white");
   });
 
   test("opens the same create form the header button opens", async () => {
