@@ -103,6 +103,13 @@ jobs:
       # Runs the pinned collector image over the four agent configs and over
       # both collector ConfigMaps rendered out of the kubernetes-agent chart.
       - run: bash Tests/Ops/validate-collector-configs.sh
+      # `validate` proves the agent's OTTL parses; this proves what it DOES.
+      # It runs the Kubernetes agent's filter/ebpf-unlinked-db exactly as the
+      # chart renders it, in the collector image the chart ships, and checks
+      # which spans survive: unlinked eBPF database spans dropped, request
+      # traces and SDK spans kept. A wrong condition here is not a crash, it
+      # is a customer's traces quietly missing (or the one-span flood back).
+      - run: bash Tests/Ops/agent-trace-filter-behaviour.sh
       # The App Dockerfile builds the Community and Enterprise editions as
       # targets. BuildKit resolves each target's stage graph and runs its build
       # checks over the production render (default, community, enterprise) and
