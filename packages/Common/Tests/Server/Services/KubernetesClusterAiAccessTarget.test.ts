@@ -66,8 +66,6 @@ const AGENT_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
 const READY_GATES: KubernetesClusterAiAccessProjectGates = {
   isAiEnabled: true,
-  isAutoRemediationEnabled: true,
-  isAiCommandExecutionEnabled: true,
   hasLlmProvider: true,
   aiBalanceBlocker: null,
   automaticInvestigation: { incidents: true, alerts: false },
@@ -607,8 +605,6 @@ describe("the status of a cluster reached through its Kubernetes AI agent", () =
     // Gates built without them (older callers) read as both off, not absent.
     const withoutOptIns: KubernetesClusterAiAccessProjectGates = {
       isAiEnabled: true,
-      isAutoRemediationEnabled: true,
-      isAiCommandExecutionEnabled: true,
       hasLlmProvider: true,
     };
 
@@ -638,6 +634,9 @@ describe("the status of a cluster reached through its Kubernetes AI agent", () =
     expect(status.accessMethod).toBe("credential");
     expect(status.credentialId).toBe(CREDENTIAL_ID.toString());
     expect(status.aiAgent?.id).toBe(AGENT_ID.toString());
+    // Enable AI is the only project switch a Runner's fixes need.
+    expect(status.gaps).toEqual([]);
+    expect(status.isRemediationReady).toBe(true);
   });
 
   it("the upgrade window: an online agent is the target while the previous Runner is still bound and online", async () => {
@@ -817,17 +816,22 @@ describe("the status of a cluster reached through its Kubernetes AI agent", () =
     expect(credentialLookup).not.toHaveBeenCalled();
   });
 
-  it("the agent never gets the runner_ai_commands_disabled or the command-execution gap", async () => {
-    const status: KubernetesClusterAiAccessStatus = await statusOf(
+  it("the agent never gets the runner_ai_commands_disabled gap, and with AI off only project_ai_disabled", async () => {
+    const ready: KubernetesClusterAiAccessStatus = await statusOf();
+
+    expect(gapCodes(ready)).not.toContain("runner_ai_commands_disabled");
+    expect(ready.runner?.canRunAiCommands).toBe(true);
+
+    const off: KubernetesClusterAiAccessStatus = await statusOf(
       {},
-      { ...READY_GATES, isAiCommandExecutionEnabled: false },
+      { ...READY_GATES, isAiEnabled: false },
     );
 
-    expect(gapCodes(status)).not.toContain("runner_ai_commands_disabled");
-    expect(gapCodes(status)).not.toContain(
+    expect(gapCodes(off)).toEqual(["project_ai_disabled"]);
+    expect(gapCodes(off)).not.toContain(
       "project_ai_command_execution_disabled",
     );
-    expect(status.runner?.canRunAiCommands).toBe(true);
+    expect(gapCodes(off)).not.toContain("project_auto_remediation_disabled");
   });
 });
 

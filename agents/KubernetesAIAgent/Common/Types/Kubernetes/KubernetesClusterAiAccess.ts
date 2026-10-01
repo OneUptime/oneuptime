@@ -124,6 +124,11 @@ export type KubernetesAiAccessGapCode =
   | "remediation_disabled"
   | "remediation_write_access_missing"
   | "project_ai_disabled"
+  /*
+   * Retired: the project's "Enable auto-remediation" and "Enable AI command
+   * execution" switches, both folded into Enable AI (project_ai_disabled).
+   * The server no longer produces either; they stay for compatibility.
+   */
   | "project_auto_remediation_disabled"
   | "project_ai_command_execution_disabled"
   | "llm_provider_missing"

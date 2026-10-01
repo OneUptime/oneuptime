@@ -104,9 +104,11 @@ export {
  */
 
 export interface KubernetesClusterAiAccessProjectGates {
+  /*
+   * Project.enableAi, the project's only AI switch: it covers
+   * investigation, fixes and AI commands on Runners alike.
+   */
   isAiEnabled: boolean;
-  isAutoRemediationEnabled: boolean;
-  isAiCommandExecutionEnabled: boolean;
   hasLlmProvider: boolean;
   /*
    * Why no AI run can start for lack of AI credits (AIService.
@@ -524,8 +526,6 @@ class KubernetesClusterAiAccessServiceClass {
       id: projectId,
       select: {
         enableAi: true,
-        enableAutoRemediation: true,
-        enableAiCommandExecution: true,
         enableAutomaticIncidentInvestigation: true,
         enableAutomaticAlertInvestigation: true,
       },
@@ -566,11 +566,8 @@ class KubernetesClusterAiAccessServiceClass {
     }
 
     return {
-      // Kill switches: a missing column counts as enabled (=== false idiom).
+      // Kill switch: a missing column counts as enabled (=== false idiom).
       isAiEnabled: project?.enableAi !== false,
-      isAutoRemediationEnabled: project?.enableAutoRemediation !== false,
-      // Explicit opt-in (=== true idiom), same as the Bash/SSH lane.
-      isAiCommandExecutionEnabled: project?.enableAiCommandExecution === true,
       // A failed lookup reads as none, like no provider at all.
       hasLlmProvider: Boolean(llmProvider),
       aiBalanceBlocker,
@@ -875,40 +872,6 @@ class KubernetesClusterAiAccessServiceClass {
         description: gates.aiBalanceBlocker,
         nextStep: AI_BALANCE_INSUFFICIENT_NEXT_STEP,
         blocks: "both",
-      });
-    }
-
-    if (!gates.isAutoRemediationEnabled) {
-      gaps.push({
-        code: "project_auto_remediation_disabled",
-        title: "Auto-remediation is disabled for this project",
-        description:
-          "The project-level auto-remediation kill switch is off, so no AI fix can be proposed or run.",
-        nextStep:
-          "Enable auto-remediation under Project Settings → AI Features.",
-        blocks: "remediation",
-      });
-    }
-
-    /*
-     * The project's command-execution opt-in governs AI-composed commands
-     * on Runners. A cluster reached through its Kubernetes AI agent (or the
-     * chart's previous in-cluster Runner) is governed by the cluster's own
-     * Fixes setting and the chart's write RBAC instead, so the opt-in only
-     * gates a cluster reached through an advanced Runner and credential.
-     */
-    if (
-      loaded.target.type === "advanced_runner" &&
-      !gates.isAiCommandExecutionEnabled
-    ) {
-      gaps.push({
-        code: "project_ai_command_execution_disabled",
-        title: "AI command execution is not enabled for this project",
-        description:
-          "This cluster is reached through a Runner, and AI-composed commands (kubectl fixes included) never run on a Runner in a project that has not opted in.",
-        nextStep:
-          'Turn on "Enable AI Command Execution" under Project Settings → AI Features.',
-        blocks: "remediation",
       });
     }
 

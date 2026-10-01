@@ -1,7 +1,6 @@
 import RemediationExecutionRunner, {
   ResourceBreakerState,
   ResourceModeResolution,
-  isClusterRemediationRound,
   isResourceRemediationRound,
 } from "../../../../Server/Utils/AI/Remediation/RemediationExecutionRunner";
 import AIInvestigationEngine, {
@@ -71,8 +70,9 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * a host), built beside the cluster round and mirroring it:
  *
  * - the round is read off the suggestion row (a resource, no rule); its
- *   consent is the resource's own, so the project's AI command execution
- *   opt-in does not gate it, while Enable AI / auto-remediation still do;
+ *   consent is the resource's own, and the one project switch it needs is
+ *   Enable AI, like every round — off, it stops the round before the
+ *   resource is read; on, nothing else from the project is asked for;
  * - the resource is re-read at the start and must be remediation-ready; a
  *   deleted or no-longer-ready resource settles NoneApplicable with why;
  * - the mode is resolved exactly like a cluster's: a FullAuto snapshot runs
@@ -267,19 +267,13 @@ function resourceArgs(
 }
 
 describe("resource round classification", () => {
-  it("a suggestion that names a resource and no rule is a resource round, never a cluster one", () => {
+  it("a suggestion that names a resource and no rule is a resource round", () => {
     expect(
       isResourceRemediationRound({
         resourceType: AiResourceType.Host,
         resourceId: RESOURCE_ID,
       }),
     ).toBe(true);
-    expect(
-      isClusterRemediationRound({
-        resourceType: AiResourceType.Host,
-        resourceId: RESOURCE_ID,
-      } as never),
-    ).toBe(false);
   });
 
   it.each([
@@ -300,51 +294,6 @@ describe("resource round classification", () => {
       expect(isResourceRemediationRound(row as never)).toBe(false);
     },
   );
-});
-
-describe("RemediationExecutionRunner.checkProjectGates for a resource round", () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  it("does not need the AI command execution opt-in, but still needs AI and auto-remediation", async () => {
-    const project: jest.SpyInstance = jest
-      .spyOn(ProjectService, "findOneById")
-      .mockResolvedValue({
-        enableAi: true,
-        enableAutoRemediation: true,
-        enableAiCommandExecution: false,
-      } as unknown as Project);
-
-    expect(
-      await RemediationExecutionRunner.checkProjectGates({
-        projectId: PROJECT_ID,
-        isClusterRound: false,
-        isResourceRound: true,
-      }),
-    ).toBeNull();
-
-    // A rule round in the same project is still stopped by the opt-in.
-    expect(
-      await RemediationExecutionRunner.checkProjectGates({
-        projectId: PROJECT_ID,
-        isClusterRound: false,
-      }),
-    ).toContain("AI command execution is not enabled");
-
-    project.mockResolvedValue({
-      enableAi: false,
-      enableAutoRemediation: true,
-    } as unknown as Project);
-
-    expect(
-      await RemediationExecutionRunner.checkProjectGates({
-        projectId: PROJECT_ID,
-        isClusterRound: false,
-        isResourceRound: true,
-      }),
-    ).toContain("AI or auto-remediation was disabled");
-  });
 });
 
 describe("RemediationExecutionRunner.resolveResourceMode", () => {
@@ -641,12 +590,10 @@ describe("RemediationExecutionRunner.executeRemediation — resource rounds", ()
         return undefined;
       });
     }
-    // The project did NOT opt into AI command execution: a resource round does not need it.
+    // Enable AI on, and nothing else: no round needs another project switch.
     project = jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
       id: PROJECT_ID,
       enableAi: true,
-      enableAutoRemediation: true,
-      enableAiCommandExecution: false,
     } as unknown as Project);
     jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
       id: INCIDENT_ID,
@@ -809,23 +756,58 @@ describe("RemediationExecutionRunner.executeRemediation — resource rounds", ()
     );
   });
 
-  it("is stopped by the project kill switches like every round", async () => {
+  it.each([
+    ["Enable AI is off", { id: PROJECT_ID, enableAi: false }],
+    ["the project row is gone", null],
+  ])(
+    "is stopped when %s like every round, before its resource is read",
+    async (_label: string, row: Record<string, unknown> | null) => {
+      mockSuggestionHonouringSelect(resourceRow());
+      project.mockResolvedValue(row as unknown as Project);
+      const executeRun: jest.SpyInstance = jest.spyOn(
+        AIInvestigationEngine,
+        "executeRun",
+      );
+
+      await run();
+
+      expect(executeRun).not.toHaveBeenCalled();
+      expect(statusForResource).not.toHaveBeenCalled();
+      expect(enqueue).not.toHaveBeenCalled();
+      expect(suggestionCas).toHaveBeenCalledTimes(1);
+      expect(suggestionCas.mock.calls[0]![0]).toMatchObject({
+        suggestionId: SUGGESTION_ID,
+        fromStatus: AutoRemediationSuggestionStatus.Planning,
+        set: {
+          status: AutoRemediationSuggestionStatus.NoneApplicable,
+          rationaleMarkdown:
+            "AI was disabled for this project before the run started (Project Settings → AI Features) — nothing was run or proposed.",
+        },
+      });
+    },
+  );
+
+  it("asks the project for Enable AI alone, and runs with the retired switches left off on the row", async () => {
     mockSuggestionHonouringSelect(resourceRow());
     project.mockResolvedValue({
+      id: PROJECT_ID,
       enableAi: true,
       enableAutoRemediation: false,
+      enableAiCommandExecution: false,
     } as unknown as Project);
-    const executeRun: jest.SpyInstance = jest.spyOn(
-      AIInvestigationEngine,
-      "executeRun",
-    );
+    const request: { get: () => InvestigationRequest } = captureRequest();
 
     await run();
 
-    expect(executeRun).not.toHaveBeenCalled();
-    expect(suggestionCas.mock.calls[0]![0]).toMatchObject({
-      set: { status: AutoRemediationSuggestionStatus.NoneApplicable },
+    expect(project).toHaveBeenCalledWith({
+      id: PROJECT_ID,
+      select: { enableAi: true },
+      props: { isRoot: true },
     });
+    expect(statusForResource).toHaveBeenCalledTimes(1);
+    expect(toolNames(request.get())).toContain("execute_remediation_command");
+    // Nothing settled the round early: it went to the engine.
+    expect(suggestionCas).not.toHaveBeenCalled();
   });
 
   it.each([

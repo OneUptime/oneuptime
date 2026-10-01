@@ -1586,17 +1586,70 @@ describe("Needs attention", () => {
     serve(
       makeStatus({
         isInvestigationReady: false,
-        gaps: [gap("project_auto_remediation_disabled", "remediation")],
+        gaps: [gap("project_ai_disabled")],
       }),
     );
     openAgentPage();
 
     const row: HTMLElement = await findTestId(
-      "ai-agent-gap-project_auto_remediation_disabled",
+      "ai-agent-gap-project_ai_disabled",
     );
     expect(row).toHaveTextContent("Ask a project owner or admin.");
     expect(within(row).queryByText("Open AI Features")).not.toBeInTheDocument();
   });
+
+  /*
+   * Enable AI is the project's only AI switch. The server no longer sends
+   * the two gaps of the switches folded into it, but a server one release
+   * behind may, while a rollout is under way: the page still sends an admin
+   * to AI Features for them, where Enable AI is, and tells a member who to
+   * ask.
+   */
+  const RETIRED_PROJECT_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
+    "project_auto_remediation_disabled",
+    "project_ai_command_execution_disabled",
+  ];
+
+  test.each(RETIRED_PROJECT_GAP_CODES)(
+    "a retired project gap from an older server (%s) still links an admin to AI Features",
+    async (code: KubernetesAiAccessGapCode) => {
+      grant(ADMIN_PERMISSIONS);
+      serve(
+        makeStatus({
+          isInvestigationReady: false,
+          gaps: [gap(code, "remediation")],
+        }),
+      );
+      openAgentPage();
+
+      const row: HTMLElement = await findTestId(`ai-agent-gap-${code}`);
+      expect(
+        within(row)
+          .getByText("Open AI Features")
+          .closest("a")
+          ?.getAttribute("href"),
+      ).toBe(`/dashboard/${PROJECT_ID}/settings/ai-features`);
+    },
+  );
+
+  test.each(RETIRED_PROJECT_GAP_CODES)(
+    "a retired project gap from an older server (%s) tells a member who to ask",
+    async (code: KubernetesAiAccessGapCode) => {
+      serve(
+        makeStatus({
+          isInvestigationReady: false,
+          gaps: [gap(code, "remediation")],
+        }),
+      );
+      openAgentPage();
+
+      const row: HTMLElement = await findTestId(`ai-agent-gap-${code}`);
+      expect(row).toHaveTextContent("Ask a project owner or admin.");
+      expect(
+        within(row).queryByText("Open AI Features"),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   test("a failed access check offers the connection test", async () => {
     serve(

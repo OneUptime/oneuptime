@@ -129,8 +129,6 @@ const ODDLY_SPACED_PATTERN: string =
 
 const READY_GATES: KubernetesClusterAiAccessProjectGates = {
   isAiEnabled: true,
-  isAutoRemediationEnabled: true,
-  isAiCommandExecutionEnabled: true,
   hasLlmProvider: true,
   aiBalanceBlocker: null,
   automaticInvestigation: { incidents: true, alerts: false },
@@ -737,6 +735,24 @@ function gapCodes(status: KubernetesClusterAiAccessStatus): Array<string> {
 }
 
 /*
+ * The gaps a project switch raises (project_ai_disabled, and the retired
+ * project_auto_remediation_disabled and
+ * project_ai_command_execution_disabled), as the page's Needs attention
+ * card lists them.
+ */
+function projectSwitchGapCodes(
+  status: KubernetesClusterAiAccessStatus,
+): Array<string> {
+  return getAttentionGaps(status)
+    .map((gap: KubernetesAiAccessGap): string => {
+      return gap.code;
+    })
+    .filter((code: string): boolean => {
+      return code.startsWith("project_");
+    });
+}
+
+/*
  * The server resolves the access target (agent, previous Runner, advanced
  * Runner, none) and the page reads the result. Each state of the card is
  * checked against what the real status produces for it.
@@ -991,6 +1007,69 @@ describe("the AI agent card follows the real status", () => {
       llm_provider_missing: "open_llm_providers",
       ai_balance_insufficient: "open_ai_credits",
     });
+  });
+
+  /*
+   * Enable AI is the project's only AI switch. A cluster reached through a
+   * Runner an operator bound used to need "Enable AI command execution" as
+   * well, and every cluster "Enable auto-remediation", each its own Needs
+   * attention row. Now, with AI on, the real status puts no project switch
+   * on the page at all, and with AI off exactly one row, Enable AI's, which
+   * opens AI Features.
+   */
+  test("a cluster reached through a Runner answers to Enable AI alone", async () => {
+    jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue({
+      id: new ObjectID(CREDENTIAL_ID),
+      credentialType: RunbookCredentialType.Kubernetes,
+      name: "prod token",
+      runners: [{ _id: OTHER_RUNNER_ID, id: new ObjectID(OTHER_RUNNER_ID) }],
+    } as unknown as RunbookCredential);
+    const cluster: KubernetesCluster = fakeCluster({
+      aiAccessRunnerId: new ObjectID(OTHER_RUNNER_ID),
+      aiAccessCredentialId: new ObjectID(CREDENTIAL_ID),
+      aiRemediationMode: KubernetesAiRemediationMode.Automatic,
+    });
+
+    const aiOn: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster,
+      runner: fakeAdvancedRunner(),
+    });
+    expect(isAdvancedRunnerTarget(aiOn)).toBe(true);
+    expect(projectSwitchGapCodes(aiOn)).toEqual([]);
+    expect(aiOn.isRemediationReady).toBe(true);
+
+    const aiOff: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster,
+      runner: fakeAdvancedRunner(),
+      gates: { ...READY_GATES, isAiEnabled: false },
+    });
+    expect(projectSwitchGapCodes(aiOff)).toEqual(["project_ai_disabled"]);
+    expect(aiOff.isRemediationReady).toBe(false);
+    expect(aiOff.isInvestigationReady).toBe(false);
+    for (const gap of getAttentionGaps(aiOff)) {
+      if (gap.code === "project_ai_disabled") {
+        expect(getAiAgentGapAction(gap, aiOff)).toBe("open_ai_features");
+      }
+    }
+  });
+
+  test("a cluster reached through its AI agent answers to Enable AI alone", async () => {
+    const cluster: KubernetesCluster = fakeCluster({
+      aiRemediationMode: KubernetesAiRemediationMode.BypassApproval,
+    });
+
+    const aiOn: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster,
+      agentRow: makeAgentRow(),
+    });
+    expect(projectSwitchGapCodes(aiOn)).toEqual([]);
+
+    const aiOff: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster,
+      agentRow: makeAgentRow(),
+      gates: { ...READY_GATES, isAiEnabled: false },
+    });
+    expect(projectSwitchGapCodes(aiOff)).toEqual(["project_ai_disabled"]);
   });
 });
 

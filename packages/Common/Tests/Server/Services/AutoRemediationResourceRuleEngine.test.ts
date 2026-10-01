@@ -70,6 +70,9 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * - another round holding the resource (or a failed check) makes an
  *   unattended round ask first, and the feed says why;
  * - a failed access lookup skips the lane quietly and rules still run;
+ * - Enable AI, the project's only AI switch, is the lane's consent at the
+ *   project level: off starts no round and reads no resource, and no
+ *   follow-up asks again;
  * - the follow-up round ("ask again") mirrors the cluster's: Suggest for
  *   Automatic and RequireApproval, FullAuto for BypassApproval, capped at
  *   MAX_RESOURCE_REMEDIATION_ROUNDS_PER_SUBJECT, asking first when forced;
@@ -189,10 +192,9 @@ function mockBaseline(data: {
   jest.spyOn(logger, "debug").mockImplementation((): void => {
     return undefined;
   });
+  // Enable AI is the project's only AI switch.
   jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
     enableAi: true,
-    enableAutoRemediation: true,
-    enableAiCommandExecution: false,
   } as unknown as Project);
   /*
    * The first read is the subject's existing suggestions; every later read
@@ -309,13 +311,32 @@ describe("AutoRemediationRuleEngineService resource-level remediation", () => {
     expect(markdowns[0]).not.toContain("kubectl");
   });
 
-  it("does not need the project's AI command execution opt-in (the resource's own mode is the consent)", async () => {
+  it("needs no project switch beyond Enable AI (the resource's own mode is the consent)", async () => {
     mockBaseline({});
 
     await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
 
-    // The baseline project has enableAiCommandExecution: false.
+    // The baseline project row carries Enable AI and nothing else.
     expect(createdSuggestions).toHaveLength(1);
+    expect(ProjectService.findOneById).toHaveBeenCalledWith({
+      id: PROJECT_ID,
+      select: { enableAi: true },
+      props: { isRoot: true },
+    });
+  });
+
+  it("starts no resource round when Enable AI is off — the resource is not even read", async () => {
+    mockBaseline({});
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      enableAi: false,
+    } as unknown as Project);
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
+
+    expect(createdSuggestions).toHaveLength(0);
+    expect(resourceStatuses).not.toHaveBeenCalled();
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(feedMarkdowns()).toEqual([]);
   });
 
   it("starts a Suggest run without auto-resolve for a RequireApproval resource, on an alert", async () => {
@@ -876,13 +897,31 @@ describe("AutoRemediationRuleEngineService.startFollowUpResourceRemediation", ()
     },
   );
 
-  it("does not ask again when auto-remediation was turned off for the project", async () => {
-    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
-      enableAutoRemediation: false,
-    } as unknown as Project);
+  it("does not ask again when Enable AI was turned off for the project", async () => {
+    const findProject: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue({
+        enableAi: false,
+      } as unknown as Project);
 
     expect(await followUp()).toBe(false);
     expect(createdSuggestions).toHaveLength(0);
+    // Stopped at the switch: neither the rounds nor the resource are read.
+    expect(countBy).not.toHaveBeenCalled();
+    expect(getStatusForResource).not.toHaveBeenCalled();
+    expect(findProject).toHaveBeenCalledWith({
+      id: PROJECT_ID,
+      select: { enableAi: true },
+      props: { isRoot: true },
+    });
+  });
+
+  it("does not ask again when the project cannot be read", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(null);
+
+    expect(await followUp()).toBe(false);
+    expect(createdSuggestions).toHaveLength(0);
+    expect(getStatusForResource).not.toHaveBeenCalled();
   });
 
   it("needs a subject and a known resource type", async () => {

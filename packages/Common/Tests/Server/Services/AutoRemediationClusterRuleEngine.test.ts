@@ -53,6 +53,8 @@ const TAINT_WORD_PATTERN: RegExp = /\btaint\b/;
  * - the cluster lane runs BEFORE rules and never depends on a rule
  *   matching; a rule read that returns nothing changes nothing;
  * - a failed access lookup skips the lane quietly;
+ * - Enable AI, the project's only AI switch, stops the lane: off starts no
+ *   round and reads no cluster, and no follow-up asks again;
  * - the follow-up round ("ask again") is Suggest for Automatic and
  *   RequireApproval clusters, FullAuto again for BypassApproval clusters,
  *   and stops at MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT for all;
@@ -154,10 +156,9 @@ function mockBaseline(data: {
   jest.spyOn(logger, "debug").mockImplementation((): void => {
     return undefined;
   });
+  // Enable AI is the project's only AI switch.
   jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
     enableAi: true,
-    enableAutoRemediation: true,
-    enableAiCommandExecution: true,
   } as unknown as Project);
   jest
     .spyOn(AutoRemediationSuggestionService, "findBy")
@@ -361,6 +362,35 @@ describe("AutoRemediationRuleEngineService cluster-level remediation", () => {
     });
   });
 
+  it("starts no cluster round when Enable AI is off, even for a ready Automatic cluster — no cluster is even read", async () => {
+    mockBaseline({});
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      enableAi: false,
+    } as unknown as Project);
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
+
+    expect(createdSuggestions).toHaveLength(0);
+    expect(
+      KubernetesClusterAiAccessService.getStatusesForSubject,
+    ).not.toHaveBeenCalled();
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(IncidentFeedService.createIncidentFeedItem).not.toHaveBeenCalled();
+  });
+
+  it("needs no project switch beyond Enable AI: a project row with Enable AI alone starts the round", async () => {
+    mockBaseline({});
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
+
+    expect(createdSuggestions).toHaveLength(1);
+    expect(ProjectService.findOneById).toHaveBeenCalledWith({
+      id: PROJECT_ID,
+      select: { enableAi: true },
+      props: { isRoot: true },
+    });
+  });
+
   it("skips the lane quietly when the access lookup fails and still evaluates rules", async () => {
     mockBaseline({});
     (
@@ -486,7 +516,7 @@ describe("AutoRemediationRuleEngineService.startFollowUpClusterRemediation", () 
     expect(getStatusForCluster).not.toHaveBeenCalled();
   });
 
-  it("does nothing when the cluster is no longer ready or auto-remediation is off", async () => {
+  it("does nothing when the cluster is no longer ready or Enable AI is off", async () => {
     jest
       .spyOn(AutoRemediationSuggestionService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
@@ -501,10 +531,16 @@ describe("AutoRemediationRuleEngineService.startFollowUpClusterRemediation", () 
         alertId: ALERT_ID,
       }),
     ).toBe(false);
+    expect(getStatusForCluster).toHaveBeenCalledTimes(1);
 
+    /*
+     * A ready cluster this time, so only the switch can say no — and it
+     * says it before the cluster is read again.
+     */
+    getStatusForCluster.mockResolvedValue(readyCluster());
     (
       ProjectService.findOneById as unknown as jest.SpyInstance
-    ).mockResolvedValue({ enableAutoRemediation: false } as unknown as Project);
+    ).mockResolvedValue({ enableAi: false } as unknown as Project);
 
     expect(
       await AutoRemediationRuleEngineService.startFollowUpClusterRemediation({
@@ -513,8 +549,29 @@ describe("AutoRemediationRuleEngineService.startFollowUpClusterRemediation", () 
         alertId: ALERT_ID,
       }),
     ).toBe(false);
+    expect(getStatusForCluster).toHaveBeenCalledTimes(1);
 
     expect(createdSuggestions).toHaveLength(0);
+  });
+
+  it("asks again with a project row that carries Enable AI alone, and reads nothing else from it", async () => {
+    jest
+      .spyOn(AutoRemediationSuggestionService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+
+    expect(
+      await AutoRemediationRuleEngineService.startFollowUpClusterRemediation({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: CLUSTER_ID,
+        incidentId: INCIDENT_ID,
+      }),
+    ).toBe(true);
+    expect(createdSuggestions).toHaveLength(1);
+    expect(ProjectService.findOneById).toHaveBeenCalledWith({
+      id: PROJECT_ID,
+      select: { enableAi: true },
+      props: { isRoot: true },
+    });
   });
 });
 
