@@ -2952,7 +2952,8 @@ test.describe("investigation states", () => {
 
   /*
    * With no run the slot keeps the same card, header and pill a run gets,
-   * and says why nothing was investigated instead of a report.
+   * and says why nothing was investigated instead of a report. The
+   * conversation closes that card too (see "one AI card" below).
    */
   test("?ai=none explains the missing run in the same card, with no header notice", async ({
     page,
@@ -3018,9 +3019,12 @@ interface PanelOffender {
  * spinner are not panels). Controls (buttons, links, tabs, the verdict's
  * answer group, the rows block of an evidence query, and the conversation's
  * text box together with the frame drawn around it), inline code and
- * collapsed content are left out. The card used to hold a tinted summary box,
- * a report box with an amber callout inside it, a details box and an actions
- * box.
+ * collapsed content are left out. So are the two things in an answer that
+ * keep a frame on purpose, each a named group: a chart or table (a figure,
+ * framed wherever it is drawn) and an action waiting for approval. The card
+ * used to hold a tinted summary box, a report box with an amber callout
+ * inside it, a details box and an actions box, and its conversation gray
+ * steps, a red error, bordered action rows and source pills.
  *
  * The card is read at rest. A row's hover wash is not a panel, but one caught
  * fading out reads as a tinted background: clicking an evidence row moves the
@@ -3539,6 +3543,1698 @@ test.describe("one flat AI investigation card", () => {
         });
       })
       .toBe("rgba(49, 46, 129, 0.35)");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * One AI card: the investigation and the conversation
+ * ---------------------------------------------------------------------------
+ * The investigation and "Ask OneUptime AI" used to read as two cards. With no
+ * run they were two (the explanation of why nothing was investigated, and the
+ * conversation in a card of its own under it); with a run the conversation
+ * sat in the card behind an icon tile and a header of its own. The card now
+ * closes with the conversation in every state, drawn like its other rows.
+ */
+
+const CONVERSATION_TITLE: string = "Ask OneUptime AI";
+const WORKING_PLACEHOLDER: string =
+  "Type your next question — send it when this answer finishes…";
+const SENT_ANSWER: string =
+  "checkout-api is still the only service above its latency threshold: its p95 is back under 500 ms since 18:12 and no other monitor has changed state";
+const USUAL_SUGGESTIONS: ReadonlyArray<string> = [
+  "What should I do right now?",
+  "What changed just before this?",
+  "Is anything else affected?",
+  "Draft a status update",
+  "Acknowledge this incident",
+];
+const ROOT_CAUSE_SUGGESTION: string = "What is the root cause?";
+// indigo-600: the page's primary buttons, and OneUptime AI's mark.
+const INDIGO_600: string = "rgb(79, 70, 229)";
+// The font the dashboard ships (views/index.ejs); the fixture does not load it.
+const INTER_FONT_FILE: string = path.resolve(
+  __dirname,
+  "../../Common/Server/Static/Vendor/fonts/InterVariable.woff2",
+);
+
+function conversation(page: Page): Locator {
+  return page.getByTestId("investigation-conversation");
+}
+
+function composerBox(page: Page): Locator {
+  return conversation(page).getByRole("textbox", { name: CONVERSATION_TITLE });
+}
+
+// The frame drawn around the text box, its mode picker and Send.
+function composerFrame(page: Page): Locator {
+  return conversation(page)
+    .getByTestId("investigation-conversation-composer")
+    .locator(":scope > div")
+    .first();
+}
+
+function sendButton(page: Page): Locator {
+  return conversation(page).getByTitle("Send (Enter)");
+}
+
+function stopButton(page: Page): Locator {
+  return conversation(page).getByTitle("Stop generating");
+}
+
+function modePicker(page: Page): Locator {
+  return conversation(page).getByTitle("Choose what the AI is allowed to do");
+}
+
+function modeCaption(page: Page): Locator {
+  return conversation(page).getByTestId("investigation-conversation-mode");
+}
+
+function suggestions(page: Page): Locator {
+  return conversation(page)
+    .getByRole("group", { name: "Suggested questions" })
+    .getByRole("button");
+}
+
+function questions(page: Page): Locator {
+  return conversation(page).getByTestId("investigation-conversation-question");
+}
+
+function answers(page: Page): Locator {
+  return conversation(page).getByTestId("investigation-conversation-answer");
+}
+
+function thread(page: Page): Locator {
+  return conversation(page).getByRole("log");
+}
+
+function showEarlier(page: Page): Locator {
+  return conversation(page).getByTestId(
+    "investigation-conversation-show-earlier",
+  );
+}
+
+function sources(answer: Locator): Locator {
+  return answer
+    .getByTestId("investigation-conversation-sources")
+    .getByRole("listitem");
+}
+
+async function openConversation(
+  page: Page,
+  query: string,
+  pagePath: string = INCIDENT_PATH,
+): Promise<Locator> {
+  await open(page, pagePath, query);
+  await expect(
+    conversation(page).getByRole("heading", {
+      level: 3,
+      name: CONVERSATION_TITLE,
+    }),
+  ).toBeVisible({ timeout: 30000 });
+  // The thread has loaded: either it shows messages or it suggests some.
+  await expect(
+    conversation(page).getByText("Loading the conversation…"),
+  ).toHaveCount(0);
+  return conversation(page);
+}
+
+interface TextLook {
+  fontSize: string;
+  fontWeight: string;
+  color: string;
+}
+
+async function textLook(locator: Locator): Promise<TextLook> {
+  return locator.evaluate((element: Element): TextLook => {
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    return {
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      color: style.color,
+    };
+  });
+}
+
+interface FrameLook {
+  background: string;
+  borders: Array<string>;
+  shadow: string;
+}
+
+async function frameLook(locator: Locator): Promise<FrameLook> {
+  return locator.evaluate((element: Element): FrameLook => {
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    return {
+      background: style.backgroundColor,
+      borders: [
+        style.borderTopWidth,
+        style.borderRightWidth,
+        style.borderBottomWidth,
+        style.borderLeftWidth,
+      ],
+      shadow: style.boxShadow,
+    };
+  });
+}
+
+const NO_FRAME: FrameLook = {
+  background: "rgba(0, 0, 0, 0)",
+  borders: ["0px", "0px", "0px", "0px"],
+  shadow: "none",
+};
+
+test.describe("one AI card: the investigation and the conversation", () => {
+  for (const state of CARD_STATES) {
+    test(`${state.name}: the conversation closes the one AI card`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const investigation: Locator = await openCardState(page, state);
+      await expect(
+        conversation(page).getByRole("heading", {
+          level: 3,
+          name: CONVERSATION_TITLE,
+        }),
+      ).toBeVisible();
+
+      // One AI card on the page, and the conversation is inside it.
+      await expect(investigation).toHaveCount(1);
+      await expect(
+        investigation.getByTestId("investigation-conversation"),
+      ).toHaveCount(1);
+      await expect(conversation(page)).toHaveCount(1);
+      await expect(
+        page.getByTestId("card").filter({ has: conversation(page) }),
+      ).toHaveCount(1);
+
+      // No card, and no card-level heading, of its own.
+      await expect(card(page, CONVERSATION_TITLE)).toHaveCount(0);
+      await expect(
+        page.getByRole("heading", { level: 2, name: CONVERSATION_TITLE }),
+      ).toHaveCount(0);
+      await expect(conversation(page).getByTestId("card")).toHaveCount(0);
+
+      // It is the last thing in the card's region.
+      expect(
+        await page
+          .locator("#ai-investigation")
+          .evaluate((region: Element): string | null => {
+            return region.lastElementChild?.getAttribute("data-testid") || null;
+          }),
+      ).toBe("investigation-conversation");
+
+      // And the card ends with its composer: nothing follows it but padding.
+      const cardBox: Box = await documentBox(
+        investigation.locator(":scope > div").first(),
+      );
+      const composer: Box = await documentBox(
+        conversation(page).getByTestId("investigation-conversation-composer"),
+      );
+      const gap: number =
+        cardBox.y + cardBox.height - (composer.y + composer.height);
+      expect(gap).toBeGreaterThanOrEqual(20);
+      expect(gap).toBeLessThanOrEqual(32);
+    });
+  }
+
+  test("the alert page has the same one card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const query of ["", "ai=none"]) {
+      await openConversation(page, query, ALERT_PATH);
+
+      await expect(investigationCard(page)).toHaveCount(1);
+      await expect(
+        investigationCard(page).getByTestId("investigation-conversation"),
+      ).toHaveCount(1);
+      await expect(card(page, CONVERSATION_TITLE)).toHaveCount(0);
+      await expect(
+        suggestions(page).filter({ hasText: "Acknowledge this alert" }),
+      ).toHaveCount(1);
+    }
+  });
+
+  test("the conversation is drawn like the card's other rows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const section: Locator = conversation(page);
+    const heading: Locator = section.getByRole("heading", {
+      level: 3,
+      name: CONVERSATION_TITLE,
+    });
+    const verdictHeading: Locator = page
+      .getByTestId("investigation-actions")
+      .getByRole("heading", { level: 3, name: VERDICT_QUESTION });
+
+    // A hairline above it and nothing else around it.
+    expect(await frameLook(section)).toEqual({
+      background: "rgba(0, 0, 0, 0)",
+      borders: ["1px", "0px", "0px", "0px"],
+      shadow: "none",
+    });
+
+    // The same title and the same quieter line under it as the verdict row.
+    expect(await textLook(heading)).toEqual(await textLook(verdictHeading));
+    const description: Locator = heading.locator("xpath=following-sibling::p");
+    const verdictDescription: Locator = verdictHeading.locator(
+      "xpath=following-sibling::p",
+    );
+    await expect(description).toHaveText(
+      "Ask a follow-up question, or ask it to act. Everyone on this incident sees this conversation.",
+    );
+    expect(await textLook(description)).toEqual(
+      await textLook(verdictDescription),
+    );
+
+    // The title starts at the card's left edge: no icon tile in front of it.
+    const headingBox: Box = await documentBox(heading);
+    const sectionBox: Box = await documentBox(section);
+    const verdictBox: Box = await documentBox(verdictHeading);
+    expect(headingBox.x).toBeCloseTo(sectionBox.x, 0);
+    expect(headingBox.x).toBeCloseTo(verdictBox.x, 0);
+    await expect(heading.locator("xpath=..").locator("svg")).toHaveCount(0);
+  });
+
+  test("the status pill ends at the edge the card's content ends at", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const investigation: Locator = investigationCard(page);
+    const pill: Box = await documentBox(
+      investigation.getByLabel("Investigation status"),
+    );
+    const title: Box = await documentBox(
+      investigation.getByRole("heading", { level: 2 }),
+    );
+    const section: Box = await documentBox(conversation(page));
+
+    await expect(investigation.getByTestId("card-header")).toHaveAttribute(
+      "data-header-layout",
+      "inline",
+    );
+    // Beside the title, on its line.
+    expect(pill.y).toBeLessThan(title.y + title.height);
+    expect(pill.x).toBeGreaterThan(title.x + title.width);
+    // It used to stop 12px short of the hairlines' right end.
+    expect(pill.x + pill.width).toBeCloseTo(section.x + section.width, 0);
+  });
+
+  test.describe("what it suggests", () => {
+    const CASES: ReadonlyArray<{
+      name: string;
+      query: string;
+      description: string;
+      labels: ReadonlyArray<string>;
+    }> = [
+      {
+        name: "under a report it offers follow-ups",
+        query: "",
+        description:
+          "Ask a follow-up question, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: USUAL_SUGGESTIONS,
+      },
+      {
+        name: "with nothing investigated it leads with the root-cause question",
+        query: "ai=none",
+        description:
+          "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: [ROOT_CAUSE_SUGGESTION, ...USUAL_SUGGESTIONS],
+      },
+      {
+        name: "after a run that stopped it leads with the root-cause question",
+        query: "ai=failed",
+        description:
+          "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: [ROOT_CAUSE_SUGGESTION, ...USUAL_SUGGESTIONS],
+      },
+      {
+        name: "while a run is investigating it does not",
+        query: "ai=running",
+        description:
+          "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: USUAL_SUGGESTIONS,
+      },
+      {
+        name: "while a run is queued it does not",
+        query: "ai=queued",
+        description:
+          "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: USUAL_SUGGESTIONS,
+      },
+      {
+        name: "while the report is being written it does not",
+        query: "ai=pending",
+        description:
+          "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: USUAL_SUGGESTIONS,
+      },
+    ];
+
+    for (const scenario of CASES) {
+      test(scenario.name, async ({ page }: { page: Page }) => {
+        const section: Locator = await openConversation(page, scenario.query);
+
+        await expect(suggestions(page)).toHaveText([...scenario.labels]);
+        await expect(
+          section
+            .getByRole("heading", { level: 3 })
+            .locator("xpath=following-sibling::p"),
+        ).toHaveText(scenario.description);
+      });
+    }
+
+    test("the suggestions are plain chips straight above the composer", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(page, "ai=none");
+      const group: Locator = section.getByRole("group", {
+        name: "Suggested questions",
+      });
+
+      // The sentence that only said the thread was empty is gone.
+      await expect(section).not.toContainText("Nobody has asked anything yet");
+      await expectAbove(group, composerFrame(page), "chips above the box");
+      const groupBox: Box = await documentBox(group);
+      const frameBox: Box = await documentBox(composerFrame(page));
+      expect(frameBox.y - (groupBox.y + groupBox.height)).toBeLessThanOrEqual(
+        20,
+      );
+
+      // Only the request to act carries a mark.
+      const marked: Array<string> = await suggestions(page).evaluateAll(
+        (chips: Array<Element>): Array<string> => {
+          return chips
+            .filter((chip: Element): boolean => {
+              return chip.querySelector("svg") !== null;
+            })
+            .map((chip: Element): string => {
+              return chip.textContent || "";
+            });
+        },
+      );
+      expect(marked).toEqual(["Acknowledge this incident"]);
+
+      // White pills on a hairline: no shadow under them.
+      for (const chip of await suggestions(page).all()) {
+        const look: FrameLook = await frameLook(chip);
+        expect(look.background).toBe("rgb(255, 255, 255)");
+        expect(look.borders).toEqual(["1px", "1px", "1px", "1px"]);
+        expect(look.shadow).toBe("none");
+      }
+    });
+  });
+
+  test.describe("asking", () => {
+    test("a suggested question is asked on the click, answered live and cited", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(page, "ai=none");
+
+      await suggestions(page)
+        .filter({ hasText: ROOT_CAUSE_SUGGESTION })
+        .click();
+
+      // The question is in the thread at once, as the viewer's.
+      await expect(questions(page)).toHaveCount(1);
+      await expect(questions(page).first()).toContainText("You");
+      await expect(questions(page).first()).toContainText(
+        "What is the most likely root cause of this incident? Investigate it and cite the evidence.",
+      );
+
+      const sent: Array<RecordedApiRequest> = await apiRequestsTo(
+        page,
+        "/ai-investigation/conversation/send-message",
+      );
+      expect(sent).toHaveLength(1);
+      expect(sent[0]!.body).toEqual({
+        subjectType: "incident",
+        subjectId: INCIDENT_ID,
+        content:
+          "What is the most likely root cause of this incident? Investigate it and cite the evidence.",
+        permissionMode: "AutoRun",
+      });
+
+      // While it is written: a status line, Stop instead of Send.
+      const answer: Locator = answers(page).first();
+      await expect(answer.getByRole("status")).toHaveText(
+        "OneUptime AI is working on your question…",
+      );
+      await expect(stopButton(page)).toBeVisible();
+      await expect(sendButton(page)).toHaveCount(0);
+      await expect(composerBox(page)).toHaveAttribute(
+        "placeholder",
+        WORKING_PLACEHOLDER,
+      );
+      // The suggestions leave once someone has asked.
+      await expect(suggestions(page)).toHaveCount(0);
+
+      // Then the answer, its citation and its source.
+      await expect(answer).toContainText(SENT_ANSWER, { timeout: 20000 });
+      await expect(answer).toHaveAttribute("data-status", "Completed");
+      await expect(
+        answer.getByRole("button", {
+          name: "Citation C1: Monitors attached to checkout-api, right now",
+        }),
+      ).toBeVisible();
+      await expect(sources(answer)).toHaveText([
+        "C1Monitors attached to checkout-api, right now · 2 rows",
+      ]);
+      await expect(answer.getByRole("status")).toHaveCount(0);
+      await expect(sendButton(page)).toBeVisible();
+      await expect(stopButton(page)).toHaveCount(0);
+      await expect(
+        section.getByLabel("1 person has asked in this conversation"),
+      ).toBeVisible();
+      // Still one card.
+      await expect(
+        page.getByTestId("card").filter({ has: section }),
+      ).toHaveCount(1);
+    });
+
+    test("a suggested action is put in the composer, never sent on the click", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "");
+
+      await suggestions(page)
+        .filter({ hasText: "Acknowledge this incident" })
+        .click();
+
+      await expect(composerBox(page)).toHaveValue("Acknowledge this incident.");
+      await expect(sendButton(page)).toBeEnabled();
+      await expect(questions(page)).toHaveCount(0);
+      expect(
+        await apiRequestsTo(
+          page,
+          "/ai-investigation/conversation/send-message",
+        ),
+      ).toEqual([]);
+    });
+
+    test("typing: Enter sends, Shift+Enter is a new line, and nothing is sent while an answer is written", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "");
+      const box: Locator = composerBox(page);
+
+      await expect(sendButton(page)).toBeDisabled();
+      await box.click();
+      await page.keyboard.type("Which deploy changed");
+      await page.keyboard.press("Shift+Enter");
+      await page.keyboard.type("DB_POOL_MAX?");
+
+      await expect(box).toHaveValue("Which deploy changed\nDB_POOL_MAX?");
+      expect(
+        await apiRequestsTo(
+          page,
+          "/ai-investigation/conversation/send-message",
+        ),
+      ).toEqual([]);
+      await expect(sendButton(page)).toBeEnabled();
+
+      await page.keyboard.press("Enter");
+
+      await expect(box).toHaveValue("");
+      await expect(questions(page).first()).toContainText(
+        "Which deploy changed",
+      );
+      // Focus stays in the box for the next question.
+      await expect(box).toBeFocused();
+
+      // Typing goes on; sending waits for the answer.
+      await expect(stopButton(page)).toBeVisible();
+      await page.keyboard.type("And who shipped it?");
+      await page.keyboard.press("Enter");
+      await expect(box).toHaveValue("And who shipped it?");
+      expect(
+        await apiRequestsTo(
+          page,
+          "/ai-investigation/conversation/send-message",
+        ),
+      ).toHaveLength(1);
+
+      // Once it is answered the next one goes.
+      await expect(answers(page).first()).toHaveAttribute(
+        "data-status",
+        "Completed",
+        { timeout: 20000 },
+      );
+      await expect(sendButton(page)).toBeEnabled();
+      await page.keyboard.press("Enter");
+      await expect(questions(page)).toHaveCount(2);
+      await expect(questions(page).nth(1)).toContainText("And who shipped it?");
+      await expect(answers(page).nth(1)).toHaveAttribute(
+        "data-status",
+        "Completed",
+        { timeout: 20000 },
+      );
+    });
+
+    test("an answer being written can be stopped", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=working");
+      const answer: Locator = answers(page).last();
+
+      await expect(answer.getByRole("status")).toHaveText(
+        "OneUptime AI is working on Sam Rivera's question…",
+      );
+      await stopButton(page).click();
+
+      const cancelled: Array<RecordedApiRequest> = await apiRequestsTo(
+        page,
+        "/ai-investigation/conversation/cancel-run",
+      );
+      expect(cancelled).toHaveLength(1);
+      expect(cancelled[0]!.body).toEqual({
+        subjectType: "incident",
+        subjectId: INCIDENT_ID,
+      });
+      await expect(answer).toHaveAttribute("data-status", "Cancelled");
+      await expect(answer).toContainText(
+        "Stopped before the answer was finished.",
+      );
+      await expect(answer.getByRole("status")).toHaveCount(0);
+      await expect(
+        answer.getByTestId("investigation-conversation-live-steps"),
+      ).toHaveCount(0);
+      await expect(sendButton(page)).toBeVisible();
+    });
+
+    test("?fail=conversation-send says why in a notice that can be put away", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(
+        page,
+        "fail=conversation-send",
+      );
+
+      await composerBox(page).fill("What changed?");
+      await sendButton(page).click();
+
+      const notice: Locator = section.getByTestId(
+        "investigation-conversation-error",
+      );
+      await expect(notice).toHaveAttribute("role", "alert");
+      await expect(notice).toContainText(
+        "AI is turned off for this project. Turn it on in Project Settings → AI Features, then ask again.",
+      );
+      // A line with a red mark: it was a red box.
+      expect(await frameLook(notice)).toEqual(NO_FRAME);
+      await expect(notice.locator("svg").first()).toBeVisible();
+      await expectAbove(notice, composerFrame(page), "notice above the box");
+      // What was typed is handed back, and nothing was added to the thread.
+      await expect(composerBox(page)).toHaveValue("What changed?");
+      await expect(questions(page)).toHaveCount(0);
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+
+      await notice.getByRole("button", { name: "Dismiss" }).click();
+
+      await expect(notice).toHaveCount(0);
+      await expect(composerBox(page)).toHaveValue("What changed?");
+    });
+
+    test("?fail=conversation says the thread could not be loaded, and can retry", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(
+        page,
+        "fail=conversation",
+      );
+
+      await expect(section).toContainText(
+        "Could not load the conversation: The conversation service is unavailable.",
+      );
+      await expect(suggestions(page)).toHaveCount(0);
+      // The composer stays: the card still ends with it.
+      await expect(composerBox(page)).toBeEnabled();
+
+      const before: number = (
+        await apiRequestsTo(page, "/ai-investigation/conversation")
+      ).length;
+      await section.getByRole("button", { name: "Try again" }).click();
+      await expect
+        .poll(async (): Promise<number> => {
+          return (await apiRequestsTo(page, "/ai-investigation/conversation"))
+            .length;
+        })
+        .toBeGreaterThan(before);
+    });
+  });
+
+  test.describe("a shared thread", () => {
+    test("?thread=answered shows who asked what and whom each answer was for", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(page, "thread=answered");
+
+      await expect(questions(page)).toHaveCount(2);
+      await expect(answers(page)).toHaveCount(2);
+      await expect(questions(page).nth(0)).toContainText("Sam Rivera");
+      await expect(questions(page).nth(0)).toContainText(
+        "Is anything else affected by this incident?",
+      );
+      await expect(questions(page).nth(1)).toContainText("You");
+      await expect(questions(page).nth(1)).toContainText(
+        "Acknowledge this incident and tell me who is on call for checkout.",
+      );
+      // An answer to someone else says whose it is; the viewer's own does not.
+      await expect(answers(page).nth(0)).toContainText("to Sam Rivera");
+      await expect(answers(page).nth(1)).not.toContainText("to Maya Chen");
+      // When each was said, against the page's pinned clock.
+      await expect(questions(page).nth(0).locator("time")).toHaveText(
+        "9 minutes ago",
+      );
+      await expect(answers(page).nth(0).locator("time")).toHaveText(
+        "8 minutes ago",
+      );
+
+      await expect(
+        section.getByLabel("2 people have asked in this conversation"),
+      ).toHaveAttribute("title", "Sam Rivera, You");
+      // An answered thread has no suggestions.
+      await expect(suggestions(page)).toHaveCount(0);
+    });
+
+    test("an answer lists its sources, and one with a page of its own opens it", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=answered");
+      const answer: Locator = answers(page).first();
+
+      await expect(
+        answer.getByRole("heading", { level: 4, name: "Sources" }),
+      ).toBeVisible();
+      await expect(sources(answer)).toHaveText([
+        "C1db.client.connections.usage for orders-db, 17:30 – 18:15 UTC · 45 rows",
+        'C2Logs matching "timeout acquiring connection" in cart-api · no rows',
+        "C3Monitors attached to checkout-api, cart-api and orders-db · 4 rows",
+      ]);
+
+      // A quiet list: no pill around a source.
+      for (const row of await sources(answer).all()) {
+        expect(await frameLook(row)).toEqual(NO_FRAME);
+        expect(await frameLook(row.locator(":scope > *").first())).toEqual(
+          NO_FRAME,
+        );
+      }
+
+      // Two have a page (metrics, logs); the third is a plain line.
+      await expect(sources(answer).nth(0).getByRole("button")).toHaveCount(1);
+      await expect(sources(answer).nth(1).getByRole("button")).toHaveAttribute(
+        "title",
+        'Logs matching "timeout acquiring connection" in cart-api — checked, found nothing',
+      );
+      await expect(sources(answer).nth(2).getByRole("button")).toHaveCount(0);
+
+      await sources(answer).nth(0).getByRole("button").click();
+      await expect(page.getByTestId("stub-page")).toHaveAttribute(
+        "data-page",
+        "METRICS",
+      );
+
+      // Back on the incident the thread is still there.
+      await page.goBack();
+      await expect(answers(page)).toHaveCount(2, { timeout: 30000 });
+    });
+
+    test("a citation in the answer's text opens the same evidence", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=answered");
+      const answer: Locator = answers(page).first();
+      const chip: Locator = answer.getByRole("button", {
+        name: 'Citation C2: Logs matching "timeout acquiring connection" in cart-api',
+      });
+
+      await expect(chip).toHaveText("C2");
+      // Evidence with no page of its own is a chip, never a dead button.
+      await expect(
+        answer.getByLabel(
+          "Citation C3: Monitors attached to checkout-api, cart-api and orders-db",
+        ),
+      ).toHaveJSProperty("tagName", "SPAN");
+
+      await chip.click();
+      await expect(page.getByTestId("stub-page")).toHaveAttribute(
+        "data-page",
+        "LOGS",
+      );
+    });
+
+    test("charts and tables are shown to the person who asked, as a figure of the answer", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=answered");
+
+      // Sam's answer comes without its rows; the viewer's own has them.
+      await expect(
+        answers(page)
+          .nth(0)
+          .getByRole("group", { name: "Data from this answer" }),
+      ).toHaveCount(0);
+      const figure: Locator = answers(page)
+        .nth(1)
+        .getByRole("group", { name: "Data from this answer" });
+      await expect(figure).toContainText("Checkout on-call — current shift");
+      await expect(figure).toContainText("Jordan Patel");
+      await expect(figure).toContainText("Alex Kim");
+    });
+
+    test("an action that ran is a line of the answer, and the answer can be copied", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.addInitScript((): void => {
+        Object.defineProperty(navigator, "clipboard", {
+          configurable: true,
+          value: {
+            writeText: async (text: string): Promise<void> => {
+              (window as unknown as { __copiedText?: string }).__copiedText =
+                text;
+            },
+          },
+        });
+      });
+      await openConversation(page, "thread=answered");
+      const answer: Locator = answers(page).nth(1);
+      const actions: Locator = answer.getByRole("list", { name: "Actions" });
+
+      await expect(actions.getByRole("listitem")).toHaveText([
+        "Acknowledge incident #1042 · Done",
+      ]);
+      await expect(actions.getByRole("listitem")).toHaveAttribute(
+        "data-status",
+        "Executed",
+      );
+      // A line with a mark: no bordered row, no chip, nothing to press.
+      expect(await frameLook(actions.getByRole("listitem"))).toEqual(NO_FRAME);
+      await expect(actions.getByRole("button")).toHaveCount(0);
+      await expect(
+        answer.getByRole("group", { name: "Actions waiting for approval" }),
+      ).toHaveCount(0);
+
+      await answer.getByRole("button", { name: "Copy" }).click();
+      await expect(
+        answer.getByRole("button", { name: "Copied" }),
+      ).toBeVisible();
+      expect(
+        await page.evaluate((): string => {
+          return (
+            (window as unknown as { __copiedText?: string }).__copiedText || ""
+          );
+        }),
+      ).toBe(
+        "Done — incident #1042 is acknowledged. **Jordan Patel** is on call for Checkout on-call until 20:00 UTC [C1].",
+      );
+    });
+
+    test("?thread=working narrates the answer being written on a rule, with no box", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=working");
+      const answer: Locator = answers(page).last();
+      const steps: Locator = answer.getByTestId(
+        "investigation-conversation-live-steps",
+      );
+
+      await expect(answer).toContainText("to Sam Rivera");
+      await expect(steps).toContainText("Running recent_changes");
+      await expect(steps).toContainText("Searching logs");
+      expect(await frameLook(steps)).toEqual({
+        background: "rgba(0, 0, 0, 0)",
+        borders: ["0px", "0px", "0px", "2px"],
+        shadow: "none",
+      });
+      await expectAbove(
+        answer.getByRole("status"),
+        steps,
+        "what it is doing, then the steps",
+      );
+      await expect(composerBox(page)).toHaveAttribute(
+        "placeholder",
+        WORKING_PLACEHOLDER,
+      );
+      // The earlier, finished answer narrates nothing.
+      await expect(
+        answers(page)
+          .first()
+          .getByTestId("investigation-conversation-live-steps"),
+      ).toHaveCount(0);
+    });
+
+    test("?thread=error says what went wrong in lines, not boxes", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=error");
+      const failed: Locator = answers(page).nth(0);
+      const stopped: Locator = answers(page).nth(1);
+      const failure: Locator = failed.getByTestId(
+        "investigation-conversation-answer-error",
+      );
+
+      await expect(failed).toHaveAttribute("data-status", "Error");
+      await expect(failure).toHaveText(
+        "The LLM provider returned 529 Overloaded three times. Nothing was changed.Ask again to retry.",
+      );
+      expect(await frameLook(failure)).toEqual(NO_FRAME);
+      // The mark carries the colour (red-600).
+      expect(
+        await failure.locator("svg").evaluate((icon: Element): string => {
+          return window.getComputedStyle(icon).color;
+        }),
+      ).toBe("rgb(220, 38, 38)");
+
+      await expect(stopped).toHaveAttribute("data-status", "Cancelled");
+      await expect(stopped).toContainText(
+        "Stopped before the answer was finished.",
+      );
+      // The stop mark is a circle with a square in it, not an empty ring.
+      expect(
+        await stopped
+          .locator("svg path")
+          .last()
+          .evaluate((mark: Element): number => {
+            return (mark.getAttribute("d") || "").split("Z").length - 1;
+          }),
+      ).toBe(2);
+      // Neither answer can be copied or has sources.
+      await expect(
+        conversation(page).getByRole("button", { name: "Copy" }),
+      ).toHaveCount(0);
+      // A thread whose last answer failed can be asked again.
+      await expect(sendButton(page)).toBeVisible();
+    });
+  });
+
+  test.describe("an action waiting for approval", () => {
+    test("?thread=approval asks for a decision, and running it settles into a line", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=approval");
+      const answer: Locator = answers(page).first();
+      const prompt: Locator = answer.getByRole("group", {
+        name: "Actions waiting for approval",
+      });
+
+      await expect(answer).toContainText(
+        "I'd like to take this action. Review it and approve to continue.",
+      );
+      await expect(prompt).toContainText("The AI wants to perform 1 action");
+      await expect(prompt).toContainText("Acknowledge incident #1042");
+      // Nothing settled yet, and an answer is in flight.
+      await expect(answer.getByRole("list", { name: "Actions" })).toHaveCount(
+        0,
+      );
+      await expect(stopButton(page)).toBeVisible();
+
+      await prompt.getByRole("button", { name: /Run 1 action/ }).click();
+
+      const decisions: Array<RecordedApiRequest> = await apiRequestsTo(
+        page,
+        "/ai-investigation/conversation/respond-to-approval",
+      );
+      expect(decisions).toHaveLength(1);
+      expect(decisions[0]!.body["subjectType"]).toBe("incident");
+      expect(decisions[0]!.body["subjectId"]).toBe(INCIDENT_ID);
+      expect(decisions[0]!.body["decisions"]).toEqual([
+        { toolCallId: "call_acknowledge", approved: true },
+      ]);
+
+      await expect(answer).toContainText(
+        "Done — incident #1042 is acknowledged.",
+      );
+      await expect(prompt).toHaveCount(0);
+      await expect(
+        answer.getByRole("list", { name: "Actions" }).getByRole("listitem"),
+      ).toHaveText(["Acknowledge incident #1042 · Done"]);
+      await expect(sendButton(page)).toBeVisible();
+    });
+
+    test("denying it leaves the incident alone and says so", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=approval");
+      const answer: Locator = answers(page).first();
+
+      await answer.getByRole("button", { name: "Deny all" }).click();
+
+      const decisions: Array<RecordedApiRequest> = await apiRequestsTo(
+        page,
+        "/ai-investigation/conversation/respond-to-approval",
+      );
+      expect(decisions[0]!.body["decisions"]).toEqual([
+        { toolCallId: "call_acknowledge", approved: false },
+      ]);
+      await expect(answer).toContainText(
+        "Okay — I left incident #1042 as it is.",
+      );
+      const line: Locator = answer
+        .getByRole("list", { name: "Actions" })
+        .getByRole("listitem");
+      await expect(line).toHaveText(["Acknowledge incident #1042 · Denied"]);
+      await expect(line).toHaveAttribute("data-status", "Denied");
+    });
+  });
+
+  test.describe("a long thread", () => {
+    test("?thread=crowded opens on its newest messages, with the rest one click away", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(page, "thread=crowded");
+
+      // Twelve messages: the last three exchanges show.
+      await expect(showEarlier(page)).toHaveText("Show 6 earlier messages");
+      await expect(questions(page)).toHaveCount(3);
+      await expect(answers(page)).toHaveCount(3);
+      await expect(questions(page).first()).toContainText("Alex Kim");
+      await expectAbove(showEarlier(page), thread(page), "the fold on top");
+
+      // Everyone who asked is counted, folded messages included.
+      const participants: Locator = section.getByLabel(
+        "6 people have asked in this conversation",
+      );
+      await expect(participants).toHaveAttribute(
+        "title",
+        "Sam Rivera, You, Jordan Patel, Alex Kim, Priya Nair, Diego Santos",
+      );
+      await expect(participants).toContainText("+2");
+
+      await showEarlier(page).focus();
+      await page.keyboard.press("Enter");
+
+      await expect(questions(page)).toHaveCount(6);
+      await expect(answers(page)).toHaveCount(6);
+      await expect(questions(page).first()).toContainText("Sam Rivera");
+      await expect(showEarlier(page)).toHaveCount(0);
+      // The pressed button is gone, so the thread it revealed takes focus.
+      await expect(thread(page)).toBeFocused();
+    });
+
+    test("no avatar hides the next one's initials", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(page, "thread=crowded");
+      const marks: Array<Box> = [];
+
+      for (const mark of await section
+        .getByLabel("6 people have asked in this conversation")
+        .locator(":scope > div > div")
+        .all()) {
+        marks.push(await documentBox(mark));
+      }
+
+      expect(marks).toHaveLength(4);
+      for (let index: number = 1; index < marks.length; index++) {
+        const overlap: number =
+          marks[index - 1]!.x + marks[index - 1]!.width - marks[index]!.x;
+        // They used to overlap by 8px of a 24px disc, over the second letter.
+        expect(overlap).toBeGreaterThan(0);
+        expect(overlap).toBeLessThanOrEqual(4);
+      }
+    });
+
+    test("the thread is part of the page, not a scrolling box inside the card", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "thread=crowded");
+      await showEarlier(page).click();
+      await expect(answers(page)).toHaveCount(6);
+
+      // Nothing between the thread and the card clips or scrolls it.
+      const clippers: Array<string> = await thread(page).evaluate(
+        (log: Element): Array<string> => {
+          const found: Array<string> = [];
+          let element: Element | null = log;
+
+          while (element && element.getAttribute("data-testid") !== "card") {
+            const style: CSSStyleDeclaration = window.getComputedStyle(element);
+
+            if (
+              style.overflowY !== "visible" ||
+              style.maxHeight !== "none" ||
+              element.scrollHeight > element.clientHeight + 1
+            ) {
+              found.push(
+                `${element.tagName.toLowerCase()}.${element.getAttribute("class")}`,
+              );
+            }
+
+            element = element.parentElement;
+          }
+
+          return found;
+        },
+      );
+      expect(clippers).toEqual([]);
+
+      // It is as tall as its twelve messages: taller than the 640px box it had.
+      expect((await documentBox(thread(page))).height).toBeGreaterThan(640);
+      // And every message can be reached by scrolling the page alone.
+      await questions(page).first().scrollIntoViewIfNeeded();
+      await expect(questions(page).first()).toBeInViewport();
+    });
+  });
+
+  test.describe("the composer", () => {
+    test("is one framed control: the text, the mode with what it means, and Send", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "");
+      const frame: Locator = composerFrame(page);
+      const frameBox: Box = await documentBox(frame);
+
+      // The dashboard's input frame: white, a gray-300 hairline all round.
+      const look: {
+        background: string;
+        border: string;
+        widths: Array<string>;
+      } = await frame.evaluate(
+        (
+          element: Element,
+        ): { background: string; border: string; widths: Array<string> } => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
+          return {
+            background: style.backgroundColor,
+            border: style.borderTopColor,
+            widths: [
+              style.borderTopWidth,
+              style.borderRightWidth,
+              style.borderBottomWidth,
+              style.borderLeftWidth,
+            ],
+          };
+        },
+      );
+      expect(look).toEqual({
+        background: "rgb(255, 255, 255)",
+        border: "rgb(209, 213, 219)",
+        widths: ["1px", "1px", "1px", "1px"],
+      });
+
+      // Everything it needs is inside that frame.
+      for (const part of [
+        composerBox(page),
+        modePicker(page),
+        modeCaption(page),
+        sendButton(page),
+      ]) {
+        const box: Box = await documentBox(part);
+        expect(box.x).toBeGreaterThanOrEqual(frameBox.x);
+        expect(box.x + box.width).toBeLessThanOrEqual(
+          frameBox.x + frameBox.width,
+        );
+        expect(box.y).toBeGreaterThanOrEqual(frameBox.y);
+        expect(box.y + box.height).toBeLessThanOrEqual(
+          frameBox.y + frameBox.height,
+        );
+      }
+
+      await expect(composerBox(page)).toHaveAttribute(
+        "placeholder",
+        "Ask about this incident, or ask OneUptime AI to act…",
+      );
+      await expect(modePicker(page)).toHaveText("Auto-run");
+      await expect(modeCaption(page)).toHaveText(
+        "Acts on clear requests right away, within your permissions.",
+      );
+
+      // One row under the text: the picker, its caption, then Send at the end.
+      const picker: Box = await documentBox(modePicker(page));
+      const caption: Box = await documentBox(modeCaption(page));
+      const send: Box = await documentBox(sendButton(page));
+      expect(caption.x).toBeGreaterThan(picker.x + picker.width);
+      expect(send.x).toBeGreaterThan(caption.x + caption.width - 1);
+      expect(
+        Math.abs(picker.y + picker.height / 2 - (send.y + send.height / 2)),
+      ).toBeLessThanOrEqual(3);
+      // The caption fits on one line of the row.
+      expect(caption.height).toBeLessThanOrEqual(22);
+    });
+
+    test("does not take focus when the page loads, and shows an indigo focus when used", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "");
+
+      expect(
+        await page.evaluate((): string => {
+          return document.activeElement?.tagName || "";
+        }),
+      ).toBe("BODY");
+      expect(
+        await page.evaluate((): number => {
+          return window.scrollY;
+        }),
+      ).toBe(0);
+
+      await composerBox(page).click();
+
+      await expect
+        .poll(async (): Promise<string> => {
+          return composerFrame(page).evaluate((element: Element): string => {
+            return window.getComputedStyle(element).borderTopColor;
+          });
+        })
+        .toBe("rgb(99, 102, 241)");
+      // And a 1px ring of the same indigo round it, once it has faded in.
+      await expect
+        .poll(async (): Promise<string> => {
+          return composerFrame(page).evaluate((element: Element): string => {
+            return window.getComputedStyle(element).boxShadow;
+          });
+        })
+        .toContain("rgb(99, 102, 241) 0px 0px 0px 1px");
+    });
+
+    test("Send lights up in the page's primary colour once there is something to send", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "");
+      const background: () => Promise<string> = async (): Promise<string> => {
+        return sendButton(page).evaluate((button: Element): string => {
+          return window.getComputedStyle(button).backgroundColor;
+        });
+      };
+
+      await expect(sendButton(page)).toBeDisabled();
+      expect(await background()).toBe("rgb(243, 244, 246)");
+
+      await composerBox(page).fill("What changed?");
+
+      await expect(sendButton(page)).toBeEnabled();
+      await expect.poll(background).toBe(INDIGO_600);
+    });
+
+    for (const width of [1440, 390]) {
+      test(`the mode's menu opens inside the card at ${width}px`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openConversation(page, "ai=none");
+        const cardBox: Box = await documentBox(
+          investigationCard(page).locator(":scope > div").first(),
+        );
+
+        await modePicker(page).click();
+        const menu: Locator = conversation(page).getByRole("menu", {
+          name: "AI permissions",
+        });
+        await expect(menu).toBeVisible();
+        await expect(modePicker(page)).toHaveAttribute("aria-expanded", "true");
+
+        // It used to open some 190px past the card's left edge.
+        const menuBox: Box = await documentBox(menu);
+        const picker: Box = await documentBox(modePicker(page));
+        expect(menuBox.x).toBeGreaterThanOrEqual(cardBox.x);
+        expect(menuBox.x).toBeCloseTo(picker.x, 0);
+        expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(width);
+        // Above the picker, not over it.
+        expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(picker.y);
+
+        await expect(menu.getByRole("menuitemradio")).toHaveCount(3);
+        await expect(
+          menu.getByRole("menuitemradio", { checked: true }),
+        ).toContainText("Auto-run");
+
+        await page.keyboard.press("Escape");
+        await expect(menu).toHaveCount(0);
+        await expect(modePicker(page)).toBeFocused();
+        await expectNoHorizontalOverflow(page);
+      });
+    }
+
+    test("a chosen mode changes the caption and what the next question is sent with", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "");
+
+      await modePicker(page).click();
+      await conversation(page)
+        .getByRole("menuitemradio", { name: /^Read-only/ })
+        .click();
+
+      await expect(modePicker(page)).toHaveText("Read-only");
+      await expect(modeCaption(page)).toHaveText(
+        "Only reads and answers. It never changes anything.",
+      );
+      await expect(conversation(page).getByRole("menu")).toHaveCount(0);
+
+      await composerBox(page).fill("What changed?");
+      await sendButton(page).click();
+
+      await expect
+        .poll(async (): Promise<Array<unknown>> => {
+          return (
+            await apiRequestsTo(
+              page,
+              "/ai-investigation/conversation/send-message",
+            )
+          ).map((request: RecordedApiRequest): unknown => {
+            return request.body["permissionMode"];
+          });
+        })
+        .toEqual(["ReadOnly"]);
+      await expect(answers(page).first()).toHaveAttribute(
+        "data-status",
+        "Completed",
+        { timeout: 20000 },
+      );
+    });
+
+    test("with production's font the caption keeps to the picker's row in the two-thirds column of a 1280px page", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      /*
+       * Whether the caption fits beside the picker depends on the glyphs'
+       * width. The fixture falls back to the system font, which is wider
+       * than the Inter the dashboard ships, so this one test loads Inter the
+       * way views/index.ejs declares it.
+       */
+      await page.route(
+        "**/dashboard/assets/fonts/InterVariable.woff2",
+        async (route: PlaywrightRoute) => {
+          await route.fulfill({ path: INTER_FONT_FILE });
+        },
+      );
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await openConversation(page, "");
+      await page.addStyleTag({
+        content:
+          '@font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url(/dashboard/assets/fonts/InterVariable.woff2) format("woff2")} *{font-family:Inter,ui-sans-serif,system-ui,sans-serif}',
+      });
+      expect(
+        await page.evaluate(async (): Promise<number> => {
+          return (await document.fonts.load("500 12px Inter")).length;
+        }),
+        "Inter loaded",
+      ).toBeGreaterThan(0);
+
+      const picker: Box = await documentBox(modePicker(page));
+      const caption: Box = await documentBox(modeCaption(page));
+      const send: Box = await documentBox(sendButton(page));
+
+      for (const mode of ["Ask for approval", "Read-only", "Auto-run"]) {
+        await modePicker(page).click();
+        await conversation(page)
+          .getByRole("menuitemradio", { name: new RegExp(`^${mode}`) })
+          .click();
+
+        const fitted: Box = await documentBox(modeCaption(page));
+        // One line of 12px text, between the picker and Send.
+        expect(fitted.height, `${mode} caption height`).toBeLessThanOrEqual(22);
+        expect(fitted.x).toBeGreaterThan(picker.x);
+        expect(fitted.x + fitted.width).toBeLessThanOrEqual(send.x);
+      }
+
+      expect(caption.x).toBeGreaterThan(picker.x + picker.width);
+    });
+  });
+
+  test.describe("no panel inside the card, whatever the thread holds", () => {
+    const THREAD_STATES: ReadonlyArray<{ name: string; query: string }> = [
+      { name: "an answered thread under a report", query: "thread=answered" },
+      {
+        name: "an answered thread with nothing investigated",
+        query: "ai=none&thread=answered",
+      },
+      { name: "an answer being written", query: "thread=working" },
+      { name: "a failed and a stopped answer", query: "thread=error" },
+      { name: "a long thread", query: "ai=running&thread=crowded" },
+      { name: "an action waiting for approval", query: "thread=approval" },
+    ];
+
+    for (const state of THREAD_STATES) {
+      test(`${state.name} draws no panel`, async ({ page }: { page: Page }) => {
+        await openConversation(page, state.query);
+
+        /*
+         * Two things keep a frame on purpose, each a named group: a chart or
+         * table (a figure, framed wherever it is drawn) and an action waiting
+         * for someone to approve it (the one place the card raises its voice).
+         */
+        expect(await panelsInsideTheCard(page)).toEqual([]);
+        await expect(investigationCard(page).getByTestId("card")).toHaveCount(
+          0,
+        );
+      });
+    }
+
+    test("the fix task and verdict messages are lines of their rows", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, INCIDENT_PAGE, "fail=verdict,create-fix-task");
+      const investigation: Locator = investigationCard(page);
+
+      await investigation.getByRole("button", { name: OPEN_FIX_PR }).click();
+      await investigation.getByRole("button", { name: "Confirmed" }).click();
+
+      const fixError: Locator = investigation.getByTestId(
+        "investigation-fix-task-error",
+      );
+      const verdictError: Locator = investigation.getByTestId(
+        "investigation-verdict-error",
+      );
+      await expect(fixError).toContainText("Could not create the fix task");
+      await expect(verdictError).toContainText("Could not save your verdict");
+
+      // They were red alert boxes, the loudest things in the card.
+      for (const notice of [fixError, verdictError]) {
+        await expect(notice).toHaveAttribute("role", "alert");
+        expect(await frameLook(notice)).toEqual(NO_FRAME);
+      }
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+    });
+
+    test("a created fix task is a line with a green mark and a link to the task", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, INCIDENT_PAGE);
+      const investigation: Locator = investigationCard(page);
+
+      await investigation.getByRole("button", { name: OPEN_FIX_PR }).click();
+
+      const created: Locator = investigation.getByTestId(
+        "investigation-fix-task-created",
+      );
+      await expect(created).toContainText("Fix task created");
+      expect(await frameLook(created)).toEqual(NO_FRAME);
+      // emerald-600.
+      expect(
+        await created
+          .locator("svg")
+          .first()
+          .evaluate((icon: Element): string => {
+            return window.getComputedStyle(icon).color;
+          }),
+      ).toBe("rgb(5, 150, 105)");
+      await expect(
+        created.getByRole("link", { name: "View task progress" }),
+      ).toHaveAttribute("href", new RegExp(`${FIX_TASK_ID}$`));
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+    });
+  });
+
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("the card with a thread does not scroll sideways, and a message's text takes the full width", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(page, "thread=answered");
+      await expectNoHorizontalOverflow(page);
+
+      const answer: Locator = answers(page).first();
+      const mark: Box = await documentBox(
+        answer.locator(":scope > div").nth(0),
+      );
+      const byline: Box = await documentBox(
+        answer.locator(":scope > div").nth(1),
+      );
+      const body: Box = await documentBox(
+        answer.locator(":scope > div").nth(2),
+      );
+      const sectionBox: Box = await documentBox(section);
+
+      // Who and when sit beside the mark; what was said starts under it.
+      expect(byline.x).toBeGreaterThan(mark.x + mark.width);
+      expect(body.y).toBeGreaterThanOrEqual(mark.y + mark.height);
+      expect(body.x).toBeCloseTo(sectionBox.x, 0);
+      expect(body.width).toBeCloseTo(sectionBox.width, 0);
+    });
+
+    test("the composer keeps the picker and Send on one row, with the caption under them", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "ai=none");
+
+      const picker: Box = await documentBox(modePicker(page));
+      const send: Box = await documentBox(sendButton(page));
+      const caption: Box = await documentBox(modeCaption(page));
+      const frame: Box = await documentBox(composerFrame(page));
+
+      expect(send.x).toBeGreaterThan(picker.x + picker.width);
+      expect(
+        Math.abs(picker.y + picker.height / 2 - (send.y + send.height / 2)),
+      ).toBeLessThanOrEqual(3);
+      expect(caption.y).toBeGreaterThanOrEqual(
+        Math.max(picker.y + picker.height, send.y + send.height) - 1,
+      );
+      expect(caption.y + caption.height).toBeLessThanOrEqual(
+        frame.y + frame.height,
+      );
+      // A keyboard hint is no use on a phone.
+      await expect(conversation(page).getByText("to send")).toBeHidden();
+      await expectNoHorizontalOverflow(page);
+    });
+
+    test("the status pill sits beside the title when it fits and under it when it does not", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // "Completed" fits beside "AI Investigation".
+      let investigation: Locator = await openCardState(page, CARD_STATES[0]!);
+      let title: Box = await documentBox(
+        investigation.getByRole("heading", { level: 2 }),
+      );
+      let pill: Box = await documentBox(
+        investigation.getByLabel("Investigation status"),
+      );
+      let section: Box = await documentBox(conversation(page));
+
+      expect(title.height).toBeLessThanOrEqual(26);
+      expect(pill.x).toBeGreaterThan(title.x + title.width);
+      expect(pill.y).toBeLessThan(title.y + title.height);
+      // At the card's content edge, not centred under the title.
+      expect(pill.x + pill.width).toBeCloseTo(section.x + section.width, 0);
+
+      // "Preparing report…" does not: it goes under the title, at its left.
+      investigation = await openCardState(page, CARD_STATES[7]!);
+      title = await documentBox(
+        investigation.getByRole("heading", { level: 2 }),
+      );
+      pill = await documentBox(
+        investigation.getByLabel("Investigation status"),
+      );
+      section = await documentBox(conversation(page));
+
+      // The title is never the one that gives way.
+      expect(title.height).toBeLessThanOrEqual(26);
+      expect(pill.x + pill.width).toBeLessThanOrEqual(
+        section.x + section.width + 1,
+      );
+      if (pill.y >= title.y + title.height) {
+        expect(pill.x).toBeCloseTo(title.x, 0);
+      } else {
+        expect(pill.x).toBeGreaterThan(title.x + title.width);
+      }
+      await expectNoHorizontalOverflow(page);
+    });
+  });
+
+  test("from sm up a message's text lines up under its author's name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConversation(page, "thread=answered");
+    const answer: Locator = answers(page).first();
+    const mark: Box = await documentBox(answer.locator(":scope > div").nth(0));
+    const byline: Box = await documentBox(
+      answer.locator(":scope > div").nth(1),
+    );
+    const body: Box = await documentBox(answer.locator(":scope > div").nth(2));
+
+    expect(mark.width).toBeCloseTo(32, 0);
+    expect(byline.x).toBeCloseTo(mark.x + mark.width + 12, 0);
+    expect(body.x).toBeCloseTo(byline.x, 0);
+    // The text starts straight under the name, beside the mark.
+    expect(body.y).toBeLessThan(mark.y + mark.height);
+    expect(body.y).toBeGreaterThanOrEqual(byline.y + byline.height - 1);
+  });
+
+  test.describe("in the dark theme", () => {
+    test("the conversation uses the card's dark colours", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const section: Locator = await openConversation(
+        page,
+        "theme=dark&thread=answered",
+      );
+
+      // Light text on the dark card.
+      expect(
+        (
+          await textLook(
+            section.getByRole("heading", {
+              level: 3,
+              name: CONVERSATION_TITLE,
+            }),
+          )
+        ).color,
+      ).toBe("rgb(248, 250, 252)");
+
+      // The composer is the card's surface with a slate frame, not a white box.
+      const composer: { background: string; border: string } =
+        await composerFrame(page).evaluate(
+          (element: Element): { background: string; border: string } => {
+            const style: CSSStyleDeclaration = window.getComputedStyle(element);
+            return {
+              background: style.backgroundColor,
+              border: style.borderTopColor,
+            };
+          },
+        );
+      expect(composer).toEqual({
+        background: "rgb(23, 32, 51)",
+        border: "rgb(100, 116, 139)",
+      });
+
+      // OneUptime AI's mark stays the solid indigo sparkle.
+      expect(
+        await answers(page)
+          .first()
+          .locator("[aria-hidden='true']")
+          .first()
+          .evaluate((mark: Element): string => {
+            return window.getComputedStyle(mark).backgroundColor;
+          }),
+      ).toBe(INDIGO_600);
+
+      // The hairline above the section is a dark rule.
+      expect(
+        await section.evaluate((element: Element): string => {
+          return window.getComputedStyle(element).borderTopColor;
+        }),
+      ).toBe("rgb(71, 85, 105)");
+    });
+
+    test("no responder's avatar stays a pale disc", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "theme=dark&thread=crowded");
+      await showEarlier(page).click();
+      await expect(questions(page)).toHaveCount(6);
+
+      const grounds: Array<string> = await questions(page).evaluateAll(
+        (items: Array<Element>): Array<string> => {
+          return items.map((item: Element): string => {
+            return window.getComputedStyle(
+              item.querySelector("[aria-hidden='true']") as Element,
+            ).backgroundColor;
+          });
+        },
+      );
+
+      expect(grounds).toHaveLength(6);
+      for (const ground of grounds) {
+        /*
+         * Every tone's dark rule is a translucent wash of its hue. A tone
+         * without one (lime was) keeps an opaque pastel: rgb(...), no alpha.
+         */
+        expect(ground).toMatch(/^rgba\(\d+, \d+, \d+, 0\.\d+\)$/);
+      }
+    });
+  });
+
+  test("moving to another incident never brings the previous thread along", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "thread=answered");
+    await expect(questions(page)).toHaveCount(2);
+    await composerBox(page).fill("A question for #1042 only");
+
+    await referenceLink(summarySection(page), "#1017").click();
+
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "Checkout API p95 latency above 2s",
+    );
+    await expect(page).toHaveURL(new RegExp(`${incidentPath(1017)}`));
+    // #1017 was never investigated and nobody has asked about it.
+    await expect(
+      investigationCard(page).getByLabel("Investigation status"),
+    ).toHaveText("Not investigated", { timeout: 30000 });
+    await expect(questions(page)).toHaveCount(0);
+    await expect(composerBox(page)).toHaveValue("");
+    await expect(suggestions(page).first()).toHaveText(ROOT_CAUSE_SUGGESTION);
+    await expect(investigationCard(page)).toHaveCount(1);
+
+    await page.goBack();
+
+    await expect(questions(page)).toHaveCount(2, { timeout: 30000 });
   });
 });
 
@@ -6323,6 +8019,105 @@ test.describe("screenshots", () => {
 
     for (const { file, state } of states) {
       await openCardState(page, state);
+      await page.mouse.move(0, 0);
+      await screenshotElement(investigationCard(page), file);
+    }
+  });
+
+  // The same one card with a conversation in it, in each thing a thread holds.
+  test("AI investigation card with a conversation", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const states: ReadonlyArray<{ file: string; state: CardState }> = [
+      {
+        file: "ai-card-conversation-answered",
+        state: {
+          name: "answered",
+          query: "thread=answered",
+          badge: "Completed",
+        },
+      },
+      {
+        file: "ai-card-conversation-none-answered",
+        state: {
+          name: "answered with nothing investigated",
+          query: "ai=none&thread=answered",
+          badge: "Not investigated",
+        },
+      },
+      {
+        file: "ai-card-conversation-working",
+        state: {
+          name: "working",
+          query: "ai=none&thread=working",
+          badge: "Not investigated",
+        },
+      },
+      {
+        file: "ai-card-conversation-approval",
+        state: {
+          name: "approval",
+          query: "ai=running&thread=approval",
+          badge: "Investigating…",
+        },
+      },
+      {
+        file: "ai-card-conversation-error",
+        state: {
+          name: "error",
+          query: "ai=failed&thread=error",
+          badge: "Did not finish",
+        },
+      },
+      {
+        file: "ai-card-conversation-crowded",
+        state: {
+          name: "crowded",
+          query: "ai=none&thread=crowded",
+          badge: "Not investigated",
+        },
+      },
+      {
+        file: "ai-card-conversation-dark",
+        state: {
+          name: "dark",
+          query: "theme=dark&thread=answered",
+          badge: "Completed",
+        },
+      },
+    ];
+
+    for (const { file, state } of states) {
+      await openCardState(page, state);
+      await expect(thread(page)).toBeVisible();
+      await page.mouse.move(0, 0);
+      await screenshotElement(investigationCard(page), file);
+    }
+  });
+
+  test("AI investigation card with a conversation on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    for (const { file, query, badge } of [
+      {
+        file: "ai-card-conversation-mobile",
+        query: "ai=none&thread=answered",
+        badge: "Not investigated",
+      },
+      {
+        file: "ai-card-none-mobile",
+        query: "ai=none",
+        badge: "Not investigated",
+      },
+    ]) {
+      await openCardState(page, { name: file, query, badge });
+      await expect(composerBox(page)).toBeVisible();
       await page.mouse.move(0, 0);
       await screenshotElement(investigationCard(page), file);
     }
