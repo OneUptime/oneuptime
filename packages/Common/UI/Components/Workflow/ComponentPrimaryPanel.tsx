@@ -94,9 +94,7 @@ export const getComponentPrimaryPanel: GetComponentPrimaryPanelFunction = (
                 workflowId: context.workflowId,
               }),
           )}
-          onResetUrl={
-            offersReset ? context.onResetWebhookSecretKey : undefined
-          }
+          onResetUrl={offersReset ? context.onResetWebhookSecretKey : undefined}
           resetDisabledReason={
             offersReset && !resetGate.isAllowed
               ? resetGate.disabledReason

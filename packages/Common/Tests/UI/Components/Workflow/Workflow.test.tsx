@@ -804,6 +804,62 @@ describe("Workflow builder: rendering and persistence boundaries", () => {
     );
   });
 
+  test("the webhook secret key, whether it may be seen, and its reset reach a step's settings", () => {
+    /*
+     * The Webhook trigger's settings show, copy and reset the URL built from
+     * the key. The canvas only carries what the builder page loaded and how
+     * it saves a new key; it decides nothing about either.
+     */
+    const trigger: Node<NodeDataProp> = makeNode(TRIGGER_METADATA);
+    const onResetWebhookSecretKey: MockFunction = getJestMockFunction();
+
+    renderBuilder({
+      initialNodes: [trigger],
+      webhookSecretKey: "secret-1",
+      canSeeWebhookSecretKey: true,
+      onResetWebhookSecretKey: onResetWebhookSecretKey,
+    });
+    fireEvent.click(screen.getByTestId(`workflow-node-${trigger.id}`));
+
+    expect(getSettingsProps().webhookSecretKey).toBe("secret-1");
+    expect(getSettingsProps().canSeeWebhookSecretKey).toBe(true);
+    expect(getSettingsProps().onResetWebhookSecretKey).toBe(
+      onResetWebhookSecretKey,
+    );
+  });
+
+  test("a key reset while a step's settings are open reaches them without reopening", () => {
+    const trigger: Node<NodeDataProp> = makeNode(TRIGGER_METADATA);
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [trigger],
+      webhookSecretKey: "secret-1",
+      canSeeWebhookSecretKey: true,
+    });
+
+    fireEvent.click(screen.getByTestId(`workflow-node-${trigger.id}`));
+
+    harness.view.rerender(
+      <Workflow {...harness.props} webhookSecretKey="secret-2" />,
+    );
+
+    expect(screen.getByTestId("step-settings")).toBeInTheDocument();
+    expect(getSettingsProps().webhookSecretKey).toBe("secret-2");
+  });
+
+  test("a builder that could not read the key says so to the settings", () => {
+    const trigger: Node<NodeDataProp> = makeNode(TRIGGER_METADATA);
+
+    renderBuilder({
+      initialNodes: [trigger],
+      webhookSecretKey: "",
+      canSeeWebhookSecretKey: false,
+    });
+    fireEvent.click(screen.getByTestId(`workflow-node-${trigger.id}`));
+
+    expect(getSettingsProps().canSeeWebhookSecretKey).toBe(false);
+    expect(getSettingsProps().webhookSecretKey).toBe("");
+  });
+
   test("the settings value picker receives only real graph steps", () => {
     const placeholder: Node = getPlaceholderTriggerNode();
     const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);

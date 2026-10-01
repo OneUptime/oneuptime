@@ -313,9 +313,7 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
       />
       <p>
         {translate(WebhookTriggerPanelCopy.keepPrivate)}
-        {canReset
-          ? ` ${translate(WebhookTriggerPanelCopy.resetIfLeaked)}`
-          : ""}
+        {canReset ? ` ${translate(WebhookTriggerPanelCopy.resetIfLeaked)}` : ""}
       </p>
     </div>
   );
