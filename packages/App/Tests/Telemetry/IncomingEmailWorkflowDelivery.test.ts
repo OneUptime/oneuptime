@@ -94,8 +94,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  INCOMING_EMAIL_TRIGGER_TRUNCATED_SUFFIX,
   IncomingEmailTriggerDeliveryStatus,
   IncomingEmailTriggerEmail,
+  MAX_INCOMING_EMAIL_TRIGGER_BODY_LENGTH,
 } from "Common/Types/Workflow/IncomingEmailTrigger";
 import API from "Common/Utils/API";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -232,6 +234,25 @@ describe("mail for a workflow's address", () => {
     expect(
       new Date(posted().data.email.receivedAt).getTime(),
     ).toBeGreaterThanOrEqual(before - 1000);
+  });
+
+  it("cuts a huge body before handing it over, so the request stays small", async () => {
+    const huge: string = "x".repeat(MAX_INCOMING_EMAIL_TRIGGER_BODY_LENGTH * 3);
+
+    await processIncomingEmailFromQueue(
+      job({ emailBody: huge, emailBodyHtml: `<p>${huge}</p>` }),
+    );
+
+    const email: IncomingEmailTriggerEmail = posted().data.email;
+
+    expect(email.body).toBe(
+      "x".repeat(MAX_INCOMING_EMAIL_TRIGGER_BODY_LENGTH) +
+        INCOMING_EMAIL_TRIGGER_TRUNCATED_SUFFIX,
+    );
+    expect(email.htmlBody!.length).toBe(
+      MAX_INCOMING_EMAIL_TRIGGER_BODY_LENGTH +
+        INCOMING_EMAIL_TRIGGER_TRUNCATED_SUFFIX.length,
+    );
   });
 
   it("never goes near the monitor path", async () => {

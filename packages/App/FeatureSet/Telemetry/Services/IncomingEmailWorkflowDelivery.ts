@@ -11,7 +11,7 @@ import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import APIException from "Common/Types/Exception/ApiException";
 import { JSONObject } from "Common/Types/JSON";
-import {
+import IncomingEmailTrigger, {
   INCOMING_EMAIL_TRIGGER_DELIVERY_PATH,
   IncomingEmailTriggerDeliveryStatus,
   IncomingEmailTriggerEmail,
@@ -47,7 +47,9 @@ export default class IncomingEmailWorkflowDelivery {
   /*
    * The email as the trigger takes it. Jobs queued before workflows received
    * email carry no address lists, so To falls back to the one address the
-   * monitor path has always read.
+   * monitor path has always read. The bodies are cut to what a run is handed
+   * here already: an email's parts can be far larger than the workflow
+   * service accepts in one request, and the trigger would cut them anyway.
    */
   public static getEmail(data: {
     emailData: IncomingEmailJobData;
@@ -70,8 +72,11 @@ export default class IncomingEmailWorkflowDelivery {
       to: to,
       cc: EmailAddressList.merge(emailData.emailCcAddresses),
       subject: emailData.emailSubject || "",
-      body: emailData.emailBody || "",
-      htmlBody: emailData.emailBodyHtml,
+      body: IncomingEmailTrigger.truncateBody(emailData.emailBody || ""),
+      htmlBody:
+        emailData.emailBodyHtml === undefined
+          ? undefined
+          : IncomingEmailTrigger.truncateBody(emailData.emailBodyHtml),
       headers: emailData.emailHeaders,
       attachments: emailData.attachments,
       receivedAt: OneUptimeDate.toString(receivedAt),

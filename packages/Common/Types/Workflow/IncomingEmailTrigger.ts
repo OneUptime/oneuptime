@@ -250,9 +250,14 @@ export default class IncomingEmailTrigger {
     return "";
   }
 
-  private static toBody(value: JSONValue | undefined): string {
-    const text: string = this.toText(value);
-
+  /*
+   * A body as long as a run may be handed: cut at
+   * MAX_INCOMING_EMAIL_TRIGGER_BODY_LENGTH, and saying so. Cutting a body
+   * that was already cut changes nothing, so the ingest worker cuts before it
+   * hands the email over - keeping a message with a huge HTML part well
+   * inside the request size limit - and the trigger cuts again, to be sure.
+   */
+  public static truncateBody(text: string): string {
     if (text.length <= MAX_INCOMING_EMAIL_TRIGGER_BODY_LENGTH) {
       return text;
     }
@@ -261,6 +266,10 @@ export default class IncomingEmailTrigger {
       text.slice(0, MAX_INCOMING_EMAIL_TRIGGER_BODY_LENGTH) +
       INCOMING_EMAIL_TRIGGER_TRUNCATED_SUFFIX
     );
+  }
+
+  private static toBody(value: JSONValue | undefined): string {
+    return this.truncateBody(this.toText(value));
   }
 
   /*

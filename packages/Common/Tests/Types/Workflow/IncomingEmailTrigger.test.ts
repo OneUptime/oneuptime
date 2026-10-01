@@ -244,6 +244,16 @@ describe("the values a run starts with, from an email", () => {
     );
   });
 
+  test("cutting a body that was already cut changes nothing, so the worker and the trigger can both cut", () => {
+    const huge: string = "c".repeat(MAX_INCOMING_EMAIL_TRIGGER_BODY_LENGTH * 2);
+    const once: string = IncomingEmailTrigger.truncateBody(huge);
+
+    expect(IncomingEmailTrigger.truncateBody(once)).toBe(once);
+    expect(
+      IncomingEmailTrigger.getReturnValues(email({ body: once }))["body"],
+    ).toBe(once);
+  });
+
   test("a body at the limit is kept whole", () => {
     const exact: string = "b".repeat(MAX_INCOMING_EMAIL_TRIGGER_BODY_LENGTH);
 
