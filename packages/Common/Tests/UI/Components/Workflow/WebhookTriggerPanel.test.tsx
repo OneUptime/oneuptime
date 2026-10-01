@@ -364,6 +364,9 @@ describe("Reset URL", () => {
     );
 
     expect(onResetUrl).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("webhook-trigger-reset-url")).not.toHaveClass(
+      "opacity-50",
+    );
     // Still open while the new key is being saved.
     expect(confirmDialog()).toBeInTheDocument();
     expect(
@@ -547,6 +550,8 @@ describe("Reset URL", () => {
     const button: HTMLElement = screen.getByTestId("webhook-trigger-reset-url");
 
     expect(button).toBeDisabled();
+    // Button keeps an outline button's colours when disabled; this dims it.
+    expect(button).toHaveClass("opacity-50");
 
     fireEvent.click(button);
 
@@ -684,6 +689,7 @@ describe("a workflow with no URL yet", () => {
     );
 
     expect(button).toBeDisabled();
+    expect(button).toHaveClass("opacity-50");
 
     fireEvent.click(button);
 

@@ -155,6 +155,12 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
     props.onResetUrl && !props.resetDisabledReason,
   );
 
+  /*
+   * Button keeps an outline button's colours when it is disabled, so a reset
+   * this user may not make would look like one they can. The tooltip says why.
+   */
+  const disabledLook: string = canReset ? "" : "opacity-50";
+
   type ChangeUrlFunction = () => Promise<boolean>;
 
   // Resolves whether the new key was saved; a failure is left in resetError.
@@ -225,41 +231,43 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
      * whose key could not be saved.
      */
     return section(
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p
-          className="text-sm text-gray-600"
-          data-testid="webhook-trigger-url-missing"
-        >
-          {translate(WebhookTriggerPanelCopy.missing)}
-        </p>
-        {props.onResetUrl ? (
-          <Button
-            title={WebhookTriggerPanelCopy.createUrl}
-            icon={IconProp.Add}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            buttonSize={ButtonSize.Small}
-            className="shrink-0 self-start sm:self-auto"
-            dataTestId="webhook-trigger-create-url"
-            isLoading={isResetting}
-            disabled={!canReset}
-            tooltip={props.resetDisabledReason}
-            onClick={() => {
-              changeUrl().catch(() => {
-                // changeUrl keeps every failure in resetError.
-              });
-            }}
-          />
-        ) : (
-          <></>
-        )}
+      <>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p
+            className="text-sm text-gray-600"
+            data-testid="webhook-trigger-url-missing"
+          >
+            {translate(WebhookTriggerPanelCopy.missing)}
+          </p>
+          {props.onResetUrl ? (
+            <Button
+              title={WebhookTriggerPanelCopy.createUrl}
+              icon={IconProp.Add}
+              buttonStyle={ButtonStyleType.OUTLINE}
+              buttonSize={ButtonSize.Small}
+              className={`shrink-0 self-start sm:self-auto ${disabledLook}`}
+              dataTestId="webhook-trigger-create-url"
+              isLoading={isResetting}
+              disabled={!canReset}
+              tooltip={props.resetDisabledReason}
+              onClick={() => {
+                changeUrl().catch(() => {
+                  // changeUrl keeps every failure in resetError.
+                });
+              }}
+            />
+          ) : (
+            <></>
+          )}
+        </div>
         {resetError ? (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="mt-2 text-sm text-red-600" role="alert">
             {resetError}
           </p>
         ) : (
           <></>
         )}
-      </div>,
+      </>,
     );
   }
 
@@ -416,7 +424,7 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
             return (
               <span
                 key={index}
-                className="mx-0.5 inline-block rounded border border-gray-200 bg-white px-1.5 font-mono text-[11px] font-semibold leading-5 text-gray-700"
+                className="inline-block rounded border border-gray-200 bg-white px-1.5 font-mono text-[11px] font-semibold leading-5 text-gray-700"
               >
                 {part}
               </span>
@@ -457,7 +465,7 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
             icon={IconProp.Refresh}
             buttonStyle={ButtonStyleType.DANGER_OUTLINE}
             buttonSize={ButtonSize.Small}
-            className="shrink-0 self-start sm:self-auto"
+            className={`shrink-0 self-start sm:self-auto ${disabledLook}`}
             dataTestId="webhook-trigger-reset-url"
             disabled={!canReset}
             tooltip={props.resetDisabledReason}
