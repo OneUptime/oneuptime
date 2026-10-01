@@ -2,9 +2,10 @@ import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Alert, { AlertType } from "../Alerts/Alert";
 import { ButtonStyleType } from "../Button/Button";
 import ButtonType from "../Button/ButtonTypes";
-import { FormProps } from "../Forms/BasicForm";
+import { BasicFormHandle, FormProps } from "../Forms/BasicForm";
 import ModelForm, {
   ComponentProps as ModelFormComponentProps,
+  FormType,
   ModelFormOnBeforeCreate,
 } from "../Forms/ModelForm";
 import FormValues from "../Forms/Types/FormValues";
@@ -40,9 +41,31 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
 ): ReactElement => {
   const [isFormLoading, setIsFormLoading] = useState<boolean>(false);
 
-  const [submitButtonText, setSubmitButtonText] = useState<string>(
-    props.submitButtonText || "Save",
+  const hasSteps: boolean = Boolean(
+    props.formProps.steps && props.formProps.steps.length > 0,
   );
+
+  /*
+   * A stepped EDIT form keeps its save button on every step. Every step of
+   * an edit form is filled in already, so there is nothing to walk through
+   * first - and a wizard whose only button read "Next" lost edits: someone
+   * changed a field on the first step, saw no Save, closed the dialog and
+   * the change was gone (dbb2f8920b took the Probe form's steps away for
+   * exactly that). So the submit button saves from wherever the user is,
+   * after validating every step; a plain Next walks on; and the step list
+   * opens any step, not only the ones already passed.
+   *
+   * A create form is unchanged: Next until the last step, then the action.
+   */
+  const isEditFormWithSteps: boolean =
+    hasSteps && props.formProps.formType === FormType.Update;
+
+  const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(true);
+
+  const submitButtonText: string =
+    isEditFormWithSteps || isOnLastFormStep
+      ? props.submitButtonText || "Save"
+      : "Next";
 
   const formRef: MutableRefObject<FormProps<FormValues<TBaseModel>>> =
     props.formRef ||
@@ -54,7 +77,7 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
 
   let modalWidth: ModalWidth = props.modalWidth || ModalWidth.Normal;
 
-  if (props.formProps.steps && props.formProps.steps.length > 0) {
+  if (hasSteps) {
     modalWidth = props.modalWidth || ModalWidth.Medium;
   }
 
@@ -68,8 +91,26 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
       description={props.description}
       disableSubmitButton={isFormLoading}
       onSubmit={async () => {
+        if (isEditFormWithSteps) {
+          (
+            formRef.current as unknown as BasicFormHandle | null
+          )?.submitAllSteps();
+          return;
+        }
+
         await formRef.current?.submitForm();
       }}
+      secondaryButton={
+        isEditFormWithSteps && !isOnLastFormStep
+          ? {
+              title: "Next",
+              dataTestId: "modal-footer-next-button",
+              onClick: () => {
+                void formRef.current?.submitForm();
+              },
+            }
+          : undefined
+      }
       error={error}
     >
       {!error ? (
@@ -84,12 +125,9 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
             modelAPI={props.modelAPI}
             modelType={props.modelType}
             onIsLastFormStep={(isLastFormStep: boolean) => {
-              if (isLastFormStep) {
-                setSubmitButtonText(props.submitButtonText || "Save");
-              } else {
-                setSubmitButtonText("Next");
-              }
+              setIsOnLastFormStep(isLastFormStep);
             }}
+            allowAnyStepNavigation={isEditFormWithSteps}
             modelIdToEdit={props.modelIdToEdit}
             hideSubmitButton={true}
             formRef={formRef}

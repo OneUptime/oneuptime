@@ -149,6 +149,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   modelAPI?: typeof ModelAPI | undefined;
   summary?: FormSummaryConfig | undefined;
   values?: FormValues<TBaseModel> | undefined;
+  // Any step can be opened from the step list (see BasicForm).
+  allowAnyStepNavigation?: boolean | undefined;
 }
 
 const ModelForm: <TBaseModel extends BaseModel>(
@@ -1243,6 +1245,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
             | undefined
         }
         summary={props.summary}
+        allowAnyStepNavigation={props.allowAnyStepNavigation}
       ></BasicModelForm>
     </div>
   );

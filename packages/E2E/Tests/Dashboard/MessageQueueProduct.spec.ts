@@ -779,11 +779,26 @@ test.describe.skip("Queues Product", () => {
       modal.getByPlaceholder("orders-prod", { exact: true }),
     ).toHaveCount(0);
 
-    // No name: the server names the queue after its destination.
     await modal
       .getByPlaceholder("orders.created", { exact: true })
       .fill(DESTINATION);
+
+    /*
+     * Three steps - Messaging System, Queue Info, Labels - with the footer's
+     * one submit button reading "Next" until the last.
+     */
     const submit: Locator = modal.getByTestId("modal-footer-submit-button");
+    await expect(submit).toHaveText("Next");
+    await submit.click();
+
+    // Queue Info. No name: the server names the queue after its destination.
+    await expect(
+      modal.getByPlaceholder("Order events", { exact: true }),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(submit).toHaveText("Next");
+    await submit.click();
+
+    // Labels, optional, and the last step.
     await expect(submit).toHaveText("Create Queue");
     await submit.click();
     await expect(modal).toBeHidden({ timeout: 30000 });

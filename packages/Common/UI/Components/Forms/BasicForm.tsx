@@ -63,6 +63,23 @@ export interface FormSummaryConfig {
   defaultStepName?: string | undefined;
 }
 
+/*
+ * What a form's ref offers beyond Formik's shape. A dialog that owns the
+ * buttons (hideSubmitButton) drives the form through it.
+ */
+export interface BasicFormHandle {
+  setFieldTouched: (fieldName: string, value: boolean) => void;
+  setFieldValue: (fieldName: string, value: JSONValue) => void;
+  // Validates the current step, then moves on - or submits on the last step.
+  submitForm: () => void;
+  /*
+   * Validates every step and submits from wherever the user is. A field
+   * that fails sends the user to the first step it is on, with its error
+   * showing. On a form without steps it is submitForm.
+   */
+  submitAllSteps: () => void;
+}
+
 export interface BaseComponentProps<T> {
   submitButtonStyleType?: ButtonStyleType | undefined;
   initialValues?: FormValues<T> | undefined;
@@ -94,6 +111,14 @@ export interface BaseComponentProps<T> {
   onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
   showSubmitButtonOnlyIfSomethingChanged?: boolean | undefined;
   summary?: FormSummaryConfig | undefined;
+  /*
+   * Every step can be opened from the step list, not only the ones already
+   * walked through. For a form whose steps are all filled in already - an
+   * edit form - so a change on the third step does not mean clicking Next
+   * twice to reach it. Pair it with submitAllSteps, which validates the
+   * steps the user skipped.
+   */
+  allowAnyStepNavigation?: boolean | undefined;
 }
 
 export interface ComponentProps<T extends GenericObject>
@@ -264,11 +289,12 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       validate(currentValue);
     }, [currentValue]);
 
-    useImperativeHandle(ref, () => {
+    useImperativeHandle(ref, (): BasicFormHandle => {
       return {
         setFieldTouched,
         setFieldValue,
         submitForm,
+        submitAllSteps,
       };
     }, [
       currentValue,
@@ -401,6 +427,88 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       }
     };
 
+    /*
+     * Hands the form's values to onSubmit, normalised for the API. Called once
+     * every step that is going to be validated has been.
+     */
+    const submitValues: () => void = (): void => {
+      const values: FormValues<T> = refCurrentValue.current;
+
+      for (const field of formFields) {
+        if (field.fieldType === FormFieldSchemaType.Toggle) {
+          const fieldName: string = field.name!;
+          if (!(values as any)[fieldName]) {
+            (values as any)[fieldName] = false;
+          }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Email) {
+          const fieldName: string = field.name!;
+          if ((values as any)[fieldName]) {
+            (values as any)[fieldName] = ((values as any)[fieldName] as string)
+              .toString()
+              .toLowerCase();
+          }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.MultiSelectDropdown) {
+          const fieldName: string = field.name!;
+
+          if (
+            (values as any)[fieldName] &&
+            (values as any)[fieldName].length > 0 &&
+            (values as any)[fieldName][0]["value"]
+          ) {
+            (values as any)[fieldName] = (
+              (values as any)[fieldName] as Array<DropdownOption>
+            ).map((item: DropdownOption) => {
+              return item.value;
+            });
+          }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Dropdown) {
+          const fieldName: string = field.name!;
+          if (
+            (values as any)[fieldName] &&
+            (values as any)[fieldName]["value"]
+          ) {
+            (values as any)[fieldName] = (values as any)[fieldName]["value"];
+          }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Password) {
+          const fieldName: string = field.name!;
+          if (
+            (values as any)[fieldName] &&
+            typeof (values as any)[fieldName] === Typeof.String
+          ) {
+            (values as any)[fieldName] = new HashedString(
+              (values as any)[fieldName],
+              false,
+            );
+          }
+        }
+      }
+
+      const analyticsName: string | undefined = FormAnalyticsName.resolve(
+        props.name,
+      );
+
+      /*
+       * Unnamed forms are embedded sub-forms (filter builders, argument
+       * editors) rather than conversions. Skip them instead of reporting an
+       * event named after a missing prop.
+       */
+      if (analyticsName) {
+        UiAnalytics.capture("FORM SUBMIT: " + analyticsName);
+      }
+
+      props.onSubmit(values, () => {
+        setDidSomethingChange(false);
+      });
+    };
+
     const submitForm: () => void = (): void => {
       // check for any boolean values and if they don't exist in values - mark them as false.
 
@@ -430,83 +538,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           (steps[steps.length - 1] as FormStep<T>).id === currentFormStepId) ||
         currentFormStepId === null
       ) {
-        const values: FormValues<T> = refCurrentValue.current;
-
-        for (const field of formFields) {
-          if (field.fieldType === FormFieldSchemaType.Toggle) {
-            const fieldName: string = field.name!;
-            if (!(values as any)[fieldName]) {
-              (values as any)[fieldName] = false;
-            }
-          }
-
-          if (field.fieldType === FormFieldSchemaType.Email) {
-            const fieldName: string = field.name!;
-            if ((values as any)[fieldName]) {
-              (values as any)[fieldName] = (
-                (values as any)[fieldName] as string
-              )
-                .toString()
-                .toLowerCase();
-            }
-          }
-
-          if (field.fieldType === FormFieldSchemaType.MultiSelectDropdown) {
-            const fieldName: string = field.name!;
-
-            if (
-              (values as any)[fieldName] &&
-              (values as any)[fieldName].length > 0 &&
-              (values as any)[fieldName][0]["value"]
-            ) {
-              (values as any)[fieldName] = (
-                (values as any)[fieldName] as Array<DropdownOption>
-              ).map((item: DropdownOption) => {
-                return item.value;
-              });
-            }
-          }
-
-          if (field.fieldType === FormFieldSchemaType.Dropdown) {
-            const fieldName: string = field.name!;
-            if (
-              (values as any)[fieldName] &&
-              (values as any)[fieldName]["value"]
-            ) {
-              (values as any)[fieldName] = (values as any)[fieldName]["value"];
-            }
-          }
-
-          if (field.fieldType === FormFieldSchemaType.Password) {
-            const fieldName: string = field.name!;
-            if (
-              (values as any)[fieldName] &&
-              typeof (values as any)[fieldName] === Typeof.String
-            ) {
-              (values as any)[fieldName] = new HashedString(
-                (values as any)[fieldName],
-                false,
-              );
-            }
-          }
-        }
-
-        const analyticsName: string | undefined = FormAnalyticsName.resolve(
-          props.name,
-        );
-
-        /*
-         * Unnamed forms are embedded sub-forms (filter builders, argument
-         * editors) rather than conversions. Skip them instead of reporting an
-         * event named after a missing prop.
-         */
-        if (analyticsName) {
-          UiAnalytics.capture("FORM SUBMIT: " + analyticsName);
-        }
-
-        props.onSubmit(values, () => {
-          setDidSomethingChange(false);
-        });
+        submitValues();
       } else if (steps && steps.length > 0) {
         const currentStepIndex: number = steps.findIndex(
           (step: FormStep<T>) => {
@@ -517,6 +549,83 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         if (currentStepIndex > -1) {
           setCurrentFormStepId((steps[currentStepIndex + 1] as FormStep<T>).id);
         }
+      }
+    };
+
+    const submitAllSteps: () => void = (): void => {
+      const steps: Array<FormStep<T>> | undefined = getVisibleFormSteps();
+
+      if (!steps || steps.length === 0 || currentFormStepId === null) {
+        submitForm();
+        return;
+      }
+
+      setValidationAttempt((attempt: number) => {
+        return attempt + 1;
+      });
+
+      /*
+       * Every field on a step the user can reach - a step hidden by its
+       * showIf is not one, and neither are its fields - validated as if it
+       * were the step on screen.
+       */
+      const fieldsOnVisibleSteps: Fields<T> = formFields.filter(
+        (field: Field<T>): boolean => {
+          return steps.some((step: FormStep<T>): boolean => {
+            return step.id === field.stepId;
+          });
+        },
+      );
+
+      const validationErrors: Dictionary<string> = Validation.validate({
+        values: refCurrentValue.current,
+        formFields: fieldsOnVisibleSteps,
+        currentFormStepId: null,
+        onValidate: props.onValidate || undefined,
+      });
+
+      if (props.onFormValidationErrorChanged) {
+        props.onFormValidationErrorChanged(
+          Object.keys(validationErrors).length !== 0,
+        );
+      }
+
+      isSubmitting.current = true;
+
+      const failingFieldNames: Array<string> = Object.keys(validationErrors);
+
+      if (failingFieldNames.length === 0) {
+        submitValues();
+        return;
+      }
+
+      // Show every failing field's error, on whichever step it is.
+      const touchedFields: Dictionary<boolean> = {};
+
+      for (const fieldName of failingFieldNames) {
+        touchedFields[fieldName] = true;
+      }
+
+      setTouched({ ...touched, ...touchedFields });
+      setErrors(validationErrors);
+
+      // And go to the first step that has one, unless the user is on it.
+      const firstStepWithAnError: FormStep<T> | undefined = steps.find(
+        (step: FormStep<T>): boolean => {
+          return fieldsOnVisibleSteps.some((field: Field<T>): boolean => {
+            return (
+              field.stepId === step.id &&
+              failingFieldNames.includes(getFieldName(field))
+            );
+          });
+        },
+      );
+
+      if (
+        firstStepWithAnError &&
+        firstStepWithAnError.id !== currentFormStepId
+      ) {
+        setCurrentFormStepId(firstStepWithAnError.id);
       }
     };
 
@@ -681,6 +790,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     currentFormStepId={currentFormStepId}
                     steps={formSteps}
                     formValues={refCurrentValue.current}
+                    allowAnyStep={props.allowAnyStepNavigation || false}
                     onClick={(step: FormStep<T>) => {
                       setCurrentFormStepId(step.id);
                     }}

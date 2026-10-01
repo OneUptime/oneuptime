@@ -148,6 +148,11 @@ test.describe("Telemetry ingestion key details", () => {
     await modal().getByPlaceholder("storefront-web", { exact: true }).focus();
   };
 
+  /*
+   * The edit form walks Details, Access & Limits and Browser Settings, and
+   * the origins are on the last. Next walks there; Save Changes works from
+   * any step of an edit form, so saving from there is what a person does.
+   */
   const openEditForm: () => Promise<void> = async (): Promise<void> => {
     await ctx.page
       .getByRole("button", {
@@ -156,7 +161,21 @@ test.describe("Telemetry ingestion key details", () => {
       })
       .click();
     await expect(modal()).toBeVisible();
+
+    const next: Locator = modal().getByTestId("modal-footer-next-button");
+
+    await expect(
+      modal().getByPlaceholder("Telemetry Ingestion Key Name", {
+        exact: true,
+      }),
+    ).toBeVisible({ timeout: 30000 });
+    await next.click();
+    await expect(modal().getByRole("switch", { name: /^Enabled/ })).toBeVisible(
+      { timeout: 30000 },
+    );
+    await next.click();
     await expect(originsInput()).toBeVisible({ timeout: 30000 });
+    await expect(next).toHaveCount(0);
   };
 
   const saveButton: () => Locator = (): Locator => {
