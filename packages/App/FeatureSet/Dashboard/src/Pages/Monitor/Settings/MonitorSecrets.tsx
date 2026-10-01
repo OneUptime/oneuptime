@@ -8,6 +8,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -143,7 +144,7 @@ const MonitorSecrets: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            showIf: (item: MonitorSecret): boolean => {
+            showIf: (item: FormValues<MonitorSecret>): boolean => {
               return !item.isAvailableToAllMonitors;
             },
             description:
@@ -163,7 +164,7 @@ const MonitorSecrets: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            showIf: (item: MonitorSecret): boolean => {
+            showIf: (item: FormValues<MonitorSecret>): boolean => {
               return !item.isAvailableToAllMonitors;
             },
             description:
