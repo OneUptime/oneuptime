@@ -235,6 +235,10 @@
       "invalidLink": "此取消订阅链接无效。链接可能不完整，或者订阅可能已被删除。要取消订阅，请使用此状态页最近发送的消息中的取消订阅链接。",
       "failed": "无法取消订阅，请重试。",
       "loadFailed": "无法加载此取消订阅链接，请稍后重试。"
+    },
+    "steps": {
+      "details": "详情",
+      "preferences": "偏好设置"
     }
   },
   "accounts": {
@@ -327,5 +331,6 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}}不能小于 {{minValue}}。",
   "{{field}} is required.": "{{field}}为必填项。",
   "{{field}} should match {{matchField}}": "{{field}}必须与 {{matchField}} 匹配",
-  "Email is not valid.": "电子邮件无效。"
+  "Email is not valid.": "电子邮件无效。",
+  "Next": "下一步"
 }

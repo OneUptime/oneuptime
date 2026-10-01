@@ -6,7 +6,10 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
 import SubscribeSideMenu from "./SideMenu";
-import { SubscribePageProps } from "./SubscribePageUtils";
+import {
+  SubscribePageProps,
+  getSubscribeFormSteps,
+} from "./SubscribePageUtils";
 import Route from "Common/Types/API/Route";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import URL from "Common/Types/API/URL";
@@ -21,6 +24,7 @@ import ModelForm, {
   ModelField,
 } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
@@ -114,6 +118,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         subscriberPhone: true,
       },
       title: t("subscribe.sms.yourPhoneNumber"),
+      stepId: "details",
       fieldType: FormFieldSchemaType.Phone,
       required: true,
       placeholder: t("subscribe.sms.placeholder"),
@@ -127,6 +132,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         isSubscribedToAllResources: true,
       },
       title: t("subscribe.resources.all"),
+      stepId: "preferences",
       description: t("subscribe.resources.allDescription"),
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
@@ -138,6 +144,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         statusPageResources: true,
       },
       title: t("subscribe.resources.select"),
+      stepId: "preferences",
       description: t("subscribe.resources.selectDescription"),
       fieldType: FormFieldSchemaType.CategoryCheckbox,
       required: false,
@@ -154,6 +161,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         isSubscribedToAllEventTypes: true,
       },
       title: t("subscribe.eventTypes.all"),
+      stepId: "preferences",
       description: t("subscribe.eventTypes.allDescription"),
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
@@ -165,6 +173,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         statusPageEventTypes: true,
       },
       title: t("subscribe.eventTypes.select"),
+      stepId: "preferences",
       description: t("subscribe.eventTypes.selectDescription"),
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
       required: false,
@@ -175,6 +184,19 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     });
   }
 
+  const formSteps: Array<FormStep<StatusPageSubscriber>> | undefined =
+    getSubscribeFormSteps({
+      allowSubscribersToChooseResources: Boolean(
+        props.allowSubscribersToChooseResources,
+      ),
+      allowSubscribersToChooseEventTypes: Boolean(
+        props.allowSubscribersToChooseEventTypes,
+      ),
+      translate: (key: string): string => {
+        return t(key);
+      },
+    });
+
   const getNewSubscriptionContentElement: GetReactElementFunction =
     (): ReactElement => {
       return (
@@ -183,6 +205,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           modelAPI={StatusPageModelAPI}
           id="sms-form"
           name="Status Page > SMS Subscribe"
+          steps={formSteps}
           fields={fields}
           createOrUpdateApiUrl={URL.fromString(
             STATUS_PAGE_API_URL.toString(),

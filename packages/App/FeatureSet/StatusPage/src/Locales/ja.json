@@ -235,6 +235,10 @@
       "invalidLink": "この購読解除リンクは無効です。リンクが不完全であるか、購読が削除された可能性があります。購読を解除するには、このステータスページからの最近のメッセージにある購読解除リンクを使用してください。",
       "failed": "購読を解除できませんでした。もう一度お試しください。",
       "loadFailed": "この購読解除リンクを読み込めませんでした。しばらくしてからもう一度お試しください。"
+    },
+    "steps": {
+      "details": "詳細",
+      "preferences": "設定"
     }
   },
   "accounts": {
@@ -327,5 +331,6 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}}は{{minValue}}以上で入力してください。",
   "{{field}} is required.": "{{field}}は必須です。",
   "{{field}} should match {{matchField}}": "{{field}}は{{matchField}}と一致する必要があります",
-  "Email is not valid.": "メールアドレスが無効です。"
+  "Email is not valid.": "メールアドレスが無効です。",
+  "Next": "次へ"
 }
