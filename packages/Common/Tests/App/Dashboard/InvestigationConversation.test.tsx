@@ -1974,6 +1974,81 @@ describe("InvestigationConversation — an answer's parts", () => {
     expect(stopped.parentElement!.querySelector("svg")).not.toBeNull();
   });
 
+  test.each([
+    [AIChatMessageStatus.Error, "The AI provider is unavailable."],
+    [AIChatMessageStatus.Cancelled, "Stopped by Sam."],
+  ])(
+    "an answer that ended as %s still lists what it had already done",
+    async (status: AIChatMessageStatus, text: string) => {
+      renderAnswer({
+        status,
+        content: status === AIChatMessageStatus.Cancelled ? text : "",
+        ...(status === AIChatMessageStatus.Error ? { errorMessage: text } : {}),
+        userId: SAM,
+        name: "Sam Lee",
+        toolActions: [
+          {
+            id: "call-1",
+            toolName: "acknowledge_incident",
+            title: "Acknowledge incident #42",
+            arguments: {},
+            isMutation: true,
+            requiresApproval: false,
+            status: AIChatToolActionStatus.Executed,
+          },
+          {
+            id: "call-2",
+            toolName: "add_note",
+            title: "Add a private note",
+            arguments: {},
+            isMutation: true,
+            requiresApproval: false,
+            status: AIChatToolActionStatus.Skipped,
+          },
+        ],
+      });
+      await flush();
+
+      // The incident was changed before the answer ended: the thread says so.
+      expect(screen.getByText(text)).toBeVisible();
+      expect(
+        within(screen.getByRole("list", { name: "Actions" }))
+          .getAllByRole("listitem")
+          .map((item: HTMLElement): string => {
+            return item.textContent || "";
+          }),
+      ).toEqual([
+        "Acknowledge incident #42 · Done",
+        "Add a private note · Skipped",
+      ]);
+      // After what went wrong, not before it.
+      expect(
+        screen
+          .getByText(text)
+          .compareDocumentPosition(
+            screen.getByRole("list", { name: "Actions" }),
+          ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      // No sources, no Copy and nothing to approve on an answer that ended.
+      expect(screen.queryByRole("button", { name: "Copy" })).toBeNull();
+      expect(
+        screen.queryByRole("group", { name: "Actions waiting for approval" }),
+      ).toBeNull();
+    },
+  );
+
+  test("a failed or stopped answer with nothing done has no actions list", async () => {
+    renderAnswer({
+      status: AIChatMessageStatus.Error,
+      errorMessage: "The AI provider is unavailable.",
+      userId: SAM,
+      name: "Sam Lee",
+    });
+    await flush();
+
+    expect(screen.queryByRole("list", { name: "Actions" })).toBeNull();
+  });
+
   test("the steps of an answer being written hang from a rule, with no box", async () => {
     routeResponses({
       thread: () => {

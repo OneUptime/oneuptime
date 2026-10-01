@@ -70,12 +70,7 @@ export interface ComponentProps {
   investigationStage?: AIInvestigationStage | undefined;
 }
 
-/*
- * One heading and one description style for the section, the same ones the
- * card's other rows use ("Act on this investigation", the verdict), so the
- * conversation reads as the next row of the card and not as a card of its
- * own: it used to open with an icon tile and its own header.
- */
+// The section's title, and the name of the text box it ends with.
 export const CONVERSATION_TITLE: string = `Ask ${AI_DISPLAY_NAME}`;
 
 const PersonAvatar: FunctionComponent<{
@@ -403,13 +398,37 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
       },
     );
 
+    /*
+     * What the answer has already done. It is listed under a stopped or a
+     * failed answer too: an action that ran before the answer ended still
+     * changed something, and the thread is where a responder finds out.
+     */
+    const settledActionList: ReactElement =
+      settledActions.length > 0 ? (
+        <ul
+          role="list"
+          aria-label="Actions"
+          data-testid="investigation-conversation-actions"
+          className="space-y-0.5"
+        >
+          {settledActions.map(renderSettledAction)}
+        </ul>
+      ) : (
+        <></>
+      );
+
     if (message.status === AIChatMessageStatus.Cancelled) {
       return (
-        <div className="mt-0.5 flex items-start gap-2 text-sm leading-6 text-gray-500">
-          <div className="flex h-6 flex-shrink-0 items-center">
-            <Icon icon={IconProp.StopCircle} className="h-4 w-4" />
+        <div className="mt-0.5 space-y-3">
+          <div className="flex items-start gap-2 text-sm leading-6 text-gray-500">
+            <div className="flex h-6 flex-shrink-0 items-center">
+              <Icon icon={IconProp.StopCircle} className="h-4 w-4" />
+            </div>
+            <p className="min-w-0 break-words">
+              {message.content || "Stopped."}
+            </p>
           </div>
-          <p className="min-w-0 break-words">{message.content || "Stopped."}</p>
+          {settledActionList}
         </div>
       );
     }
@@ -420,21 +439,25 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
      */
     if (message.status === AIChatMessageStatus.Error) {
       return (
-        <div
-          data-testid="investigation-conversation-answer-error"
-          className="mt-0.5 flex items-start gap-2 text-sm leading-6"
-        >
-          <div className="flex h-6 flex-shrink-0 items-center">
-            <Icon icon={IconProp.Alert} className="h-4 w-4 text-red-600" />
+        <div className="mt-0.5 space-y-3">
+          <div
+            data-testid="investigation-conversation-answer-error"
+            className="flex items-start gap-2 text-sm leading-6"
+          >
+            <div className="flex h-6 flex-shrink-0 items-center">
+              <Icon icon={IconProp.Alert} className="h-4 w-4 text-red-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="break-words text-gray-900">
+                {message.errorMessage ||
+                  "Something went wrong while answering."}
+              </p>
+              <p className="text-xs leading-5 text-gray-500">
+                Ask again to retry.
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="break-words text-gray-900">
-              {message.errorMessage || "Something went wrong while answering."}
-            </p>
-            <p className="text-xs leading-5 text-gray-500">
-              Ask again to retry.
-            </p>
-          </div>
+          {settledActionList}
         </div>
       );
     }
@@ -523,18 +546,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {settledActions.length > 0 ? (
-          <ul
-            role="list"
-            aria-label="Actions"
-            data-testid="investigation-conversation-actions"
-            className="space-y-0.5"
-          >
-            {settledActions.map(renderSettledAction)}
-          </ul>
-        ) : (
-          <></>
-        )}
+        {settledActionList}
 
         {/*
           The one place the card raises its voice: OneUptime AI is about to
@@ -622,6 +634,12 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * The title and the quieter line under it are styled exactly like the
+   * card's other rows ("Act on this investigation", the verdict), so the
+   * conversation reads as the card's next row. It used to open with an
+   * indigo icon tile in front of its title: a card header inside the card.
+   */
   const header: ReactElement = (
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
