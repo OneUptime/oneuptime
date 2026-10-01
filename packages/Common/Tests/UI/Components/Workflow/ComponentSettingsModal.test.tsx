@@ -866,6 +866,30 @@ describe("Manual trigger: says how it is started", () => {
   });
 });
 
+/*
+ * "I dont see value picker here, just like we have on Create One Incident
+ * component fields... not have things like 'Pick value from other component
+ * or from variable'." - the maintainer, on this very dialog for the Log step.
+ */
+describe("A step's settings have the value picker in them", () => {
+  test("the Log step's Value has { } in it, and no links under it", () => {
+    renderModal(makeNode(ComponentID.Log, "log-1"));
+
+    const settings: HTMLElement = section("settings");
+
+    expect(
+      within(settings).getByTestId("workflow-argument-value-insert-value"),
+    ).toHaveAccessibleName("Insert a value from an earlier step or a variable");
+    expect(within(settings).queryByText(/Pick this value/i)).toBeNull();
+    expect(
+      within(settings).queryByRole("button", { name: "component" }),
+    ).toBeNull();
+    expect(
+      within(settings).queryByRole("button", { name: "variable." }),
+    ).toBeNull();
+  });
+});
+
 describe("Steps with settings open on them", () => {
   test("Schedule opens on its schedule", () => {
     renderModal(makeNode(ComponentID.Schedule, "schedule-1"));

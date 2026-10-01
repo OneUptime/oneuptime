@@ -315,10 +315,13 @@ export const ValuePickerProvider: FunctionComponent<
     Record<string, ChildrenState>
   >({});
 
-  // Read inside loadChildren without making it change on every load.
-  const childrenRef: React.MutableRefObject<Record<string, ChildrenState>> =
-    useRef<Record<string, ChildrenState>>({});
-  childrenRef.current = childrenByReference;
+  /*
+   * What has been asked for, kept outside state: two asks before the next
+   * render would both see an idle entry in state, and load it twice.
+   */
+  const requestedRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set<string>());
 
   const getChildren: (item: ValueSuggestion) => ChildrenState = useCallback(
     (item: ValueSuggestion): ChildrenState => {
@@ -331,16 +334,12 @@ export const ValuePickerProvider: FunctionComponent<
     (item: ValueSuggestion): void => {
       const loader: (() => Promise<Array<ValueSuggestion>>) | undefined =
         item.drillIn?.loadChildren;
-      const current: ChildrenState | undefined =
-        childrenRef.current[item.reference];
 
-      if (
-        !loader ||
-        current?.status === ChildrenStatus.Loading ||
-        current?.status === ChildrenStatus.Loaded
-      ) {
+      if (!loader || requestedRef.current.has(item.reference)) {
         return;
       }
+
+      requestedRef.current.add(item.reference);
 
       setChildrenByReference((previous: Record<string, ChildrenState>) => {
         return {
@@ -360,6 +359,9 @@ export const ValuePickerProvider: FunctionComponent<
             };
           });
         } catch (err: unknown) {
+          // Asked again - the list opened again - it is tried again.
+          requestedRef.current.delete(item.reference);
+
           setChildrenByReference((previous: Record<string, ChildrenState>) => {
             return {
               ...previous,

@@ -870,6 +870,85 @@ describe("Workflow builder: rendering and persistence boundaries", () => {
     expect(getSettingsProps().graphComponents[0]?.id).toBe("write-log-1");
   });
 
+  /*
+   * The value picker only offers what exists when a step runs: the trigger
+   * and the steps before it. The builder is the one that knows the edges.
+   */
+  test("a step's settings are told which steps run before it and after it", () => {
+    const trigger: Node<NodeDataProp> = makeNode(TRIGGER_METADATA);
+    const first: Node<NodeDataProp> = makeNode(ACTION_METADATA, 1);
+    const second: Node<NodeDataProp> = makeNode(ACTION_METADATA, 2);
+    const third: Node<NodeDataProp> = makeNode(ACTION_METADATA, 3);
+    const edges: Array<Edge> = [
+      { id: "e1", source: trigger.id, target: first.id },
+      { id: "e2", source: first.id, target: second.id },
+      { id: "e3", source: second.id, target: third.id },
+    ];
+
+    renderBuilder({
+      initialNodes: [trigger, first, second, third],
+      initialEdges: edges,
+    });
+    fireEvent.click(screen.getByTestId(`workflow-node-${second.id}`));
+
+    const valueSources: NonNullable<SettingsProps["valueSources"]> =
+      getSettingsProps().valueSources!;
+
+    expect(
+      valueSources.upstream.map((step: NodeDataProp) => {
+        return step.id;
+      }),
+    ).toEqual(["manual-trigger-1", "write-log-1"]);
+    expect(valueSources.downstreamIds).toEqual(["write-log-3"]);
+    expect(valueSources.hasIncomingConnection).toBe(true);
+  });
+
+  test("a step nothing connects to yet can read the trigger, and is told it is not connected", () => {
+    const trigger: Node<NodeDataProp> = makeNode(TRIGGER_METADATA);
+    const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+
+    renderBuilder({ initialNodes: [trigger, action], initialEdges: [] });
+    fireEvent.click(screen.getByTestId(`workflow-node-${action.id}`));
+
+    const valueSources: NonNullable<SettingsProps["valueSources"]> =
+      getSettingsProps().valueSources!;
+
+    expect(
+      valueSources.upstream.map((step: NodeDataProp) => {
+        return step.id;
+      }),
+    ).toEqual(["manual-trigger-1"]);
+    expect(valueSources.hasIncomingConnection).toBe(false);
+  });
+
+  test("an edge drawn on the canvas counts the next time a step's settings open", () => {
+    const trigger: Node<NodeDataProp> = makeNode(TRIGGER_METADATA);
+    const first: Node<NodeDataProp> = makeNode(ACTION_METADATA, 1);
+    const second: Node<NodeDataProp> = makeNode(ACTION_METADATA, 2);
+
+    renderBuilder({
+      initialNodes: [trigger, first, second],
+      initialEdges: [{ id: "e1", source: trigger.id, target: first.id }],
+    });
+
+    act(() => {
+      mockFlowProps?.onConnect?.({
+        source: first.id,
+        target: second.id,
+        sourceHandle: "out",
+        targetHandle: "in",
+      });
+    });
+
+    fireEvent.click(screen.getByTestId(`workflow-node-${second.id}`));
+
+    expect(
+      getSettingsProps().valueSources!.upstream.map((step: NodeDataProp) => {
+        return step.id;
+      }),
+    ).toEqual(["manual-trigger-1", "write-log-1"]);
+  });
+
   test("an issue-panel request opens the matching step and acknowledges missing steps", () => {
     const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
     const onStepOpened: MockFunction = getJestMockFunction();

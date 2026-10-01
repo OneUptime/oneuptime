@@ -369,6 +369,31 @@ describe("a chip is one thing", () => {
  * handler cancels the event; user-event then leaves its own clipboard alone.
  * What the handler put there is the DataTransfer user-event hands back.
  */
+describe("Ctrl+Home and Ctrl+End", () => {
+  /*
+   * Firefox's Ctrl+End stopped before a chip that ends the value. The start
+   * and the end are offsets known exactly, so the caret goes there directly.
+   * (Home and End within a line are checked in a real browser, in
+   * packages/E2E/ValuePicker.)
+   */
+  test("go to the very start and the very end, past any chip", async () => {
+    const value: string = `${DEPLOY_ENV} middle\nend ${BODY}`;
+    const { user, editor } = setup({ initial: value });
+
+    placeCaret(editor, 12);
+    await user.keyboard("{Control>}{End}{/Control}");
+
+    expect(readTemplateSelection(editor)).toEqual({
+      start: value.length,
+      end: value.length,
+    });
+
+    await user.keyboard("{Control>}{Home}{/Control}");
+
+    expect(readTemplateSelection(editor)).toEqual({ start: 0, end: 0 });
+  });
+});
+
 describe("the clipboard carries references, not chip words", () => {
   const value: string = `Body: ${BODY} end`;
 
