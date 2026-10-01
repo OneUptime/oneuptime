@@ -17,6 +17,16 @@ import {
   escapeToolResultContent,
   stripFabricatedCitationMarkers,
 } from "./ChatAgentRunner";
+import {
+  AgentWrapUpReason,
+  buildSkippedToolCallText,
+  buildWrapUpInstruction,
+  compactAgentContext,
+  CONTINUE_ANSWER_INSTRUCTION,
+  joinAnswerContinuation,
+  MAX_ANSWER_CONTINUATIONS,
+} from "./AgentContextCompactor";
+import AIAgentRunLimitsHelper from "../../../../Types/AI/AIAgentRunLimits";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
@@ -90,11 +100,13 @@ export interface ObservabilityAssistantRequest {
   /*
    * Optional budget overrides. Autonomous investigations get more room than an
    * interactive chat-ops answer, which must return in a single quick message.
-   * Omitted values fall back to the interactive defaults.
+   * Omitted values fall back to the interactive defaults; a null wall clock
+   * means the run has no time limit at all (autonomous investigations, unless
+   * the project configured one).
    */
   maxLlmCalls?: number | undefined;
   maxToolCalls?: number | undefined;
-  maxWallClockMs?: number | undefined;
+  maxWallClockMs?: number | null | undefined;
   maxOutputTokens?: number | undefined;
   /*
    * Optional live-narration hook, fired for each LLM/tool step as the loop runs.
@@ -158,9 +170,21 @@ export default class ObservabilityAssistant {
 
     const maxLlmCalls: number = request.maxLlmCalls ?? MAX_LLM_CALLS;
     const maxToolCalls: number = request.maxToolCalls ?? MAX_TOOL_CALLS;
-    const maxWallClockMs: number = request.maxWallClockMs ?? MAX_WALL_CLOCK_MS;
+    // Null is "no time limit"; undefined is "the interactive default".
+    const maxWallClockMs: number | undefined =
+      request.maxWallClockMs === null
+        ? undefined
+        : request.maxWallClockMs ?? MAX_WALL_CLOCK_MS;
     const maxOutputTokens: number =
       request.maxOutputTokens ?? MAX_OUTPUT_TOKENS;
+
+    const isTimeUp: () => boolean = (): boolean => {
+      return AIAgentRunLimitsHelper.isTimeUp({
+        maxWallClockMs,
+        startedAtMs,
+        nowMs: Date.now(),
+      });
+    };
 
     // Best-effort live-narration emitter — never throws into the loop.
     const emitStep: (
@@ -234,20 +258,41 @@ export default class ObservabilityAssistant {
     let providerName: string | undefined = undefined;
     let modelName: string | undefined = undefined;
     let finalContent: string = "";
+    // Set once the model has been told to wrap up; it is only told once.
+    let wrapUpReason: AgentWrapUpReason | null = null;
+    // Follow-up calls that finish an answer the output limit cut off.
+    let continuationCount: number = 0;
 
     while (true) {
-      const budgetExhausted: boolean =
-        llmCallCount >= maxLlmCalls - 1 ||
-        toolCallCount >= maxToolCalls ||
-        Date.now() - startedAtMs >= maxWallClockMs;
+      const isContinuingAnswer: boolean = continuationCount > 0;
 
-      if (budgetExhausted) {
-        messages.push({
-          role: "user",
-          content:
-            "Your query budget for this turn is exhausted. Answer now with the findings so far, clearly stating what you could and could not verify. Do not request more tools.",
-        });
+      if (wrapUpReason === null && !isContinuingAnswer) {
+        if (isTimeUp()) {
+          wrapUpReason = "time_limit";
+        } else if (
+          llmCallCount >= maxLlmCalls - 1 ||
+          toolCallCount >= maxToolCalls
+        ) {
+          wrapUpReason = "step_limit";
+        }
+
+        if (wrapUpReason !== null) {
+          messages.push({
+            role: "user",
+            content: buildWrapUpInstruction(wrapUpReason),
+          });
+        }
       }
+
+      const budgetExhausted: boolean =
+        wrapUpReason !== null || isContinuingAnswer;
+
+      /*
+       * A long run keeps its newest evidence in full and elides the oldest
+       * tool results once the transcript outgrows the context window,
+       * instead of failing on an oversized request.
+       */
+      compactAgentContext(messages);
 
       await emitStep({ type: "llm_started" });
 
@@ -312,15 +357,15 @@ export default class ObservabilityAssistant {
 
         for (const toolCall of response.toolCalls) {
           const overBudget: boolean =
-            toolCallCount >= maxToolCalls ||
-            Date.now() - startedAtMs >= maxWallClockMs;
+            toolCallCount >= maxToolCalls || isTimeUp();
 
           if (overBudget) {
             messages.push({
               role: "tool",
               toolCallId: toolCall.id,
-              content:
-                "Skipped: the query budget for this turn is exhausted. Answer with the data you already have.",
+              content: buildSkippedToolCallText(
+                isTimeUp() ? "time_limit" : "step_limit",
+              ),
             });
             continue;
           }
@@ -427,7 +472,22 @@ export default class ObservabilityAssistant {
         continue;
       }
 
-      finalContent = response.content;
+      finalContent = joinAnswerContinuation(finalContent, response.content);
+
+      /*
+       * An answer the output-token limit cut off is finished with follow-up
+       * calls instead of being published half-written.
+       */
+      if (
+        response.stopReason === "length" &&
+        continuationCount < MAX_ANSWER_CONTINUATIONS
+      ) {
+        continuationCount++;
+        messages.push({ role: "assistant", content: response.content });
+        messages.push({ role: "user", content: CONTINUE_ANSWER_INSTRUCTION });
+        continue;
+      }
+
       break;
     }
 

@@ -80,6 +80,8 @@
       "servicesDescription": "Catalogiseer elke service die je draait.",
       "databasesTitle": "Databases",
       "databasesDescription": "Elke database die uw applicaties bevragen, met engine-metrieken.",
+      "queuesTitle": "Wachtrijen",
+      "queuesDescription": "Berichtwachtrijen en topics uit uw traces en brokers.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Bewaak Kubernetes-clusters.",
       "dockerTitle": "Docker",

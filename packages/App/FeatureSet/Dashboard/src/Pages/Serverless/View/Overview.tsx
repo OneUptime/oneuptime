@@ -405,6 +405,7 @@ const ServerlessFunctionOverview: FunctionComponent<
               (fn.functionIdentifier as string | undefined) ||
                 (fn.name as string | undefined) ||
                 "",
+              fn.cloudPlatform as string | undefined,
             )}
             documentationRoute={RouteUtil.populateRouteParams(
               RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION] as Route,

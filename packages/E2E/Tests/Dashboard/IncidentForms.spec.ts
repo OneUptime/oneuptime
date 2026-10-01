@@ -836,7 +836,7 @@ test.describe("Incident forms", () => {
     ctx.formName = `Customer Problem Report ${ctx.unique}`;
     ctx.templateName = `Customer Report Template ${ctx.unique}`;
     ctx.labelName = `Reported by customers ${ctx.unique}`;
-    ctx.teamName = `Checkout Responders ${ctx.unique}`;
+    ctx.teamName = "Admin";
     ctx.reportTitle = `Checkout is down ${ctx.unique}`;
     ctx.reportDescription = `Every payment fails with an error page ${ctx.unique}`;
   });
@@ -936,18 +936,28 @@ test.describe("Incident forms", () => {
      * alone would prove little on the dashboard's Declare Incident page (E2):
      * whoever declares an incident there becomes one of its owners anyway.
      * The team gets there only as the template's owner.
+     *
+     * Every project starts with an Admin team, which the admin who created
+     * the project is not in. It is used instead of a new team because
+     * creating a team needs the Scale plan on a billing install, and this
+     * project is on Growth.
      */
-    const team: JSONish = await createItem({
+    const teams: Array<JSONish> = await listItems({
       page,
       projectId: ctx.projectId,
       path: "/api/team",
-      item: {
-        projectId: ctx.projectId,
-        name: ctx.teamName,
-      },
+      select: { _id: true, name: true },
     });
-    ctx.teamId = toId(team["_id"]);
-    expect(ctx.teamId, "the team should have been created").not.toBe("");
+    const adminTeams: Array<JSONish> = teams.filter((team: JSONish) => {
+      return team["name"] === ctx.teamName;
+    });
+
+    expect(
+      adminTeams,
+      `every project should start with one "${ctx.teamName}" team`,
+    ).toHaveLength(1);
+    ctx.teamId = toId(adminTeams[0]!["_id"]);
+    expect(ctx.teamId, "the Admin team should have an id").not.toBe("");
 
     /*
      * The template's Custom Fields on Create (TEMPLATE semantics): Impact

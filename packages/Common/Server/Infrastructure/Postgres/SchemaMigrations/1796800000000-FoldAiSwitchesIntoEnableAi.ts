@@ -60,10 +60,10 @@ export const TABLES_WITH_AI_REMEDIATION_MODE: Array<string> = [
   "DatabaseServer",
 ];
 
-export class FoldAiSwitchesIntoEnableAi1796600000000
+export class FoldAiSwitchesIntoEnableAi1796800000000
   implements MigrationInterface
 {
-  public name: string = "FoldAiSwitchesIntoEnableAi1796600000000";
+  public name: string = "FoldAiSwitchesIntoEnableAi1796800000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 1. Auto-remediation was off: nothing starts without a human.

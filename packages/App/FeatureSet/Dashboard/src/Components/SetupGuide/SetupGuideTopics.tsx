@@ -95,7 +95,7 @@ const SetupGuideTopics: FunctionComponent<ComponentProps> = (
             {props.description}
           </span>
         </span>
-        <span className="hidden flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 sm:inline-flex">
+        <span className="max-sm:hidden flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 sm:inline-flex">
           {topicCountLabel}
         </span>
         <Icon

@@ -2349,6 +2349,60 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Incident Investigation Time Limit (Minutes)",
+    description:
+      "Stop an incident AI investigation after this many minutes and report what it found. Unset (the default) means no time limit — the investigation runs until it is done.",
+    example: 15,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public incidentAiInvestigationTimeLimitInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Alert Investigation Time Limit (Minutes)",
+    description:
+      "Stop an alert AI investigation after this many minutes and report what it found. Unset (the default) means no time limit — the investigation runs until it is done.",
+    example: 15,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public alertAiInvestigationTimeLimitInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
   @TableColumn({

@@ -1,4 +1,4 @@
-import { BASE_URL } from "../../Config";
+import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
 import {
   gotoProjectPage,
   registerAndCreateProject,
@@ -61,9 +61,15 @@ test.describe("First run: a brand-new project", () => {
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
     test.setTimeout(300000);
     page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    /*
+     * On a billing install, Growth: the Free plan cannot even read on-call
+     * schedules (OnCallDutyPolicySchedule's read needs Growth), so their
+     * empty list would be an upgrade notice instead.
+     */
     projectId = await registerAndCreateProject({
       page,
       projectNamePrefix: "First Run",
+      preferredPlanName: IS_BILLING_ENABLED ? "Growth" : undefined,
     });
   });
 

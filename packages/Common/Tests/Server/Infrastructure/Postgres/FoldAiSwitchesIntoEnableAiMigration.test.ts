@@ -1,8 +1,8 @@
 import {
-  FoldAiSwitchesIntoEnableAi1796600000000,
+  FoldAiSwitchesIntoEnableAi1796800000000,
   IS_KUBERNETES_AGENT_RUNNER_SQL,
   TABLES_WITH_AI_REMEDIATION_MODE,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796600000000-FoldAiSwitchesIntoEnableAi";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796800000000-FoldAiSwitchesIntoEnableAi";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Entities from "../../../../Models/DatabaseModels/Index";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -35,10 +35,10 @@ import type { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs"
  * against real rows.
  */
 
-const OWN_CLASS_NAME: string = "FoldAiSwitchesIntoEnableAi1796600000000";
+const OWN_CLASS_NAME: string = "FoldAiSwitchesIntoEnableAi1796800000000";
 
 const MIGRATION_FILE_NAME: string =
-  "1796600000000-FoldAiSwitchesIntoEnableAi.ts";
+  "1796800000000-FoldAiSwitchesIntoEnableAi.ts";
 
 const MIGRATIONS_DIRECTORY: string = path.join(
   __dirname,
@@ -74,7 +74,7 @@ const recordQueries: RecordQueriesFunction = async (
     },
   } as unknown as QueryRunner;
 
-  await new FoldAiSwitchesIntoEnableAi1796600000000()[direction](queryRunner);
+  await new FoldAiSwitchesIntoEnableAi1796800000000()[direction](queryRunner);
 
   return statements;
 };
@@ -152,7 +152,7 @@ describe("FoldAiSwitchesIntoEnableAi migration - identity and registration", () 
     expect(source).toMatch(
       new RegExp(`public name: string =\\s*"${OWN_CLASS_NAME}";`),
     );
-    expect(new FoldAiSwitchesIntoEnableAi1796600000000().name).toBe(
+    expect(new FoldAiSwitchesIntoEnableAi1796800000000().name).toBe(
       OWN_CLASS_NAME,
     );
   });

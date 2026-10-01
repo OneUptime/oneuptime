@@ -185,6 +185,7 @@ const INCIDENT_FIELDS: Array<string> = [
   "incidentInvestigationMinimumSeverity",
   "incidentInvestigationDedupeWindowMinutes",
   "incidentAiMaxConcurrentInvestigations",
+  "incidentAiInvestigationTimeLimitInMinutes",
   "incidentAiDailyAutonomousTokenLimit",
   "enableIncidentInstrumentationFixTasks",
   "enableAutomaticIncidentCodeFixes",
@@ -196,6 +197,7 @@ const ALERT_FIELDS: Array<string> = [
   "alertInvestigationMinimumSeverity",
   "alertInvestigationDedupeWindowMinutes",
   "alertAiMaxConcurrentInvestigations",
+  "alertAiInvestigationTimeLimitInMinutes",
   "alertAiDailyAutonomousTokenLimit",
   "enableAlertInstrumentationFixTasks",
   "enableAutomaticAlertCodeFixes",
@@ -239,6 +241,22 @@ describe("incident and alert AI settings separation", () => {
 
     for (const legacyField of LEGACY_SHARED_FIELDS) {
       expect(allPageFields).not.toContain(legacyField);
+    }
+  });
+
+  test("each lane's investigation time limit is an optional Limits setting", () => {
+    for (const [page, field] of [
+      [INCIDENT_PAGE, "incidentAiInvestigationTimeLimitInMinutes"],
+      [ALERT_PAGE, "alertAiInvestigationTimeLimitInMinutes"],
+    ] as Array<[SettingsPage, string]>) {
+      const configured: Array<ConfiguredField> = page.formFields.filter(
+        (formField: ConfiguredField): boolean => {
+          return formField.name === field;
+        },
+      );
+
+      expect(configured).toHaveLength(1);
+      expect(configured[0]!.stepId).toBe("limits");
     }
   });
 

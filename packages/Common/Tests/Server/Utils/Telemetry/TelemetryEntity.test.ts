@@ -1318,6 +1318,29 @@ describe("database.server is membership-only (never resolver-emitted)", () => {
   });
 });
 
+describe("message.queue is membership-only (never resolver-emitted)", () => {
+  test("a broker receiver resource derives no message.queue entity", () => {
+    expect(
+      typesFor({
+        "rabbitmq.queue.name": "orders",
+        "rabbitmq.vhost.name": "/",
+        "rabbitmq.node.name": "rabbit@node-1",
+      }),
+    ).not.toContain(EntityType.MessageQueue);
+  });
+
+  test("an app resource that carries messaging attributes derives none either", () => {
+    expect(
+      typesFor({
+        "service.name": "checkout",
+        "messaging.system": "kafka",
+        "messaging.destination.name": "orders",
+        "server.address": "kafka-1",
+      }),
+    ).not.toContain(EntityType.MessageQueue);
+  });
+});
+
 describe("descriptive attributes & labels (never identity-bearing)", () => {
   test("host: allowlisted descriptive attributes are emitted, key unchanged", () => {
     const bare: ExtractedEntity | undefined = entityOfType(

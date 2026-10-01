@@ -80,6 +80,8 @@
       "servicesDescription": "अपनी हर सेवा को कैटलॉग करें।",
       "databasesTitle": "डेटाबेस",
       "databasesDescription": "आपके एप्लिकेशन जिन डेटाबेस से क्वेरी करते हैं, इंजन मेट्रिक्स के साथ।",
+      "queuesTitle": "कतारें",
+      "queuesDescription": "आपके ट्रेस और ब्रोकर से संदेश कतारें और टॉपिक।",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Kubernetes क्लस्टर्स की निगरानी करें।",
       "dockerTitle": "Docker",

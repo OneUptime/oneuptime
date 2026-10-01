@@ -18,6 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import ResourceConnectionGuideCard from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionGuideCard";
 import {
   ResourceConnectionGuide,
@@ -184,7 +185,7 @@ describe("ResourceConnectionGuideCard for a resource nothing has reported for", 
   });
 
   test("the copy button copies the command", async () => {
-    const copy: jest.SpiedFunction<typeof Clipboard.copyToClipboard> = jest
+    const copy: SpyInstance<typeof Clipboard.copyToClipboard> = jest
       .spyOn(Clipboard, "copyToClipboard")
       .mockResolvedValue(true);
 
@@ -200,7 +201,7 @@ describe("ResourceConnectionGuideCard for a resource nothing has reported for", 
   });
 
   test("links to the resource's full setup guide", () => {
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {});
 

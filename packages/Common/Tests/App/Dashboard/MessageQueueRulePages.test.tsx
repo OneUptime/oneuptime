@@ -1,0 +1,278 @@
+import "@testing-library/jest-dom";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import { cleanup, render } from "@testing-library/react";
+import * as React from "react";
+import { MemoryRouter } from "react-router-dom";
+import getJestMockFunction, { MockFunction } from "../../MockType";
+import { PROJECT_ID, goTo } from "./SideMenuHarness";
+
+/*
+ * The Queues label and owner rule pages. Each is one rule table that is
+ * also the rule's own view page: routed as a view (ruleViewModelType set
+ * to ITS model) it shows the rule named by the URL's last segment. The
+ * tables are captured so the view wiring, the routes and — the part the
+ * rule engines depend on — the match-criteria fields are asserted exactly.
+ */
+
+const labelRuleTableMock: MockFunction = getJestMockFunction();
+const ruleTableMock: MockFunction = getJestMockFunction();
+
+jest.mock("../../../UI/Components/LabelRule/LabelRuleTable", () => {
+  return {
+    __esModule: true,
+    default: (props: unknown) => {
+      labelRuleTableMock(props);
+      return <div data-testid="label-rule-table" />;
+    },
+  };
+});
+
+jest.mock("../../../UI/Components/RuleRun/RuleTable", () => {
+  return {
+    __esModule: true,
+    default: (props: unknown) => {
+      ruleTableMock(props);
+      return <div data-testid="rule-table" />;
+    },
+  };
+});
+
+import MessageQueueLabelRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Settings/LabelRules";
+import MessageQueueOwnerRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Settings/OwnerRules";
+import RuleSettingsPageProps from "../../../../App/FeatureSet/Dashboard/src/Pages/RuleSettingsPageProps";
+import MessageQueueLabelRule from "../../../Models/DatabaseModels/MessageQueueLabelRule";
+import MessageQueueOwnerRule from "../../../Models/DatabaseModels/MessageQueueOwnerRule";
+import Label from "../../../Models/DatabaseModels/Label";
+import Team from "../../../Models/DatabaseModels/Team";
+import Route from "../../../Types/API/Route";
+import ObjectID from "../../../Types/ObjectID";
+import RULE_CRITERIA_FIELDS_BY_MODEL from "../../../Types/Rules/RuleCriteriaFieldRegistry";
+
+const RULE_ID: string = "9c4a2b1e-7d3f-4e8a-9b6c-1f2e3d4c5b6a";
+
+const MATCH_CRITERIA: Array<string> = [
+  "messageQueueLabels",
+  "messageQueueNamePattern",
+  "messageQueueDescriptionPattern",
+  "messageQueueSystemPattern",
+];
+
+type Props = Record<string, any>;
+
+function renderPage(
+  Page: React.FunctionComponent<RuleSettingsPageProps>,
+  url: string,
+  ruleViewModelType?: RuleSettingsPageProps["ruleViewModelType"],
+): void {
+  goTo(url);
+  render(
+    <MemoryRouter initialEntries={[url]}>
+      <Page
+        pageRoute={new Route(url)}
+        currentProject={null}
+        hasPaymentMethod={true}
+        ruleViewModelType={ruleViewModelType}
+      />
+    </MemoryRouter>,
+  );
+}
+
+function fieldsInStep(props: Props, stepId: string): Array<string> {
+  return props["formFields"]
+    .filter((field: Props): boolean => {
+      return field["stepId"] === stepId;
+    })
+    .map((field: Props): string => {
+      return Object.keys(field["field"])[0]!;
+    });
+}
+
+beforeEach(() => {
+  labelRuleTableMock.mockReset();
+  ruleTableMock.mockReset();
+});
+
+afterEach(() => {
+  cleanup();
+});
+
+describe.each([
+  {
+    name: "label rules",
+    Page: MessageQueueLabelRulesPage,
+    model: MessageQueueLabelRule,
+    otherModel: MessageQueueOwnerRule,
+    table: labelRuleTableMock,
+    listPath: "settings/label-rules",
+    tableId: "message-queue-label-rules-table",
+    actionStep: "labels",
+    actionFields: ["labelsToAdd"],
+  },
+  {
+    name: "owner rules",
+    Page: MessageQueueOwnerRulesPage,
+    model: MessageQueueOwnerRule,
+    otherModel: MessageQueueLabelRule,
+    table: ruleTableMock,
+    listPath: "settings/owner-rules",
+    tableId: "message-queue-owner-rules-table",
+    actionStep: "owners",
+    actionFields: ["ownerTeams", "ownerUsers"],
+  },
+])("the queue $name page", (page: any) => {
+  const listUrl: string = `/dashboard/${PROJECT_ID}/queues/${page.listPath}`;
+  const viewUrl: string = `${listUrl}/${RULE_ID}`;
+
+  function tableProps(): Props {
+    expect(page.table).toHaveBeenCalled();
+    return page.table.mock.calls[page.table.mock.calls.length - 1]![0] as Props;
+  }
+
+  test("lists the rules of its own model", () => {
+    renderPage(page.Page, listUrl);
+
+    expect(tableProps()["modelType"]).toBe(page.model);
+    expect(tableProps()["id"]).toBe(page.tableId);
+    expect(tableProps()["userPreferencesKey"]).toBe(page.tableId);
+    expect(tableProps()["isCreateable"]).toBe(true);
+    expect(tableProps()["isEditable"]).toBe(true);
+    expect(tableProps()["isDeleteable"]).toBe(true);
+  });
+
+  test("as the list, it views no rule", () => {
+    renderPage(page.Page, listUrl);
+
+    expect(tableProps()["viewRuleId"]).toBeUndefined();
+  });
+
+  test("routed as its own view page, it shows the rule the URL names", () => {
+    renderPage(page.Page, viewUrl, page.model);
+
+    expect(tableProps()["viewRuleId"]).toEqual(new ObjectID(RULE_ID));
+  });
+
+  test("routed as ANOTHER model's view page, it stays the list", () => {
+    renderPage(page.Page, viewUrl, page.otherModel);
+
+    expect(tableProps()["viewRuleId"]).toBeUndefined();
+  });
+
+  test("its list route and a rule's view route are the product's URLs", () => {
+    renderPage(page.Page, listUrl);
+
+    expect(String(tableProps()["listRoute"])).toBe(listUrl);
+
+    const rule: any = new page.model();
+    rule.id = new ObjectID(RULE_ID);
+    expect(String(tableProps()["getRuleViewRoute"](rule))).toBe(viewUrl);
+  });
+
+  test("its match-criteria step lists exactly what the rule engine evaluates", () => {
+    renderPage(page.Page, listUrl);
+
+    expect(fieldsInStep(tableProps(), "match-criteria")).toEqual(
+      MATCH_CRITERIA,
+    );
+    expect(
+      RULE_CRITERIA_FIELDS_BY_MODEL[
+        page.model.name as keyof typeof RULE_CRITERIA_FIELDS_BY_MODEL
+      ],
+    ).toEqual(MATCH_CRITERIA);
+    expect(
+      tableProps()["formSteps"].map((step: Props): string => {
+        return step["id"];
+      }),
+    ).toEqual(["basic-info", "match-criteria", page.actionStep]);
+  });
+
+  test("its action step is the rule's action", () => {
+    renderPage(page.Page, listUrl);
+
+    expect(fieldsInStep(tableProps(), page.actionStep)).toEqual(
+      page.actionFields,
+    );
+  });
+
+  test("the labels criterion picks from the project's labels", () => {
+    renderPage(page.Page, listUrl);
+
+    const labels: Props = tableProps()["formFields"].find(
+      (field: Props): boolean => {
+        return Boolean(field["field"]["messageQueueLabels"]);
+      },
+    );
+    expect(labels["dropdownModal"]).toEqual({
+      type: Label,
+      labelField: "name",
+      valueField: "_id",
+    });
+    expect(labels["required"]).toBe(false);
+  });
+
+  test("the system pattern explains both spellings it is matched against", () => {
+    renderPage(page.Page, listUrl);
+
+    const system: Props = tableProps()["formFields"].find(
+      (field: Props): boolean => {
+        return Boolean(field["field"]["messageQueueSystemPattern"]);
+      },
+    );
+    expect(system["title"]).toBe("Messaging System Pattern");
+    expect(system["placeholder"]).toBe("^kafka$");
+    expect(system["description"]).toContain("messaging.system value");
+    expect(system["description"]).toContain("display name");
+    for (const pattern of MATCH_CRITERIA) {
+      const criterion: Props = tableProps()["formFields"].find(
+        (field: Props): boolean => {
+          return Boolean(field["field"][pattern]);
+        },
+      );
+      expect(criterion["required"]).toBe(false);
+    }
+  });
+
+  test("its help explains the criteria under a Match Criteria heading", () => {
+    renderPage(page.Page, listUrl);
+
+    const help: Props = tableProps()["helpContent"];
+    expect(help["markdown"]).toMatch(/^### Match Criteria$/m);
+    expect(help["markdown"]).toContain("**Messaging System Pattern**");
+    expect(help["markdown"]).toContain("^kafka$");
+  });
+});
+
+describe("the owner rules page's owners", () => {
+  test("teams come from the project's teams, and owners are notified by default", () => {
+    renderPage(
+      MessageQueueOwnerRulesPage,
+      `/dashboard/${PROJECT_ID}/queues/settings/owner-rules`,
+    );
+
+    const props: Props = ruleTableMock.mock.calls[0]![0] as Props;
+    const teams: Props = props["formFields"].find((field: Props): boolean => {
+      return Boolean(field["field"]["ownerTeams"]);
+    });
+    expect(teams["dropdownModal"]).toEqual({
+      type: Team,
+      labelField: "name",
+      valueField: "_id",
+    });
+    const users: Props = props["formFields"].find((field: Props): boolean => {
+      return Boolean(field["field"]["ownerUsers"]);
+    });
+    expect(typeof users["fetchDropdownOptions"]).toBe("function");
+    expect(fieldsInStep(props, "basic-info")).toEqual([
+      "name",
+      "description",
+      "isEnabled",
+      "notifyOwners",
+    ]);
+  });
+});

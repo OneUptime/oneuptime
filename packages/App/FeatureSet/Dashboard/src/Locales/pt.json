@@ -80,6 +80,8 @@
       "servicesDescription": "Catalogue cada serviço que você executa.",
       "databasesTitle": "Bancos de dados",
       "databasesDescription": "Todos os bancos de dados que seus aplicativos consultam, com métricas do mecanismo.",
+      "queuesTitle": "Filas",
+      "queuesDescription": "Filas de mensagens e tópicos dos seus traços e brokers.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Monitore clusters Kubernetes.",
       "dockerTitle": "Docker",

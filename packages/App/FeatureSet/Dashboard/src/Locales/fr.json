@@ -80,6 +80,8 @@
       "servicesDescription": "Cataloguez chaque service que vous exécutez.",
       "databasesTitle": "Bases de données",
       "databasesDescription": "Chaque base de données interrogée par vos applications, avec les métriques du moteur.",
+      "queuesTitle": "Files d'attente",
+      "queuesDescription": "Files de messages et topics issus de vos traces et brokers.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Surveillez les clusters Kubernetes.",
       "dockerTitle": "Docker",

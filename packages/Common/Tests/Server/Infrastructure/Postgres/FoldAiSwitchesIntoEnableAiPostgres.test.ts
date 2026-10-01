@@ -1,8 +1,8 @@
 import {
-  FoldAiSwitchesIntoEnableAi1796600000000,
+  FoldAiSwitchesIntoEnableAi1796800000000,
   IS_KUBERNETES_AGENT_RUNNER_SQL,
   TABLES_WITH_AI_REMEDIATION_MODE,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796600000000-FoldAiSwitchesIntoEnableAi";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796800000000-FoldAiSwitchesIntoEnableAi";
 import { Service as RunnerServiceClass } from "../../../../Server/Services/RunnerService";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -449,7 +449,7 @@ describePostgres("FoldAiSwitchesIntoEnableAi against Postgres", () => {
     );
 
     await runInSchema(async (queryRunner: QueryRunner) => {
-      await new FoldAiSwitchesIntoEnableAi1796600000000().down(queryRunner);
+      await new FoldAiSwitchesIntoEnableAi1796800000000().down(queryRunner);
     });
 
     columnsAfterDown = await projectColumns();
@@ -483,7 +483,7 @@ describePostgres("FoldAiSwitchesIntoEnableAi against Postgres", () => {
     });
 
     await runInSchema(async (queryRunner: QueryRunner) => {
-      await new FoldAiSwitchesIntoEnableAi1796600000000().up(queryRunner);
+      await new FoldAiSwitchesIntoEnableAi1796800000000().up(queryRunner);
     });
 
     columnsAfterUp = await projectColumns();

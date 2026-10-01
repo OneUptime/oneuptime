@@ -5,15 +5,15 @@ import {
   read,
 } from "./KubernetesAiAgentDocsSupport";
 import {
-  FoldAiSwitchesIntoEnableAi1796600000000,
+  FoldAiSwitchesIntoEnableAi1796800000000,
   TABLES_WITH_AI_REMEDIATION_MODE,
-} from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1796600000000-FoldAiSwitchesIntoEnableAi";
+} from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1796800000000-FoldAiSwitchesIntoEnableAi";
 import { describe, expect, it } from "@jest/globals";
 
 /*
  * The upgrade note for folding "Enable Auto-Remediation" and "Enable AI
  * Command Execution (for Runners)" into Enable AI, checked against the
- * migration that does it (FoldAiSwitchesIntoEnableAi1796600000000): what
+ * migration that does it (FoldAiSwitchesIntoEnableAi1796800000000): what
  * the note promises the upgrade changes - and does not change - is what the
  * migration's statements do.
  */
@@ -28,7 +28,7 @@ const NOTE_HEADING: string = "### Enable AI is the only AI switch";
  * would name a type up() does not accept.
  */
 type MigrationQueryRunner = Parameters<
-  FoldAiSwitchesIntoEnableAi1796600000000["up"]
+  FoldAiSwitchesIntoEnableAi1796800000000["up"]
 >[0];
 
 type RecordStatementsFunction = () => Promise<Array<string>>;
@@ -45,7 +45,7 @@ const recordUpStatements: RecordStatementsFunction = async (): Promise<
     },
   } as unknown as MigrationQueryRunner;
 
-  await new FoldAiSwitchesIntoEnableAi1796600000000().up(queryRunner);
+  await new FoldAiSwitchesIntoEnableAi1796800000000().up(queryRunner);
 
   return statements;
 };
