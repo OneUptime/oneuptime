@@ -75,6 +75,7 @@ import ExtendMetricBaselineHourlyTTL from "./ExtendMetricBaselineHourlyTTL";
 import AddTelemetryStorageCompression from "./AddTelemetryStorageCompression";
 import MigrateTelemetryToV3PrimaryEntityId from "./MigrateTelemetryToV3PrimaryEntityId";
 import AddTtlOnlyDropPartsToTelemetryV3 from "./AddTtlOnlyDropPartsToTelemetryV3";
+import DropTtlOnlyDropPartsFromMixedRetentionTables from "./DropTtlOnlyDropPartsFromMixedRetentionTables";
 import AddGorillaCodecToMetricValues from "./AddGorillaCodecToMetricValues";
 import AddUInt64TimestampsToTelemetryV3 from "./AddUInt64TimestampsToTelemetryV3";
 import AddUInt64ToRemainingTelemetryColumns from "./AddUInt64ToRemainingTelemetryColumns";
@@ -541,6 +542,18 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Invitations of people who have not joined are left pending. Idempotent.
    */
   new AcceptPendingTeamInvitationsOfProjectMembers(),
+  /*
+   * Clears ttl_only_drop_parts on the metric tables and on LogItemV3, which
+   * AddTtlOnlyDropPartsToTelemetryV3 and the models used to set: a metric
+   * partition mixes telemetry retention with monitor retention, and a log
+   * partition mixes it with the per-severity override, so neither expires
+   * as a whole and TTL evicts nothing. Its only ordering requirement is to
+   * come after that migration (boot schema-sync creates the *Local tables it
+   * alters before any data migration runs), so it sits here rather than in
+   * the last slot AddAuditLogMcpClientColumns asserts for itself.
+   * Cluster-aware, so it actually reaches an existing install.
+   */
+  new DropTtlOnlyDropPartsFromMixedRetentionTables(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
