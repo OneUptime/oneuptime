@@ -22,12 +22,13 @@ enum AIRunType {
    * investigates read-only and proposes a command plan for one-click
    * approval; in FullAuto mode it may also execute commands inline, but
    * only ones that pass the structural policy guard and match the rule's
-   * operator-authored allowlist (or the cluster's Fixes mode). Rule runs
-   * require Project.enableAiCommandExecution (Bash/SSH on Runners, and any
-   * kubectl a rule composes) and a target Runner with canRunAiCommands. A
-   * cluster round's consent is the cluster's Fixes mode plus the Kubernetes
-   * agent chart's write access; it needs the project opt-in only when the
-   * cluster is reached through a Runner with a Kubernetes credential.
+   * operator-authored allowlist (or the cluster's Fixes mode). Every run
+   * requires Project.enableAi, the project's only AI switch. Rule runs also
+   * need a target Runner with canRunAiCommands (Bash/SSH on Runners, and
+   * any kubectl a rule composes). A cluster round's consent is the
+   * cluster's Fixes mode plus the write access of whatever reaches the
+   * cluster: the Kubernetes agent chart's RBAC, or the Kubernetes
+   * credential of a Runner bound to the cluster.
    */
   RemediationExecution = "RemediationExecution",
 }

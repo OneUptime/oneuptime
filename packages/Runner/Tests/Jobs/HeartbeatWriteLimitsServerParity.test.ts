@@ -103,8 +103,6 @@ const CLUSTER_IDENTIFIER: string = "prod-us";
 
 const READY_GATES: KubernetesClusterAiAccessProjectGates = {
   isAiEnabled: true,
-  isAutoRemediationEnabled: true,
-  isAiCommandExecutionEnabled: true,
   hasLlmProvider: true,
 };
 

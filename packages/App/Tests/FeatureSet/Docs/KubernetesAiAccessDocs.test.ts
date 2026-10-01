@@ -805,7 +805,12 @@ describe("the AI SRE page's cluster-access section", () => {
     expect(section).toMatch(NEVER_RULE_RUNNER_PATTERN);
   });
 
-  it("says fixes through the AI agent do not need Enable AI Command Execution, and a Runner still does", () => {
+  /*
+   * Enable AI is the project's only AI switch. "Enable AI Command
+   * Execution" used to be a second one for fixes through a Runner; it was
+   * folded into Enable AI, so neither route may send anyone looking for it.
+   */
+  it("says fixes need no project switch but Enable AI, through the AI agent or a Runner", () => {
     const fixes: string = getSection(
       section,
       "### Letting AI fix what it finds",
@@ -816,11 +821,16 @@ describe("the AI SRE page's cluster-access section", () => {
     );
 
     expect(fixes).toContain(
-      "Fixes through the Kubernetes AI agent do not need the project's **Enable AI Command Execution** switch",
+      "The only project switch fixes need is **Enable AI** (Project Settings > AI > AI Features), which is on unless someone turned it off.",
     );
     expect(runner).toContain(
-      "Fixes through a Runner also need the project's **Enable AI Command Execution** switch (Project Settings > AI > AI Features)",
+      "Fixes through a Runner need no project switch beyond **Enable AI**.",
     );
+
+    for (const copy of [fixes, runner]) {
+      expect(copy).not.toMatch(/AI command execution/i);
+      expect(copy).not.toMatch(/enable auto[- ]?remediation/i);
+    }
   });
 
   it("keeps the advanced Runner + credential route, with its write limits and the switch back to the agent", () => {

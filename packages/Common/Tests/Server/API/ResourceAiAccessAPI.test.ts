@@ -1349,10 +1349,6 @@ describe("ResourceAiAccessAPI", () => {
                 investigation: false,
                 remediation: true,
               }),
-              gap("auto_remediation_disabled_for_project", {
-                investigation: false,
-                remediation: true,
-              }),
               gap("ai_disabled_for_project"),
               gap("llm_provider_missing"),
               gap("ai_balance_insufficient"),

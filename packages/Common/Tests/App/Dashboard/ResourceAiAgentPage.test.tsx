@@ -1241,6 +1241,50 @@ describe("Needs attention", () => {
     serve(
       makeStatus({
         isInvestigationReady: false,
+        gaps: [gap("ai_disabled_for_project")],
+      }),
+    );
+    openAgentPage();
+
+    const row: HTMLElement = await findTestId(
+      "ai-agent-gap-ai_disabled_for_project",
+    );
+    expect(row).toHaveTextContent("Ask a project owner or admin.");
+    expect(within(row).queryByText("Open AI Features")).not.toBeInTheDocument();
+  });
+
+  /*
+   * Enable AI is the project's only AI switch. The server no longer sends
+   * auto_remediation_disabled_for_project (the "Enable auto-remediation"
+   * switch was folded into it), but a server one release behind may while a
+   * rollout is under way: an admin is still sent to AI Features, where
+   * Enable AI is, and a member is told who to ask.
+   */
+  test("a retired project gap from an older server still links an admin to AI Features", async () => {
+    grant(ADMIN_PERMISSIONS);
+    serve(
+      makeStatus({
+        isInvestigationReady: false,
+        gaps: [gap("auto_remediation_disabled_for_project")],
+      }),
+    );
+    openAgentPage();
+
+    const row: HTMLElement = await findTestId(
+      "ai-agent-gap-auto_remediation_disabled_for_project",
+    );
+    expect(
+      within(row)
+        .getByText("Open AI Features")
+        .closest("a")
+        ?.getAttribute("href"),
+    ).toBe(`/dashboard/${PROJECT_ID}/settings/ai-features`);
+  });
+
+  test("a retired project gap from an older server tells a member who to ask", async () => {
+    serve(
+      makeStatus({
+        isInvestigationReady: false,
         gaps: [gap("auto_remediation_disabled_for_project")],
       }),
     );
