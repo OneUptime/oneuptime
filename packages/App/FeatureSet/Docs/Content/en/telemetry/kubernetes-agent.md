@@ -506,11 +506,15 @@ The chart runs a DaemonSet with [OpenTelemetry eBPF Instrumentation (OBI)](https
 eBPF sees network calls, not your code, so a trace is built from the requests a service handles and the calls it makes while handling them:
 
 - **A request and its calls form one trace.** The request into a service is the root span, named `<METHOD> <route>`, and the HTTP, gRPC, SQL and Redis calls the service makes while handling it are its children. (For Node.js this relies on OBI's Node.js agent, which the chart enables with `ebpf.nodejs.enabled`.) Calls that concurrent requests send down one shared connection — typical for Redis clients — cannot always be told apart, so some of those are not placed in their request's trace.
-- **A hop to another service starts a new trace**, unless something carries the trace context across — an OpenTelemetry SDK, or the opt-in context propagation described below.
+- **A hop to a service on another node starts a new trace**, unless something carries the trace context across — an OpenTelemetry SDK, or the opt-in context propagation described below. When both ends run on the same node, OBI sees both and links them itself.
 - **Work that no request triggered stands alone.** A queue worker polling Redis or a cron job has no request for its calls to belong to.
-- **Database servers never join the caller's trace.** Database wire protocols carry no trace context, so the span OBI records inside a database server for each command can only ever be a trace of one span.
+- **Database servers usually stand alone.** Database wire protocols carry no trace context, so unless the caller runs on the same node, the span OBI records inside a database server for each command is a trace of one span.
 
-Those standalone database calls arrive as one-span traces named after a bare command (`set`, `evalsha`, `SELECT`), and on a busy cluster they can be most of what OBI captures. By default (`ebpf.dropUnlinkedDatabaseSpans=true`) the agent drops eBPF database spans that have no parent before they leave the cluster. Database spans inside a request trace are kept, spans your applications send from their own SDKs are never touched, and the database metrics still count every command.
+Those standalone database calls arrive as one-span traces named after a bare command (`set`, `evalsha`, `SELECT`), and on a busy cluster they can be most of what OBI captures. By default the agent drops eBPF database spans that have no parent before they leave the cluster: a database server's own span (`ebpf.dropDatabaseServerSpans=true`) and an application's call that belongs to no trace (`ebpf.dropUnlinkedDatabaseCalls=true`). Database spans inside a request trace are kept, spans your applications send from their own SDKs are never touched, and the database metrics still count every command.
+
+One trade-off: OneUptime discovers databases, and draws them on the service map, from database client spans. A database that only background work talks to — a worker's queue, a cron job's warehouse — is then no longer discovered from traces and appears on the service map as a remote endpoint. Its metrics are unaffected. Set `ebpf.dropUnlinkedDatabaseCalls=false` to keep those spans.
+
+On a self-hosted OneUptime, upgrade the server before the agent: the eBPF tracer this chart runs (OBI v0.14) names called services and reports message brokers' own spans in ways older OneUptime servers do not read.
 
 Names come from the traffic: HTTP spans use the app's route template when OBI can read it, and otherwise a pattern derived from the URL with id-like segments replaced by `*` — set `ebpf.routes.patterns` to name them yourself. OBI reads the route templates of Go (net/http, Gorilla mux, Gin), Java (Spring, JAX-RS), Node.js (Express, Fastify, Koa, NestJS, Next.js), Python (Django, FastAPI, Flask), Ruby (Rails), .NET (ASP.NET Core attribute routes) and PHP (Symfony, Laravel, Slim) apps. Application-level names such as `OrderService.charge` exist only in code and need an OpenTelemetry SDK.
 
@@ -638,10 +642,10 @@ eBPF gives you traces, RED metrics, the service map, and network-flow metrics wi
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
     --namespace oneuptime-agent --reuse-values \
-    --set ebpf.autoTargetExe='*/python,*/java'
+    --set 'ebpf.autoTargetExe=*/python\,*/java'
   ```
 
-  See [Toggle individual signal families](#toggle-individual-signal-families) and the `excludeExePaths` note in the chart values for the full defaults.
+  (`--set` splits on commas, so the comma between the two globs is escaped.) See [Toggle individual signal families](#toggle-individual-signal-families) and the `excludeExePaths` note in the chart values for the full defaults.
 
 ### Lever 3 — Slow down the scrape intervals
 

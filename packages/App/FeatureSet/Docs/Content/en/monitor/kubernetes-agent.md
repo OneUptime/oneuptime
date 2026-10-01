@@ -255,7 +255,7 @@ ebpf:
 | Option                 | Default                                                  | Description                                                                                                        |
 | ---------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `ebpf.enabled`         | `true`                                                   | Master switch. Set to `false` to skip the eBPF DaemonSet entirely.                                                 |
-| `ebpf.image.tag`       | `v0.9.0`                                                 | OBI image tag. OBI is pre-1.0; pin to a known-good version and re-test on bumps.                                   |
+| `ebpf.image.tag`       | `v0.14.0`                                                | OBI image tag. OBI is pre-1.0; pin to a known-good version and re-test on bumps.                                   |
 | `ebpf.autoTargetExe`   | `*`                                                      | Glob of executables to instrument. Narrow this (e.g. `*/python,*/java`) if you want to scope auto-instrumentation. |
 | `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself) | Comma-separated globs to skip.                                                                                     |
 | `ebpf.logLevel`        | `info`                                                   | `debug`, `info`, `warn`, or `error`. Set to `debug` while troubleshooting.                                         |
