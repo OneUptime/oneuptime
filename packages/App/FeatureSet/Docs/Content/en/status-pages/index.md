@@ -60,6 +60,8 @@ Once a status page is open, its own left side menu is grouped into nine sections
 | **AI**                | **MCP**.                                                                                                                                       |
 | **Advanced**          | **Monitor Rules**, **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Delete Status Page**.                         |
 
+**Advanced** starts collapsed, like the **Advanced** section of every menu in OneUptime: click it to show its pages. It opens by itself whenever you are on one of them, such as **Advanced Settings**.
+
 Two naming quirks worth knowing before you go looking:
 
 - The **Resources** item is only labeled **Resources** when the project has monitor groups enabled. Otherwise it reads **Monitors**. It is the same screen either way.
