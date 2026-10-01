@@ -21,6 +21,7 @@ import OnCallDutyScheduleTimeline from "../Pages/OnCallDuty/ScheduleTimeline";
 import OnCallDutyPolicyViewUserOverrides from "../Pages/OnCallDuty/OnCallDutyPolicy/UserOverrides";
 import OnCallDutyPolicyExecutionLogTimeline from "../Pages/OnCallDuty/OnCallDutyExecutionLogView";
 import OnCallDutyPolicyView from "../Pages/OnCallDuty/OnCallDutyPolicy/Index";
+import OnCallDutyPolicyViewSettings from "../Pages/OnCallDuty/OnCallDutyPolicy/Settings";
 import OnCallDutyPolicyViewOwners from "../Pages/OnCallDuty/OnCallDutyPolicy/Owners";
 import OnCallDutyPolicyViewAuditLogs from "../Pages/OnCallDuty/OnCallDutyPolicy/AuditLogs";
 
@@ -443,6 +444,20 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_POLICY_VIEW_SETTINGS,
+          )}
+          element={
+            <OnCallDutyPolicyViewSettings
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_SETTINGS] as Route
               }
             />
           }

@@ -159,5 +159,5 @@ export const ON_CALL_POLICY_ARCHIVE_COPY: ResourceArchiveCopy = {
   archivedPageDescription:
     "On-call policies you archived. They page no one and are hidden from the On-Call Policies list. Select policies to unarchive them.",
   noArchivedItemsMessage:
-    "No archived on-call policies. To archive one, select it in the On-Call Policies list and choose Archive, or open the policy and go to Archive or Delete.",
+    "No archived on-call policies. To archive one, select it in the On-Call Policies list and choose Archive, or open its Settings.",
 };

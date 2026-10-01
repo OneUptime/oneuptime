@@ -5594,7 +5594,7 @@ describe("Slo:EvaluateSlos worker", () => {
 
         const details: string = item.moreInformationInMarkdown || "";
         expect(details).toContain(
-          "**Why**: Every monitor attached to this SLO is disabled",
+          "**Why**: Every monitor attached to this SLO is archived or disabled",
         );
         // No measurement was taken, so none is claimed.
         expect(details).not.toContain("**SLI**");

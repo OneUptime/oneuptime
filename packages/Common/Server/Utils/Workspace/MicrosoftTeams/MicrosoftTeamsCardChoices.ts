@@ -387,6 +387,8 @@ export default class MicrosoftTeamsCardChoices {
               await OnCallDutyPolicyService.countBy({
                 query: {
                   projectId: projectId,
+                  // The total counts what the list offers: live policies.
+                  isArchived: false,
                 },
                 props: {
                   isRoot: true,

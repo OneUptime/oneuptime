@@ -677,13 +677,30 @@ describe("the requests behind the tiles", () => {
     );
   });
 
-  test("the monitor total counts every monitor in the project, whatever its state", async () => {
+  test("the monitor total counts every monitor that is not archived, whatever its state", async () => {
     await renderStats();
 
+    /*
+     * Archived monitors are gone from the Monitors list the tile opens, so a
+     * project whose monitors are all archived reads as "no monitors yet",
+     * the same as the SLO tile does for archived SLOs.
+     */
     const [request]: Array<CountRequest> = requestsOf("totalMonitors");
     expect(requestsOf("totalMonitors")).toHaveLength(1);
-    expect(Object.keys(request!.query)).toEqual(["projectId"]);
+    expect(Object.keys(request!.query).sort()).toEqual([
+      "isArchived",
+      "projectId",
+    ]);
+    expect(request!.query["isArchived"]).toBe(false);
     expect(String(request!.query["projectId"])).toBe(PROJECT_ID);
+  });
+
+  test("the not-operational count leaves archived monitors out: their status is frozen", async () => {
+    await renderStats();
+
+    const [request]: Array<CountRequest> = requestsOf("notOperationalMonitors");
+    expect(requestsOf("notOperationalMonitors")).toHaveLength(1);
+    expect(request!.query["isArchived"]).toBe(false);
   });
 
   test("the SLO total is every SLO that is not archived, enabled or not", async () => {

@@ -253,6 +253,12 @@ const WORKFLOWS_MENU: ReadonlyArray<MenuPage> = [
     section: "Workflows",
     path: `${WORKFLOWS_PATH}/variables`,
   },
+  // Archived workflows leave the list, so the way back to them sits beside it.
+  {
+    title: "Archived",
+    section: "Workflows",
+    path: `${WORKFLOWS_PATH}/archived`,
+  },
   { title: "Runs", section: "Logs", path: ALL_RUNS_PATH },
   {
     title: "Owner Rules",
@@ -350,7 +356,7 @@ describe("the Workflows menu", () => {
     );
   });
 
-  test("the Workflows section keeps only Workflows and Global Variables", async () => {
+  test("the Workflows section keeps only Workflows, Global Variables and Archived", async () => {
     await renderWorkflowsMenu();
 
     expect(linksIn("Workflows")).toEqual(linksOf(WORKFLOWS_MENU, "Workflows"));
