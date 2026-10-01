@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "چرخش‌هایی که تعیین می‌کنند در هر لحظه چه کسی کشیک است. یک زمان‌بندی را به قواعد تشدید یک سیاست آنکال اضافه کنید تا هر کسی که کشیک است فراخوانده شود.",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "برنامه‌ها و میکروسرویس‌هایی که اجرا می‌کنید. هر سرویس لاگ‌ها، ترِیس‌ها، متریک‌ها، استثناها، حوادث و مالکان خود را در یک جا گرد می‌آورد.",
   "Create On-Call Schedule": "ساخت زمان‌بندی آنکال",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "پراب‌ها ماشین‌هایی هستند که بررسی‌های این مانیتور را اجرا می‌کنند. پراب‌های پیش‌فرض پروژهٔ شما از قبل انتخاب شده‌اند. مانیتوری که پراب ندارد هرگز بررسی نمی‌شود."
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "پراب‌ها ماشین‌هایی هستند که بررسی‌های این مانیتور را اجرا می‌کنند. پراب‌های پیش‌فرض پروژهٔ شما از قبل انتخاب شده‌اند. مانیتوری که پراب ندارد هرگز بررسی نمی‌شود.",
+  "Auto Remediation Rules": "قواعد رفع خودکار مشکل"
 }

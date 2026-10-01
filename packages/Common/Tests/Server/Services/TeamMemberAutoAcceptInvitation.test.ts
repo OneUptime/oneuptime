@@ -194,10 +194,22 @@ beforeEach(() => {
     .spyOn(ProjectSCIMService, "countBy")
     .mockResolvedValue(new PositiveNumber(0));
 
-  // No existing membership - the duplicate-invite guard at the end of the hook.
+  // No existing membership on this team - the duplicate-invite guard.
   jest.spyOn(TeamMemberService, "findOneBy").mockResolvedValue(null);
   jest
     .spyOn(TeamMemberService, "getUniqueTeamMemberCountInProject")
+    .mockResolvedValue(0);
+
+  /*
+   * The invitee is not in the project through another team either. Someone
+   * who is gets the membership accepted whoever adds them - that rule has its
+   * own file, TeamMemberProjectInvitationAcceptance.test.ts.
+   */
+  jest
+    .spyOn(TeamMemberService, "isUserMemberOfProject")
+    .mockResolvedValue(false);
+  jest
+    .spyOn(TeamMemberService, "acceptPendingInvitationsInProject")
     .mockResolvedValue(0);
 
   jest

@@ -183,19 +183,19 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
     ]),
 
     /*
-     * AI and Rules are their own side-menu sections, not lines under Settings,
-     * so the trail has to name the section the page actually lives in —
+     * The trail names the side-menu section a page actually lives in —
      * otherwise the header says "Settings" while the menu highlights "Rules".
+     * AI is a Settings page; auto-remediation rules are rules.
      */
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_AI, [
       "Project",
       "Alerts",
+      "Settings",
       "AI",
-      "Investigation",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
-      ["Project", "Alerts", "AI", "Remediation"],
+      ["Project", "Alerts", "Rules", "Auto Remediation Rules"],
     ),
 
     // Alert Rules

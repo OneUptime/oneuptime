@@ -14,6 +14,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
+import McpDelegationAuthorization from "./McpDelegationAuthorization";
 import ProjectMiddleware from "./ProjectAuthorization";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
 import Dictionary from "../../Types/Dictionary";
@@ -540,6 +541,17 @@ export default class UserMiddleware {
     next: NextFunction,
     options: { treatInvalidAccessTokenAsAnonymous: boolean },
   ): Promise<void> {
+    /*
+     * A request the MCP server makes for a member who connected a client with
+     * OAuth. Claimed before anything else is read: its project comes from the
+     * credential, so not even the tenant header below is to be trusted, and a
+     * request that presents this credential must be answered as that - never
+     * quietly authenticated some other way, or as nobody.
+     */
+    if (McpDelegationAuthorization.hasDelegationToken(req)) {
+      return await McpDelegationAuthorization.authorize(req, res, next);
+    }
+
     const tenantId: ObjectID | null = ProjectMiddleware.getProjectId(req);
     const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 

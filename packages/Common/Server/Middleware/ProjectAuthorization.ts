@@ -1,4 +1,4 @@
-import ApiKeyService from "../Services/ApiKeyService";
+import ApiKeyService, { ResolvedApiKey } from "../Services/ApiKeyService";
 import GlobalConfigService from "../Services/GlobalConfigService";
 import UserService from "../Services/UserService";
 import {
@@ -19,6 +19,14 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
 
 export default class ProjectMiddleware {
+  /*
+   * What the audit trail calls the instance-wide master API key. It has no
+   * row in ApiKey - it is a column on GlobalConfig - so there is no id or
+   * name to record, and without a label a change made with it reads as the
+   * master admin user having made it by hand.
+   */
+  public static readonly MASTER_API_KEY_AUDIT_NAME: string = "Master API Key";
+
   @CaptureSpan()
   public static getProjectId(req: ExpressRequest): ObjectID | null {
     let projectId: ObjectID | null = null;
@@ -189,7 +197,7 @@ export default class ProjectMiddleware {
        * Cached lookup — see ApiKeyService.findApiKey. Hot path for any
        * automated caller hitting the API by key.
        */
-      const apiKeyRow: { id: ObjectID; projectId: ObjectID } | null =
+      const apiKeyRow: ResolvedApiKey | null =
         await ApiKeyService.findApiKey(apiKey);
 
       if (apiKeyRow) {
@@ -197,6 +205,17 @@ export default class ProjectMiddleware {
 
         (req as OneUptimeRequest).tenantId = tenantId;
         (req as OneUptimeRequest).userType = UserType.API;
+
+        /*
+         * Which key this is, for the audit trail. A key request carries no
+         * userId, so these two are the only thing that lets an audit entry
+         * tell one key's changes from another's. Nothing below reads them.
+         */
+        (req as OneUptimeRequest).apiKeyId = apiKeyRow.id;
+
+        if (apiKeyRow.name) {
+          (req as OneUptimeRequest).apiKeyName = apiKeyRow.name;
+        }
 
         /*
          * The two halves of an API key's authority. The global half is the
@@ -233,6 +252,8 @@ export default class ProjectMiddleware {
 
         if (isMasterApiKey) {
           (req as OneUptimeRequest).userType = UserType.MasterAdmin;
+          (req as OneUptimeRequest).apiKeyName =
+            ProjectMiddleware.MASTER_API_KEY_AUDIT_NAME;
 
           // get master admin user
 

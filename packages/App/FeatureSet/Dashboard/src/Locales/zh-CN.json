@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "决定任意时刻由谁值班的轮值安排。将值班计划添加到值班策略的升级规则中，即可呼叫当前值班的人。",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "您运行的应用程序和微服务。每个服务都会把它的日志、追踪、指标、异常、事件和所有者集中在一处。",
   "Create On-Call Schedule": "创建值班计划",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "探测器是运行此监视器检查的机器。您项目的默认探测器已预先选中。没有探测器的监视器永远不会被检查。"
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "探测器是运行此监视器检查的机器。您项目的默认探测器已预先选中。没有探测器的监视器永远不会被检查。",
+  "Auto Remediation Rules": "自动补救规则"
 }

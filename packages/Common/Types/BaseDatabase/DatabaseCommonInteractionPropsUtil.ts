@@ -1,6 +1,7 @@
 import Permission, { UserPermission } from "../Permission";
 import DatabaseCommonInteractionProps from "./DatabaseCommonInteractionProps";
 import NotAuthenticatedException from "../Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../Exception/NotAuthorizedException";
 import UserType from "../UserType";
 
 export enum PermissionType {
@@ -11,6 +12,29 @@ export enum PermissionType {
 export default class DatabaseCommonInteractionPropsUtil {
   public static readonly AUTHENTICATION_REQUIRED_MESSAGE: string =
     "Authentication required. Please log in to access this resource.";
+
+  public static readonly READ_ONLY_CREDENTIAL_MESSAGE: string =
+    "This MCP client was connected with read-only access, so it cannot make changes. Connect it again and allow read and write access.";
+
+  /*
+   * Refuses a create, update or delete made with a read-only credential (see
+   * DatabaseCommonInteractionProps.isReadOnlyCredential). Asked ahead of every
+   * other permission check, because no permission the caller holds can make a
+   * read-only credential write.
+   *
+   * Root props are let through: those are the server's own writes - a hook
+   * that records something on the caller's behalf - and were never the
+   * caller's to be refused.
+   */
+  public static assertCredentialCanWrite(
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isReadOnlyCredential && !props.isRoot) {
+      throw new NotAuthorizedException(
+        DatabaseCommonInteractionPropsUtil.READ_ONLY_CREDENTIAL_MESSAGE,
+      );
+    }
+  }
 
   /*
    * No credentials at all: no user, no project API key, no master key.

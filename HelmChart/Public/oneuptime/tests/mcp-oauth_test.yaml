@@ -1,0 +1,124 @@
+# OAuth sign-in for the MCP server adds an authorization server under
+# /mcp/oauth: endpoints that answer callers nobody has identified yet. Two
+# operator switches have to reach the app for that to be safe to ship:
+#
+#   - DISABLE_MCP_OAUTH, the kill switch. An operator who sets
+#     mcpOAuth.disabled: true expects the MCP server to go back to API keys
+#     only -- if the value never reaches the container the authorization
+#     server keeps answering.
+#   - DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS. On an instance with no
+#     route to the internet the app cannot fetch a client's metadata document,
+#     and a client that is told the feature exists will fail every time. The
+#     switch is the only fix, so it must actually arrive.
+#
+# And they have to reach EVERY workload that serves HTTP, not only app: the
+# worker also boots the same server and reads the same config.
+suite: mcp oauth
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: ships OAuth sign-in and client metadata documents enabled
+    templates:
+      - templates/app.yaml
+    # app.yaml renders both a Service and a Deployment under the same name,
+    # so select the Deployment by kind.
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_MCP_OAUTH
+            value: "false"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS
+            value: "false"
+
+  - it: passes the kill switch through when an operator turns OAuth off
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      mcpOAuth.disabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_MCP_OAUTH
+            value: "true"
+      # One switch must not drag the other with it.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS
+            value: "false"
+
+  - it: passes the metadata document switch through on its own
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      mcpOAuth.disableClientIdMetadataDocuments: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_MCP_OAUTH
+            value: "false"
+
+  - it: still renders with a values file that predates these keys
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      # What an upgraded install's own values file looks like: no mcpOAuth.
+      mcpOAuth: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_MCP_OAUTH
+            value: "false"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS
+            value: "false"
+
+  - it: reaches the worker too
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      # Off by default; the worker Deployment renders nothing without this.
+      worker.enabled: true
+      mcpOAuth.disabled: true
+      mcpOAuth.disableClientIdMetadataDocuments: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_MCP_OAUTH
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS
+            value: "true"

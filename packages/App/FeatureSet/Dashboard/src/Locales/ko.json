@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "언제 누가 온콜 담당인지 정하는 순번입니다. 온콜 정책의 에스컬레이션 규칙에 스케줄을 추가하면 그때 담당자를 호출합니다.",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "운영 중인 애플리케이션과 마이크로서비스입니다. 각 서비스는 로그, 트레이스, 메트릭, 예외, 인시던트, 소유자를 한곳에 모아 보여 줍니다.",
   "Create On-Call Schedule": "온콜 스케줄 생성",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "프로브는 이 모니터의 확인을 실행하는 머신입니다. 프로젝트의 기본 프로브가 미리 선택되어 있습니다. 프로브가 없는 모니터는 전혀 확인되지 않습니다."
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "프로브는 이 모니터의 확인을 실행하는 머신입니다. 프로젝트의 기본 프로브가 미리 선택되어 있습니다. 프로브가 없는 모니터는 전혀 확인되지 않습니다.",
+  "Auto Remediation Rules": "자동 해결 규칙"
 }

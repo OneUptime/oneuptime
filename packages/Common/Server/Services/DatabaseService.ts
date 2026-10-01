@@ -50,6 +50,7 @@ import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import Sort from "../../Types/BaseDatabase/Sort";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { getMaxLengthFromTableColumnType } from "../../Types/Database/ColumnLength";
@@ -310,23 +311,34 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * The permission layer's login check, run BEFORE the hooks instead of only
-   * after them.
+   * The refusals that do not depend on what a hook would do, made BEFORE the
+   * hooks run instead of only after them.
    *
-   * The hooks run first, and many of them key off props.userId: a missing one
-   * reads as "userId is required" (400), "User should be logged in" (422), or,
-   * for Project reads, an empty list with a 200. For an anonymous caller that
-   * is almost always a dashboard tab whose access-token cookie expired, and
-   * only a 401 makes the browser client refresh the session and replay the
-   * request. Everything this admits, the permission check would have admitted
-   * too (same condition, same exemptions for API keys and public models), so
-   * it only changes which refusal an anonymous caller gets, and it keeps hooks
-   * with side effects from running for them at all.
+   * The login check: the hooks run first, and many of them key off
+   * props.userId: a missing one reads as "userId is required" (400), "User
+   * should be logged in" (422), or, for Project reads, an empty list with a
+   * 200. For an anonymous caller that is almost always a dashboard tab whose
+   * access-token cookie expired, and only a 401 makes the browser client
+   * refresh the session and replay the request. Everything this admits, the
+   * permission check would have admitted too (same condition, same exemptions
+   * for API keys and public models), so it only changes which refusal an
+   * anonymous caller gets, and it keeps hooks with side effects from running
+   * for them at all.
+   *
+   * The read-only credential check, for the same reason: a create, update or
+   * delete made with a credential that may only read is going to be refused
+   * whatever the caller's permissions are (the permission entry points ask
+   * the same question), so no hook - several of which write on the caller's
+   * behalf - should have run for it first.
    */
-  private checkIfUserIsLoggedInBeforeHooks(
+  private checkCallerBeforeHooks(
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
   ): void {
+    if (type !== DatabaseRequestType.Read) {
+      DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+    }
+
     if (props.isRoot || props.isMasterAdmin) {
       return;
     }
@@ -1560,10 +1572,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-    this.checkIfUserIsLoggedInBeforeHooks(
-      createBy.props,
-      DatabaseRequestType.Create,
-    );
+    this.checkCallerBeforeHooks(createBy.props, DatabaseRequestType.Create);
 
     /*
      * A non-root create must not pin the row's own primary key. save() treats
@@ -2520,10 +2529,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   @CaptureSpan()
   public async hardDeleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
-      this.checkIfUserIsLoggedInBeforeHooks(
-        deleteBy.props,
-        DatabaseRequestType.Delete,
-      );
+      this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
 
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
         ? { deleteBy, carryForward: [] }
@@ -2587,10 +2593,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(deleteBy.props);
 
-      this.checkIfUserIsLoggedInBeforeHooks(
-        deleteBy.props,
-        DatabaseRequestType.Delete,
-      );
+      this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
 
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
         throw new BadDataException("Delete not allowed");
@@ -2826,10 +2829,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(findBy.props);
 
-      this.checkIfUserIsLoggedInBeforeHooks(
-        findBy.props,
-        DatabaseRequestType.Read,
-      );
+      this.checkCallerBeforeHooks(findBy.props, DatabaseRequestType.Read);
 
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
         findBy.sort = {
@@ -3211,10 +3211,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(updateBy.props);
 
-      this.checkIfUserIsLoggedInBeforeHooks(
-        updateBy.props,
-        DatabaseRequestType.Update,
-      );
+      this.checkCallerBeforeHooks(updateBy.props, DatabaseRequestType.Update);
 
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
 

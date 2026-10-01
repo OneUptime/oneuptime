@@ -2041,6 +2041,18 @@
             },
             "additionalProperties": false
         },
+        "mcpOAuth": {
+            "type": "object",
+            "properties": {
+                "disabled": {
+                    "type": "boolean"
+                },
+                "disableClientIdMetadataDocuments": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
         "queueDashboard": {
             "type": "object",
             "properties": {

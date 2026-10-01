@@ -114,10 +114,9 @@ Danach können Sie ein Postmortem schreiben und es optional auf der Statusseite 
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Übersicht**      | **Alle Vorfälle** und **Aktive Vorfälle** – Letzteres trägt ein rotes Badge mit der Anzahl der Vorfälle, die nicht im behobenen Status sind.                            |
 | **Episoden**       | Vorfall-Episoden, eine eigenständige Gruppierungsfunktion mit eigenen Seiten.                                                                                           |
-| **KI**             | **Untersuchung** und **Behebung** – die Einstellungen für automatische Untersuchung und Auto-Behebung.                                                                  |
 | **Arbeitsbereich** | **Slack**- und **Microsoft Teams**-Verbindungen für Vorfälle.                                                                                                           |
-| **Regeln**         | Die Regel-Engines: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln**, **Reminder Rules**. |
-| **Einstellungen**  | **Vorfallsstatus**, **Vorfallsschweregrad**, **Vorfall-Vorlagen**, **Notiz-Vorlagen**, **Postmortem-Vorlagen**, **Benutzerdefinierte Felder**, **Vorfallsrollen**, **Weitere Einstellungen**. |
+| **Regeln**         | Die Regel-Engines: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Auto-Behebungsregeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln**, **Reminder Rules**. |
+| **Einstellungen**  | **KI**, **Vorfallsstatus**, **Vorfallsschweregrad**, **Vorfall-Vorlagen**, **Notiz-Vorlagen**, **Postmortem-Vorlagen**, **Benutzerdefinierte Felder**, **Vorfallsrollen**, **Weitere Einstellungen**. |
 
 **Regeln** und **Einstellungen** sind standardmäßig eingeklappt – klappen Sie sie auf, um die Seiten zu finden, auf die sich der Rest dieser Dokumentation bezieht. Die Vorfallkonfiguration liegt nicht in den Projekteinstellungen; sie ist vollständig hier zu Hause.
 

@@ -498,6 +498,9 @@ import DeletedProject from "./DeletedProject";
 import UserNotificationEmailRollupItem from "./UserNotificationEmailRollupItem";
 import UserNotificationEmailRollupBatch from "./UserNotificationEmailRollupBatch";
 import UserNotificationEmailRollupSetting from "./UserNotificationEmailRollupSetting";
+import McpOAuthClient from "./McpOAuthClient";
+import McpOAuthGrant from "./McpOAuthGrant";
+import McpOAuthToken from "./McpOAuthToken";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -1016,6 +1019,9 @@ const AllModelTypes: Array<{
   UserNotificationEmailRollupItem,
   UserNotificationEmailRollupBatch,
   UserNotificationEmailRollupSetting,
+  McpOAuthClient,
+  McpOAuthGrant,
+  McpOAuthToken,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

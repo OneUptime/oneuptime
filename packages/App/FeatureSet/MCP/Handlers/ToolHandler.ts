@@ -29,6 +29,11 @@ import {
 } from "../Tools/PublicStatusPageTools";
 import { isWorkflowTool, handleWorkflowTool } from "../Tools/WorkflowTools";
 import { sanitizeToolName } from "../Tools/SchemaConverter";
+import RequestGate, { McpToolAccess } from "../OAuth/RequestGate";
+import McpCredentialUtil, {
+  McpCredential,
+  McpCredentialInput,
+} from "../Types/McpCredential";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 
@@ -55,15 +60,17 @@ interface ListedTool {
 /**
  * Register tool handlers on the MCP server.
  *
- * `apiKey` is the key supplied on the request that created this (stateless)
- * server instance. The call-tool handler closes over it so each request reads
- * its own key — avoiding the race condition that a process-global "current API
- * key" would create under concurrent requests.
+ * `credential` is what the request that created this (stateless) server
+ * instance arrived with: an API key (a bare string, as it has always been) or
+ * the credential of a client that signed in with OAuth. The call-tool handler
+ * closes over it so each request uses its own — avoiding the race condition
+ * that a process-global "current API key" would create under concurrent
+ * requests.
  */
 export function registerToolHandlers(
   mcpServer: McpServer,
   tools: McpToolInfo[],
-  apiKey: string,
+  credential: McpCredentialInput,
 ): void {
   // Register list tools handler
   mcpServer.server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -74,7 +81,7 @@ export function registerToolHandlers(
   mcpServer.server.setRequestHandler(
     CallToolRequestSchema,
     async (request: CallToolRequest) => {
-      return handleCallTool(request, tools, apiKey);
+      return handleCallTool(request, tools, McpCredentialUtil.from(credential));
     },
   );
 
@@ -147,7 +154,13 @@ function textToToolResult(responseText: string): ToolCallResult {
  * and can self-correct (per MCP spec, execution errors should be in-band
  * results, not JSON-RPC protocol errors).
  */
-function buildErrorResult(toolName: string, error: unknown): ToolCallResult {
+function buildErrorResult(
+  toolName: string,
+  error: unknown,
+  credential?: McpCredential | undefined,
+  // What to try next, when the default for this kind of error would mislead.
+  suggestion?: string | undefined,
+): ToolCallResult {
   const payload: JSONObject = {
     success: false,
     tool: toolName,
@@ -159,9 +172,13 @@ function buildErrorResult(toolName: string, error: unknown): ToolCallResult {
     if (error.details !== undefined && error.details !== null) {
       payload["details"] = error.details as JSONValue;
     }
-    payload["suggestion"] = getSuggestionForStatusCode(error.statusCode);
+    payload["suggestion"] = getSuggestionForStatusCode(
+      error.statusCode,
+      McpCredentialUtil.isOAuth(credential),
+    );
   } else {
     payload["suggestion"] =
+      suggestion ||
       "Check the tool's input schema for required parameters. Use 'oneuptime_help' for guidance.";
   }
 
@@ -178,14 +195,26 @@ function buildErrorResult(toolName: string, error: unknown): ToolCallResult {
   return result;
 }
 
-function getSuggestionForStatusCode(statusCode: number): string {
+/*
+ * What to try next, worded for the credential in use. An agent that signed in
+ * with OAuth has no key to fix: it acts as a person, so a refusal is about
+ * that person's permissions in the project.
+ */
+function getSuggestionForStatusCode(
+  statusCode: number,
+  isOAuth: boolean,
+): string {
   switch (statusCode) {
     case 400:
       return "The request was invalid. Check required parameters and value formats against the tool's input schema; the details field usually names the offending field.";
     case 401:
-      return "The API key was rejected. Verify the key is correct and not expired (sent via the x-api-key header).";
+      return isOAuth
+        ? "The sign-in was not accepted for this request. The user may have left the project or been blocked; ask them to connect this MCP client again."
+        : "The API key was rejected. Verify the key is correct and not expired (sent via the x-api-key header).";
     case 403:
-      return "The API key lacks permission for this operation. Ask a project admin to grant the relevant permission to the key.";
+      return isOAuth
+        ? "The signed-in user lacks permission for this operation in this project. Ask a project admin to grant their team the relevant permission."
+        : "The API key lacks permission for this operation. Ask a project admin to grant the relevant permission to the key.";
     case 404:
       return "The resource was not found. Use the corresponding list tool to find valid IDs.";
     case 429:
@@ -201,7 +230,7 @@ function getSuggestionForStatusCode(statusCode: number): string {
 async function handleCallTool(
   request: CallToolRequest,
   tools: McpToolInfo[],
-  apiKey: string,
+  credential: McpCredential,
 ): Promise<ToolCallResult> {
   const { name } = request.params;
   // `arguments` is optional in the MCP CallToolRequest — normalize once here.
@@ -209,6 +238,28 @@ async function handleCallTool(
     {}) as Record<string, unknown>;
 
   try {
+    /*
+     * A client that signed in read-only calling a tool that changes things.
+     * The HTTP layer refuses this with a 403 challenge before the SDK runs
+     * (OAuth/RequestGate), which is what lets the client ask its user for
+     * more access; this is the same rule held a second time, so that no path
+     * to a tool handler - whatever it is - skips it.
+     */
+    if (
+      RequestGate.getToolAccess(name, tools) === McpToolAccess.Write &&
+      !McpCredentialUtil.canWrite(credential)
+    ) {
+      return buildErrorResult(
+        name,
+        new Error(
+          "This connection was authorized as read-only, and this tool makes changes. The user must authorize read and write access to use it.",
+        ),
+        credential,
+        // Nothing is wrong with the arguments, so the default would mislead.
+        "Do not retry this tool. Ask the user to connect this MCP client again and choose read and write access. The get, list and count tools still work.",
+      );
+    }
+
     // Check if this is a helper tool (doesn't require API key)
     if (isHelperTool(name)) {
       logger.debug(`Executing helper tool: ${name}`);
@@ -233,10 +284,10 @@ async function handleCallTool(
       return textToToolResult(responseText);
     }
 
-    // Workflow tools (acknowledge/resolve/notes/whoami) require an API key
+    // Workflow tools (acknowledge/resolve/notes/whoami) require an API key or a sign-in
     if (isWorkflowTool(name)) {
       logger.debug(`Executing workflow tool: ${name}`);
-      if (!apiKey) {
+      if (!McpCredentialUtil.isPresent(credential)) {
         return buildErrorResult(
           name,
           new Error(
@@ -244,7 +295,11 @@ async function handleCallTool(
           ),
         );
       }
-      const envelope: JSONObject = await handleWorkflowTool(name, args, apiKey);
+      const envelope: JSONObject = await handleWorkflowTool(
+        name,
+        args,
+        credential,
+      );
       return toToolResult(envelope);
     }
 
@@ -262,8 +317,8 @@ async function handleCallTool(
 
     logger.debug(`Executing tool: ${name} for model: ${tool.modelName}`);
 
-    // Validate API key is available for this request
-    if (!apiKey) {
+    // Validate a credential is available for this request
+    if (!McpCredentialUtil.isPresent(credential)) {
       return buildErrorResult(
         name,
         new Error(
@@ -272,14 +327,14 @@ async function handleCallTool(
       );
     }
 
-    // Execute the OneUptime operation with the session's API key
+    // Execute the OneUptime operation with this request's credential
     const result: unknown = await OneUptimeApiService.executeOperation(
       tool.tableName,
       tool.operation,
       tool.modelType,
       tool.apiPath || "",
       args as OneUptimeToolCallArgs,
-      apiKey,
+      credential,
     );
 
     // Format the response
@@ -299,7 +354,7 @@ async function handleCallTool(
     }
 
     // Execution errors are returned in-band so the agent can self-correct
-    return buildErrorResult(name, error);
+    return buildErrorResult(name, error, credential);
   }
 }
 

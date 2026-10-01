@@ -9,12 +9,13 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
- * Per-project daily fix-run budget (Preventive-lane X guardrail, G11).
+ * Per-project daily fix-run limit (Preventive-lane X guardrail, G11), opt-in.
  *
- * Every CodeFix AIRun counts against the daily cap for its lane: incident,
+ * Every CodeFix AIRun counts against the daily limit for its lane: incident,
  * alert, or subjectless. Incident and alert runs use their independent
- * settings; recipes with neither subject always use the default below.
- * Null/unset means the default and 0 pauses that lane.
+ * settings; recipes with neither subject have no setting and no limit.
+ * Null/unset means no limit and 0 pauses that lane (see AIWorkloadLimits for
+ * why every AI limit is off until a project sets it).
  *
  * Enforced centrally at BOTH creation paths:
  *   - TelemetryExceptionService.createCodeFixRunForException (the
@@ -27,16 +28,16 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * over-budget as a logged skip (it must never throw into an investigation).
  */
 
-// Fix runs allowed per project per UTC day when no explicit limit is set.
-export const DEFAULT_DAILY_FIX_RUN_LIMIT: number = 25;
-
 export interface FixRunBudgetDecision {
   allowed: boolean;
-  // The effective limit after defaulting (<= 0 means paused).
-  limit: number;
+  // The configured limit: null means no limit, <= 0 means paused.
+  limit: number | null;
   // True when the configured limit pauses fix tasks outright (0 or less).
   paused: boolean;
-  // CodeFix runs created since UTC midnight (0 when paused short-circuits).
+  /*
+   * CodeFix runs created since UTC midnight (0 when the count is skipped
+   * because the lane is paused or has no limit).
+   */
   runsToday: number;
 }
 
@@ -50,19 +51,24 @@ type FixRunBudgetLane = "incident" | "alert" | "other";
 export default class FixRunBudget {
   /*
    * The pure budget decision, separated from IO so it can be tested
-   * directly. Null/undefined means "use the default cap" — unlike the
-   * token budget, an unset fix-task limit is NOT unlimited: fix runs fan
-   * out into pull requests on customer repositories, so they always ship
-   * with a ceiling. 0 (or negative) pauses fix tasks entirely.
+   * directly. Null/undefined means no limit, like the token budget: AI fix
+   * tasks are opened as often as the work calls for until a project sets a
+   * ceiling. 0 (or negative) pauses fix tasks entirely.
    */
   public static evaluate(data: {
     configuredLimit: number | null | undefined;
     runsToday: number;
   }): FixRunBudgetDecision {
-    const limit: number =
-      data.configuredLimit === null || data.configuredLimit === undefined
-        ? DEFAULT_DAILY_FIX_RUN_LIMIT
-        : data.configuredLimit;
+    if (data.configuredLimit === null || data.configuredLimit === undefined) {
+      return {
+        allowed: true,
+        limit: null,
+        paused: false,
+        runsToday: data.runsToday,
+      };
+    }
+
+    const limit: number = data.configuredLimit;
 
     if (limit <= 0) {
       return {
@@ -93,32 +99,36 @@ export default class FixRunBudget {
   ): Promise<FixRunBudgetDecision> {
     const lane: FixRunBudgetLane = this.getLane(subject);
 
-    let configuredLimit: number | null = null;
-
-    if (lane !== "other") {
-      const project: Project | null = await ProjectService.findOneById({
-        id: projectId,
-        select:
-          lane === "incident"
-            ? { incidentAiDailyFixTaskLimit: true }
-            : { alertAiDailyFixTaskLimit: true },
-        props: { isRoot: true },
-      });
-
-      configuredLimit =
-        lane === "incident"
-          ? project?.incidentAiDailyFixTaskLimit ?? null
-          : project?.alertAiDailyFixTaskLimit ?? null;
+    // Subjectless fix tasks have no setting, so no limit and nothing to read.
+    if (lane === "other") {
+      return this.evaluate({ configuredLimit: null, runsToday: 0 });
     }
 
-    // Paused short-circuits the count query (mirrors the token budget).
-    const pausedCheck: FixRunBudgetDecision = this.evaluate({
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select:
+        lane === "incident"
+          ? { incidentAiDailyFixTaskLimit: true }
+          : { alertAiDailyFixTaskLimit: true },
+      props: { isRoot: true },
+    });
+
+    const configuredLimit: number | null =
+      lane === "incident"
+        ? project?.incidentAiDailyFixTaskLimit ?? null
+        : project?.alertAiDailyFixTaskLimit ?? null;
+
+    /*
+     * Paused and unlimited both short-circuit the count query (mirrors the
+     * token budget): neither decision depends on today's count.
+     */
+    const uncountedCheck: FixRunBudgetDecision = this.evaluate({
       configuredLimit,
       runsToday: 0,
     });
 
-    if (pausedCheck.paused) {
-      return pausedCheck;
+    if (uncountedCheck.paused || uncountedCheck.limit === null) {
+      return uncountedCheck;
     }
 
     const runsToday: number = (
@@ -131,15 +141,10 @@ export default class FixRunBudget {
                 triggeredByIncidentId: QueryHelper.notNull(),
                 triggeredByAlertId: QueryHelper.isNull(),
               }
-            : lane === "alert"
-              ? {
-                  triggeredByIncidentId: QueryHelper.isNull(),
-                  triggeredByAlertId: QueryHelper.notNull(),
-                }
-              : {
-                  triggeredByIncidentId: QueryHelper.isNull(),
-                  triggeredByAlertId: QueryHelper.isNull(),
-                }),
+            : {
+                triggeredByIncidentId: QueryHelper.isNull(),
+                triggeredByAlertId: QueryHelper.notNull(),
+              }),
           createdAt: QueryHelper.greaterThanEqualTo(
             OneUptimeDate.getStartOfDay(OneUptimeDate.getCurrentDate(), "UTC"),
           ),
@@ -178,7 +183,10 @@ export default class FixRunBudget {
   ): string {
     const lane: FixRunBudgetLane = this.getLane(subject);
 
-    // Subjectless fix tasks have a fixed daily cap with no setting.
+    /*
+     * getBudgetStatus never rejects a subjectless fix task (that lane has no
+     * limit), so a decision for it has no setting to point at.
+     */
     if (lane === "other") {
       return `The project's daily fix task limit for AI work outside incidents and alerts has been reached (${decision.runsToday} of ${decision.limit} fix tasks created today, UTC). New fix tasks can be created tomorrow.`;
     }
@@ -189,15 +197,15 @@ export default class FixRunBudget {
         : "Daily Alert AI Fix Task Limit";
     const settingsLocation: string =
       lane === "incident"
-        ? "Incidents > AI > Investigation"
-        : "Alerts > AI > Investigation";
+        ? "Incidents > Settings > AI"
+        : "Alerts > Settings > AI";
     const laneLabel: string = `${lane} AI`;
 
     if (decision.paused) {
       return `${laneLabel} fix tasks are paused for this project — the "${settingTitle}" is set to 0. Raise or unset it under ${settingsLocation} to resume.`;
     }
 
-    return `The project's ${laneLabel} fix task limit has been reached (${decision.runsToday} of ${decision.limit} fix tasks created today, UTC). New fix tasks can be created tomorrow — or raise the "${settingTitle}" under ${settingsLocation} (unset means the default of ${DEFAULT_DAILY_FIX_RUN_LIMIT}/day).`;
+    return `The project's ${laneLabel} fix task limit has been reached (${decision.runsToday} of ${decision.limit} fix tasks created today, UTC). New fix tasks can be created tomorrow — or raise the "${settingTitle}" under ${settingsLocation}, or clear it for no limit.`;
   }
 
   /*

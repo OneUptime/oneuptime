@@ -18,7 +18,7 @@ MCP server आपके OneUptime instance के साथ hosted है और
 - **~155 Tools**: 22 resource types (incidents, alerts, monitors, status pages, on-call और अधिक) के लिए पूर्ण CRUD tools, read-only telemetry tools, साथ ही workflow और helper tools
 - **Real-time Operations**: real-time में resources बनाएं, पढ़ें, अपडेट करें और हटाएं
 - **Type-safe Interface**: व्यापक input validation के साथ पूरी तरह typed
-- **सुरक्षित Authentication**: उचित error handling के साथ per-request API key authentication
+- **सुरक्षित Authentication**: अपने OneUptime account से साइन इन करें (OAuth 2.1), या unattended agents के लिए per-request API key भेजें
 - **Safety Annotations**: read-only tools पर `readOnlyHint` और delete tools पर `destructiveHint` लगे होते हैं, जिससे MCP clients सुरक्षित calls को स्वतः approve कर सकते हैं और destructive calls से पहले पूछ सकते हैं
 - **आसान Integration**: Claude Desktop और अन्य MCP-compatible clients के साथ काम करता है
 - **Design से ही Stateless**: कोई session IDs नहीं — हर request self-contained है, इसलिए server load balancers और multi-replica deployments के पीछे भी काम करता है
@@ -39,9 +39,48 @@ OneUptime MCP Server के साथ, AI assistants आपकी मदद क�
 
 - OneUptime instance (cloud या self-hosted)
 - MCP-compatible client (Claude Desktop, VS Code with GitHub Copilot, आदि)
-- Valid OneUptime API key (केवल authenticated operations के लिए आवश्यक - public tools इसके बिना काम करते हैं)
+- साइन इन करने के लिए एक OneUptime account, या unattended चलने वाले agent के लिए एक OneUptime API key (केवल authenticated operations के लिए आवश्यक - public tools दोनों के बिना काम करते हैं)
+
+## OneUptime से साइन इन करना
+
+Connect करने का सबसे आसान तरीका यह है कि अपने MCP client को केवल server URL दें, और कुछ नहीं। जब client को पहली बार आपके डेटा की आवश्यकता होती है, तो वह आपके browser में एक OneUptime page खोलता है, जहां आप ये चरण पूरे करते हैं:
+
+1. यदि आप पहले से साइन इन नहीं हैं, तो OneUptime में साइन इन करें
+2. वह project चुनें जिसमें client को काम करना है
+3. चुनें कि client का access **पढ़ना और लिखना** हो या **केवल पढ़ना**
+4. **अधिकृत करें** पर क्लिक करें
+
+इसके बाद client उस project में आपके रूप में काम करता है। बनाने, copy करने या rotate करने के लिए कोई API key नहीं होती, और किसी configuration फ़ाइल में कोई secret संग्रहीत नहीं होता।
+
+एक connected client क्या कर सकता है:
+
+- **इसके पास आपकी permissions होती हैं, उनसे अधिक कभी नहीं।** Project में आपकी teams आपको जो कुछ करने की अनुमति देती हैं, client भी वही कर सकता है। यदि आपका role बदलता है या आप project छोड़ देते हैं, तो यह client की अगली ही request से लागू हो जाता है।
+- **केवल पढ़ना यानी केवल पढ़ना।** केवल पढ़ने के लिए authorize किया गया client `get_`, `list_` और `count_` tools का उपयोग कर सकता है। जो tools create, update, delete, acknowledge या resolve करते हैं, उन्हें MCP server और उसके पीछे का OneUptime API, दोनों अस्वीकार कर देते हैं। आप किसी client को उससे अधिक access कभी नहीं दे सकते जितना उसने मांगा था।
+- **यह एक ही project के लिए है।** दूसरा project उपयोग करने के लिए, client को फिर से connect करें और वह project चुनें।
+- **यह केवल MCP server के माध्यम से काम करता है।** Client का access token MCP endpoint पर स्वीकार किया जाता है, और कहीं नहीं। इसका उपयोग OneUptime REST API को सीधे call करने के लिए नहीं किया जा सकता।
+- **Instance administrators को कोई विशेष व्यवहार नहीं मिलता।** किसी master admin द्वारा connect किए गए client के पास वही होता है जो उस व्यक्ति की teams project में देती हैं, instance-व्यापी access नहीं।
+
+### Connected Clients प्रबंधित करना
+
+साइन इन करके connect किया गया हर client **प्रोजेक्ट सेटिंग्स** → **MCP सर्वर** → **Connected MCP Clients** के अंतर्गत सूचीबद्ध होता है, साथ में यह भी कि उसे किसने connect किया, वह क्या कर सकता है, और उसका आखिरी बार उपयोग कब हुआ। आपको वे clients दिखते हैं जिन्हें आपने connect किया है; project owners और admins को सभी के clients दिखते हैं।
+
+किसी client को साइन आउट करने के लिए **Disconnect** पर क्लिक करें। वह तुरंत काम करना बंद कर देता है।
+
+Client तब तक connected रहता है जब तक उसका उपयोग होता रहता है। जिस client का 30 दिनों से उपयोग नहीं हुआ है, उसे फिर से साइन इन करना होता है।
+
+### यह नियंत्रित करना कि Clients कौन Connect कर सकता है
+
+Default रूप से project का हर member एक MCP client connect कर सकता है। किसी team के members को ऐसा करने से रोकने के लिए, team खोलें, **अनुमतियां अवरुद्ध करें** पर जाएं, और **Authorize MCP Client** permission जोड़ें। उन members द्वारा पहले से connect किए गए clients तुरंत काम करना बंद कर देते हैं।
+
+यदि project के लिए single sign-on आवश्यक है, तो किसी client को authorize करने से पहले अपने browser में SSO से project में साइन इन करें। Client का connection तभी तक बना रहता है जब तक वह SSO साइन इन बना रहता है; उसके समाप्त हो जाने पर client को फिर से connect करें।
+
+OneUptime Cloud पर, MCP client connect करना उन्हीं प्लान पर उपलब्ध है जिन पर API keys उपलब्ध हैं (Growth और उससे ऊपर)।
+
+Enterprise Edition में, connected client द्वारा किया गया हर परिवर्तन audit log में उस व्यक्ति के नाम से दर्ज होता है जिसने उसे connect किया था, साथ में client का नाम भी। API key से किए गए परिवर्तनों में key का नाम दिखता है।
 
 ## अपनी API Key प्राप्त करना
+
+ऐसे agent के लिए API key का उपयोग करें जो unattended चलता है - कोई scheduled job या CI pipeline - जहां साइन इन करने के लिए कोई मौजूद नहीं होता।
 
 1. अपने OneUptime instance में लॉग इन करें
 2. **सेटिंग्स** → **API कुंजियाँ** पर जाएं
@@ -55,6 +94,53 @@ API keys project-scoped होती हैं: MCP server आपकी key स�
 > **चेतावनी — किसी AI agent को कभी master key न दें।** OneUptime की *master* API key भी इस header पर स्वीकार की जाती है और यह instance-व्यापी admin access प्रदान करती है। हमेशा उस project API key का उपयोग करें जिसमें agent के लिए आवश्यक न्यूनतम privilege हो (सभी `get_`/`list_`/`count_` tools के लिए एक read-only key पर्याप्त है)।
 
 ## Configuration
+
+### साइन इन करके Connect करना
+
+बिना किसी credentials के, server URL को अपने client में जोड़ें। Self-hosted instance के लिए `https://your-oneuptime-domain.com/mcp` का उपयोग करें।
+
+**Claude Code**
+
+```bash
+claude mcp add --transport http oneuptime https://oneuptime.com/mcp
+```
+
+फिर Claude Code के अंदर `/mcp` चलाएं और साइन इन करने के लिए **oneuptime** चुनें।
+
+**Claude (web और desktop)**
+
+**Customize** → **Connectors** खोलें, **Add custom connector** चुनें, और `https://oneuptime.com/mcp` दर्ज करें। जब Claude को पहली बार आपके डेटा की आवश्यकता होती है, तो वह आपसे OneUptime में साइन इन करने के लिए कहता है।
+
+**VS Code with GitHub Copilot**
+
+इसे अपने MCP configuration में जोड़ें (वह फ़ाइल कहां होती है, यह जानने के लिए [VS Code with GitHub Copilot](#vs-code-with-github-copilot) देखें)। जब आप server शुरू करते हैं, तो VS Code आपके साइन इन करने के लिए OneUptime खोलता है:
+
+```json
+{
+  "servers": {
+    "oneuptime": {
+      "type": "http",
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+
+**Cursor**
+
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+
+MCP authorization को support करने वाला कोई भी अन्य client इसी तरह काम करता है: उसे URL दें और बाकी सब कुछ वह स्वयं खोज लेता है। Protocol के विवरण के लिए [साइन इन (OAuth 2.1)](#साइन-इन-oauth-21) देखें।
+
+इस section का शेष भाग उन्हीं clients को इसके बजाय API key के साथ configure करके दिखाता है।
 
 ### Claude Desktop Configuration
 
@@ -214,9 +300,20 @@ GitHub Copilot Chat खोलें और Agent mode (`@workspace` या स�
 | `/mcp/health` | GET    | Health check endpoint                                                                                                            |
 | `/mcp/tools`  | GET    | उपलब्ध tools सूचीबद्ध करने के लिए REST API                                                                                                 |
 
+साइन इन करने वाले MCP clients नीचे दिए गए OAuth endpoints का भी उपयोग करते हैं। Client इन्हें स्वयं खोज लेता है; ये यहां उन लोगों के लिए सूचीबद्ध हैं जो कोई client लिख रहे हैं या proxy configure कर रहे हैं।
+
+| Endpoint                                      | Method | विवरण                                                                    |
+| --------------------------------------------- | ------ | ------------------------------------------------------------------------ |
+| `/mcp/.well-known/oauth-protected-resource`   | GET    | Protected resource metadata (RFC 9728)। `/.well-known/oauth-protected-resource/mcp` पर भी उपलब्ध |
+| `/.well-known/oauth-authorization-server/mcp` | GET    | Authorization server metadata (RFC 8414)। `/mcp/.well-known/oauth-authorization-server` पर भी उपलब्ध |
+| `/mcp/oauth/authorize`                        | GET    | Authorization endpoint: जहां client आपके browser को साइन इन करने के लिए भेजता है |
+| `/mcp/oauth/token`                            | POST   | Token endpoint: authorization code या refresh token को exchange करता है   |
+| `/mcp/oauth/register`                         | POST   | Dynamic Client Registration (RFC 7591)                                   |
+| `/mcp/oauth/revoke`                           | POST   | Token revocation (RFC 7009)                                              |
+
 ## Authentication
 
-MCP server दो modes में काम करता है:
+MCP server तीन modes में काम करता है:
 
 ### Public Tools (Authentication आवश्यक नहीं)
 
@@ -231,14 +328,30 @@ MCP server दो modes में काम करता है:
 
 Public status page tools status page ID (UUID) या status page domain name दोनों स्वीकार करते हैं।
 
-### Authenticated Tools (API Key आवश्यक)
+### साइन इन (OAuth 2.1)
 
-अन्य सभी operations के लिए (monitors, incidents, teams, आदि प्रबंधित करना), निम्नलिखित headers में से किसी एक के माध्यम से authentication आवश्यक है:
+अन्य सभी operations के लिए (monitors, incidents, teams, आदि प्रबंधित करना), caller की पहचान होना आवश्यक है। जो client कोई credentials नहीं भेजता और इनमें से किसी tool को call करता है, उसे उत्तर में `401 Unauthorized` और एक `WWW-Authenticate` header मिलता है जो server के protected resource metadata की ओर संकेत करता है। यही वह संकेत है जिस पर MCP client आपको साइन इन कराने की कार्रवाई करता है; `initialize`, `tools/list` और public tools कभी साइन इन करने के लिए नहीं कहते।
+
+Server [MCP authorization specification](https://modelcontextprotocol.io/specification/latest/basic/authorization) को implement करता है:
+
+- **Flow**: PKCE (केवल `S256`) के साथ OAuth 2.1 authorization code। Access tokens `Authorization: Bearer` के रूप में भेजे जाते हैं।
+- **Discovery**: protected resource metadata (RFC 9728) और authorization server metadata (RFC 8414)। Issuer और resource दोनों `https://<host>/mcp` हैं।
+- **Client identity**: एक Client ID Metadata Document (client ID एक `https` URL होता है जिसे server fetch करता है), या Dynamic Client Registration (RFC 7591)। किसी भी client को administrator द्वारा register किए जाने की आवश्यकता नहीं है।
+- **Scopes**: `get_`, `list_` और `count_` tools के लिए `mcp:read`; `mcp:write` हर उस tool को जोड़ता है जो कुछ बदलता है, और इसमें `mcp:read` शामिल है। जो read-only token किसी write tool को call करता है, उसे उत्तर में `403` और `error="insufficient_scope"` मिलता है।
+- **Token lifetimes**: access token एक घंटे तक चलता है। Refresh token 30 दिनों तक चलता है और हर बार उपयोग होने पर बदल दिया जाता है; पहले ही बदले जा चुके refresh token का उपयोग करने से connection समाप्त हो जाता है।
+- **Resource indicators** (RFC 8707): token `https://<host>/mcp` के लिए जारी किया जाता है और कहीं और स्वीकार नहीं किया जाता।
+- **Revocation** (RFC 7009): दोनों में से किसी भी token को revoke करने से connection समाप्त हो जाता है।
+
+### API Key
+
+Unattended चलने वाला agent निम्नलिखित headers में से किसी एक में OneUptime API key के साथ authenticate करता है:
 
 - `x-api-key`: आपकी OneUptime API key
 - `Authorization`: आपकी API key के साथ Bearer token (जैसे `Bearer your-api-key-here`)
 
-`Bearer` scheme case-insensitive है। Tool errors, in-band tool results (`isError: true`) के रूप में लौटाई जाती हैं — जिनमें `statusCode`, विवरण और एक सुझाव शामिल होता है — MCP protocol errors के रूप में नहीं, ताकि agents विफलता को पढ़कर स्वयं को सुधार सकें।
+`Bearer` scheme case-insensitive है। जिस request में API key होती है, उससे कभी साइन इन करने के लिए नहीं कहा जाता।
+
+Tool errors, in-band tool results (`isError: true`) के रूप में लौटाई जाती हैं — जिनमें `statusCode`, विवरण और एक सुझाव शामिल होता है — MCP protocol errors के रूप में नहीं, ताकि agents विफलता को पढ़कर स्वयं को सुधार सकें।
 
 ## Workflow Tools
 
@@ -253,7 +366,7 @@ per-resource CRUD tools के अलावा, server incident और alert res
 
 ## Who Am I
 
-**`oneuptime_whoami`** tool वह project लौटाता है जिससे आपकी API key संबंधित है (ID और नाम)। किसी agent के लिए स्वयं को orient करने हेतु यह एक उपयोगी पहली call है — और चूंकि create tools API key से `projectId` स्वयं पहचान लेते हैं, agent को कभी project ID pass करने की आवश्यकता नहीं होती।
+**`oneuptime_whoami`** tool वह project लौटाता है जिससे आपके credentials संबंधित हैं (ID और नाम)। साइन इन करने वाले client के लिए, tool यह भी लौटाता है कि client किसके रूप में साइन इन है और क्या वह परिवर्तन कर सकता है। किसी agent के लिए स्वयं को orient करने हेतु यह एक उपयोगी पहली call है — और चूंकि create tools credentials से `projectId` स्वयं पहचान लेते हैं, agent को कभी project ID pass करने की आवश्यकता नहीं होती।
 
 ## Telemetry Query करना
 
@@ -388,11 +501,32 @@ resources बनाने, अपडेट करने और हटाने �
 - उपयोग Monitor करें: OneUptime में API key उपयोग पर नज़र रखें
 - अलग Keys: विभिन्न environments के लिए अलग-अलग API keys उपयोग करें
 
+## Self-Hosted Configuration
+
+Self-hosted instance पर साइन इन बिना किसी अतिरिक्त setup के काम करता है। दो settings उपलब्ध हैं:
+
+| Environment variable | Helm value | यह क्या करता है |
+| --- | --- | --- |
+| `DISABLE_MCP_OAUTH` | `mcpOAuth.disabled` | साइन इन बंद करने के लिए `true` पर सेट करें। OAuth endpoints serve होना बंद हो जाते हैं और MCP server केवल API keys स्वीकार करता है। कुछ भी delete नहीं होता; साइन इन वापस चालू करने पर connected clients फिर से काम करने लगते हैं। |
+| `DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS` | `mcpOAuth.disableClientIdMetadataDocuments` | ऐसे instance पर `true` पर सेट करें जो internet तक नहीं पहुंच सकता। Client अपनी पहचान ऐसे URL से दे सकता है जिसे OneUptime fetch करता है; इसे सेट करने पर clients इसके बजाय सीधे आपके instance के साथ register करते हैं, जिसके लिए किसी outbound request की आवश्यकता नहीं होती। |
+
+यदि आप OneUptime के आगे अपना reverse proxy चलाते हैं, तो `/mcp` के साथ-साथ `/.well-known/oauth-protected-resource` और `/.well-known/oauth-authorization-server` (और उनके अंतर्गत सब कुछ) को भी OneUptime पर forward करें। साथ आने वाला ingress यह पहले से करता है।
+
+Server हर OAuth URL को `HOST` और `HTTP_PROTOCOL` settings से बनाता है, इसलिए इनका उस address से मेल खाना आवश्यक है जिसका उपयोग लोग आपके instance तक पहुंचने के लिए करते हैं।
+
 ## समस्या निवारण
+
+### साइन इन संबंधी समस्याएं
+
+- **Client मुझसे कभी साइन इन करने के लिए नहीं कहता**: हो सकता है कि client MCP authorization को support न करता हो, या वह API key header के साथ configure किया गया हो, जिसे प्राथमिकता मिलती है। इसके बजाय साइन इन करने के लिए header हटाएं।
+- **Authorization page पर मेरा project greyed out है**: page, project के नाम के आगे इसका कारण बताता है - project के प्लान में MCP clients connect करना शामिल नहीं है, project के लिए SSO आवश्यक है और इस browser ने उसमें SSO से साइन इन नहीं किया है, या आपकी team को clients connect करने से block किया गया है।
+- **कोई tool "read-only" के साथ अस्वीकार हो जाता है**: client को केवल पढ़ने के लिए authorize किया गया था। उसे फिर से connect करें और **पढ़ना और लिखना** चुनें।
+- **Client ने काम करना बंद कर दिया**: उसे disconnect किया गया था, 30 दिनों तक उसका उपयोग नहीं हुआ, आपको project से हटा दिया गया, या project का SSO साइन इन समाप्त हो गया। उसे फिर से connect करें।
+- **Self-hosted - client बताता है कि उसे authorization server नहीं मिल रहा**: जांचें कि `HOST` और `HTTP_PROTOCOL` आपके public address से मेल खाते हैं, और यह कि आपका proxy `/.well-known/oauth-*` paths को forward करता है।
 
 ### Permission Errors
 
-सुनिश्चित करें कि आपकी API key में आवश्यक permissions हैं:
+सुनिश्चित करें कि आपकी API key में - या, साइन इन करने वाले client के मामले में, आपके अपने account में - आवश्यक permissions हैं:
 
 - resources सूचीबद्ध करने के लिए Read access
 - resources बनाने/अपडेट करने के लिए Write access

@@ -25,12 +25,26 @@ const NEGATIVE_TTL_MS: number = 10 * 1000;
 interface CachedApiKey {
   id: string;
   projectId: string;
+  name: string | null;
+}
+
+export interface ResolvedApiKey {
+  id: ObjectID;
+  projectId: ObjectID;
+
+  /*
+   * The key's display name, for the audit trail: "which key did this" is
+   * answered by a name an administrator recognises, not by an id. Never part
+   * of an authorization decision. Up to a minute stale on other nodes after
+   * a rename, like everything else this cache holds.
+   */
+  name?: string | undefined;
 }
 
 export class Service extends DatabaseService<Model> {
   /*
-   * Cache of `apiKey -> { id, projectId }`. The project-auth middleware hits
-   * this on every API-key-authenticated request; without it that's a
+   * Cache of `apiKey -> { id, projectId, name }`. The project-auth middleware
+   * hits this on every API-key-authenticated request; without it that's a
    * Postgres findOneBy per request for automated callers.
    */
   private apiKeyCache: InMemoryTTLCache<CachedApiKey | null> =
@@ -75,9 +89,7 @@ export class Service extends DatabaseService<Model> {
    * calling `findOneBy` directly.
    */
   @CaptureSpan()
-  public async findApiKey(
-    apiKey: ObjectID,
-  ): Promise<{ id: ObjectID; projectId: ObjectID } | null> {
+  public async findApiKey(apiKey: ObjectID): Promise<ResolvedApiKey | null> {
     const cacheKey: string = apiKey.toString();
     const cached: CachedApiKey | null | undefined =
       this.apiKeyCache.get(cacheKey);
@@ -88,6 +100,7 @@ export class Service extends DatabaseService<Model> {
       return {
         id: new ObjectID(cached.id),
         projectId: new ObjectID(cached.projectId),
+        ...(cached.name ? { name: cached.name } : {}),
       };
     }
 
@@ -99,6 +112,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         projectId: true,
+        name: true,
       },
       props: { isRoot: true },
     });
@@ -108,12 +122,22 @@ export class Service extends DatabaseService<Model> {
       return null;
     }
 
+    const name: string | null = row.name ? row.name.toString() : null;
+
     this.apiKeyCache.set(
       cacheKey,
-      { id: row.id.toString(), projectId: row.projectId.toString() },
+      {
+        id: row.id.toString(),
+        projectId: row.projectId.toString(),
+        name,
+      },
       POSITIVE_TTL_MS,
     );
-    return { id: row.id, projectId: row.projectId };
+    return {
+      id: row.id,
+      projectId: row.projectId,
+      ...(name ? { name } : {}),
+    };
   }
 }
 

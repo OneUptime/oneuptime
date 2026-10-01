@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "Rotationen, die festlegen, wer zu jedem Zeitpunkt Bereitschaft hat. Fügen Sie einen Plan zu den Eskalationsregeln einer Bereitschaftsrichtlinie hinzu, um die Person in Bereitschaft zu alarmieren.",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "Die Anwendungen und Microservices, die Sie betreiben. Jeder Dienst bündelt seine Protokolle, Traces, Metriken, Ausnahmen, Vorfälle und Eigentümer an einem Ort.",
   "Create On-Call Schedule": "Bereitschaftsplan erstellen",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Sonden sind die Rechner, die die Prüfungen dieses Monitors ausführen. Die Standardsonden Ihres Projekts sind bereits ausgewählt. Ein Monitor ohne Sonden wird nie geprüft."
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Sonden sind die Rechner, die die Prüfungen dieses Monitors ausführen. Die Standardsonden Ihres Projekts sind bereits ausgewählt. Ein Monitor ohne Sonden wird nie geprüft.",
+  "Auto Remediation Rules": "Auto-Behebungsregeln"
 }

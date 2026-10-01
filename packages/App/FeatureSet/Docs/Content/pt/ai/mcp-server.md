@@ -18,7 +18,7 @@ O servidor MCP é hospedado junto com sua instância do OneUptime e acessível v
 - **~155 Ferramentas**: Ferramentas CRUD completas para 22 tipos de recursos (incidentes, alertas, monitores, páginas de status, plantão e mais), ferramentas de telemetria somente leitura, além de ferramentas de fluxo de trabalho e auxiliares
 - **Operações em Tempo Real**: Criar, ler, atualizar e excluir recursos em tempo real
 - **Interface Tipada**: Totalmente tipado com validação de entrada abrangente
-- **Autenticação Segura**: Autenticação por chave de API a cada requisição com tratamento adequado de erros
+- **Autenticação Segura**: Login com sua conta do OneUptime (OAuth 2.1) ou envio de uma chave de API a cada requisição para agentes que executam sem supervisão
 - **Anotações de Segurança**: Ferramentas somente leitura carregam `readOnlyHint` e ferramentas de exclusão carregam `destructiveHint`, para que clientes MCP possam aprovar automaticamente chamadas seguras e perguntar antes das destrutivas
 - **Integração Fácil**: Funciona com Claude Desktop e outros clientes compatíveis com MCP
 - **Sem Estado por Design**: Sem IDs de sessão — cada requisição é autocontida, então o servidor funciona atrás de balanceadores de carga e implantações com múltiplas réplicas
@@ -39,9 +39,48 @@ Com o Servidor MCP do OneUptime, os assistentes de IA podem ajudá-lo a:
 
 - Instância do OneUptime (nuvem ou auto-hospedada)
 - Cliente compatível com MCP (Claude Desktop, VS Code com GitHub Copilot, etc.)
-- Chave de API válida do OneUptime (necessária apenas para operações autenticadas — ferramentas públicas funcionam sem ela)
+- Uma conta do OneUptime para fazer login, ou uma chave de API do OneUptime para um agente que executa sem supervisão (necessárias apenas para operações autenticadas — ferramentas públicas funcionam sem nenhuma das duas)
+
+## Fazendo Login com o OneUptime
+
+A maneira mais simples de conectar é informar ao seu cliente MCP a URL do servidor e nada mais. Na primeira vez que o cliente precisar dos seus dados, ele abre uma página do OneUptime no seu navegador, na qual você:
+
+1. Faz login no OneUptime, se ainda não tiver feito
+2. Escolhe o projeto em que o cliente deve trabalhar
+3. Escolhe se o cliente terá acesso de **leitura e gravação** ou **somente leitura**
+4. Clica em **Autorizar**
+
+A partir daí, o cliente age em seu nome nesse projeto. Não há chave de API para criar, copiar ou rotacionar, e nada secreto fica armazenado em um arquivo de configuração.
+
+O que um cliente conectado pode fazer:
+
+- **Ele tem as suas permissões, e nunca mais do que isso.** Tudo o que as suas equipes permitem que você faça no projeto é o que o cliente pode fazer. Se a sua função mudar ou você sair do projeto, isso já vale para a próxima requisição do cliente.
+- **Somente leitura significa somente leitura.** Um cliente autorizado como somente leitura pode usar as ferramentas `get_`, `list_` e `count_`. Ferramentas que criam, atualizam, excluem, reconhecem ou resolvem são recusadas, tanto pelo servidor MCP quanto pela API do OneUptime por trás dele. Você nunca pode dar a um cliente mais acesso do que ele solicitou.
+- **Ele vale para um único projeto.** Para usar um segundo projeto, conecte o cliente novamente e escolha esse projeto.
+- **Ele funciona apenas por meio do servidor MCP.** O token de acesso do cliente é aceito pelo endpoint MCP e em nenhum outro lugar. Ele não pode ser usado para chamar diretamente a API REST do OneUptime.
+- **Administradores da instância não recebem tratamento especial.** Um cliente conectado por um master admin tem o que as equipes dessa pessoa concedem no projeto, e não acesso a toda a instância.
+
+### Gerenciando Clientes Conectados
+
+Todo cliente que foi conectado por login aparece em **Configurações do projeto** → **Servidor MCP** → **Connected MCP Clients** (clientes MCP conectados), com quem o conectou, o que ele pode fazer e quando foi usado pela última vez. Você vê os clientes que você conectou; proprietários e administradores do projeto veem os de todos.
+
+Clique em **Disconnect** (desconectar) para encerrar a sessão de um cliente. Ele para de funcionar imediatamente.
+
+Um cliente permanece conectado enquanto estiver em uso. Um cliente que ficou 30 dias sem uso precisa fazer login novamente.
+
+### Controlando Quem Pode Conectar Clientes
+
+Por padrão, todo membro do projeto pode conectar um cliente MCP. Para impedir que os membros de uma equipe façam isso, abra a equipe, vá para **Bloquear permissões** e adicione a permissão **Authorize MCP Client** (autorizar cliente MCP). Os clientes que esses membros já conectaram param de funcionar na mesma hora.
+
+Se o projeto exigir Single Sign-On, faça login no projeto com SSO no seu navegador antes de autorizar um cliente. A conexão do cliente dura enquanto durar esse login com SSO; quando ele expirar, conecte o cliente novamente.
+
+No OneUptime na Nuvem, conectar um cliente MCP está disponível nos mesmos planos que as chaves de API (Growth e superiores).
+
+Na Enterprise Edition, toda alteração feita por um cliente conectado é registrada no log de auditoria em nome da pessoa que o conectou, junto com o nome do cliente. Alterações feitas com uma chave de API mostram o nome da chave.
 
 ## Obtendo Sua Chave de API
+
+Use uma chave de API para um agente que executa sem supervisão — uma tarefa agendada ou um pipeline de CI — em que não há ninguém para fazer login.
 
 1. Faça login na sua instância do OneUptime
 2. Navegue para **Configurações do projeto** → **Chaves de API**
@@ -55,6 +94,53 @@ As chaves de API têm escopo de projeto: o servidor MCP infere seu projeto a par
 > **Aviso — nunca dê uma chave mestra a um agente de IA.** Uma chave de API *mestra* do OneUptime também é aceita neste cabeçalho e concede acesso de administrador a toda a instância. Sempre use uma chave de API de projeto com o menor privilégio de que o agente precisa (uma chave somente leitura é suficiente para todas as ferramentas `get_`/`list_`/`count_`).
 
 ## Configuração
+
+### Conectando por Meio de Login
+
+Adicione a URL do servidor ao seu cliente, sem credenciais. Use `https://your-oneuptime-domain.com/mcp` para uma instância auto-hospedada.
+
+**Claude Code**
+
+```bash
+claude mcp add --transport http oneuptime https://oneuptime.com/mcp
+```
+
+Em seguida, execute `/mcp` dentro do Claude Code e escolha **oneuptime** para fazer login.
+
+**Claude (web e desktop)**
+
+Abra **Customize** → **Connectors**, escolha **Add custom connector** e insira `https://oneuptime.com/mcp`. O Claude pede que você faça login no OneUptime na primeira vez que precisar dos seus dados.
+
+**VS Code com GitHub Copilot**
+
+Adicione isto à sua configuração MCP (veja [VS Code com GitHub Copilot](#vs-code-com-github-copilot) para saber onde fica esse arquivo). O VS Code abre o OneUptime para você fazer login quando você inicia o servidor:
+
+```json
+{
+  "servers": {
+    "oneuptime": {
+      "type": "http",
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+
+**Cursor**
+
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+
+Qualquer outro cliente compatível com a autorização do MCP funciona da mesma forma: informe a URL e ele descobre todo o resto. Veja [Login (OAuth 2.1)](#login-oauth-21) para os detalhes do protocolo.
+
+O restante desta seção mostra os mesmos clientes configurados com uma chave de API em vez do login.
 
 ### Configuração do Claude Desktop
 
@@ -214,9 +300,20 @@ A configuração acima usa variáveis de entrada com `"password": true` para sol
 | `/mcp/health` | GET    | Endpoint de verificação de saúde                                                                                                            |
 | `/mcp/tools`  | GET    | API REST para listar ferramentas disponíveis                                                                                                 |
 
+Os clientes MCP que fazem login também usam os endpoints OAuth abaixo. O cliente os encontra sozinho; eles estão listados aqui para quem está escrevendo um cliente ou configurando um proxy.
+
+| Endpoint                                      | Método | Descrição |
+| --------------------------------------------- | ------ | ------------------------------------------------------------------------ |
+| `/mcp/.well-known/oauth-protected-resource`   | GET    | Metadados do recurso protegido (RFC 9728). Também em `/.well-known/oauth-protected-resource/mcp` |
+| `/.well-known/oauth-authorization-server/mcp` | GET    | Metadados do servidor de autorização (RFC 8414). Também em `/mcp/.well-known/oauth-authorization-server` |
+| `/mcp/oauth/authorize`                        | GET    | Endpoint de autorização: para onde o cliente envia o seu navegador para você fazer login |
+| `/mcp/oauth/token`                            | POST   | Endpoint de token: troca um código de autorização ou um token de atualização |
+| `/mcp/oauth/register`                         | POST   | Registro dinâmico de clientes (RFC 7591) |
+| `/mcp/oauth/revoke`                           | POST   | Revogação de token (RFC 7009) |
+
 ## Autenticação
 
-O servidor MCP suporta dois modos de operação:
+O servidor MCP suporta três modos de operação:
 
 ### Ferramentas Públicas (Sem Autenticação Necessária)
 
@@ -231,14 +328,30 @@ Você pode conectar ao servidor MCP sem uma chave de API para acessar ferramenta
 
 As ferramentas de página de status pública aceitam um ID de página de status (UUID) ou o nome de domínio da página de status.
 
-### Ferramentas Autenticadas (Chave de API Necessária)
+### Login (OAuth 2.1)
 
-Para todas as outras operações (gerenciar monitores, incidentes, equipes, etc.), a autenticação é necessária via um dos seguintes cabeçalhos:
+Para todas as outras operações (gerenciar monitores, incidentes, equipes, etc.), quem faz a chamada precisa ser identificado. Um cliente que não envia credenciais e chama uma dessas ferramentas recebe como resposta `401 Unauthorized` e um cabeçalho `WWW-Authenticate` que aponta para os metadados do recurso protegido do servidor. Esse é o sinal ao qual um cliente MCP reage para fazer o seu login; `initialize`, `tools/list` e as ferramentas públicas nunca pedem isso.
+
+O servidor implementa a [especificação de autorização do MCP](https://modelcontextprotocol.io/specification/latest/basic/authorization):
+
+- **Fluxo**: código de autorização do OAuth 2.1 com PKCE (apenas `S256`). Os tokens de acesso são enviados como `Authorization: Bearer`.
+- **Descoberta**: metadados do recurso protegido (RFC 9728) e metadados do servidor de autorização (RFC 8414). O emissor (issuer) e o recurso são ambos `https://<host>/mcp`.
+- **Identidade do cliente**: um Client ID Metadata Document (o ID do cliente é uma URL `https` que o servidor busca) ou registro dinâmico de clientes (Dynamic Client Registration, RFC 7591). Nenhum cliente precisa ser registrado por um administrador.
+- **Escopos**: `mcp:read` para as ferramentas `get_`, `list_` e `count_`; `mcp:write` acrescenta todas as ferramentas que alteram algo e inclui `mcp:read`. Um token somente leitura que chama uma ferramenta de escrita recebe como resposta `403` e `error="insufficient_scope"`.
+- **Tempo de vida dos tokens**: um token de acesso dura uma hora. Um token de atualização (refresh token) dura 30 dias e é substituído a cada uso; usar um token de atualização que já foi substituído encerra a conexão.
+- **Indicadores de recurso** (RFC 8707): um token é emitido para `https://<host>/mcp` e não é aceito em nenhum outro lugar.
+- **Revogação** (RFC 7009): revogar qualquer um dos dois tokens encerra a conexão.
+
+### Chave de API
+
+Um agente que executa sem supervisão se autentica com uma chave de API do OneUptime em um dos seguintes cabeçalhos:
 
 - `x-api-key`: Sua chave de API do OneUptime
 - `Authorization`: Token Bearer com sua chave de API (ex.: `Bearer your-api-key-here`)
 
-O esquema `Bearer` não diferencia maiúsculas de minúsculas. Erros de ferramenta são retornados como resultados de ferramenta dentro da resposta (`isError: true`) com um `statusCode`, detalhes e uma sugestão — não como erros do protocolo MCP — para que os agentes possam ler a falha e se autocorrigir.
+O esquema `Bearer` não diferencia maiúsculas de minúsculas. Uma requisição que traz uma chave de API nunca recebe um pedido de login.
+
+Erros de ferramenta são retornados como resultados de ferramenta dentro da resposta (`isError: true`) com um `statusCode`, detalhes e uma sugestão — não como erros do protocolo MCP — para que os agentes possam ler a falha e se autocorrigir.
 
 ## Ferramentas de Fluxo de Trabalho
 
@@ -253,7 +366,7 @@ Um ciclo típico: `list_incidents` → `acknowledge_incident` → investigar com
 
 ## Quem Sou Eu
 
-A ferramenta **`oneuptime_whoami`** retorna o projeto ao qual sua chave de API pertence (ID e nome). É uma primeira chamada útil para um agente se orientar — e como as ferramentas de criação inferem o `projectId` a partir da chave de API, o agente nunca precisa passar um ID de projeto.
+A ferramenta **`oneuptime_whoami`** retorna o projeto ao qual suas credenciais pertencem (ID e nome). Para um cliente que fez login, ela também retorna com qual usuário ele fez login e se ele pode fazer alterações. É uma primeira chamada útil para um agente se orientar — e como as ferramentas de criação inferem o `projectId` a partir das credenciais, o agente nunca precisa passar um ID de projeto.
 
 ## Consultando Telemetria
 
@@ -388,11 +501,32 @@ Para acesso total para criar, atualizar e excluir recursos, certifique-se de que
 - Monitore o Uso: Acompanhe o uso da chave de API no OneUptime
 - Chaves Separadas: Use diferentes chaves de API para diferentes ambientes
 
+## Configuração para Instâncias Auto-Hospedadas
+
+O login funciona sem configuração adicional em uma instância auto-hospedada. Há duas configurações disponíveis:
+
+| Variável de ambiente | Valor do Helm | O que faz |
+| --- | --- | --- |
+| `DISABLE_MCP_OAUTH` | `mcpOAuth.disabled` | Defina como `true` para desativar o login. Os endpoints OAuth deixam de ser servidos e o servidor MCP aceita apenas chaves de API. Nada é excluído; os clientes conectados voltam a funcionar quando a opção é revertida. |
+| `DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS` | `mcpOAuth.disableClientIdMetadataDocuments` | Defina como `true` em uma instância que não consegue acessar a internet. Um cliente pode se identificar com uma URL que o OneUptime busca; com esta opção ativada, os clientes passam a se registrar diretamente na sua instância, o que não exige nenhuma requisição de saída. |
+
+Se você mantém seu próprio proxy reverso na frente do OneUptime, encaminhe `/.well-known/oauth-protected-resource` e `/.well-known/oauth-authorization-server` (e tudo o que estiver abaixo deles) para o OneUptime, junto com `/mcp`. O ingress incluído já faz isso.
+
+O servidor monta todas as URLs do OAuth a partir das configurações `HOST` e `HTTP_PROTOCOL`, portanto elas precisam corresponder ao endereço que as pessoas usam para acessar sua instância.
+
 ## Solução de Problemas
+
+### Problemas de Login
+
+- **O cliente nunca me pede para fazer login**: o cliente pode não ser compatível com a autorização do MCP, ou pode estar configurado com um cabeçalho de chave de API, que tem precedência. Remova o cabeçalho para usar o login.
+- **Meu projeto aparece em cinza na página de autorização**: a página informa o motivo ao lado do nome do projeto — o plano do projeto não inclui a conexão de clientes MCP, o projeto exige SSO e este navegador não fez login nele com SSO, ou sua equipe está bloqueada para conectar clientes.
+- **Uma ferramenta é recusada com "read-only"**: o cliente foi autorizado como somente leitura. Conecte-o novamente e escolha **Leitura e gravação**.
+- **O cliente parou de funcionar**: ele foi desconectado, ficou 30 dias sem uso, você foi removido do projeto ou o login com SSO do projeto expirou. Conecte-o novamente.
+- **Auto-hospedado — o cliente informa que não consegue encontrar o servidor de autorização**: verifique se `HOST` e `HTTP_PROTOCOL` correspondem ao seu endereço público e se o seu proxy encaminha os caminhos `/.well-known/oauth-*`.
 
 ### Erros de Permissão
 
-Certifique-se de que sua chave de API tem as permissões necessárias:
+Certifique-se de que sua chave de API — ou, no caso de um cliente que fez login, a sua própria conta — tem as permissões necessárias:
 
 - Acesso de leitura para listar recursos
 - Acesso de escrita para criar/atualizar recursos

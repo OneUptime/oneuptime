@@ -114,11 +114,13 @@ import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
 import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecrets";
 import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
+import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
 import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
 import BackfillStatusPageSubscriberUnsubscribeColumns from "./BackfillStatusPageSubscriberUnsubscribeColumns";
 import BackfillIncidentCustomFieldVariableKeys from "./BackfillIncidentCustomFieldVariableKeys";
+import AcceptPendingTeamInvitationsOfProjectMembers from "./AcceptPendingTeamInvitationsOfProjectMembers";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -531,6 +533,21 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Idempotent: it only fills an empty key.
    */
   new BackfillIncidentCustomFieldVariableKeys(),
+  /*
+   * Accepting a project invitation is per project, not per team: a member of
+   * a project added to another of its teams no longer gets an invitation for
+   * it. Accepts the invitations left over from before for people who are
+   * already in that project, and refreshes their cached permissions.
+   * Invitations of people who have not joined are left pending. Idempotent.
+   */
+  new AcceptPendingTeamInvitationsOfProjectMembers(),
+  /*
+   * OAuth sign-in for the MCP server: adds the two audit-log columns that
+   * say a change was made through a connected MCP client, and which one
+   * (AuditLogV2.mcpOAuthGrantId, mcpClientName). Metadata-only and
+   * idempotent; rows written before it read as "not through an MCP client".
+   */
+  new AddAuditLogMcpClientColumns(),
 ];
 
 export default DataMigrations;

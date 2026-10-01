@@ -341,8 +341,13 @@ describe("open_code_pull_request", () => {
     }).not.toThrow();
   });
 
-  test("refuses when the repository is at its open-PR cap", async () => {
+  test("refuses when the repository is at the open-PR cap it set", async () => {
     mockHappyPath();
+    const cappedRepository: CodeRepositoryModel = buildRepository();
+    cappedRepository.maxOpenFixPullRequests = 5;
+    jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockResolvedValue([cappedRepository] as never);
     jest.spyOn(AIAgentTaskPullRequestService, "countBy").mockResolvedValue({
       toNumber: () => {
         return 5;
@@ -361,6 +366,30 @@ describe("open_code_pull_request", () => {
 
     // Rejected before creating a branch — no orphan branches from a capped repo.
     expect(branchSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A repository with no cap set used to stop at 5 open AI pull requests.
+   * With no limit by default, the chat opens one however many are open.
+   */
+  test("opens the pull request on a repository with no cap set, however many AI PRs are open", async () => {
+    mockHappyPath();
+    const countBy: jest.SpyInstance = jest
+      .spyOn(AIAgentTaskPullRequestService, "countBy")
+      .mockResolvedValue({
+        toNumber: () => {
+          return 50;
+        },
+      } as never);
+
+    const result: ToolExecutionResult = await OpenCodePullRequestTool.execute(
+      { title: "Fix charge", description: "why", changes: CHANGES },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("/pull/7");
+    expect(countBy).not.toHaveBeenCalled();
+    expect(GitHubUtil.createPullRequestWithToken).toHaveBeenCalledTimes(1);
   });
 });
 

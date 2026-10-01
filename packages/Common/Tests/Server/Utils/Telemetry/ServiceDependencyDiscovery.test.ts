@@ -12,22 +12,27 @@ import {
   DependencyEdgeCollector,
   DependencyQueryWindow,
   DependencyTarget,
+  EPHEMERAL_DEFAULT_DATABASE_PORTS,
   MAX_DATABASE_TARGETS_PER_ROW,
   NON_BLANK_TEXT_PATTERN,
   ORDINAL_SUFFIX_PATTERN,
   PARENT_LOOKBACK_MINUTES,
   PLAIN_HOST_ADDRESS_PATTERN,
+  PORT_ATTRIBUTE_PATTERN,
   PRIVATE_IP_ADDRESS_PATTERN,
   SERVICE_GRAPH_REQUEST_FAILED_METRIC,
   SERVICE_GRAPH_REQUEST_TOTAL_METRIC,
   buildClientSpanDependencySql,
   buildServiceGraphMetricSql,
   buildTraceLinkedDependencySql,
+  clientSocketPortSql,
   databaseCallerContextSql,
   databaseInstanceSql,
   describeDependencyDatabaseServer,
   escapeSql,
   firstNonEmptyAttributeSql,
+  isClientSocketDependencyRow,
+  isClientSocketDependencyTarget,
   isUuid,
   mergeDependencyEntityDescriptions,
   mergeDependencySources,
@@ -54,9 +59,15 @@ import {
 } from "../../../../Server/Utils/Telemetry/DatabaseEndpointDiscovery";
 import {
   DatabaseEndpoint,
+  EPHEMERAL_PORT_RANGE_START,
   buildDatabaseCallerContext,
   formatDatabaseEndpoint,
+  isClientSocketDatabaseEndpoint,
 } from "../../../../Types/DatabaseServer/DatabaseEndpoint";
+import {
+  DATABASE_SYSTEMS,
+  DatabaseSystemDescriptor,
+} from "../../../../Types/DatabaseServer/DatabaseSystem";
 import {
   DATABASE_ADDRESS_ATTRIBUTES,
   DATABASE_PORT_ATTRIBUTES,
@@ -655,6 +666,25 @@ function targetColumns(columns: SpanColumns): Array<string> {
     columns["callerInKubernetes"]!,
     columns["callerCluster"]!,
   ];
+}
+
+/*
+ * clientSocketPortSql over a span's `serverPort`, evaluated the way
+ * ClickHouse evaluates it: trimBoth removes spaces only, and toUInt32OrZero
+ * reads the digits that are left.
+ */
+const PORT_ATTRIBUTE_REGEX: RegExp = new RegExp(PORT_ATTRIBUTE_PATTERN);
+
+function isClientSocketPortInSql(port: string): boolean {
+  if (!PORT_ATTRIBUTE_REGEX.test(port)) {
+    return false;
+  }
+  const value: number = Number(port.replace(/^ +| +$/g, ""));
+  return (
+    value >= EPHEMERAL_PORT_RANGE_START &&
+    value <= 65535 &&
+    !EPHEMERAL_DEFAULT_DATABASE_PORTS.includes(value)
+  );
 }
 
 // The dependency row ONE stored span would group into on its own.
@@ -1497,87 +1527,100 @@ describe("resolveClientSpanTarget — the database server a node calls", () => {
  * over a large estate: its GROUP BY columns are read from the SQL itself,
  * its dbTargets aggregation is groupUniqArrayIf with the same cap.
  */
-describe("client span dependency rows are bounded by the nodes, not the estate", () => {
-  interface SimulatedCalls {
-    service: string;
-    attributes: StoredAttributes;
-    calls: number;
-  }
+/*
+ * The client-span dependency query, run in TypeScript over simulated calls:
+ * the spans it leaves out, its GROUP BY (read from the SQL itself), the
+ * servers it aggregates and its row cap.
+ */
+interface SimulatedCalls {
+  service: string;
+  attributes: StoredAttributes;
+  calls: number;
+}
 
-  interface SimulatedRow {
-    columns: SpanColumns;
-    targets: Array<string>;
-    callCount: number;
-  }
+interface SimulatedRow {
+  columns: SpanColumns;
+  targets: Array<string>;
+  callCount: number;
+}
 
-  function runQuery(
-    calls: Array<SimulatedCalls>,
-    maxRows: number,
-  ): Array<ClientSpanDependencyRow> {
-    const sql: string = collapse(
-      buildClientSpanDependencySql({ ...WINDOW, maxRows: maxRows }),
-    );
-    const groupBy: RegExpMatchArray | null = sql.match(
-      /GROUP BY ([A-Za-z, ]+) ORDER BY callCount DESC/,
-    );
-    expect(groupBy).not.toBeNull();
-    const groupColumns: Array<string> = groupBy![1]!.split(", ");
+function runQuery(
+  calls: Array<SimulatedCalls>,
+  maxRows: number,
+): Array<ClientSpanDependencyRow> {
+  const sql: string = collapse(
+    buildClientSpanDependencySql({ ...WINDOW, maxRows: maxRows }),
+  );
+  const groupBy: RegExpMatchArray | null = sql.match(
+    /GROUP BY ([A-Za-z, ]+) ORDER BY callCount DESC/,
+  );
+  expect(groupBy).not.toBeNull();
+  const groupColumns: Array<string> = groupBy![1]!.split(", ");
 
-    const groups: Map<string, SimulatedRow> = new Map<string, SimulatedRow>();
-    for (const call of calls) {
-      const columns: SpanColumns = {
-        callerServiceId: call.service,
-        ...spanColumns(call.attributes),
-      };
-      const key: string = JSON.stringify(
-        groupColumns.map((column: string): string => {
-          expect(column in columns).toBe(true);
-          return columns[column]!;
-        }),
-      );
-      const group: SimulatedRow = groups.get(key) || {
-        columns: columns,
-        targets: [],
-        callCount: 0,
-      };
-      const entry: string = JSON.stringify(targetColumns(columns));
-      if (
-        columns["dbSystem"] !== "" &&
-        !group.targets.includes(entry) &&
-        group.targets.length < MAX_DATABASE_TARGETS_PER_ROW
-      ) {
-        group.targets.push(entry);
-      }
-      group.callCount += call.calls;
-      groups.set(key, group);
+  expect(sql).toContain(
+    `AND NOT ${collapse(clientSocketPortSql("serverPort"))}`,
+  );
+
+  const groups: Map<string, SimulatedRow> = new Map<string, SimulatedRow>();
+  for (const call of calls) {
+    const columns: SpanColumns = {
+      callerServiceId: call.service,
+      ...spanColumns(call.attributes),
+    };
+    // The WHERE clause: a call on a client's own socket is left out.
+    if (isClientSocketPortInSql(columns["serverPort"]!)) {
+      continue;
     }
-
-    return Array.from(groups.values())
-      .sort((a: SimulatedRow, b: SimulatedRow): number => {
-        return b.callCount - a.callCount;
-      })
-      .slice(0, maxRows)
-      .map((group: SimulatedRow): ClientSpanDependencyRow => {
-        return {
-          callerServiceId: group.columns["callerServiceId"]!,
-          dbSystem: group.columns["dbSystem"],
-          dbNamespace: group.columns["dbNamespace"],
-          messagingSystem: group.columns["messagingSystem"],
-          peerService: group.columns["peerService"],
-          rpcSystem: group.columns["rpcSystem"],
-          rpcService: group.columns["rpcService"],
-          serverAddress: group.columns["serverAddress"],
-          isHttp: group.columns["isHttp"],
-          dbTargets: group.targets.map((entry: string): Array<string> => {
-            return JSON.parse(entry) as Array<string>;
-          }),
-          callCount: group.callCount,
-          errorCount: 0,
-          avgDurationNano: 1000000,
-        };
-      });
+    const key: string = JSON.stringify(
+      groupColumns.map((column: string): string => {
+        expect(column in columns).toBe(true);
+        return columns[column]!;
+      }),
+    );
+    const group: SimulatedRow = groups.get(key) || {
+      columns: columns,
+      targets: [],
+      callCount: 0,
+    };
+    const entry: string = JSON.stringify(targetColumns(columns));
+    if (
+      columns["dbSystem"] !== "" &&
+      !group.targets.includes(entry) &&
+      group.targets.length < MAX_DATABASE_TARGETS_PER_ROW
+    ) {
+      group.targets.push(entry);
+    }
+    group.callCount += call.calls;
+    groups.set(key, group);
   }
 
+  return Array.from(groups.values())
+    .sort((a: SimulatedRow, b: SimulatedRow): number => {
+      return b.callCount - a.callCount;
+    })
+    .slice(0, maxRows)
+    .map((group: SimulatedRow): ClientSpanDependencyRow => {
+      return {
+        callerServiceId: group.columns["callerServiceId"]!,
+        dbSystem: group.columns["dbSystem"],
+        dbNamespace: group.columns["dbNamespace"],
+        messagingSystem: group.columns["messagingSystem"],
+        peerService: group.columns["peerService"],
+        rpcSystem: group.columns["rpcSystem"],
+        rpcService: group.columns["rpcService"],
+        serverAddress: group.columns["serverAddress"],
+        isHttp: group.columns["isHttp"],
+        dbTargets: group.targets.map((entry: string): Array<string> => {
+          return JSON.parse(entry) as Array<string>;
+        }),
+        callCount: group.callCount,
+        errorCount: 0,
+        avgDurationNano: 1000000,
+      };
+    });
+}
+
+describe("client span dependency rows are bounded by the nodes, not the estate", () => {
   const SERVICES: number = 10;
   const NAMESPACES: number = 100;
   const CLUSTERS: number = 3;
@@ -1732,6 +1775,568 @@ describe("client span dependency rows are bounded by the nodes, not the estate",
       }),
     );
     expect(nodes.size).toBe(30);
+  });
+});
+
+/*
+ * The bug report: eBPF instrumentation (OBI) joined the worker's long-lived
+ * Redis connections mid-stream and swapped their two ends, so the Redis
+ * server's own pod emitted CLIENT spans naming the worker — its address and
+ * an ephemeral port — as the server. Grouped without the port, they gave the
+ * Redis server's service a dependency on a "redis @ oneuptime-worker"
+ * Database node.
+ */
+describe("client span dependencies — a client's own socket", () => {
+  const sql: string = collapse(buildClientSpanDependencySql(WINDOW));
+
+  // Every engine by every name it is known by, and one nobody knows.
+  const ENGINES: Array<string> = [
+    ...DATABASE_SYSTEMS.flatMap(
+      (descriptor: DatabaseSystemDescriptor): Array<string> => {
+        return [descriptor.system, ...descriptor.aliases];
+      },
+    ),
+    "acme-db",
+  ];
+
+  // Ports around every boundary of the rule, and every engine's default.
+  const PORTS: Array<number> = Array.from(
+    new Set<number>([
+      1,
+      80,
+      1433,
+      3306,
+      5432,
+      6379,
+      9042,
+      27017,
+      32767,
+      32768,
+      32769,
+      40000,
+      46482,
+      46600,
+      49151,
+      49152,
+      49999,
+      50000,
+      50001,
+      60999,
+      61000,
+      65534,
+      65535,
+      ...DATABASE_SYSTEMS.map(
+        (descriptor: DatabaseSystemDescriptor): number => {
+          return descriptor.defaultPort ?? 1;
+        },
+      ),
+    ]),
+  );
+
+  const WORKER: StoredAttributes = {
+    "resource.k8s.pod.name": "oneuptime-worker-5d8f-x",
+    [CALLER_NAMESPACE_ATTRIBUTE]: "default",
+    [CALLER_CLUSTER_ATTRIBUTE]: "gke-test-cluster",
+  };
+  const REDIS_POD: StoredAttributes = {
+    "resource.k8s.pod.name": "oneuptime-redis-master-0",
+    [CALLER_NAMESPACE_ATTRIBUTE]: "default",
+    [CALLER_CLUSTER_ATTRIBUTE]: "gke-test-cluster",
+  };
+  const WORKER_SERVICE: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const REDIS_SERVICE: string = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+
+  // A target of a swapped Redis row: the worker, as the Redis pod named it.
+  function socket(
+    overrides: Partial<DependencyDatabaseTarget>,
+  ): DependencyDatabaseTarget {
+    return {
+      address: "oneuptime-worker",
+      port: "46600",
+      instance: "",
+      callerNamespace: "default",
+      callerInKubernetes: false,
+      callerCluster: "gke-test-cluster",
+      ...overrides,
+    };
+  }
+
+  function socketColumns(
+    overrides: Partial<DependencyDatabaseTarget>,
+  ): Array<string> {
+    const value: DependencyDatabaseTarget = socket(overrides);
+    return [
+      value.address,
+      value.port,
+      value.instance,
+      value.callerNamespace,
+      value.callerInKubernetes ? "1" : "0",
+      value.callerCluster,
+    ];
+  }
+
+  function swappedRow(
+    targets: Array<Partial<DependencyDatabaseTarget>>,
+    overrides: Partial<ClientSpanDependencyRow> = {},
+  ): ClientSpanDependencyRow {
+    return row({
+      callerServiceId: REDIS_SERVICE,
+      dbSystem: "redis",
+      serverAddress: "oneuptime-worker",
+      dbTargets: targets.map(socketColumns),
+      ...overrides,
+    });
+  }
+
+  describe("the query", () => {
+    test("leaves the call out in the span scan, before anything is grouped", () => {
+      expect(sql).toContain(
+        `AND kind IN ('SPAN_KIND_CLIENT', 'SPAN_KIND_PRODUCER') AND NOT ${collapse(
+          clientSocketPortSql("serverPort"),
+        )} AND (traceId, spanId) NOT IN (`,
+      );
+      // The port is still never part of a node's identity.
+      expect(sql).toContain(
+        "GROUP BY callerServiceId, dbSystem, dbNamespace, messagingSystem, peerService, rpcSystem, rpcService, serverAddress, isHttp ORDER BY",
+      );
+    });
+
+    test("is exactly the SQL the TypeScript twin evaluates", () => {
+      expect(clientSocketPortSql("p")).toBe(
+        "(match(p, '^ *0*[0-9]{1,5} *$') AND toUInt32OrZero(trimBoth(p)) >= 32768 AND toUInt32OrZero(trimBoth(p)) <= 65535 AND toUInt32OrZero(trimBoth(p)) NOT IN (50000))",
+      );
+      expect(PORT_ATTRIBUTE_PATTERN).toBe("^ *0*[0-9]{1,5} *$");
+      expect(EPHEMERAL_PORT_RANGE_START).toBe(32768);
+    });
+
+    test("the ephemeral ports an engine listens on by default are read from the catalog: Db2's", () => {
+      expect(EPHEMERAL_DEFAULT_DATABASE_PORTS).toEqual([50000]);
+      for (const descriptor of DATABASE_SYSTEMS) {
+        if (
+          descriptor.defaultPort !== null &&
+          descriptor.defaultPort >= EPHEMERAL_PORT_RANGE_START
+        ) {
+          expect(EPHEMERAL_DEFAULT_DATABASE_PORTS).toContain(
+            descriptor.defaultPort,
+          );
+        }
+      }
+    });
+
+    test("reads port attributes as ClickHouse 26.7 evaluated the expression", () => {
+      const cases: Array<[string, boolean]> = [
+        ["46600", true],
+        [" 46600 ", true],
+        ["0046600", true],
+        ["0000000000046600", true],
+        ["32768", true],
+        ["65535", true],
+        ["32767", false],
+        ["6379", false],
+        ["50000", false],
+        ["65536", false],
+        ["99999", false],
+        ["", false],
+        ["abc", false],
+        ["+46600", false],
+        ["-46600", false],
+        ["4.66e4", false],
+        ["46600\t", false],
+      ];
+      for (const [port, expected] of cases) {
+        expect([port, isClientSocketPortInSql(port)]).toEqual([port, expected]);
+      }
+    });
+
+    test("for every engine, it is isClientSocketDatabaseEndpoint less the ports some engine listens on", () => {
+      for (const engine of ENGINES) {
+        for (const port of PORTS) {
+          const clientSocket: boolean = isClientSocketDatabaseEndpoint({
+            system: engine,
+            endpoint: { host: "oneuptime-worker.example.com", port: port },
+          });
+          expect([engine, port, isClientSocketPortInSql(String(port))]).toEqual(
+            [
+              engine,
+              port,
+              clientSocket && !EPHEMERAL_DEFAULT_DATABASE_PORTS.includes(port),
+            ],
+          );
+        }
+      }
+    });
+
+    test("never leaves out a call to a database on its engine's default port", () => {
+      for (const descriptor of DATABASE_SYSTEMS) {
+        if (descriptor.defaultPort !== null) {
+          expect([
+            descriptor.system,
+            isClientSocketPortInSql(String(descriptor.defaultPort)),
+          ]).toEqual([descriptor.system, false]);
+        }
+      }
+    });
+
+    test("leaves a call out only for the very port ingest keys it by", () => {
+      for (const port of ["46600", " 46600 ", "046600"]) {
+        const attributes: StoredAttributes = {
+          "db.system.name": "redis",
+          "server.address": "oneuptime-worker.example.com",
+          "server.port": port,
+        };
+        expect(
+          isClientSocketPortInSql(spanColumns(attributes)["serverPort"]!),
+        ).toBe(true);
+        expect(
+          resolveDatabaseCallTarget({
+            getAttribute: (key: string): unknown => {
+              return attributes[key];
+            },
+            caller: buildDatabaseCallerContext({}),
+          })?.endpoint.port,
+        ).toBe(46600);
+      }
+    });
+
+    test("keeps every call that is not a database call, whatever its port", () => {
+      const columns: SpanColumns = spanColumns({
+        "server.address": "api.example.com",
+        "server.port": "46600",
+        "http.request.method": "GET",
+      });
+      expect(columns["serverPort"]).toBe("");
+      expect(isClientSocketPortInSql(columns["serverPort"]!)).toBe(false);
+    });
+  });
+
+  describe("isClientSocketDependencyTarget", () => {
+    test("a Redis target on the worker's ephemeral port is a client's socket", () => {
+      for (const port of ["46600", "32768", "65535"]) {
+        expect(
+          isClientSocketDependencyTarget({
+            dbSystem: "redis",
+            target: socket({ port: port }),
+          }),
+        ).toBe(true);
+      }
+    });
+
+    test("including what the query cannot catch: Db2's port, or a port inside the address", () => {
+      expect(
+        isClientSocketDependencyTarget({
+          dbSystem: "redis",
+          target: socket({ port: "50000" }),
+        }),
+      ).toBe(true);
+      expect(
+        isClientSocketDependencyTarget({
+          dbSystem: "redis",
+          target: socket({ address: "oneuptime-worker:46600", port: "" }),
+        }),
+      ).toBe(true);
+      expect(isClientSocketPortInSql("")).toBe(false);
+    });
+
+    test("a server on its engine's port, its default, or Db2's 50000 is not", () => {
+      for (const [dbSystem, port] of [
+        ["redis", "6379"],
+        ["redis", ""],
+        ["redis", "16379"],
+        ["ibm.db2", "50000"],
+        ["db2", "50000"],
+        ["db2", ""],
+      ] as Array<[string, string]>) {
+        expect([
+          dbSystem,
+          port,
+          isClientSocketDependencyTarget({
+            dbSystem: dbSystem,
+            target: socket({ port: port }),
+          }),
+        ]).toEqual([dbSystem, port, false]);
+      }
+      // …while Db2 on any other ephemeral port is a client's socket.
+      expect(
+        isClientSocketDependencyTarget({
+          dbSystem: "db2",
+          target: socket({ port: "50001" }),
+        }),
+      ).toBe(true);
+    });
+
+    test("a target that names no server names no client's socket either", () => {
+      for (const [dbSystem, address] of [
+        ["redis", "localhost"],
+        ["redis", "[REDACTED]"],
+        ["redis", ""],
+        ["", "oneuptime-worker"],
+        [undefined, "oneuptime-worker"],
+      ] as Array<[string | undefined, string]>) {
+        expect(
+          isClientSocketDependencyTarget({
+            dbSystem: dbSystem,
+            target: socket({ address: address }),
+          }),
+        ).toBe(false);
+      }
+      expect(
+        isClientSocketDependencyTarget(
+          null as unknown as {
+            dbSystem: string;
+            target: DependencyDatabaseTarget;
+          },
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe("isClientSocketDependencyRow", () => {
+    test("a database row whose every call named a client's socket", () => {
+      expect(
+        isClientSocketDependencyRow(
+          swappedRow([
+            { port: "50000" },
+            { address: "oneuptime-worker:46600", port: "" },
+            { port: "50000", callerCluster: "gke-other-cluster" },
+          ]),
+        ),
+      ).toBe(true);
+    });
+
+    test("not while one call reached a server", () => {
+      expect(
+        isClientSocketDependencyRow(
+          swappedRow([{ port: "50000" }, { port: "6379" }]),
+        ),
+      ).toBe(false);
+      expect(
+        isClientSocketDependencyRow(
+          swappedRow([{ port: "50000" }, { address: "localhost" }]),
+        ),
+      ).toBe(false);
+    });
+
+    test("not when the target list may have been cut short", () => {
+      const full: Array<Partial<DependencyDatabaseTarget>> = [];
+      for (
+        let index: number = 0;
+        index < MAX_DATABASE_TARGETS_PER_ROW;
+        index++
+      ) {
+        full.push({ port: "50000", callerCluster: `cluster-${index}` });
+      }
+      expect(isClientSocketDependencyRow(swappedRow(full))).toBe(false);
+      expect(isClientSocketDependencyRow(swappedRow(full.slice(1)))).toBe(true);
+    });
+
+    test("not for a malformed target, a row without any, or a row that is not a database call", () => {
+      expect(
+        isClientSocketDependencyRow(
+          swappedRow([{ port: "50000" }], {
+            dbTargets: [
+              socketColumns({ port: "50000" }),
+              "oneuptime-worker:46600" as unknown as Array<string>,
+            ],
+          }),
+        ),
+      ).toBe(false);
+      for (const overrides of [
+        { dbTargets: [] },
+        { dbTargets: undefined },
+        { dbSystem: "" },
+        { dbSystem: "   " },
+      ] as Array<Partial<ClientSpanDependencyRow>>) {
+        expect(
+          isClientSocketDependencyRow(
+            swappedRow([{ port: "50000" }], overrides),
+          ),
+        ).toBe(false);
+      }
+      expect(
+        isClientSocketDependencyRow(null as unknown as ClientSpanDependencyRow),
+      ).toBe(false);
+    });
+  });
+
+  describe("resolveClientSpanTarget", () => {
+    test("a row whose every call named a client's socket draws no Database node", () => {
+      expect(
+        resolveClientSpanTarget(
+          swappedRow([{ port: "50000" }, { port: "49114" }]),
+          KNOWN,
+        ),
+      ).toBeNull();
+      // Even when the worker is a service of the project.
+      expect(
+        resolveClientSpanTarget(
+          swappedRow([{ port: "50000" }]),
+          new Set<string>(["oneuptime-worker"]),
+        ),
+      ).toBeNull();
+    });
+
+    test("Db2 on its default port 50000 is still a database", () => {
+      const resolved: DependencyTarget | null = resolveClientSpanTarget(
+        row({
+          dbSystem: "ibm.db2",
+          serverAddress: "db2.example.com",
+          dbTargets: [target({ address: "db2.example.com", port: "50000" })],
+        }),
+        KNOWN,
+      );
+      expect(resolved).toMatchObject({
+        kind: "dependency",
+        entity: {
+          entityType: EntityType.Database,
+          identifyingAttributes: {
+            "db.system.name": "ibm.db2",
+            "server.address": "db2.example.com",
+          },
+          descriptiveAttributes: {
+            [DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]: "db2.example.com:50000",
+            [DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE]: "50000",
+          },
+        },
+      });
+    });
+
+    test("a server beside a client's socket keeps the node, described by the server alone", () => {
+      const resolved: DependencyTarget | null = resolveClientSpanTarget(
+        swappedRow([{ port: "50000" }, { port: "6379" }]),
+        KNOWN,
+      );
+      expect(resolved?.kind).toBe("dependency");
+      expect(
+        resolved?.kind === "dependency"
+          ? resolved.entity.descriptiveAttributes
+          : null,
+      ).toEqual({
+        "db.system.name": "redis",
+        [DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]:
+          "oneuptime-worker.default.svc.cluster.local:6379@gke-test-cluster",
+        [DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE]: "6379",
+      });
+      expect(
+        describeDependencyDatabaseServer(swappedRow([{ port: "50000" }])),
+      ).toBeNull();
+    });
+
+    test("a row whose targets may have been cut short keeps its node, ambiguous", () => {
+      const full: Array<Partial<DependencyDatabaseTarget>> = [];
+      for (
+        let index: number = 0;
+        index < MAX_DATABASE_TARGETS_PER_ROW;
+        index++
+      ) {
+        full.push({ port: "50000", callerCluster: `cluster-${index}` });
+      }
+      const resolved: DependencyTarget | null = resolveClientSpanTarget(
+        swappedRow(full),
+        KNOWN,
+      );
+      expect(
+        resolved?.kind === "dependency"
+          ? resolved.entity.descriptiveAttributes[
+              DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE
+            ]
+          : null,
+      ).toBe("");
+    });
+  });
+
+  test("end to end: the worker's swapped connections draw nothing, its real Redis stays", () => {
+    // More ports than a row keeps targets: no target list could tell.
+    const swappedPorts: Array<string> = Array.from(
+      { length: 3 * MAX_DATABASE_TARGETS_PER_ROW },
+      (_value: unknown, index: number): string => {
+        return String(EPHEMERAL_PORT_RANGE_START + 7 + index * 593);
+      },
+    );
+    const calls: Array<SimulatedCalls> = [
+      {
+        service: WORKER_SERVICE,
+        attributes: {
+          "db.system.name": "redis",
+          "server.address": "oneuptime-redis-master",
+          "server.port": "6379",
+          ...WORKER,
+        },
+        calls: 9000,
+      },
+      ...swappedPorts.map((port: string): SimulatedCalls => {
+        return {
+          service: REDIS_SERVICE,
+          attributes: {
+            "db.system.name": "redis",
+            "server.address": "oneuptime-worker",
+            "server.port": port,
+            ...REDIS_POD,
+          },
+          calls: 300,
+        };
+      }),
+      // Legacy attribute names, as an older instrumentation spells them.
+      {
+        service: REDIS_SERVICE,
+        attributes: {
+          "db.system": "redis",
+          "net.peer.name": "oneuptime-worker",
+          "net.peer.port": "46482",
+          ...REDIS_POD,
+        },
+        calls: 300,
+      },
+      // The one connection the query keeps: the client got Db2's port.
+      {
+        service: REDIS_SERVICE,
+        attributes: {
+          "db.system.name": "redis",
+          "server.address": "oneuptime-worker",
+          "server.port": "50000",
+          ...REDIS_POD,
+        },
+        calls: 300,
+      },
+    ];
+
+    const rows: Array<ClientSpanDependencyRow> = runQuery(calls, 1000);
+    expect(
+      rows.map((candidate: ClientSpanDependencyRow): string => {
+        return `${candidate.callerServiceId} ${candidate.serverAddress} ${candidate.callCount}`;
+      }),
+    ).toEqual([
+      `${WORKER_SERVICE} oneuptime-redis-master 9000`,
+      `${REDIS_SERVICE} oneuptime-worker 300`,
+    ]);
+
+    const nodes: Array<DependencyTarget> = rows
+      .map((candidate: ClientSpanDependencyRow): DependencyTarget | null => {
+        return resolveClientSpanTarget(
+          candidate,
+          new Set<string>(["oneuptime-worker", "redis"]),
+        );
+      })
+      .filter((node: DependencyTarget | null): node is DependencyTarget => {
+        return node !== null;
+      });
+    expect(nodes).toEqual([
+      {
+        kind: "dependency",
+        entity: {
+          entityType: EntityType.Database,
+          identifyingAttributes: {
+            "db.system.name": "redis",
+            "server.address": "oneuptime-redis-master",
+          },
+          descriptiveAttributes: {
+            "db.system.name": "redis",
+            [DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]:
+              "oneuptime-redis-master.default.svc.cluster.local:6379@gke-test-cluster",
+            [DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE]: "6379",
+          },
+        },
+      },
+    ]);
   });
 });
 

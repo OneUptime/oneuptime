@@ -56,7 +56,7 @@ U kunt een issue ook **zonder ook maar een opmerking te plaatsen** aan de app ov
 | `@oneuptime status` | Vertelt waar hij in deze thread op dit moment aan werkt. |
 | `@oneuptime cancel` | Stopt de runs die hij in deze thread heeft lopen. Werk dat al gepusht is, blijft gepusht. |
 
-`help`, `status` en `cancel` starten nooit een agent-run: ze kosten dus niets en vallen niet onder uw dagelijkse budget voor fixtaken.
+`help`, `status` en `cancel` starten nooit een agent-run: ze kosten dus niets.
 
 ## Hoe het eruitziet in de thread
 
@@ -87,10 +87,9 @@ Hij negeert ook elke opmerking die door een bot is geschreven, inclusief die van
 
 Elk commando dat werk start, is een volledige agent-run — een clone, maximaal 40 LLM-aanroepen en 100.000 outputtokens, plus de build- en testcommando's van uw repository als u die hebt geconfigureerd.
 
-Er gelden twee limieten, en het zijn allebei dezelfde die al voor [AI Fix Tasks](/docs/ai/ai-agent) gelden:
+GitHub-commando's zijn AI-werk buiten incidenten en waarschuwingen, dus voor hen geldt geen dagelijkse limiet op fixruns. De enige limiet die kan gelden, is dezelfde die al voor [AI Fix Tasks](/docs/ai/ai-agent) geldt:
 
-- **De dagelijkse limiet op fixruns van het project** (**Projectinstellingen → AI**, standaard 25 per dag). GitHub-commando's delen dit budget met de overige fixruns van uw project.
-- **Het maximum aan open pull requests per repository** (**Code-opslagplaatsen → de repository → Instellingen**, standaard 5). Reviews en herzieningen vallen daarbuiten: geen van beide voegt een nieuwe pull request toe aan uw reviewwachtrij.
+- **Het maximum aan open pull requests per repository** (**Max Open Fix Pull Requests**, onder **Code-opslagplaatsen → de repository → Instellingen**). Er is geen maximum totdat u er een instelt, en 0 blokkeert AI-fix-pull-requests op die repository. Reviews en herzieningen vallen daarbuiten: geen van beide voegt een nieuwe pull request toe aan uw reviewwachtrij.
 
 Per issue of pull request loopt er maar één run van een bepaald soort tegelijk. Vraagt u het twee keer, dan krijgt u te horen dat hij er al mee bezig is; vraagt u om een review terwijl er een herziening loopt, dan starten er twee, want dat zijn verschillende verzoeken.
 

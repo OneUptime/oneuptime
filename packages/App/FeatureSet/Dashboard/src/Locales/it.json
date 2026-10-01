@@ -6758,5 +6758,6 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "Turni che stabiliscono chi è reperibile in ogni momento. Aggiungi una pianificazione alle regole di escalation di una policy di reperibilità per avvisare chi è di turno.",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "Le applicazioni e i microservizi che gestisci. Ogni servizio riunisce in un unico posto registri, tracce, metriche, eccezioni, incidenti e proprietari.",
   "Create On-Call Schedule": "Crea pianificazione di reperibilità",
-  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Le sonde sono le macchine che eseguono i controlli di questo monitor. Le sonde predefinite del tuo progetto sono già selezionate. Un monitor senza sonde non viene mai controllato."
+  "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "Le sonde sono le macchine che eseguono i controlli di questo monitor. Le sonde predefinite del tuo progetto sono già selezionate. Un monitor senza sonde non viene mai controllato.",
+  "Auto Remediation Rules": "Regole di rimedio automatico"
 }

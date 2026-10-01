@@ -1264,7 +1264,7 @@ export default class AIAgentDataAPI {
           const openPrCap: OpenPullRequestCapDecision = capExemptTaskType
             ? {
                 allowed: true,
-                limit: 0,
+                limit: null,
                 paused: false,
                 openCount: 0,
               }

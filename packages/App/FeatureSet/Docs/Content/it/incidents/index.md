@@ -114,10 +114,9 @@ Aprite **Incidenti** nella navigazione a sinistra. Il suo menu laterale è organ
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Panoramica**  | **Tutti gli incidenti** e **Incidenti attivi** — quest'ultima porta un badge rosso con il numero di incidenti che non sono nello stato risolto.                            |
 | **Episodi**  | Gli episodi di incidente, una funzionalità di raggruppamento a parte con pagine proprie.                                                                                    |
-| **IA**        | **Indagine** e **Rimedio** — impostazioni di indagine automatica e di rimedio automatico.                                                                                   |
 | **Area di lavoro** | Connessioni **Slack** e **Microsoft Teams** per gli incidenti.                                                                                                          |
-| **Regole**     | I motori di regole: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA**, **Reminder Rules**. |
-| **Impostazioni**  | **Stato incidente**, **Gravità incidente**, **Modelli di incidenti**, **Modelli di note**, **Modelli post-mortem**, **Campi personalizzati**, **Ruoli incidente**, **Altre impostazioni**. |
+| **Regole**     | I motori di regole: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di rimedio automatico**, **Regole di privacy**, **Regole etichette**, **Regole SLA**, **Reminder Rules**. |
+| **Impostazioni**  | **IA**, **Stato incidente**, **Gravità incidente**, **Modelli di incidenti**, **Modelli di note**, **Modelli post-mortem**, **Campi personalizzati**, **Ruoli incidente**, **Altre impostazioni**. |
 
 **Regole** e **Impostazioni** sono compresse per impostazione predefinita: espandetele per trovare le pagine a cui il resto di questa documentazione fa riferimento. La configurazione degli incidenti non sta sotto Impostazioni del progetto, sta tutta qui.
 

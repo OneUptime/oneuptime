@@ -1213,6 +1213,23 @@ onCallCalendarFeed:
     perTokenPerWindow: 60
     perIpPerWindow: 3000
 
+# OAuth sign-in for the MCP server (https://<host>/mcp): an MCP client can
+# connect by having a project member sign in to OneUptime and approve it,
+# instead of being handed an API key.
+#
+# disabled: true switches that off. The authorization server under /mcp/oauth
+# and its discovery documents stop being served and the MCP server accepts API
+# keys only, as it did before. Nothing is deleted.
+#
+# disableClientIdMetadataDocuments: true is for an instance that cannot reach
+# the internet. A client may identify itself by an https URL that OneUptime
+# fetches to read the client's name and redirect URIs; with no outbound access
+# that fetch always fails, so turn it off and clients register themselves with
+# this server instead.
+mcpOAuth:
+  disabled: false
+  disableClientIdMetadataDocuments: false
+
 # If you would like to attach status page to custom domains use this setting.
 # For example, lets say you would like the status page to be hosted on status.yourcompany.com, then
 # 1. Create a A record in your DNS provider with the name "oneuptime.yourcompany.com" and value to Public IP of the server oneuptime is deployed on.

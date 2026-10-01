@@ -19,7 +19,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: "Automatic Alert Investigation",
           description:
-            "When enabled, OneUptime AI automatically investigates every new alert and posts a cited root cause analysis to the alert timeline. Alerts can be higher-volume than incidents, so enable this with that in mind. Requires an LLM provider to be configured in Settings > AI > LLM Providers.",
+            "When enabled, OneUptime AI automatically investigates every new alert and posts a cited root cause analysis to the alert timeline. No limits apply until you set one below. Requires an LLM provider to be configured in Project Settings > AI > LLM Providers.",
         }}
         isEditable={true}
         editButtonText={"Update"}
@@ -56,7 +56,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             stepId: "investigation",
             title: "Minimum Severity To Investigate",
             description:
-              "Only alerts at or above this severity are investigated. When unset, the top two severity tiers are investigated by default.",
+              "Only alerts at or above this severity are investigated. Leave unset to investigate every alert, whatever its severity.",
             required: false,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
@@ -64,7 +64,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               labelField: "name",
               valueField: "_id",
             },
-            placeholder: "Default (top two severity tiers)",
+            placeholder: "Every severity",
           },
           {
             field: {
@@ -73,10 +73,10 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             stepId: "investigation",
             title: "Re-investigation Cooldown (Minutes)",
             description:
-              "Repeat alerts from the same monitor within this many minutes are not re-investigated — the first analysis stands. Leave empty for the default of 30 minutes; set 0 to investigate every qualifying alert.",
+              "Repeat alerts from the same monitor within this many minutes are not re-investigated — the first analysis stands. Leave empty for no cooldown, so every alert is investigated. At most 1440 minutes (a day).",
             required: false,
             fieldType: FormFieldSchemaType.Number,
-            placeholder: "30",
+            placeholder: "No cooldown",
           },
           {
             field: {
@@ -85,10 +85,10 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             stepId: "limits",
             title: "Max Concurrent Alert Investigations",
             description:
-              "How many alert investigations may run at the same time for this project. Queued alert investigations wait for a free slot and expire after 30 minutes. Leave empty for the default of 3 (minimum 1, maximum 25).",
+              "How many alert investigations may run at the same time for this project. Leave empty for no limit — every alert investigation starts right away. With a limit set (minimum 1), queued alert investigations wait for a free slot and expire after 30 minutes.",
             required: false,
             fieldType: FormFieldSchemaType.Number,
-            placeholder: "3",
+            placeholder: "No limit",
           },
           {
             field: {
@@ -143,10 +143,10 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             stepId: "fix-tasks",
             title: "Daily Alert AI Fix Task Limit",
             description:
-              "Maximum alert AI fix tasks (agent runs that open pull requests) that may be created per day (UTC) for this project, across manual and automatic alert fix recipes. Leave empty for the default of 25 per day; set 0 to pause alert AI fix tasks entirely.",
+              "Maximum alert AI fix tasks (agent runs that open pull requests) that may be created per day (UTC) for this project, across manual and automatic alert fix recipes. Leave empty for no limit; set 0 to pause alert AI fix tasks entirely.",
             required: false,
             fieldType: FormFieldSchemaType.Number,
-            placeholder: "25",
+            placeholder: "No limit",
           },
         ]}
         modelDetailProps={{
@@ -169,7 +169,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
                 },
               },
               title: "Minimum Severity To Investigate",
-              placeholder: "Default (top two severity tiers)",
+              placeholder: "Every severity",
               fieldType: FieldType.Entity,
             },
             {
@@ -177,7 +177,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
                 alertInvestigationDedupeWindowMinutes: true,
               },
               title: "Re-investigation Cooldown (Minutes)",
-              placeholder: "Default (30 minutes)",
+              placeholder: "No cooldown",
               fieldType: FieldType.Number,
             },
             {
@@ -185,7 +185,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
                 alertAiMaxConcurrentInvestigations: true,
               },
               title: "Max Concurrent Alert Investigations",
-              placeholder: "Default (3)",
+              placeholder: "No limit",
               fieldType: FieldType.Number,
             },
             {
@@ -225,7 +225,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
                 alertAiDailyFixTaskLimit: true,
               },
               title: "Daily Alert AI Fix Task Limit",
-              placeholder: "Default (25)",
+              placeholder: "No limit",
               fieldType: FieldType.Number,
             },
           ],

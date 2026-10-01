@@ -12,6 +12,7 @@ Open **Incidenten** in de linkernavigatie en vouw onderaan het zijmenu **Instell
 
 | Pagina                   | Wat je daar doet                                                                             |
 | ------------------------ | -------------------------------------------------------------------------------------------- |
+| **AI**                   | Automatisch onderzoek, automatische codefixes en postmortem-concepten aan- of uitzetten, en de optionele limieten instellen waarbinnen AI werkt — geen ervan geldt voordat je hem instelt. Zie [AI SRE](/docs/ai/ai-sre). |
 | **Status incident**      | Statussen die een incident doorloopt toevoegen, hernoemen, verkleuren en herschikken.        |
 | **Ernst van incident**   | Ernstniveaus toevoegen, hernoemen, verkleuren en herschikken.                                |
 | **Incident-sjablonen**   | Een heel incident vooraf invullen — titel, beschrijving, resources, bereikbaarheidsbeleid, eigenaren, labels. |
@@ -23,7 +24,7 @@ Open **Incidenten** in de linkernavigatie en vouw onderaan het zijmenu **Instell
 
 **Status incident** en **Ernst van incident** worden uitgebreid behandeld in [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities) — de rest van deze pagina pakt de draad op bij **Incident-sjablonen**.
 
-Vouw **Regels** uit en je krijgt acht pagina's erbij: **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Privacyregels**, **Labelregels**, **SLA-regels** en **Reminder Rules**. Die komen verderop aan bod.
+Vouw **Regels** uit en je krijgt negen pagina's erbij: **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Regels voor automatisch herstel**, **Privacyregels**, **Labelregels**, **SLA-regels** en **Reminder Rules**. Die komen verderop aan bod.
 
 ## Incidentsjablonen
 
@@ -113,20 +114,21 @@ Laat een van beide leeg om het standaardvoorvoegsel `#` te houden; een niet-inge
 
 ## Regels die draaien wanneer een incident wordt aangemaakt
 
-**Incidenten → Regels** bevat acht regel-engines. Ze doen allemaal hetzelfde werk — kijken naar een incident zodra het is aangemaakt en handelen als het matcht — maar ze verschillen in wat ze doen en in hoe meerdere matchende regels worden afgehandeld.
+**Incidenten → Regels** bevat negen regel-engines. Ze doen allemaal hetzelfde werk — kijken naar een incident zodra het is aangemaakt en handelen als het matcht — maar ze verschillen in wat ze doen en in hoe meerdere matchende regels worden afgehandeld.
 
 - **Groeperingsregels** — verwante incidenten groeperen tot episodes. Regels worden op prioriteitsvolgorde geëvalueerd; lagere prioriteitsnummers gaan eerst.
 - **Bereikbaarheidsregels** — bereikbaarheidsbeleid uitvoeren voor matchende incidenten. Verderop uitgebreid behandeld.
 - **Eigenaarsregels** — automatisch eigenaren toewijzen.
 - **Runbook-regels** — een [runbook](/docs/runbooks/index) starten wanneer een incident matcht.
+- **Regels voor automatisch herstel** — herstel-runbooks voorstellen of starten wanneer een incident matcht. Staat er voor het incident een AI-onderzoek in de wachtrij, dan draaien ze zodra dat klaar is, met de analyse ervan in de hand. Zie [AI SRE](/docs/ai/ai-sre).
 - **Privacyregels** — bepalen of een matchend incident privé is.
 - **Labelregels** — automatisch labels toepassen.
 - **SLA-regels** — reactie- en oplostijden bijhouden. Regels worden op volgorde geëvalueerd; lagere volgordenummers gaan eerst.
 - **Reminder Rules** — incidenteigenaren periodiek herinneren zolang een incident nog open staat. Regels worden op volgorde geëvalueerd en de eerste matchende regel wint.
 
-**De volgordesemantiek is niet overal gelijk.** Groeperingsregels, SLA-regels en Reminder Rules worden op volgorde geëvalueerd. Bereikbaarheidsregels niet — elke matchende regel gaat af. Ga er niet van uit dat één model voor alle acht geldt.
+**De volgordesemantiek is niet overal gelijk.** Groeperingsregels, SLA-regels en Reminder Rules worden op volgorde geëvalueerd. Bereikbaarheidsregels niet — elke matchende regel gaat af. Ga er niet van uit dat één model voor alle negen geldt.
 
-De pagina's **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben tabbladen — **Incident Rules** en **Episode Rules**, elk met een eigen tabel. Configureer het tabblad **Incident Rules**, tenzij je echt episodes bedoelt. **Groeperingsregels**, **Runbook-regels**, **SLA-regels** en **Reminder Rules** zijn losse tabellen.
+De pagina's **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben tabbladen — **Incident Rules** en **Episode Rules**, elk met een eigen tabel. Configureer het tabblad **Incident Rules**, tenzij je echt episodes bedoelt. **Groeperingsregels**, **Runbook-regels**, **Regels voor automatisch herstel**, **SLA-regels** en **Reminder Rules** zijn losse tabellen.
 
 ## Bereikbaarheidsregels voor incidenten
 

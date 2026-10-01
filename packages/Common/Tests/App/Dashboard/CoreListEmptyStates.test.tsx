@@ -23,8 +23,8 @@ import {
  * under it - which, on a project that simply has none yet, reads like a failed
  * load - and the only way on was a button in the card's header. The pages now
  * use the table's own "No X yet." sentence, and under it the table repeats its
- * header's "Create X" button (same label, handler and permission gate) as the
- * primary action.
+ * header's "Create X" button (same label, handler and permission gate), drawn
+ * the way the header's is rather than as a filled indigo one.
  *
  * The "slices" of a list - active incidents, monitors that are not
  * operational - word their own empty state ("Nice work! No Active Incidents so
@@ -300,7 +300,7 @@ describe.each(CORE_LISTS)("$name, empty", (list: CoreList) => {
     expect(document.body.textContent || "").not.toMatch(/ found\./);
   });
 
-  test("offers the header's create action as the primary button", async () => {
+  test("offers the header's create action, as a plain button", async () => {
     await renderEmpty(list);
 
     await waitFor(() => {
@@ -308,6 +308,8 @@ describe.each(CORE_LISTS)("$name, empty", (list: CoreList) => {
     });
     expect(emptyStateButton()).toHaveTextContent(list.createLabel);
     expect(emptyStateButton()).not.toBeDisabled();
+    expect(emptyStateButton()?.className).not.toContain("bg-indigo");
+    expect(emptyStateButton()?.className).toContain("bg-white");
   });
 
   test("the empty state has no Refresh? link", async () => {

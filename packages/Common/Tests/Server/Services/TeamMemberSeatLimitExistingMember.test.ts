@@ -14,11 +14,14 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
 import TeamService from "../../../Server/Services/TeamService";
+import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
+import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import UserService from "../../../Server/Services/UserService";
 import CountBy from "../../../Server/Types/Database/CountBy";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import FindBy from "../../../Server/Types/Database/FindBy";
 import FindOneBy from "../../../Server/Types/Database/FindOneBy";
+import FindOneByID from "../../../Server/Types/Database/FindOneByID";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import Errors from "../../../Server/Utils/Errors";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
@@ -313,6 +316,35 @@ beforeEach(() => {
   billingSpy = jest
     .spyOn(BillingService, "changeQuantity")
     .mockResolvedValue(undefined);
+
+  /*
+   * Someone who has accepted joining the project is added to another of its
+   * teams as a member, not invited again, and an accepted membership brings
+   * the rest of its acceptance with it.
+   */
+  jest
+    .spyOn(TeamMemberService, "acceptPendingInvitationsInProject")
+    .mockResolvedValue(0);
+  jest
+    .spyOn(
+      UserNotificationSettingService,
+      "addDefaultNotificationSettingsForUser",
+    )
+    .mockResolvedValue(undefined);
+  jest
+    .spyOn(UserNotificationRuleService, "addDefaultNotificationRuleForUser")
+    .mockResolvedValue(undefined);
+  jest
+    .spyOn(UserService, "findOneById")
+    .mockImplementation(
+      async (findOneById: FindOneByID<User>): Promise<User | null> => {
+        return (
+          accounts.find((user: User): boolean => {
+            return user.id?.toString() === findOneById.id.toString();
+          }) || null
+        );
+      },
+    );
 
   // The invitation email.
   findUserSpy = jest

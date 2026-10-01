@@ -153,8 +153,10 @@ import {
   DatabaseCallerContextSql,
   DependencyDatabaseTarget,
   DependencyTarget,
+  InferredDependencyEntity,
   MAX_DATABASE_TARGETS_PER_ROW,
   buildClientSpanDependencySql,
+  clientSocketPortSql,
   databaseCallerContextSql,
   mergeDependencyEntityDescriptions,
   readDependencyDatabaseTargets,
@@ -2459,6 +2461,214 @@ describe("database servers from client spans — a client's own socket", () => {
   });
 });
 
+/*
+ * The same bug on the Service Map: the swapped spans come from the Redis
+ * server's own pod, so the Redis service got a depends-on edge to a
+ * "redis @ oneuptime-worker" Database node.
+ */
+describe("the Service Map from client spans — a client's own socket", () => {
+  const REDIS_ID: string = "55555555-5555-4555-8555-555555555555";
+  const WORKER_ID: string = "66666666-6666-4666-8666-666666666666";
+  const WORKER_KEY: string = keyForService(PROJECT_ID, "oneuptime-worker");
+
+  beforeEach(() => {
+    serviceMock.findBy.mockResolvedValue([
+      { _id: REDIS_ID, name: "redis" },
+      { _id: WORKER_ID, name: "oneuptime-worker" },
+    ]);
+  });
+
+  /*
+   * A dbTargets entry named from a pod of namespace default: by default the
+   * worker, as the Redis pod's swapped spans name it.
+   */
+  function podTarget(
+    port: string,
+    address: string = "oneuptime-worker",
+  ): Array<string> {
+    return [address, port, "", "default", "0", "gke-test-cluster"];
+  }
+
+  // The Redis pod's client-span row for the worker's host.
+  function redisPodRow(targets: Array<Array<string>>): Record<string, unknown> {
+    return {
+      callerServiceId: REDIS_ID,
+      dbSystem: "redis",
+      dbNamespace: "",
+      serverAddress: "oneuptime-worker",
+      dbTargets: targets,
+      callCount: "300",
+      errorCount: "0",
+      avgDurationNano: "1000000",
+    };
+  }
+
+  const WORKER_CALLS_REDIS: Record<string, unknown> = {
+    callerServiceId: WORKER_ID,
+    dbSystem: "redis",
+    dbNamespace: "",
+    serverAddress: "oneuptime-redis-master",
+    dbTargets: [podTarget("6379", "oneuptime-redis-master")],
+    callCount: "9000",
+    errorCount: "3",
+    avgDurationNano: "2000000",
+  };
+
+  function redisNodeKey(serverAddress: string): string {
+    return computeEntityKey({
+      projectId: PROJECT_ID,
+      entityType: EntityType.Database,
+      identifyingAttributes: {
+        "db.system.name": "redis",
+        "server.address": serverAddress,
+      },
+    });
+  }
+
+  function registered(): Array<{
+    entityKey: string;
+    descriptiveAttributes?: Record<string, string>;
+  }> {
+    return inventoryMock.reconcileEntities.mock.calls.flatMap(
+      (call: Array<unknown>) => {
+        return (
+          call[0] as {
+            entities: Array<{
+              entityKey: string;
+              descriptiveAttributes?: Record<string, string>;
+            }>;
+          }
+        ).entities;
+      },
+    );
+  }
+
+  test("the client-span query leaves the swapped calls out before it groups", async () => {
+    arrange({});
+
+    await computeDependenciesForProject(WINDOW);
+
+    const clientSql: Array<string> = spanMock.executeQuery.mock.calls
+      .map((call: Array<unknown>): string => {
+        return String(call[0]);
+      })
+      .filter((sql: string): boolean => {
+        return (
+          sql.includes("NOT IN") &&
+          !sql.includes(DATABASE_ENDPOINT_SQL_MARKER) &&
+          !sql.includes(MESSAGE_QUEUE_SPAN_SQL_MARKER)
+        );
+      });
+    expect(clientSql).toHaveLength(1);
+    expect(clientSql[0]!.replace(/\s+/g, " ")).toContain(
+      `AND NOT ${clientSocketPortSql("serverPort")} AND (traceId, spanId) NOT IN (`,
+    );
+  });
+
+  test("a row whose every call named the worker's socket draws no edge and registers no Database", async () => {
+    // What the query cannot drop: Db2's port, a port inside the address.
+    arrange({
+      clients: [
+        redisPodRow([
+          podTarget("50000"),
+          podTarget("", "oneuptime-worker:46600"),
+        ]),
+      ],
+    });
+
+    expect(await computeDependenciesForProject(WINDOW)).toBe(0);
+
+    expect(relationshipMock.reconcileRelationships).not.toHaveBeenCalled();
+    expect(inventoryMock.reconcileEntities).not.toHaveBeenCalled();
+  });
+
+  test("the Redis the worker really calls keeps its edge beside them", async () => {
+    arrange({
+      clients: [redisPodRow([podTarget("50000")]), WORKER_CALLS_REDIS],
+    });
+
+    expect(await computeDependenciesForProject(WINDOW)).toBe(1);
+
+    expect(reconciledEdges()).toEqual([
+      {
+        fromEntityKey: WORKER_KEY,
+        toEntityKey: redisNodeKey("oneuptime-redis-master"),
+        relationshipType: EntityRelationshipType.DependsOn,
+        metrics: { callCount: 9000, errorCount: 3, avgDurationMs: 2 },
+      },
+    ]);
+    expect(
+      registered().map((entity: { entityKey: string }): string => {
+        return entity.entityKey;
+      }),
+    ).toEqual([redisNodeKey("oneuptime-redis-master")]);
+  });
+
+  test("a server the Redis pod really called on the same host keeps the node, described by that server alone", async () => {
+    arrange({
+      clients: [redisPodRow([podTarget("50000"), podTarget("6379")])],
+    });
+
+    expect(await computeDependenciesForProject(WINDOW)).toBe(1);
+
+    expect(registered()).toEqual([
+      expect.objectContaining({
+        entityKey: redisNodeKey("oneuptime-worker"),
+        descriptiveAttributes: {
+          "db.system.name": "redis",
+          [DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]:
+            "oneuptime-worker.default.svc.cluster.local:6379@gke-test-cluster",
+          [DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE]: "6379",
+        },
+      }),
+    ]);
+  });
+
+  test("Db2 on its default port 50000 keeps its edge", async () => {
+    arrange({
+      clients: [
+        {
+          callerServiceId: WORKER_ID,
+          dbSystem: "ibm.db2",
+          serverAddress: "db2.example.com",
+          dbTargets: [["db2.example.com", "50000", "", "", "0", ""]],
+          callCount: "10",
+          errorCount: "0",
+          avgDurationNano: "1000000",
+        },
+      ],
+    });
+
+    expect(await computeDependenciesForProject(WINDOW)).toBe(1);
+
+    expect(registered()).toEqual([
+      expect.objectContaining({
+        descriptiveAttributes: {
+          "db.system.name": "ibm.db2",
+          [DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]: "db2.example.com:50000",
+          [DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE]: "50000",
+        },
+      }),
+    ]);
+  });
+
+  test("a row whose targets may have been cut short keeps its edge, naming no one server", async () => {
+    const full: Array<Array<string>> = [];
+    for (let index: number = 0; index < MAX_DATABASE_TARGETS_PER_ROW; index++) {
+      full.push(podTarget("", `oneuptime-worker:${46000 + index}`));
+    }
+    arrange({ clients: [redisPodRow(full)] });
+
+    expect(await computeDependenciesForProject(WINDOW)).toBe(1);
+
+    expect(
+      registered()[0]!.descriptiveAttributes![
+        DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE
+      ],
+    ).toBe("");
+  });
+});
+
 describe("message queues from messaging spans and broker metrics", () => {
   let savedMinSpans: string | undefined;
 
@@ -3654,6 +3864,100 @@ const ESTATE_SPANS: Array<DependencySpanFixture> = [
   },
 ];
 
+/*
+ * The bug report, in a third project: the Redis pod's spans of the worker's
+ * connections, their two ends swapped by eBPF instrumentation (one
+ * ephemeral port per connection, more ports than a row keeps targets),
+ * beside the worker's real Redis calls and calls that only look like the
+ * swapped ones.
+ */
+const SWAPPED_PROJECT_ID: string = "6d7e8f90-a1b2-4c3d-8e4f-5a6b7c8d9e0f";
+const SWAPPED_REDIS_SERVICE: string = "55555555-5555-4555-8555-555555555555";
+const SWAPPED_WORKER_SERVICE: string = "66666666-6666-4666-8666-666666666666";
+
+const SWAPPED_SPANS: Array<DependencySpanFixture> = [
+  {
+    projectId: SWAPPED_PROJECT_ID,
+    service: SWAPPED_WORKER_SERVICE,
+    attributes: {
+      "db.system.name": "redis",
+      "server.address": "oneuptime-redis-master",
+      "server.port": "6379",
+      ...callerPod("default", "gke-test-cluster"),
+    },
+    count: 3,
+  },
+  ...Array.from(
+    { length: 20 },
+    (_value: unknown, index: number): DependencySpanFixture => {
+      return {
+        projectId: SWAPPED_PROJECT_ID,
+        service: SWAPPED_REDIS_SERVICE,
+        attributes: {
+          "db.system.name": "redis",
+          "server.address": "oneuptime-worker",
+          "server.port": String(32775 + index * 1499),
+          ...callerPod("default", "gke-test-cluster"),
+        },
+      };
+    },
+  ),
+  // Legacy attribute names, the port padded with spaces.
+  {
+    projectId: SWAPPED_PROJECT_ID,
+    service: SWAPPED_REDIS_SERVICE,
+    attributes: {
+      "db.system": "redis",
+      "net.peer.name": "oneuptime-worker",
+      "net.peer.port": " 46482 ",
+      ...callerPod("default", "gke-test-cluster"),
+    },
+  },
+  // A call the Redis pod really made to the worker's host, on Redis's port.
+  {
+    projectId: SWAPPED_PROJECT_ID,
+    service: SWAPPED_REDIS_SERVICE,
+    attributes: {
+      "db.system.name": "redis",
+      "server.address": "oneuptime-worker",
+      "server.port": "6379",
+      ...callerPod("default", "gke-test-cluster"),
+    },
+    count: 2,
+  },
+  // A client that got Db2's port: the query keeps it, the job does not.
+  {
+    projectId: SWAPPED_PROJECT_ID,
+    service: SWAPPED_REDIS_SERVICE,
+    attributes: {
+      "db.system.name": "redis",
+      "server.address": "oneuptime-scheduler",
+      "server.port": "50000",
+      ...callerPod("default", "gke-test-cluster"),
+    },
+  },
+  // Db2 on its default port.
+  {
+    projectId: SWAPPED_PROJECT_ID,
+    service: SWAPPED_WORKER_SERVICE,
+    attributes: {
+      "db.system.name": "ibm.db2",
+      "server.address": "db2.example.com",
+      "server.port": "50000",
+    },
+  },
+  // Not a database call, on an ephemeral port.
+  {
+    projectId: SWAPPED_PROJECT_ID,
+    service: SWAPPED_WORKER_SERVICE,
+    attributes: {
+      "server.address": "api.example.com",
+      "server.port": "46600",
+      "http.request.method": "GET",
+    },
+  },
+];
+
 // A span's entry of its row's dbTargets, as the TypeScript twin predicts it.
 function predictedTarget(attributes: Record<string, string>): string | null {
   const first: (keys: ReadonlyArray<string>) => string = (
@@ -3787,7 +4091,11 @@ clickhouseIntegration(
       ).substring(0, 10);
       const values: Array<JSONObject> = [];
       let index: number = 0;
-      for (const fixture of [...DEPENDENCY_SPANS, ...ESTATE_SPANS]) {
+      for (const fixture of [
+        ...DEPENDENCY_SPANS,
+        ...ESTATE_SPANS,
+        ...SWAPPED_SPANS,
+      ]) {
         for (let copy: number = 0; copy < (fixture.count || 1); copy++) {
           index++;
           const start: Date = new Date(now - 60 * 1000 - index * 10);
@@ -4095,6 +4403,63 @@ clickhouseIntegration(
       };
       expect(describedEndpoint(RDS_HOST)).toBe(`${RDS_HOST}:5432`);
       expect(describedEndpoint("redis")).toBe("");
+    });
+
+    test("a client's own socket: the swapped calls are left out, every other call is kept", async () => {
+      const rows: Array<ClientSpanDependencyRow> = await runQuery(
+        SWAPPED_PROJECT_ID,
+        1000,
+      );
+
+      const pod: (address: string, port: string) => string = (
+        address: string,
+        port: string,
+      ): string => {
+        return JSON.stringify([
+          [address, port, "", "default", "0", "gke-test-cluster"],
+        ]);
+      };
+      expect(
+        rows
+          .map((row: ClientSpanDependencyRow): string => {
+            return `${row.callerServiceId} ${row.dbSystem || "http"} ${row.serverAddress} ${Number(row.callCount)} ${JSON.stringify(row.dbTargets)}`;
+          })
+          .sort(),
+      ).toEqual(
+        [
+          `${SWAPPED_WORKER_SERVICE} redis oneuptime-redis-master 3 ${pod("oneuptime-redis-master", "6379")}`,
+          `${SWAPPED_REDIS_SERVICE} redis oneuptime-worker 2 ${pod("oneuptime-worker", "6379")}`,
+          `${SWAPPED_REDIS_SERVICE} redis oneuptime-scheduler 1 ${pod("oneuptime-scheduler", "50000")}`,
+          `${SWAPPED_WORKER_SERVICE} ibm.db2 db2.example.com 1 ${JSON.stringify([["db2.example.com", "50000", "", "", "0", ""]])}`,
+          `${SWAPPED_WORKER_SERVICE} http api.example.com 1 []`,
+        ].sort(),
+      );
+
+      // …and the job draws a node for every one but the client on Db2's port.
+      const nodes: Array<string> = rows
+        .map((row: ClientSpanDependencyRow): DependencyTarget | null => {
+          return resolveClientSpanTarget(row, new Set<string>());
+        })
+        .filter((node: DependencyTarget | null): boolean => {
+          return (
+            node?.kind === "dependency" &&
+            node.entity.entityType === EntityType.Database
+          );
+        })
+        .map((node: DependencyTarget | null): string => {
+          const entity: InferredDependencyEntity = (
+            node as { entity: InferredDependencyEntity }
+          ).entity;
+          return `${entity.identifyingAttributes["server.address"]} ${entity.descriptiveAttributes[DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]}`;
+        })
+        .sort();
+      expect(nodes).toEqual(
+        [
+          "db2.example.com db2.example.com:50000",
+          "oneuptime-redis-master oneuptime-redis-master.default.svc.cluster.local:6379@gke-test-cluster",
+          "oneuptime-worker oneuptime-worker.default.svc.cluster.local:6379@gke-test-cluster",
+        ].sort(),
+      );
     });
   },
 );
