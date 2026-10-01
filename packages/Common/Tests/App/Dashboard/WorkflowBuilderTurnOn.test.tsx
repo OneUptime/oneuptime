@@ -439,6 +439,16 @@ describe("the Builder shows whether the workflow is on", () => {
     expect(screen.queryByTestId("workflow-turned-off-notice")).toBeNull();
   });
 
+  test("on a phone the toolbar's buttons wrap as a whole, never their labels", async () => {
+    await renderBuilder();
+
+    for (const name of ["Add Component", "Run Workflow"]) {
+      expect(
+        screen.getByRole("button", { name: name, exact: true }).className,
+      ).toContain("whitespace-nowrap");
+    }
+  });
+
   test("the notice sits above the canvas, below the toolbar's switch", async () => {
     await renderBuilder();
 

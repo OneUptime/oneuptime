@@ -219,12 +219,15 @@ describe("while it is being turned on, and when that fails", () => {
     ).toBeInTheDocument();
     // Still offered: the reason may be gone on a second try.
     expect(submitButton()).toHaveTextContent("Turn on and run step");
+    // The reason is drawn flush above the sentences; they keep their distance.
+    expect(body().className).toContain("mt-4");
   });
 
   test("an empty error shows no error", () => {
     renderModal({ error: "" });
 
     expect(within(dialog()).queryByRole("alert")).toBeNull();
+    expect(body().className).not.toContain("mt-4");
   });
 });
 

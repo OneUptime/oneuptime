@@ -89,7 +89,14 @@ const WorkflowTurnOnModal: FunctionComponent<ComponentProps> = (
     <ConfirmModal
       title={WorkflowEnabledCopy.promptTitle}
       description={
-        <div className="space-y-3" data-testid="workflow-turn-on-prompt">
+        /*
+         * The dialog draws a refused turn-on's reason above this, flush
+         * against it, so the sentences keep their distance from it.
+         */
+        <div
+          className={props.error ? "mt-4 space-y-3" : "space-y-3"}
+          data-testid="workflow-turn-on-prompt"
+        >
           <p>{whatWasAskedFor}</p>
           <p>{afterwards.join(" ")}</p>
         </div>

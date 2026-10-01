@@ -608,13 +608,24 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             ) : (
               <></>
             )}
+            {/*
+             * On a phone the two buttons get a row of their own, and Run
+             * Workflow drops below Add Component rather than either label
+             * breaking over two lines inside its button.
+             */}
             <div
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: "0.5rem",
+              }}
             >
               <Button
                 title="Add Component"
                 icon={IconProp.Add}
                 buttonStyle={ButtonStyleType.OUTLINE}
+                className="whitespace-nowrap"
                 onClick={() => {
                   setShowComponentPickerModal(true);
                 }}
@@ -623,6 +634,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 title="Run Workflow"
                 icon={IconProp.Play}
                 buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
+                className="whitespace-nowrap"
                 onClick={() => {
                   setShowRunModal(true);
                 }}
