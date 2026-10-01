@@ -61,6 +61,37 @@ describe("the incoming-call phone-number manager", () => {
     expect(MANAGER_CODE).toContain("phone numbers route calls to this policy");
   });
 
+  /*
+   * On the policy page the phone numbers are step 2 of 3. "Add Phone Number"
+   * is the primary button while the policy has none - it is the next step -
+   * and plain once it has one, when the next step is step 3's "Manage Rules".
+   * Both used to be filled at once.
+   */
+  test("Add Phone Number is the primary step only while the policy has no number", () => {
+    expect(MANAGER_CODE).toMatch(
+      /title="Add Phone Number"\s*buttonStyle=\{\s*props\.phoneNumbers\.length === 0\s*\?\s*ButtonStyleType\.PRIMARY\s*:\s*ButtonStyleType\.NORMAL\s*\}/,
+    );
+    expect(OVERVIEW_CODE).toMatch(
+      /title="Manage Rules"\s*buttonStyle=\{\s*hasEscalationRules\s*\?\s*ButtonStyleType\.SECONDARY_LINK\s*:\s*ButtonStyleType\.PRIMARY\s*\}/,
+    );
+  });
+
+  test("a number to pick from a list is a plain button, and its confirmation the primary one", () => {
+    expect(MANAGER_CODE).not.toContain("ButtonStyleType.SUCCESS");
+    expect(MANAGER_CODE).toMatch(
+      /title=\{isAlreadyAttached \? "Attached" : "Select"\}\s*buttonStyle=\{ButtonStyleType\.NORMAL\}/,
+    );
+    expect(MANAGER_CODE).toMatch(
+      /title="Reserve"\s*buttonStyle=\{ButtonStyleType\.NORMAL\}/,
+    );
+    expect(MANAGER_CODE).toMatch(
+      /submitButtonText="Reserve"\s*submitButtonType=\{ButtonStyleType\.PRIMARY\}/,
+    );
+    expect(MANAGER_CODE).toMatch(
+      /submitButtonText="Assign Number"\s*submitButtonType=\{ButtonStyleType\.PRIMARY\}/,
+    );
+  });
+
   test("offers another addition even when numbers are already attached", () => {
     expect(MANAGER_CODE).toContain('title="Add Phone Number"');
     expect(MANAGER_CODE).toContain('title: "Add Phone Number"');

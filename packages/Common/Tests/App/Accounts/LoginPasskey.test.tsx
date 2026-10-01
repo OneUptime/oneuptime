@@ -143,6 +143,30 @@ describe("Passwordless passkey login", () => {
     expect(posted).toHaveLength(0);
   });
 
+  /*
+   * The page offers two ways in and used to draw both as filled indigo
+   * buttons - two primary buttons asking for two things at once. The password
+   * form's "Login" is the page's one primary button; the passkey option keeps
+   * its tinted panel at the top, with a plain button.
+   */
+  test("has one primary button, the password form's, and a plain passkey button", async () => {
+    renderPage();
+    await screen.findByTestId("email");
+
+    const passkey: HTMLElement = screen.getByTestId("passkey-login");
+    const signIn: HTMLElement = screen.getByTestId("Login");
+    const filled: Array<HTMLElement> = screen
+      .getAllByRole("button")
+      .filter((button: HTMLElement) => {
+        return /\bbg-(indigo|red|green|yellow)-600\b/.test(button.className);
+      });
+
+    expect(passkey).toHaveClass("bg-white");
+    expect(passkey).not.toHaveClass("bg-indigo-600");
+    expect(signIn).toHaveClass("bg-indigo-600");
+    expect(filled).toEqual([signIn]);
+  });
+
   test("signs in without email or password and uses normal user/token finalization", async () => {
     renderPage();
     await clickPasskey();

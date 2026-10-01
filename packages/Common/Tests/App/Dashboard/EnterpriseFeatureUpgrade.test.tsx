@@ -112,6 +112,7 @@ import EnterpriseFeatureUpgrade, {
 import AuditLogsEnterpriseUpgrade, {
   isAuditLogsEnterpriseEligible,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AuditLogs/AuditLogsEnterpriseUpgrade";
+import AdminEnterpriseFeatureUpgrade from "../../../../App/FeatureSet/AdminDashboard/src/Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
 import {
   AUDIT_LOGS_REQUIRED_PLAN,
   IDENTITY_REQUIRED_PLAN,
@@ -604,6 +605,35 @@ describe("EnterpriseFeatureUpgrade", () => {
     );
   });
 
+  /*
+   * The call to action appears twice, in the card's header and under the
+   * pitch. Both used to be filled indigo buttons: one card asking for the same
+   * thing twice, as two primary buttons. The one under the pitch - where the
+   * reasons to press it are - is the card's primary button; the header's copy
+   * is plain.
+   */
+  test("draws one primary call to action, the one under the pitch", () => {
+    pinDeployment("cloud");
+
+    renderCard();
+
+    const ctas: Array<HTMLElement> = screen
+      .getAllByText("Upgrade to Scale")
+      .map((label: HTMLElement): HTMLElement => {
+        return label.closest("button") as HTMLElement;
+      });
+    const filled: Array<HTMLElement> = screen
+      .getAllByRole("button")
+      .filter((button: HTMLElement) => {
+        return /\bbg-(indigo|red|green|yellow)-600\b/.test(button.className);
+      });
+
+    expect(ctas).toHaveLength(2);
+    expect(filled).toHaveLength(1);
+    expect(filled[0]).toBe(ctas[1]);
+    expect(ctas[0]).toHaveClass("bg-white");
+  });
+
   test("an explicit Edition reason wins over billing", () => {
     pinDeployment("cloud");
 
@@ -677,5 +707,39 @@ describe("AuditLogsEnterpriseUpgrade", () => {
       2,
     );
     expect(screen.queryByText("Upgrade to Enterprise")).not.toBeInTheDocument();
+  });
+});
+
+describe("the admin dashboard's EnterpriseFeatureUpgrade", () => {
+  test("draws one primary call to action, the one under the pitch", () => {
+    render(
+      <AdminEnterpriseFeatureUpgrade
+        title="Single Sign On (SSO)"
+        description="Configure SAML SSO for every project."
+        featureName="Global SSO"
+        benefits={[
+          {
+            icon: IconProp.Lock,
+            title: "Centralized auth",
+            subtitle: "Revoke access from one place.",
+          },
+        ]}
+      />,
+    );
+
+    const ctas: Array<HTMLElement> = screen
+      .getAllByText("Learn about Enterprise Edition")
+      .map((label: HTMLElement): HTMLElement => {
+        return label.closest("button") as HTMLElement;
+      });
+    const filled: Array<HTMLElement> = screen
+      .getAllByRole("button")
+      .filter((button: HTMLElement) => {
+        return /\bbg-(indigo|red|green|yellow)-600\b/.test(button.className);
+      });
+
+    expect(ctas).toHaveLength(2);
+    expect(filled).toEqual([ctas[1]]);
+    expect(ctas[0]).toHaveClass("bg-white");
   });
 });
