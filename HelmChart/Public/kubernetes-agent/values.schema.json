@@ -502,7 +502,7 @@
         },
         "endpoint": {
           "type": "string",
-          "description": "URL to scrape when mode == 'external'. Example: http://kube-state-metrics.kube-system.svc.cluster.local:8080/metrics"
+          "description": "URL to scrape when mode == 'external' (required there), scraped where it points: https:// over TLS (http:// or no scheme in plain HTTP), and a path other than /metrics at that path. A URL with credentials, a query string or a fragment is refused. An https endpoint needs a certificate from a public CA; there is no setting yet to trust a private CA, skip verification or send credentials. Example: http://kube-state-metrics.kube-system.svc.cluster.local:8080/metrics"
         },
         "scrapeInterval": { "type": "string" },
         "collectResources": {
@@ -553,7 +553,7 @@
           "properties": {
             "url": {
               "type": "string",
-              "description": "Base URL of an EXISTING cost engine. Empty (default) bundles OpenCost + a minimal Prometheus. Example: http://opencost.opencost.svc.cluster.local:9003"
+              "description": "Base URL of an EXISTING cost engine, http:// or https://. Empty (default) bundles OpenCost + a minimal Prometheus. The poller and the metrics scrape both follow the scheme, and verify an https engine's certificate against public CAs only. Example: http://opencost.opencost.svc.cluster.local:9003"
             },
             "prometheusUrl": {
               "type": "string",
@@ -710,7 +710,7 @@
             "enabled": { "type": "boolean" },
             "endpoint": {
               "type": "string",
-              "description": "Metrics endpoint. Empty defaults to <cost.engine.url>/metrics."
+              "description": "Metrics endpoint URL. Empty defaults to <cost.engine.url>/metrics. Scraped where it points: https:// over TLS, and a path other than /metrics at that path. A URL with credentials, a query string or a fragment is refused."
             },
             "scrapeInterval": { "type": "string" },
             "metricsAllowlist": {
