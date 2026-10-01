@@ -321,12 +321,18 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description:
             "Every database server this project runs or talks to — discovered from the queries in your application traces, database workloads on your Kubernetes clusters and Docker / Podman hosts, and the OneUptime Database Agent — or added by hand.",
         }}
+        formSteps={[
+          { title: "Connection", id: "connection" },
+          { title: "Database Info", id: "database-info" },
+          { title: "Labels", id: "labels" },
+        ]}
         formFields={[
           {
             field: {
               dbSystem: true,
             },
             title: "Engine",
+            stepId: "connection",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: ENGINE_OPTIONS,
             required: true,
@@ -339,6 +345,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
               serverAddress: true,
             },
             title: "Server Address",
+            stepId: "connection",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "db.prod.internal",
@@ -382,6 +389,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
               serverPort: true,
             },
             title: "Server Port",
+            stepId: "connection",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "5432",
@@ -393,6 +401,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
               name: true,
             },
             title: "Name",
+            stepId: "database-info",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "PostgreSQL db.prod.internal:5432",
@@ -404,6 +413,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
               description: true,
             },
             title: "Description",
+            stepId: "database-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Primary PostgreSQL cluster for the checkout stack",
@@ -413,6 +423,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
               labels: true,
             },
             title: "Labels",
+            stepId: "labels",
             description:
               "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,

@@ -8,6 +8,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import {
   NO_RUNNER_FORM_RESTRICTIONS,
+  RUNNER_FORM_STEPS,
   RunnerFormRestrictions,
   getKubernetesAgentRunnerFormNote,
   getRunnerFormFields,
@@ -106,8 +107,10 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         onBeforeEdit={(): boolean => {
           return isRunnerLoaded;
         }}
+        // The list's steps, so the two forms read alike.
+        formSteps={RUNNER_FORM_STEPS}
         formFields={getRunnerFormFields({
-          withSteps: false,
+          withSteps: true,
           restrictions: formRestrictions,
         })}
         modelDetailProps={{

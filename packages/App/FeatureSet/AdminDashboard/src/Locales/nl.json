@@ -350,7 +350,9 @@
       "amountNotPositive": "Het bedrag moet groter zijn dan nul.",
       "amountTooLarge": "Het bedrag mag niet meer zijn dan {{max}} USD per aanpassing.",
       "amountTooPrecise": "Het bedrag mag niet meer dan twee decimalen hebben.",
-      "reasonRequired": "Voer een reden in voor deze aanpassing."
+      "reasonRequired": "Voer een reden in voor deze aanpassing.",
+      "adjustBalanceStepBalance": "Saldo",
+      "adjustBalanceStepAmount": "Bedrag en reden"
     },
     "projectSupport": {
       "title": "Toegang voor klantenondersteuning",

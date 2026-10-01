@@ -159,12 +159,17 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Hosts being monitored in this project. Install the OneUptime Docker Agent to connect a host.",
         }}
         showViewIdButton={true}
+        formSteps={[
+          { title: "Basic Info", id: "basic-info" },
+          { title: "Labels", id: "labels" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "production-docker-host-1",
@@ -174,6 +179,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               hostIdentifier: true,
             },
             title: "Host Identifier",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "docker-host-prod-1",
@@ -185,6 +191,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               description: true,
             },
             title: "Description",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production Docker host running in US East",
@@ -194,6 +201,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               labels: true,
             },
             title: "Labels",
+            stepId: "labels",
             description:
               "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,

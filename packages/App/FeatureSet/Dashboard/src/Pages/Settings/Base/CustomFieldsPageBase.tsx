@@ -19,6 +19,7 @@ import Field, {
   CustomElementProps,
 } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Columns from "Common/UI/Components/ModelTable/Columns";
@@ -170,6 +171,7 @@ const CustomFieldsPageBase: (
             mapFromResourceType: true,
           } as any,
           title: "Map Value From",
+          stepId: "value-source",
           description:
             "Copy this field's value from a related resource instead of typing it in on every record. The value is filled in when a record is created and refreshed whenever the source changes.",
           fieldType: FormFieldSchemaType.Dropdown,
@@ -193,6 +195,7 @@ const CustomFieldsPageBase: (
             mapFromCustomFieldName: true,
           } as any,
           title: "Field To Copy From",
+          stepId: "value-source",
           description:
             "Only fields of the same type can be copied. Clearing the source does not clear values that were already copied.",
           fieldType: FormFieldSchemaType.CustomComponent,
@@ -279,6 +282,7 @@ const CustomFieldsPageBase: (
               sortOrder: true,
             } as any,
             title: IncidentCustomFieldSettingsCopy.sortOrderTitle,
+            stepId: "incident-settings",
             description: IncidentCustomFieldSettingsCopy.sortOrderDescription,
             fieldType: FormFieldSchemaType.Number,
             required: false,
@@ -289,6 +293,7 @@ const CustomFieldsPageBase: (
               showOnCreate: true,
             } as any,
             title: IncidentCustomFieldSettingsCopy.showOnCreateTitle,
+            stepId: "incident-settings",
             description:
               IncidentCustomFieldSettingsCopy.showOnCreateDescription,
             fieldType: FormFieldSchemaType.Toggle,
@@ -299,6 +304,7 @@ const CustomFieldsPageBase: (
               isRequiredOnCreate: true,
             } as any,
             title: IncidentCustomFieldSettingsCopy.isRequiredOnCreateTitle,
+            stepId: "incident-settings",
             description:
               IncidentCustomFieldSettingsCopy.isRequiredOnCreateDescription,
             fieldType: FormFieldSchemaType.Toggle,
@@ -318,6 +324,7 @@ const CustomFieldsPageBase: (
             } as any,
             title:
               IncidentCustomFieldSettingsCopy.includeInSubscriberNotificationsTitle,
+            stepId: "incident-settings",
             description:
               IncidentCustomFieldSettingsCopy.includeInSubscriberNotificationsDescription,
             fieldType: FormFieldSchemaType.Toggle,
@@ -325,6 +332,23 @@ const CustomFieldsPageBase: (
           },
         ]
       : [];
+
+  /*
+   * What the field is, then what kind of value it holds, then - where the
+   * resource has them - where its values come from and how incidents use it.
+   * The last two steps exist only on the definitions that have their fields,
+   * so a team or status page field is a two-step form.
+   */
+  const formSteps: Array<FormStep<CustomFieldsBaseModels>> = [
+    { title: "Basic Info", id: "basic-info" },
+    { title: "Field Type", id: "field-type" },
+    ...(mappingFormFields.length > 0
+      ? [{ title: "Value Source", id: "value-source" }]
+      : []),
+    ...(incidentSettingsFormFields.length > 0
+      ? [{ title: "Incident Settings", id: "incident-settings" }]
+      : []),
+  ];
 
   const incidentSettingsColumns: Columns<CustomFieldsBaseModels> = [
     ...(hasIncidentFieldSettings
@@ -479,12 +503,14 @@ const CustomFieldsPageBase: (
               },
             }
           : {})}
+        formSteps={formSteps}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Field Name",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "internal-service",
@@ -497,6 +523,7 @@ const CustomFieldsPageBase: (
               description: true,
             },
             title: "Field Description",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "This label is for all the internal services.",
@@ -506,6 +533,7 @@ const CustomFieldsPageBase: (
               customFieldType: true,
             },
             title: "Field Type",
+            stepId: "field-type",
             description:
               "Choose how data is entered for this field. Dropdown types also need a list of options below.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -525,6 +553,7 @@ const CustomFieldsPageBase: (
               dropdownOptions: true,
             },
             title: "Dropdown Options",
+            stepId: "field-type",
             description:
               "Add the options that should appear in the dropdown and optionally choose a color for each value.",
             fieldType: FormFieldSchemaType.CustomComponent,

@@ -293,17 +293,37 @@ export function getVariableDescriptionFormField(data?: {
 export const SECRET_TOGGLE_DESCRIPTION: string =
   "Keep this variable's content out of workflow run logs - every run replaces it with [REDACTED] before the log is saved. It applies to future runs only, and it cannot be turned off again once saved.";
 
-export function getSecretFormField(): ModelField<WorkflowVariable> {
+export function getSecretFormField(data?: {
+  stepId?: string | undefined;
+}): ModelField<WorkflowVariable> {
   return {
     field: {
       isSecret: true,
     },
     title: "Secret",
+    stepId: data?.stepId,
     description: SECRET_TOGGLE_DESCRIPTION,
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
   };
 }
+
+/*
+ * The create form's two steps. Four fields with long help texts made one
+ * scrolling page; split, each step asks one question: what the variable is
+ * called, then what it holds. The secret switch sits with the value because
+ * it is about the value - whether runs may print it.
+ */
+export const STATIC_VARIABLE_FORM_STEPS: Array<FormStep<WorkflowVariable>> = [
+  {
+    title: "Variable",
+    id: "variable",
+  },
+  {
+    title: "Value",
+    id: "value",
+  },
+];
 
 /*
  * The create form of the list's Create button. A static variable only: the
@@ -315,20 +335,21 @@ export function getStaticVariableCreateFormFields(data: {
   isGlobal: boolean;
 }): Array<ModelField<WorkflowVariable>> {
   return [
-    getVariableNameFormField({ isGlobal: data.isGlobal }),
-    getVariableDescriptionFormField(),
+    getVariableNameFormField({ isGlobal: data.isGlobal, stepId: "variable" }),
+    getVariableDescriptionFormField({ stepId: "variable" }),
     {
       field: {
         content: true,
       },
       title: "Content",
+      stepId: "value",
       description:
         "The value workflows use, such as an API key or a URL. It cannot be viewed once saved - open the variable to replace it.",
       fieldType: FormFieldSchemaType.LongText,
       required: true,
       placeholder: "Content of the variable",
     },
-    getSecretFormField(),
+    getSecretFormField({ stepId: "value" }),
   ];
 }
 

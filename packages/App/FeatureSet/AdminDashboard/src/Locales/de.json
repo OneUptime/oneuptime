@@ -350,7 +350,9 @@
       "amountNotPositive": "Der Betrag muss größer als null sein.",
       "amountTooLarge": "Der Betrag darf pro einzelner Anpassung nicht mehr als {{max}} USD betragen.",
       "amountTooPrecise": "Der Betrag darf höchstens zwei Nachkommastellen haben.",
-      "reasonRequired": "Bitte geben Sie einen Grund für diese Anpassung an."
+      "reasonRequired": "Bitte geben Sie einen Grund für diese Anpassung an.",
+      "adjustBalanceStepBalance": "Guthaben",
+      "adjustBalanceStepAmount": "Betrag & Grund"
     },
     "projectSupport": {
       "title": "Kundensupport-Zugriff",

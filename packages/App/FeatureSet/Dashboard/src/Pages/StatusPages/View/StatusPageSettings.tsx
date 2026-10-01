@@ -23,12 +23,17 @@ const StatusPageDelete: FunctionComponent<
         }}
         editButtonText="Edit Settings"
         isEditable={true}
+        formSteps={[
+          { title: "Incidents", id: "incidents" },
+          { title: "Labels & Scope", id: "labels-and-scope" },
+        ]}
         formFields={[
           {
             field: {
               showIncidentsOnStatusPage: true,
             },
             title: "Show Incidents",
+            stepId: "incidents",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -37,6 +42,7 @@ const StatusPageDelete: FunctionComponent<
               showIncidentHistoryInDays: true,
             },
             title: "Show Incident History (in days)",
+            stepId: "incidents",
             fieldType: FormFieldSchemaType.Number,
             required: true,
             placeholder: "14",
@@ -46,6 +52,7 @@ const StatusPageDelete: FunctionComponent<
               showIncidentLabelsOnStatusPage: true,
             },
             title: "Show Incident Labels",
+            stepId: "labels-and-scope",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -59,6 +66,7 @@ const StatusPageDelete: FunctionComponent<
               onlyShowScopedIncidents: true,
             },
             title: IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle,
+            stepId: "labels-and-scope",
             description:
               IncidentStatusPageScopeCopy.onlyShowScopedIncidentsDescription,
             fieldType: FormFieldSchemaType.Toggle,
@@ -345,12 +353,18 @@ const StatusPageDelete: FunctionComponent<
         }}
         editButtonText="Edit Settings"
         isEditable={true}
+        formSteps={[
+          { title: "Subscriber Page", id: "subscriber-page" },
+          { title: "Email & SMS", id: "email-and-sms" },
+          { title: "Chat & Webhooks", id: "chat-and-webhooks" },
+        ]}
         formFields={[
           {
             field: {
               showSubscriberPageOnStatusPage: true,
             },
             title: "Show Subscriber Page",
+            stepId: "subscriber-page",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -359,6 +373,7 @@ const StatusPageDelete: FunctionComponent<
               enableEmailSubscribers: true,
             },
             title: "Enable Email Subscribers",
+            stepId: "email-and-sms",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -367,6 +382,7 @@ const StatusPageDelete: FunctionComponent<
               enableSmsSubscribers: true,
             },
             title: "Enable SMS Subscribers",
+            stepId: "email-and-sms",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -375,6 +391,7 @@ const StatusPageDelete: FunctionComponent<
               enableSlackSubscribers: true,
             },
             title: "Enable Slack Subscribers",
+            stepId: "chat-and-webhooks",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -383,6 +400,7 @@ const StatusPageDelete: FunctionComponent<
               enableMicrosoftTeamsSubscribers: true,
             },
             title: "Enable Microsoft Teams Subscribers",
+            stepId: "chat-and-webhooks",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -391,6 +409,7 @@ const StatusPageDelete: FunctionComponent<
               enableWebhookSubscribers: true,
             },
             title: "Enable Webhook Subscribers",
+            stepId: "chat-and-webhooks",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },

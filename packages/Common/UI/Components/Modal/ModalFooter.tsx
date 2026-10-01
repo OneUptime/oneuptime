@@ -1,5 +1,6 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import ButtonType from "../Button/ButtonTypes";
+import type { ModalSecondaryButton } from "./Modal";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -14,6 +15,7 @@ export interface ComponentProps {
   closeButtonText?: undefined | string;
   leftFooterElement?: ReactElement | undefined;
   hasContentHiddenBelow?: boolean | undefined;
+  secondaryButton?: ModalSecondaryButton | undefined;
 }
 
 const ModalFooter: FunctionComponent<ComponentProps> = (
@@ -53,6 +55,26 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
               props.onClose?.();
             }}
             dataTestId="modal-footer-close-button"
+            className="sm:!w-auto md:!ml-0"
+          />
+        ) : (
+          <></>
+        )}
+
+        {props.secondaryButton ? (
+          <Button
+            // Plain, like Cancel: the submit button stays the one action.
+            buttonStyle={ButtonStyleType.NORMAL}
+            title={props.secondaryButton.title}
+            onClick={() => {
+              props.secondaryButton?.onClick();
+            }}
+            disabled={props.secondaryButton.disabled || false}
+            type={ButtonType.Button}
+            dataTestId={
+              props.secondaryButton.dataTestId ||
+              "modal-footer-secondary-button"
+            }
             className="sm:!w-auto md:!ml-0"
           />
         ) : (

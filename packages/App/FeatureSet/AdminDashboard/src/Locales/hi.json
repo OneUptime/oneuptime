@@ -350,7 +350,9 @@
       "amountNotPositive": "राशि शून्य से अधिक होनी चाहिए।",
       "amountTooLarge": "एक ही समायोजन में राशि {{max}} USD से अधिक नहीं हो सकती।",
       "amountTooPrecise": "राशि में दो से अधिक दशमलव स्थान नहीं हो सकते।",
-      "reasonRequired": "कृपया इस समायोजन के लिए एक कारण दर्ज करें।"
+      "reasonRequired": "कृपया इस समायोजन के लिए एक कारण दर्ज करें।",
+      "adjustBalanceStepBalance": "शेष राशि",
+      "adjustBalanceStepAmount": "राशि और कारण"
     },
     "projectSupport": {
       "title": "ग्राहक सहायता पहुँच",

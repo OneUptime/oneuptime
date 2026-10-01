@@ -610,9 +610,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               onSubmit={handleBulkAddSubmit}
               formProps={{
                 name: "Bulk Add Subscribers",
+                /*
+                 * Who to add, then what they hear about - only where the
+                 * page lets subscribers choose; otherwise it is one page.
+                 */
+                steps:
+                  allowSubscribersToChooseResources ||
+                  allowSubscribersToChooseEventTypes
+                    ? [
+                        { title: "Subscriber Info", id: "subscriber-info" },
+                        { title: "Notifications", id: "notifications" },
+                      ]
+                    : undefined,
                 fields: [
                   {
                     field: { emails: true },
+                    stepId: "subscriber-info",
                     title: "Emails",
                     description:
                       "One email per line (or separated by commas, semicolons, or spaces). Invalid or duplicate entries will be skipped.",
@@ -636,6 +649,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   },
                   {
                     field: { isSubscriptionConfirmed: true },
+                    stepId: "subscriber-info",
                     title: "Do not send confirmation link",
                     description:
                       "If this option is checked, then no confirmation link will be sent to the subscribers.",
@@ -645,6 +659,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   },
                   {
                     field: { sendYouHaveSubscribedMessage: true },
+                    stepId: "subscriber-info",
                     title: "Send Subscription Email",
                     description:
                       "Send Email with the confirmation link to the subscribers. The subscribers need to click on the link to confirm the subscription.",
@@ -656,6 +671,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         {
                           field: { isSubscribedToAllResources: true },
                           title: "Subscribe to All Resources",
+                          stepId: "notifications",
                           description:
                             "Send notifications for all resources to these subscribers.",
                           fieldType: FormFieldSchemaType.Checkbox,
@@ -665,6 +681,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         {
                           field: { statusPageResources: true },
                           title: "Select Resources to Subscribe",
+                          stepId: "notifications",
                           description:
                             "Please select the resources these subscribers should receive notifications for.",
                           fieldType: FormFieldSchemaType.CategoryCheckbox,
@@ -682,6 +699,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         {
                           field: { isSubscribedToAllEventTypes: true },
                           title: "Subscribe to All Event Types",
+                          stepId: "notifications",
                           description:
                             "Send notifications for all event types to these subscribers.",
                           fieldType: FormFieldSchemaType.Checkbox,
@@ -691,6 +709,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         {
                           field: { statusPageEventTypes: true },
                           title: "Select Event Types to Subscribe",
+                          stepId: "notifications",
                           description:
                             "Please select the event types these subscribers should receive notifications for.",
                           fieldType: FormFieldSchemaType.MultiSelectDropdown,

@@ -157,7 +157,10 @@ import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import BasicForm from "Common/UI/Components/Forms/BasicForm";
+import BasicForm, {
+  BasicFormHandle,
+} from "Common/UI/Components/Forms/BasicForm";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -339,6 +342,9 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     confirmation: KubernetesAiAccessConfirmation;
   } | null>(null);
   const formRef: MutableRefObject<any> = useRef<any>(null);
+
+  // Whether the form is on its last step: Next is offered until it is.
+  const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(true);
   // Blocks a second save while one is in flight (double click, Enter + click).
   const isSavingRef: MutableRefObject<boolean> = useRef<boolean>(false);
 
@@ -570,6 +576,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       {
         field: { isAiInvestigationEnabled: true },
         title: "Investigate with kubectl",
+        stepId: "investigation-and-fixes",
         description:
           "Read-only: get, describe, logs, events, top. An investigation never changes the cluster.",
         fieldType: FormFieldSchemaType.Toggle,
@@ -580,6 +587,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         // One card per mode, each saying what it does.
         field: { aiRemediationMode: true },
         title: AI_ACCESS_FIXES_ROW_TITLE,
+        stepId: "investigation-and-fixes",
         description: getAiFixesFieldDescription("cluster"),
         fieldType: FormFieldSchemaType.CardSelect,
         cardSelectSingleColumn: true,
@@ -606,6 +614,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       result.push({
         field: { kubectlAllowlistText: true },
         title: "kubectl allowlist",
+        stepId: "investigation-and-fixes",
         // Who may add patterns is the admin note's, at the top of the modal.
         description: KUBECTL_ALLOWLIST_FIELD_DESCRIPTION,
         fieldType: FormFieldSchemaType.LongText,
@@ -633,6 +642,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       result.push({
         field: { aiAccessRunnerId: true },
         title: "Runner",
+        stepId: "runner-and-credential",
         description:
           "The Runner OneUptime AI uses to run kubectl on this cluster. Only Runners with “Runs AI Remediation Commands” on are listed. Leave it empty to use the cluster's Kubernetes AI agent.",
         fieldType: FormFieldSchemaType.Dropdown,
@@ -645,6 +655,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       result.push({
         field: { clearAiAccessRunner: true },
         title: "Unbind the Runner",
+        stepId: "runner-and-credential",
         description: `Bound now: ${saved.aiAccessRunnerName || "a Runner"}. ${
           props.hasAiAgent
             ? "Unbinding moves this cluster to its Kubernetes AI agent."
@@ -660,6 +671,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       result.push({
         field: { aiAccessCredentialId: true },
         title: "Kubernetes credential",
+        stepId: "runner-and-credential",
         description: getKubernetesAiCredentialFieldDescription(chosenRunner),
         fieldType: FormFieldSchemaType.Dropdown,
         required: false,
@@ -676,6 +688,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       result.push({
         field: { clearAiAccessCredential: true },
         title: "Unbind the Kubernetes credential",
+        stepId: "runner-and-credential",
         description: `Bound now: ${
           saved.aiAccessCredentialName || "a Kubernetes credential"
         }. A Runner outside the cluster cannot reach it without one. Choosing a credential needs permission to read Runner credentials (one of: ${getKubernetesCredentialPermissionTitles().join(", ")}).`,
@@ -687,6 +700,32 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
 
     return result;
   }, [saved, offered, runnerOptions, credentials, chosenRunner]);
+
+  /*
+   * What AI may do, then where its commands run. The second step is there
+   * only when this person is offered a Runner or credential question (an
+   * admin, with the permission to read them); otherwise it is one page.
+   */
+  const steps:
+    | Array<FormStep<KubernetesAiAccessSettingsFormValues>>
+    | undefined = useMemo(() => {
+    if (
+      !offered ||
+      !(
+        offered.runner ||
+        offered.runnerClear ||
+        offered.credential ||
+        offered.credentialClear
+      )
+    ) {
+      return undefined;
+    }
+
+    return [
+      { title: "Investigation & Fixes", id: "investigation-and-fixes" },
+      { title: "Runner & Credential", id: "runner-and-credential" },
+    ];
+  }, [offered]);
 
   const initialValues: FormValues<KubernetesAiAccessSettingsFormValues> =
     useMemo(() => {
@@ -823,8 +862,24 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         disableSubmitButton={isLoading || !saved || isSaving}
         onClose={props.onClose}
         onSubmit={() => {
-          formRef.current?.submitForm();
+          /*
+           * Every question here already holds the saved answer, so Save
+           * saves from whichever step is on screen, after checking every
+           * step - an edit is never stranded behind a Next.
+           */
+          (formRef.current as BasicFormHandle | null)?.submitAllSteps();
         }}
+        secondaryButton={
+          steps && !isOnLastFormStep
+            ? {
+                title: "Next",
+                dataTestId: "modal-footer-next-button",
+                onClick: () => {
+                  (formRef.current as BasicFormHandle | null)?.submitForm();
+                },
+              }
+            : undefined
+        }
       >
         <div className="space-y-4">
           {!canConfigureUnattended ? <AdminPermissionNote /> : <></>}
@@ -853,6 +908,11 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
               id="kubernetes-cluster-ai-access-form"
               name="Change what AI may do"
               fields={fields}
+              steps={steps}
+              allowAnyStepNavigation={true}
+              onIsLastFormStep={(isLastFormStep: boolean) => {
+                setIsOnLastFormStep(isLastFormStep);
+              }}
               initialValues={initialValues}
               hideSubmitButton={true}
               footer={<></>}

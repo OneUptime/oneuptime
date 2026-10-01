@@ -910,11 +910,15 @@ export const createRumApplication: CreateRumApplicationFunction = async (data: {
 
   await identifierInput.fill(data.appIdentifier);
 
-  // The form's own submit, not one of the list's two Create buttons.
-  await page
-    .getByTestId("modal")
-    .getByRole("button", { name: "Create RUM Application" })
-    .click();
+  /*
+   * The form walks two steps: Basic Info (name, identifier, description),
+   * then the optional Labels. The form's own submit - not one of the list's
+   * two Create buttons - reads "Next" on the first and creates on the last.
+   */
+  const modal: Locator = page.getByTestId("modal");
+
+  await modal.getByRole("button", { name: "Next", exact: true }).click();
+  await modal.getByRole("button", { name: "Create RUM Application" }).click();
 
   /* The modal closes only on a successful create. */
   await page.getByTestId("modal").waitFor({ state: "hidden", timeout: 60000 });

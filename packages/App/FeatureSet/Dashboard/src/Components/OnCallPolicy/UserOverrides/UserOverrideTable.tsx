@@ -154,6 +154,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         overrideUser: true,
       },
       title: "Override User",
+      stepId: "users",
       description: "Select the user who will override the on-call duty.",
       fieldType: FormFieldSchemaType.Dropdown,
       required: true,
@@ -169,6 +170,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         routeAlertsToUser: true,
       },
       title: "Route Alerts To User",
+      stepId: "users",
       description: "Select the user to whom alerts will be routed.",
       fieldType: FormFieldSchemaType.Dropdown,
       required: true,
@@ -184,6 +186,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         startsAt: true,
       },
       title: "Starts At",
+      stepId: "time-window",
       description: "Select the start date and time for the override.",
       fieldType: FormFieldSchemaType.DateTime,
       required: true,
@@ -194,6 +197,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         endsAt: true,
       },
       title: "Ends At",
+      stepId: "time-window",
       description: "Select the end date and time for the override.",
       fieldType: FormFieldSchemaType.DateTime,
       required: true,
@@ -229,6 +233,10 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
             ? "Overrides are usually useful when the user is on vacation or sick leave and you want to temporarily assign the on-call duty to another user."
             : "Global overrides are useful for assigning on-call duties across all policies when a user is unavailable.",
         }}
+        formSteps={[
+          { title: "Users", id: "users" },
+          { title: "Time Window", id: "time-window" },
+        ]}
         formFields={formFields}
         noItemsMessage={
           props.onCallDutyPolicyId

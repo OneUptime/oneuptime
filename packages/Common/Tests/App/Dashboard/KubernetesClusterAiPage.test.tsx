@@ -567,6 +567,47 @@ function menuOptions(): Array<HTMLElement> {
     });
 }
 
+/*
+ * The Change form walks two steps when it asks a Runner or credential
+ * question - "Investigation & Fixes", then "Runner & Credential" - and is
+ * one page otherwise. Every step already holds the saved answer, so the
+ * step list opens the second directly.
+ */
+async function openRunnerStep(dialog: HTMLElement): Promise<void> {
+  const progress: HTMLElement = await within(dialog).findByRole(
+    "navigation",
+    { name: "Progress" },
+    { timeout: WAIT_TIMEOUT },
+  );
+  fireEvent.click(within(progress).getByText("Runner & Credential"));
+  await waitFor(
+    () => {
+      expect(progress.querySelector('[aria-current="step"]')?.textContent).toBe(
+        "Runner & Credential",
+      );
+    },
+    { timeout: WAIT_TIMEOUT },
+  );
+}
+
+/*
+ * A form that asks no Runner or credential question is one page. The form
+ * opens on its first step in an effect after its first render, so let that
+ * run before saying there is no step list; otherwise this passes on the
+ * render before a step list would have appeared.
+ */
+async function expectNoSteps(dialog: HTMLElement): Promise<void> {
+  await act(async (): Promise<void> => {
+    await Promise.resolve();
+  });
+  expect(
+    within(dialog).queryByRole("navigation", { name: "Progress" }),
+  ).not.toBeInTheDocument();
+  expect(
+    within(dialog).queryByTestId("modal-footer-next-button"),
+  ).not.toBeInTheDocument();
+}
+
 async function openDropdown(
   dialog: HTMLElement,
   name: RegExp,
@@ -2643,6 +2684,7 @@ describe("the Change modal: advanced Runner bindings", () => {
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
+    await expectNoSteps(dialog);
     expect(within(dialog).queryByText("Runner")).not.toBeInTheDocument();
     expect(
       within(dialog).queryByText("Kubernetes credential"),
@@ -2660,6 +2702,10 @@ describe("the Change modal: advanced Runner bindings", () => {
     serveCluster(hostRunnerBinding());
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
+
+    // The pickers are on the form's second step, not on its first.
+    expect(within(dialog).queryByText("Runner")).not.toBeInTheDocument();
+    await openRunnerStep(dialog);
 
     await within(dialog).findByText("Runner", {}, { timeout: WAIT_TIMEOUT });
     expect(await openDropdown(dialog, /^Runner/)).toEqual(["bash-runner"]);
@@ -2692,6 +2738,7 @@ describe("the Change modal: advanced Runner bindings", () => {
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
+    await expectNoSteps(dialog);
     expect(
       within(dialog).queryByTestId("ai-access-clear-runner-field"),
     ).not.toBeInTheDocument();
@@ -2706,6 +2753,7 @@ describe("the Change modal: advanced Runner bindings", () => {
     serveCluster(hostRunnerBinding());
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
+    await openRunnerStep(dialog);
 
     expect(
       within(dialog).getByText(/Bound now: bash-runner/),
@@ -2735,10 +2783,87 @@ describe("the Change modal: advanced Runner bindings", () => {
     expect(
       within(dialog).getByTestId("kubernetes-runner-picker-permission-note"),
     ).toHaveTextContent("Read Runbook Agent");
+    await openRunnerStep(dialog);
     expect(
       within(dialog).getByTestId("ai-access-clear-runner-field"),
     ).toBeInTheDocument();
     expect(listRequestsFor(Runner)).toHaveLength(0);
+  });
+
+  /*
+   * Two steps once a Runner question is asked - and Save on both: a change
+   * on the first step saves without walking to the second, which already
+   * holds the saved Runner and credential.
+   */
+  test("an admin with a Runner question saves a first-step change without walking to the second step", async () => {
+    grant(ADMIN_PERMISSIONS);
+    serve(advancedStatus());
+    serveCluster(hostRunnerBinding());
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    // The step list and Next come in once the form opens its first step.
+    const progress: HTMLElement = await within(dialog).findByRole(
+      "navigation",
+      { name: "Progress" },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(progress.querySelector('[aria-current="step"]')?.textContent).toBe(
+      "Investigation & Fixes",
+    );
+    expect(
+      await within(dialog).findByTestId(
+        "modal-footer-next-button",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toHaveTextContent("Next");
+    expect(
+      within(dialog).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent("Save");
+
+    await toggleSwitch(dialog, "ai-investigation-field", true);
+    saveChangeModal(dialog);
+
+    expect(await waitForOneUpdate()).toEqual({
+      isAiInvestigationEnabled: false,
+    });
+  });
+
+  test("an admin walks to the Runner step with Next, where Next is no longer offered", async () => {
+    grant(ADMIN_PERMISSIONS);
+    serve(advancedStatus());
+    serveCluster(hostRunnerBinding());
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    fireEvent.click(
+      await within(dialog).findByTestId(
+        "modal-footer-next-button",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    );
+
+    expect(
+      await within(dialog).findByText(
+        "Kubernetes credential",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toBeInTheDocument();
+    await waitFor(
+      () => {
+        expect(
+          within(dialog).queryByTestId("modal-footer-next-button"),
+        ).not.toBeInTheDocument();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(
+      within(dialog).queryByText("Investigate with kubectl"),
+    ).not.toBeInTheDocument();
+    expect(updateByIdSpy).not.toHaveBeenCalled();
   });
 
   test("one picker's failed list leaves the other picker and the form working", async () => {
@@ -2755,6 +2880,7 @@ describe("the Change modal: advanced Runner bindings", () => {
     });
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
+    await openRunnerStep(dialog);
 
     expect(
       await within(dialog).findByText(

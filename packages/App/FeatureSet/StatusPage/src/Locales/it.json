@@ -235,6 +235,10 @@
       "invalidLink": "Questo link per annullare l'iscrizione non è valido. Potrebbe essere incompleto, oppure l'iscrizione potrebbe essere stata rimossa. Per annullare l'iscrizione, usa il link in un messaggio recente di questa pagina di stato.",
       "failed": "Impossibile annullare l'iscrizione. Riprova.",
       "loadFailed": "Impossibile caricare questo link per annullare l'iscrizione. Riprova più tardi."
+    },
+    "steps": {
+      "details": "Dettagli",
+      "preferences": "Preferenze"
     }
   },
   "accounts": {
@@ -327,5 +331,6 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}} non deve essere minore di {{minValue}}.",
   "{{field}} is required.": "{{field}} è obbligatorio.",
   "{{field}} should match {{matchField}}": "{{field}} deve corrispondere a {{matchField}}",
-  "Email is not valid.": "L'email non è valida."
+  "Email is not valid.": "L'email non è valida.",
+  "Next": "Avanti"
 }

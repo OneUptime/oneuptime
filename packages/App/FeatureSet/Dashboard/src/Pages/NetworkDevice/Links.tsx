@@ -78,12 +78,18 @@ const NetworkDeviceLinks: FunctionComponent<
             type: FieldType.Text,
           },
         ]}
+        formSteps={[
+          { title: "Link", id: "link" },
+          { title: "Ports", id: "ports" },
+          { title: "Topology", id: "topology" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "link",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "IDF-2 uplink to core",
@@ -93,6 +99,7 @@ const NetworkDeviceLinks: FunctionComponent<
               fromDevice: true,
             },
             title: "From Device",
+            stepId: "link",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkDevice,
@@ -107,6 +114,7 @@ const NetworkDeviceLinks: FunctionComponent<
               toDevice: true,
             },
             title: "To Device",
+            stepId: "link",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkDevice,
@@ -121,6 +129,7 @@ const NetworkDeviceLinks: FunctionComponent<
               fromPortName: true,
             },
             title: "From Port",
+            stepId: "ports",
             description:
               "Optional. Free text — nothing resolves it to an interface, since a link is usually drawn by hand precisely because the port is not discoverable.",
             fieldType: FormFieldSchemaType.Text,
@@ -132,6 +141,7 @@ const NetworkDeviceLinks: FunctionComponent<
               toPortName: true,
             },
             title: "To Port",
+            stepId: "ports",
             description: "Optional. Free text, same as above.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -142,6 +152,7 @@ const NetworkDeviceLinks: FunctionComponent<
               parentDevice: true,
             },
             title: "Parent Device",
+            stepId: "topology",
             description:
               "Optional, and it must be one of the two devices above. Set it to say which end is upstream — the router in a router-to-switch link, the switch in a switch-to-access-point one — and the Parent-Child view on the topology map draws the other end beneath it. Left empty, the map works the hierarchy out from device roles and connection counts, which is a good guess on SNMP gear and no guess at all on a device that only answers ping.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -158,6 +169,7 @@ const NetworkDeviceLinks: FunctionComponent<
               monitor: true,
             },
             title: "Monitor",
+            stepId: "topology",
             description:
               "Optional. The monitor watching this link — its status colors the edge on the topology map. A discovered link's own interface counters always win over it, so this only ever supplies state nothing else measured.",
             fieldType: FormFieldSchemaType.Dropdown,

@@ -95,12 +95,17 @@ const ServerlessFunctions: FunctionComponent<
           description:
             "Serverless / FaaS functions auto-discovered from OpenTelemetry that carries faas.name (or a serverless cloud.platform like aws_lambda).",
         }}
+        formSteps={[
+          { title: "Basic Info", id: "basic-info" },
+          { title: "Labels", id: "labels" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "checkout-handler",
@@ -110,6 +115,7 @@ const ServerlessFunctions: FunctionComponent<
               functionIdentifier: true,
             },
             title: "Function Identifier",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "checkout-handler",
@@ -121,6 +127,7 @@ const ServerlessFunctions: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Handles checkout events",
@@ -130,6 +137,7 @@ const ServerlessFunctions: FunctionComponent<
               labels: true,
             },
             title: "Labels",
+            stepId: "labels",
             description:
               "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,

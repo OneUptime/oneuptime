@@ -350,7 +350,9 @@
       "amountNotPositive": "金額は0より大きい値である必要があります。",
       "amountTooLarge": "1回の調整で{{max}} USDを超える金額は指定できません。",
       "amountTooPrecise": "金額の小数点以下は2桁までです。",
-      "reasonRequired": "この調整の理由を入力してください。"
+      "reasonRequired": "この調整の理由を入力してください。",
+      "adjustBalanceStepBalance": "残高",
+      "adjustBalanceStepAmount": "金額と理由"
     },
     "projectSupport": {
       "title": "カスタマーサポートのアクセス",

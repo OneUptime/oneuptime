@@ -350,7 +350,9 @@
       "amountNotPositive": "Beloppet måste vara större än noll.",
       "amountTooLarge": "Beloppet får inte överstiga {{max}} USD i en enskild justering.",
       "amountTooPrecise": "Beloppet får inte ha fler än två decimaler.",
-      "reasonRequired": "Ange en orsak till den här justeringen."
+      "reasonRequired": "Ange en orsak till den här justeringen.",
+      "adjustBalanceStepBalance": "Saldo",
+      "adjustBalanceStepAmount": "Belopp och orsak"
     },
     "projectSupport": {
       "title": "Åtkomst för kundsupport",

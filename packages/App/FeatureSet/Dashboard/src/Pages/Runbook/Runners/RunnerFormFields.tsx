@@ -5,12 +5,13 @@ import { KUBERNETES_AGENT_RUNNER_NAME_PREFIX } from "Common/Types/Kubernetes/Kub
 import Field from "Common/UI/Components/Forms/Types/Field";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 /*
- * The Runner create / edit form, shared by the Runner list (a wizard with
- * steps) and the Runner detail page — and what it leaves out on a Runner
- * the Kubernetes agent chart installed.
+ * The Runner create / edit form, shared by the Runner list and the Runner
+ * detail page - both walk the same three steps - and what it leaves out on
+ * a Runner the Kubernetes agent chart installed.
  *
  * RunnerService refuses, for any non-root write:
  * - renaming a row whose name carries the "kubernetes-agent/" marker, and
@@ -109,8 +110,19 @@ export function getReservedRunnerNameError(name: unknown): string | null {
   return `Runner names starting with "${KUBERNETES_AGENT_RUNNER_NAME_PREFIX}/" are reserved for the in-cluster Runners the Kubernetes agent chart registers. Choose another name.`;
 }
 
+/*
+ * The form's steps, on the list and on the detail page. Every one of them
+ * keeps a field on an agent row too: the description, Runs AI Remediation
+ * Commands and the labels are never left out.
+ */
+export const RUNNER_FORM_STEPS: Array<FormStep<Runner>> = [
+  { title: "Runner", id: "runner" },
+  { title: "Capabilities", id: "capabilities" },
+  { title: "Labels", id: "labels" },
+];
+
 export interface RunnerFormFieldOptions {
-  // Put the fields on the list page's wizard steps (runner, capabilities, labels).
+  // Put the fields on RUNNER_FORM_STEPS (runner, capabilities, labels).
   withSteps: boolean;
   restrictions: RunnerFormRestrictions;
 }

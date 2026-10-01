@@ -13,7 +13,7 @@ It works the same way for every broker — Apache Kafka, RabbitMQ, Apache Active
 
 Traces tell OneUptime that a queue exists and how applications use it, but not how full it is. That comes from the broker itself or its cloud provider's monitoring API — or, for [BullMQ](#bullmq), which keeps its jobs in Redis and has no broker to ask, from a gauge the application reports.
 
-You can also add a queue by hand: **Queues → Create Queue**, with its messaging system and destination name — and, for Azure Service Bus and Event Hubs, its namespace. Leave the namespace empty only for a queue your applications reach through an emulator or a custom domain name: their spans name no namespace, and Azure Monitor's metrics never reach such a queue (see [Limitations](#limitations)).
+You can also add a queue by hand: **Queues → Create Queue**, with its messaging system and destination name — and, for Azure Service Bus and Event Hubs, its namespace. The form asks for those on its first step, **Messaging System**, then for an optional name and description (**Queue Info**) and labels (**Labels**). Leave the namespace empty only for a queue your applications reach through an emulator or a custom domain name: their spans name no namespace, and Azure Monitor's metrics never reach such a queue (see [Limitations](#limitations)).
 
 This page covers the [supported messaging systems](#supported-messaging-systems), [how queues are discovered](#how-queues-are-discovered) and what makes two sightings one queue, [instrumenting applications](#instrumenting-applications), setting up [broker health metrics](#broker-health-metrics) for each system, [alerting](#alerting), [limitations](#limitations) and [troubleshooting](#troubleshooting).
 

@@ -54,10 +54,12 @@ describe("the device Overview wires the Connected to card", () => {
 
   test("the edit form carries the shared MAC Address field", () => {
     /*
-     * The helper, not a hand-rolled field: the Overview's form has no
-     * steps, so the bare call.
+     * The helper, not a hand-rolled field, on the Address step of the
+     * Overview's stepped edit form, beside the hostname.
      */
-    expect(OVERVIEW_CODE).toContain("getMacAddressFormField()");
+    expect(OVERVIEW_CODE).toContain(
+      'getMacAddressFormField({ stepId: "address" })',
+    );
     expect(OVERVIEW_CODE).toContain('from "../MacAddressFormField"');
   });
 

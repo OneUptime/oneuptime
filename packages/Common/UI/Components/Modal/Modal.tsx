@@ -25,6 +25,19 @@ export enum ModalWidth {
   Large,
 }
 
+/*
+ * A plain button the footer draws between Cancel and the submit button: a
+ * way to move on that is not the dialog's action, such as Next on a stepped
+ * edit form whose submit button saves from any step. Never primary - the
+ * submit button is the dialog's one primary action.
+ */
+export interface ModalSecondaryButton {
+  title: string;
+  onClick: () => void;
+  dataTestId?: string | undefined;
+  disabled?: boolean | undefined;
+}
+
 export interface ComponentProps {
   title: string;
   description?: string | undefined;
@@ -44,6 +57,7 @@ export interface ComponentProps {
   closeButtonText?: string | undefined;
   leftFooterElement?: ReactElement | undefined;
   disableCloseOnBackdropClick?: boolean | undefined;
+  secondaryButton?: ModalSecondaryButton | undefined;
 }
 
 /*
@@ -614,6 +628,20 @@ const Modal: FunctionComponent<ComponentProps> = (
               }
               leftFooterElement={props.leftFooterElement}
               hasContentHiddenBelow={isContentHiddenBelow}
+              secondaryButton={
+                props.secondaryButton
+                  ? {
+                      ...props.secondaryButton,
+                      title:
+                        translateString(props.secondaryButton.title) ||
+                        props.secondaryButton.title,
+                      disabled:
+                        props.isLoading ||
+                        props.isBodyLoading ||
+                        props.secondaryButton.disabled,
+                    }
+                  : undefined
+              }
             />
           </div>
         </div>

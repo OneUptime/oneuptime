@@ -55,6 +55,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   initialValues?: FormValues<TBaseModel> | undefined;
   summary?: FormSummaryConfig | undefined;
   values?: FormValues<TBaseModel> | undefined;
+  allowAnyStepNavigation?: boolean | undefined;
 }
 
 const BasicModelForm: <TBaseModel extends BaseModel>(
@@ -132,6 +133,7 @@ const BasicModelForm: <TBaseModel extends BaseModel>(
       hideSubmitButton={props.hideSubmitButton}
       ref={props.formRef}
       summary={props.summary}
+      allowAnyStepNavigation={props.allowAnyStepNavigation}
     ></BasicForm>
   );
 };

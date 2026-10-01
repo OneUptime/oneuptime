@@ -37,6 +37,21 @@ const BasicFormModal: <T extends GenericObject>(
   const [isLoading, setIsLoading] = useState<boolean>(Boolean(props.isLoading));
   const formRef: any = useRef<any>(null);
 
+  /*
+   * A stepped form's button moves on until the last step, and says so: it
+   * read the action ("Change State", "Add Subscribers") on every step while
+   * it only went to the next one. Like ModelFormModal, a stepped dialog is
+   * also widened to fit the step list beside the fields.
+   */
+  const hasSteps: boolean = Boolean(
+    props.formProps.steps && props.formProps.steps.length > 0,
+  );
+
+  const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(true);
+
+  const submitButtonText: string | undefined =
+    hasSteps && !isOnLastFormStep ? "Next" : props.submitButtonText;
+
   useEffect(() => {
     setIsLoading(Boolean(props.isLoading));
   }, [props.isLoading]);
@@ -44,6 +59,10 @@ const BasicFormModal: <T extends GenericObject>(
   return (
     <Modal
       {...props}
+      submitButtonText={submitButtonText}
+      modalWidth={
+        props.modalWidth ?? (hasSteps ? ModalWidth.Medium : undefined)
+      }
       submitButtonType={ButtonType.Submit}
       isLoading={isLoading}
       onSubmit={() => {
@@ -64,6 +83,10 @@ const BasicFormModal: <T extends GenericObject>(
               props.title,
             )}
             hideSubmitButton={true}
+            onIsLastFormStep={(isLastFormStep: boolean) => {
+              setIsOnLastFormStep(isLastFormStep);
+              props.formProps.onIsLastFormStep?.(isLastFormStep);
+            }}
             ref={formRef}
             onLoadingChange={(isFormLoading: boolean) => {
               setIsLoading(isFormLoading);
