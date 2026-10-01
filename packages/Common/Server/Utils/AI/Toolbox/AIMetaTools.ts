@@ -329,7 +329,7 @@ export const GetAIInvestigationTool: ObservabilityTool = {
 
     if (runs.length === 0) {
       return {
-        dataForLlm: `No AI investigation runs exist for ${subject.label}. The automatic gates may have skipped it (severity floor, dedupe window, the project's automatic-investigation opt-in, or the daily AI budget). You can offer to start one with start_investigation.`,
+        dataForLlm: `No AI investigation runs exist for ${subject.label}. The automatic gates may have skipped it (severity floor, dedupe window, the project's automatic-investigation setting being off, or the daily AI budget). You can offer to start one with start_investigation.`,
         rowCount: 0,
         citationLabel: `AI investigation for ${subject.label} (none found)`,
         citationTarget: {

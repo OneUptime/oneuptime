@@ -18,7 +18,7 @@ import { describe, expect, test, afterEach } from "@jest/globals";
  * Per-insight LLM triage enqueue. The invariants these tests lock in:
  *   (a) the gates mirror the engine's enablement posture: enableAi must not
  *       be false, Project.enableAiInsights must be EXACTLY true
- *       (strict opt-in, default false), and an LLM provider must exist —
+ *       (strictly true; the column defaults false), and an LLM provider must exist —
  *       each miss is a quiet skip;
  *   (b) dedupe: at most one non-terminal triage run per insight (the
  *       scanner refreshes recurring insights every tick — refreshes must

@@ -427,8 +427,12 @@ nothing on. On also does not mean running: each feature still needs an LLM
 provider (and AI credits on OneUptime Cloud), and the ones that open pull
 requests need a connected repository and a Runner with the code-fix
 capability. Turn any of them off on its settings page, or all of them with
-**Enable AI**. A project created through the API or Terraform that sets one of
-these fields to `false` keeps it off.
+**Enable AI**.
+
+A project created through the API that sets one of these fields to `false`
+keeps it off. The Terraform provider's default for these attributes is still
+`false`, so a project created with Terraform starts with them off unless its
+configuration sets them to `true`.
 
 ### Verify the edition and the license
 

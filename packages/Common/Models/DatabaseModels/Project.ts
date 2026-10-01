@@ -2275,7 +2275,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Max Concurrent Investigations",
     description:
-      "Fallback maximum number of non-incident and non-alert AI investigations that may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause autonomous work with its opt-in toggle or a daily token limit of 0 instead.",
+      "Fallback maximum number of non-incident and non-alert AI investigations that may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause autonomous work with its toggle or a daily token limit of 0 instead.",
     example: 3,
   })
   @Column({
@@ -2302,7 +2302,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Max Concurrent Incident Investigations",
     description:
-      "How many incident AI investigations may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause incident investigations with the opt-in toggle or a daily token limit of 0 instead.",
+      "How many incident AI investigations may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause incident investigations with the Enable Automatic Incident Investigation toggle or a daily token limit of 0 instead.",
     example: 3,
   })
   @Column({
@@ -2329,7 +2329,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Max Concurrent Alert Investigations",
     description:
-      "How many alert AI investigations may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause alert investigations with the opt-in toggle or a daily token limit of 0 instead.",
+      "How many alert AI investigations may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause alert investigations with the Enable Automatic Alert Investigation toggle or a daily token limit of 0 instead.",
     example: 3,
   })
   @Column({
