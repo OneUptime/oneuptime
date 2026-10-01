@@ -134,6 +134,18 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     description:
       "A database server address (host and port) the Databases product scopes queries and metrics by. Never an inventory item of its own.",
   },
+  /*
+   * Membership-only like the endpoint above: it keys telemetry for the
+   * Queues product and never becomes an inventory row.
+   */
+  [EntityType.MessageQueue]: {
+    label: "Message Queue",
+    pluralLabel: "Message Queues",
+    category: InventoryCategory.Applications,
+    icon: IconProp.QueueList,
+    description:
+      "A queue, topic or subscription the Queues product scopes messaging traces and broker metrics by. Never an inventory item of its own.",
+  },
   [EntityType.RemoteService]: {
     label: "Remote Service",
     pluralLabel: "Remote Services",

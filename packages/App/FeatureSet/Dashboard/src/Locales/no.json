@@ -80,6 +80,8 @@
       "servicesDescription": "Katalogiser hver tjeneste du kjører.",
       "databasesTitle": "Databaser",
       "databasesDescription": "Alle databaser applikasjonene dine spør mot, med motormålinger.",
+      "queuesTitle": "Køer",
+      "queuesDescription": "Meldingskøer og emner fra dine spor og meglere.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Overvåk Kubernetes-klynger.",
       "dockerTitle": "Docker",

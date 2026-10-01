@@ -75,6 +75,11 @@ import KubernetesClusterLabelRule from "../../../../Models/DatabaseModels/Kubern
 import KubernetesClusterOwnerRule from "../../../../Models/DatabaseModels/KubernetesClusterOwnerRule";
 import KubernetesClusterOwnerTeam from "../../../../Models/DatabaseModels/KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "../../../../Models/DatabaseModels/KubernetesClusterOwnerUser";
+import MessageQueue from "../../../../Models/DatabaseModels/MessageQueue";
+import MessageQueueLabelRule from "../../../../Models/DatabaseModels/MessageQueueLabelRule";
+import MessageQueueOwnerRule from "../../../../Models/DatabaseModels/MessageQueueOwnerRule";
+import MessageQueueOwnerTeam from "../../../../Models/DatabaseModels/MessageQueueOwnerTeam";
+import MessageQueueOwnerUser from "../../../../Models/DatabaseModels/MessageQueueOwnerUser";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorLabelRule from "../../../../Models/DatabaseModels/MonitorLabelRule";
 import MonitorOwnerRule from "../../../../Models/DatabaseModels/MonitorOwnerRule";
@@ -230,6 +235,11 @@ import KubernetesClusterLabelRuleService from "../../../Services/KubernetesClust
 import KubernetesClusterOwnerRuleEngineService from "../../../Services/KubernetesClusterOwnerRuleEngineService";
 import KubernetesClusterOwnerRuleService from "../../../Services/KubernetesClusterOwnerRuleService";
 import KubernetesClusterService from "../../../Services/KubernetesClusterService";
+import MessageQueueLabelRuleEngineService from "../../../Services/MessageQueueLabelRuleEngineService";
+import MessageQueueLabelRuleService from "../../../Services/MessageQueueLabelRuleService";
+import MessageQueueOwnerRuleEngineService from "../../../Services/MessageQueueOwnerRuleEngineService";
+import MessageQueueOwnerRuleService from "../../../Services/MessageQueueOwnerRuleService";
+import MessageQueueService from "../../../Services/MessageQueueService";
 import MonitorLabelRuleEngineService from "../../../Services/MonitorLabelRuleEngineService";
 import MonitorLabelRuleService from "../../../Services/MonitorLabelRuleService";
 import MonitorOwnerRuleEngineService from "../../../Services/MonitorOwnerRuleEngineService";
@@ -598,6 +608,21 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     resourceService: KubernetesClusterService,
     engine: KubernetesClusterOwnerRuleEngineService,
     ownerModelTypes: [KubernetesClusterOwnerUser, KubernetesClusterOwnerTeam],
+  }),
+  [RuleRunType.MessageQueueLabelRule]: defineRuleRun({
+    ruleModelType: MessageQueueLabelRule,
+    resourceModelType: MessageQueue,
+    ruleService: MessageQueueLabelRuleService,
+    resourceService: MessageQueueService,
+    engine: MessageQueueLabelRuleEngineService,
+  }),
+  [RuleRunType.MessageQueueOwnerRule]: defineRuleRun({
+    ruleModelType: MessageQueueOwnerRule,
+    resourceModelType: MessageQueue,
+    ruleService: MessageQueueOwnerRuleService,
+    resourceService: MessageQueueService,
+    engine: MessageQueueOwnerRuleEngineService,
+    ownerModelTypes: [MessageQueueOwnerUser, MessageQueueOwnerTeam],
   }),
   [RuleRunType.MonitorLabelRule]: defineRuleRun({
     ruleModelType: MonitorLabelRule,

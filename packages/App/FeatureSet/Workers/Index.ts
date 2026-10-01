@@ -268,6 +268,9 @@ import "./Jobs/DatabaseServer/CleanupStaleResources";
 // Database workload discovery on connected Kubernetes clusters and Docker / Podman hosts.
 import "./Jobs/DatabaseServer/DiscoverContainerDatabases";
 
+// Auto-archive of stale discovered queues.
+import "./Jobs/MessageQueue/CleanupStaleResources";
+
 // Telemetry entity registry: TTL prune + span-derived service map edges.
 import "./Jobs/TelemetryEntity/PruneStaleEntities";
 import "./Jobs/TelemetryEntity/ComputeServiceDependencies";

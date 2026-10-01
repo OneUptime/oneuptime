@@ -91,6 +91,7 @@ const COLLAPSED_SETTINGS_PRODUCTS: Array<string> = [
   "Inventory",
   "IoT",
   "Kubernetes",
+  "MessageQueue",
   "Monitor",
   // Both wrap the one shared Network menu.
   "NetworkDevice",

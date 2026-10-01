@@ -214,6 +214,8 @@ import MonitorCreate, {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Create";
 import {
   DATABASE_METRIC_MONITOR_DESCRIPTION_PARAM,
+  buildDatabaseMetricMonitorRoute,
+  buildDatabaseMetricMonitorViewData,
   getDatabaseMetricMonitorDescription,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseMetricMonitorLink";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
@@ -223,7 +225,19 @@ import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
+import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../Types/JSON";
+import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
+import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
+import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
+import {
+  CheckOn,
+  CriteriaFilter,
+  EvaluateOverTimeType,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
+import { DATABASE_SERVER_ID_SCOPE_ATTRIBUTE } from "../../../Types/Monitor/DatabaseAlertTemplates";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
@@ -232,9 +246,11 @@ import NetworkDeviceMonitoringMethod, {
   LEGACY_SNMP_MONITORING_METHOD,
 } from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
+import RollingTime from "../../../Types/RollingTime/RollingTime";
 import UiAnalytics from "../../../UI/Utils/Analytics";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import MetricExplorerUrl from "../../../Utils/Metrics/MetricExplorerUrl";
 import {
   PING_MONITOR_INTERVAL,
   PingMonitorOrigin,
@@ -759,5 +775,431 @@ describe("the monitor create page opened from a metric chart", () => {
         requestedDescription: null,
       }),
     ).toBe("Created from the Metric Explorer view for Connections.");
+  });
+
+  /*
+   * What the page makes of the thresholds a link carries. A query's warning
+   * or critical threshold has always become a Warning or Critical criteria
+   * on that query's alias. A formula's was dropped: a view whose number is a
+   * formula — a RabbitMQ queue's depth, its two states' queries added up —
+   * opened with no criteria at all. The first three tests pin the links
+   * that carry no formula threshold exactly as the page always built them.
+   */
+  describe("the thresholds on the link", () => {
+    // The step the page pre-seeded, read back the way the steps form reads it.
+    function metricStepOf(form: CapturedFormProps): MonitorStep {
+      return MonitorSteps.fromJSON(
+        form.initialValues["monitorSteps"] as JSONObject,
+      ).data!.monitorStepsInstanceArray[0]!;
+    }
+
+    // Its criteria as built, less the id each gets from ObjectID.generate().
+    function builtCriteria(step: MonitorStep): Array<Record<string, unknown>> {
+      return (
+        step.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || []
+      ).map((instance: MonitorCriteriaInstance): Record<string, unknown> => {
+        const data: Record<string, unknown> = {
+          ...(instance.data as unknown as Record<string, unknown>),
+        };
+        expect(typeof data["id"]).toBe("string");
+        delete data["id"];
+        return data;
+      });
+    }
+
+    // What a threshold becomes: above it, at any point of the window.
+    function above(value: number, metricAlias: string): CriteriaFilter {
+      return {
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+        value: value,
+        metricMonitorOptions: {
+          metricAggregationType: EvaluateOverTimeType.AnyValue,
+          metricAlias: metricAlias,
+        },
+      };
+    }
+
+    // The criteria the page generates for one severity from those filters.
+    function generatedCriteria(
+      severity: "Critical" | "Warning",
+      filters: Array<CriteriaFilter>,
+    ): Record<string, unknown> {
+      return {
+        monitorStatusId: undefined,
+        filterCondition: FilterCondition.Any,
+        filters: filters,
+        incidents: [],
+        alerts: [],
+        changeMonitorStatus: false,
+        createIncidents: false,
+        createAlerts: false,
+        isEnabled: true,
+        name: severity,
+        description: `Generated from the ${severity.toLowerCase()} threshold on the metric explorer view.`,
+      };
+    }
+
+    function query(data: {
+      variable: string;
+      metricName: string;
+      title?: string;
+      warningThreshold?: number;
+      criticalThreshold?: number;
+    }): MetricQueryConfigData {
+      return {
+        metricAliasData: {
+          metricVariable: data.variable,
+          title: data.title || "",
+          description: "",
+          legend: "",
+          legendUnit: "",
+        },
+        metricQueryData: {
+          filterData: {
+            metricName: data.metricName,
+            attributes: {},
+            aggegationType: MetricsAggregationType.Avg,
+            aggregateBy: {},
+          },
+        },
+        warningThreshold: data.warningThreshold,
+        criticalThreshold: data.criticalThreshold,
+      };
+    }
+
+    function formula(data: {
+      variable: string;
+      formula: string;
+      title?: string;
+      warningThreshold?: number;
+      criticalThreshold?: number;
+    }): MetricFormulaConfigData {
+      return {
+        metricAliasData: {
+          metricVariable: data.variable,
+          title: data.title || "",
+          description: "",
+          legend: "",
+          legendUnit: "",
+        },
+        metricFormulaData: {
+          metricFormula: data.formula,
+        },
+        warningThreshold: data.warningThreshold,
+        criticalThreshold: data.criticalThreshold,
+      };
+    }
+
+    // What the explorer's "Create monitor from this view" sends for a view.
+    function explorerLink(view: {
+      queryConfigs: Array<MetricQueryConfigData>;
+      formulaConfigs: Array<MetricFormulaConfigData>;
+    }): Record<string, string> {
+      return MetricExplorerUrl.buildQueryParamsFromMetricViewData({
+        queryConfigs: view.queryConfigs,
+        formulaConfigs: view.formulaConfigs,
+        startAndEndDate: null,
+      });
+    }
+
+    test("the Database chart's own link opens on its one query and the step's default criteria", async () => {
+      const databaseId: string = "12121212-1212-4212-8212-121212121212";
+      const route: Route = buildDatabaseMetricMonitorRoute(
+        buildDatabaseMetricMonitorViewData({
+          spec: {
+            metricName: "postgresql.backends",
+            title: "Connections",
+            definition: null,
+          },
+          databaseServerId: databaseId,
+          aggregationType: AggregationType.Avg,
+        }),
+        { databaseName: "orders-db" },
+      );
+
+      const form: CapturedFormProps = await openWithParams(
+        Object.fromEntries(
+          new URLSearchParams(route.toString().split("?")[1] || "").entries(),
+        ),
+      );
+
+      expect(form.initialValues["monitorType"]).toBe(MonitorType.Metrics);
+      expect(form.initialValues["name"]).toBe("Connections Monitor");
+      expect(form.initialValues["description"]).toBe(
+        "Created from database orders-db.",
+      );
+      const step: MonitorStep = metricStepOf(form);
+      expect(step.data!.metricMonitor!.rollingTime).toBe(RollingTime.Past1Hour);
+      const queries: Array<MetricQueryConfigData> =
+        step.data!.metricMonitor!.metricViewConfig.queryConfigs;
+      expect(queries).toHaveLength(1);
+      expect(queries[0]!.metricAliasData?.metricVariable).toBe("a");
+      expect(queries[0]!.metricQueryData.filterData.attributes).toEqual({
+        [DATABASE_SERVER_ID_SCOPE_ATTRIBUTE]: databaseId,
+      });
+      expect(step.data!.metricMonitor!.metricViewConfig.formulaConfigs).toEqual(
+        [],
+      );
+      // No threshold: the step keeps the criteria a new step starts with.
+      expect(builtCriteria(step)).toEqual(builtCriteria(new MonitorStep()));
+    });
+
+    test("query thresholds become one Critical and one Warning criteria, in query order, as they always have", async () => {
+      const form: CapturedFormProps = await openWithParams(
+        explorerLink({
+          queryConfigs: [
+            query({
+              variable: "a",
+              metricName: "http.server.request.duration",
+              title: "Latency",
+              warningThreshold: 200,
+              criticalThreshold: 500,
+            }),
+            query({
+              variable: "b",
+              metricName: "http.server.errors",
+              criticalThreshold: 5,
+            }),
+            query({
+              variable: "c",
+              metricName: "http.server.active_requests",
+            }),
+          ],
+          formulaConfigs: [],
+        }),
+      );
+
+      expect(form.initialValues["name"]).toBe("Latency Monitor");
+      expect(form.initialValues["description"]).toBe(
+        "Created from the Metric Explorer view for Latency.",
+      );
+      expect(form.initialValues["monitoringInterval"]).toBe("*/5 * * * *");
+      expect(builtCriteria(metricStepOf(form))).toEqual([
+        generatedCriteria("Critical", [above(500, "a"), above(5, "b")]),
+        generatedCriteria("Warning", [above(200, "a")]),
+      ]);
+    });
+
+    test("a view whose formula carries no threshold builds its queries' criteria alone, named after its first query", async () => {
+      const form: CapturedFormProps = await openWithParams(
+        explorerLink({
+          queryConfigs: [
+            query({
+              variable: "a",
+              metricName: "http.server.requests",
+              title: "Requests",
+              warningThreshold: 1000,
+            }),
+            query({
+              variable: "b",
+              metricName: "http.server.errors",
+              title: "Errors",
+            }),
+          ],
+          formulaConfigs: [formula({ variable: "c", formula: "b / a" })],
+        }),
+      );
+
+      expect(form.initialValues["name"]).toBe("Requests Monitor");
+      const step: MonitorStep = metricStepOf(form);
+      expect(
+        step.data!.metricMonitor!.metricViewConfig.formulaConfigs.map(
+          (config: MetricFormulaConfigData): string => {
+            return config.metricFormulaData.metricFormula;
+          },
+        ),
+      ).toEqual(["b / a"]);
+      expect(builtCriteria(step)).toEqual([
+        generatedCriteria("Warning", [above(1000, "a")]),
+      ]);
+    });
+
+    test("a formula's thresholds become criteria on the formula's alias", async () => {
+      const form: CapturedFormProps = await openWithParams(
+        explorerLink({
+          queryConfigs: [
+            query({ variable: "a", metricName: "queue.ready" }),
+            query({ variable: "b", metricName: "queue.unacknowledged" }),
+          ],
+          formulaConfigs: [
+            formula({
+              variable: "c",
+              formula: "a + b",
+              warningThreshold: 100,
+              criticalThreshold: 200,
+            }),
+          ],
+        }),
+      );
+
+      expect(builtCriteria(metricStepOf(form))).toEqual([
+        generatedCriteria("Critical", [above(200, "c")]),
+        generatedCriteria("Warning", [above(100, "c")]),
+      ]);
+    });
+
+    test("query and formula thresholds of one severity share its criteria, the queries' filters first", async () => {
+      const form: CapturedFormProps = await openWithParams(
+        explorerLink({
+          queryConfigs: [
+            query({
+              variable: "a",
+              metricName: "http.server.errors",
+              criticalThreshold: 50,
+            }),
+            query({
+              variable: "b",
+              metricName: "http.server.requests",
+              warningThreshold: 10,
+            }),
+          ],
+          formulaConfigs: [
+            formula({
+              variable: "c",
+              formula: "a + b",
+              criticalThreshold: 200,
+            }),
+            formula({
+              variable: "d",
+              formula: "a / b",
+              warningThreshold: 0.5,
+            }),
+          ],
+        }),
+      );
+
+      expect(builtCriteria(metricStepOf(form))).toEqual([
+        generatedCriteria("Critical", [above(50, "a"), above(200, "c")]),
+        generatedCriteria("Warning", [above(10, "b"), above(0.5, "d")]),
+      ]);
+    });
+
+    test("a formula an older link does not letter is compared under the letter the page gives it", async () => {
+      // Links from before variables were serialized: positional letters.
+      const form: CapturedFormProps = await openWithParams({
+        metricQueries: JSON.stringify([
+          { metricName: "queue.ready" },
+          { metricName: "queue.unacknowledged" },
+        ]),
+        metricFormulas: JSON.stringify([
+          { formula: "a + b", warningThreshold: 100 },
+        ]),
+      });
+
+      const step: MonitorStep = metricStepOf(form);
+      expect(
+        step.data!.metricMonitor!.metricViewConfig.formulaConfigs[0]!
+          .metricAliasData.metricVariable,
+      ).toBe("c");
+      expect(builtCriteria(step)).toEqual([
+        generatedCriteria("Warning", [above(100, "c")]),
+      ]);
+    });
+
+    test("a view is named after its first formula when that formula has a title", async () => {
+      const form: CapturedFormProps = await openWithParams(
+        explorerLink({
+          queryConfigs: [
+            query({
+              variable: "a",
+              metricName: "http.server.errors",
+              title: "Errors",
+            }),
+            query({
+              variable: "b",
+              metricName: "http.server.requests",
+              title: "Requests",
+            }),
+          ],
+          formulaConfigs: [
+            formula({
+              variable: "c",
+              formula: "a / b",
+              title: "  Error rate ",
+              warningThreshold: 0.05,
+            }),
+          ],
+        }),
+      );
+
+      expect(form.initialValues["name"]).toBe("Error rate Monitor");
+      expect(form.initialValues["description"]).toBe(
+        "Created from the Metric Explorer view for Error rate.",
+      );
+    });
+
+    test("with two titled formulas the FIRST one names the view", async () => {
+      const form: CapturedFormProps = await openWithParams(
+        explorerLink({
+          queryConfigs: [
+            query({
+              variable: "a",
+              metricName: "http.server.errors",
+              title: "Errors",
+            }),
+            query({
+              variable: "b",
+              metricName: "http.server.requests",
+              title: "Requests",
+            }),
+          ],
+          formulaConfigs: [
+            formula({
+              variable: "c",
+              formula: "a / b",
+              title: "Error rate",
+              warningThreshold: 0.05,
+            }),
+            formula({
+              variable: "d",
+              formula: "b - a",
+              title: "Successes",
+            }),
+          ],
+        }),
+      );
+
+      expect(form.initialValues["name"]).toBe("Error rate Monitor");
+    });
+
+    test("an untitled first formula leaves the name to the first query, even when a later formula has a title", async () => {
+      const form: CapturedFormProps = await openWithParams({
+        metricQueries: JSON.stringify([
+          {
+            metricName: "http.server.errors",
+            variable: "a",
+            alias: { title: "Errors" },
+          },
+        ]),
+        metricFormulas: JSON.stringify([
+          { formula: "a * 100", variable: "b" },
+          { formula: "a * 1000", variable: "c", alias: { title: "Scaled" } },
+        ]),
+      });
+
+      expect(form.initialValues["name"]).toBe("Errors Monitor");
+    });
+
+    test("a formula titled with nothing but spaces leaves the name to the first query", async () => {
+      /*
+       * Written by hand: the explorer's serializer drops a blank title, but
+       * a link is typed text and the parser keeps what it is given.
+       */
+      const form: CapturedFormProps = await openWithParams({
+        metricQueries: JSON.stringify([
+          {
+            metricName: "http.server.errors",
+            variable: "a",
+            alias: { title: "Errors" },
+          },
+        ]),
+        metricFormulas: JSON.stringify([
+          { formula: "a * 100", variable: "b", alias: { title: "   " } },
+        ]),
+      });
+
+      expect(form.initialValues["name"]).toBe("Errors Monitor");
+    });
   });
 });

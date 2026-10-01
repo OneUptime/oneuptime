@@ -202,6 +202,16 @@ export function getMetricViewMonitorDescription(data: {
   );
 }
 
+/*
+ * One config of a metric view that may carry thresholds — a query or a
+ * formula — with the alias a criteria compares it by.
+ */
+interface MetricViewThresholdSource {
+  metricAlias: string;
+  warningThreshold: number | undefined;
+  criticalThreshold: number | undefined;
+}
+
 function buildThresholdCriteriaInstance(input: {
   name: string;
   description: string;
@@ -355,9 +365,10 @@ const MonitorCreate: FunctionComponent<
    * pre-seed a Metric monitor from the shared serializer's
    * metricQueries/metricFormulas params (plus the window → rolling time, and
    * the description a link asks for — see getMetricViewMonitorDescription).
-   * Any warning/critical thresholds on the queries become generated
-   * warning/critical criteria; otherwise criteria stay at the form's
-   * defaults. Template links take priority — they carry full steps.
+   * Any warning/critical thresholds on the queries or the formulas become
+   * generated warning/critical criteria on their aliases; otherwise
+   * criteria stay at the form's defaults. Template links take priority —
+   * they carry full steps.
    */
   const preSeedFromMetricExplorerLink: (
     rawMetricQueries: string,
@@ -435,9 +446,41 @@ const MonitorCreate: FunctionComponent<
     const warningFilters: Array<CriteriaFilter> = [];
     const criticalFilters: Array<CriteriaFilter> = [];
 
-    for (const queryConfig of queryConfigs) {
-      const metricAlias: string =
-        queryConfig.metricAliasData?.metricVariable || "";
+    /*
+     * Every config that can carry a threshold, the queries first. A
+     * formula's threshold is compared on the formula's own alias, which the
+     * monitor evaluates like a query's (MetricMonitorCriteria resolves an
+     * alias to a query, else to a formula), and a reconstructed formula
+     * always has one (buildFormulaConfigsFromSerializedFormulas letters it
+     * after the queries). A view whose number IS a formula puts its
+     * threshold there — the queue page's link for a RabbitMQ queue's depth
+     * adds up its ready and unacknowledged queries — and the monitor used
+     * to open without it. With the queries first, a link without formula
+     * thresholds builds exactly the criteria it always did.
+     */
+    const thresholdSources: Array<MetricViewThresholdSource> = [
+      ...queryConfigs.map(
+        (queryConfig: MetricQueryConfigData): MetricViewThresholdSource => {
+          return {
+            metricAlias: queryConfig.metricAliasData?.metricVariable || "",
+            warningThreshold: queryConfig.warningThreshold,
+            criticalThreshold: queryConfig.criticalThreshold,
+          };
+        },
+      ),
+      ...formulaConfigs.map(
+        (formulaConfig: MetricFormulaConfigData): MetricViewThresholdSource => {
+          return {
+            metricAlias: formulaConfig.metricAliasData?.metricVariable || "",
+            warningThreshold: formulaConfig.warningThreshold,
+            criticalThreshold: formulaConfig.criticalThreshold,
+          };
+        },
+      ),
+    ];
+
+    for (const thresholdSource of thresholdSources) {
+      const metricAlias: string = thresholdSource.metricAlias;
 
       const buildFilter: (thresholdValue: number) => CriteriaFilter = (
         thresholdValue: number,
@@ -453,12 +496,12 @@ const MonitorCreate: FunctionComponent<
         };
       };
 
-      if (queryConfig.criticalThreshold !== undefined) {
-        criticalFilters.push(buildFilter(queryConfig.criticalThreshold));
+      if (thresholdSource.criticalThreshold !== undefined) {
+        criticalFilters.push(buildFilter(thresholdSource.criticalThreshold));
       }
 
-      if (queryConfig.warningThreshold !== undefined) {
-        warningFilters.push(buildFilter(queryConfig.warningThreshold));
+      if (thresholdSource.warningThreshold !== undefined) {
+        warningFilters.push(buildFilter(thresholdSource.warningThreshold));
       }
     }
 
@@ -494,8 +537,17 @@ const MonitorCreate: FunctionComponent<
       monitorStep.data.monitorCriteria = monitorCriteria;
     }
 
+    /*
+     * Named after what the monitor watches: the view's first formula when
+     * it has a title — a formula is the number the view derives from its
+     * queries (a RabbitMQ queue's depth, not its "ready" part) — else the
+     * first query, by title or metric name.
+     */
     const firstQuery: SerializedMetricQuery = serializedQueries[0]!;
+    const firstFormula: SerializedMetricFormula | undefined =
+      serializedFormulas[0];
     const metricDisplayName: string =
+      firstFormula?.alias?.title?.trim() ||
       firstQuery.alias?.title?.trim() ||
       firstQuery.metricName.trim() ||
       "Metric";

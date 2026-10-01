@@ -21,15 +21,18 @@ import RumSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View
 import CloudSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Settings";
 import ServerlessSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/Settings";
 import DatabaseServerSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Settings";
+import MessageQueueSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Settings";
 import RumSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SideMenu";
 import CloudSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/SideMenu";
 import ServerlessSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/SideMenu";
 import DatabaseServerSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/SideMenu";
+import MessageQueueSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/SideMenu";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { getRumBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/RumBreadcrumbs";
 import { getCloudBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/CloudBreadcrumbs";
 import { getServerlessBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ServerlessBreadcrumbs";
 import { getDatabaseBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DatabaseBreadcrumbs";
+import { getMessageQueueBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/MessageQueueBreadcrumbs";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -38,6 +41,7 @@ import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
+import MessageQueue from "../../../Models/DatabaseModels/MessageQueue";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -202,6 +206,18 @@ const RESOURCES: Array<ResourceSettingsCase> = [
     productPath: "databases",
     getBreadcrumbs: getDatabaseBreadcrumbs,
     breadcrumbTitles: ["Project", "Databases", "View Database", "Settings"],
+  },
+  {
+    name: "Queue",
+    Page: MessageQueueSettings,
+    SideMenu: MessageQueueSideMenu,
+    modelType: MessageQueue,
+    singularName: "queue",
+    settingsKey: PageMap.MESSAGE_QUEUE_VIEW_SETTINGS,
+    overviewKey: PageMap.MESSAGE_QUEUE_VIEW,
+    productPath: "queues",
+    getBreadcrumbs: getMessageQueueBreadcrumbs,
+    breadcrumbTitles: ["Project", "Queues", "View Queue", "Settings"],
   },
 ];
 

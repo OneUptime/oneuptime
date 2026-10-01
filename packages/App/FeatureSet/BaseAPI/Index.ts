@@ -789,6 +789,21 @@ import DatabaseServerLabelRuleService, {
 import DatabaseServerOwnerRuleService, {
   Service as DatabaseServerOwnerRuleServiceType,
 } from "Common/Server/Services/DatabaseServerOwnerRuleService";
+import MessageQueueService, {
+  Service as MessageQueueServiceType,
+} from "Common/Server/Services/MessageQueueService";
+import MessageQueueOwnerTeamService, {
+  Service as MessageQueueOwnerTeamServiceType,
+} from "Common/Server/Services/MessageQueueOwnerTeamService";
+import MessageQueueOwnerUserService, {
+  Service as MessageQueueOwnerUserServiceType,
+} from "Common/Server/Services/MessageQueueOwnerUserService";
+import MessageQueueLabelRuleService, {
+  Service as MessageQueueLabelRuleServiceType,
+} from "Common/Server/Services/MessageQueueLabelRuleService";
+import MessageQueueOwnerRuleService, {
+  Service as MessageQueueOwnerRuleServiceType,
+} from "Common/Server/Services/MessageQueueOwnerRuleService";
 import HostService, {
   Service as HostServiceType,
 } from "Common/Server/Services/HostService";
@@ -1350,6 +1365,11 @@ import DatabaseServerOwnerTeam from "Common/Models/DatabaseModels/DatabaseServer
 import DatabaseServerOwnerUser from "Common/Models/DatabaseModels/DatabaseServerOwnerUser";
 import DatabaseServerLabelRule from "Common/Models/DatabaseModels/DatabaseServerLabelRule";
 import DatabaseServerOwnerRule from "Common/Models/DatabaseModels/DatabaseServerOwnerRule";
+import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
+import MessageQueueOwnerTeam from "Common/Models/DatabaseModels/MessageQueueOwnerTeam";
+import MessageQueueOwnerUser from "Common/Models/DatabaseModels/MessageQueueOwnerUser";
+import MessageQueueLabelRule from "Common/Models/DatabaseModels/MessageQueueLabelRule";
+import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwnerRule";
 import Host from "Common/Models/DatabaseModels/Host";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
@@ -2939,6 +2959,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DatabaseServerLabelRule, DatabaseServerLabelRuleServiceType>(
         DatabaseServerLabelRule,
         DatabaseServerLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueueOwnerRule, MessageQueueOwnerRuleServiceType>(
+        MessageQueueOwnerRule,
+        MessageQueueOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueueLabelRule, MessageQueueLabelRuleServiceType>(
+        MessageQueueLabelRule,
+        MessageQueueLabelRuleService,
       ).getRouter(),
     );
 
@@ -4695,6 +4731,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DatabaseServerOwnerUser, DatabaseServerOwnerUserServiceType>(
         DatabaseServerOwnerUser,
         DatabaseServerOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueue, MessageQueueServiceType>(
+        MessageQueue,
+        MessageQueueService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueueOwnerTeam, MessageQueueOwnerTeamServiceType>(
+        MessageQueueOwnerTeam,
+        MessageQueueOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueueOwnerUser, MessageQueueOwnerUserServiceType>(
+        MessageQueueOwnerUser,
+        MessageQueueOwnerUserService,
       ).getRouter(),
     );
 

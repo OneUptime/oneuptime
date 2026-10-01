@@ -30,6 +30,7 @@ import IncidentTemplateOwnerUserService from "../../Services/IncidentTemplateOwn
 import IncomingCallPolicyOwnerUserService from "../../Services/IncomingCallPolicyOwnerUserService";
 import IoTFleetOwnerUserService from "../../Services/IoTFleetOwnerUserService";
 import KubernetesClusterOwnerUserService from "../../Services/KubernetesClusterOwnerUserService";
+import MessageQueueOwnerUserService from "../../Services/MessageQueueOwnerUserService";
 import MonitorGroupOwnerUserService from "../../Services/MonitorGroupOwnerUserService";
 import MonitorOwnerUserService from "../../Services/MonitorOwnerUserService";
 import NetworkDeviceOwnerUserService from "../../Services/NetworkDeviceOwnerUserService";
@@ -162,6 +163,7 @@ export default class ProjectLeaveResourceCleanup {
       ),
       ownerUserTable(IoTFleetOwnerUserService, "iotFleetId"),
       ownerUserTable(KubernetesClusterOwnerUserService, "kubernetesClusterId"),
+      ownerUserTable(MessageQueueOwnerUserService, "messageQueueId"),
       ownerUserTable(MonitorGroupOwnerUserService, "monitorGroupId"),
       ownerUserTable(MonitorOwnerUserService, "monitorId"),
       ownerUserTable(NetworkDeviceOwnerUserService, "networkDeviceId"),

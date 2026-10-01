@@ -68,7 +68,7 @@ The platform's own task or instance identity comes first on purpose. A sidecar c
 | ------------------------------------------------------------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------- |
 | EC2, Compute Engine, Azure VM (`aws_ec2`, `gcp_compute_engine`, `azure_vm`)                       | **Hosts**                | A virtual machine is a host. See [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | EKS, GKE, AKS, self-managed Kubernetes                                                            | **Kubernetes**           | Routed by the `k8s.*` attributes. See [Kubernetes Agent](/docs/telemetry/kubernetes-agent)           |
-| Lambda, Cloud Functions, Azure Functions (`aws_lambda`, `gcp_cloud_functions`, `azure_functions`) | **Serverless Functions** | Routed by `faas.name`. See [Serverless Functions](/docs/telemetry/serverless-functions)              |
+| Lambda, Cloud Functions, Azure Functions (`aws_lambda`, `gcp_cloud_functions`, `azure_functions`) | **Serverless Functions** | Routed by `faas.name` (or `service.name` on a FaaS `cloud.platform`). See [Serverless Functions](/docs/telemetry/serverless-functions) |
 
 Cloud Run and App Engine straddle the line on purpose: their detector sets both a managed `cloud.platform` and `faas.name`, so each service appears under **Serverless Functions** on its own while the **Cloud Environment** groups every service in that project and region.
 

@@ -2,6 +2,7 @@ import {
   KUBERNETES_AGENT_HELM_NAMESPACE,
   KUBERNETES_AGENT_HELM_RELEASE,
 } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
+import { getServerlessPlatformForCloudPlatform } from "../Serverless/ServerlessSetupGuide";
 
 /*
  * The steps the "how do I connect this?" card (ResourceConnectionGuideCard)
@@ -582,14 +583,32 @@ export const getRumApplicationConnectionGuide: (
 
 // ---- Serverless functions ---------------------------------------------------
 
+/*
+ * `cloudPlatform` is the one the function reported. On Azure Functions the
+ * function app's service.name names the function, so the setting is
+ * OTEL_SERVICE_NAME, as the serverless guide's Azure Functions settings
+ * give it: the guide leaves faas.name out there, because app settings reach
+ * every function in the app and ingest writes the service.name onto the
+ * telemetry as faas.name. Everywhere else it is faas.name.
+ */
 export const getServerlessFunctionConnectionGuide: (
   functionIdentifier: string,
+  cloudPlatform?: string | null | undefined,
 ) => ResourceConnectionGuide = (
   functionIdentifier: string,
+  cloudPlatform?: string | null | undefined,
 ): ResourceConnectionGuide => {
-  const attributes: string = `OTEL_RESOURCE_ATTRIBUTES=${quoteForShell(
-    `faas.name=${encodeResourceAttributeValue(functionIdentifier)}`,
-  )}`;
+  const isNamedByServiceName: boolean =
+    getServerlessPlatformForCloudPlatform(cloudPlatform) === "azure-functions";
+  const nameAttribute: string = isNamedByServiceName
+    ? "service.name"
+    : "faas.name";
+  // OTEL_SERVICE_NAME is a plain string: not percent-decoded, so not encoded.
+  const attributes: string = isNamedByServiceName
+    ? `OTEL_SERVICE_NAME=${quoteForShell(functionIdentifier)}`
+    : `OTEL_RESOURCE_ATTRIBUTES=${quoteForShell(
+        `faas.name=${encodeResourceAttributeValue(functionIdentifier)}`,
+      )}`;
 
   return {
     resourceNoun: "function",
@@ -598,8 +617,9 @@ export const getServerlessFunctionConnectionGuide: (
       PICK_INGESTION_KEY_STEP,
       {
         title: "Instrument the function",
-        description:
-          "Add the OpenTelemetry SDK for its runtime and set the environment variables from the setup guide. faas.name must match this function:",
+        description: isNamedByServiceName
+          ? "Add the OpenTelemetry SDK for its runtime and set the application settings from the setup guide. The function app's service.name must match this function:"
+          : "Add the OpenTelemetry SDK for its runtime and set the environment variables from the setup guide. faas.name must match this function:",
         code: attributes,
       },
       {
@@ -619,7 +639,7 @@ export const getServerlessFunctionConnectionGuide: (
         description: `Look for OpenTelemetry export errors. ${KEY_OR_NETWORK_ERRORS}`,
       },
       {
-        title: "Check faas.name",
+        title: `Check ${nameAttribute}`,
         description: `It must still be "${functionIdentifier}". A different name sends the data to a different function.`,
         code: attributes,
       },

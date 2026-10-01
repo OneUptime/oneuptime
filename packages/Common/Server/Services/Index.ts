@@ -114,6 +114,11 @@ import DatabaseServerLabelRuleService from "./DatabaseServerLabelRuleService";
 import DatabaseServerOwnerRuleService from "./DatabaseServerOwnerRuleService";
 import DatabaseServerOwnerTeamService from "./DatabaseServerOwnerTeamService";
 import DatabaseServerOwnerUserService from "./DatabaseServerOwnerUserService";
+import MessageQueueService from "./MessageQueueService";
+import MessageQueueLabelRuleService from "./MessageQueueLabelRuleService";
+import MessageQueueOwnerRuleService from "./MessageQueueOwnerRuleService";
+import MessageQueueOwnerTeamService from "./MessageQueueOwnerTeamService";
+import MessageQueueOwnerUserService from "./MessageQueueOwnerUserService";
 import LlmProviderService from "./LlmProviderService";
 import DataSourceService from "./DataSourceService";
 import AuditLogService from "./AuditLogService";
@@ -591,6 +596,11 @@ const services: Array<BaseService> = [
   DatabaseServerOwnerRuleService,
   DatabaseServerOwnerTeamService,
   DatabaseServerOwnerUserService,
+  MessageQueueService,
+  MessageQueueLabelRuleService,
+  MessageQueueOwnerRuleService,
+  MessageQueueOwnerTeamService,
+  MessageQueueOwnerUserService,
   LlmProviderService,
   DataSourceService,
 

@@ -80,6 +80,8 @@
       "servicesDescription": "Cataloga ogni servizio che esegui.",
       "databasesTitle": "Database",
       "databasesDescription": "Ogni database interrogato dalle tue applicazioni, con le metriche del motore.",
+      "queuesTitle": "Code",
+      "queuesDescription": "Code di messaggi e topic dalle tue tracce e dai broker.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Monitora i cluster Kubernetes.",
       "dockerTitle": "Docker",

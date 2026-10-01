@@ -81,6 +81,14 @@ export interface ServiceMapEntry {
   typeLabel: string;
   /** Language, database engine or protocol when known: "Node.js", "PostgreSQL". */
   detailLabel: string | null;
+  /*
+   * The attribute value detailLabel was resolved from, as reported
+   * ("eventhubs", "aws.sns", "nodejs"). Search matches it as well as the
+   * label: a broker node is named after its host, so once "eventhubs" reads
+   * as "Azure Event Hubs" this is the only place the value its telemetry
+   * carries is left to be found by.
+   */
+  detailValue: string | null;
   inbound: TrafficTotals;
   outbound: TrafficTotals;
   callers: number;
@@ -183,15 +191,75 @@ const DETAIL_LABELS: Record<string, string> = {
   dynamodb: "DynamoDB",
   "aws.dynamodb": "DynamoDB",
   sqlite: "SQLite",
+  /*
+   * Messaging systems. A broker node carries its messaging.system twice —
+   * as messaging.system and as network.protocol.name (see
+   * ServiceDependencyDiscovery) — lowercased on the server, so only
+   * lowercase keys can ever match. Every value the semantic conventions
+   * name is here, plus the spellings instrumentations really send: the
+   * azure_* values of semconv 1.24 (renamed in 1.25), AmazonSQS from older
+   * Java agents and Go otelaws, aws.sqs from Python (and older JS),
+   * aws_sns from Go otelaws, nats from the Java agent, bullmq from BullMQ
+   * queues (OneUptime's own included), and the other aliases the Queues
+   * catalog folds into the same systems.
+   */
   kafka: "Kafka",
   rabbitmq: "RabbitMQ",
   activemq: "ActiveMQ",
+  artemis: "ActiveMQ",
+  activemq_artemis: "ActiveMQ",
+  jms: "JMS",
   "aws.sqs": "Amazon SQS",
   aws_sqs: "Amazon SQS",
+  amazonsqs: "Amazon SQS",
+  sqs: "Amazon SQS",
+  "aws.sns": "Amazon SNS",
+  aws_sns: "Amazon SNS",
+  amazonsns: "Amazon SNS",
+  sns: "Amazon SNS",
   gcp_pubsub: "Pub/Sub",
+  "gcp.pubsub": "Pub/Sub",
+  google_pubsub: "Pub/Sub",
+  pubsub: "Pub/Sub",
+  servicebus: "Azure Service Bus",
+  azure_servicebus: "Azure Service Bus",
+  "azure.servicebus": "Azure Service Bus",
+  "microsoft.servicebus": "Azure Service Bus",
+  eventhubs: "Azure Event Hubs",
+  azure_eventhubs: "Azure Event Hubs",
+  "azure.eventhubs": "Azure Event Hubs",
+  "microsoft.eventhub": "Azure Event Hubs",
+  eventgrid: "Azure Event Grid",
+  azure_eventgrid: "Azure Event Grid",
+  "azure.eventgrid": "Azure Event Grid",
+  "microsoft.eventgrid": "Azure Event Grid",
+  pulsar: "Pulsar",
+  apache_pulsar: "Pulsar",
+  rocketmq: "RocketMQ",
+  nats: "NATS",
+  jetstream: "NATS",
+  bullmq: "BullMQ",
   http: "HTTP",
   grpc: "gRPC",
 };
+
+/*
+ * The friendly name for a raw attribute value, or the value as reported when
+ * there is none. Own keys only: the value comes off the wire, and a plain
+ * lookup hands back Object.prototype members for "constructor",
+ * "__proto__" or "toString" — a function or an object, which the map would
+ * then print as the node's subtitle and search.
+ */
+function friendlyDetailLabel(raw: string): string {
+  const key: string = raw.toLowerCase();
+  const label: string | undefined = Object.prototype.hasOwnProperty.call(
+    DETAIL_LABELS,
+    key,
+  )
+    ? DETAIL_LABELS[key]
+    : undefined;
+  return typeof label === "string" && label ? label : raw;
+}
 
 function readAttribute(entity: TopologyEntity, key: string): string | null {
   const bags: Array<unknown> = [
@@ -209,21 +277,33 @@ function readAttribute(entity: TopologyEntity, key: string): string | null {
 
 /*
  * The first of SERVICE_MAP_DETAIL_ATTRIBUTE_KEYS the entity has (the
- * descriptive value before the identifying one). The server ships exactly
- * those keys, so the list is shared rather than repeated here.
+ * descriptive value before the identifying one), trimmed but otherwise as
+ * reported. The server ships exactly those keys, so the list is shared
+ * rather than repeated here.
  */
-export function detailLabelForEntity(entity: TopologyEntity): string | null {
-  let raw: string | null = null;
+export function detailValueForEntity(entity: TopologyEntity): string | null {
   for (const key of SERVICE_MAP_DETAIL_ATTRIBUTE_KEYS) {
-    raw = readAttribute(entity, key);
+    const raw: string | null = readAttribute(entity, key);
     if (raw) {
-      break;
+      return raw;
     }
   }
-  if (!raw) {
-    return null;
-  }
-  return DETAIL_LABELS[raw.toLowerCase()] || raw;
+  return null;
+}
+
+/*
+ * The label a node shows for its detail value: the value's friendly name,
+ * the value as reported when it has none, and null when there is no value.
+ * buildServiceMapModel and detailLabelForEntity both label through here, so
+ * the map shows exactly what detailLabelForEntity returns.
+ */
+function detailLabelForValue(value: string | null): string | null {
+  return value ? friendlyDetailLabel(value) : null;
+}
+
+/* detailValueForEntity's value under its friendly name, when it has one. */
+export function detailLabelForEntity(entity: TopologyEntity): string | null {
+  return detailLabelForValue(detailValueForEntity(entity));
 }
 
 export function kindForEntityType(
@@ -370,13 +450,15 @@ export function buildServiceMapModel(
       (kind === "service" ? "Unnamed service" : "Unnamed dependency");
     const status: ServiceOperationalStatus | undefined =
       kind === "service" ? statuses.get(label.toLowerCase()) : undefined;
+    const detailValue: string | null = detailValueForEntity(entity);
     const entry: ServiceMapEntry = {
       entity,
       key,
       label,
       kind,
       typeLabel: metaForEntityType(entity.entityType).label,
-      detailLabel: detailLabelForEntity(entity),
+      detailLabel: detailLabelForValue(detailValue),
+      detailValue,
       inbound: emptyTotals(),
       outbound: emptyTotals(),
       callers: 0,
@@ -590,7 +672,7 @@ export function resolveServiceMapVisibility(options: {
   const matchedKeys: Set<string> = new Set<string>();
   for (const entry of model.entries) {
     const searchable: string =
-      `${entry.label} ${entry.typeLabel} ${entry.detailLabel || ""} ${entry.key}`.toLowerCase();
+      `${entry.label} ${entry.typeLabel} ${entry.detailLabel || ""} ${entry.detailValue || ""} ${entry.key}`.toLowerCase();
     if (
       scope.has(entry.key) &&
       (!options.attentionOnly || entry.needsAttention) &&

@@ -80,6 +80,8 @@
       "servicesDescription": "실행 중인 모든 서비스를 카탈로그화하세요.",
       "databasesTitle": "데이터베이스",
       "databasesDescription": "애플리케이션이 쿼리하는 모든 데이터베이스와 엔진 메트릭.",
+      "queuesTitle": "큐",
+      "queuesDescription": "트레이스와 브로커에서 찾은 메시지 큐와 토픽.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Kubernetes 클러스터를 모니터링하세요.",
       "dockerTitle": "Docker",

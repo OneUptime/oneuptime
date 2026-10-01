@@ -238,6 +238,19 @@ const GUIDES: Array<[string, GuideCase]> = [
       agentName: "OpenTelemetry SDK",
     },
   ],
+  [
+    "Azure Functions function",
+    {
+      build: (identifier: string): ResourceConnectionGuide => {
+        return getServerlessFunctionConnectionGuide(
+          identifier,
+          "azure_functions",
+        );
+      },
+      resourceNoun: "function",
+      agentName: "OpenTelemetry SDK",
+    },
+  ],
 ];
 
 describe("quoteForShell", () => {
@@ -868,5 +881,101 @@ describe("Serverless function guide", () => {
     expect(guide.troubleshootingSteps[0]!.description).toMatch(
       /only sends data while it runs/,
     );
+  });
+
+  /*
+   * On Azure Functions the function app's service.name names the function:
+   * the serverless guide sets OTEL_SERVICE_NAME there and leaves faas.name
+   * out, because app settings reach every function in the app and ingest
+   * writes the service.name onto the telemetry as faas.name.
+   */
+  test("on Azure Functions, sets OTEL_SERVICE_NAME the way the serverless guide's settings do, and never faas.name", () => {
+    const guide: ResourceConnectionGuide = getServerlessFunctionConnectionGuide(
+      "orders-func-app",
+      "azure_functions",
+    );
+
+    expect(guide.setupSteps[1]!.code).toBe(
+      'OTEL_SERVICE_NAME="orders-func-app"',
+    );
+    expect(guide.setupSteps[1]!.description).toContain(
+      "The function app's service.name must match this function",
+    );
+    expect(guide.troubleshootingSteps[2]!.title).toBe("Check service.name");
+    expect(guide.troubleshootingSteps[2]!.code).toBe(
+      'OTEL_SERVICE_NAME="orders-func-app"',
+    );
+    expect(allText(guide)).not.toContain("faas.name");
+
+    // The guide writes the same setting and value, without the shell quotes.
+    const azureGuide: string = fullGuide(
+      getServerlessSetupGuide({
+        ...VARS,
+        platform: "azure-functions",
+        functionName: "orders-func-app",
+      }),
+    );
+    expect(azureGuide).toContain("OTEL_SERVICE_NAME=orders-func-app");
+    expect(azureGuide).toContain("Set the application settings");
+    expect(azureGuide).not.toContain("faas.name=");
+  });
+
+  test("reads the Node.js and .NET detectors' azure.functions as Azure Functions too", () => {
+    expect(
+      getServerlessFunctionConnectionGuide("orders-func-app", "azure.functions")
+        .setupSteps[1]!.code,
+    ).toBe('OTEL_SERVICE_NAME="orders-func-app"');
+  });
+
+  test("OTEL_SERVICE_NAME takes the name as written: it is not percent-decoded", () => {
+    expect(
+      getServerlessFunctionConnectionGuide("billing jobs,v2", "azure_functions")
+        .setupSteps[1]!.code,
+    ).toBe('OTEL_SERVICE_NAME="billing jobs,v2"');
+  });
+
+  test("every other platform, and a function that reported none, keeps faas.name", () => {
+    for (const cloudPlatform of [
+      undefined,
+      null,
+      "",
+      "aws_lambda",
+      "gcp_cloud_functions",
+      "tencent_cloud_scf",
+      "alibaba_cloud_fc",
+    ]) {
+      const guide: ResourceConnectionGuide =
+        getServerlessFunctionConnectionGuide("checkout-handler", cloudPlatform);
+      expect({
+        cloudPlatform,
+        code: guide.setupSteps[1]!.code,
+        check: guide.troubleshootingSteps[2]!.title,
+      }).toEqual({
+        cloudPlatform,
+        code: 'OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler"',
+        check: "Check faas.name",
+      });
+    }
+  });
+
+  test("the function's Overview hands the card the cloud.platform it reported", () => {
+    const overview: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/Overview.tsx",
+      ),
+      "utf8",
+    );
+    const call: string = overview.slice(
+      overview.indexOf("getServerlessFunctionConnectionGuide("),
+      overview.indexOf(
+        "documentationRoute=",
+        overview.indexOf("getServerlessFunctionConnectionGuide("),
+      ),
+    );
+
+    expect(call).toContain("fn.cloudPlatform as string | undefined");
+    // And the page loads it.
+    expect(overview).toContain("cloudPlatform: true");
   });
 });

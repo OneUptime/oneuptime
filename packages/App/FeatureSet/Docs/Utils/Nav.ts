@@ -837,6 +837,16 @@ const DocsNav: NavGroup[] = [
         title: "Databases",
         url: "/docs/telemetry/databases",
       },
+      /*
+       * The Queues hub (discovery from messaging spans, broker health
+       * metrics per messaging system). Its URL contains no other link's
+       * path and no other link contains it, so the substring match in
+       * Docs/Index.ts resolves it only to itself.
+       */
+      {
+        title: "Queues",
+        url: "/docs/telemetry/queues",
+      },
       {
         title: "Serverless Functions",
         url: "/docs/telemetry/serverless-functions",

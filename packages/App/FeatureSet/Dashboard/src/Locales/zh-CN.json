@@ -80,6 +80,8 @@
       "servicesDescription": "为运行的每个服务建立目录。",
       "databasesTitle": "数据库",
       "databasesDescription": "应用程序查询的每个数据库，以及引擎指标。",
+      "queuesTitle": "队列",
+      "queuesDescription": "来自跟踪和消息代理的消息队列与主题。",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "监控 Kubernetes 集群。",
       "dockerTitle": "Docker",
