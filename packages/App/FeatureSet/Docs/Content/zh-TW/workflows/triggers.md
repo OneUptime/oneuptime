@@ -61,7 +61,7 @@ OneUptime 裡幾乎每一種東西——監測器、事件、警示、排定維�
 - **狀態頁面 訂閱者**——歡迎剛訂閱狀態頁面的人。
 - **On-Call Duty Policy**——把排班異動同步到另一套值班系統。
 
-在 **Add Trigger** 面板中用名稱搜尋，就能找到你要的那一個。
+在 **Add Trigger** 面板中，它們在 **OneUptime resources** 底下：先點資源，再點觸發器。**Browse all resources** 裡全都有；在搜尋框輸入幾個字，例如 `incident created`，就能找到觸發器。
 
 ## 我該用哪一種觸發器？
 

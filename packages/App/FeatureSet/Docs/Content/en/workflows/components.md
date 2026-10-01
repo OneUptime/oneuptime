@@ -124,7 +124,7 @@ Convert between text and JSON.
 
 ## Conditions
 
-Branch based on a comparison. In the **Add Component** panel this block is called **If / Else**, under the Conditions category.
+Branch based on a comparison. In the **Add Component** panel this block is called **If / Else**, under **Popular**.
 
 Its settings read as a sentence: **If** *value to check* *comparison* *compare with*, continue on **Yes**, otherwise on **No**. Under the settings, the condition is read back in words, so you can see it says what you mean. On the canvas the block shows its condition too, for example *If environment is equal to “production”*.
 
@@ -177,7 +177,7 @@ There's a safety limit so workflows can't keep calling each other in a loop. See
 
 ## OneUptime data components
 
-For every kind of record in OneUptime (monitors, incidents, alerts, status pages, on-call policies, and many more), the **Add Component** panel has these components — search by the type's name. Each title is generated from the record type, so the Monitor set reads:
+For every kind of record in OneUptime (monitors, incidents, alerts, status pages, on-call policies, and many more), the **Add Component** panel has these components: under **OneUptime resources**, click the record type (**Browse all resources** has the ones not shown), or search by the type's name. Each title is generated from the record type, so the Monitor set reads:
 
 - **Find One Monitor** — read one record matching the query.
 - **Find Many Monitors** — read a list of records matching the query.

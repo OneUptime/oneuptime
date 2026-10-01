@@ -4,7 +4,7 @@ This page covers the settings and safety limits worth knowing about before you p
 
 ## Turning a workflow on or off
 
-Every workflow has an **Enabled** switch in **Settings**. When it's off, the workflow doesn't run — webhook calls, scheduled times, and OneUptime events are all ignored. New workflows start disabled.
+Every workflow has an **Enabled** switch in **Settings**. When it's off, the workflow doesn't run — webhook calls, incoming email, scheduled times, and OneUptime events are all ignored. New workflows start disabled.
 
 Use this switch as your "ready to go" gate:
 
@@ -47,6 +47,7 @@ You can move a workflow between projects, or between a self-hosted install and O
 The file holds the workflow's name, description, enabled state, and its graph. It deliberately does not hold:
 
 - **The webhook secret key.** A fresh one is generated when the workflow is created, so an imported workflow has a different webhook URL — copy it from the new workflow's Webhook trigger. Anything calling the original has to be repointed.
+- **The incoming email address.** An imported workflow with an Incoming Email trigger gets an address of its own — copy it from the new workflow's trigger. Anything emailing the original has to be given the new address.
 - **Global variables.** A block that reads `{{global.variables.MY_SECRET}}` keeps that reference, but the value is not in the file. Create the variables in the destination project before you run the imported workflow.
 - **Owners and labels.** Your project's own label and owner rules run against the imported workflow, the same as if you had created it by hand.
 
@@ -78,6 +79,17 @@ Webhook triggers give you a unique URL. Anyone who knows the URL can hit it. To 
 
 Only people who can edit the workflow — **Project Owner**, **Project Admin**, or **Edit Workflow** — can see or reset its webhook URL. Anyone with the URL can start the workflow, which read-only roles can't do by hand, so they see a note saying who to ask instead.
 
+## Incoming email security
+
+The Incoming Email trigger gives the workflow an address of its own, and anyone who knows the address can email it. The part before the `@` is the workflow's secret key, so treat the address like a password:
+
+- Don't publish it or put it in a public repo. The trigger masks the key until you click **Show**, and **Copy address** copies the address without showing it.
+- If the address leaks, click the Incoming Email trigger in the **Builder** and click **Reset address**. The workflow gets a new address, and email to the old one is ignored from then on.
+- Anyone can put any sender on an email, so **From** is not proof of who sent it. Before a workflow does anything important, check something only the real sender knows — a token in the subject or a header — with a **Conditions** block. Save the expected token as a secret variable.
+- The key is masked in everything the run receives — **To**, **CC**, the headers and the bodies — because the run's log is visible to anyone who can read the workflow's runs.
+
+Only people who can edit the workflow — **Project Owner**, **Project Admin**, or **Edit Workflow** — can see or reset its address. Everyone else sees a note saying who to ask.
+
 ## Outbound network access
 
 API and other HTTP blocks make their requests from OneUptime. If you self-host, make sure your installation can reach the services you're calling. If you use OneUptime Cloud, our outbound IP ranges are listed in [IP Addresses](/docs/configuration/ip-addresses) so you can allow them on the other side.
@@ -105,7 +117,7 @@ Built-in bounds keep unattended calls finite: System Instructions, Prompt, and s
 Workflows respect your project's role-based access control. The relevant permissions:
 
 - **Create / Read / Edit / Delete Workflow** — the basic permissions on the workflow itself.
-- **Edit Workflow** — also what it takes to run a workflow by hand, and to see or reset its webhook URL. Viewers can open the builder but can't see the URL.
+- **Edit Workflow** — also what it takes to run a workflow by hand, and to see or reset its webhook URL and incoming email address. Viewers can open the builder but can't see the URL or the address.
 - **Read Workflow Log** — needed to view runs.
 - **Read / Create / Edit / Delete Workflow Variable** — control over the global variables list.
 

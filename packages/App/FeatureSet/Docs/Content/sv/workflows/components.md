@@ -131,7 +131,7 @@ Konvertera mellan text och JSON.
 
 ## Conditions
 
-Förgrena utifrån en jämförelse. I panelen **Lägg till komponent** heter det här blocket **If / Else**, under kategorin Conditions.
+Förgrena utifrån en jämförelse. I panelen **Lägg till komponent** heter det här blocket **If / Else**, under **Popular**.
 
 **Inställningar**:
 
@@ -159,7 +159,7 @@ Det finns en säkerhetsgräns så att arbetsflöden inte kan fortsätta anropa v
 
 ## OneUptime-datakomponenter
 
-För varje sorts post i OneUptime (monitorer, incidenter, larm, statussidor, jourpolicyer och många fler) har panelen **Lägg till komponent** de här komponenterna — sök på typens namn. Varje titel genereras utifrån posttypen, så uppsättningen för Monitor lyder:
+För varje sorts post i OneUptime (monitorer, incidenter, larm, statussidor, jourpolicyer och många fler) har panelen **Lägg till komponent** de här komponenterna: klicka på posttypen under **OneUptime resources** (de som inte visas finns under **Browse all resources**), eller sök på typens namn. Varje titel genereras utifrån posttypen, så uppsättningen för Monitor lyder:
 
 - **Find One Monitor** — läs en post som matchar frågan.
 - **Find Many Monitors** — läs en lista med poster som matchar frågan.

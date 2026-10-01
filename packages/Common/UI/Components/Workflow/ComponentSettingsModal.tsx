@@ -13,6 +13,7 @@ import ComponentReturnValueViewer from "./ComponentReturnValueViewer";
 import ComponentSettingsSection from "./ComponentSettingsSection";
 import DocumentationViewer from "./DocumentationViewer";
 import { StepValueSources } from "./ValuePicker/StepGraph";
+import { WORKFLOW_URL } from "../../Config";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
@@ -21,6 +22,7 @@ import { NodeDataProp } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import ComponentDocumentation from "../../../Types/Workflow/Documentation/ComponentDocumentation";
 import { getComponentDocumentation } from "../../../Types/Workflow/Documentation/Index";
+import { getWebhookTriggerUrl } from "../../../Types/Workflow/WebhookTrigger";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -60,6 +62,19 @@ export interface ComponentProps {
    * URL. Takes effect at once, whether or not this dialog is then saved.
    */
   onResetWebhookSecretKey?: (() => Promise<void>) | undefined;
+  /*
+   * The Incoming Email trigger's address is built from this key; see
+   * ComponentPrimaryPanel. Like the webhook's, it is only what the workflow
+   * really has when canSeeIncomingEmailSecretKey says the user may read it.
+   */
+  incomingEmailSecretKey?: string | undefined;
+  canSeeIncomingEmailSecretKey?: boolean | undefined;
+  /*
+   * Gives the workflow a new incoming email secret key - Reset address, or
+   * the first address of a workflow that has none. Takes effect at once,
+   * whether or not this dialog is then saved.
+   */
+  onResetIncomingEmailSecretKey?: (() => Promise<void>) | undefined;
 }
 
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
@@ -151,7 +166,23 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     webhookSecretKey: props.webhookSecretKey,
     canSeeWebhookSecretKey: props.canSeeWebhookSecretKey,
     onResetWebhookSecretKey: props.onResetWebhookSecretKey,
+    incomingEmailSecretKey: props.incomingEmailSecretKey,
+    canSeeIncomingEmailSecretKey: props.canSeeIncomingEmailSecretKey,
+    onResetIncomingEmailSecretKey: props.onResetIncomingEmailSecretKey,
   });
+
+  /*
+   * Where a test request goes. A step after a Webhook that nothing has called
+   * yet offers one to copy in its value picker, so its fields can be seen.
+   * Built only for someone who may see the key, as the Webhook's own URL is.
+   */
+  const webhookUrl: string | undefined =
+    props.canSeeWebhookSecretKey !== false && props.webhookSecretKey
+      ? getWebhookTriggerUrl({
+          workflowServiceUrl: WORKFLOW_URL.toString(),
+          secretKey: props.webhookSecretKey,
+        })
+      : undefined;
 
   /*
    * An If / Else step's settings are one thing, its condition, and are
@@ -169,6 +200,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         graphComponents={props.graphComponents}
         valueSources={props.valueSources}
         workflowId={props.workflowId}
+        webhookUrl={webhookUrl}
         component={component}
         onFormChange={(c: NodeDataProp) => {
           setComponent({ ...c });

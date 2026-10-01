@@ -61,7 +61,7 @@ Al blocco successivo viene passato il record completo. Per esempio, il trigger *
 - **Status Page Subscriber** — dai il benvenuto a chi si iscrive a una pagina di stato.
 - **On-Call Duty Policy** — sincronizza i cambi di turno con un altro sistema di reperibilità.
 
-Cerca per nome nel pannello **Add Trigger** per trovare quello che ti serve.
+Nel pannello **Add Trigger** si trovano sotto **OneUptime resources**: clicca la risorsa, poi il trigger. **Browse all resources** li contiene tutti, e la casella di ricerca trova un trigger da poche parole, come `incident created`.
 
 ## Quale trigger dovrei usare?
 

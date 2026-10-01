@@ -15,7 +15,7 @@ Para añadir bloques:
 - **El disparador** — haz clic en el bloque punteado. Se abre un panel titulado **Add Trigger**.
 - **Todo lo demás** — haz clic en **Añadir componente** en la barra de herramientas, encima del lienzo. Se abre ese mismo panel, ahora titulado **Add Component**.
 
-Los dos paneles tienen buscador — pulsa `/` para saltar al cuadro de búsqueda — y están agrupados por categoría. Selecciona un bloque y haz clic en **Add to Workflow**.
+Los dos paneles empiezan por los bloques que usan casi todos los flujos de trabajo, en **Popular**, seguidos del resto de bloques integrados. En **OneUptime resources**, haz clic en un recurso como **Incident** para ver qué puedes hacer con él; **Browse all resources** los muestra todos. O busca: escribe unas pocas palabras, como `create incident`, y la coincidencia más cercana sale primero. Pulsa `/` para saltar al cuadro de búsqueda, las flechas para moverte por los resultados y **Enter** para añadir el bloque resaltado. Un clic en un bloque lo añade.
 
 Un bloque nuevo aparece debajo del bloque más bajo del lienzo, y un disparador nuevo ocupa arriba el lugar del anterior. El bloque nuevo queda seleccionado y, si aparece fuera de la vista, el lienzo se desplaza lo justo para mostrarlo. Sus ajustes no se abren solos: haz clic en el bloque cuando quieras configurarlo. Mientras falten sus ajustes obligatorios, el bloque dice **Click to set up**. Arrastra los bloques adonde quieras; el lienzo se ajusta a una cuadrícula mientras los mueves. Las posiciones se guardan, de modo que la siguiente persona verá la misma disposición que dejaste tú.
 
@@ -64,8 +64,8 @@ Hay una cosa que no puede comprobar: si un nombre de variable existe. Una variab
 
 La forma más rápida de cogerle el pulso al lienzo:
 
-1. Haz clic en el bloque punteado, elige **Manual** en el panel **Add Trigger** y haz clic en **Add to Workflow**.
-2. Haz clic en **Añadir componente**, elige **Log** (dentro de **Utils**) y haz clic en **Add to Workflow**. El bloque nuevo aparece debajo del disparador. Conecta el punto **Execute** del disparador con el punto de entrada del bloque Log.
+1. Haz clic en el bloque punteado y luego en **Manual**, en el panel **Add Trigger**.
+2. Haz clic en **Añadir componente** y luego en **Log**, dentro de **Popular**. El bloque nuevo aparece debajo del disparador. Conecta el punto **Execute** del disparador con el punto de entrada del bloque Log.
 3. Haz clic en el bloque Log, que dice **Click to set up**, y pon en su **Valor** `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` es el **Identifier** del disparador, visible en su bloque — comprueba que coincide.
 4. Ve a **Vista General**, haz clic en **Editar flujo de trabajo** en la tarjeta **Detalles del flujo de trabajo** y activa **Habilitado**. Un flujo de trabajo deshabilitado no se puede ejecutar de ninguna manera, ni siquiera a mano.
 5. Vuelve al **Constructor**, haz clic en **Ejecutar flujo de trabajo**, pon `{ "name": "Ada" }` en el campo **JSON**, haz clic en **Run Workflow Manually** y confirma con **Run**.

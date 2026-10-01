@@ -2,6 +2,7 @@ import ComponentCodeAPI from "./API/ComponentCode";
 import ManualAPI from "./API/Manual";
 import RunStepAPI from "./API/RunStep";
 import ModelSchemaAPI from "./API/ModelSchema";
+import StepSamplesAPI from "./API/StepSamples";
 import WorkflowAPI from "./API/Workflow";
 import RunWorkflow from "./Services/RunWorkflow";
 import { JSONObject } from "Common/Types/JSON";
@@ -27,6 +28,9 @@ const WorkflowFeatureSet: FeatureSet = {
       app.use(`/${APP_NAME}`, new RunStepAPI().router);
 
       app.use(`/${APP_NAME}`, new ModelSchemaAPI().router);
+
+      // What each step held the last times it ran, for the value picker.
+      app.use(`/${APP_NAME}`, new StepSamplesAPI().router);
 
       app.use(`/${APP_NAME}`, new WorkflowAPI().router);
 

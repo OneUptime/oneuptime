@@ -1,1048 +1,673 @@
 import ComponentsModal, {
-  getSearchScore,
-  getSearchTokens,
-  matchesSearch,
+  ComponentProps,
+  SEARCH_RESULTS_PAGE_SIZE,
 } from "../../../UI/Components/Workflow/ComponentsModal";
-import { describe, expect, it } from "@jest/globals";
-/*
- * The main entry, not "/extend-expect": the latter no longer ships type
- * declarations, so every jest-dom matcher in this file fails to typecheck and
- * the whole suite is skipped before a single assertion runs. This suite is one
- * of only two that exercise SideOver, so it has to actually run.
- */
-import "@testing-library/jest-dom";
-import { fireEvent, render, screen } from "@testing-library/react";
-import IconProp from "../../../Types/Icon/IconProp";
 import ComponentMetadata, {
   ComponentCategory,
   ComponentType,
 } from "../../../Types/Workflow/Component";
-import React from "react";
+import IconProp from "../../../Types/Icon/IconProp";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
-import Faker from "../../../Utils/Faker";
-
-/// @dev we use different UUID for (id & title), description, and category to ensure that the component is unique
-
-type GetComponentMetadataFunction = (category?: string) => ComponentMetadata;
-
-const getComponentMetadata: GetComponentMetadataFunction = (
-  category?: string,
-): ComponentMetadata => {
-  const id: string = Faker.generateRandomObjectID().toString();
-  return {
-    id,
-    title: id,
-    description: Faker.generateRandomObjectID().toString(),
-    category: category || Faker.generateRandomObjectID().toString(),
-    iconProp: IconProp.Activity,
-    componentType: ComponentType.Component,
-    arguments: [],
-    returnValues: [],
-    inPorts: [],
-    outPorts: [],
-  };
-};
-
-type GetComponentCategoryFunction = (name?: string) => ComponentCategory;
-
-const getComponentCategory: GetComponentCategoryFunction = (
-  name?: string,
-): ComponentCategory => {
-  return {
-    name: name || Faker.generateRandomObjectID().toString(),
-    description: `Description for ${name}`,
-    icon: IconProp.Activity,
-  };
-};
-
-type BuildDatabaseComponentFunction = (
-  title: string,
-  description: string,
-  category: string,
-) => ComponentMetadata;
-
+import {
+  FixturePalette,
+  buildFixturePalette,
+  findByTitle,
+} from "./Workflow/ComponentPicker/PickerFixtures";
+import { describe, expect, it } from "@jest/globals";
 /*
- * Only the three fields the search reads are meaningful here. The icon and the
- * ports the generator fills in play no part in matching or ranking.
+ * The main entry, not "/extend-expect": the latter no longer ships type
+ * declarations, so every jest-dom matcher in this file fails to typecheck and
+ * the whole suite is skipped before a single assertion runs.
  */
-const buildDatabaseComponent: BuildDatabaseComponentFunction = (
-  title: string,
-  description: string,
-  category: string,
-): ComponentMetadata => {
-  return {
-    id: title.toLowerCase().replace(/\s+/g, "-"),
-    title,
-    description,
-    category,
-    iconProp: IconProp.Database,
-    componentType: ComponentType.Component,
-    arguments: [],
-    returnValues: [],
-    inPorts: [],
-    outPorts: [],
-  };
-};
+import "@testing-library/jest-dom";
+import {
+  fireEvent,
+  render,
+  RenderResult,
+  screen,
+  within,
+} from "@testing-library/react";
+import React from "react";
 
 /*
- * The database half of the palette is generated rather than written: one
- * component per operation per model, by
- * Common/Types/Workflow/Components/BaseModel.ts. These are that generator's
- * strings copied word for word, not approximated, because the whole regression
- * below lives in the gap between what it writes ("Create One Monitor") and what
- * somebody building a workflow types ("create monitor"). A fixture that merely
- * looked like the real thing would pin nothing.
+ * The Add Component / Add Trigger picker: what it leads with, browsing a
+ * resource, picking a step, and how search results are drawn. Keyboard use
+ * and accessibility are in ComponentsModalUsability.test.tsx; the ranking
+ * itself in Workflow/ComponentPicker/ComponentSearch.test.ts; the full
+ * catalog in Workflow/ComponentPicker/ComponentPickerRealCatalog.test.tsx.
  *
- * These eight are the components; the generator also emits three triggers per
- * model, which the modal keeps in a separate palette.
+ * The palette is the real hand-written steps plus the real generator's
+ * steps for a handful of models (PickerFixtures), with Incident State
+ * registered before Incident as in the product.
  */
-type GetDatabaseComponentsFunction = (
-  singularName: string,
-  pluralName: string,
-) => Array<ComponentMetadata>;
 
-const getDatabaseComponents: GetDatabaseComponentsFunction = (
-  singularName: string,
-  pluralName: string,
-): Array<ComponentMetadata> => {
-  return [
-    buildDatabaseComponent(
-      `Find One ${singularName}`,
-      `Database query to find one ${singularName}`,
-      `${singularName}`,
-    ),
-    buildDatabaseComponent(
-      `Find Many ${pluralName}`,
-      `Database query to find many ${pluralName}`,
-      `${singularName}`,
-    ),
-    buildDatabaseComponent(
-      `Delete One ${singularName}`,
-      `Database query to delete one ${singularName}`,
-      `${singularName}`,
-    ),
-    buildDatabaseComponent(
-      `Delete Many ${pluralName}`,
-      `Delete many ${pluralName} that match a query.`,
-      `${singularName}`,
-    ),
-    buildDatabaseComponent(
-      `Create One ${singularName}`,
-      `Database query to create one ${singularName}`,
-      `${singularName}`,
-    ),
-    buildDatabaseComponent(
-      `Create Many ${pluralName}`,
-      `Database query to create many ${pluralName}`,
-      `${singularName}`,
-    ),
-    buildDatabaseComponent(
-      `Update One ${singularName}`,
-      `Database query to update one ${singularName}`,
-      `${singularName}`,
-    ),
-    buildDatabaseComponent(
-      `Update Many ${pluralName}`,
-      `Database query to update many ${pluralName}`,
-      `${singularName}`,
-    ),
-  ];
-};
+const palette: FixturePalette = buildFixturePalette();
 
-/*
- * Two entries from the hand-written half of the palette, copied from
- * Common/Types/Workflow/Components/JavaScript.ts and Manual.ts. A generated
- * component always restates its own title inside its description, so it can
- * never show a word that lives in one field alone - these two can.
- */
-const runCustomJavaScriptComponent: ComponentMetadata = {
-  id: "run-custom-javascript",
-  title: "Run Custom JavaScript",
-  category: "Custom Code",
-  description: "Run custom JavaScript in your workflow",
-  iconProp: IconProp.Code,
-  componentType: ComponentType.Component,
-  arguments: [],
-  returnValues: [],
-  inPorts: [],
-  outPorts: [],
-};
+type RenderPickerFunction = (
+  overrides?: Partial<ComponentProps>,
+) => RenderResult;
 
-const manualComponent: ComponentMetadata = {
-  id: "manual",
-  title: "Manual",
-  category: "Utils",
-  description: "Run this workflow manually",
-  iconProp: IconProp.Play,
-  componentType: ComponentType.Trigger,
-  arguments: [],
-  returnValues: [],
-  inPorts: [],
-  outPorts: [],
-};
-
-type GetComponentByTitleFunction = (
-  components: Array<ComponentMetadata>,
-  title: string,
-) => ComponentMetadata;
-
-const getComponentByTitle: GetComponentByTitleFunction = (
-  components: Array<ComponentMetadata>,
-  title: string,
-): ComponentMetadata => {
-  const componentMetadata: ComponentMetadata | undefined = components.find(
-    (candidate: ComponentMetadata) => {
-      return candidate.title === title;
-    },
-  );
-
-  if (!componentMetadata) {
-    /*
-     * A mistyped fixture title would otherwise resolve to undefined and quietly
-     * weaken every assertion that reads it.
-     */
-    throw new Error(`No component titled "${title}" in these fixtures.`);
-  }
-
-  return componentMetadata;
-};
-
-/*
- * The filter as it used to be: the whole typed string, as one substring,
- * against each field on its own. Kept here so the tests can show what each of
- * these searches used to return rather than only asserting that it works now.
- */
-type MatchesWholeSearchStringFunction = (
-  componentMetadata: ComponentMetadata,
-  search: string,
-) => boolean;
-
-const matchesWholeSearchString: MatchesWholeSearchStringFunction = (
-  componentMetadata: ComponentMetadata,
-  search: string,
-): boolean => {
-  const normalizedSearch: string = search.trim().toLowerCase();
-
-  return (
-    componentMetadata.title.toLowerCase().includes(normalizedSearch) ||
-    componentMetadata.description.toLowerCase().includes(normalizedSearch) ||
-    componentMetadata.category.toLowerCase().includes(normalizedSearch)
+const renderPicker: RenderPickerFunction = (
+  overrides: Partial<ComponentProps> = {},
+): RenderResult => {
+  return render(
+    <ComponentsModal
+      componentsType={ComponentType.Component}
+      components={palette.components}
+      categories={palette.categories}
+      onCloseModal={getJestMockFunction()}
+      onComponentClick={getJestMockFunction()}
+      {...overrides}
+    />,
   );
 };
 
-/*
- * The modal's own pipeline - keep what matches every word, then order by score
- * with the alphabetical tie-break - so the ranking assertions below describe
- * the list somebody actually sees rather than a number in isolation.
- */
-type RankBySearchFunction = (
-  components: Array<ComponentMetadata>,
-  search: string,
-) => Array<string>;
+type SearchFunction = (value: string) => void;
 
-const rankBySearch: RankBySearchFunction = (
-  components: Array<ComponentMetadata>,
-  search: string,
+const search: SearchFunction = (value: string): void => {
+  fireEvent.change(screen.getByRole("combobox"), { target: { value } });
+};
+
+type SectionFunction = (name: string) => HTMLElement;
+
+const section: SectionFunction = (name: string): HTMLElement => {
+  return screen.getByRole("region", { name });
+};
+
+type ButtonNamesFunction = (container: HTMLElement) => Array<string>;
+
+const buttonNames: ButtonNamesFunction = (
+  container: HTMLElement,
 ): Array<string> => {
-  const tokens: Array<string> = getSearchTokens(search);
-
-  return components
-    .filter((componentMetadata: ComponentMetadata) => {
-      return matchesSearch(componentMetadata, tokens);
-    })
-    .sort((componentA: ComponentMetadata, componentB: ComponentMetadata) => {
-      const scoreDifference: number =
-        getSearchScore(componentB, tokens) - getSearchScore(componentA, tokens);
-
-      if (scoreDifference !== 0) {
-        return scoreDifference;
-      }
-
-      return componentA.title.localeCompare(componentB.title);
-    })
-    .map((componentMetadata: ComponentMetadata) => {
-      return componentMetadata.title;
+  return within(container)
+    .getAllByRole("button")
+    .map((button: HTMLElement): string => {
+      return button.getAttribute("aria-label") || button.textContent || "";
     });
 };
 
-describe("ComponentsModal", () => {
-  const mockedCategories: ComponentCategory[] = [
-    getComponentCategory(),
-    getComponentCategory(),
-    getComponentCategory(),
-    getComponentCategory(),
-  ];
+type OptionTitlesFunction = () => Array<string>;
 
-  const mockedComponents: ComponentMetadata[] = [
-    getComponentMetadata(mockedCategories[0]?.name),
-    getComponentMetadata(mockedCategories[1]?.name),
-    getComponentMetadata(mockedCategories[2]?.name),
-    getComponentMetadata(mockedCategories[3]?.name),
-  ];
-
-  const mockOnCloseModal: MockFunction = getJestMockFunction();
-  const mockOnComponentClick: MockFunction = getJestMockFunction();
-
-  it("should render without crashing", () => {
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
-        categories={mockedCategories}
-      />,
-    );
+const optionTitles: OptionTitlesFunction = (): Array<string> => {
+  return screen.queryAllByRole("option").map((option: HTMLElement): string => {
+    return option.getAttribute("aria-label") || "";
   });
+};
 
-  it("should display search input", () => {
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
-        categories={mockedCategories}
-      />,
+describe("the start view leads with what people use", () => {
+  it("says what the panel is for, and offers no second button to confirm a pick", () => {
+    renderPicker();
+
+    expect(screen.getByTestId("side-over-title")).toHaveTextContent(
+      "Add Component",
+    );
+    expect(screen.getByTestId("side-over-description")).toHaveTextContent(
+      "Click a component to add it to your workflow.",
     );
     expect(
-      screen.getByPlaceholderText(
-        "Search components by name, description, or category",
-      ),
+      screen.queryByRole("button", { name: "Add to Workflow" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("side-over-footer")).getByRole("button", {
+        name: "Close",
+      }),
     ).toBeInTheDocument();
   });
 
-  it("should display categories and components", () => {
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
-        categories={mockedCategories}
-      />,
-    );
-    for (const cat of mockedCategories) {
-      expect(screen.getAllByText(cat.name).length).toBeGreaterThanOrEqual(1);
-    }
-    for (const comp of mockedComponents) {
-      expect(screen.getByText(comp.title)).toBeInTheDocument();
-    }
+  it("shows the popular actions first, in order", () => {
+    renderPicker();
+
+    expect(buttonNames(section("Popular"))).toEqual([
+      "Log",
+      "If / Else",
+      "API Post (JSON)",
+      "API Get (JSON)",
+      "Send Message to Slack",
+      "Send Message to Teams",
+      "Send Message to Discord",
+      "Send Email",
+      "Run Custom JavaScript",
+      "Create One Incident",
+    ]);
   });
 
-  it("should call onCloseModal when the close button is clicked", () => {
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
-        categories={mockedCategories}
-      />,
-    );
-    fireEvent.click(screen.getByText("Close panel"));
-    expect(mockOnCloseModal).toHaveBeenCalled();
+  it("then the rest of the hand-written steps, each once", () => {
+    renderPicker();
+
+    expect(buttonNames(section("More components"))).toEqual([
+      "Generate Text with AI",
+      "API Put (JSON)",
+      "API Patch (JSON)",
+      "API Delete (JSON)",
+      "Send Message to Telegram",
+      "JSON to Text",
+      "Text to JSON",
+      "Merge JSON",
+      "Execute Workflow",
+      "Sleep",
+    ]);
   });
 
-  it("should call onComponentClick when a component is selected", () => {
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
-        categories={mockedCategories}
-      />,
+  it("then the common resources, and a way to every other one", () => {
+    renderPicker();
+
+    const resources: HTMLElement = section("OneUptime resources");
+
+    expect(resources).toHaveTextContent(
+      "Create, find, update or delete incidents, alerts, monitors and every other record in this project.",
     );
-    for (const [idx, comp] of mockedComponents.entries()) {
-      // simulate selecting a component
-      fireEvent.click(screen.getByText(comp.title));
-      expect(screen.getByText("Add to Workflow")).not.toBeDisabled();
+    expect(buttonNames(resources)).toEqual([
+      "Incident, 8 actions",
+      "Alert, 8 actions",
+      "Monitor, 8 actions",
+      "Status Page, 8 actions",
+      "On-Call Policy, 8 actions",
+      "Incident Public Note, 8 actions",
+      "Incident Internal Note, 8 actions",
+      "Incident Episode, 8 actions",
+      `Browse all resources, ${21}`,
+    ]);
+  });
 
-      // simulate submitting
-      fireEvent.click(screen.getByText("Add to Workflow"));
+  it("does not list the generated steps themselves, which are what made the old list endless", () => {
+    renderPicker();
 
-      // check if onComponentClick was called with the selected component's metadata
-      expect(mockOnComponentClick).toHaveBeenNthCalledWith(idx + 1, comp);
+    for (const title of [
+      "Create One Incident State",
+      "Find One Incident",
+      "Update Many Monitors",
+      "Delete One Incident Episode State Timeline",
+    ]) {
+      expect(
+        screen.queryByRole("button", { name: title }),
+      ).not.toBeInTheDocument();
     }
+
+    // Everything on the start view, in all: a short list, whatever the catalog holds.
+    expect(
+      within(screen.getByTestId("workflow-component-picker")).getAllByRole(
+        "button",
+      ).length,
+    ).toBeLessThan(40);
   });
 
-  it("should display a message when no components are available", () => {
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={[]}
-        categories={mockedCategories}
-      />,
+  it("describes every step it shows", () => {
+    renderPicker();
+
+    expect(
+      screen.getByRole("button", { name: "Log" }),
+    ).toHaveAccessibleDescription(
+      findByTitle(palette.components, "Log").description,
     );
-    /*
-     * An empty palette and an unproductive search are different situations and
-     * no longer share a message. Nothing has been typed here, so there is no
-     * advice to give about the words used.
-     */
+    expect(
+      screen.getByRole("button", { name: "Create One Incident" }),
+    ).toHaveAccessibleDescription("Database query to create one Incident");
+  });
+
+  it("leads the trigger picker with the popular triggers, and counts a resource's triggers", () => {
+    renderPicker({ componentsType: ComponentType.Trigger });
+
+    expect(screen.getByTestId("side-over-title")).toHaveTextContent(
+      "Add Trigger",
+    );
+    expect(buttonNames(section("Popular"))).toEqual([
+      "Manual",
+      "Schedule",
+      "Webhook",
+      "Incoming Email",
+      "On Create Incident",
+      "On Update Incident",
+      "On Create Alert",
+      "On Update Monitor",
+    ]);
+    // Every hand-written trigger is popular, so there is nothing more to list.
+    expect(
+      screen.queryByRole("region", { name: "More triggers" }),
+    ).not.toBeInTheDocument();
+    expect(section("OneUptime resources")).toHaveTextContent(
+      "Start this workflow when an incident, alert, monitor or any other record in this project is created, updated or deleted.",
+    );
+    expect(
+      screen.getByRole("button", { name: "Incident, 3 triggers" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Log" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("names the hand-written steps' section plainly when nothing is popular", () => {
+    const customCode: ComponentMetadata = {
+      id: "custom",
+      title: "Custom Step",
+      description: "Does a custom thing",
+      category: "Utils",
+      iconProp: IconProp.Code,
+      componentType: ComponentType.Component,
+      arguments: [],
+      returnValues: [],
+      inPorts: [],
+      outPorts: [],
+    };
+
+    renderPicker({ components: [customCode], categories: [] });
+
+    expect(
+      screen.queryByRole("region", { name: "Popular" }),
+    ).not.toBeInTheDocument();
+    expect(buttonNames(section("Components"))).toEqual(["Custom Step"]);
+    expect(
+      screen.queryByRole("region", { name: "OneUptime resources" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says when there is nothing to pick", () => {
+    renderPicker({ components: [] });
     expect(screen.getByText("No components to show.")).toBeInTheDocument();
-  });
 
-  it("should not display categories when there are no categories", () => {
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
-        categories={[]}
-      />,
-    );
-    mockedCategories.forEach((category: ComponentCategory) => {
-      expect(screen.queryByText(category.name)).not.toBeInTheDocument();
-    });
-  });
-
-  it("should display no components message when search yields no results", () => {
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
-        categories={mockedCategories}
-      />,
-    );
-    fireEvent.change(
-      screen.getByPlaceholderText(
-        "Search components by name, description, or category",
+    renderPicker({
+      componentsType: ComponentType.Trigger,
+      components: palette.components.filter(
+        (componentMetadata: ComponentMetadata): boolean => {
+          return componentMetadata.componentType === ComponentType.Component;
+        },
       ),
-      {
-        target: { value: "Non-existent Ccmponent" },
-      },
+    });
+    expect(screen.getByText("No triggers to show.")).toBeInTheDocument();
+  });
+});
+
+describe("one click picks a step", () => {
+  it("adds a step from the start view at once, and only that step", () => {
+    const onComponentClick: MockFunction = getJestMockFunction();
+    const onCloseModal: MockFunction = getJestMockFunction();
+    renderPicker({ onComponentClick, onCloseModal });
+
+    fireEvent.click(screen.getByRole("button", { name: "Send Email" }));
+
+    expect(onComponentClick).toHaveBeenCalledTimes(1);
+    expect(onComponentClick).toHaveBeenCalledWith(
+      findByTitle(palette.components, "Send Email"),
     );
-    /*
-     * Says what actually happened: a search now fails only when no component
-     * holds every word typed, so the useful advice is to type fewer words. The
-     * old wording concluded on the builder's behalf that the integration did
-     * not exist, which is what sent people off to write it by hand.
-     */
+    // Closing is the builder's job once it has the step.
+    expect(onCloseModal).not.toHaveBeenCalled();
+  });
+
+  it("closes from the footer without picking anything", () => {
+    const onComponentClick: MockFunction = getJestMockFunction();
+    const onCloseModal: MockFunction = getJestMockFunction();
+    renderPicker({ onComponentClick, onCloseModal });
+
+    fireEvent.click(
+      within(screen.getByTestId("side-over-footer")).getByRole("button", {
+        name: "Close",
+      }),
+    );
+
+    expect(onCloseModal).toHaveBeenCalledTimes(1);
+    expect(onComponentClick).not.toHaveBeenCalled();
+  });
+});
+
+describe("browsing a resource", () => {
+  it("opens a resource to what can be done with it, and adds the one clicked", () => {
+    const onComponentClick: MockFunction = getJestMockFunction();
+    renderPicker({ onComponentClick });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Incident, 8 actions" }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Incident" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Manage incidents for your project"),
+    ).toBeInTheDocument();
+    expect(
+      buttonNames(screen.getByRole("group", { name: "Incident components" })),
+    ).toEqual([
+      "Create One Incident",
+      "Create Many Incidents",
+      "Find One Incident",
+      "Find Many Incidents",
+      "Update One Incident",
+      "Update Many Incidents",
+      "Delete One Incident",
+      "Delete Many Incidents",
+    ]);
+    // The start view is gone while a resource is open.
+    expect(
+      screen.queryByRole("region", { name: "Popular" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Update One Incident" }),
+    );
+
+    expect(onComponentClick).toHaveBeenCalledTimes(1);
+    expect(onComponentClick).toHaveBeenCalledWith(
+      findByTitle(palette.components, "Update One Incident"),
+    );
+  });
+
+  it("goes back to where it was opened from", () => {
+    renderPicker();
+
+    fireEvent.click(screen.getByRole("button", { name: "Alert, 8 actions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    expect(section("Popular")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Alert" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("lists every resource A to Z, opens one, and comes back to the list", () => {
+    renderPicker();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Browse all resources/ }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "All resources" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "No components match every word you typed. Try fewer words. If what you need really does not exist, the Custom Code and API components can build anything you like.",
+        "21 resources, A to Z. Search above to find one by name.",
+      ),
+    ).toBeInTheDocument();
+
+    const names: Array<string> = buttonNames(
+      screen.getByRole("group", { name: "All resources" }),
+    );
+
+    expect(names).toHaveLength(21);
+    expect(names.slice(0, 3)).toEqual([
+      "AI Agent, 2 actions",
+      "Alert, 8 actions",
+      "Email Log, 2 actions",
+    ]);
+    // The rarely used ones are here, and only here.
+    expect(names).toContain("Incident State, 8 actions");
+    expect(names).toContain("Incident Episode State Timeline, 8 actions");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Incident State, 8 actions" }),
+    );
+    expect(
+      screen.getByRole("heading", { name: "Incident State" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(
+      screen.getByRole("heading", { name: "All resources" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(section("Popular")).toBeInTheDocument();
+  });
+
+  it("tells apart two resources with the same name", () => {
+    renderPicker();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Browse all resources/ }),
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "Subscriber Notification Template (Status Page Subscriber Notification Template), 8 actions",
+      }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Subscriber Notification Template (Status Page Subscriber Notification Template Status Page), 8 actions",
+      }),
+    );
+
+    expect(
+      screen.getByText(
+        "Status Page Subscriber Notification Template Status Page",
       ),
     ).toBeInTheDocument();
   });
 
-  it("should disable submit button prop when no component is selected", () => {
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
-        categories={mockedCategories}
-      />,
-    );
-    const submitButton: HTMLElement = screen.getByText("Add to Workflow");
-    expect(submitButton).toBeDisabled();
-  });
+  it("goes back to the start view if the open resource leaves the catalog", () => {
+    const props: ComponentProps = {
+      componentsType: ComponentType.Component,
+      components: palette.components,
+      categories: palette.categories,
+      onCloseModal: getJestMockFunction(),
+      onComponentClick: getJestMockFunction(),
+    };
+    const view: RenderResult = render(<ComponentsModal {...props} />);
 
-  it("should change submitButtonDisabled to false when a component is selected", () => {
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
-        categories={mockedCategories}
-      />,
-    );
-    for (const comp of mockedComponents) {
-      fireEvent.click(screen.getByText(comp.title));
-      const submitButton: HTMLElement = screen.getByText("Add to Workflow");
-      expect(submitButton).not.toBeDisabled();
-    }
-  });
+    fireEvent.click(screen.getByRole("button", { name: "Alert, 8 actions" }));
 
-  // search tests
-
-  it("should filter components based on search input", () => {
-    render(
+    view.rerender(
       <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
-        categories={mockedCategories}
+        {...props}
+        components={palette.components.filter(
+          (componentMetadata: ComponentMetadata): boolean => {
+            return componentMetadata.tableName !== "Alert";
+          },
+        )}
       />,
     );
 
-    mockedComponents.forEach((comp: ComponentMetadata) => {
-      const partialTitle: string = comp.title.substring(
-        0,
-        comp.title.length - comp.title.length / 2,
-      );
-      fireEvent.change(
-        screen.getByPlaceholderText(
-          "Search components by name, description, or category",
-        ),
-        {
-          target: { value: partialTitle },
-        },
-      );
-      // title may be split across elements due to search highlighting
-      expect(
-        screen.getByText((_content: string | null, element: Element | null) => {
-          return element?.textContent === comp.title;
-        }),
-      ).toBeInTheDocument();
-
-      // check other components are not displayed
-      mockedComponents
-        .filter((c: ComponentMetadata) => {
-          return c.title !== comp.title;
-        })
-        .forEach((c: ComponentMetadata) => {
-          return expect(screen.queryByText(c.title)).not.toBeInTheDocument();
-        });
-    });
-  });
-
-  it("should filter components based on description when searching", () => {
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
-        categories={mockedCategories}
-      />,
-    );
-    mockedComponents.forEach((comp: ComponentMetadata) => {
-      fireEvent.change(
-        screen.getByPlaceholderText(
-          "Search components by name, description, or category",
-        ),
-        {
-          target: { value: comp.description },
-        },
-      );
-      expect(screen.getByText(comp.title)).toBeInTheDocument();
-
-      // check other components are not displayed
-      mockedComponents
-        .filter((c: ComponentMetadata) => {
-          return c.title !== comp.title;
-        })
-        .forEach((c: ComponentMetadata) => {
-          return expect(screen.queryByText(c.title)).not.toBeInTheDocument();
-        });
-    });
-  });
-
-  it("should filter components based on category when searching", () => {
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
-        categories={mockedCategories}
-      />,
-    );
-    mockedComponents.forEach((comp: ComponentMetadata) => {
-      fireEvent.change(
-        screen.getByPlaceholderText(
-          "Search components by name, description, or category",
-        ),
-        {
-          target: { value: comp.category },
-        },
-      );
-      expect(screen.getByText(comp.title)).toBeInTheDocument();
-
-      // check other components are not displayed
-      mockedComponents
-        .filter((c: ComponentMetadata) => {
-          return c.category !== comp.category;
-        })
-        .forEach((c: ComponentMetadata) => {
-          return expect(screen.queryByText(c.title)).not.toBeInTheDocument();
-        });
-    });
-  });
-
-  it("should show all components when search is cleared", () => {
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
-        categories={mockedCategories}
-      />,
-    );
-    mockedComponents.forEach((comp: ComponentMetadata) => {
-      const searchInput: HTMLElement = screen.getByPlaceholderText(
-        "Search components by name, description, or category",
-      );
-      fireEvent.change(searchInput, { target: { value: comp.title } });
-      fireEvent.change(searchInput, { target: { value: "" } }); // clear search
-
-      mockedComponents.forEach((c: ComponentMetadata) => {
-        return expect(screen.getByText(c.title)).toBeInTheDocument();
-      });
-    });
-  });
-
-  it("should return multiple components when similar titles match", () => {
-    // we add a new component where its title is a substring of another component's title
-    const localComponents: ComponentMetadata[] = [...mockedComponents];
-    const commonWord: string = localComponents[0]?.title.substring(0, 5) || "";
-    const newComponent: ComponentMetadata = getComponentMetadata(
-      mockedCategories[1]?.name,
-    );
-    newComponent.title += commonWord;
-    localComponents.push(newComponent);
-    const componentsWithCommonWord: ComponentMetadata[] =
-      localComponents.filter((comp: ComponentMetadata) => {
-        return comp.title.includes(commonWord);
-      });
-
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={localComponents}
-        categories={mockedCategories}
-      />,
-    );
-
-    fireEvent.change(
-      screen.getByPlaceholderText(
-        "Search components by name, description, or category",
-      ),
-      {
-        target: { value: commonWord },
-      },
-    );
-    componentsWithCommonWord.forEach((comp: ComponentMetadata) => {
-      // title may be split across elements due to search highlighting
-      expect(
-        screen.getByText((_content: string | null, element: Element | null) => {
-          return element?.textContent === comp.title;
-        }),
-      ).toBeInTheDocument();
-    });
-  });
-
-  it("should return return components with similar descriptions", () => {
-    // we add a new component where its title is a substring of another component's description
-    const localComponents: ComponentMetadata[] = [...mockedComponents];
-    const partialDescription: string =
-      localComponents[0]?.description.substring(0, 10) || "";
-    const newComponent: ComponentMetadata = getComponentMetadata(
-      mockedCategories[1]?.name,
-    );
-    newComponent.title = partialDescription || "";
-    localComponents.push(newComponent);
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={localComponents}
-        categories={mockedCategories}
-      />,
-    );
-
-    fireEvent.change(
-      screen.getByPlaceholderText(
-        "Search components by name, description, or category",
-      ),
-      {
-        target: { value: partialDescription },
-      },
-    );
+    expect(section("Popular")).toBeInTheDocument();
     expect(
-      screen.getAllByText(new RegExp(partialDescription, "i")),
-    ).toHaveLength(2);
+      screen.queryByRole("heading", { name: "Alert" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("search results", () => {
+  it("replace the view while there is a search, and give it back after", () => {
+    renderPicker();
+
+    fireEvent.click(screen.getByRole("button", { name: "Monitor, 8 actions" }));
+    search("slack");
+
+    expect(optionTitles()).toEqual(["Send Message to Slack"]);
+    expect(
+      screen.queryByRole("heading", { name: "Monitor" }),
+    ).not.toBeInTheDocument();
+
+    search("");
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Monitor" }),
+    ).toBeInTheDocument();
   });
 
-  it("should return components with the same category", () => {
-    // we add two components with the same category as the first component
-    const localComponents: ComponentMetadata[] = [...mockedComponents];
-    const commonCategory: string | undefined = localComponents[0]?.category;
-    localComponents.push(getComponentMetadata(commonCategory));
-    localComponents.push(getComponentMetadata(commonCategory));
-    const componentsInCommonCategory: ComponentMetadata[] =
-      localComponents.filter((comp: ComponentMetadata) => {
-        return comp.category === commonCategory;
-      });
+  it("put the resource named first: Incident's steps before Incident State's", () => {
+    renderPicker();
 
-    render(
-      <ComponentsModal
-        componentsType={ComponentType.Component}
-        onCloseModal={mockOnCloseModal}
-        onComponentClick={mockOnComponentClick}
-        components={localComponents}
-        categories={mockedCategories}
-      />,
-    );
+    search("incident");
 
-    fireEvent.change(
-      screen.getByPlaceholderText(
-        "Search components by name, description, or category",
-      ),
-      {
-        target: { value: commonCategory },
-      },
+    expect(optionTitles().slice(0, 8)).toEqual([
+      "Create One Incident",
+      "Create Many Incidents",
+      "Find One Incident",
+      "Find Many Incidents",
+      "Update One Incident",
+      "Update Many Incidents",
+      "Delete One Incident",
+      "Delete Many Incidents",
+    ]);
+
+    search("create incident");
+
+    expect(optionTitles()[0]).toBe("Create One Incident");
+    expect(optionTitles().indexOf("Create One Incident State")).toBeGreaterThan(
+      1,
     );
-    componentsInCommonCategory.forEach((comp: ComponentMetadata) => {
-      expect(screen.getByText(comp.title)).toBeInTheDocument();
-    });
   });
 
-  /*
-   * Everything above searches with a single word, which is the one shape the
-   * old whole-string filter handled. These use the strings the palette is
-   * really made of, where the words a builder types are separated in the
-   * component by words they have no reason to guess.
-   */
-  describe("search across every word typed", () => {
-    const monitorComponents: Array<ComponentMetadata> = getDatabaseComponents(
-      "Monitor",
-      "Monitors",
-    );
-    const teamComponents: Array<ComponentMetadata> = getDatabaseComponents(
-      "Team",
-      "Teams",
-    );
-    const palette: Array<ComponentMetadata> = [
-      ...monitorComponents,
-      ...teamComponents,
-      runCustomJavaScriptComponent,
-      manualComponent,
-    ];
+  it("draw only the best results, with the rest a click away", () => {
+    renderPicker();
 
-    const createOneMonitor: ComponentMetadata = getComponentByTitle(
-      palette,
-      "Create One Monitor",
+    search("incident");
+
+    const total: number = 72;
+    expect(screen.getAllByRole("option")).toHaveLength(
+      SEARCH_RESULTS_PAGE_SIZE,
     );
-    const createManyMonitors: ComponentMetadata = getComponentByTitle(
-      palette,
-      "Create Many Monitors",
-    );
-    const findOneMonitor: ComponentMetadata = getComponentByTitle(
-      palette,
-      "Find One Monitor",
-    );
-    const updateOneMonitor: ComponentMetadata = getComponentByTitle(
-      palette,
-      "Update One Monitor",
-    );
-    const deleteManyMonitors: ComponentMetadata = getComponentByTitle(
-      palette,
-      "Delete Many Monitors",
-    );
-    const createOneTeam: ComponentMetadata = getComponentByTitle(
-      palette,
-      "Create One Team",
-    );
-    const findOneTeam: ComponentMetadata = getComponentByTitle(
-      palette,
-      "Find One Team",
+    expect(screen.getByRole("status")).toHaveTextContent(
+      `Best ${SEARCH_RESULTS_PAGE_SIZE} of ${total} matches.`,
     );
 
-    it("should split a search into its words, lower cased, ignoring runs of whitespace", () => {
-      expect(getSearchTokens("create monitor")).toEqual(["create", "monitor"]);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Show ${total - SEARCH_RESULTS_PAGE_SIZE} more`,
+      }),
+    );
 
-      /*
-       * Leading, trailing and repeated whitespace all come from ordinary
-       * typing - a trailing space while still thinking, a double space between
-       * words - and none of them should narrow the results.
-       */
-      expect(getSearchTokens("  Create   ONE  Monitor  ")).toEqual([
-        "create",
-        "one",
-        "monitor",
-      ]);
-      expect(getSearchTokens("create\tmonitor\nsecret")).toEqual([
-        "create",
-        "monitor",
-        "secret",
-      ]);
+    expect(screen.getAllByRole("option")).toHaveLength(total);
+    expect(screen.getByRole("status")).toHaveTextContent(`${total} matches.`);
+    expect(
+      screen.queryByRole("button", { name: /^Show \d+ more$/ }),
+    ).not.toBeInTheDocument();
 
-      // Nothing typed, and whitespace only, are the same thing: no words.
-      expect(getSearchTokens("")).toEqual([]);
-      expect(getSearchTokens("   ")).toEqual([]);
-    });
+    // A new search starts again from the best results.
+    search("incidents");
+    expect(screen.getAllByRole("option")).toHaveLength(
+      SEARCH_RESULTS_PAGE_SIZE,
+    );
+  });
 
-    it("should match every component when nothing has been typed", () => {
-      // No search means show the palette, not hide it.
-      const noTokens: Array<string> = getSearchTokens("");
+  it("count one match as one", () => {
+    renderPicker();
 
-      palette.forEach((componentMetadata: ComponentMetadata) => {
-        expect(matchesSearch(componentMetadata, noTokens)).toBe(true);
-      });
-    });
+    search("slack");
 
-    it("should find a component when the words typed have other words between them", () => {
-      /*
-       * "create monitor" is the search this fix exists for. The generator
-       * writes "Create One Monitor", so the typed string is not a substring of
-       * any field, and the old filter - which tested exactly that - returned an
-       * empty list for a component sitting right there in the palette.
-       */
-      expect(matchesWholeSearchString(createOneMonitor, "create monitor")).toBe(
-        false,
-      );
-      expect(
-        palette.filter((componentMetadata: ComponentMetadata) => {
-          return matchesWholeSearchString(componentMetadata, "create monitor");
-        }),
-      ).toHaveLength(0);
+    expect(screen.getByRole("status")).toHaveTextContent("1 match.");
+  });
 
-      expect(
-        matchesSearch(createOneMonitor, getSearchTokens("create monitor")),
-      ).toBe(true);
+  it("mark what matched in each title, and show the resource beside it", () => {
+    renderPicker();
 
-      // The order the words are typed in is not part of the question.
-      expect(
-        matchesSearch(createOneMonitor, getSearchTokens("monitor create")),
-      ).toBe(true);
+    search("create inc");
 
-      // The same shape of failure held for every other operation...
-      expect(matchesWholeSearchString(updateOneMonitor, "update monitor")).toBe(
-        false,
-      );
-      expect(
-        matchesSearch(updateOneMonitor, getSearchTokens("update monitor")),
-      ).toBe(true);
+    const first: HTMLElement = screen.getAllByRole("option")[0]!;
 
-      // ...and every other model.
-      expect(matchesWholeSearchString(findOneTeam, "find team")).toBe(false);
-      expect(matchesSearch(findOneTeam, getSearchTokens("find team"))).toBe(
-        true,
-      );
-    });
-
-    it("should take its words from different fields", () => {
-      /*
-       * "code" appears only in the category ("Custom Code"), "javascript" only
-       * in the title and description. No single field holds both, so the old
-       * filter - title, then description, then category, each against the whole
-       * string - could not have matched this in any word order.
-       */
-      expect(runCustomJavaScriptComponent.title.toLowerCase()).not.toContain(
-        "code",
-      );
-      expect(
-        runCustomJavaScriptComponent.description.toLowerCase(),
-      ).not.toContain("code");
-      expect(runCustomJavaScriptComponent.category.toLowerCase()).not.toContain(
-        "javascript",
-      );
-      expect(
-        matchesWholeSearchString(
-          runCustomJavaScriptComponent,
-          "javascript code",
-        ),
-      ).toBe(false);
-      expect(
-        matchesSearch(
-          runCustomJavaScriptComponent,
-          getSearchTokens("javascript code"),
-        ),
-      ).toBe(true);
-
-      /*
-       * The same across the generated components: "database" is only ever in
-       * the description, while the model name is in the title and the category.
-       */
-      expect(createOneMonitor.title.toLowerCase()).not.toContain("database");
-      expect(createOneMonitor.category.toLowerCase()).not.toContain("database");
-      expect(
-        matchesSearch(createOneMonitor, getSearchTokens("database monitor")),
-      ).toBe(true);
-    });
-
-    it("should drop a component when one of the words matches nothing", () => {
-      /*
-       * Every word has to land somewhere. Otherwise the search would widen as
-       * it was typed, and adding a word could never narrow the list.
-       */
-      expect(
-        matchesSearch(
-          createOneMonitor,
-          getSearchTokens("create monitor banana"),
-        ),
-      ).toBe(false);
-      expect(rankBySearch(palette, "create monitor banana")).toEqual([]);
-    });
-
-    it("should ignore case on both sides", () => {
-      // The generator writes Title Case; almost nobody types it.
-      expect(createOneMonitor.title).toBe("Create One Monitor");
-
-      expect(
-        matchesSearch(createOneMonitor, getSearchTokens("create monitor")),
-      ).toBe(true);
-      expect(
-        matchesSearch(createOneMonitor, getSearchTokens("CREATE MONITOR")),
-      ).toBe(true);
-      expect(
-        matchesSearch(createOneMonitor, getSearchTokens("CrEaTe MoNiToR")),
-      ).toBe(true);
-    });
-
-    it("should still match part of a word", () => {
-      /*
-       * Matching inside a word is what makes a search useful while it is still
-       * being typed, and it is what lets the singular a builder types reach the
-       * plural the generator wrote. Both predate this fix and both still hold.
-       */
-      expect(matchesSearch(createOneMonitor, getSearchTokens("mon"))).toBe(
-        true,
-      );
-      expect(
-        matchesSearch(createOneMonitor, getSearchTokens("creat mon")),
-      ).toBe(true);
-      expect(
-        matchesSearch(createManyMonitors, getSearchTokens("create monitor")),
-      ).toBe(true);
-    });
-
-    it("should score a search of several words above zero", () => {
-      /*
-       * Every branch of the per-word score tests one whole token against one
-       * field, so scoring the search as a single string gave a score of exactly
-       * zero to the very component it was meant to find. With every score zero
-       * the order fell through to the alphabetical tie-break, which is to say
-       * there was no ranking at all for any search longer than one word.
-       */
-      expect(getSearchScore(createOneMonitor, ["create monitor"])).toBe(0);
-      expect(
-        getSearchScore(createOneMonitor, getSearchTokens("create monitor")),
-      ).toBeGreaterThan(0);
-    });
-
-    it("should score a component matching both words above one matching a single word", () => {
-      const tokens: Array<string> = getSearchTokens("create monitor");
-
-      expect(getSearchScore(createOneMonitor, tokens)).toBeGreaterThan(
-        getSearchScore(updateOneMonitor, tokens),
-      );
-
-      /*
-       * "Update One Monitor" earns the "monitor" half and nothing for "create",
-       * so its score for the two words is the score of one of them.
-       */
-      expect(getSearchScore(updateOneMonitor, tokens)).toBe(
-        getSearchScore(updateOneMonitor, getSearchTokens("monitor")),
-      );
-    });
-
-    it("should score a title the search starts above a match found only in the description", () => {
-      const tokens: Array<string> = getSearchTokens("run");
-
-      // "Manual" mentions the word only in "Run this workflow manually".
-      expect(manualComponent.title.toLowerCase()).not.toContain("run");
-      expect(manualComponent.category.toLowerCase()).not.toContain("run");
-
-      expect(getSearchScore(manualComponent, tokens)).toBeGreaterThan(0);
-      expect(
-        getSearchScore(runCustomJavaScriptComponent, tokens),
-      ).toBeGreaterThan(getSearchScore(manualComponent, tokens));
-    });
-
-    it("should score nothing when nothing has been typed", () => {
-      // Nothing to rank by, so the modal falls back to sorting by title.
-      expect(getSearchScore(createOneMonitor, getSearchTokens(""))).toBe(0);
-      expect(getSearchScore(createOneMonitor, [])).toBe(0);
-    });
-
-    it("should rank the components that create Monitors first for 'create monitor'", () => {
-      const tokens: Array<string> = getSearchTokens("create monitor");
-
-      /*
-       * Out of both operations of two models plus the hand-written components,
-       * only the two that create Monitors survive: the other Monitor
-       * components have no "create" anywhere, and the Team components have no
-       * "monitor".
-       */
-      expect(rankBySearch(palette, "create monitor")).toEqual([
-        "Create Many Monitors",
-        "Create One Monitor",
-      ]);
-
-      /*
-       * Those two score identically - nothing in the scoring can prefer "One"
-       * over "Many" - so it is the alphabetical tie-break that puts Many first,
-       * not the ranking. Typing the third word is what separates them.
-       */
-      expect(getSearchScore(createManyMonitors, tokens)).toBe(
-        getSearchScore(createOneMonitor, tokens),
-      );
-      expect(rankBySearch(palette, "create one monitor")).toEqual([
-        "Create One Monitor",
-      ]);
-
-      /*
-       * The two survivors also outscore what the filter dropped, so the
-       * ranking would hold them at the top even in a palette where the other
-       * components still matched.
-       */
-      expect(getSearchScore(createOneMonitor, tokens)).toBeGreaterThan(
-        getSearchScore(findOneMonitor, tokens),
-      );
-      expect(getSearchScore(createOneMonitor, tokens)).toBeGreaterThan(
-        getSearchScore(deleteManyMonitors, tokens),
-      );
-      expect(getSearchScore(createOneMonitor, tokens)).toBeGreaterThan(
-        getSearchScore(createOneTeam, tokens),
-      );
-    });
-
-    it("should show the component in the modal when the builder types 'create monitor'", () => {
-      /*
-       * The same regression through the modal itself, since the empty state -
-       * and the conclusion that the integration has to be built by hand - is
-       * what a builder actually met.
-       */
-      render(
-        <ComponentsModal
-          componentsType={ComponentType.Component}
-          onCloseModal={mockOnCloseModal}
-          onComponentClick={mockOnComponentClick}
-          components={[...monitorComponents, ...teamComponents]}
-          categories={[
-            getComponentCategory("Monitor"),
-            getComponentCategory("Team"),
-          ]}
-        />,
-      );
-
-      fireEvent.change(
-        screen.getByPlaceholderText(
-          "Search components by name, description, or category",
-        ),
-        {
-          target: { value: "create monitor" },
+    expect(
+      Array.from(first.querySelectorAll("mark")).map(
+        (mark: HTMLElement): string | null => {
+          return mark.textContent;
         },
-      );
+      ),
+    ).toEqual(["Create", "Inc"]);
+    expect(first).toHaveAccessibleName("Create One Incident");
+    expect(first).toHaveAccessibleDescription(
+      "Database query to create one Incident",
+    );
+    expect(first).toHaveTextContent("Incident");
+  });
 
-      expect(
-        screen.getByRole("button", { name: "Create One Monitor" }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "Create Many Monitors" }),
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole("button", { name: "Find One Monitor" }),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole("button", { name: "Create One Team" }),
-      ).not.toBeInTheDocument();
-    });
+  it("name the table of a resource that shares its name", () => {
+    renderPicker();
+
+    search("create one subscriber notification template");
+
+    const options: Array<HTMLElement> = screen.getAllByRole("option");
+
+    expect(options).toHaveLength(2);
+    expect(
+      options.map((option: HTMLElement): string => {
+        return option.textContent || "";
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          "Status Page Subscriber Notification Template Status Page",
+        ),
+      ]),
+    );
+  });
+
+  it("add the result clicked", () => {
+    const onComponentClick: MockFunction = getJestMockFunction();
+    renderPicker({ onComponentClick });
+
+    search("incident state");
+    fireEvent.click(screen.getAllByRole("option")[2]!);
+
+    expect(onComponentClick).toHaveBeenCalledTimes(1);
+    expect(onComponentClick).toHaveBeenCalledWith(
+      findByTitle(palette.components, "Find One Incident State"),
+    );
+  });
+
+  it("say what to try when nothing matches, and clear back to the view", () => {
+    renderPicker();
+
+    search("zzzz qqq");
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("No components match “zzzz qqq”"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Check the spelling, or try fewer or different words. For anything that is not here, the API components and Run Custom JavaScript can work with any service.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "No components match.",
+    );
+
+    /*
+     * The × in the box clears it too; this is the button under the advice,
+     * the one with words on it.
+     */
+    expect(
+      screen.getAllByRole("button", { name: "Clear search" }),
+    ).toHaveLength(2);
+    fireEvent.click(screen.getByText("Clear search").closest("button")!);
+
+    expect(screen.getByRole("combobox")).toHaveValue("");
+    expect(screen.getByRole("combobox")).toHaveFocus();
+    expect(section("Popular")).toBeInTheDocument();
+  });
+
+  it("point a trigger search that finds nothing at the Webhook trigger", () => {
+    renderPicker({ componentsType: ComponentType.Trigger });
+
+    search("zzzz");
+
+    expect(
+      screen.getByText(
+        "Check the spelling, or try fewer or different words. To start this workflow from another tool, use the Webhook trigger.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("treat punctuation alone as no search at all", () => {
+    renderPicker();
+
+    search("/ - ?");
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(section("Popular")).toBeInTheDocument();
+    // The box still holds what was typed, and can be cleared.
+    expect(
+      screen.getByRole("button", { name: "Clear search" }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("the categories a caller hands in", () => {
+  it("are optional: steps without one are still shown and searchable", () => {
+    const categories: Array<ComponentCategory> = [];
+    renderPicker({ categories });
+
+    expect(screen.getByRole("button", { name: "Log" })).toBeInTheDocument();
+    search("incident");
+    expect(optionTitles()[0]).toBe("Create One Incident");
   });
 });

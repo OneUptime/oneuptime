@@ -7,6 +7,7 @@ import {
 } from "../Types/CLITypes";
 import {
   getCurrentContext,
+  load,
   CLIOptions,
   getResolvedCredentials,
 } from "../Core/ConfigManager";
@@ -66,13 +67,15 @@ export function registerUtilityCommands(program: Command): void {
     .description("Show current authentication info")
     .action(() => {
       try {
-        const ctx: CLIContext | null = getCurrentContext();
         const opts: Record<string, unknown> = program.opts();
         const cliOpts: CLIOptions = {
           apiKey: opts["apiKey"] as string | undefined,
           url: opts["url"] as string | undefined,
           context: opts["context"] as string | undefined,
         };
+        const ctx: CLIContext | null = cliOpts.context
+          ? load().contexts[cliOpts.context] || null
+          : getCurrentContext();
 
         let creds: ResolvedCredentials;
         try {
@@ -95,7 +98,7 @@ export function registerUtilityCommands(program: Command): void {
         console.log(`URL:     ${creds.apiUrl}`);
         // eslint-disable-next-line no-console
         console.log(`API Key: ${maskedKey}`);
-        if (ctx) {
+        if (ctx && ctx.apiKey === creds.apiKey && ctx.apiUrl === creds.apiUrl) {
           // eslint-disable-next-line no-console
           console.log(`Context: ${ctx.name}`);
         }

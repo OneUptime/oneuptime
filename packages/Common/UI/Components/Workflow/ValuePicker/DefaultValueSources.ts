@@ -1,20 +1,35 @@
 /*
  * The sources the value picker uses unless it is told otherwise: the steps
- * that run before this one, and the workflow's variables. Both need the API
- * (a record's fields, the variable list), which is why they are put together
- * here and not in the pure modules they are built from.
+ * that run before this one, what they held the last times they ran, and the
+ * workflow's variables. All need the API (a record's fields, the runs, the
+ * variable list), which is why they are put together here and not in the
+ * pure modules they are built from.
  *
- * A new source - values from the last run, say - is added by handing the
- * provider a longer list (ValuePickerProvider's `sources`).
+ * Another source is added by handing the provider a longer list
+ * (ValuePickerProvider's `sources`).
  */
 
+import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../../Types/API/HTTPResponse";
+import URL from "../../../../Types/API/URL";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import EqualToOrNull from "../../../../Types/BaseDatabase/EqualToOrNull";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import {
+  StepSample,
+  parseStepSamplesResponse,
+} from "../../../../Types/Workflow/StepSamples";
 import { WorkflowVariableType } from "../../../../Types/Workflow/WorkflowVariableOAuth";
 import WorkflowVariable from "../../../../Models/DatabaseModels/WorkflowVariable";
+import { WORKFLOW_URL } from "../../../Config";
+import API from "../../../Utils/API/API";
 import ModelAPI, { ListResult } from "../../../Utils/ModelAPI/ModelAPI";
 import { fetchModelSchema } from "../ModelSchema";
+import {
+  LoadStepSamplesFunction,
+  createStepSampleSource,
+} from "./StepSampleSource";
 import { createStepValueSource } from "./StepValueSource";
 import {
   ValueSuggestionContext,
@@ -70,6 +85,31 @@ export const loadWorkflowVariables: LoadWorkflowVariablesFunction = async (
   );
 };
 
+/**
+ * What these steps held the last times the workflow ran (see the workflow
+ * service's /step-samples). The project goes in the tenant header, like any
+ * other read of the project's data.
+ */
+export const loadStepSamples: LoadStepSamplesFunction = async (
+  workflowId: ObjectID,
+  componentIds: Array<string>,
+): Promise<Array<StepSample>> => {
+  const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: URL.fromString(WORKFLOW_URL.toString()).addRoute(
+        `/step-samples/${workflowId.toString()}`,
+      ),
+      data: { componentIds: componentIds },
+      headers: ModelAPI.getCommonHeaders(),
+    });
+
+  if (result instanceof HTTPErrorResponse) {
+    throw result;
+  }
+
+  return parseStepSamplesResponse(result.data);
+};
+
 export type CreateVariableValueSourceFunction = (
   load?: LoadWorkflowVariablesFunction,
 ) => ValueSuggestionSource;
@@ -102,6 +142,7 @@ export const createDefaultValueSources: CreateDefaultValueSourcesFunction =
           return fetchModelSchema(tableName, "read");
         },
       }),
+      createStepSampleSource({ load: loadStepSamples }),
       createVariableValueSource(),
     ];
   };

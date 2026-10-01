@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddMonitorSecretAccessScope1797000000000
+export class AddMonitorSecretAccessScope1797100000000
   implements MigrationInterface
 {
-  name = "AddMonitorSecretAccessScope1797000000000";
+  public name: string = "AddMonitorSecretAccessScope1797100000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

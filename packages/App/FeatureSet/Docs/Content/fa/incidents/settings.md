@@ -381,7 +381,7 @@
 
 ## راندن حادثه‌ها از گردش‌های کاری
 
-تریگرهای گردش کاری برای حادثه‌ها دست‌نویس نیستند — OneUptime آن‌ها را از مدل‌های داده تولید می‌کند، پس هر مدلی از خانواده حادثه مؤلفه‌های **On Create X**، **On Update X** و **On Delete X** می‌گیرد، که از نام مفرد مدل نام‌گذاری می‌شوند. سه‌تای سرخط **On Create Incident**، **On Update Incident** و **On Delete Incident** هستند، و آن‌ها را زیر دسته **Incident** در پنل **Add Component** در `/dashboard/{projectId}/workflows` می‌یابید.
+تریگرهای گردش کاری برای حادثه‌ها دست‌نویس نیستند — OneUptime آن‌ها را از مدل‌های داده تولید می‌کند، پس هر مدلی از خانواده حادثه مؤلفه‌های **On Create X**، **On Update X** و **On Delete X** می‌گیرد، که از نام مفرد مدل نام‌گذاری می‌شوند. سه‌تای سرخط **On Create Incident**، **On Update Incident** و **On Delete Incident** هستند. آن‌ها را در پنل **Add Trigger** در `/dashboard/{projectId}/workflows` زیر **OneUptime resources → Incident** می‌یابید؛ دوتای اول زیر **Popular** هم هستند.
 
 همان تولید، تریگرهایی برای خود پیکربندی هم به شما می‌دهد: **On Create Incident State**، **On Update Incident Severity**، **On Create Incident Template**، **On Create Incident Note Template**، **On Create Incident State Timeline**، **On Create Incident Public Note**، **On Create Incident Internal Note**، **On Create Incident On-Call Rule**، **On Create Incident Role**، **On Create Incident Member** و بیشتر. هر مدلی مؤلفه‌های کنش متناظر هم می‌گیرد — **Find One Incident**، **Create One Incident**، **Update One Incident**، **Delete One Incident** و معادل‌های چندسطری‌شان — پس تریگری و کنشی با نام‌های مشابه کنار هم در همان دسته می‌نشینند. **On Create Incident** گردش کاری‌ای را آغاز می‌کند؛ **Create One Incident** حادثه‌ای باز می‌کند.
 

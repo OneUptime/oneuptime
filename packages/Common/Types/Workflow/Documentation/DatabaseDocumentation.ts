@@ -13,8 +13,8 @@
 
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "../../JSON";
-import Text from "../../Text";
 import { NodeDataProp } from "../Component";
+import { DatabaseOperation, getDatabaseOperation } from "../DatabaseOperation";
 import { componentReturnValueReference } from "../TemplateSyntax";
 import ComponentDocumentation, {
   ComponentDocumentationExample,
@@ -43,50 +43,14 @@ import {
   getWorkflowModel,
 } from "./ModelExamples";
 
-/** The eleven kinds of generated step, by the end of their component id. */
-export enum DatabaseOperation {
-  FindOne = "find-one",
-  FindMany = "find-many",
-  CreateOne = "create-one",
-  CreateMany = "create-many",
-  UpdateOne = "update-one",
-  UpdateMany = "update-many",
-  DeleteOne = "delete-one",
-  DeleteMany = "delete-many",
-  OnCreate = "on-create",
-  OnUpdate = "on-update",
-  OnDelete = "on-delete",
-}
-
-export type GetDatabaseOperationFunction = (data: {
-  componentId: string;
-  tableName: string;
-}) => DatabaseOperation | null;
-
 /*
- * BaseModelComponent.getComponents names each step
- * `<table name in dashes>-<operation>`.
+ * Which of the eleven generated steps a component is, read off the end of
+ * its id. It lives in Types/Workflow/DatabaseOperation so the Add Component
+ * picker can use it without loading this help; re-exported here for the
+ * code and tests that have always imported it from this file.
  */
-export const getDatabaseOperation: GetDatabaseOperationFunction = (data: {
-  componentId: string;
-  tableName: string;
-}): DatabaseOperation | null => {
-  const prefix: string = `${Text.pascalCaseToDashes(data.tableName)}-`;
-
-  if (!data.componentId.startsWith(prefix)) {
-    return null;
-  }
-
-  const suffix: string = data.componentId.slice(prefix.length);
-
-  return (
-    Object.values(DatabaseOperation).find(
-      (operation: DatabaseOperation): boolean => {
-        return operation === suffix;
-      },
-    ) || null
-  );
-};
+export { DatabaseOperation, getDatabaseOperation };
+export type { GetDatabaseOperationFunction } from "../DatabaseOperation";
 
 /*
  * The words every page uses for the model. No sentence puts "a" or "an" in
