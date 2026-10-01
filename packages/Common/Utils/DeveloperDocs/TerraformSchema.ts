@@ -10,6 +10,7 @@ import {
 import TableColumnType from "../../Types/Database/TableColumnType";
 import { JSONValue } from "../../Types/JSON";
 import Permission from "../../Types/Permission";
+import { isSecretFieldName } from "./TerraformValues";
 
 /*
  * What the OneUptime Terraform provider makes of a model, worked out in the
@@ -72,6 +73,7 @@ export interface TerraformAttributeDescriptor {
   attributeName: string;
   title: string;
   kind: TerraformValueKind;
+  columnType: TableColumnType;
   inCreateSchema: boolean;
   inUpdateSchema: boolean;
   isRequired: boolean;
@@ -155,14 +157,6 @@ export const SERVER_MANAGED_COLUMNS_BY_TABLE: Readonly<
   InventoryItem: ["firstSeenAt"],
   NetworkDevice: ["isMacAddressLearned"],
 };
-
-/*
- * Column names that hold credentials even where the column type does not say
- * so (a webhook URL's secret part, an SNMP community string, a status
- * embed token).
- */
-const SECRET_COLUMN_NAME: RegExp =
-  /(secret|password|passphrase|token|apikey|privatekey|authkey|privkey|communitystring|credential)/i;
 
 /*
  * The provider's resource and attribute names: its StringUtils.toSnakeCase
@@ -328,7 +322,7 @@ function getSecretKind(
    */
   if (
     getKindForColumn(column) === TerraformValueKind.String &&
-    SECRET_COLUMN_NAME.test(columnName)
+    isSecretFieldName(columnName)
   ) {
     return TerraformSecretKind.Secret;
   }
@@ -519,6 +513,7 @@ export function getTerraformAttributes(
       attributeName: toTerraformSnakeCase(columnName),
       title: column.title || columnName,
       kind: getKindForColumn(column),
+      columnType: column.type,
       inCreateSchema,
       inUpdateSchema,
       isRequired: inCreateSchema && isColumnRequiredOnCreate(column),

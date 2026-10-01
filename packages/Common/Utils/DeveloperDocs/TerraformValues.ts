@@ -10,12 +10,79 @@ import { Hcl, HclExpression, HclObjectAttribute } from "./Hcl";
  */
 
 /*
- * Key names that hold credentials inside JSON values: a database monitor's
- * password, an integration's token. Only non-empty string values under them
- * are treated as secrets; `isSecret: true` is not one.
+ * The last word of a field name that makes it a credential: `password`,
+ * `clientSecret`, `bearerToken`, `credentials`.
  */
-const SECRET_KEY_NAME: RegExp =
-  /(secret|password|passphrase|token|apikey|api_key|api-key|privatekey|private_key|authkey|privkey|communitystring|credential)/i;
+const SECRET_LAST_WORDS: ReadonlyArray<string> = [
+  "password",
+  "passwd",
+  "passphrase",
+  "secret",
+  "secrets",
+  "token",
+  "credential",
+  "credentials",
+];
+
+/*
+ * What makes a `...Key` a credential: `apiKey`, `secretKey`, `privateKey`,
+ * `snmpV3AuthKey`, `customCertificateKey` (a TLS private key). A bare `key`
+ * is left alone: it is as often an identifier (a role's key, a measurement's
+ * key) as a credential.
+ */
+const SECRET_KEY_QUALIFIERS: ReadonlyArray<string> = [
+  "secret",
+  "api",
+  "private",
+  "auth",
+  "priv",
+  "access",
+  "signing",
+  "encryption",
+  "client",
+  "license",
+  "master",
+  "certificate",
+];
+
+// A field name's words: "webhookSecretKey" -> webhook, secret, key; "x-api-key" -> x, api, key.
+function getFieldNameWords(name: string): Array<string> {
+  return name
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((word: string): boolean => {
+      return word.length > 0;
+    });
+}
+
+/*
+ * Whether a field's name says it holds a credential. Decided by its last
+ * words, so `apiKey`, `webhookSecretKey`, `snmpCommunityString` and
+ * `bearerToken` are secrets while `apiKeyId`, `credentialType`,
+ * `tokenExpiresAt` and `secretsCount` (which only mention one) are not.
+ * Only text is ever a secret: `isSecret: true` is not one.
+ */
+export function isSecretFieldName(name: string): boolean {
+  const words: Array<string> = getFieldNameWords(name);
+  const last: string | undefined = words[words.length - 1];
+  const previous: string | undefined = words[words.length - 2];
+
+  if (!last) {
+    return false;
+  }
+
+  if (SECRET_LAST_WORDS.includes(last)) {
+    return true;
+  }
+
+  if (last === "key" && previous && SECRET_KEY_QUALIFIERS.includes(previous)) {
+    return true;
+  }
+
+  return last === "string" && previous === "community";
+}
 
 // HTTP headers whose value is a credential.
 const SECRET_HEADER_NAME: RegExp =
@@ -29,7 +96,7 @@ const SECRET_HEADER_NAME: RegExp =
 const MONITOR_SECRET_REFERENCE: RegExp = /\{\{\s*monitorSecrets\./;
 
 export function isSecretKeyName(key: string): boolean {
-  return SECRET_KEY_NAME.test(key);
+  return isSecretFieldName(key);
 }
 
 export function isSecretHeaderName(name: string): boolean {
