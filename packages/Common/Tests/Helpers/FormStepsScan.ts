@@ -4,7 +4,9 @@ import ts from "typescript";
 
 /*
  * The detector behind the "long forms walk steps" guard
- * (Tests/UI/Components/Forms/LongFormStepsGuard.test.ts).
+ * (Tests/UI/Components/Forms/LongFormStepsGuard.test.ts) and the "no step
+ * packs too many options" guard (OverloadedFormStepsGuard.test.ts, see
+ * findOverloadedSteps at the end).
  *
  * The rule, in the maintainer's words: "have formsteps ... for any long forms
  * in the project (anything > 3 fields)". A form of more than three fields the
@@ -138,6 +140,12 @@ export interface FormFacts {
   hasEditForm: boolean;
   // The fields the user can see, on the longer of the forms the host draws.
   visibleFieldCount: number;
+  /*
+   * The form edits a rule model (one extending RuleBaseModel), whose
+   * Match Criteria step ModelForm draws as one criteria builder in place of
+   * the fields listed on it (RuleCriteriaModelForm).
+   */
+  isRuleModel: boolean;
 }
 
 export type FormStepProblemKind =
@@ -187,6 +195,10 @@ interface Resolution {
 }
 
 const MAX_DEPTH: number = 12;
+
+// A model class whose Match Criteria step ModelForm draws as one builder.
+const RULE_MODEL_CLASS: RegExp =
+  /class\s+\w+\s+extends\s+(RuleBaseModel|RelationOnlyRuleBaseModel)\b/;
 
 const LIST_METHODS: ReadonlySet<string> = new Set<string>([
   "map",
@@ -1221,6 +1233,11 @@ export class FormStepsScanner {
       visibleFieldCount = Math.max(onCreate, onEdit);
     }
 
+    const modelTypeExpression: ts.Expression | null =
+      this.readHostValue(parsed, attributes, "modelType") ||
+      this.readHostValue(parsed, attributes, "modelDetailProps.modelType") ||
+      this.readHostValue(parsed, attributes, "formProps.modelType");
+
     return {
       file: toRepositoryPath(this.repositoryRoot, parsed.file),
       line:
@@ -1239,7 +1256,39 @@ export class FormStepsScanner {
       hasSummaryOnly: hasSummary && !hasSteps,
       hasEditForm,
       visibleFieldCount,
+      isRuleModel: modelTypeExpression
+        ? this.isRuleModelType(parsed, modelTypeExpression)
+        : false,
     };
+  }
+
+  /*
+   * Whether a modelType expression names a model class that extends
+   * RuleBaseModel (directly, or through RelationOnlyRuleBaseModel): an
+   * imported identifier whose file declares such a class.
+   */
+  private isRuleModelType(
+    parsed: ParsedFile,
+    expression: ts.Expression,
+  ): boolean {
+    const value: ts.Node = unwrap(expression);
+
+    if (!ts.isIdentifier(value)) {
+      return false;
+    }
+
+    const imported: { file: string; exported: string } | undefined =
+      parsed.imports.get(value.text);
+
+    const text: string | null = imported
+      ? this.fileSystem.readFile(imported.file)
+      : parsed.sourceFile.getFullText();
+
+    if (!text) {
+      return false;
+    }
+
+    return RULE_MODEL_CLASS.test(text);
   }
 
   // A JSX attribute's expression, or a key of the object an attribute holds.
@@ -1746,6 +1795,110 @@ export function findStepProblems(
   }
 
   return problems;
+}
+
+/*
+ * "Infact please audit forms everywhere in the project and if there are a lot
+ * of options in single step, we can split in into multiple steps." - the
+ * maintainer, on the Create OAuth 2.0 Variable form, whose second step asked
+ * for eight settings on one scrolling page.
+ *
+ * A step is one screen of a dialog. More than this many fields on one step -
+ * each with its label and its help - no longer fits that screen, and the
+ * step stops asking one question. The OAuth step was eight.
+ */
+export const STEP_FIELD_LIMIT: number = 5;
+
+export interface StepFieldCount {
+  form: FormFacts;
+  step: FormStepFacts;
+  // The fields on the step the user can see, on its longer form.
+  fields: Array<FormFieldFacts>;
+  // How many of them the user can see at once (see countStepFields).
+  count: number;
+}
+
+/*
+ * Every step of a stepped form, with the fields it can show. Counted like a
+ * form's length: a field shown under a condition counts (the step can be
+ * that long), a constant `showIf: () => false` registration does not, and a
+ * ModelTable is judged by the longer of its Create and Edit forms. A rule
+ * model's Match Criteria step counts as one field, because ModelForm draws
+ * the criteria builder there instead of the fields listed on it.
+ *
+ * A field is only placed on a step when its stepId is written as a string;
+ * a field from a helper that takes its step as an argument is left to that
+ * helper's own tests, as the stepped form checks above leave it.
+ */
+export function countStepFields(form: FormFacts): Array<StepFieldCount> {
+  if (!form.hasSteps || form.hasSummaryOnly || !form.steps) {
+    return [];
+  }
+
+  const counts: Array<StepFieldCount> = [];
+
+  for (const step of form.steps) {
+    if (!step.id) {
+      continue;
+    }
+
+    const onStep: Array<FormFieldFacts> = form.fields.filter(
+      (field: FormFieldFacts): boolean => {
+        return !field.isNeverShown && field.stepId === step.id;
+      },
+    );
+
+    let count: number = onStep.length;
+
+    if (form.host === "ModelTable" || form.host === "RuleTable") {
+      const onCreate: number = onStep.filter(
+        (field: FormFieldFacts): boolean => {
+          return !field.isEditOnly;
+        },
+      ).length;
+      const onEdit: number = form.hasEditForm
+        ? onStep.filter((field: FormFieldFacts): boolean => {
+            return !field.isCreateOnly;
+          }).length
+        : 0;
+      count = Math.max(onCreate, onEdit);
+    }
+
+    if (step.id === RULE_CRITERIA_STEP_ID && form.isRuleModel && count > 0) {
+      count = 1;
+    }
+
+    counts.push({ form, step, fields: onStep, count });
+  }
+
+  return counts;
+}
+
+// Mirrors MATCH_CRITERIA_STEP_ID in UI/Components/RuleCriteria.
+export const RULE_CRITERIA_STEP_ID: string = "match-criteria";
+
+// Steps that can show more than STEP_FIELD_LIMIT fields.
+export function findOverloadedSteps(
+  forms: Array<FormFacts>,
+): Array<StepFieldCount> {
+  return forms.flatMap((form: FormFacts): Array<StepFieldCount> => {
+    return countStepFields(form).filter((count: StepFieldCount): boolean => {
+      return count.count > STEP_FIELD_LIMIT;
+    });
+  });
+}
+
+export function describeStepFieldCount(count: StepFieldCount): string {
+  const titles: Array<string> = count.fields.map(
+    (field: FormFieldFacts): string => {
+      return (
+        (field.title || field.key || "?") +
+        (field.isConditional ? " (when shown)" : "")
+      );
+    },
+  );
+
+  return `${count.form.file}:${count.form.line} ${count.form.label} - step "${count.step.id}" (${count.step.title}) shows ${count.count} fields: ${titles.join(", ")}`;
 }
 
 export function describeForm(form: FormFacts): string {

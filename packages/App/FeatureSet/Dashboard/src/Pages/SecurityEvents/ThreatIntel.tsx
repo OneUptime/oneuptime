@@ -133,10 +133,18 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           shouldWriteDetectionFinding: true,
           shouldCreateIncident: false,
         }}
+        /*
+         * The feed (what to poll, how often, which indicators to keep), how
+         * to sign in to it, then what a match does - as the detection rules
+         * ask it. The server and its credentials were one step of six, and
+         * the confidence floor sat with the match actions it does not
+         * belong to: it decides which indicators are ingested at all.
+         */
         formSteps={[
           { title: "Basic Info", id: "basic-info" },
           { title: "TAXII Server", id: "taxii-server" },
-          { title: "Matching", id: "matching" },
+          { title: "Authentication", id: "authentication" },
+          { title: "On Match", id: "matching" },
         ]}
         formFields={[
           {
@@ -202,7 +210,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               apiToken: true,
             },
             title: "API Token",
-            stepId: "taxii-server",
+            stepId: "authentication",
             description:
               "Bearer token for token-authenticated collections. Encrypted at rest and never returned by the API — use the row's Update Credentials action to rotate it later. Leave empty for anonymous or basic-auth collections.",
             fieldType: FormFieldSchemaType.Password,
@@ -220,7 +228,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               basicAuthUsername: true,
             },
             title: "Basic Auth Username",
-            stepId: "taxii-server",
+            stepId: "authentication",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "Leave empty for anonymous access",
@@ -231,7 +239,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               basicAuthPassword: true,
             },
             title: "Basic Auth Password",
-            stepId: "taxii-server",
+            stepId: "authentication",
             description:
               "Encrypted at rest and never returned by the API — use the row's Update Credentials action to rotate it later.",
             fieldType: FormFieldSchemaType.Password,
@@ -265,7 +273,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               minimumConfidence: true,
             },
             title: "Minimum Confidence",
-            stepId: "matching",
+            stepId: "taxii-server",
             description:
               "Skip indicators whose STIX confidence is below this (0-100). 0 ingests everything; indicators that carry no confidence always pass.",
             fieldType: FormFieldSchemaType.Number,

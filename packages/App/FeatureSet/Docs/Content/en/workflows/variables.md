@@ -70,18 +70,32 @@ Authorization: Bearer {{global.variables.CRM_API_TOKEN}}
 - **Client Credentials**: OneUptime signs in as your application. This is the usual choice for server-to-server APIs such as Microsoft Graph, Auth0 or Okta APIs, or an internal service behind Keycloak.
 - **Refresh Token**: for delegated access on behalf of a user. Authorise the application once (for example in your provider's OAuth playground or with Postman) and paste the refresh token you get. OneUptime exchanges it for access tokens. If your provider rotates refresh tokens, OneUptime saves each new one. A public client with no client secret works too.
 
-### Settings
+### Creating one
 
-- **Token URL**: your provider's token endpoint, for example `https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token` (Microsoft Entra ID), `https://oauth2.googleapis.com/token` (Google), `https://{your-domain}/oauth2/default/v1/token` (Okta) or `https://{your-domain}/oauth/token` (Auth0).
-- **Client ID** and **Client Secret**: from the application you registered with the provider.
-- **Refresh Token**: Refresh Token grant only.
-- **Scope**: space-separated. Leave it empty to get the provider's default scopes.
-- **Additional Parameters**: extra form fields for the token request, such as `audience` for Auth0 or `resource` for Azure AD v1. Anyone who can read the variable can read these, so don't put secrets here.
-- **Client Authentication**: whether the client ID and secret go in an HTTP Basic header (the default) or in the request body. If your provider answers `invalid_client`, try the other one.
+**Create OAuth 2.0 Variable** asks one thing per step:
+
+1. **Variable**: the name workflows refer to it by, and a description.
+2. **Provider**: pick your **Identity Provider** and OneUptime fills in its **Token URL**:
+
+   | Identity Provider | Token URL it fills in |
+   |---|---|
+   | Microsoft Entra ID | `https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token` |
+   | Google | `https://oauth2.googleapis.com/token` |
+   | Okta | `https://{your-domain}/oauth2/default/v1/token` |
+   | Auth0 | `https://{your-domain}/oauth/token` |
+
+   Replace the part in braces with your own value, such as your Directory (tenant) ID or your Okta domain. The form won't go on while the URL still has one. For any other provider, pick **Other provider** and enter its token endpoint yourself. Then pick the **Grant Type**. Picking Google selects **Refresh Token**, because Google's OAuth clients can't use Client Credentials. The provider only fills in the form; it isn't saved with the variable.
+3. **Credentials**: the **Client ID** and **Client Secret** of the application you registered with the provider and, for the Refresh Token grant, the **Refresh Token**. A public client on the Refresh Token grant can leave the client secret empty.
+4. **Advanced**, all optional:
+   - **Scope**: space-separated. Leave it empty to get the provider's default scopes. For Client Credentials, Microsoft Entra ID needs a scope ending in `/.default` (such as `https://graph.microsoft.com/.default`) and Okta needs a custom scope.
+   - **Additional Parameters**: extra form fields for the token request, such as `audience` for Auth0 (needed for Client Credentials) or `resource` for Azure AD v1. Anyone who can read the variable can read these, so don't put secrets here.
+   - **Client Authentication**: whether the client ID and secret go in an HTTP Basic header (the default) or in the request body. If your provider answers `invalid_client`, try the other one.
+
+Under some fields the form adds a line of help for the provider you picked, for example where Microsoft Entra ID shows your tenant ID, and that its client secret is the secret's **Value**, not its **Secret ID**.
 
 When you save a new OAuth 2.0 variable, OneUptime fetches its first token straight away and tells you what the provider said. A typo in the secret or the URL shows up then, not hours later in a failed run. (Fetching a token writes to the variable, so this needs permission to edit workflow variables. If you can create variables but not edit them, the first workflow run that uses the variable fetches its token instead.)
 
-The variable's page (click **View** on its row) has an **OAuth 2.0 Settings** card. **Edit Settings** changes the token URL, client ID, scope, additional parameters and client authentication; the grant type is fixed once saved.
+The variable's page (click **View** on its row) has an **OAuth 2.0 Settings** card. **Edit Settings** walks the same **Provider** (token URL), **Credentials** (client ID) and **Advanced** (scope, additional parameters, client authentication) steps. **Save Changes** is on every step, so you can change one setting and save without walking the others. The grant type is fixed once saved.
 
 ### The Access Token card
 

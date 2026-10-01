@@ -76,14 +76,27 @@ export default interface NotificationRuleCondition {
 }
 
 export class NotificationRuleConditionUtil {
+  /*
+   * Why a rule cannot be saved, or null when it can: its conditions first,
+   * then where it posts. The rule form asks the two on separate steps
+   * (Conditions, then Destination), and each step checks its own half.
+   */
   public static getValidationError(data: {
     notificationRule: IncidentNotificationRule;
     eventType: NotificationRuleEventType;
     workspaceType: WorkspaceType;
   }): string | null {
-    const { notificationRule, eventType, workspaceType } = data;
+    return (
+      NotificationRuleConditionUtil.getConditionsValidationError(data) ||
+      NotificationRuleConditionUtil.getDestinationValidationError(data)
+    );
+  }
 
-    for (const condition of notificationRule.filters) {
+  // The rule's conditions: every one complete. No conditions at all is fine.
+  public static getConditionsValidationError(data: {
+    notificationRule: IncidentNotificationRule | undefined;
+  }): string | null {
+    for (const condition of data.notificationRule?.filters || []) {
       if (!condition.checkOn) {
         return "Check On is required";
       }
@@ -100,6 +113,23 @@ export class NotificationRuleConditionUtil {
         return `Value is required for ${condition.checkOn}`;
       }
     }
+
+    return null;
+  }
+
+  /*
+   * Where the rule posts: an event that can get a channel of its own needs
+   * at least one destination, and every destination picked needs what it
+   * posts to.
+   */
+  public static getDestinationValidationError(data: {
+    notificationRule: IncidentNotificationRule | undefined;
+    eventType: NotificationRuleEventType;
+    workspaceType: WorkspaceType;
+  }): string | null {
+    const { eventType, workspaceType } = data;
+    const notificationRule: Partial<IncidentNotificationRule> =
+      data.notificationRule || {};
 
     if (
       eventType === NotificationRuleEventType.Incident ||

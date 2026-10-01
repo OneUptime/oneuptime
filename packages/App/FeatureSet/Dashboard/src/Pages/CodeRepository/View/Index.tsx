@@ -25,10 +25,18 @@ const CodeRepositoryView: FunctionComponent<
           title: "Repository Details",
           description: "Here are more details for this repository.",
         }}
+        /*
+         * What the repository is called, then where its code lives: one
+         * step of six fields before.
+         */
         formSteps={[
           {
             title: "Repository Info",
             id: "repository-info",
+          },
+          {
+            title: "Source",
+            id: "source",
           },
           {
             title: "Labels",
@@ -64,7 +72,7 @@ const CodeRepositoryView: FunctionComponent<
             field: {
               repositoryHostedAt: true,
             },
-            stepId: "repository-info",
+            stepId: "source",
             title: "Repository Host",
             description: "Where is this repository hosted?",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -77,7 +85,7 @@ const CodeRepositoryView: FunctionComponent<
             field: {
               organizationName: true,
             },
-            stepId: "repository-info",
+            stepId: "source",
             title: "Organization / Username",
             description:
               "The GitHub organization or username that owns the repository.",
@@ -89,7 +97,7 @@ const CodeRepositoryView: FunctionComponent<
             field: {
               repositoryName: true,
             },
-            stepId: "repository-info",
+            stepId: "source",
             title: "Repository Name",
             description: "The name of the repository.",
             fieldType: FormFieldSchemaType.Text,
@@ -100,7 +108,7 @@ const CodeRepositoryView: FunctionComponent<
             field: {
               mainBranchName: true,
             },
-            stepId: "repository-info",
+            stepId: "source",
             title: "Main Branch",
             description:
               "The main branch of the repository (e.g., main, master).",

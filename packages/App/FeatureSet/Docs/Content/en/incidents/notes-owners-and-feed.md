@@ -193,9 +193,9 @@ Adding the same person twice is safe; owners already assigned are not duplicated
 
 **Incident Owner Rules** auto-assign owner users and teams when matching incidents are created — the routing layer that means a database incident lands on the database team without anyone thinking about it. You'll find them with the rest of the incident automation covered in [Incident Settings & Automation](/docs/incidents/settings).
 
-The rule form has three steps — **Basic Info**, **Match Criteria** and **Owners** — and the owners step holds two sections:
+The rule form has four steps — **Basic Info**, **Match Criteria**, **Owners** and **Inherit Owners**:
 
-- **Owners to Assign** — pick **Owner Teams** and **Owner Users**. When the rule matches, every selected user and team is added as an owner, and already-assigned owners are not duplicated.
+- **Owners** — pick **Owner Teams** and **Owner Users**. When the rule matches, every selected user and team is added as an owner, and already-assigned owners are not duplicated.
 - **Inherit Owners** — assign owners from related entities instead of naming them. **Inherit Owners From Monitors** makes every owner of the incident's monitors an owner of the incident, and **Inherit Owners From Hosts**, **… From Kubernetes Clusters**, **… From Docker Hosts**, **… From Podman Hosts** and **… From Services** do the same for those resources.
 
 A **Notify Owners** toggle controls whether people find out. Leave it on for real routing; turn it off to add owners silently — useful when a rule is a bookkeeping convenience rather than a page.

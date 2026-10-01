@@ -92,16 +92,10 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
       "Not a dialog: the inline editor at the bottom of an expanded layer card, already split into three titled sections (Layer details, Rotation schedule, Active hours) with one Save, under the rotation preview it updates.",
   },
   {
-    file: `${DASHBOARD}/Components/Workflow/WorkflowVariableView.tsx`,
-    form: "CardModelDetail: Workflow > OAuth 2.0 Settings",
-    reason:
-      "The OAuth 2.0 variable's settings share their fields with the OAuth 2.0 create form, which the form-steps-oauth task splits into clear steps next; both are stepped together there, and this entry goes with it.",
-  },
-  {
     file: `${DASHBOARD}/Components/Workspace/NotificationRuleForm/NotificationRuleForm.tsx`,
     form: "BasicForm #1",
     reason:
-      "The conditions and channel options of a workspace notification rule, drawn as one field inside the Rules step of the rule's own wizard (WorkspaceNotificationRulesTable); a stepper inside a step would nest one wizard in another. Most of its fields appear only for the posting option picked.",
+      "One half of a workspace notification rule, drawn as one field on a step of the rule's own wizard (WorkspaceNotificationRulesTable): its Conditions step, or its Destination step, which is the long one. A stepper inside a step would nest one wizard in another. At rest the Destination step is two or three switches (an existing channel, a Microsoft Teams chat, a new channel), and each one's own options appear only when it is switched on.",
   },
   {
     file: `${DASHBOARD}/Pages/SecurityEvents/ThreatIntel.tsx`,
