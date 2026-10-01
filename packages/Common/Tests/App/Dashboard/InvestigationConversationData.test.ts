@@ -1,25 +1,35 @@
+import { AIInvestigationStage } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AIInvestigationStatus";
 import {
   AI_DISPLAY_NAME,
+  AVATAR_TONES,
   DEFAULT_THREAD_PERMISSION_MODE,
   EMPTY_THREAD_VIEW,
   MAX_THREAD_QUESTION_LENGTH,
   SuggestedPrompt,
+  THREAD_FOLD_ABOVE_LENGTH,
+  THREAD_TAIL_LENGTH,
   ThreadMessage,
+  ThreadTail,
   ThreadView,
+  ToolActionOutcome,
   buildOptimisticQuestion,
   describeAuthor,
   describeAuthorPossessive,
+  describeConversation,
   describePermissionMode,
   describeThreadActivity,
+  describeToolActionOutcome,
   findActiveAssistantMessage,
   getAvatarTone,
   getInitials,
   getSendBlocker,
   getSuggestedPrompts,
   getThreadSignature,
+  getThreadTail,
   getVisibleWidgets,
   hasPendingApproval,
   isThreadBusy,
+  isToolActionAwaitingApproval,
   isViewer,
   parseStoredPermissionMode,
   parseThreadMessage,
@@ -29,6 +39,7 @@ import AIChatMessageRole from "../../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../../Types/AI/AIChatMessageStatus";
 import AIChatPermissionMode from "../../../Types/AI/AIChatPermissionMode";
 import {
+  AIChatToolAction,
   AIChatToolActionStatus,
   AIChatWidgetType,
 } from "../../../Types/AI/AIChatTypes";
@@ -542,5 +553,446 @@ describe("buildOptimisticQuestion", () => {
     expect(optimistic.author).toEqual({ userId: SAM, name: "Sam Lee" });
     expect(optimistic.createdAt).toBe(now);
     expect(optimistic.id).toBe(`optimistic-${now.getTime()}`);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The conversation as a section of the AI Investigation card
+ * ---------------------------------------------------------------------------
+ * What the card's state changes about the conversation, and how much of a
+ * long thread it opens with now that the thread is part of the page.
+ */
+
+const STAGES: Array<AIInvestigationStage> = [
+  "checking",
+  "underway",
+  "reported",
+  "none",
+];
+
+describe("what the conversation suggests for each stage of the investigation", () => {
+  test("leads with the root-cause question when the card has no report to read", () => {
+    const prompts: Array<SuggestedPrompt> = getSuggestedPrompts(
+      "incident",
+      "none",
+    );
+
+    expect(prompts[0]).toEqual({
+      label: "What is the root cause?",
+      prompt:
+        "What is the most likely root cause of this incident? Investigate it and cite the evidence.",
+    });
+    // A question, so it is asked on the click: only requests to act wait.
+    expect(prompts[0]!.isAction).toBeUndefined();
+    // In front of the usual five, which keep their order.
+    expect(prompts.slice(1)).toEqual(getSuggestedPrompts("incident"));
+  });
+
+  test("words the root-cause question for an alert", () => {
+    expect(getSuggestedPrompts("alert", "none")[0]!.prompt).toBe(
+      "What is the most likely root cause of this alert? Investigate it and cite the evidence.",
+    );
+  });
+
+  test.each([["checking"], ["underway"], ["reported"], [undefined]] as Array<
+    [AIInvestigationStage | undefined]
+  >)(
+    "does not offer it while the investigation is %s",
+    (stage: AIInvestigationStage | undefined) => {
+      const labels: Array<string> = getSuggestedPrompts("incident", stage).map(
+        (prompt: SuggestedPrompt): string => {
+          return prompt.label;
+        },
+      );
+
+      expect(labels).toEqual([
+        "What should I do right now?",
+        "What changed just before this?",
+        "Is anything else affected?",
+        "Draft a status update",
+        "Acknowledge this incident",
+      ]);
+    },
+  );
+
+  test("returns a fresh list each time, so one stage's list never leaks into another's", () => {
+    const withRootCause: Array<SuggestedPrompt> = getSuggestedPrompts(
+      "incident",
+      "none",
+    );
+
+    expect(getSuggestedPrompts("incident", "reported")).toHaveLength(5);
+    expect(getSuggestedPrompts("incident", "none")).toHaveLength(6);
+    expect(getSuggestedPrompts("incident", "none")).not.toBe(withRootCause);
+  });
+
+  test.each(
+    STAGES.map((stage: AIInvestigationStage): [AIInvestigationStage] => {
+      return [stage];
+    }),
+  )(
+    "only requests to act are marked as actions, whatever the stage (%s)",
+    (stage: AIInvestigationStage) => {
+      expect(
+        getSuggestedPrompts("alert", stage)
+          .filter((prompt: SuggestedPrompt): boolean => {
+            return prompt.isAction === true;
+          })
+          .map((prompt: SuggestedPrompt): string => {
+            return prompt.label;
+          }),
+      ).toEqual(["Acknowledge this alert"]);
+    },
+  );
+});
+
+describe("describeConversation", () => {
+  test("says 'follow-up' only under a report", () => {
+    expect(describeConversation("incident", "reported")).toBe(
+      "Ask a follow-up question, or ask it to act. Everyone on this incident sees this conversation.",
+    );
+
+    for (const stage of ["checking", "underway", "none", undefined] as Array<
+      AIInvestigationStage | undefined
+    >) {
+      expect(describeConversation("incident", stage)).toBe(
+        "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
+      );
+    }
+  });
+
+  test("names the subject it is about", () => {
+    expect(describeConversation("alert", "none")).toBe(
+      "Ask a question about this alert, or ask it to act. Everyone on this alert sees this conversation.",
+    );
+    expect(describeConversation("alert", "reported")).toContain(
+      "Everyone on this alert sees this conversation.",
+    );
+  });
+
+  test("always says the conversation is shared", () => {
+    for (const subjectType of ["incident", "alert"] as Array<
+      "incident" | "alert"
+    >) {
+      for (const stage of STAGES) {
+        expect(describeConversation(subjectType, stage)).toMatch(
+          /Everyone on this (incident|alert) sees this conversation\.$/,
+        );
+      }
+    }
+  });
+});
+
+describe("getThreadTail", () => {
+  // q1 a1 q2 a2 ... as the thread arrives: a question, then its answer.
+  function exchanges(count: number): Array<ThreadMessage> {
+    const messages: Array<ThreadMessage> = [];
+
+    for (let index: number = 1; index <= count; index++) {
+      messages.push(
+        message({ id: `q${index}`, role: AIChatMessageRole.User }),
+        message({ id: `a${index}`, role: AIChatMessageRole.Assistant }),
+      );
+    }
+
+    return messages;
+  }
+
+  function ids(messages: Array<ThreadMessage>): Array<string> {
+    return messages.map((item: ThreadMessage): string => {
+      return item.id;
+    });
+  }
+
+  test("keeps the newest three exchanges of a thread longer than four", () => {
+    expect(THREAD_TAIL_LENGTH).toBe(6);
+    expect(THREAD_FOLD_ABOVE_LENGTH).toBe(8);
+  });
+
+  test("an empty thread has nothing to fold", () => {
+    expect(getThreadTail([], false)).toEqual({ hiddenCount: 0, messages: [] });
+  });
+
+  test.each([[1], [2], [3], [4]])(
+    "a thread of %i exchanges is shown whole",
+    (count: number) => {
+      const messages: Array<ThreadMessage> = exchanges(count);
+      const tail: ThreadTail = getThreadTail(messages, false);
+
+      expect(tail.hiddenCount).toBe(0);
+      // The very same array: nothing is copied when nothing is folded.
+      expect(tail.messages).toBe(messages);
+    },
+  );
+
+  test("exactly eight messages are shown whole; the ninth folds the thread", () => {
+    const eight: Array<ThreadMessage> = exchanges(4);
+    expect(getThreadTail(eight, false).hiddenCount).toBe(0);
+
+    const nine: Array<ThreadMessage> = [
+      ...eight,
+      message({ id: "q5", role: AIChatMessageRole.User }),
+    ];
+    expect(getThreadTail(nine, false).hiddenCount).toBeGreaterThan(0);
+  });
+
+  test("a long thread opens on its last six messages", () => {
+    const tail: ThreadTail = getThreadTail(exchanges(6), false);
+
+    expect(tail.hiddenCount).toBe(6);
+    expect(ids(tail.messages)).toEqual(["q4", "a4", "q5", "a5", "q6", "a6"]);
+  });
+
+  test("never opens on an answer whose question is folded away", () => {
+    // Nine messages: six from the end is a2, so the cut moves back to q2.
+    const messages: Array<ThreadMessage> = [
+      ...exchanges(4),
+      message({ id: "q5", role: AIChatMessageRole.User }),
+    ];
+    const tail: ThreadTail = getThreadTail(messages, false);
+
+    expect(tail.hiddenCount).toBe(2);
+    expect(ids(tail.messages)).toEqual([
+      "q2",
+      "a2",
+      "q3",
+      "a3",
+      "q4",
+      "a4",
+      "q5",
+    ]);
+  });
+
+  test("an answer that follows another answer is not moved for", () => {
+    // Six from the end is a1c, and before it is a1b: no question to go back to.
+    const messages: Array<ThreadMessage> = [
+      message({ id: "q1", role: AIChatMessageRole.User }),
+      message({ id: "a1", role: AIChatMessageRole.Assistant }),
+      message({ id: "a1b", role: AIChatMessageRole.Assistant }),
+      message({ id: "a1c", role: AIChatMessageRole.Assistant }),
+      message({ id: "a1d", role: AIChatMessageRole.Assistant }),
+      message({ id: "q2", role: AIChatMessageRole.User }),
+      message({ id: "a2", role: AIChatMessageRole.Assistant }),
+      message({ id: "q3", role: AIChatMessageRole.User }),
+      message({ id: "a3", role: AIChatMessageRole.Assistant }),
+    ];
+    const tail: ThreadTail = getThreadTail(messages, false);
+
+    expect(tail.hiddenCount).toBe(3);
+    expect(ids(tail.messages)).toEqual(["a1c", "a1d", "q2", "a2", "q3", "a3"]);
+  });
+
+  test("the hidden and the shown always add up to the whole thread", () => {
+    for (let count: number = 0; count <= 12; count++) {
+      const messages: Array<ThreadMessage> = exchanges(count);
+
+      for (const extra of [0, 1]) {
+        const thread: Array<ThreadMessage> =
+          extra === 1
+            ? [
+                ...messages,
+                message({ id: "last", role: AIChatMessageRole.User }),
+              ]
+            : messages;
+        const tail: ThreadTail = getThreadTail(thread, false);
+
+        expect(tail.hiddenCount + tail.messages.length).toBe(thread.length);
+        expect(tail.messages).toEqual(thread.slice(tail.hiddenCount));
+        // Folding always hides at least two messages, never just one.
+        expect(tail.hiddenCount === 0 || tail.hiddenCount >= 2).toBe(true);
+      }
+    }
+  });
+
+  test("a reader who asked for the whole thread gets it, however long", () => {
+    const messages: Array<ThreadMessage> = exchanges(40);
+    const tail: ThreadTail = getThreadTail(messages, true);
+
+    expect(tail.hiddenCount).toBe(0);
+    expect(tail.messages).toBe(messages);
+  });
+});
+
+describe("how a settled action reads", () => {
+  test.each([
+    [AIChatToolActionStatus.Executed, "Done", "text-emerald-600"],
+    [AIChatToolActionStatus.Approved, "Approved", "text-emerald-600"],
+    [AIChatToolActionStatus.Failed, "Failed", "text-red-600"],
+    [AIChatToolActionStatus.Denied, "Denied", "text-gray-400"],
+    [AIChatToolActionStatus.Skipped, "Skipped", "text-gray-400"],
+    [AIChatToolActionStatus.Pending, "Pending", "text-gray-400"],
+  ])(
+    "%s reads '%s'",
+    (status: AIChatToolActionStatus, label: string, tone: string) => {
+      const outcome: ToolActionOutcome = describeToolActionOutcome(status);
+
+      expect(outcome.label).toBe(label);
+      expect(outcome.iconClassName).toBe(tone);
+      expect(typeof outcome.icon).toBe("string");
+    },
+  );
+
+  test("every status the server can send has a word and a mark", () => {
+    for (const status of Object.values(AIChatToolActionStatus)) {
+      const outcome: ToolActionOutcome = describeToolActionOutcome(status);
+
+      expect(outcome.label.length).toBeGreaterThan(0);
+      expect(outcome.iconClassName).toMatch(/^text-[a-z]+-\d{3}$/);
+    }
+  });
+
+  test("a status this build does not know reads as pending, not as done", () => {
+    expect(
+      describeToolActionOutcome("Exploded" as AIChatToolActionStatus).label,
+    ).toBe("Pending");
+  });
+
+  test("only a failure is red and only a success is green", () => {
+    const tones: Record<string, Array<string>> = {};
+
+    for (const status of Object.values(AIChatToolActionStatus)) {
+      const tone: string = describeToolActionOutcome(status).iconClassName;
+      tones[tone] = [...(tones[tone] || []), status];
+    }
+
+    expect(tones["text-red-600"]).toEqual([AIChatToolActionStatus.Failed]);
+    expect(tones["text-emerald-600"]!.sort()).toEqual(
+      [AIChatToolActionStatus.Approved, AIChatToolActionStatus.Executed].sort(),
+    );
+  });
+});
+
+describe("isToolActionAwaitingApproval", () => {
+  function action(overrides: {
+    status: AIChatToolActionStatus;
+    requiresApproval: boolean;
+  }): AIChatToolAction {
+    return {
+      id: "call-1",
+      toolName: "acknowledge_incident",
+      title: "Acknowledge incident #42",
+      arguments: {},
+      isMutation: true,
+      ...overrides,
+    };
+  }
+
+  test("a pending action that needs a yes is waiting", () => {
+    expect(
+      isToolActionAwaitingApproval(
+        action({
+          status: AIChatToolActionStatus.Pending,
+          requiresApproval: true,
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  test("a pending action that needs no approval is not waiting on anyone", () => {
+    expect(
+      isToolActionAwaitingApproval(
+        action({
+          status: AIChatToolActionStatus.Pending,
+          requiresApproval: false,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  test.each(
+    Object.values(AIChatToolActionStatus)
+      .filter((status: AIChatToolActionStatus): boolean => {
+        return status !== AIChatToolActionStatus.Pending;
+      })
+      .map((status: AIChatToolActionStatus): [AIChatToolActionStatus] => {
+        return [status];
+      }),
+  )(
+    "a decided action (%s) is never waiting",
+    (status: AIChatToolActionStatus) => {
+      expect(
+        isToolActionAwaitingApproval(
+          action({ status, requiresApproval: true }),
+        ),
+      ).toBe(false);
+    },
+  );
+
+  test("agrees with hasPendingApproval about a paused answer", () => {
+    const paused: ThreadMessage = message({
+      role: AIChatMessageRole.Assistant,
+      status: AIChatMessageStatus.WaitingForApproval,
+      toolActions: [
+        action({
+          status: AIChatToolActionStatus.Pending,
+          requiresApproval: true,
+        }),
+      ],
+    });
+
+    expect(hasPendingApproval(paused)).toBe(true);
+    expect(
+      hasPendingApproval({
+        ...paused,
+        toolActions: [
+          action({
+            status: AIChatToolActionStatus.Executed,
+            requiresApproval: true,
+          }),
+        ],
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("avatar tones", () => {
+  test("eight tones, all different", () => {
+    expect(AVATAR_TONES).toHaveLength(8);
+    expect(new Set(AVATAR_TONES).size).toBe(8);
+  });
+
+  test("every responder gets one of them, always the same one", () => {
+    for (const seed of [PRIYA, SAM, RUN, "Priya Shah", "a", ""]) {
+      expect(AVATAR_TONES).toContain(getAvatarTone(seed));
+      expect(getAvatarTone(seed)).toBe(getAvatarTone(seed));
+    }
+  });
+
+  test("no tone is lime: it had no dark-theme rule and stayed a pale disc", () => {
+    for (const tone of AVATAR_TONES) {
+      expect(tone).not.toMatch(/lime/);
+      // A pale ground with a dark letter of the same hue.
+      expect(tone).toMatch(/^bg-([a-z]+)-100 text-\1-[78]00$/);
+    }
+  });
+});
+
+describe("the mode's caption in the composer", () => {
+  test.each([
+    [
+      AIChatPermissionMode.AutoRun,
+      "Acts on clear requests right away, within your permissions.",
+    ],
+    [
+      AIChatPermissionMode.AskForApproval,
+      "Asks for approval before it changes anything.",
+    ],
+    [
+      AIChatPermissionMode.ReadOnly,
+      "Only reads and answers. It never changes anything.",
+    ],
+  ])("%s: %s", (mode: AIChatPermissionMode, caption: string) => {
+    expect(describePermissionMode(mode)).toBe(caption);
+  });
+
+  test("stays short enough for the picker's row and never repeats who acts", () => {
+    for (const mode of Object.values(AIChatPermissionMode)) {
+      const caption: string = describePermissionMode(mode);
+
+      expect(caption.length).toBeLessThanOrEqual(60);
+      expect(caption).not.toContain(AI_DISPLAY_NAME);
+      expect(caption.endsWith(".")).toBe(true);
+    }
   });
 });
