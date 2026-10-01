@@ -300,6 +300,13 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
 
 type DetailsTab = "evidence" | "activity";
 
+/*
+ * The section starts under a hairline, which is all that separates the
+ * report (the answer) from its working. It used to be a bordered, shadowed
+ * box of its own inside the card.
+ */
+const DETAILS_DIVIDER_CLASS_NAME: string = "border-t border-gray-200 pt-5";
+
 export interface ComponentProps {
   // Structured evidence from the API; empty until the report exists.
   evidence: Array<InvestigationEvidenceItem>;
@@ -417,7 +424,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
   // Nothing to expand: what the run did and cost is all there is to say.
   if (tabs.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-3 sm:px-5">
+      <div className={DETAILS_DIVIDER_CLASS_NAME}>
         <InvestigationUsageLine
           usage={props.usage}
           kubectlActivity={props.kubectlActivity}
@@ -514,7 +521,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
           hidden={activeTab !== tab}
           className={panelFocusClassName}
         >
-          <p className="px-4 pb-1 pt-3 text-xs leading-5 text-gray-500 sm:px-5">
+          <p className="pb-1 pt-3 text-xs leading-5 text-gray-500">
             {/*
               A kubectl command is not a query and has no rows to load, so
               a list with cluster calls in it promises rows only for the
@@ -545,7 +552,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
         key={tab}
         {...panelProps}
         hidden={activeTab !== tab}
-        className={`px-4 py-4 sm:px-5 ${panelFocusClassName}`}
+        className={`py-4 ${panelFocusClassName}`}
       >
         {/*
           A finished run is short (the engine caps its tool calls), so the
@@ -565,13 +572,13 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
     <section
       aria-labelledby={titleId}
       data-testid="investigation-details"
-      className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+      className={DETAILS_DIVIDER_CLASS_NAME}
     >
-      <div className="relative flex items-center gap-2.5 px-4 py-3.5 transition-colors hover:bg-gray-50 sm:px-5">
-        {/* Hidden on phones, where the usage line needs the width more. */}
-        <span className="max-sm:hidden h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 sm:flex">
-          <Icon icon={IconProp.DocumentMagnifyingGlass} className="h-4 w-4" />
-        </span>
+      {/*
+        The hover wash reaches a little past the text on both sides, so the
+        header reads as one clickable row without a border around it.
+      */}
+      <div className="group relative -mx-3 flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-gray-50">
         <div className="min-w-0 flex-1">
           <h3 id={titleId} className="text-sm font-semibold text-gray-900">
             {/*
@@ -583,7 +590,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
               data-testid="investigation-details-toggle"
               aria-expanded={isOpen}
               aria-controls={bodyId}
-              className="text-left after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500"
+              className="text-left after:absolute after:inset-0 after:rounded-lg after:content-[''] focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500"
               onClick={() => {
                 /*
                  * Pin the panel the reader is about to see, so evidence that
@@ -615,23 +622,23 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
             kubectlActivity={props.kubectlActivity}
             stepCount={stepCount}
             showCost={false}
-            className="mt-0.5"
+            className="mt-1"
           />
         </div>
         <Icon
           icon={IconProp.ChevronDown}
-          className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform ${
+          className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform group-hover:text-gray-600 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
       </div>
 
-      <div id={bodyId} hidden={!isOpen} className="border-t border-gray-200">
+      <div id={bodyId} hidden={!isOpen} className="mt-3">
         {hasTabs ? (
           <div
             role="tablist"
             aria-label="Investigation details"
-            className="flex gap-x-5 border-b border-gray-200 px-4 sm:px-5"
+            className="flex gap-x-5 border-b border-gray-200"
           >
             {tabs.map((tab: DetailsTab): ReactElement => {
               const isSelected: boolean = tab === activeTab;
@@ -686,7 +693,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
           showCounts={false}
           showReadOnly={false}
           label="Model and tokens"
-          className="border-t border-gray-100 bg-gray-50/70 px-4 py-2.5 sm:px-5"
+          className="border-t border-gray-100 pt-3"
         />
       </div>
     </section>

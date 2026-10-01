@@ -2,7 +2,7 @@
 
 Global SSO stelt een OneUptime **instantiebeheerder** (master admin) in staat om één enkele SAML 2.0- of OpenID Connect (OIDC)-identiteitsprovider **eenmalig op instantieniveau** te configureren en deze te verbinden met elk project op de server. Het is de instantie-brede tegenhanger van SSO per project: in plaats van dat elke projecteigenaar zijn eigen identiteitsprovider configureert, stelt een master admin er één in die de hele instantie kan bedienen.
 
-Global SSO is een functie van **OneUptime Enterprise Edition** en is alleen beschikbaar op instanties die de Enterprise Edition-build draaien. Zie [Enterprise Edition](/docs/self-hosted/enterprise) voor hoe je die draait, hoe licenties werken en wat er met SSO-vereisten gebeurt in de Community Edition. Zonder geldige licentie (na de proefperiode van 14 dagen, of 30 dagen nadat een licentie is verlopen) stopt aanmelden met globale SSO en wordt "Require SSO" voor de hele instantie niet afgedwongen totdat een licentie wordt geactiveerd.
+Global SSO, inclusief de instantiebrede schakelaar "Require SSO for Login", maakt deel uit van elke OneUptime-editie: elke zelfgehoste instantie heeft het, ook met de Community Edition, en er is geen licentie voor nodig. Het is instantiebeheer en is daarom niet van toepassing op OneUptime Cloud. Zie [Enterprise Edition](/docs/self-hosted/enterprise) voor wat elke editie bevat.
 
 ## Global SSO versus Project-SSO
 
@@ -48,7 +48,7 @@ Als u elke automatische accountaanmaak wilt voorkomen, zelfs wanneer er projecte
 Het configureren van een globale provider dwingt niemand om deze te gebruiken; inloggen met een wachtwoord blijft werken. Om SSO te verplichten, gebruikt u de besturingselementen **Require SSO for Login**:
 
 - **Per project:** een project kan SSO vereisen, en optioneel een _specifieke_ provider vereisen (project of globaal).
-- **Instantie-breed:** **Admin** > **Instellingen** > **Authenticatie** bevat een schakelaar **Require SSO for Login** die SSO afdwingt voor elke gebruiker in de hele instantie. Master admins blijven uitgezonderd, zodat zij niet buitengesloten kunnen worden.
+- **Instantie-breed:** **Admin** > **Instellingen** > **Authenticatie** bevat een schakelaar **SSO vereisen voor inloggen** die SSO afdwingt voor elke gebruiker in de hele instantie. Master admins blijven uitgezonderd, zodat zij niet buitengesloten kunnen worden.
 
 ## Gerelateerd
 

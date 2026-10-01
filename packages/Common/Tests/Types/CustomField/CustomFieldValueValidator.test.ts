@@ -195,6 +195,36 @@ describe("validateCustomFieldValues - values that do not fit", () => {
     expect(errors[0]!.message).toContain("and 15 more");
     expect(errors[0]!.message.length).toBeLessThan(400);
   });
+
+  /*
+   * The message is logged and sent back whole, and a write can send any
+   * number of entries: a million of them must not come back as a message
+   * the size of the request.
+   */
+  test("lists the first ten multi-select entries that are not options, and counts the rest", () => {
+    const entries: Array<string> = Array.from(
+      { length: 1000 },
+      (_value: unknown, index: number) => {
+        return `x${index}`;
+      },
+    );
+
+    const errors: Array<CustomFieldValueValidationError> = validate({
+      Regions: ["East", ...entries],
+    });
+
+    expect(errors[0]!.message).toBe(
+      `${entries
+        .slice(0, 10)
+        .map((entry: string) => {
+          return `"${entry}"`;
+        })
+        .join(
+          ", ",
+        )} and 990 more are not among the options for "Regions". Choose from: "East", "West", "North".`,
+    );
+    expect(errors[0]!.message).not.toContain('"x10"');
+  });
 });
 
 describe("validateCustomFieldValues - only what this write changes", () => {

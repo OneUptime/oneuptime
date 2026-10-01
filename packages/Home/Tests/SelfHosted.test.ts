@@ -27,6 +27,15 @@ import {
   getSelfHostedContent,
 } from "../Utils/SelfHosted";
 import PageSEOConfig, { PageSEOData } from "../Utils/PageSEO";
+import { RetiredClaim, RetiredEditionClaims } from "../Utils/Claims";
+
+/*
+ * Single sign-on as copy names it. SAML and OIDC single sign-on are part of
+ * the Community Edition, so no list of what the Enterprise Edition adds, and
+ * no list of what the Community Edition lacks, may name it.
+ */
+const SINGLE_SIGN_ON_WORDING: RegExp =
+  /\bSSO\b|single sign-on|\bSAML\b|\bOIDC\b|OpenID Connect/i;
 
 describe("SelfHosted content model", () => {
   test("covers every deployment model an enterprise buyer will ask about", () => {
@@ -144,6 +153,7 @@ describe("SelfHosted content model", () => {
       "VMware",
       "Kubernetes",
       "Ceph",
+      "Database",
     ]) {
       expect(agents!.description).toContain(product);
     }
@@ -226,8 +236,6 @@ describe("SelfHosted content model", () => {
     const text: string = EnterpriseEditionFeatures.join(" ");
 
     for (const feature of [
-      "SAML",
-      "OpenID Connect",
       "SCIM",
       "Audit logs",
       "team compliance",
@@ -235,6 +243,12 @@ describe("SelfHosted content model", () => {
       "query console",
     ]) {
       expect(text).toContain(feature);
+    }
+  });
+
+  test("Enterprise Edition guidance does not list single sign-on, which is part of the Community Edition", () => {
+    for (const feature of EnterpriseEditionFeatures) {
+      expect(feature).not.toMatch(SINGLE_SIGN_ON_WORDING);
     }
   });
 
@@ -353,13 +367,28 @@ describe("SelfHosted content model", () => {
     expect(community!.description).toContain("Apache-2.0");
 
     for (const enterpriseOnly of [
-      "SSO",
       "SCIM",
       "audit logs",
       "team compliance",
       "instance health dashboards",
     ]) {
       expect(excluded).toContain(enterpriseOnly);
+    }
+  });
+
+  test("the community tier includes single sign-on, and never lists it as missing", () => {
+    const community: SupportTierRow = SupportBoundaries.find(
+      (tier: SupportTierRow) => {
+        return tier.key === "community";
+      },
+    )!;
+
+    expect(community.included).toContain(
+      "SAML and OpenID Connect single sign-on for projects, private status pages, and the whole instance",
+    );
+
+    for (const item of community.excluded) {
+      expect(item).not.toMatch(SINGLE_SIGN_ON_WORDING);
     }
   });
 
@@ -374,10 +403,10 @@ describe("SelfHosted content model", () => {
 
     const included: string = enterprise!.included.join(" ");
 
-    expect(included).toContain("Enterprise Edition image");
-    expect(included).toContain("SSO");
-    expect(included).toContain("SCIM");
-    expect(included).toContain("audit logs");
+    expect(included).toContain(
+      "The Enterprise Edition image: SCIM, audit logs, team compliance, and instance health dashboards",
+    );
+    expect(included).not.toMatch(SINGLE_SIGN_ON_WORDING);
     expect(enterprise!.description).toContain("Community Edition plus");
   });
 
@@ -395,6 +424,22 @@ describe("SelfHosted content model", () => {
     expect(editionFaq!.answer).toContain("OneUptime Enterprise License");
     expect(editionFaq!.answer).toContain("SCIM");
     expect(editionFaq!.answer).toContain("audit logs");
+  });
+
+  test("the edition FAQ puts single sign-on in the Community Edition, not in what the Enterprise Edition adds", () => {
+    const answer: string = SelfHostedFaqs.find((faq: SelfHostedFaq) => {
+      return faq.question.includes("feature-limited");
+    })!.answer;
+    const [communitySentence, enterpriseSentence] = answer.split(
+      "The Enterprise Edition adds",
+    ) as [string, string];
+
+    expect(communitySentence).toContain("The Community Edition");
+    expect(communitySentence).toContain("SAML and OIDC single sign-on");
+    expect(enterpriseSentence).toContain(
+      "SCIM provisioning, audit logs, team compliance, and instance health dashboards",
+    );
+    expect(enterpriseSentence).not.toMatch(SINGLE_SIGN_ON_WORDING);
   });
 
   test("the phone-home FAQ discloses the Enterprise license check and what it sends", () => {
@@ -431,7 +476,7 @@ describe("SelfHosted content model", () => {
     expect(updateCheck!.description).toContain("offline license token");
   });
 
-  test("shared responsibility puts SSO, SCIM, and audit logs in the Enterprise Edition", () => {
+  test("shared responsibility ships single sign-on in both editions, and SCIM and audit logs in the Enterprise Edition", () => {
     const accessControl: ResponsibilityRow | undefined =
       SharedResponsibilities.find((row: ResponsibilityRow) => {
         return row.area === "Access control";
@@ -439,8 +484,46 @@ describe("SelfHosted content model", () => {
 
     expect(accessControl).toBeDefined();
     expect(accessControl!.oneuptime).toContain(
+      "SAML and OIDC single sign-on in both editions",
+    );
+    expect(accessControl!.oneuptime).toContain(
+      "SCIM and audit logs in the Enterprise Edition",
+    );
+    expect(accessControl!.oneuptime).not.toContain(
       "SSO/SAML, SCIM, and audit logs in the Enterprise Edition",
     );
+  });
+
+  test("no self-hosted copy files single sign-on under the Enterprise Edition", () => {
+    const ssoRule: RetiredClaim = RetiredEditionClaims.find(
+      (retired: RetiredClaim) => {
+        return (
+          retired.example ===
+          "the Enterprise Edition adds SSO, SCIM, audit logs, team compliance, and instance health dashboards"
+        );
+      },
+    )!;
+    const copy: Array<string> = [
+      ...EnterpriseEditionFeatures,
+      ...SharedResponsibilities.map((row: ResponsibilityRow) => {
+        return `${row.oneuptime} ${row.customer}`;
+      }),
+      ...SupportBoundaries.flatMap((tier: SupportTierRow) => {
+        return [tier.description, ...tier.included, ...tier.excluded];
+      }),
+      ...SelfHostedFaqs.map((faq: SelfHostedFaq) => {
+        return faq.answer;
+      }),
+      ...PageSEOConfig["/enterprise/self-hosted"]!.softwareApplication!
+        .features,
+    ];
+
+    expect(ssoRule).toBeDefined();
+    expect(
+      copy.filter((text: string) => {
+        return ssoRule.pattern.test(text);
+      }),
+    ).toEqual([]);
   });
 
   test("the FAQ answers the uptime-responsibility question directly", () => {
@@ -530,6 +613,24 @@ describe("SelfHosted page SEO", () => {
     expect(joined).toContain("high availability");
     expect(joined).toContain("enterprise edition");
     expect(joined).not.toContain("hardened");
+  });
+
+  test("the structured data lists single sign-on in both editions, and not among what the Enterprise Edition images add", () => {
+    const features: Array<string> =
+      PageSEOConfig["/enterprise/self-hosted"]!.softwareApplication!.features;
+    const enterpriseImages: string | undefined = features.find(
+      (feature: string) => {
+        return feature.startsWith("Enterprise Edition images");
+      },
+    );
+
+    expect(features).toContain(
+      "SAML and OpenID Connect single sign-on in both editions",
+    );
+    expect(enterpriseImages).toBe(
+      "Enterprise Edition images with SCIM, audit logs, and team compliance",
+    );
+    expect(enterpriseImages).not.toMatch(SINGLE_SIGN_ON_WORDING);
   });
 
   test("the description names the Enterprise Edition, not hardened images", () => {

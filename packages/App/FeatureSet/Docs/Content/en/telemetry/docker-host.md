@@ -176,14 +176,14 @@ docker run -d ... -e DOCKER_API_VERSION= ...
 ### Agent Shows as Disconnected
 
 1. Check that the agent is running: `docker ps --filter name=oneuptime-docker-agent`
-2. Check the agent logs: `docker logs oneuptime-docker-agent | grep -i error`
+2. Check the agent logs: `docker logs oneuptime-docker-agent 2>&1 | grep -i error`
 3. Verify your OneUptime URL and service token are correct
 4. Ensure your Docker host can reach the OneUptime instance over the network
 
 ### No Metrics Appearing
 
-1. Verify the Docker socket is accessible inside the agent: `docker exec oneuptime-docker-agent ls -la /var/run/docker.sock`
-2. Check the collector logs for export errors: `docker logs oneuptime-docker-agent | tail -100`
+1. Verify the Docker socket is mounted into the agent. Its image has no shell, so look from a throwaway container that shares its mounts: `docker run --rm --volumes-from oneuptime-docker-agent alpine:3.19 ls -la /var/run/docker.sock`
+2. Check the collector logs for export errors: `docker logs oneuptime-docker-agent 2>&1 | tail -100`
 3. Ensure your service token is valid and not expired
 
 ### Host Name Shows as a Container ID

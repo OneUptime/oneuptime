@@ -12,6 +12,7 @@ import HiddenFacetsFooter from "./HiddenFacetsFooter";
 import {
   FacetVisibility,
   computeFacetVisibility,
+  getFacetValuesInScope,
   getSidebarFacetEmptyStateText,
 } from "../FacetVisibility";
 import useFacetSearchExemptions, {
@@ -44,6 +45,12 @@ export interface TelemetryFacetSidebarProps {
    * only, so the sidebar stays mounted and keeps its search and expand state.
    */
   isCollapsedOnSmallScreens?: boolean | undefined;
+  /*
+   * The viewer is pinned to a scope (it shows locked chips): list only the
+   * values found in it, never the project's zero-count catalog padding.
+   * See getFacetValuesInScope.
+   */
+  onlyShowValuesInScope?: boolean | undefined;
 }
 
 const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
@@ -108,6 +115,16 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
     onFacetSearchChange: props.onFacetSearchChange,
   });
 
+  // What the sections list: under a locked scope, only values in it.
+  const facetData: FacetData = useMemo(() => {
+    return props.onlyShowValuesInScope
+      ? getFacetValuesInScope({
+          facetData: props.facetData,
+          activeValuesByKey: activeValuesByKey,
+        })
+      : props.facetData;
+  }, [props.onlyShowValuesInScope, props.facetData, activeValuesByKey]);
+
   /*
    * Only configs that opt in with hideWhenEmpty (the resource facets) fold
    * away while empty; every other config renders exactly as before.
@@ -117,7 +134,7 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
       keys: orderedConfigs.map((config: FacetConfig): string => {
         return config.key;
       }),
-      facetData: props.facetData,
+      facetData: facetData,
       isHideable: (key: string): boolean => {
         return configsByKey.get(key)?.hideWhenEmpty === true;
       },
@@ -131,7 +148,7 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
   }, [
     orderedConfigs,
     configsByKey,
-    props.facetData,
+    facetData,
     activeValuesByKey,
     facetSearch.searchExemptKeys,
     showHidden,
@@ -166,7 +183,7 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
 
       <div id={facetListId} className="flex-1 overflow-y-auto">
         {visibleConfigs.map((config: FacetConfig) => {
-          const values: Array<FacetValue> = props.facetData[config.key] || [];
+          const values: Array<FacetValue> = facetData[config.key] || [];
 
           const onSearchChange: ((text: string) => void) | undefined =
             config.serverSearchable
@@ -195,6 +212,7 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
                 emptyStateNoun: config.emptyStateNoun,
                 searchedAtArrivalText:
                   facetSearch.searchedAtArrivalByKey[config.key],
+                isScoped: props.onlyShowValuesInScope,
               })}
             />
           );

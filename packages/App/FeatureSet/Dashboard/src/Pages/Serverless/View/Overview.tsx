@@ -1,6 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getServerlessFunctionConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -395,6 +397,22 @@ const ServerlessFunctionOverview: FunctionComponent<
         identifierLabel="faas.name"
         status={fn.otelCollectorStatus}
         lastSeenAt={fn.lastSeenAt}
+        connectionGuide={
+          <ResourceConnectionGuideCard
+            status={fn.otelCollectorStatus as string | undefined}
+            lastSeenAt={fn.lastSeenAt}
+            guide={getServerlessFunctionConnectionGuide(
+              (fn.functionIdentifier as string | undefined) ||
+                (fn.name as string | undefined) ||
+                "",
+              fn.cloudPlatform as string | undefined,
+            )}
+            documentationRoute={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION] as Route,
+              { modelId: modelId },
+            )}
+          />
+        }
         description={fn.description as string}
         chips={chips}
         tiles={tiles}

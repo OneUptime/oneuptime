@@ -2,7 +2,7 @@
 
 Global SSO permite que un **administrador de la instancia** de OneUptime (administrador maestro) configure un único proveedor de identidad SAML 2.0 u OpenID Connect (OIDC) **una sola vez a nivel de instancia** y lo conecte a cualquier proyecto del servidor. Es la contraparte a nivel de instancia del SSO por proyecto: en lugar de que cada propietario de proyecto configure su propio proveedor de identidad, un administrador maestro configura uno que puede dar servicio a toda la instancia.
 
-Global SSO es una funcionalidad de **OneUptime Enterprise Edition** y solo está disponible en instancias que ejecutan la compilación de Enterprise Edition. Consulta [Enterprise Edition](/docs/self-hosted/enterprise) para saber cómo ejecutarla, cómo funcionan las licencias y qué ocurre con los requisitos de SSO en la Community Edition. Sin una licencia válida (después de la prueba de 14 días, o 30 días después de que caduque una licencia), el inicio de sesión con SSO global se detiene y «Require SSO» para toda la instancia no se aplica hasta que se active una licencia.
+Global SSO, incluido el interruptor «Require SSO for Login» para toda la instancia, forma parte de todas las ediciones de OneUptime: todas las instancias autoalojadas lo tienen, también con la Community Edition, y no necesita licencia. Es administración de la instancia, por lo que no se aplica a OneUptime Cloud. Consulta [Enterprise Edition](/docs/self-hosted/enterprise) para ver qué incluye cada edición.
 
 ## Global SSO frente a Project SSO
 
@@ -48,7 +48,7 @@ Si quieres evitar cualquier creación automática de cuentas incluso cuando hay 
 Configurar un proveedor global no obliga a nadie a usarlo; el inicio de sesión con contraseña sigue funcionando. Para exigir el SSO, usa los controles **Require SSO for Login**:
 
 - **Por proyecto:** un proyecto puede exigir SSO y, opcionalmente, exigir un proveedor _específico_ (de proyecto o global).
-- **A nivel de instancia:** **Admin** > **Settings** > **Authentication** tiene un interruptor **Require SSO for Login** que fuerza el SSO para todos los usuarios de la instancia. Los administradores maestros permanecen exentos para que no puedan quedar bloqueados.
+- **A nivel de instancia:** **Admin** > **Settings** > **Authentication** tiene un interruptor **Exigir SSO para iniciar sesión** que fuerza el SSO para todos los usuarios de la instancia. Los administradores maestros permanecen exentos para que no puedan quedar bloqueados.
 
 ## Relacionado
 

@@ -795,7 +795,12 @@ describe("output: capped, redacted, never the password", () => {
   test("a huge answer is capped at the agent's output limit, with a marker", async () => {
     const rows: Array<SqlRow> = [];
 
-    for (let index: number = 0; index < 3_000; index++) {
+    // Twice the agent's output limit, whatever it is.
+    const rowCount: number = Math.ceil(
+      (MAX_RESOURCE_AGENT_OUTPUT_BYTES * 2) / 200,
+    );
+
+    for (let index: number = 0; index < rowCount; index++) {
       rows.push({
         name: `setting_${index}`,
         setting: "v".repeat(200),

@@ -581,10 +581,10 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     props.value?.data?.monitorDestination?.toString() || "",
   );
 
-  let codeEditorPlaceholder: string = "";
+  let exampleScript: string = "";
 
   if (props.monitorType === MonitorType.CustomJavaScriptCode) {
-    codeEditorPlaceholder = `
+    exampleScript = `
 // You can use axios, http modules here.
 const response = await axios.get('https://example.com');
 
@@ -604,7 +604,7 @@ return {
   }
 
   if (props.monitorType === MonitorType.SyntheticMonitor) {
-    codeEditorPlaceholder = `
+    exampleScript = `
 // Objects available in the context of the script are:
 
 // - axios: Axios module to make HTTP requests
@@ -1916,7 +1916,8 @@ return {
                     props.onChange(MonitorStep.clone(monitorStep));
                   }
                 }}
-                placeholder={codeEditorPlaceholder}
+                example={exampleScript}
+                minLines={12}
               />
               <p className="mt-2 text-sm text-gray-500">
                 <Link

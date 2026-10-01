@@ -73,7 +73,7 @@ export const PROJECT_SWITCHED_CHANNELS: ReadonlyArray<ComplianceNotificationChan
 
 export type RuleIdentity = Pick<
   TeamComplianceRuleJSON,
-  "ruleType" | "notificationChannel"
+  "ruleType" | "notificationChannels"
 >;
 
 export const pluralize: (
@@ -107,8 +107,8 @@ export const isRuleKnown: (rule: RuleIdentity) => boolean = (
  * severities applies to every severity, and says so.
  *
  * It must never read as an "every severity" rule. It is not one, a team can
- * hold a real one of the same type and channel beside it, and turning it back
- * on as it stands would only make a copy of that rule.
+ * hold a real one of the same type and channels beside it, and turning it
+ * back on as it stands would only make a copy of that rule.
  */
 export const hasNoSeveritiesLeft: (rule: TeamComplianceRuleJSON) => boolean = (
   rule: TeamComplianceRuleJSON,
@@ -171,40 +171,41 @@ export const getRuleTypeIcon: (ruleType: string) => IconProp = (
 };
 
 /*
- * The channel a rule is about: the method channel of a method rule, or the
- * channel an on-call rule insists on. Undefined for "any channel" and for rule
- * types this build does not know.
+ * The channels a rule is about, in catalog order: the method channel of a
+ * method rule, or every channel an on-call rule insists on. Empty for "any
+ * channel" and for rule types this build does not know.
  */
-export const getRuleChannel: (
+export const getRuleChannels: (
   rule: RuleIdentity,
-) => ComplianceNotificationChannel | undefined = (
+) => Array<ComplianceNotificationChannel> = (
   rule: RuleIdentity,
-): ComplianceNotificationChannel | undefined => {
+): Array<ComplianceNotificationChannel> => {
   const definition: ComplianceRuleDefinition | undefined =
     ComplianceRule.getDefinition(rule.ruleType);
 
   if (!definition) {
-    return undefined;
+    return [];
   }
 
   if (definition.category === ComplianceRuleCategory.NotificationMethod) {
-    return definition.methodChannel;
+    return definition.methodChannel ? [definition.methodChannel] : [];
   }
 
-  return ComplianceRule.isKnownChannel(rule.notificationChannel)
-    ? rule.notificationChannel
-    : undefined;
+  return ComplianceRule.normaliseChannels(rule.notificationChannels);
 };
 
-// A channel rule wears its channel; an "any channel" rule wears its kind.
+/*
+ * A rule on one channel wears that channel; a rule on several, or on any
+ * channel, wears its kind - no one channel stands for it (its channel chips
+ * show them all).
+ */
 export const getRuleIcon: (rule: RuleIdentity) => IconProp = (
   rule: RuleIdentity,
 ): IconProp => {
-  const channel: ComplianceNotificationChannel | undefined =
-    getRuleChannel(rule);
+  const channels: Array<ComplianceNotificationChannel> = getRuleChannels(rule);
 
-  if (channel) {
-    return CHANNEL_ICONS[channel];
+  if (channels.length === 1) {
+    return CHANNEL_ICONS[channels[0]!];
   }
 
   return getRuleTypeIcon(rule.ruleType);
@@ -223,7 +224,7 @@ export const getRuleTitle: (rule: RuleIdentity) => string = (
 ): string => {
   return ComplianceRule.getTitle({
     ruleType: rule.ruleType,
-    notificationChannel: rule.notificationChannel,
+    notificationChannels: rule.notificationChannels,
   });
 };
 
@@ -250,7 +251,7 @@ export const getRuleSentence: (rule: TeamComplianceRuleJSON) => string = (
 
   return ComplianceRule.describe({
     ruleType: rule.ruleType,
-    notificationChannel: rule.notificationChannel,
+    notificationChannels: rule.notificationChannels,
     severityNames: severityNames,
   });
 };
@@ -267,12 +268,12 @@ export const getAllSeveritiesLabel: (
  * The rule's name wherever it has to be told apart from every other rule on
  * its own: a switch's or a button's accessible name, the delete confirmation,
  * a warning line, the "Failing ..." chip, a member's result square. A team may
- * hold several rules of one type and channel - Call for Critical incidents
- * and Call for Major incidents - and the title alone names them all alike, so
- * an on-call rule's name carries its severity scope: "Call for incidents
- * (Critical Incident)", "Incident on-call rules (all incident severities)",
- * "Call for incidents (no severities left)" - the last never named like the
- * team's every-severity rule of the same type and channel.
+ * hold several rules of one type on the same channels - Call for Critical
+ * incidents and Call for Major incidents - and the title alone names them all
+ * alike, so an on-call rule's name carries its severity scope: "Call for
+ * incidents (Critical Incident)", "Incident on-call rules (all incident
+ * severities)", "Call for incidents (no severities left)" - the last never
+ * named like the team's every-severity rule of the same type and channels.
  * The rules card's heading stays the short title; the sentence and the scope
  * chips under it already say the rest.
  */
@@ -836,6 +837,32 @@ export const countMembersByStatus: (
 };
 
 /*
+ * The members section's status segments, counted within whatever else
+ * narrows the list - the rule filter and the search. Each badge then says
+ * exactly how many rows its segment would show, so "Needs attention 4" never
+ * sits over "3 of 4 members", and a segment that would show nobody under a
+ * rule filter (Compliant, always) carries no count at all.
+ */
+export const countFilteredMembersByStatus: (data: {
+  members: Array<TeamMemberComplianceJSON>;
+  search: string;
+  failingSettingId: string | null;
+}) => MemberStatusCounts = (data: {
+  members: Array<TeamMemberComplianceJSON>;
+  search: string;
+  failingSettingId: string | null;
+}): MemberStatusCounts => {
+  return countMembersByStatus(
+    filterMembers({
+      members: data.members,
+      status: MemberStatusFilter.All,
+      search: data.search,
+      failingSettingId: data.failingSettingId,
+    }),
+  );
+};
+
+/*
  * Where the signed-in member goes to fix a rule they fail, and what the
  * button says. A method rule is fixed on the notification methods page; an
  * on-call rule on the on-call rules page for its own rule type - sending
@@ -915,7 +942,8 @@ export interface RuleWarningGroup {
   rule: TeamComplianceRuleJSON;
   title: string;
   warnings: Array<string>;
-  channel: ComplianceNotificationChannel | undefined;
+  // In catalog order; empty for "any channel".
+  channels: Array<ComplianceNotificationChannel>;
 }
 
 /*
@@ -941,14 +969,15 @@ export const getRuleWarningGroups: (
         rule: rule,
         title: getRuleLabel(rule),
         warnings: rule.warnings,
-        channel: getRuleChannel(rule),
+        channels: getRuleChannels(rule),
       };
     });
 };
 
 /*
- * Whether the way out of a warning is a project switch. Never for a rule with
- * no severities left, whatever its channel: that one is fixed by editing the
+ * Whether the way out of a warning is a project switch: one of the rule's
+ * channels is one a project can switch off. Never for a rule with no
+ * severities left, whatever its channels: that one is fixed by editing the
  * rule itself.
  */
 export const isFixedInProjectNotificationSettings: (
@@ -956,7 +985,9 @@ export const isFixedInProjectNotificationSettings: (
 ) => boolean = (group: RuleWarningGroup): boolean => {
   return (
     !hasNoSeveritiesLeft(group.rule) &&
-    Boolean(group.channel && PROJECT_SWITCHED_CHANNELS.includes(group.channel))
+    group.channels.some((channel: ComplianceNotificationChannel): boolean => {
+      return PROJECT_SWITCHED_CHANNELS.includes(channel);
+    })
   );
 };
 
@@ -1044,12 +1075,30 @@ export const hasServerId: (rule: TeamComplianceRuleJSON) => boolean = (
   );
 };
 
+/*
+ * The rule's channels, each once. An API from before a rule could require
+ * several channels (an older replica during a rolling deploy) sends one
+ * `notificationChannel`, or null for any channel, instead of the list.
+ */
+const parseChannels: (
+  json: JSONObject,
+) => Array<ComplianceNotificationChannel> = (
+  json: JSONObject,
+): Array<ComplianceNotificationChannel> => {
+  const channels: Array<string> = Array.isArray(json["notificationChannels"])
+    ? asStrings(json["notificationChannels"])
+    : asStrings([json["notificationChannel"]]);
+
+  return Array.from(
+    new Set<string>(channels),
+  ) as Array<ComplianceNotificationChannel>;
+};
+
 const parseRule: (json: JSONObject, index: number) => TeamComplianceRuleJSON = (
   json: JSONObject,
   index: number,
 ): TeamComplianceRuleJSON => {
   const ruleType: string = asString(json["ruleType"]);
-  const channel: string = asString(json["notificationChannel"]);
   const severityKind: string = asString(json["severityKind"]);
   const severities: Array<TeamComplianceSeverityJSON> = asObjects(
     json["severities"],
@@ -1064,9 +1113,7 @@ const parseRule: (json: JSONObject, index: number) => TeamComplianceRuleJSON = (
       asString(json["settingId"]) || `${LEGACY_RULE_ID_PREFIX}${index}`,
     ruleType: ruleType as ComplianceRuleType,
     enabled: json["enabled"] === true,
-    notificationChannel: channel
-      ? (channel as ComplianceNotificationChannel)
-      : null,
+    notificationChannels: parseChannels(json),
     severityKind:
       severityKind === ComplianceSeverityKind.Incident ||
       severityKind === ComplianceSeverityKind.Alert

@@ -544,7 +544,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is OneUptime enterprise-ready?",
         answer:
-          "Absolutely. OneUptime is built on distributed, high-availability infrastructure across multiple cloud regions. We are SOC 2 Type II certified, ISO 27001 compliant, and GDPR compliant. Enterprise features include SSO/SAML, role-based access control, audit logs, and data residency options. The Apache 2.0 Community Edition can be self-hosted for complete infrastructure control; self-hosted SSO/SAML and audit logs need the Enterprise Edition and an Enterprise license.",
+          "Absolutely. OneUptime is built on distributed, high-availability infrastructure across multiple cloud regions. We are SOC 2 Type II certified, ISO 27001 compliant, and GDPR compliant. Enterprise features include SSO/SAML, role-based access control, audit logs, and data residency options. The Apache 2.0 Community Edition, SAML and OIDC single sign-on included, can be self-hosted for complete infrastructure control; self-hosted audit logs need the Enterprise Edition and an Enterprise license.",
       },
     ],
   },
@@ -4679,7 +4679,7 @@ const products: Dictionary<Product> = {
             title: "SSO/SAML",
             description: "Enterprise identity",
             productColumn: "Enterprise only",
-            oneuptimeColumn: "Scale plan or Enterprise Edition",
+            oneuptimeColumn: "Community Edition; Scale plan on Cloud",
           },
           {
             title: "Full Reliability Stack",
@@ -4699,7 +4699,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is SigNoz really open source like OneUptime?",
         answer:
-          "Both are open source and self-hostable, and both follow an open-core model: the core is permissively licensed while an enterprise (ee) module is under a separate commercial license. SigNoz focuses on observability data. OneUptime's Apache 2.0 Community Edition covers the whole incident lifecycle - monitoring, on-call, incidents, status pages, and telemetry - and its enterprise module adds SSO, SCIM, audit logs, and instance administration. They solve related but different problems.",
+          "Both are open source and self-hostable, and both follow an open-core model: the core is permissively licensed while an enterprise (ee) module is under a separate commercial license. SigNoz focuses on observability data. OneUptime's Apache 2.0 Community Edition covers the whole incident lifecycle - monitoring, on-call, incidents, status pages, and telemetry - along with SAML and OIDC single sign-on, and its enterprise module adds SCIM, audit logs, and instance administration. They solve related but different problems.",
       },
       {
         question: "What about SigNoz's usage-based pricing?",
@@ -10378,7 +10378,7 @@ const products: Dictionary<Product> = {
         question:
           "Does OneUptime meet enterprise security and compliance needs?",
         answer:
-          "Yes. OneUptime supports SSO/SAML, RBAC, and audit logs, and maintains SOC 2 Type II, ISO 27001, and GDPR compliance. The core platform is open source (Apache 2.0) and self-hostable; SSO/SAML and audit logs are part of the Enterprise Edition, licensed under the OneUptime Enterprise License.",
+          "Yes. OneUptime supports SSO/SAML, RBAC, and audit logs, and maintains SOC 2 Type II, ISO 27001, and GDPR compliance. The core platform, SAML and OIDC single sign-on included, is open source (Apache 2.0) and self-hostable; audit logs are part of the Enterprise Edition, licensed under the OneUptime Enterprise License.",
       },
     ],
   },

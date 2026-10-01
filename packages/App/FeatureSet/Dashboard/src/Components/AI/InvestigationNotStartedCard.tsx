@@ -1,4 +1,7 @@
 import { AI_INVESTIGATION_PANEL_ID } from "./AIInvestigationStatus";
+import InvestigationStatusBadge, {
+  InvestigationStatusIndicator,
+} from "./InvestigationStatusBadge";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import InvestigationNotStartedReason, {
@@ -12,6 +15,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import PermissionUtil from "Common/UI/Utils/Permission";
@@ -211,58 +215,47 @@ const InvestigationNotStartedCard: FunctionComponent<ComponentProps> = (
       })
     : null;
 
-  return (
-    <section
-      id={AI_INVESTIGATION_PANEL_ID}
-      tabIndex={-1}
-      aria-label="AI Investigation"
-      aria-busy={isLoading}
-      className="mb-6 scroll-mt-32 overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-100">
-            <Icon icon={IconProp.Sparkles} className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">
-              AI Investigation
-            </h2>
-            <p className="mt-0.5 text-xs text-gray-500">
-              Automatic root cause analysis
-            </p>
-          </div>
-        </div>
-        <div
-          aria-label="Investigation status"
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
-            isLoading
-              ? "bg-indigo-50 text-indigo-700 ring-indigo-200"
-              : isUnavailable
-                ? "bg-amber-50 text-amber-800 ring-amber-200"
-                : "bg-gray-50 text-gray-600 ring-gray-200"
-          }`}
-        >
-          <Icon
-            icon={isLoading ? IconProp.Refresh : IconProp.Info}
-            className={`h-3.5 w-3.5 ${isLoading ? "motion-safe:animate-spin" : ""}`}
-          />
-          {isLoading
-            ? "Checking"
-            : isUnavailable
-              ? "Unable to check"
-              : "Not investigated"}
-        </div>
-      </div>
+  const statusText: string = isLoading
+    ? "Checking"
+    : isUnavailable
+      ? "Unable to check"
+      : "Not investigated";
+  const statusIndicator: InvestigationStatusIndicator = isLoading
+    ? "checking"
+    : isUnavailable
+      ? "attention"
+      : "idle";
 
+  /*
+   * The same card, header and badge as a run's panel, so the slot looks the
+   * same whether or not OneUptime AI investigated: this state used to be a
+   * differently built box, with its own icon tile, a tinted body and a
+   * second column split off by a rule.
+   */
+  return (
+    <Card
+      title="AI Investigation"
+      bodyClassName="mt-6"
+      description={`OneUptime AI's root-cause investigation for this ${subjectType}.`}
+      rightElement={
+        <InvestigationStatusBadge
+          text={statusText}
+          indicator={statusIndicator}
+        />
+      }
+    >
       <div
-        aria-live="polite"
-        className="border-t border-gray-100 bg-gray-50/40 px-5 py-4"
+        id={AI_INVESTIGATION_PANEL_ID}
+        tabIndex={-1}
+        role="region"
+        aria-label="AI Investigation"
+        aria-busy={isLoading}
+        className="scroll-mt-32 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-4"
       >
-        <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
-          <div className="min-w-0 flex-1">
+        <div aria-live="polite" className="space-y-6">
+          <div>
             <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-            <p className="mt-1.5 text-sm leading-relaxed text-gray-600">
+            <p className="mt-1 text-sm leading-6 text-gray-600">
               {description}
             </p>
             {!isLoading && !isUnavailable ? (
@@ -288,19 +281,17 @@ const InvestigationNotStartedCard: FunctionComponent<ComponentProps> = (
           </div>
 
           {!isLoading && !isUnavailable ? (
-            <div className="min-w-0 border-t border-gray-200/70 pt-4 lg:w-2/5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">
                 What you can do
-              </p>
-              <p className="mt-1.5 text-sm leading-relaxed text-gray-600">
-                {nextStep}
-              </p>
+              </h3>
+              <p className="mt-1 text-sm leading-6 text-gray-600">{nextStep}</p>
               {action && canReviewSettings ? (
                 <Link
                   to={RouteUtil.populateRouteParams(
                     RouteMap[action.page] as Route,
                   )}
-                  className="mt-3 inline-flex items-center gap-1.5 rounded text-sm font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                  className="mt-2 inline-flex items-center gap-1.5 rounded text-sm font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 >
                   <span>{action.label}</span>
                   <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
@@ -312,30 +303,37 @@ const InvestigationNotStartedCard: FunctionComponent<ComponentProps> = (
               ) : null}
             </div>
           ) : null}
-        </div>
 
-        {hasError && !isLoading ? (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
-            <p className="text-xs leading-relaxed text-amber-900">
-              {hasSuccessfulResponse
-                ? "Could not refresh this status. Showing the last successful check."
-                : "Try again to check this investigation."}
-            </p>
-            <Button
-              title="Retry"
-              ariaLabel="Retry investigation status"
-              icon={IconProp.Refresh}
-              buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              isLoading={props.isRefreshing}
-              disabled={props.isRefreshing}
-              onClick={props.onRefresh}
-              className="!ml-0"
-            />
-          </div>
-        ) : null}
+          {hasError && !isLoading ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-5">
+              {/* A div, not a p: Icon renders its own div around the svg. */}
+              <div className="flex min-w-0 items-start gap-2 text-sm leading-6 text-gray-700">
+                <Icon
+                  icon={IconProp.Alert}
+                  className="mt-1 h-4 w-4 flex-shrink-0 text-amber-500"
+                />
+                <p>
+                  {hasSuccessfulResponse
+                    ? "Could not refresh this status. Showing the last successful check."
+                    : "Try again to check this investigation."}
+                </p>
+              </div>
+              <Button
+                title="Retry"
+                ariaLabel="Retry investigation status"
+                icon={IconProp.Refresh}
+                buttonSize={ButtonSize.Small}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                isLoading={props.isRefreshing}
+                disabled={props.isRefreshing}
+                onClick={props.onRefresh}
+                className="!ml-0"
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
-    </section>
+    </Card>
   );
 };
 

@@ -74,7 +74,7 @@ describe("Run Rules on Existing Resources docs page", () => {
       }
     }
 
-    expect(resources.size).toBe(29);
+    expect(resources.size).toBe(30);
 
     for (const resource of resources) {
       expect(page).toContain(resource.toLowerCase());

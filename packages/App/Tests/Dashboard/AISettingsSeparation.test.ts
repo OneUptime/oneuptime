@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The four pages this file covers are React components, and react is a
+ * The pages this file covers are React components, and react is a
  * dependency of the Dashboard package alone — App's own `npm install` never
  * provides it, which is exactly why App's tsconfig excludes
  * FeatureSet/Dashboard. Importing the pages here would pull react into
@@ -138,12 +138,6 @@ const ALERT_PAGE: SettingsPage = settingsPage(
   "AlertAISettings.tsx",
 );
 
-const GUARDRAILS_PAGE: SettingsPage = settingsPage(
-  "Pages",
-  "Settings",
-  "AIGuardrails.tsx",
-);
-
 const INCIDENT_CARDS: Array<SettingsPage> = settingsCards(
   "Pages",
   "Incidents",
@@ -180,6 +174,7 @@ const INCIDENT_FIELDS: Array<string> = [
   "incidentInvestigationMinimumSeverity",
   "incidentInvestigationDedupeWindowMinutes",
   "incidentAiMaxConcurrentInvestigations",
+  "incidentAiInvestigationTimeLimitInMinutes",
   "incidentAiDailyAutonomousTokenLimit",
   "enableIncidentInstrumentationFixTasks",
   "enableAutomaticIncidentCodeFixes",
@@ -191,16 +186,11 @@ const ALERT_FIELDS: Array<string> = [
   "alertInvestigationMinimumSeverity",
   "alertInvestigationDedupeWindowMinutes",
   "alertAiMaxConcurrentInvestigations",
+  "alertAiInvestigationTimeLimitInMinutes",
   "alertAiDailyAutonomousTokenLimit",
   "enableAlertInstrumentationFixTasks",
   "enableAutomaticAlertCodeFixes",
   "alertAiDailyFixTaskLimit",
-];
-
-const OTHER_AI_GUARDRAIL_FIELDS: Array<string> = [
-  "aiMaxConcurrentInvestigations",
-  "aiDailyAutonomousTokenLimit",
-  "aiDailyFixTaskLimit",
 ];
 
 const LEGACY_SHARED_FIELDS: Array<string> = [
@@ -243,6 +233,22 @@ describe("incident and alert AI settings separation", () => {
     }
   });
 
+  test("each lane's investigation time limit is an optional Limits setting", () => {
+    for (const [page, field] of [
+      [INCIDENT_PAGE, "incidentAiInvestigationTimeLimitInMinutes"],
+      [ALERT_PAGE, "alertAiInvestigationTimeLimitInMinutes"],
+    ] as Array<[SettingsPage, string]>) {
+      const configured: Array<ConfiguredField> = page.formFields.filter(
+        (formField: ConfiguredField): boolean => {
+          return formField.name === field;
+        },
+      );
+
+      expect(configured).toHaveLength(1);
+      expect(configured[0]!.stepId).toBe("limits");
+    }
+  });
+
   test("each lane's follow-up PR controls stay on its Fix Tasks step", () => {
     const assertFixTaskStep: (
       page: SettingsPage,
@@ -267,31 +273,19 @@ describe("incident and alert AI settings separation", () => {
     ]);
   });
 
-  test("subjectless AI work keeps its three fallback limits on the dedicated guardrails page", () => {
-    expect(namesOf(GUARDRAILS_PAGE.formFields)).toEqual(
-      OTHER_AI_GUARDRAIL_FIELDS,
-    );
-    expect(namesOf(GUARDRAILS_PAGE.detailFields)).toEqual(
-      OTHER_AI_GUARDRAIL_FIELDS,
-    );
-  });
-
   /*
-   * The guardrails page is the only home the three fallback limits have
-   * left, so it has to sit in the part of the AI menu that renders for
-   * every project — not inside the BILLING_ENABLED branch that hides AI
-   * Credits on a self-hosted install.
+   * The "Other AI Workload Guardrails" page was removed: AI work with no
+   * incident or alert subject runs on the built-in defaults, so nothing in
+   * the dashboard should link to or write those legacy columns any more.
    */
-  test("AI Guardrails is in the always-visible AI menu section", () => {
-    const aiSection: string = aiMenuSection();
-
-    expect(aiSection).toContain('title: "AI Guardrails"');
-
-    const guardrailsAt: number = aiSection.indexOf('title: "AI Guardrails"');
-    const billingBranchAt: number = aiSection.indexOf("...(BILLING_ENABLED");
-
-    expect(billingBranchAt).toBeGreaterThan(-1);
-    expect(guardrailsAt).toBeLessThan(billingBranchAt);
+  test("the Other AI Workload Guardrails page stays removed", () => {
+    expect(
+      fs.existsSync(
+        path.join(DASHBOARD_SRC, "Pages", "Settings", "AIGuardrails.tsx"),
+      ),
+    ).toBe(false);
+    expect(aiMenuSection()).not.toContain("AI Guardrails");
+    expect(read("Utils", "PageMap.ts")).not.toContain("SETTINGS_AI_GUARDRAILS");
   });
 });
 
@@ -345,11 +339,7 @@ describe("the project's AI switches", () => {
   });
 
   test("no other AI settings page can write them", () => {
-    const otherPages: Array<SettingsPage> = [
-      ...INCIDENT_CARDS,
-      ...ALERT_CARDS,
-      GUARDRAILS_PAGE,
-    ];
+    const otherPages: Array<SettingsPage> = [...INCIDENT_CARDS, ...ALERT_CARDS];
 
     for (const page of otherPages) {
       for (const field of PROJECT_AI_SWITCH_FIELDS) {

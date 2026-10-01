@@ -1235,9 +1235,9 @@ describe("POST /global-config/license - the license server's own tokens, offline
  * to an installation holding a token with no expiry beside it.
  *
  * That state used to classify "invalid": activation refused outright, and an
- * installation that reached it some other way lost SSO, SCIM and audit
- * logging at once. It is now the unlicensed trial - a countdown, with the
- * reason and the message saying what is actually wrong.
+ * installation that reached it some other way lost SCIM provisioning and
+ * audit logging at once. It is now the unlicensed trial - a countdown, with
+ * the reason and the message saying what is actually wrong.
  */
 const payloadWithoutExpiry: () => JSONObject = (): JSONObject => {
   const payload: JSONObject = licenseServerPayload();
@@ -1364,8 +1364,8 @@ describe("a license-server response with a token and no expiry, on an unlicensed
  * cases cleared the stored license first. Activation only refused a candidate
  * that classified "invalid", and a token with no expiry deliberately stopped
  * classifying that way, so a master admin who pressed Validate on a working
- * install had its license overwritten with a lapsed trial: single sign-on,
- * SCIM and audit logging off at once, answered 200, and the only hint was a
+ * install had its license overwritten with a lapsed trial: SCIM provisioning
+ * and audit logging off at once, answered 200, and the only hint was a
  * warning saying the license "cannot be confirmed" rather than that a working
  * one had just been replaced. The refresh path refused the identical response
  * throughout.
@@ -1419,7 +1419,7 @@ describe("a license-server response with a token and no expiry, over a working l
   });
 
   // The install is still fully licensed afterwards, not merely still stored.
-  it("leaves single sign-on, SCIM and audit logging running", async () => {
+  it("leaves SCIM provisioning and audit logging running", async () => {
     respondWith(payloadWithoutExpiry());
 
     await callRoute(LICENSE_ROUTE, { licenseKey: STORED_LICENSE_KEY });

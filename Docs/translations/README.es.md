@@ -207,7 +207,7 @@ Inserta agentes de copiar y pegar **basados en OpenTelemetry** para vigilar todo
 | **Ideal para** | Quienes alojan por su cuenta y equipos pequeños | Equipos regulados que necesitan soporte premium |
 | **Costo** | Gratis y de código abierto | [Contactar a ventas](mailto:sales@oneuptime.com) |
 | **Licencia** | Apache 2.0 | Apache 2.0, más la [OneUptime Enterprise License](/ee/LICENSE) para el directorio `ee/` |
-| **Funciones** | Todo lo que incluye la sección anterior: monitoreo, páginas de estado, incidentes, guardias, logs, trazas, métricas, seguimiento de errores, flujos de trabajo e IA | Todo lo de Comunidad + inicio de sesión único SAML y OIDC, aprovisionamiento SCIM, registros de auditoría, cumplimiento de equipos y paneles de salud de la instancia, con soporte prioritario, funciones personalizadas y residencia de datos |
+| **Funciones** | Todo lo que incluye la sección anterior: monitoreo, páginas de estado, incidentes, guardias, logs, trazas, métricas, seguimiento de errores, flujos de trabajo e IA, además del inicio de sesión único SAML y OIDC | Todo lo de Comunidad + aprovisionamiento SCIM, registros de auditoría, cumplimiento de equipos y paneles de salud de la instancia, con soporte prioritario, funciones personalizadas y residencia de datos |
 
 Las funciones empresariales están en el directorio [`ee/`](/ee) y solo se incluyen en la imagen Empresarial. Consulta [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) para ver la comparación completa.
 

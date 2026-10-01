@@ -25,23 +25,36 @@ import ObservabilityAssistant, {
   ObservabilityAssistantStep,
 } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import {
-  INVESTIGATION_MAX_WALL_CLOCK_MS,
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../../Server/Utils/AI/ClusterAccess/KubectlInvestigationToolkit";
+import KubectlJobRunner, {
+  KubectlJobOutcome,
+  KubectlRunState,
+} from "../../../../Server/Utils/AI/ClusterAccess/KubectlJobRunner";
+import { READ_TOOL_OUTPUT_TOOL_NAME } from "../../../../Server/Utils/AI/Chat/ToolOutputPager";
 import { ToolCallOutcome } from "../../../../Server/Utils/AI/Toolbox/Index";
 import KubernetesClusterAiAccessService from "../../../../Server/Services/KubernetesClusterAiAccessService";
-import RunnerJobService from "../../../../Server/Services/RunnerJobService";
+import ProjectService from "../../../../Server/Services/ProjectService";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AIRunEventService from "../../../../Server/Services/AIRunEventService";
+import logger from "../../../../Server/Utils/Logger";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
 import Incident from "../../../../Models/DatabaseModels/Incident";
+import Project from "../../../../Models/DatabaseModels/Project";
+import {
+  AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
+  AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
+} from "../../../../Types/AI/AIAgentRunLimits";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
+import RunnerJobOrigin from "../../../../Types/Runbook/RunnerJobOrigin";
+import KubectlWaitBudget from "../../../../Utils/AiRemediation/KubectlWaitBudget";
 import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -53,15 +66,18 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * rules):
  *
  *   1. extraTools: list_cluster_access + run_kubectl, only for a cluster
- *      that is investigation-ready;
+ *      that is investigation-ready — followed, last, by read_tool_output,
+ *      which pages through their long outputs;
  *   2. additionalInstructions: the persona addendum naming the clusters;
  *   3. the "# Cluster access" block of the context summary;
- *   4. maxWallClockMs: the SAME wall clock the kubectl toolkit plans every
- *      command's wait against.
+ *   4. maxWallClockMs: the project's configured time limit for the lane —
+ *      none by default — and the SAME deadline the kubectl toolkit plans
+ *      every command's wait against.
  *
  * The incident and alert runners are separate code paths, so both are
  * pinned — and pinned to wire the same thing. A failed access lookup never
- * fails the run: it degrades to a telemetry-only investigation.
+ * fails the run: it degrades to a telemetry-only investigation; a project
+ * whose time limit cannot be read runs without one.
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -116,6 +132,64 @@ function toolNames(request: InvestigationRequest): Array<string> {
   );
 }
 
+function findTool(
+  request: InvestigationRequest,
+  name: string,
+): ObservabilityAssistantExtraTool {
+  const tool: ObservabilityAssistantExtraTool | undefined = (
+    request.extraTools || []
+  ).find((candidate: ObservabilityAssistantExtraTool) => {
+    return candidate.definition.name === name;
+  });
+
+  if (!tool) {
+    throw new Error(`Tool ${name} not offered.`);
+  }
+
+  return tool;
+}
+
+// The project row the runners read the lane's time limit from.
+function projectWithTimeLimits(limits: {
+  incidentMinutes?: number | undefined;
+  alertMinutes?: number | undefined;
+}): Project {
+  const project: Project = new Project(projectId);
+
+  if (limits.incidentMinutes !== undefined) {
+    project.incidentAiInvestigationTimeLimitInMinutes = limits.incidentMinutes;
+  }
+
+  if (limits.alertMinutes !== undefined) {
+    project.alertAiInvestigationTimeLimitInMinutes = limits.alertMinutes;
+  }
+
+  return project;
+}
+
+// What KubectlJobRunner.run hands back for a command kubectl ran.
+function ranOutcome(): KubectlJobOutcome {
+  return {
+    jobId: ObjectID.generate().toString(),
+    succeeded: true,
+    exitCode: 0,
+    output: "NAME   READY   STATUS\nweb-1  0/1     Pending",
+    redactionCount: 0,
+    isTruncated: false,
+    displayCommand: "kubectl get pods -n web",
+    executed: true,
+    runState: KubectlRunState.Ran,
+    claimTimedOut: false,
+    isAccessFailure: false,
+  };
+}
+
+const RUN_KUBECTL_ARGS: JSONObject = {
+  clusterId: CLUSTER_ID,
+  command: "kubectl get pods -n web",
+  rationale: "see pod phases",
+};
+
 async function investigate(kind: SubjectKind): Promise<void> {
   if (kind === "incident") {
     const incident: Incident = new Incident(incidentId);
@@ -162,6 +236,7 @@ describe("Investigation runners wire cluster access", () => {
   let executeRun: jest.SpyInstance;
   let getStatuses: jest.SpyInstance;
   let failOrRequeue: jest.SpyInstance;
+  let findProject: jest.SpyInstance;
 
   beforeEach(() => {
     executeRun = jest
@@ -173,6 +248,10 @@ describe("Investigation runners wire cluster access", () => {
     failOrRequeue = jest
       .spyOn(AIInvestigationQueue, "failOrRequeue")
       .mockResolvedValue("noop");
+    // A project that configured no investigation time limit (the default).
+    findProject = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectWithTimeLimits({}));
   });
 
   afterEach(() => {
@@ -180,7 +259,7 @@ describe("Investigation runners wire cluster access", () => {
   });
 
   test.each(SUBJECT_KINDS)(
-    "a %s investigation gets the kubectl tools, the persona addendum, the context block and the shared wall clock",
+    "a %s investigation gets the kubectl tools, the output reader, the persona addendum, the context block and no time limit",
     async (kind: SubjectKind) => {
       await investigate(kind);
 
@@ -192,9 +271,11 @@ describe("Investigation runners wire cluster access", () => {
       expect(executeRun).toHaveBeenCalledTimes(1);
 
       const request: InvestigationRequest = sentRequest(executeRun);
+      // The pager's reader comes last, after the command tools.
       expect(toolNames(request)).toEqual([
         LIST_CLUSTER_ACCESS_TOOL_NAME,
         RUN_KUBECTL_TOOL_NAME,
+        READ_TOOL_OUTPUT_TOOL_NAME,
       ]);
       expect(request.additionalInstructions).toContain(
         'can inspect directly: "prod-us"',
@@ -203,7 +284,20 @@ describe("Investigation runners wire cluster access", () => {
       expect(request.contextSummary).toContain(
         `- Cluster "prod-us" (clusterId: ${CLUSTER_ID}): kubectl READ access available via run_kubectl`,
       );
-      expect(request.maxWallClockMs).toBe(INVESTIGATION_MAX_WALL_CLOCK_MS);
+
+      // No time limit, and step counts that only guard against a runaway.
+      expect(findProject).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: projectId,
+          select: {
+            incidentAiInvestigationTimeLimitInMinutes: true,
+            alertAiInvestigationTimeLimitInMinutes: true,
+          },
+        }),
+      );
+      expect(request.maxWallClockMs).toBeUndefined();
+      expect(request.maxLlmCalls).toBe(AI_AGENT_RUNAWAY_MAX_LLM_CALLS);
+      expect(request.maxToolCalls).toBe(AI_AGENT_RUNAWAY_MAX_TOOL_CALLS);
       expect(failOrRequeue).not.toHaveBeenCalled();
     },
   );
@@ -236,36 +330,137 @@ describe("Investigation runners wire cluster access", () => {
   });
 
   test.each(SUBJECT_KINDS)(
-    "a %s investigation's kubectl tools are bound to this run and its deadline",
+    "a %s investigation's kubectl tools are bound to this run, with no deadline by default",
     async (kind: SubjectKind) => {
       const NOW_MS: number = 1_700_000_000_000;
       const now: jest.SpyInstance = jest
         .spyOn(Date, "now")
         .mockReturnValue(NOW_MS);
-      const enqueue: jest.SpyInstance = jest.spyOn(
-        RunnerJobService,
-        "enqueueAiKubectlCommand",
-      );
+      const plan: jest.SpyInstance = jest.spyOn(KubectlWaitBudget, "plan");
+      const jobRun: jest.SpyInstance = jest
+        .spyOn(KubectlJobRunner, "run")
+        .mockResolvedValue(ranOutcome());
 
       await investigate(kind);
 
-      const runKubectl: ObservabilityAssistantExtraTool = (
-        sentRequest(executeRun).extraTools || []
-      ).find((tool: ObservabilityAssistantExtraTool) => {
-        return tool.definition.name === RUN_KUBECTL_TOOL_NAME;
-      })!;
+      const runKubectl: ObservabilityAssistantExtraTool = findTool(
+        sentRequest(executeRun),
+        RUN_KUBECTL_TOOL_NAME,
+      );
 
-      // The run's wall clock has run out: the toolkit refuses on its own.
-      now.mockReturnValue(NOW_MS + INVESTIGATION_MAX_WALL_CLOCK_MS + 1);
-      const outcome: ToolCallOutcome = await runKubectl.execute({
-        clusterId: CLUSTER_ID,
-        command: "kubectl get pods -n web",
-        rationale: "see pod phases",
+      // A day into the run: an unlimited run is never refused for time.
+      now.mockReturnValue(NOW_MS + 24 * 60 * 60 * 1000);
+      const outcome: ToolCallOutcome =
+        await runKubectl.execute(RUN_KUBECTL_ARGS);
+
+      expect(outcome.success).toBe(true);
+      expect(plan).toHaveBeenCalledWith(
+        expect.objectContaining({ deadlineAtMs: undefined }),
+      );
+      expect(jobRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectId,
+          aiRunId,
+          origin: RunnerJobOrigin.AiInvestigation,
+          command: "kubectl get pods -n web",
+        }),
+      );
+    },
+  );
+
+  /*
+   * A project that configured a time limit for the lane: the engine gets
+   * it as maxWallClockMs, and the kubectl toolkit gets the deadline it
+   * ends at — the same number, measured from when the run was wired.
+   */
+  test.each(SUBJECT_KINDS)(
+    "a %s investigation with a configured time limit hands the engine and the kubectl tools the same deadline",
+    async (kind: SubjectKind) => {
+      const NOW_MS: number = 1_700_000_000_000;
+      const LIMIT_MS: number = 15 * 60 * 1000;
+      findProject.mockResolvedValue(
+        projectWithTimeLimits({ incidentMinutes: 15, alertMinutes: 15 }),
+      );
+      const now: jest.SpyInstance = jest
+        .spyOn(Date, "now")
+        .mockReturnValue(NOW_MS);
+      const plan: jest.SpyInstance = jest.spyOn(KubectlWaitBudget, "plan");
+      const jobRun: jest.SpyInstance = jest
+        .spyOn(KubectlJobRunner, "run")
+        .mockResolvedValue(ranOutcome());
+
+      await investigate(kind);
+
+      const request: InvestigationRequest = sentRequest(executeRun);
+      expect(request.maxWallClockMs).toBe(LIMIT_MS);
+      expect(request.maxLlmCalls).toBe(AI_AGENT_RUNAWAY_MAX_LLM_CALLS);
+      expect(request.maxToolCalls).toBe(AI_AGENT_RUNAWAY_MAX_TOOL_CALLS);
+
+      const runKubectl: ObservabilityAssistantExtraTool = findTool(
+        request,
+        RUN_KUBECTL_TOOL_NAME,
+      );
+
+      // Within the limit: planned against the run's deadline.
+      now.mockReturnValue(NOW_MS + 60_000);
+      expect((await runKubectl.execute(RUN_KUBECTL_ARGS)).success).toBe(true);
+      expect(plan).toHaveBeenCalledWith(
+        expect.objectContaining({ deadlineAtMs: NOW_MS + LIMIT_MS }),
+      );
+
+      // Past it: the toolkit refuses on its own, enqueuing nothing.
+      now.mockReturnValue(NOW_MS + LIMIT_MS + 1);
+      const late: ToolCallOutcome = await runKubectl.execute(RUN_KUBECTL_ARGS);
+
+      expect(late.success).toBe(false);
+      expect(late.textForLlm).toContain(
+        "Not enough time is left before this investigation's configured time limit",
+      );
+      expect(jobRun).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("each runner reads its own lane's time limit", async () => {
+    findProject.mockResolvedValue(
+      projectWithTimeLimits({ incidentMinutes: 15, alertMinutes: 45 }),
+    );
+
+    await investigate("incident");
+    await investigate("alert");
+
+    const incidentRequest: InvestigationRequest = (
+      executeRun.mock.calls[0]![0] as { request: InvestigationRequest }
+    ).request;
+    const alertRequest: InvestigationRequest = (
+      executeRun.mock.calls[1]![0] as { request: InvestigationRequest }
+    ).request;
+
+    expect(incidentRequest.maxWallClockMs).toBe(15 * 60 * 1000);
+    expect(alertRequest.maxWallClockMs).toBe(45 * 60 * 1000);
+  });
+
+  test.each(SUBJECT_KINDS)(
+    "a %s whose project cannot be read runs without a time limit, never failed",
+    async (kind: SubjectKind) => {
+      jest.spyOn(logger, "error").mockImplementation((): void => {
+        return undefined;
       });
+      findProject.mockRejectedValue(new Error("database unavailable"));
 
-      expect(outcome.success).toBe(false);
-      expect(outcome.textForLlm).toContain("Not enough time is left");
-      expect(enqueue).not.toHaveBeenCalled();
+      await investigate(kind);
+
+      expect(executeRun).toHaveBeenCalledTimes(1);
+      const request: InvestigationRequest = sentRequest(executeRun);
+      expect(request.maxWallClockMs).toBeUndefined();
+      expect(request.maxLlmCalls).toBe(AI_AGENT_RUNAWAY_MAX_LLM_CALLS);
+      expect(request.maxToolCalls).toBe(AI_AGENT_RUNAWAY_MAX_TOOL_CALLS);
+      // The cluster access is untouched.
+      expect(toolNames(request)).toEqual([
+        LIST_CLUSTER_ACCESS_TOOL_NAME,
+        RUN_KUBECTL_TOOL_NAME,
+        READ_TOOL_OUTPUT_TOOL_NAME,
+      ]);
+      expect(failOrRequeue).not.toHaveBeenCalled();
     },
   );
 
@@ -299,7 +494,8 @@ describe("Investigation runners wire cluster access", () => {
       expect(request.contextSummary).toContain(
         "NO kubectl access — No Runner can reach this cluster",
       );
-      expect(request.maxWallClockMs).toBe(INVESTIGATION_MAX_WALL_CLOCK_MS);
+      // No command tools, so no output reader either; still no time limit.
+      expect(request.maxWallClockMs).toBeUndefined();
     },
   );
 
@@ -315,7 +511,7 @@ describe("Investigation runners wire cluster access", () => {
       expect(request.extraTools).toBeUndefined();
       expect(request.additionalInstructions).toBeUndefined();
       expect(request.contextSummary).not.toContain("# Cluster access");
-      expect(request.maxWallClockMs).toBe(INVESTIGATION_MAX_WALL_CLOCK_MS);
+      expect(request.maxWallClockMs).toBeUndefined();
       expect(failOrRequeue).not.toHaveBeenCalled();
     },
   );

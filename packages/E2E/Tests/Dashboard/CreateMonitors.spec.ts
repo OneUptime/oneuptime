@@ -180,7 +180,7 @@ const recipes: Array<MonitorTypeRecipe> = [
    * separately configured device and is outside this general recipe table.
    */
 
-  // Code-based probeable types: fill the Monaco editor + interval.
+  // Code-based probeable types: fill the code editor + interval.
   {
     label: "Synthetic Monitor",
     cardValue: "Synthetic Monitor",

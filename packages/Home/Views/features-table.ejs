@@ -582,6 +582,34 @@
                             </a>
                         </div>
 
+                        <!-- Databases - Emerald -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-emerald-wrapper">
+                            <a href="/product/databases" class="feature-card feature-glow-emerald group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-emerald-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 ring-1 ring-emerald-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-emerald-600">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Databases</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Every database your applications query, found on its own, with query latency, engine metrics, and alerts on one page.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Discovered from traces & containers</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Query latency, errors & callers</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Engine metrics via OpenTelemetry</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Recommended monitors per engine</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">PostgreSQL, MySQL, Redis, MongoDB & more</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-emerald-600 font-medium">Replaces Datadog DBM, Percona PMM</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
+                        </div>
+
                         <!-- Proxmox - Orange -->
                         <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-orange-wrapper">
                             <a href="/product/proxmox" class="feature-card feature-glow-orange group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-orange-300 h-full">

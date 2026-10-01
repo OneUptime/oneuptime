@@ -41,7 +41,7 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     modelType: "RumApplication",
     countState: "count",
     countSetter: "setCount",
-    documentationCard: "ResourceDocumentationCard",
+    documentationCard: "RumDocumentationCard",
   },
   {
     label: "Kubernetes clusters",
@@ -129,7 +129,7 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     modelType: "ServerlessFunction",
     countState: "count",
     countSetter: "setCount",
-    documentationCard: "ResourceDocumentationCard",
+    documentationCard: "ServerlessDocumentationCard",
   },
   {
     label: "databases",
@@ -138,6 +138,14 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     countState: "count",
     countSetter: "setCount",
     documentationCard: "DatabaseDocumentationCard",
+  },
+  {
+    label: "queues",
+    relativePath: "MessageQueue/MessageQueues.tsx",
+    modelType: "MessageQueue",
+    countState: "count",
+    countSetter: "setCount",
+    documentationCard: "MessageQueueDocumentationCard",
   },
 ];
 
@@ -206,7 +214,7 @@ describe("empty resource inventory page catalog", () => {
       },
     ).sort();
 
-    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(13);
+    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(14);
     expect(discoveredPages).toEqual(testedPages);
   });
 

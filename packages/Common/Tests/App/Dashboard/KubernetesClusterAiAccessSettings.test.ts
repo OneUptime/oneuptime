@@ -79,8 +79,14 @@ import {
 import {
   KUBERNETES_AGENT_HELM_NAMESPACE,
   KUBERNETES_AGENT_HELM_RELEASE,
-  getKubernetesInstallationMarkdown,
+  KUBERNETES_PLATFORMS,
+  KubernetesPlatform,
+  getKubernetesSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import {
+  SetupGuideOption,
+  getSetupGuideMarkdown,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { isKubernetesAgentRunnerRow } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAgentRunner";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
@@ -414,11 +420,19 @@ afterEach(() => {
 });
 
 describe("the AI agent helm commands", () => {
-  const installMarkdown: string = getKubernetesInstallationMarkdown({
-    clusterName: "prod-east",
-    oneuptimeUrl: "https://oneuptime.example.com",
-    apiKey: "key",
-  });
+  // Every platform's install guide, Advanced and Troubleshooting included.
+  const installMarkdown: string = KUBERNETES_PLATFORMS.map(
+    (option: SetupGuideOption<KubernetesPlatform>): string => {
+      return getSetupGuideMarkdown(
+        getKubernetesSetupGuide({
+          clusterName: "prod-east",
+          oneuptimeUrl: "https://oneuptime.example.com",
+          apiKey: "key",
+          platform: option.key,
+        }),
+      );
+    },
+  ).join("\n");
 
   function allCommands(): Array<string> {
     const commands: AiAgentHelmCommands = getAiAgentHelmCommands();

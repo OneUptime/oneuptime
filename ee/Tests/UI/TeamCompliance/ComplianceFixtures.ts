@@ -49,7 +49,7 @@ export const buildRule: (
     settingId: EMAIL_RULE_ID,
     ruleType: ComplianceRuleType.HasNotificationEmailMethod,
     enabled: true,
-    notificationChannel: null,
+    notificationChannels: [],
     severityKind: null,
     appliesToAllSeverities: false,
     severities: [],
@@ -82,12 +82,37 @@ export const callForIncidentsRule: (
   return buildRule({
     settingId: CALL_RULE_ID,
     ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-    notificationChannel: ComplianceNotificationChannel.Call,
+    notificationChannels: [ComplianceNotificationChannel.Call],
     severityKind: ComplianceSeverityKind.Incident,
     appliesToAllSeverities: false,
     severities: [
       { id: CRITICAL_ID, name: "Critical Incident", color: "#ff0000" },
       { id: MAJOR_ID, name: "Major Incident" },
+    ],
+    ...(overrides || {}),
+  });
+};
+
+export const CALL_AND_PUSH_RULE_ID: string =
+  "00000000-0000-4000-8000-0000000000a7";
+
+/*
+ * "Call and Push notification for incidents", scoped to Critical Incident: a
+ * rule on two channels, which a member meets only with a rule on each.
+ */
+export const callAndPushForIncidentsRule: (
+  overrides?: Partial<TeamComplianceRuleJSON>,
+) => TeamComplianceRuleJSON = (
+  overrides?: Partial<TeamComplianceRuleJSON>,
+): TeamComplianceRuleJSON => {
+  return callForIncidentsRule({
+    settingId: CALL_AND_PUSH_RULE_ID,
+    notificationChannels: [
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ],
+    severities: [
+      { id: CRITICAL_ID, name: "Critical Incident", color: "#ff0000" },
     ],
     ...(overrides || {}),
   });
@@ -102,7 +127,7 @@ export const alertRule: (
   return buildRule({
     settingId: ALERT_RULE_ID,
     ruleType: ComplianceRuleType.HasAlertOnCallRules,
-    notificationChannel: null,
+    notificationChannels: [],
     severityKind: ComplianceSeverityKind.Alert,
     appliesToAllSeverities: true,
     severities: [],

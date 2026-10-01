@@ -173,6 +173,14 @@ export default interface Field<TEntity> {
    */
   disableSpellCheck?: boolean | undefined;
 
+  /*
+   * For a Markdown field: whether its editor uploads pasted, dropped and
+   * picked images. Default: true. Uploading needs a signed-in user, so a
+   * form that people without a OneUptime account fill in sets this to false
+   * -- the Image button is hidden and image files are ignored.
+   */
+  allowImageUpload?: boolean | undefined;
+
   getSummaryElement?: (item: FormValues<TEntity>) => ReactElement | undefined;
 
   // If true, this field will span the full row in multi-column layouts.

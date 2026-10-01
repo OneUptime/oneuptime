@@ -345,7 +345,7 @@ describe("results", () => {
   });
 
   test("stdout is capped at the output budget and says so", async () => {
-    docker.setBehaviour({ stdoutBytes: 120_000 });
+    docker.setBehaviour({ stdoutBytes: MAX_OUTPUT_BYTES + 70_000 });
 
     const result: ExecResult = await sandbox().run(runRequest());
 
@@ -360,7 +360,7 @@ describe("results", () => {
 
   test("stderr keeps its tail, and is never pushed out by a large stdout", async () => {
     docker.setBehaviour({
-      stdoutBytes: 120_000,
+      stdoutBytes: MAX_OUTPUT_BYTES + 70_000,
       stderr: `${"e".repeat(30_000)}\nError: the real reason\n`,
       exitCode: 1,
     });

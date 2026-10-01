@@ -27,7 +27,7 @@ export interface ComplianceRulePreset {
   description: string;
   icon: IconProp;
   ruleType: ComplianceRuleType;
-  notificationChannel?: ComplianceNotificationChannel | undefined;
+  notificationChannels?: Array<ComplianceNotificationChannel> | undefined;
   // Preselect the most severe severity of this kind.
   mostSevere?: ComplianceSeverityKind | undefined;
 }
@@ -40,7 +40,7 @@ export const COMPLIANCE_RULE_PRESETS: ReadonlyArray<ComplianceRulePreset> = [
       "Every member has an incident on-call rule that phones them for your most severe incidents.",
     icon: IconProp.Call,
     ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-    notificationChannel: ComplianceNotificationChannel.Call,
+    notificationChannels: [ComplianceNotificationChannel.Call],
     mostSevere: ComplianceSeverityKind.Incident,
   },
   {
@@ -50,7 +50,7 @@ export const COMPLIANCE_RULE_PRESETS: ReadonlyArray<ComplianceRulePreset> = [
       "Every member gets a push notification when your most severe alerts page them.",
     icon: IconProp.DevicePhoneMobile,
     ruleType: ComplianceRuleType.HasAlertOnCallRules,
-    notificationChannel: ComplianceNotificationChannel.Push,
+    notificationChannels: [ComplianceNotificationChannel.Push],
     mostSevere: ComplianceSeverityKind.Alert,
   },
   {
@@ -125,8 +125,9 @@ export const getPresetInitialValues: (
     enabled: true,
   };
 
-  if (preset.notificationChannel) {
-    values.notificationChannel = preset.notificationChannel;
+  if (preset.notificationChannels && preset.notificationChannels.length > 0) {
+    // A copy: the form edits what it is given, and the preset is shared.
+    values.notificationChannels = [...preset.notificationChannels];
   }
 
   if (preset.mostSevere) {

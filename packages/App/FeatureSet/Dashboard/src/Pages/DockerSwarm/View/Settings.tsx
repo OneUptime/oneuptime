@@ -1,17 +1,12 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
-import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
-import TelemetryRetentionConfigForm from "Common/UI/Components/Telemetry/TelemetryRetentionConfigForm";
-import TelemetryRetentionConfigSummary from "Common/UI/Components/Telemetry/TelemetryRetentionConfigSummary";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -54,20 +49,6 @@ const DockerSwarmClusterSettings: FunctionComponent<
             required: false,
             placeholder: "Production Docker Swarm cluster in US East",
           },
-          {
-            field: {
-              retainTelemetryDataForDays: true,
-            },
-            title: "Retain Telemetry Data For (Days)",
-            description:
-              "Default retention for telemetry collected from this Docker Swarm cluster. Leave blank to use the project's default.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "Use project default",
-            validation: {
-              minValue: 1,
-            },
-          },
         ]}
         modelDetailProps={{
           modelType: DockerSwarmCluster,
@@ -88,71 +69,14 @@ const DockerSwarmClusterSettings: FunctionComponent<
               title: "Description",
               fieldType: FieldType.Text,
             },
-            {
-              field: {
-                retainTelemetryDataForDays: true,
-              },
-              title: "Retain Telemetry Data For (Days)",
-              description:
-                "Default retention for telemetry collected from this Docker Swarm cluster. Falls back to the project's default when not set.",
-              fieldType: FieldType.Number,
-              placeholder: "Using project default",
-            },
           ],
         }}
       />
-      <CardModelDetail<DockerSwarmCluster>
-        name="Retention by Telemetry Type"
-        cardProps={{
-          title: "Retention by Telemetry Type",
-          description:
-            "Override retention for specific telemetry types for this Docker Swarm cluster. Any field left blank falls back to the cluster default, then the project's settings.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Overrides"
-        createEditModalWidth={ModalWidth.Large}
-        formFields={[
-          {
-            field: { telemetryRetentionConfig: true },
-            title: "Retention Overrides",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: false,
-            getCustomElement: (
-              value: FormValues<DockerSwarmCluster>,
-              props: CustomElementProps,
-            ) => {
-              return (
-                <TelemetryRetentionConfigForm
-                  {...props}
-                  value={
-                    value.telemetryRetentionConfig as
-                      | TelemetryRetentionConfig
-                      | undefined
-                  }
-                />
-              );
-            },
-          },
-        ]}
-        modelDetailProps={{
-          modelType: DockerSwarmCluster,
-          id: "model-detail-docker-swarm-cluster-telemetry-retention-overrides",
-          fields: [
-            {
-              field: { telemetryRetentionConfig: true },
-              fieldType: FieldType.Element,
-              title: "Retention Overrides",
-              getElement: (item: DockerSwarmCluster) => {
-                return (
-                  <TelemetryRetentionConfigSummary
-                    config={item.telemetryRetentionConfig}
-                  />
-                );
-              },
-            },
-          ],
-          modelId: modelId,
-        }}
+      <TelemetryResourceRetentionSettings<DockerSwarmCluster>
+        modelType={DockerSwarmCluster}
+        modelId={modelId}
+        resourceName="Docker Swarm cluster"
+        modelDetailIdPrefix="model-detail-docker-swarm-cluster"
       />
       <ArchiveResourceCard<DockerSwarmCluster>
         modelType={DockerSwarmCluster}

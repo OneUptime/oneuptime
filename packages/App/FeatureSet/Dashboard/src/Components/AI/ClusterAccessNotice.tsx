@@ -366,19 +366,19 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
   // Tried kubectl but nothing came back: worth the reader's attention.
   const didKubectlFail: boolean = finishedRunUsage?.tone === "failed";
 
+  /*
+   * Each fact is one line under a small icon, in the report's own type. The
+   * icon alone carries the tone (green: the run reached a cluster, amber:
+   * something needs fixing, gray: neither), so the notice no longer adds a
+   * green, amber or gray box of its own to the card.
+   */
   return (
-    <div className="space-y-2" data-testid="cluster-access-notice">
+    <div className="space-y-3" data-testid="cluster-access-notice">
       {finishedRunUsage ? (
         <div
           data-testid="cluster-access-run-usage"
           data-tone={finishedRunUsage.tone}
-          className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${
-            didInspectCluster
-              ? "border-emerald-200 bg-emerald-50/70"
-              : didKubectlFail
-                ? "border-amber-200 bg-amber-50"
-                : "border-gray-200 bg-gray-50"
-          }`}
+          className="flex items-start gap-3"
         >
           <Icon
             icon={
@@ -388,23 +388,15 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
                   ? IconProp.Alert
                   : IconProp.Info
             }
-            className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
+            className={`mt-1 h-4 w-4 flex-shrink-0 ${
               didInspectCluster
                 ? "text-emerald-600"
                 : didKubectlFail
-                  ? "text-amber-600"
-                  : "text-gray-500"
+                  ? "text-amber-500"
+                  : "text-gray-400"
             }`}
           />
-          <p
-            className={`text-xs leading-5 ${
-              didInspectCluster
-                ? "text-emerald-900"
-                : didKubectlFail
-                  ? "text-amber-900"
-                  : "text-gray-700"
-            }`}
-          >
+          <p className="min-w-0 text-sm leading-6 text-gray-600">
             {finishedRunUsage.text}
           </p>
         </div>
@@ -415,13 +407,13 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
       {reachable.length > 0 ? (
         <div
           data-testid="cluster-access-reachable"
-          className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3"
+          className="flex items-start gap-3"
         >
           <Icon
             icon={IconProp.ShieldCheck}
-            className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600"
+            className="mt-1 h-4 w-4 flex-shrink-0 text-emerald-600"
           />
-          <p className="text-xs leading-5 text-emerald-900">
+          <p className="min-w-0 text-sm leading-6 text-gray-600">
             OneUptime AI {props.isRunFinished ? "currently has" : "has"}{" "}
             read-only kubectl access to{" "}
             {reachable.map((status: ClusterAccessNoticeRow, index: number) => {
@@ -430,7 +422,7 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
                   {index > 0 ? ", " : ""}
                   <Link
                     to={getClusterAiAgentPageRoute(status.clusterId)}
-                    className="font-medium underline decoration-emerald-300 hover:text-emerald-950"
+                    className="font-medium text-gray-900 underline decoration-gray-300 underline-offset-2 hover:decoration-gray-500"
                   >
                     {status.clusterName}
                   </Link>{" "}
@@ -457,29 +449,31 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
           <div
             key={status.clusterId}
             data-testid="cluster-access-unreachable"
-            className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
+            className="flex items-start gap-3"
           >
             <Icon
               icon={IconProp.Alert}
-              className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
+              className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500"
             />
             <div className="min-w-0">
-              <p className="text-sm font-medium text-amber-900">
+              <p className="text-sm font-medium text-gray-900">
                 {props.isRunFinished
                   ? `OneUptime AI cannot currently reach cluster "${status.clusterName}" with kubectl`
                   : `Investigating with OneUptime data only — no kubectl access to cluster "${status.clusterName}"`}
               </p>
               {first ? (
-                <p className="mt-1 text-xs leading-5 text-amber-800">
-                  <span className="font-semibold">Why: </span>
+                <p className="mt-1 text-sm leading-6 text-gray-600">
+                  <span className="font-medium text-gray-700">Why: </span>
                   {first.title}. {first.description}
                 </p>
               ) : (
                 <></>
               )}
               {first ? (
-                <p className="mt-1 text-xs leading-5 text-amber-800">
-                  <span className="font-semibold">What to do: </span>
+                <p className="mt-1 text-sm leading-6 text-gray-600">
+                  <span className="font-medium text-gray-700">
+                    What to do:{" "}
+                  </span>
                   {first.nextStep}
                   {blocking.length > 1
                     ? ` (${blocking.length - 1} more to fix on the cluster's AI agent page.)`
@@ -490,7 +484,7 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
               )}
               <Link
                 to={getClusterAiAgentPageRoute(status.clusterId)}
-                className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 hover:text-indigo-900"
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800"
               >
                 <span>{CLUSTER_AI_AGENT_PAGE_LINK_TEXT}</span>
                 <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />

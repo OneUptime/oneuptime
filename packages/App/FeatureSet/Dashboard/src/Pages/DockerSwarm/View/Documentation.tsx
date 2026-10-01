@@ -63,8 +63,9 @@ const DockerSwarmClusterDocumentation: FunctionComponent<
   return (
     <Fragment>
       <DockerSwarmDocumentationCard
-        title="Docker Swarm Agent Installation Guide"
-        description="Follow these steps to install the OneUptime Docker Swarm Agent for this cluster."
+        clusterName={cluster.name || ""}
+        title="Agent Installation Guide"
+        description="Install or reconfigure the OneUptime Docker Swarm agent for this cluster. Pick how you install it, then follow the steps."
       />
     </Fragment>
   );

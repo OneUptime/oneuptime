@@ -5,7 +5,9 @@ import DatabaseDocumentationCard from "../../Components/DatabaseServer/Documenta
 /*
  * The product-level install guide: pick the engine, pick an ingestion key,
  * copy the agent. Databases need no agent to appear — traces and container
- * discovery create them — so the guide is about ENGINE metrics.
+ * discovery create them — so the guide is about ENGINE metrics. What those
+ * are depends on the engine (Memcached has no locks or replication), so the
+ * guide says it per engine rather than here.
  */
 const DatabaseDocumentation: FunctionComponent<
   PageComponentProps
@@ -13,8 +15,8 @@ const DatabaseDocumentation: FunctionComponent<
   return (
     <Fragment>
       <DatabaseDocumentationCard
-        title="Database Agent Installation Guide"
-        description="Databases appear on their own from your application traces and from Kubernetes, Docker and Podman. Install the OneUptime Database Agent next to a database to add its engine metrics — connections, throughput, cache hit ratio, locks and replication."
+        title="Connect Database Engine Metrics"
+        description="Databases appear on their own from your application traces and from Kubernetes, Docker and Podman. Install the OneUptime Database Agent next to a database to add its engine metrics: pick the engine, then follow the steps."
       />
     </Fragment>
   );

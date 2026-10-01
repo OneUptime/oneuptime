@@ -16,6 +16,8 @@ import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import { getCephClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
@@ -1540,6 +1542,23 @@ const CephClusterOverview: FunctionComponent<
       onTimeRangeChange={handleChartTimeRangeChange}
     >
       {renderHero()}
+
+      {/* How to connect it, while it is not connected */}
+      {cluster ? (
+        <ResourceConnectionGuideCard
+          status={cluster.otelCollectorStatus as string | undefined}
+          lastSeenAt={cluster.lastSeenAt}
+          guide={getCephClusterConnectionGuide(
+            (cluster.name as string | undefined) || "",
+          )}
+          documentationRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.CEPH_CLUSTER_VIEW_DOCUMENTATION] as Route,
+            { modelId: modelId },
+          )}
+        />
+      ) : (
+        <></>
+      )}
       {renderHealthChecks()}
       {renderGoldenTiles()}
       {renderOsdMatrix()}

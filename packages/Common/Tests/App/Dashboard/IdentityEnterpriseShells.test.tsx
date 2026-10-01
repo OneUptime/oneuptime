@@ -11,12 +11,15 @@ import { cleanup, render, screen } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * The six identity pages the Dashboard routes to - Settings > SSO / OIDC /
- * SCIM and Status page > SSO / OIDC / SCIM - are Enterprise Edition screens
- * (ee/Dashboard/SSO). Core keeps a shell at each page's original path, so the
- * route files and the lazy page map never changed: the shell renders the
- * Enterprise screen when the project may use the feature AND the bundle
- * includes it, and the upsell card the page used to show otherwise.
+ * The two SCIM pages the Dashboard routes to - Settings > SCIM and Status
+ * page > SCIM - are Enterprise Edition screens (ee/Dashboard/Identity). Core
+ * keeps a shell at each page's original path, so the route files and the
+ * lazy page map never changed: the shell renders the Enterprise screen when
+ * the project may use the feature AND the bundle includes it, and the upsell
+ * card the page used to show otherwise.
+ *
+ * (Single sign-on is not among them: its pages are core in every edition -
+ * SsoPages.test.tsx covers them.)
  *
  * "@oneuptime/ee-dashboard" is replaced by a plugin object the tests fill in,
  * standing in for the Enterprise bundle; left empty it is the Community
@@ -27,6 +30,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 let billingEnabledForTest: boolean = false;
 let enterpriseEditionForTest: boolean = false;
 let currentPlanForTest: string | null = null;
+let currentPlanThrows: boolean = false;
 
 const CLOUD_PLAN_ENV: Record<string, string> = {
   SUBSCRIPTION_PLAN_BASIC: "Free,priceMonthlyId1,priceYearlyId1,0,0,1,0",
@@ -73,6 +77,10 @@ jest.mock("../../../UI/Utils/Project", () => {
     default: {
       ...actual["default"],
       getCurrentPlan: (): string | null => {
+        if (currentPlanThrows) {
+          throw new Error("Plan ID is invalid");
+        }
+
         return currentPlanForTest;
       },
     },
@@ -89,14 +97,13 @@ jest.mock("@oneuptime/ee-dashboard", () => {
   return { __esModule: true, default: mockEnterprisePlugins };
 });
 
-import SettingsOIDC from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/OIDC";
 import SettingsSCIM from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/SCIM";
-import SettingsSSO from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/SSO";
-import StatusPageViewOIDC from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/OIDC";
 import StatusPageViewSCIM from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SCIM";
-import StatusPageViewSSO from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SSO";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
-import { DashboardEnterprisePluginKey } from "../../../../App/FeatureSet/Dashboard/src/Enterprise/EnterprisePlugins";
+import {
+  DASHBOARD_ENTERPRISE_PLUGIN_KEYS,
+  DashboardEnterprisePluginKey,
+} from "../../../../App/FeatureSet/Dashboard/src/Enterprise/EnterprisePlugins";
 import Route from "../../../Types/API/Route";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 
@@ -111,39 +118,11 @@ interface ShellCase {
 
 const SHELLS: Array<ShellCase> = [
   {
-    name: "Settings > SSO",
-    Shell: SettingsSSO,
-    pluginKey: "SettingsSSO",
-    upsellTitle: "Single Sign On (SSO)",
-    featureName: "SAML Single Sign On",
-  },
-  {
-    name: "Settings > OIDC",
-    Shell: SettingsOIDC,
-    pluginKey: "SettingsOIDC",
-    upsellTitle: "OpenID Connect (OIDC)",
-    featureName: "OIDC Single Sign On",
-  },
-  {
     name: "Settings > SCIM",
     Shell: SettingsSCIM,
     pluginKey: "SettingsSCIM",
     upsellTitle: "SCIM User Provisioning",
     featureName: "SCIM User Provisioning",
-  },
-  {
-    name: "Status page > SSO",
-    Shell: StatusPageViewSSO,
-    pluginKey: "StatusPageSSO",
-    upsellTitle: "Status Page SSO",
-    featureName: "Status Page SAML SSO",
-  },
-  {
-    name: "Status page > OIDC",
-    Shell: StatusPageViewOIDC,
-    pluginKey: "StatusPageOIDC",
-    upsellTitle: "Status Page OIDC",
-    featureName: "Status Page OIDC SSO",
   },
   {
     name: "Status page > SCIM",
@@ -152,6 +131,18 @@ const SHELLS: Array<ShellCase> = [
     upsellTitle: "Status Page SCIM",
     featureName: "Status Page SCIM Provisioning",
   },
+];
+
+/*
+ * The keys that served the single sign-on screens from ee/ before they
+ * became core. Nothing reads them any more; an old Enterprise bundle that
+ * still carried them must not open a SCIM screen either.
+ */
+const RETIRED_SSO_PLUGIN_KEYS: Array<string> = [
+  "SettingsSSO",
+  "SettingsOIDC",
+  "StatusPageSSO",
+  "StatusPageOIDC",
 ];
 
 const PAGE_PROPS: PageComponentProps = {
@@ -183,8 +174,8 @@ const makeFakeScreen: (
   return FakeScreen;
 };
 
-const installPlugins: (keys: Array<DashboardEnterprisePluginKey>) => void = (
-  keys: Array<DashboardEnterprisePluginKey>,
+const installPlugins: (keys: Array<string>) => void = (
+  keys: Array<string>,
 ): void => {
   for (const key of keys) {
     mockEnterprisePlugins[key] = makeFakeScreen(key);
@@ -201,6 +192,7 @@ beforeEach(() => {
   billingEnabledForTest = false;
   enterpriseEditionForTest = false;
   currentPlanForTest = null;
+  currentPlanThrows = false;
   clearPlugins();
 });
 
@@ -260,6 +252,25 @@ describe.each(SHELLS)("$name shell", (shell: ShellCase) => {
     expect(screen.queryByTestId("enterprise-screen")).not.toBeInTheDocument();
   });
 
+  test("OneUptime Cloud with no plan, or one the Dashboard cannot read: the plan upsell (fails closed)", () => {
+    billingEnabledForTest = true;
+    enterpriseEditionForTest = true;
+    installPlugins([shell.pluginKey]);
+
+    const { unmount } = render(<shell.Shell {...PAGE_PROPS} />);
+
+    expect(screen.getAllByText("Upgrade to Scale").length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("enterprise-screen")).not.toBeInTheDocument();
+    unmount();
+
+    currentPlanThrows = true;
+
+    render(<shell.Shell {...PAGE_PROPS} />);
+
+    expect(screen.getAllByText("Upgrade to Scale").length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("enterprise-screen")).not.toBeInTheDocument();
+  });
+
   test.each([PlanType.Scale, PlanType.Enterprise])(
     "OneUptime Cloud on %s: the Enterprise screen",
     (plan: PlanType) => {
@@ -291,15 +302,16 @@ describe.each(SHELLS)("$name shell", (shell: ShellCase) => {
     );
   });
 
-  test("ignores other features' screens", () => {
+  test("ignores other features' screens, the retired single sign-on keys included", () => {
     enterpriseEditionForTest = true;
-    installPlugins(
-      SHELLS.map((each: ShellCase) => {
+    installPlugins([
+      ...SHELLS.map((each: ShellCase) => {
         return each.pluginKey;
       }).filter((key: DashboardEnterprisePluginKey) => {
         return key !== shell.pluginKey;
       }),
-    );
+      ...RETIRED_SSO_PLUGIN_KEYS,
+    ]);
 
     render(<shell.Shell {...PAGE_PROPS} />);
 
@@ -315,5 +327,17 @@ describe("identity shells", () => {
     });
 
     expect(new Set(keys).size).toBe(SHELLS.length);
+  });
+
+  test("the plugin contract has keys for the SCIM screens, and none for single sign-on", () => {
+    for (const shell of SHELLS) {
+      expect(DASHBOARD_ENTERPRISE_PLUGIN_KEYS).toContain(shell.pluginKey);
+    }
+
+    for (const retiredKey of RETIRED_SSO_PLUGIN_KEYS) {
+      expect(
+        DASHBOARD_ENTERPRISE_PLUGIN_KEYS as ReadonlyArray<string>,
+      ).not.toContain(retiredKey);
+    }
   });
 });

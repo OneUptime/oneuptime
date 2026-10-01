@@ -358,7 +358,7 @@ const ProxmoxClusters: FunctionComponent<
       {clusterCount === 0 && (
         <ProxmoxDocumentationCard
           title="Getting Started with Proxmox Monitoring"
-          description="No Proxmox clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
+          description="No Proxmox clusters connected yet. Connect one with the guide below — the agent or Proxmox VE 9's native push — and it will appear here automatically."
         />
       )}
       {labelBulkActionModals}

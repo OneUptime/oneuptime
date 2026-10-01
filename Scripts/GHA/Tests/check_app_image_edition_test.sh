@@ -267,7 +267,7 @@ make_enterprise_tree() {
 	make_community_tree "$1"
 	echo 'var p={buildMarker:"ONEUPTIME_EE_DASHBOARD_PLUGIN_v1"}' > "${root}/usr/src/app/FeatureSet/Dashboard/public/dist/Index.js"
 	echo 'var p={buildMarker:"ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_v1"}' > "${root}/usr/src/app/FeatureSet/AdminDashboard/public/dist/Index.js"
-	mkdir -p "${root}/usr/src/ee/Server/License" "${root}/usr/src/ee/node_modules/openid-client" "${root}/usr/src/packages"
+	mkdir -p "${root}/usr/src/ee/Server/License" "${root}/usr/src/ee/node_modules/left-pad" "${root}/usr/src/packages"
 	echo 'export default {};' > "${root}/usr/src/ee/Server/Index.ts"
 	echo 'export const TRUSTED_LICENSE_KEYS = [];' > "${root}/usr/src/ee/Server/License/TrustedLicenseKeys.ts"
 	printf '%s\n' 'The OneUptime Enterprise License (the "Enterprise License")' 'Copyright (c) 2026-present HackerBay, Inc. (doing business as OneUptime,' '"OneUptime")' > "${root}/usr/src/ee/LICENSE"
@@ -610,7 +610,7 @@ replace_loader ee-loader-throws <<'JS'
 "use strict";
 exports.default = {
   load: async () => {
-    throw new Error("The OneUptime Enterprise module at /usr/src/ee/Server/Index.ts could not be loaded: Cannot find module 'openid-client'");
+    throw new Error("The OneUptime Enterprise module at /usr/src/ee/Server/Index.ts could not be loaded: Cannot find module 'left-pad'");
   },
 };
 JS
@@ -618,7 +618,7 @@ status=0
 output="$(run_check --image ee-loader-throws --edition enterprise)" || status=$?
 assert_eq 1 "$status" "fails an Enterprise image whose ee/ does not load (a pruned dependency)"
 assert_contains "$output" "❌ the Enterprise loader ran inside the image (exit status 1)" "names the probe"
-assert_contains "$output" "the probe failed: The OneUptime Enterprise module at /usr/src/ee/Server/Index.ts could not be loaded: Cannot find module 'openid-client'" "shows the loader's error"
+assert_contains "$output" "the probe failed: The OneUptime Enterprise module at /usr/src/ee/Server/Index.ts could not be loaded: Cannot find module 'left-pad'" "shows the loader's error"
 assert_contains "$output" "The probe's last lines of output:" "shows the probe's output"
 
 good_enterprise ee-loader-hangs

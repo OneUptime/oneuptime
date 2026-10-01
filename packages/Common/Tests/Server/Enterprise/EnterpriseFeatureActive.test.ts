@@ -33,8 +33,9 @@ type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 /*
  * EnterpriseEdition.isFeatureActive: whether a feature's RUNTIME behaviour
- * (SSO sign-in and "Require SSO" enforcement, SCIM provisioning and its team
- * locks, audit-log recording) runs right now.
+ * (SCIM provisioning and its team locks, audit-log recording) runs right now.
+ * Single sign-on is not one of them: it is part of the Community Edition and
+ * never asks the license.
  *
  *   - Community Edition: never;
  *   - billing on (OneUptime Cloud): always, plan tiers gate instead;
@@ -43,7 +44,7 @@ type SpyInstance = ReturnType<typeof getJestSpyOn>;
  *     missing past the trial, invalid, feature not in the license);
  *   - unknown license state (not read yet, unreadable, or no license with no
  *     recorded trial start): active, with one warning per process - an
- *     unknown state must never lock anyone out or relax SSO.
+ *     unknown state must never stop SCIM provisioning or audit logging.
  *
  * A change of answer is logged once per change and reported to listeners.
  * Billing is pinned through the mocked EnvironmentConfig (CI's config.env sets
@@ -218,7 +219,9 @@ describe("isFeatureActive matrix", () => {
       }),
     });
 
-    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(true);
+    expect(
+      EnterpriseEdition.isFeatureActive(EnterpriseFeature.TeamCompliance),
+    ).toBe(true);
     expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
       false,
     );
@@ -232,15 +235,17 @@ describe("isFeatureActive matrix", () => {
       snapshot: createLicenseSnapshotWithStatus("expired"),
     });
 
-    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
       false,
     );
 
     fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
-    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(true);
+    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
+      true,
+    );
 
     fake.setSnapshot(createLicenseSnapshotWithStatus("invalid"));
-    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
       false,
     );
   });
@@ -268,7 +273,7 @@ describe("an unknown license state counts as active, and is warned about once", 
     fake.licensing.getCachedSnapshotError = readError;
 
     for (let call: number = 0; call < 25; call++) {
-      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
         true,
       );
     }
@@ -283,14 +288,18 @@ describe("an unknown license state counts as active, and is warned about once", 
       snapshot: createLicenseSnapshotWithStatus("valid"),
     });
 
-    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(true);
+    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
+      true,
+    );
 
     fake.setSnapshot(null);
-    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(true);
+    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
+      true,
+    );
     expect(lapseWarnings()).toEqual([]);
 
     fake.setSnapshot(createLicenseSnapshotWithStatus("expired"));
-    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
       false,
     );
     expect(lapseWarnings()).toHaveLength(1);
@@ -363,29 +372,29 @@ describe("an unknown license state counts as active, and is warned about once", 
         },
       );
 
-      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
         true,
       );
 
       fake.setSnapshot(unknownTrialStart());
-      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
         true,
       );
       expect(changes).toEqual([]);
 
       fake.setSnapshot(createLicenseSnapshotWithStatus("missing"));
-      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
         false,
       );
       expect(changes).toHaveLength(1);
-      expect(changes[0]!.stopped).toContain(EnterpriseFeature.SSO);
+      expect(changes[0]!.stopped).toContain(EnterpriseFeature.SCIM);
     });
 
     test("billing on never reads it (the Cloud gates by plan)", () => {
       setTestBillingEnabled(true);
       installFakeEnterpriseModule({ snapshot: unknownTrialStart() });
 
-      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
         true,
       );
       expect(warn).not.toHaveBeenCalled();
@@ -394,10 +403,10 @@ describe("an unknown license state counts as active, and is warned about once", 
 
   test("resetForTests forgets the one-time warning (a fresh process warns again)", () => {
     installFakeEnterpriseModule({ snapshot: null });
-    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
 
     installFakeEnterpriseModule({ snapshot: null });
-    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
 
     expect(warnings()).toHaveLength(2);
   });
@@ -425,10 +434,12 @@ describe("state changes are logged once per change", () => {
       "The OneUptime Enterprise license has lapsed (status: expired)",
     );
     expect(message).toContain(
-      "single sign-on (SSO), SCIM provisioning and audit logging have stopped until a license is activated",
+      "SCIM provisioning, audit logging and retention overrides have stopped until a license is activated",
     );
-    expect(message).toContain('"Require SSO for login" is not enforced');
-    expect(message).toContain("reset their password");
+    // Single sign-on is Community Edition: a lapse never touches it.
+    expect(message).not.toMatch(/\bSSO\b/);
+    expect(message).not.toMatch(/single sign-on/i);
+    expect(message).not.toContain("reset their password");
     expect(message).toContain(
       "License status: The license expired on 2026-01-01.",
     );
@@ -449,43 +460,69 @@ describe("state changes are logged once per change", () => {
   test("lapse, renewal and lapse again: one warning, one info line, one warning", () => {
     const fake: FakeEnterpriseModule = installFakeEnterpriseModule();
 
-    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
     expect(lapseWarnings()).toHaveLength(0);
 
     fake.setSnapshot(createLicenseSnapshotWithStatus("missing"));
     EnterpriseEdition.isFeatureActive(EnterpriseFeature.AuditLogs);
-    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
     EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.AuditLogs);
     expect(lapseWarnings()).toHaveLength(1);
     expect(lapseWarnings()[0]).toContain("has lapsed (status: missing)");
 
     fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
     EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
-    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.AuditLogs);
     expect(infos()).toEqual([
-      "The OneUptime Enterprise license covers single sign-on (SSO), SCIM provisioning and audit logging again: they have resumed.",
+      "The OneUptime Enterprise license covers SCIM provisioning, audit logging and retention overrides again: they have resumed.",
     ]);
 
     fake.setSnapshot(createLicenseSnapshotWithStatus("invalid"));
-    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
-    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
     expect(lapseWarnings()).toHaveLength(2);
     expect(lapseWarnings()[1]).toContain("has lapsed (status: invalid)");
     expect(infos()).toHaveLength(1);
   });
 
-  test("a license without one feature names only that feature, as not included", () => {
+  test("a license without retention overrides names only them, as not included", () => {
     installFakeEnterpriseModule({
       snapshot: createLicenseSnapshot({
         features: [
-          EnterpriseFeature.SSO,
+          EnterpriseFeature.SCIM,
           EnterpriseFeature.AuditLogs,
           EnterpriseFeature.TeamCompliance,
         ],
       }),
     });
 
-    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
+      true,
+    );
+    expect(lapseWarnings()).toHaveLength(0);
+
+    expect(
+      EnterpriseEdition.isFeatureActive(EnterpriseFeature.TelemetryRetention),
+    ).toBe(false);
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.TelemetryRetention);
+
+    expect(lapseWarnings()).toEqual([
+      "The OneUptime Enterprise license does not include retention overrides: it has stopped until a license that includes it is activated. A master admin can activate or renew the license from the edition label in the Admin Dashboard header.",
+    ]);
+  });
+
+  test("a license without one feature names only that feature, as not included", () => {
+    installFakeEnterpriseModule({
+      snapshot: createLicenseSnapshot({
+        features: [
+          EnterpriseFeature.AuditLogs,
+          EnterpriseFeature.TeamCompliance,
+          EnterpriseFeature.TelemetryRetention,
+        ],
+      }),
+    });
+
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.AuditLogs);
     expect(lapseWarnings()).toHaveLength(0);
 
     EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
@@ -502,9 +539,9 @@ describe("state changes are logged once per change", () => {
       snapshot: createLicenseSnapshotWithStatus("expired"),
     });
 
-    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
     fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
-    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
 
     expect(warn).not.toHaveBeenCalled();
     expect(info).not.toHaveBeenCalled();
@@ -518,10 +555,10 @@ describe("state changes are logged once per change", () => {
       snapshot: createLicenseSnapshotWithStatus("expired"),
     });
 
-    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
       false,
     );
-    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
       false,
     );
   });
@@ -538,7 +575,7 @@ describe("onFeatureStateChange", () => {
       },
     );
 
-    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
     expect(changes).toHaveLength(0);
 
     const lapsed: EnterpriseLicenseSnapshot =
@@ -553,9 +590,9 @@ describe("onFeatureStateChange", () => {
     expect(changes).toEqual([
       {
         stopped: [
-          EnterpriseFeature.SSO,
           EnterpriseFeature.SCIM,
           EnterpriseFeature.AuditLogs,
+          EnterpriseFeature.TelemetryRetention,
         ],
         resumed: [],
         snapshot: lapsed,
@@ -568,9 +605,9 @@ describe("onFeatureStateChange", () => {
     expect(changes).toHaveLength(2);
     expect(changes[1]!.stopped).toEqual([]);
     expect(changes[1]!.resumed).toEqual([
-      EnterpriseFeature.SSO,
       EnterpriseFeature.SCIM,
       EnterpriseFeature.AuditLogs,
+      EnterpriseFeature.TelemetryRetention,
     ]);
   });
 
@@ -587,7 +624,7 @@ describe("onFeatureStateChange", () => {
       heard.push("second");
     });
 
-    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+    expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM)).toBe(
       false,
     );
     expect(heard).toEqual(["second"]);
@@ -606,7 +643,7 @@ describe("onFeatureStateChange", () => {
     stop();
 
     fake.setSnapshot(createLicenseSnapshotWithStatus("expired"));
-    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+    EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
 
     expect(heard).toEqual([]);
   });
@@ -623,21 +660,67 @@ describe("describeStoppedFeatures / describeResumedFeatures", () => {
     expect(EnterpriseEdition.describeResumedFeatures([])).toBeNull();
   });
 
-  test("audit logging alone does not mention SSO enforcement", () => {
+  test("audit logging alone reads in the singular", () => {
     const message: string | null = EnterpriseEdition.describeStoppedFeatures(
       [EnterpriseFeature.AuditLogs],
       createLicenseSnapshotWithStatus("expired"),
     );
 
     expect(message).toContain("audit logging has stopped");
-    expect(message).not.toContain("Require SSO");
+  });
+
+  /*
+   * Single sign-on is part of the Community Edition: no lapse stops it and no
+   * lapse relaxes "Require SSO for login", so no lapse line may say either.
+   */
+  test.each(["expired", "missing", "invalid"] as const)(
+    "a %s lapse line never mentions single sign-on, whatever stopped",
+    (status: "expired" | "missing" | "invalid") => {
+      const stoppedSets: Array<Array<EnterpriseFeature>> = [
+        [...RUNTIME_ENTERPRISE_FEATURES],
+        [EnterpriseFeature.SCIM],
+        [EnterpriseFeature.AuditLogs],
+        [...ALL_ENTERPRISE_FEATURES],
+      ];
+
+      for (const stopped of stoppedSets) {
+        const message: string | null =
+          EnterpriseEdition.describeStoppedFeatures(
+            stopped,
+            createLicenseSnapshotWithStatus(status),
+          );
+
+        expect(message).not.toBeNull();
+        expect(message).not.toMatch(/\bSSO\b/);
+        expect(message).not.toMatch(/single sign-on/i);
+        expect(message).not.toContain("Require SSO");
+        expect(message).not.toContain("reset their password");
+      }
+
+      const notIncluded: string | null =
+        EnterpriseEdition.describeStoppedFeatures(
+          [EnterpriseFeature.SCIM],
+          createLicenseSnapshot({ features: [EnterpriseFeature.AuditLogs] }),
+        );
+
+      expect(notIncluded).not.toMatch(/\bSSO\b/);
+      expect(notIncluded).not.toMatch(/single sign-on/i);
+    },
+  );
+
+  test("the names the log uses for each feature never include single sign-on", () => {
+    for (const feature of ALL_ENTERPRISE_FEATURES) {
+      expect(EnterpriseEdition.getFeatureName(feature)).not.toMatch(
+        /\bSSO\b|single sign-on/i,
+      );
+    }
   });
 
   test("one resumed feature reads in the singular", () => {
     expect(
-      EnterpriseEdition.describeResumedFeatures([EnterpriseFeature.SSO]),
+      EnterpriseEdition.describeResumedFeatures([EnterpriseFeature.SCIM]),
     ).toBe(
-      "The OneUptime Enterprise license covers single sign-on (SSO) again: it has resumed.",
+      "The OneUptime Enterprise license covers SCIM provisioning again: it has resumed.",
     );
   });
 });

@@ -148,7 +148,6 @@
     "subtitle": "अपने खाते तक पहुंचने के लिए अपने SSO प्रदाता से लॉगिन करें।",
     "submitButton": "SSO से लॉगिन",
     "useUsernameInstead": "इसके बजाय उपयोगकर्ता नाम और पासवर्ड का उपयोग करें।",
-    "enterpriseEditionRequired": "सिंगल साइन-ऑन (SSO) इस सर्वर पर उपलब्ध नहीं है: इसके लिए सक्रिय लाइसेंस के साथ OneUptime Enterprise Edition आवश्यक है। इसके बजाय अपने ईमेल और पासवर्ड से लॉगिन करें।",
     "noAccountPrompt": "खाता नहीं है?",
     "registerLink": "पंजीकरण करें।",
     "selectProjectTitle": "प्रोजेक्ट चुनें",
@@ -177,6 +176,19 @@
     "wait": "हाल ही में एक सत्यापन ईमेल भेजा गया था। टाइमर खत्म होने के बाद आप एक और ईमेल का अनुरोध कर सकते हैं।",
     "alreadyVerified": "आपका ईमेल पता पहले से सत्यापित है। अब आप साइन इन कर सकते हैं।",
     "failed": "हम नया सत्यापन ईमेल नहीं भेज सके। कृपया थोड़ी देर में फिर से कोशिश करें।"
+  },
+  "incidentForm": {
+    "title": "शीर्षक",
+    "titleDescription": "समस्या का संक्षिप्त सारांश।",
+    "description": "विवरण",
+    "severity": "गंभीरता",
+    "reporterName": "आपका नाम",
+    "reporterEmail": "आपका ईमेल",
+    "successTitle": "धन्यवाद — आपकी रिपोर्ट भेज दी गई है।",
+    "incidentNumber": "आपकी रिपोर्ट घटना {{incidentNumber}} के रूप में दर्ज की गई है।",
+    "submitAnother": "एक और रिपोर्ट भेजें",
+    "retryAfter": "आप {{when}} फिर से कोशिश कर सकते हैं।",
+    "tryAgain": "फिर से कोशिश करें"
   },
   "errors": {
     "forbidden": {
@@ -222,5 +234,25 @@
   "Complete:": "पूरी हुई:",
   "Incomplete:": "पूरी नहीं हुई:",
   "Special character included (optional)": "विशेष चिह्न शामिल है (वैकल्पिक)",
-  "Special characters are optional. Try !, @, # or $.": "विशेष चिह्न वैकल्पिक हैं। !, @, # या $ आज़माएँ।"
+  "Special characters are optional. Try !, @, # or $.": "विशेष चिह्न वैकल्पिक हैं। !, @, # या $ आज़माएँ।",
+  "This form is not available. It may have been turned off, or the link may be out of date.": "यह फ़ॉर्म उपलब्ध नहीं है। हो सकता है इसे बंद कर दिया गया हो, या लिंक पुराना हो गया हो।",
+  "This form can only be opened from an allowed network.": "यह फ़ॉर्म केवल अनुमत नेटवर्क से ही खोला जा सकता है।",
+  "Too many submissions from your network. Please wait a few minutes and try again.": "आपके नेटवर्क से बहुत अधिक सबमिशन हुए हैं। कृपया कुछ मिनट प्रतीक्षा करें और फिर से कोशिश करें।",
+  "This form is receiving too many reports right now. Please try again later.": "इस फ़ॉर्म को अभी बहुत अधिक रिपोर्ट मिल रही हैं। कृपया बाद में फिर से कोशिश करें।",
+  "Too many requests. Please try again later.": "बहुत अधिक अनुरोध। कृपया बाद में फिर से कोशिश करें।",
+  "Captcha token is missing. Please complete the verification challenge.": "कैप्चा टोकन मौजूद नहीं है। कृपया सत्यापन पूरा करें।",
+  "Captcha verification failed. Please try again.": "कैप्चा सत्यापन विफल रहा। कृपया फिर से कोशिश करें।",
+  "This form cannot declare an incident because it has no severity. Please let the team that shared it know.": "इस फ़ॉर्म से घटना घोषित नहीं की जा सकती क्योंकि इसमें कोई गंभीरता सेट नहीं है। कृपया उस टीम को बताएं जिसने इसे साझा किया है।",
+  "Reports cannot be accepted right now. Please try again in a few minutes.": "अभी रिपोर्ट स्वीकार नहीं की जा सकतीं। कृपया कुछ मिनट बाद फिर से कोशिश करें।",
+  "Your report could not be submitted. Please try again in a few minutes.": "आपकी रिपोर्ट नहीं भेजी जा सकी। कृपया कुछ मिनट बाद फिर से कोशिश करें।",
+  "This form could not be loaded. Please try again in a few minutes.": "यह फ़ॉर्म लोड नहीं हो सका। कृपया कुछ मिनट बाद फिर से कोशिश करें।",
+  "(Optional)": "(वैकल्पिक)",
+  "{{field}} is required.": "{{field}} आवश्यक है।",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} {{maxLength}} वर्णों से अधिक नहीं हो सकता।",
+  "Email is not valid.": "ईमेल मान्य नहीं है।",
+  "{{field}} must be checked.": "{{field}} पर टिक करना आवश्यक है।",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "यह समय आपके टाइमज़ोन में है - {{abbreviation}} ({{timezone}})।",
+  "Type your content here...": "अपनी सामग्री यहाँ लिखें...",
+  "Type your markdown here...": "अपना Markdown यहाँ लिखें...",
+  "Formatting help": "फ़ॉर्मेटिंग सहायता"
 }

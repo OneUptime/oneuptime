@@ -16,7 +16,11 @@ export default interface EnterpriseArea {
   // Runs once at boot, in ENTERPRISE_AREAS order. Must not throw on a DB blip.
   init?: (() => Promise<void>) | undefined;
 
-  // Mounted at ["/api/identity", "/"] after core's identity routers.
+  /*
+   * Mounted at ["/api/identity", "/"] right after core's identity routers
+   * (authentication, reseller and single sign-on). Only the Identity area
+   * has any: the SCIM routers.
+   */
   getIdentityRouters?: (() => Array<ExpressRouter>) | undefined;
 
   // Mounted at "/api".

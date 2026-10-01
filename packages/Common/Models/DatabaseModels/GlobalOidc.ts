@@ -4,7 +4,6 @@ import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
-import TableEditionAccessControl from "../../Types/Database/AccessControl/TableEditionAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -20,9 +19,6 @@ import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
  * Sibling of GlobalSSO for the OIDC protocol. Access is restricted to master
  * admins through empty access-control arrays (master-admin/isRoot bypass).
  */
-@TableEditionAccessControl({
-  requiresEnterprise: true,
-})
 @TableAccessControl({
   create: [],
   read: [],

@@ -22,9 +22,11 @@ import logger from "Common/Server/Utils/Logger";
  */
 
 /*
- * Must comfortably exceed the runner's 5-minute wall-clock budget plus the
- * longest single un-heartbeated gap (one LLM call, up to 5 minutes on slow
- * self-hosted providers) so healthy runs are never falsely marked stale.
+ * Runs have no wall-clock budget by default, so staleness is judged by the
+ * heartbeat alone: every agent step touches it, and so does every command
+ * wait (every 15s). This must comfortably exceed the longest single
+ * un-heartbeated gap — one LLM call, up to 5 minutes on slow self-hosted
+ * providers — so healthy runs, however long, are never falsely marked stale.
  */
 const RUN_HEARTBEAT_TIMEOUT_MINUTES: number = 12;
 

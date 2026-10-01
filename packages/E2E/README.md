@@ -115,14 +115,15 @@ npx playwright test -g "oneUptime link navigate to homepage"
 
 ## Test Structure
 
-`Tests/` is the default suite: `npm test` runs that whole tree, in every
-full-stack CI job, across both browsers. Every other top-level directory is a
+`Tests/` is the default suite: `npm test` runs that whole tree on the SaaS and
+Community stacks, across both browsers (the self-hosted Enterprise job runs the
+Enterprise suites instead). Every other top-level directory is a
 focused suite with its own `playwright.<name>.config.ts` and its own npm
 script, run by name and never by `npm test`.
 
 ```
 E2E/
-├── Tests/              # The default suite (npm test) - runs in every job
+├── Tests/              # The default suite (npm test) - SaaS and Community jobs
 │   ├── Accounts/       # Account-related tests (login, registration)
 │   ├── App/            # Main application tests
 │   ├── Dashboard/      # Dashboard tests, and the shared Helpers/ they use
@@ -219,14 +220,42 @@ Tailwind. Desktop and mobile checks cover the pencil's proportions, label
 alignment, button sizes, and keyboard activation. Screenshots and failure traces
 are written to `output/playwright/pencil-button/test-results/` at the repository root.
 
+## Single sign-on on every stack
+
+Single sign-on — SAML and OIDC sign-in for projects, for the whole instance
+and for status pages, and "Require SSO for login" — is core: every edition
+serves it, and no licence decides whether it works. So it is asserted the same
+way on every stack:
+
+- `Tests/App/SingleSignOn.spec.ts`, in the default suite (the Community and
+  SaaS stacks), probes every core SSO router through nginx on both identity
+  prefixes (`/identity` and `/api/identity`) and on the status page's own
+  prefix, and expects the one answer `Tests/Helpers/SsoRoutes.ts` pins for
+  every stack — never a 404, never a 402/403. With billing off it also
+  configures a SAML provider as a brand new project owner, checks that both
+  sign-in listings offer it and that its start route redirects to the identity
+  provider with the right ACS URL and Entity ID, and switches "Require SSO for
+  login" on and sees it enforced (a 406 for a password session). With billing
+  on that half skips: OneUptime Cloud sells SSO configuration on the Scale
+  plan. It is API only, never a page navigation.
+- `Enterprise/Licensed/IdentityRoutesThroughNginx.spec.ts` sends the same
+  probes to the Enterprise image, and `Enterprise/Lapsed/SsoUnaffectedByLapse.spec.ts`
+  sends them, and runs the same configuration steps, after its licence has
+  lapsed.
+
+The requests are chosen so that each one ends on one of its route's own early
+answers — a missing email, `SAMLResponse` or OIDC login session, a provider id
+that exists on no stack — so none of them needs a fixture.
+
 ## Enterprise Edition suites
 
 Two focused suites cover what only a booted **self-hosted Enterprise** stack
 can show: that the published enterprise image, wired by the real
-`docker-compose.yml` with billing off, serves the enterprise identity routes
-through nginx, ships a Dashboard that renders the enterprise screens, records
-audit entries into ClickHouse, accepts enterprise configuration writes — and
-that all of it stops, in the right way, when the licence lapses.
+`docker-compose.yml` with billing off, serves the SCIM routes through nginx,
+ships a Dashboard that renders the enterprise screens, records audit entries
+into ClickHouse, accepts enterprise configuration writes — and that all of it
+stops, in the right way, when the licence lapses, while single sign-on keeps
+answering exactly as before.
 
 ```bash
 cd packages/E2E
@@ -235,7 +264,7 @@ npm run test-enterprise-lapsed     # phase two: after the licence has lapsed
 ```
 
 They are focused suites rather than part of `Tests/` on purpose. The default
-suite runs in all three full-stack jobs and in two browsers, and is already
+suite runs on the SaaS and Community stacks, in two browsers, and is already
 near the 90-minute ceiling its own config says must be read as a hang rather
 than raised; these specs apply to one stack only, so they run by name.
 
@@ -272,7 +301,8 @@ HOST=localhost HTTP_PROTOCOL=http BILLING_ENABLED=false npm run test-enterprise-
 
 The licensed suite takes a few minutes; all but one of its specs assert over
 HTTP, and the one browser spec signs a fresh user up and opens the Dashboard's
-SSO, OIDC, SCIM and Audit Log settings screens.
+SCIM and Audit Log settings screens — and its SSO and OIDC screens, which must
+render as core screens with no licence notice.
 
 ### Forcing the licence to lapse
 
@@ -349,12 +379,12 @@ that is already in the past.
 licensed phase left on this same stack, because state created under a live
 licence surviving the lapse is part of what they assert:
 
-| Assertion                                           | Needs from the handoff      |
-| --------------------------------------------------- | --------------------------- |
-| a further audited write records nothing             | the project (audit logs on) |
-| the trail recorded while licensed is still readable | the recorded entry          |
-| configuration made while licensed is readable but unchangeable | the `ProjectSCIM` row |
-| password sign-in still works                        | the owner account           |
+| Assertion                                                      | Needs from the handoff      |
+| -------------------------------------------------------------- | --------------------------- |
+| a further audited write records nothing                        | the project (audit logs on) |
+| the trail recorded while licensed is still readable            | the recorded entry          |
+| configuration made while licensed is readable but unchangeable | the `ProjectSCIM` row       |
+| password sign-in still works                                   | the owner account           |
 
 With no handoff file, `Lapsed/EnterpriseWritesAndAuditRecorder.spec.ts`
 registers its own owner and project (sign-up and project creation are core, so
@@ -363,6 +393,10 @@ the assertions that need a row created **while licensed** are then skipped, with
 that as the reason. `Lapsed/DashboardLapseNotices.spec.ts` never uses the
 handoff: the notices are decided by the installation's licence, not by anything
 a project holds, so it registers a throwaway project and deletes it again.
+`Lapsed/SsoUnaffectedByLapse.spec.ts` does not use it either: it signs its own
+owner up over the API, because the SAML provider it enables and the project it
+locks behind "Require SSO for login" must not change what the other lapsed
+specs do with the handoff project.
 
 That suite addresses the row **both ways**: by the id the create response
 hands back, which is how it issues the `PUT` that must be refused with the
@@ -388,36 +422,47 @@ constant tightens both at once.
 
 `Tests/App/CommunityEditionEnterpriseSurface.spec.ts` is the other half of the
 enterprise job: it asserts that the **Community** image serves none of what the
-suites above prove an Enterprise one does — the identity routes answer 404 with
-the App's catch-all body (not the lapsed stack's 402/403), the licence endpoint
+suites above prove an Enterprise one does — the SCIM routes answer 404 with
+the App's catch-all body (not the lapsed stack's 403), the licence endpoint
 reports `edition` `community` with `features` `null`, `POST /global-config/license`
 does not exist at all, an enterprise configuration write is refused with the
 _Community Edition_ message rather than the licence one, and audit logging
 cannot even be switched on (`enableAuditLogs` is enterprise configuration, so
-the `PUT` is refused with that same message) and records nothing.
+the `PUT` is refused with that same message) and records nothing. Single
+sign-on is not part of that surface: the Community image serves it like every
+other stack, which `Tests/App/SingleSignOn.spec.ts` proves on the same stack.
 
 It lives in `Tests/` rather than beside the enterprise suites because the
 community stack is booted by `test-e2e-test-self-hosted`, which runs the whole
 `./Tests` tree and nothing else — a focused suite would never run there. That
-tree also runs on both enterprise stacks, so the spec detects the edition at
-runtime from `GET /api/global-config/license` and **skips** (the pattern
-`Tests/Dashboard/BillingPaidUsage.spec.ts` uses) when it is not `community`. It
-never reads `IS_ENTERPRISE_EDITION`, which is false inside the e2e container on
-every stack. It reuses the same `Enterprise/Helpers/` tables the enterprise
-suites read, asserting their `community` column, so the two cannot drift; keep
-them in step in one commit.
+tree also runs on the SaaS stack, which boots the enterprise image, so the spec
+detects the edition at runtime from `GET /api/global-config/license` and
+**skips** (the pattern `Tests/Dashboard/BillingPaidUsage.spec.ts` uses) when it
+is not `community`. It never reads `IS_ENTERPRISE_EDITION`, which is false
+inside the e2e container on every stack. It reuses the same `Enterprise/Helpers/`
+tables the enterprise suites read, asserting their `community` column, so the
+two cannot drift; keep them in step in one commit.
 
 ### Shared helpers
 
 `Enterprise/Helpers/` holds everything both suites share, so the licensed and
 lapsed expectations for a route or a write live side by side and cannot drift:
 
-| Helper                       | What it gives you                                                                         |
-| ---------------------------- | ----------------------------------------------------------------------------------------- |
-| `LicenseState.ts`            | reads `/api/global-config/license`; `waitForEnterpriseLicenseState` polls it              |
-| `StackGuard.ts`              | `assertLicensedEnterpriseStack()` / `assertLapsedEnterpriseStack()`                       |
-| `IdentityRoutes.ts`          | every unauthenticated identity probe, with its licensed, lapsed and community expectation |
-| `EnterpriseConfiguration.ts` | enterprise configuration writes, and the two 402 messages that tell the stacks apart      |
-| `AuditLogs.ts`               | the project switch, the audited write, and a bounded wait for the entry                   |
-| `FrontendEnvironment.ts`     | what the stack tells its own bundles: the effective edition, and whether billing is on    |
-| `Handoff.ts`                 | the licensed suite's leftovers, for the lapsed suite                                      |
+| Helper                       | What it gives you                                                                      |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| `LicenseState.ts`            | reads `/api/global-config/license`; `waitForEnterpriseLicenseState` polls it           |
+| `StackGuard.ts`              | `assertLicensedEnterpriseStack()` / `assertLapsedEnterpriseStack()`                    |
+| `IdentityRoutes.ts`          | every unauthenticated SCIM probe, with its licensed, lapsed and community expectation  |
+| `EnterpriseConfiguration.ts` | enterprise configuration writes, and the two 402 messages that tell the stacks apart   |
+| `AuditLogs.ts`               | the project switch, the audited write, and a bounded wait for the entry                |
+| `FrontendEnvironment.ts`     | what the stack tells its own bundles: the effective edition, and whether billing is on |
+| `Handoff.ts`                 | the licensed suite's leftovers, for the lapsed suite                                   |
+
+Single sign-on is core, so its helpers live in `Tests/Helpers/` and both the
+default suite and the enterprise suites use them:
+
+| Helper                | What it gives you                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| `SsoRoutes.ts`        | the identity prefixes, and every unauthenticated SSO probe with the one answer every stack gives |
+| `SsoConfiguration.ts` | a SAML provider configured, offered, started and required end to end, with its assertions        |
+| `ApiSignup.ts`        | a brand new project owner, signed up over the API alone                                          |

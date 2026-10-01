@@ -101,6 +101,25 @@ jobs:
           Tests/Types/DatabaseServer/DatabaseContainerCommandPostgres.test.ts
           --forceExit
 
+      # Clones the migrated Queues tables (MessageQueue, its labels and owners,
+      # and Label) into an isolated schema and runs the product's
+      # hand-written SQL against them: the partial identity index and
+      # discovery racing on it, the family refinement, the auto-archive
+      # sweep's "untouched" rules (the generated-name predicate included),
+      # its window, bound and order, the budget count, the automatic
+      # assignment bookkeeping, the sighting heartbeat, and a person's create
+      # and restore through the real pipelines.
+      - name: Test the Queues product's SQL against the migrated schema
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MESSAGE_QUEUE_SQL_TESTS: "true"
+          MESSAGE_QUEUE_SQL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MESSAGE_QUEUE_SQL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MESSAGE_QUEUE_SQL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MessageQueueSqlPostgres.test.ts --forceExit
+
       # Clones the migrated Service table and holds a row lock from a second
       # connection: the SKIP LOCKED heartbeat write must yield AND report it.
       - name: Test the non-blocking heartbeat write against Postgres
@@ -156,6 +175,20 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentAlertPostgres.test.ts --forceExit
+
+      # Clones the migrated IncidentForm and IncidentFormSubmission tables
+      # (their foreign keys and the link key's unique constraint) into an
+      # isolated schema, so it must run after the registered migrations.
+      - name: Test incident forms on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_INCIDENT_FORM_TESTS: "true"
+          INCIDENT_FORM_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          INCIDENT_FORM_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          INCIDENT_FORM_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/IncidentFormPostgres.test.ts --forceExit
 
       # Clones the migrated UserProjectSsoConsent table (and its unique index)
       # into an isolated schema: two racing confirmations must leave one row.

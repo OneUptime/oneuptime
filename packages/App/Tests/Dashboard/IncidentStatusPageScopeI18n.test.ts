@@ -147,8 +147,12 @@ describe("the dashboard renders the shared strings", () => {
   test("the Create page prefills the scope from a template", () => {
     const source: string = readSource("Pages", "Incidents", "Create.tsx");
 
+    /*
+     * The one template request also reads the template's custom field
+     * values and its Custom Fields on Create settings (issue #4114).
+     */
     expect(source).toContain(
-      "statusPages: true, isScopedToStatusPages: true, // Its custom field values: the Details step starts from them. customFields: true, }, });",
+      "statusPages: true, isScopedToStatusPages: true, // Its custom field values: the Details step starts from them. customFields: true, // And which fields that step asks for, and requires. customFieldSettings: true, }, });",
     );
     expect(source).toContain(
       "statusPages: incidentTemplate.statusPages?.map( (statusPage: StatusPage) => { return statusPage.id!.toString(); }, ),",

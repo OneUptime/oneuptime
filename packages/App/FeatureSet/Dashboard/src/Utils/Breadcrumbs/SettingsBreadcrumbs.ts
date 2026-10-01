@@ -94,11 +94,6 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "AI Credits",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_GUARDRAILS, [
-      "Project",
-      "Settings",
-      "AI Guardrails",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_LOGS, [
       "Project",
       "Settings",

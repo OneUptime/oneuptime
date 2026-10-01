@@ -207,7 +207,7 @@ Inserisci agenti **basati su OpenTelemetry** con un copia-incolla per tenere d'o
 | **Ideale per** | Self-hoster e piccoli team | Team regolamentati che necessitano di supporto premium |
 | **Costo** | Gratuito e open source | [Contatta il team vendite](mailto:sales@oneuptime.com) |
 | **Licenza** | Apache 2.0 | Apache 2.0, più la [OneUptime Enterprise License](/ee/LICENSE) per la directory `ee/` |
-| **Funzionalità** | Tutto ciò che è incluso sopra — monitoraggio, pagine di stato, incidenti, reperibilità, log, trace, metriche, tracciamento degli errori, workflow e IA | Tutto Community + single sign-on SAML e OIDC, provisioning SCIM, log di audit, conformità dei team e dashboard sullo stato dell'istanza, con supporto prioritario, funzionalità personalizzate e residenza dei dati |
+| **Funzionalità** | Tutto ciò che è incluso sopra — monitoraggio, pagine di stato, incidenti, reperibilità, log, trace, metriche, tracciamento degli errori, workflow e IA — più il single sign-on SAML e OIDC | Tutto Community + provisioning SCIM, log di audit, conformità dei team e dashboard sullo stato dell'istanza, con supporto prioritario, funzionalità personalizzate e residenza dei dati |
 
 Le funzionalità Enterprise si trovano nella directory [`ee/`](/ee) e sono incluse solo nell'immagine Enterprise. Consulta [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) per il confronto completo.
 

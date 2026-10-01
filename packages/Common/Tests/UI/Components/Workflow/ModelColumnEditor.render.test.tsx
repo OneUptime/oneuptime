@@ -26,31 +26,6 @@ jest.mock("../../../../UI/Utils/API/API", () => {
   };
 });
 
-/*
- * Monaco cannot run in jsdom. A textarea that echoes the value is enough to
- * assert what the JSON view was handed and to type into it.
- */
-jest.mock("@monaco-editor/react", () => {
-  return {
-    __esModule: true,
-    loader: { config: jest.fn() },
-    default: (editorProps: {
-      value?: string | undefined;
-      onChange?: ((value: string | undefined) => void) | undefined;
-    }) => {
-      return (
-        <textarea
-          data-testid="monaco"
-          value={editorProps.value || ""}
-          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
-            editorProps.onChange?.(event.target.value);
-          }}
-        />
-      );
-    },
-  };
-});
-
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -444,7 +419,13 @@ describe("editing as JSON", () => {
 
     fireEvent.click(await findByTestId("model-column-json-toggle"));
 
-    expect(getByTestId("monaco")).toHaveValue('{"name":"Acknowledged"}');
+    // The real code editor: its textarea holds the document.
+    expect(getByTestId("code-editor-input")).toHaveValue(
+      '{"name":"Acknowledged"}',
+    );
+    expect(
+      document.querySelector('[data-code-type="json"]'),
+    ).toBeInTheDocument();
   });
 
   test("a key added in the JSON view is there as a field on the way back", async () => {
@@ -461,7 +442,7 @@ describe("editing as JSON", () => {
     );
 
     fireEvent.click(await findByTestId("model-column-json-toggle"));
-    fireEvent.change(getByTestId("monaco"), {
+    fireEvent.change(getByTestId("code-editor-input"), {
       target: { value: '{"name":"Acknowledged","color":"#ffffff"}' },
     });
     fireEvent.click(getByTestId("model-column-json-toggle"));
@@ -481,13 +462,15 @@ describe("editing as JSON", () => {
     );
 
     fireEvent.click(await findByTestId("model-column-json-toggle"));
-    fireEvent.change(getByTestId("monaco"), {
+    fireEvent.change(getByTestId("code-editor-input"), {
       target: { value: '{"name":{"nested":"value"}}' },
     });
     fireEvent.click(getByTestId("model-column-json-toggle"));
 
     // Still on JSON, with the edit intact and a reason given.
-    expect(getByTestId("monaco")).toHaveValue('{"name":{"nested":"value"}}');
+    expect(getByTestId("code-editor-input")).toHaveValue(
+      '{"name":{"nested":"value"}}',
+    );
     expect(getByText(/can't go back to fields/)).toBeInTheDocument();
   });
 

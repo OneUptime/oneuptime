@@ -24,7 +24,7 @@ import {
  * (Common/Utils/API) or opens a raw fetch / XMLHttpRequest / EventSource /
  * sendBeacon / axios request works for fifteen minutes and then fails, because
  * nothing refreshes the expired session. The Community / Enterprise split
- * moved the SSO, SCIM, audit-log, team-compliance, license and health screens
+ * moved the SCIM, audit-log, team-compliance, license and health screens
  * out of those frontends into ee/Dashboard and ee/AdminDashboard - which the
  * core suite cannot scan, because the App Test job deletes ee/.
  *
@@ -130,7 +130,7 @@ describe("Enterprise screens send their requests through the refresh-aware clien
     const syntheticFile: string = path.join(
       EE_DIR,
       "Dashboard",
-      "SSO",
+      "Identity",
       "Pages",
       "Settings",
       "SyntheticBypass.tsx",
@@ -197,11 +197,11 @@ describe("Enterprise screens send their requests through the refresh-aware clien
 
       expect(bareClient).toHaveLength(1);
       expect(bareClient[0]).toMatch(
-        /^ee\/Dashboard\/SSO\/Pages\/Settings\/SyntheticBypass\.tsx:1 imports the core client/,
+        /^ee\/Dashboard\/Identity\/Pages\/Settings\/SyntheticBypass\.tsx:1 imports the core client/,
       );
       expect(rawTransport).toHaveLength(4);
       expect(rawTransport[0]).toMatch(
-        /^ee\/Dashboard\/SSO\/Pages\/Settings\/SyntheticBypass\.tsx:4 calls the global fetch\(\)/,
+        /^ee\/Dashboard\/Identity\/Pages\/Settings\/SyntheticBypass\.tsx:4 calls the global fetch\(\)/,
       );
     });
 

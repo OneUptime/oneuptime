@@ -40,6 +40,8 @@ const STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES: Array<string> = [
   "IoTFleetOwnerRule",
   "KubernetesClusterLabelRule",
   "KubernetesClusterOwnerRule",
+  "MessageQueueLabelRule",
+  "MessageQueueOwnerRule",
   "MonitorLabelRule",
   "MonitorOwnerRule",
   "NetworkDeviceLabelRule",
@@ -112,8 +114,8 @@ function getRegisteredModelType(modelName: string): ModelType {
 
 describe("static match-criteria rule model inheritance", () => {
   it("keeps the explicit model inventory complete and duplicate-free", () => {
-    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(78);
-    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(78);
+    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(80);
+    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(80);
   });
 
   it.each(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES)(

@@ -6,7 +6,6 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
-import TableEditionAccessControl from "../../Types/Database/AccessControl/TableEditionAccessControl";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -32,9 +31,6 @@ import {
  * explicitly attached here. If a GlobalSSO has NO attached projects, it
  * applies to all projects the user is already a member of (invite-first).
  */
-@TableEditionAccessControl({
-  requiresEnterprise: true,
-})
 @TableAccessControl({
   create: [],
   read: [],

@@ -194,7 +194,7 @@ describe("the license period scan", () => {
 
   it.each([
     "If the license expires, everything keeps working for a 14-day grace period.",
-    "After the trial (or 14 days after a license expires), SSO stops until a license is activated.",
+    "After the trial (or 14 days after a license expires), SCIM stops until a license is activated.",
     "Your self-hosted OneUptime instances keep every enterprise feature for 14 days after the expiry date above (the grace period).",
     "Audit logging stops once the 14-day trial or grace period is over without a valid license.",
     "Valid, in the 14-day grace period after it expired, or inside the 14-day trial of an Enterprise install.",
@@ -208,7 +208,7 @@ describe("the license period scan", () => {
   it.each([
     "Every enterprise feature keeps working during the 14-day trial, and for 30 days after a license expires (the grace period).",
     "If the license expires, everything keeps working for a 30-day grace period, and after that the same happens as for an install with no license.",
-    "After the trial (or 30 days after a license expires), SSO, OIDC, SCIM and audit logging stop until a license is activated.",
+    "After the trial (or 30 days after a license expires), SCIM and audit logging stop until a license is activated.",
     "Your self-hosted OneUptime instances keep every enterprise feature for 30 days after the expiry date above (the grace period).",
     "An install with no license runs as a 14-day trial, which is for evaluation.",
     "The license is refused while it is lapsed (after the trial or grace period).",
@@ -224,7 +224,7 @@ describe("the license period scan", () => {
         "values.yaml",
         [
           "  ##   license runs as a 14-day trial, which is for evaluation. After the trial",
-          "  ##   (or 14 days after a license expires), until a license is activated, SSO,",
+          "  ##   (or 14 days after a license expires), until a license is activated, SCIM",
         ].join("\n"),
       ).length,
     ).toBeGreaterThan(0);
@@ -317,13 +317,8 @@ describe("the key pages state both lengths, from the constants", () => {
     }
   });
 
-  it("the English identity and SLO audit log pages", () => {
-    for (const page of [
-      "identity/sso",
-      "identity/scim",
-      "identity/global-sso",
-      "slo/feed-and-audit-logs",
-    ]) {
+  it("the English SCIM and SLO audit log pages", () => {
+    for (const page of ["identity/scim", "slo/feed-and-audit-logs"]) {
       expect({
         page,
         states: read(
@@ -332,6 +327,31 @@ describe("the key pages state both lengths, from the constants", () => {
           `(after the ${TRIAL}-day trial, or ${GRACE} days after a license expires)`,
         ),
       }).toEqual({ page, states: true });
+    }
+  });
+
+  /*
+   * Single sign-on is in every edition and needs no license, so its pages
+   * have no trial or grace period to state: a length on them would tell the
+   * reader that single sign-on stops when it runs out.
+   */
+  it("the English SSO and global SSO pages state neither length", () => {
+    for (const page of ["identity/sso", "identity/global-sso"]) {
+      const text: string = read(
+        `packages/App/FeatureSet/Docs/Content/en/${page}.md`,
+      );
+
+      // match() on these global patterns starts from the beginning every time.
+      expect({
+        page,
+        trial: text.match(TRIAL_LENGTH),
+        grace: GRACE_LENGTHS.map((pattern: RegExp) => {
+          return text.match(pattern);
+        }).filter((found: RegExpMatchArray | null) => {
+          return found !== null;
+        }),
+        withoutALicense: text.includes("Without a valid license"),
+      }).toEqual({ page, trial: null, grace: [], withoutALicense: false });
     }
   });
 

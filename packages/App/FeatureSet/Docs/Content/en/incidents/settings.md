@@ -2,7 +2,7 @@
 
 Incident configuration does not live in Project Settings. It lives inside the Incidents product area itself, under **Incidents → Settings** and **Incidents → Rules**, at routes beginning `/dashboard/{projectId}/incidents/settings/`. If you have been hunting through **Project Settings** for incident templates or custom fields, that is why you could not find them.
 
-Both the **Rules** and the **Settings** sections of the Incidents side menu are collapsed by default, so you have to expand them before the items below appear. Everything here is project-scoped: templates, roles, custom fields and rules belong to one project and apply to every incident declared in it.
+Both the **Rules** and the **Settings** sections of the Incidents side menu are collapsed by default, so you have to expand them before the items below appear. Everything here is project-scoped: templates, forms, roles, custom fields and rules belong to one project and apply to every incident declared in it.
 
 This page is the reference for that configuration — what each page holds, and which of it runs automatically the moment an incident is created.
 
@@ -15,6 +15,7 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 | **Incident State**       | Add, rename, recolor and reorder the states an incident moves through.                       |
 | **Incident Severity**    | Add, rename, recolor and reorder severity levels.                                            |
 | **Incident Templates**   | Pre-fill a whole incident — title, description, resources, on-call policies, owners, labels. |
+| **Forms**                | Share a link that anyone can use to report an incident, without a OneUptime account.        |
 | **Note Templates**       | Reusable text for public and private notes.                                                  |
 | **Postmortem Templates** | Reusable postmortem structures.                                                              |
 | **Custom Fields**        | Define extra fields that appear on every incident.                                           |
@@ -22,7 +23,7 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 | **Incident Roles**       | Define the roles you assign responders to, such as Incident Commander.                       |
 | **More Settings**        | The incident and incident episode number prefixes, and the linked alert switches.            |
 
-**Incident State** and **Incident Severity** are covered in depth on [Incident States & Severities](/docs/incidents/states-and-severities) — the rest of this page picks up from **Incident Templates**.
+**Incident State** and **Incident Severity** are covered in depth on [Incident States & Severities](/docs/incidents/states-and-severities) — the rest of this page picks up from **Incident Templates**. **Forms** have a page of their own: [Incident Forms](/docs/incidents/forms).
 
 Expand **Rules** and you get eight more pages: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules** and **Reminder Rules**. Those are covered further down.
 
@@ -30,15 +31,16 @@ Expand **Rules** and you get eight more pages: **Grouping Rules**, **On-Call Rul
 
 An incident template is a saved skeleton of an incident. Instead of retyping the same title, the same monitor list and the same on-call policy every time the payments cluster wobbles, you save it once and declare from it.
 
-Go to **Incidents → Settings → Incident Templates** (`/dashboard/{projectId}/incidents/settings/templates`). The card is titled **Incident Templates**. Creating one walks you through a six-step wizard:
+Go to **Incidents → Settings → Incident Templates** (`/dashboard/{projectId}/incidents/settings/templates`). The card is titled **Incident Templates**. Creating one walks you through a six-step wizard, with two more steps when your project has incident custom fields:
 
 - **Template Info** — **Template Name** and **Template Description**. These name the template itself; they never appear on the incident.
 - **Incident Details** — **Title**, **Description** (Markdown), **Incident Severity** and **Initial Incident State**. **Initial Incident State** is optional and starts empty; its options are listed in state order. Leave it blank and incidents from this template land in the project's created state.
 - **Resources Affected** — the monitors, hosts, clusters and services the incident should be attached to, plus **Limit to these status pages** and **Change Monitor Status to**. **Limit to these status pages** limits incidents declared from the template to some of the status pages that list their monitors — a `Region East outage` template can carry the East site pages. An existing template shows it on a **Status Page Scope** card, with **Edit Status Page Scope**. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+- **Custom Fields** — only when your project has incident custom fields: the values incidents declared from this template start with. Every field is offered here, not only the ones the **Details** step asks for, and none is required. An existing template has a **Custom Fields** card to change them.
+- **Custom Fields on Create** — also only when your project has incident custom fields: which of them the **Details** step asks for when an incident is declared from this template, and which must be filled in. An existing template has a **Custom Fields on Create** card to change them. See [Custom fields on create](#custom-fields-on-create).
 - **On-Call** — **On-Call Policy**, the policies to execute when an incident created from this template is declared.
 - **Owners** — **Owner - Teams** and **Owner - Users**.
 - **Labels** — **Labels**.
-- **Custom Fields** — only when your project has incident custom fields: the values incidents declared from this template start with. Every field is offered here, not only the ones the **Details** step asks for, and none is required. An existing template has a **Custom Fields** card to change them.
 
 A few quick rules:
 
@@ -48,14 +50,50 @@ A few quick rules:
 
 ### How a template gets applied
 
-There are two paths, and they behave the same way.
+There are two paths, and they merge the same way.
 
-- **From the dashboard** — the **Create from Template** button on the incidents list opens a **Select Incident Template** picker, and the declare page reads the template from the `incidentTemplateId` query string parameter, then pre-fills the form with the template plus its owner teams and owner users.
-- **From the API** — pass `createdIncidentTemplateId` on `POST /api/incident` and the server fills the incident from the template.
+- **In the dashboard** — the **Create from Template** button on the incidents list opens a **Select Incident Template** picker, and the declare page reads the template from the `incidentTemplateId` query string parameter, then pre-fills the form with the template plus its owner teams and owner users. Its **Details** step follows the template's [custom fields on create](#custom-fields-on-create). The owners become the incident's owners without being notified, once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too.
+- **On the server** — an incident created with `createdIncidentTemplateId` set to a template's id is filled from the template. Only OneUptime itself sets that column: a workflow's **Create One Incident** step, and an [incident form](/docs/incidents/forms) that has an **Incident Template**. An API key or a signed-in user cannot — a request that sends `createdIncidentTemplateId` is refused — so to declare from a template over the API, read it from `/api/incident-templates` and send its values in the request. The server applies the template only when the incident names no state: a workflow that declares from a template must leave `currentIncidentStateId` out.
 
 The important part is the merge rule: **a template only fills a field you left undefined**. Title, description, incident severity, initial incident state, the monitor status behind **Change Monitor Status to**, monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts, services, on-call policies, labels and status pages are copied from the template only when the caller or the form supplied nothing. Anything you set explicitly always wins. Custom field values merge one field at a time: the template fills in the fields the incident was declared without, and a value you set — `0`, `false` and `null` included — wins over the template's.
 
 **The empty-state dialog points at the wrong place.** If you have no templates yet, the **Create from Template** button shows a **No Incident Templates** dialog. Its text points at Project Settings, but the button routes to **Incidents → Settings → Incident Templates** — that is the real location.
+
+### Custom fields on create
+
+The project's settings decide what the **Details** step asks when an incident is declared: **Show on Create** asks for a field, and **Required on Create** makes it compulsory. A template can change both for the incidents declared from it. Its **Custom Fields on Create** card — and the wizard step of the same name — lists every incident custom field in its **Order**, with one setting each:
+
+| Setting      | When an incident is declared from this template                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Default**  | The field follows its own **Show on Create** and **Required on Create**. The option says which, such as **Default (Required)**.   |
+| **Required** | The **Details** step asks for the field, and it must be filled in. A yes/no field must be switched on.                             |
+| **Optional** | The step asks for the field, and it can be left empty — even when the project requires it.                                        |
+| **Hidden**   | The step does not ask for the field, even when the project shows or requires it. The template's own value for it is still applied. |
+
+On the card, a field the template sets to **Required**, **Optional** or **Hidden** also shows, under its type, what the project does with it: **Project default: Required**, **Project default: Optional** or **Project default: Not Shown**. Everybody who can see the template sees it.
+
+Use it when the incidents of one template need an answer others do not — a customer tier on a `Customer data exposure` template, say — or to keep a question the project asks everywhere out of a template where it does not fit.
+
+- **Keyed by the Template Variable.** Each setting is stored under the field's **Template Variable**, which never changes, so renaming a field keeps its setting. A field that is deleted and created again with the same name gets its setting back — unlike an incident form's questions, which forget a deleted field.
+- **Edit and Save read them afresh.** **Edit** on the card reads the fields and the template's settings again, with a loader in the dialog meanwhile, and **Save** reads them once more and writes only the fields you changed in it. So a change another admin made to other fields in the meantime is kept — a setting they gave a field created while your dialog was open included — and a change you made to a field deleted meanwhile is not written. The card then lists the fields as they are. If they cannot be read when you press **Edit**, the dialog says why and offers **Try again** instead of **Save**; when you press **Save**, it says why, saves nothing and keeps your choices.
+- **Only the dashboard applies them.** Like **Required on Create**, the settings shape the **Declare Incident** form and nothing else. Incidents declared through the API, by a workflow, a monitor, Slack, Microsoft Teams or AI are not held to them, and [incident forms](/docs/incidents/forms) ask questions of their own. See [Required on Create is checked by the dashboard only](#required-on-create-is-checked-by-the-dashboard-only).
+- **A field copied from a monitor custom field** is still not asked once the incident has a monitor, whatever the template says.
+- **Anyone who can edit incident templates can change them** — Project Members and Incident Members included — even for a field a Project Admin made **Required on Create** for the whole project. The project-wide settings themselves need a Project Owner, a Project Admin or the **Edit Incident Custom Field** permission.
+- **They travel with the template.** A template's JSON export includes them, and in the project you import it into they apply to the fields with the same **Template Variable**.
+
+Through the API, they are the template's `customFieldSettings`: an object keyed by each field's **Template Variable**, with `Required`, `Optional`, `Hidden` or `Default` for each field.
+
+```json
+{
+  "customFieldSettings": {
+    "impact": "Required",
+    "affected_location": "Optional",
+    "additional_information": "Hidden"
+  }
+}
+```
+
+A field that is not listed follows its own settings, as with `Default`. A request is refused with a `400` error when a key is not a valid **Template Variable** — lowercase letters, digits and underscores — or a value is not one of the four. A key that matches no field is kept, and ignored.
 
 ## Note templates
 
@@ -81,7 +119,7 @@ Like incident templates, rows are created and viewed rather than edited inline; 
 | `{{incident.affectedStatusPages}}`  | The status pages it shows on and notifies that the author can see. |
 | `{{customFields.<key>}}`            | A custom field's value, by the **Template Variable** shown on the custom field settings page. |
 
-A placeholder that has no value, or that is not on the list, stays exactly as written, for the author to fill in. Values are placed as text: an incident title cannot turn into a link, an image or HTML in the posted note. A **Rich text (Markdown)** custom field is placed as the Markdown it is. The form for writing a note template lists these placeholders under the note, with a warning: the custom field, label and status page placeholders fill in your team's own records, every custom field whether or not it is marked **Include in Subscriber Notifications**, and one library serves public notes too, which are shown on the incident's status pages and emailed to their subscribers. Read the filled-in text before you post a public note.
+A placeholder that has no value, or that is not on the list, stays exactly as written, for the author to fill in. Values are placed as text: an incident title cannot turn into an image, HTML or a link whose text hides where it goes in the posted note, although an address in it still shows as a link to that address. A **Rich text (Markdown)** custom field is placed as the Markdown it is. The form for writing a note template lists these placeholders under the note, with a warning: the custom field, label and status page placeholders fill in your team's own records, every custom field whether or not it is marked **Include in Subscriber Notifications**, and one library serves public notes too, which are shown on the incident's status pages and emailed to their subscribers. Read the filled-in text before you post a public note.
 
 Note templates surface where you actually need them: the **Acknowledge Incident** and **Resolve Incident** confirmation dialogs both offer **Select Note Template** next to the **Public Note** field. See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for how public and private notes differ.
 
@@ -107,7 +145,7 @@ Go to **Incidents → Settings → Custom Fields** (`/dashboard/{projectId}/inci
 - **Field Type** — required. This chooses how data is entered; the types are listed below. Dropdown types also need their options listed.
 - **Dropdown Options** — the values that appear in the dropdown, each with an optional color.
 - **Order** — where the field appears among the incident's custom fields, lowest first: on the incident's **Custom Fields** page, in the **Details** step and in subscriber messages. Fields without an order come after the ones that have one.
-- **Show on Create** — asks for the field in the **Details** step when an incident is declared from the dashboard (see [Declaring Incidents](/docs/incidents/declaring-incidents)). An incident template can give any field a starting value, shown on create or not.
+- **Show on Create** — asks for the field in the **Details** step when an incident is declared from the dashboard (see [Declaring Incidents](/docs/incidents/declaring-incidents)). An incident template can give any field a starting value, shown on create or not, and can ask for a field or leave it out for the incidents declared from it — see [Custom fields on create](#custom-fields-on-create). [Incident forms](/docs/incidents/forms) do not follow it: a form asks only the fields added to it.
 - **Required on Create** — offered once **Show on Create** is on. The **Details** step does not let you declare the incident until the field is filled in, and a **Boolean** field must be switched on. The dashboard is the only place this is checked; see [Required on Create is checked by the dashboard only](#required-on-create-is-checked-by-the-dashboard-only).
 - **Include in Subscriber Notifications** — sends the field and its value to status page subscribers with the incident's messages: the default email, Slack and Microsoft Teams messages and webhooks, but not SMS. Subscribers are usually outside your team, so only turn it on for fields that are safe to share. See [Incident custom fields in notifications](/docs/status-pages/subscribers#incident-custom-fields-in-notifications).
 - **Template Variable** — the key a template reaches the field by, `{{customFields.<key>}}`, in note templates and custom subscriber notification templates. It is made from the field's name when the field is created — lowercase letters, digits and underscores, so `Expected Resolution` becomes `expected_resolution`, with `_2`, `_3` and so on added when another field already has the key — and it does not change when the field is renamed. Nobody sets it by hand: the API ignores a value sent for it.
@@ -138,6 +176,8 @@ Definitions live in their own model; the values live on the incident itself in t
 
 **Required on Create** holds back the **Declare Incident** form, and nothing else. Incidents that a monitor, the API, Slack, Microsoft Teams or AI opens cannot fill in a form, so they are created with the field empty. Once an incident exists, every field stays optional on its **Custom Fields** page, so a responder fixing one value mid-outage is never asked for all the others. Treat it as a prompt for the people declaring incidents, not as a promise that every incident has a value.
 
+A template's [custom fields on create](#custom-fields-on-create) are the same: they shape the **Declare Incident** form and nothing else. [Incident forms](/docs/incidents/forms) are the exception, because the server checks a form's **Required** questions when the form is submitted.
+
 ### Custom field values through the API
 
 On `POST /api/incident` and on updates to an incident, `customFields` is an object keyed by each field's **Field Name**:
@@ -164,6 +204,8 @@ When a user or an API key creates or updates an incident, each value the request
 | **Dropdown (single select)**                         | One of its options.                                           |
 | **Dropdown (multi-select)**                          | A list of its options, or a single option on its own.         |
 
+For a **Dropdown (multi-select)**, the refusal names the first 10 entries that are not among its options, and then how many more there are.
+
 What is not checked, so that existing integrations keep working:
 
 - **Values the request leaves as they are.** The **Custom Fields** card sends every value back when you save one of them, so a value stored before these checks existed, or a dropdown option removed since, never stops you saving the others. A multi-select keeps the entries it already had.
@@ -172,7 +214,7 @@ What is not checked, so that existing integrations keep working:
 - **Values copied from a monitor custom field**, and writes OneUptime makes itself.
 - **Required on Create.** The API never asks for a field.
 
-An incident created with `createdIncidentTemplateId` starts with the template's custom field values, merged one field at a time under the ones the request sends (see [How a template gets applied](#how-a-template-gets-applied)). Only the values the request sends are checked.
+An incident that a workflow or an incident form declares from a template (`createdIncidentTemplateId`) starts with the template's custom field values, merged one field at a time under the ones it sends (see [How a template gets applied](#how-a-template-gets-applied)). An API key cannot declare from a template: a request that sends `createdIncidentTemplateId` is refused.
 
 ### Renaming a field
 
@@ -181,6 +223,8 @@ Values are stored under the field's name, so renaming a field has to move them. 
 Two renames are refused: one onto a name another incident custom field already has (compared without regard to case), and an API request that would rename several fields at once. Workflows and API clients that read or write a value by the field's old name need to be changed to the new one.
 
 After a rename the field holds only its own values. Deleting a field leaves its values on the incidents that had them, so incidents can still hold values under the new name from a field that was deleted; the rename clears those, rather than show them as this field's answers or send them to subscribers. Every incident and template moves together: if the move fails, none of them changes, the field keeps its old name and the save reports an error, so you can simply try again. A field **created** with a deleted field's name is different: it shows the values that field left behind, and sends them to subscribers once **Include in Subscriber Notifications** is on.
+
+Deleting a field also takes it off the questions of every [incident form](/docs/incidents/forms) in the project, without starting an **On Update Incident Form** workflow or changing when the forms were last updated. A field created again with the same name is not asked on a form until someone adds it on that form's **Questions** card. Incident templates keep their **Custom Fields on Create** setting for it.
 
 ### Terraform
 
@@ -358,6 +402,7 @@ For building the rest of the workflow, see [Authoring a Workflow](/docs/workflow
 - [Incident States & Severities](/docs/incidents/states-and-severities) — the state and severity settings pages and what the flags do.
 - [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — where note templates get used.
 - [Linked Alerts](/docs/incidents/linked-alerts) — linking alerts to incidents and what the linked alert switches do.
+- [Incident Forms](/docs/incidents/forms) — a link anyone can use to report an incident, without a OneUptime account.
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — who hears about an incident outside your team.
 - [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — limiting incidents to some of the status pages that list their monitors.
 - [Workflows Overview](/docs/workflows/index) — automating on top of incident triggers.

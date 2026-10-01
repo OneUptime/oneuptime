@@ -13,6 +13,10 @@ import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
+import {
+  ENTERPRISE_FEATURE_WILDCARD,
+  RETIRED_ENTERPRISE_FEATURE_VALUES,
+} from "Common/Server/Enterprise/EnterpriseFeature";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import LicenseToken, {
   classifyLicenseToken,
@@ -26,6 +30,7 @@ import {
 } from "../../../Server/License/TrustedLicenseKeys";
 import LicenseSigner, {
   ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY_ENV,
+  LICENSE_SERVER_TOKEN_FEATURES,
   LicenseSigningKeyError,
   LicenseSigningState,
   LicenseTokenSubject,
@@ -561,6 +566,31 @@ describe("LicenseSigner.init - read once at boot", () => {
     } finally {
       process.env["JEST_WORKER_ID"] = workerId;
     }
+  });
+});
+
+/*
+ * The features claim is read by every release a customer runs. Releases up to
+ * 14.0.10 gate single sign-on on the "sso" claim (or "*"); later ones include
+ * single sign-on in the Community Edition and ignore that retired claim. So
+ * whatever this list becomes, it must keep granting single sign-on to those
+ * older releases for as long as they are supported.
+ */
+describe("the features every issued license carries", () => {
+  test("still grant everything, today through the wildcard", () => {
+    expect([...LICENSE_SERVER_TOKEN_FEATURES]).toEqual([
+      ENTERPRISE_FEATURE_WILDCARD,
+    ]);
+  });
+
+  test('a narrowed list keeps the retired "sso" claim for releases up to 14.0.10', () => {
+    expect(RETIRED_ENTERPRISE_FEATURE_VALUES).toContain("sso");
+
+    const grantsSingleSignOnToOlderReleases: boolean =
+      LICENSE_SERVER_TOKEN_FEATURES.includes(ENTERPRISE_FEATURE_WILDCARD) ||
+      LICENSE_SERVER_TOKEN_FEATURES.includes("sso");
+
+    expect(grantsSingleSignOnToOlderReleases).toBe(true);
   });
 });
 

@@ -635,6 +635,11 @@ describe("EnterpriseLoader boot guards", () => {
     expect((error as Error).message).toContain(
       "ALLOW_BILLING_WITHOUT_ENTERPRISE=true",
     );
+    // What stops without ee: SCIM and audit logging - not single sign-on.
+    expect((error as Error).message).toContain(
+      "SCIM and audit logging stop and the license server is not served",
+    );
+    expect((error as Error).message).not.toMatch(/\bSSO\b/);
   });
 
   test("billing on without ee is fatal when ee/ is simply absent too", async () => {
@@ -780,9 +785,11 @@ describe("EnterpriseLoader boot guards", () => {
  * IS_ENTERPRISE_EDITION=true asks for the Enterprise Edition. Before the
  * edition split a Docker Compose Enterprise install was APP_TAG=release plus
  * IS_ENTERPRISE_EDITION=true, and APP_TAG=release is now the Community image.
- * Booting it anyway would silently stop enforcing "Require SSO", 404 the SSO
- * and SCIM routes and stop audit logging, so the boot refuses - unless the
- * operator explicitly chose the Community Edition.
+ * Booting it anyway would silently 404 the SCIM routes (identity provider
+ * deprovisioning stops), stop audit logging and drop team compliance and the
+ * Health dashboards, so the boot refuses - unless the operator explicitly
+ * chose the Community Edition. Single sign-on is part of the Community
+ * Edition, so no message may give it as a reason.
  */
 describe("EnterpriseLoader: the Enterprise Edition requested but not loaded", () => {
   const loadError: (
@@ -821,9 +828,14 @@ describe("EnterpriseLoader: the Enterprise Edition requested but not loaded", ()
     // What is wrong, and why it stops rather than warns.
     expect(message).toContain("IS_ENTERPRISE_EDITION=true");
     expect(message).toContain("not loaded");
-    expect(message).toContain('"Require SSO"');
-    expect(message).toContain("SSO or SCIM");
-    expect(message).toContain("audit logs");
+    expect(message).toContain(
+      "does not serve SCIM (identity provider deprovisioning would stop)",
+    );
+    expect(message).toContain("does not record audit logs");
+    expect(message).toContain("team compliance or Health dashboards");
+    // Single sign-on works on the Community Edition: never a reason to stop.
+    expect(message).not.toMatch(/\bSSO\b/);
+    expect(message).not.toMatch(/single sign-on/i);
     // How to keep the Enterprise Edition.
     expect(message).toContain("APP_TAG=enterprise-<version>");
     expect(message).toContain("APP_TAG=enterprise-release");
@@ -832,7 +844,7 @@ describe("EnterpriseLoader: the Enterprise Edition requested but not loaded", ()
     expect(message).toContain("IS_ENTERPRISE_EDITION=false");
     expect(message).toContain("ONEUPTIME_EDITION=community");
     expect(message).toContain(
-      "Community Edition, which does not enforce SSO, SCIM or audit logging",
+      "Community Edition, which does not include SCIM, audit logging, team compliance or the Health dashboards",
     );
 
     expect(fresh.EnterpriseEdition.isLoaded()).toBe(false);
@@ -870,8 +882,10 @@ describe("EnterpriseLoader: the Enterprise Edition requested but not loaded", ()
     expect(fresh.logs.warn).toHaveBeenCalledTimes(1);
     expect(warning).toContain("IS_ENTERPRISE_EDITION=true");
     expect(warning).toContain("ONEUPTIME_EDITION=community");
-    expect(warning).toContain('does not enforce "Require SSO"');
+    expect(warning).toContain("does not serve SCIM");
     expect(warning).toContain("does not record audit logs");
+    expect(warning).not.toMatch(/\bSSO\b/);
+    expect(warning).not.toMatch(/single sign-on/i);
     expect(warning).toContain("Set IS_ENTERPRISE_EDITION=false");
     expect(fresh.logs.error).not.toHaveBeenCalled();
   });

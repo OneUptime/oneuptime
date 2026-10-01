@@ -8,6 +8,7 @@ import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
+import XML from "Common/Types/XML";
 import {
   SEARCH_ENGINE_INDEXING_FLAG_NAME,
   isSearchEngineIndexingEnabled,
@@ -270,22 +271,27 @@ export const handleRSS: (
 
     const feedUrl: string = `${req.protocol}://${req.get("host")}${req.path}`;
 
+    /*
+     * Every value goes through XML.escape. One "&" in a page title, or a
+     * "]]>" ending a CDATA section early, and feed readers reject the whole
+     * feed. The links carry the request's host and path.
+     */
     let rssXml: string = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-<title>${title} Updates</title>
-<description>${description}</description>
-<link>${baseUrl}</link>
-<atom:link href="${feedUrl}" rel="self" type="application/rss+xml" />
+<title>${XML.escape(title)} Updates</title>
+<description>${XML.escape(description)}</description>
+<link>${XML.escape(baseUrl)}</link>
+<atom:link href="${XML.escape(feedUrl)}" rel="self" type="application/rss+xml" />
 `;
 
     items.forEach((item: RSSItem) => {
       rssXml += `
 <item>
-<title><![CDATA[${item.title}]]></title>
-<description><![CDATA[${item.description}]]></description>
-<link>${item.link}</link>
-<guid>${item.link}</guid>
+<title>${XML.escape(item.title)}</title>
+<description>${XML.escape(item.description)}</description>
+<link>${XML.escape(item.link)}</link>
+<guid>${XML.escape(item.link)}</guid>
 <pubDate>${item.pubDate}</pubDate>
 </item>`;
     });

@@ -8,6 +8,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -117,6 +118,14 @@ const Input: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  /*
+   * Each input's error message has an id of its own for the input to point
+   * aria-describedby at. The id was fixed, so on a form with several fields
+   * in error every message had the same id, and a screen reader described
+   * each field -- "Your Email" -- with the first field's message, "Title is
+   * required.".
+   */
+  const errorId: string = `input-error-${useId()}`;
   let className: string = "";
 
   if (!props.className) {
@@ -264,9 +273,7 @@ const Input: FunctionComponent<ComponentProps> = (
           aria-autocomplete={props.ariaAutoComplete}
           aria-activedescendant={props.ariaActiveDescendant}
           aria-invalid={props.error || props.ariaInvalid ? "true" : undefined}
-          aria-describedby={
-            props.error ? "input-error-message" : props.ariaDescribedby
-          }
+          aria-describedby={props.error ? errorId : props.ariaDescribedby}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             const value: string | Date = e.target.value;
 
@@ -342,7 +349,7 @@ const Input: FunctionComponent<ComponentProps> = (
 
       {props.error && (
         <p
-          id="input-error-message"
+          id={errorId}
           data-testid="error-message"
           className="mt-1 text-sm text-red-400"
           role="alert"

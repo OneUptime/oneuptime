@@ -1141,7 +1141,7 @@ export const OneUptimeEnterpriseDirectory: string | undefined =
 
 /*
  * The hosted oneuptime.com (billing enabled) must run the Enterprise image:
- * on the Community image paid SSO and audit logging would silently stop, and
+ * on the Community image paid SCIM and audit logging would silently stop, and
  * the license server self-hosted customers activate against would be gone. The
  * boot refuses that combination unless this development escape hatch is set.
  */

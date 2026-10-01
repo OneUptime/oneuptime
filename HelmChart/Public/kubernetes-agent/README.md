@@ -415,7 +415,7 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-kubernetes-agen
 | Key | Description |
 | --- | --- |
 | `oneuptime.url` | URL of your OneUptime instance (e.g. `https://oneuptime.com`). |
-| `oneuptime.apiKey` | Project API key. Create one at **Project Settings → API Keys**. |
+| `oneuptime.apiKey` | Telemetry ingestion key, sent as the `x-oneuptime-token` header. Create one at **Project Settings → Telemetry & APM → Ingestion Keys** — a project API key does not work here. |
 | `clusterName` | Unique name for this cluster. Stamped as `k8s.cluster.name` on every record. |
 
 ### Common

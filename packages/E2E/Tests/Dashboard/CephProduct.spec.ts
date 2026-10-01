@@ -52,7 +52,7 @@ test.describe.skip("Ceph Product Onboarding", () => {
       timeout: 30000,
     });
 
-    // Empty state renders the DocumentationCard install guide.
+    // Empty state renders the setup guide (SetupGuideCard).
     await expect(
       page.getByText("Getting Started with Ceph Monitoring"),
     ).toBeVisible({ timeout: 60000 });
@@ -70,7 +70,11 @@ test.describe.skip("Ceph Product Onboarding", () => {
       timeout: 30000,
     });
 
-    // ...and the install command block interpolates URL, key, and cluster name.
+    /*
+     * ...and the guide interpolates it. It opens on the install script,
+     * whose command carries only the URL and the key; the .env file with
+     * the cluster name is on the Docker Compose option.
+     */
     await expect
       .poll(
         async () => {
@@ -79,6 +83,8 @@ test.describe.skip("Ceph Product Onboarding", () => {
         { timeout: 30000 },
       )
       .toMatch(ingestionKeyEnvLineRegex);
+
+    await page.getByRole("radio", { name: /^Docker Compose/ }).click();
 
     const bodyText: string = await page.locator("body").innerText();
     expect(bodyText).toMatch(/ONEUPTIME_URL=http/);

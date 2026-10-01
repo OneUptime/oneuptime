@@ -43,20 +43,28 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
     answers 400.
   - alert: an `AlertList` (C1), charts, tables, a trace, and an `ExceptionList` (C8).
   - pinned (`isPinnedToInvestigationTime`) and current-data citations are both present.
+- **AI investigation conversation**: `POST /ai-investigation/conversation` answers an empty
+  thread for every incident and alert (nobody has asked anything yet). Sending a question,
+  answering an approval and stopping a run are not modelled.
     `verdict` and `create-fix-task` record and succeed.
 - **Alert #311** "Payment webhook 5xx rate above 5%" with its monitor and alert episode #7. Its
   hero offers Declare Incident after the state actions, which opens the create-incident page
   with `?alertIds=<alert #311>`.
 - **Scheduled maintenance #58** "Primary database failover drill" with two status pages,
   affected monitors and services, reminders and a feed.
+- **Affected resources** (`?resources=`): by default #1042 has two monitors and two services.
+  `many` gives it six monitors (one named "Checkout web journey (synthetic) from eu-west-1 and
+  us-east-1", too long for the sidebar), two hosts, a Kubernetes cluster, three services and an
+  SLO; `none` leaves #1042 and #58 with nothing attached.
 - **Incident episode #12** "Checkout degradation — Sep 14" with four member incidents, a
   grouping rule and a role member; **alert episode #7** with five member alerts.
 - **State changes** submitted from a hero action (incident, alert, both episodes, scheduled
   maintenance) are stamped like the server does: the new timeline entry starts now, the open
   one is closed and the event moves to the new state, so a background refresh reads the result.
 
-Navigation targets that are not modelled (AI task, monitor, on-call policy, status page,
-user, team, roles and member lists, list pages, side-menu sub-pages, and Create Incident -
+Navigation targets that are not modelled (AI task, monitor, host, Kubernetes cluster, SLO,
+on-call policy, status page, user, team, roles and member lists, list pages, side-menu
+sub-pages, and Create Incident -
 `INCIDENT_CREATE` `/dashboard/:projectId/incidents/create`, where an alert's Declare Incident
 leads) render a small stub page with `data-testid="stub-page"`, `data-page="<PageMap key>"`
 and the page name as its `<h1>`.
@@ -65,24 +73,27 @@ and the page name as its `<h1>`.
 
 Query parameters, parsed once per page load:
 
-| Parameter   | Values                                                                                                                                                                                                                                                                                                                                                                                                              |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `?state=`   | `resolved` (default), `ongoing` (incident #1042, alert #311 and both episodes stop at Acknowledged) or `created` (they stop before it)                                                                                                                                                                                                                                                                              |
-| `?ai=`      | `report` (default), `none`, `queued`, `running`, `failed`, `pending`, `legacy` (a completed report from an API replica without `evidence` / `references`, so the panel falls back to the report's own "Evidence checked" block)                                                                                                                                                                                     |
-| `?tldr=`    | `default` or `long` (incident #1042's TL;DR is 320 characters, the server's cap, so the header summary wraps and clamps)                                                                                                                                                                                                                                                                                            |
-| `?title=`   | `default` or `long` (alert #311 is titled "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster", 67 characters, wider than the room its header leaves beside the actions)                                                                                                                                                                                                                           |
-| `?verdict=` | none (default), `confirmed` or `rejected` (a responder's verdict already saved on the runs of incident #1042 and alert #311)                                                                                                                                                                                                                                                                                        |
-| `?sm=`      | `scheduled` (default, starts in 2 hours), `ongoing`, `ended`, `overdue` (still Scheduled 20 minutes after its start), `overrun` (still Ongoing 30 minutes after its end)                                                                                                                                                                                                                                            |
-| `?fail=`    | comma separated: `evidence`, `verdict`, `create-fix-task`, `investigation`, `resend` (the subscriber notifications of #1042 and #58 are Failed and the retry is refused)                                                                                                                                                                                                                                            |
-| `?theme=`   | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                             |
-| `?role=`    | who is signed in: `owner` (default; a master admin and Project Owner, so every permission gate is open), `alert-member` (not a master admin, only Alert Member: may acknowledge and resolve alerts but not create incidents, so Declare Incident shows disabled with the missing permissions in its tooltip) or `loading` (no permissions yet, the moment before the snapshot arrives, so gated actions are hidden) |
+| Parameter     | Values                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?state=`     | `resolved` (default), `ongoing` (incident #1042, alert #311 and both episodes stop at Acknowledged) or `created` (they stop before it)                                                                                                                                                                                                                                                                              |
+| `?ai=`        | `report` (default), `none`, `queued`, `running`, `failed`, `pending`, `legacy` (a completed report from an API replica without `evidence` / `references`, so the panel falls back to the report's own "Evidence checked" block)                                                                                                                                                                                     |
+| `?tldr=`      | `default` or `long` (incident #1042's TL;DR is 320 characters, the server's cap, so the header summary wraps and clamps)                                                                                                                                                                                                                                                                                            |
+| `?title=`     | `default` or `long` (alert #311 is titled "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster", 67 characters, wider than the room its header leaves beside the actions)                                                                                                                                                                                                                           |
+| `?verdict=`   | none (default), `confirmed` or `rejected` (a responder's verdict already saved on the runs of incident #1042 and alert #311)                                                                                                                                                                                                                                                                                        |
+| `?sm=`        | `scheduled` (default, starts in 2 hours), `ongoing`, `ended`, `overdue` (still Scheduled 20 minutes after its start), `overrun` (still Ongoing 30 minutes after its end)                                                                                                                                                                                                                                            |
+| `?fail=`      | comma separated: `evidence`, `verdict`, `create-fix-task`, `investigation`, `resend` (the subscriber notifications of #1042 and #58 are Failed and the retry is refused)                                                                                                                                                                                                                                            |
+| `?resources=` | what Incident #1042 is attached to: `default`, `many` (five categories, one behind Show more, and a name too long for the sidebar) or `none` (#1042 and Scheduled Maintenance #58 have nothing attached, for the empty state)                                                                                                                                                                                       |
+| `?theme=`     | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                             |
+| `?role=`      | who is signed in: `owner` (default; a master admin and Project Owner, so every permission gate is open), `alert-member` (not a master admin, only Alert Member: may acknowledge and resolve alerts but not create incidents, so Declare Incident shows disabled with the missing permissions in its tooltip) or `loading` (no permissions yet, the moment before the snapshot arrives, so gated actions are hidden) |
+| `?clusters=`  | which Kubernetes clusters the investigation payload's `clusterAccess` lists: none (default), `reachable` (prod-eu-west-1, which OneUptime AI can reach with kubectl), `unreachable` (staging-us-east-1, whose AI agent is not connected) or `mixed` (both); the cluster access notice's link opens a stub for `KUBERNETES_CLUSTER_VIEW_AI_AGENT`                                                                    |
 
 ## What the spec covers
 
-`EventOverview.spec.ts` (121 tests):
+`EventOverview.spec.ts` (157 tests):
 
-- **AI investigation report**: the summary section (TL;DR + summary) above the report; the
-  report's sub-sections in order with the amber root-cause callout; no brand heading, server
+- **AI investigation report**: the Summary (TL;DR as its lead line, no chip) as the card's
+  first section, then the report's sections in order under the same plain h3 (the root cause
+  is not a callout), closed by the verify-first caveat and Copy report; no brand heading, server
   "Evidence checked" block or footer in the prose; Copy report copies the published markdown;
   incident and alert reference links (href, `title`, clicking loads the other incident on the
   same route, back returns); citation chips (title and spoken label, click opens the collapsed
@@ -108,7 +119,17 @@ Query parameters, parsed once per page load:
   alert page; `?fail=evidence` with Try again sending a second request while focus stays in
   the row; `?ai=legacy`, where a chip focuses the report's own row.
 - **Investigation states**: running, queued, failed, pending and none, including the header
-  notice and how much of its usage each run shows (a failed run ends its steps with it).
+  notice and how much of its usage each run shows (a failed run ends its steps with it); with
+  no run the same card explains why nothing was investigated.
+- **One flat card**: in every state (report, `?clusters=mixed`, legacy, running with and
+  without clusters, queued, failed, pending, none), and with the details and an evidence row
+  open, the card holds no panel of its own: no element big enough to be a region paints a
+  background, a frame on all four sides or a shadow (computed styles in Chromium). Every h3 in
+  the card shares one size, weight and colour; the status pill looks the same in every state;
+  the order is report, cluster notes, working, actions, split by one-pixel top hairlines; the
+  cluster notes are plain lines whose fix link opens the cluster's AI agent page; a chip's
+  highlight reaches 12px past the text on `::before` while the row and its divider stay put,
+  and uses the dark indigo wash in the dark theme.
 - **Incident and alert**: hero (identifier, title, state, severity, duration, facts and their
   links), stat bar cells, the AI card leading the left column, the right column's stacked card
   headers, Edit buttons and details field order, Resolve / Acknowledge from the hero through
@@ -132,6 +153,18 @@ Query parameters, parsed once per page load:
   Ongoing refreshing in place; `?fail=resend`.
 - **Episodes**: hero and four-cell stat bar, the members card (number chip, title link, state
   and severity pills, View all), details field order, roles, Resolve / Acknowledge from the hero.
+- **Affected Resources card** (incident, alert and scheduled maintenance): the categories are
+  sections of the one card, read from computed styles - no shadow, border (but the hairline
+  above each section after the first) or white fill inside it, as wide on the right as on the
+  left, and no grey wash on hover; level-3 headings naming label and count, the summary line,
+  the icon tile, label and names lined up; a click at the empty end of a row opens the resource
+  (monitor, service, host, cluster, SLO); hover lights the whole row and underlines the name;
+  Tab from Edit reaches each row with a focus ring round it and Enter opens it; with
+  `?resources=many` Show more / Show less (`aria-expanded`, `aria-controls`) in place, no label
+  truncated at 1440px, a long name ending in an ellipsis, and nothing overflowing at 390px;
+  with `?resources=none` the open empty state, promising linked SLOs on the incident but not
+  on scheduled maintenance; light and dark (`?theme=dark`) colours of labels, rows, counts,
+  hairlines, icon tiles and hover.
 - **Responsive**: no horizontal scroll at 390px on all five pages (and with evidence rows
   expanded); right-column card titles wider than 120px at 1280px.
 
@@ -163,8 +196,12 @@ Playwright reuses a server already listening on port 4222 outside CI. If one fro
 checkout might be running, stop it first or run with `CI=1`.
 
 Screenshots land in `output/playwright/event-overview-ui/`, named `*-synthetic.png` because
-every record in them is fabricated. The hero title-row tests add
-`{alert-hero-created,alert-hero-resolved,incident-hero-created}-{390,768,1024,1280}`.
+every record in them is fabricated. The AI card's states are
+`ai-card-{running,running-clusters,queued,failed,pending,none,clusters,dark}`. The hero
+title-row tests add `{alert-hero-created,alert-hero-resolved,incident-hero-created}-{390,768,1024,1280}`,
+and the Affected Resources tests add
+`{incident,alert,scheduled-maintenance}-overview-affected-resources` and
+`incident-affected-resources-{many,mobile,empty,light,dark}`.
 
 ## Poke at it by hand
 

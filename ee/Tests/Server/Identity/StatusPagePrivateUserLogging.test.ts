@@ -15,9 +15,14 @@ import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
-import statusPageOidcRouter from "../../../Server/Identity/API/StatusPageOIDC";
-import statusPageSsoRouter from "../../../Server/Identity/API/StatusPageSSO";
 import statusPageScimRouter from "../../../Server/Identity/API/StatusPageSCIM";
+
+/*
+ * Status page SCIM provisioning logs private-user IDs, never the emails,
+ * names or payloads the identity provider sent. The status page SAML and OIDC
+ * sign-in half of these checks is core, next to the code it covers:
+ * packages/App/Tests/FeatureSet/Identity/StatusPagePrivateUserLogging.test.ts.
+ */
 
 jest.mock("Common/Server/Utils/Express", () => {
   return {
@@ -85,103 +90,6 @@ jest.mock("Common/Server/Services/StatusPagePrivateUserService", () => {
   };
 });
 
-const providerFindOneBy: jest.Mock = jest.fn();
-
-jest.mock("Common/Server/Services/StatusPageOidcService", () => {
-  return {
-    __esModule: true,
-    default: {
-      findOneBy: (...args: Array<unknown>): unknown => {
-        return providerFindOneBy(...args);
-      },
-    },
-  };
-});
-
-jest.mock("Common/Server/Services/StatusPageSsoService", () => {
-  return {
-    __esModule: true,
-    default: {
-      findOneBy: (...args: Array<unknown>): unknown => {
-        return providerFindOneBy(...args);
-      },
-    },
-  };
-});
-
-const createLoginCodeSession: jest.Mock = jest.fn();
-
-jest.mock("Common/Server/Services/StatusPagePrivateUserSessionService", () => {
-  return {
-    __esModule: true,
-    default: {
-      createLoginCodeSession: (...args: Array<unknown>): unknown => {
-        return createLoginCodeSession(...args);
-      },
-    },
-  };
-});
-
-jest.mock("Common/Server/Services/StatusPageService", () => {
-  return {
-    __esModule: true,
-    default: {
-      getStatusPageFirstURL: async (): Promise<string> => {
-        return "https://status.example.com";
-      },
-    },
-  };
-});
-
-jest.mock("Common/Server/Utils/Cookie", () => {
-  return {
-    __esModule: true,
-    default: {
-      getCookieFromExpressRequest: (): string => {
-        return "signed-state-cookie";
-      },
-      removeCookie: jest.fn(),
-    },
-  };
-});
-
-jest.mock("Common/Server/Utils/JsonWebToken", () => {
-  return {
-    __esModule: true,
-    default: {
-      decodeJsonPayload: (): JSONObject => {
-        return { state: "state", nonce: "nonce", codeVerifier: "verifier" };
-      },
-    },
-  };
-});
-
-const oidcExchange: jest.Mock = jest.fn();
-const samlVerify: jest.Mock = jest.fn();
-
-jest.mock("../../../Server/Identity/Utils/OIDC", () => {
-  return {
-    __esModule: true,
-    default: {
-      createClient: jest.fn(),
-      exchangeCodeAndValidate: (...args: Array<unknown>): unknown => {
-        return oidcExchange(...args);
-      },
-    },
-  };
-});
-
-jest.mock("../../../Server/Identity/Utils/SSO", () => {
-  return {
-    __esModule: true,
-    default: {
-      getSamlResponseFromXML: (...args: Array<unknown>): unknown => {
-        return samlVerify(...args);
-      },
-    },
-  };
-});
-
 jest.mock("../../../Server/Identity/Middleware/SCIMAuthorization", () => {
   return {
     __esModule: true,
@@ -200,7 +108,6 @@ jest.mock("../../../Server/Identity/Utils/SCIMLogger", () => {
 });
 
 const sendJson: jest.Mock = jest.fn();
-const redirect: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Utils/Response", () => {
   return {
@@ -210,10 +117,6 @@ jest.mock("Common/Server/Utils/Response", () => {
       sendEmptySuccessResponse: jest.fn(),
       sendJsonObjectResponse: (...args: Array<unknown>): unknown => {
         return sendJson(...args);
-      },
-      setNoCacheHeaders: jest.fn(),
-      redirect: (...args: Array<unknown>): unknown => {
-        return redirect(...args);
       },
     },
   };
@@ -272,8 +175,6 @@ const invoke: (
   const req: ExpressRequest = buildRequest(body);
   req.params = {
     statusPageId: PAGE_ID.toString(),
-    statusPageOidcId: SCIM_ID,
-    statusPageSsoId: SCIM_ID,
     statusPageScimId: SCIM_ID,
     userId: USER_ID.toString(),
   };
@@ -288,8 +189,6 @@ const invoke: (
   const next: jest.Mock = jest.fn();
   // Express exposes route.methods at runtime but omits it from IRoute's type.
   const registeredRoutes: Array<RegisteredRoute> = [
-    ...statusPageOidcRouter.stack,
-    ...statusPageSsoRouter.stack,
     ...statusPageScimRouter.stack,
   ] as unknown as Array<RegisteredRoute>;
   const registeredRoute: RegisteredRoute | undefined = registeredRoutes.find(
@@ -340,65 +239,10 @@ describe("status page private-user logs", () => {
     privateUserFindOneById.mockResolvedValue(makeUser());
     privateUserFindBy.mockResolvedValue([makeUser()]);
     privateUserCreate.mockResolvedValue(makeUser());
-    providerFindOneBy.mockResolvedValue({
-      projectId: PROJECT_ID,
-      discoveryURL: "https://idp.example.com/.well-known/openid-configuration",
-      issuerURL: "https://idp.example.com",
-      clientId: "client-id",
-      clientSecret: "client-secret",
-      signOnURL: "https://idp.example.com/login",
-      publicCertificate: "certificate",
-    });
-    oidcExchange.mockResolvedValue({
-      email: new Email(EMAIL),
-      name: DISPLAY_NAME,
-      rawClaims: { email: EMAIL, name: DISPLAY_NAME },
-    });
-    samlVerify.mockReturnValue({
-      issuerUrl: "https://idp.example.com",
-      email: new Email(EMAIL),
-    });
-    createLoginCodeSession.mockResolvedValue({ refreshToken: "login-code" });
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
-  });
-
-  it.each([false, true])(
-    "logs the saved private-user ID on OIDC sign-in at INFO (new user: %s)",
-    async (isNewUser: boolean) => {
-      jest.spyOn(logger, "getLogLevel").mockReturnValue(ConfigLogLevel.INFO);
-      privateUserFindOneBy.mockResolvedValue(isNewUser ? null : makeUser());
-      const next: jest.Mock = await invoke(
-        "get",
-        "/status-page-oidc-callback/:statusPageId/:statusPageOidcId",
-      );
-      expect(next).not.toHaveBeenCalled();
-      expect(createLoginCodeSession).toHaveBeenCalledTimes(1);
-      expect(redirect).toHaveBeenCalledTimes(1);
-      expect(collectLogText()).toContain(
-        `Status page user logged in with OIDC: ${USER_ID}`,
-      );
-      expectNoPersonalData();
-    },
-  );
-
-  it("does not log private-user identity or assertions on SAML sign-in", async () => {
-    const next: jest.Mock = await invoke(
-      "post",
-      "/status-page-idp-login/:statusPageId/:statusPageSsoId",
-      {
-        SAMLResponse: Buffer.from(`${EMAIL} ${DISPLAY_NAME}`).toString(
-          "base64",
-        ),
-      },
-    );
-    expect(next).not.toHaveBeenCalled();
-    expect(samlVerify).toHaveBeenCalledTimes(1);
-    expect(createLoginCodeSession).toHaveBeenCalledTimes(1);
-    expect(redirect).toHaveBeenCalledTimes(1);
-    expectNoPersonalData();
   });
 
   it.each([false, true])(

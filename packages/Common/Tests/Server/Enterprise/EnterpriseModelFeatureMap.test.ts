@@ -20,7 +20,7 @@ import EnterpriseFeature from "../../../Server/Enterprise/EnterpriseFeature";
 type ModelType = { new (): BaseModel };
 
 /*
- * The facade owns the model -> feature map so the eleven model files stay
+ * The facade owns the model -> feature map so the enterprise model files stay
  * unchanged. These guards keep that map and the models'
  * @TableEditionAccessControl({ requiresEnterprise: true }) decorators from
  * drifting apart: a new enterprise model with no feature would otherwise be
@@ -28,14 +28,6 @@ type ModelType = { new (): BaseModel };
  */
 describe("EnterpriseEdition.getModelFeature against the real models", () => {
   test.each([
-    [GlobalSSO, EnterpriseFeature.SSO],
-    [GlobalOIDC, EnterpriseFeature.SSO],
-    [GlobalSSOProject, EnterpriseFeature.SSO],
-    [GlobalOIDCProject, EnterpriseFeature.SSO],
-    [ProjectSSO, EnterpriseFeature.SSO],
-    [ProjectOIDC, EnterpriseFeature.SSO],
-    [StatusPageSSO, EnterpriseFeature.SSO],
-    [StatusPageOIDC, EnterpriseFeature.SSO],
     [ProjectSCIM, EnterpriseFeature.SCIM],
     [StatusPageSCIM, EnterpriseFeature.SCIM],
     [TeamComplianceSetting, EnterpriseFeature.TeamCompliance],
@@ -46,6 +38,40 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
       expect(new modelType().requiresEnterprise).toBe(true);
     },
   );
+
+  /*
+   * Single sign-on is Community Edition configuration. Both halves have to go
+   * for a model to be ungated: a model still marked requiresEnterprise but
+   * missing from the map would be refused by EditionPermission unless the
+   * license entitled EVERY enterprise feature.
+   */
+  test.each([
+    ["GlobalSSO", GlobalSSO],
+    ["GlobalOIDC", GlobalOIDC],
+    ["GlobalSSOProject", GlobalSSOProject],
+    ["GlobalOIDCProject", GlobalOIDCProject],
+    ["ProjectSSO", ProjectSSO],
+    ["ProjectOIDC", ProjectOIDC],
+    ["StatusPageSSO", StatusPageSSO],
+    ["StatusPageOIDC", StatusPageOIDC],
+  ] as Array<[string, ModelType]>)(
+    "the single sign-on model %s carries no edition gate and maps to no feature",
+    (tableName: string, modelType: ModelType) => {
+      const model: BaseModel = new modelType();
+
+      expect(model.tableName).toBe(tableName);
+      expect(model.requiresEnterprise).toBeFalsy();
+      expect(EnterpriseEdition.getModelFeature(modelType)).toBeNull();
+      expect(EnterpriseEdition.getFeatureForTableName(tableName)).toBeNull();
+      expect(EnterpriseEdition.getMappedTableNames()).not.toContain(tableName);
+    },
+  );
+
+  test("the map holds exactly the SCIM and team compliance tables", () => {
+    expect([...EnterpriseEdition.getMappedTableNames()].sort()).toEqual(
+      ["ProjectSCIM", "StatusPageSCIM", "TeamComplianceSetting"].sort(),
+    );
+  });
 
   test("ordinary models map to no feature", () => {
     expect(EnterpriseEdition.getModelFeature(Project)).toBeNull();
@@ -88,6 +114,22 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     ).toEqual([]);
     expect(enterpriseTables.size).toBe(
       EnterpriseEdition.getMappedTableNames().length,
+    );
+  });
+
+  test("the registered models marked requiresEnterprise are exactly SCIM and team compliance", () => {
+    const enterpriseTables: Array<string> = [];
+
+    for (const modelType of AllModelTypes as Array<ModelType>) {
+      const model: BaseModel = new modelType();
+
+      if (model.requiresEnterprise && model.tableName) {
+        enterpriseTables.push(model.tableName);
+      }
+    }
+
+    expect(enterpriseTables.sort()).toEqual(
+      ["ProjectSCIM", "StatusPageSCIM", "TeamComplianceSetting"].sort(),
     );
   });
 });

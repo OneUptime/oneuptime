@@ -62,7 +62,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }}
           noItemsMessage="Nice work! No Active Alerts so far."
           title="Active Alerts"
-          description="Here is a list of all the Active Alerts for this project."
+          description="Alerts that are not resolved yet: problems your team should look into before users notice. View an alert to acknowledge or resolve it."
         />
       )}
     </div>

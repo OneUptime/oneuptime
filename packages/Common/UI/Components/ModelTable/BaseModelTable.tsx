@@ -61,6 +61,7 @@ import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
 import OrderedStatesList from "../OrderedStatesList/OrderedStatesList";
 import Pill from "../Pill/Pill";
 import Table from "../Table/Table";
+import { getEmptyTableMessage } from "../Table/EmptyTableMessage";
 import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
 import ModelTableColumn from "./Column";
@@ -3209,17 +3210,93 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const getNoItemsMessage: GetNoItemsMessageFunction = ():
     | string
     | ReactElement => {
-    const plural: string = (
-      props.pluralName ||
-      model.pluralName ||
-      "items"
-    ).toLocaleLowerCase();
+    const pluralLabel: string = props.pluralName || model.pluralName || "items";
 
     if (isSearchActive() || hasFilterApplied(filterData)) {
-      return `${tx("No")} ${plural} ${tx("match your search or filters.")}`;
+      return getEmptyTableMessage({
+        pluralLabel: pluralLabel,
+        isFiltered: true,
+        translate: tx,
+      });
     }
 
-    return props.noItemsMessage || `${tx("No")} ${plural} ${tx("yet.")}`;
+    return (
+      props.noItemsMessage ||
+      getEmptyTableMessage({
+        pluralLabel: pluralLabel,
+        isFiltered: false,
+        translate: tx,
+      })
+    );
+  };
+
+  type GetNoItemsActionFunction = () => ReactElement | undefined;
+
+  /*
+   * The way forward from an empty table: the "Create X" button the card's
+   * header already shows - same handler, same permission gate, same label -
+   * repeated as the primary action under "No X yet.", where a new user is
+   * looking.
+   *
+   * Only under the table's own "No X yet.". A page that words its empty
+   * state itself is describing a slice of the list ("Nice work! No Active
+   * Incidents so far.", "No monitors are reporting a problem."), where a big
+   * "Create" button answers a question nobody asked. And never when a
+   * search or filter emptied the table: creating one is the wrong answer to
+   * a search that missed.
+   */
+  const getNoItemsAction: GetNoItemsActionFunction = ():
+    | ReactElement
+    | undefined => {
+    if (!props.cardProps) {
+      return undefined;
+    }
+
+    if (isSearchActive() || hasFilterApplied(filterData)) {
+      return undefined;
+    }
+
+    if (props.noItemsMessage) {
+      return undefined;
+    }
+
+    const createButton: CardButtonSchema | undefined = cardButtons.find(
+      (button: CardButtonSchema | ReactElement): boolean => {
+        if (React.isValidElement(button)) {
+          return false;
+        }
+
+        const schema: CardButtonSchema = button as CardButtonSchema;
+
+        return (
+          schema.icon === IconProp.Add &&
+          (schema.buttonStyle === ButtonStyleType.NORMAL ||
+            schema.buttonStyle === ButtonStyleType.PRIMARY)
+        );
+      },
+    ) as CardButtonSchema | undefined;
+
+    if (!createButton) {
+      return undefined;
+    }
+
+    return (
+      <Button
+        title={createButton.title}
+        icon={createButton.icon}
+        buttonStyle={ButtonStyleType.PRIMARY}
+        disabled={createButton.disabled}
+        tooltip={createButton.tooltip}
+        dataTestId="empty-table-create-button"
+        onClick={() => {
+          if (createButton.disabled) {
+            return;
+          }
+
+          createButton.onClick?.();
+        }}
+      />
+    );
   };
 
   const getTable: GetReactElementFunction = (): ReactElement => {
@@ -3513,6 +3590,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           setItemsOnPage(newItemsOnPage);
         }}
         noItemsMessage={getNoItemsMessage()}
+        noItemsAction={getNoItemsAction()}
         onRefreshClick={async () => {
           await fetchItems();
         }}

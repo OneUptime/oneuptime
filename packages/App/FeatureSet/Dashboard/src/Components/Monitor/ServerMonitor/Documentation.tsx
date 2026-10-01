@@ -8,6 +8,12 @@ export interface ComponentProps {
   secretKey: ObjectID;
 }
 
+/*
+ * The install commands are the cards' bodies, not their descriptions: Card
+ * hides the description below md and puts it in a <p>, which cannot hold a
+ * code block. A phone got two titles and no commands, on the Overview's
+ * setup card as well as the Documentation tab.
+ */
 const ServerMonitorDocumentation: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -15,13 +21,11 @@ const ServerMonitorDocumentation: FunctionComponent<ComponentProps> = (
 
   return (
     <>
-      <Card
-        title={`Set up your Server Monitor (Linux/Mac)`}
-        description={
-          <div className="space-y-2 w-full mt-5">
-            <CodeBlock
-              language="bash"
-              code={`
+      <Card title={`Set up your Server Monitor (Linux/Mac)`}>
+        <div data-testid="server-monitor-setup-linux" className="w-full">
+          <CodeBlock
+            language="bash"
+            code={`
 # Install the agent
 curl -sSL ${HTTP_PROTOCOL}${HOST.toString()}/docs/static/scripts/infrastructure-agent/install.sh | sudo bash 
 
@@ -43,18 +47,15 @@ sudo oneuptime-infrastructure-agent stop
 # To Uninstall
 sudo oneuptime-infrastructure-agent uninstall
 `}
-            />
-          </div>
-        }
-      />
+          />
+        </div>
+      </Card>
 
-      <Card
-        title={`Set up your Server Monitor (Windows)`}
-        description={
-          <div className="space-y-2 w-full mt-5">
-            <CodeBlock
-              language="bash"
-              code={`
+      <Card title={`Set up your Server Monitor (Windows)`}>
+        <div data-testid="server-monitor-setup-windows" className="w-full">
+          <CodeBlock
+            language="bash"
+            code={`
 # Step 1: Download the agent from GitHub https://github.com/OneUptime/oneuptime/releases/latest
 # You should see a file named oneuptime-infrastructure-agent_windows_amd64.zip (if you're using x64) or oneuptime-infrastructure-agent_windows_arm64.zip (if you're using arm64)
 # Extract the zip file, and you should see a file named oneuptime-infrastructure-agent.exe 
@@ -75,10 +76,9 @@ oneuptime-infrastructure-agent stop
 # To Uninstall
 oneuptime-infrastructure-agent uninstall
 `}
-            />
-          </div>
-        }
-      />
+          />
+        </div>
+      </Card>
     </>
   );
 };

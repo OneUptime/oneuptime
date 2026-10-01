@@ -12,35 +12,33 @@ import {
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 /*
- * The incident-response actions on the Enterprise identity screens while the
+ * The incident-response action on the Enterprise SCIM screens while the
  * license makes their configuration read-only (expired, missing or invalid,
  * after the grace period).
  *
- * The server still accepts two updates then, because they can only tighten
+ * The server still accepts one update then, because it can only tighten
  * security (TIGHTEN_ONLY_UPDATES in Common's EditionPermission): exactly
- * { isEnabled: false } on an SSO / OIDC provider or a global provider's
- * project attachment, and exactly { bearerToken: <32+ characters> } on a SCIM
- * configuration. Every screen that manages one of those models offers it:
+ * { bearerToken: <32+ characters> } on a SCIM configuration. Both SCIM
+ * screens offer it as "Reset Bearer Token" (and show the new token once).
  *
- *   "Disable"             on each enabled provider row, and on each enabled
- *                         project attachment of a global provider;
- *   "Disable Provider"    on a global provider's own page;
- *   "Reset Bearer Token"  on each SCIM configuration (shows the new token once).
+ * For each screen this checks that the action is there in read-only mode,
+ * that it sends exactly one update - to the right model and row, with exactly
+ * the allowed column and a new token from Web Crypto - that the screen shows
+ * the result, that a refusal is shown, and that it works the same while
+ * configuration is editable.
  *
- * For every screen this checks that the action is there in read-only mode,
- * that it sends exactly one update - to the right model, the right row, on the
- * right API client, with exactly the allowed column - that the screen shows
- * the result, that a refusal (402 or anything else) is shown, that nothing is
- * sent on cancel, that an already-disabled provider has no Disable, and that
- * none of it appears while configuration is editable (valid license, grace
- * period, unreadable license, OneUptime Cloud).
+ * Single sign-on has no incident-response mode at all: its configuration is
+ * core and never read-only, so the four single sign-on pages offer no
+ * "Disable" row action and no notice, stay fully editable and never ask for
+ * the license - checked here with an expired license, in the Enterprise
+ * bundle.
  *
- * The model tables and the configuration card are replaced by stand-ins that
- * behave like the real ones where it matters: they load rows from a fake
- * server, show the page's row actions (honouring isVisible) and reload when
- * the page asks them to. The fake server applies accepted updates, so a
- * reload shows what the server now holds. Billing is pinned in every test:
- * CI's config.env sets BILLING_ENABLED=true.
+ * The model tables are stand-ins that behave like the real ones where it
+ * matters: they load rows from a fake server, show the page's row actions
+ * (honouring isVisible) and reload when the page asks them to. The fake
+ * server applies accepted updates, so a reload shows what the server now
+ * holds. Billing is pinned in every test: CI's config.env sets
+ * BILLING_ENABLED=true.
  */
 
 let billingEnabledForTest: boolean = false;
@@ -82,13 +80,11 @@ jest.mock("Common/UI/Utils/API/API", () => {
   };
 });
 
-// The fake server: rows per table, and the item behind each detail card.
+// The fake server: rows per table.
 type MockRecord = { [column: string]: unknown };
 
 const mockTableRows: { [tableId: string]: Array<MockRecord> } = {};
 const mockTableLoads: { [tableId: string]: number } = {};
-const mockDetailItems: { [cardName: string]: MockRecord } = {};
-const mockDetailLoads: { [cardName: string]: number } = {};
 
 interface MockActionButton {
   title: string;
@@ -103,6 +99,9 @@ interface MockActionButton {
 interface MockModelTableProps {
   id: string;
   modelType: { new (): unknown };
+  isCreateable?: boolean | undefined;
+  isEditable?: boolean | undefined;
+  isDeleteable?: boolean | undefined;
   refreshToggle?: string | undefined;
   actionButtons?: Array<MockActionButton> | undefined;
 }
@@ -130,7 +129,12 @@ jest.mock("Common/UI/Components/ModelTable/ModelTable", () => {
     }, [props.refreshToggle]);
 
     return (
-      <div data-testid={`model-table-${props.id}`}>
+      <div
+        data-testid={`model-table-${props.id}`}
+        data-createable={String(Boolean(props.isCreateable))}
+        data-editable={String(Boolean(props.isEditable))}
+        data-deleteable={String(Boolean(props.isDeleteable))}
+      >
         {rows.map((row: unknown) => {
           const record: MockRecord = row as MockRecord;
 
@@ -179,49 +183,18 @@ jest.mock("Common/UI/Components/ModelTable/ModelTable", () => {
   return { __esModule: true, default: MockModelTable };
 });
 
-interface MockCardModelDetailProps {
-  name: string;
-  refresher?: boolean | undefined;
-  modelDetailProps: {
-    modelType: { new (): unknown };
-    onItemLoaded?: ((item: unknown) => void) | undefined;
-  };
-}
-
 jest.mock("Common/UI/Components/ModelDetail/CardModelDetail", () => {
-  const MockCardModelDetail: (
-    props: MockCardModelDetailProps,
-  ) => ReactElement = (props: MockCardModelDetailProps): ReactElement => {
-    const [item, setItem] = React.useState<MockRecord | null>(null);
-
-    // Like the real card: load on mount and whenever refresher changes.
-    React.useEffect(() => {
-      mockDetailLoads[props.name] = (mockDetailLoads[props.name] || 0) + 1;
-
-      const stored: MockRecord | undefined = mockDetailItems[props.name];
-
-      if (!stored) {
-        return;
-      }
-
-      const loaded: unknown = Object.assign(
-        new props.modelDetailProps.modelType() as Record<string, unknown>,
-        stored,
+  return {
+    __esModule: true,
+    default: (props: { name: string; isEditable?: boolean }): ReactElement => {
+      return (
+        <div
+          data-testid={`card-model-detail-${props.name}`}
+          data-editable={String(Boolean(props.isEditable))}
+        />
       );
-
-      setItem({ ...stored });
-      props.modelDetailProps.onItemLoaded?.(loaded);
-    }, [props.refresher]);
-
-    return (
-      <div
-        data-testid={`card-model-detail-${props.name}`}
-        data-enabled={String(item ? item["isEnabled"] : undefined)}
-      />
-    );
+    },
   };
-
-  return { __esModule: true, default: MockCardModelDetail };
 });
 
 jest.mock("Common/UI/Components/Tabs/Tabs", () => {
@@ -241,78 +214,20 @@ jest.mock("Common/UI/Components/Tabs/Tabs", () => {
   };
 });
 
-jest.mock("Common/UI/Components/Page/Page", () => {
-  return {
-    __esModule: true,
-    default: (props: { children?: ReactNode }): ReactElement => {
-      return <div data-testid="page">{props.children}</div>;
-    },
-  };
-});
-
-jest.mock("Common/UI/Components/Page/ModelPage", () => {
-  return {
-    __esModule: true,
-    default: (props: { children?: ReactNode }): ReactElement => {
-      return <div data-testid="model-page">{props.children}</div>;
-    },
-  };
-});
-
-jest.mock("Common/UI/Components/ModelDelete/ModelDelete", () => {
-  return {
-    __esModule: true,
-    default: (): ReactElement => {
-      return <div data-testid="model-delete" />;
-    },
-  };
-});
-
-jest.mock("@oneuptime/admin-dashboard/Pages/Settings/SideMenu", () => {
-  return {
-    __esModule: true,
-    default: (): ReactElement => {
-      return <nav />;
-    },
-  };
-});
-
-import SettingsSSOPage from "../../../Dashboard/SSO/Pages/Settings/SSO";
-import SettingsOIDCPage from "../../../Dashboard/SSO/Pages/Settings/OIDC";
-import SettingsSCIMPage from "../../../Dashboard/SSO/Pages/Settings/SCIM";
-import StatusPageSSOPage from "../../../Dashboard/SSO/Pages/StatusPages/SSO";
-import StatusPageOIDCPage from "../../../Dashboard/SSO/Pages/StatusPages/OIDC";
-import StatusPageSCIMPage from "../../../Dashboard/SSO/Pages/StatusPages/SCIM";
-import GlobalSSOListPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalSSO/Index";
-import GlobalSSOViewPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalSSO/View";
-import GlobalOIDCListPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalOIDC/Index";
-import GlobalOIDCViewPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalOIDC/View";
+import SettingsSCIMPage from "../../../Dashboard/Identity/Pages/Settings/SCIM";
+import StatusPageSCIMPage from "../../../Dashboard/Identity/Pages/StatusPages/SCIM";
 import {
-  DISABLE_PROJECT_ATTACHMENT_CONFIRMATION,
-  DISABLE_PROVIDER_CONFIRMATION,
-} from "../../../Dashboard/SSO/TightenOnly/UseDisableProviderAction";
-import {
-  DISABLE_PROVIDER_BUTTON_TITLE,
-  DISABLE_PROVIDER_CARD_TEST_ID,
-} from "../../../Dashboard/SSO/TightenOnly/DisableProviderCard";
-import {
-  PROVIDER_ACTIONS_TITLE,
   READ_ONLY_ACTIONS_NOTICE_TEST_ID,
   SCIM_ACTIONS_TITLE,
-} from "../../../Dashboard/SSO/TightenOnly/ReadOnlyActionsNotice";
-import { MIN_SCIM_BEARER_TOKEN_LENGTH } from "../../../Dashboard/SSO/TightenOnly/TightenOnlyUpdates";
-import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
+} from "../../../Dashboard/Identity/TightenOnly/ReadOnlyActionsNotice";
+import { MIN_SCIM_BEARER_TOKEN_LENGTH } from "../../../Dashboard/Identity/TightenOnly/TightenOnlyUpdates";
+import SettingsSSOPage from "@oneuptime/dashboard/Pages/Settings/SSO";
+import SettingsOIDCPage from "@oneuptime/dashboard/Pages/Settings/OIDC";
+import StatusPageSSOPage from "@oneuptime/dashboard/Pages/StatusPages/View/SSO";
+import StatusPageOIDCPage from "@oneuptime/dashboard/Pages/StatusPages/View/OIDC";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
-import GlobalOIDC from "Common/Models/DatabaseModels/GlobalOidc";
-import GlobalOIDCProject from "Common/Models/DatabaseModels/GlobalOidcProject";
-import GlobalSSO from "Common/Models/DatabaseModels/GlobalSso";
-import GlobalSSOProject from "Common/Models/DatabaseModels/GlobalSsoProject";
-import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
-import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
-import StatusPageOIDC from "Common/Models/DatabaseModels/StatusPageOidc";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
-import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -323,7 +238,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
-const PROVIDER_ID: string = "33333333-3333-4333-8333-333333333333";
 const ENABLED_ROW_ID: string = "44444444-4444-4444-8444-444444444444";
 const DISABLED_ROW_ID: string = "55555555-5555-4555-8555-555555555555";
 
@@ -331,7 +245,7 @@ const LICENSE_REQUIRED_MESSAGE: string =
   "An Enterprise license is required to change this configuration.";
 
 const PAGE_PROPS: PageComponentProps = {
-  pageRoute: new Route(`/dashboard/${PROJECT_ID}/settings/sso`),
+  pageRoute: new Route(`/dashboard/${PROJECT_ID}/settings/scim`),
   currentProject: null,
   hasPaymentMethod: true,
 };
@@ -347,124 +261,7 @@ const renderDashboardPage: (
   };
 };
 
-const renderAdminPage: (Page: FunctionComponent) => () => ReactElement = (
-  Page: FunctionComponent,
-): (() => ReactElement) => {
-  // eslint-disable-next-line react/display-name
-  return (): ReactElement => {
-    return <Page />;
-  };
-};
-
-type ApiClient = "ModelAPI" | "AdminModelAPI";
-
 type ModelType = { new (): unknown };
-
-interface DisableCase {
-  name: string;
-  render: () => ReactElement;
-  path: string;
-  modelType: ModelType;
-  api: ApiClient;
-  // A row action on this table...
-  table?: string | undefined;
-  // ...or the "Disable this provider" card, backed by this configuration card.
-  detailCard?: string | undefined;
-  confirmationTitle: string;
-}
-
-const DISABLE_CASES: Array<DisableCase> = [
-  {
-    name: "Settings > SSO",
-    render: renderDashboardPage(SettingsSSOPage),
-    path: `/dashboard/${PROJECT_ID}/settings/sso`,
-    modelType: ProjectSSO,
-    api: "ModelAPI",
-    table: "sso-table",
-    confirmationTitle: DISABLE_PROVIDER_CONFIRMATION.title,
-  },
-  {
-    name: "Settings > OIDC",
-    render: renderDashboardPage(SettingsOIDCPage),
-    path: `/dashboard/${PROJECT_ID}/settings/oidc`,
-    modelType: ProjectOIDC,
-    api: "ModelAPI",
-    table: "oidc-table",
-    confirmationTitle: DISABLE_PROVIDER_CONFIRMATION.title,
-  },
-  {
-    name: "Status page > SSO",
-    render: renderDashboardPage(StatusPageSSOPage),
-    path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/sso`,
-    modelType: StatusPageSSO,
-    api: "ModelAPI",
-    table: "sso-table",
-    confirmationTitle: DISABLE_PROVIDER_CONFIRMATION.title,
-  },
-  {
-    name: "Status page > OIDC",
-    render: renderDashboardPage(StatusPageOIDCPage),
-    path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/oidc`,
-    modelType: StatusPageOIDC,
-    api: "ModelAPI",
-    table: "oidc-table",
-    confirmationTitle: DISABLE_PROVIDER_CONFIRMATION.title,
-  },
-  {
-    name: "Admin > Global SSO (list)",
-    render: renderAdminPage(GlobalSSOListPage),
-    path: "/admin/settings/global-sso",
-    modelType: GlobalSSO,
-    api: "AdminModelAPI",
-    table: "global-sso-table",
-    confirmationTitle: DISABLE_PROVIDER_CONFIRMATION.title,
-  },
-  {
-    name: "Admin > Global OIDC (list)",
-    render: renderAdminPage(GlobalOIDCListPage),
-    path: "/admin/settings/global-oidc",
-    modelType: GlobalOIDC,
-    api: "AdminModelAPI",
-    table: "global-oidc-table",
-    confirmationTitle: DISABLE_PROVIDER_CONFIRMATION.title,
-  },
-  {
-    name: "Admin > Global SSO > provider",
-    render: renderAdminPage(GlobalSSOViewPage),
-    path: `/admin/settings/global-sso/${PROVIDER_ID}`,
-    modelType: GlobalSSO,
-    api: "AdminModelAPI",
-    detailCard: "Global SSO Configuration",
-    confirmationTitle: DISABLE_PROVIDER_CONFIRMATION.title,
-  },
-  {
-    name: "Admin > Global SSO > provider > attached project",
-    render: renderAdminPage(GlobalSSOViewPage),
-    path: `/admin/settings/global-sso/${PROVIDER_ID}`,
-    modelType: GlobalSSOProject,
-    api: "AdminModelAPI",
-    table: "global-sso-project-table",
-    confirmationTitle: DISABLE_PROJECT_ATTACHMENT_CONFIRMATION.title,
-  },
-  {
-    name: "Admin > Global OIDC > provider",
-    render: renderAdminPage(GlobalOIDCViewPage),
-    path: `/admin/settings/global-oidc/${PROVIDER_ID}`,
-    modelType: GlobalOIDC,
-    api: "AdminModelAPI",
-    detailCard: "Global OIDC Configuration",
-    confirmationTitle: DISABLE_PROVIDER_CONFIRMATION.title,
-  },
-  {
-    name: "Admin > Global OIDC > provider > attached project",
-    render: renderAdminPage(GlobalOIDCViewPage),
-    path: `/admin/settings/global-oidc/${PROVIDER_ID}`,
-    modelType: GlobalOIDCProject,
-    api: "AdminModelAPI",
-    table: "global-oidc-project-table",
-    confirmationTitle: DISABLE_PROJECT_ATTACHMENT_CONFIRMATION.title,
-  },
-];
 
 interface ScimCase {
   name: string;
@@ -497,28 +294,62 @@ const SCIM_CASES: Array<ScimCase> = [
   },
 ];
 
-// Every table and card the ten screens render, emptied before each test.
+interface SsoCase {
+  name: string;
+  render: () => ReactElement;
+  path: string;
+  table: string;
+  viewAction: string;
+  hasForceSsoCard: boolean;
+}
+
+const SSO_CASES: Array<SsoCase> = [
+  {
+    name: "Settings > SSO",
+    render: renderDashboardPage(SettingsSSOPage),
+    path: `/dashboard/${PROJECT_ID}/settings/sso`,
+    table: "sso-table",
+    viewAction: "View SSO Config",
+    hasForceSsoCard: true,
+  },
+  {
+    name: "Settings > OIDC",
+    render: renderDashboardPage(SettingsOIDCPage),
+    path: `/dashboard/${PROJECT_ID}/settings/oidc`,
+    table: "oidc-table",
+    viewAction: "View OIDC Config",
+    hasForceSsoCard: false,
+  },
+  {
+    name: "Status page > SSO",
+    render: renderDashboardPage(StatusPageSSOPage),
+    path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/sso`,
+    table: "sso-table",
+    viewAction: "View SSO Config",
+    hasForceSsoCard: true,
+  },
+  {
+    name: "Status page > OIDC",
+    render: renderDashboardPage(StatusPageOIDCPage),
+    path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/oidc`,
+    table: "oidc-table",
+    viewAction: "View OIDC Config",
+    hasForceSsoCard: false,
+  },
+];
+
+// Every table the screens render, emptied before each test.
 const ALL_TABLES: Array<string> = [
   "sso-table",
   "oidc-table",
   "scim-table",
   "status-page-scim-table",
-  "global-sso-table",
-  "global-oidc-table",
-  "global-sso-project-table",
-  "global-oidc-project-table",
   "project-scim-logs-table",
   "status-page-scim-logs-table",
 ];
 
-const ALL_DETAIL_CARDS: Array<string> = [
-  "Global SSO Configuration",
-  "Global OIDC Configuration",
-];
-
-// The update requests, per API client, and what the fake server answers.
+// The update requests, and what the fake server answers.
 interface UpdateCall {
-  api: ApiClient;
   modelType: ModelType;
   id: string;
   data: JSONObject;
@@ -535,50 +366,33 @@ const applyUpdate: (call: UpdateCall) => void = (call: UpdateCall): void => {
       }
     }
   }
-
-  for (const item of Object.values(mockDetailItems)) {
-    if (item["_id"] === call.id) {
-      Object.assign(item, call.data);
-    }
-  }
 };
 
-const fakeUpdateById: (
-  api: ApiClient,
-) => (request: {
+const fakeUpdateById: (request: {
   modelType: ModelType;
   id: ObjectID;
   data: JSONObject;
-}) => Promise<HTTPResponse<JSONObject>> = (
-  api: ApiClient,
-): ((request: {
+}) => Promise<HTTPResponse<JSONObject>> = async (request: {
   modelType: ModelType;
   id: ObjectID;
   data: JSONObject;
-}) => Promise<HTTPResponse<JSONObject>>) => {
-  return async (request: {
-    modelType: ModelType;
-    id: ObjectID;
-    data: JSONObject;
-  }): Promise<HTTPResponse<JSONObject>> => {
-    const call: UpdateCall = {
-      api,
-      modelType: request.modelType,
-      id: request.id.toString(),
-      // A copy: what was sent, not what the page might change later.
-      data: { ...request.data },
-    };
-
-    updateCalls.push(call);
-
-    if (serverFailure) {
-      throw serverFailure;
-    }
-
-    applyUpdate(call);
-
-    return new HTTPResponse<JSONObject>(200, {}, {});
+}): Promise<HTTPResponse<JSONObject>> => {
+  const call: UpdateCall = {
+    modelType: request.modelType,
+    id: request.id.toString(),
+    // A copy: what was sent, not what the page might change later.
+    data: { ...request.data },
   };
+
+  updateCalls.push(call);
+
+  if (serverFailure) {
+    throw serverFailure;
+  }
+
+  applyUpdate(call);
+
+  return new HTTPResponse<JSONObject>(200, {}, {});
 };
 
 const answerLicense: (payload: JSONObject) => void = (
@@ -597,6 +411,11 @@ const READ_ONLY_LICENSE: JSONObject = {
   licenseValid: false,
 };
 
+const goTo: (path: string) => void = (path: string): void => {
+  window.history.pushState({}, "", path);
+  Navigation.setLocation(window.location as unknown as never);
+};
+
 const renderScreen: (screenCase: {
   path: string;
   render: () => ReactElement;
@@ -604,8 +423,7 @@ const renderScreen: (screenCase: {
   path: string;
   render: () => ReactElement;
 }): Promise<void> => {
-  window.history.pushState({}, "", screenCase.path);
-  Navigation.setLocation(window.location as unknown as never);
+  goTo(screenCase.path);
 
   render(screenCase.render());
 
@@ -638,58 +456,15 @@ beforeEach(() => {
     mockTableLoads[table] = 0;
   }
 
-  for (const card of ALL_DETAIL_CARDS) {
-    delete mockDetailItems[card];
-    mockDetailLoads[card] = 0;
-  }
-
-  /*
-   * AdminModelAPI first: it inherits updateById from ModelAPI, and each
-   * client gets its own fake so a screen that used the wrong one is caught.
-   */
-  jest
-    .spyOn(AdminModelAPI, "updateById")
-    .mockImplementation(fakeUpdateById("AdminModelAPI") as never);
   jest
     .spyOn(ModelAPI, "updateById")
-    .mockImplementation(fakeUpdateById("ModelAPI") as never);
+    .mockImplementation(fakeUpdateById as never);
 });
 
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
 });
-
-/*
- * Disable
- */
-
-const seedProviders: (disableCase: DisableCase, enabled: boolean) => void = (
-  disableCase: DisableCase,
-  enabled: boolean,
-): void => {
-  if (disableCase.table) {
-    mockTableRows[disableCase.table] = [
-      { _id: ENABLED_ROW_ID, name: "Okta", isEnabled: enabled },
-      { _id: DISABLED_ROW_ID, name: "Old IdP", isEnabled: false },
-    ];
-  }
-
-  // The view pages always load their provider; the attachment cases need one too.
-  for (const card of ALL_DETAIL_CARDS) {
-    mockDetailItems[card] = {
-      _id: PROVIDER_ID,
-      name: "Okta (company-wide)",
-      isEnabled: disableCase.detailCard ? enabled : true,
-    };
-  }
-};
-
-const targetId: (disableCase: DisableCase) => string = (
-  disableCase: DisableCase,
-): string => {
-  return disableCase.table ? ENABLED_ROW_ID : PROVIDER_ID;
-};
 
 const rowOf: (table: string, id: string) => HTMLElement = (
   table: string,
@@ -698,355 +473,12 @@ const rowOf: (table: string, id: string) => HTMLElement = (
   return screen.getByTestId(`row-${table}-${id}`);
 };
 
-// The Disable control for the provider under test, or null.
-const findDisableControl: (
-  disableCase: DisableCase,
-  id?: string,
-) => HTMLElement | null = (
-  disableCase: DisableCase,
-  id?: string,
-): HTMLElement | null => {
-  if (disableCase.table) {
-    return within(rowOf(disableCase.table, id || ENABLED_ROW_ID)).queryByRole(
-      "button",
-      { name: "Disable" },
-    );
-  }
-
-  const card: HTMLElement | null = screen.queryByTestId(
-    DISABLE_PROVIDER_CARD_TEST_ID,
-  );
-
-  return card
-    ? within(card).queryByRole("button", {
-        name: DISABLE_PROVIDER_BUTTON_TITLE,
-      })
-    : null;
-};
-
-// What the screen shows for the provider under test: "true" / "false".
-const shownEnabled: (disableCase: DisableCase) => string | null = (
-  disableCase: DisableCase,
-): string | null => {
-  if (disableCase.table) {
-    return rowOf(disableCase.table, ENABLED_ROW_ID).getAttribute(
-      "data-enabled",
-    );
-  }
-
-  return screen
-    .getByTestId(`card-model-detail-${disableCase.detailCard}`)
-    .getAttribute("data-enabled");
-};
-
-const loadsOf: (disableCase: DisableCase) => number = (
-  disableCase: DisableCase,
-): number => {
-  return disableCase.table
-    ? mockTableLoads[disableCase.table] || 0
-    : mockDetailLoads[disableCase.detailCard || ""] || 0;
-};
-
-const openConfirmation: (disableCase: DisableCase) => HTMLElement = (
-  disableCase: DisableCase,
-): HTMLElement => {
-  const control: HTMLElement | null = findDisableControl(disableCase);
-
-  expect(control).not.toBeNull();
-
-  fireEvent.click(control!);
-
-  const modal: HTMLElement = screen.getByTestId("modal");
-
-  expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
-    disableCase.confirmationTitle,
-  );
-
-  return modal;
-};
-
 const submit: () => Promise<void> = async (): Promise<void> => {
   await act(async () => {
     fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
   });
   await settle();
 };
-
-describe.each(DISABLE_CASES)("Disable: $name", (disableCase: DisableCase) => {
-  test("read-only: an enabled provider has Disable, and the screen says why it is still allowed", async () => {
-    answerLicense(READ_ONLY_LICENSE);
-    seedProviders(disableCase, true);
-
-    await renderScreen(disableCase);
-
-    expect(findDisableControl(disableCase)).not.toBeNull();
-
-    const notice: HTMLElement = screen.getByTestId(
-      READ_ONLY_ACTIONS_NOTICE_TEST_ID,
-    );
-
-    expect(notice).toHaveTextContent(PROVIDER_ACTIONS_TITLE);
-    expect(
-      screen.getByTestId("enterprise-license-read-only-banner"),
-    ).toBeInTheDocument();
-    // Nothing is sent before the admin confirms.
-    expect(updateCalls).toEqual([]);
-  });
-
-  test("read-only: Disable sends exactly one update, { isEnabled: false } and nothing else, to the right model and row, and the screen shows it off", async () => {
-    answerLicense(READ_ONLY_LICENSE);
-    seedProviders(disableCase, true);
-
-    await renderScreen(disableCase);
-
-    expect(shownEnabled(disableCase)).toBe("true");
-
-    const loadsBefore: number = loadsOf(disableCase);
-
-    openConfirmation(disableCase);
-    await submit();
-
-    expect(updateCalls).toHaveLength(1);
-
-    const call: UpdateCall = updateCalls[0]!;
-
-    expect(call.api).toBe(disableCase.api);
-    expect(call.modelType).toBe(disableCase.modelType);
-    expect(call.id).toBe(targetId(disableCase));
-    expect(call.data).toEqual({ isEnabled: false });
-    expect(Object.keys(call.data)).toEqual(["isEnabled"]);
-
-    // The confirmation closes and the screen reloads what the server holds.
-    await waitFor(() => {
-      expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
-    });
-    await waitFor(() => {
-      expect(shownEnabled(disableCase)).toBe("false");
-    });
-    expect(loadsOf(disableCase)).toBeGreaterThan(loadsBefore);
-    expect(findDisableControl(disableCase)).toBeNull();
-
-    // Nothing else was touched.
-    expect(updateCalls).toHaveLength(1);
-
-    if (disableCase.table) {
-      expect(
-        rowOf(disableCase.table, DISABLED_ROW_ID).getAttribute("data-enabled"),
-      ).toBe("false");
-    }
-  });
-
-  test.each([
-    [
-      "402 (license required)",
-      (): unknown => {
-        return new HTTPErrorResponse(
-          402,
-          { message: LICENSE_REQUIRED_MESSAGE },
-          {},
-        );
-      },
-      LICENSE_REQUIRED_MESSAGE,
-    ],
-    [
-      "500",
-      (): unknown => {
-        return new HTTPErrorResponse(
-          500,
-          { message: "The database is not reachable." },
-          {},
-        );
-      },
-      "The database is not reachable.",
-    ],
-    [
-      "a network failure",
-      (): unknown => {
-        return new Error("Network Error");
-      },
-      "Network Error",
-    ],
-  ])(
-    "read-only: a refusal (%s) is shown, and the provider stays on",
-    async (_name: string, failure: () => unknown, message: string) => {
-      answerLicense(READ_ONLY_LICENSE);
-      seedProviders(disableCase, true);
-      serverFailure = failure();
-
-      await renderScreen(disableCase);
-
-      openConfirmation(disableCase);
-      await submit();
-
-      expect(updateCalls).toHaveLength(1);
-      expect(updateCalls[0]!.data).toEqual({ isEnabled: false });
-
-      const modal: HTMLElement = screen.getByTestId("modal");
-
-      await waitFor(() => {
-        expect(within(modal).getByText(message)).toBeInTheDocument();
-      });
-
-      expect(shownEnabled(disableCase)).toBe("true");
-      expect(findDisableControl(disableCase)).not.toBeNull();
-    },
-  );
-
-  test("read-only: Cancel sends nothing", async () => {
-    answerLicense(READ_ONLY_LICENSE);
-    seedProviders(disableCase, true);
-
-    await renderScreen(disableCase);
-
-    openConfirmation(disableCase);
-
-    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
-
-    await waitFor(() => {
-      expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
-    });
-    expect(updateCalls).toEqual([]);
-    expect(shownEnabled(disableCase)).toBe("true");
-  });
-
-  test("read-only: a provider that is already disabled has no Disable", async () => {
-    answerLicense(READ_ONLY_LICENSE);
-    seedProviders(disableCase, false);
-
-    await renderScreen(disableCase);
-
-    expect(findDisableControl(disableCase)).toBeNull();
-
-    if (disableCase.table) {
-      expect(findDisableControl(disableCase, DISABLED_ROW_ID)).toBeNull();
-    } else {
-      expect(
-        screen.queryByTestId(DISABLE_PROVIDER_CARD_TEST_ID),
-      ).not.toBeInTheDocument();
-    }
-  });
-
-  test.each([
-    ["a valid license", { status: "valid", licenseValid: true }],
-    ["the grace period", { status: "grace", licenseValid: true }],
-  ])(
-    "editable (%s): no Disable action and no notice - the edit form covers it",
-    async (_name: string, payload: JSONObject) => {
-      answerLicense(payload);
-      seedProviders(disableCase, true);
-
-      await renderScreen(disableCase);
-
-      expect(findDisableControl(disableCase)).toBeNull();
-      expect(
-        screen.queryByTestId(DISABLE_PROVIDER_CARD_TEST_ID),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByTestId(READ_ONLY_ACTIONS_NOTICE_TEST_ID),
-      ).not.toBeInTheDocument();
-    },
-  );
-
-  test("the license cannot be read: nothing is locked, so no Disable action either", async () => {
-    mockLicenseFetch.mockRejectedValue(new Error("network down"));
-    seedProviders(disableCase, true);
-
-    await renderScreen(disableCase);
-
-    expect(findDisableControl(disableCase)).toBeNull();
-    expect(
-      screen.queryByTestId(READ_ONLY_ACTIONS_NOTICE_TEST_ID),
-    ).not.toBeInTheDocument();
-  });
-
-  test("OneUptime Cloud (billing on): no Disable action", async () => {
-    billingEnabledForTest = true;
-    answerLicense(READ_ONLY_LICENSE);
-    seedProviders(disableCase, true);
-
-    await renderScreen(disableCase);
-
-    expect(mockLicenseFetch).not.toHaveBeenCalled();
-    expect(findDisableControl(disableCase)).toBeNull();
-    expect(
-      screen.queryByTestId(READ_ONLY_ACTIONS_NOTICE_TEST_ID),
-    ).not.toBeInTheDocument();
-  });
-});
-
-/*
- * On a global provider's page the provider and its attachments are separate
- * actions: disabling one never touches the other.
- */
-describe.each([
-  {
-    name: "Admin > Global SSO > provider",
-    render: renderAdminPage(GlobalSSOViewPage),
-    path: `/admin/settings/global-sso/${PROVIDER_ID}`,
-    table: "global-sso-project-table",
-    card: "Global SSO Configuration",
-  },
-  {
-    name: "Admin > Global OIDC > provider",
-    render: renderAdminPage(GlobalOIDCViewPage),
-    path: `/admin/settings/global-oidc/${PROVIDER_ID}`,
-    table: "global-oidc-project-table",
-    card: "Global OIDC Configuration",
-  },
-])(
-  "$name: provider and attachments",
-  (viewCase: {
-    name: string;
-    render: () => ReactElement;
-    path: string;
-    table: string;
-    card: string;
-  }) => {
-    test("disabling an attachment leaves the provider on, and the other way round", async () => {
-      answerLicense(READ_ONLY_LICENSE);
-      mockTableRows[viewCase.table] = [
-        { _id: ENABLED_ROW_ID, isEnabled: true },
-      ];
-      mockDetailItems[viewCase.card] = { _id: PROVIDER_ID, isEnabled: true };
-
-      await renderScreen(viewCase);
-
-      fireEvent.click(
-        within(rowOf(viewCase.table, ENABLED_ROW_ID)).getByRole("button", {
-          name: "Disable",
-        }),
-      );
-      await submit();
-
-      expect(
-        updateCalls.map((call: UpdateCall) => {
-          return call.id;
-        }),
-      ).toEqual([ENABLED_ROW_ID]);
-      expect(
-        screen.getByTestId(DISABLE_PROVIDER_CARD_TEST_ID),
-      ).toBeInTheDocument();
-      expect(mockDetailItems[viewCase.card]!["isEnabled"]).toBe(true);
-
-      fireEvent.click(
-        screen.getByRole("button", { name: DISABLE_PROVIDER_BUTTON_TITLE }),
-      );
-      await submit();
-
-      expect(
-        updateCalls.map((call: UpdateCall) => {
-          return call.id;
-        }),
-      ).toEqual([ENABLED_ROW_ID, PROVIDER_ID]);
-      expect(updateCalls[1]!.data).toEqual({ isEnabled: false });
-      await waitFor(() => {
-        expect(
-          screen.queryByTestId(DISABLE_PROVIDER_CARD_TEST_ID),
-        ).not.toBeInTheDocument();
-      });
-    });
-  },
-);
 
 /*
  * Reset Bearer Token
@@ -1119,6 +551,19 @@ describe.each(SCIM_CASES)("Reset Bearer Token: $name", (scimCase: ScimCase) => {
     expect(updateCalls).toEqual([]);
   });
 
+  test("read-only: no other row action is offered - there is nothing to Disable", async () => {
+    answerLicense(READ_ONLY_LICENSE);
+    seedScim(scimCase);
+
+    await renderScreen(scimCase);
+
+    expect(
+      within(rowOf(scimCase.table, ENABLED_ROW_ID)).queryByRole("button", {
+        name: "Disable",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
   test("read-only: the reset sends exactly one update, { bearerToken } alone with a new 64-character token from Web Crypto, and shows that token once", async () => {
     answerLicense(READ_ONLY_LICENSE);
     seedScim(scimCase);
@@ -1138,7 +583,6 @@ describe.each(SCIM_CASES)("Reset Bearer Token: $name", (scimCase: ScimCase) => {
 
     const call: UpdateCall = updateCalls[0]!;
 
-    expect(call.api).toBe("ModelAPI");
     expect(call.modelType).toBe(scimCase.modelType);
     expect(call.id).toBe(ENABLED_ROW_ID);
 
@@ -1271,3 +715,59 @@ describe.each(SCIM_CASES)("Reset Bearer Token: $name", (scimCase: ScimCase) => {
     },
   );
 });
+
+/*
+ * Single sign-on
+ */
+
+describe.each(SSO_CASES)(
+  "$name while the Enterprise license is expired",
+  (ssoCase: SsoCase) => {
+    test("no Disable action and no notice: the configuration stays fully editable, and the license is never asked for", async () => {
+      answerLicense(READ_ONLY_LICENSE);
+      mockTableRows[ssoCase.table] = [
+        { _id: ENABLED_ROW_ID, name: "Okta", isEnabled: true },
+        { _id: DISABLED_ROW_ID, name: "Old IdP", isEnabled: false },
+      ];
+
+      goTo(ssoCase.path);
+      render(ssoCase.render());
+      await settle();
+
+      const table: HTMLElement = screen.getByTestId(
+        `model-table-${ssoCase.table}`,
+      );
+
+      expect(table).toHaveAttribute("data-createable", "true");
+      expect(table).toHaveAttribute("data-editable", "true");
+      expect(table).toHaveAttribute("data-deleteable", "true");
+
+      for (const rowId of [ENABLED_ROW_ID, DISABLED_ROW_ID]) {
+        const row: HTMLElement = rowOf(ssoCase.table, rowId);
+
+        expect(
+          within(row).queryByRole("button", { name: "Disable" }),
+        ).not.toBeInTheDocument();
+        expect(within(row).getAllByRole("button")).toHaveLength(1);
+        expect(
+          within(row).getByRole("button", { name: ssoCase.viewAction }),
+        ).toBeInTheDocument();
+      }
+
+      if (ssoCase.hasForceSsoCard) {
+        expect(
+          screen.getByTestId("card-model-detail-SSO Settings"),
+        ).toHaveAttribute("data-editable", "true");
+      }
+
+      expect(
+        screen.queryByTestId(READ_ONLY_ACTIONS_NOTICE_TEST_ID),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("enterprise-license-read-only-banner"),
+      ).not.toBeInTheDocument();
+      expect(mockLicenseFetch).not.toHaveBeenCalled();
+      expect(updateCalls).toEqual([]);
+    });
+  },
+);

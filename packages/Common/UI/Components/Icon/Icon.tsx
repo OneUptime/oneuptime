@@ -432,6 +432,24 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
       />,
     );
+  } else if (icon === IconProp.Indent) {
+    // Lines of text with the middle two pushed in, and an arrow pointing in.
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.75 5.25h16.5M11.25 9.75h9M11.25 14.25h9M3.75 18.75h16.5M3.75 9l3 3-3 3"
+      />,
+    );
+  } else if (icon === IconProp.Outdent) {
+    // The same lines, with the arrow pointing back out.
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.75 5.25h16.5M11.25 9.75h9M11.25 14.25h9M3.75 18.75h16.5M6.75 9l-3 3 3 3"
+      />,
+    );
   } else if (icon === IconProp.Template) {
     return getSvgWrapper(
       <path

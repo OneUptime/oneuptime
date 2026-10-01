@@ -27,10 +27,6 @@ const artifacts: string = path.resolve(
   __dirname,
   "../../../output/playwright/session-replay-ui",
 );
-const monacoRuntime: string = path.resolve(
-  __dirname,
-  "../../Common/node_modules/monaco-editor/min/vs",
-);
 const port: string = process.env["SESSION_REPLAY_FIXTURE_PORT"] || "4212";
 const appId: string = "20000000-0000-4000-8000-000000000001";
 const policyRoute: string = `/dashboard/10000000-0000-4000-8000-000000000001/rum/${appId}/session-replay-settings`;
@@ -150,26 +146,6 @@ test.beforeEach(async ({ page }: { page: Page }) => {
     }
 
     await route.abort();
-  });
-
-  /*
-   * The edit form's JSON fields mount Monaco, which the build points at
-   * /assets/monaco/vs. The fixture server only serves the bundle, so hand
-   * the editor the runtime the build would have copied there.
-   */
-  await page.route("**/assets/monaco/vs/**", async (route: PlaywrightRoute) => {
-    const relative: string = new URL(route.request().url()).pathname.replace(
-      /^\/assets\/monaco\/vs\//,
-      "",
-    );
-    const file: string = path.resolve(monacoRuntime, relative);
-
-    if (!file.startsWith(monacoRuntime + path.sep)) {
-      await route.abort();
-      return;
-    }
-
-    await route.fulfill({ path: file });
   });
 });
 

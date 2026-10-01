@@ -13,18 +13,22 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * Who sees an enterprise feature and who sees its upsell - one tier-aware
- * rule, shared by the enterprise card and the audit log card.
+ * rule, shared by the enterprise card and the audit log card - and the
+ * plan-only rule for what every edition includes but OneUptime Cloud sells
+ * on a plan (single sign-on).
  *
  * OneUptime Cloud (billing on) compares the project's plan with the tier the
  * feature's model is sold at: Scale for SSO / OIDC / SCIM / team compliance,
  * Enterprise for audit logs. The Cloud runs the Enterprise image, so the
  * edition flag is always true there and must not be consulted. Self-hosted
- * (billing off) asks only whether this is the Enterprise Edition.
+ * (billing off), an enterprise feature (SCIM, team compliance, audit logs)
+ * asks whether this is the Enterprise Edition, and single sign-on asks
+ * nothing at all: every self-hosted install has it.
  *
  * Before this, both cards demanded the Enterprise plan: a Scale customer was
- * walled off from SSO their plan includes. And the edition flag was checked
- * first, which on an Enterprise-image Cloud would unlock everything for
- * every plan.
+ * walled off from features their plan includes. And the edition flag was
+ * checked first, which on an Enterprise-image Cloud would unlock everything
+ * for every plan.
  *
  * Both billing and the edition are pinned in every test: CI's config.env sets
  * BILLING_ENABLED=true, so anything left to the environment tests the Cloud
@@ -36,6 +40,7 @@ let enterpriseEditionForTest: boolean = false;
 let currentPlanForTest: string | null = null;
 let currentPlanThrows: boolean = false;
 let planEnvForTest: Record<string, string> = {};
+let editionReads: number = 0;
 
 // jsdom does not implement window.open; the call to action uses it.
 const openMock: MockFunction = getJestMockFunction();
@@ -64,6 +69,7 @@ jest.mock("../../../UI/Config", () => {
 
   Object.defineProperty(mocked, "IS_ENTERPRISE_EDITION", {
     get: (): boolean => {
+      editionReads += 1;
       return enterpriseEditionForTest;
     },
   });
@@ -109,10 +115,18 @@ import AuditLogsEnterpriseUpgrade, {
 import {
   AUDIT_LOGS_REQUIRED_PLAN,
   IDENTITY_REQUIRED_PLAN,
+  SSO_REQUIRED_PLAN,
   getCurrentPlanOrNull,
   isEnterpriseFeatureEligible,
   isPlanAtLeast,
+  isPlanFeatureEligible,
 } from "../../../../App/FeatureSet/Dashboard/src/Enterprise/EnterpriseEligibility";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Project from "../../../Models/DatabaseModels/Project";
+import ProjectOIDC from "../../../Models/DatabaseModels/ProjectOidc";
+import ProjectSSO from "../../../Models/DatabaseModels/ProjectSso";
+import StatusPageOIDC from "../../../Models/DatabaseModels/StatusPageOidc";
+import StatusPageSSO from "../../../Models/DatabaseModels/StatusPageSso";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import IconProp from "../../../Types/Icon/IconProp";
 
@@ -135,6 +149,7 @@ beforeEach(() => {
   currentPlanForTest = null;
   currentPlanThrows = false;
   planEnvForTest = CLOUD_PLAN_ENV;
+  editionReads = 0;
   openMock.mockReset();
   window.open = openMock as unknown as typeof window.open;
 });
@@ -147,7 +162,126 @@ afterEach(() => {
 describe("which plan each enterprise feature needs", () => {
   test("SSO, OIDC, SCIM and compliance are Scale; audit logs are Enterprise", () => {
     expect(IDENTITY_REQUIRED_PLAN).toBe(PlanType.Scale);
+    expect(SSO_REQUIRED_PLAN).toBe(PlanType.Scale);
     expect(AUDIT_LOGS_REQUIRED_PLAN).toBe(PlanType.Enterprise);
+  });
+
+  test.each([
+    ["ProjectSso", ProjectSSO],
+    ["ProjectOidc", ProjectOIDC],
+    ["StatusPageSso", StatusPageSSO],
+    ["StatusPageOidc", StatusPageOIDC],
+  ])(
+    "single sign-on's plan is what %s is billed at, so the upsell never contradicts the server",
+    (_name: string, modelType: { new (): BaseModel }) => {
+      const model: BaseModel = new modelType();
+
+      expect(model.getCreateBillingPlan()).toBe(SSO_REQUIRED_PLAN);
+      expect(model.getReadBillingPlan()).toBe(SSO_REQUIRED_PLAN);
+      expect(model.getUpdateBillingPlan()).toBe(SSO_REQUIRED_PLAN);
+      expect(model.getDeleteBillingPlan()).toBe(SSO_REQUIRED_PLAN);
+    },
+  );
+
+  test('"Force SSO for Login" on a project is changed on the same plan', () => {
+    expect(
+      new Project().getColumnBillingAccessControl("requireSsoForLogin").update,
+    ).toBe(SSO_REQUIRED_PLAN);
+  });
+});
+
+describe("isPlanFeatureEligible (what every edition includes, sold on a plan on the Cloud)", () => {
+  test.each([
+    ["the Community Edition", "self-hosted-community"],
+    ["the Enterprise Edition", "self-hosted-enterprise"],
+  ])(
+    "self-hosted, %s is eligible for every plan, without reading the edition",
+    (_edition: string, deployment: string) => {
+      pinDeployment(deployment as Deployment);
+
+      expect(isPlanFeatureEligible(PlanType.Scale)).toBe(true);
+      expect(isPlanFeatureEligible(PlanType.Enterprise)).toBe(true);
+      expect(isPlanFeatureEligible(SSO_REQUIRED_PLAN)).toBe(true);
+      expect(editionReads).toBe(0);
+    },
+  );
+
+  test("self-hosted, it does not even ask for the plan (none is configured there)", () => {
+    pinDeployment("self-hosted-community");
+    currentPlanThrows = true;
+
+    expect(isPlanFeatureEligible(PlanType.Scale)).toBe(true);
+  });
+
+  test("self-hosted Community: eligible here, where the enterprise rule would say no", () => {
+    pinDeployment("self-hosted-community");
+
+    expect(isPlanFeatureEligible(SSO_REQUIRED_PLAN)).toBe(true);
+    expect(isEnterpriseFeatureEligible(SSO_REQUIRED_PLAN)).toBe(false);
+  });
+
+  describe("on OneUptime Cloud", () => {
+    beforeEach(() => {
+      pinDeployment("cloud");
+    });
+
+    test.each([
+      [PlanType.Free, false],
+      [PlanType.Growth, false],
+      [PlanType.Scale, true],
+      [PlanType.Enterprise, true],
+    ])(
+      "a %s project gets single sign-on: %s",
+      (plan: PlanType, expected: boolean) => {
+        currentPlanForTest = plan;
+
+        expect(isPlanFeatureEligible(SSO_REQUIRED_PLAN)).toBe(expected);
+      },
+    );
+
+    test.each([
+      [PlanType.Growth, false],
+      [PlanType.Scale, false],
+      [PlanType.Enterprise, true],
+    ])(
+      "a %s project gets an Enterprise-plan feature: %s",
+      (plan: PlanType, expected: boolean) => {
+        currentPlanForTest = plan;
+
+        expect(isPlanFeatureEligible(PlanType.Enterprise)).toBe(expected);
+      },
+    );
+
+    test("no plan, or one the Dashboard cannot read, fails closed", () => {
+      currentPlanForTest = null;
+      expect(isPlanFeatureEligible(SSO_REQUIRED_PLAN)).toBe(false);
+
+      currentPlanThrows = true;
+      expect(isPlanFeatureEligible(SSO_REQUIRED_PLAN)).toBe(false);
+    });
+
+    test("never falls back to the edition flag - the Cloud runs the Enterprise image", () => {
+      enterpriseEditionForTest = true;
+      currentPlanForTest = PlanType.Free;
+
+      expect(isPlanFeatureEligible(SSO_REQUIRED_PLAN)).toBe(false);
+      expect(editionReads).toBe(0);
+    });
+
+    test("agrees with the enterprise rule on the Cloud, where only the plan ever counted", () => {
+      for (const plan of [
+        PlanType.Free,
+        PlanType.Growth,
+        PlanType.Scale,
+        PlanType.Enterprise,
+      ]) {
+        currentPlanForTest = plan;
+
+        expect(isPlanFeatureEligible(PlanType.Scale)).toBe(
+          isEnterpriseFeatureEligible(PlanType.Scale),
+        );
+      }
+    });
   });
 });
 
@@ -336,7 +470,7 @@ describe("the upsell wording (getEnterpriseUpgradeCopy)", () => {
 
   test("points at the Enterprise Edition when the plan is not the problem", () => {
     const copy: EnterpriseUpgradeCopy = getEnterpriseUpgradeCopy({
-      featureName: "OIDC",
+      featureName: "SCIM",
       requiredPlan: PlanType.Scale,
       reason: EnterpriseUpgradeReason.Edition,
     });
@@ -349,7 +483,7 @@ describe("the upsell wording (getEnterpriseUpgradeCopy)", () => {
       "https://oneuptime.com/docs/self-hosted/enterprise",
     );
     expect(copy.pitchLine).toBe(
-      "OIDC is a OneUptime Enterprise Edition feature. Switch to the Enterprise Edition build to enable it.",
+      "SCIM is a OneUptime Enterprise Edition feature. Switch to the Enterprise Edition build to enable it.",
     );
     // Never a plan upgrade.
     expect(copy.pitchLine).not.toContain("plan");

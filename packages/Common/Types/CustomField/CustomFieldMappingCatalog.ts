@@ -158,4 +158,81 @@ export const hasCustomFieldMappingSource: HasCustomFieldMappingSourceFunction =
     return Boolean(value);
   };
 
+/*
+ * The two columns of a custom field definition that map it from a field of
+ * a related resource. Loose, so definition rows and the forms' own
+ * definitions can be passed as they are.
+ */
+export interface CustomFieldMappingColumns {
+  mapFromResourceType?: string | null | undefined;
+  mapFromCustomFieldName?: string | null | undefined;
+}
+
+export type GetCustomFieldInheritanceSourceFunction = (data: {
+  definitionTableName: string | undefined;
+  definition: CustomFieldMappingColumns;
+}) => CustomFieldMappingSourceInfo | undefined;
+
+/**
+ * The resource a field copies its value from - undefined for a field that
+ * is typed in, or mapped from a resource its table cannot reach.
+ */
+export const getCustomFieldInheritanceSource: GetCustomFieldInheritanceSourceFunction =
+  (data: {
+    definitionTableName: string | undefined;
+    definition: CustomFieldMappingColumns;
+  }): CustomFieldMappingSourceInfo | undefined => {
+    if (
+      !data.definition.mapFromResourceType ||
+      !data.definition.mapFromCustomFieldName
+    ) {
+      return undefined;
+    }
+
+    return getCustomFieldMappingSource({
+      definitionTableName: data.definitionTableName,
+      resource: data.definition.mapFromResourceType,
+    });
+  };
+
+export type IsCustomFieldInheritedByRecordFunction = (data: {
+  definitionTableName: string | undefined;
+  definition: CustomFieldMappingColumns;
+  // The record as it will be created: its relations decide.
+  record: Record<string, unknown> | null | undefined;
+}) => boolean;
+
+/**
+ * Whether a field's value will be copied from a related resource rather than
+ * typed: it is mapped (an incident field from a monitor field) and the
+ * record is attached to something to copy from (the incident has a
+ * monitor). The server applies the mapping last on create, so asking for
+ * such a value would only have it replaced.
+ *
+ * The one rule every form that decides whether to ask for a field follows:
+ * the dashboard's Declare Incident form and template wizard (through
+ * isCustomFieldInherited), and the public incident forms.
+ */
+export const isCustomFieldInheritedByRecord: IsCustomFieldInheritedByRecordFunction =
+  (data: {
+    definitionTableName: string | undefined;
+    definition: CustomFieldMappingColumns;
+    record: Record<string, unknown> | null | undefined;
+  }): boolean => {
+    const source: CustomFieldMappingSourceInfo | undefined =
+      getCustomFieldInheritanceSource({
+        definitionTableName: data.definitionTableName,
+        definition: data.definition,
+      });
+
+    if (!source) {
+      return false;
+    }
+
+    return hasCustomFieldMappingSource({
+      source: source,
+      record: data.record,
+    });
+  };
+
 export default CUSTOM_FIELD_MAPPING_CATALOG;

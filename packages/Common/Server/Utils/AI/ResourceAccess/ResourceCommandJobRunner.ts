@@ -250,6 +250,11 @@ export default class ResourceCommandJobRunner {
     claimTimeoutInMs?: number | undefined;
     // The resource AI page's "Test connection" check (no aiRunId).
     isAccessTest?: boolean | undefined;
+    /*
+     * How much of the redacted output to keep. Defaults to the shared cap;
+     * a caller that pages long output itself asks for all of it.
+     */
+    maxOutputChars?: number | undefined;
   }): Promise<ResourceCommandJobOutcome> {
     const claimTimeoutInMs: number =
       data.claimTimeoutInMs ?? RESOURCE_COMMAND_CLAIM_TIMEOUT_MS;
@@ -284,6 +289,7 @@ export default class ResourceCommandJobRunner {
         resourceType: data.resourceType,
         claimTimeoutInMs,
         executionTimeoutInMs: data.timeoutInMs,
+        maxOutputChars: data.maxOutputChars,
       });
 
     await ResourceCommandJobRunner.recordOutcomeOnResource({
@@ -313,6 +319,8 @@ export default class ResourceCommandJobRunner {
     resourceType: AiResourceType;
     claimTimeoutInMs: number;
     executionTimeoutInMs: number;
+    // How much of the redacted output to keep (default: the shared cap).
+    maxOutputChars?: number | undefined;
   }): Promise<ResourceCommandJobOutcome> {
     const { job, terminalJob } = data;
 
@@ -357,6 +365,7 @@ export default class ResourceCommandJobRunner {
       output: terminalJob.output || "",
       resourceType: data.resourceType,
       program,
+      maxChars: data.maxOutputChars,
     });
 
     return {

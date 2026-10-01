@@ -11,6 +11,7 @@ import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
+import AIInvestigationConversationAPI from "Common/Server/API/AIInvestigationConversationAPI";
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
@@ -94,6 +95,7 @@ import IncidentEpisodePublicNoteAPI from "Common/Server/API/IncidentEpisodePubli
 import ScheduledMaintenanceInternalNoteAPI from "Common/Server/API/ScheduledMaintenanceInternalNoteAPI";
 import ScheduledMaintenancePublicNoteAPI from "Common/Server/API/ScheduledMaintenancePublicNoteAPI";
 import IncidentAPI from "Common/Server/API/IncidentAPI";
+import IncidentFormAPI from "Common/Server/API/IncidentFormAPI";
 import IncidentEpisodeAPI from "Common/Server/API/IncidentEpisodeAPI";
 import ScheduledMaintenanceAPI from "Common/Server/API/ScheduledMaintenanceAPI";
 import AlertAPI from "Common/Server/API/AlertAPI";
@@ -625,6 +627,9 @@ import IncidentTemplateOwnerUserService, {
 import IncidentTemplateService, {
   Service as IncidentTemplateServiceType,
 } from "Common/Server/Services/IncidentTemplateService";
+import IncidentFormSubmissionService, {
+  Service as IncidentFormSubmissionServiceType,
+} from "Common/Server/Services/IncidentFormSubmissionService";
 import KubernetesClusterService, {
   Service as KubernetesClusterServiceType,
 } from "Common/Server/Services/KubernetesClusterService";
@@ -784,6 +789,21 @@ import DatabaseServerLabelRuleService, {
 import DatabaseServerOwnerRuleService, {
   Service as DatabaseServerOwnerRuleServiceType,
 } from "Common/Server/Services/DatabaseServerOwnerRuleService";
+import MessageQueueService, {
+  Service as MessageQueueServiceType,
+} from "Common/Server/Services/MessageQueueService";
+import MessageQueueOwnerTeamService, {
+  Service as MessageQueueOwnerTeamServiceType,
+} from "Common/Server/Services/MessageQueueOwnerTeamService";
+import MessageQueueOwnerUserService, {
+  Service as MessageQueueOwnerUserServiceType,
+} from "Common/Server/Services/MessageQueueOwnerUserService";
+import MessageQueueLabelRuleService, {
+  Service as MessageQueueLabelRuleServiceType,
+} from "Common/Server/Services/MessageQueueLabelRuleService";
+import MessageQueueOwnerRuleService, {
+  Service as MessageQueueOwnerRuleServiceType,
+} from "Common/Server/Services/MessageQueueOwnerRuleService";
 import HostService, {
   Service as HostServiceType,
 } from "Common/Server/Services/HostService";
@@ -1288,6 +1308,7 @@ import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
+import IncidentFormSubmission from "Common/Models/DatabaseModels/IncidentFormSubmission";
 import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
 
@@ -1344,6 +1365,11 @@ import DatabaseServerOwnerTeam from "Common/Models/DatabaseModels/DatabaseServer
 import DatabaseServerOwnerUser from "Common/Models/DatabaseModels/DatabaseServerOwnerUser";
 import DatabaseServerLabelRule from "Common/Models/DatabaseModels/DatabaseServerLabelRule";
 import DatabaseServerOwnerRule from "Common/Models/DatabaseModels/DatabaseServerOwnerRule";
+import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
+import MessageQueueOwnerTeam from "Common/Models/DatabaseModels/MessageQueueOwnerTeam";
+import MessageQueueOwnerUser from "Common/Models/DatabaseModels/MessageQueueOwnerUser";
+import MessageQueueLabelRule from "Common/Models/DatabaseModels/MessageQueueLabelRule";
+import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwnerRule";
 import Host from "Common/Models/DatabaseModels/Host";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
@@ -2938,6 +2964,22 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueueOwnerRule, MessageQueueOwnerRuleServiceType>(
+        MessageQueueOwnerRule,
+        MessageQueueOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueueLabelRule, MessageQueueLabelRuleServiceType>(
+        MessageQueueLabelRule,
+        MessageQueueLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<RunbookOwnerRule, RunbookOwnerRuleServiceType>(
         RunbookOwnerRule,
         RunbookOwnerRuleService,
@@ -4099,6 +4141,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * IncidentForm's CRUD routes plus the public routes its shareable link
+     * uses (/incident-form/public/...), in one router - mounted once, since
+     * a second router for the model would shadow the first.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new IncidentFormAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentFormSubmission, IncidentFormSubmissionServiceType>(
+        IncidentFormSubmission,
+        IncidentFormSubmissionService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
@@ -4671,6 +4731,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DatabaseServerOwnerUser, DatabaseServerOwnerUserServiceType>(
         DatabaseServerOwnerUser,
         DatabaseServerOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueue, MessageQueueServiceType>(
+        MessageQueue,
+        MessageQueueService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueueOwnerTeam, MessageQueueOwnerTeamServiceType>(
+        MessageQueueOwnerTeam,
+        MessageQueueOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MessageQueueOwnerUser, MessageQueueOwnerUserServiceType>(
+        MessageQueueOwnerUser,
+        MessageQueueOwnerUserService,
       ).getRouter(),
     );
 
@@ -5436,6 +5520,9 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // AI SRE — live incident investigation panel data
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationAPI);
+
+    // AI SRE — the shared conversation in the investigation box
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationConversationAPI);
 
     /*
      * AI Insights — human verdict/resolve actions + live triage

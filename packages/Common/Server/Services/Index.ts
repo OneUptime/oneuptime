@@ -28,6 +28,8 @@ import IncidentPostmortemTemplateService from "./IncidentPostmortemTemplateServi
 import IncidentNoteTemplateService from "./IncidentNoteTemplateService";
 import IncidentLabelRuleService from "./IncidentLabelRuleService";
 import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
+import IncidentFormService from "./IncidentFormService";
+import IncidentFormSubmissionService from "./IncidentFormSubmissionService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
@@ -112,6 +114,11 @@ import DatabaseServerLabelRuleService from "./DatabaseServerLabelRuleService";
 import DatabaseServerOwnerRuleService from "./DatabaseServerOwnerRuleService";
 import DatabaseServerOwnerTeamService from "./DatabaseServerOwnerTeamService";
 import DatabaseServerOwnerUserService from "./DatabaseServerOwnerUserService";
+import MessageQueueService from "./MessageQueueService";
+import MessageQueueLabelRuleService from "./MessageQueueLabelRuleService";
+import MessageQueueOwnerRuleService from "./MessageQueueOwnerRuleService";
+import MessageQueueOwnerTeamService from "./MessageQueueOwnerTeamService";
+import MessageQueueOwnerUserService from "./MessageQueueOwnerUserService";
 import LlmProviderService from "./LlmProviderService";
 import DataSourceService from "./DataSourceService";
 import AuditLogService from "./AuditLogService";
@@ -506,6 +513,8 @@ const services: Array<BaseService> = [
   IncidentTemplateService,
   IncidentTemplateOwnerTeamService,
   IncidentTemplateOwnerUserService,
+  IncidentFormService,
+  IncidentFormSubmissionService,
   IncidentInternalNoteService,
   IncidentOwnerTeamService,
   IncidentOwnerRuleService,
@@ -587,6 +596,11 @@ const services: Array<BaseService> = [
   DatabaseServerOwnerRuleService,
   DatabaseServerOwnerTeamService,
   DatabaseServerOwnerUserService,
+  MessageQueueService,
+  MessageQueueLabelRuleService,
+  MessageQueueOwnerRuleService,
+  MessageQueueOwnerTeamService,
+  MessageQueueOwnerUserService,
   LlmProviderService,
   DataSourceService,
 

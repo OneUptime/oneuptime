@@ -51,7 +51,15 @@ import {
 export const ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY_ENV: string =
   "ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY";
 
-// Every enterprise feature. Per-feature licenses can narrow this later.
+/*
+ * Every enterprise feature. Per-feature licenses can narrow this later, but
+ * the list is read by every release a customer runs, not only this one:
+ * releases up to 14.0.10 gate single sign-on on the "sso" claim (or "*"),
+ * while later releases include single sign-on in the Community Edition and
+ * ignore that claim (RETIRED_ENTERPRISE_FEATURE_VALUES). A narrowed list must
+ * therefore keep "sso" for as long as such releases are supported, or their
+ * installs lose single sign-on on their next license refresh.
+ */
 export const LICENSE_SERVER_TOKEN_FEATURES: ReadonlyArray<string> = [
   ENTERPRISE_FEATURE_WILDCARD,
 ];

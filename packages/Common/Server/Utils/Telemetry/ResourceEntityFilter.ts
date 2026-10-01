@@ -272,7 +272,10 @@ async function resolveDatabaseServerEntityKeys(data: {
  * get the id + attribute branches only — the same `resource.faas.name` /
  * `resource.iot.fleet.name` scope their detail pages use. The function
  * identifier is `faas.name` (or `service.name` on a FaaS platform without
- * one, which the attribute branch then simply does not match).
+ * one, which ingest writes onto the resource as `faas.name` —
+ * OtelIngestBaseService.stampServerlessFunctionNameAttribute — so the
+ * attribute branch matches every row ingested since; rows ingested before
+ * carry no `resource.faas.name`, as there is no backfill).
  *
  * Databases resolve straight to their entity-key set (see
  * resolveDatabaseServerEntityKeys above): no attribute branch, because no

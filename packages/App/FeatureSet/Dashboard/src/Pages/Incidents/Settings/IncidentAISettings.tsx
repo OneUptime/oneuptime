@@ -119,6 +119,18 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
+              incidentAiInvestigationTimeLimitInMinutes: true,
+            },
+            stepId: "limits",
+            title: "Incident Investigation Time Limit (Minutes)",
+            description:
+              "Stop an incident investigation after this many minutes and report what it found. Leave empty for no time limit — OneUptime AI keeps investigating (running every query and command it needs) until it is done.",
+            required: false,
+            fieldType: FormFieldSchemaType.Number,
+            placeholder: "No time limit",
+          },
+          {
+            field: {
               incidentAiDailyAutonomousTokenLimit: true,
             },
             stepId: "limits",
@@ -201,6 +213,14 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Max Concurrent Incident Investigations",
               placeholder: "Default (3)",
+              fieldType: FieldType.Number,
+            },
+            {
+              field: {
+                incidentAiInvestigationTimeLimitInMinutes: true,
+              },
+              title: "Incident Investigation Time Limit (Minutes)",
+              placeholder: "No time limit",
               fieldType: FieldType.Number,
             },
             {

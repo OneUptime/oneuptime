@@ -39,7 +39,19 @@ import RumApplicationService from "../../../Server/Services/RumApplicationServic
 import TelemetryRetentionConfig from "../../../Types/Telemetry/TelemetryRetentionConfig";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
 
 /*
  * The L1 memo inside OTelIngestService.getResourceRetention.
@@ -144,6 +156,21 @@ const RETENTION_CASES: Array<RetentionCase> = [
 ];
 
 const PROJECT_DEFAULT_RETENTION_DAYS: number = 15;
+
+/*
+ * Retention overrides are an Enterprise feature: ingest applies them only
+ * while EnterpriseFeature.TelemetryRetention is active. These suites are
+ * about the caches, so they run as a licensed Enterprise Edition (a valid
+ * license is active with billing on or off). The Community Edition path is
+ * pinned in OpenTelemetryRetentionOverrideEdition.test.ts.
+ */
+beforeAll(() => {
+  installFakeEnterpriseModule();
+});
+
+afterAll(() => {
+  uninstallEnterpriseModule();
+});
 const RESOURCE_RETENTION_CONFIG: TelemetryRetentionConfig = {
   logs: { default: 45 },
   traces: { default: 60 },

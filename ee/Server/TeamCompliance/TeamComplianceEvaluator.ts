@@ -5,6 +5,7 @@ import ComplianceRule, {
   ComplianceRuleCategory,
   ComplianceRuleDefinition,
   ComplianceSeverityKind,
+  joinAsProse,
 } from "Common/Types/Team/ComplianceRule";
 import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
@@ -44,14 +45,17 @@ import ObjectID from "Common/Types/ObjectID";
  *    answer it, so the two surfaces cannot disagree. A cell counts when the
  *    member has a rule for it OR has deliberately opted out of it.
  *
- *  - On-call rules WITH a channel ("Call for Critical incidents"): for every
- *    severity in scope, the member has a rule of the right type for that
- *    severity that notifies them on that channel, through a method they own
- *    and have verified. Readiness cannot answer this - its cells carry no
- *    channel - so the service reads the rules and the methods they point at,
- *    and the judgement is made here. An opt-out does NOT satisfy a channel
- *    rule: "they have asked never to be called for Critical" is precisely the
- *    thing a "Call for Critical" rule exists to catch.
+ *  - On-call rules WITH channels ("Call for Critical incidents", "Call and
+ *    Push notification for Critical incidents"): for every severity in scope
+ *    and on EVERY one of the rule's channels, the member has a rule of the
+ *    right type for that severity that notifies them on that channel, through
+ *    a method they own and have verified - so a rule on two channels checks
+ *    exactly what two one-channel rules would. Readiness cannot answer this -
+ *    its cells carry no channel - so the service reads the rules and the
+ *    methods they point at, and the judgement is made here. An opt-out does
+ *    NOT satisfy a channel rule: "they have asked never to be called for
+ *    Critical" is precisely the thing a "Call for Critical" rule exists to
+ *    catch.
  */
 
 /*
@@ -146,7 +150,11 @@ export interface ComplianceRuleInput {
   settingId: string;
   ruleType: string | undefined;
   enabled: boolean | undefined;
-  notificationChannel: string | null | undefined;
+  /*
+   * The channels the row holds, as read off its two channel columns
+   * (TeamComplianceSettingService.getStoredChannels). Empty is "any channel".
+   */
+  notificationChannels: Array<string> | null | undefined;
   createdAt?: Date | undefined;
   incidentSeverities: Array<ComplianceSeverityInput>;
   alertSeverities: Array<ComplianceSeverityInput>;
@@ -259,10 +267,11 @@ export interface ResolvedComplianceRule {
   // Undefined for a rule type this server does not recognise.
   definition: ComplianceRuleDefinition | undefined;
   /*
-   * The channel an on-call rule insists on. Null means "any channel", and is
-   * always null for method rules and unrecognised rules.
+   * The channels an on-call rule insists on, each once, in catalog order. A
+   * member needs a rule on every one of them. Empty means "any channel", and
+   * is always empty for method rules and unrecognised rules.
    */
-  notificationChannel: ComplianceNotificationChannel | null;
+  notificationChannels: Array<ComplianceNotificationChannel>;
   severityKind: ComplianceSeverityKind | null;
   /*
    * The rule's selected severities of its own kind that belong to the
@@ -331,10 +340,23 @@ interface RuleOutcome {
 
 // What one channel rule needs, worked out once rather than once per member.
 interface ChannelRuleContext {
-  channel: ComplianceChannelDefinition;
+  // In catalog order; never empty.
+  channels: Array<ComplianceChannelDefinition>;
   notificationRuleType: NotificationRuleType;
   subject: string;
   scope: Array<ComplianceSeverityInput>;
+}
+
+/*
+ * Why a member is not covered on one of a channel rule's channels: the names
+ * of the severities in scope under each heading, and the ids of those opted
+ * out of (said once for the rule, not once per channel).
+ */
+interface ChannelVerdict {
+  missing: Array<string>;
+  unverified: Array<string>;
+  refused: Array<string>;
+  optedOutSeverityIds: Array<string>;
 }
 
 interface EvaluationContext {
@@ -422,13 +444,15 @@ export default class TeamComplianceEvaluator {
         continue;
       }
 
-      if (!rule.notificationChannel) {
+      if (rule.notificationChannels.length === 0) {
         needsCoverage = true;
         continue;
       }
 
-      onCallChannels.add(rule.notificationChannel);
-      switchedChannels.add(rule.notificationChannel);
+      for (const channel of rule.notificationChannels) {
+        onCallChannels.add(channel);
+        switchedChannels.add(channel);
+      }
 
       if (definition.notificationRuleType) {
         onCallRuleTypes.add(definition.notificationRuleType);
@@ -626,23 +650,23 @@ export default class TeamComplianceEvaluator {
       return [];
     }
 
-    const channel: ComplianceNotificationChannel | null =
+    const channels: Array<ComplianceNotificationChannel> =
       rule.definition.category === ComplianceRuleCategory.NotificationMethod
-        ? rule.definition.methodChannel || null
-        : rule.notificationChannel;
+        ? rule.definition.methodChannel
+          ? [rule.definition.methodChannel]
+          : []
+        : rule.notificationChannels;
 
-    if (!channel) {
-      return [];
-    }
+    return TeamComplianceEvaluator.getChannelsSwitchedOffWarnings(
+      channels.filter((channel: ComplianceNotificationChannel): boolean => {
+        const projectSwitch: ProjectChannelSwitch | undefined =
+          PROJECT_CHANNEL_SWITCHES[channel];
 
-    const projectSwitch: ProjectChannelSwitch | undefined =
-      PROJECT_CHANNEL_SWITCHES[channel];
-
-    if (!projectSwitch || projectSwitches[projectSwitch] === true) {
-      return [];
-    }
-
-    return [TeamComplianceEvaluator.getChannelSwitchedOffWarning(channel)];
+        return (
+          projectSwitch !== undefined && projectSwitches[projectSwitch] !== true
+        );
+      }),
+    );
   }
 
   /*
@@ -662,6 +686,48 @@ export default class TeamComplianceEvaluator {
     return `${label} notifications are switched off for this project, so members will not be notified by ${label} even when they meet this rule. Turn them on in Project Settings > Notification Settings.`;
   }
 
+  /*
+   * The warnings for a rule whose `channels` are switched off for the
+   * project, named in catalog order whatever order they arrive in. Channels
+   * whose pages are not SENT are said in one sentence, not one each, so a
+   * rule on Call and SMS does not repeat itself; WhatsApp, where the problem
+   * is that nobody can ADD a number, keeps its own.
+   */
+  public static getChannelsSwitchedOffWarnings(
+    channels: Array<ComplianceNotificationChannel>,
+  ): Array<string> {
+    const switchedOff: Array<ComplianceNotificationChannel> =
+      ComplianceRule.normaliseChannels(channels);
+
+    const notSent: Array<ComplianceNotificationChannel> = switchedOff.filter(
+      (channel: ComplianceNotificationChannel): boolean => {
+        return channel !== ComplianceNotificationChannel.WhatsApp;
+      },
+    );
+
+    const warnings: Array<string> = [];
+
+    if (notSent.length === 1) {
+      warnings.push(
+        TeamComplianceEvaluator.getChannelSwitchedOffWarning(notSent[0]!),
+      );
+    } else if (notSent.length > 1) {
+      warnings.push(
+        `${joinAsProse(
+          notSent.map((channel: ComplianceNotificationChannel): string => {
+            return TeamComplianceEvaluator.channelLabel(channel);
+          }),
+        )} notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. Turn them on in Project Settings > Notification Settings.`,
+      );
+    }
+
+    if (switchedOff.includes(ComplianceNotificationChannel.WhatsApp)) {
+      warnings.push(WHATSAPP_SWITCHED_OFF_WARNING);
+    }
+
+    return warnings;
+  }
+
   private static resolveRule(
     rule: ComplianceRuleInput,
     projectId: string,
@@ -675,15 +741,14 @@ export default class TeamComplianceEvaluator {
     /*
      * The same normalisation TeamComplianceSettingService applies on write,
      * repeated on read because the database can hold rows written before it
-     * existed: a channel only means something on an on-call rule, and a value
-     * that is not a channel reads as "any channel".
+     * existed: channels only mean something on an on-call rule, a value that
+     * is not a channel is dropped, and a list with none left reads as "any
+     * channel".
      */
-    const notificationChannel: ComplianceNotificationChannel | null =
-      definition &&
-      ComplianceRule.supportsChannel(definition.ruleType) &&
-      ComplianceRule.isKnownChannel(rule.notificationChannel)
-        ? rule.notificationChannel
-        : null;
+    const notificationChannels: Array<ComplianceNotificationChannel> =
+      definition && ComplianceRule.supportsChannel(definition.ruleType)
+        ? ComplianceRule.normaliseChannels(rule.notificationChannels)
+        : [];
 
     let severities: Array<ComplianceSeverityInput> = [];
 
@@ -704,7 +769,7 @@ export default class TeamComplianceEvaluator {
       ruleType: rule.ruleType || "",
       enabled: rule.enabled === true,
       definition: definition,
-      notificationChannel: notificationChannel,
+      notificationChannels: notificationChannels,
       severityKind: severityKind,
       severities: severities,
       /*
@@ -935,17 +1000,24 @@ export default class TeamComplianceEvaluator {
       !TeamComplianceEvaluator.isChecked(rule) ||
       !definition ||
       definition.category !== ComplianceRuleCategory.OnCallRule ||
-      !rule.notificationChannel ||
       !definition.notificationRuleType ||
       !definition.severityKind
     ) {
       return undefined;
     }
 
-    const channel: ComplianceChannelDefinition | undefined =
-      ComplianceRule.getChannelDefinition(rule.notificationChannel);
+    const channels: Array<ComplianceChannelDefinition> = [];
 
-    if (!channel) {
+    for (const channel of rule.notificationChannels) {
+      const channelDefinition: ComplianceChannelDefinition | undefined =
+        ComplianceRule.getChannelDefinition(channel);
+
+      if (channelDefinition) {
+        channels.push(channelDefinition);
+      }
+    }
+
+    if (channels.length === 0) {
       return undefined;
     }
 
@@ -976,7 +1048,7 @@ export default class TeamComplianceEvaluator {
     }
 
     return {
-      channel: channel,
+      channels: channels,
       notificationRuleType: definition.notificationRuleType,
       subject: definition.subject || "",
       scope: scope,
@@ -984,7 +1056,71 @@ export default class TeamComplianceEvaluator {
   }
 
   /*
-   * An on-call rule with a channel. For each severity in scope the member
+   * An on-call rule with channels, judged one channel at a time - a rule on
+   * Call and Push is met only when the member meets it on Call AND on Push,
+   * exactly as if it were two rules. What is wrong on each channel is said
+   * channel by channel, in catalog order (see judgeChannel); an opt-out is
+   * about the severity rather than any one channel, so it is said once, after
+   * them all, in scope order.
+   */
+  private static evaluateChannelRule(
+    rule: ChannelRuleContext,
+    userId: string,
+    context: EvaluationContext,
+  ): string | null {
+    const sentences: Array<string> = [];
+    const optedOutSeverityIds: Set<string> = new Set<string>();
+
+    for (const channel of rule.channels) {
+      const verdict: ChannelVerdict = TeamComplianceEvaluator.judgeChannel(
+        rule,
+        channel,
+        userId,
+        context,
+      );
+
+      if (verdict.missing.length > 0) {
+        sentences.push(
+          `No ${channel.label} rule for ${rule.subject} severities: ${verdict.missing.join(", ")}`,
+        );
+      }
+
+      if (verdict.unverified.length > 0) {
+        sentences.push(
+          `The ${channel.label} rule for ${rule.subject} severities ${verdict.unverified.join(", ")} points at an unverified ${channel.methodNoun}`,
+        );
+      }
+
+      if (verdict.refused.length > 0) {
+        sentences.push(
+          `The ${channel.label} rule for ${rule.subject} severities ${verdict.refused.join(", ")} is never sent, because another notification method on it belongs to a different user`,
+        );
+      }
+
+      for (const severityId of verdict.optedOutSeverityIds) {
+        optedOutSeverityIds.add(severityId);
+      }
+    }
+
+    const optedOut: Array<string> = rule.scope
+      .filter((severity: ComplianceSeverityInput): boolean => {
+        return optedOutSeverityIds.has(severity.id);
+      })
+      .map((severity: ComplianceSeverityInput): string => {
+        return severity.name || severity.id;
+      });
+
+    if (optedOut.length > 0) {
+      sentences.push(
+        `Opted out of ${rule.subject} notifications for: ${optedOut.join(", ")}`,
+      );
+    }
+
+    return sentences.length > 0 ? sentences.join(". ") : null;
+  }
+
+  /*
+   * One channel of a channel rule. For each severity in scope the member
    * needs a rule of the right type, for that severity, that is not an opt-out
    * and notifies them on the channel through a method row that exists in this
    * project, belongs to them and is verified (webhooks have no verification).
@@ -998,19 +1134,22 @@ export default class TeamComplianceEvaluator {
    * (fix the rule), has opted out of it (undo that), or has nothing (add a
    * rule) - in scope order.
    */
-  private static evaluateChannelRule(
+  private static judgeChannel(
     rule: ChannelRuleContext,
+    channel: ComplianceChannelDefinition,
     userId: string,
     context: EvaluationContext,
-  ): string | null {
+  ): ChannelVerdict {
     const methods: ReadonlyMap<string, ComplianceMethodInput> =
-      context.input.methodsByChannel.get(rule.channel.channel) ||
+      context.input.methodsByChannel.get(channel.channel) ||
       new Map<string, ComplianceMethodInput>();
 
-    const missing: Array<string> = [];
-    const unverified: Array<string> = [];
-    const refused: Array<string> = [];
-    const optedOut: Array<string> = [];
+    const verdict: ChannelVerdict = {
+      missing: [],
+      unverified: [],
+      refused: [],
+      optedOutSeverityIds: [],
+    };
 
     for (const severity of rule.scope) {
       const rows: Array<ComplianceNotificationRuleInput> =
@@ -1033,8 +1172,7 @@ export default class TeamComplianceEvaluator {
           continue;
         }
 
-        const methodId: string | undefined =
-          row.methodIds[rule.channel.channel];
+        const methodId: string | undefined = row.methodIds[channel.channel];
 
         if (!methodId) {
           continue;
@@ -1045,7 +1183,7 @@ export default class TeamComplianceEvaluator {
         if (
           method &&
           method.userId === userId &&
-          (!rule.channel.hasVerification || method.isVerified)
+          (!channel.hasVerification || method.isVerified)
         ) {
           if (!row.hasForeignMethod) {
             isCovered = true;
@@ -1061,7 +1199,7 @@ export default class TeamComplianceEvaluator {
          * A webhook cannot be "unverified", so a webhook rule that points at
          * nothing usable is simply not a webhook rule.
          */
-        if (rule.channel.hasVerification) {
+        if (channel.hasVerification) {
           hasBrokenRule = true;
         }
       }
@@ -1073,43 +1211,17 @@ export default class TeamComplianceEvaluator {
       const name: string = severity.name || severity.id;
 
       if (hasBrokenRule) {
-        unverified.push(name);
+        verdict.unverified.push(name);
       } else if (hasRefusedRule) {
-        refused.push(name);
+        verdict.refused.push(name);
       } else if (hasOptOut) {
-        optedOut.push(name);
+        verdict.optedOutSeverityIds.push(severity.id);
       } else {
-        missing.push(name);
+        verdict.missing.push(name);
       }
     }
 
-    const sentences: Array<string> = [];
-
-    if (missing.length > 0) {
-      sentences.push(
-        `No ${rule.channel.label} rule for ${rule.subject} severities: ${missing.join(", ")}`,
-      );
-    }
-
-    if (unverified.length > 0) {
-      sentences.push(
-        `The ${rule.channel.label} rule for ${rule.subject} severities ${unverified.join(", ")} points at an unverified ${rule.channel.methodNoun}`,
-      );
-    }
-
-    if (refused.length > 0) {
-      sentences.push(
-        `The ${rule.channel.label} rule for ${rule.subject} severities ${refused.join(", ")} is never sent, because another notification method on it belongs to a different user`,
-      );
-    }
-
-    if (optedOut.length > 0) {
-      sentences.push(
-        `Opted out of ${rule.subject} notifications for: ${optedOut.join(", ")}`,
-      );
-    }
-
-    return sentences.length > 0 ? sentences.join(". ") : null;
+    return verdict;
   }
 
   /*
@@ -1176,7 +1288,7 @@ export default class TeamComplianceEvaluator {
       settingId: rule.settingId,
       ruleType: rule.ruleType as ComplianceRuleType,
       enabled: rule.enabled,
-      notificationChannel: rule.notificationChannel,
+      notificationChannels: rule.notificationChannels,
       severityKind: rule.severityKind,
       // A rule left without severities applies to none, not to all.
       appliesToAllSeverities:

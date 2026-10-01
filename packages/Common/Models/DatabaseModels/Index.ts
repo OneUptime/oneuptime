@@ -78,6 +78,11 @@ import DatabaseServerOwnerTeam from "./DatabaseServerOwnerTeam";
 import DatabaseServerOwnerUser from "./DatabaseServerOwnerUser";
 import DatabaseServerLabelRule from "./DatabaseServerLabelRule";
 import DatabaseServerOwnerRule from "./DatabaseServerOwnerRule";
+import MessageQueue from "./MessageQueue";
+import MessageQueueOwnerTeam from "./MessageQueueOwnerTeam";
+import MessageQueueOwnerUser from "./MessageQueueOwnerUser";
+import MessageQueueLabelRule from "./MessageQueueLabelRule";
+import MessageQueueOwnerRule from "./MessageQueueOwnerRule";
 import RumApplication from "./RumApplication";
 import RumApplicationOwnerTeam from "./RumApplicationOwnerTeam";
 import RumApplicationOwnerUser from "./RumApplicationOwnerUser";
@@ -122,6 +127,8 @@ import IncidentPublicNote from "./IncidentPublicNote";
 import IncidentSeverity from "./IncidentSeverity";
 import IncidentState from "./IncidentState";
 import IncidentStateTimeline from "./IncidentStateTimeline";
+import IncidentForm from "./IncidentForm";
+import IncidentFormSubmission from "./IncidentFormSubmission";
 import IncidentTemplate from "./IncidentTemplate";
 import IncidentTemplateOwnerTeam from "./IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "./IncidentTemplateOwnerUser";
@@ -572,6 +579,8 @@ const AllModelTypes: Array<{
   IncidentSeverity,
   IncidentNoteTemplate,
   IncidentPostmortemTemplate,
+  IncidentForm,
+  IncidentFormSubmission,
 
   AlertState,
   Alert,
@@ -987,6 +996,11 @@ const AllModelTypes: Array<{
   DatabaseServerOwnerUser,
   DatabaseServerLabelRule,
   DatabaseServerOwnerRule,
+  MessageQueue,
+  MessageQueueOwnerTeam,
+  MessageQueueOwnerUser,
+  MessageQueueLabelRule,
+  MessageQueueOwnerRule,
   RumApplication,
   RumApplicationOwnerTeam,
   RumApplicationOwnerUser,

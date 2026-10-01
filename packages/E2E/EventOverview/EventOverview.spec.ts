@@ -80,6 +80,15 @@ const OPEN_FIX_PR: string = "Open Fix PR from this analysis";
 const READ_ONLY: string = "Read-only — nothing in your systems was changed";
 
 /*
+ * The line that closes a published report. It only renders beside a report,
+ * so the pages use it to know the AI card has finished loading.
+ */
+const REPORT_CAVEAT: string = "AI-generated first pass — verify before acting.";
+
+// The rating row's question, which also names its two-answer group.
+const VERDICT_QUESTION: string = "Was this analysis correct?";
+
+/*
  * "Declare Incident" in an alert's header, after the state actions
  * (Components/Alert/DeclareIncidentFromAlert.ts). It opens the create-incident
  * page prefilled from the alert.
@@ -189,7 +198,7 @@ const INCIDENT_PAGE: EventPage = {
   identifier: "#1042",
   feed: "Incident Feed",
   readyTexts: [
-    "Investigation complete",
+    REPORT_CAVEAT,
     "Rolling checkout-api back to 2026.09.14-1",
     "Communications Lead",
     "eu-west-1 probe",
@@ -247,7 +256,7 @@ const ALERT_PAGE: EventPage = {
   identifier: "#311",
   feed: "Alert Feed",
   readyTexts: [
-    "Investigation complete",
+    REPORT_CAVEAT,
     "Alert #311 Created:",
     "Payments on-call",
     // Its monitor and its one service.
@@ -953,7 +962,7 @@ async function skeletonWasSeen(page: Page): Promise<boolean> {
  */
 
 test.describe("AI investigation report", () => {
-  test("the summary is its own section above the report", async ({
+  test("the summary is the card's first section, above the report", async ({
     page,
   }: {
     page: Page;
@@ -961,9 +970,9 @@ test.describe("AI investigation report", () => {
     await openReady(page, INCIDENT_PAGE);
 
     const investigation: Locator = investigationCard(page);
-    await expect(
-      investigation.getByLabel("Investigation status"),
-    ).toContainText("Investigation complete");
+    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+      "Completed",
+    );
     await expect(investigation).toContainText(
       "OneUptime AI's root-cause report for this incident.",
     );
@@ -972,7 +981,8 @@ test.describe("AI investigation report", () => {
     await expect(summary.getByRole("heading", { level: 3 })).toHaveText(
       "Summary",
     );
-    await expect(summary.getByText("TL;DR", { exact: true })).toBeVisible();
+    // The TL;DR is the section's lead line; it no longer wears a chip.
+    await expect(summary.getByText("TL;DR", { exact: true })).toHaveCount(0);
     await expect(
       summary.getByText(INCIDENT_TLDR, { exact: true }),
     ).toBeVisible();
@@ -999,26 +1009,14 @@ test.describe("AI investigation report", () => {
 
     const investigation: Locator = investigationCard(page);
     const report: Locator = reportSection(page);
-    await expect(report.getByRole("heading", { level: 3 })).toHaveText(
-      "Investigation report",
-    );
     /*
-     * The header's own line says the report is an AI first pass, so there is
-     * no separate "AI generated" pill beside Copy report.
+     * No title of its own: the card's title already names the report, whose
+     * sections sit directly in the card under h3s like the Summary's.
      */
     await expect(
-      report.getByText("AI-generated first pass — verify before acting.", {
-        exact: true,
-      }),
-    ).toBeVisible();
-    await expect(report.getByText("AI generated", { exact: true })).toHaveCount(
-      0,
-    );
-    await expect(
-      report.getByRole("button", { name: "Copy report" }),
-    ).toBeVisible();
-
-    await expect(report.getByRole("heading", { level: 4 })).toHaveText([
+      report.getByRole("heading", { name: "Investigation report" }),
+    ).toHaveCount(0);
+    await expect(report.getByRole("heading", { level: 3 })).toHaveText([
       "Most likely root cause",
       "Evidence",
       "Suggested next steps",
@@ -1028,10 +1026,30 @@ test.describe("AI investigation report", () => {
       0,
     );
 
+    /*
+     * The caveat and Copy report close the report, after its last section.
+     * There is no separate "AI generated" pill beside Copy report.
+     */
+    const caveat: Locator = report.getByText(REPORT_CAVEAT, { exact: true });
+    await expect(caveat).toBeVisible();
+    await expect(report.getByText("AI generated", { exact: true })).toHaveCount(
+      0,
+    );
+    const copyReport: Locator = report.getByRole("button", {
+      name: "Copy report",
+    });
+    await expect(copyReport).toBeVisible();
+    await expectAbove(
+      report.getByRole("heading", { name: "Suggested next steps" }),
+      caveat,
+      "the last section before the caveat",
+    );
+
+    // The root cause is a plain section, not an amber callout.
     const rootCause: Locator = report.locator(
       "section[data-section-kind='RootCause']",
     );
-    await expect(rootCause).toHaveClass(/border-amber-200/);
+    await expect(rootCause).not.toHaveClass(/border|bg-|ring|rounded|shadow/);
     await expect(rootCause).toContainText(
       "Release 2026.09.14-2 of checkout-api started at 17:52:04",
     );
@@ -1228,9 +1246,16 @@ test.describe("AI investigation report", () => {
       }),
     ).toBe(true);
 
-    // #1029 has no investigation: neither the card nor the header summary.
+    /*
+     * #1029 has no investigation: the card says so in its own words, with
+     * nothing of #1042's report, and there is no header summary.
+     */
     await expect(card(page, "Incident Feed")).toBeVisible();
-    await expect(investigationCard(page)).toHaveCount(0);
+    await expect(
+      investigationCard(page).getByLabel("Investigation status"),
+    ).toHaveText("Not investigated");
+    await expect(summarySection(page)).toHaveCount(0);
+    await expect(reportSection(page)).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "View full report" }),
     ).toHaveCount(0);
@@ -1496,7 +1521,7 @@ test.describe("AI investigation report", () => {
 
     const investigation: Locator = investigationCard(page);
     const rating: Locator = investigation.getByRole("group", {
-      name: "Rate this investigation",
+      name: VERDICT_QUESTION,
     });
     await rating.getByRole("button", { name: "Confirmed" }).click();
     await expect(
@@ -1544,7 +1569,7 @@ test.describe("AI investigation report", () => {
 
     const investigation: Locator = investigationCard(page);
     await investigation
-      .getByRole("group", { name: "Rate this investigation" })
+      .getByRole("group", { name: VERDICT_QUESTION })
       .getByRole("button", { name: "Confirmed" })
       .click();
     await expect(
@@ -1573,7 +1598,7 @@ test.describe("AI investigation report", () => {
     const header: Locator = hero(page);
     const investigation: Locator = investigationCard(page);
     const rating: Locator = investigation.getByRole("group", {
-      name: "Rate this investigation",
+      name: VERDICT_QUESTION,
     });
     const tldr: Locator = header.getByText(INCIDENT_TLDR, { exact: true });
     const rejected: Locator = header.getByText("Rejected by a responder", {
@@ -1853,7 +1878,7 @@ test.describe("AI investigation report", () => {
       "#298 · Payment webhook 5xx rate above 5% · Resolved",
     );
     await expect(
-      reportSection(page).getByRole("heading", { level: 4 }),
+      reportSection(page).getByRole("heading", { level: 3 }),
     ).toHaveText([
       "Most likely root cause",
       "Evidence",
@@ -2121,7 +2146,7 @@ test.describe("investigation details", () => {
 
     const investigation: Locator = investigationCard(page);
     await expect(investigation.getByLabel("Investigation status")).toHaveText(
-      "Preparing investigation report…",
+      "Preparing report…",
       { timeout: 30000 },
     );
     const details: Locator = investigationDetails(page);
@@ -2829,7 +2854,7 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
   },
   {
     ai: "queued",
-    badge: "Queued — waiting for a worker…",
+    badge: "Queued",
     bodyTexts: [
       "OneUptime AI is investigating",
       "Waiting for a worker to pick this up.",
@@ -2839,7 +2864,7 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
   },
   {
     ai: "failed",
-    badge: "Investigation did not finish",
+    badge: "Did not finish",
     bodyTexts: [
       "The investigation stopped before it could report.",
       "The LLM provider returned 529 Overloaded three times; the investigation stopped after 4 of 12 planned tool calls.",
@@ -2851,7 +2876,7 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
   },
   {
     ai: "pending",
-    badge: "Preparing investigation report…",
+    badge: "Preparing report…",
     bodyTexts: [
       "Preparing the final report",
       "The investigation is complete. OneUptime AI is organizing the findings and evidence.",
@@ -2883,9 +2908,7 @@ test.describe("investigation states", () => {
       await expect(reportSection(page)).toHaveCount(0);
       await expect(evidenceList(page)).toHaveCount(0);
       // Nor a rating: there is nothing to judge, even once the run completes.
-      await expect(
-        investigation.getByText("Rate this investigation"),
-      ).toHaveCount(0);
+      await expect(investigation.getByText(VERDICT_QUESTION)).toHaveCount(0);
       await expect(
         investigation.getByRole("button", { name: "Confirmed" }),
       ).toHaveCount(0);
@@ -2927,7 +2950,11 @@ test.describe("investigation states", () => {
     });
   }
 
-  test("?ai=none renders no investigation card and no header notice", async ({
+  /*
+   * With no run the slot keeps the same card, header and pill a run gets,
+   * and says why nothing was investigated instead of a report.
+   */
+  test("?ai=none explains the missing run in the same card, with no header notice", async ({
     page,
   }: {
     page: Page;
@@ -2937,7 +2964,30 @@ test.describe("investigation states", () => {
     await expect(
       page.getByText("Rolling checkout-api back").first(),
     ).toBeVisible();
-    await expect(investigationCard(page)).toHaveCount(0);
+
+    const investigation: Locator = investigationCard(page);
+    await expect(investigation).toHaveCount(1);
+    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+      "Not investigated",
+      { timeout: 30000 },
+    );
+    await expect(
+      investigation.getByRole("heading", {
+        level: 3,
+        name: "No investigation has been recorded",
+      }),
+    ).toBeVisible();
+    await expect(
+      investigation.getByRole("heading", { level: 3, name: "What you can do" }),
+    ).toBeVisible();
+    await expect(
+      investigation.getByRole("link", { name: "Review incident AI settings" }),
+    ).toBeVisible();
+    // Nothing a run would show: no report, details or rating.
+    await expect(summarySection(page)).toHaveCount(0);
+    await expect(reportSection(page)).toHaveCount(0);
+    await expect(investigationDetails(page)).toHaveCount(0);
+    await expect(investigation.getByText(VERDICT_QUESTION)).toHaveCount(0);
     await expect(
       hero(page).getByRole("button", { name: "View full report" }),
     ).toHaveCount(0);
@@ -2946,6 +2996,549 @@ test.describe("investigation states", () => {
         "OneUptime AI posted a root cause analysis",
       ),
     ).toHaveCount(0);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * One flat card
+ * ---------------------------------------------------------------------------
+ */
+
+interface PanelOffender {
+  tag: string;
+  className: string;
+  reason: string;
+}
+
+/*
+ * Everything inside the AI card that paints a panel of its own, read from the
+ * browser's computed styles: a tinted background, a frame on all four sides,
+ * or a shadow, on anything big enough to be a region (small marks such as a
+ * spinner are not panels). Controls (buttons, links, tabs, the verdict's
+ * answer group, the rows block of an evidence query, and the conversation's
+ * text box together with the frame drawn around it), inline code and
+ * collapsed content are left out. The card used to hold a tinted summary box,
+ * a report box with an amber callout inside it, a details box and an actions
+ * box.
+ *
+ * The card is read at rest. A row's hover wash is not a panel, but one caught
+ * fading out reads as a tinted background: clicking an evidence row moves the
+ * pointer off the Evidence and activity header it opened, whose wash then
+ * fades for 150ms. So the pointer is parked off the card and transitions are
+ * suspended while the styles are read, which settles every wash at once.
+ */
+async function panelsInsideTheCard(page: Page): Promise<Array<PanelOffender>> {
+  await page.mouse.move(0, 0);
+
+  return page
+    .locator("#ai-investigation")
+    .evaluate((region: Element): Array<PanelOffender> => {
+      const offenders: Array<PanelOffender> = [];
+      const atRest: HTMLStyleElement = document.createElement("style");
+      atRest.textContent =
+        "*, *::before, *::after { transition: none !important; }";
+      document.head.appendChild(atRest);
+      // Declared in here: this callback runs in the page, not in Node.
+      const zeroAlphaRgba: RegExp = /rgba\([^)]*,\s*0\)$/;
+      const isTransparent: (color: string) => boolean = (
+        color: string,
+      ): boolean => {
+        return (
+          color === "transparent" ||
+          zeroAlphaRgba.test(color) ||
+          color === "rgba(0, 0, 0, 0)"
+        );
+      };
+
+      const isFramed: (element: Element) => boolean = (
+        element: Element,
+      ): boolean => {
+        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+
+        return ["top", "right", "bottom", "left"].every(
+          (side: string): boolean => {
+            return (
+              parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0 &&
+              style.getPropertyValue(`border-${side}-style`) !== "none"
+            );
+          },
+        );
+      };
+
+      /*
+       * A textarea draws no border of its own: the frame around it (the
+       * nearest framed ancestor) is what shows it as a text box, so the two
+       * are one control, like a button.
+       */
+      const textBoxFrames: Array<Element> = [];
+
+      for (const textBox of Array.from(region.querySelectorAll("textarea"))) {
+        let ancestor: Element | null = textBox.parentElement;
+
+        while (ancestor && ancestor !== region) {
+          if (isFramed(ancestor)) {
+            textBoxFrames.push(ancestor);
+            break;
+          }
+
+          ancestor = ancestor.parentElement;
+        }
+      }
+
+      for (const element of Array.from(region.querySelectorAll("*"))) {
+        if (
+          element.closest(
+            "button, a, [role='tab'], [role='group'], code, pre, kbd, [hidden], textarea",
+          ) ||
+          textBoxFrames.some((frame: Element): boolean => {
+            return frame.contains(element);
+          })
+        ) {
+          continue;
+        }
+
+        const rect: DOMRect = element.getBoundingClientRect();
+
+        if (rect.width < 40 || rect.height < 24) {
+          continue;
+        }
+
+        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+        const shadowColors: Array<string> =
+          style.boxShadow === "none"
+            ? []
+            : style.boxShadow.match(/rgba?\([^)]*\)/g) || [];
+        const hasShadow: boolean = shadowColors.some(
+          (color: string): boolean => {
+            return !isTransparent(color);
+          },
+        );
+        const reasons: Array<string> = [];
+
+        if (!isTransparent(style.backgroundColor)) {
+          reasons.push(`background ${style.backgroundColor}`);
+        }
+
+        if (isFramed(element)) {
+          reasons.push("framed");
+        }
+
+        if (hasShadow) {
+          reasons.push(`shadow ${style.boxShadow}`);
+        }
+
+        if (reasons.length > 0) {
+          offenders.push({
+            tag: element.tagName.toLowerCase(),
+            className: element.getAttribute("class") || "",
+            reason: reasons.join(", "),
+          });
+        }
+      }
+
+      atRest.remove();
+
+      return offenders;
+    });
+}
+
+interface CardState {
+  name: string;
+  query: string;
+  badge: string;
+}
+
+const CARD_STATES: ReadonlyArray<CardState> = [
+  { name: "a completed report", query: "", badge: "Completed" },
+  {
+    name: "a report with cluster access notes",
+    query: "clusters=mixed",
+    badge: "Completed",
+  },
+  { name: "a legacy report", query: "ai=legacy", badge: "Completed" },
+  {
+    name: "a running investigation",
+    query: "ai=running",
+    badge: "Investigating…",
+  },
+  {
+    name: "a running investigation with cluster access notes",
+    query: "ai=running&clusters=mixed",
+    badge: "Investigating…",
+  },
+  { name: "a queued investigation", query: "ai=queued", badge: "Queued" },
+  {
+    name: "a failed investigation",
+    query: "ai=failed",
+    badge: "Did not finish",
+  },
+  {
+    name: "a report being prepared",
+    query: "ai=pending",
+    badge: "Preparing report…",
+  },
+  { name: "no investigation", query: "ai=none", badge: "Not investigated" },
+];
+
+async function openCardState(page: Page, state: CardState): Promise<Locator> {
+  await open(page, INCIDENT_PATH, state.query);
+  const investigation: Locator = investigationCard(page);
+  await expect(investigation.getByLabel("Investigation status")).toHaveText(
+    state.badge,
+    { timeout: 30000 },
+  );
+  return investigation;
+}
+
+test.describe("one flat AI investigation card", () => {
+  for (const state of CARD_STATES) {
+    test(`${state.name} is one card with no panel inside it`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const investigation: Locator = await openCardState(page, state);
+
+      // No card inside the card.
+      await expect(investigation.getByTestId("card")).toHaveCount(0);
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+    });
+  }
+
+  test("an open section and an expanded evidence row still draw no panel", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const details: Locator = await expandEvidence(page, "C5");
+    await expect(details.locator("pre")).toBeVisible();
+
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+  });
+
+  test("every heading in the card shares one size, weight and colour", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "clusters=mixed");
+
+    const headings: Array<{ text: string; style: string }> = await page
+      .locator("#ai-investigation h3")
+      .evaluateAll(
+        (elements: Array<Element>): Array<{ text: string; style: string }> => {
+          return elements
+            .filter((element: Element): boolean => {
+              return !element.closest("[hidden]");
+            })
+            .map((element: Element): { text: string; style: string } => {
+              const style: CSSStyleDeclaration =
+                window.getComputedStyle(element);
+              return {
+                text: element.textContent || "",
+                style: [
+                  style.fontSize,
+                  style.fontWeight,
+                  style.color,
+                  style.textTransform,
+                  style.letterSpacing,
+                ].join(" "),
+              };
+            });
+        },
+      );
+
+    expect(
+      headings.map((heading: { text: string }): string => {
+        return heading.text;
+      }),
+    ).toEqual([
+      "Summary",
+      "Most likely root cause",
+      "Evidence",
+      "Suggested next steps",
+      "Evidence and activity",
+      "Act on this investigation",
+      VERDICT_QUESTION,
+      // The shared conversation under the report.
+      "Ask OneUptime AI",
+    ]);
+    expect(
+      new Set(
+        headings.map((heading: { style: string }): string => {
+          return heading.style;
+        }),
+      ).size,
+    ).toBe(1);
+    // A plain title: 14px semibold near-black, never an uppercase label.
+    expect(headings[0]!.style).toBe("14px 600 rgb(17, 24, 39) none normal");
+  });
+
+  test("the status pill is the same neutral pill in every state", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const looks: Array<string> = [];
+
+    for (const state of CARD_STATES) {
+      const investigation: Locator = await openCardState(page, state);
+      looks.push(
+        await investigation
+          .getByLabel("Investigation status")
+          .evaluate((element: Element): string => {
+            const style: CSSStyleDeclaration = window.getComputedStyle(element);
+            return [
+              style.backgroundColor,
+              style.color,
+              style.boxShadow,
+              style.borderRadius,
+            ].join(" | ");
+          }),
+      );
+    }
+
+    expect(new Set(looks).size).toBe(1);
+    // gray-50 behind gray-700 text: the colour is only in the small mark.
+    expect(looks[0]).toContain("rgb(249, 250, 251) | rgb(55, 65, 81)");
+  });
+
+  test("the report is the first thing in the card and the rating the last", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "clusters=mixed");
+    const investigation: Locator = investigationCard(page);
+
+    await expectAbove(
+      investigation.getByTestId("card-description"),
+      summarySection(page),
+      "the title before the summary",
+    );
+    await expectAbove(
+      page.getByTestId("investigation-report-footer"),
+      page.getByTestId("cluster-access-notice"),
+      "the report before the cluster notes",
+    );
+    await expectAbove(
+      page.getByTestId("cluster-access-notice"),
+      investigationDetails(page),
+      "the cluster notes before the working",
+    );
+    await expectAbove(
+      investigationDetails(page),
+      page.getByTestId("investigation-actions"),
+      "the working before the actions",
+    );
+    await expect(
+      page
+        .getByTestId("investigation-actions")
+        .getByRole("heading", { level: 3 }),
+    ).toHaveText(["Act on this investigation", VERDICT_QUESTION]);
+  });
+
+  test("hairlines, not boxes, split the report from its working and its actions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    for (const locator of [
+      investigationDetails(page),
+      page.getByTestId("investigation-actions"),
+    ]) {
+      const borders: Array<string> = await locator.evaluate(
+        (element: Element): Array<string> => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
+          return [
+            style.borderTopWidth,
+            style.borderRightWidth,
+            style.borderBottomWidth,
+            style.borderLeftWidth,
+          ];
+        },
+      );
+      expect(borders).toEqual(["1px", "0px", "0px", "0px"]);
+    }
+  });
+
+  test("cluster access notes are plain lines, and the fix link opens the cluster's AI agent page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "clusters=mixed");
+    const notice: Locator = page.getByTestId("cluster-access-notice");
+
+    await expect(page.getByTestId("cluster-access-run-usage")).toHaveText(
+      "This investigation used OneUptime data only — no kubectl commands were run.",
+    );
+    const reachable: Locator = page.getByTestId("cluster-access-reachable");
+    await expect(reachable).toHaveText(
+      "OneUptime AI currently has read-only kubectl access to prod-eu-west-1 (fixes ask for your approval).",
+    );
+    await expect(
+      reachable.getByRole("link", { name: "prod-eu-west-1" }),
+    ).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/kubernetes/83000000-0000-4000-8000-000000000001/ai/agent`,
+    );
+
+    const unreachable: Locator = page.getByTestId("cluster-access-unreachable");
+    await expect(unreachable).toContainText(
+      'OneUptime AI cannot currently reach cluster "staging-us-east-1" with kubectl',
+    );
+    await expect(unreachable).toContainText(
+      "Why: The Kubernetes AI agent is not connected.",
+    );
+    await expect(unreachable).toContainText(
+      "What to do: Install the Kubernetes AI agent",
+    );
+
+    // Each note is a line with a mark, not a tinted box.
+    for (const row of await notice.locator(":scope > div").all()) {
+      const look: { background: string; border: string } = await row.evaluate(
+        (element: Element): { background: string; border: string } => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
+          return {
+            background: style.backgroundColor,
+            border: style.borderTopWidth,
+          };
+        },
+      );
+      expect(look).toEqual({ background: "rgba(0, 0, 0, 0)", border: "0px" });
+      await expect(row.locator("svg").first()).toBeVisible();
+    }
+
+    await unreachable
+      .getByRole("link", { name: "Open the cluster's AI agent page" })
+      .click();
+    await expect(page.getByTestId("stub-page")).toHaveAttribute(
+      "data-page",
+      "KUBERNETES_CLUSTER_VIEW_AI_AGENT",
+    );
+    expect(new URL(page.url()).pathname).toBe(
+      `${DASHBOARD}/kubernetes/83000000-0000-4000-8000-000000000002/ai/agent`,
+    );
+  });
+
+  test("a live run lists its cluster access before its steps", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=running&clusters=mixed");
+    const live: Locator = investigationCard(page).getByRole("region", {
+      name: "Live investigation",
+      exact: true,
+    });
+
+    await expect(
+      live.getByRole("heading", {
+        level: 3,
+        name: "OneUptime AI is investigating",
+      }),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(live).toContainText(
+      "Reading this project's telemetry and running read-only kubectl on the cluster, narrating every step. Nothing is changed.",
+    );
+    await expect(page.getByTestId("cluster-access-unreachable")).toContainText(
+      'Investigating with OneUptime data only — no kubectl access to cluster "staging-us-east-1"',
+    );
+    // What the run did is only said once it has finished.
+    await expect(page.getByTestId("cluster-access-run-usage")).toHaveCount(0);
+    await expectAbove(
+      page.getByTestId("cluster-access-notice"),
+      live.getByText("Starting investigation", { exact: true }),
+      "cluster access before the steps",
+    );
+  });
+
+  test("a chip's highlight reaches past the text while the row and its divider stay put", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const list: Locator = await openEvidence(page);
+    const tabs: Locator = investigationDetails(page).getByRole("tablist");
+    const row: Locator = evidenceRow(page, "C3");
+    const restingBox: Box = await documentBox(row);
+
+    await citationChip(summarySection(page), "C3").click();
+    await expect(row).toHaveAttribute("data-highlighted", "true");
+
+    // The wash fades in over 300ms, so read it once it has settled.
+    await expect
+      .poll(
+        async (): Promise<{
+          left: string;
+          right: string;
+          background: string;
+        }> => {
+          return row.evaluate(
+            (
+              element: Element,
+            ): { left: string; right: string; background: string } => {
+              const style: CSSStyleDeclaration = window.getComputedStyle(
+                element,
+                "::before",
+              );
+              return {
+                left: style.left,
+                right: style.right,
+                background: style.backgroundColor,
+              };
+            },
+          );
+        },
+      )
+      .toEqual({
+        left: "-12px",
+        right: "-12px",
+        // indigo-50 at 70%.
+        background: "rgba(238, 242, 255, 0.7)",
+      });
+
+    // The row itself does not move, so its divider keeps to the text width.
+    const highlightedBox: Box = await documentBox(row);
+    expect(highlightedBox.x).toBeCloseTo(restingBox.x, 0);
+    expect(highlightedBox.width).toBeCloseTo(restingBox.width, 0);
+    const listBox: Box = await documentBox(list);
+    const tabsBox: Box = await documentBox(tabs);
+    expect(highlightedBox.width).toBeCloseTo(listBox.width, 0);
+    expect(listBox.x).toBeCloseTo(tabsBox.x, 0);
+    expect(listBox.width).toBeCloseTo(tabsBox.width, 0);
+
+    // The highlight fades after two seconds.
+    await expect(row).not.toHaveAttribute("data-highlighted", "true", {
+      timeout: 5000,
+    });
+  });
+
+  test("in the dark theme a chip's highlight uses the dark indigo wash", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "theme=dark");
+    await openEvidence(page);
+    const row: Locator = evidenceRow(page, "C3");
+
+    await citationChip(summarySection(page), "C3").click();
+    await expect(row).toHaveAttribute("data-highlighted", "true");
+    // The wash fades in over 300ms, so read it once it has settled.
+    await expect
+      .poll(async (): Promise<string> => {
+        return row.evaluate((element: Element): string => {
+          return window.getComputedStyle(element, "::before").backgroundColor;
+        });
+      })
+      .toBe("rgba(49, 46, 129, 0.35)");
   });
 });
 
@@ -3757,7 +4350,7 @@ test.describe("declare an incident from the alert hero", () => {
   }) => {
     // Without permissions the details card has nothing it may show.
     await openReady(page, ALERT_PAGE, `${CREATED_ALERT.query}&role=loading`, [
-      "Investigation complete",
+      REPORT_CAVEAT,
     ]);
     await expect(heroActions(page).getByRole("button")).toHaveText([
       "Acknowledge",
@@ -4340,6 +4933,746 @@ test.describe("alert affected resources", () => {
     await expect(resources.getByText("across 2 categories")).toBeVisible();
     await expect(resources.getByText("No resources affected.")).toHaveCount(0);
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Affected Resources card
+ * ---------------------------------------------------------------------------
+ *
+ * Each category used to be a card of its own - bordered, shadowed, with a
+ * coloured bar across its top - inside the page's "Affected Resources" card,
+ * so the right column read as cards nested in a card. The categories are now
+ * sections of the one card: a tinted icon, the label and its count, then the
+ * resources indented under the label, split by hairlines. Every row is one
+ * link (the resource's link stretched over the row).
+ */
+
+interface ResourcesCase {
+  eventPage: EventPage;
+  headings: ReadonlyArray<string>;
+  summary: string;
+  rows: number;
+}
+
+const RESOURCES_CASES: ReadonlyArray<ResourcesCase> = [
+  {
+    eventPage: INCIDENT_PAGE,
+    headings: ["Monitors 2", "Services 2"],
+    summary: "4 resources across 2 categories",
+    rows: 4,
+  },
+  {
+    eventPage: ALERT_PAGE,
+    headings: ["Monitors 1", "Services 1"],
+    summary: "2 resources across 2 categories",
+    rows: 2,
+  },
+  {
+    eventPage: SCHEDULED_MAINTENANCE_PAGE,
+    headings: ["Monitors 2", "Services 2"],
+    summary: "4 resources across 2 categories",
+    rows: 4,
+  },
+];
+
+// ?resources=many attaches Incident #1042 to five categories.
+const MANY_RESOURCES_HEADINGS: ReadonlyArray<string> = [
+  "Monitors 6",
+  "Hosts 2",
+  "Kubernetes Clusters 1",
+  "Services 3",
+  "SLOs 1",
+];
+const MANY_RESOURCES_READY: ReadonlyArray<string> = [
+  REPORT_CAVEAT,
+  "13 resources",
+];
+const LONG_MONITOR_NAME: string =
+  "Checkout web journey (synthetic) from eu-west-1 and us-east-1";
+
+const SLO_HINT: string =
+  "SLOs are linked automatically when their burn rate rules fire.";
+
+function resourcesCard(page: Page): Locator {
+  return card(page, "Affected Resources");
+}
+
+function resourceSections(page: Page): Locator {
+  return resourcesCard(page).getByTestId("affected-resource-category");
+}
+
+function resourceRows(page: Page): Locator {
+  return resourcesCard(page).getByRole("listitem");
+}
+
+// The display's root: the summary and the grid of sections.
+function resourcesBody(page: Page): Locator {
+  return resourcesCard(page)
+    .getByTestId("affected-resources-grid")
+    .locator("xpath=..");
+}
+
+async function resourceHeadings(page: Page): Promise<Array<string>> {
+  return resourcesCard(page)
+    .getByRole("heading", { level: 3 })
+    .evaluateAll((headings: Array<Element>): Array<string> => {
+      return headings.map((heading: Element): string => {
+        return (heading.textContent || "").replace(/\s+/g, " ").trim();
+      });
+    });
+}
+
+/*
+ * What would make something inside the card a card of its own: a shadow, a
+ * border (other than the hairline above each section but the first) or a
+ * white fill. Read from computed styles, so a class that sneaks it back in
+ * any other way is caught too.
+ */
+async function nestedCardChrome(root: Locator): Promise<Array<string>> {
+  return root.evaluate((element: Element): Array<string> => {
+    const findings: Array<string> = [];
+    const sections: Array<Element> = Array.from(
+      element.querySelectorAll("[data-testid='affected-resource-category']"),
+    );
+
+    for (const node of [
+      element,
+      ...Array.from(element.querySelectorAll("*")),
+    ]) {
+      const style: CSSStyleDeclaration = getComputedStyle(node);
+      const name: string = `${node.tagName.toLowerCase()}${
+        node.getAttribute("data-testid")
+          ? `[${node.getAttribute("data-testid")}]`
+          : ""
+      } "${(node.textContent || "").trim().slice(0, 24)}"`;
+
+      if (style.boxShadow !== "none") {
+        findings.push(`${name}: box-shadow ${style.boxShadow}`);
+      }
+
+      for (const side of ["top", "right", "bottom", "left"]) {
+        const width: string = style.getPropertyValue(`border-${side}-width`);
+
+        if (width === "0px") {
+          continue;
+        }
+
+        if (side === "top" && sections.indexOf(node) > 0 && width === "1px") {
+          continue;
+        }
+
+        findings.push(`${name}: border-${side} ${width}`);
+      }
+
+      if (style.backgroundColor === "rgb(255, 255, 255)") {
+        findings.push(`${name}: white fill`);
+      }
+    }
+
+    return findings;
+  });
+}
+
+// Where the text of an element ends, not the (block-wide) element itself.
+async function textRight(locator: Locator): Promise<number> {
+  return locator.evaluate((element: Element): number => {
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+    let right: number = 0;
+
+    for (
+      let node: Node | null = walker.nextNode();
+      node;
+      node = walker.nextNode()
+    ) {
+      if (!(node.textContent || "").trim()) {
+        continue;
+      }
+
+      const range: Range = document.createRange();
+      range.selectNodeContents(node);
+      right = Math.max(right, range.getBoundingClientRect().right);
+    }
+
+    return right + window.scrollX;
+  });
+}
+
+async function computed(
+  locator: Locator,
+  property: string,
+  pseudo?: string,
+): Promise<string> {
+  return locator.evaluate(
+    (
+      element: Element,
+      args: { property: string; pseudo: string | undefined },
+    ): string => {
+      return getComputedStyle(element, args.pseudo || null).getPropertyValue(
+        args.property,
+      );
+    },
+    { property, pseudo },
+  );
+}
+
+async function expectStubPage(
+  page: Page,
+  pageKey: string,
+  pathname: string,
+): Promise<void> {
+  const stub: Locator = page.getByTestId("stub-page");
+  await expect(stub).toHaveAttribute("data-page", pageKey);
+  await expect(stub).toHaveText(pathname);
+  expect(new URL(page.url()).pathname).toBe(pathname);
+}
+
+test.describe("affected resources card", () => {
+  for (const resourcesCase of RESOURCES_CASES) {
+    const eventPage: EventPage = resourcesCase.eventPage;
+
+    test(`${eventPage.name} lists resources as sections of its card, not cards inside it`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, eventPage);
+      await page.mouse.move(0, 0);
+
+      const resources: Locator = resourcesCard(page);
+      expect(await resourceHeadings(page)).toEqual(resourcesCase.headings);
+      await expect(
+        resources.getByTestId("affected-resources-summary"),
+      ).toHaveText(resourcesCase.summary);
+      await expect(resourceRows(page)).toHaveCount(resourcesCase.rows);
+
+      // Nothing inside the card is boxed: no shadow, border or white fill.
+      expect(await nestedCardChrome(resourcesBody(page))).toEqual([]);
+
+      // The page's card is the one card, and it still draws as one.
+      const cardSurface: Locator = resources.locator(":scope > div").first();
+      expect(await computed(cardSurface, "box-shadow")).not.toBe("none");
+      expect(await computed(cardSurface, "border-top-width")).toBe("1px");
+
+      /*
+       * The sections span the card's body evenly. The maintenance card once
+       * used the default detail style, whose -mx-3 row at full width ended
+       * the display 24px short of the card's right edge.
+       */
+      const surfaceBox: Box = await documentBox(cardSurface);
+      const gridBox: Box = await documentBox(
+        resources.getByTestId("affected-resources-grid"),
+      );
+      const leftInset: number = gridBox.x - surfaceBox.x;
+      const rightInset: number =
+        surfaceBox.x + surfaceBox.width - (gridBox.x + gridBox.width);
+      expect(Math.abs(leftInset - rightInset)).toBeLessThanOrEqual(1);
+
+      // Hovering the body washes nothing between it and the card in grey.
+      await resources.getByTestId("affected-resources-summary").hover();
+      expect(
+        await resourcesBody(page).evaluate(
+          (element: Element): Array<string> => {
+            const washed: Array<string> = [];
+            for (
+              let node: Element | null = element;
+              node &&
+              node.parentElement?.getAttribute("data-testid") !== "card";
+              node = node.parentElement
+            ) {
+              const background: string = getComputedStyle(node).backgroundColor;
+              if (background !== "rgba(0, 0, 0, 0)") {
+                washed.push(`${node.className}: ${background}`);
+              }
+            }
+            return washed;
+          },
+        ),
+      ).toEqual([]);
+      await page.mouse.move(0, 0);
+
+      // A hairline between the sections, none above the first.
+      const sections: Locator = resourceSections(page);
+      await expect(sections).toHaveCount(resourcesCase.headings.length);
+      expect(await computed(sections.nth(0), "border-top-width")).toBe("0px");
+      expect(await computed(sections.nth(1), "border-top-width")).toBe("1px");
+      expect(await computed(sections.nth(1), "border-top-color")).toBe(
+        "rgb(243, 244, 246)",
+      );
+      for (const index of [0, 1]) {
+        const section: Locator = sections.nth(index);
+        expect(await computed(section, "background-color")).toBe(
+          "rgba(0, 0, 0, 0)",
+        );
+        expect(await computed(section, "border-top-left-radius")).toBe("0px");
+      }
+
+      await screenshotElement(
+        resources,
+        `${eventPage.name}-affected-resources`,
+      );
+    });
+  }
+
+  test("each resource lines up under its label, past a tinted icon, with the count beside the label", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const section: Locator = resourceSections(page).first();
+    const heading: Locator = section.getByRole("heading", { level: 3 });
+    const label: Locator = heading.getByText("Monitors", { exact: true });
+    const count: Locator = section.getByTestId(
+      "affected-resource-category-count",
+    );
+    const tile: Locator = section.locator(":scope > div > div").first();
+    const firstItem: Locator = section
+      .getByTestId("affected-resource-item")
+      .first();
+
+    const labelBox: Box = await documentBox(label);
+    const countBox: Box = await documentBox(count);
+    const tileBox: Box = await documentBox(tile);
+    const itemBox: Box = await documentBox(firstItem);
+    const sectionBox: Box = await documentBox(section);
+
+    // A 24px tinted tile at the section's left edge.
+    expect(tileBox.width).toBeCloseTo(24, 0);
+    expect(tileBox.height).toBeCloseTo(24, 0);
+    expect(Math.abs(tileBox.x - sectionBox.x)).toBeLessThanOrEqual(1);
+    expect(await computed(tile, "background-color")).toBe("rgb(239, 246, 255)");
+    expect(await computed(tile.locator("svg"), "color")).toBe(
+      "rgb(37, 99, 235)",
+    );
+    // The label starts past it, and the names start where the label does.
+    expect(labelBox.x).toBeGreaterThan(tileBox.x + tileBox.width);
+    expect(Math.abs(itemBox.x - labelBox.x)).toBeLessThanOrEqual(1);
+    // The count follows the label rather than sitting at the far edge.
+    const gap: number = countBox.x - (labelBox.x + labelBox.width);
+    expect(gap).toBeGreaterThanOrEqual(4);
+    expect(gap).toBeLessThanOrEqual(12);
+    await expect(count).toHaveText("2");
+    // Rows are a comfortable target.
+    for (const row of await resourceRows(page).all()) {
+      expect((await documentBox(row)).height).toBeGreaterThanOrEqual(32);
+    }
+  });
+
+  test("a click anywhere on a row opens that resource, not only on its name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const clickRowEdge: (row: Locator) => Promise<void> = async (
+      row: Locator,
+    ): Promise<void> => {
+      await row.scrollIntoViewIfNeeded();
+      const rowBox: Box = await documentBox(row);
+      const nameEnds: number = await textRight(row);
+      const x: number = rowBox.width - 4;
+
+      // The point clicked is past the end of the name.
+      expect(rowBox.x + x).toBeGreaterThan(nameEnds + 8);
+      await row.click({ position: { x, y: rowBox.height / 2 } });
+    };
+
+    const monitorRow: Locator = resourceRows(page).filter({
+      hasText: "Checkout API p95 latency",
+    });
+    await expect(monitorRow.getByRole("link")).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/monitors/${uuid("70000000", 1)}`,
+    );
+    await clickRowEdge(monitorRow);
+    await expectStubPage(
+      page,
+      "MONITOR_VIEW",
+      `${DASHBOARD}/monitors/${uuid("70000000", 1)}`,
+    );
+
+    await page.goBack();
+    await expectPageReady(page, INCIDENT_PAGE);
+
+    const serviceRow: Locator = resourceRows(page).filter({
+      hasText: "orders-db",
+    });
+    const serviceHref: string = (await serviceRow
+      .getByRole("link")
+      .getAttribute("href"))!;
+    expect(serviceHref).toBe(`${DASHBOARD}/service/${uuid("75000000", 2)}`);
+    await clickRowEdge(serviceRow);
+    await expectStubPage(page, "SERVICE_VIEW", serviceHref);
+  });
+
+  test("hovering a row lights up the whole row and underlines its name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    await page.mouse.move(0, 0);
+
+    const row: Locator = resourceRows(page).first();
+    const link: Locator = row.getByRole("link");
+    await row.scrollIntoViewIfNeeded();
+    expect(await computed(row, "background-color")).toBe("rgba(0, 0, 0, 0)");
+    expect(await computed(link, "text-decoration-line")).toBe("none");
+
+    // Over the empty end of the row, well past the name.
+    const rowBox: DOMRect = await row.evaluate((element: Element): DOMRect => {
+      return element.getBoundingClientRect();
+    });
+    await page.mouse.move(
+      rowBox.x + rowBox.width - 4,
+      rowBox.y + rowBox.height / 2,
+    );
+
+    await expect
+      .poll(async (): Promise<string> => {
+        return computed(row, "background-color");
+      })
+      .toBe("rgb(249, 250, 251)");
+    expect(await computed(link, "text-decoration-line")).toBe("underline");
+    expect(await computed(link, "cursor")).toBe("pointer");
+    // The pointer is over the link's stretched overlay, not dead space.
+    expect(
+      await page.evaluate(
+        ({ x, y }: { x: number; y: number }): string | undefined => {
+          return document
+            .elementFromPoint(x, y)
+            ?.closest("a")
+            ?.textContent?.trim();
+        },
+        { x: rowBox.x + rowBox.width - 4, y: rowBox.y + rowBox.height / 2 },
+      ),
+    ).toBe("Checkout API p95 latency");
+  });
+
+  test("keyboard: Tab from Edit reaches each resource with a ring round its row, and Enter opens it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await resourcesCard(page)
+      .getByTestId("card-header-actions")
+      .getByRole("button", { name: "Edit" })
+      .focus();
+    await page.keyboard.press("Tab");
+
+    const firstLink: Locator = resourceRows(page).first().getByRole("link");
+    await expect(firstLink).toBeFocused();
+    // The ring is drawn by the stretched overlay, around the whole row.
+    expect(await computed(firstLink, "box-shadow", "::after")).toContain(
+      "rgb(99, 102, 241)",
+    );
+    expect(await computed(firstLink, "position", "::after")).toBe("absolute");
+    // The link's own outline, which the truncation would clip, is off.
+    expect(await computed(firstLink, "outline-color")).toBe("rgba(0, 0, 0, 0)");
+
+    await page.keyboard.press("Tab");
+    const secondLink: Locator = resourceRows(page).nth(1).getByRole("link");
+    await expect(secondLink).toBeFocused();
+    expect(await computed(firstLink, "box-shadow", "::after")).not.toContain(
+      "rgb(99, 102, 241)",
+    );
+
+    await page.keyboard.press("Enter");
+    await expectStubPage(
+      page,
+      "MONITOR_VIEW",
+      `${DASHBOARD}/monitors/${uuid("70000000", 2)}`,
+    );
+  });
+
+  test("?resources=many: five categories, and Show more opens the rest in place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "resources=many",
+      MANY_RESOURCES_READY,
+    );
+
+    const resources: Locator = resourcesCard(page);
+    expect(await resourceHeadings(page)).toEqual(MANY_RESOURCES_HEADINGS);
+    await expect(
+      resources.getByTestId("affected-resources-summary"),
+    ).toHaveText("13 resources across 5 categories");
+    expect(await nestedCardChrome(resourcesBody(page))).toEqual([]);
+
+    // No label is cut short in the sidebar, the longest included.
+    const labels: Locator = resources
+      .getByRole("heading", { level: 3 })
+      .locator(":scope > span:first-child");
+    await expect(labels).toHaveText([
+      "Monitors",
+      "Hosts",
+      "Kubernetes Clusters",
+      "Services",
+      "SLOs",
+    ]);
+    for (const label of await labels.all()) {
+      expect(await isOverflowing(label)).toBe(false);
+    }
+
+    const monitors: Locator = resources.getByRole("list", {
+      name: "Monitors 6",
+    });
+    await expect(monitors.getByRole("listitem")).toHaveCount(4);
+    // By what it controls, since its name changes when it is pressed.
+    const listId: string = (await monitors.getAttribute("id"))!;
+    const toggle: Locator = resources.locator(
+      `button[aria-controls="${listId}"]`,
+    );
+    await expect(toggle).toHaveText("Show 2 more");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(resources.getByText("Cart API p99 latency")).toHaveCount(0);
+
+    /*
+     * A name wider than the sidebar ends in an ellipsis, whole in its title.
+     * The element's own flex name span is what truncates: the row turns it
+     * into a truncating block.
+     */
+    const longItem: Locator = resources.getByTitle(LONG_MONITOR_NAME);
+    await expect(longItem).toBeVisible();
+    const longName: Locator = longItem.locator("span.flex");
+    expect(await isOverflowing(longName)).toBe(true);
+    expect(await computed(longName, "text-overflow")).toBe("ellipsis");
+    expect(await computed(longName, "white-space")).toBe("nowrap");
+
+    const hostsBefore: Box = await documentBox(
+      resources.getByRole("list", { name: "Hosts 2" }),
+    );
+
+    await toggle.click();
+    await expect(monitors.getByRole("listitem")).toHaveCount(6);
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(toggle).toHaveText("Show less");
+    await expect(monitors.getByText("Cart API p99 latency")).toBeVisible();
+    await expect(monitors.getByText("CDN edge eu-west")).toBeVisible();
+    // In place: the sections below make room.
+    const hostsAfter: Box = await documentBox(
+      resources.getByRole("list", { name: "Hosts 2" }),
+    );
+    expect(hostsAfter.y).toBeGreaterThan(hostsBefore.y + 50);
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(resources, "incident-affected-resources-many");
+
+    await toggle.click();
+    await expect(monitors.getByRole("listitem")).toHaveCount(4);
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(toggle).toHaveText("Show 2 more");
+    await expect(resources.getByText("Cart API p99 latency")).toHaveCount(0);
+  });
+
+  test("?resources=many: host, cluster and SLO rows open their own pages", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const targets: ReadonlyArray<[string, string, string]> = [
+      ["checkout-api-7f9c", "HOST_VIEW", uuid("84000000", 1)],
+      ["prod-eks-eu-west-1", "KUBERNETES_CLUSTER_VIEW", uuid("85000000", 1)],
+      ["Checkout availability 99.9%", "SLO_VIEW", uuid("86000000", 1)],
+    ];
+
+    for (const [name, pageKey, id] of targets) {
+      await openReady(
+        page,
+        INCIDENT_PAGE,
+        "resources=many",
+        MANY_RESOURCES_READY,
+      );
+      const link: Locator = resourceRows(page)
+        .filter({ hasText: name })
+        .getByRole("link");
+      const href: string = (await link.getAttribute("href"))!;
+      expect(href).toContain(id);
+      await link.click();
+      await expectStubPage(page, pageKey, href);
+    }
+  });
+
+  test("?resources=many fits a 390px phone, expanded too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "resources=many",
+      MANY_RESOURCES_READY,
+    );
+
+    const resources: Locator = resourcesCard(page);
+    await resources.scrollIntoViewIfNeeded();
+    await expectNoHorizontalOverflow(page);
+    await resources.getByRole("button", { name: "Show 2 more" }).click();
+    await expect(resourceRows(page)).toHaveCount(13);
+    await expectNoHorizontalOverflow(page);
+
+    const cardBox: Box = await documentBox(resources);
+    for (const row of await resourceRows(page).all()) {
+      const rowBox: Box = await documentBox(row);
+      expect(rowBox.x + rowBox.width).toBeLessThanOrEqual(
+        cardBox.x + cardBox.width,
+      );
+    }
+    // The long name is cut with an ellipsis rather than widening the card.
+    const longName: Locator = resources
+      .getByTitle(LONG_MONITOR_NAME)
+      .locator("span.flex");
+    expect(await isOverflowing(longName)).toBe(true);
+    expect(await computed(longName, "text-overflow")).toBe("ellipsis");
+    await page.mouse.move(0, 0);
+    await screenshotElement(resources, "incident-affected-resources-mobile");
+  });
+
+  test("?resources=none: the incident's empty state is open text that says SLOs are linked for it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "resources=none", [
+      REPORT_CAVEAT,
+      "No resources affected.",
+    ]);
+
+    const resources: Locator = resourcesCard(page);
+    const empty: Locator = resources.getByTestId("affected-resources-empty");
+    await expect(empty).toContainText("No resources affected.");
+    await expect(empty).toContainText(SLO_HINT);
+    await expect(resources.getByTestId("affected-resources-grid")).toHaveCount(
+      0,
+    );
+    await expect(resources.getByRole("heading", { level: 3 })).toHaveCount(0);
+    // No dashed, tinted box inside the card.
+    expect(await nestedCardChrome(empty)).toEqual([]);
+    expect(await computed(empty, "border-top-width")).toBe("0px");
+    expect(await computed(empty, "background-color")).toBe("rgba(0, 0, 0, 0)");
+    await screenshotElement(resources, "incident-affected-resources-empty");
+  });
+
+  test("?resources=none: scheduled maintenance never promises SLOs, which nothing links to it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "resources=none", [
+      "Subscribers notified",
+      "No resources affected.",
+    ]);
+
+    const empty: Locator = resourcesCard(page).getByTestId(
+      "affected-resources-empty",
+    );
+    await expect(empty).toContainText("No resources affected.");
+    await expect(empty).toContainText(
+      "Attach monitors, hosts, clusters, or services",
+    );
+    await expect(empty).not.toContainText("SLOs");
+  });
+
+  const THEMES: ReadonlyArray<{
+    theme: string;
+    query: string;
+    label: string;
+    item: string;
+    countFill: string;
+    countText: string;
+    divider: string;
+    hover: string;
+    tile: string;
+  }> = [
+    {
+      theme: "light",
+      query: "",
+      label: "rgb(17, 24, 39)",
+      item: "rgb(55, 65, 81)",
+      countFill: "rgb(243, 244, 246)",
+      countText: "rgb(75, 85, 99)",
+      divider: "rgb(243, 244, 246)",
+      hover: "rgb(249, 250, 251)",
+      tile: "rgb(239, 246, 255)",
+    },
+    {
+      /*
+       * Theme.css: --ou-text-primary, --ou-text-secondary,
+       * --ou-surface-tertiary, --ou-text-muted, --ou-border-subtle,
+       * --ou-surface-secondary and blue-50's remap.
+       */
+      theme: "dark",
+      query: "theme=dark",
+      label: "rgb(248, 250, 252)",
+      item: "rgb(226, 232, 240)",
+      countFill: "rgb(39, 52, 73)",
+      countText: "rgb(203, 213, 225)",
+      divider: "rgb(51, 65, 85)",
+      hover: "rgb(30, 41, 59)",
+      tile: "rgba(30, 64, 175, 0.28)",
+    },
+  ];
+
+  for (const colours of THEMES) {
+    test(`${colours.theme} theme: labels, rows, counts, hairlines and hover use its palette`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, INCIDENT_PAGE, colours.query);
+      await page.mouse.move(0, 0);
+
+      const section: Locator = resourceSections(page).first();
+      const row: Locator = resourceRows(page).first();
+      const count: Locator = section.getByTestId(
+        "affected-resource-category-count",
+      );
+
+      expect(
+        await computed(section.getByText("Monitors", { exact: true }), "color"),
+      ).toBe(colours.label);
+      expect(await computed(row, "color")).toBe(colours.item);
+      expect(await computed(count, "background-color")).toBe(colours.countFill);
+      expect(await computed(count, "color")).toBe(colours.countText);
+      expect(
+        await computed(resourceSections(page).nth(1), "border-top-color"),
+      ).toBe(colours.divider);
+      expect(
+        await computed(
+          section.locator(":scope > div > div").first(),
+          "background-color",
+        ),
+      ).toBe(colours.tile);
+
+      await row.hover({ position: { x: 4, y: 4 } });
+      await expect
+        .poll(async (): Promise<string> => {
+          return computed(row, "background-color");
+        })
+        .toBe(colours.hover);
+
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        resourcesCard(page),
+        `incident-affected-resources-${colours.theme}`,
+      );
+    });
+  }
 });
 
 test.describe("scheduled maintenance overview", () => {
@@ -4970,6 +6303,29 @@ test.describe("screenshots", () => {
     await openReady(page, INCIDENT_PAGE);
     await page.mouse.move(0, 0);
     await screenshotElement(investigationCard(page), "incident-ai-report");
+  });
+
+  // Every state of the card, for review: one flat card in each.
+  test("AI investigation card states", async ({ page }: { page: Page }) => {
+    const states: ReadonlyArray<{ file: string; state: CardState }> = [
+      { file: "ai-card-running", state: CARD_STATES[3]! },
+      { file: "ai-card-running-clusters", state: CARD_STATES[4]! },
+      { file: "ai-card-queued", state: CARD_STATES[5]! },
+      { file: "ai-card-failed", state: CARD_STATES[6]! },
+      { file: "ai-card-pending", state: CARD_STATES[7]! },
+      { file: "ai-card-none", state: CARD_STATES[8]! },
+      { file: "ai-card-clusters", state: CARD_STATES[1]! },
+      {
+        file: "ai-card-dark",
+        state: { name: "dark", query: "theme=dark", badge: "Completed" },
+      },
+    ];
+
+    for (const { file, state } of states) {
+      await openCardState(page, state);
+      await page.mouse.move(0, 0);
+      await screenshotElement(investigationCard(page), file);
+    }
   });
 
   test.describe("AI report close-ups", () => {

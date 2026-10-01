@@ -108,7 +108,7 @@ export interface EnterpriseLicenseSnapshot {
  * GlobalConfig.enterpriseEditionFirstSeenAt.
  *
  * Until either ends nothing changes; after it, enterprise configuration
- * becomes read-only and SSO, SCIM and audit logging stop
+ * becomes read-only and SCIM provisioning and audit logging stop
  * (EnterpriseEdition.isFeatureActive) until a license is activated. They are
  * defined in Common/Types so the browser copy derives the same numbers.
  */

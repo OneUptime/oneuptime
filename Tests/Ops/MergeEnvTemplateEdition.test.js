@@ -9,8 +9,7 @@
  * then `docker compose pull`) keeps APP_TAG as it is. Left alone, the upgrade
  * pulls the Community image, and the App refuses to start with
  * IS_ENTERPRISE_EDITION=true (packages/App/Utils/EnterpriseLoader.ts) because
- * running on would silently stop enforcing "Require SSO", SSO, SCIM and audit
- * logging.
+ * running on would silently stop SCIM provisioning and audit logging.
  *
  * So while config.env still asks for the Enterprise Edition, the merge moves
  * APP_TAG to the matching enterprise- tag and prints why. This suite pins the
@@ -257,7 +256,18 @@ describe("describeEnterpriseImageTagChanges", () => {
     expect(notice).toContain("IS_ENTERPRISE_EDITION=true");
     expect(notice).toContain("from release to enterprise-release");
     expect(notice).toContain("refuses to start");
-    expect(notice).toContain("SSO, SCIM and audit logging");
+    expect(notice).toContain("SCIM provisioning and audit logging");
+  });
+
+  /*
+   * Single sign-on is part of the Community Edition, so the Community image
+   * does not stop it: a notice that still named SSO would scare an operator
+   * into the Enterprise image for nothing.
+   */
+  test("does not claim the Community image stops single sign-on", () => {
+    expect(notice).not.toMatch(/\bSSO\b/);
+    expect(notice).not.toMatch(/single sign-on/i);
+    expect(notice).not.toContain("Require SSO");
   });
 
   test("says how to opt out", () => {

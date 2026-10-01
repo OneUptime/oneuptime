@@ -63,8 +63,9 @@ const VMwareVCenterDocumentation: FunctionComponent<
   return (
     <Fragment>
       <VMwareDocumentationCard
+        vcenterName={vcenter.name || ""}
         title="VMware Agent Installation Guide"
-        description="Follow these steps to install the OneUptime VMware Agent for this vCenter."
+        description="Install or reconfigure the OneUptime VMware agent for this vCenter. Pick how to install it, then follow the steps."
       />
     </Fragment>
   );

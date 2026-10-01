@@ -4,36 +4,32 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 /*
- * The ten Enterprise identity screens (six in the Dashboard, four in the
- * Admin Dashboard) against the license state.
+ * The two Enterprise SCIM screens (project and status page) against the
+ * license state.
  *
  * Without a valid license, after the trial or the grace period, the server
- * refuses to create or change SSO / OIDC / SCIM configuration (402, master
- * admins included), and SSO sign-in and SCIM provisioning stop until a
- * license is activated; reads and deletes keep working. The screens say so
- * and stop offering what would fail: the read-only banner (which says that
- * sign-in and SCIM are off - EnterpriseLicenseBanner.test.tsx pins its copy),
- * no "create" or "edit" on the provider table - but "delete" stays, and so
- * does "Reset Bearer Token", which the server accepts without a license (it
- * only tightens security; ReadOnlyIncidentActions.test.tsx covers it and
- * "Disable" in depth). In the grace period they warn and stay editable; with
- * a valid license, on OneUptime Cloud, or when the license cannot be read,
- * they are exactly what they were before.
+ * refuses to create or change SCIM configuration (402, master admins
+ * included), and SCIM provisioning stops until a license is activated; reads
+ * and deletes keep working. The screens say so and stop offering what would
+ * fail: the read-only banner (which says that SCIM is off -
+ * EnterpriseLicenseBanner.test.tsx pins its copy), no "create" or "edit" on
+ * the configuration table - but "delete" stays, and so does "Reset Bearer
+ * Token", which the server accepts without a license (it only tightens
+ * security; ReadOnlyIncidentActions.test.tsx covers it in depth). In the
+ * grace period they warn and stay editable; with a valid license, on
+ * OneUptime Cloud, or when the license cannot be read, they are exactly what
+ * they were before.
  *
- * "Force SSO for Login" (project and status page SSO screens) lives on the
- * core Project / StatusPage model. While single sign-on is off the server
- * does not enforce it and reports it as No whatever is saved, so its card is
- * not editable then (saving the reported No would overwrite the saved
- * requirement) and says why it shows No.
+ * A valid license whose `features` leave SCIM out stops it too: the screen
+ * is read-only with a banner that names SCIM (NotIncluded), while a license
+ * that includes SCIM leaves the screen unchanged.
  *
- * A valid license whose `features` leave the screen's feature out stops that
- * feature too: the screen is read-only with a banner that names the feature
- * (NotIncluded), while a screen about a feature the license does include is
- * unchanged.
+ * Single sign-on is not among these screens: its pages are core, and no
+ * license state changes them (Common/Tests/App/Dashboard/SsoPages.test.tsx).
  *
- * The model tables and detail cards are replaced by stand-ins that print the
- * props that matter, and the license request is answered per test. Billing
- * is pinned in every test: CI's config.env sets BILLING_ENABLED=true.
+ * The model tables are replaced by stand-ins that print the props that
+ * matter, and the license request is answered per test. Billing is pinned in
+ * every test: CI's config.env sets BILLING_ENABLED=true.
  */
 
 let billingEnabledForTest: boolean = false;
@@ -106,44 +102,6 @@ jest.mock("Common/UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
-interface MockDescribedField {
-  title?: string | undefined;
-  description?: string | undefined;
-}
-
-jest.mock("Common/UI/Components/ModelDetail/CardModelDetail", () => {
-  return {
-    __esModule: true,
-    default: (props: {
-      name: string;
-      isEditable?: boolean;
-      formFields?: Array<MockDescribedField>;
-      modelDetailProps?: { fields?: Array<MockDescribedField> };
-    }): ReactElement => {
-      const describeFields: (
-        fields: Array<MockDescribedField> | undefined,
-      ) => string = (fields: Array<MockDescribedField> | undefined): string => {
-        return (fields || [])
-          .map((field: MockDescribedField) => {
-            return `${field.title || ""}: ${field.description || ""}`;
-          })
-          .join(" | ");
-      };
-
-      return (
-        <div
-          data-testid={`card-model-detail-${props.name}`}
-          data-editable={String(Boolean(props.isEditable))}
-          data-form-descriptions={describeFields(props.formFields)}
-          data-detail-descriptions={describeFields(
-            props.modelDetailProps?.fields,
-          )}
-        />
-      );
-    },
-  };
-});
-
 jest.mock("Common/UI/Components/Tabs/Tabs", () => {
   return {
     __esModule: true,
@@ -161,56 +119,8 @@ jest.mock("Common/UI/Components/Tabs/Tabs", () => {
   };
 });
 
-jest.mock("Common/UI/Components/Page/Page", () => {
-  return {
-    __esModule: true,
-    default: (props: { children?: ReactNode }): ReactElement => {
-      return <div data-testid="page">{props.children}</div>;
-    },
-  };
-});
-
-jest.mock("Common/UI/Components/Page/ModelPage", () => {
-  return {
-    __esModule: true,
-    default: (props: { children?: ReactNode }): ReactElement => {
-      return <div data-testid="model-page">{props.children}</div>;
-    },
-  };
-});
-
-jest.mock("Common/UI/Components/ModelDelete/ModelDelete", () => {
-  return {
-    __esModule: true,
-    default: (): ReactElement => {
-      return <div data-testid="model-delete" />;
-    },
-  };
-});
-
-jest.mock("@oneuptime/admin-dashboard/Pages/Settings/SideMenu", () => {
-  return {
-    __esModule: true,
-    default: (): ReactElement => {
-      return <nav />;
-    },
-  };
-});
-
-import SettingsSSOPage from "../../../Dashboard/SSO/Pages/Settings/SSO";
-import SettingsOIDCPage from "../../../Dashboard/SSO/Pages/Settings/OIDC";
-import SettingsSCIMPage from "../../../Dashboard/SSO/Pages/Settings/SCIM";
-import StatusPageSSOPage from "../../../Dashboard/SSO/Pages/StatusPages/SSO";
-import StatusPageOIDCPage from "../../../Dashboard/SSO/Pages/StatusPages/OIDC";
-import StatusPageSCIMPage from "../../../Dashboard/SSO/Pages/StatusPages/SCIM";
-import GlobalSSOListPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalSSO/Index";
-import GlobalSSOViewPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalSSO/View";
-import GlobalOIDCListPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalOIDC/Index";
-import GlobalOIDCViewPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalOIDC/View";
-import {
-  FORCE_SSO_NOT_ENFORCED_DESCRIPTION,
-  FORCE_SSO_NOT_INCLUDED_DESCRIPTION,
-} from "../../../Dashboard/SSO/License/ForceSsoSetting";
+import SettingsSCIMPage from "../../../Dashboard/Identity/Pages/Settings/SCIM";
+import StatusPageSCIMPage from "../../../Dashboard/Identity/Pages/StatusPages/SCIM";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import Route from "Common/Types/API/Route";
 import { JSONObject } from "Common/Types/JSON";
@@ -218,10 +128,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
-const PROVIDER_ID: string = "33333333-3333-4333-8333-333333333333";
 
 const PAGE_PROPS: PageComponentProps = {
-  pageRoute: new Route(`/dashboard/${PROJECT_ID}/settings/sso`),
+  pageRoute: new Route(`/dashboard/${PROJECT_ID}/settings/scim`),
   currentProject: null,
   hasPaymentMethod: true,
 };
@@ -230,18 +139,8 @@ interface ScreenCase {
   name: string;
   render: () => ReactElement;
   path: string;
-  // The provider table: create and edit follow the license, delete never does.
+  // The configuration table: create and edit follow the license, delete never does.
   providerTable: string;
-  providerTableEditable: boolean;
-  // Delete is never license-gated; this is what the table offered before.
-  providerTableDeleteable: boolean;
-  // A detail card on the SAME provider model, edited in place.
-  providerCard?: string | undefined;
-  // "Force SSO for Login" on a core model (Project / StatusPage).
-  coreCard?: string | undefined;
-  hasTokenReset: boolean;
-  // The license feature the screen is about.
-  feature: "sso" | "scim";
 }
 
 const renderDashboardPage: (
@@ -255,120 +154,18 @@ const renderDashboardPage: (
   };
 };
 
-const renderAdminPage: (Page: FunctionComponent) => () => ReactElement = (
-  Page: FunctionComponent,
-): (() => ReactElement) => {
-  // eslint-disable-next-line react/display-name
-  return (): ReactElement => {
-    return <Page />;
-  };
-};
-
 const SCREENS: Array<ScreenCase> = [
-  {
-    name: "Settings > SSO",
-    render: renderDashboardPage(SettingsSSOPage),
-    path: `/dashboard/${PROJECT_ID}/settings/sso`,
-    providerTable: "sso-table",
-    providerTableEditable: true,
-    providerTableDeleteable: true,
-    coreCard: "SSO Settings",
-    hasTokenReset: false,
-    feature: "sso",
-  },
-  {
-    name: "Settings > OIDC",
-    render: renderDashboardPage(SettingsOIDCPage),
-    path: `/dashboard/${PROJECT_ID}/settings/oidc`,
-    providerTable: "oidc-table",
-    providerTableEditable: true,
-    providerTableDeleteable: true,
-    hasTokenReset: false,
-    feature: "sso",
-  },
   {
     name: "Settings > SCIM",
     render: renderDashboardPage(SettingsSCIMPage),
     path: `/dashboard/${PROJECT_ID}/settings/scim`,
     providerTable: "scim-table",
-    providerTableEditable: true,
-    providerTableDeleteable: true,
-    hasTokenReset: true,
-    feature: "scim",
-  },
-  {
-    name: "Status page > SSO",
-    render: renderDashboardPage(StatusPageSSOPage),
-    path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/sso`,
-    providerTable: "sso-table",
-    providerTableEditable: true,
-    providerTableDeleteable: true,
-    coreCard: "SSO Settings",
-    hasTokenReset: false,
-    feature: "sso",
-  },
-  {
-    name: "Status page > OIDC",
-    render: renderDashboardPage(StatusPageOIDCPage),
-    path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/oidc`,
-    providerTable: "oidc-table",
-    providerTableEditable: true,
-    providerTableDeleteable: true,
-    hasTokenReset: false,
-    feature: "sso",
   },
   {
     name: "Status page > SCIM",
     render: renderDashboardPage(StatusPageSCIMPage),
     path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/scim`,
     providerTable: "status-page-scim-table",
-    providerTableEditable: true,
-    providerTableDeleteable: true,
-    hasTokenReset: true,
-    feature: "scim",
-  },
-  {
-    name: "Admin > Global SSO",
-    render: renderAdminPage(GlobalSSOListPage),
-    path: "/admin/settings/global-sso",
-    providerTable: "global-sso-table",
-    // The list was never editable in place: providers are edited on their page.
-    providerTableEditable: false,
-    providerTableDeleteable: false,
-    hasTokenReset: false,
-    feature: "sso",
-  },
-  {
-    name: "Admin > Global SSO > provider",
-    render: renderAdminPage(GlobalSSOViewPage),
-    path: `/admin/settings/global-sso/${PROVIDER_ID}`,
-    providerTable: "global-sso-project-table",
-    providerTableEditable: false,
-    providerTableDeleteable: true,
-    providerCard: "Global SSO Configuration",
-    hasTokenReset: false,
-    feature: "sso",
-  },
-  {
-    name: "Admin > Global OIDC",
-    render: renderAdminPage(GlobalOIDCListPage),
-    path: "/admin/settings/global-oidc",
-    providerTable: "global-oidc-table",
-    providerTableEditable: false,
-    providerTableDeleteable: false,
-    hasTokenReset: false,
-    feature: "sso",
-  },
-  {
-    name: "Admin > Global OIDC > provider",
-    render: renderAdminPage(GlobalOIDCViewPage),
-    path: `/admin/settings/global-oidc/${PROVIDER_ID}`,
-    providerTable: "global-oidc-project-table",
-    providerTableEditable: false,
-    providerTableDeleteable: true,
-    providerCard: "Global OIDC Configuration",
-    hasTokenReset: false,
-    feature: "sso",
   },
 ];
 
@@ -403,48 +200,28 @@ const renderScreen: (screenCase: ScreenCase) => Promise<void> = async (
   });
 };
 
-const expectForceSsoLocked: (
-  screenCase: ScreenCase,
-  description: string,
-) => void = (screenCase: ScreenCase, description: string): void => {
-  const card: HTMLElement = screen.getByTestId(
-    `card-model-detail-${screenCase.coreCard}`,
-  );
-
-  expect(card).toHaveAttribute("data-editable", "false");
-  expect(card.getAttribute("data-detail-descriptions")).toBe(
-    `Force SSO for Login: ${description}`,
-  );
-  expect(card.getAttribute("data-form-descriptions")).toBe(
-    `Force SSO for Login: ${description}`,
-  );
-};
-
-// Editable, with its usual warning about testing SSO first.
-const expectForceSsoEditable: (screenCase: ScreenCase) => void = (
-  screenCase: ScreenCase,
-): void => {
-  const card: HTMLElement = screen.getByTestId(
-    `card-model-detail-${screenCase.coreCard}`,
-  );
-
-  expect(card).toHaveAttribute("data-editable", "true");
-
-  for (const attribute of [
-    "data-detail-descriptions",
-    "data-form-descriptions",
-  ]) {
-    expect(card.getAttribute(attribute)).toContain(
-      "Please test SSO before you",
-    );
-    expect(card.getAttribute(attribute)).not.toContain("Not enforced");
-  }
-};
-
 const providerTable: (screenCase: ScreenCase) => HTMLElement = (
   screenCase: ScreenCase,
 ): HTMLElement => {
   return screen.getByTestId(`model-table-${screenCase.providerTable}`);
+};
+
+// Everything a SCIM screen shows while its configuration can be changed.
+const expectEditable: (screenCase: ScreenCase) => void = (
+  screenCase: ScreenCase,
+): void => {
+  expect(
+    screen.queryByTestId("enterprise-license-read-only-banner"),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByTestId("enterprise-read-only-actions-notice"),
+  ).not.toBeInTheDocument();
+  expect(providerTable(screenCase)).toHaveAttribute("data-createable", "true");
+  expect(providerTable(screenCase)).toHaveAttribute("data-editable", "true");
+  expect(providerTable(screenCase)).toHaveAttribute("data-deleteable", "true");
+  expect(providerTable(screenCase).getAttribute("data-actions")).toContain(
+    "Reset Bearer Token",
+  );
 };
 
 beforeEach(() => {
@@ -463,12 +240,16 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
     await renderScreen(screenCase);
 
     /*
-     * Every identity screen says that sign-in and SCIM are off, not only that
-     * nothing can change - SSO, SCIM and audit logging stop with the license.
+     * The screen says that SCIM is off, not only that nothing can change -
+     * SCIM provisioning stops with the license.
      */
-    expect(
-      screen.getByTestId("enterprise-license-read-only-banner"),
-    ).toHaveTextContent("single sign-on and SCIM are off");
+    const banner: HTMLElement = screen.getByTestId(
+      "enterprise-license-read-only-banner",
+    );
+
+    expect(banner).toHaveTextContent("SCIM is off");
+    // Single sign-on never stops with the license, so it is not mentioned.
+    expect(banner).not.toHaveTextContent(/single sign-on|\bSSO\b/i);
     expect(providerTable(screenCase)).toHaveAttribute(
       "data-createable",
       "false",
@@ -476,35 +257,18 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
     expect(providerTable(screenCase)).toHaveAttribute("data-editable", "false");
     expect(providerTable(screenCase)).toHaveAttribute(
       "data-deleteable",
-      String(screenCase.providerTableDeleteable),
+      "true",
     );
-
-    if (screenCase.providerCard) {
-      expect(
-        screen.getByTestId(`card-model-detail-${screenCase.providerCard}`),
-      ).toHaveAttribute("data-editable", "false");
-    }
-
-    /*
-     * "Force SSO for login" is not enforced now and reads as No whatever is
-     * saved: not editable (saving the No would overwrite the saved
-     * requirement), and it says why it shows No.
-     */
-    if (screenCase.coreCard) {
-      expectForceSsoLocked(screenCase, FORCE_SSO_NOT_ENFORCED_DESCRIPTION);
-    }
 
     /*
      * Replacing a leaked SCIM bearer token is a tighten-only update the
      * server accepts without a license, so the reset stays on offer.
      */
-    if (screenCase.hasTokenReset) {
-      expect(providerTable(screenCase).getAttribute("data-actions")).toContain(
-        "Reset Bearer Token",
-      );
-    }
+    expect(providerTable(screenCase).getAttribute("data-actions")).toContain(
+      "Reset Bearer Token",
+    );
 
-    // And the screen says which changes are still possible, and why.
+    // And the screen says which change is still possible, and why.
     expect(
       screen.getByTestId("enterprise-read-only-actions-notice"),
     ).toBeInTheDocument();
@@ -536,37 +300,16 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
 
     await renderScreen(screenCase);
 
-    // Single sign-on still runs, so "Force SSO for Login" is enforced as saved.
-    if (screenCase.coreCard) {
-      expectForceSsoEditable(screenCase);
-    }
-
     // The warning says what stops when the trial or grace period ends.
-    expect(
-      screen.getByTestId("enterprise-license-grace-banner"),
-    ).toHaveTextContent(
-      "single sign-on and SCIM stop when the trial or grace period ends",
-    );
-    expect(
-      screen.queryByTestId("enterprise-license-read-only-banner"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId("enterprise-read-only-actions-notice"),
-    ).not.toBeInTheDocument();
-    expect(providerTable(screenCase)).toHaveAttribute(
-      "data-createable",
-      "true",
-    );
-    expect(providerTable(screenCase)).toHaveAttribute(
-      "data-editable",
-      String(screenCase.providerTableEditable),
+    const banner: HTMLElement = screen.getByTestId(
+      "enterprise-license-grace-banner",
     );
 
-    if (screenCase.hasTokenReset) {
-      expect(providerTable(screenCase).getAttribute("data-actions")).toContain(
-        "Reset Bearer Token",
-      );
-    }
+    expect(banner).toHaveTextContent(
+      "SCIM stops when the trial or grace period ends",
+    );
+    expect(banner).not.toHaveTextContent(/single sign-on|\bSSO\b/i);
+    expectEditable(screenCase);
   });
 
   test("valid license: no banner, unchanged screen", async () => {
@@ -574,43 +317,10 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
 
     await renderScreen(screenCase);
 
-    if (screenCase.coreCard) {
-      expectForceSsoEditable(screenCase);
-    }
-
-    expect(
-      screen.queryByTestId("enterprise-license-read-only-banner"),
-    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("enterprise-license-grace-banner"),
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId("enterprise-read-only-actions-notice"),
-    ).not.toBeInTheDocument();
-    expect(providerTable(screenCase)).toHaveAttribute(
-      "data-createable",
-      "true",
-    );
-    expect(providerTable(screenCase)).toHaveAttribute(
-      "data-editable",
-      String(screenCase.providerTableEditable),
-    );
-    expect(providerTable(screenCase)).toHaveAttribute(
-      "data-deleteable",
-      String(screenCase.providerTableDeleteable),
-    );
-
-    if (screenCase.providerCard) {
-      expect(
-        screen.getByTestId(`card-model-detail-${screenCase.providerCard}`),
-      ).toHaveAttribute("data-editable", "true");
-    }
-
-    if (screenCase.hasTokenReset) {
-      expect(providerTable(screenCase).getAttribute("data-actions")).toContain(
-        "Reset Bearer Token",
-      );
-    }
+    expectEditable(screenCase);
   });
 
   test("the license cannot be read: nothing is locked", async () => {
@@ -618,17 +328,7 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
 
     await renderScreen(screenCase);
 
-    if (screenCase.coreCard) {
-      expectForceSsoEditable(screenCase);
-    }
-
-    expect(
-      screen.queryByTestId("enterprise-license-read-only-banner"),
-    ).not.toBeInTheDocument();
-    expect(providerTable(screenCase)).toHaveAttribute(
-      "data-createable",
-      "true",
-    );
+    expectEditable(screenCase);
   });
 
   test("OneUptime Cloud (billing on): no license request, nothing is locked", async () => {
@@ -638,30 +338,14 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
     await renderScreen(screenCase);
 
     expect(mockLicenseFetch).not.toHaveBeenCalled();
-    expect(
-      screen.queryByTestId("enterprise-license-read-only-banner"),
-    ).not.toBeInTheDocument();
-    expect(providerTable(screenCase)).toHaveAttribute(
-      "data-createable",
-      "true",
-    );
-
-    if (screenCase.coreCard) {
-      expectForceSsoEditable(screenCase);
-    }
+    expectEditable(screenCase);
   });
 
-  test("a valid license that leaves this screen's feature out: that feature is off and read-only, named in the banner", async () => {
-    const otherFeatures: Array<string> = ["sso", "scim", "audit-logs"].filter(
-      (feature: string) => {
-        return feature !== screenCase.feature;
-      },
-    );
-
+  test("a valid license that leaves SCIM out: SCIM is off and read-only, named in the banner", async () => {
     answerLicense({
       status: "valid",
       licenseValid: true,
-      features: otherFeatures,
+      features: ["audit-logs"],
     });
 
     await renderScreen(screenCase);
@@ -671,9 +355,7 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
     );
 
     expect(banner).toHaveTextContent(
-      screenCase.feature === "scim"
-        ? "Your Enterprise license does not include SCIM"
-        : "Your Enterprise license does not include single sign-on",
+      "Your Enterprise license does not include SCIM",
     );
     expect(
       screen.queryByTestId("enterprise-license-read-only-banner"),
@@ -685,56 +367,49 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
     expect(providerTable(screenCase)).toHaveAttribute("data-editable", "false");
     expect(providerTable(screenCase)).toHaveAttribute(
       "data-deleteable",
-      String(screenCase.providerTableDeleteable),
+      "true",
     );
-
-    if (screenCase.providerCard) {
-      expect(
-        screen.getByTestId(`card-model-detail-${screenCase.providerCard}`),
-      ).toHaveAttribute("data-editable", "false");
-    }
-
-    if (screenCase.coreCard) {
-      expectForceSsoLocked(screenCase, FORCE_SSO_NOT_INCLUDED_DESCRIPTION);
-    }
-
-    if (screenCase.hasTokenReset) {
-      expect(providerTable(screenCase).getAttribute("data-actions")).toContain(
-        "Reset Bearer Token",
-      );
-    }
-
+    expect(providerTable(screenCase).getAttribute("data-actions")).toContain(
+      "Reset Bearer Token",
+    );
     expect(
       screen.getByTestId("enterprise-read-only-actions-notice"),
     ).toBeInTheDocument();
   });
 
+  /*
+   * A license from before single sign-on joined every edition may still list
+   * "sso": that name grants nothing, and it does not stand in for SCIM.
+   */
+  test('a valid license that lists only the retired "sso" name and audit logs: SCIM is still left out', async () => {
+    answerLicense({
+      status: "valid",
+      licenseValid: true,
+      features: ["sso", "audit-logs"],
+    });
+
+    await renderScreen(screenCase);
+
+    expect(
+      screen.getByTestId("enterprise-license-not-included-banner"),
+    ).toHaveTextContent("Your Enterprise license does not include SCIM");
+    expect(providerTable(screenCase)).toHaveAttribute(
+      "data-createable",
+      "false",
+    );
+  });
+
   test.each([
-    [
-      "only this screen's feature",
-      (feature: string): unknown => {
-        return [feature];
-      },
-    ],
-    [
-      "every feature",
-      (): unknown => {
-        return "all";
-      },
-    ],
-    [
-      "the wildcard",
-      (): unknown => {
-        return ["*"];
-      },
-    ],
+    ["only SCIM", ["scim"] as unknown],
+    ["every feature", "all" as unknown],
+    ["the wildcard", ["*"] as unknown],
   ])(
     "a valid license with %s: unchanged screen",
-    async (_name: string, features: (feature: string) => unknown) => {
+    async (_name: string, features: unknown) => {
       answerLicense({
         status: "valid",
         licenseValid: true,
-        features: features(screenCase.feature) as JSONObject["features"],
+        features: features as JSONObject["features"],
       });
 
       await renderScreen(screenCase);
@@ -742,17 +417,7 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
       expect(
         screen.queryByTestId("enterprise-license-not-included-banner"),
       ).not.toBeInTheDocument();
-      expect(
-        screen.queryByTestId("enterprise-read-only-actions-notice"),
-      ).not.toBeInTheDocument();
-      expect(providerTable(screenCase)).toHaveAttribute(
-        "data-createable",
-        "true",
-      );
-
-      if (screenCase.coreCard) {
-        expectForceSsoEditable(screenCase);
-      }
+      expectEditable(screenCase);
     },
   );
 

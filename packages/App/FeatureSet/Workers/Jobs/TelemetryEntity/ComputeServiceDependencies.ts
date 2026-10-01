@@ -10,11 +10,15 @@ import DatabaseServerService from "Common/Server/Services/DatabaseServerService"
 import DatabaseServerEndpointService, {
   DatabaseServerEndpointClaimResult,
 } from "Common/Server/Services/DatabaseServerEndpointService";
+import MessageQueueService, {
+  MessageQueueFindOrCreateResult,
+} from "Common/Server/Services/MessageQueueService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Service from "Common/Models/DatabaseModels/Service";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "Common/Models/DatabaseModels/DatabaseServerEndpoint";
+import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
@@ -60,6 +64,21 @@ import {
   isDatabaseEndpointAutoCreateCandidate,
   resolveDatabaseEndpointRows,
 } from "Common/Server/Utils/Telemetry/DatabaseEndpointDiscovery";
+import {
+  DiscoveredMessageQueue,
+  MessagingMetricDiscoveryRow,
+  MessagingSpanDiscoveryRow,
+  buildMessagingMetricDiscoverySql,
+  buildMessagingMetricProjectsSql,
+  buildMessagingSpanDiscoverySql,
+  getDiscoveredMessageQueueBrokerAddress,
+  getMessageQueueCreationSource,
+  getMessageQueueMinSpans,
+  isMessageQueueAutoCreateCandidate,
+  mergeDiscoveredMessageQueues,
+  resolveMessagingMetricDiscoveryRows,
+  resolveMessagingSpanDiscoveryRows,
+} from "Common/Server/Utils/Telemetry/MessageQueueDiscovery";
 
 /*
  * "TelemetryEntity:ComputeServiceDependencies"
@@ -96,6 +115,14 @@ import {
  * server its calls reached (`oneuptime.database.endpoint`, `server.port`),
  * resolved from the dependency rows by the same ingest resolver, so the
  * Service Map can open that database. Never part of the node's identity.
+ *
+ * The Queues product is fed the same way, last: the queues the window's
+ * messaging spans and broker / messaging client metrics name are matched to
+ * their MessageQueue rows (created when new and busy enough, or reported by
+ * their broker) and sighted — see discoverMessageQueuesForProject. Isolated
+ * like the database step, and after it, for the same reason. A project whose
+ * only messaging telemetry is its brokers' metrics is in the project list
+ * too (buildMessagingMetricProjectsSql).
  */
 
 // CronTime.ts has no ten-minute constant; this job is its only user.
@@ -110,6 +137,17 @@ export const MAX_ROWS_PER_SOURCE: number = 1000;
 const MAX_PROJECTS_PER_RUN: number = 1000;
 // Grouped database endpoint rows read per project per run, busiest first.
 export const MAX_DATABASE_ENDPOINT_ROWS: number = 500;
+/*
+ * Grouped messaging span rows and broker / client metric rows read per
+ * project per run. A queue is several rows of each (one per span kind,
+ * consumer group, semconv generation, partition name; one per metric name),
+ * so these sit above the database cap. Over a cap, the query keeps every
+ * broker's (spans) or metric's (datapoints) busiest rows and a sample of the
+ * rest that changes every run, so no queue is left out run after run (see
+ * MessageQueueDiscovery's "Which rows the cap keeps").
+ */
+export const MAX_MESSAGE_QUEUE_SPAN_ROWS: number = 2000;
+export const MAX_MESSAGE_QUEUE_METRIC_ROWS: number = 2000;
 
 interface JsonResultSet<T> {
   json: () => Promise<{ data: Array<T> }>;
@@ -144,7 +182,8 @@ async function findProjectsWithRecentTelemetry(window: {
     ${QUERY_SETTINGS}
   `;
 
-  const [spanProjects, metricProjects]: [
+  const [spanProjects, metricProjects, messagingMetricProjects]: [
+    Array<{ projectId: string }>,
     Array<{ projectId: string }>,
     Array<{ projectId: string }>,
   ] = await Promise.all([
@@ -158,11 +197,30 @@ async function findProjectsWithRecentTelemetry(window: {
       );
       return [];
     }),
+    /*
+     * Projects whose brokers report queues: without them, a queue only a
+     * collector's broker metrics name would never be discovered in a
+     * project no instrumented application sends spans to.
+     */
+    readRows<{ projectId: string }>(
+      MetricService.executeQuery(
+        buildMessagingMetricProjectsSql({
+          startSql: window.startSql,
+          endSql: window.endSql,
+          maxProjects: MAX_PROJECTS_PER_RUN,
+        }),
+      ),
+    ).catch((err: unknown): Array<{ projectId: string }> => {
+      logger.error(
+        `ComputeServiceDependencies: messaging metric project scan failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return [];
+    }),
   ]);
 
   return Array.from(
     new Set<string>(
-      [...spanProjects, ...metricProjects]
+      [...spanProjects, ...metricProjects, ...messagingMetricProjects]
         .map((row: { projectId: string }): string => {
           return row.projectId;
         })
@@ -536,6 +594,313 @@ export async function discoverDatabaseServersForProject(args: {
   }
 }
 
+/*
+ * One queue query's rows, isolated: a failing query costs only its own
+ * evidence (the other query's queues are still matched and sighted), and a
+ * query at its row cap says so — and what the cap kept: each share's
+ * busiest groups and a sample of the rest that changes every run, so the
+ * groups left out this run are read on later ones. A query that runs out
+ * of time fails on the server, with ClickHouse's own timeout error, before
+ * this client would give up on it (MessageQueueDiscovery's
+ * MESSAGE_QUEUE_DISCOVERY_MAX_EXECUTION_SECONDS).
+ */
+async function readMessageQueueRows<T>(data: {
+  projectId: string;
+  // What the rows are, for the log lines.
+  what: string;
+  // What the query shares its cap out by, for the log line.
+  share: string;
+  maxRows: number;
+  read: () => Promise<Array<T>>;
+}): Promise<Array<T>> {
+  try {
+    const rows: Array<T> = await data.read();
+
+    if (rows.length >= data.maxRows) {
+      logger.warn(
+        `ComputeServiceDependencies: project ${data.projectId} had at least ${data.maxRows} ${data.what} groups in the window; ${data.maxRows} were matched to queues this run (each ${data.share}'s busiest and a sample of the rest that changes every run), the others are read on later runs`,
+      );
+    }
+
+    return rows;
+  } catch (err) {
+    logger.error(
+      `ComputeServiceDependencies: message queue discovery could not read ${data.what} for project ${data.projectId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return [];
+  }
+}
+
+/*
+ * The queue identifiers of the window that already have a row: ONE indexed
+ * query per project and run instead of a lookup per queue, so the queues
+ * that have no row and may not create one (a few stray spans, a client
+ * metric alone) cost no Postgres round trip at all.
+ */
+async function findExistingMessageQueueIdentifiers(
+  projectId: ObjectID,
+  identifiers: Array<string>,
+): Promise<Set<string>> {
+  const existing: Set<string> = new Set<string>();
+
+  if (identifiers.length === 0) {
+    return existing;
+  }
+
+  const rows: Array<MessageQueue> = await MessageQueueService.findBy({
+    query: {
+      projectId: projectId,
+      queueIdentifier: QueryHelper.any(identifiers),
+    },
+    select: {
+      queueIdentifier: true,
+    },
+    skip: 0,
+    limit: LIMIT_MAX,
+    props: { isRoot: true },
+  });
+
+  for (const row of rows) {
+    if (row.queueIdentifier) {
+      existing.add(row.queueIdentifier);
+    }
+  }
+
+  return existing;
+}
+
+/*
+ * A sighting, isolated: one that fails is logged and costs nothing else —
+ * not the queue's other sighting, not the next queue.
+ */
+async function recordMessageQueueSighting(data: {
+  projectId: ObjectID;
+  queueId: ObjectID;
+  source: "traces" | "broker-metrics";
+  brokerAddress: string | null;
+  at?: Date | undefined;
+}): Promise<void> {
+  try {
+    await MessageQueueService.recordSighting({
+      projectId: data.projectId,
+      queueId: data.queueId,
+      source: data.source,
+      brokerAddress: data.brokerAddress,
+      at: data.at,
+    });
+  } catch (err) {
+    logger.error(
+      `ComputeServiceDependencies: recording the ${data.source} sighting of queue ${data.queueId.toString()} failed for project ${data.projectId.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+/**
+ * Queues from messaging spans and broker metrics: every queue the project's
+ * messaging spans, curated broker metrics and messaging client metrics named
+ * in the window is matched to its MessageQueue row — created when new and
+ * either named by at least MESSAGE_QUEUE_MIN_SPANS spans or reported by its
+ * broker at all (within the project's auto-create budget, which
+ * MessageQueueService.findOrCreateByIdentity applies) — and that row is
+ * sighted once per kind of evidence: a traces sighting for the
+ * application's spans and client metrics, a broker-metrics sighting (with
+ * the time of the broker's newest datapoint) for its broker's, both
+ * carrying the one broker address getDiscoveredMessageQueueBrokerAddress
+ * picks for the run. Which queues
+ * already have a row is read in one query up front; a queue that has none
+ * and may not create one costs nothing more. Each queue is isolated from
+ * the next, and the whole step from everything else: it never throws.
+ * Returns how many queues were sighted.
+ */
+export async function discoverMessageQueuesForProject(args: {
+  projectId: string;
+  startSql: string;
+  endSql: string;
+}): Promise<number> {
+  try {
+    /*
+     * One scan at a time — the span query, then the metric query — so a
+     * project never has two attribute-map scans of the window in flight.
+     */
+    const spanRows: Array<MessagingSpanDiscoveryRow> =
+      await readMessageQueueRows<MessagingSpanDiscoveryRow>({
+        projectId: args.projectId,
+        what: "messaging span",
+        share: "messaging system",
+        maxRows: MAX_MESSAGE_QUEUE_SPAN_ROWS,
+        read: () => {
+          return readRows<MessagingSpanDiscoveryRow>(
+            SpanService.executeQuery(
+              buildMessagingSpanDiscoverySql({
+                projectId: args.projectId,
+                startSql: args.startSql,
+                endSql: args.endSql,
+                maxRows: MAX_MESSAGE_QUEUE_SPAN_ROWS,
+              }),
+            ),
+          );
+        },
+      });
+
+    const metricRows: Array<MessagingMetricDiscoveryRow> =
+      await readMessageQueueRows<MessagingMetricDiscoveryRow>({
+        projectId: args.projectId,
+        what: "broker and messaging client metric",
+        share: "metric",
+        maxRows: MAX_MESSAGE_QUEUE_METRIC_ROWS,
+        read: () => {
+          return readRows<MessagingMetricDiscoveryRow>(
+            MetricService.executeQuery(
+              buildMessagingMetricDiscoverySql({
+                projectId: args.projectId,
+                startSql: args.startSql,
+                endSql: args.endSql,
+                maxRows: MAX_MESSAGE_QUEUE_METRIC_ROWS,
+              }),
+            ),
+          );
+        },
+      });
+
+    const queues: Array<DiscoveredMessageQueue> = mergeDiscoveredMessageQueues(
+      resolveMessagingSpanDiscoveryRows(spanRows),
+      resolveMessagingMetricDiscoveryRows(metricRows),
+    );
+
+    if (queues.length === 0) {
+      return 0;
+    }
+
+    const projectId: ObjectID = new ObjectID(args.projectId);
+    const minSpans: number = getMessageQueueMinSpans();
+
+    const existing: Set<string> = await findExistingMessageQueueIdentifiers(
+      projectId,
+      queues.map((queue: DiscoveredMessageQueue): string => {
+        return queue.identifier;
+      }),
+    );
+
+    let sighted: number = 0;
+    let created: number = 0;
+    /*
+     * Set once the service refuses a create: the project is at its
+     * auto-create budget (or its count could not be read, which fails
+     * closed), so no other new queue would be created this run either — and
+     * none is looked up. Queues that have a row are still matched.
+     */
+    let createsRefused: boolean = false;
+
+    for (const discovered of queues) {
+      try {
+        const exists: boolean = existing.has(discovered.identifier);
+
+        /*
+         * An existing row is matched WITHOUT permission to create (the
+         * steady state; it also refines the row's system within its family
+         * and restores a row the auto-archive sweep archived). A queue with
+         * no row asks the create policy first, and is not looked up at all
+         * when the policy says no.
+         */
+        const allowCreate: boolean =
+          !exists &&
+          !createsRefused &&
+          isMessageQueueAutoCreateCandidate({
+            discovered: discovered,
+            minSpans: minSpans,
+          });
+
+        if (!exists && !allowCreate) {
+          continue;
+        }
+
+        /*
+         * The one broker address this run gives the row: the application's
+         * (spans, then client metrics) before a broker scrape's target. A
+         * row has one address column, and each sighting below overwrites
+         * it: if each passed its own source's address, the broker-metrics
+         * sighting, which runs last, would put its scrape target there on
+         * every run.
+         */
+        const brokerAddress: string | null =
+          getDiscoveredMessageQueueBrokerAddress(discovered);
+
+        const result: MessageQueueFindOrCreateResult =
+          await MessageQueueService.findOrCreateByIdentity({
+            projectId: projectId,
+            identity: discovered.identity,
+            system: discovered.system,
+            destination: discovered.destination,
+            brokerAddress: brokerAddress,
+            source: getMessageQueueCreationSource({
+              discovered: discovered,
+              minSpans: minSpans,
+            }),
+            allowCreate: allowCreate,
+          });
+
+        const queueId: ObjectID | null = result.queue?.id || null;
+
+        // Gone since the lookup, or a create the budget refused.
+        if (!queueId) {
+          if (allowCreate) {
+            createsRefused = true;
+          }
+          continue;
+        }
+
+        if (result.created) {
+          created++;
+        }
+
+        /*
+         * Every row found or created is sighted, per kind of evidence: a
+         * new row has no brokerMetricsLastSeenAt until the broker-metrics
+         * sighting sets it to the broker's own datapoint time. Both carry
+         * the run's one address, so either alone leaves the right one.
+         */
+        if (discovered.spans || discovered.clientMetrics) {
+          await recordMessageQueueSighting({
+            projectId: projectId,
+            queueId: queueId,
+            source: "traces",
+            brokerAddress: brokerAddress,
+          });
+        }
+
+        if (discovered.brokerMetrics) {
+          await recordMessageQueueSighting({
+            projectId: projectId,
+            queueId: queueId,
+            source: "broker-metrics",
+            brokerAddress: brokerAddress,
+            at: discovered.brokerMetrics.lastSeenAt || undefined,
+          });
+        }
+
+        sighted++;
+      } catch (err) {
+        logger.error(
+          `ComputeServiceDependencies: queue ${discovered.identifier} failed for project ${args.projectId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    if (sighted > 0) {
+      logger.debug(
+        `ComputeServiceDependencies: sighted ${sighted} queue(s) (${created} new) from messaging spans and metrics for project ${args.projectId}.`,
+      );
+    }
+
+    return sighted;
+  } catch (err) {
+    logger.error(
+      `ComputeServiceDependencies: message queue discovery failed for project ${args.projectId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return 0;
+  }
+}
+
 export async function computeDependenciesForProject(args: {
   projectId: string;
   startSql: string;
@@ -613,6 +978,17 @@ export async function computeDependenciesForProject(args: {
    * single edge. It never rejects.
    */
   await discoverDatabaseServersForProject({
+    projectId: args.projectId,
+    startSql: args.startSql,
+    endSql: args.endSql,
+  });
+
+  /*
+   * Queues from the same window, after the database step for the same
+   * reason: one attribute-map scan of the window at a time. It never
+   * rejects either.
+   */
+  await discoverMessageQueuesForProject({
     projectId: args.projectId,
     startSql: args.startSql,
     endSql: args.endSql,

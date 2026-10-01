@@ -1,4 +1,7 @@
 import ToolResultSerializer, {
+  MAX_FIELD_LENGTH,
+  MAX_PAYLOAD_BYTES,
+  MAX_ROWS,
   SerializedResult,
 } from "../../../../../Server/Utils/AI/Toolbox/Serializer";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -18,9 +21,17 @@ import { describe, expect, test } from "@jest/globals";
  * has to say so, or the model reports a slice as the whole picture.
  */
 
-const MAX_ROWS: number = 50;
-const MAX_FIELD_LENGTH: number = 500;
-const MAX_PAYLOAD_BYTES: number = 16 * 1024;
+describe("the caps", () => {
+  test("keep a whole stack trace or long log line in one field", () => {
+    // It used to be 500 characters — the frame that mattered was cut off.
+    expect(MAX_FIELD_LENGTH).toBeGreaterThanOrEqual(4000);
+  });
+
+  test("keep a large result whole, and summarize rows past the cap", () => {
+    expect(MAX_PAYLOAD_BYTES).toBeGreaterThanOrEqual(64 * 1024);
+    expect(MAX_ROWS).toBe(50);
+  });
+});
 
 function redactionOf(text: string): string {
   return ToolResultSerializer.redact(text).text;

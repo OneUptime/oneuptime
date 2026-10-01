@@ -1888,6 +1888,16 @@ enum Permission {
   EditIncidentAlert = "EditIncidentAlert",
   ReadIncidentAlert = "ReadIncidentAlert",
 
+  // Incident Form (public forms that declare incidents) Permissions
+  CreateIncidentForm = "CreateIncidentForm",
+  DeleteIncidentForm = "DeleteIncidentForm",
+  EditIncidentForm = "EditIncidentForm",
+  ReadIncidentForm = "ReadIncidentForm",
+
+  // Incident Form Submission Permissions
+  DeleteIncidentFormSubmission = "DeleteIncidentFormSubmission",
+  ReadIncidentFormSubmission = "ReadIncidentFormSubmission",
+
   // Incident Episode State Timeline Permissions
   CreateIncidentEpisodeStateTimeline = "CreateIncidentEpisodeStateTimeline",
   DeleteIncidentEpisodeStateTimeline = "DeleteIncidentEpisodeStateTimeline",
@@ -2066,6 +2076,36 @@ enum Permission {
   DeleteServiceLevelObjectiveLabelRule = "DeleteServiceLevelObjectiveLabelRule",
   EditServiceLevelObjectiveLabelRule = "EditServiceLevelObjectiveLabelRule",
   ReadServiceLevelObjectiveLabelRule = "ReadServiceLevelObjectiveLabelRule",
+
+  // Queue (MessageQueue) Permissions
+  CreateMessageQueue = "CreateMessageQueue",
+  DeleteMessageQueue = "DeleteMessageQueue",
+  EditMessageQueue = "EditMessageQueue",
+  ReadMessageQueue = "ReadMessageQueue",
+
+  // Queue Owner Team Permissions
+  CreateMessageQueueOwnerTeam = "CreateMessageQueueOwnerTeam",
+  DeleteMessageQueueOwnerTeam = "DeleteMessageQueueOwnerTeam",
+  EditMessageQueueOwnerTeam = "EditMessageQueueOwnerTeam",
+  ReadMessageQueueOwnerTeam = "ReadMessageQueueOwnerTeam",
+
+  // Queue Owner User Permissions
+  CreateMessageQueueOwnerUser = "CreateMessageQueueOwnerUser",
+  DeleteMessageQueueOwnerUser = "DeleteMessageQueueOwnerUser",
+  EditMessageQueueOwnerUser = "EditMessageQueueOwnerUser",
+  ReadMessageQueueOwnerUser = "ReadMessageQueueOwnerUser",
+
+  // Queue Label Rule Permissions
+  CreateMessageQueueLabelRule = "CreateMessageQueueLabelRule",
+  DeleteMessageQueueLabelRule = "DeleteMessageQueueLabelRule",
+  EditMessageQueueLabelRule = "EditMessageQueueLabelRule",
+  ReadMessageQueueLabelRule = "ReadMessageQueueLabelRule",
+
+  // Queue Owner Rule Permissions
+  CreateMessageQueueOwnerRule = "CreateMessageQueueOwnerRule",
+  DeleteMessageQueueOwnerRule = "DeleteMessageQueueOwnerRule",
+  EditMessageQueueOwnerRule = "EditMessageQueueOwnerRule",
+  ReadMessageQueueOwnerRule = "ReadMessageQueueOwnerRule",
 
   /*
    * Wildcard permissions covering all models marked @OperationalResource().
@@ -13642,6 +13682,212 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
 
+      // Queue (MessageQueue) Permissions
+      {
+        permission: Permission.CreateMessageQueue,
+        title: "Create Queue",
+        description: "This permission can create queues in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteMessageQueue,
+        title: "Delete Queue",
+        description: "This permission can delete queues of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditMessageQueue,
+        title: "Edit Queue",
+        description: "This permission can edit queues of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadMessageQueue,
+        title: "Read Queue",
+        description: "This permission can read queues of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Queue Team Owner Permissions
+      {
+        permission: Permission.CreateMessageQueueOwnerTeam,
+        title: "Create Queue Team Owner",
+        description:
+          "This permission can create Queue Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteMessageQueueOwnerTeam,
+        title: "Delete Queue Team Owner",
+        description:
+          "This permission can delete Queue Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditMessageQueueOwnerTeam,
+        title: "Edit Queue Team Owner",
+        description:
+          "This permission can edit Queue Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadMessageQueueOwnerTeam,
+        title: "Read Queue Team Owner",
+        description:
+          "This permission can read Queue Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Queue User Owner Permissions
+      {
+        permission: Permission.CreateMessageQueueOwnerUser,
+        title: "Create Queue User Owner",
+        description:
+          "This permission can create Queue User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteMessageQueueOwnerUser,
+        title: "Delete Queue User Owner",
+        description:
+          "This permission can delete Queue User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditMessageQueueOwnerUser,
+        title: "Edit Queue User Owner",
+        description:
+          "This permission can edit Queue User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadMessageQueueOwnerUser,
+        title: "Read Queue User Owner",
+        description:
+          "This permission can read Queue User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Queue Label Rule Permissions
+      {
+        permission: Permission.CreateMessageQueueLabelRule,
+        title: "Create Queue Label Rule",
+        description:
+          "This permission can create Queue Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteMessageQueueLabelRule,
+        title: "Delete Queue Label Rule",
+        description:
+          "This permission can delete Queue Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditMessageQueueLabelRule,
+        title: "Edit Queue Label Rule",
+        description:
+          "This permission can edit Queue Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadMessageQueueLabelRule,
+        title: "Read Queue Label Rule",
+        description:
+          "This permission can read Queue Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Queue Owner Rule Permissions
+      {
+        permission: Permission.CreateMessageQueueOwnerRule,
+        title: "Create Queue Owner Rule",
+        description:
+          "This permission can create Queue Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteMessageQueueOwnerRule,
+        title: "Delete Queue Owner Rule",
+        description:
+          "This permission can delete Queue Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditMessageQueueOwnerRule,
+        title: "Edit Queue Owner Rule",
+        description:
+          "This permission can edit Queue Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadMessageQueueOwnerRule,
+        title: "Read Queue Owner Rule",
+        description:
+          "This permission can read Queue Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
       // Runbook Owner Rule Permissions
       {
         permission: Permission.CreateRunbookOwnerRule,
@@ -15324,6 +15570,70 @@ export class PermissionHelper {
         title: "Read Incident Alert",
         description:
           "This permission can read which alerts are linked to which incidents in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Form Permissions
+      {
+        permission: Permission.CreateIncidentForm,
+        title: "Create Incident Form",
+        description:
+          "This permission can create incident forms in this project. Anyone with a form's link can declare an incident through it.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentForm,
+        title: "Delete Incident Form",
+        description:
+          "This permission can delete incident forms in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentForm,
+        title: "Edit Incident Form",
+        description:
+          "This permission can edit incident forms in this project, including turning a form off and resetting its link.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentForm,
+        title: "Read Incident Form",
+        description:
+          "This permission can read incident forms in this project, including their links.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Form Submission Permissions
+      {
+        permission: Permission.DeleteIncidentFormSubmission,
+        title: "Delete Incident Form Submission",
+        description:
+          "This permission can delete incident form submissions, and the reporter's name and email they hold, in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentFormSubmission,
+        title: "Read Incident Form Submission",
+        description:
+          "This permission can read the submissions made through incident forms in this project, including the reporter's name and email.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

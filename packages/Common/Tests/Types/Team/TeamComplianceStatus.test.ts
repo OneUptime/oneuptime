@@ -21,6 +21,11 @@ import { describe, expect, test } from "@jest/globals";
  * dropped - and a fixture typed against the contract shows it is plain JSON:
  * it survives JSON.stringify/parse unchanged, so no ObjectID, Date or class
  * instance can hide in it.
+ *
+ * A rule's channels cross the wire as one list, `notificationChannels`: every
+ * channel a member needs a rule on, empty for "any channel". The single
+ * `notificationChannel` an older API sent is gone from the contract (the
+ * Dashboard still reads it from an older replica during a rolling deploy).
  */
 
 type Equals<A, B> =
@@ -42,7 +47,7 @@ const RULE_KEYS: Equals<
   | "settingId"
   | "ruleType"
   | "enabled"
-  | "notificationChannel"
+  | "notificationChannels"
   | "severityKind"
   | "appliesToAllSeverities"
   | "severities"
@@ -71,13 +76,16 @@ const ISSUE_KEYS: Equals<
   "settingId" | "ruleType" | "reason"
 > = true;
 
-// Null, not undefined, is how "any channel" and "no severity kind" cross the wire.
-const NULLABLE_FIELDS: Equals<
+/*
+ * "Any channel" is an empty list - never null, never a missing key - and "no
+ * severity kind" is null, not undefined, so neither is dropped on the way.
+ */
+const CHANNELS_AND_KIND: Equals<
   [
-    TeamComplianceRuleJSON["notificationChannel"],
+    TeamComplianceRuleJSON["notificationChannels"],
     TeamComplianceRuleJSON["severityKind"],
   ],
-  [ComplianceNotificationChannel | null, ComplianceSeverityKind | null]
+  [Array<ComplianceNotificationChannel>, ComplianceSeverityKind | null]
 > = true;
 
 const EXAMPLE: TeamComplianceStatusJSON = {
@@ -89,7 +97,7 @@ const EXAMPLE: TeamComplianceStatusJSON = {
       settingId: "66666666-6666-4666-8666-000000000001",
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
       enabled: true,
-      notificationChannel: ComplianceNotificationChannel.Call,
+      notificationChannels: [ComplianceNotificationChannel.Call],
       severityKind: ComplianceSeverityKind.Incident,
       appliesToAllSeverities: false,
       severities: [
@@ -109,12 +117,28 @@ const EXAMPLE: TeamComplianceStatusJSON = {
       settingId: "66666666-6666-4666-8666-000000000002",
       ruleType: ComplianceRuleType.HasNotificationEmailMethod,
       enabled: false,
-      notificationChannel: null,
+      notificationChannels: [],
       severityKind: null,
       appliesToAllSeverities: false,
       severities: [],
       compliantCount: 0,
       nonCompliantCount: 0,
+      warnings: [],
+    },
+    {
+      // "Call and Push notification for alerts", every alert severity.
+      settingId: "66666666-6666-4666-8666-000000000003",
+      ruleType: ComplianceRuleType.HasAlertOnCallRules,
+      enabled: true,
+      notificationChannels: [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.Push,
+      ],
+      severityKind: ComplianceSeverityKind.Alert,
+      appliesToAllSeverities: true,
+      severities: [],
+      compliantCount: 0,
+      nonCompliantCount: 2,
       warnings: [],
     },
   ],
@@ -130,6 +154,11 @@ const EXAMPLE: TeamComplianceStatusJSON = {
           settingId: "66666666-6666-4666-8666-000000000001",
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
           reason: "No Call rule for incident severities: Critical Incident",
+        },
+        {
+          settingId: "66666666-6666-4666-8666-000000000003",
+          ruleType: ComplianceRuleType.HasAlertOnCallRules,
+          reason: "No Push notification rule for alert severities: High",
         },
       ],
     },
@@ -151,7 +180,7 @@ describe("TeamComplianceStatusJSON - the wire contract", () => {
       SEVERITY_KEYS,
       MEMBER_KEYS,
       ISSUE_KEYS,
-      NULLABLE_FIELDS,
+      CHANNELS_AND_KIND,
     ]).toEqual([true, true, true, true, true, true]);
   });
 
@@ -159,10 +188,10 @@ describe("TeamComplianceStatusJSON - the wire contract", () => {
     expect(JSON.parse(JSON.stringify(EXAMPLE))).toEqual(EXAMPLE);
   });
 
-  test("'any channel' and 'no severity kind' are sent as null, not dropped", () => {
+  test("'any channel' is sent as an empty list and 'no severity kind' as null - neither is dropped", () => {
     const sent: string = JSON.stringify(EXAMPLE.complianceSettings[1]);
 
-    expect(sent).toContain('"notificationChannel":null');
+    expect(sent).toContain('"notificationChannels":[]');
     expect(sent).toContain('"severityKind":null');
   });
 
@@ -170,7 +199,31 @@ describe("TeamComplianceStatusJSON - the wire contract", () => {
     const sent: string = JSON.stringify(EXAMPLE);
 
     expect(sent).toContain('"ruleType":"HasIncidentOnCallRules"');
-    expect(sent).toContain('"notificationChannel":"Call"');
+    expect(sent).toContain('"notificationChannels":["Call"]');
     expect(sent).toContain('"severityKind":"Incident"');
+  });
+
+  test("a rule on several channels sends every one of them, as one list, in the order given", () => {
+    const sent: string = JSON.stringify(EXAMPLE.complianceSettings[2]);
+
+    expect(sent).toContain('"notificationChannels":["Call","Push"]');
+    expect(
+      (JSON.parse(sent) as TeamComplianceRuleJSON).notificationChannels,
+    ).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.Push,
+    ]);
+  });
+
+  test("no rule carries the single notificationChannel key any more", () => {
+    const sent: string = JSON.stringify(EXAMPLE);
+
+    // `"notificationChannels"` does not contain the closed key `"notificationChannel"`.
+    expect(sent).not.toContain('"notificationChannel"');
+
+    for (const rule of EXAMPLE.complianceSettings) {
+      expect(Object.keys(rule)).not.toContain("notificationChannel");
+      expect(Array.isArray(rule.notificationChannels)).toBe(true);
+    }
   });
 });

@@ -61,11 +61,14 @@ const PodmanHostDocumentation: FunctionComponent<
     return <ErrorMessage message="Host not found." />;
   }
 
+  const hostName: string = host.hostIdentifier || host.name || "";
+
   return (
     <Fragment>
       <PodmanDocumentationCard
-        title="Podman Agent Installation Guide"
-        description="Follow these steps to install the OneUptime Podman Agent on this host."
+        hostName={hostName}
+        title="Agent Installation Guide"
+        description="Install or reconfigure the OneUptime Podman agent on this host. Pick how you run it, then follow the steps."
       />
     </Fragment>
   );

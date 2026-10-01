@@ -139,6 +139,24 @@ function entry(result: ServiceMapModel, key: string): ServiceMapEntry {
   return result.entryByKey.get(key)!;
 }
 
+/*
+ * The detail label the built map shows for a node — a service is drawn in
+ * its own right, anything else once a service calls it — checked against
+ * detailLabelForEntity, so a label test pins what the map shows and not
+ * only what the helper returns.
+ */
+function shownDetailLabel(node: TopologyEntity): string | null {
+  const caller: string = "detail-label-caller";
+  const isService: boolean = node.entityType === EntityType.Service;
+  const shown: ServiceMapEntry | undefined = buildServiceMapModel(
+    isService ? [node] : [entity(caller, EntityType.Service), node],
+    isService ? [] : [calls(caller, node.entityKey!)],
+  ).entryByKey.get(node.entityKey!);
+  expect(shown).toBeDefined();
+  expect(shown!.detailLabel).toBe(detailLabelForEntity(node));
+  return shown!.detailLabel;
+}
+
 function edgeIds(result: ServiceMapModel): Array<string> {
   return result.edges.map((edge: ServiceMapEdge): string => {
     return edge.id;
@@ -815,9 +833,9 @@ describe("helpers", () => {
     expect(kindForEntityType("something.new")).toBe("remote");
   });
 
-  test("detailLabelForEntity keeps unknown values as reported", () => {
+  test("the detail label keeps unknown values as reported", () => {
     expect(
-      detailLabelForEntity(
+      shownDetailLabel(
         entity("x", EntityType.Database, {
           identifyingAttributes: { "db.system.name": "couchbase" },
         }),
@@ -825,7 +843,7 @@ describe("helpers", () => {
     ).toBe("couchbase");
   });
 
-  test("detailLabelForEntity reads the shared keys in order, descriptive first", () => {
+  test("the detail label reads the shared keys in order, descriptive first", () => {
     // The server ships exactly these keys; the reader must want no others.
     expect(SERVICE_MAP_DETAIL_ATTRIBUTE_KEYS).toEqual([
       "telemetry.sdk.language",
@@ -834,7 +852,7 @@ describe("helpers", () => {
       "messaging.system",
     ]);
     expect(
-      detailLabelForEntity(
+      shownDetailLabel(
         entity("x", EntityType.RemoteService, {
           descriptiveAttributes: { "messaging.system": "kafka" },
           identifyingAttributes: { "network.protocol.name": "grpc" },
@@ -842,7 +860,7 @@ describe("helpers", () => {
       ),
     ).toBe("gRPC");
     expect(
-      detailLabelForEntity(
+      shownDetailLabel(
         entity("x", EntityType.Database, {
           descriptiveAttributes: { "db.system.name": "mysql" },
           identifyingAttributes: { "db.system.name": "postgresql" },
@@ -851,9 +869,9 @@ describe("helpers", () => {
     ).toBe("MySQL");
   });
 
-  test("detailLabelForEntity skips blank and non-string values", () => {
+  test("the detail label skips blank and non-string values", () => {
     expect(
-      detailLabelForEntity(
+      shownDetailLabel(
         entity("x", EntityType.Database, {
           descriptiveAttributes: { "db.system.name": "   " },
           identifyingAttributes: { "db.system.name": "redis" },
@@ -861,12 +879,29 @@ describe("helpers", () => {
       ),
     ).toBe("Redis");
     expect(
-      detailLabelForEntity(
+      shownDetailLabel(
         entity("x", EntityType.Service, {
           descriptiveAttributes: { "telemetry.sdk.language": 42 },
         }),
       ),
     ).toBeNull();
-    expect(detailLabelForEntity(entity("x", EntityType.Service))).toBeNull();
+    expect(shownDetailLabel(entity("x", EntityType.Service))).toBeNull();
+  });
+
+  test("the detail label ignores case and surrounding whitespace, on the map too", () => {
+    expect(
+      shownDetailLabel(
+        entity("x", EntityType.Database, {
+          descriptiveAttributes: { "db.system.name": " PostgreSQL " },
+        }),
+      ),
+    ).toBe("PostgreSQL");
+    expect(
+      shownDetailLabel(
+        entity("x", EntityType.Service, {
+          descriptiveAttributes: { "telemetry.sdk.language": "DotNet" },
+        }),
+      ),
+    ).toBe(".NET");
   });
 });

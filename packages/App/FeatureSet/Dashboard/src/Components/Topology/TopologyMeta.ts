@@ -79,6 +79,11 @@ const META_BY_TYPE: Record<EntityType, EntityTypeMeta> = {
     color: "#8b5cf6",
   },
   /*
+   * Membership-only as well (the Queues product's key); a darker teal than
+   * the Remote Service a queue's broker becomes on the service map.
+   */
+  [EntityType.MessageQueue]: { label: "Message Queue", color: "#115e59" },
+  /*
    * Inventory-mirrored types. Greens, to read as one family distinct from the
    * telemetry-derived types above — on the graph these are things OneUptime
    * polls rather than things that report in.

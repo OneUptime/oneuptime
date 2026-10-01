@@ -54,6 +54,11 @@ import SeriesResourceLabels from "../../../Server/Utils/Monitor/SeriesResourceLa
  * catalog: every engine with a receiver or a metrics endpoint gets a
  * complete, well-formed collector config, and "no engine metrics" is said
  * only of an engine that runs inside the application.
+ *
+ * These run against the guide as one markdown document. The Documentation
+ * card renders the same pieces as a SetupGuide (steps, Advanced,
+ * Troubleshooting); DatabaseSetupGuide.test.ts pins that layout and its
+ * parity with the document.
  */
 
 const REPO_ROOT: string = path.join(__dirname, "..", "..", "..", "..", "..");

@@ -466,44 +466,44 @@ describe("LicenseProvider - classifying against the current time", () => {
     EnterpriseEdition.register(fake);
 
     // Before the first read: fail closed.
-    expect(EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO)).toBe(
-      false,
-    );
+    expect(
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
+    ).toBe(false);
 
     await harness.provider.refresh();
 
-    expect(EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO)).toBe(
-      true,
-    );
+    expect(
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
+    ).toBe(true);
 
     advance(harness, 2 * DAY_IN_MS);
     // Grace: still available (and the cache is re-read in the background).
-    expect(EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO)).toBe(
-      true,
-    );
+    expect(
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
+    ).toBe(true);
 
     // 21 days after the expiry: past a 14-day mark, still inside the grace.
     advance(harness, 20 * DAY_IN_MS);
     await harness.provider.refresh();
-    expect(EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO)).toBe(
-      true,
-    );
+    expect(
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
+    ).toBe(true);
 
     // 31 days after the expiry: the grace period is over.
     advance(harness, 10 * DAY_IN_MS);
     await harness.provider.refresh();
-    expect(EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO)).toBe(
-      false,
-    );
     expect(
-      await EnterpriseEdition.isFeatureAvailable(EnterpriseFeature.SSO),
+      EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
+    ).toBe(false);
+    expect(
+      await EnterpriseEdition.isFeatureAvailable(EnterpriseFeature.SCIM),
     ).toBe(false);
   });
 });
 
 /*
- * isFeatureActive asks for the snapshot on every tenant request, every audit
- * entry and every identity route, and classifying a signed license verifies
+ * isFeatureActive asks for the snapshot on every SCIM request and SCIM-locked
+ * team change, and on every audit entry, and classifying a signed license verifies
  * its signature (about 0.2 ms of CPU each time). So the provider reuses a
  * snapshot for the same inputs until the next moment its verdict can change,
  * and for LICENSE_SNAPSHOT_REUSE_IN_MS at most - without giving up the exact
@@ -640,7 +640,7 @@ describe("LicenseProvider - reusing a computed snapshot", () => {
       makeInputs({
         token: signLicense(SIGNING_KEY, {
           instanceId: INSTANCE_ID,
-          features: ["sso", "scim"],
+          features: ["scim", "team-compliance"],
         }),
       }),
     );
@@ -666,8 +666,8 @@ describe("LicenseProvider - reusing a computed snapshot", () => {
     expect(second).not.toBe(first);
     expect(second.status).toBe("valid");
     expect(second.features).toEqual([
-      EnterpriseFeature.SSO,
       EnterpriseFeature.SCIM,
+      EnterpriseFeature.TeamCompliance,
     ]);
     expect(second.expiresAt!.getTime()).toBeGreaterThan(Date.now());
     expect(harness.provider.getClassificationCount()).toBe(1);

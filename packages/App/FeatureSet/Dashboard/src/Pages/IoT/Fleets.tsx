@@ -373,7 +373,7 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {fleetCount === 0 && (
         <IoTDocumentationCard
           title="Getting Started with IoT Monitoring"
-          description="No IoT fleets connected yet. Install the agent using the guide below and your fleet will appear here automatically."
+          description="No IoT fleets connected yet. Send readings from your devices with OpenTelemetry or MQTT using the guide below — your fleet will appear here automatically."
         />
       )}
       {labelBulkActionModals}

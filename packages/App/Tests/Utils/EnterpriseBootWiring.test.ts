@@ -241,7 +241,7 @@ const LOAD: string = "EnterpriseLoader.load";
 
 const ROUTER_MOUNTS_AFTER_LOAD: Array<string> = [
   "Realtime.init",
-  "CommunityEditionSsoReport.logRelaxedEnforcementOnce",
+  "RelaxedScimTeamLocksReport.logRelaxedEnforcementOnce",
   "App.addDefaultRoutes",
 ];
 

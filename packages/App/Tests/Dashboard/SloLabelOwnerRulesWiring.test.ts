@@ -276,16 +276,20 @@ describe("SLO Label Rules page form", () => {
 describe("SLO settings navigation", () => {
   test("the SLO list's side menu links both pages under Settings", () => {
     const code: string = readCode("Pages/Slo/SideMenu.tsx");
-    const settings: string = code.slice(
-      code.indexOf('<SideMenuSection title="Settings">'),
-    );
+    // The Settings entry of the menu's `sections`, up to the end of its items.
+    const start: number = code.indexOf('{ title: "Settings",');
+    const end: number = code.indexOf("], }", start);
 
-    expect(settings).not.toBe(code);
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+
+    const settings: string = code.slice(start, end);
+
     expect(settings).toMatch(
-      /title: "Owner Rules", to: RouteUtil\.populateRouteParams\( RouteMap\[PageMap\.SLOS_SETTINGS_OWNER_RULES\] as Route, \), \}\} icon=\{IconProp\.User\}/,
+      /link: \{ title: "Owner Rules", to: RouteUtil\.populateRouteParams\( RouteMap\[PageMap\.SLOS_SETTINGS_OWNER_RULES\] as Route, \), \}, icon: IconProp\.User, \}/,
     );
     expect(settings).toMatch(
-      /title: "Label Rules", to: RouteUtil\.populateRouteParams\( RouteMap\[PageMap\.SLOS_SETTINGS_LABEL_RULES\] as Route, \), \}\} icon=\{IconProp\.Tag\}/,
+      /link: \{ title: "Label Rules", to: RouteUtil\.populateRouteParams\( RouteMap\[PageMap\.SLOS_SETTINGS_LABEL_RULES\] as Route, \), \}, icon: IconProp\.Tag, \}/,
     );
   });
 

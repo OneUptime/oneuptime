@@ -44,6 +44,11 @@ const ResetPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
 const VerifyEmail: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/VerifyEmail");
 });
+const IncidentFormPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
+  () => {
+    return import("./Pages/IncidentForm");
+  },
+);
 
 function App(): ReactElement {
   Navigation.setNavigateHook(useNavigate());
@@ -88,6 +93,18 @@ function App(): ReactElement {
             <Route
               path="/accounts/verify-email/:token"
               element={<VerifyEmail />}
+            />
+            {/*
+             * A public incident form, for anybody holding its link - signed in
+             * or not, and nothing on the page redirects either. One form only:
+             * the share key is a link identifier, not a single-use secret, so
+             * the SensitiveUrlToken bootstrap leaves it in the path (it is
+             * not one of its TOKEN_ROUTES) and there is no token-free form to
+             * land on.
+             */}
+            <Route
+              path="/accounts/incident-form/:shareKey"
+              element={<IncidentFormPage />}
             />
             {/* 👇️ only match this when no other routes match */}
             <Route path="*" element={<NotFound />} />

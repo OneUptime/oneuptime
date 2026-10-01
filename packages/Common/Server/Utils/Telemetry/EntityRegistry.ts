@@ -42,7 +42,9 @@ import crypto from "crypto";
  * would mint a fresh registry row per instance. `database.server` is
  * membership-only by design: its keys are appended to signals so the
  * Databases product can scope telemetry, and the typed DatabaseServer table
- * (not the registry) is the row a user sees.
+ * (not the registry) is the row a user sees. `message.queue` is the same for
+ * the Queues product and its MessageQueue table — an OTLP entity_ref of the
+ * type still only adds a membership key.
  */
 const MEMBERSHIP_ONLY_TYPES: ReadonlySet<EntityType> = new Set<EntityType>([
   EntityType.Container,
@@ -50,6 +52,7 @@ const MEMBERSHIP_ONLY_TYPES: ReadonlySet<EntityType> = new Set<EntityType>([
   EntityType.ServiceInstance,
   EntityType.TelemetrySdk,
   EntityType.DatabaseServer,
+  EntityType.MessageQueue,
 ]);
 
 /*

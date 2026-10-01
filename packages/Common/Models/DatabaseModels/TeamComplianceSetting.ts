@@ -75,7 +75,7 @@ import {
  * No unique (teamId, ruleType) index: one team can hold several rules of the
  * same type - "Call for Critical incidents" and "Push for Critical incidents"
  * are both HasIncidentOnCallRules. TeamComplianceSettingService rejects exact
- * duplicates (same type, channel and severities) instead.
+ * duplicates (same type, channels and severities) instead.
  */
 @Entity({
   name: "TeamComplianceSetting",
@@ -450,12 +450,24 @@ export default class TeamComplianceSetting extends BaseModel {
       Permission.EditProjectTeam,
     ],
   })
+  /*
+   * Deprecated in favour of notificationChannels, and kept for everything
+   * that only knows this column: API clients written before a rule could
+   * require several channels, and a replica of an older build still running
+   * during an upgrade (or after a downgrade). TeamComplianceSettingService
+   * keeps it equal to the first of notificationChannels on every write, so
+   * such a build checks one of the rule's channels rather than "any
+   * channel"; a payload that sends only this column sets the list to that
+   * one channel; and a row whose list it disagrees with was last written by
+   * an older build, which is how the rule is then read
+   * (TeamComplianceSettingService.getStoredChannels).
+   */
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
     title: "Notification Channel",
     description:
-      "On-call rules only: the channel the member's rule must notify them on (Call, SMS, Push, Email, WhatsApp, Telegram, Slack, MicrosoftTeams or Webhook). Leave empty to accept any channel.",
+      "Deprecated: use notificationChannels. The first of the rule's notification channels, or empty when it accepts any channel. Sending this field without notificationChannels sets the rule to that one channel (Call, SMS, Push, Email, WhatsApp, Telegram, Slack, MicrosoftTeams or Webhook).",
   })
   @Column({
     nullable: true,
@@ -463,6 +475,39 @@ export default class TeamComplianceSetting extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public notificationChannel?: ComplianceNotificationChannel = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectTeam,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Notification Channels",
+    description:
+      "On-call rules only: the channels members must be notified on, as a list - each member needs a rule on every one of them (Call, SMS, Push, Email, WhatsApp, Telegram, Slack, MicrosoftTeams or Webhook). Leave empty to accept any channel.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public notificationChannels?: Array<ComplianceNotificationChannel> =
+    undefined;
 
   @ColumnAccessControl({
     create: [

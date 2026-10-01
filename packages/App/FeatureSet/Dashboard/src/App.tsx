@@ -238,6 +238,9 @@ const CloudResourceRoutes: LazyRoutes = lazy(() => {
 const DatabaseRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/DatabaseRoutes");
 });
+const MessageQueueRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/MessageQueueRoutes");
+});
 const RumApplicationRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/RumApplicationRoutes");
 });
@@ -771,6 +774,12 @@ const App: () => JSX.Element = () => {
             <PageRoute
               path={RouteMap[PageMap.DATABASE_ROOT]?.toString() || ""}
               element={<DatabaseRoutes {...commonPageProps} />}
+            />
+
+            {/* Queues */}
+            <PageRoute
+              path={RouteMap[PageMap.MESSAGE_QUEUE_ROOT]?.toString() || ""}
+              element={<MessageQueueRoutes {...commonPageProps} />}
             />
 
             {/* Real User Monitoring */}

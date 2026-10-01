@@ -1,6 +1,16 @@
+import {
+  SETUP_GUIDE_API_KEY_PLACEHOLDER,
+  SetupGuideContent,
+  SetupGuideOption,
+  SetupGuideStep,
+  SetupGuideTopic,
+  codeBlock,
+  resolveSetupGuideOption,
+} from "../../../Components/SetupGuide/SetupGuide";
+
 /*
  * The helm release and namespace every Kubernetes agent command the
- * Dashboard shows uses: the install instructions below, and the one-command
+ * Dashboard shows uses: the install guide below, and the one-command
  * upgrades on the cluster's AI agent page (KubernetesAiAccessSetup.ts),
  * which import these. `helm upgrade` of a release that does not exist fails
  * with "has no deployed releases", so the two must never drift - hence one
@@ -9,326 +19,721 @@
  */
 export const KUBERNETES_AGENT_HELM_RELEASE: string = "kubernetes-agent";
 export const KUBERNETES_AGENT_HELM_NAMESPACE: string = "oneuptime-agent";
+export const KUBERNETES_AGENT_HELM_REPO_URL: string =
+  "https://helm-chart.oneuptime.com";
 
-export interface KubernetesInstallationMarkdownOptions {
-  clusterName: string;
-  oneuptimeUrl: string;
-  apiKey: string;
+// The name the guide suggests when it is not installing for a known cluster.
+export const KUBERNETES_EXAMPLE_CLUSTER_NAME: string = "my-cluster";
+
+/*
+ * Where the cluster runs. The chart only distinguishes three presets
+ * (KubernetesAgentPreset); the guide offers the managed services by name
+ * because that is how people know their cluster, and because connecting
+ * kubectl to each one is a different command.
+ */
+export type KubernetesPlatform =
+  | "standard"
+  | "eks"
+  | "gke"
+  | "aks"
+  | "gke-autopilot"
+  | "eks-fargate";
+
+// The chart's `preset` value (HelmChart/Public/kubernetes-agent/values.yaml).
+export type KubernetesAgentPreset =
+  | "standard"
+  | "gke-autopilot"
+  | "eks-fargate";
+
+export const KUBERNETES_PLATFORMS: Array<SetupGuideOption<KubernetesPlatform>> =
+  [
+    {
+      key: "standard",
+      label: "Standard Kubernetes",
+      description:
+        "Self-managed clusters — kubeadm, k3s, RKE, minikube, kind and others.",
+    },
+    {
+      key: "eks",
+      label: "Amazon EKS",
+      description: "EKS with EC2 or managed node groups.",
+    },
+    {
+      key: "gke",
+      label: "Google GKE",
+      description: "GKE Standard clusters with node pools.",
+    },
+    {
+      key: "aks",
+      label: "Azure AKS",
+      description: "Azure Kubernetes Service.",
+    },
+    {
+      key: "gke-autopilot",
+      label: "GKE Autopilot",
+      description: "Fully managed GKE: no host access, no privileged pods.",
+    },
+    {
+      key: "eks-fargate",
+      label: "EKS Fargate",
+      description: "Pods on AWS Fargate: no nodes, so no DaemonSets.",
+    },
+  ];
+
+export const DEFAULT_KUBERNETES_PLATFORM: KubernetesPlatform = "standard";
+
+export function resolveKubernetesPlatform(
+  platform: string | null | undefined,
+): KubernetesPlatform {
+  return (
+    resolveSetupGuideOption(KUBERNETES_PLATFORMS, platform) ||
+    DEFAULT_KUBERNETES_PLATFORM
+  );
 }
 
-export function getKubernetesInstallationMarkdown(
-  options: KubernetesInstallationMarkdownOptions,
-): string {
-  const { clusterName, oneuptimeUrl, apiKey } = options;
+export function getKubernetesAgentPreset(
+  platform: KubernetesPlatform,
+): KubernetesAgentPreset {
+  if (platform === "gke-autopilot" || platform === "eks-fargate") {
+    return platform;
+  }
+  return "standard";
+}
 
-  return `
-## Prerequisites
+/*
+ * GKE Autopilot and EKS Fargate reject privileged pods and hostPath, so the
+ * chart's API-mode preset is needed there, and the eBPF DaemonSet (which
+ * must run privileged to load eBPF programs) has to be turned off.
+ */
+function isRestrictedPlatform(platform: KubernetesPlatform): boolean {
+  return getKubernetesAgentPreset(platform) !== "standard";
+}
 
-- A running Kubernetes cluster (v1.23+)
-- \`kubectl\` configured to access your cluster
-- \`helm\` v3 installed
+export interface KubernetesSetupGuideOptions {
+  oneuptimeUrl: string;
+  apiKey: string;
+  platform: KubernetesPlatform;
+  /*
+   * The cluster the guide installs for (a cluster's own Documentation tab).
+   * Omitted on the product pages, where the guide suggests a name instead.
+   */
+  clusterName?: string | undefined;
+}
 
-## Step 1: Add the OneUptime Helm Repository
+/**
+ * The `--set` flags the install command adds for a platform, after the
+ * connection values every install needs.
+ */
+export function getKubernetesPlatformInstallFlags(
+  platform: KubernetesPlatform,
+): Array<string> {
+  if (!isRestrictedPlatform(platform)) {
+    return [];
+  }
+  return [
+    `--set preset=${getKubernetesAgentPreset(platform)}`,
+    "--set ebpf.enabled=false",
+  ];
+}
 
-\`\`\`bash
-helm repo add oneuptime https://helm-chart.oneuptime.com
+function helmInstallCommand(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  clusterName: string;
+  flags: Array<string>;
+}): string {
+  return [
+    `helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent`,
+    `  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}`,
+    "  --create-namespace",
+    `  --set oneuptime.url="${data.oneuptimeUrl}"`,
+    `  --set oneuptime.apiKey="${data.apiKey}"`,
+    `  --set clusterName="${data.clusterName}"`,
+    ...data.flags.map((flag: string): string => {
+      return `  ${flag}`;
+    }),
+  ].join(" \\\n");
+}
+
+/*
+ * A configuration change to an installed agent. --reuse-values keeps the
+ * install's values (URL, key, cluster name, preset) and applies only what
+ * is passed on top.
+ */
+export function getKubernetesAgentUpgradeCommand(flags: Array<string>): string {
+  return [
+    `helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent`,
+    `  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}`,
+    "  --reuse-values",
+    ...flags.map((flag: string): string => {
+      return `  ${flag}`;
+    }),
+  ].join(" \\\n");
+}
+
+function getPrerequisites(platform: KubernetesPlatform): Array<string> {
+  const lines: Array<string> = [
+    "A Kubernetes cluster running v1.23 or later",
+    "`kubectl` and `helm` (v3) installed on your machine",
+  ];
+
+  if (platform === "eks") {
+    lines.push("The AWS CLI (`aws`), signed in to the cluster's account");
+  } else if (platform === "eks-fargate") {
+    lines.push(
+      "The AWS CLI (`aws`) and `eksctl`, signed in to the cluster's account",
+    );
+  } else if (platform === "gke" || platform === "gke-autopilot") {
+    lines.push(
+      "The Google Cloud CLI (`gcloud`) with the `gke-gcloud-auth-plugin` component",
+    );
+  } else if (platform === "aks") {
+    lines.push("The Azure CLI (`az`), signed in to the cluster's subscription");
+  }
+
+  return lines;
+}
+
+function getConnectStep(platform: KubernetesPlatform): SetupGuideStep {
+  const check: string = "kubectl get nodes";
+
+  switch (platform) {
+    case "eks":
+      return {
+        title: "Connect kubectl to your EKS cluster",
+        description:
+          "Add the cluster to your kubeconfig, then check that kubectl can reach it.",
+        markdown: codeBlock(
+          "bash",
+          `aws eks update-kubeconfig --region <region> --name <cluster-name>\n${check}`,
+        ),
+      };
+    case "eks-fargate":
+      return {
+        title: "Connect kubectl to your EKS cluster",
+        description:
+          "Add the cluster to your kubeconfig, and give the agent's namespace a Fargate profile so its pods can be scheduled.",
+        markdown: `${codeBlock(
+          "bash",
+          `aws eks update-kubeconfig --region <region> --name <cluster-name>\n${check}`,
+        )}
+
+Pods run on Fargate only in namespaces a Fargate profile selects. Create one for \`${KUBERNETES_AGENT_HELM_NAMESPACE}\` — without it the agent's pods stay \`Pending\`:
+
+${codeBlock(
+  "bash",
+  `eksctl create fargateprofile \\
+  --cluster <cluster-name> \\
+  --region <region> \\
+  --name ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
+  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}`,
+)}`,
+      };
+    case "gke":
+    case "gke-autopilot":
+      return {
+        title: "Connect kubectl to your GKE cluster",
+        description:
+          "Fetch the cluster's credentials, then check that kubectl can reach it.",
+        markdown: codeBlock(
+          "bash",
+          `gcloud container clusters get-credentials <cluster-name> \\
+  --location <region-or-zone> \\
+  --project <project-id>
+${check}`,
+        ),
+      };
+    case "aks":
+      return {
+        title: "Connect kubectl to your AKS cluster",
+        description:
+          "Fetch the cluster's credentials, then check that kubectl can reach it.",
+        markdown: codeBlock(
+          "bash",
+          `az aks get-credentials --resource-group <resource-group> --name <cluster-name>\n${check}`,
+        ),
+      };
+    default:
+      return {
+        title: "Check kubectl points at your cluster",
+        description:
+          "Helm installs into whichever cluster your current kubectl context points at.",
+        markdown: `${codeBlock("bash", `kubectl config current-context\n${check}`)}
+
+Wrong cluster? Switch with \`kubectl config use-context <context-name>\`.`,
+      };
+  }
+}
+
+function getInstallStep(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  platform: KubernetesPlatform;
+  clusterName: string;
+  isClusterNameKnown: boolean;
+}): SetupGuideStep {
+  const command: string = `helm repo add oneuptime ${KUBERNETES_AGENT_HELM_REPO_URL}
 helm repo update
-\`\`\`
 
-## Step 2: Pick a Preset for Your Cluster
+${helmInstallCommand({
+  oneuptimeUrl: data.oneuptimeUrl,
+  apiKey: data.apiKey,
+  clusterName: data.clusterName,
+  flags: getKubernetesPlatformInstallFlags(data.platform),
+})}`;
 
-The Helm chart exposes a single top-level option — \`preset\` — that picks compatible defaults for your Kubernetes distribution. It controls things you'd otherwise need to tune by hand: whether to ship logs via a hostPath DaemonSet or via the Kubernetes API, and which security context to apply.
+  const notes: Array<string> = [];
 
-| \`preset\` | Use for | Log collection |
-|---|---|---|
-| \`standard\` *(default)* | Self-managed clusters, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet reading \`/var/log/pods\` via hostPath (lowest overhead) |
-| \`gke-autopilot\` | **GKE Autopilot** | Kubernetes API log tailer Deployment (no hostPath, no host access) |
-| \`eks-fargate\` | **EKS Fargate** | Kubernetes API log tailer Deployment (no hostPath, no host access) |
+  if (data.isClusterNameKnown) {
+    notes.push(
+      `This installs the agent for **\`${data.clusterName}\`** — keep \`clusterName\` exactly as it is, or the data registers as a new cluster.`,
+    );
+  } else {
+    notes.push(
+      `Replace \`${data.clusterName}\` with a name for this cluster, such as \`prod-us-east-1\`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new cluster.`,
+    );
+  }
 
-If you're not sure, start with \`standard\`. If the install fails with a Pod Security error mentioning \`hostPath\`, re-run with \`preset=gke-autopilot\` (or \`eks-fargate\` on Fargate) and it will work.
+  if (isRestrictedPlatform(data.platform)) {
+    const platformName: string =
+      data.platform === "gke-autopilot" ? "GKE Autopilot" : "EKS Fargate";
+    notes.push(
+      `\`preset=${getKubernetesAgentPreset(data.platform)}\` collects pod logs through the Kubernetes API instead of reading them from each node, and \`ebpf.enabled=false\` leaves out eBPF tracing, which needs privileged pods that ${platformName} does not allow.`,
+    );
+  }
 
-## Step 3: Install the Kubernetes Agent
+  if (data.apiKey === SETUP_GUIDE_API_KEY_PLACEHOLDER) {
+    notes.push(
+      `Pick an ingestion key in step 1 to fill in \`${SETUP_GUIDE_API_KEY_PLACEHOLDER}\`.`,
+    );
+  }
 
-### Standard clusters (self-managed, EKS on EC2, GKE Standard, AKS)
+  return {
+    title: "Install the agent",
+    description:
+      "Add the OneUptime Helm repository and install the agent with Helm.",
+    markdown: `${codeBlock("bash", command)}
 
-\`\`\`bash
-helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
-  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
-  --create-namespace \\
-  --set oneuptime.url="${oneuptimeUrl}" \\
-  --set oneuptime.apiKey="${apiKey}" \\
-  --set clusterName="${clusterName}"
-\`\`\`
+${notes.join("\n\n")}`,
+  };
+}
 
-### GKE Autopilot
+// What `kubectl get pods` shows on a healthy install, per preset.
+function getExpectedPods(preset: KubernetesAgentPreset): {
+  listing: string;
+  explanation: string;
+} {
+  const release: string = KUBERNETES_AGENT_HELM_RELEASE;
+  const header: string =
+    "NAME                                          READY   STATUS    RESTARTS   AGE";
+  const row: (name: string) => string = (name: string): string => {
+    return `${name.padEnd(46)}1/1     Running   0          1m`;
+  };
 
-\`\`\`bash
-helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
-  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
-  --create-namespace \\
-  --set oneuptime.url="${oneuptimeUrl}" \\
-  --set oneuptime.apiKey="${apiKey}" \\
-  --set clusterName="${clusterName}" \\
-  --set preset=gke-autopilot
-\`\`\`
+  if (preset === "eks-fargate") {
+    return {
+      listing: [
+        header,
+        row(`${release}-xxxxxxxxxx-xxxxx`),
+        row(`${release}-ai-agent-xxxxxxxxxx-xxxxx`),
+        row(`${release}-logs-yyyyyyyyyy-yyyyy`),
+      ].join("\n"),
+      explanation:
+        "Three Deployments — the collector, the Kubernetes AI agent and the pod log reader. Fargate never schedules DaemonSets, so there are no per-node pods.",
+    };
+  }
 
-### EKS Fargate
+  if (preset === "gke-autopilot") {
+    return {
+      listing: [
+        header,
+        row(`${release}-xxxxxxxxxx-xxxxx`),
+        row(`${release}-ai-agent-xxxxxxxxxx-xxxxx`),
+        row(`${release}-logs-yyyyyyyyyy-yyyyy`),
+        row(`${release}-logs-xxxxx`),
+      ].join("\n"),
+      explanation:
+        "The collector, the Kubernetes AI agent and the pod log reader, plus one node collector per node for kubelet metrics.",
+    };
+  }
 
-\`\`\`bash
-helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
-  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
-  --create-namespace \\
-  --set oneuptime.url="${oneuptimeUrl}" \\
-  --set oneuptime.apiKey="${apiKey}" \\
-  --set clusterName="${clusterName}" \\
-  --set preset=eks-fargate
-\`\`\`
+  return {
+    listing: [
+      header,
+      row(`${release}-xxxxxxxxxx-xxxxx`),
+      row(`${release}-ai-agent-xxxxxxxxxx-xxxxx`),
+      row(`${release}-ebpf-xxxxx`),
+      row(`${release}-logs-xxxxx`),
+    ].join("\n"),
+    explanation:
+      "The collector and the Kubernetes AI agent, plus one `-logs` and one `-ebpf` pod on every node.",
+  };
+}
 
-## Step 4: Verify the Installation
+function getVerifyStep(platform: KubernetesPlatform): SetupGuideStep {
+  const expected: { listing: string; explanation: string } = getExpectedPods(
+    getKubernetesAgentPreset(platform),
+  );
 
-Check that the agent pods are running:
+  return {
+    title: "Verify the installation",
+    description: "Check that the agent's pods are running.",
+    markdown: `${codeBlock("bash", `kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE}`)}
 
-\`\`\`bash
-kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE}
-\`\`\`
+You should see:
 
-On a **standard** cluster you'll see a metrics-collector Deployment, the Kubernetes AI agent, and one log-collector DaemonSet pod per node:
+${codeBlock("output", expected.listing)}
 
-\`\`\`
-NAME                                          READY   STATUS    RESTARTS   AGE
-${KUBERNETES_AGENT_HELM_RELEASE}-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
-${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent-xxxxxxxxxx-xxxxx    1/1     Running   0          1m
-${KUBERNETES_AGENT_HELM_RELEASE}-logs-xxxxx                   1/1     Running   0          1m
-${KUBERNETES_AGENT_HELM_RELEASE}-logs-yyyyy                   1/1     Running   0          1m
-\`\`\`
+${expected.explanation} Once they are \`Running\`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.
 
-On **GKE Autopilot** or **EKS Fargate** you'll see Deployments only (no DaemonSet):
+**Kubernetes AI agent (on by default, read-only).** The \`${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent\` pod lets OneUptime AI investigate incidents and alerts on this cluster with read-only kubectl — \`get\`, \`describe\`, \`logs\`, \`events\`, \`top\` — using the same API key, and it can change nothing unless you give it write access later. Open the cluster and go to **AI → Agent** to see it. Don't want it? Add \`--set aiAgent.enabled=false\` to the install command.`,
+  };
+}
 
-\`\`\`
-NAME                                          READY   STATUS    RESTARTS   AGE
-${KUBERNETES_AGENT_HELM_RELEASE}-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
-${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent-xxxxxxxxxx-xxxxx    1/1     Running   0          1m
-${KUBERNETES_AGENT_HELM_RELEASE}-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
-\`\`\`
+function getAdvancedTopics(
+  platform: KubernetesPlatform,
+): Array<SetupGuideTopic> {
+  const topics: Array<SetupGuideTopic> = [
+    {
+      title: "Monitor only some namespaces",
+      summary:
+        "Restrict pod logs and eBPF tracing to the namespaces you choose. kube-system is skipped by default.",
+      markdown: `Namespace rules decide what the agent collects from each namespace. To collect pod logs and eBPF data only from \`default\`, \`production\` and \`staging\`:
 
-Once the agent connects, your cluster will appear automatically in the Kubernetes section.
+${codeBlock(
+  "bash",
+  getKubernetesAgentUpgradeCommand([
+    `--set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production","staging"],"scopes":["podLogs","ebpfDiscovery"]}]'`,
+  ]),
+)}
 
-## Kubernetes AI agent (on by default, read-only)
+To keep everything but stop the logs of noisy namespaces, exclude them from \`podLogs\` only:
 
-The chart also runs the **Kubernetes AI agent** (the \`${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent\` pod above). When an incident or alert is raised on this cluster, OneUptime AI uses it to look around with read-only kubectl — \`get\`, \`describe\`, \`logs\`, \`events\`, \`top\` — the way an on-call engineer would. It uses the same API key as the rest of the agent and can change nothing unless you give it write access later.
+${codeBlock(
+  "bash",
+  getKubernetesAgentUpgradeCommand([
+    `--set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["kube-system"],"scopes":["podLogs","ebpfDiscovery"]},{"action":"exclude","namespaces":["noisy-*"],"scopes":["podLogs"]}]'`,
+  ]),
+)}
 
-Open the cluster in OneUptime and go to **AI → Agent** to see it connected, test it, and choose what AI may do there.
+- **Scopes:** \`podLogs\` (container stdout/stderr), \`ebpfDiscovery\` (eBPF traces and metrics), \`metrics\` (namespaced metrics) and \`traces\` (every span).
+- **Patterns** match the whole namespace name and accept \`*\`, as in \`team-*\`. An \`exclude\` rule always wins over an \`include\` rule.
+- **Setting the rules replaces the default one**, which excludes \`kube-system\` from \`podLogs\` and \`ebpfDiscovery\`. Keep it in your list, as in the second example, if you still want that.
+- Node and cluster metrics have no namespace, so they are always kept.
+- \`--set-json\` needs Helm 3.10 or later.`,
+    },
+    {
+      title: "Control pod log collection",
+      summary:
+        "Keep only important log lines, turn pod logs off, or change how they are read.",
+      markdown: `**Only send important lines.** Drop pod log lines below a severity before they leave the cluster:
 
-Don't want it? Add \`--set aiAgent.enabled=false\` to the install command.
+${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set filters.logs.minSeverity=WARN"]))}
 
-## Configuration Options
+Accepts \`TRACE\`, \`DEBUG\`, \`INFO\`, \`WARN\`, \`ERROR\` and \`FATAL\`: \`WARN\` keeps warnings, errors and fatal lines. The severity is read from the log line itself (\`[ERROR]\`, \`level=warn\`, \`"level":"info"\`). Kubernetes events are never dropped by this.
 
-### Namespace Filtering
+**Turn pod logs off.** Metrics are not affected — the node collector keeps running for kubelet and cAdvisor metrics, it just stops reading pod logs:
 
-By default, \`kube-system\` is excluded. To monitor only specific namespaces:
+${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set logs.enabled=false"]))}
 
-\`\`\`bash
-helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
-  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
-  --create-namespace \\
-  --set oneuptime.url="${oneuptimeUrl}" \\
-  --set oneuptime.apiKey="${apiKey}" \\
-  --set clusterName="${clusterName}" \\
-  --set "namespaceFilters.include={default,production,staging}"
-\`\`\`
+**Change how logs are read.** The preset picks this for you; an explicit \`logs.mode\` always wins over it:
 
-### Disable Log Collection
+- \`logs.mode=daemonset\` — reads \`/var/log/pods\` on every node through hostPath (lowest overhead; needs hostPath).
+- \`logs.mode=api\` — a Deployment tails pod logs through the Kubernetes API (works on any cluster).
+- \`logs.mode=disabled\` — no pod logs.
 
-If you only need metrics and events (no pod logs):
+${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set logs.mode=api"]))}`,
+    },
+  ];
 
-\`\`\`bash
-helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
-  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
-  --create-namespace \\
-  --set oneuptime.url="${oneuptimeUrl}" \\
-  --set oneuptime.apiKey="${apiKey}" \\
-  --set clusterName="${clusterName}" \\
-  --set logs.enabled=false
-\`\`\`
+  if (platform === "standard") {
+    topics.push({
+      title: "Collect control plane metrics",
+      summary:
+        "API server, scheduler, controller manager and etcd metrics on self-managed clusters.",
+      markdown: `${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set controlPlane.enabled=true"]))}
 
-### Force a Specific Log Collection Mode
+Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose their control plane metrics.`,
+    });
+  }
 
-Advanced users can override the preset's choice with \`logs.mode\`:
+  topics.push({
+    title: "Track what workloads cost",
+    summary:
+      "Spend per namespace, workload and pod — with idle capacity and efficiency — on the cluster's Costs page.",
+    markdown: `${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set cost.enabled=true"]))}
 
-- \`logs.mode=daemonset\` — hostPath DaemonSet (lowest overhead, requires hostPath)
-- \`logs.mode=api\` — Kubernetes API log tailer Deployment (works on any cluster)
-- \`logs.mode=disabled\` — no log collection
+That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds two small pods; the first data appears after the first full hour.
 
-The explicit \`logs.mode\` always wins over the preset default. Use this if you know your cluster better than the preset does.
+- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add \`--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003\` (or your Kubecost service).
+- **On-prem or bare metal?** Set a rate card with \`--set cost.opencost.customPricing.enabled=true\` (USD per resource-hour — see the chart's \`values.yaml\`).
 
-### Enable Control Plane Monitoring
+Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).`,
+  });
 
-For self-managed clusters (not EKS/GKE/AKS), you can enable control plane metrics:
+  if (isRestrictedPlatform(platform)) {
+    topics.push({
+      title: "Application traces (eBPF)",
+      summary: "Why eBPF auto-instrumentation is off on this platform.",
+      markdown: `On other clusters the agent runs [OpenTelemetry eBPF Instrumentation](https://opentelemetry.io/docs/zero-code/obi/) on every node to capture HTTP, gRPC and SQL traces with no code changes. Loading eBPF programs needs privileged pods, which this platform does not allow, so the install command turns it off with \`ebpf.enabled=false\`.
 
-\`\`\`bash
-helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
-  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
-  --create-namespace \\
-  --set oneuptime.url="${oneuptimeUrl}" \\
-  --set oneuptime.apiKey="${apiKey}" \\
-  --set clusterName="${clusterName}" \\
-  --set controlPlane.enabled=true
-\`\`\`
+To get traces here, instrument your services with an [OpenTelemetry SDK](/docs/telemetry/open-telemetry) and send them to OneUptime directly.`,
+    });
+  } else {
+    topics.push({
+      title: "Application traces (eBPF)",
+      summary:
+        "Traces, request metrics and the service map from every pod, with no code changes. On by default.",
+      markdown: `The agent runs [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) on every node. It captures HTTP/HTTPS, gRPC and SQL/Redis traffic from Go, .NET, Java, Node.js, Python, Ruby and Rust services — no SDK and no sidecar — and ships traces, request (RED) metrics and service-graph data through the collector.
 
-> **Note:** Managed Kubernetes services (EKS, GKE, AKS) typically do not expose control plane metrics. Only enable this for self-managed clusters.
+**Requirements:** Linux kernel **5.8+** with BTF (the default on Debian 11+, Ubuntu 20.10+, Fedora 34+, RHEL 9+). The eBPF pods run **privileged**, which they need to load eBPF programs.
 
-### Enable Cost Observability
+**Turn it off** if your nodes run an older kernel, if privileged pods are not allowed, or if your services already send traces with OpenTelemetry SDKs and you don't want duplicates:
 
-See what every namespace, workload, and pod actually costs — including idle capacity and request-vs-usage efficiency — on this cluster's **Costs** page:
+${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set ebpf.enabled=false"]))}
 
-\`\`\`bash
-helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
-  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
-  --reuse-values \\
-  --set cost.enabled=true
-\`\`\`
-
-That alone is a complete install: the chart bundles the open-source OpenCost engine (plus a minimal, dedicated Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. Two small extra pods; first data appears after the first closed hourly window.
-
-- **Already running Kubecost or OpenCost?** Point the agent at it instead and nothing is bundled: add \`--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003\` (or your Kubecost service).
-- **On-prem / bare metal?** Set a rate card with \`--set cost.opencost.customPricing.enabled=true\` (values in USD per resource-hour — see the chart's \`values.yaml\`).
-
-Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).
-
-## Upgrading the Agent
-
-\`\`\`bash
-helm repo update
-helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
-  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
-  --reuse-values
-\`\`\`
-
-\`--reuse-values\` keeps your existing configuration (preset, cluster name, filters); pass any new \`--set\` overrides on top of it.
-
-## Uninstalling the Agent
-
-\`\`\`bash
-helm uninstall ${KUBERNETES_AGENT_HELM_RELEASE} --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}
-kubectl delete namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}
-\`\`\`
-
-## What Gets Collected
-
-The OneUptime Kubernetes Agent collects:
-
-| Category | Data |
-|----------|------|
-| **Node Metrics** | CPU utilization, memory usage, filesystem usage, network I/O |
-| **Pod Metrics** | CPU usage, memory usage, network I/O, restarts |
-| **Container Metrics** | CPU usage, memory usage per container |
-| **Cluster Metrics** | Node conditions, allocatable resources, pod counts |
-| **Kubernetes Events** | Warnings, errors, scheduling events |
-| **Pod Logs** | stdout/stderr logs from all containers (via hostPath DaemonSet on standard clusters, or via the Kubernetes API on Autopilot/Fargate) |
-| **Application Traces** *(via eBPF, on by default)* | HTTP, gRPC, SQL/Redis spans from every pod — no SDK or code changes |
-| **HTTP RED Metrics** *(via eBPF)* | \`http.server.request.duration\`, request and response body sizes, per service |
-| **Service Graph** *(via eBPF)* | Caller → callee request rate, latency, and error edges — drives the service map view |
-| **Network Flow Metrics** *(via eBPF)* | Pod-to-pod TCP/UDP byte and packet counters with k8s metadata |
-| **TCP Stats** *(via eBPF)* | Node-level RTT, failed-connection, and retransmit counters |
-| **Workload Costs** *(opt-in, \`cost.enabled=true\`)* | Pre-priced spend per namespace/workload/pod with idle and efficiency, plus node/PV hourly cost metrics — powers the Costs pages and the Kubernetes Cost dashboard |
-
-## Application Traces & HTTP Metrics via eBPF (on by default)
-
-The chart runs a DaemonSet with [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) on every node. It loads eBPF programs into the kernel and auto-captures HTTP/HTTPS, gRPC, and SQL/Redis traffic from every supported runtime (Go, .NET, Java, Node.js, Python, Ruby, Rust) — no SDK and no sidecar required. Traces and request metrics then flow through the in-cluster collector to OneUptime.
-
-**Requirements:** Linux kernel **5.8+** with BTF (default on Debian 11+, Ubuntu 20.10+, Fedora 34+, RHEL/Stream 9+). The eBPF DaemonSet runs in **privileged mode** because it has to, to load eBPF programs.
-
-### Disable eBPF auto-instrumentation
-
-You should disable it when:
-
-- Installing on **GKE Autopilot** or **EKS Fargate** — those platforms block privileged pods (use \`preset=gke-autopilot\` / \`preset=eks-fargate\` and pair with \`ebpf.enabled=false\`).
-- Nodes run a kernel older than 5.8 without BTF backports.
-- You already ship traces via OpenTelemetry SDKs from your apps and don't want duplicates.
-
-\`\`\`bash
-helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
-  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
-  --create-namespace \\
-  --set oneuptime.url="${oneuptimeUrl}" \\
-  --set oneuptime.apiKey="${apiKey}" \\
-  --set clusterName="${clusterName}" \\
-  --set ebpf.enabled=false
-\`\`\`
-
-### Toggle individual signal families
-
-All on by default. Turn any off with \`--set ebpf.features.<name>=false\`:
+**Choose the signals.** Each family is switched with \`--set ebpf.features.<name>=false\` (or \`=true\`):
 
 | \`ebpf.features.*\` | Default | What it adds |
 |---|---|---|
-| \`httpMetrics\` | on | HTTP/gRPC RED metrics (request rate, latency, errors) per service |
+| \`httpMetrics\` | on | HTTP/gRPC request rate, errors and latency per service |
 | \`spanMetrics\` | on | Per-span request/response size and duration |
-| \`serviceGraph\` | on | Caller → callee edge metrics; drives the service map |
+| \`serviceGraph\` | on | Caller → callee edges; drives the service map |
 | \`hostMetrics\` | on | CPU and memory per instrumented process |
 | \`networkMetrics\` | on | Pod-to-pod TCP/UDP flow counters |
-| \`networkInterZoneMetrics\` | off | Inter-zone variant of network metrics (doubles cardinality) |
-| \`tcpStats\` | on | Node-level TCP RTT, failed-connection, retransmit counters |
+| \`networkInterZoneMetrics\` | off | Inter-zone network metrics (doubles their cardinality) |
+| \`tcpStats\` | on | Node-level TCP RTT, failed-connection and retransmit counters |
 
-Cross-service trace context propagation — where OBI injects a W3C \`traceparent\` so a request crossing pod A → pod B shows up as a single trace with no SDK changes anywhere — is **off by default**. Opt in with \`--set ebpf.contextPropagation=true\`. It needs no kernel beyond what the rest of the agent needs — and no kernel version makes it inert.
+**Cross-service trace propagation** — linking a request that crosses pod A → pod B into a single trace — is **off by default**. Turn it on with \`--set ebpf.contextPropagation=true\` only after reading this: it works by rewriting traffic that is already in flight (widening plaintext HTTP requests in the kernel, and appending a TCP option to TLS and raw TCP), and a mistake in that byte accounting desynchronizes the stream — the reported symptom is transfers through an L7 proxy such as nginx hanging once a response passes ~64KB. An OpenTelemetry SDK propagates \`traceparent\` in userspace without any of that, and is the safer option.`,
+    });
+  }
 
-It is off because injecting the header means rewriting traffic that is already in flight: plaintext HTTP requests are widened in place in the kernel, while TLS and raw TCP get a TCP option appended from a Traffic Control hook. If the connection's byte accounting isn't corrected exactly right the stream desynchronizes — the reported symptom is transfers through an L7 proxy such as nginx hanging mid-body once the response passes ~64KB, while small requests keep working. Do not use kernel age to rule this out — below kernel 5.17 OBI falls back to bounded-scan program variants and keeps rewriting traffic the same way. Traces, RED metrics, and the service map do not depend on it; for cross-service linking, an OpenTelemetry SDK propagates \`traceparent\` in userspace without any kernel rewriting and is the safer option.
+  topics.push(
+    {
+      title: "Tag the cluster with project labels",
+      summary:
+        "Attach labels such as team or environment to the cluster and everything it reports.",
+      markdown: `${codeBlock(
+        "bash",
+        getKubernetesAgentUpgradeCommand([
+          "--set oneuptime.labels.team=payments",
+          "--set oneuptime.labels.env=production",
+        ]),
+      )}
 
-## Troubleshooting
+Each \`oneuptime.labels.<key>=<value>\` becomes the label \`<key>:<value>\` on the cluster, and on the services and hosts it reports. Labels are matched case-insensitively, so an existing \`Production\` label is reused; labels added in the OneUptime UI are never removed by the agent.`,
+    },
+    {
+      title: "Upgrade or uninstall the agent",
+      summary:
+        "Move to the latest chart and keep your settings, or remove the agent.",
+      markdown: `**Upgrade** to the latest chart. \`--reuse-values\` keeps your existing configuration (preset, cluster name, filters); add any new \`--set\` flags on top of it:
 
-### Install fails with "hostPath volumes are not allowed" or a Pod Security admission error
+${codeBlock("bash", `helm repo update\n${getKubernetesAgentUpgradeCommand([])}`)}
 
-Your cluster blocks \`hostPath\` — common on **GKE Autopilot** and **EKS Fargate**. Switch to the API-mode preset:
+**Uninstall** the agent and its namespace:
 
-\`\`\`bash
-helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
-  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
-  --reuse-values \\
-  --set preset=gke-autopilot   # or eks-fargate
-\`\`\`
+${codeBlock(
+  "bash",
+  `helm uninstall ${KUBERNETES_AGENT_HELM_RELEASE} --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}\nkubectl delete namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}`,
+)}${
+        platform === "eks-fargate"
+          ? `
 
-### Agent shows "Disconnected"
+Then remove the Fargate profile: \`eksctl delete fargateprofile --cluster <cluster-name> --name ${KUBERNETES_AGENT_HELM_NAMESPACE}\`.`
+          : ""
+      }`,
+    },
+    {
+      title: "What the agent collects",
+      summary:
+        "Node, pod and container metrics, events, pod logs, traces and more.",
+      markdown: getCollectedDataMarkdown(platform),
+    },
+  );
 
-1. Check that the agent pods are running: \`kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE}\`
-2. Check the agent logs: \`kubectl logs -n ${KUBERNETES_AGENT_HELM_NAMESPACE} deployment/${KUBERNETES_AGENT_HELM_RELEASE}\`
-3. Verify your OneUptime URL and API key are correct
-4. Ensure your cluster can reach the OneUptime instance over the network
+  return topics;
+}
 
-### AI → Agent shows "Offline" or "Not installed"
+function getCollectedDataMarkdown(platform: KubernetesPlatform): string {
+  const rows: Array<string> = ["| Category | Data |", "|----------|------|"];
 
-1. Check the AI agent pod: \`kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=ai-agent\`
-2. Check its logs: \`kubectl logs -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=ai-agent --tail=100\`
-3. No pod? Upgrade the chart (see **Upgrading the Agent**) and add \`--set aiAgent.enabled=true\`.
+  if (platform === "eks-fargate") {
+    rows.push(
+      "| **Cluster metrics** | Node conditions, allocatable resources, pod and workload counts |",
+    );
+  } else {
+    rows.push(
+      "| **Node metrics** | CPU, memory, filesystem and network usage |",
+      "| **Pod and container metrics** | CPU, memory, network I/O and restarts |",
+      "| **Cluster metrics** | Node conditions, allocatable resources, pod and workload counts |",
+    );
+  }
 
-### No logs appearing (API mode only)
+  rows.push(
+    "| **Kubernetes events** | Warnings, errors and scheduling events |",
+    isRestrictedPlatform(platform)
+      ? "| **Pod logs** | stdout/stderr of every container, read through the Kubernetes API |"
+      : "| **Pod logs** | stdout/stderr of every container, read from each node |",
+  );
 
-1. Confirm the log tailer pod is Ready: \`kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=log-collector\`
-2. Check its \`/healthz\` — it reports active stream count and the last export error
-3. Check logs: \`kubectl logs -n ${KUBERNETES_AGENT_HELM_NAMESPACE} deployment/${KUBERNETES_AGENT_HELM_RELEASE}-logs\`
-4. For very large clusters, a single replica may be a bottleneck — shard by namespace using \`namespaceFilters.include\` on separate releases
+  if (!isRestrictedPlatform(platform)) {
+    rows.push(
+      "| **Application traces** *(eBPF)* | HTTP, gRPC and SQL/Redis spans from every pod — no SDK or code changes |",
+      "| **Request metrics and service graph** *(eBPF)* | Request rate, errors and latency per service, and caller → callee edges for the service map |",
+      "| **Network flows** *(eBPF)* | Pod-to-pod TCP/UDP byte and packet counters |",
+    );
+  }
 
-### No metrics appearing
+  rows.push(
+    "| **Workload costs** *(opt-in, `cost.enabled=true`)* | Spend per namespace, workload and pod, with idle capacity and efficiency |",
+  );
 
-1. Check that the cluster identifier matches: this cluster uses **\`${clusterName}\`**
-2. Verify the RBAC permissions: \`kubectl get clusterrolebinding | grep ${KUBERNETES_AGENT_HELM_RELEASE}\`
-3. Check the OTel collector logs for export errors
+  const notes: Array<string> = [];
+  if (platform === "eks-fargate") {
+    notes.push(
+      "Fargate never schedules DaemonSets, so node, pod and container metrics are not available there.",
+    );
+  } else if (platform === "gke-autopilot") {
+    notes.push(
+      "Autopilot blocks hostPath, so node metrics that read the host's `/proc` and `/sys` (disk I/O, inodes, NIC errors) are not collected; kubelet and cAdvisor metrics are.",
+    );
+  }
 
-### eBPF pods are CrashLoopBackOff or fail to start
+  return [rows.join("\n"), ...notes].join("\n\n");
+}
 
-\`\`\`bash
-kubectl logs -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=ebpf-instrument --tail=200
-\`\`\`
+function getTroubleshootingTopics(
+  platform: KubernetesPlatform,
+  clusterName: string,
+): Array<SetupGuideTopic> {
+  const namespace: string = KUBERNETES_AGENT_HELM_NAMESPACE;
+  const release: string = KUBERNETES_AGENT_HELM_RELEASE;
+  const topics: Array<SetupGuideTopic> = [];
 
-Common causes:
+  if (platform === "eks-fargate") {
+    topics.push({
+      title: "Agent pods stay Pending",
+      markdown: `Fargate only schedules pods in namespaces that a Fargate profile selects. Check that one exists for \`${namespace}\`:
 
-- **Kernel too old or BTF missing.** OBI needs Linux 5.8+ with BTF. Run \`uname -r\` on a node. If you can't upgrade, disable eBPF: \`--set ebpf.enabled=false\`.
-- **Privileged pods blocked.** Some clusters reject privileged pods (GKE Autopilot, EKS Fargate, and locked-down environments). Disable eBPF.
-- **\`debugfs\`/\`tracefs\` not mounted on the host.** The \`tcpStats\` feature attaches to kernel tracepoints that need them. The chart mounts both via \`hostPath\` — but if your host doesn't expose them, disable just that family: \`--set ebpf.features.tcpStats=false\`.
+${codeBlock("bash", "eksctl get fargateprofile --cluster <cluster-name>")}
 
-### No application traces showing up
+If there is none, create it. Fargate is chosen when a pod is created, so pods that were already pending stay pending — restart the agent's Deployments once the profile is active:
 
-1. Confirm the eBPF DaemonSet is healthy: \`kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=ebpf-instrument\`
-2. Turn on the debug trace printer to confirm OBI is capturing traffic: \`--set ebpf.printTraces=true --set ebpf.logLevel=debug\`, then check \`kubectl logs -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=ebpf-instrument --tail=200\`
-3. If you see spans in OBI's stdout but not in the dashboard, the issue is the collector → OneUptime export — check the metrics-collector pod's logs.
-`;
+${codeBlock(
+  "bash",
+  `eksctl create fargateprofile \\
+  --cluster <cluster-name> \\
+  --region <region> \\
+  --name ${namespace} \\
+  --namespace ${namespace}
+kubectl rollout restart deployment -n ${namespace}`,
+)}`,
+    });
+  }
+
+  if (!isRestrictedPlatform(platform)) {
+    topics.push({
+      title: "Install fails with a hostPath or Pod Security error",
+      markdown: `Your cluster blocks \`hostPath\` volumes or privileged pods. That is normal on **GKE Autopilot** and **EKS Fargate** — pick that platform at the top of this guide and follow its steps.
+
+On any other cluster with a restrictive Pod Security policy, remove the failed release:
+
+${codeBlock(
+  "bash",
+  `helm uninstall ${KUBERNETES_AGENT_HELM_RELEASE} --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}`,
+)}
+
+Then run the install command again with \`--set preset=gke-autopilot --set ebpf.enabled=false\` added. That preset reads pod logs through the Kubernetes API instead of hostPath and applies a hardened security context, and turning eBPF off leaves out the privileged eBPF pods.`,
+    });
+  }
+
+  topics.push(
+    {
+      title: 'Cluster shows as "Disconnected"',
+      markdown: `1. Check that the agent's pods are running: \`kubectl get pods -n ${namespace}\`
+2. Check the collector's logs: \`kubectl logs -n ${namespace} deployment/${release}\`
+3. Verify the OneUptime URL and ingestion key in the install command are correct.
+4. Make sure the cluster can reach your OneUptime instance over the network.`,
+    },
+    {
+      title: 'AI → Agent shows "Offline" or "Not installed"',
+      markdown: `1. Check the AI agent's pod: \`kubectl get pods -n ${namespace} -l component=ai-agent\`
+2. Check its logs: \`kubectl logs -n ${namespace} -l component=ai-agent --tail=100\`
+3. No pod? Upgrade the chart (see **Upgrade the agent** under Advanced) and add \`--set aiAgent.enabled=true\`.`,
+    },
+    {
+      title: "No metrics appearing",
+      markdown: `1. Check that the cluster name matches: this guide installs **\`${clusterName}\`**.
+2. Verify the agent's RBAC permissions: \`kubectl get clusterrolebinding | grep ${release}\`
+3. Look for export errors in the collector's logs: \`kubectl logs -n ${namespace} deployment/${release}\``,
+    },
+  );
+
+  if (isRestrictedPlatform(platform)) {
+    topics.push({
+      title: "No pod logs appearing",
+      markdown: `Pod logs are read through the Kubernetes API on this platform.
+
+1. Check that the log reader is ready: \`kubectl get pods -n ${namespace} -l component=log-collector\`
+2. Check its logs: \`kubectl logs -n ${namespace} deployment/${release}-logs\`
+3. Its \`/healthz\` endpoint reports the number of active log streams and the last export error.
+4. On very large clusters one reader can fall behind — split the namespaces across separate releases with \`namespaceFilters\`.`,
+    });
+  } else {
+    topics.push(
+      {
+        title: "eBPF pods crash or fail to start",
+        markdown: `${codeBlock("bash", `kubectl logs -n ${namespace} -l component=ebpf-instrument --tail=200`)}
+
+- **Kernel too old or no BTF.** eBPF needs Linux 5.8+ with BTF — check with \`uname -r\` on a node. If you can't upgrade, turn eBPF off with \`--set ebpf.enabled=false\`.
+- **Privileged pods blocked.** Some locked-down clusters reject them. Turn eBPF off.
+- **\`debugfs\` / \`tracefs\` not available on the host.** Turn off just the TCP stats family: \`--set ebpf.features.tcpStats=false\`.`,
+      },
+      {
+        title: "No application traces",
+        markdown: `1. Check the eBPF pods are healthy: \`kubectl get pods -n ${namespace} -l component=ebpf-instrument\`
+2. Turn on OBI's debug output to confirm it sees traffic: \`--set ebpf.printTraces=true --set ebpf.logLevel=debug\`, then read \`kubectl logs -n ${namespace} -l component=ebpf-instrument --tail=200\`.
+3. If spans show up there but not in OneUptime, check the collector's logs for export errors: \`kubectl logs -n ${namespace} deployment/${release}\``,
+      },
+    );
+  }
+
+  return topics;
+}
+
+/**
+ * The Kubernetes agent install guide for one platform, filled in with the
+ * reader's OneUptime URL and ingestion key.
+ */
+export function getKubernetesSetupGuide(
+  options: KubernetesSetupGuideOptions,
+): SetupGuideContent {
+  const platform: KubernetesPlatform = options.platform;
+  const knownClusterName: string = (options.clusterName || "").trim();
+  const clusterName: string =
+    knownClusterName || KUBERNETES_EXAMPLE_CLUSTER_NAME;
+
+  return {
+    prerequisites: getPrerequisites(platform),
+    steps: [
+      getConnectStep(platform),
+      getInstallStep({
+        oneuptimeUrl: options.oneuptimeUrl,
+        apiKey: options.apiKey,
+        platform: platform,
+        clusterName: clusterName,
+        isClusterNameKnown: Boolean(knownClusterName),
+      }),
+      getVerifyStep(platform),
+    ],
+    advanced: getAdvancedTopics(platform),
+    troubleshooting: getTroubleshootingTopics(platform, clusterName),
+    links: [
+      {
+        title: "Kubernetes agent documentation",
+        url: "/docs/telemetry/kubernetes-agent",
+      },
+    ],
+  };
 }

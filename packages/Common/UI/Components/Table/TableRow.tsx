@@ -16,6 +16,7 @@ import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import React, { ReactElement, useState, useEffect } from "react";
 import { Draggable, DraggableProvided } from "react-beautiful-dnd";
 import LongTextViewer from "../LongText/LongTextViewer";
@@ -78,6 +79,13 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
   };
 
   const [tooltipModalText, setTooltipModalText] = useState<string>("");
+
+  /*
+   * On a phone a row is a card that labels each value with its column's
+   * title, which TableHeader - hidden there - would otherwise have
+   * translated.
+   */
+  const { translateString } = useTranslateValue();
 
   // Track mobile view for responsive behavior
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -297,7 +305,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     }}
                   >
                     <div className="text-sm font-medium text-gray-500">
-                      {column.title}
+                      {translateString(column.title) ?? column.title}
                     </div>
                     <div className="text-sm text-gray-900">{value}</div>
                   </div>

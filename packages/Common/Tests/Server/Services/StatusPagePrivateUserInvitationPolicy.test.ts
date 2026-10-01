@@ -1,6 +1,7 @@
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
+import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import MailService from "../../../Server/Services/MailService";
 import { Service } from "../../../Server/Services/StatusPagePrivateUserService";
@@ -13,7 +14,8 @@ import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
 import {
-  createLicenseSnapshotWithStatus,
+  createEditionStateCases,
+  EditionStateCase,
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
@@ -29,12 +31,14 @@ import {
 } from "@jest/globals";
 
 /*
- * A status page's "require SSO" is an Enterprise Edition control: honoured
- * while SSO is active (EnterpriseEdition.isFeatureActive(SSO)), relaxed on the
- * Community Edition and on an Enterprise install whose license lapsed, where
- * status page SSO login does not exist or refuses. Billing and the edition are
- * pinned so the suite tests the same thing locally and in CI (whose
- * config.env sets BILLING_ENABLED=true).
+ * A status page's "Require SSO for login" is part of the Community Edition
+ * and holds in every edition and license state: SCIM and admin-created
+ * private users of a page that only allows SSO never get a password-reset
+ * credential, whether ee/ is loaded or not and whatever the license says.
+ * A page that allows passwords sends the usual invitation everywhere.
+ *
+ * Billing and the edition are pinned so the suite tests the same thing
+ * locally and in CI (whose config.env sets BILLING_ENABLED=true).
  */
 jest.mock("../../../Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
@@ -67,6 +71,14 @@ class TestService extends Service {
 const FROZEN_NOW: Date = new Date("2026-09-17T10:00:00.000Z");
 const STATUS_PAGE_URL: string = "https://status.example.com";
 
+// Community (billing off and on), every Enterprise license state, the Cloud.
+const EVERY_STATE: Array<[string, EditionStateCase]> =
+  createEditionStateCases().map(
+    (state: EditionStateCase): [string, EditionStateCase] => {
+      return [state.label, state];
+    },
+  );
+
 describe("StatusPagePrivateUserService invitation login policy", () => {
   let service: TestService;
   let user: StatusPagePrivateUser;
@@ -79,7 +91,13 @@ describe("StatusPagePrivateUserService invitation login policy", () => {
     jest.useFakeTimers();
     jest.setSystemTime(FROZEN_NOW);
     setTestBillingEnabled(false);
-    installFakeEnterpriseModule();
+    uninstallEnterpriseModule();
+    getJestSpyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    getJestSpyOn(logger, "info").mockImplementation((): void => {
+      return undefined;
+    });
 
     service = new TestService();
     statusPage = new StatusPage();
@@ -121,99 +139,99 @@ describe("StatusPagePrivateUserService invitation login policy", () => {
     setTestBillingEnabled(false);
   });
 
-  test.each([false, undefined])(
-    "SCIM and admin-created users with isSsoUser=%s receive no password link when the page requires SSO",
-    async (isSsoUser: boolean | undefined) => {
-      if (isSsoUser === undefined) {
-        delete user.isSsoUser;
-      } else {
-        user.isSsoUser = isSsoUser;
-      }
-      statusPage.requireSsoForLogin = true;
+  test("the matrix covers the Community Edition, lapsed and unknown licenses, and the Cloud", () => {
+    const labels: Array<string> = EVERY_STATE.map(
+      ([label]: [string, EditionStateCase]): string => {
+        return label;
+      },
+    );
 
-      await expect(service.completeCreation(user)).resolves.toBe(user);
-
-      expect(findStatusPage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: user.statusPageId,
-          select: expect.objectContaining({ requireSsoForLogin: true }),
-        }),
-      );
-      expect(update).not.toHaveBeenCalled();
-      expect(sendMail).not.toHaveBeenCalled();
-      expect(StatusPageService.getStatusPageURL).not.toHaveBeenCalled();
-    },
-  );
-
-  test("the requirement still holds on the Enterprise Edition during the grace period", async () => {
-    installFakeEnterpriseModule({
-      snapshot: createLicenseSnapshotWithStatus("grace"),
-    });
-    statusPage.requireSsoForLogin = true;
-
-    await expect(service.completeCreation(user)).resolves.toBe(user);
-
-    expect(update).not.toHaveBeenCalled();
-    expect(sendMail).not.toHaveBeenCalled();
+    expect(labels).toEqual(
+      expect.arrayContaining([
+        "billing=false, Community Edition",
+        "billing=true, Community Edition",
+        "billing=false, Enterprise Edition, license expired more than 30 days ago",
+        "billing=false, Enterprise Edition, no license after the trial",
+        "billing=false, Enterprise Edition, invalid license",
+        "billing=false, Enterprise Edition, license not read yet (unknown)",
+        "billing=true, Enterprise Edition, valid license",
+      ]),
+    );
   });
 
-  test.each(["expired", "missing", "invalid"] as const)(
-    "with a lapsed (%s) license a page that required SSO gets a usable password invitation, as on the Community Edition",
-    async (status: "expired" | "missing" | "invalid") => {
-      getJestSpyOn(logger, "warn").mockImplementation((): void => {
-        return undefined;
+  describe.each(EVERY_STATE)(
+    "%s",
+    (_label: string, state: EditionStateCase) => {
+      beforeEach(() => {
+        state.apply();
       });
-      installFakeEnterpriseModule({
-        snapshot: createLicenseSnapshotWithStatus(status),
-      });
-      statusPage.requireSsoForLogin = true;
 
-      await expect(service.completeCreation(user)).resolves.toBe(user);
+      test.each([false, undefined])(
+        "SCIM and admin-created users with isSsoUser=%s receive no password link when the page requires SSO",
+        async (isSsoUser: boolean | undefined) => {
+          if (isSsoUser === undefined) {
+            delete user.isSsoUser;
+          } else {
+            user.isSsoUser = isSsoUser;
+          }
+          statusPage.requireSsoForLogin = true;
 
-      // Status page SSO refuses while the license is lapsed: without a password link the user could not sign in.
-      expect(update).toHaveBeenCalledTimes(1);
-      expect(sendMail).toHaveBeenCalledTimes(1);
-      expect(sendMail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          templateType: EmailTemplateType.StatusPageWelcomeEmail,
-        }),
-        expect.anything(),
+          await expect(service.completeCreation(user)).resolves.toBe(user);
+
+          expect(findStatusPage).toHaveBeenCalledWith(
+            expect.objectContaining({
+              id: user.statusPageId,
+              select: expect.objectContaining({ requireSsoForLogin: true }),
+            }),
+          );
+          expect(update).not.toHaveBeenCalled();
+          expect(sendMail).not.toHaveBeenCalled();
+          expect(StatusPageService.getStatusPageURL).not.toHaveBeenCalled();
+        },
       );
+
+      test("a page that allows passwords sends a usable invitation", async () => {
+        await expect(service.completeCreation(user)).resolves.toBe(user);
+
+        expect(update).toHaveBeenCalledTimes(1);
+        expect(sendMail).toHaveBeenCalledTimes(1);
+        expect(sendMail).toHaveBeenCalledWith(
+          expect.objectContaining({
+            templateType: EmailTemplateType.StatusPageWelcomeEmail,
+          }),
+          expect.anything(),
+        );
+      });
+
+      test("SSO sign-ups do not create an unused password-reset credential", async () => {
+        user.isSsoUser = true;
+        statusPage.requireSsoForLogin = true;
+
+        await expect(service.completeCreation(user)).resolves.toBe(user);
+
+        expect(findStatusPage).not.toHaveBeenCalled();
+        expect(update).not.toHaveBeenCalled();
+        expect(sendMail).not.toHaveBeenCalled();
+      });
     },
   );
 
-  test.each([false, true])(
-    "on the Community Edition (billing=%p) a page that required SSO still gets a usable password invitation",
-    async (billing: boolean) => {
-      setTestBillingEnabled(billing);
-      uninstallEnterpriseModule();
-      statusPage.requireSsoForLogin = true;
+  test("the policy never asks the enterprise facade", async () => {
+    installFakeEnterpriseModule();
+    const isFeatureActive: jest.SpyInstance = getJestSpyOn(
+      EnterpriseEdition,
+      "isFeatureActive",
+    );
+    statusPage.requireSsoForLogin = true;
 
-      await expect(service.completeCreation(user)).resolves.toBe(user);
+    await service.completeCreation(user);
 
-      /*
-       * Status page SSO does not exist on the Community Edition, so without a
-       * password link the invited user would have no way to sign in at all.
-       */
-      expect(update).toHaveBeenCalledTimes(1);
-      expect(sendMail).toHaveBeenCalledTimes(1);
-      expect(sendMail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          templateType: EmailTemplateType.StatusPageWelcomeEmail,
-        }),
-        expect.anything(),
-      );
-    },
-  );
+    statusPage.requireSsoForLogin = false;
 
-  test("SSO sign-ups do not create an unused password-reset credential", async () => {
-    user.isSsoUser = true;
+    await service.completeCreation(user);
 
-    await expect(service.completeCreation(user)).resolves.toBe(user);
-
-    expect(findStatusPage).not.toHaveBeenCalled();
-    expect(update).not.toHaveBeenCalled();
-    expect(sendMail).not.toHaveBeenCalled();
+    expect(isFeatureActive).not.toHaveBeenCalled();
+    expect(sendMail).toHaveBeenCalledTimes(1);
   });
 
   test("password-enabled pages still send a usable invitation and persist only its digest", async () => {

@@ -639,7 +639,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             props.description ||
             "Alerts flag problems for your team to look into before users are affected. Unlike incidents, they never appear on status pages.",
         }}
-        noItemsMessage={props.noItemsMessage || "No alerts found."}
+        noItemsMessage={props.noItemsMessage}
         showRefreshButton={true}
         searchableFields={["title", "description"]}
         showViewIdButton={true}

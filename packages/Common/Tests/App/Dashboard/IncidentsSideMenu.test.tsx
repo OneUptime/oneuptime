@@ -293,6 +293,11 @@ describe("Incidents side menu", () => {
           title: "Incident Templates",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_TEMPLATES),
         },
+        // Incident forms (issue #4114): right after the templates.
+        {
+          title: "Forms",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_FORMS),
+        },
         {
           title: "Note Templates",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES),
@@ -446,6 +451,14 @@ describe("Incidents side menu", () => {
       await renderIncidentsMenu();
 
       expect(mobileSummaryText()).toContain("Settings / Incident Roles");
+    });
+
+    // Forms are configuration, like templates, not a rule.
+    test("names the Settings section on the forms page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/forms`);
+      await renderIncidentsMenu();
+
+      expect(mobileSummaryText()).toContain("Settings / Forms");
     });
   });
 });

@@ -1,17 +1,12 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Navigation from "Common/UI/Utils/Navigation";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
-import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
-import TelemetryRetentionConfigForm from "Common/UI/Components/Telemetry/TelemetryRetentionConfigForm";
-import TelemetryRetentionConfigSummary from "Common/UI/Components/Telemetry/TelemetryRetentionConfigSummary";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -54,20 +49,6 @@ const IoTFleetSettings: FunctionComponent<
             required: false,
             placeholder: "Temperature sensors across Building A",
           },
-          {
-            field: {
-              retainTelemetryDataForDays: true,
-            },
-            title: "Retain Telemetry Data For (Days)",
-            description:
-              "Default retention for telemetry collected from this IoT fleet. Leave blank to use the project's default.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "Use project default",
-            validation: {
-              minValue: 1,
-            },
-          },
         ]}
         modelDetailProps={{
           modelType: IoTFleet,
@@ -88,71 +69,14 @@ const IoTFleetSettings: FunctionComponent<
               title: "Description",
               fieldType: FieldType.Text,
             },
-            {
-              field: {
-                retainTelemetryDataForDays: true,
-              },
-              title: "Retain Telemetry Data For (Days)",
-              description:
-                "Default retention for telemetry collected from this IoT fleet. Falls back to the project's default when not set.",
-              fieldType: FieldType.Number,
-              placeholder: "Using project default",
-            },
           ],
         }}
       />
-      <CardModelDetail<IoTFleet>
-        name="Retention by Telemetry Type"
-        cardProps={{
-          title: "Retention by Telemetry Type",
-          description:
-            "Override retention for specific telemetry types for this IoT fleet. Any field left blank falls back to the fleet default, then the project's settings.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Overrides"
-        createEditModalWidth={ModalWidth.Large}
-        formFields={[
-          {
-            field: { telemetryRetentionConfig: true },
-            title: "Retention Overrides",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: false,
-            getCustomElement: (
-              value: FormValues<IoTFleet>,
-              props: CustomElementProps,
-            ) => {
-              return (
-                <TelemetryRetentionConfigForm
-                  {...props}
-                  value={
-                    value.telemetryRetentionConfig as
-                      | TelemetryRetentionConfig
-                      | undefined
-                  }
-                />
-              );
-            },
-          },
-        ]}
-        modelDetailProps={{
-          modelType: IoTFleet,
-          id: "model-detail-iot-fleet-telemetry-retention-overrides",
-          fields: [
-            {
-              field: { telemetryRetentionConfig: true },
-              fieldType: FieldType.Element,
-              title: "Retention Overrides",
-              getElement: (item: IoTFleet) => {
-                return (
-                  <TelemetryRetentionConfigSummary
-                    config={item.telemetryRetentionConfig}
-                  />
-                );
-              },
-            },
-          ],
-          modelId: modelId,
-        }}
+      <TelemetryResourceRetentionSettings<IoTFleet>
+        modelType={IoTFleet}
+        modelId={modelId}
+        resourceName="IoT fleet"
+        modelDetailIdPrefix="model-detail-iot-fleet"
       />
       <ArchiveResourceCard<IoTFleet>
         modelType={IoTFleet}

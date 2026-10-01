@@ -19,20 +19,20 @@ There is no proprietary agent to install on the device side. This page is the **
 
 ## How OneUptime Models IoT
 
-OneUptime maps your devices onto two concepts using OpenTelemetry resource attributes:
+OneUptime maps your devices onto two concepts using OpenTelemetry attributes:
 
 - **Fleet** — a logical group of devices (for example `building-a-sensors` or `field-gateways`). The fleet is derived from the `iot.fleet.name` resource attribute and appears in OneUptime as the telemetry service `iot/<fleet>`. Set `service.name=iot/<fleet>` so logs and metrics line up under the same service.
-- **Device** — an individual device within a fleet, identified by the `device.id` attribute. OneUptime builds and maintains a per-fleet device inventory keyed on `device.id`.
+- **Device** — an individual device within a fleet, identified by the `device.id` attribute on each datapoint. OneUptime builds and maintains a per-fleet device inventory keyed on `device.id`.
 
 Optional attributes refine how each device is classified and scoped in monitors:
 
-| Attribute            | Required | Description                                                                      |
-| -------------------- | -------- | -------------------------------------------------------------------------------- |
-| `iot.fleet.name`     | Yes      | The fleet this device belongs to. Becomes the OneUptime service `iot/<fleet>`    |
-| `device.id`          | Yes      | Stable, unique id for the device within the fleet                                |
-| `iot.device.kind`    | No       | The device class — for example `Device`, `Sensor`, or `Gateway`. Defaults to `Device` |
-| `iot.device.type`    | No       | A finer device type/model used for filtering monitors (for example `temp-sensor`) |
-| `iot.device.firmware`| No       | Firmware version reported by the device                                          |
+| Attribute            | Set on         | Required | Description                                                                      |
+| -------------------- | -------------- | -------- | -------------------------------------------------------------------------------- |
+| `iot.fleet.name`     | Resource       | Yes      | The fleet this device belongs to. Becomes the OneUptime service `iot/<fleet>`    |
+| `device.id`          | Each datapoint | Yes      | Stable, unique id for the device within the fleet                                |
+| `iot.device.kind`    | Each datapoint | No       | The device class — for example `Device`, `Sensor`, or `Gateway`. Defaults to `Device` |
+| `iot.device.type`    | Each datapoint | No       | A finer device type/model used for filtering monitors (for example `temp-sensor`) |
+| `iot.device.firmware`| Each datapoint | No       | Firmware version reported by the device                                          |
 
 ## Sending Metrics via the OpenTelemetry SDK
 
@@ -48,9 +48,9 @@ export OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=building-a-sensors,device.id=sens
 | ----------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Yes      | OneUptime OTLP endpoint (`https://oneuptime.com/otlp`, or `http(s)://YOUR-ONEUPTIME-HOST/otlp` self-hosted) |
 | `OTEL_EXPORTER_OTLP_HEADERS`  | Yes      | `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`                                                    |
-| `OTEL_RESOURCE_ATTRIBUTES`    | Yes      | Comma-separated resource attributes. Must include `iot.fleet.name`, `device.id`, and `service.name=iot/<fleet>` |
+| `OTEL_RESOURCE_ATTRIBUTES`    | Yes      | Comma-separated resource attributes. Must include `iot.fleet.name` and `service.name=iot/<fleet>` |
 
-Emit your readings as metrics using the `iot_*` names below (see [Metric Conventions](#metric-conventions)). Within a minute or so the device appears under the **IoT** section of the OneUptime dashboard.
+Emit your readings as metrics using the `iot_*` names below (see [Metric Conventions](#metric-conventions)), and give every datapoint a `device.id` attribute. The device inventory is keyed on the datapoint's `device.id`, not the resource's, so set it on each measurement as well as in `OTEL_RESOURCE_ATTRIBUTES`. Within a minute or so the device appears under the **IoT** section of the OneUptime dashboard.
 
 ## Sending Metrics via an OpenTelemetry Collector
 
@@ -211,7 +211,7 @@ OneUptime recognizes the following `iot_*` metric names. Each datapoint should c
 
 ## Verify the Installation
 
-1. Confirm your device or gateway is exporting without errors (check the SDK/collector logs for export failures and HTTP `401`/`403` responses).
+1. Confirm your device or gateway is exporting without errors (check the SDK/collector logs for export failures and HTTP `401`/`422` responses).
 2. In the OneUptime dashboard, open the **IoT** section — your fleet should appear as `iot/<fleet>` within a minute or so.
 3. Open the fleet's **Devices** tab — each `device.id` you sent should be listed with its latest battery, signal, temperature, CPU, memory, and up/down status.
 4. Open **Metrics** under the fleet to chart any of the `iot_*` series above.
@@ -230,9 +230,9 @@ OneUptime recognizes the following `iot_*` metric names. Each datapoint should c
 2. Send `iot_device_info` (identity-only) for devices that have not yet reported readings so they still show up in the inventory.
 3. Check that `device.id` values are stable across reports; a changing id creates duplicate device rows.
 
-### HTTP 401 / 403 from the Exporter
+### HTTP 401 / 422 from the Exporter
 
-The ingestion token is invalid, revoked, or missing. Generate a new one from _Project Settings → Telemetry & APM → Ingestion Keys_ and update the `x-oneuptime-token` header.
+`401` means the ingestion token is missing, invalid, or expired; `422` means it has been disabled, or is a browser key, which cannot send device telemetry. Generate a new one from _Project Settings → Telemetry & APM → Ingestion Keys_ and update the `x-oneuptime-token` header.
 
 ### Metrics Not Charting
 

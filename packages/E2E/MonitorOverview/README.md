@@ -1,10 +1,11 @@
 # Monitor overview fixture
 
-An offline harness for the real monitor overview page:
+An offline harness for the real monitor overview page, and its Monitoring Logs page:
 
 | Page | Route (from `RouteMap`) | Production components |
 |---|---|---|
 | Monitor overview | `MONITOR_VIEW` `/dashboard/:projectId/monitors/:id` | `Pages/Monitor/View/{Layout,Index}` and every card they mount (`Components/Monitor/Overview/*`, `SummaryView/Summary`, `MonitorFeed`, `EmbeddedMetricCard`, `OverviewCustomFields`, `DependencySuppressionWarning`) |
+| Monitoring Logs | `MONITOR_VIEW_LOGS` `/dashboard/:projectId/monitors/:id/logs` | `Pages/Monitor/View/{Layout,Logs}`: the real `AnalyticsModelTable` over `MonitorLog`, and the View Summary modal (`SummaryView/SummaryInfo`) |
 
 `Fixture/server.js` bundles the production layout (ModelPage, side menu) and page with
 esbuild, serves them with the same Tailwind build, `tailwind.config` and `Theme.css`
@@ -51,7 +52,10 @@ One monitor per supported type, each on its own id (`70000000-0000-4000-8000-000
   `lastMonitoringLog` keyed by the step id. `lastPingAt` is two seconds before the result,
   so a poll finds nothing pending and reads the probes LIGHT.
 - **Evaluation log** (`MonitorLog`, analytics): two per probe for probe checks, one for the
-  other families, with `logBody.probeId` and `evaluationSummary`.
+  other families, with `logBody.probeId` and `evaluationSummary`. The incoming email monitor
+  has three, shaped as the server writes them: its last email (2 hours ago), the day before's,
+  and a scheduled missing-email check 40 seconds ago that carries a copy of the last email
+  (`onlyCheckForIncomingEmailReceivedAt`).
 - **Response time** (`Metric` aggregate): one series per probe every five minutes, and
   `MetricType` rows for the unit. While the monitor was Offline, Frankfurt and Singapore
   record their fast error responses and N. Virginia, whose checks time out, records nothing,
@@ -61,9 +65,13 @@ One monitor per supported type, each on its own id (`70000000-0000-4000-8000-000
 - **Owners**: Maya Chen, Sam Rivera and the Checkout SRE team (not on the network device).
 - **Feed**: created, owner added and the last four status changes.
 
-Navigation targets that are not modelled (every monitor sub-page, incidents, alerts, network
-devices, list pages) render a small stub page with `data-testid="stub-page"` and
-`data-page="<PageMap key>"`.
+Navigation targets that are not modelled (every monitor sub-page but Monitoring Logs,
+incidents, alerts, network devices, list pages) render a small stub page with
+`data-testid="stub-page"` and `data-page="<PageMap key>"`.
+
+The signed-in user's permissions are answered through `getAllPermissions` and through the two
+reads it is built from, `getGlobalPermissions` and `getProjectPermissions`: a model table checks
+every column against the latter, and drops the columns it cannot read.
 
 ## Scenarios
 
@@ -98,8 +106,9 @@ another monitor lands on a plain, healthy one.
   the first check; the SSL certificate expiry fact; a day bar opening its dialog with the
   incident; a flapping history.
 - **Other families**: incoming request awaiting (owner: URL, copy, curl; viewer: the lock
-  state and no secret anywhere in the page) and after data (Connection card); incoming email;
-  server awaiting and after data; Kubernetes, and Kubernetes whose evaluations stopped
+  state and no secret anywhere in the page) and after data (Connection card); incoming email
+  awaiting (owner: the address, "Copy email address", the "How to verify the address" link;
+  viewer: the lock state, no secret) and after data; server awaiting and after data; Kubernetes, and Kubernetes whose evaluations stopped
   landing (overdue by the evaluation log, not the worker's stamp); network device (device
   link, no owners); manual (guide card, no Summary, no MonitorLog read).
 - **Roles**: MonitorViewer (Open now "—", the response-time fallback, no Incident, Alert or
@@ -113,8 +122,15 @@ another monitor lands on a plain, healthy one.
   on the fifth); the recorded requests (tenant header, `timezone=UTC`, the probe query, the
   timeline's limit and sort, the evaluation log limit, the open-work filters); moving to
   another monitor through a header link; a hero call to action.
+- **Monitoring Logs**: the incoming email monitor's Email column (subject over sender, "Scheduled
+  check"), View Summary on an email row and on a scheduled check, the table inside the card at
+  1280px and 1440px (View Summary never pushed off it), no sideways scroll at 390px, and the
+  API monitor's Probe column.
 - **Responsive and theme**: 390px (no sideways scroll for every type, the strip starts at
-  today and its date labels scroll with the bars, facts and stat bar in one column), 768px
+  today and its date labels scroll with the bars, facts and stat bar in one column, and the
+  email address, heartbeat URL and server install commands of a monitor waiting for its first
+  signal visible and inside the screen: Card hides its description below md, so they belong
+  in the card's body), 768px
   (2 x 2 stat bar, one column, card titles not squeezed), 1280px (two thirds and one third),
   the Response time plot at least 150px tall at 390, 768 and 1440px, and dark mode.
 

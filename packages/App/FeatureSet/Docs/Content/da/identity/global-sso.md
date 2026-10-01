@@ -2,7 +2,7 @@
 
 Global SSO giver en OneUptime **instansadministrator** (master-administrator) mulighed for at konfigurere en enkelt SAML 2.0- eller OpenID Connect (OIDC)-identitetsudbyder **én gang på instansniveau** og forbinde den til ethvert projekt på serveren. Det er instansdækkende sidestykke til SSO pr. projekt: i stedet for at hver projektejer konfigurerer sin egen identitetsudbyder, opsætter en master-administrator én, der kan betjene hele instansen.
 
-Global SSO er en **OneUptime Enterprise Edition**-funktion og er kun tilgængelig på instanser, der kører Enterprise Edition-builden. Se [Enterprise Edition](/docs/self-hosted/enterprise) for, hvordan du kører den, hvordan licenser fungerer, og hvad der sker med SSO-krav i Community Edition. Uden en gyldig licens (efter den 14-dages prøveperiode eller 30 dage efter, at en licens er udløbet) stopper global SSO-login, og "Require SSO" for hele instansen håndhæves ikke, før en licens aktiveres.
+Global SSO, herunder "Require SSO for Login"-kontakten for hele instansen, er en del af alle OneUptime-udgaver: alle selvhostede instanser har det, også med Community Edition, og det kræver ingen licens. Det er instansadministration og gælder derfor ikke for OneUptime Cloud. Se [Enterprise Edition](/docs/self-hosted/enterprise) for, hvad hver udgave indeholder.
 
 ## Global SSO vs. Projekt-SSO
 
@@ -48,7 +48,7 @@ Hvis du vil forhindre enhver automatisk oprettelse af konti, selv når projekter
 Konfiguration af en global udbyder tvinger ikke nogen til at bruge den; login med adgangskode fungerer stadig. For at kræve SSO skal du bruge kontrollerne **Require SSO for Login**:
 
 - **Pr. projekt:** et projekt kan kræve SSO og eventuelt kræve en _specifik_ udbyder (projekt eller global).
-- **Instansdækkende:** **Admin** > **Indstillinger** > **Autentificering** har en **Require SSO for Login**-kontakt, der tvinger SSO igennem for alle brugere på tværs af instansen. Master-administratorer forbliver undtaget, så de ikke kan blive låst ude.
+- **Instansdækkende:** **Admin** > **Indstillinger** > **Autentificering** har en **Kræv SSO til login**-kontakt, der tvinger SSO igennem for alle brugere på tværs af instansen. Master-administratorer forbliver undtaget, så de ikke kan blive låst ude.
 
 ## Relateret
 
