@@ -15,21 +15,19 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { ComponentProps as CanvasProps } from "../../../UI/Components/Workflow/Workflow";
 
 /*
- * The workflow Builder page and the webhook secret key.
+ * The workflow Builder page and the incoming email secret key: what the
+ * Incoming Email trigger's address is built from.
  *
- * The key used to be loaded, shown and reset by the workflow's Settings page.
- * It now belongs to the Webhook trigger, whose settings are drawn by the
- * builder's canvas, so the Builder page is what loads it and saves a new one.
- *
- * Pinned here, with the canvas replaced by a stand-in that records what it is
+ * The canvas draws the trigger's settings, so the Builder page is what loads
+ * the key and saves a new one, the way it does for the webhook key. Pinned
+ * here, with the canvas replaced by a stand-in that records what it is
  * handed:
  *   - the page asks for the key only when the user may read it - an
- *     unreadable column in a select fails the whole request, and the builder
- *     would not open for a Viewer;
+ *     unreadable column in a select fails the whole request;
  *   - it tells the canvas whether the key could be read, so the trigger can
- *     say "hidden" rather than "no URL yet";
- *   - Reset URL saves a fresh key on the workflow at once and hands the new
- *     key down, and a failed save is passed back for the trigger to show.
+ *     say "hidden" rather than create an address over a real one;
+ *   - Reset address (and the first address of a new step) saves a fresh key
+ *     at once and hands it down, and a failed save is passed back.
  */
 
 let mockPermissions: Array<unknown> = [];
@@ -90,14 +88,12 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 let mockCanvasProps: CanvasProps | null = null;
-let mockCanvasRenders: number = 0;
 
 jest.mock("../../../UI/Components/Workflow/Workflow", () => {
   return {
     __esModule: true,
     default: (props: CanvasProps): React.ReactElement => {
       mockCanvasProps = props;
-      mockCanvasRenders++;
 
       return <div data-testid="workflow-canvas" />;
     },
@@ -126,10 +122,16 @@ import Navigation from "../../../UI/Utils/Navigation";
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "0198c8ec-2a1d-7f0c-9e75-384194161002",
 );
-const SECRET: string = "6f9b2c1e-3a4d-4e8f-9b7a-2c5d8e1f0a3b";
+const EMAIL_SECRET: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 
 const UUID_V4: RegExp =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+const EDITORS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.EditWorkflow,
+];
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: new Route("/dashboard/workflows/builder"),
@@ -137,15 +139,9 @@ const PAGE_PROPS: PageComponentProps = {
   hasPaymentMethod: false,
 };
 
-type GetItemCallFunction = () => {
-  modelType: unknown;
-  id: ObjectID;
-  select: Record<string, unknown>;
-};
+type GetItemCallFunction = () => { select: Record<string, unknown> };
 
 const getItemCall: GetItemCallFunction = (): {
-  modelType: unknown;
-  id: ObjectID;
   select: Record<string, unknown>;
 } => {
   expect(mockGetItem).toHaveBeenCalledTimes(1);
@@ -153,9 +149,7 @@ const getItemCall: GetItemCallFunction = (): {
   return mockGetItem.mock.calls[0]![0] as never;
 };
 
-type CanvasFunction = () => CanvasProps;
-
-const canvas: CanvasFunction = (): CanvasProps => {
+const canvas: () => CanvasProps = (): CanvasProps => {
   if (!mockCanvasProps) {
     throw new Error("Expected the builder to draw its canvas.");
   }
@@ -163,9 +157,7 @@ const canvas: CanvasFunction = (): CanvasProps => {
   return mockCanvasProps;
 };
 
-type RenderBuilderFunction = () => Promise<void>;
-
-const renderBuilder: RenderBuilderFunction = async (): Promise<void> => {
+const renderBuilder: () => Promise<void> = async (): Promise<void> => {
   render(<Builder {...PAGE_PROPS} />);
 
   await waitFor(() => {
@@ -177,7 +169,6 @@ beforeEach(() => {
   mockPermissions = [];
   mockIsMasterAdmin = false;
   mockCanvasProps = null;
-  mockCanvasRenders = 0;
   mockGetItem.mockReset();
   mockUpdateById.mockReset();
 
@@ -190,28 +181,24 @@ beforeEach(() => {
   mockGetItem.mockImplementation(async (...args: Array<unknown>) => {
     const request: { select: Record<string, unknown> } = args[0] as never;
     const workflow: WorkflowModel = new WorkflowModel();
+    const mayRead: boolean =
+      mockIsMasterAdmin ||
+      (mockPermissions as Array<Permission>).some((permission: Permission) => {
+        return EDITORS.includes(permission);
+      });
 
     workflow.graph = { nodes: [], edges: [] };
 
-    if (request.select["webhookSecretKey"]) {
-      if (
-        !mockIsMasterAdmin &&
-        !(mockPermissions as Array<Permission>).some(
-          (permission: Permission) => {
-            return [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.EditWorkflow,
-            ].includes(permission);
-          },
-        )
-      ) {
+    for (const column of ["webhookSecretKey", "incomingEmailSecretKey"]) {
+      if (request.select[column] && !mayRead) {
         throw new Error(
-          "You do not have permissions to select on - webhookSecretKey.",
+          `You do not have permissions to select on - ${column}.`,
         );
       }
+    }
 
-      workflow.webhookSecretKey = SECRET;
+    if (request.select["incomingEmailSecretKey"]) {
+      workflow.incomingEmailSecretKey = new ObjectID(EMAIL_SECRET);
     }
 
     return workflow;
@@ -223,33 +210,18 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("the builder loads the webhook secret key only for those who may see it", () => {
-  test.each([
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.EditWorkflow,
-  ])(
+describe("the builder loads the incoming email key only for those who may see it", () => {
+  test.each(EDITORS)(
     "%s: the key is loaded with the graph and handed to the canvas",
     async (permission: Permission) => {
       mockPermissions = [permission];
 
       await renderBuilder();
 
-      /*
-       * The name names a run downloaded from the builder's run modal. The
-       * incoming email key is read by the same people, for the Incoming
-       * Email trigger (WorkflowBuilderIncomingEmailSecretKey.test.tsx).
-       */
-      expect(getItemCall().select).toEqual({
-        graph: true,
-        name: true,
-        webhookSecretKey: true,
-        incomingEmailSecretKey: true,
-      });
-      expect(getItemCall().id.toString()).toBe(WORKFLOW_ID.toString());
-      expect(canvas().webhookSecretKey).toBe(SECRET);
-      expect(canvas().canSeeWebhookSecretKey).toBe(true);
-      expect(canvas().onResetWebhookSecretKey).toBeInstanceOf(Function);
+      expect(getItemCall().select["incomingEmailSecretKey"]).toBe(true);
+      expect(canvas().incomingEmailSecretKey).toBe(EMAIL_SECRET);
+      expect(canvas().canSeeIncomingEmailSecretKey).toBe(true);
+      expect(canvas().onResetIncomingEmailSecretKey).toBeInstanceOf(Function);
     },
   );
 
@@ -265,10 +237,12 @@ describe("the builder loads the webhook secret key only for those who may see it
 
       await renderBuilder();
 
-      // Not even `webhookSecretKey: false`: the column is never named.
-      expect(Object.keys(getItemCall().select)).toEqual(["graph", "name"]);
-      expect(canvas().webhookSecretKey).toBe("");
-      expect(canvas().canSeeWebhookSecretKey).toBe(false);
+      // Not even `incomingEmailSecretKey: false`: the column is never named.
+      expect(Object.keys(getItemCall().select)).not.toContain(
+        "incomingEmailSecretKey",
+      );
+      expect(canvas().incomingEmailSecretKey).toBe("");
+      expect(canvas().canSeeIncomingEmailSecretKey).toBe(false);
       expect(
         screen.queryByText(/permissions to select/),
       ).not.toBeInTheDocument();
@@ -276,12 +250,10 @@ describe("the builder loads the webhook secret key only for those who may see it
   );
 
   test("before the permission snapshot lands, it does not risk asking", async () => {
-    mockPermissions = [];
-
     await renderBuilder();
 
     expect(Object.keys(getItemCall().select)).toEqual(["graph", "name"]);
-    expect(canvas().canSeeWebhookSecretKey).toBe(false);
+    expect(canvas().canSeeIncomingEmailSecretKey).toBe(false);
   });
 
   test("a master admin gets the key", async () => {
@@ -289,11 +261,11 @@ describe("the builder loads the webhook secret key only for those who may see it
 
     await renderBuilder();
 
-    expect(getItemCall().select["webhookSecretKey"]).toBe(true);
-    expect(canvas().canSeeWebhookSecretKey).toBe(true);
+    expect(getItemCall().select["incomingEmailSecretKey"]).toBe(true);
+    expect(canvas().canSeeIncomingEmailSecretKey).toBe(true);
   });
 
-  test("a workflow with no key is handed down as an empty key the user may see", async () => {
+  test("a workflow with no key yet is handed down as an empty key the user may see, so the trigger can create one", async () => {
     mockPermissions = [Permission.EditWorkflow];
     mockGetItem.mockImplementation(async () => {
       const workflow: WorkflowModel = new WorkflowModel();
@@ -304,12 +276,12 @@ describe("the builder loads the webhook secret key only for those who may see it
 
     await renderBuilder();
 
-    expect(canvas().webhookSecretKey).toBe("");
-    expect(canvas().canSeeWebhookSecretKey).toBe(true);
+    expect(canvas().incomingEmailSecretKey).toBe("");
+    expect(canvas().canSeeIncomingEmailSecretKey).toBe(true);
   });
 });
 
-describe("Reset URL, from the Webhook trigger's settings", () => {
+describe("Reset address, from the Incoming Email trigger's settings", () => {
   test("saves a fresh key on the workflow at once and hands it down", async () => {
     mockPermissions = [Permission.EditWorkflow];
     mockUpdateById.mockImplementation(async () => {
@@ -319,7 +291,7 @@ describe("Reset URL, from the Webhook trigger's settings", () => {
     await renderBuilder();
 
     await act(async () => {
-      await canvas().onResetWebhookSecretKey!();
+      await canvas().onResetIncomingEmailSecretKey!();
     });
 
     expect(mockUpdateById).toHaveBeenCalledTimes(1);
@@ -332,26 +304,42 @@ describe("Reset URL, from the Webhook trigger's settings", () => {
 
     expect(update.modelType).toBe(WorkflowModel);
     expect(update.id.toString()).toBe(WORKFLOW_ID.toString());
-    expect(Object.keys(update.data)).toEqual(["webhookSecretKey"]);
+    // The key alone: the graph is not re-saved alongside it.
+    expect(Object.keys(update.data)).toEqual(["incomingEmailSecretKey"]);
 
-    const newKey: string = update.data["webhookSecretKey"] as string;
+    const newKey: string = update.data["incomingEmailSecretKey"] as string;
 
     expect(newKey).toMatch(UUID_V4);
-    expect(newKey).not.toBe(SECRET);
+    expect(newKey).not.toBe(EMAIL_SECRET);
 
     await waitFor(() => {
-      expect(canvas().webhookSecretKey).toBe(newKey);
+      expect(canvas().incomingEmailSecretKey).toBe(newKey);
     });
-    expect(canvas().canSeeWebhookSecretKey).toBe(true);
-    // Saved on its own: the graph is not re-saved alongside it.
-    expect(getItemCall()).toBeDefined();
+    expect(canvas().canSeeIncomingEmailSecretKey).toBe(true);
+  });
+
+  test("leaves the webhook key alone", async () => {
+    mockPermissions = [Permission.EditWorkflow];
+    mockUpdateById.mockImplementation(async () => {
+      return {};
+    });
+
+    await renderBuilder();
+
+    const webhookKey: string | undefined = canvas().webhookSecretKey;
+
+    await act(async () => {
+      await canvas().onResetIncomingEmailSecretKey!();
+    });
+
+    expect(canvas().webhookSecretKey).toBe(webhookKey);
   });
 
   test("a refused save is passed back for the trigger to show, and the old key stays", async () => {
     mockPermissions = [Permission.EditWorkflow];
     mockUpdateById.mockImplementation(async () => {
       throw new Error(
-        "User is not allowed to update on webhookSecretKey column of Workflow",
+        "User is not allowed to update on incomingEmailSecretKey column of Workflow",
       );
     });
 
@@ -361,50 +349,17 @@ describe("Reset URL, from the Webhook trigger's settings", () => {
 
     await act(async () => {
       try {
-        await canvas().onResetWebhookSecretKey!();
+        await canvas().onResetIncomingEmailSecretKey!();
       } catch (err) {
         failure = err;
       }
     });
 
     expect((failure as Error).message).toContain("is not allowed to update");
-    expect(canvas().webhookSecretKey).toBe(SECRET);
-    /*
-     * The page's own error dialog stays shut: the trigger's confirmation is
-     * still open and shows the reason itself.
-     */
+    expect(canvas().incomingEmailSecretKey).toBe(EMAIL_SECRET);
     expect(
       screen.queryByText(/is not allowed to update/),
     ).not.toBeInTheDocument();
-  });
-
-  test("each reset gives a different key", async () => {
-    mockPermissions = [Permission.ProjectOwner];
-    mockUpdateById.mockImplementation(async () => {
-      return {};
-    });
-
-    await renderBuilder();
-
-    await act(async () => {
-      await canvas().onResetWebhookSecretKey!();
-    });
-    await act(async () => {
-      await canvas().onResetWebhookSecretKey!();
-    });
-
-    const keys: Array<string> = mockUpdateById.mock.calls.map(
-      (call: Array<unknown>) => {
-        return (call[0] as { data: Record<string, string> }).data[
-          "webhookSecretKey"
-        ] as string;
-      },
-    );
-
-    expect(keys).toHaveLength(2);
-    expect(keys[0]).not.toBe(keys[1]);
-    expect(canvas().webhookSecretKey).toBe(keys[1]);
-    expect(mockCanvasRenders).toBeGreaterThan(1);
   });
 });
 
@@ -422,11 +377,11 @@ describe("where the key lives in the dashboard", () => {
   );
 
   const SOURCE_FILE: RegExp = /\.tsx?$/;
-  const SELECTS_THE_KEY: RegExp = /webhookSecretKey\s*:\s*true/;
+  const SELECTS_THE_KEY: RegExp = /incomingEmailSecretKey\s*:\s*true/;
 
-  type SourceFilesFunction = (dir: string) => Array<string>;
-
-  const sourceFiles: SourceFilesFunction = (dir: string): Array<string> => {
+  const sourceFiles: (dir: string) => Array<string> = (
+    dir: string,
+  ): Array<string> => {
     const files: Array<string> = [];
 
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -444,11 +399,7 @@ describe("where the key lives in the dashboard", () => {
     return files;
   };
 
-  test("no dashboard page names the key in a select: it goes through getWebhookSecretKeySelect", () => {
-    /*
-     * A page that asks for the column outright fails to load for everyone
-     * who may not read it - every Viewer, for a page every Viewer can open.
-     */
+  test("no dashboard page names the key in a select: it goes through getIncomingEmailSecretKeySelect", () => {
     const offenders: Array<string> = sourceFiles(DASHBOARD_SRC).filter(
       (file: string) => {
         return SELECTS_THE_KEY.test(fs.readFileSync(file, "utf8"));
@@ -458,21 +409,12 @@ describe("where the key lives in the dashboard", () => {
     expect(offenders).toEqual([]);
   });
 
-  test("the workflow's Settings page no longer manages the key", () => {
-    const settings: string = fs.readFileSync(
-      path.join(DASHBOARD_SRC, "Pages", "Workflow", "View", "Settings.tsx"),
-      "utf8",
-    );
-
-    expect(settings).not.toMatch(/webhookSecretKey\s*[:=]/);
-    expect(settings).not.toContain("Reset Secret Key");
-    expect(settings).not.toContain("Webhook Secret Key");
-  });
-
-  test("the Builder is the one place that saves a new key, through resetWebhookSecretKey", () => {
+  test("the Builder is the one place that saves a new key, through resetIncomingEmailSecretKey", () => {
     const writers: Array<string> = sourceFiles(DASHBOARD_SRC).filter(
       (file: string) => {
-        return fs.readFileSync(file, "utf8").includes("resetWebhookSecretKey");
+        return fs
+          .readFileSync(file, "utf8")
+          .includes("resetIncomingEmailSecretKey");
       },
     );
 

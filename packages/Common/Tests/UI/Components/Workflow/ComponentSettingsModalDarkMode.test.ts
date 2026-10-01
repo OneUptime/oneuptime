@@ -24,6 +24,7 @@ const FILES: Array<string> = [
   "Components/Workflow/ComponentSettingsSection.tsx",
   "Components/Workflow/ComponentPrimaryPanel.tsx",
   "Components/Workflow/WebhookTriggerPanel.tsx",
+  "Components/Workflow/IncomingEmailTriggerPanel.tsx",
   "Components/Workflow/ManualTriggerPanel.tsx",
   "Components/Workflow/ComponentReturnValueViewer.tsx",
   "Components/Workflow/ComponentPortViewer.tsx",
