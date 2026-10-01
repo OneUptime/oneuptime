@@ -62,13 +62,13 @@ An example: Monitor A is down from 10:00 to 11:00 while Monitor B stays up.
 
 Every SLO carries a status computed from its remaining error budget:
 
-| Status               | Meaning                                                                                                                                                                                  |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Healthy**          | Plenty of budget left.                                                                                                                                                                   |
-| **At Risk**          | Remaining budget has dropped to or below the at-risk threshold — **20% of the budget by default** (configurable per SLO).                                                                |
-| **Budget Exhausted** | The budget is fully spent (or overspent).                                                                                                                                                |
-| **Misconfigured**    | The SLO cannot be evaluated — no monitors attached, its monitors no longer exist or have not reported a status yet, or a target outside 0–100%. The SLO's pages explain which.            |
-| **Paused**           | Every attached monitor has active monitoring disabled — by hand, by a manual incident or by a scheduled maintenance event — so there is no signal to evaluate. It resumes automatically. |
+| Status               | Meaning                                                                                                                                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Healthy**          | Plenty of budget left.                                                                                                                                                                                                                      |
+| **At Risk**          | Remaining budget has dropped to or below the at-risk threshold — **20% of the budget by default** (configurable per SLO).                                                                                                                   |
+| **Budget Exhausted** | The budget is fully spent (or overspent).                                                                                                                                                                                                   |
+| **Misconfigured**    | The SLO cannot be evaluated — no monitors attached, its monitors no longer exist or have not reported a status yet, or a target outside 0–100%. The SLO's pages explain which.                                                              |
+| **Paused**           | Every attached monitor is archived or has active monitoring disabled — by hand, by a manual incident or by a scheduled maintenance event — so there is no signal to evaluate. It resumes automatically once one of them is monitored again. |
 
 Disabled and archived SLOs are not evaluated at all, so their status does not change. The SLO list shows them with a **Disabled** or **Archived** pill instead.
 

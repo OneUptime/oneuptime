@@ -102,7 +102,7 @@ describe("MonitorPauseState", () => {
       MonitorPauseState.isPaused(
         flags({
           isArchived: null as unknown as boolean,
-          disableActiveMonitoring: undefined,
+          disableActiveMonitoring: undefined as unknown as boolean,
         }),
       ),
     ).toBe(false);
