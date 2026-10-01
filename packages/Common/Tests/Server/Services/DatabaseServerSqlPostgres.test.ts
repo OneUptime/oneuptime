@@ -773,7 +773,7 @@ describePostgres("Databases SQL against Postgres", () => {
         endpoint: endpoint,
         source: "auto",
         isPrimary: true,
-        project: overrides.project,
+        ...(overrides.project ? { project: overrides.project } : {}),
       });
     }
     return id;
