@@ -180,6 +180,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **एडमिन के Health डैशबोर्ड और Query Console के लिए Enterprise Edition चाहिए**, और PostgreSQL तथा Valkey के हेल्थ अलर्ट के लिए भी। 13 पर वे केवल `IS_ENTERPRISE_EDITION=true` से मिल जाते थे, इसलिए उनका उपयोग करने वाली Community इंस्टॉलेशन के लिए यह दिखने वाला नुकसान है। ClickHouse क्षमता दृश्य और प्रूनिंग, माइग्रेशन स्थिति, वैश्विक प्रोब और सपोर्ट बंडल दोनों संस्करणों में हैं।
 - **प्रोब के प्रॉक्सी से किसी IP पते तक पहुँचने वाले HTTPS मॉनिटर दोबारा काम करते हैं।** प्रोब IP को TLS सर्वर नाम के रूप में भेजता था; IP वैध सर्वर नाम नहीं है और Node उसे सीधे अस्वीकार करता है, इसलिए `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` वाले वैश्विक प्रोब से `https://<निजी IP>` का मॉनिटर हैंडशेक में विफल होता था। अब लक्ष्य IP होने पर प्रोब सर्वर नाम नहीं भेजता और प्रमाणपत्र को उसी IP के विरुद्ध जाँचता है। होस्टनेम वाले लक्ष्य अपरिवर्तित हैं।
 - **`oneuptime` CLI `--version` पर अपना वास्तविक संस्करण बताता है**, प्लेसहोल्डर नहीं।
+- **Runner प्रोजेक्ट सेटिंग्स से रनबुक में चले गए हैं।** Runner अब **रनबुक → Runbook एजेंट** (`…/runbooks/runners`) में और Runner Credentials **रनबुक → Runbook एजेंट → क्रेडेंशियल** (`…/runbooks/runner-credentials`) में हैं, उन्हीं runbook के पास जिनके चरण वे चलाते हैं। पुराने `…/settings/runners` और `…/settings/runner-credentials` URL रीडायरेक्ट होते हैं, इसलिए बुकमार्क काम करते रहते हैं। और कुछ नहीं बदलता: Runner की id, कुंजियाँ, क्षमताएँ और अनुमतियाँ वही रहती हैं, और वे अब भी AI कोड सुधार और AI रेमेडिएशन कमांड चलाते हैं। इस रिलीज़ से पुरानी Runner इमेज अपने लॉग संदेशों में अब भी "Project Settings > Runners" लिखती है; उसे रनबुक → Runbook एजेंट समझें।
 - कौन से एंडपॉइंट हटे या सख़्त हुए, जिनमें `GET /api/global-config/license` और वे लाइसेंस-सर्वर एंडपॉइंट शामिल हैं जो स्वयं-होस्टेड इंस्टॉलेशन अब नहीं देती, यह ऊपर [API and endpoint changes](#api-and-endpoint-changes) में है।
 
 ### IPv6 मॉनिटर: Ping, Port और SSL
@@ -375,7 +376,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(Or open the Runner in **सेटिंग्स → Runbook एजेंट** and use **सेटअप निर्देश
+(Or open the Runner in **रनबुक → Runbook एजेंट** and use **सेटअप निर्देश
 दिखाएं** for a pre-filled command.)
 
 If you tuned the agent with environment variables, rename them — the old
@@ -396,7 +397,7 @@ The **सेटिंग्स → एआई → AI एजेंट** page is go
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
-1. Create a Runner under **सेटिंग्स → Runbook एजेंट** and install it with the
+1. Create a Runner under **रनबुक → Runbook एजेंट** and install it with the
    command from **सेटअप निर्देश दिखाएं**.
 2. Enable **AI कोड सुधार चलाता है** on it. The change is picked up on the next
    heartbeat.
@@ -488,6 +489,11 @@ wiki links:
 | AI Agents               | सेटिंग्स → एआई → AI एजेंट (`…/settings/ai-agents`) | Removed — Runners with the **AI कोड सुधार चलाता है** capability replace it |
 
 Runbook Secrets stays where it was, under रनबुक → सेटिंग्स → सीक्रेट.
+
+That is where the pages were in 12 and 13. In 14 the two Runner pages moved
+again, to **रनबुक → Runbook एजेंट** (`…/runbooks/runners`) and
+**रनबुक → Runbook एजेंट → क्रेडेंशियल** (`…/runbooks/runner-credentials`); the 12 and 13
+URLs in the table redirect there. See [14 के अन्य बदलाव](#14-के-अन्य-बदलाव).
 
 ### New in 12, nothing to enable by accident
 

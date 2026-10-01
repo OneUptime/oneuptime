@@ -180,6 +180,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **管理後台的 Health 儀表板與 Query Console 需要 Enterprise Edition**，PostgreSQL 與 Valkey 的健康警示也一樣。在 13 上只要 `IS_ENTERPRISE_EDITION=true` 就能使用，因此對用過這些頁面的 Community 部署來說，這是可見的功能減少。ClickHouse 容量檢視與自動清理、遷移狀態、全域探針與支援包在兩個版本中都有。
 - **透過探針代理連到 IP 位址的 HTTPS 監視器又能正常運作了。** 探針原本把 IP 當作 TLS 伺服器名稱送出，但 IP 不是合法的伺服器名稱，Node 會直接拒絕，因此從設定了 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` 的全域探針監控 `https://<私有 IP>` 會在交握階段失敗。現在目標是 IP 時，探針不再送出伺服器名稱，並直接以該 IP 驗證憑證。目標為主機名稱時行為不變。
 - **`oneuptime` CLI 在 `--version` 會報告真實版本號**，不再是預留字串。
+- **Runner 已從專案設定移到運行手冊。** Runner 現在位於 **運行手冊 → Runbook 代理程式**（`…/runbooks/runners`），Runner Credentials 位於 **運行手冊 → Runbook 代理程式 → 憑證**（`…/runbooks/runner-credentials`），就在由它們執行步驟的 Runbook 旁邊。舊的 `…/settings/runners` 與 `…/settings/runner-credentials` URL 會重新導向，書籤仍可使用。其他都沒有改變：Runner 的 ID、金鑰、能力與權限維持不變，仍會執行 AI 程式碼修復與 AI 修復指令。早於此版本的 Runner 映像檔仍會在日誌訊息中輸出「Project Settings > Runners」；請將其讀作 運行手冊 → Runbook 代理程式。
 - 哪些端點移動或收緊了，包含 `GET /api/global-config/license` 以及自架部署不再提供的授權伺服器端點，請見上方的 [API and endpoint changes](#api-and-endpoint-changes)。
 
 ### IPv6 監視器：Ping、Port 與 SSL
@@ -375,7 +376,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(Or open the Runner in **Settings → Runners** and use **Show setup
+(Or open the Runner in **Runbooks → Runners** and use **Show setup
 instructions** for a pre-filled command.)
 
 If you tuned the agent with environment variables, rename them — the old
@@ -396,7 +397,7 @@ The **Settings → AI → AI Agents** page is gone and the `oneuptime/ai-agent`
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
-1. Create a Runner under **Settings → Runners** and install it with the
+1. Create a Runner under **Runbooks → Runners** and install it with the
    command from **Show setup instructions**.
 2. Enable **Runs AI Code Fixes** on it. The change is picked up on the next
    heartbeat.
@@ -488,6 +489,11 @@ wiki links:
 | AI Agents               | Settings → AI → AI Agents (`…/settings/ai-agents`) | Removed — Runners with the **Runs AI Code Fixes** capability replace it |
 
 Runbook Secrets stays where it was, under Runbooks → Settings → Secrets.
+
+That is where the pages were in 12 and 13. In 14 the two Runner pages moved
+again, to **Runbooks → Runners** (`…/runbooks/runners`) and
+**Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`); the 12 and 13
+URLs in the table redirect there. See [14 的其他變更](#14-的其他變更).
 
 ### New in 12, nothing to enable by accident
 

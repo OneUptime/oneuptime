@@ -180,6 +180,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **Die Health-Dashboards und die Query Console im Admin-Bereich erfordern die Enterprise Edition**, ebenso die Health-Alarme für PostgreSQL und Valkey. Unter 13 gab es sie allein mit `IS_ENTERPRISE_EDITION=true`, für eine Community-Installation, die sie genutzt hat, ist das also ein sichtbarer Verlust. Die ClickHouse-Kapazitätsansicht samt Pruning, der Migrationsstatus, globale Probes und das Support-Bundle sind in beiden Editionen enthalten.
 - **HTTPS-Monitore, die eine IP-Adresse über den Proxy einer Probe erreichen, funktionieren wieder.** Die Probe übergab die IP als TLS-Servernamen; eine IP ist kein gültiger Servername, und Node lehnt sie strikt ab, sodass ein Monitor auf `https://<private IP>` von einer globalen Probe mit `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` beim Handshake scheiterte. Die Probe lässt den Servernamen bei einem IP-Ziel jetzt weg und prüft das Zertifikat gegen die IP selbst. Bei Hostnamen-Zielen ändert sich nichts.
 - **Die `oneuptime`-CLI meldet bei `--version` ihre echte Version** statt eines Platzhalters.
+- **Runner sind aus den Projekteinstellungen in die Runbooks umgezogen.** Runner finden Sie jetzt unter **Runbooks → Runbook-Agents** (`…/runbooks/runners`) und Runner Credentials unter **Runbooks → Runbook-Agents → Anmeldedaten** (`…/runbooks/runner-credentials`), direkt neben den Runbooks, deren Schritte sie ausführen. Die alten URLs `…/settings/runners` und `…/settings/runner-credentials` leiten weiter, Lesezeichen funktionieren also weiterhin. Sonst ändert sich nichts: Runner behalten ihre IDs, Schlüssel, Fähigkeiten und Berechtigungen und führen weiterhin KI-Codekorrekturen und KI-Behebungsbefehle aus. Ein Runner-Image, das älter als dieses Release ist, schreibt in seinen Logmeldungen noch „Project Settings > Runners“; gemeint ist Runbooks → Runbook-Agents.
 - Welche Endpunkte verschoben oder eingeschränkt wurden, einschließlich `GET /api/global-config/license` und der Lizenzserver-Endpunkte, die selbst gehostete Installationen nicht mehr bereitstellen, steht oben unter [API and endpoint changes](#api-and-endpoint-changes).
 
 ### IPv6-Monitore: Ping, Port und SSL
@@ -375,7 +376,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(Or open the Runner in **Einstellungen → Runbook-Agents** and use **Einrichtungsanweisungen
+(Or open the Runner in **Runbooks → Runbook-Agents** and use **Einrichtungsanweisungen
 anzeigen** for a pre-filled command.)
 
 If you tuned the agent with environment variables, rename them — the old
@@ -396,7 +397,7 @@ The **Einstellungen → KI → KI-Agenten** page is gone and the `oneuptime/ai-a
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
-1. Create a Runner under **Einstellungen → Runbook-Agents** and install it with the
+1. Create a Runner under **Runbooks → Runbook-Agents** and install it with the
    command from **Einrichtungsanweisungen anzeigen**.
 2. Enable **Führt KI-Codekorrekturen aus** on it. The change is picked up on the next
    heartbeat.
@@ -488,6 +489,11 @@ wiki links:
 | AI Agents               | Einstellungen → KI → KI-Agenten (`…/settings/ai-agents`) | Removed — Runners with the **Führt KI-Codekorrekturen aus** capability replace it |
 
 Runbook Secrets stays where it was, under Runbooks → Einstellungen → Geheimnisse.
+
+That is where the pages were in 12 and 13. In 14 the two Runner pages moved
+again, to **Runbooks → Runbook-Agents** (`…/runbooks/runners`) and
+**Runbooks → Runbook-Agents → Anmeldedaten** (`…/runbooks/runner-credentials`); the 12 and 13
+URLs in the table redirect there. See [Weitere Änderungen in 14](#weitere-änderungen-in-14).
 
 ### New in 12, nothing to enable by accident
 

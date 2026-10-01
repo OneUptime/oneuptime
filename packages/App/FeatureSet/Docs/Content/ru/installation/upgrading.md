@@ -180,6 +180,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **Панели Health и Query Console в администрировании требуют Enterprise Edition**, как и оповещения о состоянии PostgreSQL и Valkey. В 13 они были доступны с одним `IS_ENTERPRISE_EDITION=true`, так что для установки Community, которая ими пользовалась, это заметная потеря. Представление ёмкости ClickHouse с очисткой, статус миграций, глобальные пробы и пакет поддержки есть в обеих редакциях.
 - **HTTPS-мониторы, которые обращаются к IP-адресу через прокси пробы, снова работают.** Проба передавала IP как имя сервера TLS; IP не является допустимым именем сервера, и Node отвергает его сразу, поэтому монитор на `https://<частный IP>` с глобальной пробы с `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` не проходил рукопожатие. Теперь для цели-IP проба не передаёт имя сервера и проверяет сертификат по самому IP. Для целей с именем хоста ничего не меняется.
 - **CLI `oneuptime` сообщает свою настоящую версию** в `--version` вместо заглушки.
+- **Runner-ы переехали из настроек проекта в раздел «Сборники инструкций».** Runner-ы теперь находятся в **Сборники инструкций → Агенты runbook-ов** (`…/runbooks/runners`), а Runner Credentials — в **Сборники инструкций → Агенты runbook-ов → Учётные данные** (`…/runbooks/runner-credentials`), рядом с runbook-ами, шаги которых они выполняют. Старые URL `…/settings/runners` и `…/settings/runner-credentials` перенаправляют на новые, так что закладки продолжают работать. Больше ничего не меняется: Runner-ы сохраняют свои идентификаторы, ключи, возможности и права и по-прежнему выполняют ИИ-исправления кода и ИИ-команды устранения неполадок. Образ Runner старше этого релиза по-прежнему пишет в логах «Project Settings > Runners»; читайте это как Сборники инструкций → Агенты runbook-ов.
 - Какие эндпоинты переехали или ужесточены, включая `GET /api/global-config/license` и эндпоинты сервера лицензий, которые самостоятельно размещённые установки больше не предоставляют, описано выше в разделе [API and endpoint changes](#api-and-endpoint-changes).
 
 ### Мониторы IPv6: Ping, Port и SSL
@@ -375,7 +376,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(Or open the Runner in **Настройки → Агенты runbook-ов** and use **Показать инструкции
+(Or open the Runner in **Сборники инструкций → Агенты runbook-ов** and use **Показать инструкции
 по настройке** for a pre-filled command.)
 
 If you tuned the agent with environment variables, rename them — the old
@@ -396,7 +397,7 @@ The **Настройки → ИИ → Агенты ИИ** page is gone and the `
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
-1. Create a Runner under **Настройки → Агенты runbook-ов** and install it with the
+1. Create a Runner under **Сборники инструкций → Агенты runbook-ов** and install it with the
    command from **Показать инструкции по настройке**.
 2. Enable **Выполняет ИИ-исправления кода** on it. The change is picked up on the next
    heartbeat.
@@ -488,6 +489,11 @@ wiki links:
 | AI Agents               | Настройки → ИИ → Агенты ИИ (`…/settings/ai-agents`)                                  | Removed — Runners with the **Выполняет ИИ-исправления кода** capability replace it |
 
 Runbook Secrets stays where it was, under Сборники инструкций → Настройки → Секреты.
+
+That is where the pages were in 12 and 13. In 14 the two Runner pages moved
+again, to **Сборники инструкций → Агенты runbook-ов** (`…/runbooks/runners`) and
+**Сборники инструкций → Агенты runbook-ов → Учётные данные** (`…/runbooks/runner-credentials`); the 12 and 13
+URLs in the table redirect there. See [Другие изменения в 14](#другие-изменения-в-14).
 
 ### New in 12, nothing to enable by accident
 

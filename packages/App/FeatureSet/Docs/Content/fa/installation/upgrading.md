@@ -180,6 +180,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **داشبوردهای Health و Query Console در بخش مدیریت به Enterprise Edition نیاز دارند**، و همچنین هشدارهای سلامت PostgreSQL و Valkey. در 13 این‌ها تنها با `IS_ENTERPRISE_EDITION=true` در دسترس بودند، پس برای نصب Community که از آن‌ها استفاده می‌کرد این یک کاهش محسوس است. نمای ظرفیت ClickHouse و پاک‌سازی آن، وضعیت مهاجرت‌ها، پروب‌های جهانی و بستهٔ پشتیبانی در هر دو ویرایش هستند.
 - **مانیتورهای HTTPS که از طریق پراکسی یک پروب به نشانی IP می‌رسند دوباره کار می‌کنند.** پروب نشانی IP را به‌عنوان نام سرور TLS می‌فرستاد؛ IP نام سرور معتبری نیست و Node آن را یکسره رد می‌کند، بنابراین مانیتور روی `https://<IP خصوصی>` از یک پروب جهانی با `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` در دست‌دادن TLS شکست می‌خورد. اکنون پروب برای مقصدِ IP نام سرور را نمی‌فرستد و گواهی را در برابر خود آن IP بررسی می‌کند. مقصدهای نام میزبان تغییری نکرده‌اند.
 - **ابزار خط فرمان `oneuptime` در `--version` نسخهٔ واقعی خود را اعلام می‌کند**، نه یک مقدار جای‌نگهدار.
+- **جابه‌جایی Runnerها از Project Settings به Runbooks.** اکنون Runnerها زیر **Runbooks → Runners** (`…/runbooks/runners`) و Runner Credentials زیر **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`) هستند، کنار رانبوک‌هایی که گام‌هایشان را اجرا می‌کنند. نشانی‌های کهنهٔ `…/settings/runners` و `…/settings/runner-credentials` تغییرمسیر می‌دهند، پس نشانک‌ها همچنان کار می‌کنند. چیز دیگری تغییر نمی‌کند: Runnerها شناسه‌ها، کلیدها، قابلیت‌ها و دسترسی‌هایشان را نگه می‌دارند و همچنان رفع کد با AI و فرمان‌های ترمیم AI را اجرا می‌کنند. تصویر Runner کهنه‌تر از این انتشار هنوز در پیام‌های گزارشش «Project Settings > Runners» می‌نویسد؛ آن را Runbooks → Runners بخوانید.
 - اینکه کدام نقاط پایانی جابه‌جا یا محدودتر شده‌اند، از جمله `GET /api/global-config/license` و نقاط پایانی سرور پروانه که نصب‌های خودمیزبان دیگر ارائه نمی‌کنند، در بخش [API and endpoint changes](#api-and-endpoint-changes) در بالا آمده است.
 
 ### مانیتورهای IPv6: Ping، Port و SSL
@@ -337,7 +338,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(یا Runner را در **Settings → Runners** باز کنید و برای فرمانی از پیش پرشده از **Show setup instructions** استفاده کنید.)
+(یا Runner را در **Runbooks → Runners** باز کنید و برای فرمانی از پیش پرشده از **Show setup instructions** استفاده کنید.)
 
 اگر عامل را با متغیرهای محیطی تنظیم کرده بودید، نامشان را تغییر دهید — تصویر تازه نام‌های کهنه را **بی‌صدا نادیده می‌گیرد**:
 
@@ -354,7 +355,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 صفحه **Settings → AI → AI Agents** رفته است و تصویر `oneuptime/ai-agent` دیگر ساخته نمی‌شود. اگر خودتان کانتینر AI Agentای نصب کرده بودید، آن را با یک Runner جایگزین کنید:
 
-1. زیر **Settings → Runners** یک Runner بسازید و با فرمان **Show setup instructions** نصبش کنید.
+1. زیر **Runbooks → Runners** یک Runner بسازید و با فرمان **Show setup instructions** نصبش کنید.
 2. روی آن **Runs AI Code Fixes** را فعال کنید. تغییر در ضربان قلب بعدی برداشته می‌شود.
 
 اعتبارنامه‌های کهنه AI Agent هنوز از راه یک عقب‌نشینی میراثی تصویر تازه `oneuptime/runner` را راه می‌اندازند (فقط رفع‌های کد، با هشداری ثبت‌شده که می‌گوید Runner واقعی بسازید) — آن را پلی در میانه مهاجرت بگیرید، نه مقصد.
@@ -401,6 +402,8 @@ docker run --name oneuptime-runner --restart unless-stopped \
 | AI Agents               | Settings → AI → AI Agents (`…/settings/ai-agents`) | برداشته شد — Runnerهایی با قابلیت **Runs AI Code Fixes** جایش را می‌گیرند |
 
 ‏Runbook Secrets همان‌جا که بود می‌ماند، زیر Runbooks → Settings → Secrets.
+
+جای صفحه‌ها در 12 و 13 همین بود. در 14 دو صفحهٔ Runner دوباره جابه‌جا شدند، به **Runbooks → Runners** (`…/runbooks/runners`) و **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`)؛ نشانی‌های 12 و 13 در جدول به آن‌جا تغییرمسیر می‌دهند. [تغییرهای دیگر در 14](#تغییرهای-دیگر-در-14) را ببینید.
 
 ### تازه در 12، چیزی نیست که تصادفی فعال شود
 

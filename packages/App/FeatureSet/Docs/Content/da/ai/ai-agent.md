@@ -52,7 +52,7 @@ You do **not** map repositories to services: OneUptime resolves the right reposi
 
 To run an additional Runner elsewhere (for example on a machine closer to your repositories):
 
-1. Create a Runner under **Indstillinger** > **Runbook-agenter** and use **Vis opsætningsvejledning** on its row for a pre-filled install command. The key is shown once — save it securely. The command looks like:
+1. Create a Runner under **Runbooks** > **Runbook-agenter** and use **Vis opsætningsvejledning** on its row for a pre-filled install command. The key is shown once — save it securely. The command looks like:
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \
@@ -72,7 +72,7 @@ Any way of running the container works (Docker Compose, Kubernetes, and so on) a
 | `ONEUPTIME_RUNNER_KEY` | The Runner key shown when the Runner was created               |
 | `ONEUPTIME_URL`        | Your OneUptime instance URL (`https://oneuptime.com` on Cloud) |
 
-The Runner shows as connected on the **Indstillinger** > **Runbook-agenter** page within a minute or two. If it does not, check the container logs (`docker logs oneuptime-runner`) for credential or network errors.
+The Runner shows as connected on the **Runbooks** > **Runbook-agenter** page within a minute or two. If it does not, check the container logs (`docker logs oneuptime-runner`) for credential or network errors.
 
 > Before OneUptime 12, AI code fixes ran on a separate **AI Agent** component (the `oneuptime/ai-agent` image with `AI_AGENT_*` variables). That component merged into the Runner — if you still run one, see the [v11 → v12 upgrade guide](/docs/installation/upgrading) for how to replace it.
 

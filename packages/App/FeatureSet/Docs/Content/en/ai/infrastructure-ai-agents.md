@@ -21,7 +21,7 @@ What differs:
 - **Write access is an environment variable.** `ONEUPTIME_AI_ALLOW_WRITES=true` on the agent lets it apply fixes at all, and `ONEUPTIME_AI_WRITE_TARGETS` limits which containers, services, VMs, OSDs, sessions or units they may touch. On a cluster the chart's RBAC and `aiAgent.remediation.namespaces` do this.
 - **It starts switched off.** A resource starts with investigation and fixes off. The agent's first connection turns investigation on (see [Connecting to OneUptime](#connecting-to-oneuptime)).
 
-Like the Kubernetes AI agent, a resource AI agent is not a Runner. It never appears under Project Settings → Runners, it is never used as a Bash or SSH host for runbooks, and fixes through it do not need the project's **Enable AI Command Execution** switch; that switch is for commands a Runner runs.
+Like the Kubernetes AI agent, a resource AI agent is not a Runner. It never appears under Runbooks → Runners, it is never used as a Bash or SSH host for runbooks, and fixes through it do not need the project's **Enable AI Command Execution** switch; that switch is for commands a Runner runs.
 
 ## Supported resources
 

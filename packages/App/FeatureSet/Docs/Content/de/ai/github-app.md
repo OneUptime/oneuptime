@@ -135,7 +135,7 @@ Behandeln Sie einen von der KI verfassten Pull Request so, wie Sie einen von ein
 
 **Sie sagt, sie arbeite bereits daran.** Für dieses Issue oder diesen Pull Request ist bereits ein Lauf dieser Art aktiv. `@oneuptime status` sagt Ihnen, welcher, und `@oneuptime cancel` stoppt ihn.
 
-**Sie hat bestätigt und ist dann lange still.** Prüfen Sie unter **Einstellungen → Runbook-Agents**, ob ein Runner mit **Führt KI-Codekorrekturen aus** online ist. Ohne einen solchen wird der Lauf nach 30 Minuten als fehlgeschlagen markiert, und der Thread erfährt davon.
+**Sie hat bestätigt und ist dann lange still.** Prüfen Sie unter **Runbooks → Runbook-Agents**, ob ein Runner mit **Führt KI-Codekorrekturen aus** online ist. Ohne einen solchen wird der Lauf nach 30 Minuten als fehlgeschlagen markiert, und der Thread erfährt davon.
 
 **Sie sagt, der Pull Request komme aus einem Fork.** Überarbeitungen brauchen einen Branch in diesem Repository. Bitten Sie stattdessen um ein Review, oder pushen Sie den Branch hierher.
 

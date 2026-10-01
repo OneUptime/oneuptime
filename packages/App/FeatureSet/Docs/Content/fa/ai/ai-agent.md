@@ -63,7 +63,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3
 
 برای اجرای Runner اضافه‌ای جای دیگر (برای نمونه روی ماشینی نزدیک‌تر به مخزن‌هایتان):
 
-1. زیر **Settings** > **Runners** یک Runner بسازید و در سطرش از **Show setup instructions** برای فرمان نصب از پیش پرشده استفاده کنید. کلید یک بار نشان داده می‌شود — امن ذخیره‌اش کنید. فرمان چنین است:
+1. زیر **Runbooks** > **Runners** یک Runner بسازید و در سطرش از **Show setup instructions** برای فرمان نصب از پیش پرشده استفاده کنید. کلید یک بار نشان داده می‌شود — امن ذخیره‌اش کنید. فرمان چنین است:
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \
@@ -83,7 +83,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 | `ONEUPTIME_RUNNER_KEY` | کلید Runner که هنگام ساختش نشان داده شد |
 | `ONEUPTIME_URL` | نشانی نمونه OneUptime شما (`https://oneuptime.com` روی Cloud) |
 
-‏Runner ظرف یکی دو دقیقه در صفحه **Settings** > **Runners** به‌صورت متصل نشان داده می‌شود. اگر چنین نشد، گزارش‌های کانتینر (`docker logs oneuptime-runner`) را برای خطاهای اعتبارنامه یا شبکه بررسی کنید.
+‏Runner ظرف یکی دو دقیقه در صفحه **Runbooks** > **Runners** به‌صورت متصل نشان داده می‌شود. اگر چنین نشد، گزارش‌های کانتینر (`docker logs oneuptime-runner`) را برای خطاهای اعتبارنامه یا شبکه بررسی کنید.
 
 > پیش از OneUptime 12، رفع‌های کد هوش مصنوعی روی مؤلفه‌ای جدا به نام **AI Agent** اجرا می‌شدند (ایمیج `oneuptime/ai-agent` با متغیرهای `AI_AGENT_*`). آن مؤلفه در Runner ادغام شد — اگر هنوز یکی اجرا می‌کنید، برای نحوه جایگزینی‌اش [راهنمای ارتقای v11 → v12](/docs/installation/upgrading) را ببینید.
 

@@ -30,7 +30,7 @@ Agenten behöver bara **utgående HTTPS** till din OneUptime-instans. Den accept
 
 ### 1. Skapa agentposten
 
-Gå till **Inställningar → Runbook-agenter** och skapa en ny agent. Fyll i:
+Gå till **Runbooks → Runbook-agenter** och skapa en ny agent. Fyll i:
 
 | Fält            | Anteckningar                                                                                                                                           |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. Verifiera att agenten är ansluten
 
-Gå tillbaka till **Inställningar → Runbook-agenter**. Inom ~60 sekunder bör agentens rad växla till `Connected` med en färsk **Senast sedd**-tidsstämpel. Om den förblir `Disconnected`:
+Gå tillbaka till **Runbooks → Runbook-agenter**. Inom ~60 sekunder bör agentens rad växla till `Connected` med en färsk **Senast sedd**-tidsstämpel. Om den förblir `Disconnected`:
 
 - Kontrollera container-loggarna (`docker logs oneuptime-runner`) för auth-fel eller nätverksproblem.
 - Verifiera att värden når din OneUptime-URL med `curl`.

@@ -303,6 +303,15 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   IP itself. Hostname targets are unchanged.
 - **The `oneuptime` CLI reports its real version** for `--version` instead of a
   placeholder.
+- **Runners moved from Project Settings into Runbooks.** Runners are now under
+  **Runbooks → Runners** (`…/runbooks/runners`) and Runner Credentials under
+  **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`), next
+  to the runbooks whose steps they run. The old `…/settings/runners` and
+  `…/settings/runner-credentials` URLs redirect, so bookmarks keep working.
+  Nothing else changes: Runners keep their ids, keys, capabilities and
+  permissions, and they still run AI code fixes and AI remediation commands.
+  A Runner image older than this release still prints "Project Settings >
+  Runners" in its log messages; read that as Runbooks → Runners.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
@@ -669,7 +678,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(Or open the Runner in **Settings → Runners** and use **Show setup
+(Or open the Runner in **Runbooks → Runners** and use **Show setup
 instructions** for a pre-filled command.)
 
 If you tuned the agent with environment variables, rename them — the old
@@ -690,7 +699,7 @@ The **Settings → AI → AI Agents** page is gone and the `oneuptime/ai-agent`
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
-1. Create a Runner under **Settings → Runners** and install it with the
+1. Create a Runner under **Runbooks → Runners** and install it with the
    command from **Show setup instructions**.
 2. Enable **Runs AI Code Fixes** on it. The change is picked up on the next
    heartbeat.
@@ -782,6 +791,11 @@ wiki links:
 | AI Agents               | Settings → AI → AI Agents (`…/settings/ai-agents`) | Removed — Runners with the **Runs AI Code Fixes** capability replace it |
 
 Runbook Secrets stays where it was, under Runbooks → Settings → Secrets.
+
+That is where the pages were in 12 and 13. In 14 the two Runner pages moved
+again, to **Runbooks → Runners** (`…/runbooks/runners`) and **Runbooks →
+Runners → Credentials** (`…/runbooks/runner-credentials`); the 12 and 13 URLs
+in the table redirect there. See [Other changes in 14](#other-changes-in-14).
 
 ### New in 12, nothing to enable by accident
 

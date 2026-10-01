@@ -135,7 +135,7 @@ Behandl en AI-skrevet pull request, som du ville behandle en fra en ny bidragyde
 
 **Den siger, at den allerede er i gang med det her.** En kørsel af den slags er allerede i gang på dette issue eller denne pull request. `@oneuptime status` fortæller dig hvad, og `@oneuptime cancel` stopper den.
 
-**Den kvitterede og blev så tavs i lang tid.** Tjek, at en Runbook-agent med **Kører AI-koderettelser** er online under **Indstillinger → Runbook-agenter**. Uden en bliver kørslen fejlet efter 30 minutter, og tråden får besked.
+**Den kvitterede og blev så tavs i lang tid.** Tjek, at en Runbook-agent med **Kører AI-koderettelser** er online under **Runbooks → Runbook-agenter**. Uden en bliver kørslen fejlet efter 30 minutter, og tråden får besked.
 
 **Den siger, at pull requesten kommer fra en fork.** Revisioner kræver en gren i dette repository. Bed om et review i stedet, eller push grenen hertil.
 
