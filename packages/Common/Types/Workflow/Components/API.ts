@@ -89,12 +89,14 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Success",
-        description: "This is executed when the message is successfully posted",
+        description:
+          "Runs when the server answers with a success status (2xx).",
         id: "success",
       },
       {
         title: "Error",
-        description: "This is executed when there is an error",
+        description:
+          "Runs when the request fails or the server answers with an error status.",
         id: "error",
       },
     ],
@@ -182,12 +184,14 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Success",
-        description: "This is executed when the message is successfully posted",
+        description:
+          "Runs when the server answers with a success status (2xx).",
         id: "success",
       },
       {
         title: "Error",
-        description: "This is executed when there is an error",
+        description:
+          "Runs when the request fails or the server answers with an error status.",
         id: "error",
       },
     ],
@@ -275,12 +279,14 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Success",
-        description: "This is executed when the message is successfully posted",
+        description:
+          "Runs when the server answers with a success status (2xx).",
         id: "success",
       },
       {
         title: "Error",
-        description: "This is executed when there is an error",
+        description:
+          "Runs when the request fails or the server answers with an error status.",
         id: "error",
       },
     ],
@@ -368,12 +374,14 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Success",
-        description: "This is executed when the message is successfully posted",
+        description:
+          "Runs when the server answers with a success status (2xx).",
         id: "success",
       },
       {
         title: "Error",
-        description: "This is executed when there is an error",
+        description:
+          "Runs when the request fails or the server answers with an error status.",
         id: "error",
       },
     ],
@@ -461,12 +469,14 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Success",
-        description: "This is executed when the message is successfully posted",
+        description:
+          "Runs when the server answers with a success status (2xx).",
         id: "success",
       },
       {
         title: "Error",
-        description: "This is executed when there is an error",
+        description:
+          "Runs when the request fails or the server answers with an error status.",
         id: "error",
       },
     ],
