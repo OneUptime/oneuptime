@@ -417,18 +417,18 @@ upgrade moves those fixes to asking first:
 Nothing is turned off. Rules, clusters and resources that one of the switches
 kept quiet start proposing fixes, and each fix still waits for a human. To keep
 auto-remediation out of a project, turn off **Enable AI**, or disable its rules
-(Incidents or Alerts → AI → Remediation) and set **Fixes** to **Off** on each
-cluster's and resource's AI agent page. API clients and Terraform
-configurations that set `enableAutoRemediation` or `enableAiCommandExecution`
-(`enable_auto_remediation` or `enable_ai_command_execution` in Terraform)
-should stop setting them.
+(Incidents or Alerts → Rules → Auto Remediation Rules) and set **Fixes** to
+**Off** on each cluster's and resource's AI agent page. API clients and
+Terraform configurations that set `enableAutoRemediation` or
+`enableAiCommandExecution` (`enable_auto_remediation` or
+`enable_ai_command_execution` in Terraform) should stop setting them.
 
 ### New projects start with every AI feature on
 
 A project created after the upgrade starts with every AI feature switched on,
 not only automatic incident and alert investigation: postmortem drafts,
-automatic code fixes and instrumentation fixes (Incidents or Alerts → AI →
-Investigation), and AI Insights with its fix pull requests and auto-archiving
+automatic code fixes and instrumentation fixes (Incidents or Alerts →
+Settings → AI), and AI Insights with its fix pull requests and auto-archiving
 of expected-denial exceptions (AI → Insights → Settings).
 
 Projects that already exist keep the settings they have; the upgrade switches
@@ -442,6 +442,45 @@ A project created through the API that sets one of these fields to `false`
 keeps it off. The Terraform provider's default for these attributes is still
 `false`, so a project created with Terraform starts with them off unless its
 configuration sets them to `true`.
+
+### AI has no limits by default
+
+Every limit on the work AI does on its own is now opt-in, and a limit nobody
+has set does not apply. Where an existing project left one of these settings
+empty, it used to get a default and now gets no limit:
+
+| Setting                                                                                                      | Before                                   | Now                                                   |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------- | ----------------------------------------------------- |
+| **Minimum Severity To Investigate** (alerts)                                                                 | The project's top two severity tiers     | Every severity                                        |
+| **Re-investigation Cooldown (Minutes)** (incidents and alerts)                                               | 30 minutes                               | No cooldown: every incident and alert is investigated |
+| **Max Concurrent Incident Investigations**, **Max Concurrent Alert Investigations**                          | 3, and a value you set was held to 1–25  | No limit: every investigation starts right away       |
+| **Daily Incident AI Fix Task Limit**, **Daily Alert AI Fix Task Limit**                                      | 25 per UTC day                           | No limit                                              |
+| AI work outside incidents and alerts: insight triage, and fix tasks for exceptions, insights and performance | 3 runs at once, 25 fix tasks per UTC day | No limit                                              |
+| **Max Open Fix Pull Requests** (a repository's **Settings** page)                                            | 5                                        | No cap                                                |
+
+Values a project already set are kept exactly, and nothing is migrated. They
+work as before, except that a concurrency cap is no longer held to 25: it can
+be any number from 1 up. Investigations only queue for a free slot in a lane
+that has a cap, and a queued one still expires after 30 minutes. 0 still
+pauses where it did: a daily fix task limit of 0 pauses that lane's fix tasks,
+and a **Max Open Fix Pull Requests** of 0 blocks AI fix pull requests on that
+repository. A cooldown is still held to at most 1440 minutes (a day).
+
+To keep the old limits, set them yourself: **Minimum Severity To
+Investigate**, the cooldown, the concurrency caps and the daily fix task limits
+on **Incidents → Settings → AI** and **Alerts → Settings → AI**, and **Max Open
+Fix Pull Requests** on each repository's **Settings** page. AI work outside
+incidents and alerts has no setting, so it runs without these limits. Nothing
+changes for the **Daily Incident AI Token Limit** and **Daily Alert AI Token
+Limit** (0 still pauses that lane) or for the investigation time limit: they
+were already unset by default, which means no limit.
+
+The AI settings also moved in the Incidents and Alerts side menus, and the
+**AI** section there is gone. Its **Investigation** page is now **Settings →
+AI**, the first item under **Settings**, and its **Remediation** page is now
+**Rules → Auto Remediation Rules**, right after **Runbook Rules**. The URLs
+(`…/settings/ai` and `…/settings/auto-remediation-rules`) have not changed, so
+bookmarks keep working.
 
 ### Verify the edition and the license
 

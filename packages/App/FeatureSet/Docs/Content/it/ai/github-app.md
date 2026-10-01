@@ -56,7 +56,7 @@ Puoi anche affidare una issue all'app **senza scrivere alcun commento**:
 | `@oneuptime status` | Dice a cosa sta lavorando in questo momento in questo thread. |
 | `@oneuptime cancel` | Ferma le esecuzioni che ha in corso in questo thread. Il lavoro di cui ha già fatto push resta dov'è. |
 
-`help`, `status` e `cancel` non avviano mai un'esecuzione dell'agente: non costano nulla e non rientrano nel tuo budget giornaliero di fix task.
+`help`, `status` e `cancel` non avviano mai un'esecuzione dell'agente: non costano nulla.
 
 ## Come si presenta nel thread
 
@@ -87,10 +87,9 @@ Ignora inoltre ogni commento scritto da un bot, compresi i propri, e ignora le m
 
 Ogni comando che avvia del lavoro è un'esecuzione completa dell'agente — un clone, fino a 40 chiamate LLM e 100.000 token di output, più i comandi di build e test del tuo repository, se li hai configurati.
 
-Si applicano due limiti, entrambi quelli che già governano gli [AI Fix Tasks](/docs/ai/ai-agent):
+I comandi GitHub sono lavoro IA al di fuori di incidenti e avvisi, quindi non hanno un limite giornaliero di esecuzioni di fix. L'unico limite che può applicarsi è quello che già governa gli [AI Fix Tasks](/docs/ai/ai-agent):
 
-- **Il limite giornaliero di esecuzioni di fix del progetto** (**Impostazioni del progetto → AI**, 25 al giorno per impostazione predefinita). I comandi GitHub condividono questo budget con il resto delle esecuzioni di fix del progetto.
-- **Il tetto di pull request aperte per repository** (**Repository di codice → il repository → Impostazioni**, 5 per impostazione predefinita). Revisioni e modifiche ne sono esenti: nessuna delle due aggiunge una nuova pull request alla tua coda di revisione.
+- **Il tetto di pull request aperte per repository** (**Max Open Fix Pull Requests**, in **Repository di codice → il repository → Impostazioni**). Non c'è alcun tetto finché non ne imposti uno, e 0 blocca le pull request di fix IA su quel repository. Revisioni e modifiche ne sono esenti: nessuna delle due aggiunge una nuova pull request alla tua coda di revisione.
 
 È attiva una sola esecuzione per tipo alla volta su ciascuna issue o pull request. Se chiedi due volte, ti risponde che ci sta già lavorando; chiedere una revisione mentre è in corso una modifica avvia entrambe, perché sono richieste diverse.
 

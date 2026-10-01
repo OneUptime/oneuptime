@@ -56,7 +56,7 @@ Du kan også overdrage et issue til appen **helt uden at kommentere**:
 | `@oneuptime status` | Fortæller, hvad den er i gang med lige nu i denne tråd. |
 | `@oneuptime cancel` | Stopper de kørsler, den har i gang i denne tråd. Arbejde, der allerede er pushet, bliver liggende. |
 
-`help`, `status` og `cancel` starter aldrig en agent-kørsel, så de koster ingenting og tæller ikke med i dit daglige budget for rettelsesopgaver.
+`help`, `status` og `cancel` starter aldrig en agent-kørsel, så de koster ingenting.
 
 ## Sådan ser det ud i tråden
 
@@ -87,10 +87,9 @@ Den ignorerer også alle kommentarer skrevet af en bot, sine egne inklusive, og 
 
 Enhver kommando, der sætter arbejde i gang, er en fuld agent-kørsel — en klon, op til 40 LLM-kald og 100.000 output-tokens plus dit repositorys build- og testkommandoer, hvis du har konfigureret dem.
 
-To grænser gælder, og det er begge dem, der i forvejen styrer [AI-rettelsesopgaver](/docs/ai/ai-agent):
+GitHub-kommandoer er AI-arbejde uden for hændelser og advarsler, så ingen daglig grænse for rettelseskørsler gælder for dem. Den ene grænse, der kan gælde, er den, der i forvejen styrer [AI-rettelsesopgaver](/docs/ai/ai-agent):
 
-- **Projektets daglige grænse for rettelseskørsler** (**Projektindstillinger → AI**, 25 pr. dag som standard). GitHub-kommandoer deler dette budget med resten af projektets rettelseskørsler.
-- **Loftet over åbne pull requests pr. repository** (**Kode-repositorier → repositoryet → Indstillinger**, 5 som standard). Reviews og revisioner er undtaget: ingen af dem lægger en ny pull request i din reviewkø.
+- **Loftet over åbne pull requests pr. repository** (**Max Open Fix Pull Requests** under **Kode-repositorier → repositoryet → Indstillinger**). Der er intet loft, før du sætter et, og 0 blokerer AI-rettelses-pull requests på det repository. Reviews og revisioner er undtaget: ingen af dem lægger en ny pull request i din reviewkø.
 
 Der kan kun være én kørsel af en given slags i gang ad gangen pr. issue eller pull request. Spørger du to gange, får du at vide, at den allerede er i gang; beder du om et review, mens en revision kører, starter begge, for det er to forskellige anmodninger.
 

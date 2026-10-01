@@ -12,6 +12,7 @@ Diese Seite ist die Referenz für diese Konfiguration – was auf welcher Seite 
 
 | Seite                      | Was Sie dort tun                                                                                          |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **KI**                     | Automatische Untersuchung, automatische Code-Korrekturen und Postmortem-Entwürfe ein- oder ausschalten und die optionalen Grenzen setzen, unter denen die KI arbeitet – keine davon gilt, bevor Sie sie setzen. Siehe [AI SRE](/docs/ai/ai-sre). |
 | **Vorfallsstatus**         | Die Status, die ein Vorfall durchläuft, hinzufügen, umbenennen, neu einfärben und neu anordnen.            |
 | **Vorfallsschweregrad**    | Schweregrade hinzufügen, umbenennen, neu einfärben und neu anordnen.                                       |
 | **Vorfall-Vorlagen**       | Einen ganzen Vorfall vorbelegen – Titel, Beschreibung, Ressourcen, Bereitschaftsrichtlinien, Eigentümer, Beschriftungen. |
@@ -23,7 +24,7 @@ Diese Seite ist die Referenz für diese Konfiguration – was auf welcher Seite 
 
 **Vorfallsstatus** und **Vorfallsschweregrad** werden ausführlich unter [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities) behandelt – der Rest dieser Seite setzt bei **Vorfall-Vorlagen** an.
 
-Klappen Sie **Regeln** auf, kommen acht weitere Seiten dazu: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln** und **Reminder Rules**. Die behandeln wir weiter unten.
+Klappen Sie **Regeln** auf, kommen neun weitere Seiten dazu: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Auto-Behebungsregeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln** und **Reminder Rules**. Die behandeln wir weiter unten.
 
 ## Vorfall-Vorlagen
 
@@ -113,20 +114,21 @@ Lassen Sie eines davon leer, bleibt das Standardpräfix `#`; das nicht gesetzte 
 
 ## Regeln, die beim Anlegen eines Vorfalls laufen
 
-**Vorfälle → Regeln** enthält acht Regel-Engines. Alle machen dasselbe – sie sehen sich einen Vorfall in dem Moment an, in dem er entsteht, und handeln, wenn er passt –, unterscheiden sich aber darin, was sie tun und wie mehrere zutreffende Regeln aufgelöst werden.
+**Vorfälle → Regeln** enthält neun Regel-Engines. Alle machen dasselbe – sie sehen sich einen Vorfall in dem Moment an, in dem er entsteht, und handeln, wenn er passt –, unterscheiden sich aber darin, was sie tun und wie mehrere zutreffende Regeln aufgelöst werden.
 
 - **Gruppierungsregeln** – fassen verwandte Vorfälle zu Episoden zusammen. Die Regeln werden in Prioritätsreihenfolge ausgewertet; niedrigere Prioritätsnummern zuerst.
 - **Bereitschaftsregeln** – führen Bereitschaftsrichtlinien für passende Vorfälle aus. Weiter unten im Detail.
 - **Eigentümerregeln** – weisen automatisch Eigentümer zu.
 - **Runbook-Regeln** – starten ein [Runbook](/docs/runbooks/index), wenn ein Vorfall passt.
+- **Auto-Behebungsregeln** – schlagen Behebungs-Runbooks vor oder starten sie, wenn ein Vorfall passt. Steht für den Vorfall eine KI-Untersuchung in der Warteschlange, laufen sie, sobald diese fertig ist, mit ihrer Analyse in der Hand. Siehe [AI SRE](/docs/ai/ai-sre).
 - **Datenschutzregeln** – entscheiden, ob ein passender Vorfall privat ist.
 - **Beschriftungsregeln** – vergeben automatisch Beschriftungen.
 - **SLA-Regeln** – verfolgen Reaktions- und Behebungszeiten. Die Regeln werden der Reihe nach ausgewertet; niedrigere Reihenfolgenummern zuerst.
 - **Reminder Rules** – erinnern die Eigentümer eines Vorfalls in regelmäßigen Abständen, solange er noch offen ist. Die Regeln werden der Reihe nach ausgewertet, und die erste passende gewinnt.
 
-**Die Reihenfolge-Semantik ist nicht einheitlich.** Gruppierungsregeln, SLA-Regeln und Reminder Rules werden der Reihe nach ausgewertet. Bereitschaftsregeln nicht – dort feuert jede passende Regel. Gehen Sie nicht davon aus, dass ein Modell für alle acht gilt.
+**Die Reihenfolge-Semantik ist nicht einheitlich.** Gruppierungsregeln, SLA-Regeln und Reminder Rules werden der Reihe nach ausgewertet. Bereitschaftsregeln nicht – dort feuert jede passende Regel. Gehen Sie nicht davon aus, dass ein Modell für alle neun gilt.
 
-Die Seiten **Bereitschaftsregeln**, **Eigentümerregeln**, **Beschriftungsregeln** und **Datenschutzregeln** haben Reiter – **Incident Rules** und **Episode Rules**, jeder mit eigener Tabelle. Konfigurieren Sie den Reiter **Incident Rules**, sofern Sie nicht ausdrücklich Episoden meinen. **Gruppierungsregeln**, **Runbook-Regeln**, **SLA-Regeln** und **Reminder Rules** sind einfache Tabellen.
+Die Seiten **Bereitschaftsregeln**, **Eigentümerregeln**, **Beschriftungsregeln** und **Datenschutzregeln** haben Reiter – **Incident Rules** und **Episode Rules**, jeder mit eigener Tabelle. Konfigurieren Sie den Reiter **Incident Rules**, sofern Sie nicht ausdrücklich Episoden meinen. **Gruppierungsregeln**, **Runbook-Regeln**, **Auto-Behebungsregeln**, **SLA-Regeln** und **Reminder Rules** sind einfache Tabellen.
 
 ## Bereitschaftsregeln für Vorfälle
 
