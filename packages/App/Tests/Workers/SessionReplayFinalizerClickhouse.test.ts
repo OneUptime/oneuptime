@@ -677,6 +677,110 @@ integration("Rum:FinalizeSessions against ClickHouse", () => {
 
     expect(await sweep()).toEqual([]);
   });
+
+  /*
+   * #4207, against the real server: a tab left open with nobody at it. One
+   * snapshot chunk, then the empty seal an older recorder sent when its idle
+   * rollover noticed - half an hour later. The footage columns sit beside
+   * aggregates that read eventCount and chunkEndTime, so the server has to
+   * accept them, and the header must say 15 seconds, not 30 minutes.
+   */
+  test("a seal sent an idle window after the footage does not stretch the session", async () => {
+    const idleSessionId: string = "2a1b3c4d5e6f708192a3b4c5d6e7f801";
+    const sealOffsetMs: number = CHUNK_DURATION_MS + 30 * 60 * 1000;
+    const sealAt: string = OneUptimeDate.toClickhouseDateTime64(
+      new Date(sessionStart.getTime() + sealOffsetMs),
+    );
+
+    await RumSessionChunkService.insertJsonRows(
+      [
+        {
+          ...chunkRow({
+            tabId: "tab-a",
+            chunkIndex: 0,
+            version: 1000,
+            startOffsetMs: 0,
+            eventCount: 2,
+            errorCount: 0,
+            hasFullSnapshot: true,
+            url: "https://app.example.com/login",
+          }),
+          sessionId: idleSessionId,
+        },
+        {
+          ...chunkRow({
+            tabId: "tab-a",
+            chunkIndex: 1,
+            version: 1000,
+            startOffsetMs: sealOffsetMs,
+            eventCount: 0,
+            errorCount: 0,
+            isFinal: true,
+            url: "https://app.example.com/login",
+          }),
+          sessionId: idleSessionId,
+          chunkEndOffsetMs: sealOffsetMs,
+          chunkEndTime: sealAt,
+          payloadBytes: "2",
+        },
+      ],
+      { clickhouseSettings: { wait_for_async_insert: 1 } },
+    );
+
+    await RumSessionService.insertJsonRows(
+      [{ ...provisionalHeaderRow(), sessionId: idleSessionId }],
+      { clickhouseSettings: { wait_for_async_insert: 1 } },
+    );
+
+    const tabs: Array<TabChunkAggregate> = (
+      await readRows(
+        buildTabAggregateStatement({
+          databaseName: database,
+          projectId: projectId,
+          sessionId: idleSessionId,
+        }),
+      )
+    ).map(parseTabAggregateRow);
+
+    expect(tabs).toHaveLength(1);
+
+    const tab: TabChunkAggregate = tabs[0]!;
+
+    expect(tab.lastChunkEndUnixMs).toBe(
+      sessionStart.getTime() + CHUNK_DURATION_MS,
+    );
+
+    /* The seal still ends the tab, at its own time. */
+    expect(tab.hasFinalChunk).toBe(true);
+    expect(tab.finalChunkEndUnixMs).toBe(
+      sessionStart.getTime() + sealOffsetMs,
+    );
+    expect(hasTabRecordingEnded(tab)).toBe(true);
+
+    const outcome: FinalizeSessionOutcome = await finalizeSession({
+      projectId: projectId,
+      sessionId: idleSessionId,
+      databaseName: database,
+      correlation: { traceIds: [], exceptionFingerprints: [] },
+    });
+
+    expect(outcome).toBe("written");
+
+    const headers: Array<JSONObject> = await readRows(
+      SQL`
+        SELECT isFinalized, durationMs, chunkCount, eventCount
+        FROM ${database}.${AnalyticsTableName.RumSession}
+        WHERE sessionId = ${{ type: TableColumnType.Text, value: idleSessionId }}
+        ORDER BY version DESC
+        LIMIT 1`,
+    );
+
+    expect(headers).toHaveLength(1);
+    expect(headers[0]!["isFinalized"]).toBe(true);
+    expect(Number(headers[0]!["durationMs"])).toBe(CHUNK_DURATION_MS);
+    expect(Number(headers[0]!["chunkCount"])).toBe(2);
+    expect(Number(headers[0]!["eventCount"])).toBe(2);
+  });
 });
 
 /*
