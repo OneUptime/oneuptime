@@ -46,8 +46,8 @@ interface ThemeSpec {
    * Text contrast against the wash. 4.5:1 is the WCAG AA floor; these sit
    * above it, so the text survives a slightly different surface (a hovered
    * row, a gray card header) and reads as a rich shade of the colour rather
-   * than one that only just passes. The dark target matches the -300 shades
-   * Theme.css already uses for its semantic text.
+   * than one that only just passes. The dark target lands near the -300
+   * shades Theme.css already uses for its semantic text.
    */
   textContrast: number;
   // The dot is decoration - the text carries the meaning - but it must show.
@@ -85,9 +85,10 @@ const DARK_THEME: ThemeSpec = {
 };
 
 /*
- * A shade that has to move far from the colour keeps no more saturation than
+ * A text shade that has to move off the colour keeps no more saturation than
  * this: a darkened #fd625e at full saturation is a neon red, at this it is
- * the brick red a text colour should be.
+ * the brick red a text colour should be. A colour that already reads is kept
+ * exactly as it is.
  */
 const MAX_SHADE_SATURATION: number = 0.8;
 
