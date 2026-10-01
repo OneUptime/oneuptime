@@ -328,6 +328,35 @@ describe("summarizeRecentTraces", () => {
     ).toEqual(["t2", "t1"]);
   });
 
+  test("error traces follow their newest error, not their newest span", () => {
+    /*
+     * t1's newest span is newer than t2's error, but it is not an error: the
+     * error list must still put t2 first, while the list of all traces keeps
+     * t1 first.
+     */
+    const spans: Array<TraceInsightsSpanInput> = [
+      span({ traceId: "t1", spanId: "t1-ok", statusCode: SpanStatus.Ok }),
+      span({ traceId: "t2", spanId: "t2-err", statusCode: SpanStatus.Error }),
+      span({
+        traceId: "t1",
+        spanId: "t1-err",
+        parentSpanId: "t1-ok",
+        statusCode: SpanStatus.Error,
+      }),
+    ];
+    const result: TraceInsightsTraces = summarizeRecentTraces(spans);
+    expect(
+      result.errorTraces.map((t: TraceInsightsTrace) => {
+        return t.traceId;
+      }),
+    ).toEqual(["t2", "t1"]);
+    expect(
+      result.allTraces.map((t: TraceInsightsTrace) => {
+        return t.traceId;
+      }),
+    ).toEqual(["t1", "t2"]);
+  });
+
   test("an empty sample yields nothing", () => {
     expect(summarizeRecentTraces([])).toEqual({
       allTraces: [],
