@@ -34,6 +34,7 @@ import {
   getReturnedRows,
   getStepOutcome,
   getStepWarnings,
+  getTraceResumesAt,
   getTraceSteps,
   isSingleStepRun,
   isStepFailed,
@@ -41,18 +42,14 @@ import {
   returnsNothingByDesign,
   shouldStepStartOpen,
 } from "./StepTracePresentation";
+import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   WorkflowStepTrace,
   WorkflowStepTraceEntry,
   WorkflowStepTraceWarning,
 } from "../../../Types/Workflow/StepTrace";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useId,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 
 export interface ComponentProps {
   trace: WorkflowStepTrace;
@@ -128,7 +125,8 @@ const PortChip: FunctionComponent<PortChipProps> = (
 
 interface NextStepLabelProps {
   next: StepOutcomeNextStep;
-  isSingleStepRun: boolean;
+  /** What a next step that has not run says, which depends on the run. */
+  notRunLabel: string;
   /** Another step follows this one in the list. */
   isFollowed: boolean;
 }
@@ -157,9 +155,7 @@ const NextStepLabel: FunctionComponent<NextStepLabelProps> = (
       {!didRun && (
         <>
           {" "}
-          <span className="text-gray-500">
-            {props.isSingleStepRun ? "(not run in this test)" : "(did not run)"}
-          </span>
+          <span className="text-gray-500">{props.notRunLabel}</span>
         </>
       )}
       {props.isFollowed && <span className="text-gray-500">,</span>}
@@ -171,7 +167,7 @@ interface StepOutcomeLineProps {
   outcome: StepOutcome;
   isFailed: boolean;
   isLastStep: boolean;
-  isSingleStepRun: boolean;
+  notRunLabel: string;
 }
 
 /*
@@ -211,7 +207,6 @@ const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
         description={outcome.portDescription}
         tone={outcome.portTone}
       />
-
       {outcome.kind === StepOutcomeKind.LedTo && (
         <>
           {" "}
@@ -226,7 +221,7 @@ const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
                   {nextIndex > 0 && " "}
                   <NextStepLabel
                     next={next}
-                    isSingleStepRun={props.isSingleStepRun}
+                    notRunLabel={props.notRunLabel}
                     isFollowed={nextIndex < outcome.nextSteps.length - 1}
                   />
                 </React.Fragment>
@@ -235,7 +230,6 @@ const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
           )}
         </>
       )}
-
       {outcome.kind === StepOutcomeKind.NothingConnected && (
         <>
           {" "}
@@ -418,7 +412,7 @@ interface StepItemProps {
   isLastInList: boolean;
   /** The last step the run recorded. */
   isLastStep: boolean;
-  isSingleStepRun: boolean;
+  notRunLabel: string;
 }
 
 const StepItem: FunctionComponent<StepItemProps> = (
@@ -496,7 +490,7 @@ const StepItem: FunctionComponent<StepItemProps> = (
             outcome={outcome}
             isFailed={isFailed}
             isLastStep={props.isLastStep}
-            isSingleStepRun={props.isSingleStepRun}
+            notRunLabel={props.notRunLabel}
           />
 
           {isFailed && step.errorMessage && (
@@ -604,6 +598,37 @@ const RunStopped: FunctionComponent<RunStoppedProps> = (
   );
 };
 
+interface RunSleepingProps {
+  resumesAt: Date;
+}
+
+/*
+ * The end of the path for a run parked on a Sleep step. Without it the path
+ * would stop at the Sleep with its next step "not run", which reads like a
+ * run that broke rather than one that is waiting on purpose.
+ */
+const RunSleeping: FunctionComponent<RunSleepingProps> = (
+  props: RunSleepingProps,
+): ReactElement => {
+  return (
+    <li className={TIMELINE_ITEM_CLASS} data-testid="workflow-run-sleeping">
+      <div aria-hidden="true" className={`${TIMELINE_DOT_CLASS} bg-indigo-500`}>
+        <Icon icon={IconProp.Clock} className="h-4 w-4 text-white" />
+      </div>
+      <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3">
+        <p className="text-sm font-semibold text-indigo-800">Sleeping</p>
+        <p className="mt-0.5 text-sm text-indigo-700">
+          The run carries on by itself at{" "}
+          {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            props.resumesAt,
+          )}
+          . The steps after the Sleep have not run yet.
+        </p>
+      </div>
+    </li>
+  );
+};
+
 const StepTraceViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -614,6 +639,20 @@ const StepTraceViewer: FunctionComponent<ComponentProps> = (
       ? props.trace.runErrorMessage
       : null;
   const singleStepRun: boolean = isSingleStepRun(props.trace);
+  const resumesAt: Date | null = runErrorMessage
+    ? null
+    : getTraceResumesAt(props.trace);
+
+  /*
+   * A step the output led to that is not in the trace: in a test of one
+   * step it was never going to run, in a sleeping run it has not run yet,
+   * and otherwise the run stopped before it.
+   */
+  const notRunLabel: string = singleStepRun
+    ? "(not run in this test)"
+    : resumesAt
+      ? "(not run yet)"
+      : "(did not run)";
 
   if (steps.length === 0) {
     if (runErrorMessage) {
@@ -651,8 +690,8 @@ const StepTraceViewer: FunctionComponent<ComponentProps> = (
             <p className="font-medium text-blue-800">Only this step ran</p>
             <p className="mt-0.5 text-blue-700">
               This was a test of one step. The steps before it did not run, so
-              values it reads from them are missing, and the steps after it
-              were not started. Use Run Workflow to try the whole workflow.
+              values it reads from them are missing, and the steps after it were
+              not started. Use Run Workflow to try the whole workflow.
             </p>
           </div>
         </div>
@@ -675,8 +714,8 @@ const StepTraceViewer: FunctionComponent<ComponentProps> = (
               step={step}
               index={index}
               isLastStep={isLastStep}
-              isLastInList={isLastStep && !runErrorMessage}
-              isSingleStepRun={singleStepRun}
+              isLastInList={isLastStep && !runErrorMessage && !resumesAt}
+              notRunLabel={notRunLabel}
             />
           );
         })}
@@ -684,6 +723,8 @@ const StepTraceViewer: FunctionComponent<ComponentProps> = (
         {runErrorMessage && (
           <RunStopped message={runErrorMessage} hasSteps={true} />
         )}
+
+        {resumesAt && <RunSleeping resumesAt={resumesAt} />}
       </ol>
     </div>
   );

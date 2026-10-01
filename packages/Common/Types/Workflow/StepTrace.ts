@@ -123,6 +123,12 @@ export interface WorkflowStepTrace {
    * steps, found a cycle, or failed before its first step ran.
    */
   runErrorMessage?: string | undefined;
+  /**
+   * Set while the run sleeps on a Sleep step, to when it carries on (an ISO
+   * date). The steps after the Sleep have not run yet rather than not at all.
+   * Cleared when the run resumes.
+   */
+  resumesAt?: string | undefined;
 }
 
 /*
@@ -270,6 +276,12 @@ export const parseTrace: ParseTraceFunction = (
 
   if (typeof runErrorMessage === "string" && runErrorMessage) {
     trace.runErrorMessage = runErrorMessage;
+  }
+
+  const resumesAt: JSONValue | undefined = traceObject["resumesAt"];
+
+  if (typeof resumesAt === "string" && !isNaN(Date.parse(resumesAt))) {
+    trace.resumesAt = resumesAt;
   }
 
   return trace;

@@ -170,8 +170,7 @@ export const getStepOutcome: GetStepOutcomeFunction = (
       const laterIndex: number = steps.findIndex(
         (candidate: WorkflowStepTraceEntry, candidateIndex: number) => {
           return (
-            candidateIndex > index &&
-            candidate.componentId === next.componentId
+            candidateIndex > index && candidate.componentId === next.componentId
           );
         },
       );
@@ -385,7 +384,8 @@ export const getReceivedRows: GetReceivedRowsFunction = (
         id: id,
         name: nameOf(id, step.argumentNames),
         value: value,
-        template: template !== null && template !== value.text ? template : null,
+        template:
+          template !== null && template !== value.text ? template : null,
         unresolvedReferences: unresolvedReferences,
       };
     },
@@ -499,6 +499,27 @@ export const isSingleStepRun: IsSingleStepRunFunction = (
   trace: WorkflowStepTrace | null | undefined,
 ): boolean => {
   return isText(trace?.singleStepComponentId);
+};
+
+type GetTraceResumesAtFunction = (
+  trace: WorkflowStepTrace | null | undefined,
+) => Date | null;
+
+/**
+ * When a run sleeping on a Sleep step carries on, or null for a run that is
+ * not sleeping. While it sleeps, the steps after the Sleep have not run yet,
+ * which is not the same as not running at all.
+ */
+export const getTraceResumesAt: GetTraceResumesAtFunction = (
+  trace: WorkflowStepTrace | null | undefined,
+): Date | null => {
+  if (!isText(trace?.resumesAt)) {
+    return null;
+  }
+
+  const resumesAt: Date = new Date(trace!.resumesAt as string);
+
+  return isNaN(resumesAt.getTime()) ? null : resumesAt;
 };
 
 type IsWholeReferenceFunction = (text: string) => boolean;

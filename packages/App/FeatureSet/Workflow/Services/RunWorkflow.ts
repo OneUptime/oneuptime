@@ -489,11 +489,16 @@ export default class RunWorkflow {
 
         /*
          * And the trace, so a run that slept reads as one continuous list of
-         * steps rather than restarting at whatever ran after it woke up.
+         * steps rather than restarting at whatever ran after it woke up. It
+         * is not sleeping any more, so it no longer says when it carries on.
          */
-        this.stepTrace = parseTrace(
+        const restoredTrace: WorkflowStepTrace = parseTrace(
           (existingLog.stepTrace as JSONValue) || null,
         );
+
+        delete restoredTrace.resumesAt;
+
+        this.stepTrace = restoredTrace;
 
         const persisted: JSONObject = existingLog.resumeData as JSONObject;
 
@@ -991,6 +996,15 @@ export default class RunWorkflow {
         "ms. It will resume automatically.",
     );
 
+    /*
+     * The Steps view of a sleeping run says when it carries on, and that the
+     * steps after the Sleep have not run yet rather than not at all.
+     */
+    this.stepTrace = {
+      ...this.stepTrace,
+      resumesAt: resumeAt.toISOString(),
+    };
+
     // Scrub secrets from logs before persisting.
     this.cleanLogs(params.variables);
 
@@ -1231,7 +1245,9 @@ export default class RunWorkflow {
         return {
           componentId: nextComponentId,
           title:
-            nextNode?.metadata?.title || nextNode?.metadataId || nextComponentId,
+            nextNode?.metadata?.title ||
+            nextNode?.metadataId ||
+            nextComponentId,
         };
       },
     );
