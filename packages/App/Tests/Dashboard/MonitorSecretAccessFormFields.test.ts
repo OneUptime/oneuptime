@@ -94,6 +94,11 @@ describe("monitor secret Access step configuration", () => {
     expect(mode.defaultValue).toBe(MonitorSecretAccess.SpecificMonitors);
     expect(mode.defaultValue).toBe(MonitorSecretAccessUtil.DEFAULT_ACCESS);
     expect(mode.title).toBe("Which monitors can use this secret?");
+    /*
+     * Its own description: without one the form falls back to the column's,
+     * which is written for API clients ("Setting this empties ...").
+     */
+    expect(mode.description).toBe("You can change this at any time.");
   });
 
   test("offers one card per mode, widest first, each with a title, an icon and a description", () => {

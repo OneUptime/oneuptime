@@ -6833,5 +6833,6 @@
   "Monitors with labels": "مانیتورهای دارای برچسب",
   "Every monitor in this project can use this secret, including monitors you create later.": "همه مانیتورهای این پروژه می‌توانند از این راز استفاده کنند، از جمله مانیتورهایی که بعداً ایجاد می‌کنید.",
   "Only the monitors you pick can use this secret.": "فقط مانیتورهایی که انتخاب می‌کنید می‌توانند از این راز استفاده کنند.",
-  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "مانیتورهایی که هر یک از برچسب‌های انتخابی شما را دارند می‌توانند از این راز استفاده کنند. افزودن یکی از این برچسب‌ها به یک مانیتور به آن دسترسی می‌دهد."
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "مانیتورهایی که هر یک از برچسب‌های انتخابی شما را دارند می‌توانند از این راز استفاده کنند. افزودن یکی از این برچسب‌ها به یک مانیتور به آن دسترسی می‌دهد.",
+  "You can change this at any time.": "می‌توانید هر زمان این را تغییر دهید."
 }

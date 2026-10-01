@@ -6833,5 +6833,6 @@
   "Monitors with labels": "레이블이 있는 모니터",
   "Every monitor in this project can use this secret, including monitors you create later.": "이 프로젝트의 모든 모니터가 이 시크릿을 사용할 수 있으며, 나중에 만드는 모니터도 포함됩니다.",
   "Only the monitors you pick can use this secret.": "선택한 모니터만 이 시크릿을 사용할 수 있습니다.",
-  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "선택한 레이블 중 하나라도 있는 모니터는 이 시크릿을 사용할 수 있습니다. 모니터에 이 레이블 중 하나를 추가하면 접근 권한이 생깁니다."
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "선택한 레이블 중 하나라도 있는 모니터는 이 시크릿을 사용할 수 있습니다. 모니터에 이 레이블 중 하나를 추가하면 접근 권한이 생깁니다.",
+  "You can change this at any time.": "언제든지 변경할 수 있습니다."
 }

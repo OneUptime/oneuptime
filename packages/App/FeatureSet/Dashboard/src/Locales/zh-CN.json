@@ -6833,5 +6833,6 @@
   "Monitors with labels": "带标签的监视器",
   "Every monitor in this project can use this secret, including monitors you create later.": "此项目中的每个监视器都可以使用此密钥，包括您以后创建的监视器。",
   "Only the monitors you pick can use this secret.": "只有您选择的监视器可以使用此密钥。",
-  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "带有您所选任一标签的监视器都可以使用此密钥。为监视器添加其中一个标签即可使其获得访问权限。"
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "带有您所选任一标签的监视器都可以使用此密钥。为监视器添加其中一个标签即可使其获得访问权限。",
+  "You can change this at any time.": "您可以随时更改此设置。"
 }

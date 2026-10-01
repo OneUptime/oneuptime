@@ -6833,5 +6833,6 @@
   "Monitors with labels": "Monitore mit Beschriftungen",
   "Every monitor in this project can use this secret, including monitors you create later.": "Jeder Monitor in diesem Projekt darf dieses Geheimnis verwenden, auch Monitore, die Sie später erstellen.",
   "Only the monitors you pick can use this secret.": "Nur die Monitore, die Sie auswählen, dürfen dieses Geheimnis verwenden.",
-  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Monitore mit einer der Beschriftungen, die Sie auswählen, dürfen dieses Geheimnis verwenden. Wenn Sie einem Monitor eine dieser Beschriftungen hinzufügen, erhält er Zugriff."
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Monitore mit einer der Beschriftungen, die Sie auswählen, dürfen dieses Geheimnis verwenden. Wenn Sie einem Monitor eine dieser Beschriftungen hinzufügen, erhält er Zugriff.",
+  "You can change this at any time.": "Sie können das jederzeit ändern."
 }

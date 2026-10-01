@@ -111,6 +111,11 @@ export const getMonitorSecretAccessFormFields: GetMonitorSecretAccessFormFieldsF
           monitorAccess: true,
         },
         title: "Which monitors can use this secret?",
+        /*
+         * Set, so the form does not fall back to the column's description,
+         * which is written for API clients and repeats the cards.
+         */
+        description: "You can change this at any time.",
         stepId: MONITOR_SECRET_ACCESS_STEP_ID,
         fieldType: FormFieldSchemaType.CardSelect,
         cardSelectSingleColumn: true,

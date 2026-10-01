@@ -6833,5 +6833,6 @@
   "Monitors with labels": "Overvågninger med etiketter",
   "Every monitor in this project can use this secret, including monitors you create later.": "Alle overvågninger i dette projekt må bruge denne hemmelighed, også overvågninger, du opretter senere.",
   "Only the monitors you pick can use this secret.": "Kun de overvågninger, du vælger, må bruge denne hemmelighed.",
-  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Overvågninger med en af de etiketter, du vælger, må bruge denne hemmelighed. Tilføjer du en af disse etiketter til en overvågning, får den adgang."
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Overvågninger med en af de etiketter, du vælger, må bruge denne hemmelighed. Tilføjer du en af disse etiketter til en overvågning, får den adgang.",
+  "You can change this at any time.": "Du kan ændre dette når som helst."
 }

@@ -6833,5 +6833,6 @@
   "Monitors with labels": "Monitoren met labels",
   "Every monitor in this project can use this secret, including monitors you create later.": "Elke monitor in dit project mag dit geheim gebruiken, ook monitoren die u later aanmaakt.",
   "Only the monitors you pick can use this secret.": "Alleen de monitoren die u kiest mogen dit geheim gebruiken.",
-  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Monitoren met een van de labels die u kiest mogen dit geheim gebruiken. Als u een van deze labels aan een monitor toevoegt, krijgt die toegang."
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Monitoren met een van de labels die u kiest mogen dit geheim gebruiken. Als u een van deze labels aan een monitor toevoegt, krijgt die toegang.",
+  "You can change this at any time.": "U kunt dit op elk moment wijzigen."
 }

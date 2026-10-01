@@ -6833,5 +6833,6 @@
   "Monitors with labels": "ラベル付きのモニター",
   "Every monitor in this project can use this secret, including monitors you create later.": "このプロジェクトのすべてのモニターがこのシークレットを使用できます。後で作成するモニターも含まれます。",
   "Only the monitors you pick can use this secret.": "選択したモニターだけがこのシークレットを使用できます。",
-  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "選択したラベルのいずれかが付いたモニターは、このシークレットを使用できます。これらのラベルのいずれかをモニターに追加すると、そのモニターはアクセスできるようになります。"
+  "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "選択したラベルのいずれかが付いたモニターは、このシークレットを使用できます。これらのラベルのいずれかをモニターに追加すると、そのモニターはアクセスできるようになります。",
+  "You can change this at any time.": "これはいつでも変更できます。"
 }

@@ -375,6 +375,14 @@ describe("Create Monitor Secret: the Access step", () => {
     );
     expect(monitorsPicker()).toBeInTheDocument();
     expect(labelsPicker()).not.toBeInTheDocument();
+
+    // The question has its own help, not the column's text for API clients.
+    expect(
+      within(dialog()).getByText("You can change this at any time."),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog()).queryByText(/Setting this empties/),
+    ).not.toBeInTheDocument();
   });
 
   test("shows only the picker of the chosen option, and none for All monitors", async () => {
