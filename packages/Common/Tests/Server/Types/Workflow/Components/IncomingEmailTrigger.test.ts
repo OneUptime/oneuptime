@@ -53,6 +53,7 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import getJestMockFunction, { MockFunction } from "../../../../MockType";
 
 const DOMAIN: string = "inbound.oneuptime.example";
 
@@ -191,7 +192,7 @@ beforeEach(() => {
       );
 
       return row ? workflowRow(row) : null;
-    }) as never);
+    }) as never) as unknown as SpyInstance;
 });
 
 afterEach(() => {
@@ -476,13 +477,13 @@ describe("the route the ingest worker hands email to", () => {
       .spyOn(Response, "sendJsonObjectResponse")
       .mockImplementation((() => {
         return undefined;
-      }) as never);
+      }) as never) as unknown as SpyInstance;
 
     const route: {
       handlers: Array<Handler>;
       runs: Array<ExecuteWorkflowType>;
     } = await registered();
-    const next: jest.Mock = jest.fn();
+    const next: MockFunction = getJestMockFunction();
 
     await route.handlers[1]!(
       { body: { secretKey: KEY_A, email: email() } },
@@ -504,10 +505,10 @@ describe("the route the ingest worker hands email to", () => {
       .spyOn(Response, "sendJsonObjectResponse")
       .mockImplementation((() => {
         return undefined;
-      }) as never);
+      }) as never) as unknown as SpyInstance;
 
     const route: { handlers: Array<Handler> } = await registered();
-    const next: jest.Mock = jest.fn();
+    const next: MockFunction = getJestMockFunction();
 
     await route.handlers[1]!(
       { body: { secretKey: KEY_A, email: email() } },
@@ -525,7 +526,7 @@ describe("the route the ingest worker hands email to", () => {
     findOneBy.mockRejectedValue(new Error("database is down") as never);
 
     const route: { handlers: Array<Handler> } = await registered();
-    const next: jest.Mock = jest.fn();
+    const next: MockFunction = getJestMockFunction();
 
     await route.handlers[1]!(
       { body: { secretKey: KEY_A, email: email() } },
