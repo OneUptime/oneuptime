@@ -294,6 +294,14 @@ function formatEscalationChain(
 }
 
 /*
+ * An archived on-call policy pages no one. The list leaves archived policies
+ * out (as the On-Call Policies page does), so the model never suggests paging
+ * one; read by id, one is still returned, flagged, with this said alongside.
+ */
+export const ARCHIVED_ON_CALL_POLICY_NOTE: string =
+  "This on-call policy is archived, so it pages no one: incidents and alerts that list it notify nobody through it. Unarchive it to use it again.";
+
+/*
  * ---------------------------------------------------------------------------
  * query_on_call_policies — discover policies and their escalation chains.
  * ---------------------------------------------------------------------------
@@ -301,7 +309,7 @@ function formatEscalationChain(
 export const QueryOnCallPoliciesTool: ObservabilityTool = {
   name: "query_on_call_policies",
   description:
-    "Query on-call duty policies in this project — who gets paged and in what order. List mode returns each policy (id, name, description) with its escalation rule chain: rule order plus the users, teams and schedules each rule pages. Pass onCallPolicyId to get full details of one policy. Use this to find the id to pass to page_on_call_policy, get_on_call_status or query_on_call_pages.",
+    "Query on-call duty policies in this project — who gets paged and in what order. List mode returns each policy (id, name, description) with its escalation rule chain: rule order plus the users, teams and schedules each rule pages. Pass onCallPolicyId to get full details of one policy. Archived policies page no one and are left out of the list. Use this to find the id to pass to page_on_call_policy, get_on_call_status or query_on_call_pages.",
   inputSchema: {
     type: "object",
     properties: {
@@ -343,6 +351,7 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
             description: true,
             repeatPolicyIfNoOneAcknowledges: true,
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
+            isArchived: true,
             labels: {
               name: true,
             },
@@ -390,6 +399,7 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
                 rules,
                 escalation.targetsByRuleId,
               ),
+              archived: policy.isArchived === true ? true : undefined,
             },
           ]
         : [];
@@ -413,7 +423,10 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
       );
 
       return {
-        dataForLlm: serialized.text,
+        dataForLlm:
+          policy?.isArchived === true
+            ? `${ARCHIVED_ON_CALL_POLICY_NOTE}\n${serialized.text}`
+            : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `On-call policy '${policy?.name || onCallPolicyId.toString()}'`,
         citationTarget: {
@@ -428,15 +441,19 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
               resourceType: "On-Call Policy",
               heading: policy.name || onCallPolicyId.toString(),
               subheading: policy.description,
-              fields:
-                ruleFields.length > 0
+              fields: [
+                ...(policy.isArchived === true
+                  ? [{ label: "Archived", value: "Yes - pages no one" }]
+                  : []),
+                ...(ruleFields.length > 0
                   ? ruleFields
                   : [
                       {
                         label: "Escalation rules",
                         value: "None configured",
                       },
-                    ],
+                    ]),
+              ],
               link: {
                 type: AIChatCitationTargetType.OnCallPolicyView,
                 params: { onCallDutyPolicyId: onCallPolicyId.toString() },
@@ -760,6 +777,7 @@ export const GetOnCallStatusTool: ObservabilityTool = {
           select: {
             _id: true,
             name: true,
+            isArchived: true,
           },
           props: ctx.props,
         });
@@ -887,8 +905,17 @@ export const GetOnCallStatusTool: ObservabilityTool = {
       const serialized: SerializedResult =
         ToolResultSerializer.serializeRows(rows);
 
+      /*
+       * The rules still say who they would page, but an archived policy
+       * runs none of them - said first, so the rows are not read as "who
+       * gets paged now".
+       */
+      const isArchivedPolicy: boolean = policy.isArchived === true;
+
       return {
-        dataForLlm: serialized.text,
+        dataForLlm: isArchivedPolicy
+          ? `${ARCHIVED_ON_CALL_POLICY_NOTE}\n${serialized.text}`
+          : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `On-call now for '${policy.name || onCallPolicyId.toString()}' (${respondersLabel(countResponders(rows))})`,
         citationTarget: {
@@ -901,7 +928,9 @@ export const GetOnCallStatusTool: ObservabilityTool = {
           rows.length > 0
             ? WidgetBuilder.table({
                 title: `On-call now: ${policy.name || ""}`.trim(),
-                description: "Who each escalation rule pages, in order",
+                description: isArchivedPolicy
+                  ? ARCHIVED_ON_CALL_POLICY_NOTE
+                  : "Who each escalation rule pages, in order",
                 columns: onCallStatusColumns,
                 rows: rows,
                 link: {
