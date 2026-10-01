@@ -544,13 +544,14 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AcceptPendingTeamInvitationsOfProjectMembers(),
   /*
    * Clears ttl_only_drop_parts on the metric tables and on LogItemV3, which
-   * AddTtlOnlyDropPartsToTelemetryV3 set and the models no longer declare: a
-   * metric partition mixes telemetry retention with monitor retention, and a
-   * log partition mixes it with the per-severity override, so neither expires
+   * AddTtlOnlyDropPartsToTelemetryV3 and the models used to set: a metric
+   * partition mixes telemetry retention with monitor retention, and a log
+   * partition mixes it with the per-severity override, so neither expires
    * as a whole and TTL evicts nothing. Its only ordering requirement is to
-   * come after that migration, so it sits here rather than in the last slot
-   * AddAuditLogMcpClientColumns asserts for itself. Cluster-aware, so it
-   * actually reaches an existing install.
+   * come after that migration (boot schema-sync creates the *Local tables it
+   * alters before any data migration runs), so it sits here rather than in
+   * the last slot AddAuditLogMcpClientColumns asserts for itself.
+   * Cluster-aware, so it actually reaches an existing install.
    */
   new DropTtlOnlyDropPartsFromMixedRetentionTables(),
   /*

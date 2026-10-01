@@ -18,8 +18,10 @@ import logger from "Common/Server/Utils/Logger";
  * retention, and log retention is overridable per severity — so a part never
  * expires as a whole and TTL stops dropping anything.
  * DropTtlOnlyDropPartsFromMixedRetentionTables runs later in the chain and
- * clears the setting on installs this migration already touched; the models no
- * longer carry it for fresh installs. MetricItemAggMV1mByHost was never here:
+ * clears the setting wherever it is set: by this migration on an install that
+ * ran it before the analytics schema became a cluster (on the cluster it is
+ * baselined, never run), or by the models, which declared it until then and
+ * no longer do. MetricItemAggMV1mByHost was never here:
  * it is sipHash-partitioned and DropUnusedTelemetryTables drops it later in the
  * chain (or the operator renames it to `…_backup` pre-upgrade); fresh V3
  * installs use the model-owned …ByHostV2 instead.
