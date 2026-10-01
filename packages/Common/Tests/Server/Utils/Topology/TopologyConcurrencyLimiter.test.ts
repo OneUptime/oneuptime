@@ -8,7 +8,14 @@ import TopologyConcurrencyLimiterInstance, {
 } from "../../../../Server/Utils/Topology/TopologyConcurrencyLimiter";
 import ExceptionCode from "../../../../Types/Exception/ExceptionCode";
 import TooManyRequestsException from "../../../../Types/Exception/TooManyRequestsException";
-import { describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * The Topology API's per-process limiter: how many reads run at once, per
@@ -40,6 +47,20 @@ async function settle(): Promise<void> {
   for (let round: number = 0; round < 3; round++) {
     await new Promise<void>((resolve: () => void): void => {
       setTimeout(resolve, 0);
+    });
+  }
+}
+
+/*
+ * settle() for Jest's fake clock, which holds every setTimeout until the
+ * test moves time. A process.nextTick callback runs only once every queued
+ * promise callback has, so this hands a slot over and starts work without
+ * moving the clock at all.
+ */
+async function settleWithoutTime(): Promise<void> {
+  for (let round: number = 0; round < 3; round++) {
+    await new Promise<void>((resolve: () => void): void => {
+      process.nextTick(resolve);
     });
   }
 }
@@ -375,51 +396,85 @@ describe("TopologyConcurrencyLimiter", () => {
     ).toBe("still works");
   });
 
-  test("a request that waits past the limit is a 429, leaves the queue and never runs", async () => {
-    const limiter: TopologyConcurrencyLimiter = new TopologyConcurrencyLimiter({
-      ...LIMITS,
-      maxRunning: 1,
-      maxWaitMs: 25,
+  /*
+   * On Jest's fake clock, so a wait limit passes exactly where a test moves
+   * time past it. On the real clock these raced the limiter's own timer:
+   * settle() is three setTimeout(0) rounds, and on a loaded CI runner those
+   * took longer than a 25 ms limit, so the request the test expected to
+   * find still waiting had already been refused (waitingCount() was 0, not
+   * 1) - and a waiter could as well be refused before its slot came free.
+   */
+  describe("the wait limit", () => {
+    beforeEach(() => {
+      jest.useFakeTimers({ doNotFake: ["nextTick"] });
     });
-    const order: Array<string> = [];
-    const running: Job = launch(limiter, "a", "running", order);
-    const waiting: Job = launch(limiter, "b", "waiting", order);
-    await settle();
-    expect(limiter.waitingCount()).toBe(1);
 
-    const error: unknown = await refusal(waiting);
-    expect(error).toBeInstanceOf(TooManyRequestsException);
-    expect(limiter.waitingCount()).toBe(0);
+    afterEach(() => {
+      jest.useRealTimers();
+    });
 
-    running.finish();
-    await running.result;
-    await settle();
-    expect(waiting.started).toBe(false);
-    expect(order).toEqual(["running"]);
-    expect(limiter.runningCount()).toBe(0);
+    test("a request that waits past the limit is a 429, leaves the queue and never runs", async () => {
+      const limiter: TopologyConcurrencyLimiter =
+        new TopologyConcurrencyLimiter({
+          ...LIMITS,
+          maxRunning: 1,
+          maxWaitMs: 25,
+        });
+      const order: Array<string> = [];
+      const running: Job = launch(limiter, "a", "running", order);
+      const waiting: Job = launch(limiter, "b", "waiting", order);
+      await settleWithoutTime();
+      expect(limiter.waitingCount()).toBe(1);
+
+      // Still waiting a moment before the limit...
+      jest.advanceTimersByTime(24);
+      await settleWithoutTime();
+      expect(waiting.settled).toBe(false);
+      expect(limiter.waitingCount()).toBe(1);
+
+      // ...and refused at it.
+      jest.advanceTimersByTime(1);
+      const error: unknown = await refusal(waiting);
+      expect(error).toBeInstanceOf(TooManyRequestsException);
+      expect(limiter.waitingCount()).toBe(0);
+
+      running.finish();
+      await running.result;
+      await settleWithoutTime();
+      expect(waiting.started).toBe(false);
+      expect(order).toEqual(["running"]);
+      expect(limiter.runningCount()).toBe(0);
+    });
+
+    test("a waiter that gets its slot in time is not refused later", async () => {
+      const limiter: TopologyConcurrencyLimiter =
+        new TopologyConcurrencyLimiter({
+          ...LIMITS,
+          maxRunning: 1,
+          maxWaitMs: 40,
+        });
+      const order: Array<string> = [];
+      const running: Job = launch(limiter, "a", "running", order);
+      const waiting: Job = launch(limiter, "b", "waiting", order);
+      await settleWithoutTime();
+
+      // Its slot comes free just inside the limit.
+      jest.advanceTimersByTime(39);
+      running.finish();
+      await settleWithoutTime();
+      expect(waiting.started).toBe(true);
+      // The wait timer went with the wait...
+      expect(jest.getTimerCount()).toBe(0);
+
+      // ...so passing the limit while it runs refuses nothing.
+      jest.advanceTimersByTime(60);
+      await settleWithoutTime();
+      expect(waiting.settled).toBe(false);
+      waiting.finish();
+      expect(await waiting.result).toBe("waiting");
+    });
   });
 
-  test("a waiter that gets its slot in time is not refused later", async () => {
-    const limiter: TopologyConcurrencyLimiter = new TopologyConcurrencyLimiter({
-      ...LIMITS,
-      maxRunning: 1,
-      maxWaitMs: 40,
-    });
-    const order: Array<string> = [];
-    const running: Job = launch(limiter, "a", "running", order);
-    const waiting: Job = launch(limiter, "b", "waiting", order);
-    await settle();
-    running.finish();
-    await settle();
-    expect(waiting.started).toBe(true);
-    // Past the wait limit while running: the timer was cleared.
-    await new Promise<void>((resolve: () => void): void => {
-      setTimeout(resolve, 60);
-    });
-    expect(waiting.settled).toBe(false);
-    waiting.finish();
-    expect(await waiting.result).toBe("waiting");
-  });
   /*
    * The drawer aborts the previous entity's request on every click. A queued
    * request whose client has gone must give its place back at once and never

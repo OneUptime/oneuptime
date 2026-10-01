@@ -4,14 +4,14 @@ Cette page couvre les réglages et les limites de sécurité qu'il vaut mieux co
 
 ## Activer ou désactiver un workflow
 
-Chaque workflow possède un interrupteur **Activé** dans **Paramètres**. Quand il est sur non, le workflow ne s'exécute pas — appels de webhook, horaires planifiés et événements OneUptime sont tous ignorés. Les nouveaux workflows démarrent désactivés.
+Chaque workflow possède un interrupteur **Activé** en haut de son **Constructeur** et sur sa page **Vue d'ensemble**. Quand il est sur non, le workflow ne s'exécute pas — appels de webhook, horaires planifiés et événements OneUptime sont tous ignorés, tout comme **Exécuter le flux de travail** et **Run just this step**. Les nouveaux workflows démarrent désactivés.
 
 Servez-vous de cet interrupteur comme d'un feu vert :
 
 1. Construisez le workflow.
-2. Cliquez sur **Exécuter le flux de travail** dans le **Constructeur**, avec des valeurs réalistes.
+2. Cliquez sur **Exécuter le flux de travail** dans le **Constructeur**, avec des valeurs réalistes. Un workflow désactivé ne s'exécute même pas à la main, donc le Constructeur propose d'abord de l'activer : cliquez sur **Activer et exécuter**.
 3. Lisez les **Journaux** — assurez-vous que chaque bloc est parti là où vous l'attendiez.
-4. Basculez **Activé** sur oui.
+4. Laissez **Activé** sur oui s'il est prêt. Sinon, désactivez-le jusqu'à ce qu'il le soit : tant qu'il est activé, son déclencheur réagit aux vrais événements.
 
 Désactiver un workflow n'interrompt pas les exécutions déjà en cours ; cela empêche seulement les nouvelles de démarrer.
 

@@ -237,7 +237,11 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
   },
   "session-rotated": {
     explanation:
-      "The session rolled over (30 minutes idle or the daily cap); a new recording starts here.",
+      "A new session started here: the user came back after 30 minutes idle, the session reached its length cap, or another tab started one first.",
+  },
+  "session-ended-idle": {
+    explanation:
+      "Nothing happened on the page for 30 minutes, so the session ended at the last activity. Nothing more is recorded until the user comes back, which starts a new session.",
   },
   "recorder-stopped": { explanation: "Recording stopped on this page." },
   "recorder-stopped-by-server": {

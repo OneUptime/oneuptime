@@ -4,14 +4,14 @@ This page covers the settings and safety limits worth knowing about before you p
 
 ## Turning a workflow on or off
 
-Every workflow has an **Enabled** switch in **Settings**. When it's off, the workflow doesn't run — webhook calls, incoming email, scheduled times, and OneUptime events are all ignored. New workflows start disabled.
+Every workflow has an **Enabled** switch at the top of its **Builder**, and on its **Overview** page. When it's off, the workflow doesn't run — webhook calls, incoming email, scheduled times, and OneUptime events are all ignored, and so are **Run Workflow** and **Run just this step**. New workflows start disabled.
 
 Use this switch as your "ready to go" gate:
 
 1. Build the workflow.
-2. Click **Run Workflow** on the **Builder** with realistic values.
+2. Click **Run Workflow** on the **Builder** with realistic values. A disabled workflow can't run even by hand, so the Builder asks to turn it on first: click **Turn on and run**.
 3. Check the **Logs** — make sure every block went where you expected.
-4. Flip **Enabled** on.
+4. Leave **Enabled** on if it's ready. If it isn't, switch it off until it is: while it's on, its trigger fires on real events.
 
 Turning a workflow off doesn't stop runs that are already in progress; it just stops new ones from starting.
 

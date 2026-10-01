@@ -43,7 +43,7 @@ Open **Workflows** in de linkernavigatie. Die sectie bevat:
 Open je één workflow, dan bevat het eigen linkermenu:
 
 - **Overzicht** — naam, beschrijving, labels en de schakelaar **Ingeschakeld**.
-- **Bouwer** — het canvas waarop je de workflow ontwerpt.
+- **Bouwer** — het canvas waarop je de workflow ontwerpt, met de schakelaar **Ingeschakeld** bovenaan.
 - **Workflow-variabelen** — waarden die alleen voor deze ene workflow gelden.
 - **Logboeken → Uitvoeringen** — elke uitvoering van deze workflow, met details.
 - **Instellingen** — dupliceren en exporteren.
@@ -53,7 +53,7 @@ Open je één workflow, dan bevat het eigen linkermenu:
 1. **Aanmaken** — kies een startpunt en geef je workflow een naam.
 2. **Kies een trigger** — handmatig, gepland, webhook, of een gebeurtenis uit OneUptime.
 3. **Voeg componenten toe** — zet acties op het canvas en verbind ze.
-4. **Zet hem aan** — schakel **Ingeschakeld** in op de pagina **Overzicht**. Een uitgeschakelde workflow kan helemaal niet draaien, ook niet met de hand.
+4. **Zet hem aan** — schakel **Ingeschakeld** in bovenaan de **Bouwer**. Een uitgeschakelde workflow kan helemaal niet draaien, ook niet met de hand.
 5. **Test** — klik op **Workflow uitvoeren** in de Bouwer en kijk mee in het runlogboek.
 
 ## Een kort voorbeeld

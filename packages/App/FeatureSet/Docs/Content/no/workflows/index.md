@@ -43,7 +43,7 @@ Alt dette bygger du visuelt på et lerret. De fleste arbeidsflyter krever ingen 
 Åpner du én arbeidsflyt, rommer dens egen venstremeny:
 
 - **Oversikt** — navn, beskrivelse, etiketter og bryteren **Aktivert**.
-- **Bygger** — lerretet der du utformer arbeidsflyten.
+- **Bygger** — lerretet der du utformer arbeidsflyten, med bryteren **Aktivert** øverst.
 - **Arbeidsflytvariabler** — verdier som bare gjelder denne ene arbeidsflyten.
 - **Logger → Kjøringer** — hver kjøring av denne arbeidsflyten, med detaljer.
 - **Innstillinger** — duplisering og eksport.
@@ -53,7 +53,7 @@ Alt dette bygger du visuelt på et lerret. De fleste arbeidsflyter krever ingen 
 1. **Opprett** — velg et utgangspunkt, og gi arbeidsflyten et navn.
 2. **Velg en trigger** — manuell, planlagt, webhook eller noe som skjer i OneUptime.
 3. **Legg til komponenter** — legg handlinger på lerretet og koble dem sammen.
-4. **Slå den på** — skru på **Aktivert** fra siden **Oversikt**. En deaktivert arbeidsflyt kan ikke kjøre i det hele tatt, ikke engang manuelt.
+4. **Slå den på** — skru på **Aktivert** øverst i **Bygger**. En deaktivert arbeidsflyt kan ikke kjøre i det hele tatt, ikke engang manuelt.
 5. **Test** — klikk **Kjør arbeidsflyt** i byggeren og følg med i kjøreloggen.
 
 ## Et lite eksempel

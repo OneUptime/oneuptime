@@ -7,6 +7,7 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import CronTab from "Common/Utils/CronTab";
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
+import { WORKFLOW_TURNED_OFF_MESSAGE } from "Common/Types/Workflow/WorkflowEnabled";
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
 import ProjectService from "Common/Server/Services/ProjectService";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
@@ -87,8 +88,15 @@ export default class QueueWorkflow {
       throw new BadDataException("Workflow not found");
     }
 
+    /*
+     * A workflow that is turned off does not run, however it is started: Run
+     * Workflow, Run just this step, its webhook URL or another workflow's
+     * Execute Workflow step. The refusal says how to turn it on, because a
+     * webhook sender's delivery log or a script may be the only place it is
+     * read. The Builder asks before it ever gets here (UseWorkflowEnabled).
+     */
     if (!workflow.isEnabled) {
-      throw new BadDataException("This workflow is not enabled");
+      throw new BadDataException(WORKFLOW_TURNED_OFF_MESSAGE);
     }
 
     if (!workflow.projectId) {
