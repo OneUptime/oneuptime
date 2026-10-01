@@ -30,7 +30,7 @@ import { AddAIInvestigationConversationAndTimeLimits1796600000000 } from "./1796
 import { AddMessageQueueTables1796700000000 } from "./1796700000000-AddMessageQueueTables";
 import { FoldAiSwitchesIntoEnableAi1796800000000 } from "./1796800000000-FoldAiSwitchesIntoEnableAi";
 import { AddMcpOAuthTables1796900000000 } from "./1796900000000-AddMcpOAuthTables";
-import { AddMonitorSecretAccessScope1797000000000 } from "./1797000000000-AddMonitorSecretAccessScope";
+import { AddMonitorSecretAccess1797000000000 } from "./1797000000000-AddMonitorSecretAccess";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1261,5 +1261,5 @@ export default [
   AddMessageQueueTables1796700000000,
   FoldAiSwitchesIntoEnableAi1796800000000,
   AddMcpOAuthTables1796900000000,
-  AddMonitorSecretAccessScope1797000000000,
+  AddMonitorSecretAccess1797000000000,
 ];
