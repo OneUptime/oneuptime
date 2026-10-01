@@ -590,8 +590,16 @@ async function openRunnerStep(dialog: HTMLElement): Promise<void> {
   );
 }
 
-// A form that asks no Runner or credential question is one page.
-function expectNoSteps(dialog: HTMLElement): void {
+/*
+ * A form that asks no Runner or credential question is one page. The form
+ * opens on its first step in an effect after its first render, so let that
+ * run before saying there is no step list; otherwise this passes on the
+ * render before a step list would have appeared.
+ */
+async function expectNoSteps(dialog: HTMLElement): Promise<void> {
+  await act(async (): Promise<void> => {
+    await Promise.resolve();
+  });
   expect(
     within(dialog).queryByRole("navigation", { name: "Progress" }),
   ).not.toBeInTheDocument();
@@ -2676,7 +2684,7 @@ describe("the Change modal: advanced Runner bindings", () => {
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
-    expectNoSteps(dialog);
+    await expectNoSteps(dialog);
     expect(within(dialog).queryByText("Runner")).not.toBeInTheDocument();
     expect(
       within(dialog).queryByText("Kubernetes credential"),
@@ -2730,7 +2738,7 @@ describe("the Change modal: advanced Runner bindings", () => {
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
-    expectNoSteps(dialog);
+    await expectNoSteps(dialog);
     expect(
       within(dialog).queryByTestId("ai-access-clear-runner-field"),
     ).not.toBeInTheDocument();
@@ -2794,14 +2802,21 @@ describe("the Change modal: advanced Runner bindings", () => {
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
-    const progress: HTMLElement = within(dialog).getByRole("navigation", {
-      name: "Progress",
-    });
+    // The step list and Next come in once the form opens its first step.
+    const progress: HTMLElement = await within(dialog).findByRole(
+      "navigation",
+      { name: "Progress" },
+      { timeout: WAIT_TIMEOUT },
+    );
     expect(progress.querySelector('[aria-current="step"]')?.textContent).toBe(
       "Investigation & Fixes",
     );
     expect(
-      within(dialog).getByTestId("modal-footer-next-button"),
+      await within(dialog).findByTestId(
+        "modal-footer-next-button",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
     ).toHaveTextContent("Next");
     expect(
       within(dialog).getByTestId("modal-footer-submit-button"),
@@ -2822,7 +2837,13 @@ describe("the Change modal: advanced Runner bindings", () => {
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
-    fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
+    fireEvent.click(
+      await within(dialog).findByTestId(
+        "modal-footer-next-button",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    );
 
     expect(
       await within(dialog).findByText(

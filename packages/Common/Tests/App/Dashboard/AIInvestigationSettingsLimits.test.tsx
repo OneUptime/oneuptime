@@ -230,9 +230,19 @@ function submitButton(dialog: HTMLElement): HTMLElement {
   return within(dialog).getByTestId("modal-footer-submit-button");
 }
 
-// Move the multi-step form on to its next step.
+/*
+ * Move the multi-step form on to its next step. An edit form saves from
+ * every step, so its primary button is Save; Next is the plain button
+ * beside it.
+ */
 async function nextStep(dialog: HTMLElement, stepTitle: string): Promise<void> {
-  fireEvent.click(submitButton(dialog));
+  fireEvent.click(
+    await within(dialog).findByTestId(
+      "modal-footer-next-button",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    ),
+  );
   await within(dialog).findByText(stepTitle, {}, { timeout: WAIT_TIMEOUT });
 }
 
