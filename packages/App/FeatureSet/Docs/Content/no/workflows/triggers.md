@@ -61,7 +61,7 @@ Hele oppføringen sendes videre til neste blokk. Triggeren **Hendelse → On Cre
 - **Statusside Abonnent** — ønsk velkommen den som abonnerer på en statusside.
 - **On-Call Duty Policy** — synkroniser endringer i vaktplanen til et annet vaktsystem.
 
-Søk etter navn i **Add Trigger**-panelet for å finne den du er ute etter.
+I **Add Trigger**-panelet ligger de under **OneUptime resources**: klikk på ressursen og deretter på triggeren. **Browse all resources** har alle, og søkefeltet finner en trigger ut fra noen få ord, for eksempel `incident created`.
 
 ## Hvilken trigger bør jeg bruke?
 

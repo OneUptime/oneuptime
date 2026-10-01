@@ -141,7 +141,7 @@ Almost every text field accepts variables:
 - The message text on Slack, Teams, Discord, Telegram, Email.
 - The subject and body of an email.
 - Headers and body fields (inside string values).
-- Both sides of an **If / Else** block (listed under the Conditions category).
+- Both sides of an **If / Else** block.
 
 In JSON fields you can use a variable inside a string value, but not as a key. A reference that occupies a whole value on its own is substituted bare, so you can drop an entire object into a JSON field that way. If you need to build a structure dynamically, use a **Run Custom JavaScript** block to build it, then pass its output to the next block.
 

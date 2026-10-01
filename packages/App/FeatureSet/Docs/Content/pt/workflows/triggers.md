@@ -61,7 +61,7 @@ O registro completo é passado ao bloco seguinte. O trigger **Incident → On Cr
 - **Status Page Subscriber** — dê boas-vindas a quem se inscreve em uma página de status.
 - **On-Call Duty Policy** — sincronize mudanças de escala com outro sistema de plantão.
 
-Busque pelo nome no painel **Add Trigger** para achar o que você quer.
+No painel **Add Trigger**, eles ficam em **OneUptime resources**: clique no recurso e depois no trigger. **Browse all resources** tem todos, e o campo de busca encontra um trigger a partir de poucas palavras, como `incident created`.
 
 ## Qual trigger devo usar?
 
