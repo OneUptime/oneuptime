@@ -22,6 +22,7 @@
 import ObjectID from "../../../../Types/ObjectID";
 import {
   ComponentInputType,
+  ComponentType,
   NodeDataProp,
   ReturnValue,
 } from "../../../../Types/Workflow/Component";
@@ -111,6 +112,24 @@ const isWebhook: IsWebhookFunction = (step: NodeDataProp): boolean => {
   return (
     step.metadataId === ComponentID.Webhook ||
     step.metadata?.id === ComponentID.Webhook
+  );
+};
+
+type SaysWhenFieldsArriveFunction = (step: NodeDataProp) => boolean;
+
+/*
+ * Whether running the step is what fills in its values' fields: a Webhook
+ * once a request arrives, and any step after a trigger. Not the Manual
+ * trigger: JSON typed into Run Workflow arrives as one piece of text, with
+ * no fields to list, so promising them would be wrong.
+ */
+const saysWhenFieldsArrive: SaysWhenFieldsArriveFunction = (
+  step: NodeDataProp,
+): boolean => {
+  return (
+    isWebhook(step) ||
+    (step.componentType || step.metadata?.componentType) !==
+      ComponentType.Trigger
   );
 };
 
@@ -282,7 +301,8 @@ export const buildStepSampleGroups: BuildStepSampleGroupsFunction = (
         if (
           !sample &&
           allowsPathInto(returnValue.type) &&
-          !isRecordValue(step, returnValue)
+          !isRecordValue(step, returnValue) &&
+          saysWhenFieldsArrive(step)
         ) {
           items.push({
             reference: reference,

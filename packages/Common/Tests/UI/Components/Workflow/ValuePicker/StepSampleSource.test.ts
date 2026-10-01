@@ -91,6 +91,7 @@ const step: StepFunction = (metadataId: string, id: string): NodeDataProp => {
 };
 
 const webhook: NodeDataProp = step(ComponentID.Webhook, "webhook-1");
+const manual: NodeDataProp = step(ComponentID.Manual, "manual-1");
 const apiPost: NodeDataProp = step(ComponentID.ApiPost, "api-post-1");
 const log: NodeDataProp = step(ComponentID.Log, "log-1");
 const onCreate: NodeDataProp = step(
@@ -362,6 +363,40 @@ describe("buildStepSampleGroups: other steps", () => {
         "{{local.components.api-post-1.returnValues.response-status}}",
       ),
     ).toBeUndefined();
+  });
+
+  /*
+   * JSON typed into Run Workflow reaches the Manual trigger as one piece of
+   * text, so running it would not fill in any fields: nothing is promised.
+   */
+  test("the Manual trigger does not promise fields that a run would not bring", () => {
+    expect(
+      buildStepSampleGroups(
+        context({ upstreamComponents: [manual] }),
+        [],
+        OPTIONS,
+      ),
+    ).toEqual([]);
+  });
+
+  test("the Manual trigger's typed JSON is shown as the text it arrived as", () => {
+    const group: ValueSuggestionGroup | undefined = buildStepSampleGroups(
+      context({ upstreamComponents: [manual] }),
+      [
+        {
+          componentId: "manual-1",
+          returnValues: { value: value('{"name": "Ada"}') },
+        },
+      ],
+      OPTIONS,
+    )[0];
+    const json: ValueSuggestion | undefined = item(
+      group,
+      "{{local.components.manual-1.returnValues.value}}",
+    );
+
+    expect(json?.sample).toBe('"{"name": "Ada"}"');
+    expect(json?.drillIn).toBeUndefined();
   });
 
   test("a number it returned is shown as it was", () => {
