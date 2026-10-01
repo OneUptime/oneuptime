@@ -350,7 +350,9 @@
       "amountNotPositive": "Le montant doit être supérieur à zéro.",
       "amountTooLarge": "Le montant ne peut pas dépasser {{max}} USD par ajustement.",
       "amountTooPrecise": "Le montant ne peut pas avoir plus de deux décimales.",
-      "reasonRequired": "Veuillez saisir un motif pour cet ajustement."
+      "reasonRequired": "Veuillez saisir un motif pour cet ajustement.",
+      "adjustBalanceStepBalance": "Solde",
+      "adjustBalanceStepAmount": "Montant et motif"
     },
     "projectSupport": {
       "title": "Accès du support client",

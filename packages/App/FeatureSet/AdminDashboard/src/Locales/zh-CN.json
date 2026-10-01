@@ -350,7 +350,9 @@
       "amountNotPositive": "金额必须大于零。",
       "amountTooLarge": "单次调整的金额不能超过 {{max}} USD。",
       "amountTooPrecise": "金额的小数位不能超过两位。",
-      "reasonRequired": "请输入本次调整的原因。"
+      "reasonRequired": "请输入本次调整的原因。",
+      "adjustBalanceStepBalance": "余额",
+      "adjustBalanceStepAmount": "金额和原因"
     },
     "projectSupport": {
       "title": "客户支持访问权限",

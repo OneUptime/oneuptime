@@ -631,12 +631,26 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                 amountInUSD: "",
                 reason: "",
               },
+              // Which balance and which way, then by how much and why.
+              steps: [
+                {
+                  title: t(
+                    "pages.projectSubscription.adjustBalanceStepBalance",
+                  ),
+                  id: "balance",
+                },
+                {
+                  title: t("pages.projectSubscription.adjustBalanceStepAmount"),
+                  id: "amount",
+                },
+              ],
               fields: [
                 {
                   field: {
                     balanceType: true,
                   },
                   title: t("pages.projectSubscription.balanceTypeLabel"),
+                  stepId: "balance",
                   description: t(
                     "pages.projectSubscription.balanceTypeDescription",
                   ),
@@ -649,6 +663,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                     adjustmentType: true,
                   },
                   title: t("pages.projectSubscription.adjustmentTypeLabel"),
+                  stepId: "balance",
                   description: t(
                     "pages.projectSubscription.adjustmentTypeDescription",
                   ),
@@ -661,6 +676,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                     amountInUSD: true,
                   },
                   title: t("pages.projectSubscription.amountLabel"),
+                  stepId: "amount",
                   description: t(
                     "pages.projectSubscription.amountDescription",
                     {
@@ -676,6 +692,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                     reason: true,
                   },
                   title: t("pages.projectSubscription.reasonLabel"),
+                  stepId: "amount",
                   description: t("pages.projectSubscription.reasonDescription"),
                   required: true,
                   fieldType: FormFieldSchemaType.Text,

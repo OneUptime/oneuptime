@@ -350,7 +350,9 @@
       "amountNotPositive": "El importe debe ser mayor que cero.",
       "amountTooLarge": "El importe no puede superar los {{max}} USD en un solo ajuste.",
       "amountTooPrecise": "El importe no puede tener más de dos decimales.",
-      "reasonRequired": "Por favor, introduzca un motivo para este ajuste."
+      "reasonRequired": "Por favor, introduzca un motivo para este ajuste.",
+      "adjustBalanceStepBalance": "Saldo",
+      "adjustBalanceStepAmount": "Importe y motivo"
     },
     "projectSupport": {
       "title": "Acceso del soporte al cliente",
