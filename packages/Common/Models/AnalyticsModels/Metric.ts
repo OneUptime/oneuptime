@@ -1222,18 +1222,22 @@ export default class Metric extends AnalyticsBaseModel {
        * Deliberately NO ttl_only_drop_parts here, unlike the other
        * time-partitioned telemetry tables. A daily partition of this one is
        * not uniform in lifetime: telemetry rows take their retention per
-       * service (retainTelemetryDataForDays), and monitor metrics bypass
-       * that entirely for GlobalConfig.monitorMetricRetentionInDays (see
-       * MonitorMetricUtil) while writing into this same table. With
+       * service (retainTelemetryDataForDays), while monitor metrics - and the
+       * other series the platform writes itself, such as SLO, incident and
+       * alert, and session replay budget metrics - take
+       * GlobalConfig.monitorMetricRetentionInDays instead (see
+       * MonitorMetricUtil), and all of them write into this same table. With
        * ttl_only_drop_parts = 1 a part is dropped only once EVERY row in it
        * has expired, so a handful of long-lived monitor rows pin the whole
        * day. Observed on a production install: not one metric partition had
-       * ever been dropped, the oldest being day one -- ~69k monitor rows a
+       * ever been dropped, the oldest being day one - ~69k monitor rows a
        * day holding ~52 GiB a day of expired telemetry, until the setting
-       * was cleared by hand. Row-level TTL costs one rewrite of a partition
-       * over its life, which is the price of retention being configurable
-       * per service and per monitor at all. Same reasoning as SloHistory,
-       * which avoids the hazard by not living here (AnalyticsTableName).
+       * was cleared by hand. Row-level TTL costs rewrites instead: a
+       * partition is rewritten every merge_with_ttl_timeout while its rows
+       * expire (DropTtlOnlyDropPartsFromMixedRetentionTables has the
+       * numbers), which is the price of retention being configurable per
+       * service and per monitor at all. SloHistory keeps its 400-day rows
+       * out of this table for the same reason (AnalyticsTableName).
        */
       tableSettings: "non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",

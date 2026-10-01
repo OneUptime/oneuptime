@@ -1201,13 +1201,16 @@ export default class AnalyticsDatabaseService<
   }
 
   /**
-   * Read-side retention filter. TTL is `retentionDate DELETE` with
-   * ttl_only_drop_parts=1, so a part survives until EVERY row in it has
-   * expired — rows past their per-service retention stay on disk (and
-   * were queryable) for up to a partition's worth of extra time. For
-   * models that carry a retentionDate column, every centrally generated
-   * read appends this predicate so expired rows become invisible the
-   * moment they expire rather than when their part finally drops.
+   * Read-side retention filter. TTL is `retentionDate DELETE`, and
+   * ClickHouse applies it only when it merges: on a table with
+   * ttl_only_drop_parts=1 a part survives until EVERY row in it has
+   * expired, and on one without it (the metric and log tables) an
+   * expired row survives until the next TTL merge of its partition, up
+   * to merge_with_ttl_timeout later. Either way rows past their
+   * retention stay on disk (and were queryable) for a while. For models
+   * that carry a retentionDate column, every centrally generated read
+   * appends this predicate so expired rows become invisible the moment
+   * they expire rather than when they are finally removed.
    *
    * Returns the raw SQL fragment (server-evaluated now(), no parameter)
    * or "" when the model has no retentionDate column.

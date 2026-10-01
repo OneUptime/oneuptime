@@ -179,8 +179,8 @@ export class MetricAggregationService {
     }
 
     /*
-     * Read-side retention filter: rows past their per-service retention
-     * stay in their part until the whole part drops (ttl_only_drop_parts).
+     * Read-side retention filter: rows past their retention stay on disk
+     * until a TTL merge removes them.
      */
     statement.append(" AND retentionDate >= now()");
 
@@ -317,8 +317,8 @@ export class MetricAggregationService {
     }
 
     /*
-     * Read-side retention filter: rows past their per-service retention
-     * stay in their part until the whole part drops (ttl_only_drop_parts).
+     * Read-side retention filter: rows past their retention stay on disk
+     * until a TTL merge removes them.
      */
     statement.append(" AND retentionDate >= now()");
 
