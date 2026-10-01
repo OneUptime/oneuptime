@@ -415,7 +415,6 @@ Toutes activées par défaut. Désactivez-en une avec `--set ebpf.features.<name
 | `httpMetrics`             | activé     | Métriques HTTP/gRPC RED (taux de requêtes, latence, erreurs) par service               |
 | `spanMetrics`             | activé     | Taille et durée des requêtes/réponses par span                                         |
 | `serviceGraph`            | activé     | Métriques d'arêtes entre appelant → appelé ; alimente la carte des services            |
-| `hostMetrics`             | activé     | CPU et mémoire par processus instrumenté                                               |
 | `networkMetrics`          | activé     | Compteurs de flux TCP/UDP de pod à pod                                                 |
 | `networkInterZoneMetrics` | désactivé  | Variante inter-zones des métriques réseau (double la cardinalité)                      |
 | `tcpStats`                | activé     | Compteurs de RTT TCP, de connexions échouées et de retransmissions au niveau des nœuds |

@@ -6,12 +6,11 @@ import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import WorkflowLogModal from "Common/UI/Components/Workflow/WorkflowLogModal";
+import { getWorkflowRunDownloadActions } from "Common/UI/Components/Workflow/DownloadWorkflowRun";
 import {
-  WorkflowStepTrace,
-  emptyTrace,
-  parseTrace,
-} from "Common/Types/Workflow/StepTrace";
-import { JSONValue } from "Common/Types/JSON";
+  WorkflowRunExport,
+  getWorkflowRunExportFromWorkflowLog,
+} from "Common/UI/Components/Workflow/WorkflowRunExport";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import WorkflowStatusElement from "Common/UI/Components/Workflow/WorkflowStatus";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -28,9 +27,8 @@ import React, {
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
-  const [logs, setLogs] = useState<string>("");
-  const [stepTrace, setStepTrace] = useState<WorkflowStepTrace>(emptyTrace());
+  // The run open in the modal: what it shows, and what Download saves.
+  const [openRun, setOpenRun] = useState<WorkflowRunExport | null>(null);
 
   return (
     <Fragment>
@@ -56,9 +54,18 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             workflowId: modelId,
             projectId: ProjectUtil.getCurrentProjectId()!,
           }}
+          /*
+           * The log and the steps are what View Logs shows and the downloads
+           * save. The workflow's name and id name a downloaded run and head
+           * its log; this list has no column that asks for them.
+           */
           selectMoreFields={{
             logs: true,
             stepTrace: true,
+            workflowId: true,
+            workflow: {
+              name: true,
+            },
           }}
           actionButtons={[
             {
@@ -69,15 +76,13 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 item: WorkflowLogs,
                 onCompleteAction: VoidFunction,
               ) => {
-                setLogs(item["logs"] as string);
-                setStepTrace(
-                  parseTrace((item["stepTrace"] as JSONValue) || null),
-                );
-                setShowViewLogsModal(true);
+                setOpenRun(getWorkflowRunExportFromWorkflowLog(item));
 
                 onCompleteAction();
               },
             },
+            // Download log and Download run as JSON, in the row's ⋯ menu.
+            ...getWorkflowRunDownloadActions(),
           ]}
           isViewable={false}
           cardProps={{
@@ -179,14 +184,15 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ]}
         />
 
-        {showViewLogsModal && (
+        {openRun && (
           <WorkflowLogModal
             title="Workflow Run"
             description="Here is what happened when this workflow ran."
-            logs={logs}
-            stepTrace={stepTrace}
+            logs={openRun.logs}
+            stepTrace={openRun.stepTrace}
+            run={openRun}
             onClose={() => {
-              setShowViewLogsModal(false);
+              setOpenRun(null);
             }}
           />
         )}

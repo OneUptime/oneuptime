@@ -6811,5 +6811,19 @@
   "Sites": "Sitios",
   "Start Anchor": "Punto de inicio",
   "Subscriber Page": "Página de suscripción",
-  "Value Source": "Origen del valor"
+  "Value Source": "Origen del valor",
+  "Are you sure you want to delete {{name}}?": "¿Está seguro de que desea eliminar {{name}}?",
+  "Permanently delete {{name}}.": "Eliminar {{name}} de forma permanente.",
+  "and {{remaining}} more": "y {{remaining}} más",
+  "Type {{name}} to confirm.": "Escriba {{name}} para confirmar.",
+  "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "¿Está seguro de que desea eliminar {{name}} de este incidente? Esto eliminará todos los datos de seguimiento de SLA para esta regla.",
+  "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "¿Está seguro de que desea eliminar su cuenta ({{email}})? Esta acción es permanente y no se puede deshacer. Se eliminarán todos sus datos personales.",
+  "Delete View": "Eliminar vista",
+  "Delete Saved View": "Eliminar vista guardada",
+  "Copy log": "Copiar registro",
+  "Copy failed": "Error al copiar",
+  "The log could not be copied. Download it instead.": "No se pudo copiar el registro. Descárgalo en su lugar.",
+  "Download log": "Descargar registro",
+  "Download run as JSON": "Descargar ejecución como JSON",
+  "This run could not be downloaded. Try again.": "No se pudo descargar esta ejecución. Inténtalo de nuevo."
 }

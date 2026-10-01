@@ -78,6 +78,13 @@ const openConfirmation: OpenConfirmationFunction = (): void => {
 describe("ModelDelete", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+
+    /*
+     * The card reads the project's name to show it. These tests are about the
+     * delete itself, so there is no name to read - ModelDeleteNames.test.tsx
+     * covers the naming.
+     */
+    getJestSpyOn(ModelAPI, "getItem").mockResolvedValue(null as never);
   });
 
   it("does not open the confirmation until the delete button is pressed", () => {

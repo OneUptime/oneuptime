@@ -4,6 +4,7 @@ import Icon from "../Icon/Icon";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
 import ConfirmModal from "../Modal/ConfirmModal";
+import DeleteConfirmationMessage from "../DeleteConfirmation/DeleteConfirmationMessage";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import ArgumentsForm from "./ArgumentsForm";
 import { getComponentPrimaryPanel } from "./ComponentPrimaryPanel";
@@ -18,6 +19,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { NodeDataProp } from "../../../Types/Workflow/Component";
+import ComponentID from "../../../Types/Workflow/ComponentID";
 import ComponentDocumentation from "../../../Types/Workflow/Documentation/ComponentDocumentation";
 import { getComponentDocumentation } from "../../../Types/Workflow/Documentation/Index";
 import { getWebhookTriggerUrl } from "../../../Types/Workflow/WebhookTrigger";
@@ -113,6 +115,20 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     component.metadata.componentType.toLowerCase();
 
   /*
+   * Which step a delete removes: its kind and the identifier the workflow
+   * knows it by - "Send Email (send-email-2)" - since a workflow can hold
+   * several steps of the same kind. Read from the step as it is on the
+   * canvas, not from this dialog's unsaved edits: an identifier typed here
+   * and not saved names no step at all.
+   */
+  const savedStepTitle: string = props.component.metadata.title?.trim() || "";
+  const savedStepId: string = props.component.id?.trim() || "";
+  const stepName: string =
+    savedStepTitle && savedStepId && savedStepId !== savedStepTitle
+      ? `${savedStepTitle} (${savedStepId})`
+      : savedStepTitle || savedStepId;
+
+  /*
    * A section is only rendered when it has something to say. A step with no
    * settings used to get a two-thirds-width card saying "This step does not
    * need any settings." above a large empty area, while everything else was
@@ -152,11 +168,17 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         })
       : undefined;
 
+  /*
+   * An If / Else step's settings are one thing, its condition, and are
+   * called that (see Condition/ConditionEditor).
+   */
+  const isCondition: boolean = component.metadata.id === ComponentID.IfElse;
+
   const settingsSection: ReactElement | null = hasSettings ? (
     <ComponentSettingsSection
       id="settings"
-      icon={IconProp.Settings}
-      title="Settings"
+      icon={isCondition ? IconProp.Condition : IconProp.Settings}
+      title={isCondition ? "Condition" : "Settings"}
     >
       <ArgumentsForm
         graphComponents={props.graphComponents}
@@ -168,9 +190,17 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
           setComponent({ ...c });
         }}
         onHasFormValidationErrors={(value: Dictionary<boolean>) => {
-          setHasFormValidationErrors({
-            ...hasFormValidationErrors,
-            ...value,
+          /*
+           * From the latest state, not this render's: the identifier's form
+           * reports in the same moment as the settings do when the dialog
+           * opens, and merging into a stale copy dropped the other's report.
+           * A new If / Else could then be saved with nothing set.
+           */
+          setHasFormValidationErrors((current: Dictionary<boolean>) => {
+            return {
+              ...current,
+              ...value,
+            };
           });
         }}
       />
@@ -192,9 +222,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
           setComponent({ ...component, ...values });
         }}
         onFormValidationErrorChanged={(hasError: boolean) => {
-          setHasFormValidationErrors({
-            ...hasFormValidationErrors,
-            id: hasError,
+          setHasFormValidationErrors((current: Dictionary<boolean>) => {
+            return {
+              ...current,
+              id: hasError,
+            };
           });
         }}
         fields={[
@@ -428,13 +460,26 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         {showDeleteConfirmation && (
           <ConfirmModal
             title={`Delete ${component.metadata.componentType}`}
-            description={`Are you sure you want to delete this ${componentTypeName}? This action is not recoverable.`}
+            description={
+              <DeleteConfirmationMessage
+                kind="question"
+                name={stepName}
+                typeLabel={componentTypeName}
+              />
+            }
             onClose={() => {
               setShowDeleteConfirmation(false);
             }}
             submitButtonText="Delete"
             onSubmit={() => {
-              props.onDelete(component);
+              /*
+               * The step on the canvas, which the sentence named. This passed
+               * the dialog's working copy, so a step whose identifier had been
+               * edited here and not saved was looked up by the new identifier,
+               * matched nothing, and stayed on the canvas while the dialog
+               * closed as though it had gone.
+               */
+              props.onDelete(props.component);
               setShowDeleteConfirmation(false);
               props.onClose();
             }}

@@ -131,9 +131,9 @@ Add the **On Create Alert** trigger ([OneUptime event triggers](/docs/workflows/
 
 You only want the breaker tripped by your trip-wire alerts, not every alert in the project. Add an **If / Else** block (Conditions category):
 
-- **Left**: the trigger's `model.title` — inserted with the picker, it reads `{{local.components.alert-on-create-1.returnValues.model.title}}`
-- **Operator**: `contains`
-- **Right**: the alert title you set in the budget monitor's criteria, for example `LLM budget exceeded` (Option A) — or your Traces monitor's alert title (Option B)
+- **Value to check**: the trigger's `model.title` — inserted with the picker, it reads `{{local.components.alert-on-create-1.returnValues.model.title}}`
+- **Comparison**: **contains**
+- **Compare with**: the alert title you set in the budget monitor's criteria, for example `LLM budget exceeded` (Option A) — or your Traces monitor's alert title (Option B)
 
 To react to several trip-wires, chain If / Else blocks from the **No** branch, or standardize your alert titles so one `contains` match covers them all.
 

@@ -53,7 +53,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 ## Step 3 — Close on OneUptime resolve (recommended)
 
 1. Create a **second** workflow named `Close Opsgenie` with an **Incident → On Update** trigger.
-2. Add a **Conditions** block that checks the incident is now resolved (branch on `{{Incident.currentIncidentState.name}}`).
+2. Add an **If / Else** block that checks the incident is now resolved (branch on `{{Incident.currentIncidentState.name}}`).
 3. From **Yes**, add an **API** block:
    - **Method**: `POST`
    - **URL**: `https://api.opsgenie.com/v2/alerts/oneuptime-{{Incident._id}}/close?identifierType=alias`

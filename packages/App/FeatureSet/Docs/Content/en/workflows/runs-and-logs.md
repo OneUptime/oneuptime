@@ -53,6 +53,19 @@ The values shown are what the block received, after variables were filled in and
 
 Starting a run from the **Builder** opens this same view already following the run, so you can watch it happen rather than going looking for it afterwards.
 
+## Copying and downloading a run
+
+At the top of the **Workflow Run** view, beside its close button, **Copy log** puts the whole **Full Log** on your clipboard, ready to paste into a chat or a ticket. **Download** saves the run as a file:
+
+- **Download log** — a `.txt` file with the full log exactly as the runner printed it, however long, under a short heading: the workflow's name and ID, the run ID, its status, and when it was scheduled, started and completed.
+- **Download run as JSON** — a `.json` file with the same facts as data, the steps the **Steps** tab shows (what each one received and returned, and which output it took), and the log as a list of lines. The steps are in the same shape the API returns a run's `stepTrace` in, and like the **Steps** tab they are the run's last 100. The log is always complete.
+
+The same two downloads are in the **⋯** menu of every run in both run lists, so you can save a run without opening it. A run you started from the **Builder** can be copied or downloaded while it is still going; you get what it has logged so far.
+
+Files are named after the workflow, the run and when it started, in UTC, so a folder of them sorts by workflow and then by time: `nightly-sync-run-<run id>-2026-09-30T10-00-01.txt`.
+
+A download holds nothing you could not already read in the run. Secrets and fields a block marks sensitive are redacted when the run is recorded, so they are redacted in the file too, and anyone who can open a run can download it.
+
 ## Common debugging
 
 ### "My workflow didn't run."

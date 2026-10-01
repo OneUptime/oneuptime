@@ -33,9 +33,9 @@ import SloMetricTypeUtil, {
  *
  * This does not replace SloHistory. SloHistory keeps 400 days in monthly
  * partitions for the long-range error-budget charts; these rows follow the
- * monitor-metric retention (daily partitions with ttl_only_drop_parts), which
- * is why they must never be given a history-length retention - every row
- * would pin its daily partition for a year.
+ * monitor-metric retention in MetricItemV3's daily partitions, which is why
+ * they must never be given a history-length retention - every day of the raw
+ * table would keep a part of its own around for a year.
  */
 export default class SloMetricUtil {
   // Retention handling mirrors MonitorMetricUtil (shared GlobalConfig knob).

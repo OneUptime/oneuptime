@@ -97,6 +97,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.Link,
   tableDescription:
     "Endpoints (host:port) a database is reached at. Telemetry that names one of these endpoints is shown on that database. Each endpoint belongs to at most one database in a project.",
+  displayNameColumn: "endpoint",
 })
 export default class DatabaseServerEndpoint extends BaseModel {
   @ColumnAccessControl({

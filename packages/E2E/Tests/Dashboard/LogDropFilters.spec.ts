@@ -277,7 +277,13 @@ test.describe("Log Drop Filters", () => {
       { timeout: 60000 },
     );
 
-    await expect(page.getByText(ctx.sampleFilterName)).toBeVisible({
+    /*
+     * The details first: the Delete card at the foot of the page names the
+     * filter too ("Permanently delete E2E Sample Debug …").
+     */
+    await expect(
+      page.getByText(ctx.sampleFilterName, { exact: true }).first(),
+    ).toBeVisible({
       timeout: 60000,
     });
 

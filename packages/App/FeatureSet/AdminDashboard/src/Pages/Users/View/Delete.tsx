@@ -44,6 +44,8 @@ const DeletePage: FunctionComponent = (): ReactElement => {
         modelType={User}
         modelId={modelId}
         modelAPI={AdminModelAPI}
+        // Named by email, as the page header names the user.
+        modelNameField="email"
         onDeleteSuccess={() => {
           Navigation.navigate(RouteMap[PageMap.USERS] as Route);
         }}

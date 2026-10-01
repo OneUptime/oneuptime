@@ -363,9 +363,12 @@ describe("BaseModelTable row actions", () => {
     await waitFor(() => {
       expect(screen.getByText("Delete Monitor")).toBeInTheDocument();
     });
-    expect(
-      screen.getByText(/Are you sure you want to delete "Checkout API"\?/),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+      "Are you sure you want to delete Checkout API?",
+    );
+    expect(screen.getByTestId("delete-confirmation-name")).toHaveTextContent(
+      /^Checkout API$/,
+    );
   });
 
   test("the destructive Delete is drawn in red in the menu", async () => {

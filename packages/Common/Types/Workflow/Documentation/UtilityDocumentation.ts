@@ -24,54 +24,74 @@ export const getIfElseDocumentation: UtilityDocumentationFunction = (
 ): ComponentDocumentation => {
   const sample: SampleValue | null = getSampleValue(context);
 
+  /*
+   * The settings read as a sentence - If [Value to check] [Comparison]
+   * [Compare with] - so the help names them by those names, and the
+   * comparisons by the words the list uses.
+   */
   return {
     summary:
-      "Compares two values, then carries on down **Yes** or **No** depending on the answer.",
+      "Checks a condition, then carries on down **Yes** when it is met or **No** when it is not.",
     steps: [
-      "Put the value to check in **Input 1**. It is usually a value from an earlier step.",
-      "Pick the **Operator**, and put what to compare it with in **Input 2**.",
-      "Comparing numbers? Set **Input 1 Type** and **Input 2 Type** to Number. Both are Text unless you change them.",
+      "Pick the **Value to check** with { }, usually a value from an earlier step, or type one.",
+      "Choose the **Comparison**, and put what to compare with in **Compare with**. Is empty and is not empty need nothing there.",
+      "Read the sentence under the settings: it says when **Yes** runs, so you can see the condition says what you mean.",
       "Connect **Yes** and **No** to what should run in each case.",
     ],
-    examples: [
-      sample
-        ? {
+    examples: sample
+      ? [
+          {
             title: "Carry on only when a value matches",
             fields: [
-              { name: "Input 1", value: sample.reference },
-              { name: "Operator", value: "Equal To" },
-              { name: "Input 2", value: "the value to match" },
+              { name: "Value to check", value: sample.reference },
+              { name: "Comparison", value: "is equal to" },
+              { name: "Compare with", value: "the value to match" },
             ],
             description: `**Yes** runs when ${sample.description} is that value.`,
-          }
-        : {
+          },
+          {
+            title: "Carry on only when a value was sent",
+            fields: [
+              { name: "Value to check", value: sample.reference },
+              { name: "Comparison", value: "is not empty" },
+            ],
+            description: `**Yes** runs when ${sample.description} holds anything. **No** runs when it is missing or blank.`,
+          },
+        ]
+      : [
+          {
             title: "Carry on only when a request succeeded",
             fields: [
               {
-                name: "Input 1",
+                name: "Value to check",
                 value:
                   "{{local.components.api-get-1.returnValues.response-status}}",
               },
-              { name: "Input 1 Type", value: "Number" },
-              { name: "Operator", value: "Equal To" },
-              { name: "Input 2", value: "200" },
-              { name: "Input 2 Type", value: "Number" },
+              { name: "Comparison", value: "is less than" },
+              { name: "Compare with", value: "400" },
             ],
             description:
-              "**Yes** runs when an API step called `api-get-1` was answered with status 200.",
+              "**Yes** runs when an API step called `api-get-1` was answered with a status below 400. The two are compared as numbers.",
           },
-    ],
+        ],
     notes: [
       {
-        type: ComponentDocumentationNoteType.Warning,
-        text: 'As Text, numbers are compared letter by letter, so `"10"` comes before `"9"`. Set both types to Number to compare them as numbers.',
+        type: ComponentDocumentationNoteType.Tip,
+        text: "The number comparisons, such as is greater than, compare numbers. To compare text or dates letter by letter instead, choose Text under **Compare as**.",
       },
     ],
     learnMore: [
       {
-        title: "Contains, Starts With and Ends With",
+        title: "How the values are compared",
         paragraphs: [
-          "These compare text, and capital letters count: `Error` does not contain `error`.",
+          "Is equal to and is not equal to compare text unless **Compare as** says otherwise, and capital letters count: `Error` is not `error`. So do contains, starts with and ends with.",
+          "Compared as numbers, text that is not a number counts as 0. Compared as true or false, only the value true counts as true; is true and is false compare that way.",
+        ],
+      },
+      {
+        title: "What counts as empty",
+        paragraphs: [
+          "Is empty is met by nothing at all, blank text, an empty list or object, or a value the earlier step did not have, such as a field the webhook did not send. 0 and false are values, so they are not empty.",
         ],
       },
     ],

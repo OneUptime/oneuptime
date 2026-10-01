@@ -111,7 +111,6 @@ OBI 从捕获的流量中提取多种信号家族。所有信号默认都已启�
 | `ebpf.features.httpMetrics`             | on   | 每个服务的 HTTP/gRPC RED 指标 —— 请求速率、延迟直方图、错误数量。                                                |
 | `ebpf.features.spanMetrics`             | on   | 以 span 属性为键的指标：请求大小、响应大小、按路由/操作细分的耗时。                                              |
 | `ebpf.features.serviceGraph`            | on   | 服务间边的指标（调用方 → 被调方的请求速率 + 延迟）。为服务图谱提供数据。                                         |
-| `ebpf.features.hostMetrics`             | on   | 每个被埋点进程的 CPU 和内存 —— 对于基本的容量问题，可省去单独运行性能分析器。                                    |
 | `ebpf.features.networkMetrics`          | on   | 带 k8s 元数据的 Pod 间 TCP/UDP 流字节和数据包计数器。展现每对相互通信的 Pod，包括运行 OBI 无法解析的协议的 Pod。 |
 | `ebpf.features.networkInterZoneMetrics` | off  | 网络指标的跨可用区版本。基数会加倍；只有在确实使用基于可用区调度时才值得启用。                                   |
 | `ebpf.features.tcpStats`                | on   | 节点级 TCP 统计信息：RTT 直方图、失败连接数、重传次数。                                                          |
@@ -150,7 +149,7 @@ OBI 还可以跨服务边界传播追踪上下文，使 pod B 端生成的 span 
 | 选项                   | 默认                                                    | 描述                                                                                             |
 | ---------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `ebpf.enabled`         | `true`                                                  | 总开关。设为 `false` 可完全跳过 eBPF DaemonSet。                                                 |
-| `ebpf.image.tag`       | `v0.9.0`                                                | OBI 镜像标签。OBI 仍处于 1.0 之前；请固定到一个已知良好的版本，并在升级时重新测试。              |
+| `ebpf.image.tag`       | `v0.13.0`                                               | OBI 镜像标签。OBI 仍处于 1.0 之前；请固定到一个已知良好的版本，并在升级时重新测试。              |
 | `ebpf.autoTargetExe`   | `*`                                                     | 要进行埋点的可执行文件 glob 模式。如果想缩小自动埋点范围（例如 `*/python,*/java`），请收窄此项。 |
 | `ebpf.excludeExePaths` | （shell、kubelet、runc、containerd、otelcol、OBI 自身） | 要跳过的逗号分隔 glob 模式。                                                                     |
 | `ebpf.logLevel`        | `info`                                                  | `debug`、`info`、`warn` 或 `error`。排查问题时设为 `debug`。                                     |

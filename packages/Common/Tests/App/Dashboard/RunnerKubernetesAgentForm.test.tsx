@@ -459,7 +459,8 @@ describe("the Runner pages, rendered", () => {
    * the row has loaded (its name is on the Runner Details card).
    */
   async function openRunnerEditModal(runnerName: string): Promise<HTMLElement> {
-    await screen.findByText(runnerName, {}, { timeout: WAIT_TIMEOUT });
+    // In the details, and on the Delete card at the foot of the page.
+    await screen.findAllByText(runnerName, {}, { timeout: WAIT_TIMEOUT });
     const edit: HTMLElement = await screen.findByText(
       "Edit Runner",
       {},

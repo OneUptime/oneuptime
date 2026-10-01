@@ -35,7 +35,7 @@ The list shows each variable's name, type and description. Click **View** on a r
 - **Edit Variable** changes the name, the description and — for a static variable that isn't secret yet — the secret flag. Once a variable is secret it stays secret.
 - **Update Content** replaces a static value. The saved content can't be read back, so you type the new value in full.
 - **Use in Workflows** shows the exact reference to paste into your blocks, with a copy button.
-- **Delete Workflow Variable** deletes it, after asking you to confirm.
+- **Delete Workflow Variable** deletes it, after asking you to confirm. The confirmation names the variable, so you can check it is the one you mean.
 
 You can also update a variable over the API, which is covered at the end of this page. Global and workflow variables are a Growth plan feature.
 
@@ -158,7 +158,7 @@ Inside a text field you can iterate an array with `{{#each path}}…{{/each}}`. 
 A webhook arrives with a body like `{ "service": "checkout", "status": "failed" }`. To turn that into a OneUptime incident:
 
 1. **Webhook** trigger with the id `ci-webhook`.
-2. **If / Else** block: select the webhook's Request Body output and use its `status` property, operator `==`, right `failed`.
+2. **If / Else** block: **Value to check** is the `status` field of the webhook's Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparison** is **is equal to**, and **Compare with** is `failed`.
 3. From the **Yes** branch, a **Create One Incident** block with:
    - Title: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Description: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
