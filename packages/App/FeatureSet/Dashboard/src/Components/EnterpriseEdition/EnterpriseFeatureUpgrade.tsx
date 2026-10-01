@@ -154,10 +154,15 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
     <Card
       title={props.title}
       description={props.description}
+      /*
+       * The same call to action as the one under the pitch below, so it is
+       * drawn plain: one card, one primary button, and that one sits where
+       * the reasons to press it are.
+       */
       rightElement={
         <Button
           title={copy.ctaTitle}
-          buttonStyle={ButtonStyleType.PRIMARY}
+          buttonStyle={ButtonStyleType.NORMAL}
           icon={copy.ctaIcon}
           onClick={() => {
             window.open(copy.ctaUrl, "_blank");

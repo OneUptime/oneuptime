@@ -46,7 +46,7 @@ You can move a workflow between projects, or between a self-hosted install and O
 
 The file holds the workflow's name, description, enabled state, and its graph. It deliberately does not hold:
 
-- **The webhook secret key.** A fresh one is generated when the workflow is created, so an imported workflow has a different webhook URL. Anything calling the original has to be repointed.
+- **The webhook secret key.** A fresh one is generated when the workflow is created, so an imported workflow has a different webhook URL — copy it from the new workflow's Webhook trigger. Anything calling the original has to be repointed.
 - **Global variables.** A block that reads `{{global.variables.MY_SECRET}}` keeps that reference, but the value is not in the file. Create the variables in the destination project before you run the imported workflow.
 - **Owners and labels.** Your project's own label and owner rules run against the imported workflow, the same as if you had created it by hand.
 
@@ -70,9 +70,13 @@ If you have a real need for a long chain (like a job that processes one item per
 
 Webhook triggers give you a unique URL. Anyone who knows the URL can hit it. To protect against accidental or unwanted callers:
 
-- Treat the URL like a password. Don't share it publicly or commit it to a public repo.
+- Treat the URL like a password. Don't share it publicly or commit it to a public repo. The Webhook trigger masks the URL's secret key until you click **Show**, and **Copy URL** copies the URL without showing it.
+- If the URL leaks, click the Webhook trigger in the **Builder** and click **Reset URL**. The workflow gets a new URL and the old one stops working at once.
+- If the trigger says its URL ends in the workflow's ID, reset it. Workflows created before webhook URLs had a secret key of their own use the workflow's ID instead, and anyone who can open the workflow can see that.
 - For sensitive workflows, ask the calling system to send a shared token as a header (like `X-Webhook-Token`) and check it with a **Conditions** block before doing anything important. Save the expected token as a secret variable.
 - For very sensitive workflows, prefer a OneUptime event trigger and a manual import step instead of a public webhook.
+
+Only people who can edit the workflow — **Project Owner**, **Project Admin**, or **Edit Workflow** — can see or reset its webhook URL. Anyone with the URL can start the workflow, which read-only roles can't do by hand, so they see a note saying who to ask instead.
 
 ## Outbound network access
 
@@ -101,7 +105,7 @@ Built-in bounds keep unattended calls finite: System Instructions, Prompt, and s
 Workflows respect your project's role-based access control. The relevant permissions:
 
 - **Create / Read / Edit / Delete Workflow** — the basic permissions on the workflow itself.
-- **Run Workflow** — needed to run a workflow by hand or trigger one via API.
+- **Edit Workflow** — also what it takes to run a workflow by hand, and to see or reset its webhook URL. Viewers can open the builder but can't see the URL.
 - **Read Workflow Log** — needed to view runs.
 - **Read / Create / Edit / Delete Workflow Variable** — control over the global variables list.
 

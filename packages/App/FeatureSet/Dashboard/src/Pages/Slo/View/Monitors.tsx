@@ -674,9 +674,6 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onSubmit={() => {
             setShowNothingToAddModal(false);
           }}
-          onClose={() => {
-            setShowNothingToAddModal(false);
-          }}
         />
       ) : (
         <></>

@@ -17,6 +17,7 @@ import CodeEditor from "../CodeEditor/CodeEditor";
 import CodeType from "../../../Types/Code/CodeType";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import { isAlwaysEmptyColumnId } from "../../../Types/Workflow/SystemColumns";
 
 /*
  * A column descriptor mirrors the shape returned by the workflow
@@ -199,6 +200,59 @@ const classifyCompatibility: (
     reasons,
     parsed,
   };
+};
+
+/*
+ * The columns the picker lists, out of everything the schema describes.
+ *
+ * Deleted At and Deleted by User are empty on every record a workflow can
+ * read - records are deleted outright - so ticking one only ever adds an
+ * always-null field to the result. They are left out of the list, on the
+ * model and on each related record, unless the stored selection already names
+ * one: that one stays, so it can be seen and unticked. Created At, Created by
+ * User and the rest of the columns OneUptime fills in stay listed, because
+ * reading them back is exactly what a select is for.
+ */
+export const columnsToList: (
+  columns: Array<PickerColumn>,
+  storedSelection: JSONObject | null,
+) => Array<PickerColumn> = (
+  columns: Array<PickerColumn>,
+  storedSelection: JSONObject | null,
+): Array<PickerColumn> => {
+  const selection: JSONObject = storedSelection || {};
+
+  const isListed: (column: PickerColumn, stored: JSONObject) => boolean = (
+    column: PickerColumn,
+    stored: JSONObject,
+  ): boolean => {
+    return !isAlwaysEmptyColumnId(column.id) || stored[column.id] !== undefined;
+  };
+
+  return columns
+    .filter((column: PickerColumn) => {
+      return isListed(column, selection);
+    })
+    .map((column: PickerColumn) => {
+      if (!column.isRelation || !column.relatedColumns) {
+        return column;
+      }
+
+      const storedSubSelection: unknown = selection[column.id];
+      const storedSubs: JSONObject =
+        storedSubSelection &&
+        typeof storedSubSelection === "object" &&
+        !Array.isArray(storedSubSelection)
+          ? (storedSubSelection as JSONObject)
+          : {};
+
+      return {
+        ...column,
+        relatedColumns: column.relatedColumns.filter((sub: PickerColumn) => {
+          return isListed(sub, storedSubs);
+        }),
+      };
+    });
 };
 
 /*
@@ -597,12 +651,22 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const scalarColumns: Array<PickerColumn> = (columns || []).filter(
+  /*
+   * What is listed, as opposed to what a stored value is checked against:
+   * classification above still reads every column, so a select saved with
+   * "deletedAt" in it stays a valid select rather than being locked to JSON.
+   */
+  const listedColumns: Array<PickerColumn> = columnsToList(
+    columns || [],
+    initial.parsed,
+  );
+
+  const scalarColumns: Array<PickerColumn> = listedColumns.filter(
     (c: PickerColumn) => {
       return !c.isRelation;
     },
   );
-  const relationColumns: Array<PickerColumn> = (columns || []).filter(
+  const relationColumns: Array<PickerColumn> = listedColumns.filter(
     (c: PickerColumn) => {
       return c.isRelation;
     },

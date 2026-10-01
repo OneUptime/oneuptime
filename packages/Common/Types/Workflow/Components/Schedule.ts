@@ -28,8 +28,7 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Execute",
-        description:
-          "Connect other components to this port if you want them to be executed.",
+        description: "Connect the steps to run at each scheduled time.",
         id: "execute",
       },
     ],

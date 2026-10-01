@@ -46,7 +46,7 @@ Apri un singolo workflow e il suo menu a sinistra contiene:
 - **Costruttore** — la tela su cui progetti il workflow.
 - **Variabili del flusso** — valori validi solo per questo workflow.
 - **Esecuzioni e registri** — ogni esecuzione di questo workflow, con i dettagli.
-- **Impostazioni** — chiave segreta del webhook, duplicazione ed esportazione.
+- **Impostazioni** — duplicazione ed esportazione.
 
 ## Costruire il tuo primo workflow
 

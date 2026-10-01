@@ -110,6 +110,8 @@ A variable's type is fixed once it's saved. Delete the static variable and creat
 
 Every trigger and component can produce output during an execution. Use the component-value picker in the editor to create the reference rather than typing it — it inserts the exact ids the runner expects.
 
+You can also start from the block that produces the value: its settings list each output under **Returns**, with the exact reference and a button to copy it.
+
 Reference an earlier block's output like this:
 
 ```

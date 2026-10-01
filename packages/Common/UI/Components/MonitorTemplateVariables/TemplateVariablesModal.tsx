@@ -167,8 +167,7 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
       title="Dynamic Template Variables"
       description={`Use these variables in incident and alert titles, descriptions, and remediation notes. Click any variable to copy it. ${totalVariables} variables available for this monitor type.`}
       onClose={props.onClose}
-      onSubmit={props.onClose}
-      submitButtonText="Done"
+      closeButtonText="Done"
       modalWidth={ModalWidth.Large}
     >
       <div className="space-y-4">

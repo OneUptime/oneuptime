@@ -227,13 +227,13 @@ Jira의 모든 사람이 한 번의 클릭으로 되돌아올 수 있습니다. 
 ### 수신 워크플로를 먼저 구성하기
 
 1. **워크플로 생성** 으로 이름을 `Jira → OneUptime` 으로 지정하고 **Webhook** 트리거를 추가합니다.
-2. 그 워크플로의 **설정** 을 열어 **웹훅 시크릿 키** 를 복사합니다. URL은 다음과 같습니다:
+2. 그 워크플로의 **빌더** 를 열고 **Webhook** 트리거를 클릭한 뒤, 설정 맨 위의 **URL 복사** 를 클릭합니다. URL은 다음과 같습니다:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   자체 호스팅 설치는 자체 호스트를 사용합니다. 이 URL은 비밀번호처럼 다루세요 — 이 URL을 아는 사람은 누구나 워크플로를 시작할 수 있습니다 — 유출되면 같은 페이지에서 키를 재설정하세요.
+   자체 호스팅 설치는 자체 호스트를 사용합니다. 이 URL은 비밀번호처럼 다루세요 — 이 URL을 아는 사람은 누구나 워크플로를 시작할 수 있습니다. 유출되면 같은 곳에서 **URL 재설정** 을 클릭하세요. 이전 URL은 즉시 작동을 멈춥니다.
 
 3. 다른 것이 실행되기 전에 공유 시크릿을 확인하는 **If / Else** 블록을 추가합니다. **Input 1** 은 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** 는 `==`, **Input 2** 는 `{{global.variables.JIRA_WEBHOOK_SECRET}}` — 여러분이 직접 만들어 시크릿 전역 변수로 저장한 값입니다.
 4. **Yes** 분기에서 **Update One Incident** 블록을 추가합니다:

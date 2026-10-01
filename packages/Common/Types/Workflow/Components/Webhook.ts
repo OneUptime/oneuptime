@@ -47,7 +47,7 @@ const components: Array<ComponentMetadata> = [
       {
         id: "request-headers",
         name: "Request Headers",
-        description: "Request Headers for this request",
+        description: "The headers the caller sent, by header name.",
         type: ComponentInputType.StringDictionary,
         required: false,
         placeholder: '{"header1": "value1", "header2": "value2", ....}',
@@ -55,7 +55,7 @@ const components: Array<ComponentMetadata> = [
       {
         id: "request-params",
         name: "Request Query Params",
-        description: "Request Query Params for this request",
+        description: "The query string parameters in the URL, by name.",
         type: ComponentInputType.StringDictionary,
         required: false,
         placeholder: '{"query1": "value1", "query2": "value2", ....}',
@@ -63,7 +63,8 @@ const components: Array<ComponentMetadata> = [
       {
         id: "request-body",
         name: "Request Body",
-        description: "Request Body",
+        description:
+          "The body the caller sent. A JSON body can be read field by field.",
         type: ComponentInputType.JSON,
         required: false,
         placeholder: '{"key1": "value1", "key2": "value2", ....}',
@@ -73,8 +74,7 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Out",
-        description:
-          "Connect to this port if you want other components to execute after the value has been logged.",
+        description: "Connect the steps to run each time the URL is called.",
         id: "out",
       },
     ],

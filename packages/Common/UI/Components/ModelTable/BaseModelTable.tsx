@@ -4988,6 +4988,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           onClose={() => {
             setShowViewIdModal(false);
           }}
+          closeButtonText="Close"
           submitButtonText={"Go to API Docs"}
           onSubmit={() => {
             setShowViewIdModal(false);
@@ -4998,8 +4999,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               { openInNewTab: true },
             );
           }}
-          submitButtonType={ButtonStyleType.NORMAL}
-          closeButtonType={ButtonStyleType.OUTLINE}
         />
       )}
 
@@ -5011,10 +5010,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             setShowHelpModal(false);
           }}
           modalWidth={ModalWidth.Large}
-          submitButtonText="Close"
-          onSubmit={() => {
-            setShowHelpModal(false);
-          }}
+          closeButtonText="Close"
         >
           <div className="p-2">
             <MarkdownViewer text={props.helpContent.markdown} />

@@ -41,6 +41,7 @@ import {
 } from "./ColumnEditor/ColumnRowSerialization";
 import ModelQueryBuilder from "./ColumnEditor/ModelQueryBuilder";
 import ModelRecordForm from "./ColumnEditor/ModelRecordForm";
+import { ColumnUse } from "./ColumnEditor/ColumnUse";
 import CodeType from "../../../Types/Code/CodeType";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -686,6 +687,12 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
           <ModelRecordForm
             rows={rows}
             columns={columns}
+            use={
+              (props.recordIntent || RecordIntent.Create) ===
+              RecordIntent.Create
+                ? ColumnUse.Create
+                : ColumnUse.Update
+            }
             suggestions={props.valueSuggestions}
             onChange={onRowsChange}
           />

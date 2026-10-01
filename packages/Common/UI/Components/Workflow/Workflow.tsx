@@ -125,6 +125,16 @@ export interface ComponentProps {
   onRunStep?: ((component: NodeDataProp) => void) | undefined;
   webhookSecretKey?: string | undefined;
   /**
+   * Whether the user may read the webhook secret key; the builder only loads
+   * it when they may. Handed to the Webhook trigger's settings.
+   */
+  canSeeWebhookSecretKey?: boolean | undefined;
+  /**
+   * Gives the workflow a new webhook secret key: Reset URL in the Webhook
+   * trigger's settings. Resolves once the new key is saved.
+   */
+  onResetWebhookSecretKey?: (() => Promise<void>) | undefined;
+  /**
    * Called whenever the static checks over the graph are recomputed, so the
    * page around the canvas can show a count and decide what to do about it.
    */
@@ -693,6 +703,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             })}
           workflowId={props.workflowId}
           webhookSecretKey={props.webhookSecretKey}
+          canSeeWebhookSecretKey={props.canSeeWebhookSecretKey}
+          onResetWebhookSecretKey={props.onResetWebhookSecretKey}
           component={selectedNodeData}
           title={
             selectedNodeData && selectedNodeData.metadata.title

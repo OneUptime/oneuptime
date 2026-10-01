@@ -23,6 +23,11 @@ import { ModelSchemaColumn } from "../ModelSchema";
 import { columnTypeLabel, controlForColumn } from "./ColumnControl";
 import { operatorLabelFor, operatorsForControl } from "./ColumnOperators";
 import {
+  isColumnDescriptionInformative,
+  isColumnKeyInformative,
+  summarizeDescription,
+} from "./ColumnPickerOptions";
+import {
   ColumnValueMode,
   ModelColumnControl,
   ModelColumnRow,
@@ -59,15 +64,27 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
    * second line and repeated as a chip under the picker once it is chosen.
    * Putting both in the label - "Created At · createdAt" - is what a select
    * ellipsizes first, and the name is exactly the half that gets cut.
+   *
+   * The second line is kept to one line's worth: the shared dropdown prints an
+   * option's description in full, and the model's longest ones made a single
+   * option four lines tall. The column name only leads it where it says
+   * something the title does not.
    */
   const columnOptions: Array<DropdownOption> = props.columns.map(
     (column: ModelSchemaColumn) => {
       return {
         value: column.id,
         label: column.title,
-        description: `${column.id} · ${
-          column.description || columnTypeLabel(column)
-        }`,
+        description: [
+          isColumnKeyInformative(column) ? column.id : "",
+          (isColumnDescriptionInformative(column)
+            ? summarizeDescription(column.description, 70)
+            : "") || columnTypeLabel(column),
+        ]
+          .filter((part: string) => {
+            return part !== "";
+          })
+          .join(" · "),
       };
     },
   );

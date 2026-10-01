@@ -1001,6 +1001,37 @@ describe("Status Page > Resources", () => {
       ).toBeInTheDocument();
     });
 
+    /*
+     * The empty pane repeats the header's "Add Monitor". Both were filled
+     * indigo buttons - two primary buttons for one action, a few inches apart.
+     * The header's stays the primary one; the repeat is drawn plain, the way an
+     * empty table repeats its Create button.
+     */
+    test("repeat the header's Add Monitor in the empty pane as a plain button", async () => {
+      setUpApi({
+        groups: buildHierarchy(),
+        resources: [makeResource({ id: "loose", monitorName: "Loose" })],
+      });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await selectGroup("Market 1001");
+
+      const header: HTMLElement = screen.getByTestId(
+        "status-page-resource-panel-add",
+      );
+      const emptyState: HTMLElement = screen.getByTestId(
+        "status-page-resource-panel-empty-add",
+      );
+
+      expect(header).toHaveClass("bg-indigo-600");
+      expect(emptyState).toHaveTextContent("Add Monitor");
+      expect(emptyState).toHaveClass("bg-white");
+      expect(emptyState).not.toHaveClass("bg-indigo-600");
+    });
+
     test("filter down to what was typed, in the pane rather than the navigator", async () => {
       setUpApi({
         groups: buildHierarchy(),
