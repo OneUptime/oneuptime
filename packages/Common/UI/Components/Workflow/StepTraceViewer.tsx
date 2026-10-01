@@ -428,6 +428,20 @@ const StepItem: FunctionComponent<StepItemProps> = (
   const warnings: Array<WorkflowStepTraceWarning> = getStepWarnings(step);
   const outcome: StepOutcome = getStepOutcome(props.trace, props.index);
 
+  /*
+   * Only the runner writes a trace, and it writes text here, but a row is
+   * read back from JSON: anything else would stop the whole view rendering,
+   * so it is read as text or not at all.
+   */
+  const componentId: string =
+    typeof step.componentId === "string" ? step.componentId : "";
+  const title: string =
+    typeof step.title === "string" && step.title ? step.title : componentId;
+  const errorMessage: string | null =
+    typeof step.errorMessage === "string" && step.errorMessage
+      ? step.errorMessage
+      : null;
+
   const dotColour: string = isFailed
     ? "bg-red-500"
     : warnings.length > 0
@@ -465,10 +479,10 @@ const StepItem: FunctionComponent<StepItemProps> = (
           <span className="min-w-0 flex-1">
             <span className="sr-only">Step {props.index + 1}: </span>
             <span className="block break-words text-sm font-semibold text-gray-900">
-              {step.title || step.componentId}
+              {title}
             </span>
             <span className="block break-all font-mono text-xs text-gray-500">
-              {step.componentId}
+              {componentId}
             </span>
           </span>
           <span className="flex shrink-0 items-center gap-2">
@@ -493,7 +507,7 @@ const StepItem: FunctionComponent<StepItemProps> = (
             notRunLabel={props.notRunLabel}
           />
 
-          {isFailed && step.errorMessage && (
+          {isFailed && errorMessage && (
             <div
               className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2"
               data-testid="workflow-run-step-error"
@@ -505,7 +519,7 @@ const StepItem: FunctionComponent<StepItemProps> = (
               <div className="min-w-0 text-sm">
                 <p className="font-medium text-red-800">This step failed</p>
                 <p className="mt-0.5 whitespace-pre-wrap break-words text-red-700">
-                  {step.errorMessage}
+                  {errorMessage}
                 </p>
               </div>
             </div>

@@ -1193,6 +1193,38 @@ describe("StepTraceViewer", () => {
       expect(screen.getByText("Nothing returned.")).toBeInTheDocument();
     });
 
+    test("draws a step whose text fields are not text, without breaking", () => {
+      renderTrace({
+        steps: [
+          aStep({
+            title: { not: "text" } as never,
+            componentId: "odd-1",
+            status: WorkflowStepStatus.Error,
+            errorMessage: ["not", "text"] as never,
+            executedPortTitle: 7 as never,
+            executedPortDescription: {} as never,
+          }),
+          aStep({ title: "Fine", componentId: "fine-1" }),
+        ],
+      });
+
+      const cards: Array<HTMLElement> = stepCards();
+
+      // Called by its id, read as failed, with no error text to show.
+      expect(toggleOf(cards[0]!)).toHaveTextContent("odd-1");
+      expect(
+        within(cards[0]!).getByTestId("workflow-run-step-status"),
+      ).toHaveTextContent("Failed");
+      expect(
+        screen.queryByTestId("workflow-run-step-error"),
+      ).not.toBeInTheDocument();
+      // The port falls back to its id.
+      expect(
+        within(cards[0]!).getByTestId("workflow-run-step-port"),
+      ).toHaveTextContent("Out");
+      expect(screen.getByText("Fine")).toBeInTheDocument();
+    });
+
     test("skips entries that are not steps", () => {
       renderTrace({
         steps: [null as never, aStep({ title: "Real" }), "junk" as never],
