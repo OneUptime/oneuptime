@@ -338,7 +338,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
           />
         </div>
 
-        <div className="hidden sm:block" aria-hidden="true" />
+        <div className="max-sm:hidden sm:block" aria-hidden="true" />
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start">
           <div className="w-full sm:w-64 sm:shrink-0">{comparisonControl}</div>
           {showsCompareWith && (
