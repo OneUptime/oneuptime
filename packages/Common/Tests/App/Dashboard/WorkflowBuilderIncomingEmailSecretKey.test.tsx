@@ -252,7 +252,12 @@ describe("the builder loads the incoming email key only for those who may see it
   test("before the permission snapshot lands, it does not risk asking", async () => {
     await renderBuilder();
 
-    expect(Object.keys(getItemCall().select)).toEqual(["graph", "name"]);
+    // isEnabled sets the Enabled switch at the top of the page.
+    expect(Object.keys(getItemCall().select)).toEqual([
+      "graph",
+      "name",
+      "isEnabled",
+    ]);
     expect(canvas().canSeeIncomingEmailSecretKey).toBe(false);
   });
 

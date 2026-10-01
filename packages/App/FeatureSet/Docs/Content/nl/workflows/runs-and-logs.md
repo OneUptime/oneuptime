@@ -47,7 +47,7 @@ Start je een run vanuit de **Bouwer**, dan opent precies deze weergave al meelop
 
 ### "Mijn workflow draaide niet."
 
-1. Controleer of de workflow **Ingeschakeld** is op zijn pagina **Overzicht**. Nieuwe workflows beginnen uitgeschakeld, en een uitgeschakelde workflow weigert elke run — ook een handmatige.
+1. Controleer of de workflow **Ingeschakeld** is: de schakelaar staat bovenaan zijn **Bouwer**, die boven het canvas meldt wanneer de workflow uit staat. Nieuwe workflows beginnen uitgeschakeld, en een uitgeschakelde workflow weigert elke run — ook een handmatige. Een aanroep van zijn webhook krijgt HTTP 400 met een bericht dat uitlegt hoe je hem aanzet.
 2. Bij een OneUptime-gebeurtenistrigger: ga na of de gebeurtenis daadwerkelijk plaatsvond. Open het record en bekijk zijn geschiedenis.
 3. Bij een webhook-trigger: ga na of het andere systeem naar de juiste URL stuurt. De meeste tools loggen wanneer ze een webhook versturen — kijk daar.
 4. Bij een schedule-trigger: ga na of de cron-expressie klopt met het tijdstip dat je verwacht.

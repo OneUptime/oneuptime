@@ -36,6 +36,7 @@ import {
   truncateTraceValues,
 } from "Common/Types/Workflow/StepTrace";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
+import { getChildWorkflowTurnedOffMessage } from "Common/Types/Workflow/WorkflowEnabled";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
@@ -1694,6 +1695,8 @@ export default class RunWorkflow {
               id: child.workflowId,
               select: {
                 projectId: true,
+                isEnabled: true,
+                name: true,
               },
               props: {
                 isRoot: true,
@@ -1712,6 +1715,23 @@ export default class RunWorkflow {
           ) {
             throw new BadDataException(
               "Target workflow does not belong to this project.",
+            );
+          }
+
+          /*
+           * QueueWorkflow refuses a workflow that is turned off too, but in
+           * words written for the workflow being run: "This workflow is
+           * turned off". In this run's log that reads as the workflow doing
+           * the calling, which is plainly running. Name the one it called
+           * instead. Checked after the project, so a workflow in another
+           * project is never named.
+           */
+          if (!targetWorkflow.isEnabled) {
+            throw new BadDataException(
+              getChildWorkflowTurnedOffMessage({
+                workflowId: child.workflowId.toString(),
+                workflowName: targetWorkflow.name,
+              }),
             );
           }
 

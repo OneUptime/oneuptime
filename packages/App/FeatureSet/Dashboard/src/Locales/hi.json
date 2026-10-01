@@ -6877,5 +6877,17 @@
   "Let people know as soon as maintenance is scheduled.": "रखरखाव तय होते ही लोगों को बताएं।",
   "Run checks, heartbeats and emails at set times.": "जाँच, हार्टबीट और ईमेल तय समय पर चलाएं।",
   "Keep Jira issues in step with your incidents and alerts, both ways.": "Jira इश्यू को अपनी घटनाओं और अलर्ट के साथ दोनों ओर से मेल में रखें।",
-  "Use a workflow's own webhook URL to join two other systems together.": "किसी वर्कफ़्लो के अपने वेबहुक URL से दो दूसरे सिस्टम को आपस में जोड़ें।"
+  "Use a workflow's own webhook URL to join two other systems together.": "किसी वर्कफ़्लो के अपने वेबहुक URL से दो दूसरे सिस्टम को आपस में जोड़ें।",
+  "This workflow is off": "यह वर्कफ़्लो बंद है",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "जब तक आप इसे चालू नहीं करते, इसका ट्रिगर अनदेखा किया जाता है और इसे चलाया या टेस्ट नहीं किया जा सकता।",
+  "Turn on workflow": "वर्कफ़्लो चालू करें",
+  "Only people who can edit this workflow can turn it on.": "केवल वे लोग इसे चालू कर सकते हैं जो इस वर्कफ़्लो को संपादित कर सकते हैं।",
+  "Turn on this workflow?": "यह वर्कफ़्लो चालू करें?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "यह वर्कफ़्लो बंद है, इसलिए \"{{step}}\" नहीं चल सकता। इस चरण को अभी चलाने के लिए वर्कफ़्लो चालू करें।",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "यह वर्कफ़्लो बंद है, इसलिए यह नहीं चल सकता। इसे अभी चलाने के लिए चालू करें।",
+  "Once it's on, its {{trigger}} trigger starts it too.": "चालू होने के बाद, इसका \"{{trigger}}\" ट्रिगर भी इसे शुरू करेगा।",
+  "You can turn it off again with the Enabled switch above the canvas.": "आप कैनवास के ऊपर दिए \"सक्षम\" स्विच से इसे फिर से बंद कर सकते हैं।",
+  "Turn on and run step": "चालू करें और चरण चलाएं",
+  "Turn on and run": "चालू करें और चलाएं",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "यह वर्कफ़्लो बंद है, इसलिए यह नहीं चल सकता। केवल वे लोग इसे चालू कर सकते हैं जो इस वर्कफ़्लो को संपादित कर सकते हैं।"
 }

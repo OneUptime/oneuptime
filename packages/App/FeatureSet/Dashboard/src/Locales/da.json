@@ -6877,5 +6877,17 @@
   "Let people know as soon as maintenance is scheduled.": "Giv folk besked, så snart vedligeholdelse er planlagt.",
   "Run checks, heartbeats and emails at set times.": "Kør tjek, heartbeats og e-mails på faste tidspunkter.",
   "Keep Jira issues in step with your incidents and alerts, both ways.": "Hold Jira-sager i takt med dine hændelser og advarsler, begge veje.",
-  "Use a workflow's own webhook URL to join two other systems together.": "Brug en arbejdsgangs egen webhook-URL til at forbinde to andre systemer."
+  "Use a workflow's own webhook URL to join two other systems together.": "Brug en arbejdsgangs egen webhook-URL til at forbinde to andre systemer.",
+  "This workflow is off": "Denne arbejdsgang er slået fra",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "Dens udløser ignoreres, og den kan ikke køres eller testes, før du slår den til.",
+  "Turn on workflow": "Slå arbejdsgang til",
+  "Only people who can edit this workflow can turn it on.": "Kun personer, der kan redigere denne arbejdsgang, kan slå den til.",
+  "Turn on this workflow?": "Slå denne arbejdsgang til?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "Denne arbejdsgang er slået fra, så \"{{step}}\" kan ikke køre. Slå arbejdsgangen til for at køre dette trin nu.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "Denne arbejdsgang er slået fra, så den kan ikke køre. Slå den til for at køre den nu.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "Når den er slået til, starter dens udløser \"{{trigger}}\" den også.",
+  "You can turn it off again with the Enabled switch above the canvas.": "Du kan slå den fra igen med kontakten \"Aktiveret\" over lærredet.",
+  "Turn on and run step": "Slå til og kør trin",
+  "Turn on and run": "Slå til og kør",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Denne arbejdsgang er slået fra, så den kan ikke køre. Kun personer, der kan redigere denne arbejdsgang, kan slå den til."
 }

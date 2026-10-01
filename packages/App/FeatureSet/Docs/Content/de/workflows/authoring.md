@@ -74,7 +74,7 @@ Der schnellste Weg, ein Gefühl für die Arbeitsfläche zu bekommen:
 1. Klicken Sie auf den gestrichelten Platzhalter-Baustein und dann im Panel **Add Trigger** auf **Manual**.
 2. Klicken Sie auf **Komponente hinzufügen** und dann unter **Popular** auf **Log**. Der neue Baustein landet unter dem Trigger. Verbinden Sie den Punkt **Execute** des Triggers nach unten mit dem Eingangspunkt des Log-Bausteins.
 3. Klicken Sie auf den Log-Baustein, auf dem **Click to set up** steht, und setzen Sie sein Feld **Wert** auf `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` ist der **Identifier** des Triggers, angezeigt auf dem Trigger-Baustein – prüfen Sie, ob er übereinstimmt.
-4. Gehen Sie auf **Übersicht**, klicken Sie auf der Karte **Details zum Arbeitsablauf** auf **Workflow bearbeiten** und schalten Sie **Aktiviert** ein. Ein deaktivierter Workflow lässt sich überhaupt nicht ausführen, nicht einmal von Hand.
+4. Schalten Sie oben im Builder **Aktiviert** ein. Ein deaktivierter Workflow lässt sich überhaupt nicht ausführen, nicht einmal von Hand; wenn Sie diesen Schritt auslassen, fragt **Arbeitsablauf ausführen** zuerst, ob er eingeschaltet werden soll.
 5. Zurück im **Builder** klicken Sie auf **Arbeitsablauf ausführen**, tragen `{ "name": "Ada" }` in das Feld **JSON** ein, klicken auf **Run Workflow Manually** und bestätigen mit **Run**.
 6. Ein Panel **Workflow Run** öffnet sich von selbst und verfolgt die Ausführung. Das Protokoll zeigt `Value:` gefolgt von `Hello from Ada`.
 
@@ -82,11 +82,13 @@ Dieser Zyklus – hinzufügen, verbinden, konfigurieren, ausführen, Protokoll l
 
 ## Den Workflow einschalten
 
-Neue Workflows starten deaktiviert, und ebenso jeder Workflow, den Sie duplizieren oder importieren.
+Neue Workflows starten deaktiviert, und ebenso jeder Workflow, den Sie duplizieren oder importieren. Solange ein Workflow ausgeschaltet ist, sagt der Builder das über der Arbeitsfläche, mit der Schaltfläche **Arbeitsablauf einschalten**.
 
-Der Schalter **Aktiviert** sitzt auf der Seite **Übersicht** des Workflows, in der Karte **Details zum Arbeitsablauf** – nicht auf der Einstellungsseite. Dieselbe Karte zeigt den aktuellen Zustand als grüne Pille **Aktiviert** oder rote Pille **Deaktiviert**.
+Der Schalter **Aktiviert** sitzt oben im **Builder**, neben **Komponente hinzufügen** und **Arbeitsablauf ausführen**. Sie finden ihn auch auf der Seite **Übersicht** des Workflows: Klicken Sie in der Karte **Details zum Arbeitsablauf** auf **Workflow bearbeiten**. Die Karte zeigt den aktuellen Zustand als grüne Pille **Aktiviert** oder rote Pille **Deaktiviert**. Nur wer den Workflow bearbeiten darf, kann ihn ein- oder ausschalten; alle anderen sehen den Schalter ausgegraut.
 
-Ein deaktivierter Workflow läuft überhaupt nicht. Manuelle Ausführungen werden mit „This workflow is not enabled“ genauso abgelehnt wie ausgelöste. Die Reihenfolge lautet also: einschalten, mit **Arbeitsablauf ausführen** testen, das Ausführungsprotokoll lesen und **Aktiviert** wieder ausschalten, falls Sie noch nicht so weit sind, dass sein Trigger feuern darf. Um einen einzelnen Baustein zu testen, ohne das Ganze laufen zu lassen, nutzen Sie **Run just this step** in dessen Einstellungen.
+Ein deaktivierter Workflow läuft überhaupt nicht: Sein Trigger wird ignoriert, ebenso **Arbeitsablauf ausführen** und **Run just this step**. Führen Sie ihn oder einen seiner Bausteine aus, während er ausgeschaltet ist, fragt der Builder stattdessen **Diesen Arbeitsablauf einschalten?**. **Einschalten und ausführen** (bzw. **Einschalten und Schritt ausführen**) schaltet den Workflow ein und führt dann aus, was Sie verlangt haben, mit den Werten, die Sie angegeben haben. Die Reihenfolge lautet also: bauen, mit **Arbeitsablauf ausführen** testen, das Ausführungsprotokoll lesen und **Aktiviert** wieder ausschalten, falls Sie noch nicht so weit sind, dass sein Trigger feuern darf. Um einen einzelnen Baustein zu testen, ohne das Ganze laufen zu lassen, nutzen Sie **Run just this step** in dessen Einstellungen.
+
+Alles andere, was einen deaktivierten Workflow startet, wird mit demselben Hinweis abgewiesen. Ein Aufruf seiner Webhook-URL erhält HTTP 400 und „This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again.“ Ein **Execute Workflow**-Baustein, der ihn aufruft, nimmt seinen **Error**-Pfad, und der Fehler nennt den aufgerufenen Workflow.
 
 Um einen Workflow zu pausieren, ohne ihn zu löschen, schalten Sie **Aktiviert** aus. Es starten keine neuen Ausführungen. Eine Ausführung, die gerade mitten drin ist, läuft zu Ende – eine, die auf einem **Sleep**-Baustein geparkt ist, wird beim Aufwachen abgebrochen und als Fehler festgehalten.
 

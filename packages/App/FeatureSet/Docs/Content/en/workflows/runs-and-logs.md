@@ -70,7 +70,7 @@ A download holds nothing you could not already read in the run. Secrets and fiel
 
 ### "My workflow didn't run."
 
-1. Make sure the workflow is **Enabled** on its **Overview** page. New workflows start disabled, and a disabled workflow rejects every run — including manual ones.
+1. Make sure the workflow is **Enabled**: the switch is at the top of its **Builder**, which says so above the canvas when the workflow is off. New workflows start disabled, and a disabled workflow rejects every run — including manual ones. A webhook call to it gets HTTP 400 with a message saying how to turn it on.
 2. For a OneUptime event trigger: confirm the event actually happened. Open the record and check its history.
 3. For a webhook trigger: confirm the other system is sending to the right URL. Most tools log when they send a webhook — check there.
 4. For a schedule trigger: confirm the cron expression matches the time you expect.

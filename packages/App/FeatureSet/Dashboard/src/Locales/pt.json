@@ -6877,5 +6877,17 @@
   "Let people know as soon as maintenance is scheduled.": "Avise as pessoas assim que uma manutenção for programada.",
   "Run checks, heartbeats and emails at set times.": "Execute verificações, heartbeats e e-mails em horários definidos.",
   "Keep Jira issues in step with your incidents and alerts, both ways.": "Mantenha as issues do Jira em sintonia com seus incidentes e alertas, nos dois sentidos.",
-  "Use a workflow's own webhook URL to join two other systems together.": "Use a URL de webhook do próprio fluxo de trabalho para ligar dois outros sistemas."
+  "Use a workflow's own webhook URL to join two other systems together.": "Use a URL de webhook do próprio fluxo de trabalho para ligar dois outros sistemas.",
+  "This workflow is off": "Este fluxo de trabalho está desativado",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "O gatilho dele é ignorado, e ele não pode ser executado nem testado até que você o ative.",
+  "Turn on workflow": "Ativar fluxo de trabalho",
+  "Only people who can edit this workflow can turn it on.": "Somente pessoas que podem editar este fluxo de trabalho podem ativá-lo.",
+  "Turn on this workflow?": "Ativar este fluxo de trabalho?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "Este fluxo de trabalho está desativado, então \"{{step}}\" não pode ser executado. Ative o fluxo de trabalho para executar esta etapa agora.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "Este fluxo de trabalho está desativado, então não pode ser executado. Ative-o para executá-lo agora.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "Depois de ativado, o gatilho \"{{trigger}}\" também o inicia.",
+  "You can turn it off again with the Enabled switch above the canvas.": "Você pode desativá-lo novamente com a chave \"Habilitado\" acima da tela.",
+  "Turn on and run step": "Ativar e executar etapa",
+  "Turn on and run": "Ativar e executar",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Este fluxo de trabalho está desativado, então não pode ser executado. Somente pessoas que podem editar este fluxo de trabalho podem ativá-lo."
 }

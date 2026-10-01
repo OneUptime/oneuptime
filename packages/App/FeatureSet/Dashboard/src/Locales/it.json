@@ -6877,5 +6877,17 @@
   "Let people know as soon as maintenance is scheduled.": "Avvisa le persone appena viene programmata una manutenzione.",
   "Run checks, heartbeats and emails at set times.": "Esegui controlli, heartbeat ed email a orari stabiliti.",
   "Keep Jira issues in step with your incidents and alerts, both ways.": "Mantieni le issue di Jira allineate a incidenti e avvisi, in entrambe le direzioni.",
-  "Use a workflow's own webhook URL to join two other systems together.": "Usa l'URL webhook di un flusso di lavoro per collegare tra loro altri due sistemi."
+  "Use a workflow's own webhook URL to join two other systems together.": "Usa l'URL webhook di un flusso di lavoro per collegare tra loro altri due sistemi.",
+  "This workflow is off": "Questo flusso di lavoro è disattivato",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "Il suo trigger viene ignorato e non può essere eseguito né testato finché non lo attivi.",
+  "Turn on workflow": "Attiva flusso di lavoro",
+  "Only people who can edit this workflow can turn it on.": "Solo le persone che possono modificare questo flusso di lavoro possono attivarlo.",
+  "Turn on this workflow?": "Attivare questo flusso di lavoro?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "Questo flusso di lavoro è disattivato, quindi «{{step}}» non può essere eseguito. Attiva il flusso di lavoro per eseguire subito questo passaggio.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "Questo flusso di lavoro è disattivato, quindi non può essere eseguito. Attivalo per eseguirlo subito.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "Una volta attivato, lo avvia anche il suo trigger «{{trigger}}».",
+  "You can turn it off again with the Enabled switch above the canvas.": "Puoi disattivarlo di nuovo con l'interruttore «Abilitato» sopra l'area di lavoro.",
+  "Turn on and run step": "Attiva ed esegui il passaggio",
+  "Turn on and run": "Attiva ed esegui",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Questo flusso di lavoro è disattivato, quindi non può essere eseguito. Solo le persone che possono modificare questo flusso di lavoro possono attivarlo."
 }

@@ -6877,5 +6877,17 @@
   "Let people know as soon as maintenance is scheduled.": "Meddela alla så fort ett underhåll är schemalagt.",
   "Run checks, heartbeats and emails at set times.": "Kör kontroller, heartbeats och e-post vid bestämda tider.",
   "Keep Jira issues in step with your incidents and alerts, both ways.": "Håll Jira-ärenden i takt med dina incidenter och varningar, åt båda hållen.",
-  "Use a workflow's own webhook URL to join two other systems together.": "Använd ett arbetsflödes egen webhook-URL för att koppla ihop två andra system."
+  "Use a workflow's own webhook URL to join two other systems together.": "Använd ett arbetsflödes egen webhook-URL för att koppla ihop två andra system.",
+  "This workflow is off": "Det här arbetsflödet är avstängt",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "Dess utlösare ignoreras och det kan inte köras eller testas förrän du slår på det.",
+  "Turn on workflow": "Slå på arbetsflödet",
+  "Only people who can edit this workflow can turn it on.": "Bara personer som kan redigera det här arbetsflödet kan slå på det.",
+  "Turn on this workflow?": "Slå på det här arbetsflödet?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "Det här arbetsflödet är avstängt, så \"{{step}}\" kan inte köras. Slå på arbetsflödet för att köra det här steget nu.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "Det här arbetsflödet är avstängt, så det kan inte köras. Slå på det för att köra det nu.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "När det är påslaget startar även utlösaren \"{{trigger}}\" det.",
+  "You can turn it off again with the Enabled switch above the canvas.": "Du kan stänga av det igen med reglaget \"Aktiverad\" ovanför arbetsytan.",
+  "Turn on and run step": "Slå på och kör steget",
+  "Turn on and run": "Slå på och kör",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Det här arbetsflödet är avstängt, så det kan inte köras. Bara personer som kan redigera det här arbetsflödet kan slå på det."
 }

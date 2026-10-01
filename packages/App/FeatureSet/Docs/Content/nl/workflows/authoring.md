@@ -74,7 +74,7 @@ De snelste manier om het canvas te leren kennen:
 1. Klik op het gestippelde blok en daarna op **Manual** in het paneel **Add Trigger**.
 2. Klik op **Component toevoegen** en daarna op **Log** onder **Popular**. Het nieuwe blok landt onder de trigger. Verbind de stip **Execute** van de trigger met de invoerstip van het Log-blok.
 3. Klik op het Log-blok, waar **Click to set up** op staat, en zet zijn **Waarde** op `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` is de **Identifier** van de trigger, te zien op het triggerblok — controleer of die klopt.
-4. Ga naar **Overzicht**, klik op **Workflow bewerken** op de kaart **Workflow-details** en zet **Ingeschakeld** aan. Een uitgeschakelde workflow kan helemaal niet draaien, ook niet met de hand.
+4. Zet **Ingeschakeld** aan, bovenaan de Bouwer. Een uitgeschakelde workflow kan helemaal niet draaien, ook niet met de hand; sla je deze stap over, dan vraagt **Workflow uitvoeren** eerst of hij aan moet.
 5. Terug in de **Bouwer** klik je op **Workflow uitvoeren**, zet je `{ "name": "Ada" }` in het veld **JSON**, klik je op **Run Workflow Manually** en bevestig je met **Run**.
 6. Er opent vanzelf een paneel **Workflow Run** dat de uitvoering volgt. Het logboek toont `Value:` gevolgd door `Hello from Ada`.
 
@@ -82,11 +82,13 @@ Die cyclus — toevoegen, verbinden, instellen, draaien, het logboek lezen — i
 
 ## Hem aanzetten
 
-Nieuwe workflows beginnen uitgeschakeld, en dat geldt ook voor elke workflow die je dupliceert of importeert.
+Nieuwe workflows beginnen uitgeschakeld, en dat geldt ook voor elke workflow die je dupliceert of importeert. Zolang een workflow uit staat, zegt de Bouwer dat boven het canvas, met een knop **Workflow inschakelen**.
 
-De schakelaar **Ingeschakeld** staat op de pagina **Overzicht** van de workflow, in de kaart **Workflow-details** — niet op de pagina Instellingen. Diezelfde kaart toont de huidige stand als een groene pil **Ingeschakeld** of een rode pil **Uitgeschakeld**.
+De schakelaar **Ingeschakeld** staat bovenaan de **Bouwer**, naast **Component toevoegen** en **Workflow uitvoeren**. Hij staat ook op de pagina **Overzicht** van de workflow: klik op **Workflow bewerken** op de kaart **Workflow-details**, die de huidige stand toont als een groene pil **Ingeschakeld** of een rode pil **Uitgeschakeld**. Alleen wie de workflow mag bewerken, kan hem aan- of uitzetten; anderen zien de schakelaar grijs.
 
-Een uitgeschakelde workflow kan helemaal niet draaien. Handmatige uitvoeringen worden net zo goed geweigerd met "This workflow is not enabled" als getriggerde, dus de volgorde is: zet hem aan, test hem met **Workflow uitvoeren**, lees het runlogboek, en zet **Ingeschakeld** weer uit als je nog niet klaar bent om zijn trigger te laten afgaan. Wil je één blok testen zonder het geheel te draaien, gebruik dan **Run just this step** in de instellingen van dat blok.
+Een uitgeschakelde workflow kan helemaal niet draaien: zijn trigger wordt genegeerd, en **Workflow uitvoeren** en **Run just this step** ook. Voer je hem, of een van zijn blokken, uit terwijl hij uit staat, dan vraagt de Bouwer in plaats daarvan **Deze workflow inschakelen?**. **Inschakelen en uitvoeren** (of **Inschakelen en stap uitvoeren**) zet de workflow aan en voert daarna uit wat je vroeg, met de waarden die je opgaf. De volgorde is dus: bouw hem, test hem met **Workflow uitvoeren**, lees het runlogboek, en zet **Ingeschakeld** weer uit als je nog niet klaar bent om zijn trigger te laten afgaan. Wil je één blok testen zonder het geheel te draaien, gebruik dan **Run just this step** in de instellingen van dat blok.
+
+Al het andere dat een uitgeschakelde workflow start, wordt met hetzelfde advies afgewezen. Een aanroep van zijn webhook-URL krijgt HTTP 400 en "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again." Een **Execute Workflow**-blok dat hem aanroept, neemt zijn **Error**-pad, en de fout noemt de aangeroepen workflow.
 
 Wil je een workflow pauzeren zonder hem te verwijderen, zet **Ingeschakeld** dan uit. Er starten geen nieuwe uitvoeringen. Een run die al bezig is, maakt hij af, maar een run die geparkeerd staat op een **Sleep**-blok wordt bij het ontwaken geannuleerd en als fout vastgelegd.
 

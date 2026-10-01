@@ -6877,5 +6877,17 @@
   "Let people know as soon as maintenance is scheduled.": "Gi folk beskjed så snart vedlikehold er planlagt.",
   "Run checks, heartbeats and emails at set times.": "Kjør sjekker, heartbeats og e-poster til faste tider.",
   "Keep Jira issues in step with your incidents and alerts, both ways.": "Hold Jira-saker i takt med hendelsene og varslene dine, begge veier.",
-  "Use a workflow's own webhook URL to join two other systems together.": "Bruk en arbeidsflyts egen webhook-URL til å koble sammen to andre systemer."
+  "Use a workflow's own webhook URL to join two other systems together.": "Bruk en arbeidsflyts egen webhook-URL til å koble sammen to andre systemer.",
+  "This workflow is off": "Denne arbeidsflyten er slått av",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "Utløseren blir ignorert, og den kan ikke kjøres eller testes før du slår den på.",
+  "Turn on workflow": "Slå på arbeidsflyt",
+  "Only people who can edit this workflow can turn it on.": "Bare personer som kan redigere denne arbeidsflyten, kan slå den på.",
+  "Turn on this workflow?": "Slå på denne arbeidsflyten?",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "Denne arbeidsflyten er slått av, så «{{step}}» kan ikke kjøres. Slå på arbeidsflyten for å kjøre dette trinnet nå.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "Denne arbeidsflyten er slått av, så den kan ikke kjøres. Slå den på for å kjøre den nå.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "Når den er slått på, starter også utløseren «{{trigger}}» den.",
+  "You can turn it off again with the Enabled switch above the canvas.": "Du kan slå den av igjen med bryteren «Aktivert» over lerretet.",
+  "Turn on and run step": "Slå på og kjør trinn",
+  "Turn on and run": "Slå på og kjør",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "Denne arbeidsflyten er slått av, så den kan ikke kjøres. Bare personer som kan redigere denne arbeidsflyten, kan slå den på."
 }

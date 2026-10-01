@@ -6877,5 +6877,17 @@
   "Let people know as soon as maintenance is scheduled.": "به محض زمان‌بندی تعمیر و نگهداری، همه را باخبر کنید.",
   "Run checks, heartbeats and emails at set times.": "بررسی‌ها، ضربان‌های حیات و ایمیل‌ها را در زمان‌های مشخص اجرا کنید.",
   "Keep Jira issues in step with your incidents and alerts, both ways.": "مسائل Jira را در هر دو جهت با حوادث و هشدارهایتان هماهنگ نگه دارید.",
-  "Use a workflow's own webhook URL to join two other systems together.": "با نشانی وب‌هوک خودِ یک گردش کاری، دو سامانه دیگر را به هم وصل کنید."
+  "Use a workflow's own webhook URL to join two other systems together.": "با نشانی وب‌هوک خودِ یک گردش کاری، دو سامانه دیگر را به هم وصل کنید.",
+  "This workflow is off": "این گردش کاری خاموش است",
+  "Its trigger is ignored and it can't be run or tested until you turn it on.": "تا وقتی آن را روشن نکنید، تریگر آن نادیده گرفته می‌شود و نمی‌توان آن را اجرا یا آزمایش کرد.",
+  "Turn on workflow": "روشن کردن گردش کاری",
+  "Only people who can edit this workflow can turn it on.": "فقط کسانی که می‌توانند این گردش کاری را ویرایش کنند، می‌توانند آن را روشن کنند.",
+  "Turn on this workflow?": "این گردش کاری روشن شود؟",
+  "This workflow is off, so \"{{step}}\" can't run. Turn the workflow on to run this step now.": "این گردش کاری خاموش است، بنابراین «{{step}}» اجرا نمی‌شود. برای اجرای فوری این مرحله، گردش کاری را روشن کنید.",
+  "This workflow is off, so it can't run. Turn it on to run it now.": "این گردش کاری خاموش است، بنابراین اجرا نمی‌شود. برای اجرای فوری آن، روشنش کنید.",
+  "Once it's on, its {{trigger}} trigger starts it too.": "پس از روشن شدن، تریگر «{{trigger}}» هم آن را آغاز می‌کند.",
+  "You can turn it off again with the Enabled switch above the canvas.": "می‌توانید با کلید «فعال» بالای بوم، دوباره آن را خاموش کنید.",
+  "Turn on and run step": "روشن کردن و اجرای مرحله",
+  "Turn on and run": "روشن کردن و اجرا",
+  "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.": "این گردش کاری خاموش است، بنابراین اجرا نمی‌شود. فقط کسانی که می‌توانند این گردش کاری را ویرایش کنند، می‌توانند آن را روشن کنند."
 }

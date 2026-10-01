@@ -4,14 +4,14 @@ Denne side handler om de indstillinger og sikkerhedsgrænser, der er værd at ke
 
 ## Sådan tænder og slukker du et workflow
 
-Hvert workflow har en kontakt, **Aktiveret**, under **Indstillinger**. Når den er slukket, kører workflowet ikke — webhook-kald, planlagte tidspunkter og OneUptime-begivenheder bliver alle ignoreret. Nye workflows starter deaktiveret.
+Hvert workflow har en kontakt, **Aktiveret**, øverst i sin **Bygger** og på sin side **Oversigt**. Når den er slukket, kører workflowet ikke — webhook-kald, planlagte tidspunkter og OneUptime-begivenheder bliver alle ignoreret, og det samme gør **Kør arbejdsgang** og **Run just this step**. Nye workflows starter deaktiveret.
 
 Brug kontakten som din "klar til brug"-port:
 
 1. Byg workflowet.
-2. Klik **Kør arbejdsgang** i **Bygger** med realistiske værdier.
+2. Klik **Kør arbejdsgang** i **Bygger** med realistiske værdier. Et deaktiveret workflow kører ikke engang i hånden, så Bygger spørger først, om det skal slås til: klik **Slå til og kør**.
 3. Tjek **Logs** — sørg for, at hver blok gik derhen, du forventede.
-4. Slå **Aktiveret** til.
+4. Lad **Aktiveret** være slået til, hvis det er klar. Hvis ikke, så slå det fra, indtil det er: mens det er slået til, fyrer triggeren ved rigtige begivenheder.
 
 At slukke for et workflow stopper ikke kørsler, der allerede er i gang; det forhindrer bare nye i at starte.
 
