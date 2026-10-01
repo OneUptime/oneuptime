@@ -390,8 +390,10 @@ describe("MonitorUtil secret batching", () => {
 
   describe("populateSecretsInMonitorSteps memoization", () => {
     test("a monitor referencing secrets in requestHeaders AND requestBody AND monitorDestination loads them once (was 3 before the memoized promise)", async () => {
-      // requestHeaders and requestBody are checked if/else-if per step, so two
-      // steps are needed to exercise both.
+      /*
+       * requestHeaders and requestBody are checked if/else-if per step, so two
+       * steps are needed to exercise both.
+       */
       const stepWithHeadersAndDestination: MonitorStep = makeApiStep({
         requestHeaders: {
           Authorization: "Bearer {{monitorSecrets.apiKey}}",
@@ -470,8 +472,10 @@ describe("MonitorUtil secret batching", () => {
     });
 
     test("EMPTY preloadedSecrets array means 'zero secrets exist' - no query, placeholder left as-is", async () => {
-      // [] means the batch found no secret for this monitor; it must not fall
-      // back to a query (that would resurrect the N+1).
+      /*
+       * [] means the batch found no secret for this monitor; it must not fall
+       * back to a query (that would resurrect the N+1).
+       */
       const step: MonitorStep = makeApiStep({
         requestHeaders: {
           Authorization: "Bearer {{monitorSecrets.apiKey}}",

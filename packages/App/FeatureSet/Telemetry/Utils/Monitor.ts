@@ -173,8 +173,10 @@ export default class MonitorUtil {
     return secretsByMonitorId;
   }
 
-  // Grants only apply within the secret's project; a missing or mismatched
-  // project denies.
+  /*
+   * Grants only apply within the secret's project; a missing or mismatched
+   * project denies.
+   */
   private static monitorCanAccessSecret(
     monitor: Monitor,
     secret: MonitorSecret,
