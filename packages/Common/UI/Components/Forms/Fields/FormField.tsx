@@ -668,6 +668,24 @@ const FormField: <T extends GenericObject>(
             />
           )}
 
+          {/*
+           * The key/value editor draws no error of its own, so a Dictionary
+           * field that failed validation used to stop the form with nothing
+           * on screen to say why - an OAuth 2.0 variable's reserved
+           * additional parameter left Create doing nothing at all.
+           */}
+          {props.field.fieldType === FormFieldSchemaType.Dictionary &&
+            props.touched &&
+            props.error && (
+              <p
+                data-testid="error-message"
+                className="mt-1 text-sm text-red-400"
+                role="alert"
+              >
+                {props.error}
+              </p>
+            )}
+
           {props.field.fieldType ===
             FormFieldSchemaType.OptionChooserButton && (
             <RadioButtons

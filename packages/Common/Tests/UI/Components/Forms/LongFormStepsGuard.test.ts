@@ -92,12 +92,6 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
       "Not a dialog: the inline editor at the bottom of an expanded layer card, already split into three titled sections (Layer details, Rotation schedule, Active hours) with one Save, under the rotation preview it updates.",
   },
   {
-    file: `${DASHBOARD}/Components/Workflow/WorkflowVariableView.tsx`,
-    form: "CardModelDetail: Workflow > OAuth 2.0 Settings",
-    reason:
-      "The OAuth 2.0 variable's settings share their fields with the OAuth 2.0 create form, which the form-steps-oauth task splits into clear steps next; both are stepped together there, and this entry goes with it.",
-  },
-  {
     file: `${DASHBOARD}/Components/Workspace/NotificationRuleForm/NotificationRuleForm.tsx`,
     form: "BasicForm #1",
     reason:

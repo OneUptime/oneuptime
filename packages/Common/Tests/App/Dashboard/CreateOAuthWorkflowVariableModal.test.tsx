@@ -30,6 +30,8 @@ type FormValuesForTest = Record<string, unknown>;
 
 type FormFieldEntry = {
   field?: Record<string, unknown> | undefined;
+  overrideField?: Record<string, unknown> | undefined;
+  overrideFieldKey?: string | undefined;
   title?: string | undefined;
   stepId?: string | undefined;
   fieldType?: string | undefined;
@@ -40,10 +42,18 @@ type FormFieldEntry = {
   disableSpellCheck?: boolean | undefined;
   doNotShowWhenEditing?: boolean | undefined;
   dropdownOptions?: Array<{ value: unknown; label: string }> | undefined;
+  radioButtonOptions?: Array<{ value: string; title: string }> | undefined;
   cardSelectOptions?: Array<{ value: string; title: string }> | undefined;
   validation?: Record<string, unknown> | undefined;
   showIf?: ((values: FormValuesForTest) => boolean) | undefined;
   customValidation?: ((values: FormValuesForTest) => string | null) | undefined;
+  onChange?:
+    | ((
+        value: unknown,
+        currentValues: FormValuesForTest,
+        setNewFormValues: (values: FormValuesForTest) => void,
+      ) => void)
+    | undefined;
 };
 
 type FormStepEntry = {
@@ -111,14 +121,16 @@ const WORKFLOW_ID: ObjectID = new ObjectID(
 
 /*
  * Everything the form asks for, in the order it asks: the variable's name and
- * description, then the grant, the token URL and the credentials in the order
- * a provider's console lists them, then the optional settings.
+ * description; the identity provider, its token URL and the grant; the
+ * credentials in the order a provider's console lists them; then the optional
+ * settings.
  */
 const EXPECTED_FIELD_ORDER: Array<string> = [
   "name",
   "description",
-  "oauthGrantType",
+  "oauthIdentityProvider",
   "oauthTokenUrl",
+  "oauthGrantType",
   "oauthClientId",
   "oauthClientSecret",
   "oauthRefreshToken",
@@ -127,11 +139,20 @@ const EXPECTED_FIELD_ORDER: Array<string> = [
   "oauthClientAuthenticationMethod",
 ];
 
-const OAUTH_STEP_FIELDS: Array<string> = EXPECTED_FIELD_ORDER.filter(
-  (name: string) => {
-    return name !== "name" && name !== "description";
-  },
-);
+// The step every field is on: one question per step.
+const EXPECTED_STEP_OF_FIELD: Record<string, string> = {
+  name: "variable",
+  description: "variable",
+  oauthIdentityProvider: "provider",
+  oauthTokenUrl: "provider",
+  oauthGrantType: "provider",
+  oauthClientId: "credentials",
+  oauthClientSecret: "credentials",
+  oauthRefreshToken: "credentials",
+  oauthScope: "advanced",
+  oauthAdditionalParameters: "advanced",
+  oauthClientAuthenticationMethod: "advanced",
+};
 
 /*
  * The props of the modal rendered last. render() is synchronous, so right
@@ -181,8 +202,9 @@ function renderLocal(): RenderedModal {
   return renderModal(WORKFLOW_ID);
 }
 
+// The key the form holds the field's value under, as BasicForm names it.
 function fieldName(entry: FormFieldEntry): string {
-  return Object.keys(entry.field || {})[0] || "";
+  return entry.overrideFieldKey || Object.keys(entry.field || {})[0] || "";
 }
 
 function fieldNames(props: CapturedModalProps): Array<string> {
@@ -221,6 +243,33 @@ function dropdownValues(entry: FormFieldEntry): Array<unknown> {
   );
 }
 
+function radioValues(entry: FormFieldEntry): Array<unknown> {
+  return (entry.radioButtonOptions || []).map(
+    (option: { value: string; title: string }) => {
+      return option.value;
+    },
+  );
+}
+
+// What the provider picker does to the form's values when a provider is picked.
+function pickProvider(
+  props: CapturedModalProps,
+  provider: string,
+  values: FormValuesForTest,
+): FormValuesForTest {
+  let next: FormValuesForTest = values;
+
+  formField(props, "oauthIdentityProvider").onChange?.(
+    provider,
+    values,
+    (newValues: FormValuesForTest) => {
+      next = newValues;
+    },
+  );
+
+  return next;
+}
+
 function additionalParametersError(
   props: CapturedModalProps,
   value: unknown,
@@ -233,12 +282,13 @@ function additionalParametersError(
 async function runBeforeCreate(
   props: CapturedModalProps,
   item: WorkflowVariable,
+  miscDataProps: Record<string, unknown> = {},
 ): Promise<WorkflowVariable> {
   if (!props.onBeforeCreate) {
     throw new Error("The OAuth create form has no onBeforeCreate");
   }
 
-  return (await props.onBeforeCreate(item, {})) as WorkflowVariable;
+  return (await props.onBeforeCreate(item, miscDataProps)) as WorkflowVariable;
 }
 
 beforeEach(() => {
@@ -279,7 +329,7 @@ describe("the modal", () => {
     expect(props.formProps.id).toBe("create-oauth-workflow-variable-form");
   });
 
-  // Two steps of settings do not fit a normal-width modal.
+  // A step list beside the form does not fit a normal-width modal.
   test("is a medium-width modal", () => {
     const props: CapturedModalProps = renderLocal().props;
 
@@ -297,7 +347,11 @@ describe("the modal", () => {
 });
 
 describe("the steps", () => {
-  test("are Variable then OAuth 2.0", () => {
+  /*
+   * The maintainer's ask: the one OAuth 2.0 step held eight settings, so it
+   * is split into a step per question.
+   */
+  test("are Variable, Provider, Credentials then Advanced", () => {
     const props: CapturedModalProps = renderLocal().props;
 
     expect(
@@ -306,8 +360,35 @@ describe("the steps", () => {
       }),
     ).toEqual([
       { id: "variable", title: "Variable" },
-      { id: "oauth", title: "OAuth 2.0" },
+      { id: "provider", title: "Provider" },
+      { id: "credentials", title: "Credentials" },
+      { id: "advanced", title: "Advanced" },
     ]);
+  });
+
+  test("never put more than three fields on one step", () => {
+    for (const rendered of [renderGlobal(), renderLocal()]) {
+      for (const step of rendered.props.formProps.steps || []) {
+        const onStep: Array<FormFieldEntry> =
+          rendered.props.formProps.fields.filter((entry: FormFieldEntry) => {
+            return entry.stepId === step.id;
+          });
+
+        expect(onStep.length).toBeGreaterThan(0);
+        expect(onStep.length).toBeLessThanOrEqual(3);
+      }
+    }
+  });
+
+  test("put every field on the step that asks its question", () => {
+    const props: CapturedModalProps = renderLocal().props;
+
+    for (const entry of props.formProps.fields) {
+      expect({ field: fieldName(entry), stepId: entry.stepId }).toEqual({
+        field: fieldName(entry),
+        stepId: EXPECTED_STEP_OF_FIELD[fieldName(entry)],
+      });
+    }
   });
 
   /*
@@ -332,16 +413,55 @@ describe("the steps", () => {
     expect(formField(props, "description").stepId).toBe("variable");
   });
 
-  test("puts every OAuth setting on the OAuth 2.0 step", () => {
+  test("puts the provider, its token URL and the grant on the Provider step", () => {
     const props: CapturedModalProps = renderLocal().props;
 
-    for (const name of OAUTH_STEP_FIELDS) {
-      expect(formField(props, name).stepId).toBe("oauth");
+    for (const name of [
+      "oauthIdentityProvider",
+      "oauthTokenUrl",
+      "oauthGrantType",
+    ]) {
+      expect(formField(props, name).stepId).toBe("provider");
     }
   });
 
+  test("puts the client ID, the secret and the refresh token on the Credentials step", () => {
+    const props: CapturedModalProps = renderLocal().props;
+
+    for (const name of [
+      "oauthClientId",
+      "oauthClientSecret",
+      "oauthRefreshToken",
+    ]) {
+      expect(formField(props, name).stepId).toBe("credentials");
+    }
+  });
+
+  // Last, so the Create button is right there for a variable that needs none.
+  test("puts the optional settings on the Advanced step, the last one", () => {
+    const props: CapturedModalProps = renderLocal().props;
+
+    for (const name of [
+      "oauthScope",
+      "oauthAdditionalParameters",
+      "oauthClientAuthenticationMethod",
+    ]) {
+      expect(formField(props, name).stepId).toBe("advanced");
+      expect(isRequired(formField(props, name), {})).toBe(false);
+    }
+
+    const steps: Array<FormStepEntry> = props.formProps.steps || [];
+
+    expect(steps[steps.length - 1]?.id).toBe("advanced");
+  });
+
   test("leaves no field off a step", () => {
-    const stepIds: Array<string> = ["variable", "oauth"];
+    const stepIds: Array<string> = [
+      "variable",
+      "provider",
+      "credentials",
+      "advanced",
+    ];
 
     for (const rendered of [renderGlobal(), renderLocal()]) {
       for (const entry of rendered.props.formProps.fields) {
@@ -477,14 +597,99 @@ describe("the description field", () => {
   });
 });
 
+describe("the identity provider", () => {
+  test("is a required dropdown of the known providers and Other provider", () => {
+    const field: FormFieldEntry = formField(
+      renderLocal().props,
+      "oauthIdentityProvider",
+    );
+
+    expect(field.title).toBe("Identity Provider");
+    expect(field.fieldType).toBe(FormFieldSchemaType.Dropdown);
+    expect(field.required).toBe(true);
+    expect(
+      (field.dropdownOptions || []).map(
+        (option: { value: unknown; label: string }) => {
+          return option.label;
+        },
+      ),
+    ).toEqual([
+      "Microsoft Entra ID",
+      "Google",
+      "Okta",
+      "Auth0",
+      "Other provider",
+    ]);
+  });
+
+  /*
+   * Not a column: it is registered against the token URL it fills in, so it
+   * is offered to exactly the people who may set that URL.
+   */
+  test("is no column, and is offered with the token URL", () => {
+    const field: FormFieldEntry = formField(
+      renderLocal().props,
+      "oauthIdentityProvider",
+    );
+
+    expect(field.field).toBeUndefined();
+    expect(field.overrideField).toEqual({ oauthTokenUrl: true });
+    expect(field.overrideFieldKey).toBe("oauthIdentityProvider");
+  });
+
+  test("fills in the token URL of the provider picked", () => {
+    const props: CapturedModalProps = renderLocal().props;
+
+    expect(pickProvider(props, "Microsoft Entra ID", {})["oauthTokenUrl"]).toBe(
+      "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
+    );
+    expect(pickProvider(props, "Google", {})["oauthTokenUrl"]).toBe(
+      "https://oauth2.googleapis.com/token",
+    );
+    expect(pickProvider(props, "Okta", {})["oauthTokenUrl"]).toBe(
+      "https://{your-domain}/oauth2/default/v1/token",
+    );
+    expect(pickProvider(props, "Auth0", {})["oauthTokenUrl"]).toBe(
+      "https://{your-domain}/oauth/token",
+    );
+    expect(
+      pickProvider(props, "Other provider", {})["oauthTokenUrl"],
+    ).toBeUndefined();
+  });
+
+  test("sets the Refresh Token grant for Google", () => {
+    const props: CapturedModalProps = renderLocal().props;
+
+    expect(
+      pickProvider(props, "Google", {
+        oauthGrantType: OAuth2GrantType.ClientCredentials,
+      })["oauthGrantType"],
+    ).toBe(OAuth2GrantType.RefreshToken);
+  });
+
+  test("keeps a token URL the person typed", () => {
+    const props: CapturedModalProps = renderLocal().props;
+
+    expect(
+      pickProvider(props, "Okta", {
+        oauthTokenUrl: "https://sso.example.com/token",
+      })["oauthTokenUrl"],
+    ).toBe("https://sso.example.com/token");
+  });
+});
+
 describe("the grant type", () => {
-  test("is a required dropdown, Client Credentials by default", () => {
+  /*
+   * Two choices, both on screen: radio buttons rather than a dropdown under a
+   * paragraph that explained both.
+   */
+  test("is a required choice of radio buttons, Client Credentials by default", () => {
     const field: FormFieldEntry = formField(
       renderLocal().props,
       "oauthGrantType",
     );
 
-    expect(field.fieldType).toBe(FormFieldSchemaType.Dropdown);
+    expect(field.fieldType).toBe(FormFieldSchemaType.RadioButton);
     expect(field.required).toBe(true);
     expect(field.defaultValue).toBe(OAuth2GrantType.ClientCredentials);
   });
@@ -495,9 +700,19 @@ describe("the grant type", () => {
       "oauthGrantType",
     );
 
-    expect(dropdownValues(field)).toEqual([
+    expect(radioValues(field)).toEqual([
       OAuth2GrantType.ClientCredentials,
       OAuth2GrantType.RefreshToken,
+    ]);
+    expect(
+      (field.radioButtonOptions || []).map(
+        (option: { value: string; title: string }) => {
+          return option.title;
+        },
+      ),
+    ).toEqual([
+      "Client Credentials (machine-to-machine)",
+      "Refresh Token (delegated access for a user)",
     ]);
   });
 
@@ -790,6 +1005,38 @@ describe("before the variable is created", () => {
 
     const result: WorkflowVariable = await runBeforeCreate(props, item);
 
+    expect(result.variableType).toBe(WorkflowVariableType.OAuth2);
+  });
+
+  /*
+   * The identity provider only fills in the form: it is no column, and the
+   * request goes out as it did before the form had a provider picker.
+   */
+  test("takes the identity provider out of the request, and nothing else", async () => {
+    const props: CapturedModalProps = renderLocal().props;
+
+    const miscDataProps: Record<string, unknown> = {
+      oauthIdentityProvider: "Microsoft Entra ID",
+      somethingElse: "kept",
+    };
+
+    await runBeforeCreate(props, new WorkflowVariable(), miscDataProps);
+
+    expect(miscDataProps).toEqual({ somethingElse: "kept" });
+  });
+
+  test("is fine with no misc data at all", async () => {
+    const props: CapturedModalProps = renderGlobal().props;
+
+    const miscDataProps: Record<string, unknown> = {};
+
+    const result: WorkflowVariable = await runBeforeCreate(
+      props,
+      new WorkflowVariable(),
+      miscDataProps,
+    );
+
+    expect(miscDataProps).toEqual({});
     expect(result.variableType).toBe(WorkflowVariableType.OAuth2);
   });
 
