@@ -18,7 +18,9 @@ import {
   ModelColumnRow,
   changeColumnRow,
 } from "./ColumnRow";
+import { isColumnDescriptionInformative } from "./ColumnPickerOptions";
 import { rowIssue } from "./ColumnRowSerialization";
+import { isSystemColumn } from "./ColumnUse";
 import ColumnValueInput from "./ColumnValueInput";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 
@@ -118,9 +120,10 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
               Wrapped rather than truncated. This sentence is the model's own
               explanation of the field and is often the only thing that settles
               what to type; cutting it off mid-word and hiding the rest behind a
-              hover is not a real answer inside a modal.
+              hover is not a real answer inside a modal. Left out only where it
+              is the field's name again ("Incident Severity ID").
             */}
-            {props.column?.description && (
+            {props.column && isColumnDescriptionInformative(props.column) && (
               <span className="mt-1 block text-xs leading-snug text-gray-500">
                 {props.column.description}
               </span>
@@ -159,6 +162,22 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
             The workflow sets this itself and ignores what you type here.
           </p>
         )}
+
+        {/*
+          The picker no longer offers these, but a workflow saved before it
+          stopped can still hold one. The row stays - dropping a stored value
+          is how an editor loses work - and says why it is not in the list.
+        */}
+        {props.column &&
+          !props.column.isTenantColumn &&
+          isSystemColumn(props.column) && (
+            <p
+              className="mt-1 text-[11px] text-gray-500"
+              data-testid={`model-column-system-note-${props.row.columnId}`}
+            >
+              OneUptime fills this in itself, so you can remove it.
+            </p>
+          )}
       </div>
 
       <div className="flex items-center pt-1">
