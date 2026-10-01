@@ -23,8 +23,8 @@ Changes save automatically. A pill in the toolbar tracks it: **Saving…** while
 
 ## What's on a block
 
-| Field                         | What it does                                                                                                                                                                                                |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Field                         | What it does                                                                                                                                                                                                                                    |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Identifier** (under **ID**) | The short id shown on the block, like `log-1`. This is how other blocks refer to this one, so renaming it breaks every `{{local.components.…}}` reference pointing at it. The block's heading is the component's own name and can't be changed. |
 | **Settings**                  | What the block needs to do its job — a URL, a Slack channel, a message body. Optional fields are labelled **(Optional)**; everything else is required. An on/off switch carries neither, because it always holds a value. Less-used settings sit behind an **Advanced** disclosure. |
 | **Input**                     | The dot on the top edge, where lines come in from earlier blocks. Triggers don't have one — nothing runs before them.                                                                                       |
@@ -57,7 +57,18 @@ The footer holds:
 - **Delete** — remove this block.
 - **Run just this step** — run this one block on its own, without the rest of the workflow. Values it would have read from other steps come through empty, and anything it sends, writes or deletes really happens.
 
-Most text fields accept variables — that's how data flows from one block to the next. Rather than typing the syntax by hand, use the value picker in the editor: it builds a correct reference from the block and field you choose. See [Variables](/docs/workflows/variables).
+### Using values from earlier blocks
+
+Most settings can use a value from an earlier block or a variable — that's how data flows from one block to the next. Every such setting has a **{ }** button at its end. It opens a list of the values you can use: each earlier block by its name, with every value it returns — what it's called, what it holds and its type — then your workflow's variables and your global ones. Search it, pick one with the mouse or the arrow keys and **Enter**, and the value goes where your cursor is.
+
+In the setting, a value shows as a chip such as **Webhook › Request Body**. Hover it to see the reference it stands for, `{{local.components.webhook-1.returnValues.request-body}}`, which is what's saved. The cursor steps over a chip in one go, **Backspace** removes it whole, and copying it copies the reference. If you know the syntax, type `{{` instead: the same list opens under the setting, narrowed down as you type.
+
+- **Only values that will exist are offered.** That's the trigger and the blocks that run before this one. A block that runs later has no output yet. Until a block is connected, only the trigger's values are listed, and the list says so.
+- **A record opens to its fields.** A Find One or On Create block returns a whole record. Pick it to see its fields, starting with the ones the block's **Select Fields** reads. A JSON value or a set of headers opens to a box where you type a path, such as `title` or `alerts[0].status`.
+- **Code editors have Insert value in their toolbar.** In JSON it adds the quotes a value needs inside a document. **Run Custom JavaScript** reads values through its **Arguments**, so its code has no picker.
+- **Numbers, passwords, switches and dates keep their own control,** with **{ }** beside it. A picked value replaces the control, and **abc** goes back to typing one.
+
+A chip turns amber when what it reads isn't there: a block that was renamed or deleted, a value the block doesn't return, a block that runs later, or a variable that doesn't exist. Its tooltip says which. See [Variables](/docs/workflows/variables) for the reference syntax.
 
 ## Checks as you build
 
@@ -65,7 +76,7 @@ The Builder checks the whole graph every time you change it, and reports what it
 
 It catches the mistakes that are otherwise invisible until a run goes wrong — no trigger, two blocks sharing an id, a dot inside an id, a block nothing connects to, a required setting left empty, malformed JSON, spaces inside `{{ }}`, and references to a step or return value that doesn't exist.
 
-One thing it can't check: whether a variable name exists. A renamed variable only shows up in the run log.
+One thing it can't check: whether a variable name exists. A block's settings can — a reference to a variable that doesn't exist shows there as an amber chip. Anywhere else, a renamed variable only shows up in the run log.
 
 ## Your first workflow
 
@@ -73,7 +84,7 @@ The quickest way to feel out the canvas:
 
 1. Click the dashed placeholder block, pick **Manual** in the **Add Trigger** panel, and click **Add to Workflow**.
 2. Click **Add Component**, pick **Log** (under **Utils**), and click **Add to Workflow**. The new block lands below the trigger. Connect the trigger's **Execute** dot down to the Log block's input dot.
-3. Click the Log block, which says **Click to set up**, and set its **Value** to `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` is the trigger's **Identifier**, shown on the trigger block — check it matches.
+3. Click the Log block, which says **Click to set up**, and type `Hello from ` in its **Value**. Click **{ }**, click the arrow beside **JSON** under **Manual**, type `name` and click **Insert**. The setting shows **Manual › JSON › name**, and saves `{{local.components.manual-1.returnValues.value.name}}`. `manual-1` is the trigger's **Identifier**, shown on the trigger block.
 4. Go to **Overview**, click **Edit Workflow** on the **Workflow Details** card, and switch **Enabled** on. A disabled workflow can't be run at all, not even by hand.
 5. Back on the **Builder**, click **Run Workflow**, put `{ "name": "Ada" }` in the **JSON** field, click **Run Workflow Manually**, and confirm with **Run**.
 6. A **Workflow Run** panel opens by itself and follows the run. The log shows `Value:` followed by `Hello from Ada`.

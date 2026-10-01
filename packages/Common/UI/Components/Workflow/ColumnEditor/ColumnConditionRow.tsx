@@ -42,7 +42,6 @@ export interface ComponentProps {
   column: ModelSchemaColumn | undefined;
   /** Every column the model describes, for this row's own picker. */
   columns: Array<ModelSchemaColumn>;
-  suggestions?: Array<string> | undefined;
   /** Focused on mount, so a condition added from the picker is ready to type into. */
   autoFocus?: boolean | undefined;
   onChange: (row: ModelColumnRow) => void;
@@ -226,7 +225,6 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
           values={props.row.values}
           operatorOption={operatorOption}
           placeholder={props.column?.example || props.column?.placeholder}
-          suggestions={props.suggestions}
           autoFocus={props.autoFocus}
           dataTestId={`model-column-value-${props.row.columnId}`}
           onChange={(change: Partial<ModelColumnRow>) => {

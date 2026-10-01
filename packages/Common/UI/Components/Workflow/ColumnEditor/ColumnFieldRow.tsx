@@ -31,7 +31,6 @@ export interface ComponentProps {
   /** Every column id, offered as autocomplete when a key has to be retyped. */
   knownColumnIds: Array<string>;
   isRequired: boolean;
-  suggestions?: Array<string> | undefined;
   /** Focused on mount, so a field added from the picker is ready to type into. */
   autoFocus?: boolean | undefined;
   onChange: (row: ModelColumnRow) => void;
@@ -139,7 +138,6 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
           text={props.row.text}
           values={props.row.values}
           placeholder={props.column?.example || props.column?.placeholder}
-          suggestions={props.suggestions}
           ariaLabelledby={isUnknownColumn ? undefined : labelId}
           autoFocus={props.autoFocus}
           dataTestId={`model-column-value-${props.row.columnId}`}

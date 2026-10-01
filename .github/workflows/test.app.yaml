@@ -210,6 +210,11 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
         run: npm run test-code-editor-ui
+      # Chromium and Firefox: the chip editor's caret handling differs in each.
+      - name: Run Workflow Value Picker UI regressions
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        run: npm run test-value-picker-ui
       - name: Run Alerts UI regressions
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
@@ -258,6 +263,7 @@ jobs:
             output/playwright/pencil-button/test-results
             output/playwright/code-editor-ui/*.png
             output/playwright/code-editor-ui/test-results
+            output/playwright/value-picker-ui/test-results
             output/playwright/alerts/*.png
             output/playwright/alerts/test-results
             output/playwright/label-rule-import-export/*.png

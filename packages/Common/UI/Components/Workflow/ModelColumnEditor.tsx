@@ -84,14 +84,6 @@ export interface ComponentProps {
   tabIndex?: number | undefined;
   /** Record mode only; ignored for a query. Defaults to Create. */
   recordIntent?: RecordIntent | undefined;
-  /*
-   * Offered in any row whose column has no suggestions of its own - the other
-   * steps' return values and the workflow's variables. The row editor replaced
-   * the "pick this value from another component" footer for these arguments, so
-   * without this there is no way to reach a reference from a record payload,
-   * which is how almost every create is built.
-   */
-  valueSuggestions?: Array<string> | undefined;
 }
 
 type ViewMode = "builder" | "json";
@@ -680,7 +672,6 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
           <ModelQueryBuilder
             rows={rows}
             columns={columns}
-            suggestions={props.valueSuggestions}
             onChange={onRowsChange}
           />
         ) : (
@@ -693,7 +684,6 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
                 ? ColumnUse.Create
                 : ColumnUse.Update
             }
-            suggestions={props.valueSuggestions}
             onChange={onRowsChange}
           />
         )

@@ -36,6 +36,7 @@ import ModelColumnEditor, {
 } from "../../../../UI/Components/Workflow/ModelColumnEditor";
 import { ModelSchemaColumn } from "../../../../UI/Components/Workflow/ModelSchema";
 import API from "../../../../UI/Utils/API/API";
+import { chipsIn, keys, placeCaret } from "./ValuePicker/ValuePickerTestUtils";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -45,6 +46,7 @@ import {
   render,
   waitFor,
 } from "@testing-library/react";
+import userEvent, { UserEvent } from "@testing-library/user-event";
 
 type MakeColumnFunction = (
   overrides: Partial<ModelSchemaColumn> & { id: string },
@@ -138,7 +140,6 @@ type RenderEditorProps = {
   initialValue?: string | undefined;
   recordIntent?: RecordIntent | undefined;
   onChange?: MockFunction | undefined;
-  valueSuggestions?: Array<string> | undefined;
 };
 
 type RenderEditorFunction = (props?: RenderEditorProps) => RenderResult;
@@ -152,7 +153,6 @@ const renderEditor: RenderEditorFunction = (
       mode={props?.mode || ModelColumnEditorMode.Record}
       initialValue={props?.initialValue}
       recordIntent={props?.recordIntent}
-      valueSuggestions={props?.valueSuggestions}
       onChange={
         (props?.onChange as unknown as (value: string) => void) ||
         ((): void => {})
@@ -325,6 +325,7 @@ describe("opening a step does not rewrite what it does", () => {
 
   test("editing a value is reported, with the exact JSON that will be stored", async () => {
     const onChange: MockFunction = getJestMockFunction();
+    const user: UserEvent = userEvent.setup({ delay: null });
 
     const { findByTestId }: RenderResult = renderEditor({
       initialValue: '{"name":"Acknowledged"}',
@@ -332,9 +333,13 @@ describe("opening a step does not rewrite what it does", () => {
       onChange: onChange,
     });
 
-    fireEvent.change(await findByTestId("model-column-value-name"), {
-      target: { value: "Resolved" },
-    });
+    // A text cell is the chip editor: select what is there and type over it.
+    placeCaret(
+      await findByTestId("model-column-value-name"),
+      0,
+      "Acknowledged".length,
+    );
+    await user.paste("Resolved");
 
     expect(onChange).toHaveBeenCalledWith('{"name":"Resolved"}');
   });
@@ -509,14 +514,21 @@ describe("values the rows keep faithfully", () => {
   });
 
   test("a reference is shown as a reference on a numeric column", async () => {
-    const { findByDisplayValue }: RenderResult = renderEditor({
+    const { findByTestId, getByTestId }: RenderResult = renderEditor({
       initialValue: '{"order":"{{local.variables.position}}"}',
       recordIntent: RecordIntent.Update,
-      valueSuggestions: ["{{local.variables.position}}"],
     });
 
+    // The value, as a chip, with "abc" to type a number again.
+    const cell: HTMLElement = await findByTestId("model-column-value-order");
+
+    expect(chipsIn(cell)).toHaveLength(1);
+    expect(chipsIn(cell)[0]).toHaveAttribute(
+      "title",
+      "{{local.variables.position}}",
+    );
     expect(
-      await findByDisplayValue("{{local.variables.position}}"),
+      getByTestId("model-column-value-order-type-a-value"),
     ).toBeInTheDocument();
   });
 });
@@ -627,23 +639,24 @@ describe("an edit reaches the workflow, whatever the cell was holding", () => {
     expect(onChange).toHaveBeenLastCalledWith('{"name":"Acknowledged"}');
   });
 
-  test("typing {{ turns the cell into a reference there and then", async () => {
-    const { findByTestId, getByTestId }: RenderResult = renderEditor({
+  test("a reference typed into a text cell becomes a chip there and then", async () => {
+    const user: UserEvent = userEvent.setup({ delay: null });
+    const { findByTestId }: RenderResult = renderEditor({
       initialValue: '{"name":"Acknowledged"}',
       recordIntent: RecordIntent.Update,
     });
 
-    fireEvent.change(await findByTestId("model-column-value-name"), {
-      target: { value: "{{local.variables.stateName}}" },
-    });
+    const cell: HTMLElement = await findByTestId("model-column-value-name");
 
-    expect(
-      getByTestId("model-column-value-name-reference-toggle"),
-    ).toHaveAttribute("aria-pressed", "true");
+    placeCaret(cell, 0, "Acknowledged".length);
+    await user.keyboard(keys("{{local.variables.stateName}}"));
+
+    expect(chipsIn(cell)).toHaveLength(1);
   });
 
   test("and the reference is what gets stored", async () => {
     const onChange: MockFunction = getJestMockFunction();
+    const user: UserEvent = userEvent.setup({ delay: null });
 
     const { findByTestId }: RenderResult = renderEditor({
       initialValue: '{"name":"Acknowledged"}',
@@ -651,9 +664,12 @@ describe("an edit reaches the workflow, whatever the cell was holding", () => {
       onChange: onChange,
     });
 
-    fireEvent.change(await findByTestId("model-column-value-name"), {
-      target: { value: "{{local.variables.stateName}}" },
-    });
+    placeCaret(
+      await findByTestId("model-column-value-name"),
+      0,
+      "Acknowledged".length,
+    );
+    await user.paste("{{local.variables.stateName}}");
 
     expect(onChange).toHaveBeenLastCalledWith(
       '{"name":"{{local.variables.stateName}}"}',
