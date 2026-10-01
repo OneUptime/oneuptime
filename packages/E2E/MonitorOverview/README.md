@@ -134,6 +134,13 @@ another monitor lands on a plain, healthy one.
   (2 x 2 stat bar, one column, card titles not squeezed), 1280px (two thirds and one third),
   the Response time plot at least 150px tall at 390, 768 and 1440px, and dark mode.
 
+`AdvancedMenuSection.spec.ts`, the monitor's side menu, where only a real browser can show
+it: the Advanced section starts folded on the overview with its rows hidden (visibility:
+hidden, not just a zero height); the keyboard skips folded rows and walks them once Advanced
+is open; it stays folded on Monitoring Logs, and stays open there once the user opened it;
+and on a phone it starts folded, a tap on its header opens it without closing the menu, and
+picking a page still closes the menu.
+
 `afterEach` fails a test on an uncaught page error, on any request the fixture does not
 model, and on any request the network fence had to abort.
 

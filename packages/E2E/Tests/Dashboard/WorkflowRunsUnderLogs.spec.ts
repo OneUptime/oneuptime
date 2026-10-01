@@ -70,6 +70,10 @@ const sectionTitles: SectionTitlesFunction = async (
  * project isolates it and is deleted even when the test fails. Growth,
  * because workflows are a Growth feature when billing is on.
  *
+ * The workflow's menu is also the one the maintainer asked to fold Advanced
+ * away in, so it is checked here: folded on the Overview and on Runs, open
+ * on a click, and open from the first load on a page inside it.
+ *
  * cd packages/E2E && HOST=localhost HTTP_PROTOCOL=http \
  *   npx playwright test Tests/Dashboard/WorkflowRunsUnderLogs.spec.ts \
  *   --project=chromium --retries=0
@@ -184,6 +188,24 @@ test.describe("Workflow runs live under Logs → Runs", () => {
       await expect(
         menuSection(page, "Advanced").locator(`a[href='${workflowRunsPath}']`),
       ).toHaveCount(0);
+
+      /*
+       * Advanced starts folded away on the Overview, as it does in every
+       * menu: Settings, Audit Logs and Delete Workflow are out of sight until
+       * it is opened.
+       */
+      const advancedToggle: Locator = menuSection(page, "Advanced")
+        .locator("button")
+        .first();
+      const deleteWorkflowLink: Locator = menuSection(page, "Advanced").locator(
+        `a[href='${workflowPath}/delete']`,
+      );
+      await expect(advancedToggle).toHaveAttribute("aria-expanded", "false");
+      await expect(deleteWorkflowLink).toHaveCount(1);
+      await expect(deleteWorkflowLink).toBeHidden();
+
+      await advancedToggle.click();
+      await expect(advancedToggle).toHaveAttribute("aria-expanded", "true");
       await expect(
         menuSection(page, "Advanced").getByRole("link", {
           name: "Delete Workflow",
@@ -201,6 +223,26 @@ test.describe("Workflow runs live under Logs → Runs", () => {
       await page.reload();
       await expect(runsCard(page)).toBeVisible(SERVER);
       await expect(workflowRuns).toBeVisible(SERVER);
+      // Runs is not in Advanced, so Advanced is folded away here too.
+      await expect(advancedToggle).toHaveAttribute("aria-expanded", "false");
+
+      // On a page inside Advanced, it is open from the first load.
+      const workflowSettingsPath: string = `${workflowPath}/settings`;
+      await gotoProjectPage({
+        page,
+        projectId,
+        url: urlFor(workflowSettingsPath),
+        ready: menuSection(page, "Advanced").locator(
+          `a[href='${workflowSettingsPath}']`,
+        ),
+      });
+      await expect(advancedToggle).toHaveAttribute("aria-expanded", "true");
+      await expect(
+        menuSection(page, "Advanced").getByRole("link", {
+          name: "Settings",
+          exact: true,
+        }),
+      ).toBeVisible();
 
       // Nothing in the menu still goes by the old combined name.
       await expect(
