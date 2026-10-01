@@ -126,14 +126,30 @@ Convert between text and JSON.
 
 Branch based on a comparison. In the **Add Component** panel this block is called **If / Else**, under the Conditions category.
 
+Its settings read as a sentence: **If** *value to check* *comparison* *compare with*, continue on **Yes**, otherwise on **No**. Under the settings, the condition is read back in words, so you can see it says what you mean. On the canvas the block shows its condition too, for example *If environment is equal to “production”*.
+
 **Settings**:
 
-- **Input 1** — usually a value from an earlier block.
-- **Operator** — Equal To, Not Equal To, Greater Than, Less Than, Greater Than or Equal, Less Than or Equal, Contains, Does Not Contain, Starts With or Ends With.
-- **Input 2** — what to compare against.
-- **Input 1 Type** and **Input 2 Type** — Text unless you change them. Set both to Number to compare numbers: as text, `10` comes before `9`.
+- **Value to check** — usually a value from an earlier block. Press **{ }** in the box to pick one, or type `{{`.
+- **Comparison** — in words:
+  - **is equal to** and **is not equal to**;
+  - for text: **contains**, **does not contain**, **starts with** and **ends with**;
+  - for numbers: **is greater than**, **is greater than or equal to**, **is less than** and **is less than or equal to**;
+  - **is empty** and **is not empty**, which check whether the value is there at all;
+  - **is true** and **is false**.
+- **Compare with** — what to compare against, typed or picked the same way. Is empty, is not empty, is true and is false do not use it.
+- **Compare as** — folded away under the comparison: **Text**, **Number** or **True / False**. The number comparisons compare numbers and the text comparisons compare text, so you rarely need it. Choose **Text** to order dates written `2026-10-01`, or **Number** to make `200` and `200.0` equal.
 
-**Outputs**: **Yes** and **No**. Connect the next blocks to whichever branch you want.
+How the values are compared:
+
+- As text, capital letters count: `Error` is not `error`.
+- As numbers, text that is not a number counts as `0`. The settings point out a typed value like that.
+- As true or false, only `true` counts as true.
+- **is empty** is met by nothing at all, blank text, an empty list or object, or a value the earlier block did not have, such as a field the webhook did not send. `0` and `false` are values, so they are not empty.
+
+**Outputs**: **Yes** runs when the condition is met and **No** when it is not. Connect the next blocks to whichever branch you want.
+
+Blocks set up before the settings had these names run exactly as they did. One old choice is no longer offered: comparing a value as **Null** or **Undefined**, which ignored what the value held, so it could never tell whether something was missing. A block that still uses it says so when you open it; choose **is empty** to check for a missing value.
 
 ## Sleep
 

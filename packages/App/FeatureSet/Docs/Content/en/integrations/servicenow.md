@@ -60,7 +60,7 @@ ServiceNow's Table API accepts **Basic auth**.
 
 ## Step 3 — Resolve on OneUptime resolve (optional)
 
-1. Create a **second** workflow with an **Incident → On Update** trigger and a **Conditions** block that checks the incident is resolved.
+1. Create a **second** workflow with an **Incident → On Update** trigger and an **If / Else** block that checks the incident is resolved.
 2. To update the right ServiceNow record you need its `sys_id`. Either store it on the OneUptime incident in Step 2 (read `{{CreateRecord.response-body.result.sys_id}}` and write it to a label with **Update Incident**), or look the record up first with a `GET` on `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}`.
 3. Add an **API** block: **Method** `PATCH`, **URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`, body `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = Resolved in the default ITIL workflow).
 

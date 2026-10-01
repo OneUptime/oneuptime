@@ -66,7 +66,7 @@ Each alert template is built the same way as its incident twin, step for step. W
 **Monitors raise alerts on their own, and can raise a lot of them.** **Create a Jira issue when an alert is created** files an issue for every one, so a noisy monitor can open dozens of issues. Unless every alert deserves a ticket, put a condition in front of the Jira step. To file issues only for High alerts, for example:
 
 1. Open the workflow's **Builder** and add an **If / Else** block.
-2. Set **Input 1** to `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Operator** to `==`, and **Input 2** to `High`.
+2. Set **Value to check** to `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Comparison** to **is equal to**, and **Compare with** to `High`.
 3. Remove the line from the trigger, `alert-on-create-1`, to `prepare-issue-1` by dragging its end off the dot (see [Tidying up](/docs/workflows/authoring#tidying-up)). Then connect the trigger's **Success** to the **If / Else** block, and the block's **Yes** to `prepare-issue-1`.
 
 An alert that takes the **No** branch ends the run there, and no issue is filed for it.
@@ -444,7 +444,7 @@ Build this as a **second** workflow, so a failure here can never stop issues bei
 
 1. **Create Workflow**, name it `Incident updates → Jira`, and add the **On Update Incident** trigger.
 2. In **Listen on**, put `{"currentIncidentStateId": true}`. The trigger then only fires for state changes instead of every edit. In **Select Fields**, ask for `{"_id": true, "currentIncidentState": {"name": true}}`.
-3. Add an **If / Else** block: **Input 1** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** `==`, **Input 2** `Resolved` — or whatever your project's resolved state is called. See [Incident States & Severities](/docs/incidents/states-and-severities).
+3. Add an **If / Else** block: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved` — or whatever your project's resolved state is called. See [Incident States & Severities](/docs/incidents/states-and-severities).
 
 From the **Yes** branch you first have to find the issue you opened in Step 2. Ask Jira for it by the id you stored in Step 3, with an **API Post (JSON)** block whose **Identifier** is `find-issue`:
 
@@ -507,7 +507,7 @@ Now the other direction: someone moves the issue to Done, and the OneUptime inci
 
    Self-hosted installs use their own host. Treat the URL like a password — anyone who has it can start the workflow. If it leaks, click **Reset URL** in the same place; the old URL stops working at once.
 
-3. Add an **If / Else** block that checks a shared secret before anything else runs. **Input 1** is `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** is `{{global.variables.JIRA_WEBHOOK_SECRET}}` — a value you invent and save as a secret global variable.
+3. Add an **If / Else** block that checks a shared secret before anything else runs. **Value to check** is `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** is **is equal to**, and **Compare with** is `{{global.variables.JIRA_WEBHOOK_SECRET}}` — a value you invent and save as a secret global variable.
 4. From the **Yes** branch, add an **Update One Incident** block:
 
    - **Query**: `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`

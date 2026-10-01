@@ -158,7 +158,7 @@ Inside a text field you can iterate an array with `{{#each path}}…{{/each}}`. 
 A webhook arrives with a body like `{ "service": "checkout", "status": "failed" }`. To turn that into a OneUptime incident:
 
 1. **Webhook** trigger with the id `ci-webhook`.
-2. **If / Else** block: select the webhook's Request Body output and use its `status` property, operator `==`, right `failed`.
+2. **If / Else** block: **Value to check** is the `status` field of the webhook's Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparison** is **is equal to**, and **Compare with** is `failed`.
 3. From the **Yes** branch, a **Create One Incident** block with:
    - Title: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Description: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
