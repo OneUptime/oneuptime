@@ -1,4 +1,4 @@
-# Uitvoeringen en logboeken
+# Uitvoeringen
 
 Telkens wanneer een workflow draait, bewaart OneUptime een verslag van wat er gebeurde — wanneer hij liep, of het lukte, en wat elk blok deed. Dat verslag heet een **run**. Runs zijn hoe je bevestigt dat een workflow werkte, hoe je er een debugt die dat niet deed, en hoe je terugkijkt op eerdere activiteit.
 
@@ -6,8 +6,8 @@ Telkens wanneer een workflow draait, bewaart OneUptime een verslag van wat er ge
 
 | Pagina                              | Wat je ziet                                                                                        |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Workflows → Runs & logboeken**    | Elke run van elke workflow in het project. Filter op workflownaam, status en tijd.                  |
-| **Workflow → Runs & logboeken**     | Alleen de runs van deze ene workflow. Hier zit een filter **Uitvoerings-ID** in plaats van een workflowfilter. |
+| **Workflows → Logboeken → Uitvoeringen**    | Elke run van elke workflow in het project. Filter op workflownaam, status en tijd.                  |
+| **Workflow → Logboeken → Uitvoeringen**     | Alleen de runs van deze ene workflow. Hier zit een filter **Uitvoerings-ID** in plaats van een workflowfilter. |
 | **Eén enkele run**                  | Open je met de knop **Logboeken bekijken** op een runrij — de rijen zelf zijn niet klikbaar.        |
 
 ## Runstatussen

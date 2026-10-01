@@ -1,4 +1,4 @@
-# Kørsler & logfiler
+# Kørsler
 
 Hver gang et workflow kører, gemmer OneUptime en optegnelse over, hvad der skete — hvornår det kørte, om det lykkedes, og hvad hver blok gjorde. Den optegnelse kaldes en **kørsel**. Kørsler er dem, du bruger til at bekræfte, at et workflow virkede, til at fejlfinde et, der ikke gjorde, og til at se tilbage på tidligere aktivitet.
 
@@ -6,8 +6,8 @@ Hver gang et workflow kører, gemmer OneUptime en optegnelse over, hvad der sket
 
 | Side                                | Hvad du ser                                                                                          |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Arbejdsgange → Kørsler og logs**  | Alle kørsler fra alle workflows i projektet. Filtrér på workflownavn, status og tid.                 |
-| **Arbejdsgang → Kørsler og logs**   | Kun kørslerne for dette ene workflow. Her er der et **Kørsels-ID**-filter i stedet for et workflowfilter. |
+| **Arbejdsgange → Protokoller → Kørsler**  | Alle kørsler fra alle workflows i projektet. Filtrér på workflownavn, status og tid.                 |
+| **Arbejdsgang → Protokoller → Kørsler**   | Kun kørslerne for dette ene workflow. Her er der et **Kørsels-ID**-filter i stedet for et workflowfilter. |
 | **En enkelt kørsel**                | Åbnes med knappen **Vis logge** på en kørselsrække — selve rækkerne kan man ikke klikke på.           |
 
 ## Kørselsstatusser

@@ -62,15 +62,21 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isEditable={false}
           isCreateable={false}
           name="Workflow Logs"
+          /*
+           * The menu calls this page Runs (in its Logs section), so the card
+           * and the row count say runs too, not "Workflow Logs".
+           */
+          singularName="Workflow Run"
+          pluralName="Workflow Runs"
           isViewable={false}
           selectMoreFields={{
             logs: true,
             stepTrace: true,
           }}
           cardProps={{
-            title: "Workflow Logs",
+            title: "Runs",
             description:
-              "List of logs in the last 30 days for all your workflows",
+              "Every run of every workflow in this project, from the last 30 days.",
           }}
           noItemsMessage={
             "Looks like no workflow ran so far in the last 30 days."

@@ -103,4 +103,4 @@ To pause a workflow without deleting it, switch **Enabled** off. No new runs sta
 - [Triggers](/docs/workflows/triggers) — the four ways a workflow can start.
 - [Components](/docs/workflows/components) — every block you can add.
 - [Variables](/docs/workflows/variables) — moving data between blocks.
-- [Runs & Logs](/docs/workflows/runs-and-logs) — checking what happened.
+- [Runs](/docs/workflows/runs-and-logs) — checking what happened.

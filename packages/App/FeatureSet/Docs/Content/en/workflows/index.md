@@ -38,14 +38,14 @@ Open **Workflows** in the left navigation. That section holds:
 
 - **Workflows** — your list of workflows. Create a new one or open an existing one.
 - **Global Variables** — values shared across all your workflows.
-- **Runs & Logs** — execution history across every workflow in your project.
+- **Logs → Runs** — execution history across every workflow in your project.
 
 Open a single workflow and its own left menu holds:
 
 - **Overview** — name, description, labels, and the **Enabled** switch.
 - **Builder** — the canvas where you design the workflow.
 - **Workflow Variables** — values scoped to this one workflow.
-- **Runs & Logs** — every run of this workflow, with details.
+- **Logs → Runs** — every run of this workflow, with details.
 - **Settings** — duplicate and export.
 
 ## Building your first workflow
@@ -80,5 +80,5 @@ The next time someone opens an incident with "Sev 1" in the title, Slack lights 
 - [Triggers](/docs/workflows/triggers) — the different ways a workflow can start.
 - [Components](/docs/workflows/components) — the building blocks you can add.
 - [Variables](/docs/workflows/variables) — using values across blocks and workflows.
-- [Runs & Logs](/docs/workflows/runs-and-logs) — checking what happened.
+- [Runs](/docs/workflows/runs-and-logs) — checking what happened.
 - [Configuration & Safety](/docs/workflows/configuration) — settings worth knowing about.

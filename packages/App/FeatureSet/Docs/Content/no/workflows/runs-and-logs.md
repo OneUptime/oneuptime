@@ -1,4 +1,4 @@
-# Kjøringer og logger
+# Kjøringer
 
 Hver gang en arbeidsflyt kjører, lagrer OneUptime en oversikt over hva som skjedde — når den kjørte, om det gikk bra, og hva hver blokk gjorde. Den oversikten kalles en **kjøring**. Kjøringer er slik du bekrefter at en arbeidsflyt virket, feilsøker en som ikke gjorde det, og ser tilbake på tidligere aktivitet.
 
@@ -6,8 +6,8 @@ Hver gang en arbeidsflyt kjører, lagrer OneUptime en oversikt over hva som skje
 
 | Side                                     | Hva du ser                                                                                          |
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Arbeidsflyter → Kjøringer og logger**  | Alle kjøringer fra alle arbeidsflyter i prosjektet. Filtrer på arbeidsflytnavn, status og tid.      |
-| **Arbeidsflyt → Kjøringer og logger**    | Bare kjøringene til denne ene arbeidsflyten. Her får du et **Kjøre-ID**-filter i stedet for et arbeidsflytfilter. |
+| **Arbeidsflyter → Logger → Kjøringer**  | Alle kjøringer fra alle arbeidsflyter i prosjektet. Filtrer på arbeidsflytnavn, status og tid.      |
+| **Arbeidsflyt → Logger → Kjøringer**    | Bare kjøringene til denne ene arbeidsflyten. Her får du et **Kjøre-ID**-filter i stedet for et arbeidsflytfilter. |
 | **En enkelt kjøring**                    | Åpnes med knappen **Vis logger** på en kjøringsrad — selve radene er ikke klikkbare.                 |
 
 ## Kjøringsstatuser

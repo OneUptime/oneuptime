@@ -104,7 +104,7 @@ Hvis din organisation kører på Atlassians centraliserede brugeradministration,
 
 Beskrivelsen ser tung ud, fordi Jira Clouds v3-API modtager rig tekst som **Atlassian Document Format** — et dokumenttræ, ikke en streng. Formen ovenfor er det mindste gyldige dokument: ét afsnit med én tekstnode. Det samme gælder `environment` og ethvert flerlinjet brugerdefineret tekstfelt; enkeltlinjede brugerdefinerede tekstfelter tager stadig en almindelig streng.
 
-Tænd nu for workflowet under **Oversigt → Rediger arbejdsgang → Aktiveret**, erklær en testhændelse, og åbn **Kørsler og logs**. Blokken `create-issue` bør vise en `201` og en body, der indeholder den nye sags `id`, `key` og `self`. Ændringer på lærredet gemmer sig selv — der er ingen Gem-knap, og et deaktiveret workflow kan slet ikke køre, heller ikke manuelt.
+Tænd nu for workflowet under **Oversigt → Rediger arbejdsgang → Aktiveret**, erklær en testhændelse, og åbn **Protokoller → Kørsler**. Blokken `create-issue` bør vise en `201` og en body, der indeholder den nye sags `id`, `key` og `self`. Ændringer på lærredet gemmer sig selv — der er ingen Gem-knap, og et deaktiveret workflow kan slet ikke køre, heller ikke manuelt.
 
 Den nye sagsnøgle er tilgængelig for enhver blok efter denne:
 
@@ -270,7 +270,7 @@ Lad workflowet være aktiveret. Giv nu Jira noget at kalde.
 
      Brugte du en label i stedet for et brugerdefineret felt i Trin 3, sender du `"labels": "{{issue.labels}}"` og trækker id'et ud med en **Run Custom JavaScript**-blok på OneUptime-siden.
 
-4. Tænd for reglen, flyt en testsag til Done, og tjek begge sider: reglens egen revisionslog i Jira og **Kørsler og logs** i OneUptime.
+4. Tænd for reglen, flyt en testsag til Done, og tjek begge sider: reglens egen revisionslog i Jira og **Protokoller → Kørsler** i OneUptime.
 
 Ting, der er værd at vide, før du gør dig afhængig af dette:
 
@@ -342,7 +342,7 @@ Et workflow har præcis én trigger, så hændelser og alarmer kræver ét workf
 
 ## Fejlfinding
 
-Åbn den fejlende blok i **Kørsler og logs** først. Jira returnerer en JSON-body, der navngiver præcis det, den afviste, og API-komponenten gemmer den i `response-body`.
+Åbn den fejlende blok i **Protokoller → Kørsler** først. Jira returnerer en JSON-body, der navngiver præcis det, den afviste, og API-komponenten gemmer den i `response-body`.
 
 **`401 Unauthorized`.** Genkod `email:api_token` med `printf` og opdater `JIRA_AUTH`; et afsluttende linjeskift fra `echo` er den sædvanlige årsag. Bekræft derefter, at den konto, der ejer tokenet, kan oprette sager i det projekt. På Data Center skal du tjekke, at du sender `Bearer`, ikke `Basic`.
 
@@ -356,7 +356,7 @@ Et workflow har præcis én trigger, så hændelser og alarmer kræver ét workf
 
 **Overgangskaldet returnerer `400`.** Overgangs-id'et er ikke gyldigt fra sagens *nuværende* status. Hent `/transitions` for den sag og brug et id fra svaret.
 
-**Automatiseringsreglen vises som vellykket, men intet når frem til OneUptime.** Tjek porten først — se den begrænsede liste ovenfor. Send derefter selv en forespørgsel til webhook-URL'en med `curl` og se, om den dukker op i **Kørsler og logs**; hvis din ankommer, og Jiras ikke gør, ligger problemet hos Jira.
+**Automatiseringsreglen vises som vellykket, men intet når frem til OneUptime.** Tjek porten først — se den begrænsede liste ovenfor. Send derefter selv en forespørgsel til webhook-URL'en med `curl` og se, om den dukker op i **Protokoller → Kørsler**; hvis din ankommer, og Jiras ikke gør, ligger problemet hos Jira.
 
 **Workflowet kører, men hændelsen ændrer sig ikke.** En **Update One Incident**-blok melder `Items Updated: 0`, når dens forespørgsel ikke matchede noget, og det tæller som succes, ikke som en fejl. Tjek, at id'et i payloaden virkelig er OneUptime-hændelsens id, og at du forespørger på `_id`.
 

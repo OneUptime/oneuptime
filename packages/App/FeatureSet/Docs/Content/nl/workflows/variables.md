@@ -135,5 +135,5 @@ Twee dingen om op te letten:
 ## Waar je verder kunt lezen
 
 - [Workflow-componenten](/docs/workflows/components) — de volledige lijst met uitvoer die elk blok oplevert.
-- [Workflow-uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — de werkelijke waarde van elke variabele na een run.
+- [Workflow-uitvoeringen](/docs/workflows/runs-and-logs) — de werkelijke waarde van elke variabele na een run.
 - [Workflow-configuratie en veiligheid](/docs/workflows/configuration) — wat veilig is om in een globale variabele te zetten.

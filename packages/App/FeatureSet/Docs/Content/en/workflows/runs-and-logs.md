@@ -1,4 +1,4 @@
-# Runs & Logs
+# Runs
 
 Every time a workflow runs, OneUptime saves a record of what happened — when it ran, whether it worked, and what each block did. That record is called a **run**. Runs are how you confirm a workflow worked, debug one that didn't, and look back at past activity.
 
@@ -6,8 +6,8 @@ Every time a workflow runs, OneUptime saves a record of what happened — when i
 
 | Page                        | What you see                                                                                       |
 | --------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Workflows → Runs & Logs** | Every run from every workflow in the project. Filter by workflow name, status, and time.           |
-| **Workflow → Runs & Logs**  | Just the runs of this one workflow. This one has a **Run ID** filter instead of a workflow filter. |
+| **Workflows → Logs → Runs** | Every run from every workflow in the project. Filter by workflow name, status, and time.           |
+| **Workflow → Logs → Runs**  | Just the runs of this one workflow. This one has a **Run ID** filter instead of a workflow filter. |
 | **A single run**            | Opened with the **View Logs** button on a run row — run rows themselves aren't clickable.          |
 
 ## Run statuses

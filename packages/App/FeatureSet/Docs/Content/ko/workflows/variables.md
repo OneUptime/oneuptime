@@ -135,5 +135,5 @@ API 키에는 **Edit Workflow Variables** 권한이 필요합니다. 읽기 권�
 ## 다음으로 읽을거리
 
 - [워크플로우 구성 요소](/docs/workflows/components) — 각 블록이 만들어 내는 출력의 전체 목록.
-- [워크플로우 실행 및 로그](/docs/workflows/runs-and-logs) — 실행 후 모든 변수의 실제 값 확인하기.
+- [워크플로우 실행 기록](/docs/workflows/runs-and-logs) — 실행 후 모든 변수의 실제 값 확인하기.
 - [워크플로우 설정 및 보안](/docs/workflows/configuration) — 전역 변수에 넣어도 안전한 것.

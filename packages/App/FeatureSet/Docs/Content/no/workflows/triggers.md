@@ -78,4 +78,4 @@ En arbeidsflyt kan bare ha én trigger. Trenger du to måter å starte den samme
 
 - [Arbeidsflyt-komponenter](/docs/workflows/components) — handlingene du legger til etter triggeren.
 - [Arbeidsflyt-variabler](/docs/workflows/variables) — å lese utdata fra triggeren i senere blokker.
-- [Arbeidsflyt-kjøringer & logger](/docs/workflows/runs-and-logs) — å bekrefte at triggeren utløste.
+- [Arbeidsflyt-kjøringer](/docs/workflows/runs-and-logs) — å bekrefte at triggeren utløste.

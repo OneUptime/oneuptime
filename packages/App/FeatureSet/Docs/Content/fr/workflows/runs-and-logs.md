@@ -1,4 +1,4 @@
-# Exécutions et journaux
+# Exécutions
 
 Chaque fois qu'un workflow s'exécute, OneUptime conserve la trace de ce qui s'est passé — quand il s'est exécuté, s'il a abouti, et ce qu'a fait chaque bloc. Cette trace s'appelle une **exécution**. C'est par les exécutions que vous confirmez qu'un workflow a bien fonctionné, que vous déboguez celui qui a échoué et que vous revenez sur l'activité passée.
 
@@ -6,8 +6,8 @@ Chaque fois qu'un workflow s'exécute, OneUptime conserve la trace de ce qui s'e
 
 | Page                        | Ce que vous y voyez                                                                                |
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Flux de travail → Exécutions & journaux** | Toutes les exécutions de tous les workflows du projet. Filtrez par nom de workflow, par statut et par période. |
-| **Workflow → Exécutions & journaux**  | Uniquement les exécutions de ce workflow-là. Ici, un filtre **Run ID** remplace le filtre par workflow. |
+| **Flux de travail → Journaux → Exécutions** | Toutes les exécutions de tous les workflows du projet. Filtrez par nom de workflow, par statut et par période. |
+| **Workflow → Journaux → Exécutions**  | Uniquement les exécutions de ce workflow-là. Ici, un filtre **Run ID** remplace le filtre par workflow. |
 | **Une exécution isolée**            | S'ouvre avec le bouton **Voir les journaux** sur la ligne d'une exécution — les lignes elles-mêmes ne sont pas cliquables. |
 
 ## Statuts d'exécution

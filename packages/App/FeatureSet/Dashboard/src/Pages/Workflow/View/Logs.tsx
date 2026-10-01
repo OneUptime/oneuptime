@@ -46,6 +46,12 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           userPreferencesKey="workflow-logs-table"
           isCreateable={false}
           name="Workflow Logs"
+          /*
+           * The menu calls this page Runs (in its Logs section), so the card
+           * and the row count say runs too, not "Workflow Logs".
+           */
+          singularName="Workflow Run"
+          pluralName="Workflow Runs"
           query={{
             workflowId: modelId,
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -75,8 +81,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ]}
           isViewable={false}
           cardProps={{
-            title: "Workflow Logs",
-            description: "List of logs in the last 30 days for this workflow",
+            title: "Runs",
+            description: "Every run of this workflow, from the last 30 days.",
           }}
           noItemsMessage={
             "Looks like this workflow did not run so far in the last 30 days."

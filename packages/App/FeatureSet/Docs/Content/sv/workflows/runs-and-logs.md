@@ -1,4 +1,4 @@
-# Körningar och loggar
+# Körningar
 
 Varje gång ett arbetsflöde körs sparar OneUptime en redogörelse för vad som hände — när det kördes, om det fungerade och vad varje block gjorde. Den redogörelsen kallas en **körning**. Körningar är hur du bekräftar att ett arbetsflöde fungerade, felsöker ett som inte gjorde det och tittar tillbaka på tidigare aktivitet.
 
@@ -6,8 +6,8 @@ Varje gång ett arbetsflöde körs sparar OneUptime en redogörelse för vad som
 
 | Sida                        | Vad du ser                                                                                         |
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Arbetsflöden → Körningar och loggar** | Varje körning av varje arbetsflöde i projektet. Filtrera på arbetsflödesnamn, status och tid.  |
-| **Arbetsflöde → Körningar och loggar**  | Bara körningarna för det här enda arbetsflödet. Den här har ett **Körnings-ID**-filter istället för ett arbetsflödesfilter. |
+| **Arbetsflöden → Loggar → Körningar** | Varje körning av varje arbetsflöde i projektet. Filtrera på arbetsflödesnamn, status och tid.  |
+| **Arbetsflöde → Loggar → Körningar**  | Bara körningarna för det här enda arbetsflödet. Den här har ett **Körnings-ID**-filter istället för ett arbetsflödesfilter. |
 | **En enskild körning**      | Öppnas med knappen **Visa loggar** på en körningsrad — raderna i sig går inte att klicka på.        |
 
 ## Körningsstatusar
