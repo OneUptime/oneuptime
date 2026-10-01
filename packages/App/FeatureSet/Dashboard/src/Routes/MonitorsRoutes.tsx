@@ -33,6 +33,7 @@ import MonitorIncidents from "../Pages/Monitor/View/Incidents";
 import MonitorAlerts from "../Pages/Monitor/View/Alerts";
 import MonitorNotOperational from "../Pages/Monitor/NotOperationalMonitors";
 import MonitorDisabled from "../Pages/Monitor/DisabledMonitors";
+import MonitorArchived from "../Pages/Monitor/ArchivedMonitors";
 import MonitorViewCustomFields from "../Pages/Monitor/View/CustomFields";
 import MonitorViewInterval from "../Pages/Monitor/View/Interval";
 
@@ -88,6 +89,17 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           <MonitorDisabled
             {...props}
             pageRoute={RouteMap[PageMap.MONITORS_DISABLED] as Route}
+          />
+        }
+      />
+
+      {/* Static `archived` outranks the monitor view's `:id`. */}
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_ARCHIVED] || ""}
+        element={
+          <MonitorArchived
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS_ARCHIVED] as Route}
           />
         }
       />

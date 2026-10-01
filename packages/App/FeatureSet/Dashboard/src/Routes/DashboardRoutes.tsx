@@ -8,6 +8,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
 import Dashboards from "../Pages/Dashboards/Dashboards";
+import DashboardsArchived from "../Pages/Dashboards/Archived";
 
 import DashboardView from "../Pages/Dashboards/View/Index";
 
@@ -49,6 +50,17 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
             <Dashboards
               {...props}
               pageRoute={RouteMap[PageMap.DASHBOARDS] as Route}
+            />
+          }
+        />
+
+        {/* Static `archived` outranks the dashboard view's `:id`. */}
+        <PageRoute
+          path={DashboardsRoutePath[PageMap.DASHBOARDS_ARCHIVED] || ""}
+          element={
+            <DashboardsArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.DASHBOARDS_ARCHIVED] as Route}
             />
           }
         />

@@ -131,7 +131,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Delete Policy",
+            title: "Archive or Delete",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE] as Route,
               { modelId: props.modelId },

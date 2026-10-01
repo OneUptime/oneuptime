@@ -5,6 +5,8 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import { STATUS_PAGE_ARCHIVE_COPY } from "../../Components/Archive/ResourceArchiveCopy";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -27,6 +29,16 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ownerTeamModelType: StatusPageOwnerTeam,
       resourceIdField: "statusPageId",
     });
+
+  // Archived status pages leave this list; they are on the Archived page.
+  const { archiveBulkActions } = useBulkArchiveActions<StatusPage>({
+    modelType: StatusPage,
+    singularName: STATUS_PAGE_ARCHIVE_COPY.singularName,
+    pluralName: STATUS_PAGE_ARCHIVE_COPY.pluralName,
+    archiveConfirmMessage: STATUS_PAGE_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+    unarchiveConfirmMessage:
+      STATUS_PAGE_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+  });
 
   /*
    * One chip per custom field this project has defined. They arrive a render
@@ -60,7 +72,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
         topContent={filterBar}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
-        query={mergeFiltersIntoQuery(undefined)}
+        query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<StatusPage>) => {
           onResourcesFetched(data);
         }}
@@ -73,7 +85,11 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isEditable={false}
         isCreateable={true}
         bulkActions={{
-          buttons: [...labelBulkActions, ...ownerBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         name="Status Pages"
         isViewable={true}

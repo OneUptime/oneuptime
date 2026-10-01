@@ -10,6 +10,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Polcies
 import OnCallDutyPoliciesPage from "../Pages/OnCallDuty/OnCallDutyPolicies";
+import OnCallDutyPoliciesArchivedPage from "../Pages/OnCallDuty/OnCallDutyPoliciesArchived";
 import OnCallDutyExecutionLogs from "../Pages/OnCallDuty/OnCallDutyExecutionLogs";
 
 import OnCallDutyUserOverrides from "../Pages/OnCallDuty/UserOverrides";
@@ -143,6 +144,21 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
             <OnCallDutyPoliciesPage
               {...props}
               pageRoute={RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route}
+            />
+          }
+        />
+
+        {/* Static `policies/archived` outranks `policies/:id`. */}
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED] || ""
+          }
+          element={
+            <OnCallDutyPoliciesArchivedPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED] as Route
+              }
             />
           }
         />

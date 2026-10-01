@@ -7,6 +7,11 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
+import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import { STATUS_PAGE_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 
 const StatusPageDelete: FunctionComponent<
   PageComponentProps
@@ -506,6 +511,27 @@ const StatusPageDelete: FunctionComponent<
           ],
           modelId: modelId,
         }}
+      />
+
+      {/*
+       * Last on the page: taking the page offline is a decision about the
+       * page as a whole, not one more thing it shows.
+       */}
+      <ArchiveResourceCard<StatusPage>
+        modelType={StatusPage}
+        modelId={modelId}
+        singularName={STATUS_PAGE_ARCHIVE_COPY.singularName}
+        listRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.STATUS_PAGES] as Route,
+        )}
+        archiveCardDescription={STATUS_PAGE_ARCHIVE_COPY.archiveCardDescription}
+        unarchiveCardDescription={
+          STATUS_PAGE_ARCHIVE_COPY.unarchiveCardDescription
+        }
+        archiveConfirmMessage={STATUS_PAGE_ARCHIVE_COPY.archiveConfirmMessage}
+        unarchiveConfirmMessage={
+          STATUS_PAGE_ARCHIVE_COPY.unarchiveConfirmMessage
+        }
       />
     </Fragment>
   );

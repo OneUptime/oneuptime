@@ -23,6 +23,8 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import { MONITOR_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
 import React, {
   Fragment,
   FunctionComponent,
@@ -310,6 +312,25 @@ const MonitorCriteria: FunctionComponent<
 
         <div className="mt-5">
           <ExportModelCard modelId={modelId} modelType={Monitor} />
+        </div>
+
+        <div className="mt-5">
+          <ArchiveResourceCard<Monitor>
+            modelType={Monitor}
+            modelId={modelId}
+            singularName={MONITOR_ARCHIVE_COPY.singularName}
+            listRoute={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS] as Route,
+            )}
+            archiveCardDescription={MONITOR_ARCHIVE_COPY.archiveCardDescription}
+            unarchiveCardDescription={
+              MONITOR_ARCHIVE_COPY.unarchiveCardDescription
+            }
+            archiveConfirmMessage={MONITOR_ARCHIVE_COPY.archiveConfirmMessage}
+            unarchiveConfirmMessage={
+              MONITOR_ARCHIVE_COPY.unarchiveConfirmMessage
+            }
+          />
         </div>
       </div>
     );

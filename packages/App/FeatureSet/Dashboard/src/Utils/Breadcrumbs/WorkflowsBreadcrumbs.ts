@@ -26,6 +26,11 @@ export function getWorkflowsBreadcrumbs(path: string): Array<Link> | undefined {
       "Workflows",
       "Runs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOWS_ARCHIVED, [
+      "Project",
+      "Workflows",
+      "Archived",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOW_VIEW, [
       "Project",
       "Workflows",

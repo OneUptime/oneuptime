@@ -21,6 +21,19 @@ const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
           },
           icon: IconProp.Window,
         },
+        /*
+         * Archived dashboards are filtered out of the list above, so without
+         * this entry the only way back to one would be its URL.
+         */
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARDS_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
     {

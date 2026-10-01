@@ -15,6 +15,10 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import React, { Fragment, ReactElement, useEffect, useState } from "react";
+import {
+  announceArchiveStateChange,
+  subscribeToArchiveStateChanges,
+} from "../Archive/ArchiveStateEvents";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
@@ -103,6 +107,18 @@ const ArchiveResourceCard: <TBaseModel extends BaseModel>(
     loadState().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
+
+    /*
+     * The banner at the top of the page can unarchive the resource too. Follow
+     * it, so this card never offers to unarchive something that already is.
+     */
+    return subscribeToArchiveStateChanges({
+      modelType: props.modelType,
+      modelId: props.modelId,
+      onChange: (newValue: boolean) => {
+        setIsArchived(newValue);
+      },
+    });
   }, []);
 
   const toggleArchive: () => Promise<void> = async (): Promise<void> => {
@@ -119,6 +135,13 @@ const ArchiveResourceCard: <TBaseModel extends BaseModel>(
       setIsArchived(newValue);
       setShowConfirm(false);
       setIsSaving(false);
+
+      // The banner and side-menu counts on this screen follow the change.
+      announceArchiveStateChange({
+        modelType: props.modelType,
+        modelId: props.modelId,
+        isArchived: newValue,
+      });
 
       /*
        * Told before navigating away, so a caller reacts to the change on the
