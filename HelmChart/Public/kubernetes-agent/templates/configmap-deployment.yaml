@@ -244,10 +244,23 @@ data:
             - job_name: kube-state-metrics
               scrape_interval: {{ .Values.kubeStateMetrics.scrapeInterval }}
               {{- if eq .Values.kubeStateMetrics.mode "external" }}
+              {{- /* The endpoint is a URL, and a target is only its host:port.
+                     Whatever else the URL says goes where a scrape job keeps it:
+                     https in `scheme` (the receiver's default is plain HTTP,
+                     which a TLS port turns away), and a path other than /metrics
+                     in `metrics_path`. Neither is written for an ordinary
+                     http://host:port/metrics endpoint. */}}
+              {{- $ksmEndpoint := include "kubernetes-agent.scrapeEndpoint" (dict "url" .Values.kubeStateMetrics.endpoint "setting" "kubeStateMetrics.endpoint") | fromJson }}
+              {{- if eq $ksmEndpoint.scheme "https" }}
+              scheme: https
+              {{- end }}
+              {{- if $ksmEndpoint.path }}
+              metrics_path: {{ $ksmEndpoint.path | quote }}
+              {{- end }}
               # External KSM — operator-provided endpoint.
               static_configs:
                 - targets:
-                    - {{ .Values.kubeStateMetrics.endpoint | trimPrefix "http://" | trimPrefix "https://" | trimSuffix "/metrics" | quote }}
+                    - {{ $ksmEndpoint.target | quote }}
               {{- else }}
               # Bundled KSM — Service deployed by templates/kube-state-metrics.yaml.
               static_configs:
@@ -260,6 +273,17 @@ data:
                   action: keep
             {{- end }}
             {{- if and .Values.cost.enabled .Values.cost.metrics.enabled }}
+            {{- /* Resolution order: the explicit metrics endpoint, else
+                   <engine URL>/metrics, the engine being the external one or the
+                   bundled OpenCost. The engine URL is a base URL, so a path of
+                   its own (a reverse proxy's /model prefix, say) goes in front
+                   of /metrics rather than standing in for it. One that already
+                   ends in /metrics is not given a second. */}}
+            {{- $costMetricsUrl := .Values.cost.metrics.endpoint | default "" | toString | trim }}
+            {{- $costEndpoint := include "kubernetes-agent.scrapeEndpoint" (dict "url" ($costMetricsUrl | default (include "kubernetes-agent.costEngineUrl" .)) "setting" (ternary "cost.metrics.endpoint" "cost.engine.url" (ne $costMetricsUrl ""))) | fromJson }}
+            {{- if and $costEndpoint.path (not $costMetricsUrl) }}
+            {{- $_ := set $costEndpoint "path" (printf "%s/metrics" ($costEndpoint.path | trimSuffix "/metrics")) }}
+            {{- end }}
             # Cost metrics from the in-cluster cost engine (OpenCost /
             # Kubecost cost-model): node hourly costs, per-container
             # resource allocation, PV and load-balancer costs. Powers
@@ -268,13 +292,21 @@ data:
             # the cost agent's Allocation API poller instead.
             - job_name: cost-engine
               scrape_interval: {{ .Values.cost.metrics.scrapeInterval }}
+              {{- /* Same split as the external KSM job above: the URL's scheme
+                     and path are carried here, its host:port is the target. */}}
+              {{- if eq $costEndpoint.scheme "https" }}
+              scheme: https
+              {{- end }}
+              {{- if $costEndpoint.path }}
+              metrics_path: {{ $costEndpoint.path | quote }}
+              {{- end }}
               static_configs:
                 - targets:
                     # Prometheus targets must be bare host:port — strip
                     # any scheme/path (metrics_path defaults to /metrics).
                     # Resolution order: explicit metrics endpoint, else
                     # the engine URL (external or bundled OpenCost).
-                    - {{ (default (include "kubernetes-agent.costEngineUrl" .) .Values.cost.metrics.endpoint) | trimPrefix "http://" | trimPrefix "https://" | trimSuffix "/metrics" | trimSuffix "/" | quote }}
+                    - {{ $costEndpoint.target | quote }}
               metric_relabel_configs:
                 - source_labels: [__name__]
                   regex: "^({{ join "|" .Values.cost.metrics.metricsAllowlist }})$"

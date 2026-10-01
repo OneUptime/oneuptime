@@ -534,7 +534,19 @@ kubeStateMetrics:
   # "external" — chart only adds a Prometheus scrape job; you must
   #              provide `endpoint` pointing at your existing KSM.
   mode: bundled
-  # Only used when mode == "external".
+  # Only used when mode == "external", where it is required. The URL of
+  # your KSM's metrics endpoint, scraped where it points:
+  #   - `https://` is scraped over TLS; `http://`, or no scheme at all, in
+  #     plain HTTP.
+  #   - A path other than /metrics is scraped at that path (a KSM published
+  #     under an ingress prefix, say). No path means /metrics.
+  # Credentials (user:password@), a query string and a fragment cannot be
+  # carried into the scrape, so the chart refuses to render a URL that has
+  # them instead of dropping them quietly.
+  # An https endpoint has to present a certificate from a public CA: the
+  # collector checks it against the CA bundle in its image, and there is no
+  # setting yet to trust a private CA, skip the check, or send credentials
+  # (so a KSM behind kube-rbac-proxy cannot be scraped).
   # Example: http://kube-state-metrics.kube-system.svc.cluster.local:8080/metrics
   endpoint: ""
   scrapeInterval: 30s
@@ -619,6 +631,10 @@ cost:
     # Base URL of an EXISTING cost engine. Empty (the default) bundles
     # OpenCost + a minimal Prometheus instead; setting it disables the
     # bundle and reads from your engine.
+    #
+    # `http://` or `https://`. The poller and the metrics scrape both follow
+    # the scheme, and both verify an https engine's certificate against
+    # public CAs only: there is no setting yet to trust a private one.
     url: ""
     # Allocation API path. Empty auto-detects by probing, in order:
     # /model/allocation (Kubecost), /allocation/compute (OpenCost),
@@ -744,6 +760,12 @@ cost:
   metrics:
     enabled: true
     # Metrics endpoint. Empty defaults to <cost.engine.url>/metrics.
+    #
+    # Set it when the engine serves its metrics somewhere else. It is a
+    # URL and is scraped where it points: `https://` over TLS, and a path
+    # other than /metrics at that path. As with kubeStateMetrics.endpoint,
+    # a URL with credentials, a query string or a fragment is refused; so
+    # is such a cost.engine.url while this is empty and stands in for it.
     endpoint: ""
     scrapeInterval: 60s
     # Exact-match allowlist — the engine exports many more series, and
