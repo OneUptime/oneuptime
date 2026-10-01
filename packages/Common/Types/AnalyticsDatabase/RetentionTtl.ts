@@ -20,10 +20,14 @@
  * monthly rollup it is one merge a day instead of six.
  *
  * The cost is disk: an expired row stays up to a day longer, half a day on
- * average. Reads never see it - they filter `retentionDate >= now()`
- * (AnalyticsDatabaseService.getRetentionReadFilter, and the aggregation
- * services' own filters) - and the TTL is always later than
- * `retentionDate`, so no row is deleted while a read can still return it.
+ * average. Reads filter it out (`retentionDate >= now()`:
+ * AnalyticsDatabaseService.getRetentionReadFilter, and the aggregation
+ * services' own filters), and the TTL is always later than `retentionDate`,
+ * so no row is deleted while a read can still return it. The exception is
+ * the project-wide log histogram: it reads an aggregate projection that
+ * cannot filter on retentionDate, so a window reaching back past the
+ * retention counts, at its far edge, up to a day of rows the list no longer
+ * shows (LogAggregationService.buildHistogramStatement).
  *
  * Boot schema-sync does not reconcile TTL: RoundTtlToDayOnMixedRetentionTables
  * applies these to the tables an existing install already has.
@@ -44,9 +48,10 @@ export const RETENTION_TTL_ROUNDED_UP_TO_DAY: string =
  * lines it up with the day of its partition. A late event is left alone:
  * lining it up would delete it before its retentionDate.
  *
- * Every writer of these tables stamps `createdAt` and `retentionDate` from
- * the same instant, so `createdAt` cannot be dropped while this TTL
- * references it.
+ * It relies on every writer stamping `createdAt` and `retentionDate` from
+ * the same instant, which they do; a row without its `createdAt` only
+ * reaches the cap. And `createdAt` cannot be dropped or retyped while this
+ * TTL reads it.
  */
 export const RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY: string =
   "toStartOfDay(retentionDate + toIntervalSecond(least(greatest(dateDiff('second', createdAt, time), 0), 86400))) + INTERVAL 1 DAY DELETE";

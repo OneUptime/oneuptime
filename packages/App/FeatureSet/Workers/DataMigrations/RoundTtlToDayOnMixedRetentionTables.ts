@@ -138,9 +138,9 @@ export default class RoundTtlToDayOnMixedRetentionTables extends DataMigrationBa
 
   public override async rollback(): Promise<void> {
     /*
-     * Deliberately a no-op. The old TTL deleted nothing this one keeps -
-     * only sooner, at the price of the rewrites this removes - and a re-run
-     * of migrate() is idempotent anyway.
+     * Deliberately a no-op. Going back would only bring the rewrites back -
+     * the old TTL deletes the same rows, just sooner - and a re-run of
+     * migrate() is idempotent anyway.
      */
     return;
   }
