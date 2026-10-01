@@ -501,13 +501,28 @@ The chart runs a DaemonSet with [OpenTelemetry eBPF Instrumentation (OBI)](https
 
 **Requirements:** Linux kernel **5.8+** with BTF (default on Debian 11+, Ubuntu 20.10+, Fedora 34+, RHEL/Stream 9+). The eBPF DaemonSet runs in **privileged mode** because it has to, to load eBPF programs.
 
+### What eBPF traces look like
+
+eBPF sees network calls, not your code, so a trace is built from the requests a service handles and the calls it makes while handling them:
+
+- **A request and its calls form one trace.** The request into a service is the root span, named `<METHOD> <route>`, and the HTTP, gRPC, SQL and Redis calls the service makes while handling it are its children. (For Node.js this relies on OBI's Node.js agent, which the chart enables with `ebpf.nodejs.enabled`.)
+- **A hop to another service starts a new trace**, unless something carries the trace context across — an OpenTelemetry SDK, or the opt-in context propagation described below.
+- **Work that no request triggered stands alone.** A queue worker polling Redis or a cron job has no request for its calls to belong to.
+- **Database servers never join the caller's trace.** Database wire protocols carry no trace context, so the span OBI records inside a database server for each command can only ever be a trace of one span.
+
+Those standalone database calls arrive as one-span traces named after a bare command (`set`, `evalsha`, `SELECT`), and on a busy cluster they can be most of what OBI captures. By default (`ebpf.dropUnlinkedDatabaseSpans=true`) the agent drops eBPF database spans that have no parent before they leave the cluster. Database spans inside a request trace are kept, spans your applications send from their own SDKs are never touched, and the database metrics still count every command.
+
+Names come from the traffic: HTTP spans use the app's route template when OBI can read it, and otherwise a pattern derived from the URL with id-like segments replaced by `*` — set `ebpf.routes.patterns` to name them yourself. Application-level names such as `OrderService.charge` exist only in code and need an OpenTelemetry SDK.
+
+If an app already exports traces with an OpenTelemetry SDK, OBI notices and stops sending eBPF traces for it, so it is not traced twice (`ebpf.excludeOtelInstrumentedServices=true`, OBI's default). Set it to `false` if that SDK reports to a different project and you want eBPF traces for the app in this one too.
+
 ### Disable eBPF auto-instrumentation
 
 You should disable it when:
 
 - Installing on **GKE Autopilot** or **EKS Fargate** — those platforms block privileged pods (use `preset=gke-autopilot` / `preset=eks-fargate` and pair with `ebpf.enabled=false`).
 - Nodes run a kernel older than 5.8 without BTF backports.
-- You already ship traces via OpenTelemetry SDKs from your apps and do not want duplicates.
+- You already ship traces via OpenTelemetry SDKs from every app and do not want the eBPF metrics either. (For traces alone you need not: OBI stops sending eBPF traces for an app it sees exporting its own — see above.)
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \

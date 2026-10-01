@@ -530,8 +530,13 @@ Useful knobs:
 | --- | --- | --- |
 | `ebpf.enabled` | `true` | Master switch. |
 | `ebpf.image.tag` | `v0.9.0` | OBI image tag. Pin to a known-good version; OBI is pre-1.0 so minor bumps may introduce changes. |
-| `ebpf.autoTargetExe` | `*` | Glob of executable paths to auto-instrument. Narrow this (e.g. `*/python,*/java`) if you only want to track specific runtimes. |
-| `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself — see `values.yaml`) | Comma-separated globs to skip, so you don't see noise from cluster plumbing. |
+| `ebpf.autoTargetExe` | `*` | Comma-separated globs of executable paths to auto-instrument. Narrow this (e.g. `*/python,*/java`) if you only want to track specific runtimes. |
+| `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself, browsers, ClickHouse — see `values.yaml`) | Comma-separated globs to skip, so you don't see noise from cluster plumbing. |
+| `ebpf.dropUnlinkedDatabaseSpans` | `true` | Drop eBPF database spans that belong to no trace — see [What eBPF traces look like](#what-ebpf-traces-look-like). |
+| `ebpf.nodejs.enabled` | `true` | OBI's Node.js agent, which links a Node.js request's outgoing HTTP/SQL/Redis calls to it and names spans after the app's route templates. It is injected through the Node inspector (SIGUSR1; loopback-only `127.0.0.1:9229`). Turn off if policy forbids that; Node.js spans then stay unlinked. |
+| `ebpf.excludeOtelInstrumentedServices` | `true` | OBI's default: stop exporting eBPF telemetry for a process once it sees that process export OTLP itself, so an SDK-instrumented app is not traced twice. Set `false` if those SDKs report to a different project or backend and you want eBPF traces for them here too. |
+| `ebpf.routes.patterns` | `[]` | Route templates (e.g. `/api/items/{id}`) that name HTTP spans for frameworks OBI cannot harvest routes from. |
+| `ebpf.routes.unmatched` | `""` (OBI's `heuristic`) | Route for a path no pattern matches: `heuristic`, `low-cardinality`, `wildcard`, `path` (unbounded cardinality) or `unset`. |
 | `ebpf.logLevel` | `info` | `debug`, `info`, `warn`, `error`. |
 | `ebpf.printTraces` | `false` | Print spans to the OBI pod's stdout. Useful for confirming OBI is seeing traffic before checking the dashboard. |
 | `ebpf.resources.*` | `100m / 512Mi` requests, `2000m / 2Gi` limits | Tune for cluster size. |
@@ -548,13 +553,26 @@ Useful knobs:
 | `ebpf.features.networkInterZoneMetrics` | `false` | Inter-zone variant of `networkMetrics` (doubles cardinality). |
 | `ebpf.features.tcpStats` | `true` | Node-level TCP RTT, failed-connection, and retransmit counters. |
 
+#### What eBPF traces look like
+
+eBPF sees network calls, not your code, so an eBPF trace is built from the requests a process serves and the calls it makes while serving them:
+
+- **A request and its calls are one trace.** A request into a service is the root span, named `<METHOD> <route>`; the HTTP, gRPC, SQL and Redis calls the service makes while handling it are its children. For Node.js that needs OBI's Node.js agent (`ebpf.nodejs.enabled`), because Node runs every request on one thread and the kernel alone cannot tell which request a call belongs to.
+- **Hops between services are separate traces** unless something carries the trace context across: an OpenTelemetry SDK, or the opt-in `ebpf.contextPropagation` below.
+- **Work no request triggered has no request to belong to.** A queue worker polling Redis, a connection pool pinging, a cron job — each call is its own trace.
+- **Database servers never join the caller's trace.** OBI records a span inside the database server for every command it receives, but database wire protocols carry no trace context, so that span is always a trace of one, duplicating the client span the caller already recorded.
+
+Those last two produce one-span traces named after a bare command — `set`, `evalsha`, `SELECT` — and on a busy cluster they are most of what OBI sends. With `ebpf.dropUnlinkedDatabaseSpans` (on by default) the agent's collector drops eBPF database spans that have no parent; database spans inside a request trace are kept, spans your apps push from their own SDKs are never touched, and OBI's database metrics still count every command.
+
+Span names come from the wire: HTTP spans are `<METHOD> <route>`, where the route is the app's own template when OBI can harvest it (Node.js and Java) and otherwise derived from the path, with id-like segments replaced by `*` (add `ebpf.routes.patterns` to name them yourself); SQL spans are `<OPERATION> <table>`; Redis spans are the command. Names like `worker.job ProcessTelemetry` or `OrderService.charge` exist only in code, and need an OpenTelemetry SDK.
+
 **Cross-service trace linking** — **off by default, opt in:**
 
 | Key | Default | Description |
 | --- | --- | --- |
 | `ebpf.contextPropagation` | `false` | OBI injects a W3C `traceparent` into outbound traffic so requests crossing service boundaries link into a single trace, no SDK required. **Off by default** — see the warning below before enabling. Works on the same kernels as the rest of the agent; there is no version at which enabling it is safely inert. |
 | `ebpf.contextPropagationMode` | `headers` | How OBI injects the `traceparent`; only read when `contextPropagation` is true. `headers` — HTTP/1.1 request headers; narrowest blast radius, but *not* packet-free (see below). `tcp` — a TCP option injected via Linux Traffic Control; covers non-HTTP and encrypted traffic, but is often stripped by middleboxes and must chain with other TC programs (Cilium, Calico). `all` — both; most coverage and most rewriting, and the TCP-option half can break service-mesh proxies (linkerd2-proxy, envoy) by corrupting bytes they validate. The legacy `ip` value was removed upstream and is rejected by this chart. |
-| `ebpf.trackRequestHeaders` | `true` | Kernel-side header tracking so propagation works for plain HTTP servers (non-Go, non-TLS). Only effective when `contextPropagation` is true. |
+| `ebpf.trackRequestHeaders` | `false` | **Read** (never write) an incoming W3C `traceparent` on plain-HTTP servers and continue that trace. Independent of `contextPropagation`, which reads headers on its own. Turn on when callers already send a `traceparent` (an ingress, a mesh, SDK-instrumented apps) **and** report to the same OneUptime project — otherwise the eBPF spans point at parents that live elsewhere and every trace here starts with a missing parent. |
 | `ebpf.logToTraceCorrelation` | `false` | **Off by default — opt in.** OBI injects `trace_id` / `span_id` into **JSON-formatted** log lines from instrumented processes (existing fields preserved); the filelog DaemonSet lifts them onto the LogRecord so clicking a span in the trace view jumps to its logs. Plain-text logs pass through unchanged. **Do NOT enable** in clusters running LD_PRELOAD-based APM agents (Dynatrace OneAgent, New Relic, AppDynamics, Datadog, Instana) — the log enricher's in-process buffer rewrite races with those agents' `write()` wrappers and crashes the application (typically SIGSEGV / exit 139 in .NET). See [APM agent compatibility](#application-pods-crash-with-sigsegv-after-enabling-log-trace-correlation) below. |
 | `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | OBI GlobAttributes selector for which processes get the log enricher (only consulted when `logToTraceCorrelation: true`). Each entry can match by `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports`, or `cmd_args`. Narrow this when enabling log enrichment alongside an APM agent — list only the workloads you want enriched (OBI's log_enricher does not support `exclude_services`). |
 
@@ -790,7 +808,7 @@ If a ClickHouse pod refuses to start and its logs show:
 
 the binary is fine — this is OBI attaching a **uprobe** to `/usr/bin/clickhouse` and patching its in-memory text. ClickHouse hashes its own executable at startup and aborts when the hash changes. Because OneUptime's own telemetry store is ClickHouse, an un-excluded agent will crash-loop the platform's database.
 
-The default `ebpf.excludeExePaths` now ships `*/clickhouse`, so a fresh install is protected. If you're on an older release or maintain a custom exclude list, add it and roll the agent:
+The default `ebpf.excludeExePaths` ships `*/clickhouse`. **Older releases of this chart listed it too, but passed the list to OBI as `OTEL_EBPF_EXCLUDE_AUTO_TARGET_EXE`, which is not an OBI setting — no exclusion was ever applied.** The list now reaches OBI through its config file (`discovery.exclude_instrument`), so upgrade the agent first. If you maintain a custom exclude list, make sure `*/clickhouse` is on it and roll the agent:
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
@@ -816,6 +834,22 @@ Three things to check, in order:
     ```
 
     No spans there means OBI isn't capturing traffic on that node. Spans there but nothing in OneUptime means the OTLP export path is broken — check the metrics-collector Deployment logs.
+4. **The service exports OTLP itself** — with `ebpf.excludeOtelInstrumentedServices: true` (OBI's default), OBI stops exporting eBPF traces for a process as soon as it sees it send OTLP. If that app's SDK reports to a different project or backend, set it to `false`.
+
+### Every trace is a single span
+
+Check what kind of span it is before anything else:
+
+- **A bare database command (`set`, `evalsha`, `SELECT`)** — a database server's own span or a call made outside any request. These cannot be linked; `ebpf.dropUnlinkedDatabaseSpans: true` (the default) drops them. If you see them, check that it is on: `helm get values <release> -n oneuptime-kubernetes-agent -a | grep dropUnlinkedDatabaseSpans`.
+- **A request (`GET /api/...`) with none of its downstream calls under it, from a Node.js service** — OBI's Node.js agent is not running in that process. Look for `type=nodejs` and `loading NodeJS instrumentation` in the OBI logs:
+
+    ```bash
+    kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=-1 \
+      | grep -E 'instrumenting process.*cmd=[^ ]*node|NodeJS'
+    ```
+
+    `type=rust` on a `node` executable means the OBI version cannot identify that Node.js build: Node.js 25 and later contain Rust code, and OBI before v0.14 checked for Rust before checking for Node.js. Upgrade the agent so it runs an OBI that identifies Node correctly. `skipping agent injection` means the process handles `SIGUSR1` itself, which OBI will not interfere with, and `ebpf.nodejs.enabled: false` turns the agent off entirely.
+- **A request whose caller is in another service** — expected: cross-service links need trace context on the wire. See *Cross-service trace linking* above.
 
 ### `kubectl exec` into an agent pod fails — no shell, curl, or bash
 
