@@ -71,7 +71,7 @@ const ALLOWED_DIALOG_FINDINGS: Array<AllowedDialogFinding> = [
     rule: "dismissal-coloured",
     title: "Your backup codes",
     reason:
-      "\"Done\" is not a way out here but the step that finishes setting up two-factor sign-in: it stays disabled until the user ticks that they have saved the codes, and the dialog deliberately has no Cancel, X or Escape. Finishing is the affirmative action.",
+      '"Done" is not a way out here but the step that finishes setting up two-factor sign-in: it stays disabled until the user ticks that they have saved the codes, and the dialog deliberately has no Cancel, X or Escape. Finishing is the affirmative action.',
   },
 ];
 
@@ -348,9 +348,7 @@ describe("one primary 'do it' button per dialog", () => {
     for (const allowed of ALLOWED_REPEATED_FILLED_BUTTONS) {
       expect(
         scan.repeated.some((button: RepeatedFilledButton) => {
-          return (
-            button.file === allowed.file && button.label === allowed.label
-          );
+          return button.file === allowed.file && button.label === allowed.label;
         }),
       ).toBe(true);
       expect(allowed.reason.length).toBeGreaterThan(40);
@@ -504,7 +502,9 @@ describe("the guard catches the faults the audit fixed", () => {
           return group.labels.join(" | ");
         },
       ),
-    ).toEqual(["title || `Connect with Slack` | Uninstall OneUptime from Slack"]);
+    ).toEqual([
+      "title || `Connect with Slack` | Uninstall OneUptime from Slack",
+    ]);
   });
 
   test("a primary bulk Remove Labels", () => {

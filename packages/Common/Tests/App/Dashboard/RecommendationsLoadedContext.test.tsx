@@ -105,6 +105,9 @@ import { getDatabaseAlertTemplates } from "../../../Types/Monitor/DatabaseAlertT
 import { MonitorRecommendationResourceType } from "../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import ObjectID from "../../../Types/ObjectID";
 
+// A filled button - what a primary button looks like, whatever its colour.
+const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
+
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: new Route(
     `/dashboard/${PROJECT_ID}/databases/${DATABASE_ID}/recommendations`,
@@ -296,7 +299,7 @@ describe("the database Recommendations tab renders from the loaded context", () 
 
     const filledButtons: FilledButtonsFunction = (): Array<HTMLElement> => {
       return screen.getAllByRole("button").filter((button: HTMLElement) => {
-        return /\bbg-(indigo|red|green|yellow)-600\b/.test(button.className);
+        return FILLED_BUTTON_CLASS.test(button.className);
       });
     };
 

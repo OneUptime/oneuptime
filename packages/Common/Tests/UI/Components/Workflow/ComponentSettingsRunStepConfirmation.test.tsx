@@ -15,6 +15,9 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { describe, expect, jest, test } from "@jest/globals";
 
+// A filled button - what a primary button looks like, whatever its colour.
+const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
+
 /*
  * "Shouldn't 'Run this step' be primary?" - the maintainer, looking at the
  * workflow builder's confirmation. It drew Cancel and "Run this step" as the
@@ -127,7 +130,7 @@ const filledButtonsIn: FilledButtonsInFunction = (
   return within(dialog)
     .getAllByRole("button")
     .filter((button: HTMLElement) => {
-      return /\bbg-(indigo|red|green|yellow)-600\b/.test(button.className);
+      return FILLED_BUTTON_CLASS.test(button.className);
     });
 };
 
@@ -274,7 +277,7 @@ describe("the step settings dialog itself", () => {
     const filled: Array<HTMLElement> = within(footer)
       .getAllByRole("button")
       .filter((button: HTMLElement) => {
-        return /\bbg-(indigo|red|green|yellow)-600\b/.test(button.className);
+        return FILLED_BUTTON_CLASS.test(button.className);
       });
 
     expect(filled).toHaveLength(1);

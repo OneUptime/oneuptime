@@ -350,10 +350,9 @@ function evaluateBranches<T>(
           continue;
         }
 
-        const pathWithThisSide: Map<string, boolean> = new Map<
-          string,
-          boolean
-        >(branch.path);
+        const pathWithThisSide: Map<string, boolean> = new Map<string, boolean>(
+          branch.path,
+        );
         pathWithThisSide.set(key, whenTrue);
         result.push({ value: branch.value, path: pathWithThisSide });
       }
@@ -402,7 +401,10 @@ function readLabel(
         return single(fallback);
       }
 
-      if (ts.isStringLiteral(leaf) || ts.isNoSubstitutionTemplateLiteral(leaf)) {
+      if (
+        ts.isStringLiteral(leaf) ||
+        ts.isNoSubstitutionTemplateLiteral(leaf)
+      ) {
         return single(leaf.text);
       }
 
@@ -647,8 +649,7 @@ function tagNameOf(opening: JsxOpening): string {
 
 function lineOf(node: ts.Node, sourceFile: ts.SourceFile): number {
   return (
-    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line +
-    1
+    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1
   );
 }
 
@@ -977,18 +978,19 @@ export function findButtonGroupsWithTwoFilled(
   const imports: ImportedComponents = readImports(sourceFile, fileName);
   const groups: Array<ButtonGroupWithTwoFilled> = [];
 
-  const filledStyleOf: (expression: ts.Expression | null | undefined) => boolean =
-    (expression: ts.Expression | null | undefined): boolean => {
-      if (!expression) {
-        return false;
-      }
+  const filledStyleOf: (
+    expression: ts.Expression | null | undefined,
+  ) => boolean = (expression: ts.Expression | null | undefined): boolean => {
+    if (!expression) {
+      return false;
+    }
 
-      return readStyle(expression, sourceFile, null, imports.styleEnums).some(
-        (branch: Branch<StyleName>): boolean => {
-          return branch.value !== null && FILLED_STYLES.has(branch.value);
-        },
-      );
-    };
+    return readStyle(expression, sourceFile, null, imports.styleEnums).some(
+      (branch: Branch<StyleName>): boolean => {
+        return branch.value !== null && FILLED_STYLES.has(branch.value);
+      },
+    );
+  };
 
   const schemaStyle: (
     node: ts.ObjectLiteralExpression,
@@ -1335,10 +1337,7 @@ function footerVariantsOf(
     return name ? props.values.get(name) : undefined;
   };
 
-  const presence: (
-    always: boolean,
-    name: string,
-  ) => Array<Branch<boolean>> = (
+  const presence: (always: boolean, name: string) => Array<Branch<boolean>> = (
     always: boolean,
     name: string,
   ): Array<Branch<boolean>> => {
@@ -1563,7 +1562,10 @@ function analyzeDialog(
       const name: string = property.name.getText();
 
       // The footer's own style props were read above.
-      if (name === contract.submitStyleProp || name === contract.cancelStyleProp) {
+      if (
+        name === contract.submitStyleProp ||
+        name === contract.cancelStyleProp
+      ) {
         continue;
       }
 

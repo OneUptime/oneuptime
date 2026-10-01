@@ -37,6 +37,9 @@ import WebAuthnTestUtil, {
 import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 
+// A filled button - what a primary button looks like, whatever its colour.
+const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
+
 /*
  * These tests expect the SSO choice next to the password and passkey ones,
  * which the page offers in every edition. Pinned to the Community Edition
@@ -158,7 +161,7 @@ describe("Passwordless passkey login", () => {
     const filled: Array<HTMLElement> = screen
       .getAllByRole("button")
       .filter((button: HTMLElement) => {
-        return /\bbg-(indigo|red|green|yellow)-600\b/.test(button.className);
+        return FILLED_BUTTON_CLASS.test(button.className);
       });
 
     expect(passkey).toHaveClass("bg-white");

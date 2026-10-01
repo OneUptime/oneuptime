@@ -15,6 +15,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
+// A filled button - what a primary button looks like, whatever its colour.
+const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
+
 describe("ConfirmModal", () => {
   const mockProps: ComponentProps = {
     title: "Confirmation Title",
@@ -221,7 +224,7 @@ describe("ConfirmModal button styles", () => {
         .getByTestId("modal-footer")
         .querySelectorAll<HTMLElement>("button"),
     ).filter((button: HTMLElement) => {
-      return /\bbg-(indigo|red|green|yellow)-600\b/.test(button.className);
+      return FILLED_BUTTON_CLASS.test(button.className);
     });
 
     expect(filled).toHaveLength(1);

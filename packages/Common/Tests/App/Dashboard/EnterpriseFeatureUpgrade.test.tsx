@@ -131,6 +131,9 @@ import StatusPageSSO from "../../../Models/DatabaseModels/StatusPageSso";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import IconProp from "../../../Types/Icon/IconProp";
 
+// A filled button - what a primary button looks like, whatever its colour.
+const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
+
 type Deployment = "cloud" | "self-hosted-enterprise" | "self-hosted-community";
 
 const pinDeployment: (deployment: Deployment) => void = (
@@ -625,7 +628,7 @@ describe("EnterpriseFeatureUpgrade", () => {
     const filled: Array<HTMLElement> = screen
       .getAllByRole("button")
       .filter((button: HTMLElement) => {
-        return /\bbg-(indigo|red|green|yellow)-600\b/.test(button.className);
+        return FILLED_BUTTON_CLASS.test(button.className);
       });
 
     expect(ctas).toHaveLength(2);
@@ -735,7 +738,7 @@ describe("the admin dashboard's EnterpriseFeatureUpgrade", () => {
     const filled: Array<HTMLElement> = screen
       .getAllByRole("button")
       .filter((button: HTMLElement) => {
-        return /\bbg-(indigo|red|green|yellow)-600\b/.test(button.className);
+        return FILLED_BUTTON_CLASS.test(button.className);
       });
 
     expect(ctas).toHaveLength(2);

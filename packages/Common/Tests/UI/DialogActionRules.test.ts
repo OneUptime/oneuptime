@@ -174,13 +174,19 @@ describe("the affirmative action is PRIMARY or DANGER", () => {
 
   test("Modal and the form modals default to PRIMARY", () => {
     expect(
-      rulesOf(`<Modal title="Edit" onSubmit={() => {}} onClose={() => {}}><div /></Modal>`),
+      rulesOf(
+        `<Modal title="Edit" onSubmit={() => {}} onClose={() => {}}><div /></Modal>`,
+      ),
     ).toEqual([]);
     expect(
-      rulesOf(`<BasicFormModal title="Edit" onSubmit={() => {}} onClose={() => {}} formProps={{ fields: [] }} />`),
+      rulesOf(
+        `<BasicFormModal title="Edit" onSubmit={() => {}} onClose={() => {}} formProps={{ fields: [] }} />`,
+      ),
     ).toEqual([]);
     expect(
-      rulesOf(`<ModelFormModal title="Create" modelType={Monitor} onClose={() => {}} formProps={{ fields: [] }} />`),
+      rulesOf(
+        `<ModelFormModal title="Create" modelType={Monitor} onClose={() => {}} formProps={{ fields: [] }} />`,
+      ),
     ).toEqual([]);
   });
 
@@ -244,7 +250,9 @@ describe("a way out is plain, and there is one of it", () => {
     ).toEqual([]);
 
     expect(
-      rulesOf(`<Modal title="Coverage" onClose={() => {}} closeButtonText="Close"><div /></Modal>`),
+      rulesOf(
+        `<Modal title="Coverage" onClose={() => {}} closeButtonText="Close"><div /></Modal>`,
+      ),
     ).toEqual([]);
   });
 
@@ -294,11 +302,15 @@ describe("a way out is plain, and there is one of it", () => {
 
   test("a SideOver always has Close, so a Done submit is a second way out", () => {
     expect(
-      rulesOf(`<SideOver title="x" description="x" onClose={() => {}} onSubmit={() => {}} submitButtonText="Done"><div /></SideOver>`),
+      rulesOf(
+        `<SideOver title="x" description="x" onClose={() => {}} onSubmit={() => {}} submitButtonText="Done"><div /></SideOver>`,
+      ),
     ).toEqual(["dismissal-coloured", "two-dismissals"]);
 
     expect(
-      rulesOf(`<SideOver title="x" description="x" onClose={() => {}} onSubmit={() => {}} submitButtonText="Create Monitors"><div /></SideOver>`),
+      rulesOf(
+        `<SideOver title="x" description="x" onClose={() => {}} onSubmit={() => {}} submitButtonText="Create Monitors"><div /></SideOver>`,
+      ),
     ).toEqual([]);
   });
 });
@@ -523,7 +535,9 @@ const X = () => <Modal title="x" onSubmit={() => {}} onClose={() => {}} submitBu
 
   test("a wrapper that spreads its props into the dialog is left to its callers", () => {
     expect(
-      rulesOf(`<Modal {...props} submitButtonText="Close" onSubmit={() => {}} onClose={() => {}}><div /></Modal>`),
+      rulesOf(
+        `<Modal {...props} submitButtonText="Close" onSubmit={() => {}} onClose={() => {}}><div /></Modal>`,
+      ),
     ).toEqual([]);
   });
 
