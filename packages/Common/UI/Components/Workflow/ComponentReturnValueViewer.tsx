@@ -1,3 +1,5 @@
+import CopyTextButton from "../CopyTextButton/CopyTextButton";
+import BreakableCode from "./BreakableCode";
 import { ReturnValue } from "../../../Types/Workflow/Component";
 import { componentReturnValueReference } from "../../../Types/Workflow/TemplateSyntax";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -15,6 +17,13 @@ export interface ComponentProps {
   componentId?: string | undefined;
 }
 
+/*
+ * One row per value, the full width of the dialog: its name and type, what it
+ * holds, and the reference that reads it with a button to copy it. The
+ * reference wraps only between its parts (see BreakableCode). In the old narrow
+ * sidebar it wrapped wherever it hit a hyphen, three lines to a reference, and
+ * there was no way to copy it short of selecting it by hand.
+ */
 const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -24,105 +33,78 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
         <h2 className="text-sm font-semibold text-gray-600">{props.name}</h2>
       )}
       {props.description && (
-        <p className="text-xs text-gray-400 mb-2">{props.description}</p>
+        <p className="mb-2 text-xs text-gray-500">{props.description}</p>
       )}
       {props.returnValues && props.returnValues.length === 0 && (
-        <p className="text-xs text-gray-400 italic">
+        <p className="text-xs italic text-gray-500">
           This step does not return any data.
         </p>
       )}
-      <div>
-        {props.returnValues &&
-          props.returnValues.length > 0 &&
-          props.returnValues.map((returnValue: ReturnValue, i: number) => {
+      {props.returnValues && props.returnValues.length > 0 && (
+        <ul className="space-y-2">
+          {props.returnValues.map((returnValue: ReturnValue, i: number) => {
+            const reference: string | null = props.componentId
+              ? componentReturnValueReference(
+                  props.componentId,
+                  returnValue.id,
+                )
+              : null;
+
             return (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "0.625rem",
-                  padding: "0.5rem 0.75rem",
-                  borderRadius: "8px",
-                  backgroundColor: "var(--ou-surface-secondary, #f8fafc)",
-                  border: "1px solid var(--ou-border-subtle, #f1f5f9)",
-                  marginBottom: "0.375rem",
-                }}
+              <li
+                key={returnValue.id || i}
+                className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5"
+                data-testid="workflow-return-value"
               >
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <p
-                    style={{
-                      fontSize: "0.8125rem",
-                      fontWeight: 500,
-                      color: "var(--ou-text-secondary, #334155)",
-                      margin: 0,
-                      lineHeight: "1.25rem",
-                    }}
+                {/*
+                 * The type sits right after the name rather than at the far
+                 * end of the row: on a phone a pill pinned to the right edge
+                 * squeezed the name onto two lines, and on a wide dialog it
+                 * was a long way from the name it describes.
+                 */}
+                <p className="text-sm font-medium text-gray-900">
+                  {returnValue.name}
+                  <span
+                    className="ml-2 inline-block whitespace-nowrap rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 align-middle text-[11px] font-medium leading-4 text-indigo-700"
+                    data-testid="workflow-return-value-type"
                   >
-                    {returnValue.name}
-                    <span
-                      style={{
-                        color: "var(--ou-text-subtle, #94a3b8)",
-                        fontWeight: 400,
-                        fontSize: "0.6875rem",
-                        marginLeft: "0.375rem",
-                        fontFamily:
-                          'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
-                      }}
-                    >
-                      {returnValue.id}
-                    </span>
+                    {returnValue.type}
+                  </span>
+                </p>
+                {returnValue.description && (
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    {returnValue.description}
                   </p>
-                  {returnValue.description && (
-                    <p
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "var(--ou-text-subtle, #94a3b8)",
-                        margin: 0,
-                        lineHeight: "1rem",
-                      }}
-                    >
-                      {returnValue.description}
-                    </p>
-                  )}
-                  {props.componentId && (
-                    <code
-                      style={{
-                        display: "block",
-                        marginTop: "0.25rem",
-                        fontSize: "0.6875rem",
-                        color: "var(--ou-text-subtle, #94a3b8)",
-                        fontFamily:
-                          'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
-                        overflowWrap: "anywhere",
-                      }}
-                    >
-                      {componentReturnValueReference(
-                        props.componentId,
-                        returnValue.id,
-                      )}
-                    </code>
-                  )}
-                </div>
-                <span
-                  style={{
-                    fontSize: "0.6875rem",
-                    fontWeight: 500,
-                    color: "var(--ou-link, #6366f1)",
-                    backgroundColor: "var(--ou-accent-soft, #eef2ff)",
-                    padding: "0.125rem 0.5rem",
-                    borderRadius: "100px",
-                    whiteSpace: "nowrap",
-                    border: "1px solid var(--ou-accent-muted, #e0e7ff)",
-                  }}
-                >
-                  {returnValue.type}
-                </span>
-              </div>
+                )}
+                {reference ? (
+                  <div className="mt-2 flex items-start gap-2">
+                    <BreakableCode
+                      text={reference}
+                      breakAfter="."
+                      dataTestId="workflow-return-value-reference"
+                      className="block min-w-0 overflow-x-auto rounded-md border border-gray-200 bg-white px-2 py-1 text-xs leading-5 text-gray-700"
+                    />
+                    <CopyTextButton
+                      textToBeCopied={reference}
+                      iconOnly={true}
+                      size="sm"
+                      title={`Copy the reference to ${returnValue.name}`}
+                      className="mt-0.5 shrink-0"
+                    />
+                  </div>
+                ) : (
+                  <BreakableCode
+                    text={returnValue.id}
+                    breakAfter="-"
+                    dataTestId="workflow-return-value-id"
+                    className="mt-1 block text-[11px] text-gray-500"
+                  />
+                )}
+              </li>
             );
           })}
-      </div>
+        </ul>
+      )}
     </div>
   );
 };
