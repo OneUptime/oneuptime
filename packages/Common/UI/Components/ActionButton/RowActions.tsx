@@ -41,7 +41,7 @@ export interface ComponentProps<T extends GenericObject> {
 /*
  * OUTLINE and its hover variants are drawn by a `btn-outline-secondary` class
  * that no stylesheet defines, so they render as bare text. That was tolerable
- * in a strip of buttons; as the row's one button, sat beside a bordered ⋯, it
+ * in a strip of buttons; as the row's one button, sat beside a bare ⋯, it
  * reads as a stray label. The row's button always looks like a button.
  */
 const getRowButtonStyle: (style: ButtonStyleType) => ButtonStyleType = (
@@ -218,11 +218,14 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
               type="button"
               data-testid="row-actions-more-button"
               /*
-               * Sized to the Small row button beside it: that button's label
-               * is text-base below md and text-sm above, so the trigger's
-               * vertical padding steps down at md to keep the two level.
+               * A bare ⋯, like the one in a card header: no outline, fill or
+               * shadow until it is hovered. It keeps a transparent border so
+               * it stays the height of the Small row button beside it - that
+               * button's label is text-base below md and text-sm above, so the
+               * trigger's vertical padding steps down at md to keep the two
+               * level.
                */
-              className="inline-flex shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white px-1.5 py-1.5 md:py-1 text-gray-500 shadow-sm transition-colors duration-150 ease-out hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              className="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent px-1.5 py-1.5 md:py-1 text-gray-500 transition-colors duration-150 ease-out hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
               <Icon icon={IconProp.EllipsisHorizontal} className="h-5 w-5" />
             </button>
