@@ -79,6 +79,12 @@ import {
 })
 @CrudApiEndpoint(new Route("/workflow"))
 @SlugifyColumn("name", "slug")
+/*
+ * Every list of this resource pins `isArchived` inside a project (the
+ * main list hides archived rows, the Archived page shows only them), so
+ * the pair is indexed together, like every other archivable resource.
+ */
+@Index(["projectId", "isArchived"])
 @Entity({
   name: "Workflow",
 })
@@ -424,6 +430,155 @@ export default class Workflow extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
+
+  /*
+   * Archiving retires a workflow without deleting it or its run history: it
+   * leaves the Workflows list and never runs again from any trigger - manual
+   * runs, webhooks, schedules, model events and incoming email are all
+   * refused (see QueueWorkflow, RunWorkflow and the trigger components).
+   * Deliberately a separate flag from `isEnabled`: unarchiving must not
+   * switch on a workflow somebody had turned off, and turning one on must
+   * not pull it back out of the archive.
+   *
+   * No dedicated permission: archiving is an update, so it is gated by Edit.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateWorkflow,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.DeleteWorkflow,
+      Permission.EditWorkflow,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Archived",
+    description:
+      "Archived workflows are hidden from the Workflows list and never run, from any trigger. Unarchiving restores them as they were.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isArchived?: boolean = undefined;
+
+  /*
+   * Stamped server-side from the `isArchived` write (see
+   * DatabaseService.sanitizeCreateOrUpdate), which is why these are read-only
+   * to the client: "who archived this and when" cannot be spoofed.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Archived At",
+    description:
+      "When this workflow was archived. Empty while it is not archived.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public archivedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "archivedByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Archived by User",
+    description:
+      "Relation to User who archived this object (if this object was archived by a User)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "archivedByUserId" })
+  public archivedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Archived by User ID",
+    description:
+      "User ID who archived this object (if this object was archived by a User)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public archivedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
