@@ -75,6 +75,7 @@ interface StoredWorkflow {
   key: string;
   triggerId: string;
   isEnabled: boolean;
+  isArchived?: boolean;
 }
 
 let stored: Array<StoredWorkflow> = [];
@@ -87,6 +88,10 @@ const workflowRow: (row: StoredWorkflow) => Workflow = (
   workflow.projectId = new ObjectID(row.projectId);
   workflow.triggerId = row.triggerId;
   workflow.isEnabled = row.isEnabled;
+
+  if (row.isArchived !== undefined) {
+    workflow.isArchived = row.isArchived;
+  }
 
   return workflow;
 };
@@ -329,6 +334,44 @@ describe("mail that starts nothing", () => {
 
     expect(status).toBe(IncomingEmailTriggerDeliveryStatus.WorkflowDisabled);
     expect(runs).toEqual([]);
+  });
+
+  test("an archived workflow starts no run, even though it is on", async () => {
+    stored[0]!.isArchived = true;
+
+    const { status, runs } = await deliver({ secretKey: KEY_A });
+
+    expect(status).toBe(IncomingEmailTriggerDeliveryStatus.WorkflowArchived);
+    expect(runs).toEqual([]);
+  });
+
+  test("archived is the reason given when the workflow is also off", async () => {
+    stored[0]!.isArchived = true;
+    stored[0]!.isEnabled = false;
+
+    const { status } = await deliver({ secretKey: KEY_A });
+
+    expect(status).toBe(IncomingEmailTriggerDeliveryStatus.WorkflowArchived);
+  });
+
+  test("an unarchived workflow takes its mail again", async () => {
+    stored[0]!.isArchived = false;
+
+    const { status, runs } = await deliver({ secretKey: KEY_A });
+
+    expect(status).toBe(IncomingEmailTriggerDeliveryStatus.Scheduled);
+    expect(runs).toHaveLength(1);
+  });
+
+  test("the lookup reads the archive flag with the switch", async () => {
+    await deliver({ secretKey: KEY_A });
+
+    const select: Record<string, unknown> = (
+      findOneBy.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(select["isArchived"]).toBe(true);
+    expect(select["isEnabled"]).toBe(true);
   });
 
   test.each([
