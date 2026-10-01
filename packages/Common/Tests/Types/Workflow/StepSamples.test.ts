@@ -228,10 +228,11 @@ describe("describeSampleValue", () => {
   test("says what each field held, and what shape it is", () => {
     const value: StepSampleValue = describeValue(ALERT_BODY);
 
+    // Text is quoted, so it reads as what was held, not as a description.
     expect(field(value, "environment")).toEqual({
       path: "environment",
       kind: StepSampleKind.Text,
-      preview: "production",
+      preview: '"production"',
     });
     expect(field(value, "incident")).toEqual({
       path: "incident",
@@ -248,13 +249,13 @@ describe("describeSampleValue", () => {
     expect(field(value, "incident.owner")?.preview).toBe("empty");
     expect(field(value, "tags")?.kind).toBe(StepSampleKind.List);
     expect(field(value, "tags")?.preview).toBe("2 items");
-    expect(field(value, "tags[0]")?.preview).toBe("db");
+    expect(field(value, "tags[0]")?.preview).toBe('"db"');
   });
 
   test("reads a list by its first item, the one [0] reads", () => {
     const value: StepSampleValue = describeValue(ALERT_BODY);
 
-    expect(field(value, "alerts[0].status")?.preview).toBe("firing");
+    expect(field(value, "alerts[0].status")?.preview).toBe('"firing"');
     expect(field(value, "alerts[1].status")).toBeUndefined();
   });
 
@@ -267,7 +268,7 @@ describe("describeSampleValue", () => {
     expect(value.kind).toBe(StepSampleKind.List);
     expect(value.preview).toBe("2 items");
     expect(paths(value)).toEqual(["[0]", "[0].name"]);
-    expect(field(value, "[0].name")?.preview).toBe("first");
+    expect(field(value, "[0].name")?.preview).toBe('"first"');
   });
 
   test("a list inside a list is not indexed twice: the runtime reads one index per part", () => {
@@ -314,8 +315,8 @@ describe("describeSampleValue", () => {
     const preview: string = field(value, "message")?.preview as string;
 
     expect(preview.length).toBeLessThanOrEqual(STEP_SAMPLE_PREVIEW_LENGTH);
-    expect(preview.endsWith("…")).toBe(true);
-    expect(preview.startsWith("first line word word")).toBe(true);
+    expect(preview.endsWith('…"')).toBe(true);
+    expect(preview.startsWith('"first line word word')).toBe(true);
     expect(preview).not.toContain("\n");
   });
 
@@ -335,7 +336,7 @@ describe("describeSampleValue", () => {
     expect(field(value, "x-api-key")?.isHidden).toBe(true);
     expect(field(value, "credentials.username")?.isHidden).toBe(true);
     expect(field(value, "credentials.nested.pin")?.isHidden).toBe(true);
-    expect(field(value, "host")?.preview).toBe("example.com");
+    expect(field(value, "host")?.preview).toBe('"example.com"');
 
     const serialized: string = JSON.stringify(value);
 
@@ -379,9 +380,11 @@ describe("describeSampleValue", () => {
     expect(paths(value)).toEqual(["_id", "createdAt", "title"]);
     expect(field(value, "_id")?.kind).toBe(StepSampleKind.Text);
     expect(field(value, "_id")?.preview).toBe(
-      "6f1c2d3e-0000-4000-8000-000000000001",
+      '"6f1c2d3e-0000-4000-8000-000000000001"',
     );
-    expect(field(value, "createdAt")?.preview).toBe("2026-10-01T11:58:00.000Z");
+    expect(field(value, "createdAt")?.preview).toBe(
+      '"2026-10-01T11:58:00.000Z"',
+    );
   });
 
   test("a class instance reads as its JSON, and a date as its time", () => {
@@ -391,9 +394,9 @@ describe("describeSampleValue", () => {
     });
 
     expect(field(value, "id")?.preview).toBe(
-      "6f1c2d3e-0000-4000-8000-000000000002",
+      '"6f1c2d3e-0000-4000-8000-000000000002"',
     );
-    expect(field(value, "at")?.preview).toBe("2026-10-01T11:00:00.000Z");
+    expect(field(value, "at")?.preview).toBe('"2026-10-01T11:00:00.000Z"');
   });
 
   test(`goes ${STEP_SAMPLE_MAX_DEPTH} keys deep, and says when there was more`, () => {
@@ -461,7 +464,7 @@ describe("describeSampleValue", () => {
   test("text, a number and a switch are values with nothing inside", () => {
     expect(describeValue("plain body")).toEqual({
       kind: StepSampleKind.Text,
-      preview: "plain body",
+      preview: '"plain body"',
       fields: [],
       ranAt: RAN_AT,
     });
@@ -542,7 +545,7 @@ describe("collectStepSamples", () => {
       ?.returnValues["request-body"];
 
     expect(field(body as StepSampleValue, "environment")?.preview).toBe(
-      "production",
+      '"production"',
     );
     expect(body?.ranAt).toBe("2026-10-01T12:00:00.100Z");
   });
@@ -565,7 +568,7 @@ describe("collectStepSamples", () => {
     ]!;
 
     expect(body.kind).toBe(StepSampleKind.Object);
-    expect(field(body, "incident.title")?.preview).toBe("Real");
+    expect(field(body, "incident.title")?.preview).toBe('"Real"');
   });
 
   test("a step that worked beats a newer one that failed", () => {
@@ -626,7 +629,7 @@ describe("collectStepSamples", () => {
         "webhook-1",
       )!.returnValues["request-body"]!;
 
-      expect(field(body, "v")?.preview).toBe("new");
+      expect(field(body, "v")?.preview).toBe('"new"');
     }
   });
 

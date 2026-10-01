@@ -46,7 +46,10 @@ export interface StepSampleField {
    */
   path: string;
   kind: StepSampleKind;
-  /** What it held, shortened: "production", "3 fields". Absent when hidden. */
+  /**
+   * What it held, shortened: '"production"' (text is quoted), "3 fields".
+   * Absent when hidden.
+   */
   preview?: string | undefined;
   /** Its sample is not shown: it looks like a secret, or the run redacted it. */
   isHidden?: boolean | undefined;
@@ -327,21 +330,21 @@ const kindOf: KindOfFunction = (value: unknown): StepSampleKind => {
   }
 };
 
-type ShortenFunction = (text: string) => string;
+type ShortenFunction = (text: string, maxLength: number) => string;
 
-const shorten: ShortenFunction = (text: string): string => {
+const shorten: ShortenFunction = (text: string, maxLength: number): string => {
   const oneLine: string = text.replace(/\s+/g, " ").trim();
 
-  if (oneLine.length <= STEP_SAMPLE_PREVIEW_LENGTH) {
+  if (oneLine.length <= maxLength) {
     return oneLine;
   }
 
-  return `${oneLine.slice(0, STEP_SAMPLE_PREVIEW_LENGTH - 1).trimEnd()}…`;
+  return `${oneLine.slice(0, maxLength - 1).trimEnd()}…`;
 };
 
 type PreviewOfFunction = (value: unknown) => string;
 
-/** A value in a few words: the text itself, "3 fields", "2 items", "empty". */
+/** A value in a few words: the text itself in quotes, "3 fields", "2 items", "empty". */
 const previewOf: PreviewOfFunction = (value: unknown): string => {
   if (value === null || value === undefined) {
     return "empty";
@@ -359,11 +362,17 @@ const previewOf: PreviewOfFunction = (value: unknown): string => {
     return count === 0 ? "no fields" : plural(count, "field", "fields");
   }
 
+  /*
+   * Text is quoted, so it reads as what the field held and never as a
+   * description of it: a field holding the words "2 fields" is not an object.
+   */
   if (typeof value === "string") {
-    return value.trim() === "" ? "empty text" : shorten(value);
+    return value.trim() === ""
+      ? "empty text"
+      : `"${shorten(value, STEP_SAMPLE_PREVIEW_LENGTH - 2)}"`;
   }
 
-  return shorten(String(value));
+  return shorten(String(value), STEP_SAMPLE_PREVIEW_LENGTH);
 };
 
 type IsStructuredFunction = (value: unknown) => boolean;

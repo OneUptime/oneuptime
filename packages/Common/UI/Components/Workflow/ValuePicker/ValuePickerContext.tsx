@@ -77,6 +77,12 @@ export interface ValuePickerContextValue {
   getChildren: (item: ValueSuggestion) => ChildrenState;
   /** Start loading what is inside a value. Does nothing if it already has. */
   loadChildren: (item: ValueSuggestion) => void;
+  /**
+   * Ask one source again, keeping what it gave until the new answer is in:
+   * the list does this while a note waits for something that can arrive at
+   * any moment, such as a webhook's first request.
+   */
+  refreshSource: (sourceId: string) => void;
 }
 
 const DEFAULT_CONTEXT: ValuePickerContextValue = {
@@ -93,6 +99,7 @@ const DEFAULT_CONTEXT: ValuePickerContextValue = {
     return IDLE_CHILDREN;
   },
   loadChildren: () => {},
+  refreshSource: () => {},
 };
 
 const ValuePickerContext: React.Context<ValuePickerContextValue> =
@@ -116,8 +123,16 @@ export interface ValuePickerProviderProps {
    * picker cannot tell, and offers every other step.
    */
   valueSources?: StepValueSources | undefined;
-  /** Where values come from. Defaults to the steps and the variables. */
+  /**
+   * Where values come from. Defaults to the steps, what they held the last
+   * times they ran, and the variables.
+   */
   sources?: Array<ValueSuggestionSource> | undefined;
+  /**
+   * The workflow's webhook URL, when the reader may see it, so a Webhook
+   * nothing has called yet can offer a test request to copy.
+   */
+  webhookUrl?: string | undefined;
   children: ReactNode;
 }
 
@@ -125,6 +140,8 @@ interface LoadedGroups {
   groups: Array<ValueSuggestionGroup>;
   error?: string | undefined;
   isLoading: boolean;
+  /** A background source's: never shown as loading or as failed. */
+  isBackground?: boolean | undefined;
 }
 
 export const ValuePickerProvider: FunctionComponent<
@@ -153,8 +170,26 @@ export const ValuePickerProvider: FunctionComponent<
       workflowId: props.workflowId,
       component: props.component,
       upstreamComponents: upstreamComponents,
+      webhookUrl: props.webhookUrl,
     };
-  }, [props.workflowId?.toString(), props.component, upstreamComponents]);
+  }, [
+    props.workflowId?.toString(),
+    props.component,
+    upstreamComponents,
+    props.webhookUrl,
+  ]);
+
+  /*
+   * What a refresh reads: the context and sources as they are when it runs,
+   * not as they were when the list opened.
+   */
+  const suggestionContextRef: React.MutableRefObject<ValueSuggestionContext> =
+    useRef<ValueSuggestionContext>(suggestionContext);
+  suggestionContextRef.current = suggestionContext;
+
+  const sourcesRef: React.MutableRefObject<Array<ValueSuggestionSource>> =
+    useRef<Array<ValueSuggestionSource>>(sources);
+  sourcesRef.current = sources;
 
   const syncGroups: Array<ValueSuggestionGroup> = useMemo(() => {
     return sources.flatMap((source: ValueSuggestionSource) => {
@@ -175,12 +210,25 @@ export const ValuePickerProvider: FunctionComponent<
         return step.id;
       })
       .join(","),
+    props.webhookUrl || "",
   ].join("|");
 
   const [loaded, setLoaded] = useState<Record<string, LoadedGroups>>({});
 
+  /*
+   * Bumped whenever the sources are asked afresh, so a refresh still in
+   * flight from before cannot overwrite what they now say.
+   */
+  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
+  const refreshingRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set<string>());
+
   useEffect(() => {
     let cancelled: boolean = false;
+    loadGenerationRef.current++;
+    refreshingRef.current = new Set<string>();
+
     const asyncSources: Array<ValueSuggestionSource> = sources.filter(
       (source: ValueSuggestionSource) => {
         return Boolean(source.loadGroups);
@@ -191,7 +239,11 @@ export const ValuePickerProvider: FunctionComponent<
       const next: Record<string, LoadedGroups> = {};
 
       for (const source of asyncSources) {
-        next[source.id] = { groups: [], isLoading: true };
+        next[source.id] = {
+          groups: [],
+          isLoading: true,
+          isBackground: Boolean(source.isBackground),
+        };
       }
 
       return next;
@@ -210,7 +262,11 @@ export const ValuePickerProvider: FunctionComponent<
           setLoaded((previous: Record<string, LoadedGroups>) => {
             return {
               ...previous,
-              [source.id]: { groups: groups, isLoading: false },
+              [source.id]: {
+                groups: groups,
+                isLoading: false,
+                isBackground: Boolean(source.isBackground),
+              },
             };
           });
         }
@@ -222,6 +278,7 @@ export const ValuePickerProvider: FunctionComponent<
               [source.id]: {
                 groups: [],
                 isLoading: false,
+                isBackground: Boolean(source.isBackground),
                 error: API.getFriendlyMessage(err),
               },
             };
@@ -248,19 +305,71 @@ export const ValuePickerProvider: FunctionComponent<
     ]);
   }, [syncGroups, loaded]);
 
+  // A background source is never waited on, nor reported when it fails.
   const isLoading: boolean = Object.values(loaded).some(
     (entry: LoadedGroups) => {
-      return entry.isLoading;
+      return entry.isLoading && !entry.isBackground;
     },
   );
 
   const loadErrors: Array<string> = Object.values(loaded)
+    .filter((entry: LoadedGroups) => {
+      return !entry.isBackground;
+    })
     .map((entry: LoadedGroups) => {
       return entry.error;
     })
     .filter((error: string | undefined): error is string => {
       return Boolean(error);
     });
+
+  const refreshSource: (sourceId: string) => void = useCallback(
+    (sourceId: string): void => {
+      const source: ValueSuggestionSource | undefined = sourcesRef.current.find(
+        (candidate: ValueSuggestionSource) => {
+          return candidate.id === sourceId && Boolean(candidate.loadGroups);
+        },
+      );
+
+      // One request at a time per source: a slow answer is not asked over.
+      if (!source || refreshingRef.current.has(sourceId)) {
+        return;
+      }
+
+      const generation: number = loadGenerationRef.current;
+      const refreshing: Set<string> = refreshingRef.current;
+
+      refreshing.add(sourceId);
+
+      void (async (): Promise<void> => {
+        try {
+          const groups: Array<ValueSuggestionGroup> = await source.loadGroups!(
+            suggestionContextRef.current,
+          );
+
+          if (generation !== loadGenerationRef.current) {
+            return;
+          }
+
+          setLoaded((previous: Record<string, LoadedGroups>) => {
+            return {
+              ...previous,
+              [sourceId]: {
+                groups: groups,
+                isLoading: false,
+                isBackground: Boolean(source.isBackground),
+              },
+            };
+          });
+        } catch {
+          // Keep what it said last; the next refresh asks again.
+        } finally {
+          refreshing.delete(sourceId);
+        }
+      })();
+    },
+    [],
+  );
 
   /*
    * The variable names that exist, for flagging a reference to one that does
@@ -396,6 +505,7 @@ export const ValuePickerProvider: FunctionComponent<
       describeReference: describeReference,
       getChildren: getChildren,
       loadChildren: loadChildren,
+      refreshSource: refreshSource,
     };
   }, [
     groups,
@@ -406,6 +516,7 @@ export const ValuePickerProvider: FunctionComponent<
     describeReference,
     getChildren,
     loadChildren,
+    refreshSource,
   ]);
 
   return (

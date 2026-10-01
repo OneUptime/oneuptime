@@ -69,10 +69,16 @@ export interface ComponentProps {
    */
   valueSources?: StepValueSources | undefined;
   /*
-   * Where the value picker's values come from: the steps before this one and
-   * the variables, unless a caller adds to that.
+   * Where the value picker's values come from: the steps before this one,
+   * what they held the last times they ran, and the variables, unless a
+   * caller says otherwise.
    */
   valueSuggestionSources?: Array<ValueSuggestionSource> | undefined;
+  /*
+   * The workflow's webhook URL, when the reader may see it. A step after a
+   * Webhook that nothing has called yet offers a test request to copy.
+   */
+  webhookUrl?: string | undefined;
   onFormChange: (value: NodeDataProp) => void;
 }
 
@@ -668,6 +674,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       graphComponents={props.graphComponents}
       valueSources={props.valueSources}
       sources={props.valueSuggestionSources}
+      webhookUrl={props.webhookUrl}
     >
       <div>
         {component.metadata.arguments &&

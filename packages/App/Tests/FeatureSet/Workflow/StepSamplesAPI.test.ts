@@ -409,7 +409,7 @@ describe("POST /workflow/step-samples/:workflowId", () => {
             return field.path === "incident.title";
           },
         )?.preview,
-      ).toBe("Database is down");
+      ).toBe('"Database is down"');
     });
 
     test("never with a credential, or with what the run redacted", async () => {

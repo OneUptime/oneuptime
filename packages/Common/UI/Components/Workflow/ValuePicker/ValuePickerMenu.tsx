@@ -7,13 +7,15 @@
  *
  * A record opens to its fields - the useful reference is almost always one
  * field of it, not the record - and a JSON value or a set of headers can be
- * opened to type a path into it.
+ * opened to type a path into it. Once a step has run, a value says what it
+ * held, and a JSON value opens to the fields it had (StepSampleSource).
  *
  * The list is searchable, and walked with the arrow keys and Enter.
  */
 
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
+import Clipboard from "../../../Utils/Clipboard";
 import {
   ChildrenState,
   ChildrenStatus,
@@ -23,6 +25,7 @@ import {
 import {
   ValueSuggestion,
   ValueSuggestionGroup,
+  ValueSuggestionNote,
   appendPathToReference,
   filterSuggestionGroups,
   suggestionMatches,
@@ -38,6 +41,20 @@ import React, {
   useRef,
   useState,
 } from "react";
+
+/*
+ * While a group's note waits for something - a webhook's first request - the
+ * open list asks its source again this often, for at most this long.
+ */
+export const NOTE_REFRESH_INTERVAL_MS: number = 3000;
+export const NOTE_REFRESH_MAX_MS: number = 10 * 60 * 1000;
+
+// How long "Copied!" stays on a note's Copy button.
+const COPIED_FEEDBACK_MS: number = 2000;
+
+export const HIDDEN_SAMPLE_TEXT: string = "hidden";
+export const HIDDEN_SAMPLE_TITLE: string =
+  "Not shown: it looks like a secret, or the run kept it hidden.";
 
 export interface ValuePickerMenuHandle {
   /**
@@ -82,6 +99,9 @@ interface MenuOption {
   description?: string | undefined;
   typeLabel?: string | undefined;
   badges?: Array<string> | undefined;
+  /** What it held the last time its step ran. */
+  sample?: string | undefined;
+  isSampleHidden?: boolean | undefined;
   /** What the option inserts, when it inserts something. */
   reference: string;
   /** Picking this opens it rather than inserting it. */
@@ -97,8 +117,30 @@ interface OptionSection {
   title?: string | undefined;
   subtitle?: string | undefined;
   iconProp?: IconProp | undefined;
+  note?: ValueSuggestionNote | undefined;
   options: Array<MenuOption>;
 }
+
+type FindItemFunction = (
+  groups: Array<ValueSuggestionGroup>,
+  reference: string,
+) => ValueSuggestion | undefined;
+
+// The item as the groups have it now, which a refresh may have filled in.
+const findItem: FindItemFunction = (
+  groups: Array<ValueSuggestionGroup>,
+  reference: string,
+): ValueSuggestion | undefined => {
+  for (const group of groups) {
+    for (const item of group.items) {
+      if (item.reference === reference && !item.searchOnly) {
+        return item;
+      }
+    }
+  }
+
+  return undefined;
+};
 
 const BADGE_CLASS: Record<string, string> = {
   [NOT_SELECTED_BADGE]: "border-gray-200 bg-gray-50 text-gray-500",
@@ -135,15 +177,113 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
         : picker.groups;
     }, [picker.groups, props.groupFilter]);
 
-    const drillChildren: ChildrenState | null = drill
-      ? picker.getChildren(drill.item)
+    /*
+     * The opened value as the list has it now. A request can arrive while it
+     * is open, and its fields should then appear rather than wait for Back.
+     */
+    const drillItem: ValueSuggestion | null = drill
+      ? findItem(groups, drill.item.reference) || drill.item
       : null;
 
+    const drillChildren: ChildrenState | null = drillItem
+      ? picker.getChildren(drillItem)
+      : null;
+
+    const drillHasLoader: boolean = Boolean(drillItem?.drillIn?.loadChildren);
+
     useEffect(() => {
-      if (drill) {
-        picker.loadChildren(drill.item);
+      if (drillItem) {
+        picker.loadChildren(drillItem);
       }
-    }, [drill]);
+    }, [drill, drillHasLoader]);
+
+    /*
+     * The sources whose notes wait for something: asked again every few
+     * seconds while the list is open, so a webhook's fields appear by
+     * themselves once a test request arrives.
+     */
+    const refreshSourceIds: string = useMemo(() => {
+      return Array.from(
+        new Set<string>(
+          groups
+            .map((group: ValueSuggestionGroup) => {
+              return group.note?.refreshSourceId || "";
+            })
+            .filter((id: string) => {
+              return Boolean(id);
+            }),
+        ),
+      )
+        .sort()
+        .join(",");
+    }, [groups]);
+
+    useEffect(() => {
+      if (!refreshSourceIds) {
+        return;
+      }
+
+      const ids: Array<string> = refreshSourceIds.split(",");
+      const startedAt: number = Date.now();
+
+      const timer: ReturnType<typeof setInterval> = setInterval((): void => {
+        if (Date.now() - startedAt > NOTE_REFRESH_MAX_MS) {
+          clearInterval(timer);
+          return;
+        }
+
+        // Nothing to show it to in a tab nobody is looking at.
+        if (
+          typeof document !== "undefined" &&
+          document.visibilityState === "hidden"
+        ) {
+          return;
+        }
+
+        for (const id of ids) {
+          picker.refreshSource(id);
+        }
+      }, NOTE_REFRESH_INTERVAL_MS);
+
+      return () => {
+        clearInterval(timer);
+      };
+    }, [refreshSourceIds, picker.refreshSource]);
+
+    const [copiedNoteKey, setCopiedNoteKey] = useState<string | null>(null);
+    const copiedTimerRef: React.MutableRefObject<ReturnType<
+      typeof setTimeout
+    > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+      return () => {
+        if (copiedTimerRef.current) {
+          clearTimeout(copiedTimerRef.current);
+        }
+      };
+    }, []);
+
+    type CopyNoteTextFunction = (key: string, text: string) => Promise<void>;
+
+    const copyNoteText: CopyNoteTextFunction = async (
+      key: string,
+      text: string,
+    ): Promise<void> => {
+      // A refused clipboard says nothing, rather than a "Copied!" that lies.
+      if (!(await Clipboard.copyToClipboard(text))) {
+        return;
+      }
+
+      setCopiedNoteKey(key);
+
+      if (copiedTimerRef.current) {
+        clearTimeout(copiedTimerRef.current);
+      }
+
+      copiedTimerRef.current = setTimeout((): void => {
+        setCopiedNoteKey(null);
+      }, COPIED_FEEDBACK_MS);
+    };
 
     // Start from the top whenever what is listed changes.
     useEffect(() => {
@@ -151,12 +291,14 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
     }, [query, drill]);
 
     const sections: Array<OptionSection> = useMemo(() => {
-      if (drill) {
+      if (drill && drillItem) {
         const whole: MenuOption = {
-          key: `whole:${drill.item.reference}`,
-          label: drill.item.drillIn?.wholeValueLabel || drill.item.label,
-          typeLabel: drill.item.typeLabel,
-          reference: drill.item.reference,
+          key: `whole:${drillItem.reference}`,
+          label: drillItem.drillIn?.wholeValueLabel || drillItem.label,
+          typeLabel: drillItem.typeLabel,
+          sample: drillItem.sample,
+          isSampleHidden: drillItem.isSampleHidden,
+          reference: drillItem.reference,
         };
 
         // Inline, what is typed is the reference so far, not a field's name.
@@ -173,6 +315,8 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
               description: child.description,
               typeLabel: child.typeLabel,
               badges: child.badges,
+              sample: child.sample,
+              isSampleHidden: child.isSampleHidden,
               reference: child.reference,
             };
           });
@@ -192,6 +336,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             title: group.title,
             subtitle: group.subtitle,
             iconProp: group.iconProp,
+            note: group.note,
             options: group.items.map((item: ValueSuggestion): MenuOption => {
               return {
                 key: item.reference,
@@ -199,8 +344,14 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 description: item.description,
                 typeLabel: item.typeLabel,
                 badges: item.badges,
+                sample: item.sample,
+                isSampleHidden: item.isSampleHidden,
                 reference: item.reference,
-                // A record is opened; anything else is inserted whole.
+                /*
+                 * A value whose fields are known - a record, or JSON a run
+                 * returned - is opened to them; anything else is inserted
+                 * whole.
+                 */
                 opens: Boolean(item.drillIn?.loadChildren),
                 canLookInside: Boolean(
                   item.drillIn &&
@@ -214,7 +365,15 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
           };
         },
       );
-    }, [drill, drillChildren, groups, query, search, props.hasSearchBox]);
+    }, [
+      drill,
+      drillItem,
+      drillChildren,
+      groups,
+      query,
+      search,
+      props.hasSearchBox,
+    ]);
 
     const options: Array<MenuOption> = useMemo(() => {
       return sections.flatMap((section: OptionSection) => {
@@ -450,6 +609,29 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
               </div>
             )}
           </div>
+          {/*
+           * What it held the last time its step ran, so the list says what
+           * is in a value and not only what it is called.
+           */}
+          {option.isSampleHidden ? (
+            <div
+              className="mt-0.5 flex max-w-[45%] shrink-0 items-center gap-1 text-xs text-gray-400"
+              title={HIDDEN_SAMPLE_TITLE}
+              data-testid="value-picker-sample"
+              data-hidden="true"
+            >
+              <Icon icon={IconProp.Lock} className="h-3 w-3 shrink-0" />
+              <span className="truncate">{HIDDEN_SAMPLE_TEXT}</span>
+            </div>
+          ) : option.sample !== undefined ? (
+            <span
+              className="mt-0.5 max-w-[45%] shrink-0 truncate text-xs text-gray-500"
+              title={option.sample}
+              data-testid="value-picker-sample"
+            >
+              {option.sample}
+            </span>
+          ) : null}
           {option.typeLabel && (
             <span className="mt-0.5 shrink-0 rounded border border-gray-200 px-1.5 text-[10px] font-medium uppercase leading-4 tracking-wide text-gray-500">
               {option.typeLabel}
@@ -485,6 +667,86 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
         </div>
       );
     };
+
+    type RenderNoteFunction = (section: OptionSection) => ReactElement | null;
+
+    /*
+     * Under a step's name: why there is nothing inside its values yet, and
+     * what to do about it - for a Webhook, a test request to copy. The list
+     * asks again while it waits, so the fields turn up by themselves.
+     */
+    const renderNote: RenderNoteFunction = (
+      section: OptionSection,
+    ): ReactElement | null => {
+      const note: ValueSuggestionNote | undefined = section.note;
+
+      if (!note) {
+        return null;
+      }
+
+      const isCopied: boolean = copiedNoteKey === section.key;
+      const copyText: string | undefined = note.copyText;
+
+      return (
+        <div
+          className="mx-1 mb-1 rounded-md bg-gray-50 px-2 py-1.5 text-xs text-gray-600"
+          data-testid="value-picker-group-note"
+        >
+          <div className="flex items-start gap-1.5">
+            <Icon
+              icon={IconProp.Info}
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400"
+            />
+            <span>{note.text}</span>
+          </div>
+          {copyText || note.waitingText ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 pl-5">
+              {copyText ? (
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium ${
+                    isCopied
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
+                  }`}
+                  data-testid="value-picker-note-copy"
+                  onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
+                    // The focus stays in the search box, or the field.
+                    event.preventDefault();
+                  }}
+                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                    event.stopPropagation();
+                    void copyNoteText(section.key, copyText);
+                  }}
+                >
+                  <Icon
+                    icon={isCopied ? IconProp.Check : IconProp.Copy}
+                    className="h-3.5 w-3.5"
+                  />
+                  {isCopied ? "Copied!" : note.copyLabel || "Copy"}
+                </button>
+              ) : null}
+              {note.waitingText ? (
+                <span
+                  className="inline-flex items-center gap-1.5 text-gray-500"
+                  role="status"
+                  data-testid="value-picker-note-waiting"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500"
+                  />
+                  {note.waitingText}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      );
+    };
+
+    const drillNote: string | undefined = drillItem?.drillIn?.note;
 
     let optionIndex: number = 0;
 
@@ -576,6 +838,19 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             </div>
           )}
 
+          {drill && drillNote && (
+            <div
+              className="mx-1 mb-1 flex items-start gap-1.5 rounded-md bg-gray-50 px-2 py-1.5 text-xs text-gray-600"
+              data-testid="value-picker-drill-note"
+            >
+              <Icon
+                icon={IconProp.Info}
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400"
+              />
+              <span>{drillNote}</span>
+            </div>
+          )}
+
           {sections.map((section: OptionSection) => {
             const headerId: string = `${listboxId}-${section.key}`;
 
@@ -607,6 +882,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                     )}
                   </div>
                 )}
+                {renderNote(section)}
                 {section.options.map((option: MenuOption) => {
                   return renderOption(option, optionIndex++);
                 })}
