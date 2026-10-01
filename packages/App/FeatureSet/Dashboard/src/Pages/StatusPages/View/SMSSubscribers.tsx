@@ -567,9 +567,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               onSubmit={handleBulkAddSubmit}
               formProps={{
                 name: "Bulk Add SMS Subscribers",
+                /*
+                 * Who to add, then what they hear about - only where the
+                 * page lets subscribers choose; otherwise it is one page.
+                 */
+                steps:
+                  allowSubscribersToChooseResources ||
+                  allowSubscribersToChooseEventTypes
+                    ? [
+                        { title: "Subscriber Info", id: "subscriber-info" },
+                        { title: "Notifications", id: "notifications" },
+                      ]
+                    : undefined,
                 fields: [
                   {
                     field: { phones: true },
+                    stepId: "subscriber-info",
                     title: "Phone Numbers",
                     description:
                       "One phone number per line (or separated by commas or semicolons). Invalid or duplicate entries will be skipped.",
@@ -579,6 +592,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   },
                   {
                     field: { sendYouHaveSubscribedMessage: true },
+                    stepId: "subscriber-info",
                     title: "Send Subscription SMS",
                     description:
                       'Send "You have subscribed to this status page" SMS to the subscribers.',
@@ -590,6 +604,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         {
                           field: { isSubscribedToAllResources: true },
                           title: "Subscribe to All Resources",
+                          stepId: "notifications",
                           description:
                             "Send notifications for all resources to these subscribers.",
                           fieldType: FormFieldSchemaType.Checkbox,
@@ -599,6 +614,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         {
                           field: { statusPageResources: true },
                           title: "Select Resources to Subscribe",
+                          stepId: "notifications",
                           description:
                             "Please select the resources these subscribers should receive notifications for.",
                           fieldType: FormFieldSchemaType.CategoryCheckbox,
@@ -616,6 +632,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         {
                           field: { isSubscribedToAllEventTypes: true },
                           title: "Subscribe to All Event Types",
+                          stepId: "notifications",
                           description:
                             "Send notifications for all event types to these subscribers.",
                           fieldType: FormFieldSchemaType.Checkbox,
@@ -625,6 +642,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         {
                           field: { statusPageEventTypes: true },
                           title: "Select Event Types to Subscribe",
+                          stepId: "notifications",
                           description:
                             "Please select the event types these subscribers should receive notifications for.",
                           fieldType: FormFieldSchemaType.MultiSelectDropdown,

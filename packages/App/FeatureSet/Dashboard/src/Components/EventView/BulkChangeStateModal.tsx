@@ -5,6 +5,7 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import Field from "Common/UI/Components/Forms/Types/Field";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import SelectFormFields from "Common/UI/Types/SelectEntityField";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -41,6 +42,65 @@ export interface ComponentProps {
 
 export const NOTIFY_SUBSCRIBERS_FIELD_KEY: string =
   "shouldStatusPageSubscribersBeNotified";
+
+/*
+ * The change itself - the new state, and whether subscribers hear about it -
+ * then the optional note and its template.
+ */
+export const BULK_CHANGE_STATE_FORM_STEPS: Array<FormStep<JSONObject>> = [
+  { title: "State", id: "state" },
+  { title: "Note", id: "note" },
+];
+
+/*
+ * Puts the modal's fields on BULK_CHANGE_STATE_FORM_STEPS, state step first.
+ * Only a form of more than three fields is stepped - all four questions are
+ * asked only for an event with both note templates and subscribers - so a
+ * shorter form stays one page.
+ */
+export const getBulkChangeStateFormLayout: (data: {
+  fields: Fields<JSONObject>;
+  stateFieldKey: string;
+}) => {
+  fields: Fields<JSONObject>;
+  steps: Array<FormStep<JSONObject>> | undefined;
+} = (data: {
+  fields: Fields<JSONObject>;
+  stateFieldKey: string;
+}): {
+  fields: Fields<JSONObject>;
+  steps: Array<FormStep<JSONObject>> | undefined;
+} => {
+  if (data.fields.length <= 3) {
+    return { fields: data.fields, steps: undefined };
+  }
+
+  const isOnStateStep: (field: Field<JSONObject>) => boolean = (
+    field: Field<JSONObject>,
+  ): boolean => {
+    const key: string = Object.keys(field.field || {})[0] || "";
+
+    return key === data.stateFieldKey || key === NOTIFY_SUBSCRIBERS_FIELD_KEY;
+  };
+
+  return {
+    fields: [
+      ...data.fields
+        .filter(isOnStateStep)
+        .map((field: Field<JSONObject>): Field<JSONObject> => {
+          return { ...field, stepId: "state" };
+        }),
+      ...data.fields
+        .filter((field: Field<JSONObject>): boolean => {
+          return !isOnStateStep(field);
+        })
+        .map((field: Field<JSONObject>): Field<JSONObject> => {
+          return { ...field, stepId: "note" };
+        }),
+    ],
+    steps: BULK_CHANGE_STATE_FORM_STEPS,
+  };
+};
 
 /**
  * The "Change State" modal behind a table's bulk action. It carries the same
@@ -130,6 +190,14 @@ const BulkChangeStateModal: FunctionComponent<ComponentProps> = (
     });
   }
 
+  const layout: {
+    fields: Fields<JSONObject>;
+    steps: Array<FormStep<JSONObject>> | undefined;
+  } = getBulkChangeStateFormLayout({
+    fields,
+    stateFieldKey: props.stateFieldKey,
+  });
+
   return (
     <BasicFormModal<JSONObject>
       title={props.title}
@@ -161,7 +229,8 @@ const BulkChangeStateModal: FunctionComponent<ComponentProps> = (
         });
       }}
       formProps={{
-        fields: fields,
+        fields: layout.fields,
+        steps: layout.steps,
       }}
     />
   );

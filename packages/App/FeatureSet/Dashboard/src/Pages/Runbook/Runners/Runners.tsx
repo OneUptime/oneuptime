@@ -3,6 +3,7 @@ import RunnerStatusElement from "../../../Components/Runner/RunnerStatus";
 import PageComponentProps from "../../PageComponentProps";
 import {
   NO_RUNNER_FORM_RESTRICTIONS,
+  RUNNER_FORM_STEPS,
   RunnerFormRestrictions,
   getRunnerFormRestrictions,
   getRunnerTableFormFields,
@@ -90,11 +91,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           "No Runners yet. Create one, then run the Docker command on a host inside your infrastructure."
         }
         viewPageRoute={Navigation.getCurrentRoute()}
-        formSteps={[
-          { title: "Runner", id: "runner" },
-          { title: "Capabilities", id: "capabilities" },
-          { title: "Labels", id: "labels" },
-        ]}
+        formSteps={RUNNER_FORM_STEPS}
         onBeforeEdit={(item: Runner): Promise<Runner> => {
           setEditingRestrictions(getRunnerFormRestrictions(item));
           return Promise.resolve(item);
