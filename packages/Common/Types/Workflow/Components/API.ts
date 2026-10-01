@@ -59,21 +59,23 @@ const components: Array<ComponentMetadata> = [
       {
         id: "response-status",
         name: "Response Status",
-        description: "Response Status (200, for example)",
+        description:
+          "The HTTP status code the server answered with, 200 for example.",
         type: ComponentInputType.Number,
         required: false,
       },
       {
         id: "response-headers",
         name: "Response Headers",
-        description: "Response Headers for this request",
+        description: "The headers the server answered with, by header name.",
         type: ComponentInputType.StringDictionary,
         required: false,
       },
       {
         id: "response-body",
         name: "Response Body",
-        description: "Response Body",
+        description:
+          "The body the server answered with. A JSON body can be read field by field.",
         type: ComponentInputType.JSON,
         required: false,
       },
@@ -154,21 +156,23 @@ const components: Array<ComponentMetadata> = [
       {
         id: "response-status",
         name: "Response Status",
-        description: "Response Status (200, for example)",
+        description:
+          "The HTTP status code the server answered with, 200 for example.",
         type: ComponentInputType.Number,
         required: false,
       },
       {
         id: "response-headers",
         name: "Response Headers",
-        description: "Response Headers for this request",
+        description: "The headers the server answered with, by header name.",
         type: ComponentInputType.StringDictionary,
         required: false,
       },
       {
         id: "response-body",
         name: "Response Body",
-        description: "Response Body",
+        description:
+          "The body the server answered with. A JSON body can be read field by field.",
         type: ComponentInputType.JSON,
         required: false,
       },
@@ -249,21 +253,23 @@ const components: Array<ComponentMetadata> = [
       {
         id: "response-status",
         name: "Response Status",
-        description: "Response Status (200, for example)",
+        description:
+          "The HTTP status code the server answered with, 200 for example.",
         type: ComponentInputType.Number,
         required: false,
       },
       {
         id: "response-headers",
         name: "Response Headers",
-        description: "Response Headers for this request",
+        description: "The headers the server answered with, by header name.",
         type: ComponentInputType.StringDictionary,
         required: false,
       },
       {
         id: "response-body",
         name: "Response Body",
-        description: "Response Body",
+        description:
+          "The body the server answered with. A JSON body can be read field by field.",
         type: ComponentInputType.JSON,
         required: false,
       },
@@ -344,21 +350,23 @@ const components: Array<ComponentMetadata> = [
       {
         id: "response-status",
         name: "Response Status",
-        description: "Response Status (200, for example)",
+        description:
+          "The HTTP status code the server answered with, 200 for example.",
         type: ComponentInputType.Number,
         required: false,
       },
       {
         id: "response-headers",
         name: "Response Headers",
-        description: "Response Headers for this request",
+        description: "The headers the server answered with, by header name.",
         type: ComponentInputType.StringDictionary,
         required: false,
       },
       {
         id: "response-body",
         name: "Response Body",
-        description: "Response Body",
+        description:
+          "The body the server answered with. A JSON body can be read field by field.",
         type: ComponentInputType.JSON,
         required: false,
       },
@@ -439,21 +447,23 @@ const components: Array<ComponentMetadata> = [
       {
         id: "response-status",
         name: "Response Status",
-        description: "Response Status (200, for example)",
+        description:
+          "The HTTP status code the server answered with, 200 for example.",
         type: ComponentInputType.Number,
         required: false,
       },
       {
         id: "response-headers",
         name: "Response Headers",
-        description: "Response Headers for this request",
+        description: "The headers the server answered with, by header name.",
         type: ComponentInputType.StringDictionary,
         required: false,
       },
       {
         id: "response-body",
         name: "Response Body",
-        description: "Response Body",
+        description:
+          "The body the server answered with. A JSON body can be read field by field.",
         type: ComponentInputType.JSON,
         required: false,
       },
