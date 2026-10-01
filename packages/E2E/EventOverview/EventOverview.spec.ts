@@ -4797,7 +4797,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
         await expect(menu).toBeVisible();
         await expect(modePicker(page)).toHaveAttribute("aria-expanded", "true");
 
-        // It used to open some 190px past the card's left edge.
+        // It used to open some 150px past the card's left edge.
         const menuBox: Box = await documentBox(menu);
         const picker: Box = await documentBox(modePicker(page));
         expect(menuBox.x).toBeGreaterThanOrEqual(cardBox.x);

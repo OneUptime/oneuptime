@@ -399,7 +399,7 @@ describe("ConversationComposer — what OneUptime AI may do", () => {
 
     /*
      * The picker is the first thing in the box. Lined up on its right edge,
-     * the 18rem menu opened some 190px past the card's left edge.
+     * the 18rem menu opened some 150px past the card's left edge.
      */
     expect(screen.getByRole("menu")).toHaveClass("left-0");
     expect(screen.getByRole("menu")).not.toHaveClass("right-0");
