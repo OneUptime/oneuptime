@@ -107,6 +107,7 @@ describe("a workflow's attributes", () => {
       "name",
       "description",
       "created_by_user_id",
+      "is_archived",
       "is_enabled",
       "graph",
       "labels",

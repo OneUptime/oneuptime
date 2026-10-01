@@ -128,7 +128,13 @@ describe("one resource", () => {
     expect(examples.read?.method).toBe("POST");
     expect(examples.read?.url).toBe(`${API}/workflow/${ID}/get-item`);
     expect(examples.read?.body).toEqual({
-      select: { _id: true, name: true, description: true, isEnabled: true },
+      select: {
+        _id: true,
+        name: true,
+        description: true,
+        isArchived: true,
+        isEnabled: true,
+      },
     });
 
     expect(examples.update?.method).toBe("PUT");
