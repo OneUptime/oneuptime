@@ -2,6 +2,7 @@ import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
+import { RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY } from "../../Types/AnalyticsDatabase/RetentionTtl";
 import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
@@ -776,15 +777,16 @@ export default class Log extends AnalyticsBaseModel {
        * that day's 267M - held the full ~40 GiB a day for 30 days instead of
        * 15. Even after the override was lowered, six already-written
        * partitions kept 202.7 GiB alive an extra two weeks, because the stamp
-       * is fixed at ingest and the part could not be split. Row-level TTL
-       * costs rewrites instead: a partition is rewritten every
-       * merge_with_ttl_timeout while its rows expire
-       * (DropTtlOnlyDropPartsFromMixedRetentionTables has the numbers), which
-       * is the price of retention being configurable per service and per
-       * severity at all.
+       * is fixed at ingest and the part could not be split.
        */
       tableSettings: "non_replicated_deduplication_window = 10000",
-      ttlExpression: "retentionDate DELETE",
+      /*
+       * Rows expire one at a time, rounded up to the midnight after their
+       * retentionDate and lined up with their partition's day, as on
+       * Metric: a day's rows of one retention go together, the last ones
+       * as a free part drop. See RetentionTtl.
+       */
+      ttlExpression: RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY,
       defaultSortColumn: "time",
     });
   }

@@ -76,6 +76,7 @@ import AddTelemetryStorageCompression from "./AddTelemetryStorageCompression";
 import MigrateTelemetryToV3PrimaryEntityId from "./MigrateTelemetryToV3PrimaryEntityId";
 import AddTtlOnlyDropPartsToTelemetryV3 from "./AddTtlOnlyDropPartsToTelemetryV3";
 import DropTtlOnlyDropPartsFromMixedRetentionTables from "./DropTtlOnlyDropPartsFromMixedRetentionTables";
+import RoundTtlToDayOnMixedRetentionTables from "./RoundTtlToDayOnMixedRetentionTables";
 import AddGorillaCodecToMetricValues from "./AddGorillaCodecToMetricValues";
 import AddUInt64TimestampsToTelemetryV3 from "./AddUInt64TimestampsToTelemetryV3";
 import AddUInt64ToRemainingTelemetryColumns from "./AddUInt64ToRemainingTelemetryColumns";
@@ -554,6 +555,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Cluster-aware, so it actually reaches an existing install.
    */
   new DropTtlOnlyDropPartsFromMixedRetentionTables(),
+  /*
+   * Rounds the TTL of those same three tables up to the midnight after each
+   * row's retentionDate, so a day's rows of one retention expire together -
+   * one merge, or a part drop - instead of the partition being rewritten
+   * every merge_with_ttl_timeout while they expire. Boot schema-sync never
+   * changes an existing table's TTL, so existing installs get it only here.
+   * MODIFY TTL without materializing it: nothing is rewritten when it runs.
+   * Cluster-aware; after the migration above only so the two read in order.
+   */
+  new RoundTtlToDayOnMixedRetentionTables(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

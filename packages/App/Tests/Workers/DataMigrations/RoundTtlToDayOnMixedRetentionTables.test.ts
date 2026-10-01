@@ -10,32 +10,31 @@ import fs from "fs";
 import path from "path";
 
 /*
- * ttl_only_drop_parts drops a part only once EVERY row in it has expired, and
- * the partitions of the metric tables and of the log table hold rows with
- * different retentions side by side (telemetry next to monitor metrics,
- * severities with their own overrides). With the setting on, the longest-lived
- * row keeps the rest of its part on disk - on one install, until the disk
- * filled. The models no longer declare it; this migration clears it on the
- * tables that were created with it.
+ * The metric tables and the log table expire rows one at a time. With
+ * `TTL retentionDate DELETE` a daily partition is rewritten six or seven
+ * times per retention while its rows expire; rounded up to the day, the rows
+ * of one retention expire together - one merge, or a part drop. The models
+ * declare the rounded TTL; this migration gives it to the tables an existing
+ * install already has, because boot schema-sync never changes a TTL.
  *
  * What is pinned:
  *
- *   - which tables it clears, and that they are the models' own tables, none
- *     of which declares the setting any more;
- *   - the statement: the local storage table (where the setting lives), ON
- *     CLUSTER (a settings change is not replicated through Keeper - every
- *     replica has to apply it itself), the setting set to 0 and nothing else,
- *     through the migration connection;
+ *   - which tables it changes, and that the TTL each gets is the one its
+ *     model declares (the raw tables lined up with their partition's day,
+ *     the rollup rounded on retentionDate alone);
+ *   - the statement: the local storage table, ON CLUSTER, MODIFY TTL and
+ *     nothing else, through the migration connection - with
+ *     materialize_ttl_after_modify = 0, so no part is rewritten when it runs
+ *     (the default would rewrite both tables whole), without touching the
+ *     options every other migration shares;
  *   - a table that does not exist is skipped, every table is tried even
- *     after one fails, and then the migration fails naming the table - a
- *     migration that returns is recorded as done, and a table left with the
- *     setting keeps filling the disk;
+ *     after one fails, and then the migration fails naming the table;
  *   - it is safe to run again, its rollback does nothing, it runs on the
  *     clustered schema instead of being baselined, and it runs after the
- *     migration that used to set the setting.
+ *     migration that made these tables expire rows one at a time.
  *
- * DropTtlOnlyDropPartsFromMixedRetentionTablesClickhouse.test.ts runs it
- * against a real ClickHouse server.
+ * RoundTtlToDayOnMixedRetentionTablesClickhouse.test.ts runs it against a
+ * real ClickHouse server.
  */
 
 jest.mock("Common/Server/Services/MetricService", () => {
@@ -59,19 +58,22 @@ import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import MetricItemAggMV1m from "Common/Models/AnalyticsModels/MetricItemAggMV1m";
-import { MigrationExecuteOptions } from "Common/Server/Services/AnalyticsDatabaseService";
+import {
+  ClickhouseExecuteOptions,
+  MigrationExecuteOptions,
+} from "Common/Server/Services/AnalyticsDatabaseService";
 import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
 import {
   RETENTION_TTL_ROUNDED_UP_TO_DAY,
   RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY,
 } from "Common/Types/AnalyticsDatabase/RetentionTtl";
-import AddTtlOnlyDropPartsToTelemetryV3 from "../../../FeatureSet/Workers/DataMigrations/AddTtlOnlyDropPartsToTelemetryV3";
 import ClickHouseMigrationUtil from "../../../FeatureSet/Workers/DataMigrations/ClickHouseMigrationUtil";
 import DataMigrationBase from "../../../FeatureSet/Workers/DataMigrations/DataMigrationBase";
-import DropTtlOnlyDropPartsFromMixedRetentionTables, {
-  MIXED_RETENTION_TELEMETRY_TABLES,
-} from "../../../FeatureSet/Workers/DataMigrations/DropTtlOnlyDropPartsFromMixedRetentionTables";
+import RoundTtlToDayOnMixedRetentionTables, {
+  DAY_ROUNDED_TTL_MODELS,
+  ModifyTtlWithoutRewriteOptions,
+} from "../../../FeatureSet/Workers/DataMigrations/RoundTtlToDayOnMixedRetentionTables";
 
 type MockFunction = ReturnType<typeof jest.fn>;
 type MockSpy = ReturnType<typeof jest.spyOn>;
@@ -85,20 +87,34 @@ const migrationUtil: { tableExists: MockFunction } =
 
 const CLUSTER_ENV_KEY: string = "CLICKHOUSE_CLUSTER_NAME";
 
-const MIGRATION_NAME: string = "DropTtlOnlyDropPartsFromMixedRetentionTables";
+const MIGRATION_NAME: string = "RoundTtlToDayOnMixedRetentionTables";
+
+const RAW_TTL: string =
+  "toStartOfDay(retentionDate + toIntervalSecond(least(greatest(dateDiff('second', createdAt, time), 0), 86400))) + INTERVAL 1 DAY DELETE";
+
+const ROLLUP_TTL: string =
+  "toStartOfDay(retentionDate) + INTERVAL 1 DAY DELETE";
 
 const EXPECTED_STATEMENTS: Array<string> = [
-  "ALTER TABLE MetricItemV3Local ON CLUSTER 'oneuptime' MODIFY SETTING ttl_only_drop_parts = 0",
-  "ALTER TABLE MetricItemAggMV1mLocal ON CLUSTER 'oneuptime' MODIFY SETTING ttl_only_drop_parts = 0",
-  "ALTER TABLE LogItemV3Local ON CLUSTER 'oneuptime' MODIFY SETTING ttl_only_drop_parts = 0",
+  `ALTER TABLE MetricItemV3Local ON CLUSTER 'oneuptime' MODIFY TTL ${RAW_TTL}`,
+  `ALTER TABLE MetricItemAggMV1mLocal ON CLUSTER 'oneuptime' MODIFY TTL ${ROLLUP_TTL}`,
+  `ALTER TABLE LogItemV3Local ON CLUSTER 'oneuptime' MODIFY TTL ${RAW_TTL}`,
 ];
 
 type ModelType = { new (): AnalyticsBaseModel };
 
-const MODELS: Array<{ tableName: string; modelType: ModelType }> = [
-  { tableName: "MetricItemV3", modelType: Metric },
-  { tableName: "MetricItemAggMV1m", modelType: MetricItemAggMV1m },
-  { tableName: "LogItemV3", modelType: Log },
+const MODELS: Array<{
+  tableName: string;
+  modelType: ModelType;
+  ttl: string;
+}> = [
+  { tableName: "MetricItemV3", modelType: Metric, ttl: RAW_TTL },
+  {
+    tableName: "MetricItemAggMV1m",
+    modelType: MetricItemAggMV1m,
+    ttl: ROLLUP_TTL,
+  },
+  { tableName: "LogItemV3", modelType: Log, ttl: RAW_TTL },
 ];
 
 let savedClusterName: string | undefined;
@@ -129,7 +145,7 @@ function loggedMessages(spy: MockSpy): Array<string> {
 
 async function migrationError(): Promise<Error> {
   try {
-    await new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate();
+    await new RoundTtlToDayOnMixedRetentionTables().migrate();
   } catch (err) {
     return err as Error;
   }
@@ -190,11 +206,11 @@ afterEach(() => {
   errorSpy.mockRestore();
 });
 
-describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
+describe("RoundTtlToDayOnMixedRetentionTables", () => {
   describe("what it is", () => {
     test("is a data migration recorded under its own name", () => {
-      const migration: DropTtlOnlyDropPartsFromMixedRetentionTables =
-        new DropTtlOnlyDropPartsFromMixedRetentionTables();
+      const migration: RoundTtlToDayOnMixedRetentionTables =
+        new RoundTtlToDayOnMixedRetentionTables();
 
       expect(migration).toBeInstanceOf(DataMigrationBase);
 
@@ -206,133 +222,175 @@ describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
       /*
        * The analytics schema is always a cluster, and the runner records a
        * migration that opts out as executed without running it - which
-       * would leave every existing install exactly as broken as it is.
+       * would leave every existing install on the old TTL for good.
        */
       expect(
-        new DropTtlOnlyDropPartsFromMixedRetentionTables().runsInClusterMode(),
+        new RoundTtlToDayOnMixedRetentionTables().runsInClusterMode(),
       ).toBe(true);
     });
 
-    test("clears exactly the metric tables and the log table", () => {
-      expect(MIXED_RETENTION_TELEMETRY_TABLES).toEqual([
-        "MetricItemV3",
-        "MetricItemAggMV1m",
-        "LogItemV3",
-      ]);
+    test("changes exactly the metric tables and the log table", () => {
+      expect(
+        DAY_ROUNDED_TTL_MODELS.map((modelType: ModelType): string => {
+          return new modelType().tableName;
+        }),
+      ).toEqual(["MetricItemV3", "MetricItemAggMV1m", "LogItemV3"]);
     });
 
     test.each(MODELS)(
-      "names $tableName as its model does",
+      "gives $tableName the TTL its model declares - so a repaired install ends up like a fresh one",
       ({
         tableName,
         modelType,
+        ttl,
       }: {
         tableName: string;
         modelType: ModelType;
+        ttl: string;
       }) => {
-        expect(new modelType().tableName).toBe(tableName);
-        expect(MIXED_RETENTION_TELEMETRY_TABLES).toContain(tableName);
-      },
-    );
-
-    test.each(MODELS)(
-      "clears $tableName, whose model no longer declares the setting - so a repaired install ends up like a fresh one",
-      ({ modelType }: { tableName: string; modelType: ModelType }) => {
         const model: AnalyticsBaseModel = new modelType();
 
-        expect(model.tableSettings).not.toContain("ttl_only_drop_parts");
-
-        /*
-         * The rows still expire by retentionDate - one at a time now, not a
-         * whole part at once, rounded up to the day since
-         * RoundTtlToDayOnMixedRetentionTables.
-         */
-        expect([
-          RETENTION_TTL_ROUNDED_UP_TO_DAY,
-          RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY,
-        ]).toContain(model.ttlExpression);
+        expect(model.tableName).toBe(tableName);
+        expect(model.ttlExpression).toBe(ttl);
+        expect(DAY_ROUNDED_TTL_MODELS).toContain(modelType);
       },
     );
+
+    test("lines the raw tables up with their partition's day, and rounds the rollup on retentionDate alone", () => {
+      expect(new Metric().ttlExpression).toBe(
+        RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY,
+      );
+      expect(new Log().ttlExpression).toBe(
+        RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY,
+      );
+
+      // The rollup has neither createdAt nor time to line a bucket up with.
+      const rollupColumns: Array<string> =
+        new MetricItemAggMV1m().tableColumns.map(
+          (column: { key: string }): string => {
+            return column.key;
+          },
+        );
+      expect(rollupColumns).not.toContain("createdAt");
+      expect(rollupColumns).not.toContain("time");
+      expect(new MetricItemAggMV1m().ttlExpression).toBe(
+        RETENTION_TTL_ROUNDED_UP_TO_DAY,
+      );
+    });
   });
 
   describe("the statements", () => {
-    test("set ttl_only_drop_parts to 0 on each local storage table, ON CLUSTER", async () => {
-      await new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate();
+    test("modify the TTL of each local storage table, ON CLUSTER", async () => {
+      await new RoundTtlToDayOnMixedRetentionTables().migrate();
 
       expect(executedStatements()).toEqual(EXPECTED_STATEMENTS);
     });
 
-    test("are what getStatement renders for each table", async () => {
-      await new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate();
+    test("are what getStatement renders for each model", async () => {
+      await new RoundTtlToDayOnMixedRetentionTables().migrate();
 
       expect(executedStatements()).toEqual(
-        MIXED_RETENTION_TELEMETRY_TABLES.map((table: string): string => {
-          return DropTtlOnlyDropPartsFromMixedRetentionTables.getStatement(
-            table,
+        DAY_ROUNDED_TTL_MODELS.map((modelType: ModelType): string => {
+          return RoundTtlToDayOnMixedRetentionTables.getStatement(
+            new modelType(),
           );
         }),
       );
     });
 
     test("never alter the Distributed table the app writes through", async () => {
-      await new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate();
+      await new RoundTtlToDayOnMixedRetentionTables().migrate();
 
       for (const statement of executedStatements()) {
         expect(tableOf(statement)).toMatch(/Local$/);
 
-        for (const table of MIXED_RETENTION_TELEMETRY_TABLES) {
-          expect(statement).not.toContain(`ALTER TABLE ${table} `);
+        for (const { tableName } of MODELS) {
+          expect(statement).not.toContain(`ALTER TABLE ${tableName} `);
         }
       }
     });
 
+    test("change the TTL and nothing else: no MATERIALIZE, no DELETE, no settings", async () => {
+      await new RoundTtlToDayOnMixedRetentionTables().migrate();
+
+      for (const statement of executedStatements()) {
+        expect(statement).toMatch(
+          /^ALTER TABLE \w+ ON CLUSTER '[^']+' MODIFY TTL [^;]+ DELETE$/,
+        );
+        expect(statement).not.toMatch(
+          /MATERIALIZE|REMOVE TTL|MODIFY SETTING|SETTINGS|DROP|DELETE WHERE/,
+        );
+      }
+    });
+
     test("go through the migration connection, which waits out a slow cluster instead of failing", async () => {
-      await new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate();
+      await new RoundTtlToDayOnMixedRetentionTables().migrate();
 
       expect(metricService.execute).toHaveBeenCalledTimes(3);
 
       for (const call of metricService.execute.mock.calls) {
-        expect(call[1]).toBe(MigrationExecuteOptions);
+        expect(call[1]).toBe(ModifyTtlWithoutRewriteOptions);
       }
 
-      expect(MigrationExecuteOptions.useMigrationConnection).toBe(true);
+      expect(ModifyTtlWithoutRewriteOptions.useMigrationConnection).toBe(true);
       expect(
-        MigrationExecuteOptions.clickhouseSettings?.[
+        ModifyTtlWithoutRewriteOptions.clickhouseSettings?.[
           "distributed_ddl_output_mode"
         ],
       ).toBe("null_status_on_timeout");
     });
 
+    test("do not materialize the new TTL, which would rewrite every part of both tables", () => {
+      expect(
+        ModifyTtlWithoutRewriteOptions.clickhouseSettings?.[
+          "materialize_ttl_after_modify"
+        ],
+      ).toBe(0);
+    });
+
+    test("keep every other setting the migration connection sends", () => {
+      const { materialize_ttl_after_modify, ...rest } =
+        ModifyTtlWithoutRewriteOptions.clickhouseSettings || {};
+
+      expect(materialize_ttl_after_modify).toBe(0);
+      expect(rest).toEqual(MigrationExecuteOptions.clickhouseSettings);
+      expect({
+        ...ModifyTtlWithoutRewriteOptions,
+        clickhouseSettings: undefined,
+      }).toEqual({ ...MigrationExecuteOptions, clickhouseSettings: undefined });
+    });
+
+    test("leave the options every other migration shares as they were", () => {
+      const shared: ClickhouseExecuteOptions = MigrationExecuteOptions;
+
+      expect(shared).not.toBe(ModifyTtlWithoutRewriteOptions);
+      expect(shared.clickhouseSettings).not.toBe(
+        ModifyTtlWithoutRewriteOptions.clickhouseSettings,
+      );
+      expect(shared.clickhouseSettings).not.toHaveProperty(
+        "materialize_ttl_after_modify",
+      );
+    });
+
     test("follow CLICKHOUSE_CLUSTER_NAME", async () => {
       process.env[CLUSTER_ENV_KEY] = "telemetry_cluster";
 
-      await new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate();
+      await new RoundTtlToDayOnMixedRetentionTables().migrate();
 
-      expect(executedStatements()).toEqual([
-        "ALTER TABLE MetricItemV3Local ON CLUSTER 'telemetry_cluster' MODIFY SETTING ttl_only_drop_parts = 0",
-        "ALTER TABLE MetricItemAggMV1mLocal ON CLUSTER 'telemetry_cluster' MODIFY SETTING ttl_only_drop_parts = 0",
-        "ALTER TABLE LogItemV3Local ON CLUSTER 'telemetry_cluster' MODIFY SETTING ttl_only_drop_parts = 0",
-      ]);
+      expect(executedStatements()).toEqual(
+        EXPECTED_STATEMENTS.map((statement: string): string => {
+          return statement.replace("'oneuptime'", "'telemetry_cluster'");
+        }),
+      );
     });
 
-    test("change that one setting and nothing else", async () => {
-      await new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate();
-
-      for (const statement of executedStatements()) {
-        expect(statement).toMatch(
-          /^ALTER TABLE \w+ ON CLUSTER '[^']+' MODIFY SETTING ttl_only_drop_parts = 0$/,
-        );
-        expect(statement).not.toMatch(/RESET SETTING|DELETE|DROP|TTL /);
-      }
-    });
-
-    test("log each table it cleared", async () => {
-      await new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate();
+    test("log each table it changed", async () => {
+      await new RoundTtlToDayOnMixedRetentionTables().migrate();
 
       expect(loggedMessages(infoSpy)).toEqual([
-        `${MIGRATION_NAME}: cleared ttl_only_drop_parts on MetricItemV3Local`,
-        `${MIGRATION_NAME}: cleared ttl_only_drop_parts on MetricItemAggMV1mLocal`,
-        `${MIGRATION_NAME}: cleared ttl_only_drop_parts on LogItemV3Local`,
+        `${MIGRATION_NAME}: rounded the TTL of MetricItemV3Local up to the day`,
+        `${MIGRATION_NAME}: rounded the TTL of MetricItemAggMV1mLocal up to the day`,
+        `${MIGRATION_NAME}: rounded the TTL of LogItemV3Local up to the day`,
       ]);
       expect(errorSpy).not.toHaveBeenCalled();
     });
@@ -340,7 +398,7 @@ describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
 
   describe("which tables it touches", () => {
     test("checks that each local table exists right before altering it", async () => {
-      await new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate();
+      await new RoundTtlToDayOnMixedRetentionTables().migrate();
 
       expect(events).toEqual([
         "exists MetricItemV3Local",
@@ -352,28 +410,28 @@ describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
       ]);
     });
 
-    test("skips a table that does not exist, and still clears the others", async () => {
+    test("skips a table that does not exist, and still changes the others", async () => {
       missingTables.add("MetricItemAggMV1mLocal");
 
-      await new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate();
+      await new RoundTtlToDayOnMixedRetentionTables().migrate();
 
       expect(executedStatements()).toEqual([
         EXPECTED_STATEMENTS[0],
         EXPECTED_STATEMENTS[2],
       ]);
       expect(loggedMessages(infoSpy)).toContain(
-        `${MIGRATION_NAME}: MetricItemAggMV1mLocal does not exist; nothing to clear.`,
+        `${MIGRATION_NAME}: MetricItemAggMV1mLocal does not exist; nothing to change.`,
       );
       expect(errorSpy).not.toHaveBeenCalled();
     });
 
     test("does nothing, and succeeds, where none of them exist yet", async () => {
-      for (const table of MIXED_RETENTION_TELEMETRY_TABLES) {
-        missingTables.add(`${table}Local`);
+      for (const { tableName } of MODELS) {
+        missingTables.add(`${tableName}Local`);
       }
 
       await expect(
-        new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate(),
+        new RoundTtlToDayOnMixedRetentionTables().migrate(),
       ).resolves.toBeUndefined();
 
       expect(metricService.execute).not.toHaveBeenCalled();
@@ -381,7 +439,7 @@ describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
     });
 
     test("never asks about, or alters, the tables it leaves alone", async () => {
-      await new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate();
+      await new RoundTtlToDayOnMixedRetentionTables().migrate();
 
       const touched: Array<string> = [
         ...migrationUtil.tableExists.mock.calls.map(
@@ -408,7 +466,7 @@ describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
     });
   });
 
-  describe("when a table cannot be cleared", () => {
+  describe("when a table cannot be changed", () => {
     test("keeps going, then fails naming the table and why", async () => {
       tablesWhoseAlterFails.set(
         "MetricItemAggMV1mLocal",
@@ -417,11 +475,11 @@ describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
 
       const error: Error = await migrationError();
 
-      // The table after the failed one was still cleared.
+      // The table after the failed one was still changed.
       expect(executedStatements()).toEqual(EXPECTED_STATEMENTS);
 
       expect(error.message).toBe(
-        `${MIGRATION_NAME}: could not clear ttl_only_drop_parts on MetricItemAggMV1mLocal: Code: 497. Not enough privileges`,
+        `${MIGRATION_NAME}: could not round the TTL of MetricItemAggMV1mLocal: Code: 497. Not enough privileges`,
       );
     });
 
@@ -433,7 +491,7 @@ describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
 
       expect(executedStatements()).toEqual(EXPECTED_STATEMENTS);
       expect(error.message).toBe(
-        `${MIGRATION_NAME}: could not clear ttl_only_drop_parts on MetricItemV3Local: first; LogItemV3Local: second`,
+        `${MIGRATION_NAME}: could not round the TTL of MetricItemV3Local: first; LogItemV3Local: second`,
       );
     });
 
@@ -450,7 +508,7 @@ describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
         EXPECTED_STATEMENTS[1],
       ]);
       expect(error.message).toBe(
-        `${MIGRATION_NAME}: could not clear ttl_only_drop_parts on LogItemV3Local: Timeout error.`,
+        `${MIGRATION_NAME}: could not round the TTL of LogItemV3Local: Timeout error.`,
       );
     });
 
@@ -461,11 +519,11 @@ describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
 
       expect(error).toBeInstanceOf(Error);
       expect(error.message).toBe(
-        `${MIGRATION_NAME}: could not clear ttl_only_drop_parts on MetricItemV3Local: socket hang up`,
+        `${MIGRATION_NAME}: could not round the TTL of MetricItemV3Local: socket hang up`,
       );
     });
 
-    test("logs the failure, and does not claim to have cleared that table", async () => {
+    test("logs the failure, and does not claim to have changed that table", async () => {
       const cause: Error = new Error("boom");
       tablesWhoseAlterFails.set("MetricItemV3Local", cause);
 
@@ -476,15 +534,15 @@ describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
       );
       expect(errorSpy).toHaveBeenCalledWith(cause);
       expect(loggedMessages(infoSpy)).not.toContain(
-        `${MIGRATION_NAME}: cleared ttl_only_drop_parts on MetricItemV3Local`,
+        `${MIGRATION_NAME}: rounded the TTL of MetricItemV3Local up to the day`,
       );
     });
   });
 
   describe("running again, and rolling back", () => {
     test("is idempotent: a second run issues the same statements again", async () => {
-      await new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate();
-      await new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate();
+      await new RoundTtlToDayOnMixedRetentionTables().migrate();
+      await new RoundTtlToDayOnMixedRetentionTables().migrate();
 
       expect(executedStatements()).toEqual([
         ...EXPECTED_STATEMENTS,
@@ -501,14 +559,14 @@ describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
       metricService.execute.mockClear();
 
       await expect(
-        new DropTtlOnlyDropPartsFromMixedRetentionTables().migrate(),
+        new RoundTtlToDayOnMixedRetentionTables().migrate(),
       ).resolves.toBeUndefined();
       expect(executedStatements()).toEqual(EXPECTED_STATEMENTS);
     });
 
     test("rollback puts nothing back", async () => {
       await expect(
-        new DropTtlOnlyDropPartsFromMixedRetentionTables().rollback(),
+        new RoundTtlToDayOnMixedRetentionTables().rollback(),
       ).resolves.toBeUndefined();
 
       expect(metricService.execute).not.toHaveBeenCalled();
@@ -551,50 +609,13 @@ describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
       ).toHaveLength(1);
     });
 
-    test("runs after AddTtlOnlyDropPartsToTelemetryV3, which used to set the setting", () => {
-      expect(registered.indexOf("AddTtlOnlyDropPartsToTelemetryV3")).toBe(
-        registered.lastIndexOf("AddTtlOnlyDropPartsToTelemetryV3"),
-      );
+    test("runs after DropTtlOnlyDropPartsFromMixedRetentionTables, which made these tables expire rows one at a time", () => {
       expect(registered.indexOf(MIGRATION_NAME)).toBeGreaterThan(
-        registered.indexOf("AddTtlOnlyDropPartsToTelemetryV3"),
+        registered.indexOf("DropTtlOnlyDropPartsFromMixedRetentionTables"),
       );
+      expect(
+        registered.indexOf("DropTtlOnlyDropPartsFromMixedRetentionTables"),
+      ).toBeGreaterThan(-1);
     });
-  });
-});
-
-describe("AddTtlOnlyDropPartsToTelemetryV3, the migration that used to set it", () => {
-  async function tablesItSetsTheSettingOn(): Promise<Array<string>> {
-    await new AddTtlOnlyDropPartsToTelemetryV3().migrate();
-
-    return executedStatements().map((statement: string): string => {
-      expect(statement).toMatch(
-        /^ALTER TABLE \w+ MODIFY SETTING ttl_only_drop_parts = 1$/,
-      );
-      return tableOf(statement);
-    });
-  }
-
-  test("is still baselined on the clustered schema", () => {
-    expect(new AddTtlOnlyDropPartsToTelemetryV3().runsInClusterMode()).toBe(
-      false,
-    );
-  });
-
-  test("no longer sets it on any table the new migration clears", async () => {
-    const tables: Array<string> = await tablesItSetsTheSettingOn();
-
-    for (const table of MIXED_RETENTION_TELEMETRY_TABLES) {
-      expect(tables).not.toContain(table);
-    }
-  });
-
-  test("still sets it on the tables it was left with", async () => {
-    expect(await tablesItSetsTheSettingOn()).toEqual([
-      "SpanItemV3",
-      "ExceptionItemV3",
-      "ProfileItemV3",
-      "ProfileSampleItemV3",
-      "MetricBaselineHourly",
-    ]);
   });
 });
