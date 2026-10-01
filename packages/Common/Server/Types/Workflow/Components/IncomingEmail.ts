@@ -6,7 +6,10 @@ import {
   NextFunction,
 } from "../../../Utils/Express";
 import logger, { LogAttributes } from "../../../Utils/Logger";
-import { redactMonitorSecret } from "../../../Utils/Monitor/MonitorPayloadRedaction";
+import {
+  redactGeneratedInboundAddressKeys,
+  redactMonitorSecret,
+} from "../../../Utils/Monitor/MonitorPayloadRedaction";
 import Response from "../../../Utils/Response";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import { RunOptions, RunReturnType } from "../ComponentCode";
@@ -46,7 +49,8 @@ export type ExecuteWorkflowFunction = (
  *     off the same way);
  *   - the address is a credential, so the key is masked everywhere in what
  *     the run is handed - To, Cc, Delivered-To and the rest - before any of
- *     it is stored in the run's log, which read-only roles can open.
+ *     it is stored in the run's log, which read-only roles can open. So is
+ *     every other monitor or workflow address the same email was sent to.
  */
 export default class IncomingEmailWorkflowTrigger extends TriggerCode {
   public constructor() {
@@ -183,11 +187,14 @@ export default class IncomingEmailWorkflowTrigger extends TriggerCode {
       return IncomingEmailTriggerDeliveryStatus.WorkflowDisabled;
     }
 
-    const returnValues: JSONObject = redactMonitorSecret(
-      IncomingEmailTrigger.getReturnValues(
-        data.email as IncomingEmailTriggerEmail,
+    const returnValues: JSONObject = redactGeneratedInboundAddressKeys(
+      redactMonitorSecret(
+        IncomingEmailTrigger.getReturnValues(
+          data.email as IncomingEmailTriggerEmail,
+        ),
+        secretKey,
       ),
-      secretKey,
+      ["monitor", "workflow"],
     );
 
     await data.executeWorkflow({

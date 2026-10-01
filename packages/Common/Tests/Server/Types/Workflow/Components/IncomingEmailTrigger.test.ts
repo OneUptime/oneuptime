@@ -290,6 +290,29 @@ describe("an email for a workflow's address", () => {
     );
   });
 
+  test("another monitor's or workflow's address on the same email is masked too", async () => {
+    const monitorAddress: string = `monitor-b1946ac9-2492-4b0f-9b2f-ee9b6cbe36ba@${DOMAIN}`;
+    const otherWorkflow: string = `workflow-${KEY_B}@${DOMAIN}`;
+
+    const { runs } = await deliver({
+      secretKey: KEY_A,
+      email: email({
+        to: [ADDRESS_A, monitorAddress],
+        cc: [otherWorkflow],
+        headers: { To: `${ADDRESS_A}, ${monitorAddress}`, Cc: otherWorkflow },
+      }),
+    });
+    const values: JSONObject = runs[0]!.returnValues;
+    const serialized: string = JSON.stringify(values);
+
+    expect(serialized).not.toContain("b1946ac9-2492-4b0f-9b2f-ee9b6cbe36ba");
+    expect(serialized).not.toContain(KEY_B);
+    expect(values["to"]).toBe(
+      `workflow-[REDACTED]@${DOMAIN}, monitor-[REDACTED]@${DOMAIN}`,
+    );
+    expect(values["cc"]).toBe(`workflow-[REDACTED]@${DOMAIN}`);
+  });
+
   test("everything that is not the key survives the masking", async () => {
     const { runs } = await deliver({ secretKey: KEY_A });
 

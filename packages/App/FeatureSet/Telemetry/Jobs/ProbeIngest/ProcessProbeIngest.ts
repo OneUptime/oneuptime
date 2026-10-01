@@ -31,6 +31,7 @@ import SnmpTrapLogWriter from "../../Services/SnmpTrapLogWriter";
 import { JSONObject } from "Common/Types/JSON";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import {
+  redactGeneratedInboundAddressKeys,
   redactMonitorEmailAddress,
   redactMonitorSecret,
 } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
@@ -484,16 +485,25 @@ export async function processIncomingEmailFromQueue(
    *
    * https://github.com/OneUptime/oneuptime/issues/3360
    */
-  const redactedEmailData: IncomingEmailJobData = redactMonitorEmailAddress(
-    redactMonitorSecret(
-      emailData,
-      monitor.incomingEmailSecretKey?.toString() || emailData.secretKey,
-    ),
-    {
-      localPart: monitor.incomingEmailCustomLocalPart,
-      domain: InboundEmailProviderFactory.getInboundDomain(),
-    },
-  );
+  const redactedEmailData: IncomingEmailJobData =
+    redactGeneratedInboundAddressKeys(
+      redactMonitorEmailAddress(
+        redactMonitorSecret(
+          emailData,
+          monitor.incomingEmailSecretKey?.toString() || emailData.secretKey,
+        ),
+        {
+          localPart: monitor.incomingEmailCustomLocalPart,
+          domain: InboundEmailProviderFactory.getInboundDomain(),
+        },
+      ),
+      /*
+       * A workflow's address on the same email (the email went to this
+       * monitor and to a workflow's Incoming Email trigger) is that
+       * workflow's credential, and must not reach the monitor's readers.
+       */
+      ["workflow"],
+    );
 
   const now: Date = OneUptimeDate.getCurrentDate();
 
