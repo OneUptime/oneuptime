@@ -42,7 +42,7 @@ You can connect one output to several blocks. All of them run — but one after 
 
 ## Configuring a block
 
-Click a block to open its settings in a dialog. Each setting has the right kind of input — text fields, dropdowns, code editors, toggles, and so on. Fill it in and click **Save**.
+Click a block to open its settings in a dialog. Each setting has the right kind of input. Anything you write in words — a message, a prompt, a value to log — gets a box that grows as you type, and **Enter** starts a new line. Short values such as a URL, an ID or a subject line stay on one line. Code and HTML get a code editor, JSON a JSON editor, and on/off settings a toggle. Fill it in and click **Save**.
 
 The dialog opens on what you most likely came for. For a **Webhook** trigger that is its URL, with a **Copy URL** button, the methods it accepts and an example request. For a **Manual** trigger it is how the workflow gets started. Every other block opens on its settings. A block with no settings has no **Settings** section at all.
 

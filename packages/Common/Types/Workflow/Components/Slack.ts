@@ -25,14 +25,22 @@ const components: Array<ComponentMetadata> = [
         placeholder:
           "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
       },
+      /*
+       * Slack reads its own formatting (mrkdwn), not Markdown, and the message
+       * is posted exactly as stored - so this is plain text, as the Teams,
+       * Discord and Telegram messages are. It was Markdown, which opened the
+       * visual Markdown editor; that editor rewrote Slack's _italic_ as
+       * *italic*, which Slack shows in bold, and broke references with
+       * underscores in them.
+       */
       {
         id: "text",
         name: "Message Text",
-        description: "Message to send to Slack. ",
-        type: ComponentInputType.Markdown,
+        description:
+          "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.",
+        type: ComponentInputType.LongText,
         required: true,
-        placeholder:
-          "Guide for message formatting: https://api.slack.com/reference/surfaces/formatting",
+        placeholder: "Test Slack message from OneUptime",
       },
     ],
     returnValues: [

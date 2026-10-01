@@ -60,12 +60,20 @@ const components: Array<ComponentMetadata> = [
     iconProp: IconProp.JSON,
     componentType: ComponentType.Component,
     arguments: [
+      /*
+       * A whole JSON document written out as text, so it gets the multi-line
+       * box. LongText rather than JSON on purpose: RunWorkflow parses JSON
+       * arguments before the step runs, and this step exists to do that
+       * parsing itself (and to take its Error port when it fails).
+       */
       {
-        type: ComponentInputType.Text,
+        type: ComponentInputType.LongText,
         name: "Text",
-        description: "Text as Input",
+        description:
+          "JSON written as text, such as a response body from an earlier step.",
         required: true,
         id: "text",
+        placeholder: '{"key1": "value1", "key2": "value2"}',
       },
     ],
     returnValues: [
