@@ -20,6 +20,7 @@ import {
   useLocation,
   useNavigationType,
 } from "react-router-dom";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
@@ -70,12 +71,21 @@ const SETTINGS_PAGE_MODULES: Array<string> = Array.from(
   ),
 );
 
+/*
+ * Called on every render of the Settings layout. A redirect that sat inside
+ * the layout would paint the Settings menu for a frame and then leave — and
+ * the DOM after the redirect looks the same either way, so the renders are
+ * counted rather than looked for.
+ */
+const settingsLayoutRenderMock: MockFunction = getJestMockFunction();
+
 for (const module of SETTINGS_PAGE_MODULES) {
   jest.doMock(`${DASHBOARD}/Pages/${module}`, () => {
     if (module === "Settings/Layout") {
       return {
         __esModule: true,
         default: (): React.ReactElement => {
+          settingsLayoutRenderMock();
           const { Outlet } = jest.requireActual("react-router-dom") as {
             Outlet: React.ComponentType;
           };
@@ -167,6 +177,7 @@ function landedOn(): string {
 }
 
 beforeEach(() => {
+  settingsLayoutRenderMock.mockReset();
   goTo(`/dashboard/${PROJECT_ID}`);
 });
 
@@ -199,6 +210,8 @@ describe("the suite's own scaffolding", () => {
       "Settings/Labels",
     );
     expect(screen.queryByTestId("runbooks")).not.toBeInTheDocument();
+    // The render counter the redirect tests rely on does count.
+    expect(settingsLayoutRenderMock).toHaveBeenCalled();
   });
 });
 
@@ -245,6 +258,7 @@ describe("the old Settings URLs forward to Runbooks", () => {
       `${SETTINGS}/runner-credentials`,
     ]) {
       visit(oldUrl);
+      expect(settingsLayoutRenderMock).not.toHaveBeenCalled();
       expect(screen.queryByTestId("settings-layout")).not.toBeInTheDocument();
       expect(screen.queryByTestId("settings-page")).not.toBeInTheDocument();
       cleanup();
