@@ -720,12 +720,16 @@ export function getAiAgentAttentionStepText(
       return isAdvancedRunnerTarget(status)
         ? `Set ${KUBECTL_ALLOW_WRITES_ENV}=true on the Runner's host and restart it.`
         : getServerStepText(gap);
+    /*
+     * project_auto_remediation_disabled and
+     * project_ai_command_execution_disabled are retired: Enable AI covers
+     * both, so an older server that still sends them mid-rollout gets the
+     * same step.
+     */
     case "project_ai_disabled":
-      return "Turn on AI for this project.";
     case "project_auto_remediation_disabled":
-      return "Turn on auto-remediation for this project.";
     case "project_ai_command_execution_disabled":
-      return "Turn on AI command execution for this project.";
+      return "Turn on AI for this project.";
     case "llm_provider_missing":
       return "Add an AI provider for this project, or use OneUptime AI credits.";
     case "ai_balance_insufficient":

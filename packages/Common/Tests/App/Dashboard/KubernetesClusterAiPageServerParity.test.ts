@@ -1090,8 +1090,6 @@ describe("the AI agent card follows the real status", () => {
 
 const CLOSED_GATES: KubernetesClusterAiAccessProjectGates = {
   isAiEnabled: false,
-  isAutoRemediationEnabled: false,
-  isAiCommandExecutionEnabled: false,
   hasLlmProvider: false,
   aiBalanceBlocker: "The project's AI balance is used up.",
   automaticInvestigation: { incidents: false, alerts: false },
@@ -1395,11 +1393,11 @@ async function everyServerStatus(): Promise<Array<NamedStatus>> {
       },
     },
     {
-      name: "an advanced Runner without AI command execution",
+      name: "an advanced Runner, AI off for the project",
       data: {
         cluster: fakeCluster({ ...FIXES_ON, ...ADVANCED_BINDING }),
         runner: fakeAdvancedRunner(),
-        gates: { ...READY_GATES, isAiCommandExecutionEnabled: false },
+        gates: { ...READY_GATES, isAiEnabled: false },
       },
     },
     {
@@ -1432,7 +1430,11 @@ async function everyServerStatus(): Promise<Array<NamedStatus>> {
   return statuses;
 }
 
-// Every gap the server produces, but the fixes-off choice.
+/*
+ * Every gap the server produces, but the fixes-off choice. The retired
+ * project_auto_remediation_disabled and project_ai_command_execution_disabled
+ * are not among them: Enable AI covers both.
+ */
 const ATTENTION_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
   "ai_agent_not_connected",
   "ai_agent_offline",
@@ -1445,8 +1447,6 @@ const ATTENTION_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
   "investigation_disabled",
   "remediation_write_access_missing",
   "project_ai_disabled",
-  "project_auto_remediation_disabled",
-  "project_ai_command_execution_disabled",
   "llm_provider_missing",
 ];
 
@@ -1826,11 +1826,11 @@ describe("Needs attention, from the server's own statuses", () => {
         ],
       ],
       [
-        "an advanced Runner without AI command execution",
+        "an advanced Runner, AI off for the project",
         [
           [
-            "project_ai_command_execution_disabled",
-            "Turn on AI command execution for this project.",
+            "project_ai_disabled",
+            "Turn on AI for this project.",
             "open_ai_features",
           ],
         ],
@@ -1854,12 +1854,15 @@ describe("Needs attention, from the server's own statuses", () => {
       }).toEqual({ name, steps });
     }
 
-    // Without command execution only fixes are blocked.
+    /*
+     * Enable AI is the one switch for a Runner's commands too: off, it
+     * blocks investigation and fixes alike.
+     */
     expect(
       getAiAgentAttention(
-        byName.get("an advanced Runner without AI command execution")!,
+        byName.get("an advanced Runner, AI off for the project")!,
       )?.title,
-    ).toBe("OneUptime AI can't run fixes on this cluster");
+    ).toBe("OneUptime AI can't investigate this cluster or run fixes on it");
   });
 
   test("a read-only executor with fixes on: the commands below for the agent", async () => {
@@ -1912,11 +1915,6 @@ describe("Needs attention, from the server's own statuses", () => {
         "ai_balance_insufficient",
         "Add AI credits to this project, or turn on auto-recharge.",
         "open_ai_credits",
-      ],
-      [
-        "project_auto_remediation_disabled",
-        "Turn on auto-remediation for this project.",
-        "open_ai_features",
       ],
     ]);
   });

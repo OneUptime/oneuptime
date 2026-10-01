@@ -1042,10 +1042,10 @@ const SERVER_BLOCKS: Record<
   remediation_disabled: "remediation",
   remediation_write_access_missing: "remediation",
   project_ai_disabled: "both",
+  llm_provider_missing: "both",
+  // Kept in the union, no longer produced (an older server may send them).
   project_auto_remediation_disabled: "remediation",
   project_ai_command_execution_disabled: "remediation",
-  llm_provider_missing: "both",
-  // Kept in the union, no longer produced.
   no_runner_bound: "both",
   credential_on_agent_runner: "both",
   last_access_check_failed: "both",
@@ -1285,7 +1285,8 @@ describe("Needs attention's headline", () => {
     ).toBe("OneUptime AI can't run fixes on this cluster");
   });
 
-  test("project switches that only stop fixes name only fixes", () => {
+  // The retired switches an older server may still send mid-rollout.
+  test("retired project switches that only stopped fixes name only fixes", () => {
     expect(
       getAiAgentAttentionTitle(
         advancedStatus({
@@ -1386,14 +1387,9 @@ describe("Needs attention's steps", () => {
     ],
     ["investigation_disabled", "Turn on AI investigation with kubectl."],
     ["project_ai_disabled", "Turn on AI for this project."],
-    [
-      "project_auto_remediation_disabled",
-      "Turn on auto-remediation for this project.",
-    ],
-    [
-      "project_ai_command_execution_disabled",
-      "Turn on AI command execution for this project.",
-    ],
+    // Retired: Enable AI covers both, so an older server's gap asks for it.
+    ["project_auto_remediation_disabled", "Turn on AI for this project."],
+    ["project_ai_command_execution_disabled", "Turn on AI for this project."],
     [
       "llm_provider_missing",
       "Add an AI provider for this project, or use OneUptime AI credits.",
