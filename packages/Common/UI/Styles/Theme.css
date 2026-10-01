@@ -597,6 +597,23 @@ html.dark :is(
   --tw-gradient-to: rgb(49 46 129 / 42%) var(--tw-gradient-to-position);
 }
 
+/*
+ * Pill (Common/UI/Components/Pill). Its colours are worked out from whatever
+ * hex a user picked for a state, a severity or a label, so no utility class
+ * can carry them: the pill writes the light theme's inline and the dark
+ * theme's as custom properties (PillColors.ts), and these rules swap them in.
+ * Important, because what they replace is an inline style.
+ */
+html.dark [data-ou-pill] {
+  background-color: var(--ou-pill-dark-bg) !important;
+  color: var(--ou-pill-dark-text) !important;
+  box-shadow: var(--ou-pill-dark-shadow) !important;
+}
+
+html.dark [data-ou-pill-dot] {
+  background-color: var(--ou-pill-dark-dot) !important;
+}
+
 /* Semantic light surfaces retain hue without becoming luminous cards. */
 html.dark :is(
     .bg-red-50,
