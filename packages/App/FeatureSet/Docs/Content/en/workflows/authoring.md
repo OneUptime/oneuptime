@@ -42,7 +42,7 @@ You can connect one output to several blocks. All of them run — but one after 
 
 ## Configuring a block
 
-Click a block to open its settings in a dialog. Each setting has the right kind of input — text fields, dropdowns, code editors, toggles, and so on. Fill it in and click **Save**.
+Click a block to open its settings in a dialog. Each setting has the right kind of input. Anything you write in words — a message, a prompt, a value to log — gets a box that grows as you type, and **Enter** starts a new line. Short values such as a URL, an ID or a subject line stay on one line. Code and HTML get a code editor, JSON a JSON editor, and on/off settings a toggle. Fill it in and click **Save**.
 
 The same dialog is where you find:
 

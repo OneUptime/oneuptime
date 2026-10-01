@@ -31,7 +31,7 @@ Generate one text response from a prompt and optional JSON context. The componen
 **Settings**:
 
 - **System Instructions** — optional guidance for the model's role, tone, and constraints.
-- **Prompt** — the required task. It can include workflow variables and outputs from earlier components.
+- **Prompt** — the required task. It's sent exactly as you type it, so Markdown is fine, and it can include workflow variables and outputs from earlier components.
 - **Context** — optional JSON that you deliberately include with the request. It is appended after an explicit end-of-message trust marker and treated as untrusted data through the rest of the message.
 - **Temperature** — variation from `0` to `1`. The default is `0.2` for predictable automation.
 - **Maximum Output Tokens** — from `1` to `4096`. The default is `1024`.
@@ -58,14 +58,12 @@ Use **API** if you need to read the response. Use **Webhook** if you just want t
 
 ## Slack
 
-Post a message to a Slack channel.
+Post a message to a Slack channel through an incoming webhook.
 
 **Settings**:
 
-- **Channel** — the channel name. The bot must already be in that channel.
-- **Message** — the text to send. Supports Slack formatting.
-
-Connect Slack to your project first under **Project Settings → Workspace → Slack**. See [Slack Workspace Connection](/docs/workspace-connections/slack).
+- **Slack Incoming Webhook URL** — the webhook for the channel to post to. Slack's guide to [creating one](https://api.slack.com/messaging/webhooks) takes a couple of minutes.
+- **Message Text** — the text to send. It's sent exactly as you type it, so use Slack's own formatting: `*bold*`, `_italic_`, `~strikethrough~` and `<https://example.com|a link>`.
 
 ## Microsoft Teams
 
@@ -73,10 +71,8 @@ Post a message to a Microsoft Teams channel.
 
 **Settings**:
 
-- **Team and channel** — where to post.
-- **Message** — the text to send.
-
-See [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams) for setup.
+- **Teams Incoming Webhook URL** — the channel webhook to post to. Microsoft's guide shows how to [create one with Teams Workflows](https://support.microsoft.com/en-us/teams/apps-service/create-incoming-webhooks-with-workflows-for-microsoft-teams).
+- **Message Text** — the text to send.
 
 ## Discord
 
@@ -127,7 +123,7 @@ Use this for: reshaping data between two systems, doing a small calculation, any
 Convert between text and JSON.
 
 - **JSON → Text** — turn a JSON object into a string. Useful when the next block expects text.
-- **Text → JSON** — parse a string into a JSON object. Useful when something arrived as text and you need to read a field.
+- **Text → JSON** — parse a string into a JSON object. Useful when something arrived as text and you need to read a field. Its **Text** box takes several lines, so you can paste a whole document to test with.
 
 ## Conditions
 
@@ -147,7 +143,11 @@ Pause the workflow for a set amount of time before continuing. Useful when you n
 
 ## Log
 
-Write a line to the run log. No external effect — it just shows up in the workflow's logs for you to read. Handy for debugging.
+Write to the run log. No external effect — it just shows up in the workflow's logs for you to read. Handy for debugging.
+
+**Settings**:
+
+- **Value** — what to write. It can run to several lines, and it can include values from earlier blocks, like `{{local.components.webhook-1.returnValues.request-body}}`.
 
 ## Execute Workflow
 
