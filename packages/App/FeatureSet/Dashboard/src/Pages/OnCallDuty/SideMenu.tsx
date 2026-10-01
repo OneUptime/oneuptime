@@ -8,6 +8,9 @@ import SideMenu, {
 } from "Common/UI/Components/SideMenu/SideMenu";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { ReactElement } from "react";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
   let subItemMenuLink: Link | undefined = undefined;
@@ -223,6 +226,11 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: OnCallDutyPolicy,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

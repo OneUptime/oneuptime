@@ -9,6 +9,8 @@ import SideMenu, {
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -224,6 +226,11 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: Monitor,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

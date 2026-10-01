@@ -37,6 +37,9 @@ import ProxmoxClusterDelete from "../Pages/Proxmox/View/Delete";
 import ProxmoxClusterDocumentation from "../Pages/Proxmox/View/Documentation";
 import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxClusterLabelRule";
 import ProxmoxClusterOwnerRule from "Common/Models/DatabaseModels/ProxmoxClusterOwnerRule";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -121,6 +124,13 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: ProxmoxCluster,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.PROXMOX_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -434,6 +444,12 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: ProxmoxCluster,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

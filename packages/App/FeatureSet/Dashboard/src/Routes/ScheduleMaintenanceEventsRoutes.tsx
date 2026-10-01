@@ -66,6 +66,9 @@ import ScheduledMaintenanceSettingsMeasurements from "../Pages/ScheduledMaintena
 import ScheduledMaintenanceSettingsMore from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMoreSettings";
 import ScheduledMaintenanceLabelRule from "Common/Models/DatabaseModels/ScheduledMaintenanceLabelRule";
 import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -423,6 +426,13 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: ScheduledMaintenance,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.SCHEDULED_MAINTENANCE_EVENTS_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -613,6 +623,12 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: ScheduledMaintenance,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

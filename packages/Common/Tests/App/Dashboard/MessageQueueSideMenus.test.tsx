@@ -56,10 +56,10 @@ describe("the Queues product side menu", () => {
     cleanup();
   });
 
-  test("has a Queues section and a Settings section, in that order", async () => {
+  test("has a Queues section, a Settings section and Developer, in that order", async () => {
     await renderMenu(<MessageQueueSideMenu />);
 
-    expect(sectionTitlesInOrder()).toEqual(["Queues", "Settings"]);
+    expect(sectionTitlesInOrder()).toEqual(["Queues", "Settings", "Developer"]);
   });
 
   test("the Queues section reaches the list, the archive and the install guide", async () => {
@@ -158,13 +158,14 @@ describe("one queue's side menu", () => {
     cleanup();
   });
 
-  test("has the Basic, Observability, Settings and Advanced sections, in order", async () => {
+  test("has the Basic, Observability, Settings, Developer and Advanced sections, in order", async () => {
     await renderMenu(<MessageQueueViewSideMenu modelId={QUEUE_ID} />);
 
     expect(sectionTitlesInOrder()).toEqual([
       "Basic",
       "Observability",
       "Settings",
+      "Developer",
       "Advanced",
     ]);
   });
@@ -204,13 +205,24 @@ describe("one queue's side menu", () => {
   test("reaches every page of the queue's route table, each exactly once", async () => {
     await renderMenu(<MessageQueueViewSideMenu modelId={QUEUE_ID} />);
 
-    const hrefs: Array<string> = hrefsInMenu();
+    // The Developer section's pages are generated, not in the route table.
+    const developerHrefs: Array<string> = hrefsInMenu().filter(
+      (href: string): boolean => {
+        return href.includes("/developer/");
+      },
+    );
+    const hrefs: Array<string> = hrefsInMenu().filter(
+      (href: string): boolean => {
+        return !href.includes("/developer/");
+      },
+    );
     const viewPages: Array<string> = Object.keys(MessageQueueRoutePath).filter(
       (key: string): boolean => {
         return key.startsWith("MESSAGE_QUEUE_VIEW");
       },
     );
 
+    expect(developerHrefs).toHaveLength(3);
     expect(viewPages).toHaveLength(7);
     expect(hrefs).toHaveLength(7);
     expect(new Set(hrefs).size).toBe(7);

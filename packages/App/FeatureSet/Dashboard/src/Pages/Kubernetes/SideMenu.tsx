@@ -6,6 +6,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const KubernetesSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -75,6 +78,11 @@ const KubernetesSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: KubernetesCluster,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

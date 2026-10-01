@@ -44,17 +44,25 @@ function paths(routes: Array<MenuRoute>): Array<string> {
 }
 
 describe("isTitleCollapsedByDefault", () => {
-  test("Advanced is the title that folds away by default", () => {
-    expect(SECTION_TITLES_COLLAPSED_BY_DEFAULT).toEqual(["Advanced"]);
+  test("Advanced and Developer are the titles that fold away by default", () => {
+    expect(SECTION_TITLES_COLLAPSED_BY_DEFAULT).toEqual([
+      "Advanced",
+      "Developer",
+    ]);
     expect(isTitleCollapsedByDefault("Advanced")).toBe(true);
+    expect(isTitleCollapsedByDefault("Developer")).toBe(true);
   });
 
-  test.each(["advanced", "ADVANCED", " Advanced ", "\tadvanced\n"])(
-    "ignores case and surrounding space: %p",
-    (title: string) => {
-      expect(isTitleCollapsedByDefault(title)).toBe(true);
-    },
-  );
+  test.each([
+    "advanced",
+    "ADVANCED",
+    " Advanced ",
+    "\tadvanced\n",
+    "developer",
+    " DEVELOPER ",
+  ])("ignores case and surrounding space: %p", (title: string) => {
+    expect(isTitleCollapsedByDefault(title)).toBe(true);
+  });
 
   test.each([
     "",
@@ -64,6 +72,8 @@ describe("isTitleCollapsedByDefault", () => {
     "Advanced Options",
     "Not Advanced",
     "Danger Zone",
+    "Developers",
+    "Developer Tools",
   ])("leaves %p open", (title: string) => {
     expect(isTitleCollapsedByDefault(title)).toBe(false);
   });

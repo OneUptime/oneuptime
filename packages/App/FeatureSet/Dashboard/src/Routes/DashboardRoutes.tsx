@@ -37,6 +37,9 @@ import DashboardSettingsDataSources from "../Pages/Dashboards/Settings/DataSourc
 import DashboardSettingsDataSourceView from "../Pages/Dashboards/Settings/DataSourceView";
 import DashboardLabelRule from "Common/Models/DatabaseModels/DashboardLabelRule";
 import DashboardOwnerRule from "Common/Models/DatabaseModels/DashboardOwnerRule";
+import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DashboardsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -151,6 +154,13 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: Dashboard,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.DASHBOARDS_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -256,6 +266,12 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: Dashboard,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

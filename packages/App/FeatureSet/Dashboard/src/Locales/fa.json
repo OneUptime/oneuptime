@@ -6919,5 +6919,17 @@
   "Every monitor in this project can use this secret, including monitors you create later.": "همه مانیتورهای این پروژه می‌توانند از این راز استفاده کنند، از جمله مانیتورهایی که بعداً ایجاد می‌کنید.",
   "Only the monitors you pick can use this secret.": "فقط مانیتورهایی که انتخاب می‌کنید می‌توانند از این راز استفاده کنند.",
   "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "مانیتورهایی که هر یک از برچسب‌های انتخابی شما را دارند می‌توانند از این راز استفاده کنند. افزودن یکی از این برچسب‌ها به یک مانیتور به آن دسترسی می‌دهد.",
-  "You can change this at any time.": "می‌توانید هر زمان این را تغییر دهید."
+  "You can change this at any time.": "می‌توانید هر زمان این را تغییر دهید.",
+  "Developer": "توسعه‌دهنده",
+  "Terraform": "Terraform",
+  "API": "API",
+  "AI Assistants": "دستیارهای هوش مصنوعی",
+  "Learn more:": "اطلاعات بیشتر:",
+  "This could not be found. It may have been deleted.": "پیدا نشد. ممکن است حذف شده باشد.",
+  "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.": "این منبع را با ارائه‌دهندهٔ Terraform در OneUptime به‌صورت کد مدیریت کنید. پیکربندی زیر از تنظیمات فعلی آن نوشته شده است، بنابراین Terraform آن را بدون هیچ تغییری در اختیار می‌گیرد.",
+  "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.": "این منابع را با ارائه‌دهندهٔ Terraform در OneUptime به‌صورت کد مدیریت کنید: منابع تازه بسازید یا منابعی را که از قبل دارید وارد کنید.",
+  "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "این منبع را با REST API در OneUptime بخوانید، تغییر دهید و حذف کنید. همهٔ دستورهای زیر روی همین OneUptime اجرا می‌شوند.",
+  "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "این منابع را با REST API در OneUptime فهرست کنید و بسازید. همهٔ دستورهای زیر روی همین OneUptime اجرا می‌شوند.",
+  "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "با این منبع از طریق یک دستیار هوش مصنوعی مانند Claude، GitHub Copilot یا Cursor کار کنید.",
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "با این منابع از طریق یک دستیار هوش مصنوعی مانند Claude، GitHub Copilot یا Cursor کار کنید."
 }

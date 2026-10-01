@@ -7,6 +7,9 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
+import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -90,6 +93,12 @@ const MessageQueueSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Book}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: MessageQueue,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

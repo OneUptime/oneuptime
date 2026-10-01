@@ -11,6 +11,12 @@ The import ID is the resource's ObjectID — a 24-character hex string. Two plac
 - **Dashboard URL.** Open the resource; the ID is the last path segment, e.g. `https://oneuptime.com/dashboard/<project-id>/monitors/68a1b2c3d4e5f6a7b8c9d0e1` → the monitor ID is `68a1b2c3d4e5f6a7b8c9d0e1`.
 - **API.** List resources with your project API key; every item carries `_id`.
 
+## Let the dashboard write it
+
+Open the resource in the dashboard, expand **Developer** in its side menu and choose **Terraform**. The page writes the `resource` block from the resource's current settings, and the `import` block with its ID, so the first plan already shows the import and nothing to change. Secrets are never shown: the ones the configuration needs come from `sensitive` Terraform variables, and the rest are left out.
+
+To adopt many resources of one type, open the **Terraform** page from the list instead (for example **Monitors → Developer → Terraform**). It writes an `import` block for each of them (the first 100), for use with `-generate-config-out` as described below.
+
 ## Import with an import block (Terraform 1.5+, recommended)
 
 Import blocks are declarative, reviewable in a plan, and repeatable. First write the `resource` block (it may start minimal), then the `import` block:

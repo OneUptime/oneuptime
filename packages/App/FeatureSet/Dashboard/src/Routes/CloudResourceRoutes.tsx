@@ -23,6 +23,9 @@ import CloudOwnerRules from "../Pages/Cloud/Settings/OwnerRules";
 import CloudArchived from "../Pages/Cloud/Archived";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -90,6 +93,13 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: CloudResource,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.CLOUD_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -211,6 +221,12 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: CloudResource,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

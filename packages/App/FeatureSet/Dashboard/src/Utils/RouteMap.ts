@@ -4,6 +4,7 @@ import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { getDeveloperDocsRouteMapEntries } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_INOPERATIONAL]: "inoperational",
@@ -7319,6 +7320,15 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 };
+
+/*
+ * The Developer pages (Terraform, API, AI Assistants) of every resource:
+ * three under each registered list page and three under each view page,
+ * generated from Components/DeveloperDocs/DeveloperDocsPages.ts instead
+ * of being written out here a hundred and more times. Their keys are
+ * `<parent page>_DEVELOPER_<page>`, e.g. WORKFLOW_VIEW_DEVELOPER_TERRAFORM.
+ */
+Object.assign(RouteMap, getDeveloperDocsRouteMapEntries(RouteMap));
 
 export class RouteUtil {
   public static isGlobalRoute(route: Route): boolean {

@@ -6919,5 +6919,17 @@
   "Every monitor in this project can use this secret, including monitors you create later.": "इस प्रोजेक्ट का हर मॉनिटर इस सीक्रेट का उपयोग कर सकता है, जिसमें बाद में बनाए गए मॉनिटर भी शामिल हैं।",
   "Only the monitors you pick can use this secret.": "केवल आपके चुने हुए मॉनिटर इस सीक्रेट का उपयोग कर सकते हैं।",
   "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "आपके चुने हुए लेबलों में से किसी भी लेबल वाले मॉनिटर इस सीक्रेट का उपयोग कर सकते हैं। किसी मॉनिटर में इनमें से कोई लेबल जोड़ने पर उसे एक्सेस मिल जाता है।",
-  "You can change this at any time.": "आप इसे कभी भी बदल सकते हैं।"
+  "You can change this at any time.": "आप इसे कभी भी बदल सकते हैं।",
+  "Developer": "डेवलपर",
+  "Terraform": "Terraform",
+  "API": "API",
+  "AI Assistants": "AI सहायक",
+  "Learn more:": "और जानें:",
+  "This could not be found. It may have been deleted.": "यह नहीं मिला। हो सकता है इसे हटा दिया गया हो।",
+  "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.": "OneUptime Terraform प्रोवाइडर के साथ इस संसाधन को कोड के रूप में प्रबंधित करें। नीचे दिया गया कॉन्फ़िगरेशन इसकी मौजूदा सेटिंग्स से लिखा गया है, इसलिए Terraform इसे बिना कुछ बदले अपना लेता है।",
+  "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.": "OneUptime Terraform प्रोवाइडर के साथ इन संसाधनों को कोड के रूप में प्रबंधित करें: नए बनाएँ, या जो पहले से हैं उन्हें शामिल करें।",
+  "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "OneUptime REST API से इस संसाधन को पढ़ें, बदलें और हटाएँ। नीचे दिए गए सभी कमांड इसी OneUptime पर चलते हैं।",
+  "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "OneUptime REST API से इन संसाधनों की सूची देखें और नए बनाएँ। नीचे दिए गए सभी कमांड इसी OneUptime पर चलते हैं।",
+  "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Claude, GitHub Copilot या Cursor जैसे AI सहायक से इस संसाधन पर काम करें।",
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Claude, GitHub Copilot या Cursor जैसे AI सहायक से इन संसाधनों पर काम करें।"
 }

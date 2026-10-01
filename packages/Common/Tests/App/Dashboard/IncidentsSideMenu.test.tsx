@@ -75,7 +75,7 @@ describe("Incidents side menu", () => {
   });
 
   describe("sections", () => {
-    test("renders the five product sections in order, with no AI section", async () => {
+    test("renders the five product sections in order, then Developer, with no AI section", async () => {
       await renderIncidentsMenu();
 
       expect(sectionTitlesInOrder()).toEqual([
@@ -84,6 +84,7 @@ describe("Incidents side menu", () => {
         "Workspace",
         "Rules",
         "Settings",
+        "Developer",
       ]);
     });
 

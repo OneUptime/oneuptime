@@ -47,6 +47,7 @@ describe("Inventory item side menu", () => {
       "Item",
       "Telemetry",
       "Operations",
+      "Developer",
       "Advanced",
     ]);
   });

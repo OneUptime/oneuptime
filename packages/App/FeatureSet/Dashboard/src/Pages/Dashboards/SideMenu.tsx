@@ -6,6 +6,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { ReactElement } from "react";
+import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -70,6 +73,11 @@ const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: Dashboard,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

@@ -11,6 +11,9 @@ import {
   isEnterpriseFeatureEligible,
 } from "../../../Enterprise/EnterpriseEligibility";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import TeamModel from "Common/Models/DatabaseModels/Team";
+import { addDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -146,6 +149,12 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
         className: "danger-on-hover",
       },
     ],
+  });
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: TeamModel,
+    scope: DeveloperDocsScope.View,
+    modelId: props.modelId,
   });
 
   return <SideMenu sections={sections} />;

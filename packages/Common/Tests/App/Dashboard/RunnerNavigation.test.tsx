@@ -138,7 +138,12 @@ describe("the Runbooks side menu lists the Runner pages", () => {
   test("Runners is its own section, between the runbooks and their Settings", async () => {
     await renderMenu(<RunbookSideMenu />);
 
-    expect(sectionTitlesInOrder()).toEqual(["Runbooks", "Runners", "Settings"]);
+    expect(sectionTitlesInOrder()).toEqual([
+      "Runbooks",
+      "Runners",
+      "Settings",
+      "Developer",
+    ]);
   });
 
   test("the section holds Runners and Credentials, at their Runbooks URLs", async () => {
@@ -236,7 +241,8 @@ describe("the Runbooks side menu lists the Runner pages", () => {
 
     const hrefs: Array<string> = hrefsInMenu();
 
-    expect(hrefs).toHaveLength(7);
+    // Seven Runbooks pages, then the Developer section's three.
+    expect(hrefs).toHaveLength(10);
     for (const href of hrefs) {
       expect(href).not.toMatch(/[:*]/);
       expect(matchRoutes(realRoutes, href)).not.toBeNull();

@@ -22,12 +22,17 @@ import React, { ReactElement, ReactNode } from "react";
  * folds away by default, everywhere, including in menus written after this
  * rule, and still opens by itself on any page inside it.
  *
+ * "Developer" (Terraform, API, AI Assistants: managing a resource from code
+ * rather than from the dashboard) is the same kind of section: there on
+ * every resource's menu, wanted on few visits.
+ *
  * The match is on the title a menu passes in (English, before translation).
  * A menu that passes an already translated title, as the Admin Dashboard
  * does, sets `defaultCollapsed` on its Advanced section itself.
  */
 export const SECTION_TITLES_COLLAPSED_BY_DEFAULT: ReadonlyArray<string> = [
   "Advanced",
+  "Developer",
 ];
 
 export function isTitleCollapsedByDefault(title: string): boolean {

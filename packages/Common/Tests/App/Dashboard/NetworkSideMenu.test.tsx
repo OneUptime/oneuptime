@@ -244,6 +244,34 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
       },
     ],
   },
+  /*
+   * Managing network devices from code: their Terraform, API and AI
+   * Assistants pages, folded away like Rules and Settings.
+   */
+  {
+    title: "Developer",
+    defaultCollapsed: true,
+    entries: [
+      {
+        title: "Terraform",
+        pageMapKey: "NETWORK_DEVICES_DEVELOPER_TERRAFORM",
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "Devices", "Terraform"],
+      },
+      {
+        title: "API",
+        pageMapKey: "NETWORK_DEVICES_DEVELOPER_API",
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "Devices", "API"],
+      },
+      {
+        title: "AI Assistants",
+        pageMapKey: "NETWORK_DEVICES_DEVELOPER_AI_ASSISTANTS",
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "Devices", "AI Assistants"],
+      },
+    ],
+  },
 ];
 
 const EXPECTED_ENTRIES: Array<ExpectedMenuEntry> = EXPECTED_SECTIONS.flatMap(
@@ -326,7 +354,7 @@ describe("Network side menu", () => {
   });
 
   describe("taxonomy", () => {
-    test("renders Network, Topology, Rules and Settings in order", async () => {
+    test("renders Network, Topology, Rules, Settings and Developer in order", async () => {
       await renderNetworkMenu();
 
       expect(sectionTitlesInOrder()).toEqual([
@@ -334,6 +362,7 @@ describe("Network side menu", () => {
         "Topology",
         "Rules",
         "Settings",
+        "Developer",
       ]);
     });
 
@@ -389,11 +418,11 @@ describe("Network side menu", () => {
   });
 
   describe("coverage", () => {
-    test("keeps all twenty-one destinations reachable exactly once", async () => {
+    test("keeps all twenty-four destinations reachable exactly once", async () => {
       await renderNetworkMenu();
 
-      expect(EXPECTED_ENTRIES).toHaveLength(21);
-      expect(allLinks()).toHaveLength(21);
+      expect(EXPECTED_ENTRIES).toHaveLength(24);
+      expect(allLinks()).toHaveLength(24);
       expect(hrefsInMenu().sort()).toEqual(
         EXPECTED_ENTRIES.map(expectedHref).sort(),
       );
@@ -599,6 +628,9 @@ describe("Network side menu", () => {
 
           if (section.title === "Network") {
             expect(trailTitles?.[1]).toBe(section.title);
+          } else if (section.title === "Developer") {
+            // The Developer pages hang under the list they are about.
+            expect(trailTitles?.[trailTitles.length - 2]).toBe("Devices");
           } else {
             expect(trailTitles?.[trailTitles.length - 2]).toBe(section.title);
           }

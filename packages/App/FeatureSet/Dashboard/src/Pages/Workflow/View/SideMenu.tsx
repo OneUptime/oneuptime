@@ -6,7 +6,10 @@ import ObjectID from "Common/Types/ObjectID";
 import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, { FunctionComponent, ReactElement } from "react";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -82,6 +85,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Team}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: Workflow,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

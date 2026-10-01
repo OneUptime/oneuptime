@@ -6,6 +6,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
+import { addDeveloperSideMenuSection } from "../DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../DeveloperDocs/DeveloperDocsPages";
 
 /*
  * The one side menu for the Code product. Tasks (/ai/agents) and Code
@@ -40,6 +43,11 @@ const CodeSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: CodeRepository,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

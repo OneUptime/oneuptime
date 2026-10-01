@@ -6919,5 +6919,17 @@
   "Every monitor in this project can use this secret, including monitors you create later.": "Every monitor in this project can use this secret, including monitors you create later.",
   "Only the monitors you pick can use this secret.": "Only the monitors you pick can use this secret.",
   "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.",
-  "You can change this at any time.": "You can change this at any time."
+  "You can change this at any time.": "You can change this at any time.",
+  "Developer": "Developer",
+  "Terraform": "Terraform",
+  "API": "API",
+  "AI Assistants": "AI Assistants",
+  "Learn more:": "Learn more:",
+  "This could not be found. It may have been deleted.": "This could not be found. It may have been deleted.",
+  "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.": "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.",
+  "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.": "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.",
+  "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.",
+  "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.",
+  "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.",
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor."
 }

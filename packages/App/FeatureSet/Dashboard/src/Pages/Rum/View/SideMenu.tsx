@@ -9,6 +9,9 @@ import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
 import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import RumApplicationModel from "Common/Models/DatabaseModels/RumApplication";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -192,6 +195,12 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Settings}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: RumApplicationModel,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

@@ -6919,5 +6919,17 @@
   "Every monitor in this project can use this secret, including monitors you create later.": "Alle overvågninger i dette projekt må bruge denne hemmelighed, også overvågninger, du opretter senere.",
   "Only the monitors you pick can use this secret.": "Kun de overvågninger, du vælger, må bruge denne hemmelighed.",
   "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Overvågninger med en af de etiketter, du vælger, må bruge denne hemmelighed. Tilføjer du en af disse etiketter til en overvågning, får den adgang.",
-  "You can change this at any time.": "Du kan ændre dette når som helst."
+  "You can change this at any time.": "Du kan ændre dette når som helst.",
+  "Developer": "Udvikler",
+  "Terraform": "Terraform",
+  "API": "API",
+  "AI Assistants": "AI-assistenter",
+  "Learn more:": "Læs mere:",
+  "This could not be found. It may have been deleted.": "Det blev ikke fundet. Det er måske blevet slettet.",
+  "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.": "Administrer denne ressource som kode med OneUptime Terraform-provideren. Konfigurationen nedenfor er skrevet ud fra dens nuværende indstillinger, så Terraform overtager den uden at ændre noget.",
+  "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.": "Administrer disse ressourcer som kode med OneUptime Terraform-provideren: opret nye, eller hent dem ind, du allerede har.",
+  "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "Læs, ændr og slet denne ressource med OneUptimes REST API. Alle kommandoer nedenfor kører mod denne OneUptime.",
+  "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "Vis og opret disse ressourcer med OneUptimes REST API. Alle kommandoer nedenfor kører mod denne OneUptime.",
+  "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Arbejd med denne ressource fra en AI-assistent som Claude, GitHub Copilot eller Cursor.",
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Arbejd med disse ressourcer fra en AI-assistent som Claude, GitHub Copilot eller Cursor."
 }

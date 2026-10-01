@@ -66,6 +66,9 @@ import KubernetesSettingsLabelRules from "../Pages/Kubernetes/Settings/LabelRule
 import KubernetesArchived from "../Pages/Kubernetes/Archived";
 import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
 import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const KubernetesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -165,6 +168,13 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: KubernetesCluster,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.KUBERNETES_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -908,6 +918,12 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: KubernetesCluster,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

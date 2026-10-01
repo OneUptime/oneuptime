@@ -9,6 +9,9 @@ import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -324,6 +327,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Terminal}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: StatusPage,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

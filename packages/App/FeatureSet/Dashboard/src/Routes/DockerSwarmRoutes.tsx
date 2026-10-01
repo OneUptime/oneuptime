@@ -42,6 +42,9 @@ import DockerSwarmClusterDelete from "../Pages/DockerSwarm/View/Delete";
 import DockerSwarmClusterDocumentation from "../Pages/DockerSwarm/View/Documentation";
 import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import DockerSwarmClusterOwnerRule from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerRule";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -136,6 +139,13 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: DockerSwarmCluster,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.DOCKER_SWARM_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -550,6 +560,12 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: DockerSwarmCluster,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

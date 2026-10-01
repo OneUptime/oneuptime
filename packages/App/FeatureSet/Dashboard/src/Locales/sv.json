@@ -6919,5 +6919,17 @@
   "Every monitor in this project can use this secret, including monitors you create later.": "Alla övervakare i det här projektet kan använda denna hemlighet, även övervakare som du skapar senare.",
   "Only the monitors you pick can use this secret.": "Endast de övervakare som du väljer kan använda denna hemlighet.",
   "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Övervakare med någon av etiketterna som du väljer kan använda denna hemlighet. Om du lägger till en av dessa etiketter på en övervakare får den åtkomst.",
-  "You can change this at any time.": "Du kan ändra detta när som helst."
+  "You can change this at any time.": "Du kan ändra detta när som helst.",
+  "Developer": "Utvecklare",
+  "Terraform": "Terraform",
+  "API": "API",
+  "AI Assistants": "AI-assistenter",
+  "Learn more:": "Läs mer:",
+  "This could not be found. It may have been deleted.": "Det gick inte att hitta. Det kan ha tagits bort.",
+  "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.": "Hantera den här resursen som kod med OneUptimes Terraform-provider. Konfigurationen nedan är skriven utifrån dess nuvarande inställningar, så Terraform tar över den utan att ändra något.",
+  "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.": "Hantera de här resurserna som kod med OneUptimes Terraform-provider: skapa nya eller ta in de som du redan har.",
+  "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "Läs, ändra och ta bort den här resursen med OneUptimes REST API. Alla kommandon nedan körs mot den här OneUptime.",
+  "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "Lista och skapa de här resurserna med OneUptimes REST API. Alla kommandon nedan körs mot den här OneUptime.",
+  "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Arbeta med den här resursen från en AI-assistent som Claude, GitHub Copilot eller Cursor.",
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Arbeta med de här resurserna från en AI-assistent som Claude, GitHub Copilot eller Cursor."
 }

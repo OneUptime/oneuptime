@@ -6919,5 +6919,17 @@
   "Every monitor in this project can use this secret, including monitors you create later.": "Все мониторы этого проекта могут использовать этот секрет, включая мониторы, которые вы создадите позже.",
   "Only the monitors you pick can use this secret.": "Только выбранные вами мониторы могут использовать этот секрет.",
   "Monitors with any of the labels you pick can use this secret. Adding one of these labels to a monitor gives it access.": "Мониторы с любой из выбранных вами меток могут использовать этот секрет. Если добавить одну из этих меток монитору, он получит доступ.",
-  "You can change this at any time.": "Это можно изменить в любой момент."
+  "You can change this at any time.": "Это можно изменить в любой момент.",
+  "Developer": "Для разработчиков",
+  "Terraform": "Terraform",
+  "API": "API",
+  "AI Assistants": "ИИ-ассистенты",
+  "Learn more:": "Подробнее:",
+  "This could not be found. It may have been deleted.": "Не найдено. Возможно, это было удалено.",
+  "Manage this resource as code with the OneUptime Terraform provider. The configuration below is written from its current settings, so Terraform adopts it without changing anything.": "Управляйте этим ресурсом как кодом с помощью провайдера Terraform для OneUptime. Конфигурация ниже составлена по его текущим настройкам, поэтому Terraform возьмёт его под управление, ничего не меняя.",
+  "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.": "Управляйте этими ресурсами как кодом с помощью провайдера Terraform для OneUptime: создавайте новые или берите под управление уже существующие.",
+  "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "Читайте, изменяйте и удаляйте этот ресурс через REST API OneUptime. Все команды ниже выполняются на этом экземпляре OneUptime.",
+  "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "Получайте список этих ресурсов и создавайте новые через REST API OneUptime. Все команды ниже выполняются на этом экземпляре OneUptime.",
+  "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Работайте с этим ресурсом через ИИ-ассистента, например Claude, GitHub Copilot или Cursor.",
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Работайте с этими ресурсами через ИИ-ассистента, например Claude, GitHub Copilot или Cursor."
 }

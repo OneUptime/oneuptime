@@ -28,6 +28,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ResourceCounts {
   nodes?: number | undefined;
@@ -311,6 +314,12 @@ const ProxmoxClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: ProxmoxCluster,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

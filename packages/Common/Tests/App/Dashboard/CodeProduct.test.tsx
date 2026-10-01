@@ -93,7 +93,12 @@ describe("the Code side menu", () => {
     goTo(`/dashboard/${PROJECT_ID}/ai/agents`);
     await renderMenu(<CodeSideMenu />);
 
-    expect(sectionTitlesInOrder()).toEqual(["Code"]);
+    expect(sectionTitlesInOrder()).toEqual(["Code", "Developer"]);
+    expect(
+      linksIn("Developer").map((link: { title: string }): string => {
+        return link.title;
+      }),
+    ).toEqual(["Terraform", "API", "AI Assistants"]);
     expect(linksIn("Code")).toEqual([
       { title: "Tasks", href: routeFor(PageMap.AI_AGENT_TASKS) },
       {
