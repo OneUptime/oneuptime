@@ -15,9 +15,12 @@ import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  STATUS_PAGE_ARCHIVED_NO_NEW_SUBSCRIBERS_MESSAGE,
   STATUS_PAGE_ARCHIVED_SENDS_NOTHING_MESSAGE,
   STATUS_PAGE_NOT_FOUND_MESSAGE,
 } from "../../../Types/StatusPage/StatusPageArchive";
+import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
+import Email from "../../../Types/Email";
 import {
   afterEach,
   beforeEach,
@@ -268,6 +271,58 @@ describe("an archived status page sends nothing", () => {
     await expect(
       StatusPageService.sendEmailReport({ statusPageId: ObjectID.generate() }),
     ).rejects.toThrow("Status page not found");
+  });
+});
+
+describe("an archived status page takes no new subscribers", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  type BeforeCreate = (data: {
+    data: StatusPageSubscriber;
+    props: { isRoot: boolean };
+  }) => Promise<unknown>;
+
+  function subscribe(): Promise<unknown> {
+    const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
+    subscriber.statusPageId = ObjectID.generate();
+    subscriber.projectId = ObjectID.generate();
+    subscriber.subscriberEmail = new Email("visitor@example.com");
+
+    const onBeforeCreate: BeforeCreate = (
+      StatusPageSubscriberService as unknown as {
+        onBeforeCreate: BeforeCreate;
+      }
+    ).onBeforeCreate.bind(StatusPageSubscriberService);
+
+    return onBeforeCreate({ data: subscriber, props: { isRoot: true } });
+  }
+
+  beforeEach(() => {
+    // Not subscribed yet, and the page is not one that notifies.
+    jest.spyOn(StatusPageSubscriberService, "findOneBy").mockResolvedValue(null);
+    jest
+      .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+      .mockResolvedValue([]);
+  });
+
+  it("says the page is archived, rather than that it does not exist", async () => {
+    jest.spyOn(StatusPageService, "isStatusPageArchived").mockResolvedValue(true);
+
+    await expect(subscribe()).rejects.toThrow(
+      new BadDataException(STATUS_PAGE_ARCHIVED_NO_NEW_SUBSCRIBERS_MESSAGE),
+    );
+  });
+
+  it("a page that does not exist is still just not found", async () => {
+    jest
+      .spyOn(StatusPageService, "isStatusPageArchived")
+      .mockResolvedValue(false);
+
+    await expect(subscribe()).rejects.toThrow(
+      new BadDataException("Status Page not found"),
+    );
   });
 });
 
