@@ -3,6 +3,7 @@ import {
   DATABASE_SYSTEMS,
   DatabaseSystemDescriptor,
   getCollectorReceiverComponentName,
+  getDefaultDatabasePort,
   getDatabaseSystemDescriptor,
   getDatabaseSystemDisplayName,
   getDatabaseReceiverSystemHint,
@@ -20,8 +21,10 @@ import {
   buildDatabaseServerDisplayName,
   canonicalizeDatabaseEndpoint,
   DatabaseEndpoint,
+  EPHEMERAL_PORT_RANGE_START,
   formatDatabaseEndpoint,
   getDatabaseEndpointScope,
+  isClientSocketDatabaseEndpoint,
   isHostRelativeDatabaseHost,
   isLoopbackDatabaseHost,
   NETWORK_SCOPED_NAME_SUFFIXES,
@@ -2050,6 +2053,83 @@ describe("Databases docs", (): void => {
       );
       expect(markdown).not.toContain("_Not connected_ after");
       expect(markdown).not.toContain("reads Not connected (minimum");
+    });
+
+    /*
+     * Regression: eBPF instrumentation swapped the two ends of long-lived
+     * Redis connections, and traces created one database per connection,
+     * each named after the client's ephemeral port. The page states the
+     * port rule the create policy applies, and how the ones created before
+     * go away.
+     */
+    it("states the ephemeral-port rule at the port the create policy starts refusing", (): void => {
+      const markdown: string = readPage();
+      const traces: string = section(markdown, "### From application traces");
+      const start: number = EPHEMERAL_PORT_RANGE_START;
+      const at: (port: number, system?: string) => boolean = (
+        port: number,
+        system: string = "redis",
+      ): boolean => {
+        return isClientSocketDatabaseEndpoint({
+          system,
+          endpoint: { host: "cache.example.com", port },
+        });
+      };
+
+      expect(at(start - 1)).toBe(false);
+      expect(at(start)).toBe(true);
+      expect(at(65535)).toBe(true);
+      expect(traces).toContain(`from port ${start} up`);
+      expect(traces).toContain(`a port from ${start} up never creates`);
+      expect(traces).toContain("49152–65535");
+
+      // The one engine whose own default port is in the range.
+      const exempt: Array<string> = DATABASE_SYSTEMS.filter(
+        (descriptor: DatabaseSystemDescriptor): boolean => {
+          return (
+            descriptor.defaultPort !== null && descriptor.defaultPort >= start
+          );
+        },
+      ).map((descriptor: DatabaseSystemDescriptor): string => {
+        return `${getDatabaseSystemDisplayName(descriptor.system)}'s ${descriptor.defaultPort}`;
+      });
+      expect(exempt).toEqual(["IBM Db2's 50000"]);
+      expect(getDefaultDatabasePort("ibm.db2")).toBe(50000);
+      expect(at(50000, "ibm.db2")).toBe(false);
+      expect(traces).toContain(exempt[0]!);
+
+      expect(
+        section(markdown, "### A database my applications use was not created"),
+      ).toContain(`a port from ${start} up that is not the engine's default`);
+
+      // The cleanup runs in the five-minute cleanup job, before the archive.
+      const job: string = fs.readFileSync(
+        path.join(
+          REPO_ROOT,
+          "packages/App/FeatureSet/Workers/Jobs/DatabaseServer/CleanupStaleResources.ts",
+        ),
+        "utf8",
+      );
+      expect(job).toContain("schedule: EVERY_FIVE_MINUTE");
+      expect(job.indexOf("deleteClientSocketDatabaseServers()")).toBeLessThan(
+        job.indexOf("autoArchiveStaleDatabaseServers()"),
+      );
+      const troubleshooting: string = section(
+        markdown,
+        "### One database per connection, each on a different high port",
+      );
+      expect(troubleshooting).toContain("deleted within 5 minutes");
+      expect(troubleshooting).toContain(
+        "(see [From application traces](#from-application-traces))",
+      );
+      expect(
+        section(markdown, "## Lifecycle, archiving and retention"),
+      ).toContain(
+        "[One database per connection](#one-database-per-connection-each-on-a-different-high-port)",
+      );
+      expect(
+        slugify("One database per connection, each on a different high port"),
+      ).toBe("one-database-per-connection-each-on-a-different-high-port");
     });
 
     it("states the Kubernetes and container discovery rules the job applies", (): void => {
