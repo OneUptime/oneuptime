@@ -1,19 +1,26 @@
-{{- if and .Values.ebpf.enabled .Values.ebpf.logToTraceCorrelation }}
-# OBI YAML configuration. The vast majority of OBI's settings are driven by
-# OTEL_EBPF_* env vars on the DaemonSet — this file exists only for the
-# pieces that can't be expressed via env vars, principally the
-# `ebpf.log_enricher.services` selector (it's a list of GlobAttributes, no
-# env var equivalent).
+{{- if .Values.ebpf.enabled }}
+# OBI YAML configuration, mounted into the eBPF DaemonSet and named by
+# OTEL_EBPF_CONFIG_PATH. Most of OBI's settings are OTEL_EBPF_* env vars on
+# the DaemonSet; this file holds the ones OBI only reads from YAML:
 #
-# OBI merges this YAML with the env vars at startup; env vars win on
-# conflict, so the toggles in values.yaml stay authoritative.
+#   - discovery.instrument / discovery.exclude_instrument — which processes
+#     are instrumented, from ebpf.autoTargetExe, ebpf.excludeExePaths and the
+#     `ebpfDiscovery` namespace rules. There is no env var for exclusions.
+#   - routes — HTTP route naming, from ebpf.routes, when set.
+#   - attributes.select.traces.include — the span attributes OBI exports,
+#     for OBI v0.14 and later: OBI's defaults plus service.peer.name (opt-in
+#     since v0.14, and what the service map names a called service by), then
+#     ebpf.extraSpanAttributes. Listing any attribute replaces OBI's
+#     defaults, hence the repetition; see kubernetes-agent.obiSpanAttributes.
+#     An older OBI keeps its own defaults.
+#   - ebpf.log_enricher.services — the trace↔log correlation process
+#     selector, when ebpf.logToTraceCorrelation is on (see the warning there:
+#     LD_PRELOAD-based APM agents like Dynatrace conflict with the log enricher
+#     and crash with SIGSEGV).
 #
-# The `services:` block below is rendered from `.Values.ebpf.logEnricher.services`
-# so users can narrow which processes get the in-process write() uprobe and
-# buffer rewrite. Defaults to `exe_path: "*"` (every process). See the
-# warning on `ebpf.logToTraceCorrelation` in values.yaml for why you would
-# want to scope it (LD_PRELOAD-based APM agents like Dynatrace conflict
-# with the log enricher and will crash with SIGSEGV).
+# OBI reads this file on top of its defaults and then applies env vars, which
+# win on conflict. The DaemonSet carries a checksum of this ConfigMap, so a
+# change here rolls the eBPF pods.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -23,8 +30,5 @@ metadata:
     {{- include "kubernetes-agent.labels" . | nindent 4 }}
 data:
   obi-config.yaml: |
-    ebpf:
-      log_enricher:
-        services:
-{{ toYaml .Values.ebpf.logEnricher.services | indent 10 }}
+    {{- include "kubernetes-agent.obiConfig" . | nindent 4 }}
 {{- end }}

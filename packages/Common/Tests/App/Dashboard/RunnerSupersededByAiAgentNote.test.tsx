@@ -285,9 +285,22 @@ describe("the Runner detail page", () => {
   test("says nothing of the sort on an ordinary Runner", async () => {
     openRunnerView(HOST_RUNNER_ID);
 
+    /*
+     * The details show the name, and so does the Delete card at the foot of
+     * the page ("Permanently delete bash-runner."), so it is found twice.
+     */
+    const names: Array<HTMLElement> = await screen.findAllByText(
+      "bash-runner",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
     expect(
-      await screen.findByText("bash-runner", {}, { timeout: WAIT_TIMEOUT }),
-    ).toBeInTheDocument();
+      names.some((element: HTMLElement) => {
+        return (
+          element.getAttribute("data-testid") !== "delete-confirmation-name"
+        );
+      }),
+    ).toBe(true);
     expect(
       screen.queryByTestId("kubernetes-agent-runner-note"),
     ).not.toBeInTheDocument();

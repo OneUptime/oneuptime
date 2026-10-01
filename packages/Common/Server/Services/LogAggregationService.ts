@@ -282,8 +282,8 @@ export class LogAggregationService {
   /*
    * Read-side retention filter (mirrors
    * AnalyticsDatabaseService.getRetentionReadFilter): rows past their
-   * per-service retention stay queryable until their whole part drops
-   * (ttl_only_drop_parts), so raw-table reads exclude them explicitly.
+   * retention stay queryable until a TTL merge removes them, so raw-table
+   * reads exclude them explicitly.
    * Deliberately NOT applied to projection-shaped queries (the severity
    * histogram): an aggregate projection cannot evaluate a predicate on a
    * column it does not store, so adding it would silently force a full

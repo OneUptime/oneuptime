@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -26,15 +27,37 @@ import {
  *
  * The real pages are rendered, with a project admin's permissions and two
  * runs (or none) behind ModelAPI.
+ *
+ * Each run can be downloaded - its log as text or the whole run as JSON -
+ * from its row's ⋯ menu and from the run's own modal. The browser's download
+ * is replaced by a recorder of what would be saved.
  */
 
 interface RecordedListCall {
   tableName: string;
   query: Record<string, unknown>;
+  select: Record<string, unknown>;
 }
 
 const listCalls: Array<RecordedListCall> = [];
 let runsForTest: Array<unknown> = [];
+
+interface DownloadCall {
+  content: Blob | string;
+  filename: string;
+  mimeType?: string | undefined;
+}
+
+const mockDownloads: Array<DownloadCall> = [];
+
+jest.mock("../../../UI/Utils/DownloadFile", () => {
+  return {
+    __esModule: true,
+    default: (data: DownloadCall): void => {
+      mockDownloads.push(data);
+    },
+  };
+});
 
 jest.mock("../../../UI/Utils/Permission", () => {
   return {
@@ -91,6 +114,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getList: async (data: {
         modelType: new () => { tableName?: string };
         query: Record<string, unknown>;
+        select: Record<string, unknown>;
       }): Promise<{
         data: Array<unknown>;
         count: number;
@@ -98,7 +122,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         limit: number;
       }> => {
         const tableName: string = new data.modelType().tableName || "";
-        listCalls.push({ tableName, query: data.query });
+        listCalls.push({ tableName, query: data.query, select: data.select });
 
         if (tableName === "WorkflowLog") {
           return {
@@ -229,6 +253,17 @@ function runListCalls(): Array<RecordedListCall> {
   });
 }
 
+// Opens the ⋯ menu of the run at that row.
+async function openRowMenu(rowIndex: number): Promise<void> {
+  const menuButtons: Array<HTMLElement> = await screen.findAllByTestId(
+    "row-actions-more-button",
+  );
+
+  expect(menuButtons).toHaveLength(2);
+
+  fireEvent.click(menuButtons[rowIndex]!);
+}
+
 async function renderRunPage(page: RunPage): Promise<void> {
   goTo(page.path);
   // A run's workflow name links to the workflow, which needs a router.
@@ -245,6 +280,7 @@ async function renderRunPage(page: RunPage): Promise<void> {
 
 beforeEach(() => {
   listCalls.length = 0;
+  mockDownloads.length = 0;
   runsForTest = TWO_RUNS;
   PermissionGate.clearPermissionPropsCache();
   TableFilterUrlState.resetClaimedKeys();
@@ -319,6 +355,135 @@ describe.each(RUN_PAGES)("$name", (page: RunPage) => {
      * own business, and it is tested with it (WorkflowLogModal.test.tsx).
      */
     expect(await screen.findByTestId("modal")).toBeInTheDocument();
+  });
+
+  test("View Logs stays the row's one button; the downloads wait in its ⋯ menu", async () => {
+    await renderRunPage(page);
+
+    const row: HTMLElement = (
+      await screen.findAllByRole("button", { name: "View Logs" })
+    )[0]!.closest("[data-testid='row-actions']") as HTMLElement;
+
+    expect(
+      within(row)
+        .getAllByRole("button")
+        .map((button: HTMLElement) => {
+          return (
+            button.textContent?.trim() || button.getAttribute("aria-label")
+          );
+        }),
+    ).toEqual(["View Logs", expect.stringMatching(/^More actions/)]);
+
+    fireEvent.click(within(row).getByTestId("row-actions-more-button"));
+
+    expect(
+      screen.getAllByRole("menuitem").map((item: HTMLElement) => {
+        return item.textContent;
+      }),
+    ).toEqual(["Download log", "Download run as JSON"]);
+  });
+
+  test("Download log on a row saves that run's log, named after its workflow and the run", async () => {
+    await renderRunPage(page);
+    await openRowMenu(1);
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "Download log" }));
+
+    expect(mockDownloads).toHaveLength(1);
+    expect(mockDownloads[0]!.filename).toBe(
+      `nightly-sync-run-${TWO_RUNS[1]!._id}-2026-09-30T10-00-01.txt`,
+    );
+    expect(mockDownloads[0]!.mimeType).toBe("text/plain;charset=utf-8");
+    expect(mockDownloads[0]!.content).toBe(
+      [
+        "Workflow: Nightly sync",
+        `Workflow ID: ${WORKFLOW_ID}`,
+        `Run ID: ${TWO_RUNS[1]!._id}`,
+        "Status: Error",
+        "Scheduled at: 2026-09-30T10:00:00.000Z",
+        "Started at: 2026-09-30T10:00:01.000Z",
+        "Completed at: 2026-09-30T10:00:03.000Z",
+        "",
+        `Run ${TWO_RUNS[1]!._id} log line`,
+        "",
+      ].join("\n"),
+    );
+  });
+
+  test("Download run as JSON on a row saves that run as data", async () => {
+    await renderRunPage(page);
+    await openRowMenu(0);
+
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: "Download run as JSON" }),
+    );
+
+    expect(mockDownloads).toHaveLength(1);
+    expect(mockDownloads[0]!.filename).toBe(
+      `nightly-sync-run-${TWO_RUNS[0]!._id}-2026-09-30T10-00-01.json`,
+    );
+    expect(JSON.parse(mockDownloads[0]!.content as string)).toEqual({
+      workflow: { id: WORKFLOW_ID, name: "Nightly sync" },
+      run: {
+        id: TWO_RUNS[0]!._id,
+        status: "Success",
+        scheduledAt: "2026-09-30T10:00:00.000Z",
+        startedAt: "2026-09-30T10:00:01.000Z",
+        completedAt: "2026-09-30T10:00:03.000Z",
+      },
+      // These runs predate step tracing: no steps, and the log says it all.
+      stepTrace: { steps: [] },
+      log: [`Run ${TWO_RUNS[0]!._id} log line`],
+    });
+  });
+
+  test("the run View Logs opens can be copied and downloaded, under the run's name", async () => {
+    await renderRunPage(page);
+
+    fireEvent.click(
+      (await screen.findAllByRole("button", { name: "View Logs" }))[1]!,
+    );
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+
+    expect(within(modal).getByTestId("workflow-run-copy-log")).toBeVisible();
+
+    fireEvent.click(within(modal).getByTestId("workflow-run-download"));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Download log" }));
+
+    expect(mockDownloads).toHaveLength(1);
+    expect(mockDownloads[0]!.filename).toBe(
+      `nightly-sync-run-${TWO_RUNS[1]!._id}-2026-09-30T10-00-01.txt`,
+    );
+    expect(mockDownloads[0]!.content).toContain("Status: Error");
+  });
+
+  test("the list asks for everything a download writes", async () => {
+    await renderRunPage(page);
+
+    const select: Record<string, unknown> = runListCalls()[0]!.select;
+
+    expect(select["logs"]).toBe(true);
+    expect(select["stepTrace"]).toBe(true);
+    expect(select["workflowId"]).toBe(true);
+    expect(select["workflow"]).toMatchObject({ name: true });
+    expect(select["createdAt"]).toBe(true);
+    expect(select["startedAt"]).toBe(true);
+    expect(select["completedAt"]).toBe(true);
+    expect(select["workflowStatus"]).toBe(true);
+  });
+
+  /*
+   * resumeData holds a sleeping run's state, return values and all, and is
+   * never readable through the API. The list must not ask for it, or for
+   * anything else a download would have to leave out.
+   */
+  test("the list never asks for the run's internal resume state", async () => {
+    await renderRunPage(page);
+
+    const select: Record<string, unknown> = runListCalls()[0]!.select;
+
+    expect(select["resumeData"]).toBeUndefined();
   });
 });
 

@@ -226,7 +226,16 @@ for (const doc of docs) {
   }
 
   for (const [key, value] of Object.entries(doc.data)) {
-    if (!key.endsWith(".yaml") || !String(value).includes("service:")) {
+    // A collector config has a service with pipelines. The OBI config of the
+    // eBPF DaemonSet (obi-config.yaml) is YAML too, and with log correlation
+    // on it carries `- service:` selectors. It is not a collector config, and
+    // `otelcol validate` would reject it. (No apostrophes in this script: it
+    // is inside a single-quoted shell string.)
+    if (
+      !key.endsWith(".yaml") ||
+      !String(value).includes("service:") ||
+      !String(value).includes("pipelines:")
+    ) {
       continue;
     }
 

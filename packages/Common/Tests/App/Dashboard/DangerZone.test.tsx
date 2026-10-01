@@ -9,7 +9,9 @@ import {
 import React from "react";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import API from "../../../UI/Utils/API/API";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
+import Project from "../../../Models/DatabaseModels/Project";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import Permission from "../../../Types/Permission";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -103,15 +105,17 @@ interface PageCalls {
   projectDeleted: number;
 }
 
-type RenderPageFunction = () => PageCalls;
+type RenderPageFunction = (currentProject?: Project | null) => PageCalls;
 
-const renderPage: RenderPageFunction = (): PageCalls => {
+const renderPage: RenderPageFunction = (
+  currentProject: Project | null = null,
+): PageCalls => {
   const calls: PageCalls = { projectDeleted: 0 };
 
   render(
     <DangerZone
       pageRoute={new Route("/settings/danger-zone")}
-      currentProject={null}
+      currentProject={currentProject}
       hasPaymentMethod={true}
       onProjectDeleted={() => {
         calls.projectDeleted = calls.projectDeleted + 1;
@@ -182,6 +186,13 @@ describe("Settings > Danger Zone", () => {
     getJestSpyOn(PermissionUtil, "getAllPermissions").mockReturnValue([
       Permission.ProjectOwner,
     ]);
+
+    /*
+     * The card reads the project's name when the page does not hand it one.
+     * Unless a test says otherwise there is none to read, and the dialog asks
+     * the way it always has.
+     */
+    getJestSpyOn(ModelAPI, "getItem").mockResolvedValue(null as never);
 
     getJestSpyOn(API, "post").mockImplementation((data: any) => {
       postCalls.push({
@@ -306,6 +317,138 @@ describe("Settings > Danger Zone", () => {
 
     expect(calls.projectDeleted).toBe(0);
     expect(ProjectUtil.clearCurrentProject).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Deleting the project removes everything in it for every member, and its
+   * dialog looked exactly like the one that deletes a label. It names the
+   * project and keeps Delete locked until that name has been typed.
+   */
+  describe("naming the project", () => {
+    type MakeProjectFunction = (id: ObjectID, name: string) => Project;
+
+    const makeProject: MakeProjectFunction = (
+      id: ObjectID,
+      name: string,
+    ): Project => {
+      const project: Project = new Project();
+      project.id = id;
+      project.name = name;
+      return project;
+    };
+
+    type TypeNameFunction = (value: string) => void;
+
+    const typeName: TypeNameFunction = (value: string): void => {
+      fireEvent.change(
+        screen.getByTestId("delete-confirmation-type-to-confirm-input"),
+        { target: { value: value } },
+      );
+    };
+
+    it("names the project it is about to delete", () => {
+      renderPage(makeProject(PROJECT_ID, "Acme Production"));
+
+      expect(screen.getByTestId("model-delete-card-message")).toHaveTextContent(
+        "Permanently delete Acme Production. This action cannot be undone.",
+      );
+
+      openConfirmation();
+
+      expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+        "Are you sure you want to delete Acme Production? This action cannot be undone.",
+      );
+      // The page had the name; the card did not read it again.
+      expect(ModelAPI.getItem).not.toHaveBeenCalled();
+    });
+
+    it("keeps Delete locked until the project's name is typed", async () => {
+      const calls: PageCalls = renderPage(
+        makeProject(PROJECT_ID, "Acme Production"),
+      );
+
+      openConfirmation();
+
+      expect(
+        screen.getByTestId("delete-confirmation-type-to-confirm"),
+      ).toHaveTextContent("Type Acme Production to confirm.");
+      expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+
+      await confirm();
+      expect(postCalls).toHaveLength(0);
+
+      typeName("Acme");
+      expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+
+      typeName("Acme Production");
+      await confirm();
+
+      await waitFor(() => {
+        expect(calls.projectDeleted).toBe(1);
+      });
+      expect(postCalls).toHaveLength(1);
+    });
+
+    it("asks for the name below the question about why", () => {
+      renderPage(makeProject(PROJECT_ID, "Acme Production"));
+
+      openConfirmation();
+
+      const reason: HTMLElement = screen.getByTestId("project-deletion-reason");
+      const typed: HTMLElement = screen.getByTestId(
+        "delete-confirmation-type-to-confirm-input",
+      );
+
+      expect(
+        reason.compareDocumentPosition(typed) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it("still sends the reason once the name is typed", async () => {
+      renderPage(makeProject(PROJECT_ID, "Acme Production"));
+
+      openConfirmation();
+      typeReason("Moving to another tool");
+      typeName("Acme Production");
+      await confirm();
+
+      await waitFor(() => {
+        expect(postCalls).toHaveLength(1);
+      });
+      expect(postCalls[0]?.data).toEqual({
+        data: { deletionReason: "Moving to another tool" },
+      });
+    });
+
+    /*
+     * The page's project and the one being deleted are the same in practice,
+     * but the name typed must be the name of what is deleted - so a project
+     * prop for some other project is not trusted, and the name is read.
+     */
+    it("reads the name of the project being deleted when the page has another", async () => {
+      getJestSpyOn(ModelAPI, "getItem").mockResolvedValue(
+        makeProject(PROJECT_ID, "Acme Production") as never,
+      );
+
+      renderPage(
+        makeProject(
+          new ObjectID("99999999-9999-4999-8999-999999999999"),
+          "Some other project",
+        ),
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("model-delete-card-message"),
+        ).toHaveTextContent("Permanently delete Acme Production.");
+      });
+
+      expect(
+        (ModelAPI.getItem as unknown as jest.Mock).mock.calls[0]![0],
+      ).toMatchObject({ modelType: Project, id: PROJECT_ID });
+      expect(screen.queryByText(/Some other project/)).toBeNull();
+    });
   });
 
   /*

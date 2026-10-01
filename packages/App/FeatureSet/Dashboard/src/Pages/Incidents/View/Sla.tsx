@@ -29,6 +29,8 @@ import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import Modal from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
+import { readDisplayText } from "Common/UI/Utils/ModelDisplayName";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -522,6 +524,14 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
   );
 };
 
+// The Remove SLA Rule dialog, naming the rule.
+export const REMOVE_SLA_RULE_TEMPLATE: string =
+  "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.";
+
+// The same, for a rule whose name could not be read.
+export const REMOVE_UNNAMED_SLA_RULE_SENTENCE: string =
+  "Are you sure you want to remove this SLA rule from the incident? This will delete all SLA tracking data for this rule.";
+
 const IncidentViewSla: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -903,6 +913,26 @@ const IncidentViewSla: FunctionComponent<
     fetchAvailableRules();
   }, [fetchAvailableRules]);
 
+  /*
+   * Which rule the Remove dialog is about. An incident can carry several SLA
+   * rules - response, resolution, an escalation - and removing one throws away
+   * its tracking data, so the dialog names it.
+   */
+  const getRuleNameToRemove: () => string = (): string => {
+    const sla: IncidentSla | undefined = slaRecords.find(
+      (record: IncidentSla) => {
+        return record._id?.toString() === slaToRemove?.toString();
+      },
+    );
+
+    const rule: IncidentSlaRule | undefined =
+      (sla?.incidentSlaRuleId
+        ? slaRules.get(sla.incidentSlaRuleId.toString())
+        : undefined) || (sla?.incidentSlaRule as IncidentSlaRule | undefined);
+
+    return readDisplayText(rule?.name);
+  };
+
   const openRemoveModal: (slaId: ObjectID) => void = useCallback(
     (slaId: ObjectID): void => {
       setSlaToRemove(slaId);
@@ -1118,7 +1148,18 @@ const IncidentViewSla: FunctionComponent<
       {showRemoveModal && (
         <ConfirmModal
           title="Remove SLA Rule"
-          description="Are you sure you want to remove this SLA rule from the incident? This will delete all SLA tracking data for this rule."
+          description={
+            getRuleNameToRemove() ? (
+              <span data-testid="remove-sla-rule-description">
+                <NamedSentence
+                  template={REMOVE_SLA_RULE_TEMPLATE}
+                  name={getRuleNameToRemove()}
+                />
+              </span>
+            ) : (
+              REMOVE_UNNAMED_SLA_RULE_SENTENCE
+            )
+          }
           onClose={() => {
             setShowRemoveModal(false);
             setSlaToRemove(null);

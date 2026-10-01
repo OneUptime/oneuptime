@@ -11,11 +11,20 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import UserUtil from "Common/UI/Utils/User";
+import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
 import User from "Common/Models/DatabaseModels/User";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
+
+// The Delete Account confirmation, naming the account by its email.
+export const DELETE_ACCOUNT_TEMPLATE: string =
+  "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.";
+
+// The same, when the email is not known.
+export const DELETE_UNNAMED_ACCOUNT_SENTENCE: string =
+  "Are you sure you want to delete your account? This action is permanent and cannot be undone. All your personal data will be removed.";
 
 const DeleteAccount: FunctionComponent<
   PageComponentProps
@@ -106,6 +115,8 @@ const DeleteAccount: FunctionComponent<
 
   const canDeleteAccount: boolean = projects.length === 0;
 
+  const accountEmail: string = UserUtil.getEmail()?.toString().trim() || "";
+
   return (
     <div>
       <Alert
@@ -166,7 +177,23 @@ const DeleteAccount: FunctionComponent<
 
       {showDeleteModal && (
         <ConfirmModal
-          description="Are you sure you want to delete your account? This action is permanent and cannot be undone. All your personal data will be removed."
+          /*
+           * Named by the email it signs in with: someone with a work and a
+           * personal account is sure, here, which one they are signed in as.
+           */
+          description={
+            accountEmail ? (
+              <span data-testid="delete-account-description">
+                <NamedSentence
+                  template={DELETE_ACCOUNT_TEMPLATE}
+                  slot="email"
+                  name={accountEmail}
+                />
+              </span>
+            ) : (
+              DELETE_UNNAMED_ACCOUNT_SENTENCE
+            )
+          }
           title="Delete Account"
           onSubmit={async () => {
             setShowDeleteModal(false);

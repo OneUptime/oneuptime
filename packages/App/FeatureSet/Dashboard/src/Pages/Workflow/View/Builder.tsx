@@ -78,6 +78,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [webhookSecretKey, setWebhookSecretKey] = useState<string>("");
   const [canSeeWebhookSecretKey, setCanSeeWebhookSecretKey] =
     useState<boolean>(false);
+  // Names a run downloaded from the run modal, and heads its log.
+  const [workflowName, setWorkflowName] = useState<string>("");
 
   const [showComponentPickerModal, setShowComponentPickerModal] =
     useState<boolean>(false);
@@ -117,6 +119,10 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             workflowStatus: true,
             logs: true,
             stepTrace: true,
+            // A run downloaded from the modal is named and headed with these.
+            createdAt: true,
+            startedAt: true,
+            completedAt: true,
           },
           sort: { createdAt: SortOrder.Descending },
         });
@@ -132,6 +138,9 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         status: latest.workflowStatus as WorkflowStatus,
         logs: latest.logs || "",
         stepTrace: parseTrace((latest.stepTrace as JSONValue) || null),
+        scheduledAt: latest.createdAt || null,
+        startedAt: latest.startedAt || null,
+        completedAt: latest.completedAt || null,
       };
     };
 
@@ -170,6 +179,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id: modelId,
         select: {
           graph: true,
+          name: true,
           ...webhookSecretKeySelect,
         },
         requestOptions: {},
@@ -180,6 +190,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           Boolean(webhookSecretKeySelect.webhookSecretKey),
         );
         setWebhookSecretKey(workflow.webhookSecretKey || "");
+        setWorkflowName(workflow.name || "");
 
         const allComponents: {
           components: Array<ComponentMetadata>;
@@ -562,6 +573,19 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             description="This is the run you just started."
             logs={runWatch.logs}
             stepTrace={runWatch.stepTrace}
+            run={
+              runWatch.run
+                ? {
+                    runId: runWatch.run.runId,
+                    workflowId: modelId.toString(),
+                    workflowName: workflowName,
+                    status: runWatch.run.status,
+                    scheduledAt: runWatch.run.scheduledAt,
+                    startedAt: runWatch.run.startedAt,
+                    completedAt: runWatch.run.completedAt,
+                  }
+                : undefined
+            }
             statusMessage={runWatch.message}
             isStatusMessageError={runWatch.hasFailed}
             isRunning={runWatch.isWatching}

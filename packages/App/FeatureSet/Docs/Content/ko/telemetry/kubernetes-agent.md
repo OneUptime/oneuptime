@@ -414,7 +414,6 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `httpMetrics`             | on     | 서비스별 HTTP/gRPC RED 메트릭 (요청 속도, 지연 시간, 오류) |
 | `spanMetrics`             | on     | 스팬별 요청/응답 크기 및 지속 시간                         |
 | `serviceGraph`            | on     | 호출자 → 피호출자 엣지 메트릭, 서비스 맵을 구동            |
-| `hostMetrics`             | on     | 계측된 프로세스별 CPU 및 메모리                            |
 | `networkMetrics`          | on     | 파드 간 TCP/UDP 흐름 카운터                                |
 | `networkInterZoneMetrics` | off    | 네트워크 메트릭의 영역 간 변형 (카디널리티가 두 배가 됨)   |
 | `tcpStats`                | on     | 노드 수준 TCP RTT, 실패한 연결, 재전송 카운터              |

@@ -783,11 +783,11 @@
         },
         "autoTargetExe": {
           "type": "string",
-          "description": "Glob pattern of executable paths to auto-instrument (e.g., '*' for all, '*/python,*/java' to scope)."
+          "description": "Comma-separated globs of executable paths to auto-instrument (e.g. '*' for all, '*/python,*/java' to scope). Each entry becomes one OBI discovery.instrument selector; `*` matches across `/`."
         },
         "excludeExePaths": {
           "type": "string",
-          "description": "Comma-separated glob list of executable paths to skip."
+          "description": "Comma-separated globs of executable paths to skip. Each entry becomes one OBI discovery.exclude_instrument selector, next to OBI's built-in exclusions."
         },
         "logLevel": {
           "type": "string",
@@ -815,7 +815,7 @@
             },
             "hostMetrics": {
               "type": "boolean",
-              "description": "Per-host / per-process CPU and memory (OBI `application_host`)."
+              "description": "Deprecated, no effect. Mapped to OBI's `application_host` (a host-info gauge), which OBI v0.14 removed; OBI refuses to start on an unknown feature, so the chart no longer passes it. Kept so values files that set it still install."
             },
             "networkMetrics": {
               "type": "boolean",
@@ -827,7 +827,7 @@
             },
             "tcpStats": {
               "type": "boolean",
-              "description": "Node-level TCP stats (RTT, failed connections, retransmits) (OBI `stats`)."
+              "description": "Node-level TCP stats (RTT, failed connections, retransmits): OBI `stats_tcp_rtt`, `stats_tcp_failed_connections`, `stats_tcp_retransmits` (not `stats`, which also adds the per-send/receive `stats_tcp_io`)."
             }
           },
           "additionalProperties": false
@@ -844,6 +844,51 @@
         "trackRequestHeaders": {
           "type": "boolean",
           "description": "Track HTTP request headers in kernel for traceparent extraction. Only effective if `contextPropagation` is true."
+        },
+        "nodejs": {
+          "type": "object",
+          "description": "OBI's Node.js support: linking a request's outgoing calls to it, through an agent injected via the Node inspector (SIGUSR1; loopback 127.0.0.1:9229). Route templates do not depend on it: OBI reads them from the app's files.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "OTEL_EBPF_NODEJS_ENABLED. When false there is no SIGUSR1/inspector injection, and Node.js spans are not linked to the request that made them."
+            }
+          },
+          "additionalProperties": false
+        },
+        "excludeOtelInstrumentedServices": {
+          "type": "boolean",
+          "description": "OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES. When true (OBI's default) OBI stops exporting its own telemetry for a process once it sees that process export OTLP itself. Set false when those SDKs report to a different project or backend."
+        },
+        "routes": {
+          "type": "object",
+          "description": "How OBI names HTTP spans (OBI `routes` config).",
+          "properties": {
+            "patterns": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Route templates matched against URL paths, e.g. '/api/items/{id}'. A matching path gets that route, and span name, verbatim."
+            },
+            "unmatched": {
+              "type": "string",
+              "enum": ["", "heuristic", "low-cardinality", "wildcard", "path", "unset"],
+              "description": "Route for a path no pattern matches. '' keeps OBI's default (heuristic)."
+            }
+          },
+          "additionalProperties": false
+        },
+        "extraSpanAttributes": {
+          "type": ["array", "null"],
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Span attributes OBI exports in addition to the chart's fixed set (OBI's defaults plus service.peer.name), e.g. 'http.request.body.size', 'http.response.body.size', 'obi.http.response.observed', 'db.query.text' (raw query text, may carry personal data). Rendered into OBI's attributes.select.traces.include; entries are trimmed, blanks and repeats dropped, and '*' is ignored. null (a values file from before this key) means none."
+        },
+        "dropDatabaseServerSpans": {
+          "type": "boolean",
+          "description": "Drop the span OBI records inside a database server (db.system.name set, kind SERVER), linked or not. It duplicates the caller's client span: a one-span trace when the caller runs on another node, a doubled database call inside the request trace when it runs on the same node. Spans pushed by application SDKs are never touched, and database metrics are unaffected."
+        },
+        "dropUnlinkedDatabaseCalls": {
+          "type": "boolean",
+          "description": "Drop an application's eBPF database call (db.system.name set, not SERVER) that has no parent: background work such as queue workers polling Redis, pool pings, cron jobs. Trade-off: a database that only such work talks to is no longer discovered from traces and shows on the service map as a remote endpoint. Spans pushed by application SDKs are never touched, and database metrics are unaffected."
         },
         "logToTraceCorrelation": {
           "type": "boolean",

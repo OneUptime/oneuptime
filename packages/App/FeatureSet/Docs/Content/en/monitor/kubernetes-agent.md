@@ -168,7 +168,6 @@ OBI extracts several signal families from the captured traffic. All are on by de
 | `ebpf.features.httpMetrics`             | on      | HTTP/gRPC RED metrics — request rate, latency histograms, error counts — per service.                                                                        |
 | `ebpf.features.spanMetrics`             | on      | Span-attribute-keyed metrics: request size, response size, duration broken down per route/operation.                                                         |
 | `ebpf.features.serviceGraph`            | on      | Service-to-service edge metrics (caller → callee request rate + latency). Powers the service map.                                                            |
-| `ebpf.features.hostMetrics`             | on      | CPU and memory per instrumented process — saves running a separate profiler for basic capacity questions.                                                    |
 | `ebpf.features.networkMetrics`          | on      | Pod-to-pod TCP/UDP flow byte and packet counters with k8s metadata. Surfaces every pair of pods that talk, including ones running protocols OBI can't parse. |
 | `ebpf.features.networkInterZoneMetrics` | off     | Inter-zone variant of network metrics. Doubles cardinality; only worth enabling if you actually use zone-based scheduling.                                   |
 | `ebpf.features.tcpStats`                | on      | Node-level TCP statistics: RTT histograms, failed-connection counts, retransmits.                                                                            |
@@ -256,7 +255,7 @@ ebpf:
 | Option                 | Default                                                  | Description                                                                                                        |
 | ---------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `ebpf.enabled`         | `true`                                                   | Master switch. Set to `false` to skip the eBPF DaemonSet entirely.                                                 |
-| `ebpf.image.tag`       | `v0.9.0`                                                 | OBI image tag. OBI is pre-1.0; pin to a known-good version and re-test on bumps.                                   |
+| `ebpf.image.tag`       | `v0.13.0`                                                | OBI image tag. OBI is pre-1.0; pin to a known-good version and re-test on bumps.                                   |
 | `ebpf.autoTargetExe`   | `*`                                                      | Glob of executables to instrument. Narrow this (e.g. `*/python,*/java`) if you want to scope auto-instrumentation. |
 | `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself) | Comma-separated globs to skip.                                                                                     |
 | `ebpf.logLevel`        | `info`                                                   | `debug`, `info`, `warn`, or `error`. Set to `debug` while troubleshooting.                                         |
@@ -276,7 +275,7 @@ A separate DaemonSet runs the [OpenTelemetry eBPF Profiler](https://github.com/o
 
 Profiling is **off by default** — it's heavier than the OBI auto-instrumentation (more CPU per node, larger memory footprint) and not every cluster wants always-on flame graphs. Enable it when you want richer telemetry: `--set profiling.enabled=true`.
 
-When eBPF auto-instrumentation is also on (`ebpf.enabled: true`, the default), each CPU sample is correlated with OBI's trace context via a shared bpffs map — so flame graphs carry trace_id/span_id and the OneUptime UI can show you a per-span flame graph.
+When eBPF auto-instrumentation is also on (`ebpf.enabled: true`, the default), each CPU sample is correlated with OBI's trace context via a shared bpffs map — so flame graphs carry trace_id/span_id and the OneUptime UI can show you a per-span flame graph. Since v0.14 OBI only keeps that map filled when asked, so the chart sets `OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true` on the eBPF DaemonSet whenever `profiling.enabled` and `profiling.obiProcessContext` are both on. Filling it costs instrumented apps a little on every async context switch (on Node.js, a hook on every callback); set `profiling.obiProcessContext=false` for flame graphs without the per-span link.
 
 Requirements:
 
@@ -292,7 +291,7 @@ Tuning:
 | `profiling.samplesPerSecond`  | `19`                  | Sampling frequency in Hz. Upstream default; avoids accidentally aliasing with common timer frequencies.                           |
 | `profiling.offCpuThreshold`   | `0`                   | (0–1] enables off-CPU profiling — diagnoses lock contention and blocking I/O. Off by default because it adds tracepoint overhead. |
 | `profiling.tracers`           | `""` _(all runtimes)_ | Comma-separated list of language tracers to load.                                                                                 |
-| `profiling.obiProcessContext` | `true`                | Correlate samples with OBI's trace context for trace ↔ profile linking.                                                          |
+| `profiling.obiProcessContext` | `true`                | Correlate samples with OBI's trace context; also has OBI keep that context filled (`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT`).      |
 
 ## Other data collection (host metrics, saturation, cAdvisor, KSM, audit logs, CSI, CoreDNS)
 
