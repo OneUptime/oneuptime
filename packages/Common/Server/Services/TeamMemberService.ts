@@ -245,9 +245,9 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     }
 
     /*
-     * Set when the member is invited by email: who they are, and whether they
-     * still have to register. The invitation email is sent once everything
-     * below has decided what this membership is.
+     * Set when the member is invited by email: the account the address belongs
+     * to, and whether this invite just created it. The invitation email is sent
+     * once everything below has decided what this membership is.
      */
     let invitedUser: User | null = null;
     let invitedEmail: Email | null = null;
@@ -645,6 +645,86 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
       return 0;
     }
+  }
+
+  /**
+   * Accept the invitations left pending for people who had already joined
+   * that project through another team - what adding them to those teams
+   * does now (see onBeforeCreate). Somebody who is only invited is left
+   * alone: they still have to accept. Run once by the data migration that
+   * came with acceptance becoming per project.
+   *
+   * The (person, project) pairs are walked in key order, a batch at a time,
+   * and each is handled as an acceptance is: its invitations accepted, then
+   * the person's cached permissions in the project refreshed. Best effort per
+   * pair - a failure is logged and the walk goes on. Idempotent, since an
+   * accepted invitation is no longer pending, and safe to run twice at once
+   * as the data migration runner requires. Returns how many invitations it
+   * accepted.
+   */
+  @CaptureSpan()
+  public async acceptPendingInvitationsOfProjectMembers(options?: {
+    batchSize?: number | undefined;
+  }): Promise<number> {
+    const batchSize: number = Math.max(
+      1,
+      Math.floor(options?.batchSize || 500),
+    );
+
+    let acceptedCount: number = 0;
+    let lastPair: { userId: string; projectId: string } | null = null;
+
+    for (;;) {
+      const pairs: Array<{ userId: string; projectId: string }> =
+        await this.getRepository().manager.query(
+          `SELECT DISTINCT pending."userId", pending."projectId"
+             FROM "TeamMember" pending
+            WHERE pending."hasAcceptedInvitation" = false
+              AND pending."deletedAt" IS NULL
+              AND ($2::uuid IS NULL OR (pending."userId", pending."projectId") > ($2::uuid, $3::uuid))
+              AND EXISTS (
+                    SELECT 1
+                      FROM "TeamMember" accepted
+                     WHERE accepted."userId" = pending."userId"
+                       AND accepted."projectId" = pending."projectId"
+                       AND accepted."hasAcceptedInvitation" = true
+                       AND accepted."deletedAt" IS NULL
+                  )
+            ORDER BY pending."userId" ASC, pending."projectId" ASC
+            LIMIT $1`,
+          [batchSize, lastPair?.userId || null, lastPair?.projectId || null],
+        );
+
+      for (const pair of pairs) {
+        const userId: ObjectID = new ObjectID(pair.userId);
+        const projectId: ObjectID = new ObjectID(pair.projectId);
+
+        acceptedCount += await this.acceptPendingInvitationsInProject({
+          userId: userId,
+          projectId: projectId,
+        });
+
+        try {
+          await this.refreshTokens(userId, projectId);
+        } catch (err) {
+          logger.error(
+            err as Error,
+            {
+              projectId: projectId.toString(),
+              userId: userId.toString(),
+            } as LogAttributes,
+          );
+        }
+      }
+
+      if (pairs.length < batchSize) {
+        break;
+      }
+
+      lastPair = pairs[pairs.length - 1]!;
+    }
+
+    return acceptedCount;
   }
 
   @CaptureSpan()

@@ -1116,3 +1116,143 @@ describe("TeamMemberService.acceptPendingInvitationsInProject", () => {
     );
   });
 });
+
+describe("TeamMemberService.acceptPendingInvitationsOfProjectMembers - the data migration's backfill", () => {
+  /*
+   * The (person, project) pairs the backfill reads, a page at a time, as the
+   * SELECT returns them. Which rows Postgres picks is pinned against a real
+   * database in TeamMemberInvitationAcceptancePostgres.test.ts; this pins
+   * what is done with them.
+   */
+  let querySpy: jest.Mock;
+  let acceptPendingSpy: jest.SpyInstance;
+
+  function pair(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): {
+    userId: string;
+    projectId: string;
+  } {
+    return { userId: userId.toString(), projectId: projectId.toString() };
+  }
+
+  function pagesAre(
+    pages: Array<Array<{ userId: string; projectId: string }>>,
+  ): void {
+    querySpy = jest.fn(async () => {
+      return pages.shift() || [];
+    });
+
+    jest
+      .spyOn(TeamMemberService, "getRepository")
+      .mockReturnValue({ manager: { query: querySpy } } as never);
+  }
+
+  beforeEach(() => {
+    acceptPendingSpy = jest
+      .spyOn(TeamMemberService, "acceptPendingInvitationsInProject")
+      .mockResolvedValue(2);
+  });
+
+  test("reads only pending invitations of people with an accepted membership in the same project", async () => {
+    pagesAre([[]]);
+
+    await TeamMemberService.acceptPendingInvitationsOfProjectMembers();
+
+    const sql: string = String(querySpy.mock.calls[0]![0]);
+
+    expect(sql).toContain('pending."hasAcceptedInvitation" = false');
+    expect(sql).toContain("EXISTS");
+    expect(sql).toContain('accepted."hasAcceptedInvitation" = true');
+    expect(sql).toContain('accepted."userId" = pending."userId"');
+    expect(sql).toContain('accepted."projectId" = pending."projectId"');
+    // Soft-deleted rows are out, as they are for every service read.
+    expect(sql).toContain('pending."deletedAt" IS NULL');
+    expect(sql).toContain('accepted."deletedAt" IS NULL');
+  });
+
+  test("accepts each pair's invitations, then refreshes that person's permissions in that project", async () => {
+    pagesAre([
+      [pair(USER_ID, PROJECT_ID), pair(OTHER_USER_ID, OTHER_PROJECT_ID)],
+    ]);
+
+    await expect(
+      TeamMemberService.acceptPendingInvitationsOfProjectMembers(),
+    ).resolves.toBe(4);
+
+    expect(acceptPendingSpy).toHaveBeenCalledTimes(2);
+    expect(acceptPendingSpy.mock.calls[0]![0]).toEqual({
+      userId: USER_ID,
+      projectId: PROJECT_ID,
+    });
+    expect(acceptPendingSpy.mock.calls[1]![0]).toEqual({
+      userId: OTHER_USER_ID,
+      projectId: OTHER_PROJECT_ID,
+    });
+
+    expect(refreshSpy).toHaveBeenCalledWith(USER_ID, PROJECT_ID);
+    expect(refreshSpy).toHaveBeenCalledWith(OTHER_USER_ID, OTHER_PROJECT_ID);
+    expect(acceptPendingSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      refreshSpy.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("pages on from the last pair it read, until a short page", async () => {
+    pagesAre([
+      [pair(USER_ID, PROJECT_ID), pair(USER_ID, OTHER_PROJECT_ID)],
+      [pair(OTHER_USER_ID, PROJECT_ID)],
+    ]);
+
+    await TeamMemberService.acceptPendingInvitationsOfProjectMembers({
+      batchSize: 2,
+    });
+
+    expect(querySpy).toHaveBeenCalledTimes(2);
+    expect(querySpy.mock.calls[0]![1]).toEqual([2, null, null]);
+    expect(querySpy.mock.calls[1]![1]).toEqual([
+      2,
+      USER_ID.toString(),
+      OTHER_PROJECT_ID.toString(),
+    ]);
+    expect(acceptPendingSpy).toHaveBeenCalledTimes(3);
+  });
+
+  test("a full last page is followed by one more read that finds nothing", async () => {
+    pagesAre([[pair(USER_ID, PROJECT_ID)], []]);
+
+    await TeamMemberService.acceptPendingInvitationsOfProjectMembers({
+      batchSize: 1,
+    });
+
+    expect(querySpy).toHaveBeenCalledTimes(2);
+  });
+
+  test("a permission refresh that fails is logged, and the walk goes on", async () => {
+    pagesAre([[pair(USER_ID, PROJECT_ID), pair(OTHER_USER_ID, PROJECT_ID)]]);
+    refreshSpy.mockRejectedValueOnce(new Error("redis is down"));
+    const errorSpy: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {
+        return undefined as never;
+      });
+
+    await expect(
+      TeamMemberService.acceptPendingInvitationsOfProjectMembers(),
+    ).resolves.toBe(4);
+
+    expect(refreshSpy).toHaveBeenCalledTimes(2);
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  test("nothing to accept is nothing to do", async () => {
+    pagesAre([[]]);
+
+    await expect(
+      TeamMemberService.acceptPendingInvitationsOfProjectMembers(),
+    ).resolves.toBe(0);
+
+    expect(acceptPendingSpy).not.toHaveBeenCalled();
+    expect(refreshSpy).not.toHaveBeenCalled();
+  });
+});
