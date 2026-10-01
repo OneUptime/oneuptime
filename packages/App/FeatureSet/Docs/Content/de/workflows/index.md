@@ -38,14 +38,14 @@ Das alles bauen Sie sichtbar auf einer Arbeitsfläche. Für die meisten Workflow
 
 - **Arbeitsabläufe** – Ihre Liste der Workflows. Legen Sie einen neuen an oder öffnen Sie einen bestehenden.
 - **Globale Variablen** – Werte, die alle Ihre Workflows gemeinsam nutzen.
-- **Ausführungen & Protokolle** – die Ausführungshistorie über alle Workflows Ihres Projekts hinweg.
+- **Protokolle → Ausführungen** – die Ausführungshistorie über alle Workflows Ihres Projekts hinweg.
 
 Öffnen Sie einen einzelnen Workflow, enthält dessen eigenes linkes Menü:
 
 - **Übersicht** – Name, Beschreibung, Beschriftungen und den Schalter **Aktiviert**.
 - **Builder** – die Arbeitsfläche, auf der Sie den Workflow entwerfen.
 - **Workflow-Variablen** – Werte, die nur für diesen einen Workflow gelten.
-- **Ausführungen & Protokolle** – jede Ausführung dieses Workflows, mit Details.
+- **Protokolle → Ausführungen** – jede Ausführung dieses Workflows, mit Details.
 - **Einstellungen** – Duplizieren und Export.
 
 ## Ihren ersten Workflow bauen
@@ -80,5 +80,5 @@ Wenn das nächste Mal jemand einen Vorfall mit „Sev 1“ im Titel eröffnet, l
 - [Workflow-Trigger](/docs/workflows/triggers) – die verschiedenen Arten, wie ein Workflow starten kann.
 - [Workflow-Komponenten](/docs/workflows/components) – die Bausteine, die Sie hinzufügen können.
 - [Workflow-Variablen](/docs/workflows/variables) – Werte über Bausteine und Workflows hinweg nutzen.
-- [Workflow-Ausführungen & Protokolle](/docs/workflows/runs-and-logs) – nachsehen, was passiert ist.
+- [Workflow-Ausführungen](/docs/workflows/runs-and-logs) – nachsehen, was passiert ist.
 - [Workflow-Konfiguration & Sicherheit](/docs/workflows/configuration) – Einstellungen, die Sie kennen sollten.

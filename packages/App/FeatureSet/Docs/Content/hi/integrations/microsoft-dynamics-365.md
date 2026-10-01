@@ -151,7 +151,7 @@ account GUID को उस account से बदलें जिससे ये
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-अब वर्कफ़्लो चालू करें — **अवलोकन → Edit Workflow → सक्षम** — एक test incident घोषित करें, और **रन और लॉग** के नीचे उस run को पढ़ें। `create-case` ब्लॉक को `201` और ऐसा body दिखाना चाहिए जिसमें नई `incidentid` हो। कैनवास पर किए गए बदलाव अपने-आप सहेजे जाते हैं; कोई Save बटन नहीं है।
+अब वर्कफ़्लो चालू करें — **अवलोकन → Edit Workflow → सक्षम** — एक test incident घोषित करें, और **लॉग → रन** के नीचे उस run को पढ़ें। `create-case` ब्लॉक को `201` और ऐसा body दिखाना चाहिए जिसमें नई `incidentid` हो। कैनवास पर किए गए बदलाव अपने-आप सहेजे जाते हैं; कोई Save बटन नहीं है।
 
 ### severity और status को map करना
 
@@ -323,7 +323,7 @@ case बंद करने से कम किसी भी काम के �
 
 ## समस्या निवारण
 
-पहले **रन और लॉग** में विफल ब्लॉक पढ़ें — दोनों Microsoft endpoints व्याख्या करने वाला JSON body लौटाते हैं, और API कंपोनेंट उसे `response-body` में रखता है।
+पहले **लॉग → रन** में विफल ब्लॉक पढ़ें — दोनों Microsoft endpoints व्याख्या करने वाला JSON body लौटाते हैं, और API कंपोनेंट उसे `response-body` में रखता है।
 
 **token request `400` और `invalid_request` या किसी असमर्थित grant type के साथ विफल होती है।** `Content-Type` हेडर ठीक-ठीक `Content-Type: application/x-www-form-urlencoded` नहीं है, इसलिए body JSON के रूप में चली गई। capitalization जाँचें।
 
@@ -343,7 +343,7 @@ case बंद करने से कम किसी भी काम के �
 
 **`429 Too Many Requests`।** Dataverse की service protection सीमाएँ — किसी भी पाँच-मिनट की खिड़की में, प्रति web server, प्रति user मोटे तौर पर 6,000 requests और 20 मिनट का execution time। response सेकंडों में एक `Retry-After` लाता है। यदि कोई वर्कफ़्लो झोंके में चल रहा है, तो उसमें एक **Delay** ब्लॉक रखें या काम को किसी scheduled वर्कफ़्लो में ले जाएँ जो उसे बैचों में करे।
 
-**OneUptime की तरफ़ कुछ नहीं पहुँचता।** खुद `curl` से webhook URL पर एक request भेजें और वर्कफ़्लो के **रन और लॉग** जाँचें। यदि आपकी अपनी request दिखती है और Dynamics की नहीं, तो समस्या ऊपर की तरफ़ है: Power Automate के लिए, flow का अपना run history देखें; native webhook के लिए, विफलताओं पर filter करके **Settings → System Jobs** देखें।
+**OneUptime की तरफ़ कुछ नहीं पहुँचता।** खुद `curl` से webhook URL पर एक request भेजें और वर्कफ़्लो के **लॉग → रन** जाँचें। यदि आपकी अपनी request दिखती है और Dynamics की नहीं, तो समस्या ऊपर की तरफ़ है: Power Automate के लिए, flow का अपना run history देखें; native webhook के लिए, विफलताओं पर filter करके **Settings → System Jobs** देखें।
 
 **वर्कफ़्लो चलता है लेकिन incident बदलता नहीं।** जब **Update One Incident** ब्लॉक की query से कुछ मेल नहीं खाता तो वह `Items Updated: 0` रिपोर्ट करता है — यह सफलता है, त्रुटि नहीं। जाँचें कि payload में दी गई id OneUptime incident id है और आप `_id` पर query कर रहे हैं।
 

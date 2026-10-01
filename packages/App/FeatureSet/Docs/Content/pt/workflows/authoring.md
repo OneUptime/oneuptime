@@ -96,4 +96,4 @@ Para pausar um workflow sem excluí-lo, desligue **Habilitado**. Nenhuma execuç
 - [Gatilhos de workflow](/docs/workflows/triggers) — as quatro formas de um workflow começar.
 - [Componentes de workflow](/docs/workflows/components) — todos os blocos que você pode adicionar.
 - [Variáveis de workflow](/docs/workflows/variables) — movendo dados entre blocos.
-- [Execuções e registros de workflow](/docs/workflows/runs-and-logs) — conferindo o que aconteceu.
+- [Execuções de workflow](/docs/workflows/runs-and-logs) — conferindo o que aconteceu.

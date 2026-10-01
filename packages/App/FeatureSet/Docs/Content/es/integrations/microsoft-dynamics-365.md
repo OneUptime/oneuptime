@@ -151,7 +151,7 @@ Sustituye el GUID de la cuenta por la cuenta a la que pertenecen estos casos. **
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-Ahora enciende el workflow —**Vista General → Editar flujo de trabajo → Habilitado**—, declara un incidente de prueba y lee la ejecución en **Ejecuciones y Registros**. El bloque `create-case` debería mostrar un `201` y un cuerpo que contiene el nuevo `incidentid`. Los cambios en el lienzo se guardan solos; no hay botón de guardar.
+Ahora enciende el workflow —**Vista General → Editar flujo de trabajo → Habilitado**—, declara un incidente de prueba y lee la ejecución en **Registros → Ejecuciones**. El bloque `create-case` debería mostrar un `201` y un cuerpo que contiene el nuevo `incidentid`. Los cambios en el lienzo se guardan solos; no hay botón de guardar.
 
 ### Mapear gravedad y estado
 
@@ -323,7 +323,7 @@ Un workflow tiene exactamente un disparador, así que los incidentes y las alert
 
 ## Solución de problemas
 
-Lee primero el bloque que falla en **Ejecuciones y Registros** — ambos endpoints de Microsoft devuelven un cuerpo JSON explicativo, y el componente API lo conserva en `response-body`.
+Lee primero el bloque que falla en **Registros → Ejecuciones** — ambos endpoints de Microsoft devuelven un cuerpo JSON explicativo, y el componente API lo conserva en `response-body`.
 
 **La petición del token falla con `400` e `invalid_request` o un tipo de concesión no admitido.** La cabecera `Content-Type` no es exactamente `Content-Type: application/x-www-form-urlencoded`, así que el cuerpo salió como JSON. Revisa la capitalización.
 
@@ -343,7 +343,7 @@ Lee primero el bloque que falla en **Ejecuciones y Registros** — ambos endpoin
 
 **`429 Too Many Requests`.** Los límites de protección del servicio de Dataverse — aproximadamente 6.000 peticiones y 20 minutos de tiempo de ejecución por usuario en cualquier ventana de cinco minutos, por servidor web. La respuesta lleva un `Retry-After` en segundos. Si un workflow está haciendo ráfagas, ponle un bloque **Delay** o traslada el trabajo a un workflow programado que agrupe.
 
-**No llega nada del lado de OneUptime.** Envía tú mismo una petición a la URL del webhook con `curl` y comprueba las **Ejecuciones y Registros** del workflow. Si tu propia petición aparece y la de Dynamics no, el problema está aguas arriba: para Power Automate, mira el historial de ejecuciones del propio flujo; para un webhook nativo, mira **Settings → System Jobs** filtrado por fallos.
+**No llega nada del lado de OneUptime.** Envía tú mismo una petición a la URL del webhook con `curl` y comprueba **Registros → Ejecuciones** en el workflow. Si tu propia petición aparece y la de Dynamics no, el problema está aguas arriba: para Power Automate, mira el historial de ejecuciones del propio flujo; para un webhook nativo, mira **Settings → System Jobs** filtrado por fallos.
 
 **El workflow se ejecuta pero el incidente no cambia.** Un bloque **Update One Incident** informa de `Items Updated: 0` cuando la consulta no encontró nada — eso es un éxito, no un error. Comprueba que el id de la carga útil es el id del incidente de OneUptime y que estás consultando `_id`.
 

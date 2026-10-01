@@ -78,4 +78,4 @@ Een workflow kan maar één trigger hebben. Heb je twee manieren nodig om dezelf
 
 - [Workflow-componenten](/docs/workflows/components) — de acties die je na de trigger toevoegt.
 - [Workflow-variabelen](/docs/workflows/variables) — triggeruitvoer lezen vanuit latere blokken.
-- [Workflow-uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — bevestigen dat je trigger is afgegaan.
+- [Workflow-uitvoeringen](/docs/workflows/runs-and-logs) — bevestigen dat je trigger is afgegaan.

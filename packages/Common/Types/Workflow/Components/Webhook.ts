@@ -1,4 +1,3 @@
-import Route from "../../API/Route";
 import IconProp from "../../Icon/IconProp";
 import ComponentID from "../ComponentID";
 import ComponentMetadata, {
@@ -15,7 +14,6 @@ const components: Array<ComponentMetadata> = [
       "Hook any of your external apps and services with this workflow.",
     iconProp: IconProp.AltGlobe,
     componentType: ComponentType.Trigger,
-    documentationLink: Route.fromString("/workflow/docs/Webhook.md"),
     arguments: [],
     runWorkflowManuallyArguments: [
       {

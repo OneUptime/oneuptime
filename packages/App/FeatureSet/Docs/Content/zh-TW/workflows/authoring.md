@@ -96,4 +96,4 @@
 - [工作流程觸發器](/docs/workflows/triggers)——工作流程可以啟動的四種方式。
 - [工作流程元件](/docs/workflows/components)——你可以加入的每一種區塊。
 - [工作流程變數](/docs/workflows/variables)——在區塊之間搬資料。
-- [工作流程執行與日誌](/docs/workflows/runs-and-logs)——確認到底發生了什麼。
+- [工作流程執行記錄](/docs/workflows/runs-and-logs)——確認到底發生了什麼。

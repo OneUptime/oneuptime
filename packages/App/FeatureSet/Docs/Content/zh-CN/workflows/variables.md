@@ -135,5 +135,5 @@
 ## 接下来读什么
 
 - [工作流组件](/docs/workflows/components) —— 每个方块产出的输出的完整清单。
-- [工作流运行与日志](/docs/workflows/runs-and-logs) —— 看一次运行之后每个变量的实际值。
+- [工作流运行记录](/docs/workflows/runs-and-logs) —— 看一次运行之后每个变量的实际值。
 - [工作流配置与安全](/docs/workflows/configuration) —— 什么东西适合放进全局变量。

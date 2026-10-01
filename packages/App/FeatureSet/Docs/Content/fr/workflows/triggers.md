@@ -78,4 +78,4 @@ Un workflow ne peut avoir qu'un seul déclencheur. Si vous avez besoin de deux f
 
 - [Composants de workflow](/docs/workflows/components) — les actions que vous ajoutez après le déclencheur.
 - [Variables de workflow](/docs/workflows/variables) — lire la sortie du déclencheur depuis les blocs suivants.
-- [Exécutions et journaux de workflow](/docs/workflows/runs-and-logs) — vérifier que votre déclencheur s'est bien activé.
+- [Exécutions de workflow](/docs/workflows/runs-and-logs) — vérifier que votre déclencheur s'est bien activé.

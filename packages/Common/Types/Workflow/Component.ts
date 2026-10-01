@@ -1,4 +1,3 @@
-import Route from "../API/Route";
 import IconProp from "../Icon/IconProp";
 import { JSONObject } from "../JSON";
 
@@ -133,7 +132,11 @@ export default interface ComponentMetadata {
   inPorts: Array<Port>;
   outPorts: Array<Port>;
   tableName?: string | undefined;
-  documentationLink?: Route;
+  /*
+   * A step's "How to use" help is not part of its metadata. It is built from
+   * the metadata by Types/Workflow/Documentation, which has an entry for every
+   * ComponentID (a full Record, so a new step without help does not compile).
+   */
   runWorkflowManuallyArguments?: Array<Argument> | undefined;
 }
 

@@ -96,4 +96,4 @@ Wil je een workflow pauzeren zonder hem te verwijderen, zet **Ingeschakeld** dan
 - [Workflow-triggers](/docs/workflows/triggers) — de vier manieren waarop een workflow kan starten.
 - [Workflow-componenten](/docs/workflows/components) — elk blok dat je kunt toevoegen.
 - [Workflow-variabelen](/docs/workflows/variables) — data verplaatsen tussen blokken.
-- [Workflow-uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — nagaan wat er gebeurd is.
+- [Workflow-uitvoeringen](/docs/workflows/runs-and-logs) — nagaan wat er gebeurd is.

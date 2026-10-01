@@ -841,6 +841,68 @@ describe("Modal initial focus", () => {
     expect(getByTestId("modal-footer-close-button")).toHaveFocus();
   });
 
+  /*
+   * A control in the header - the workflow step dialog's "How to use", which
+   * jumps to the help at the bottom - comes before the body in the DOM. It is
+   * an aside, so it must not take the focus from the field the dialog is for.
+   */
+  it("starts on the first field, not on a control in the header", () => {
+    const { getByLabelText, getByRole } = render(
+      <Modal
+        title="Step settings"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Save"
+        rightElement={<button type="button">How to use</button>}
+      >
+        <input aria-label="Message" />
+      </Modal>,
+    );
+
+    expect(getByLabelText("Message")).toHaveFocus();
+    expect(getByRole("button", { name: "How to use" })).not.toHaveFocus();
+  });
+
+  it("starts on the footer's action when the header holds the only other control", () => {
+    const { getByTestId, getByRole } = render(
+      <Modal
+        title="Code sent"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Done"
+        rightElement={<button type="button">How to use</button>}
+      >
+        <p>Check your inbox.</p>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-footer-submit-button")).toHaveFocus();
+    expect(getByRole("button", { name: "How to use" })).not.toHaveFocus();
+  });
+
+  it("keeps a control in the header in the tab order", () => {
+    const { getByRole } = render(
+      <Modal
+        title="Step settings"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Save"
+        rightElement={<button type="button">How to use</button>}
+      >
+        <input aria-label="Message" />
+      </Modal>,
+    );
+
+    const headerButton: HTMLElement = getByRole("button", {
+      name: "How to use",
+    });
+
+    // Not the starting point, but still a stop for the keyboard.
+    expect(headerButton).not.toHaveAttribute("tabindex", "-1");
+    headerButton.focus();
+    expect(headerButton).toHaveFocus();
+  });
+
   it("puts a nested confirmation's focus on its own action, not on its parent's", () => {
     const NestedConfirmationFixture: React.FunctionComponent =
       (): React.ReactElement => {
@@ -976,7 +1038,9 @@ describe("pickInitialFocusElement", () => {
   };
 
   interface DialogParts {
+    header: HTMLElement;
     headerClose: HTMLElement;
+    headerButton: HTMLElement;
     bodyLink: HTMLElement;
     footer: HTMLElement;
     leftFooterButton: HTMLElement;
@@ -994,8 +1058,16 @@ describe("pickInitialFocusElement", () => {
 
     footer.append(leftFooterButton, cancel, submit);
 
+    const header: HTMLElement = document.createElement("div");
+    const headerClose: HTMLElement = makeButton("close-button");
+    const headerButton: HTMLElement = makeButton();
+
+    header.append(headerButton, headerClose);
+
     return {
-      headerClose: makeButton("close-button"),
+      header,
+      headerClose,
+      headerButton,
       bodyLink: document.createElement("a"),
       footer,
       leftFooterButton,
@@ -1088,6 +1160,60 @@ describe("pickInitialFocusElement", () => {
         isSubmitDestructive: false,
       }),
     ).toBeUndefined();
+  });
+
+  it("never picks a control in the header, which comes first in the DOM", () => {
+    const parts: DialogParts = makeDialog();
+
+    expect(
+      pickInitialFocusElement({
+        focusableElements: [
+          parts.headerButton,
+          parts.headerClose,
+          parts.bodyLink,
+          parts.cancel,
+          parts.submit,
+        ],
+        footer: parts.footer,
+        isSubmitDestructive: false,
+        header: parts.header,
+      }),
+    ).toBe(parts.bodyLink);
+
+    expect(
+      pickInitialFocusElement({
+        focusableElements: [
+          parts.headerButton,
+          parts.headerClose,
+          parts.cancel,
+          parts.submit,
+        ],
+        footer: parts.footer,
+        isSubmitDestructive: false,
+        header: parts.header,
+      }),
+    ).toBe(parts.submit);
+
+    expect(
+      pickInitialFocusElement({
+        focusableElements: [parts.headerButton, parts.headerClose],
+        footer: null,
+        isSubmitDestructive: false,
+        header: parts.header,
+      }),
+    ).toBeUndefined();
+  });
+
+  it("without a header to go by, a header control is just the first element", () => {
+    const parts: DialogParts = makeDialog();
+
+    expect(
+      pickInitialFocusElement({
+        focusableElements: [parts.headerButton, parts.bodyLink],
+        footer: parts.footer,
+        isSubmitDestructive: false,
+      }),
+    ).toBe(parts.headerButton);
   });
 
   it("takes the first element when there is no footer at all", () => {

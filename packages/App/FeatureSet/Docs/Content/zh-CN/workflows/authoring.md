@@ -96,4 +96,4 @@
 - [工作流触发器](/docs/workflows/triggers) —— 工作流启动的四种方式。
 - [工作流组件](/docs/workflows/components) —— 你能添加的每一个方块。
 - [工作流变量](/docs/workflows/variables) —— 在方块之间搬运数据。
-- [工作流运行与日志](/docs/workflows/runs-and-logs) —— 查看到底发生了什么。
+- [工作流运行记录](/docs/workflows/runs-and-logs) —— 查看到底发生了什么。

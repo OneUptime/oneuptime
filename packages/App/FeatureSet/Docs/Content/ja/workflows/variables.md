@@ -135,5 +135,5 @@ API キーには **Edit Workflow Variables** の権限が必要です。読み�
 ## 次に読むべきページ
 
 - [ワークフロー コンポーネント](/docs/workflows/components) — 各ブロックが返す出力の一覧。
-- [ワークフロー 実行とログ](/docs/workflows/runs-and-logs) — 実行後に、すべての変数の実際の値を見る。
+- [ワークフロー 実行履歴](/docs/workflows/runs-and-logs) — 実行後に、すべての変数の実際の値を見る。
 - [ワークフロー 設定と安全性](/docs/workflows/configuration) — グローバル変数に置いても安全なもの。

@@ -1,5 +1,6 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import BasicForm from "../Forms/BasicForm";
+import Icon from "../Icon/Icon";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
 import ConfirmModal from "../Modal/ConfirmModal";
@@ -15,10 +16,13 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { NodeDataProp } from "../../../Types/Workflow/Component";
+import ComponentDocumentation from "../../../Types/Workflow/Documentation/ComponentDocumentation";
+import { getComponentDocumentation } from "../../../Types/Workflow/Documentation/Index";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -229,22 +233,71 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     </ComponentSettingsSection>
   ) : null;
 
-  const documentationSection: ReactElement | null = component.metadata
-    .documentationLink ? (
+  /*
+   * Built here rather than fetched: the help is written from the step itself,
+   * so its examples use the identifier the step has right now - renaming it
+   * in the ID section renames it in every example too.
+   */
+  const documentation: ComponentDocumentation | null = useMemo(() => {
+    return getComponentDocumentation({
+      metadata: component.metadata,
+      stepId: component.id,
+      graphComponents: props.graphComponents,
+    });
+  }, [component.metadata, component.id, props.graphComponents]);
+
+  const documentationSection: ReactElement | null = documentation ? (
     <ComponentSettingsSection
       id="documentation"
       icon={IconProp.Book}
-      title="Documentation"
+      title="How to use"
       tone="info"
+      isFocusTarget={true}
     >
-      <DocumentationViewer
-        documentationLink={component.metadata.documentationLink}
-        workflowId={props.workflowId}
-        webhookSecretKey={props.webhookSecretKey}
-        tableName={component.metadata.tableName}
-      />
+      <DocumentationViewer documentation={documentation} />
     </ComponentSettingsSection>
   ) : null;
+
+  /*
+   * The help is the last section, below everything the step is opened for, so
+   * the header carries a way to it. It scrolls the help into view and moves
+   * the focus there, so a keyboard or screen reader user is taken along.
+   */
+  const showDocumentation: () => void = (): void => {
+    const section: HTMLElement | null =
+      bodyRef.current?.querySelector<HTMLElement>(
+        '[data-testid="workflow-component-section-documentation"]',
+      ) || null;
+
+    if (!section) {
+      return;
+    }
+
+    const prefersReducedMotion: boolean =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (typeof section.scrollIntoView === "function") {
+      section.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    }
+
+    section.focus({ preventScroll: true });
+  };
+
+  const documentationButton: ReactElement | undefined = documentation ? (
+    <button
+      type="button"
+      className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      data-testid="workflow-component-docs-jump"
+      onClick={showDocumentation}
+    >
+      <Icon icon={IconProp.Book} className="h-4 w-4" />
+      <span className="max-sm:sr-only">How to use</span>
+    </button>
+  ) : undefined;
 
   /*
    * The identifier and the connections are a line or two each. Given the
@@ -277,6 +330,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       }}
       submitButtonText="Save"
       modalWidth={ModalWidth.Large}
+      rightElement={documentationButton}
       disableSubmitButton={hasErrors}
       leftFooterElement={
         /*
@@ -370,8 +424,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
          * URL, or how it is started, where that is the point of the step, and
          * otherwise its settings. Reference material follows: the identifier
          * and the connections, then the references built from that identifier,
-         * and last the documentation, a shared file about a whole family of
-         * steps.
+         * and last the step's "How to use" help, which the header links to.
          *
          * The old layout put the settings in a two-thirds column and everything
          * else in a narrow one beside it. A step with few settings, or none,

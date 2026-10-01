@@ -96,4 +96,4 @@
 - [워크플로우 트리거](/docs/workflows/triggers) — 워크플로가 시작될 수 있는 네 가지 방법.
 - [워크플로우 구성 요소](/docs/workflows/components) — 추가할 수 있는 모든 블록.
 - [워크플로우 변수](/docs/workflows/variables) — 블록 사이에서 데이터 옮기기.
-- [워크플로우 실행 및 로그](/docs/workflows/runs-and-logs) — 무슨 일이 있었는지 확인하기.
+- [워크플로우 실행 기록](/docs/workflows/runs-and-logs) — 무슨 일이 있었는지 확인하기.

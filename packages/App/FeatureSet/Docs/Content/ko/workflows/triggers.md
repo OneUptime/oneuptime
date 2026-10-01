@@ -78,4 +78,4 @@ OneUptime 안의 거의 모든 것 — 모니터, 인시던트, 경고, 예정�
 
 - [워크플로우 구성 요소](/docs/workflows/components) — 트리거 뒤에 추가하는 동작들.
 - [워크플로우 변수](/docs/workflows/variables) — 이후 블록에서 트리거 출력 읽기.
-- [워크플로우 실행 및 로그](/docs/workflows/runs-and-logs) — 트리거가 발생했는지 확인하기.
+- [워크플로우 실행 기록](/docs/workflows/runs-and-logs) — 트리거가 발생했는지 확인하기.

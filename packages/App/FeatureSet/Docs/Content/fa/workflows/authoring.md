@@ -96,4 +96,4 @@ Builder هر بار که چیزی را تغییر می‌دهید کل گراف 
 - [تریگرها](/docs/workflows/triggers) — چهار راه شروع یک گردش کاری.
 - [مؤلفه‌ها](/docs/workflows/components) — هر بلوکی که می‌توانید اضافه کنید.
 - [متغیرها](/docs/workflows/variables) — جابه‌جایی داده میان بلوک‌ها.
-- [اجراها و گزارش‌ها](/docs/workflows/runs-and-logs) — بررسی آنچه رخ داده است.
+- [اجراها](/docs/workflows/runs-and-logs) — بررسی آنچه رخ داده است.

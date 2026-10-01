@@ -96,4 +96,4 @@ Vil du sette en arbeidsflyt på pause uten å slette den, slår du av **Aktivert
 - [Arbeidsflyt-triggere](/docs/workflows/triggers) — de fire måtene en arbeidsflyt kan starte på.
 - [Arbeidsflyt-komponenter](/docs/workflows/components) — hver blokk du kan legge til.
 - [Arbeidsflyt-variabler](/docs/workflows/variables) — å flytte data mellom blokker.
-- [Arbeidsflyt-kjøringer & logger](/docs/workflows/runs-and-logs) — å sjekke hva som skjedde.
+- [Arbeidsflyt-kjøringer](/docs/workflows/runs-and-logs) — å sjekke hva som skjedde.

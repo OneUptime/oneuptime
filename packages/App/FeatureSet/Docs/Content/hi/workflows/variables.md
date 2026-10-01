@@ -135,5 +135,5 @@ API key को **Edit Workflow Variables** चाहिए। पढ़ने �
 ## आगे क्या पढ़ें
 
 - [वर्कफ़्लो घटक](/docs/workflows/components) — हर block जो outputs पैदा करता है, उनकी पूरी सूची।
-- [वर्कफ़्लो रन और लॉग](/docs/workflows/runs-and-logs) — किसी run के बाद हर वेरिएबल का असली मान देखिए।
+- [वर्कफ़्लो रन](/docs/workflows/runs-and-logs) — किसी run के बाद हर वेरिएबल का असली मान देखिए।
 - [वर्कफ़्लो कॉन्फ़िगरेशन और सुरक्षा](/docs/workflows/configuration) — किसी ग्लोबल वेरिएबल में क्या रखना सुरक्षित है।
