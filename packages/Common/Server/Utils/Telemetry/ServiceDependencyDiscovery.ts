@@ -22,11 +22,18 @@ import {
   DatabaseCallerContext,
   DatabaseEndpoint,
   DatabaseEndpointScope,
+  EPHEMERAL_PORT_RANGE_START,
   NETWORK_SCOPED_NAME_SUFFIXES,
   formatDatabaseEndpoint,
+  isClientSocketDatabaseEndpoint,
+  isEphemeralPort,
   parseHostAndPort,
   ParsedHostAndPort,
 } from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import {
+  DATABASE_SYSTEMS,
+  DatabaseSystemDescriptor,
+} from "../../../Types/DatabaseServer/DatabaseSystem";
 import {
   DATABASE_ADDRESS_ATTRIBUTES,
   DATABASE_PORT_ATTRIBUTES,
@@ -275,6 +282,59 @@ export function databaseCallerContextSql(
   };
 }
 
+/*
+ * The ports in the ephemeral range that a known engine listens on by
+ * default (Db2's 50000). These are the only ephemeral ports a database call
+ * can name without it being a client's socket for some engine
+ * (isClientSocketDatabaseEndpoint).
+ */
+export const EPHEMERAL_DEFAULT_DATABASE_PORTS: ReadonlyArray<number> =
+  Array.from(
+    new Set<number>(
+      DATABASE_SYSTEMS.map((descriptor: DatabaseSystemDescriptor) => {
+        return descriptor.defaultPort;
+      }).filter((port: number | null): port is number => {
+        return isEphemeralPort(port);
+      }),
+    ),
+  ).sort((a: number, b: number): number => {
+    return a - b;
+  });
+
+/*
+ * A port attribute the resolver reads as a port (toValidPort): decimal
+ * digits, optionally padded with the spaces ClickHouse's trimBoth removes.
+ * Leading zeros are allowed, and at most five significant digits. RE2 and
+ * JavaScript agree on it.
+ */
+export const PORT_ATTRIBUTE_PATTERN: string = "^ *0*[0-9]{1,5} *$";
+
+/**
+ * True (in SQL) when the port attribute of a database call (`portSql`, read
+ * with the resolver's precedence) is a client's own socket for EVERY engine:
+ * a port in the ephemeral range that no known engine listens on by default.
+ * This is the SQL twin of isClientSocketDatabaseEndpoint, narrowed to the
+ * ports that rule gives to a client whatever the engine. It reads the port
+ * alone, never the address: a call on a client's port reached no server,
+ * whatever it says the server is. A call this does not catch (a port inside
+ * the address, or a Redis client that happened to get Db2's port) is still
+ * checked against its engine afterwards (isClientSocketDependencyRow).
+ */
+export function clientSocketPortSql(portSql: string): string {
+  const port: string = `toUInt32OrZero(trimBoth(${portSql}))`;
+  const conditions: Array<string> = [
+    `match(${portSql}, '${escapeSql(PORT_ATTRIBUTE_PATTERN)}')`,
+    `${port} >= ${EPHEMERAL_PORT_RANGE_START}`,
+    `${port} <= 65535`,
+  ];
+  if (EPHEMERAL_DEFAULT_DATABASE_PORTS.length > 0) {
+    conditions.push(
+      `${port} NOT IN (${EPHEMERAL_DEFAULT_DATABASE_PORTS.join(", ")})`,
+    );
+  }
+  return `(${conditions.join(" AND ")})`;
+}
+
 export interface DependencyQueryWindow {
   projectId: string;
   /** ClickHouse DateTime64 expressions, e.g. toDateTime64('...', 9). */
@@ -382,6 +442,19 @@ export const MAX_DATABASE_TARGETS_PER_ROW: number = 16;
  * distinct servers the row's calls named (at most
  * MAX_DATABASE_TARGETS_PER_ROW). A database reached from a hundred
  * namespaces, pods, IPs or ports is still one row.
+ *
+ * A database call whose port is a client's own socket (clientSocketPortSql)
+ * is left out, because it called no database. eBPF instrumentation that
+ * joins a long-lived connection mid-stream can swap its two ends, so a span
+ * from the Redis server's pod reads "redis at oneuptime-worker:46600", the
+ * client's address and ephemeral port. The port is not part of a node's
+ * identity, so such calls cannot be told apart once grouped: the row would
+ * give the server's service a dependency on a "redis @ oneuptime-worker"
+ * Database node. Dropping the call keeps the server calls of the same row
+ * counted, and a row with nothing else is never read at all. A database a
+ * person runs on an ephemeral port (a Docker random host port) loses its
+ * edge the same way, just as the Databases product never creates one for it
+ * (isDatabaseEndpointAutoCreateCandidate).
  */
 export function buildClientSpanDependencySql(
   window: DependencyQueryWindow,
@@ -443,6 +516,7 @@ export function buildClientSpanDependencySql(
         AND startTime >= ${window.startSql}
         AND startTime < ${window.endSql}
         AND kind IN ${OUTBOUND_KINDS_SQL}
+        AND NOT ${clientSocketPortSql("serverPort")}
         AND (traceId, spanId) NOT IN (
           SELECT traceId, parentSpanId
           FROM ${SPAN_TABLE}
@@ -744,18 +818,15 @@ export function readDependencyDatabaseTargets(
   return targets;
 }
 
-/**
- * The database server one target of a client-span dependency row named —
- * exactly the endpoint ingest keyed its spans with: the target goes through
- * resolveDatabaseCallTarget, the ingest resolver itself, with the caller
- * context the query kept (the flag included), as DatabaseEndpointDiscovery
- * does. Null when it names none: not a database call, or a loopback,
- * host-relative or unreadable address.
- */
-export function resolveDependencyDatabaseEndpoint(data: {
+// One target, resolved: the endpoint it names, and whether that is a client's socket.
+interface ResolvedDependencyDatabaseTarget extends DependencyDatabaseEndpoint {
+  clientSocket: boolean;
+}
+
+function resolveDependencyDatabaseTarget(data: {
   dbSystem: string | undefined;
   target: DependencyDatabaseTarget;
-}): DependencyDatabaseEndpoint | null {
+}): ResolvedDependencyDatabaseTarget | null {
   if (!data || !data.target || typeof data.target !== "object") {
     return null;
   }
@@ -799,7 +870,77 @@ export function resolveDependencyDatabaseEndpoint(data: {
   return {
     endpoint: formatDatabaseEndpoint(resolved.endpoint),
     port: readPort(target.port) ?? address?.port ?? null,
+    clientSocket: isClientSocketDatabaseEndpoint({
+      system: resolved.system,
+      endpoint: resolved.endpoint,
+    }),
   };
+}
+
+/**
+ * The database server one target of a client-span dependency row named —
+ * exactly the endpoint ingest keyed its spans with: the target goes through
+ * resolveDatabaseCallTarget, the ingest resolver itself, with the caller
+ * context the query kept (the flag included), as DatabaseEndpointDiscovery
+ * does. Null when it names none: not a database call, or a loopback,
+ * host-relative or unreadable address.
+ */
+export function resolveDependencyDatabaseEndpoint(data: {
+  dbSystem: string | undefined;
+  target: DependencyDatabaseTarget;
+}): DependencyDatabaseEndpoint | null {
+  const resolved: ResolvedDependencyDatabaseTarget | null =
+    resolveDependencyDatabaseTarget(data);
+  return resolved ? { endpoint: resolved.endpoint, port: resolved.port } : null;
+}
+
+/**
+ * True when one target of a client-span dependency row names a client's own
+ * end of a connection rather than a server: the endpoint it resolves to
+ * (resolveDependencyDatabaseEndpoint) is, for the row's engine, a client
+ * socket (isClientSocketDatabaseEndpoint). A target that names no server
+ * names no client socket either.
+ */
+export function isClientSocketDependencyTarget(data: {
+  dbSystem: string | undefined;
+  target: DependencyDatabaseTarget;
+}): boolean {
+  return resolveDependencyDatabaseTarget(data)?.clientSocket === true;
+}
+
+/**
+ * True when every call of a client-span dependency row named a client's
+ * socket (isClientSocketDependencyTarget), so the row calls no database at
+ * all. These are the swapped calls the query cannot drop on its own
+ * (clientSocketPortSql): a port inside the address, or a client that
+ * happened to get another engine's default port. False whenever that is
+ * not known: not a database call, no targets, a malformed one, or a target
+ * list that may have been cut short (MAX_DATABASE_TARGETS_PER_ROW).
+ */
+export function isClientSocketDependencyRow(
+  row: ClientSpanDependencyRow,
+): boolean {
+  if (!row || typeof row !== "object" || !nonEmpty(row.dbSystem)) {
+    return false;
+  }
+
+  const targets: Array<DependencyDatabaseTarget> =
+    readDependencyDatabaseTargets(row);
+  if (
+    targets.length === 0 ||
+    !Array.isArray(row.dbTargets) ||
+    targets.length !== row.dbTargets.length ||
+    targets.length >= MAX_DATABASE_TARGETS_PER_ROW
+  ) {
+    return false;
+  }
+
+  return targets.every((target: DependencyDatabaseTarget): boolean => {
+    return isClientSocketDependencyTarget({
+      dbSystem: row.dbSystem,
+      target: target,
+    });
+  });
 }
 
 /*
@@ -824,8 +965,9 @@ function combineDatabaseServers(
  * The database server a client-span dependency row's calls reached: each
  * of its targets resolved (resolveDependencyDatabaseEndpoint) and combined
  * like the sightings of a node (mergeDependencyEntityDescriptions) — a
- * target that names no server contradicts nothing, targets that disagree
- * leave '' (ambiguous). A row whose target list is full
+ * target that names no server, or only a client's socket
+ * (isClientSocketDependencyTarget), contradicts nothing, targets that
+ * disagree leave '' (ambiguous). A row whose target list is full
  * (MAX_DATABASE_TARGETS_PER_ROW) may have been cut short, so it is
  * ambiguous whatever the targets it kept say. Null when the row names no
  * server at all.
@@ -852,12 +994,12 @@ export function describeDependencyDatabaseServer(
 
   let server: DependencyDatabaseServer | null = null;
   for (const target of targets) {
-    const resolved: DependencyDatabaseEndpoint | null =
-      resolveDependencyDatabaseEndpoint({
+    const resolved: ResolvedDependencyDatabaseTarget | null =
+      resolveDependencyDatabaseTarget({
         dbSystem: row.dbSystem,
         target: target,
       });
-    if (resolved) {
+    if (resolved && !resolved.clientSocket) {
       server = combineDatabaseServers(server, {
         endpoint: resolved.endpoint,
         port: resolved.port === null ? null : String(resolved.port),
@@ -954,6 +1096,9 @@ function matchKnownService(
  * name; a messaging system names a broker; a network address is the weakest
  * signal and only maps to a service under the rules in
  * serviceNameCandidatesForHost.
+ *
+ * A database row whose every call named a client's socket rather than a
+ * server (isClientSocketDependencyRow) called nothing, so it is null.
  */
 export function resolveClientSpanTarget(
   row: ClientSpanDependencyRow,
@@ -964,6 +1109,9 @@ export function resolveClientSpanTarget(
 
   const dbSystem: string | null = nonEmpty(row.dbSystem);
   if (dbSystem) {
+    if (isClientSocketDependencyRow(row)) {
+      return null;
+    }
     const identifyingAttributes: Dictionary<string> = {
       "db.system.name": canonicalizeEntityValue(dbSystem),
     };
