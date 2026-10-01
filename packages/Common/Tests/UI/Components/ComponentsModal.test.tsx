@@ -214,6 +214,7 @@ describe("the start view leads with what people use", () => {
       "Manual",
       "Schedule",
       "Webhook",
+      "Incoming Email",
       "On Create Incident",
       "On Update Incident",
       "On Create Alert",

@@ -6825,5 +6825,22 @@
   "The log could not be copied. Download it instead.": "Het logboek kon niet worden gekopieerd. Download het in plaats daarvan.",
   "Download log": "Logboek downloaden",
   "Download run as JSON": "Uitvoering downloaden als JSON",
-  "This run could not be downloaded. Try again.": "Deze uitvoering kon niet worden gedownload. Probeer het opnieuw."
+  "This run could not be downloaded. Try again.": "Deze uitvoering kon niet worden gedownload. Probeer het opnieuw.",
+  "Email address": "E-mailadres",
+  "Send an email to this address to start the workflow.": "Stuur een e-mail naar dit adres om de workflow te starten.",
+  "Copy address": "Adres kopiëren",
+  "Copy the email address": "E-mailadres kopiëren",
+  "Show the full address": "Volledig adres tonen",
+  "Anyone with this address can start the workflow, so keep it private.": "Iedereen met dit adres kan de workflow starten, dus houd het privé.",
+  "If the address leaks, reset it.": "Stel het adres opnieuw in als het uitlekt.",
+  "Reset address": "Adres opnieuw instellen",
+  "Reset the email address?": "E-mailadres opnieuw instellen?",
+  "The workflow gets a new address, and the current one stops working at once. Email sent to the current address will be ignored, so give the new one to everything that emails the workflow.": "De workflow krijgt een nieuw adres en het huidige werkt meteen niet meer. E-mail naar het huidige adres wordt genegeerd, dus geef het nieuwe adres aan alles wat de workflow e-mailt.",
+  "Address reset. The old one no longer works, so give this one to anything that should email the workflow.": "Adres opnieuw ingesteld. Het oude werkt niet meer, dus geef dit adres aan alles wat de workflow moet e-mailen.",
+  "Creating this workflow's email address...": "E-mailadres van deze workflow wordt gemaakt...",
+  "This workflow does not have an email address yet.": "Deze workflow heeft nog geen e-mailadres.",
+  "Create address": "Adres maken",
+  "The email address contains this workflow's secret key, so only people who can edit this workflow can see it. Ask one of them for it.": "Het e-mailadres bevat de geheime sleutel van deze workflow, dus alleen mensen die deze workflow kunnen bewerken, kunnen het zien. Vraag een van hen erom.",
+  "This OneUptime server is not set up to receive email, so this workflow has no address yet. Ask your OneUptime administrator to set up inbound email.": "Deze OneUptime-server is niet ingesteld om e-mail te ontvangen, dus deze workflow heeft nog geen adres. Vraag uw OneUptime-beheerder om inkomende e-mail in te stellen.",
+  "How to set up inbound email": "Inkomende e-mail instellen"
 }

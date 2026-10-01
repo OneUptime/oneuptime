@@ -6825,5 +6825,22 @@
   "The log could not be copied. Download it instead.": "로그를 복사하지 못했습니다. 대신 다운로드하세요.",
   "Download log": "로그 다운로드",
   "Download run as JSON": "실행을 JSON으로 다운로드",
-  "This run could not be downloaded. Try again.": "이 실행을 다운로드하지 못했습니다. 다시 시도하세요."
+  "This run could not be downloaded. Try again.": "이 실행을 다운로드하지 못했습니다. 다시 시도하세요.",
+  "Email address": "이메일 주소",
+  "Send an email to this address to start the workflow.": "이 주소로 이메일을 보내면 워크플로가 시작됩니다.",
+  "Copy address": "주소 복사",
+  "Copy the email address": "이메일 주소 복사",
+  "Show the full address": "전체 주소 표시",
+  "Anyone with this address can start the workflow, so keep it private.": "이 주소를 가진 사람은 누구나 워크플로를 시작할 수 있으므로 비공개로 유지하세요.",
+  "If the address leaks, reset it.": "주소가 유출되면 재설정하세요.",
+  "Reset address": "주소 재설정",
+  "Reset the email address?": "이메일 주소를 재설정할까요?",
+  "The workflow gets a new address, and the current one stops working at once. Email sent to the current address will be ignored, so give the new one to everything that emails the workflow.": "워크플로에 새 주소가 발급되고 현재 주소는 즉시 작동을 멈춥니다. 현재 주소로 보낸 이메일은 무시되므로, 워크플로에 이메일을 보내는 모든 곳에 새 주소를 알려 주세요.",
+  "Address reset. The old one no longer works, so give this one to anything that should email the workflow.": "주소를 재설정했습니다. 이전 주소는 더 이상 작동하지 않으므로, 워크플로에 이메일을 보내야 하는 모든 곳에 이 주소를 알려 주세요.",
+  "Creating this workflow's email address...": "이 워크플로의 이메일 주소를 만드는 중...",
+  "This workflow does not have an email address yet.": "이 워크플로에는 아직 이메일 주소가 없습니다.",
+  "Create address": "주소 만들기",
+  "The email address contains this workflow's secret key, so only people who can edit this workflow can see it. Ask one of them for it.": "이메일 주소에는 이 워크플로의 시크릿 키가 포함되어 있으므로 이 워크플로를 편집할 수 있는 사람만 볼 수 있습니다. 그중 한 명에게 요청하세요.",
+  "This OneUptime server is not set up to receive email, so this workflow has no address yet. Ask your OneUptime administrator to set up inbound email.": "이 OneUptime 서버는 이메일을 받도록 설정되어 있지 않아 이 워크플로에는 아직 주소가 없습니다. OneUptime 관리자에게 수신 이메일 설정을 요청하세요.",
+  "How to set up inbound email": "수신 이메일 설정 방법"
 }

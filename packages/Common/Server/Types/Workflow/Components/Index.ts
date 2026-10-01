@@ -20,6 +20,7 @@ import UpdateOneBaseModel from "./BaseModel/UpdateOneBaseModel";
 import IfElse from "./Conditions/IfElse";
 import DiscordSendMessageToChannel from "./Discord/SendMessageToChannel";
 import Email from "./Email";
+import IncomingEmailWorkflowTrigger from "./IncomingEmail";
 import JsonToText from "./JSON/JsonToText";
 import MergeJSON from "./JSON/MergeJson";
 import TextToJSON from "./JSON/TextToJson";
@@ -42,6 +43,7 @@ import ApiPatch from "./API/Patch";
 const Components: Dictionary<ComponentCode> = {
   [ComponentID.AIGenerateText]: new GenerateText(),
   [ComponentID.Webhook]: new WebhookTrigger(),
+  [ComponentID.IncomingEmail]: new IncomingEmailWorkflowTrigger(),
   [ComponentID.SlackSendMessageToChannel]: new SlackSendMessageToChannel(),
   [ComponentID.DiscordSendMessageToChannel]: new DiscordSendMessageToChannel(),
   [ComponentID.MicrosoftTeamsSendMessageToChannel]:

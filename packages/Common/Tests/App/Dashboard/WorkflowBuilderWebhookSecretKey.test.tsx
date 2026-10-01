@@ -235,11 +235,16 @@ describe("the builder loads the webhook secret key only for those who may see it
 
       await renderBuilder();
 
-      // The name names a run downloaded from the builder's run modal.
+      /*
+       * The name names a run downloaded from the builder's run modal. The
+       * incoming email key is read by the same people, for the Incoming
+       * Email trigger (WorkflowBuilderIncomingEmailSecretKey.test.tsx).
+       */
       expect(getItemCall().select).toEqual({
         graph: true,
         name: true,
         webhookSecretKey: true,
+        incomingEmailSecretKey: true,
       });
       expect(getItemCall().id.toString()).toBe(WORKFLOW_ID.toString());
       expect(canvas().webhookSecretKey).toBe(SECRET);

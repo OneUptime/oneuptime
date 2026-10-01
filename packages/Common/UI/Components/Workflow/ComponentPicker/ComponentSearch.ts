@@ -241,6 +241,16 @@ export const COMPONENT_KEYWORDS: Readonly<
     "api",
   ],
   [ComponentID.Manual]: ["button", "run", "now", "test", "hand", "demand"],
+  [ComponentID.IncomingEmail]: [
+    "mail",
+    "inbox",
+    "inbound",
+    "incoming",
+    "receive",
+    "forward",
+    "smtp",
+    "message",
+  ],
 };
 
 const MANY_KEYWORDS: ReadonlyArray<string> = [

@@ -1,10 +1,12 @@
 /*
  * Help for the triggers that are not about a database record: Webhook,
- * Schedule and Manual. The database triggers are in DatabaseDocumentation.ts.
+ * Incoming Email, Schedule and Manual. The database triggers are in
+ * DatabaseDocumentation.ts.
  *
- * Webhook and Manual open on a panel of their own (ComponentPrimaryPanel), so
- * their help does not repeat what that panel already says - the URL, how a
- * run is started - and is about what comes next.
+ * Webhook, Incoming Email and Manual open on a panel of their own
+ * (ComponentPrimaryPanel), so their help does not repeat what that panel
+ * already says - the URL or address, how a run is started - and is about what
+ * comes next.
  */
 
 import ComponentDocumentation, {
@@ -15,6 +17,7 @@ import {
   ownReference,
 } from "./DocumentationContext";
 import { WorkflowDocsPaths, docsLink } from "./DocumentationLinks";
+import { IncomingEmailTriggerValue } from "../IncomingEmailTrigger";
 
 export type TriggerDocumentationFunction = (
   context: ComponentDocumentationContext,
@@ -65,6 +68,67 @@ export const getWebhookDocumentation: TriggerDocumentationFunction = (
     ],
     links: [
       docsLink("Webhook trigger guide", WorkflowDocsPaths.webhookTrigger),
+    ],
+  };
+};
+
+export const getIncomingEmailDocumentation: TriggerDocumentationFunction = (
+  context: ComponentDocumentationContext,
+): ComponentDocumentation => {
+  return {
+    summary:
+      "Starts this workflow each time an email arrives at its own address.",
+    steps: [
+      "Copy the address at the top of this dialog, and have the email that should start the workflow sent or forwarded to it.",
+      "Connect **Out** to the steps that should run for each email.",
+      "Turn the workflow on. While it is off, email to the address is ignored.",
+    ],
+    examples: [
+      {
+        title: "The subject of the email in a later step",
+        code: ownReference(context, IncomingEmailTriggerValue.Subject),
+      },
+      {
+        title: "One header, such as the email's Message-ID",
+        code: ownReference(context, IncomingEmailTriggerValue.Headers, [
+          "message-id",
+        ]),
+        description:
+          "Header names are in lower case. Change `message-id` to the one you need.",
+      },
+    ],
+    notes: [
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: "Every email starts its own run. **Attachments** lists each file's name, type and size; the files themselves are not kept.",
+      },
+      {
+        type: ComponentDocumentationNoteType.Warning,
+        text: "Anyone can send email to any address, so check **From** before a step does anything that matters.",
+      },
+    ],
+    learnMore: [
+      {
+        title: "Testing it without sending an email",
+        paragraphs: [
+          "Click **Run Workflow** in the builder's toolbar and fill in a sender, a subject and a body. The values you leave out arrive empty.",
+          "Or send a real email to the address and open the workflow's runs to see what it brought.",
+        ],
+      },
+      {
+        title: "Which emails reach it",
+        paragraphs: [
+          "An email starts a run whether the address is in **To** or **CC**, was a blind copy, or was reached through a forwarding rule. An email that names the address twice still starts one run.",
+          "**Body** is the email's plain text and **HTML Body** its HTML. Each is cut at 1 MB.",
+        ],
+      },
+    ],
+    links: [
+      docsLink(
+        "Incoming Email trigger guide",
+        WorkflowDocsPaths.incomingEmailTrigger,
+      ),
+      docsLink("Setting up inbound email", WorkflowDocsPaths.inboundEmailSetup),
     ],
   };
 };
