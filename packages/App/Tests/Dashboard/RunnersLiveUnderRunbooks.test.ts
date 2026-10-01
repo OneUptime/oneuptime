@@ -37,13 +37,17 @@ const SETTINGS_PATH_TO_RUNNERS: RegExp =
 
 const OLD_SETTINGS_URL: RegExp = /settings\/runner(s|-credentials)\b/;
 
-const SOURCE_EXTENSIONS: Array<string> = [".ts", ".tsx", ".ejs", ".md"];
+// .js too: the offline E2E fixtures that fake the server's messages are plain JS.
+const SOURCE_EXTENSIONS: Array<string> = [".ts", ".tsx", ".js", ".ejs", ".md"];
 
 const SKIPPED_DIRECTORIES: Set<string> = new Set([
   "node_modules",
   "build",
   "dist",
   ".git",
+  // Playwright's local run artifacts.
+  "test-results",
+  "playwright-report",
   // The docs are swept by Tests/FeatureSet/Docs/RunnersUnderRunbooksDocs.
   "Content",
 ]);
@@ -80,7 +84,10 @@ const walk: WalkFunction = (directory: string): Array<string> => {
  * shared server and UI code, the Runner binary, and the two AI agents that
  * carry their own copies of the shared types. The Runner's and the agents'
  * tests are inside those roots and are swept with them — they quote the
- * messages, so they would otherwise keep the old wording alive.
+ * messages, so they would otherwise keep the old wording alive. So are the
+ * end-to-end specs and the offline fixtures that stand in for the server:
+ * a fixture still answering "Settings > Runners" tests a message the server
+ * no longer sends.
  */
 const SWEPT_ROOTS: Array<string> = [
   path.join(PACKAGES, "App", "FeatureSet"),
@@ -89,6 +96,7 @@ const SWEPT_ROOTS: Array<string> = [
   path.join(PACKAGES, "Common", "UI"),
   path.join(PACKAGES, "Common", "Utils"),
   path.join(PACKAGES, "Runner"),
+  path.join(PACKAGES, "E2E"),
   path.join(REPO_ROOT, "agents"),
 ];
 
@@ -154,6 +162,8 @@ describe("the sweep reads the code it claims to", () => {
         "packages/Common/Server/Services/RunnerService.ts",
         "packages/Runner/Services/RegisterRunner.ts",
         "packages/Runner/README.md",
+        "packages/E2E/ExceptionDetail/Fixture/Fixture.js",
+        "packages/E2E/Tests/Dashboard/RunnersUnderRunbooks.spec.ts",
       ]),
     );
   });
