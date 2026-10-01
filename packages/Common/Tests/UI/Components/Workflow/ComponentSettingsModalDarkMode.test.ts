@@ -13,7 +13,8 @@ import path from "path";
  * what Theme.css actually remaps.
  *
  * The walk lists every file the dialog draws with, including the copy button
- * it now puts beside the webhook URL, the example request and each reference.
+ * it now puts beside the webhook URL, the example request and each reference,
+ * and the "How to use" help with its callouts and examples.
  */
 
 const UI_DIR: string = path.join(__dirname, "..", "..", "..", "..", "UI");
@@ -27,6 +28,7 @@ const FILES: Array<string> = [
   "Components/Workflow/ComponentReturnValueViewer.tsx",
   "Components/Workflow/ComponentPortViewer.tsx",
   "Components/Workflow/BreakableCode.tsx",
+  "Components/Workflow/DocumentationViewer.tsx",
   "Components/CopyTextButton/CopyTextButton.tsx",
 ];
 
@@ -255,6 +257,14 @@ describe("the step settings dialog in the dark theme", () => {
         "border-amber-200",
         "text-amber-800",
         "text-emerald-700",
+        /*
+         * The help: its step numbers, the tip callout on the blue tint, the
+         * warning callout, and its links.
+         */
+        "bg-blue-100",
+        "border-blue-100",
+        "text-blue-600",
+        "hover:text-blue-700",
       ]),
     );
     expect(unmapped).toEqual([]);

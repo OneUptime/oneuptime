@@ -50,7 +50,7 @@ Below that, from top to bottom:
 
 - **ID**, **Inputs** and **Outputs**, side by side — the block's identifier, where it is reached from, and what runs after it.
 - **Returns** — the data this block hands to later steps. Each value shows the exact reference that reads it, with a button to copy it.
-- **Documentation** — notes on this kind of block, where there are any.
+- **How to use** — what the block does in one sentence, the steps to set it up, an example to copy, and the mistakes people commonly make. The example is built from your workflow: it uses this block's ID, and the trigger's values where it puts data into a message. **Learn more** opens the longer explanation, and the links go to the full guide. Every block has one, and the **How to use** button at the top of the dialog jumps straight to it.
 
 The footer holds:
 

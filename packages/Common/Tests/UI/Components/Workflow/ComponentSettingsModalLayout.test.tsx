@@ -64,6 +64,7 @@ import ComponentMetadata, {
 import ComponentID from "../../../../Types/Workflow/ComponentID";
 import Components from "../../../../Types/Workflow/Components";
 import BaseModelComponentFactory from "../../../../Types/Workflow/Components/BaseModel";
+import { getComponentDocumentation } from "../../../../Types/Workflow/Documentation/Index";
 import getJestMockFunction from "../../../MockType";
 import { describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -89,9 +90,9 @@ type IsDatabaseDeleteTriggerFunction = (metadata: ComponentMetadata) => boolean;
  * The one kind of step with neither settings nor a primary panel. A database
  * On Delete trigger has nothing to set - the record is already gone - and
  * nothing to show beyond the record it hands on. Its dialog is the identifier
- * and its one output, the reference to that record right below them, and the
- * documentation: short enough to take in at once, so there is nothing to put
- * above it.
+ * and its one output, the reference to that record right below them, and its
+ * "How to use" help: short enough to take in at once, so there is nothing to
+ * put above it.
  */
 const isDatabaseDeleteTrigger: IsDatabaseDeleteTriggerFunction = (
   metadata: ComponentMetadata,
@@ -112,6 +113,14 @@ const COMPONENTS_TO_RENDER: Array<ComponentMetadata> = [
   ...Components,
   ...BaseModelComponentFactory.getComponents(new Incident()),
 ];
+
+type HasHelpFunction = (metadata: ComponentMetadata) => boolean;
+
+const hasHelp: HasHelpFunction = (metadata: ComponentMetadata): boolean => {
+  return Boolean(
+    getComponentDocumentation({ metadata: metadata, stepId: "step-1" }),
+  );
+};
 
 type ExpectedSectionsFunction = (metadata: ComponentMetadata) => Array<string>;
 
@@ -144,7 +153,7 @@ const expectedSections: ExpectedSectionsFunction = (
     sections.push("returns");
   }
 
-  if (metadata.documentationLink) {
+  if (hasHelp(metadata)) {
     sections.push("documentation");
   }
 
@@ -345,6 +354,24 @@ describe("every registered step, database steps of all models included", () => {
   const all: Array<ComponentMetadata> =
     loadComponentsAndCategories().components;
 
+  /*
+   * The help used to be a Markdown file only some steps linked to, so most
+   * dialogs (every API, message and JSON step, If / Else, Schedule, Manual)
+   * ended without any. Every step has "How to use" help now, which is why the
+   * section order above can always end on it.
+   */
+  test("every step has help, so every dialog ends on it", () => {
+    const withoutHelp: Array<string> = all
+      .filter((metadata: ComponentMetadata) => {
+        return !hasHelp(metadata);
+      })
+      .map((metadata: ComponentMetadata) => {
+        return metadata.id;
+      });
+
+    expect(withoutHelp).toEqual([]);
+  });
+
   test("the registry is the size this audit expects, so the guard below is not vacuous", () => {
     expect(all.length).toBeGreaterThan(COMPONENTS_TO_RENDER.length);
   });
@@ -385,7 +412,7 @@ describe("every registered step, database steps of all models included", () => {
         settings: metadata.arguments.length,
         outputs: metadata.outPorts.length,
         returns: metadata.returnValues.length,
-        hasDocumentation: Boolean(metadata.documentationLink),
+        hasDocumentation: hasHelp(metadata),
       }).toEqual({
         id: metadata.id,
         settings: 0,
