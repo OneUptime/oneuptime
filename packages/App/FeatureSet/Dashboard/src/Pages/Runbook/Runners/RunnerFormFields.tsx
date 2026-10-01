@@ -1,4 +1,4 @@
-import { isKubernetesAgentRunnerRow } from "../Kubernetes/Utils/KubernetesAgentRunner";
+import { isKubernetesAgentRunnerRow } from "../../Kubernetes/Utils/KubernetesAgentRunner";
 import Label from "Common/Models/DatabaseModels/Label";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import { KUBERNETES_AGENT_RUNNER_NAME_PREFIX } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";

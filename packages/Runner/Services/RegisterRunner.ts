@@ -427,7 +427,7 @@ export default class Register {
     }
 
     if (data.statusCode === 400 || data.statusCode === 401) {
-      return `${base}. The server rejected the credentials — check ONEUPTIME_RUNNER_ID and ONEUPTIME_RUNNER_KEY against Project Settings > Runners.`;
+      return `${base}. The server rejected the credentials — check ONEUPTIME_RUNNER_ID and ONEUPTIME_RUNNER_KEY against Runbooks > Runners.`;
     }
 
     return base;
@@ -522,9 +522,9 @@ export default class Register {
 
     switch (data.reason) {
       case "runner_holds_more_than_defaults":
-        return `This does not clear on its own: an operator must act. The in-cluster Runner row for cluster "${data.clusterName}" is offline but holds more than an in-cluster Runner's defaults (credentials, secrets, "Runs Runbooks" or "Runs AI Code Fixes", or another cluster's AI access), and a new pod cannot prove it is the instance that held them. In Project Settings > Runners, take those away from that Runner, or delete it — better still, upgrade the Kubernetes agent chart so the Kubernetes AI agent replaces this Runner — the server's own words follow. ${retry}`;
+        return `This does not clear on its own: an operator must act. The in-cluster Runner row for cluster "${data.clusterName}" is offline but holds more than an in-cluster Runner's defaults (credentials, secrets, "Runs Runbooks" or "Runs AI Code Fixes", or another cluster's AI access), and a new pod cannot prove it is the instance that held them. In Runbooks > Runners, take those away from that Runner, or delete it — better still, upgrade the Kubernetes agent chart so the Kubernetes AI agent replaces this Runner — the server's own words follow. ${retry}`;
       case "runner_belongs_to_another_cluster":
-        return `This does not clear on its own: an operator must act. The Runner row this cluster's in-cluster Runner registers as belongs to a different cluster. Delete that Runner in Project Settings > Runners (an in-cluster Runner cannot be renamed), or give this install its own clusterName on the Kubernetes agent chart — better still, upgrade the chart so the Kubernetes AI agent replaces this Runner — the server's own words follow. ${retry}`;
+        return `This does not clear on its own: an operator must act. The Runner row this cluster's in-cluster Runner registers as belongs to a different cluster. Delete that Runner in Runbooks > Runners (an in-cluster Runner cannot be renamed), or give this install its own clusterName on the Kubernetes agent chart — better still, upgrade the chart so the Kubernetes AI agent replaces this Runner — the server's own words follow. ${retry}`;
       default:
         if (data.reason) {
           return `The server refused the registration (reason "${data.reason}") and did not say that the refusal clears on its own, so an operator must act on what it says — the server's own words follow. ${retry}`;
@@ -757,7 +757,7 @@ export default class Register {
     } else {
       /*
        * Project-scoped mode: the id and key were issued by the dashboard
-       * (Settings > Runners), so they identify a Runner row. Validate
+       * (Runbooks > Runners), so they identify a Runner row. Validate
        * them against the Runner work mount, which is the endpoint that
        * authenticates against that table — the AIAgent alive endpoint would
        * reject them, since no AIAgent row is ever created for a
@@ -769,7 +769,7 @@ export default class Register {
        */
       if (!RUNNER_ID) {
         throw new Error(
-          "ONEUPTIME_RUNNER_ID must be set for a project-scoped Runner (create one in Project Settings > Runners), or a cluster key for the in-cluster Runner. The Runner keeps retrying until one is provided.",
+          "ONEUPTIME_RUNNER_ID must be set for a project-scoped Runner (create one in Runbooks > Runners), or a cluster key for the in-cluster Runner. The Runner keeps retrying until one is provided.",
         );
       }
 
@@ -865,7 +865,7 @@ export default class Register {
         });
 
         logger.warn(
-          "Registered with legacy AI Agent credentials. Create a Runner under Settings > Runners and switch to its id and key — runbook execution needs one.",
+          "Registered with legacy AI Agent credentials. Create a Runner under Runbooks > Runners and switch to its id and key — runbook execution needs one.",
           { runnerName: RUNNER_NAME } as LogAttributes,
         );
       }

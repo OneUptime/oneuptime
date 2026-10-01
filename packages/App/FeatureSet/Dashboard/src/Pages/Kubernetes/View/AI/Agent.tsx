@@ -1258,7 +1258,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         return status.runner && canPickKubernetesRunner() ? (
           <Link
             to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_RUNNER_VIEW] as Route,
+              RouteMap[PageMap.RUNBOOKS_RUNNER_VIEW] as Route,
               { modelId: new ObjectID(status.runner.id) },
             )}
             className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"

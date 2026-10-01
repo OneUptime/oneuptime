@@ -618,6 +618,9 @@ export const WorkflowRoutePath: Dictionary<string> = {
 export const RunbookRoutePath: Dictionary<string> = {
   [PageMap.RUNBOOKS_EXECUTIONS]: "executions",
   [PageMap.RUNBOOKS_SECRETS]: "settings/secrets",
+  [PageMap.RUNBOOKS_RUNNERS]: "runners",
+  [PageMap.RUNBOOKS_RUNNER_VIEW]: `runners/${RouteParams.ModelID}`,
+  [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: "runner-credentials",
   [PageMap.RUNBOOK_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.RUNBOOK_VIEW_STEPS]: `${RouteParams.ModelID}/steps`,
   [PageMap.RUNBOOK_VIEW_EXECUTIONS]: `${RouteParams.ModelID}/executions`,
@@ -1043,9 +1046,6 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_AI_FEATURES]: "ai-features",
   [PageMap.SETTINGS_AI_LLM_PROVIDERS]: "llm-providers",
   [PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW]: `llm-providers/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_RUNNERS]: "runners",
-  [PageMap.SETTINGS_RUNNER_VIEW]: `runners/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_RUNNER_CREDENTIALS]: "runner-credentials",
   [PageMap.SETTINGS_AI_CREDITS]: "ai-credits",
   [PageMap.SETTINGS_AI_LOGS]: "ai-logs",
   [PageMap.SETTINGS_MCP_SERVER]: "mcp-server",
@@ -6583,24 +6583,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SETTINGS_RUNNERS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_RUNNERS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_RUNNER_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_RUNNER_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_RUNNER_CREDENTIALS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_RUNNER_CREDENTIALS]
-    }`,
-  ),
-
   [PageMap.SETTINGS_AI_CREDITS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_AI_CREDITS]
@@ -6833,6 +6815,21 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUNBOOKS_SECRETS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/runbooks/${
       RunbookRoutePath[PageMap.RUNBOOKS_SECRETS]
+    }`,
+  ),
+  [PageMap.RUNBOOKS_RUNNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_RUNNERS]
+    }`,
+  ),
+  [PageMap.RUNBOOKS_RUNNER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_VIEW]
+    }`,
+  ),
+  [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_CREDENTIALS]
     }`,
   ),
   [PageMap.RUNBOOK_VIEW]: new Route(

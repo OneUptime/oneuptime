@@ -798,7 +798,7 @@ describe("the AI SRE page's cluster-access section", () => {
 
   it("says the Kubernetes AI agent is not a Runner: no credential, no Bash/SSH, no rule command Runner", () => {
     expect(section).toContain(
-      "The Kubernetes AI agent is not a Runner and never appears under Project Settings → Runners.",
+      "The Kubernetes AI agent is not a Runner and never appears under Runbooks → Runners.",
     );
     expect(section).toContain("OneUptime never hands it a credential");
     expect(section).toContain("never used as a Bash/SSH host");

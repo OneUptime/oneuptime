@@ -10,7 +10,7 @@ import {
 import { cleanup, render, screen } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
-import RunnerView from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/RunnerView";
+import RunnerView from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerView";
 import {
   KUBERNETES_AGENT_RUNNER_SUPERSEDED_NOTE,
   NO_RUNNER_FORM_RESTRICTIONS,
@@ -19,7 +19,7 @@ import {
   getRunnerFormFields,
   getRunnerFormRestrictions,
   getRunnerTableFormFields,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/RunnerFormFields";
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerFormFields";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Runner from "../../../Models/DatabaseModels/Runner";
@@ -255,12 +255,12 @@ describe("the Runner detail page", () => {
   });
 
   function openRunnerView(runnerId: string): void {
-    const path: string = `/dashboard/${PROJECT_ID}/settings/runners/${runnerId}`;
+    const path: string = `/dashboard/${PROJECT_ID}/runbooks/runners/${runnerId}`;
     goTo(path);
     render(
       <MemoryRouter initialEntries={[path]}>
         <RunnerView
-          pageRoute={RouteMap[PageMap.SETTINGS_RUNNER_VIEW] as Route}
+          pageRoute={RouteMap[PageMap.RUNBOOKS_RUNNER_VIEW] as Route}
           currentProject={null}
           hasPaymentMethod={true}
         />

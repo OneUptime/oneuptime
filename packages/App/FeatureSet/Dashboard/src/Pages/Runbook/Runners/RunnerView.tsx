@@ -1,11 +1,11 @@
-import RunnerInstallInstructions from "../../Components/Runner/InstallInstructions";
-import RunnerStatusElement from "../../Components/Runner/RunnerStatus";
-import TeamElement from "../../Components/Team/Team";
-import UserElement from "../../Components/User/User";
-import PageMap from "../../Utils/PageMap";
-import ProjectUser from "../../Utils/ProjectUser";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageComponentProps from "../PageComponentProps";
+import RunnerInstallInstructions from "../../../Components/Runner/InstallInstructions";
+import RunnerStatusElement from "../../../Components/Runner/RunnerStatus";
+import TeamElement from "../../../Components/Team/Team";
+import UserElement from "../../../Components/User/User";
+import PageMap from "../../../Utils/PageMap";
+import ProjectUser from "../../../Utils/ProjectUser";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageComponentProps from "../../PageComponentProps";
 import {
   NO_RUNNER_FORM_RESTRICTIONS,
   RunnerFormRestrictions,
@@ -530,7 +530,7 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_RUNNERS] as Route,
+              RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route,
             ),
           );
         }}

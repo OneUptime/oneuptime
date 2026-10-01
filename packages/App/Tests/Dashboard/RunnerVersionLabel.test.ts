@@ -42,7 +42,12 @@ const DASHBOARD_SRC: string = path.join(
 
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
-const RUNNER_VIEW: Array<string> = ["Pages", "Settings", "RunnerView.tsx"];
+const RUNNER_VIEW: Array<string> = [
+  "Pages",
+  "Runbook",
+  "Runners",
+  "RunnerView.tsx",
+];
 
 const NEW_LABEL: string = "Runner Version";
 const OLD_LABEL: string = "Agent Version";

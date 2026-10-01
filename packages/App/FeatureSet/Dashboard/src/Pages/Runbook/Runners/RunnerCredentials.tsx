@@ -1,6 +1,6 @@
-import RunnersElement from "../../Components/Runner/Runners";
+import RunnersElement from "../../../Components/Runner/Runners";
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageComponentProps from "../PageComponentProps";
+import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -31,7 +31,7 @@ const RunbookCredentials: FunctionComponent<
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         id="runbook-credential-table"
-        name="Settings > Runner Credentials"
+        name="Runbooks > Runner Credentials"
         saveFilterProps={{
           tableId: "runbook-credentials-table",
         }}

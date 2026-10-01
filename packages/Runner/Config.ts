@@ -76,14 +76,14 @@ if (
   !process.env["ONEUPTIME_RUNNER_ID"]
 ) {
   logger.error(
-    "ONEUPTIME_RUNNER_ID is not set. Create a Runner in your OneUptime dashboard (Project Settings > Runners) and copy its id and key into this container. (The Kubernetes agent's in-cluster Runner instead sets ONEUPTIME_INGESTION_KEY and ONEUPTIME_KUBERNETES_CLUSTER_NAME.)",
+    "ONEUPTIME_RUNNER_ID is not set. Create a Runner in your OneUptime dashboard (Runbooks > Runners) and copy its id and key into this container. (The Kubernetes agent's in-cluster Runner instead sets ONEUPTIME_INGESTION_KEY and ONEUPTIME_KUBERNETES_CLUSTER_NAME.)",
   );
   process.exit(1);
 }
 
 if (!IS_KUBERNETES_AGENT_MODE && !process.env["ONEUPTIME_RUNNER_KEY"]) {
   logger.error(
-    "ONEUPTIME_RUNNER_KEY is not set. Create a Runner in your OneUptime dashboard (Project Settings > Runners) and copy its id and key into this container.",
+    "ONEUPTIME_RUNNER_KEY is not set. Create a Runner in your OneUptime dashboard (Runbooks > Runners) and copy its id and key into this container.",
   );
   process.exit(1);
 }

@@ -44,7 +44,7 @@ export const SECRET_COLUMNS_WRITTEN_FROM_PASSWORD_FIELDS: Array<SecretColumns> =
       columns: ["password", "apiToken"],
     },
     {
-      // Settings > Runner Credentials.
+      // Runbooks > Runner Credentials.
       service:
         RunbookCredentialService as unknown as DatabaseService<BaseModel>,
       columns: ["sshPassphrase", "sshPassword"],

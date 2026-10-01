@@ -43,7 +43,7 @@ import {
   getReservedRunnerNameError,
   getRunnerFormFields,
   getRunnerFormRestrictions,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/RunnerFormFields";
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerFormFields";
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterAiAccessService, {
   KubernetesClusterAiAccessProjectGates,

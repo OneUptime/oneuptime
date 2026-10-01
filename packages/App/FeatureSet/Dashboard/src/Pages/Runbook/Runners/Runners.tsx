@@ -1,6 +1,6 @@
-import RunnerInstallInstructions from "../../Components/Runner/InstallInstructions";
-import RunnerStatusElement from "../../Components/Runner/RunnerStatus";
-import PageComponentProps from "../PageComponentProps";
+import RunnerInstallInstructions from "../../../Components/Runner/InstallInstructions";
+import RunnerStatusElement from "../../../Components/Runner/RunnerStatus";
+import PageComponentProps from "../../PageComponentProps";
 import {
   NO_RUNNER_FORM_RESTRICTIONS,
   RunnerFormRestrictions,

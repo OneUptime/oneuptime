@@ -383,7 +383,7 @@ describe("POST /register-kubernetes-agent refusals on the wire", () => {
     expect(wire.statusCode).toBe(403);
     expect(wire.body!["reason"]).toBe("runner_holds_more_than_defaults");
     expect(String(wire.body!["message"])).toMatch(
-      /^Upgrade the Kubernetes agent chart: its Kubernetes AI agent replaces this in-cluster Runner\. Or, under Project Settings → Runners, on Runner "kubernetes-agent\/prod-us": turn off "Runs Runbooks"/,
+      /^Upgrade the Kubernetes agent chart: its Kubernetes AI agent replaces this in-cluster Runner\. Or, under Runbooks → Runners, on Runner "kubernetes-agent\/prod-us": turn off "Runs Runbooks"/,
     );
     expect(wire.body).not.toHaveProperty("retryAfterSeconds");
     expect(wire.headers).not.toHaveProperty("Retry-After");
