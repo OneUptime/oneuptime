@@ -118,12 +118,18 @@ describe("Import Sites modal disarms a stale parse", () => {
    * against a project that already contains most of it — every created row
    * coming back as a duplicate-name failure.
    */
-  test("a finished run turns the submit button into Done", () => {
+  /*
+   * And it leaves exactly one way out: the submit goes away and the close
+   * button reads "Done", rather than a primary "Done" beside a "Close" that
+   * did the same thing.
+   */
+  test("a finished run takes the Import button away and leaves one Done", () => {
     expect(source).toContain("setHasImported(true);");
-    expect(source).toContain(squash('hasImported ? "Done"'));
     expect(source).toContain(
-      squash("if (hasImported) { props.onClose(); return; }"),
+      squash('closeButtonText={hasImported ? "Done" : "Cancel"}'),
     );
+    expect(source).toContain(squash("onSubmit={ hasImported ? undefined :"));
+    expect(source).not.toContain(squash('hasImported ? "Close"'));
   });
 
   // Closing mid-run would leave the create loop writing into an unmounted tree.

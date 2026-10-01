@@ -1,5 +1,4 @@
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
@@ -147,9 +146,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
       }
       description={header}
       onClose={props.onClose}
-      onSubmit={props.onClose}
-      submitButtonText="Close"
-      submitButtonStyleType={ButtonStyleType.NORMAL}
+      closeButtonText="Close"
       modalWidth={ModalWidth.Medium}
     >
       <div className="mt-4">
