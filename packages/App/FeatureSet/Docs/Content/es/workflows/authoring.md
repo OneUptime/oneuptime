@@ -1,6 +1,13 @@
 # Crear un flujo de trabajo
 
-Para crear un flujo de trabajo, abre **Flujos de Trabajo** y haz clic en **Crear flujo de trabajo**. Se abre un asistente, **Create a workflow**, que te lleva de la mano: primero **Start from** — elige **Start from scratch** o una de las plantillas —, luego **Name**, y por último un paso **Configure**, que solo aparece si la plantilla que elegiste pide ajustes propios.
+Para crear un flujo de trabajo, abre **Flujos de Trabajo** y haz clic en **Crear flujo de trabajo**. Se abre un asistente, **Create a workflow**, que te lleva de la mano: primero **Start from**, luego **Name**, y por último un paso **Configure**, que solo aparece si la plantilla que elegiste pide ajustes propios.
+
+En **Start from** eliges cómo empezar:
+
+- **Empezar desde cero**, junto al cuadro de búsqueda, te da un lienzo vacío.
+- Una plantilla te da un flujo de trabajo que ya funciona, listo para cambiarlo. El paso se abre con unas pocas plantillas en **Recomendadas**. El resto está en sus categorías, como **Incidentes**, **Monitores** y **Jira**, cada una con cuántas plantillas tiene, y **Todas las plantillas** las muestra todas. Una búsqueda mira en todas: cada palabra que escribas tiene que coincidir, y cada categoría muestra cuántas de sus plantillas coincidieron.
+
+Haz clic en una plantilla para ver qué hace antes de elegirla: su disparador, los pasos que la forman y los ajustes que te pedirá. **Usar esta plantilla** te lleva con ella a **Name**, y lo mismo hacen **Enter** y un doble clic. Las flechas te mueven por la lista, y `/` te devuelve al cuadro de búsqueda.
 
 Una vez creado, abre **Constructor** en el menú izquierdo. Ese es el lienzo donde diseñas el flujo de trabajo.
 
