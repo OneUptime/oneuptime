@@ -77,9 +77,6 @@ export const AI_AGENT_GONE_TEXT: string =
 
 export const AI_AGENT_SILENT_TEXT: string = `The AI agent has not checked in for over ${KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES} minutes. Check its pod:`;
 
-export const AI_AGENT_FIXES_OFF_HINT: string =
-  "Want AI to propose fixes? Choose Ask for approval.";
-
 export const ASK_PROJECT_ADMIN_TEXT: string = "Ask a project owner or admin.";
 
 /*
@@ -563,6 +560,11 @@ export function getAiAgentGapAction(
   switch (gap.code) {
     case "investigation_disabled":
       return "turn_on_investigation";
+    /*
+     * project_auto_remediation_disabled and
+     * project_ai_command_execution_disabled are retired (Enable AI covers
+     * both); an older server may still send them mid-rollout.
+     */
     case "project_ai_disabled":
     case "project_auto_remediation_disabled":
     case "project_ai_command_execution_disabled":

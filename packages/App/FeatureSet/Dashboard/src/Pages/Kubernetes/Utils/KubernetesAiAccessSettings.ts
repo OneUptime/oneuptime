@@ -21,6 +21,7 @@ import type { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { isKubernetesAgentRunnerRow } from "./KubernetesAgentRunner";
 import { formatNameList } from "./KubernetesAiAccessSetup";
+import { joinAiAccessProtections } from "../../../Components/AiAccess/AiAccessModes";
 
 /*
  * The pure pieces behind "What AI may do" on the cluster's AI agent page
@@ -35,25 +36,6 @@ import { formatNameList } from "./KubernetesAiAccessSetup";
  * are type-only imports), so the suites read it without a browser.
  */
 
-/*
- * What each mode does, in the words of the canonical description on
- * KubernetesAiRemediationMode (Common/Types/Kubernetes/
- * KubernetesClusterAiAccess.ts). The labels are the dropdown's; the
- * summaries are the one line "What AI may do" shows for the current mode.
- */
-export const REMEDIATION_MODE_LABELS: Record<
-  KubernetesAiRemediationMode,
-  string
-> = {
-  [KubernetesAiRemediationMode.Disabled]: "Off — AI only investigates",
-  [KubernetesAiRemediationMode.RequireApproval]:
-    "Ask for approval — a person approves each fix",
-  [KubernetesAiRemediationMode.Automatic]:
-    "Automatic — safe fixes run on their own, riskier ones wait for your one-click approval",
-  [KubernetesAiRemediationMode.BypassApproval]:
-    "Bypass approval — every allowed fix runs on its own, except in protected namespaces and node drains, taints and patches, and when the circuit breaker trips or another unattended round is running",
-};
-
 // The mode's short name, as the card, the feed and the refusals say it.
 export const REMEDIATION_MODE_SHORT_NAMES: Record<
   KubernetesAiRemediationMode,
@@ -65,12 +47,18 @@ export const REMEDIATION_MODE_SHORT_NAMES: Record<
   [KubernetesAiRemediationMode.BypassApproval]: "Bypass approval",
 };
 
+/*
+ * What each mode does, in the words of the canonical description on
+ * KubernetesAiRemediationMode (Common/Types/Kubernetes/
+ * KubernetesClusterAiAccess.ts): the one line the Fixes row of "What AI
+ * may do" shows for the current mode. Off says nothing about
+ * investigating — that is the Investigation row's, and may be off too.
+ */
 export const REMEDIATION_MODE_SUMMARIES: Record<
   KubernetesAiRemediationMode,
   string
 > = {
-  [KubernetesAiRemediationMode.Disabled]:
-    "AI only investigates. It never proposes or runs a fix.",
+  [KubernetesAiRemediationMode.Disabled]: "AI never proposes or runs a fix.",
   [KubernetesAiRemediationMode.RequireApproval]:
     "AI proposes kubectl fixes. A person approves each one before it runs.",
   [KubernetesAiRemediationMode.Automatic]:
@@ -91,22 +79,67 @@ export function readRemediationMode(
 }
 
 /*
+ * What the Investigation row of "What AI may do" says while investigation
+ * is on: what AI may run, and that it changes nothing.
+ */
+export const INVESTIGATION_ON_SENTENCE: string =
+  "AI may run read-only kubectl on this cluster: get, describe, logs, events, top. It never changes anything.";
+
+/*
  * What holds in every mode, Bypass approval included — the canonical
  * comment's "In EVERY mode" paragraph, clause for clause: the Denied tier,
  * the protected namespaces, a node drain, a node taint and a patch of a
  * node, the in-cluster agent's own namespace and write scope, and the two
- * cases in which an unattended run becomes a proposal.
+ * cases in which an unattended run becomes a proposal. The Change modal
+ * lists the clauses under "What stays protected in every mode"; the
+ * confirmations say them as one sentence.
  */
-export function getEveryModeProtectionsSentence(): string {
-  return `destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run; a write in ${formatNameList(
-    PROTECTED_KUBERNETES_NAMESPACES,
-    "or",
-  )}, a node drain, a node taint and a patch of a node always need a human; the in-cluster agent never changes its own namespace or anything outside the namespaces its chart may write; and an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster`;
+export function getEveryModeProtections(): Array<string> {
+  return [
+    "destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run",
+    `a write in ${formatNameList(
+      PROTECTED_KUBERNETES_NAMESPACES,
+      "or",
+    )}, a node drain, a node taint and a patch of a node always need a human`,
+    "the in-cluster agent never changes its own namespace or anything outside the namespaces its chart may write",
+    "an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster",
+  ];
 }
 
-export function getRemediationModeFieldDescription(): string {
-  return `Off: AI only investigates. Ask for approval: AI proposes the exact kubectl fix and a person approves it with one click; a follow-up fix asks again. Automatic: safe changes — each on one named object (rollout restart/undo/pause/resume, scale above zero, delete a named pod, cordon/uncordon a node, label/annotate a pod or workload) — run on their own. A riskier change (patch, set image, drain, taint, scale to zero, deleting workloads or jobs, anything touching several objects) never runs without a human: when the round could only find riskier fixes, it ends by proposing exactly those for one-click approval. Riskier shapes on the kubectl allowlist also run on their own. Bypass approval: AI does not ask — every change the policy allows, safe and riskier, runs on its own, follow-up rounds included, except for what always asks. In every mode, Bypass approval included: ${getEveryModeProtectionsSentence()}.`;
+export function getEveryModeProtectionsSentence(): string {
+  return joinAiAccessProtections(getEveryModeProtections());
 }
+
+/*
+ * What each mode does, one card each in the Change modal's Fixes picker:
+ * the canonical description on KubernetesAiRemediationMode, a mode at a
+ * time, with the kubectl changes that are safe and riskier named. What
+ * holds in every mode is listed under the cards (getEveryModeProtections),
+ * not repeated on each.
+ */
+export const REMEDIATION_MODE_OPTION_DESCRIPTIONS: Record<
+  KubernetesAiRemediationMode,
+  string
+> = {
+  [KubernetesAiRemediationMode.Disabled]:
+    "AI never proposes or runs a fix. It can still investigate.",
+  [KubernetesAiRemediationMode.RequireApproval]:
+    "AI proposes the exact kubectl fix, and a person approves it with one click before it runs. A follow-up fix asks again.",
+  [KubernetesAiRemediationMode.Automatic]:
+    "Safe changes on one named object (rollout restart or undo, scale above zero, delete a named pod, cordon a node, …) run on their own. Riskier ones (patch, set image, drain, taint, scale to zero, …) wait for one-click approval unless the kubectl allowlist names them.",
+  [KubernetesAiRemediationMode.BypassApproval]:
+    "AI does not ask: every change the command policy allows runs on its own, riskier ones and follow-up rounds included. Writes in protected namespaces and node drains, taints and patches still ask a person.",
+};
+
+/*
+ * The kubectl allowlist field's help text: what a pattern does and how it
+ * is matched, with an example. The rest is said where it applies — a
+ * broken pattern by its validation error (validateKubectlAllowlistText), a
+ * broad one by the confirmation before saving, and what never runs
+ * unattended by the modal's every-mode protections.
+ */
+export const KUBECTL_ALLOWLIST_FIELD_DESCRIPTION: string =
+  'One pattern per line. A riskier kubectl command that matches a pattern runs without approval. Patterns are matched word by word: * matches exactly one word, flags must be written out, and a leading "kubectl" is optional — for example: kubectl set image deployment/web * -n web.';
 
 /*
  * Permission titles, the way PermissionGate names them, read straight from

@@ -52,10 +52,11 @@ import {
  * AutoRemediationApproveClusterRound.
  *
  * Pinned here:
- * - "Enable AI command execution" stops rule rounds only: a resource round
- *   (the suggestion names a resource and no rule) is approvable with it off;
- *   Enable AI / auto-remediation still stop it. The lane is read off the
- *   row, so resourceType and resourceId must be selected.
+ * - Enable AI, the project's only AI switch, is the one project gate: a
+ *   resource round (the suggestion names a resource and no rule) is
+ *   approvable whenever it is on, and so is a rule round whose plan carries
+ *   resource commands. With it off, both are refused before anything is
+ *   claimed or any resource is read.
  * - A ResourceCommand step names its resource's AI agent where a Runner id
  *   would be; the Runner table is never re-read for it. The agent must be
  *   the resource's CURRENT agent and online; only ResourceCommand steps may
@@ -165,6 +166,10 @@ const sendJsonObjectResponseMock: jest.Mock =
   Response.sendJsonObjectResponse as unknown as jest.Mock;
 
 const APPROVE_ROUTE: string = "/auto-remediation/approve";
+
+// What the route answers, word for word, while the project has AI off.
+const AI_DISABLED_REFUSAL: string =
+  "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -277,6 +282,7 @@ function resourceCommandJson(
   } as JSONObject;
 }
 
+// The project row as the approve route selects it: Enable AI, nothing else.
 function fakeProject(
   overrides: Partial<Record<string, unknown>> = {},
 ): Project {
@@ -284,8 +290,6 @@ function fakeProject(
     _id: PROJECT_ID.toString(),
     id: PROJECT_ID,
     enableAi: true,
-    enableAutoRemediation: true,
-    enableAiCommandExecution: false,
     ...overrides,
   } as unknown as Project;
 }
@@ -449,42 +453,8 @@ describe("POST /auto-remediation/approve — resource rounds and the resource AI
     expect(executeApprovedPlanMock).toHaveBeenCalledTimes(1);
   }
 
-  describe("the project switches, by lane", () => {
-    test("the root read selects the resource columns that tell a resource round from a rule round", async () => {
-      await callApprove();
-
-      const rootSelect: Record<string, unknown> | undefined = (
-        suggestionFindSpy.mock.calls as Array<
-          Array<{
-            select: Record<string, unknown>;
-            props: { isRoot?: boolean };
-          }>
-        >
-      )
-        .map(
-          (
-            call: Array<{
-              select: Record<string, unknown>;
-              props: { isRoot?: boolean };
-            }>,
-          ) => {
-            return call[0]!;
-          },
-        )
-        .find((args: { props: { isRoot?: boolean } }) => {
-          return args.props?.isRoot === true;
-        })?.select;
-
-      expect(rootSelect).toEqual(
-        expect.objectContaining({
-          resourceType: true,
-          resourceId: true,
-          autoRemediationRuleId: true,
-        }),
-      );
-    });
-
-    test("a resource round is approvable with AI command execution off, and runs the plan", async () => {
+  describe("the project switch", () => {
+    test("a resource round is approvable with Enable AI on, and runs the plan", async () => {
       expectClaimedAndExecuted(await callApprove());
 
       // The agent is not a Runner row: the Runner table is never read for it.
@@ -499,7 +469,20 @@ describe("POST /auto-remediation/approve — resource rounds and the resource AI
       });
     });
 
-    test("a RULE round whose plan has resource commands still needs the opt-in", async () => {
+    test("the project is read for Enable AI alone — never for a retired switch", async () => {
+      await callApprove();
+
+      expect(projectFindSpy).toHaveBeenCalledTimes(1);
+      expect(projectFindSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: PROJECT_ID,
+          select: { _id: true, enableAi: true },
+          props: expect.objectContaining({ isRoot: true }),
+        }),
+      );
+    });
+
+    test("a RULE round whose plan has resource commands is approved on Enable AI alone — each command still answers to its resource", async () => {
       mockRow(
         resourceRoundRow([resourceCommandJson()], {
           resourceType: undefined,
@@ -508,28 +491,59 @@ describe("POST /auto-remediation/approve — resource rounds and the resource AI
         }),
       );
 
-      const error: BadDataException = expectRefusedBeforeClaim(
-        await callApprove(),
+      expectClaimedAndExecuted(await callApprove());
+
+      // The resource's live status and the approver's edit right still decide.
+      expect(statusSpy).toHaveBeenCalledTimes(1);
+      expect(mayChangeSpy).toHaveBeenCalledTimes(1);
+      expect(runnerFindSpy).not.toHaveBeenCalled();
+    });
+
+    test("a row that still carries the retired switches, both off, is approved — only Enable AI is read", async () => {
+      projectFindSpy.mockResolvedValue(
+        fakeProject({
+          enableAutoRemediation: false,
+          enableAiCommandExecution: false,
+        }),
       );
-      expect(error.message).toContain("AI command execution is disabled");
+
+      expectClaimedAndExecuted(await callApprove());
     });
 
     test.each([
-      ["AI", { enableAi: false }],
-      ["auto-remediation", { enableAutoRemediation: false }],
+      ["the project row is gone", null],
+      ["Enable AI is off", fakeProject({ enableAi: false })],
     ])(
-      "a resource round is stopped when %s is disabled for the project",
-      async (_label: string, overrides: Record<string, unknown>) => {
-        projectFindSpy.mockResolvedValue(fakeProject(overrides));
+      "a resource round is refused when %s — before the resource or its agent is read",
+      async (_label: string, project: Project | null) => {
+        projectFindSpy.mockResolvedValue(project);
 
         const error: BadDataException = expectRefusedBeforeClaim(
           await callApprove(),
         );
-        expect(error.message).toContain(
-          "AI or auto-remediation is disabled for this project",
-        );
+        expect(error.message).toBe(AI_DISABLED_REFUSAL);
+        expect(statusSpy).not.toHaveBeenCalled();
+        expect(mayChangeSpy).not.toHaveBeenCalled();
+        expect(runnerFindSpy).not.toHaveBeenCalled();
       },
     );
+
+    test("a rule round with resource commands is refused the same way with Enable AI off", async () => {
+      mockRow(
+        resourceRoundRow([resourceCommandJson()], {
+          resourceType: undefined,
+          resourceId: undefined,
+          autoRemediationRuleId: RULE_ID,
+        }),
+      );
+      projectFindSpy.mockResolvedValue(fakeProject({ enableAi: false }));
+
+      const error: BadDataException = expectRefusedBeforeClaim(
+        await callApprove(),
+      );
+      expect(error.message).toBe(AI_DISABLED_REFUSAL);
+      expect(statusSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe("the resource AI agent as the plan's target", () => {
@@ -823,9 +837,6 @@ describe("POST /auto-remediation/approve — resource rounds and the resource AI
             autoRemediationRuleId: RULE_ID,
           },
         ),
-      );
-      projectFindSpy.mockResolvedValue(
-        fakeProject({ enableAiCommandExecution: true }),
       );
 
       expectClaimedAndExecuted(await callApprove());

@@ -1,6 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
 import {
-  AI_AGENT_FIXES_OFF_HINT,
   AI_AGENT_GONE_TEXT,
   AI_AGENT_LEGACY_RUNNER_OFFLINE_TEXT,
   AI_AGENT_LEGACY_RUNNER_TEXT,
@@ -958,6 +957,10 @@ describe("the Needs attention card", () => {
     const expected: Array<[KubernetesAiAccessGapCode, string | null]> = [
       ["investigation_disabled", "turn_on_investigation"],
       ["project_ai_disabled", "open_ai_features"],
+      /*
+       * Retired: both switches were folded into Enable AI, but an older
+       * server may still send them mid-rollout.
+       */
       ["project_auto_remediation_disabled", "open_ai_features"],
       ["project_ai_command_execution_disabled", "open_ai_features"],
       ["llm_provider_missing", "open_llm_providers"],
@@ -1049,12 +1052,6 @@ describe("the write-access commands", () => {
         }),
       ),
     ).toBe(false);
-  });
-
-  test("the fixes-off hint names the mode to choose", () => {
-    expect(AI_AGENT_FIXES_OFF_HINT).toBe(
-      "Want AI to propose fixes? Choose Ask for approval.",
-    );
   });
 });
 

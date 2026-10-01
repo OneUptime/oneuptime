@@ -62,7 +62,9 @@ import {
  *   Runner or reached with a different credential rejects the plan BEFORE
  *   the CAS claim and the executor;
  * - the refusal names the cluster and, for a readiness gap, the gap;
- * - the check runs after the project opt-in and Runner consent re-checks;
+ * - the check runs after the project's Enable AI check (the only project
+ *   switch: with it off no cluster is read at all) and the Runner consent
+ *   re-check;
  * - a plan whose clusters all still match proceeds to the claim;
  * - each cluster is read once however many commands target it, and
  *   non-kubectl commands never trigger a cluster read;
@@ -302,13 +304,15 @@ function bashCommandJson(
   } as JSONObject;
 }
 
-function fakeProject(): Project {
+// The project row as the approve route selects it: Enable AI, nothing else.
+function fakeProject(
+  overrides: Partial<Record<string, unknown>> = {},
+): Project {
   return {
     _id: PROJECT_ID.toString(),
     id: PROJECT_ID,
     enableAi: true,
-    enableAutoRemediation: true,
-    enableAiCommandExecution: true,
+    ...overrides,
   } as unknown as Project;
 }
 
@@ -375,6 +379,7 @@ function readyStatus(
 describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
   let suggestionFindSpy: jest.SpyInstance;
   let casSpy: jest.SpyInstance;
+  let projectFindSpy: jest.SpyInstance;
   let runnerFindSpy: jest.SpyInstance;
   let statusSpy: jest.SpyInstance;
 
@@ -403,7 +408,9 @@ describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
       .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
       .mockResolvedValue(1);
 
-    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
+    projectFindSpy = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(fakeProject());
 
     runnerFindSpy = jest.spyOn(RunnerService, "findOneBy").mockResolvedValue({
       _id: RUNNER_ID.toString(),
@@ -452,6 +459,31 @@ describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
 
     expect(casSpy).toHaveBeenCalledTimes(1);
     expect(executeApprovedPlanMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("the plan's round names no cluster and no rule, and still reaches the re-check on Enable AI alone", async () => {
+    // fakeSuggestion carries neither column: no lane, and no opt-in asked for.
+    const result: RouteCallResult = await callApprove();
+
+    expect(result.nextCallCount).toBe(0);
+    expect(projectFindSpy).toHaveBeenCalledTimes(1);
+    expect(statusSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("with Enable AI off the click is refused before any cluster or Runner is read", async () => {
+    projectFindSpy.mockResolvedValue(fakeProject({ enableAi: false }));
+    // The cluster is gone too: the project switch is what gets reported.
+    statusSpy.mockResolvedValue(null);
+
+    const error: BadDataException = expectRefusedBeforeClaim(
+      await callApprove(),
+    );
+
+    expect(error.message).toBe(
+      "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.",
+    );
+    expect(statusSpy).not.toHaveBeenCalled();
+    expect(runnerFindSpy).not.toHaveBeenCalled();
   });
 
   test("rejects when the cluster no longer exists in the project", async () => {

@@ -69,9 +69,9 @@ import VMwareVCenterService from "./VMwareVCenterService";
  * agent. There are no Runners and no credentials here — the agent holds the
  * resource's credentials itself and never receives one from OneUptime.
  *
- * The project-wide gates (AI on, a provider, a balance, auto-remediation)
- * are the Kubernetes service's, read once per call and shared, so a project
- * setting reads the same for a cluster and for every other resource.
+ * The project-wide gates (AI on, a provider, a balance) are the Kubernetes
+ * service's, read once per call and shared, so a project setting reads the
+ * same for a cluster and for every other resource.
  */
 
 export type ResourceAiAccessProjectGates =
@@ -581,17 +581,6 @@ export class ResourceAiAccessServiceClass {
         title: "The project is out of AI credits",
         nextStep: AI_BALANCE_INSUFFICIENT_NEXT_STEP,
         blocksInvestigation: true,
-        blocksRemediation: true,
-      });
-    }
-
-    if (!gates.isAutoRemediationEnabled) {
-      gaps.push({
-        code: "auto_remediation_disabled_for_project",
-        title: "Auto-remediation is disabled for this project",
-        nextStep:
-          "Enable auto-remediation under Project Settings → AI Features.",
-        blocksInvestigation: false,
         blocksRemediation: true,
       });
     }

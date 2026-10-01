@@ -2297,9 +2297,15 @@ describe("toPanelClusterAccess gap next steps", () => {
   it("gives a project-level gap the project-settings step and everything else the cluster step", () => {
     for (const code of [
       "project_ai_disabled",
+      /*
+       * Retired with the switches Enable AI replaced, and never produced
+       * now; still project-level, so a status from an older server reads
+       * right on the panel.
+       */
       "project_auto_remediation_disabled",
       "project_ai_command_execution_disabled",
       "llm_provider_missing",
+      "ai_balance_insufficient",
     ]) {
       expect(getRestrictedGapNextStep(code)).toBe(
         RESTRICTED_PROJECT_GAP_NEXT_STEP,
@@ -2369,8 +2375,6 @@ describe("toPanelClusterAccess gap next steps", () => {
           cluster,
           gates: {
             isAiEnabled: true,
-            isAutoRemediationEnabled: true,
-            isAiCommandExecutionEnabled: true,
             hasLlmProvider: true,
           },
         });
@@ -2408,8 +2412,6 @@ describe("toPanelClusterAccess gap next steps", () => {
           cluster,
           gates: {
             isAiEnabled: true,
-            isAutoRemediationEnabled: true,
-            isAiCommandExecutionEnabled: true,
             hasLlmProvider: true,
           },
         });

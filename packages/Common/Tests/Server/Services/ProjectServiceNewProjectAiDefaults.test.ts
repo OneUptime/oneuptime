@@ -220,7 +220,7 @@ describe("ProjectService.onBeforeCreate: AI defaults for a new project", () => {
   it("negative control: the same check refuses a column a creator may not write", () => {
     const project: Project = new Project();
     project.name = "Acme";
-    project.enableAiCommandExecution = true;
+    project.enableAi = false;
 
     expect(() => {
       ColumnPermissions.checkDataColumnPermissions(
@@ -229,7 +229,7 @@ describe("ProjectService.onBeforeCreate: AI defaults for a new project", () => {
         userProps(),
         DatabaseRequestType.Create,
       );
-    }).toThrow(/enableAiCommandExecution/);
+    }).toThrow(/enableAi/);
   });
 });
 

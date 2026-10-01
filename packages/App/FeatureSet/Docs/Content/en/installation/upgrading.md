@@ -390,6 +390,39 @@ page's [Upgrading the Agent](/docs/telemetry/kubernetes-agent#upgrading-the-agen
 has the details, and [AI SRE — Cluster access](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl)
 explains what the agent may do and how to let it fix what it finds.
 
+### Enable AI is the only AI switch
+
+**Project Settings → AI Features** had three switches. **Enable
+Auto-Remediation** and **Enable AI Command Execution (for Runners)** are gone:
+auto-remediation and AI commands on Runners run whenever **Enable AI** is on.
+Turning **Enable AI** off stops them along with every other AI feature,
+including auto-remediation rules that start a runbook without AI. A project
+that already has **Enable AI** off therefore stops running those rules after
+the upgrade; turn **Enable AI** on to keep them.
+
+The two switches used to hold some fixes back. So that nothing starts
+changing your systems without a human when they disappear, the server
+upgrade moves those fixes to asking first:
+
+- In a project that had turned **Enable Auto-Remediation** off, **Full Auto**
+  rules become **Suggest**, and clusters and resources set to **Automatic** or
+  **Bypass approval** become **Ask for approval**.
+- In a project that never turned on **Enable AI Command Execution**, **Full
+  Auto** rules that let AI compose commands become **Suggest**. A Kubernetes
+  cluster that AI reaches through a Runner you bound to it (with a Kubernetes
+  credential) goes from **Automatic** or **Bypass approval** to **Ask for
+  approval**. Clusters reached through the Kubernetes AI agent keep their
+  mode, and so do resources: they never needed that switch.
+
+Nothing is turned off. Rules, clusters and resources that one of the switches
+kept quiet start proposing fixes, and each fix still waits for a human. To keep
+auto-remediation out of a project, turn off **Enable AI**, or disable its rules
+(Incidents or Alerts → AI → Remediation) and set **Fixes** to **Off** on each
+cluster's and resource's AI agent page. API clients and Terraform
+configurations that set `enableAutoRemediation` or `enableAiCommandExecution`
+(`enable_auto_remediation` or `enable_ai_command_execution` in Terraform)
+should stop setting them.
+
 ### Verify the edition and the license
 
 - The **edition label in the Admin Dashboard header** names the edition that is

@@ -52,15 +52,15 @@ import {
  *
  * Pinned here:
  *
- * The project switches, by lane.
- * - Enable AI and Enable auto-remediation stop every command plan.
- * - "Enable AI command execution" stops RULE rounds only. A cluster round
- *   (the suggestion names a cluster and no rule) is approvable with it off;
- *   its consent is the cluster's own and is re-checked per kubectl command.
- * - The lane is read off the suggestion row — kubernetesClusterId and
- *   autoRemediationRuleId must be selected, or every cluster round would
- *   look like a rule round — and NEVER inferred from the plan: a rule round
- *   whose plan is all kubectl still needs the opt-in.
+ * The project switch, for every lane.
+ * - Enable AI, the project's only AI switch, stops every command plan: a
+ *   rule round's, a cluster round's (the suggestion names a cluster and no
+ *   rule) and one whose cluster was deleted alike. There is no second
+ *   project opt-in for rule rounds any more: the retired "Enable
+ *   auto-remediation" and "Enable AI command execution" switches are never
+ *   read, even on a row that still carries them.
+ * - Past that switch, every kubectl command is re-checked against its
+ *   cluster's own consent, whichever lane composed it.
  *
  * The Kubernetes AI agent as a plan's target.
  * - A kubectl command composed for a cluster's AI agent names the agent's
@@ -172,6 +172,10 @@ const sendJsonObjectResponseMock: jest.Mock =
   Response.sendJsonObjectResponse as unknown as jest.Mock;
 
 const APPROVE_ROUTE: string = "/auto-remediation/approve";
+
+// What the route answers, word for word, while the project has AI off.
+const AI_DISABLED_REFUSAL: string =
+  "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -307,6 +311,7 @@ function bashCommandJson(
   } as JSONObject;
 }
 
+// The project row as the approve route selects it: Enable AI, nothing else.
 function fakeProject(
   overrides: Partial<Record<string, unknown>> = {},
 ): Project {
@@ -314,8 +319,6 @@ function fakeProject(
     _id: PROJECT_ID.toString(),
     id: PROJECT_ID,
     enableAi: true,
-    enableAutoRemediation: true,
-    enableAiCommandExecution: true,
     ...overrides,
   } as unknown as Project;
 }
@@ -492,134 +495,139 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
     expect(executeApprovedPlanMock).toHaveBeenCalledTimes(1);
   }
 
-  describe("the project switches, by lane", () => {
-    test("the root read selects the two columns that tell a cluster round from a rule round", async () => {
+  describe("the project switch, for every lane", () => {
+    test("the project is read as root, by the suggestion's project, for Enable AI alone", async () => {
       await callApprove();
 
-      const rootSelect: Record<string, unknown> | undefined = (
-        suggestionFindSpy.mock.calls as Array<
-          Array<{
-            select: Record<string, unknown>;
-            props: { isRoot?: boolean };
-          }>
-        >
-      )
-        .map(
-          (
-            call: Array<{
-              select: Record<string, unknown>;
-              props: { isRoot?: boolean };
-            }>,
-          ) => {
-            return call[0]!;
-          },
-        )
-        .find((args: { props: { isRoot?: boolean } }) => {
-          return args.props?.isRoot === true;
-        })?.select;
-
-      expect(rootSelect).toEqual(
-        expect.objectContaining({
-          kubernetesClusterId: true,
-          autoRemediationRuleId: true,
-        }),
-      );
+      expect(projectFindSpy).toHaveBeenCalledTimes(1);
+      const args: {
+        id: ObjectID;
+        select: Record<string, unknown>;
+        props: { isRoot?: boolean };
+      } = projectFindSpy.mock.calls[0]![0] as {
+        id: ObjectID;
+        select: Record<string, unknown>;
+        props: { isRoot?: boolean };
+      };
+      expect(args.id.toString()).toBe(PROJECT_ID.toString());
+      // Exactly: the retired switches are never asked for.
+      expect(args.select).toEqual({ _id: true, enableAi: true });
+      expect(args.props.isRoot).toBe(true);
     });
 
     test.each([
-      ["false", false],
-      ["never set", undefined],
+      ["on", true],
+      ["not selected (the column defaults to on)", undefined],
     ])(
-      "a cluster round is approvable with AI command execution %s",
+      "a cluster round is approvable with Enable AI %s",
       async (_label: string, value: boolean | undefined) => {
-        projectFindSpy.mockResolvedValue(
-          fakeProject({ enableAiCommandExecution: value }),
-        );
+        projectFindSpy.mockResolvedValue(fakeProject({ enableAi: value }));
 
         expectClaimedAndExecuted(await callApprove());
       },
     );
 
-    test("a RULE round whose plan is only kubectl is still refused with AI command execution off — the lane decides, not the step types", async () => {
+    test("a RULE round whose plan is only kubectl is approved on Enable AI alone, and its command is still re-checked against the cluster", async () => {
       mockRow(ruleRoundRow([agentKubectlCommandJson()]));
-      projectFindSpy.mockResolvedValue(
-        fakeProject({ enableAiCommandExecution: false }),
-      );
 
-      const error: BadDataException = expectRefusedBeforeClaim(
-        await callApprove(),
-      );
+      expectClaimedAndExecuted(await callApprove());
 
-      expect(error.message).toContain("AI command execution is disabled");
-      expect(error.message).toContain("Project Settings → AI Features");
-      // Refused before any target or cluster is looked at.
-      expect(statusSpy).not.toHaveBeenCalled();
+      // The cluster's own consent is what the kubectl command answers to.
+      expect(statusSpy).toHaveBeenCalledTimes(1);
+      // The AI agent is not a Runner row: no Runner was re-read.
       expect(runnerFindSpy).not.toHaveBeenCalled();
     });
 
-    test("a RULE round with Bash commands is refused with AI command execution never set", async () => {
+    test("a RULE round with Bash commands is approved on Enable AI alone, re-reading its Runner's consent", async () => {
       mockRow(ruleRoundRow([bashCommandJson()]));
-      projectFindSpy.mockResolvedValue(
-        fakeProject({ enableAiCommandExecution: undefined }),
-      );
 
-      const error: BadDataException = expectRefusedBeforeClaim(
-        await callApprove(),
-      );
+      expectClaimedAndExecuted(await callApprove());
 
-      expect(error.message).toContain("AI command execution is disabled");
-      expect(runnerFindSpy).not.toHaveBeenCalled();
+      expect(runnerFindSpy).toHaveBeenCalledTimes(1);
+      expect(runnerFindSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            _id: RUNNER_ID.toString(),
+            projectId: PROJECT_ID,
+            canRunAiCommands: true,
+          }),
+        }),
+      );
+      // A Bash-only plan names no cluster.
+      expect(statusSpy).not.toHaveBeenCalled();
     });
 
-    test("negative control: the same rule round is approvable once the project opts in", async () => {
+    test("a row that still carries the retired switches, both off, is approved — only Enable AI is read", async () => {
       mockRow(ruleRoundRow([agentKubectlCommandJson()]));
+      projectFindSpy.mockResolvedValue(
+        fakeProject({
+          enableAutoRemediation: false,
+          enableAiCommandExecution: false,
+        }),
+      );
 
       expectClaimedAndExecuted(await callApprove());
     });
 
-    test("a row naming a rule AND a cluster is gated as a rule round — the exemption fails closed", async () => {
-      mockRow(
+    /*
+     * The lane no longer matters to the project gate: whichever columns the
+     * row carries, Enable AI on approves it and Enable AI off refuses it.
+     */
+    const LANES: Array<[string, Record<string, unknown>]> = [
+      ["a cluster round", clusterRoundRow([agentKubectlCommandJson()])],
+      ["a rule round", ruleRoundRow([agentKubectlCommandJson()])],
+      [
+        "a row naming a rule AND a cluster",
         clusterRoundRow([agentKubectlCommandJson()], {
           autoRemediationRuleId: RULE_ID,
         }),
-      );
-      projectFindSpy.mockResolvedValue(
-        fakeProject({ enableAiCommandExecution: false }),
-      );
-
-      const error: BadDataException = expectRefusedBeforeClaim(
-        await callApprove(),
-      );
-
-      expect(error.message).toContain("AI command execution is disabled");
-    });
-
-    test("a round with no cluster and no rule (its cluster was deleted) is not exempt", async () => {
-      mockRow(
+      ],
+      [
+        "a round whose cluster was deleted (no cluster, no rule)",
         clusterRoundRow([agentKubectlCommandJson()], {
           kubernetesClusterId: undefined,
         }),
-      );
-      projectFindSpy.mockResolvedValue(
-        fakeProject({ enableAiCommandExecution: false }),
-      );
+      ],
+    ];
 
-      const error: BadDataException = expectRefusedBeforeClaim(
-        await callApprove(),
-      );
+    test.each(LANES)(
+      "%s is approved with Enable AI on",
+      async (_label: string, row: Record<string, unknown>) => {
+        mockRow(row);
 
-      expect(error.message).toContain("AI command execution is disabled");
-    });
+        expectClaimedAndExecuted(await callApprove());
+      },
+    );
+
+    test.each(LANES)(
+      "%s is refused with Enable AI off, before any target is looked at",
+      async (_label: string, row: Record<string, unknown>) => {
+        mockRow(row);
+        projectFindSpy.mockResolvedValue(fakeProject({ enableAi: false }));
+
+        const error: BadDataException = expectRefusedBeforeClaim(
+          await callApprove(),
+        );
+
+        expect(error.message).toBe(AI_DISABLED_REFUSAL);
+        expect(statusSpy).not.toHaveBeenCalled();
+        expect(runnerFindSpy).not.toHaveBeenCalled();
+      },
+    );
 
     test.each([
       ["the project row is gone", null],
       ["Enable AI is off", fakeProject({ enableAi: false })],
       [
-        "Enable auto-remediation is off",
-        fakeProject({ enableAutoRemediation: false }),
+        "Enable AI is off, whatever the retired switches say",
+        fakeProject({
+          enableAi: false,
+          enableAutoRemediation: true,
+          enableAiCommandExecution: true,
+        }),
       ],
     ])(
-      "a cluster round is still refused when %s — the kill switches cover every lane",
+      "a cluster round is refused when %s, naming the page with the switch",
       async (_label: string, project: Project | null) => {
         projectFindSpy.mockResolvedValue(project);
 
@@ -627,21 +635,23 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
           await callApprove(),
         );
 
-        expect(error.message).toContain("AI or auto-remediation is disabled");
+        expect(error.message).toBe(AI_DISABLED_REFUSAL);
         expect(error.message).toContain("Project Settings → AI Features");
         expect(error.message).not.toContain("AI Credits");
+        expect(error.message).not.toContain("auto-remediation");
+        expect(error.message).not.toContain("command execution");
         expect(statusSpy).not.toHaveBeenCalled();
       },
     );
 
-    test("a cluster round reached through an advanced Runner is held back by the cluster's own gap, not the project check", async () => {
+    test("a cluster round reached through an advanced Runner is held back by the cluster's own gap once Enable AI is on", async () => {
       const gap: KubernetesAiAccessGap = {
-        code: "project_ai_command_execution_disabled",
-        title: "AI command execution is off for this project",
+        code: "remediation_write_access_missing",
+        title: "The Runner is read-only",
         description:
-          "This cluster is reached through a Runner with a Kubernetes credential.",
+          'Runner "ops-runner" reports that it may not change the cluster, so kubectl changes would be refused.',
         nextStep:
-          'Turn on "Enable AI command execution" under Project Settings → AI Features.',
+          "Set ONEUPTIME_KUBECTL_ALLOW_WRITES=true on the Runner's host and restart it (ONEUPTIME_KUBECTL_WRITE_NAMESPACES limits the namespaces it may change).",
         blocks: "remediation",
       };
       mockRow(
@@ -652,9 +662,6 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
             credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
           }),
         ]),
-      );
-      projectFindSpy.mockResolvedValue(
-        fakeProject({ enableAiCommandExecution: false }),
       );
       runnerFindSpy.mockResolvedValue({
         _id: RUNNER_ID.toString(),
@@ -685,6 +692,38 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
       expect(error.message).toContain(
         "Fix that on the cluster's AI agent page (AI → Agent)",
       );
+    });
+
+    test("negative control: the same Runner-reached cluster round is approved once the cluster is ready again", async () => {
+      mockRow(
+        clusterRoundRow([
+          agentKubectlCommandJson({
+            runnerId: RUNNER_ID.toString(),
+            runnerNameSnapshot: "ops-runner",
+            credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          }),
+        ]),
+      );
+      runnerFindSpy.mockResolvedValue({
+        _id: RUNNER_ID.toString(),
+        name: "ops-runner",
+      } as unknown as Runner);
+      statusSpy.mockResolvedValue(
+        agentStatus({
+          runner: {
+            id: RUNNER_ID.toString(),
+            name: "ops-runner",
+            kind: "runner",
+            isOnline: true,
+            canRunAiCommands: true,
+          },
+          accessMethod: "credential",
+          credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        }),
+      );
+
+      expectClaimedAndExecuted(await callApprove());
+      expect(runnerFindSpy).toHaveBeenCalledTimes(1);
     });
   });
 
