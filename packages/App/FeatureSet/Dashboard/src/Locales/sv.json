@@ -6819,5 +6819,11 @@
   "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "Är du säker på att du vill ta bort {{name}} från denna incident? Detta tar bort all SLA-spårningsdata för denna regel.",
   "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "Är du säker på att du vill ta bort ditt konto ({{email}})? Denna åtgärd är permanent och kan inte ångras. Alla dina personuppgifter kommer att tas bort.",
   "Delete View": "Ta bort vy",
-  "Delete Saved View": "Ta bort sparad vy"
+  "Delete Saved View": "Ta bort sparad vy",
+  "Copy log": "Kopiera logg",
+  "Copy failed": "Kopieringen misslyckades",
+  "The log could not be copied. Download it instead.": "Loggen kunde inte kopieras. Ladda ner den i stället.",
+  "Download log": "Ladda ner logg",
+  "Download run as JSON": "Ladda ner körning som JSON",
+  "This run could not be downloaded. Try again.": "Körningen kunde inte laddas ner. Försök igen."
 }

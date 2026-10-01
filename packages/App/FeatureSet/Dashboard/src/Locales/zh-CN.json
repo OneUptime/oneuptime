@@ -6819,5 +6819,11 @@
   "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "确定要从此事件中删除 {{name}} 吗？这将删除此规则的所有 SLA 跟踪数据。",
   "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "确定要删除您的账户（{{email}}）吗？此操作是永久性的，无法撤销。您的所有个人数据将被删除。",
   "Delete View": "删除视图",
-  "Delete Saved View": "删除已保存视图"
+  "Delete Saved View": "删除已保存视图",
+  "Copy log": "复制日志",
+  "Copy failed": "复制失败",
+  "The log could not be copied. Download it instead.": "无法复制日志。请改为下载。",
+  "Download log": "下载日志",
+  "Download run as JSON": "以 JSON 格式下载运行",
+  "This run could not be downloaded. Try again.": "无法下载此运行。请重试。"
 }

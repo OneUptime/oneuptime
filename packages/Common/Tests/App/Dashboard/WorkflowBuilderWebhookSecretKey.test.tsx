@@ -235,8 +235,10 @@ describe("the builder loads the webhook secret key only for those who may see it
 
       await renderBuilder();
 
+      // The name names a run downloaded from the builder's run modal.
       expect(getItemCall().select).toEqual({
         graph: true,
+        name: true,
         webhookSecretKey: true,
       });
       expect(getItemCall().id.toString()).toBe(WORKFLOW_ID.toString());
@@ -259,7 +261,7 @@ describe("the builder loads the webhook secret key only for those who may see it
       await renderBuilder();
 
       // Not even `webhookSecretKey: false`: the column is never named.
-      expect(Object.keys(getItemCall().select)).toEqual(["graph"]);
+      expect(Object.keys(getItemCall().select)).toEqual(["graph", "name"]);
       expect(canvas().webhookSecretKey).toBe("");
       expect(canvas().canSeeWebhookSecretKey).toBe(false);
       expect(
@@ -273,7 +275,7 @@ describe("the builder loads the webhook secret key only for those who may see it
 
     await renderBuilder();
 
-    expect(Object.keys(getItemCall().select)).toEqual(["graph"]);
+    expect(Object.keys(getItemCall().select)).toEqual(["graph", "name"]);
     expect(canvas().canSeeWebhookSecretKey).toBe(false);
   });
 

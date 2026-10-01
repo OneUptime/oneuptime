@@ -6819,5 +6819,11 @@
   "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.",
   "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.",
   "Delete View": "Delete View",
-  "Delete Saved View": "Delete Saved View"
+  "Delete Saved View": "Delete Saved View",
+  "Copy log": "Copy log",
+  "Copy failed": "Copy failed",
+  "The log could not be copied. Download it instead.": "The log could not be copied. Download it instead.",
+  "Download log": "Download log",
+  "Download run as JSON": "Download run as JSON",
+  "This run could not be downloaded. Try again.": "This run could not be downloaded. Try again."
 }

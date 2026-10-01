@@ -6819,5 +6819,11 @@
   "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "Вы уверены, что хотите удалить {{name}} из этого инцидента? Это удалит все данные отслеживания SLA для этого правила.",
   "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "Вы уверены, что хотите удалить свою учётную запись ({{email}})? Это действие необратимо. Все ваши персональные данные будут удалены.",
   "Delete View": "Удалить представление",
-  "Delete Saved View": "Удалить сохранённое представление"
+  "Delete Saved View": "Удалить сохранённое представление",
+  "Copy log": "Скопировать журнал",
+  "Copy failed": "Не удалось скопировать",
+  "The log could not be copied. Download it instead.": "Не удалось скопировать журнал. Вместо этого скачайте его.",
+  "Download log": "Скачать журнал",
+  "Download run as JSON": "Скачать запуск в формате JSON",
+  "This run could not be downloaded. Try again.": "Не удалось скачать этот запуск. Попробуйте снова."
 }
