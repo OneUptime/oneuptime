@@ -674,6 +674,8 @@ export default class MicrosoftTeamsAlertEpisodeActions {
       await OnCallDutyPolicyService.findBy({
         query: {
           projectId: projectId,
+          // Archived policies page no one, so they are not offered.
+          isArchived: false,
         },
         select: {
           name: true,

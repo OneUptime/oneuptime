@@ -361,6 +361,8 @@ export default class MicrosoftTeamsCardChoices {
       await OnCallDutyPolicyService.findBy({
         query: {
           projectId: projectId,
+          // Archived policies page no one, so they are not offered.
+          isArchived: false,
         },
         select: {
           _id: true,

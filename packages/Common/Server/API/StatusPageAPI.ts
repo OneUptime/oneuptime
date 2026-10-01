@@ -130,6 +130,7 @@ import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "../Services/StatusPageSubscriberNotificationTemplateService";
 import { canServeStatusPageCustomizations } from "../Utils/StatusPageCustomizationAccess";
+import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorResources";
 import IncidentStatusPageScope, {
   INCIDENT_SCOPE_SELECT,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
@@ -299,6 +300,7 @@ export default class StatusPageAPI extends BaseAPI<
               name: true,
               defaultLanguage: true,
               enableSearchEngineIndexing: true,
+              isArchived: true,
             },
             props: {
               isRoot: true,
@@ -306,7 +308,8 @@ export default class StatusPageAPI extends BaseAPI<
           },
         );
 
-        if (!statusPage) {
+        // An archived page is offline: it reads as a page that does not exist.
+        if (!statusPage || statusPage.isArchived) {
           return Response.sendErrorResponse(
             req,
             res,
@@ -344,6 +347,8 @@ export default class StatusPageAPI extends BaseAPI<
             await StatusPageService.findOneBy({
               query: {
                 _id: statusPageId,
+                // An archived page serves none of its branding.
+                isArchived: false,
               },
               select: {
                 faviconFile: {
@@ -404,6 +409,8 @@ export default class StatusPageAPI extends BaseAPI<
             await StatusPageService.findOneBy({
               query: {
                 _id: statusPageId,
+                // An archived page serves none of its branding.
+                isArchived: false,
               },
               select: {
                 logoFile: {
@@ -454,6 +461,8 @@ export default class StatusPageAPI extends BaseAPI<
             await StatusPageService.findOneBy({
               query: {
                 _id: statusPageId,
+                // An archived page serves none of its branding.
+                isArchived: false,
               },
               select: {
                 coverImageFile: {
@@ -586,6 +595,8 @@ export default class StatusPageAPI extends BaseAPI<
                 _id: statusPageId,
                 enableEmbeddedOverallStatus: true,
                 embeddedOverallStatusToken: token,
+                // An archived page has no status to show, embedded or not.
+                isArchived: false,
               },
               select: {
                 _id: true,
@@ -603,26 +614,32 @@ export default class StatusPageAPI extends BaseAPI<
             return res.status(404).send("Status badge not found or disabled");
           }
 
-          // Get status page resources and current statuses
+          /*
+           * Get status page resources and current statuses. An archived
+           * monitor's frozen status must not color the badge.
+           */
           const statusPageResources: Array<StatusPageResource> =
-            await StatusPageResourceService.findBy({
-              query: {
-                statusPageId: statusPageId,
-              },
-              select: {
-                _id: true,
-                monitor: {
-                  _id: true,
-                  currentMonitorStatusId: true,
+            ArchivedMonitorResources.withoutArchivedMonitors(
+              await StatusPageResourceService.findBy({
+                query: {
+                  statusPageId: statusPageId,
                 },
-                monitorGroupId: true,
-              },
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              props: {
-                isRoot: true,
-              },
-            });
+                select: {
+                  _id: true,
+                  monitor: {
+                    _id: true,
+                    currentMonitorStatusId: true,
+                    isArchived: true,
+                  },
+                  monitorGroupId: true,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                props: {
+                  isRoot: true,
+                },
+              }),
+            );
 
           // Get monitor statuses
           const monitorStatuses: Array<MonitorStatus> =
@@ -1121,6 +1138,7 @@ export default class StatusPageAPI extends BaseAPI<
             showSubscriberPageOnStatusPage: true,
             defaultLanguage: true,
             enabledLanguages: true,
+            isArchived: true,
           };
 
           if (allowStatusPageCustomizations) {
@@ -1149,9 +1167,16 @@ export default class StatusPageAPI extends BaseAPI<
             },
           });
 
-          if (!item) {
+          /*
+           * The first thing the status page app loads. An archived page stops
+           * here with the same answer a missing one gets.
+           */
+          if (!item || item.isArchived) {
             throw new BadDataException("Status Page not found");
           }
+
+          // Not part of what the page renders.
+          delete item.isArchived;
 
           if (!allowStatusPageCustomizations) {
             /*
@@ -1271,13 +1296,14 @@ export default class StatusPageAPI extends BaseAPI<
                 masterPassword: true,
                 masterPasswordSalt: true,
                 isPublicStatusPage: true,
+                isArchived: true,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!statusPage) {
+          if (!statusPage || statusPage.isArchived) {
             throw new NotFoundException("Status Page not found");
           }
 
@@ -1427,6 +1453,10 @@ export default class StatusPageAPI extends BaseAPI<
                   name: true,
                   order: true,
                 },
+                monitor: {
+                  _id: true,
+                  isArchived: true,
+                },
               },
               limit: LIMIT_PER_PROJECT,
               skip: 0,
@@ -1435,11 +1465,22 @@ export default class StatusPageAPI extends BaseAPI<
               },
             });
 
+          /*
+           * A subscriber cannot pick a resource the page does not show. The
+           * monitor was only read to decide that, so it is not sent.
+           */
+          const subscribableResources: Array<StatusPageResource> =
+            ArchivedMonitorResources.withoutArchivedMonitors(resources);
+
+          for (const resource of subscribableResources) {
+            delete resource.monitor;
+          }
+
           return Response.sendEntityArrayResponse(
             req,
             res,
-            resources,
-            new PositiveNumber(resources.length),
+            subscribableResources,
+            new PositiveNumber(subscribableResources.length),
             StatusPageResource,
           );
         } catch (err) {
@@ -2691,39 +2732,42 @@ export default class StatusPageAPI extends BaseAPI<
         },
       });
 
-    // get monitors on status page.
+    // get monitors on status page, leaving out archived ones.
     const statusPageResources: Array<StatusPageResource> =
-      await StatusPageResourceService.findBy({
-        query: {
-          statusPageId: statusPageId,
-        },
-        select: {
-          statusPageGroupId: true,
-          statusPageGroup: {
-            name: true,
-            viewMode: true,
-            rowAxisLabel: true,
-            columnAxisLabel: true,
+      ArchivedMonitorResources.withoutArchivedMonitors(
+        await StatusPageResourceService.findBy({
+          query: {
+            statusPageId: statusPageId,
           },
-          monitorId: true,
-          displayTooltip: true,
-          displayDescription: true,
-          displayName: true,
-          rowAxisValue: true,
-          columnAxisValue: true,
-          monitorGroupId: true,
-          monitor: {
-            _id: true,
-            currentMonitorStatusId: true,
+          select: {
+            statusPageGroupId: true,
+            statusPageGroup: {
+              name: true,
+              viewMode: true,
+              rowAxisLabel: true,
+              columnAxisLabel: true,
+            },
+            monitorId: true,
+            displayTooltip: true,
+            displayDescription: true,
+            displayName: true,
+            rowAxisValue: true,
+            columnAxisValue: true,
+            monitorGroupId: true,
+            monitor: {
+              _id: true,
+              currentMonitorStatusId: true,
+              isArchived: true,
+            },
           },
-        },
 
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        props: {
-          isRoot: true,
-        },
-      });
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        }),
+      );
 
     const monitorGroupIds: Array<ObjectID> = statusPageResources
       .map((resource: StatusPageResource) => {
@@ -4817,46 +4861,53 @@ export default class StatusPageAPI extends BaseAPI<
       },
     });
 
-    // get monitors on status page.
+    /*
+     * get monitors on status page. An archived monitor is retired and its
+     * status frozen: it is not shown, and its timeline is not read
+     * (ArchivedMonitorResources).
+     */
     const statusPageResources: Array<StatusPageResource> =
-      await StatusPageResourceService.findBy({
-        query: {
-          statusPageId: objectId,
-        },
-        select: {
-          statusPageGroupId: true,
-          statusPageGroup: {
-            name: true,
-            viewMode: true,
-            rowAxisLabel: true,
-            columnAxisLabel: true,
+      ArchivedMonitorResources.withoutArchivedMonitors(
+        await StatusPageResourceService.findBy({
+          query: {
+            statusPageId: objectId,
           },
-          monitorId: true,
-          displayTooltip: true,
-          displayDescription: true,
-          displayName: true,
-          showStatusHistoryChart: true,
-          showCurrentStatus: true,
-          order: true,
-          monitor: {
-            _id: true,
-            currentMonitorStatusId: true,
+          select: {
+            statusPageGroupId: true,
+            statusPageGroup: {
+              name: true,
+              viewMode: true,
+              rowAxisLabel: true,
+              columnAxisLabel: true,
+            },
+            monitorId: true,
+            displayTooltip: true,
+            displayDescription: true,
+            displayName: true,
+            showStatusHistoryChart: true,
+            showCurrentStatus: true,
+            order: true,
+            monitor: {
+              _id: true,
+              currentMonitorStatusId: true,
+              isArchived: true,
+            },
+            monitorGroupId: true,
+            showUptimePercent: true,
+            uptimePercentPrecision: true,
+            rowAxisValue: true,
+            columnAxisValue: true,
           },
-          monitorGroupId: true,
-          showUptimePercent: true,
-          uptimePercentPrecision: true,
-          rowAxisValue: true,
-          columnAxisValue: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        props: {
-          isRoot: true,
-        },
-      });
+          sort: {
+            order: SortOrder.Ascending,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        }),
+      );
 
     const monitorGroupIds: Array<ObjectID> = statusPageResources
       .map((resource: StatusPageResource) => {
@@ -6643,7 +6694,10 @@ export default class StatusPageAPI extends BaseAPI<
   }): Promise<void> {
     const accessResult: {
       hasReadAccess: boolean;
-      error?: NotAuthenticatedException | ForbiddenException;
+      error?:
+        | NotAuthenticatedException
+        | ForbiddenException
+        | NotFoundException;
     } = await this.service.hasReadAccess({
       statusPageId: data.statusPageId,
       req: data.req,

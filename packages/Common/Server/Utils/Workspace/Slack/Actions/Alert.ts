@@ -325,6 +325,8 @@ export default class SlackAlertActions {
       await OnCallDutyPolicyService.findBy({
         query: {
           projectId: data.slackRequest.projectId!,
+          // Archived policies page no one, so they are not offered.
+          isArchived: false,
         },
         select: {
           name: true,

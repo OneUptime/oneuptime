@@ -212,6 +212,8 @@ export default class OnTriggerBaseModel<
         triggerId: this.getMetadata().id,
         projectId: new ObjectID(req.params["projectId"] as string),
         isEnabled: true,
+        // An archived workflow never runs, whatever its toggle says.
+        isArchived: false,
       },
       props: {
         isRoot: true,

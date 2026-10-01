@@ -20,6 +20,8 @@ RunCron(
       await StatusPageService.findAllBy({
         query: {
           isReportEnabled: true,
+          // An archived page sends nothing; its next report goes out once it is unarchived.
+          isArchived: false,
           sendNextReportBy: QueryHelper.lessThan(
             OneUptimeDate.getCurrentDate(),
           ),

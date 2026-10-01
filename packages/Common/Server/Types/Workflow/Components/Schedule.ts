@@ -17,6 +17,17 @@ import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import logger from "../../../Utils/Logger";
 
+/*
+ * Whether a scheduled workflow's repeatable job should exist: it is switched
+ * on and it is not archived. Archiving leaves isEnabled as it was, so an
+ * unarchived workflow comes back on its schedule only if it was on before.
+ */
+export const isScheduleLive: (workflow: Workflow) => boolean = (
+  workflow: Workflow,
+): boolean => {
+  return Boolean(workflow.isEnabled) && !workflow.isArchived;
+};
+
 export default class WebhookTrigger extends TriggerCode {
   public constructor() {
     const component: ComponentMetadata | undefined = ScheduleComponents.find(
@@ -43,6 +54,7 @@ export default class WebhookTrigger extends TriggerCode {
         _id: true,
         triggerArguments: true,
         isEnabled: true,
+        isArchived: true,
       },
       props: {
         isRoot: true,
@@ -53,6 +65,12 @@ export default class WebhookTrigger extends TriggerCode {
 
     // query all workflows.
     for (const workflow of workflows) {
+      /*
+       * An archived workflow keeps its isEnabled value (unarchiving gives it
+       * back), so "should this schedule be registered" is both flags.
+       */
+      const shouldRun: boolean = isScheduleLive(workflow);
+
       /*
        * Isolate each workflow: a single workflow whose schedule can't be
        * registered (e.g. an invalid cron, or a transient queue error) must not
@@ -68,7 +86,7 @@ export default class WebhookTrigger extends TriggerCode {
         if (
           workflow.triggerArguments &&
           workflow.triggerArguments["schedule"] &&
-          workflow.isEnabled
+          shouldRun
         ) {
           await props.scheduleWorkflow(
             executeWorkflow,
@@ -76,7 +94,7 @@ export default class WebhookTrigger extends TriggerCode {
           );
         }
 
-        if (!workflow.isEnabled) {
+        if (!shouldRun) {
           await props.removeWorkflow(workflow.id!);
         }
       } catch (err) {
@@ -123,6 +141,7 @@ export default class WebhookTrigger extends TriggerCode {
         _id: true,
         triggerArguments: true,
         isEnabled: true,
+        isArchived: true,
       },
       props: {
         isRoot: true,
@@ -132,6 +151,8 @@ export default class WebhookTrigger extends TriggerCode {
     if (!workflow) {
       return;
     }
+
+    const shouldRun: boolean = isScheduleLive(workflow);
 
     if (!this.scheduleWorkflow) {
       return;
@@ -152,7 +173,7 @@ export default class WebhookTrigger extends TriggerCode {
       if (
         workflow.triggerArguments &&
         workflow.triggerArguments["schedule"] &&
-        workflow.isEnabled
+        shouldRun
       ) {
         await this.scheduleWorkflow(
           executeWorkflow,
@@ -164,7 +185,7 @@ export default class WebhookTrigger extends TriggerCode {
         return;
       }
 
-      if (!workflow.isEnabled) {
+      if (!shouldRun) {
         await this.removeWorkflow(workflow.id!);
       }
     } catch (err) {

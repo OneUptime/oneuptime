@@ -457,14 +457,19 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
       max: 500,
     });
 
+    /*
+     * Archived policies page no one and are hidden from the On-Call Policies
+     * list, so they are left out here too: the assistant should not suggest
+     * paging one. A single archived policy is still readable by its id above.
+     */
     const totalCount: PositiveNumber = await OnCallDutyPolicyService.countBy({
-      query: {},
+      query: { isArchived: false },
       props: ctx.props,
     });
 
     const policies: Array<OnCallDutyPolicy> =
       await OnCallDutyPolicyService.findBy({
-        query: {},
+        query: { isArchived: false },
         select: {
           _id: true,
           name: true,

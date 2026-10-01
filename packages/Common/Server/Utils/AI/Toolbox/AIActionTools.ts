@@ -130,12 +130,22 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
     const policy: OnCallDutyPolicy | null =
       await OnCallDutyPolicyService.findOneById({
         id: policyId,
-        select: { _id: true, name: true },
+        select: { _id: true, name: true, isArchived: true },
         props: ctx.props,
       });
     if (!policy) {
       throw new BadDataException(
         "On-call duty policy not found (or you do not have access to it).",
+      );
+    }
+    /*
+     * Refused here rather than left to executePolicy, which would record a
+     * skipped execution: this tool would then tell the user "responders are
+     * being notified" when nobody is.
+     */
+    if (policy.isArchived) {
+      throw new BadDataException(
+        `On-call duty policy "${policy.name}" is archived, so it pages no one. Unarchive it first, or page a different policy.`,
       );
     }
 
