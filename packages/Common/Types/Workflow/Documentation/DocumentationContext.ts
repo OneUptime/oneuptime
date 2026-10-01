@@ -75,6 +75,7 @@ const MAIN_RETURN_VALUE_BY_COMPONENT: Partial<Record<string, string>> = {
   [ComponentID.ApiDelete]: "response-body",
   [ComponentID.AIGenerateText]: "response",
   [ComponentID.JavaScriptCode]: "returnValue",
+  [ComponentID.IncomingEmail]: "subject",
 };
 
 type SampleValueOfStepFunction = (step: NodeDataProp) => SampleValue | null;

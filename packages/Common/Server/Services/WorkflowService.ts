@@ -16,6 +16,7 @@ import {
   NodeDataProp,
   NodeType,
 } from "../../Types/Workflow/Component";
+import ComponentID from "../../Types/Workflow/ComponentID";
 import API from "../../Utils/API";
 import Model from "../../Models/DatabaseModels/Workflow";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -190,6 +191,36 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
         ignoreHooks: true,
       },
+    });
+
+    if (trigger?.metadataId === ComponentID.IncomingEmail) {
+      await this.ensureIncomingEmailSecretKey(data.workflowId);
+    }
+  }
+
+  /*
+   * Gives a workflow the key its Incoming Email trigger's address is built
+   * from (workflow-{key}@{inbound domain}), unless it already has one. Called
+   * whenever a graph with that trigger is saved - from the builder, the API,
+   * an import or a duplicate - so a workflow that uses the trigger always has
+   * an address, however it got the trigger.
+   *
+   * A compare-and-set on "no key yet": two saves racing each other cannot
+   * leave the workflow with a key other than the one the first of them wrote,
+   * and a key the workflow already has - including one just reset - is never
+   * replaced. Returns whether a key was written.
+   */
+  public async ensureIncomingEmailSecretKey(
+    workflowId: ObjectID,
+  ): Promise<boolean> {
+    return await this.compareAndSetColumnsByIdWithoutHooks({
+      id: workflowId,
+      data: {
+        incomingEmailSecretKey: ObjectID.generate(),
+      } as any,
+      expectedData: {
+        incomingEmailSecretKey: null,
+      } as any,
     });
   }
 

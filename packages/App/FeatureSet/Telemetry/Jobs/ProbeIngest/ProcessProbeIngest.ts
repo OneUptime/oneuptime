@@ -36,6 +36,7 @@ import {
 } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
 import InboundEmailProviderFactory from "Common/Server/Services/InboundEmail/InboundEmailProviderFactory";
 import Select from "Common/Server/Types/Database/Select";
+import IncomingEmailWorkflowDelivery from "../../Services/IncomingEmailWorkflowDelivery";
 
 export async function processProbeFromQueue(
   jobData: ProbeIngestJobData,
@@ -438,6 +439,19 @@ export async function processIncomingEmailFromQueue(
 
   if (!emailData) {
     throw new BadDataException("Incoming email data not found");
+  }
+
+  /*
+   * Mail to a workflow's Incoming Email trigger. The workflow service finds
+   * the workflow and starts the run; it was received when the webhook queued
+   * it, not when this worker got to it.
+   */
+  if (emailData.workflowSecretKey) {
+    await IncomingEmailWorkflowDelivery.deliver({
+      emailData: emailData,
+      receivedAt: jobData.ingestionTimestamp,
+    });
+    return;
   }
 
   const monitor: Monitor | null = await findIncomingEmailMonitor(emailData);
