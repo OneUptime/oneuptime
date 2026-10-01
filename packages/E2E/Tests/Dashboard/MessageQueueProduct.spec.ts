@@ -509,6 +509,15 @@ const postServiceBusActiveMessages: PostBrokerMetricFunction = async (data: {
 // ---- page locators ------------------------------------------------------------
 
 /*
+ * The list card's own "Create Queue" button. An empty list offers the same
+ * action again as its call to action (empty-table-create-button), so the
+ * button's name alone matches two buttons there.
+ */
+const createQueueButton: (page: Page) => Locator = (page: Page): Locator => {
+  return page.getByTestId("card-button").filter({ hasText: "Create Queue" });
+};
+
+/*
  * The Overview's Broker health section once every telemetry read of the
  * page has settled (one Promise.all loads the tiles, the cards and the broker
  * metrics): its charts, the guidance card or the "no metrics in this range"
@@ -683,9 +692,12 @@ test.describe.skip("Queues Product", () => {
     await expect(page.getByText("Getting Started with Queues")).toBeVisible({
       timeout: 60000,
     });
-    await expect(
-      page.getByRole("button", { name: "Create Queue", exact: true }),
-    ).toBeVisible({ timeout: 30000 });
+    // The card's own button, and the empty table's call to action.
+    await expect(createQueueButton(page)).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId("empty-table-create-button")).toHaveText(
+      "Create Queue",
+      { timeout: 30000 },
+    );
     await expect(page.getByText("No ingestion keys yet")).toBeVisible({
       timeout: 30000,
     });
@@ -748,9 +760,7 @@ test.describe.skip("Queues Product", () => {
     test.setTimeout(240000);
     const page: Page = ctx.page;
 
-    await page
-      .getByRole("button", { name: "Create Queue", exact: true })
-      .click();
+    await createQueueButton(page).click();
     const modal: Locator = page.getByTestId("modal");
     await expect(modal).toBeVisible({ timeout: 30000 });
     await expect(page.getByTestId("modal-title")).toContainText(
@@ -1154,10 +1164,7 @@ test.describe.skip("Queues Product", () => {
   test("A Service Bus queue added by hand in its namespace charts Active messages from azure_monitor metrics", async () => {
     test.setTimeout(420000);
     const page: Page = ctx.page;
-    const createButton: Locator = page.getByRole("button", {
-      name: "Create Queue",
-      exact: true,
-    });
+    const createButton: Locator = createQueueButton(page);
 
     await gotoProjectPage({
       page,
