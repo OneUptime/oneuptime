@@ -35,6 +35,7 @@ import React, { ReactElement, ReactNode } from "react";
 import "@testing-library/jest-dom";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 type StepFunction = (metadataId: ComponentID, id: string) => NodeDataProp;
 
@@ -199,8 +200,8 @@ describe("which steps' values are offered", () => {
 describe("sources that need a request", () => {
   test("load as the settings open, and are said to be loading until then", async () => {
     let resolve: (groups: Array<ValueSuggestionGroup>) => void = () => {};
-    const loadGroups: jest.Mock<() => Promise<Array<ValueSuggestionGroup>>> =
-      jest.fn(() => {
+    const loadGroups: Mock<() => Promise<Array<ValueSuggestionGroup>>> =
+      jest.fn<() => Promise<Array<ValueSuggestionGroup>>>(() => {
         return new Promise<Array<ValueSuggestionGroup>>(
           (done: (groups: Array<ValueSuggestionGroup>) => void) => {
             resolve = done;
@@ -381,10 +382,11 @@ describe("what is inside a value", () => {
   };
 
   test("is loaded once, however often it is asked for", async () => {
-    const loadChildren: jest.Mock<() => Promise<Array<ValueSuggestion>>> =
-      jest.fn(async () => {
-        return [{ reference: "{{a.b.c.d.e.title}}", label: "Title" }];
-      });
+    const loadChildren: Mock<() => Promise<Array<ValueSuggestion>>> = jest.fn<
+      () => Promise<Array<ValueSuggestion>>
+    >(async (): Promise<Array<ValueSuggestion>> => {
+      return [{ reference: "{{a.b.c.d.e.title}}", label: "Title" }];
+    });
     const captured: Captured = renderProvider({ sources: [STEPS_ONLY] });
     const record: ValueSuggestion = item(loadChildren);
 

@@ -38,6 +38,7 @@ import BaseModelComponentFactory from "../../../../../Types/Workflow/Components/
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import { JSONObject } from "../../../../../Types/JSON";
 import { describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 type MetadataFunction = (id: string) => ComponentMetadata;
 
@@ -211,11 +212,13 @@ describe("buildStepValueGroups", () => {
       "incident-on-create-1",
       { select: '{"_id": true, "title": true}' },
     );
-    const loadRecordColumns: jest.Mock<
+    const loadRecordColumns: Mock<
       (tableName: string) => Promise<Array<ModelSchemaColumn>>
-    > = jest.fn(async (_tableName: string) => {
-      return COLUMNS;
-    });
+    > = jest.fn<(tableName: string) => Promise<Array<ModelSchemaColumn>>>(
+      async (_tableName: string): Promise<Array<ModelSchemaColumn>> => {
+        return COLUMNS;
+      },
+    );
 
     const model: ValueSuggestion = buildStepValueGroups(
       { upstreamComponents: [onCreate] },
