@@ -116,7 +116,7 @@ Each workflow keeps its own copy of these values. When you replace the token, up
 The Jira → OneUptime templates, four for incidents and four for alerts, start from a [Webhook trigger](/docs/workflows/triggers#webhook), so Jira has to be told where to send its events. Do it in this order:
 
 1. Create the workflow and **enable it first**. A disabled workflow answers Jira with `400`, and Jira does not retry a delivery that was refused with a `4xx` like that. Events sent before you enable the workflow are lost, not queued.
-2. Open the workflow's **Builder**, click the **Webhook** trigger block (`webhook-1`), and copy the URL from its **Documentation** card:
+2. Open the workflow's **Builder**, click the **Webhook** trigger block (`webhook-1`), and click **Copy URL** at the top of its settings. The URL looks like this:
 
    ```text
    https://<your OneUptime host>/workflow/trigger/<webhook secret key>
@@ -155,7 +155,7 @@ Each workflow has its own URL, so each needs its own Jira webhook. Two templates
 Before you rely on it:
 
 - **Jira only calls HTTPS, on its allowed ports.** OneUptime Cloud is fine. A self-hosted install has to be reachable from the internet over HTTPS on a port from Jira's list — see [Or use a Jira webhook instead](#or-use-a-jira-webhook-instead).
-- **Anyone who has the URL can trigger the workflow.** Jira's webhooks carry nothing a workflow can verify, so the URL is the only secret. Someone who has it can declare incidents or create alerts — the templates that create a record ask Jira whether the issue they name exists and is not linked yet, but take the title, description and priority from the request — and can move or add notes to incidents and alerts whose id or Jira issue key they know. Keep the URL in Jira only. If it leaks, click **Reset Secret Key** on the workflow's **Settings** page and paste the new URL into the Jira webhook.
+- **Anyone who has the URL can trigger the workflow.** Jira's webhooks carry nothing a workflow can verify, so the URL is the only secret. Someone who has it can declare incidents or create alerts — the templates that create a record ask Jira whether the issue they name exists and is not linked yet, but take the title, description and priority from the request — and can move or add notes to incidents and alerts whose id or Jira issue key they know. Keep the URL in Jira only. If it leaks, click the **Webhook** trigger in the workflow's **Builder**, click **Reset URL**, and paste the new URL into the Jira webhook. The old URL stops working at once.
 - **Every event is a run.** On OneUptime Cloud each delivery counts toward your plan's workflow runs, including the ones a template skips. The JQL filter is what keeps that number down. See [Plan limits](/docs/workflows/configuration#plan-limits).
 
 ### Check that it works
@@ -499,13 +499,13 @@ Now the other direction: someone moves the issue to Done, and the OneUptime inci
 ### Build the receiving workflow first
 
 1. **Create Workflow**, name it `Jira → OneUptime`, and add the **Webhook** trigger.
-2. Open that workflow's **Settings** and copy the **Webhook Secret Key**. Your URL is:
+2. Open that workflow's **Builder**, click the **Webhook** trigger, and click **Copy URL** at the top of its settings. The URL looks like this:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Self-hosted installs use their own host. Treat the URL like a password — anyone who has it can start the workflow — and reset the key from that same page if it leaks.
+   Self-hosted installs use their own host. Treat the URL like a password — anyone who has it can start the workflow. If it leaks, click **Reset URL** in the same place; the old URL stops working at once.
 
 3. Add an **If / Else** block that checks a shared secret before anything else runs. **Input 1** is `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** is `{{global.variables.JIRA_WEBHOOK_SECRET}}` — a value you invent and save as a secret global variable.
 4. From the **Yes** branch, add an **Update One Incident** block:

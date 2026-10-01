@@ -38,6 +38,16 @@ export interface ComponentProps {
   graphComponents: Array<NodeDataProp>;
   workflowId: ObjectID;
   webhookSecretKey?: string | undefined;
+  /*
+   * Whether the user may read the webhook secret key, so whether
+   * webhookSecretKey is the workflow's real key. See ComponentPrimaryPanel.
+   */
+  canSeeWebhookSecretKey?: boolean | undefined;
+  /*
+   * Gives the workflow a new webhook secret key; the Webhook trigger's Reset
+   * URL. Takes effect at once, whether or not this dialog is then saved.
+   */
+  onResetWebhookSecretKey?: (() => Promise<void>) | undefined;
 }
 
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
@@ -111,7 +121,10 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
 
   const primarySection: ReactElement | null = getComponentPrimaryPanel({
     component: component,
+    workflowId: props.workflowId,
     webhookSecretKey: props.webhookSecretKey,
+    canSeeWebhookSecretKey: props.canSeeWebhookSecretKey,
+    onResetWebhookSecretKey: props.onResetWebhookSecretKey,
   });
 
   const settingsSection: ReactElement | null = hasSettings ? (

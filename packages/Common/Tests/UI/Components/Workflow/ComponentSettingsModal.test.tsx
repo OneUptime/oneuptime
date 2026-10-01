@@ -51,6 +51,45 @@ jest.mock("../../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 /*
+ * Who may reset the webhook URL is read from the signed-in user's permission
+ * snapshot. Empty by default - the snapshot "has not landed" - so the reset is
+ * only offered where a test grants it.
+ */
+let mockPermissions: Array<unknown> = [];
+let mockIsMasterAdmin: boolean = false;
+
+jest.mock("../../../../UI/Utils/Permission", () => {
+  return {
+    __esModule: true,
+    default: {
+      getAllPermissions: (): Array<unknown> => {
+        return mockPermissions;
+      },
+      getProjectPermissions: (): null => {
+        return null;
+      },
+      getGlobalPermissions: (): null => {
+        return null;
+      },
+    },
+  };
+});
+
+jest.mock("../../../../UI/Utils/User", () => {
+  return {
+    __esModule: true,
+    default: {
+      isMasterAdmin: (): boolean => {
+        return mockIsMasterAdmin;
+      },
+      getUserId: (): null => {
+        return null;
+      },
+    },
+  };
+});
+
+/*
  * The documentation is a markdown file fetched from the server; what it says
  * is not under test here, only where its section sits.
  */
@@ -75,15 +114,19 @@ import {
   RUN_WORKFLOW_BUTTON_TITLE,
 } from "../../../../UI/Components/Workflow/ManualTriggerPanel";
 import ObjectID from "../../../../Types/ObjectID";
+import Permission from "../../../../Types/Permission";
 import ComponentMetadata, {
   NodeDataProp,
   NodeType,
 } from "../../../../Types/Workflow/Component";
 import ComponentID from "../../../../Types/Workflow/ComponentID";
 import Components from "../../../../Types/Workflow/Components";
-import { getWebhookTriggerCurlExample } from "../../../../Types/Workflow/WebhookTrigger";
+import {
+  WEBHOOK_TRIGGER_SECRET_MASK,
+  getWebhookTriggerCurlExample,
+} from "../../../../Types/Workflow/WebhookTrigger";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
 import {
   RenderResult,
@@ -98,7 +141,10 @@ import fs from "fs";
 import path from "path";
 
 const SECRET: string = "6f9b2c1e-3a4d-4e8f-9b7a-2c5d8e1f0a3b";
-const WEBHOOK_URL: string = `https://oneuptime.example.com/workflow/trigger/${SECRET}`;
+const WEBHOOK_URL_PREFIX: string =
+  "https://oneuptime.example.com/workflow/trigger/";
+const WEBHOOK_URL: string = `${WEBHOOK_URL_PREFIX}${SECRET}`;
+const MASKED_WEBHOOK_URL: string = `${WEBHOOK_URL_PREFIX}${WEBHOOK_TRIGGER_SECRET_MASK}`;
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "b0c3f6d2-5d2e-4c55-9a0e-6f1e2d3c4b5a",
 );
@@ -219,6 +265,11 @@ const setClipboard: SetClipboardFunction = (
   });
 };
 
+beforeEach(() => {
+  mockPermissions = [];
+  mockIsMasterAdmin = false;
+});
+
 afterEach(() => {
   setClipboard(null);
 });
@@ -231,7 +282,7 @@ describe("Webhook trigger: the URL is what it is opened for", () => {
     const url: HTMLElement = screen.getByTestId("webhook-trigger-url");
 
     expect(body.firstElementChild).toBe(section("webhook-url"));
-    expect(url).toHaveTextContent(WEBHOOK_URL);
+    expect(url).toHaveTextContent(WEBHOOK_URL_PREFIX);
 
     // Above every other section, the identifier included.
     for (const name of ["id", "outputs", "returns", "documentation"]) {
@@ -239,10 +290,29 @@ describe("Webhook trigger: the URL is what it is opened for", () => {
     }
   });
 
+  test("the secret key in it stays masked until Show is clicked", () => {
+    const { container } = renderModal(
+      makeNode(ComponentID.Webhook, "webhook-1"),
+    );
+
+    expect(container.ownerDocument.body.innerHTML).not.toContain(SECRET);
+    expect(screen.getByTestId("webhook-trigger-url").textContent).toContain(
+      MASKED_WEBHOOK_URL,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Show the full URL" }));
+
+    expect(screen.getByTestId("webhook-trigger-url").textContent).toBe(
+      WEBHOOK_URL,
+    );
+  });
+
   test("the URL is built from the workflow's own secret key", () => {
     renderModal(makeNode(ComponentID.Webhook, "webhook-1"), {
       webhookSecretKey: "another-secret",
     });
+
+    fireEvent.click(screen.getByRole("button", { name: "Show the full URL" }));
 
     expect(screen.getByTestId("webhook-trigger-url").textContent).toBe(
       "https://oneuptime.example.com/workflow/trigger/another-secret",
@@ -276,7 +346,7 @@ describe("Webhook trigger: the URL is what it is opened for", () => {
     renderModal(makeNode(ComponentID.Webhook, "webhook-1"));
 
     expect(screen.getByTestId("webhook-trigger-methods").textContent).toBe(
-      "AcceptsGETorPOSTrequests.",
+      "Accepts GET or POST requests.",
     );
   });
 
@@ -291,8 +361,10 @@ describe("Webhook trigger: the URL is what it is opened for", () => {
 
     const curl: HTMLElement = screen.getByTestId("webhook-trigger-curl");
 
-    expect(curl.textContent).toBe(getWebhookTriggerCurlExample(WEBHOOK_URL));
-    expect(curl.textContent).toContain(`"${WEBHOOK_URL}"`);
+    // Masked like the URL above it, but its Copy copies the real request.
+    expect(curl.textContent).toBe(
+      getWebhookTriggerCurlExample(MASKED_WEBHOOK_URL),
+    );
 
     await act(async () => {
       fireEvent.click(
@@ -301,6 +373,11 @@ describe("Webhook trigger: the URL is what it is opened for", () => {
     });
 
     expect(copied).toEqual([getWebhookTriggerCurlExample(WEBHOOK_URL)]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Show the full URL" }));
+
+    expect(curl.textContent).toBe(getWebhookTriggerCurlExample(WEBHOOK_URL));
+    expect(curl.textContent).toContain(`"${WEBHOOK_URL}"`);
   });
 
   test("keeps the warning that the URL is a secret", () => {
@@ -393,7 +470,7 @@ describe("Webhook trigger: the URL is what it is opened for", () => {
     );
   });
 
-  test("without a secret key it says where the URL comes from, and offers nothing to copy", () => {
+  test("without a secret key it says there is no URL yet, and offers nothing to copy", () => {
     renderModal(makeNode(ComponentID.Webhook, "webhook-1"), {
       webhookSecretKey: "",
     });
@@ -401,6 +478,8 @@ describe("Webhook trigger: the URL is what it is opened for", () => {
     expect(screen.getByTestId("webhook-trigger-url-missing")).toHaveTextContent(
       "This workflow does not have a webhook URL yet.",
     );
+    // The URL is created here now, not on the workflow's Settings page.
+    expect(section("webhook-url")).not.toHaveTextContent("Settings");
     expect(screen.queryByTestId("webhook-trigger-url")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Copy the webhook URL" }),
@@ -429,6 +508,318 @@ describe("Webhook trigger: the URL is what it is opened for", () => {
     expect(markdown).not.toContain("{{serverUrl}}");
     expect(markdown).not.toContain("workflow/trigger/");
     expect(markdown).toContain("top of this dialog");
+  });
+});
+
+describe("Webhook trigger: its URL's secret key is managed here, not in Settings", () => {
+  const NEW_SECRET: string = "0c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
+
+  type WebhookPropsFunction = (
+    overrides?: Partial<ComponentProps>,
+  ) => ComponentProps;
+
+  const webhookProps: WebhookPropsFunction = (
+    overrides?: Partial<ComponentProps>,
+  ): ComponentProps => {
+    const node: NodeDataProp = makeNode(ComponentID.Webhook, "webhook-1");
+
+    return {
+      title: node.metadata.title,
+      description: node.metadata.description,
+      onClose: getJestMockFunction(),
+      onSave: getJestMockFunction(),
+      onDelete: getJestMockFunction(),
+      component: node,
+      graphComponents: [node],
+      workflowId: WORKFLOW_ID,
+      webhookSecretKey: SECRET,
+      canSeeWebhookSecretKey: true,
+      onResetWebhookSecretKey:
+        getJestMockFunction().mockResolvedValue(undefined),
+      ...(overrides || {}),
+    };
+  };
+
+  type TopDialogFunction = () => HTMLElement;
+
+  // The confirmation opens over the step's own dialog.
+  const topDialog: TopDialogFunction = (): HTMLElement => {
+    const dialogs: Array<HTMLElement> = screen.getAllByRole("dialog");
+
+    return dialogs[dialogs.length - 1]!;
+  };
+
+  test("Reset URL asks first, then resets the key at once, without the step being saved", async () => {
+    mockPermissions = [Permission.EditWorkflow];
+
+    const props: ComponentProps = webhookProps();
+    const view: RenderResult = render(<ComponentSettingsModal {...props} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset URL" }));
+
+    expect(screen.getAllByRole("dialog")).toHaveLength(2);
+    expect(topDialog()).toHaveTextContent("Reset the webhook URL?");
+    expect(topDialog()).toHaveTextContent(
+      "the current one stops working at once",
+    );
+    expect(props.onResetWebhookSecretKey).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(
+        within(topDialog()).getByRole("button", { name: "Reset URL" }),
+      );
+    });
+
+    expect(props.onResetWebhookSecretKey).toHaveBeenCalledTimes(1);
+    expect(props.onSave).not.toHaveBeenCalled();
+    expect(props.onClose).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    });
+
+    // The builder saved the new key and passes it back in.
+    view.rerender(
+      <ComponentSettingsModal {...props} webhookSecretKey={NEW_SECRET} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Show the full URL" }));
+
+    expect(screen.getByTestId("webhook-trigger-url").textContent).toBe(
+      `${WEBHOOK_URL_PREFIX}${NEW_SECRET}`,
+    );
+    expect(
+      screen.getByTestId("webhook-trigger-url-reset-done"),
+    ).toHaveTextContent("The old one no longer works");
+  });
+
+  test("whatever was typed into the step is kept across a reset", async () => {
+    mockPermissions = [Permission.ProjectAdmin];
+
+    const props: ComponentProps = webhookProps();
+    const view: RenderResult = render(<ComponentSettingsModal {...props} />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: /^Identifier/ }), {
+      target: { value: "ci-webhook" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset URL" }));
+
+    await act(async () => {
+      fireEvent.click(
+        within(topDialog()).getByRole("button", { name: "Reset URL" }),
+      );
+    });
+
+    view.rerender(
+      <ComponentSettingsModal {...props} webhookSecretKey={NEW_SECRET} />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    });
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    expect(props.onSave).toHaveBeenCalledTimes(1);
+    expect((props.onSave as MockFunction).mock.calls[0]![0].id).toBe(
+      "ci-webhook",
+    );
+  });
+
+  test("someone who may not read the key is told who can see the URL, and given nothing to copy or reset", () => {
+    mockPermissions = [Permission.Viewer];
+
+    render(
+      <ComponentSettingsModal
+        {...webhookProps({
+          webhookSecretKey: "",
+          canSeeWebhookSecretKey: false,
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId("webhook-trigger-url-hidden")).toHaveTextContent(
+      "only people who can edit this workflow can see it",
+    );
+    expect(screen.queryByTestId("webhook-trigger-url")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Reset URL" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Create URL" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Copy the webhook URL" }),
+    ).not.toBeInTheDocument();
+    // Still the dialog's first section, and the rest of the step still works.
+    expect(sectionOrder()[0]).toBe("webhook-url");
+    expect(
+      screen.getByRole("textbox", { name: /^Identifier/ }),
+    ).toBeInTheDocument();
+  });
+
+  test("a key handed in for someone who may not read it is never drawn", () => {
+    mockPermissions = [Permission.Viewer];
+
+    const { container } = render(
+      <ComponentSettingsModal
+        {...webhookProps({ canSeeWebhookSecretKey: false })}
+      />,
+    );
+
+    expect(container.ownerDocument.body.innerHTML).not.toContain(SECRET);
+  });
+
+  test("Reset URL is shown disabled, naming the permission it needs, to someone who may not reset it", () => {
+    mockPermissions = [Permission.Viewer];
+
+    const props: ComponentProps = webhookProps();
+
+    render(<ComponentSettingsModal {...props} />);
+
+    const button: HTMLElement = screen.getByTestId("webhook-trigger-reset-url");
+
+    expect(button).toBeDisabled();
+
+    fireEvent.mouseEnter(
+      screen.getByTestId("webhook-trigger-reset-url-disabled-wrapper"),
+    );
+
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "You do not have permission to reset this webhook URL. You need one of these permissions: Project Owner, Project Admin, Edit Workflow.",
+    );
+
+    fireEvent.click(button);
+
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(props.onResetWebhookSecretKey).not.toHaveBeenCalled();
+  });
+
+  test("Delete Workflow alone may update a workflow but not its key, so the reset stays locked", () => {
+    mockPermissions = [Permission.DeleteWorkflow];
+
+    render(<ComponentSettingsModal {...webhookProps()} />);
+
+    expect(screen.getByTestId("webhook-trigger-reset-url")).toBeDisabled();
+  });
+
+  test("no Reset URL while the permission snapshot has not landed", () => {
+    mockPermissions = [];
+
+    render(<ComponentSettingsModal {...webhookProps()} />);
+
+    expect(
+      screen.queryByTestId("webhook-trigger-reset-url"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("webhook-trigger-url")).toBeInTheDocument();
+  });
+
+  test("a master admin may reset it without any project permission", () => {
+    mockPermissions = [];
+    mockIsMasterAdmin = true;
+
+    render(<ComponentSettingsModal {...webhookProps()} />);
+
+    expect(screen.getByRole("button", { name: "Reset URL" })).toBeEnabled();
+  });
+
+  test("a caller that does not say the key is readable gets no reset, so it can never replace a key it could not see", () => {
+    mockPermissions = [Permission.ProjectOwner];
+
+    render(
+      <ComponentSettingsModal
+        {...webhookProps({
+          webhookSecretKey: "",
+          canSeeWebhookSecretKey: undefined,
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("webhook-trigger-url-missing"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Create URL" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a workflow with no key yet can create one here, straight away", async () => {
+    mockPermissions = [Permission.EditWorkflow];
+
+    const props: ComponentProps = webhookProps({ webhookSecretKey: "" });
+
+    render(<ComponentSettingsModal {...props} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Create URL" }));
+    });
+
+    expect(props.onResetWebhookSecretKey).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  });
+
+  test("a URL that ends in the workflow's own ID is called out as not private", () => {
+    mockPermissions = [Permission.EditWorkflow];
+
+    render(
+      <ComponentSettingsModal
+        {...webhookProps({ webhookSecretKey: WORKFLOW_ID.toString() })}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("webhook-trigger-url-is-workflow-id"),
+    ).toHaveTextContent(
+      "This URL ends in the workflow's ID, which anyone who can open the workflow can see. Reset it to get a private URL.",
+    );
+  });
+
+  test("the ID is recognised whatever its case", () => {
+    mockPermissions = [Permission.EditWorkflow];
+
+    render(
+      <ComponentSettingsModal
+        {...webhookProps({
+          webhookSecretKey: WORKFLOW_ID.toString().toUpperCase(),
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("webhook-trigger-url-is-workflow-id"),
+    ).toBeInTheDocument();
+  });
+
+  test("a key of its own gets no such warning", () => {
+    mockPermissions = [Permission.EditWorkflow];
+
+    render(<ComponentSettingsModal {...webhookProps()} />);
+
+    expect(
+      screen.queryByTestId("webhook-trigger-url-is-workflow-id"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("no other step offers a URL to reset", () => {
+    mockPermissions = [Permission.ProjectOwner];
+
+    for (const id of [ComponentID.Manual, ComponentID.Schedule]) {
+      const view: RenderResult = render(
+        <ComponentSettingsModal
+          {...webhookProps({ component: makeNode(id, `${id}-1`) })}
+        />,
+      );
+
+      expect(
+        screen.queryByRole("button", { name: "Reset URL" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("webhook-trigger-url"),
+      ).not.toBeInTheDocument();
+
+      view.unmount();
+    }
   });
 });
 

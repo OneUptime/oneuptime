@@ -227,13 +227,13 @@ Nu den andra riktningen: någon flyttar ärendet till Done, och OneUptime-incide
 ### Bygg det mottagande arbetsflödet först
 
 1. **Skapa arbetsflöde**, namnge det `Jira → OneUptime` och lägg till utlösaren **Webhook**.
-2. Öppna det arbetsflödets **Inställningar** och kopiera **Webhookens hemliga nyckel**. Din URL är:
+2. Öppna arbetsflödets **Byggare**, klicka på **Webhook**-utlösaren och klicka på **Kopiera URL** högst upp i dess inställningar. URL:en ser ut så här:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Självhostade installationer använder sin egen värd. Behandla URL:en som ett lösenord — vem som helst som har den kan starta arbetsflödet — och återställ nyckeln från samma sida om den läcker.
+   Självhostade installationer använder sin egen värd. Behandla URL:en som ett lösenord — vem som helst som har den kan starta arbetsflödet. Om den läcker klickar du på **Återställ URL** på samma ställe; den gamla URL:en slutar fungera direkt.
 
 3. Lägg till ett **If / Else**-block som kontrollerar en delad hemlighet innan något annat körs. **Input 1** är `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** är `{{global.variables.JIRA_WEBHOOK_SECRET}}` — ett värde du hittar på och sparar som en hemlig global variabel.
 4. Från grenen **Yes**, lägg till ett **Update One Incident**-block:

@@ -13,8 +13,11 @@ import {
   WEBHOOK_TRIGGER_EXAMPLE_BODY,
   WEBHOOK_TRIGGER_HTTP_METHODS,
   WEBHOOK_TRIGGER_PATH,
+  WEBHOOK_TRIGGER_SECRET_MASK,
+  getMaskedWebhookTriggerUrl,
   getWebhookTriggerCurlExample,
   getWebhookTriggerUrl,
+  getWebhookTriggerUrlPrefix,
 } from "../../../Types/Workflow/WebhookTrigger";
 import { describe, expect, test } from "@jest/globals";
 
@@ -63,6 +66,55 @@ describe("getWebhookTriggerUrl", () => {
         secretKey: "a/b c?d",
       }),
     ).toBe("https://oneuptime.com/workflow/trigger/a%2Fb%20c%3Fd");
+  });
+});
+
+describe("the URL with its secret key masked", () => {
+  /*
+   * The Webhook trigger's dialog shows this until the reader asks to see the
+   * key: the URL is the credential, and the dialog is often on a shared
+   * screen.
+   */
+  const services: Array<string> = [
+    "https://oneuptime.com/workflow",
+    "https://oneuptime.com/workflow/",
+    "http://oneuptime.internal:8080/workflow",
+  ];
+
+  test("is the real URL with only the key replaced", () => {
+    for (const workflowServiceUrl of services) {
+      const real: string = getWebhookTriggerUrl({
+        workflowServiceUrl,
+        secretKey: SECRET,
+      });
+      const masked: string = getMaskedWebhookTriggerUrl({
+        workflowServiceUrl,
+      });
+
+      expect(masked).toBe(real.replace(SECRET, WEBHOOK_TRIGGER_SECRET_MASK));
+      expect(masked).not.toContain(SECRET);
+    }
+  });
+
+  test("both start with the same prefix, which ends at the trigger path's slash", () => {
+    for (const workflowServiceUrl of services) {
+      const prefix: string = getWebhookTriggerUrlPrefix({ workflowServiceUrl });
+
+      expect(prefix.endsWith(`${WEBHOOK_TRIGGER_PATH}/`)).toBe(true);
+      expect(
+        getWebhookTriggerUrl({ workflowServiceUrl, secretKey: SECRET }),
+      ).toBe(`${prefix}${SECRET}`);
+      expect(getMaskedWebhookTriggerUrl({ workflowServiceUrl })).toBe(
+        `${prefix}${WEBHOOK_TRIGGER_SECRET_MASK}`,
+      );
+    }
+  });
+
+  test("the mask is the same whatever the key, so it gives nothing away", () => {
+    const bulletsOnly: RegExp = /^•+$/;
+
+    expect(WEBHOOK_TRIGGER_SECRET_MASK).toMatch(bulletsOnly);
+    expect(WEBHOOK_TRIGGER_SECRET_MASK).toHaveLength(16);
   });
 });
 

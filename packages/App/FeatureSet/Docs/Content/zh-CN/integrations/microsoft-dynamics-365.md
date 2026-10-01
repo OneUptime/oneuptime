@@ -230,13 +230,13 @@ Dynamics 自带的 `severitycode` 只有一个选项 "Default Value"，所以开
 ### 先搭接收端的工作流
 
 1. **创建工作流**，命名为 `Dynamics 365 → OneUptime`，加上 **Webhook** 触发器。
-2. 打开这个工作流的 **设置**，复制 **Webhook Secret Key**。你的 URL 是：
+2. 打开这个工作流的 **生成器**，点击 **Webhook** 触发器，再点击其设置顶部的 **复制 URL**。URL 的形式如下：
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   在自托管的安装上，换成你自己的主机名。把这个 URL 当密码看待——拿到它的人都能启动这个工作流。你可以在同一个页面上重置密钥。
+   自托管的安装用它们自己的主机名。把这个 URL 当密码看待——拿到它的人都能启动这个工作流。万一泄露了，就在同一个地方点击 **重置 URL**，旧 URL 会立即失效。
 
 3. 加一个 **If / Else** 方块，在其他任何事情发生之前先校验一个共享密钥。**Input 1** 是 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**Operator** 是 `==`，**Input 2** 是 `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}`——一个你自己编出来、存成机密全局变量的值。
 4. 从 **是** 分支出发，加一个 **Update One Incident** 方块：

@@ -230,13 +230,13 @@ Agora a outra direção: alguém fecha o case no Dynamics, ou um agente adiciona
 ### Construa primeiro o workflow que recebe
 
 1. **Criar fluxo de trabalho**, nomeie-o `Dynamics 365 → OneUptime` e adicione o gatilho **Webhook**.
-2. Abra as **Configurações** desse workflow e copie a **Chave secreta do webhook**. Sua URL é:
+2. Abra o **Construtor** desse workflow, clique no gatilho **Webhook** e depois em **Copiar URL**, no topo das configurações dele. A URL tem este formato:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Em uma instalação auto-hospedada, troque pelo seu próprio host. Trate a URL como uma senha — quem a tiver pode iniciar o workflow. Você pode redefinir a chave na mesma página.
+   Instalações auto-hospedadas usam o próprio host. Trate a URL como uma senha: quem a tiver pode iniciar o workflow. Se ela vazar, clique em **Redefinir URL** no mesmo lugar; a URL antiga para de funcionar na hora.
 
 3. Adicione um bloco **If / Else** que verifica um segredo compartilhado antes que qualquer outra coisa aconteça. **Input 1** é `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — um valor que você inventa e salva como variável global secreta.
 4. Da ramificação **Sim**, adicione um bloco **Update One Incident**:

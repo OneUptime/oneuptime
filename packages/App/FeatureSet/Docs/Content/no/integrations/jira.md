@@ -227,13 +227,13 @@ Så den andre retningen: noen flytter saken til Done, og OneUptime-hendelsen bø
 ### Bygg den mottakende arbeidsflyten først
 
 1. **Opprett arbeidsflyt**, gi den navnet `Jira → OneUptime`, og legg til **Webhook**-triggeren.
-2. Åpne den arbeidsflytens **Innstillinger** og kopier **Webhook Secret Key**. URL-en din er:
+2. Åpne arbeidsflytens **Bygger**, klikk på **Webhook**-triggeren, og klikk på **Kopier URL** øverst i innstillingene dens. URL-en ser slik ut:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Selvhostede installasjoner bruker sin egen vert. Behandle URL-en som et passord — alle som har den, kan starte arbeidsflyten — og nullstill nøkkelen fra den samme siden hvis den lekker.
+   Selvhostede installasjoner bruker sin egen vert. Behandle URL-en som et passord — alle som har den, kan starte arbeidsflyten. Hvis den lekker, klikker du på **Tilbakestill URL** på samme sted; den gamle URL-en slutter å virke med en gang.
 
 3. Legg til en **If / Else**-blokk som sjekker en delt hemmelighet før noe annet kjører. **Input 1** er `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, og **Input 2** er `{{global.variables.JIRA_WEBHOOK_SECRET}}` — en verdi du finner på selv og lagrer som en hemmelig global variabel.
 4. Fra **Yes**-grenen legger du til en **Update One Incident**-blokk:
