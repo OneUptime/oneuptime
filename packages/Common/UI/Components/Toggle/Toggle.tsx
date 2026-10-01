@@ -311,7 +311,8 @@ const Toggle: FunctionComponent<ComponentProps> = (
                       isDisabled ? "cursor-not-allowed" : "cursor-pointer"
                     }`}
                   >
-                    {title}
+                    {/* The text in a span of its own, as FieldLabel has it. */}
+                    <span>{title}</span>
                   </label>
                 ) : (
                   <></>

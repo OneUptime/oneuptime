@@ -100,7 +100,7 @@ describe("FormField - a Toggle field is one row", () => {
     renderField();
 
     const toggle: HTMLElement = screen.getByRole("switch", { name: "Secret" });
-    const title: HTMLElement = screen.getByText("Secret");
+    const title: HTMLElement = screen.getByText("Secret").closest("label")!;
     const help: HTMLElement = screen.getByText(SECRET_DESCRIPTION);
 
     expect(title.tagName).toBe("LABEL");

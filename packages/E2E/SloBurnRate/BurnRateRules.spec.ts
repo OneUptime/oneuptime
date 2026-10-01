@@ -215,14 +215,13 @@ async function next(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Next", exact: true }).click();
 }
 
-// A toggle is found by the label it renders ("<Title> (Optional)").
+/*
+ * A toggle is found by its name: the title its row draws beside it as its
+ * label (a switch field says nothing about being optional). The dialog is
+ * drawn last, so the last match is the one in it.
+ */
 function toggle(page: Page, title: string): ReturnType<Page["locator"]> {
-  return page
-    .locator("div")
-    .filter({ hasText: new RegExp(`^${title} \\(Optional\\)`) })
-    .last()
-    .locator("[aria-checked]")
-    .first();
+  return page.getByRole("switch", { name: title, exact: true }).last();
 }
 
 async function fillRuleAndWindow(

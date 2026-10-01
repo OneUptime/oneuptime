@@ -47,6 +47,11 @@ function knobOf(toggle: HTMLElement): HTMLElement {
   return toggle.querySelector("[data-ou-toggle-knob]") as HTMLElement;
 }
 
+// The <label> a title's text is drawn in.
+function labelWithText(text: string): HTMLElement {
+  return screen.getByText(text).closest("label") as HTMLElement;
+}
+
 function expectAllClasses(element: Element, classList: string): void {
   for (const className of classList.split(" ")) {
     expect({ className, present: element.classList.contains(className) })
@@ -657,7 +662,7 @@ describe("Toggle - its label", () => {
     render(<Toggle onChange={() => {}} value={false} title="Secret" />);
 
     const toggle: HTMLElement = screen.getByRole("switch", { name: "Secret" });
-    const label: HTMLElement = screen.getByText("Secret");
+    const label: HTMLElement = labelWithText("Secret");
 
     expect(label.tagName).toBe("LABEL");
     expect(label).toHaveAttribute("for", toggle.id);
@@ -696,7 +701,7 @@ describe("Toggle - its label", () => {
       />,
     );
 
-    const label: HTMLElement = screen.getByText("Locked");
+    const label: HTMLElement = labelWithText("Locked");
 
     fireEvent.click(label);
 
@@ -712,7 +717,7 @@ describe("Toggle - its label", () => {
   test("the title says it can be pressed", () => {
     render(<Toggle onChange={() => {}} value={false} title="Secret" />);
 
-    expect(screen.getByText("Secret")).toHaveClass("cursor-pointer");
+    expect(labelWithText("Secret")).toHaveClass("cursor-pointer");
   });
 
   /*
@@ -747,7 +752,7 @@ describe("Toggle - its label", () => {
     );
 
     const toggle: HTMLElement = screen.getByRole("switch", { name: "Secret" });
-    const label: HTMLElement = screen.getByText("Secret");
+    const label: HTMLElement = labelWithText("Secret");
     const description: HTMLElement = screen.getByText(SECRET_DESCRIPTION);
     const textColumn: HTMLElement = label.parentElement!.parentElement!;
 
