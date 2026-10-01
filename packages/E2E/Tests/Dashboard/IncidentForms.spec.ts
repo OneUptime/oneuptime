@@ -1188,6 +1188,8 @@ test.describe("Incident forms", () => {
     /*
      * Exactly the configured questions, in order, with the required marker
      * where the form requires an answer: optional ones read "(Optional)".
+     * Customer Facing is a switch, labelled beside it with its bare name: on
+     * or off, a switch always has an answer, so it never says "(Optional)".
      * Internal Reference is not among them, and must not appear anywhere on
      * the page - not as a field, not as a hidden option.
      */
@@ -1205,7 +1207,7 @@ test.describe("Incident forms", () => {
         "Severity (Optional)",
         FIELDS.impact.name,
         `${FIELDS.region.name} (Optional)`,
-        `${FIELDS.customerFacing.name} (Optional)`,
+        FIELDS.customerFacing.name,
         `${FIELDS.affectedUsers.name} (Optional)`,
         `${FIELDS.targetDate.name} (Optional)`,
         "Your Name",
@@ -1902,7 +1904,7 @@ test.describe("Incident forms", () => {
         "Severity (Optional)",
         FIELDS.impact.name,
         `${FIELDS.region.name} (Optional)`,
-        `${FIELDS.customerFacing.name} (Optional)`,
+        FIELDS.customerFacing.name,
         `${FIELDS.affectedUsers.name} (Optional)`,
         FIELDS.internalReference.name,
         "Your Name (Optional)",
@@ -2357,7 +2359,7 @@ test.describe("Incident forms", () => {
       .toEqual([
         FIELDS.impact.name,
         `${FIELDS.region.name} (Optional)`,
-        `${FIELDS.customerFacing.name} (Optional)`,
+        FIELDS.customerFacing.name,
         `${FIELDS.affectedUsers.name} (Optional)`,
       ]);
     for (const absent of [FIELDS.internalReference, FIELDS.targetDate]) {

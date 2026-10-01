@@ -513,21 +513,15 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
                   }}
                   templateFileName="webhook-subscribers-template.csv"
                 />
-                <div className="flex items-center space-x-3 pt-2">
+                <div className="pt-2">
                   <Toggle
+                    title="Send Subscription Notification"
+                    description="Send a webhook notification to confirm the subscription."
                     value={sendNotification}
                     onChange={(value: boolean) => {
                       setSendNotification(value);
                     }}
                   />
-                  <div>
-                    <div className="text-sm font-medium text-gray-700">
-                      Send Subscription Notification
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Send a webhook notification to confirm the subscription.
-                    </div>
-                  </div>
                 </div>
               </div>
             </Modal>

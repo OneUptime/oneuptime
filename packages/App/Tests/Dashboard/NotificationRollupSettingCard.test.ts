@@ -34,8 +34,9 @@ import Route from "Common/Types/API/Route";
  *    switch moves, no error is shown, and the preference silently does not
  *    stick - the worst outcome available, because the user believes they have
  *    opted out;
- *  - the accessible name going away. This is one unlabelled round button; a
- *    screen-reader user has no other way to know which state it is in;
+ *  - the accessible name going away. The switch has no visible title of its
+ *    own beside it, so its name is the only thing that says what it turns
+ *    on and off;
  *  - the copy losing the "never affected" sentence. The question a reader
  *    actually has in front of a batching switch is whether it can delay a
  *    page, and an unanswered version of that question is answered by turning
@@ -43,10 +44,10 @@ import Route from "Common/Types/API/Route";
  *
  * Pinned against source rather than rendered, for the reason
  * PayAsYouGoWiring.test.ts gives: react is a dependency of the Dashboard
- * package, not of App, so importing the page here would not resolve. The two
- * expressions whose MEANING matters rather than their text - the absent-row
- * default and the accessible name - are lifted out and run, the way
- * DiscoveryReviewHostname.test.ts runs the row's own name expression.
+ * package, not of App, so importing the page here would not resolve. The
+ * expression whose MEANING matters rather than its text - the absent-row
+ * default - is lifted out and run, the way DiscoveryReviewHostname.test.ts
+ * runs the row's own name expression.
  * Behaviour that CAN be rendered is covered in a real DOM by
  * Common/Tests/App/Dashboard/UserSettingsEmailPreferencesPage.test.tsx; this
  * file keeps only what a renderer cannot reach.
@@ -167,31 +168,24 @@ function rollupEnabledResolver(): RollupEnabledResolver {
   return cachedResolver;
 }
 
-type SwitchAriaLabel = (isEnabled: boolean) => string;
+/*
+ * The card's switch: the shared Toggle element, from "<Toggle" to the "/>"
+ * that closes it.
+ */
+function cardSwitchCode(): string {
+  const card: string = cardCode();
+  const start: number = card.indexOf("<Toggle ");
+  const end: number = card.indexOf("/>", start);
 
-let cachedAriaLabel: SwitchAriaLabel | null = null;
-
-function switchAriaLabel(): SwitchAriaLabel {
-  if (cachedAriaLabel === null) {
-    const match: RegExpMatchArray | null = cardCode().match(
-      /aria-label=\{(`Roll up notification emails:[^`]*`)\}/,
+  if (start === -1 || end === -1) {
+    throw new Error(
+      "EmailRollupCard.tsx no longer renders the shared Toggle. The rollup" +
+        " switch is the product's one switch, like every other on the" +
+        " dashboard.",
     );
-
-    if (!match || !match[1]) {
-      throw new Error(
-        "The rollup switch no longer carries an aria-label. It renders as an" +
-          " unlabelled circle, and a screen-reader user cannot tell on from" +
-          " off.",
-      );
-    }
-
-    cachedAriaLabel = new Function(
-      "isEnabled",
-      `return ${match[1]};`,
-    ) as unknown as SwitchAriaLabel;
   }
 
-  return cachedAriaLabel;
+  return card.slice(start, end + 2);
 }
 
 function settingWith(
@@ -312,7 +306,7 @@ describe("Email rollup card on User Settings > Email Preferences", () => {
       expect(card).toContain(
         "const isEnabled: boolean = resolveRollupEnabled(setting);",
       );
-      expect(card).toContain("aria-checked={isEnabled}");
+      expect(cardSwitchCode()).toContain("value={isEnabled}");
       expect(card).toContain("await persistRollupEnabled(!isEnabled);");
     });
   });
@@ -380,29 +374,38 @@ describe("Email rollup card on User Settings > Email Preferences", () => {
   });
 
   describe("Reachable without a mouse", () => {
-    test("the control is a real button with a switch role, as ChannelCell is", () => {
+    /*
+     * The shared Toggle is a real button with role="switch" and its state in
+     * aria-checked, reached with Tab and pressed with Space or Enter (pinned
+     * in Common/Tests/UI/Components/Toggle.test.tsx). The card's own
+     * hand-rolled copy of it was the one green, low-contrast switch in the
+     * product.
+     */
+    test("the control is the shared switch, showing the resolved setting", () => {
       const card: string = cardCode();
-      const matrixPage: string = readCode(MATRIX_PAGE_PARTS);
+      const switchCode: string = cardSwitchCode();
 
       expect(card).toContain(
-        '<button type="button" role="switch" aria-checked={isEnabled}',
+        'import Toggle from "Common/UI/Components/Toggle/Toggle";',
       );
-      expect(card).toContain("onClick={handleToggle}");
-      /*
-       * The matrix's switch, unchanged and now in a different file: one
-       * idiom across both pages, not two.
-       */
-      expect(matrixPage).toContain(
-        '<button type="button" role="switch" aria-checked={props.enabled}',
+      expect(switchCode).toContain("value={isEnabled}");
+      expect(switchCode).toContain("handleToggle()");
+      expect(card).not.toContain('role="switch"');
+    });
+
+    test("it is named for what it turns on and off; the state is aria-checked", () => {
+      expect(cardSwitchCode()).toContain(
+        'ariaLabel="Roll up notification emails"',
       );
     });
 
-    test("the accessible name says the state and what pressing it does", () => {
-      expect(switchAriaLabel()(true)).toBe(
-        "Roll up notification emails: On. Click to disable.",
-      );
-      expect(switchAriaLabel()(false)).toBe(
-        "Roll up notification emails: Off. Click to enable.",
+    /*
+     * The per-event matrix keeps its own control: a round cell in a grid of
+     * channels, not a switch beside a sentence.
+     */
+    test("the matrix's channel cells are untouched", () => {
+      expect(readCode(MATRIX_PAGE_PARTS)).toContain(
+        '<button type="button" role="switch" aria-checked={props.enabled}',
       );
     });
 
@@ -410,7 +413,7 @@ describe("Email rollup card on User Settings > Email Preferences", () => {
       const card: string = cardCode();
 
       expect(card).toContain("if (isBusy) { return; }");
-      expect(card).toContain("disabled={isBusy}");
+      expect(cardSwitchCode()).toContain("disabled={isBusy}");
     });
   });
 

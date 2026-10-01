@@ -428,17 +428,14 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          <Field
+          <Toggle
             title="Include child spans"
             description="Off by default, so counts match the traces explorer (root spans only). Turn on to count every span."
-          >
-            <Toggle
-              value={Boolean(args.includeChildSpans)}
-              onChange={(checked: boolean): void => {
-                writeArgs({ includeChildSpans: checked });
-              }}
-            />
-          </Field>
+            value={Boolean(args.includeChildSpans)}
+            onChange={(checked: boolean): void => {
+              writeArgs({ includeChildSpans: checked });
+            }}
+          />
         </div>
       </CollapsibleSection>
 

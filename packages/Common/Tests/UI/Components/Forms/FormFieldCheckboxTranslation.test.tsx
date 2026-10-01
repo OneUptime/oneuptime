@@ -162,23 +162,25 @@ describe("FormField - a Checkbox field in German", () => {
   });
 
   /*
-   * A Toggle is the other boolean field. It never had this gap - it keeps
-   * FieldLabel - and this pins that down so the two stay consistent. The
-   * name is matched as a prefix because FieldLabel appends "(Optional)".
+   * A Toggle is the other boolean field. Like the checkbox it now draws its
+   * own label beside the switch instead of FieldLabel above it, so this pins
+   * that it is translated the same way - and, with no "(Optional)" after a
+   * switch, named by exactly its title.
    */
   test("a Toggle field with the same strings is translated the same way", () => {
     renderFieldInGerman({ fieldType: FormFieldSchemaType.Toggle });
 
+    const toggle: HTMLElement = screen.getByRole("switch", {
+      name: "Statusseiten-Abonnenten benachrichtigen",
+    });
+
+    expect(toggle).toHaveAccessibleDescription(
+      "Sollen Abonnenten der Statusseite benachrichtigt werden?",
+    );
+    expect(screen.queryByText("Notify Status Page Subscribers")).toBeNull();
     expect(
-      screen.getByRole("switch", {
-        name: /^Statusseiten-Abonnenten benachrichtigen/,
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Sollen Abonnenten der Statusseite benachrichtigt werden?",
-      ),
-    ).toBeInTheDocument();
+      screen.queryByText("Should status page subscribers be notified?"),
+    ).toBeNull();
   });
 });
 
