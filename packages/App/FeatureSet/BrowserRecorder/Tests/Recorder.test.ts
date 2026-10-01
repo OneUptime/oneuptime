@@ -3579,16 +3579,15 @@ describe("Recorder", (): void => {
      * is what an abandoned tab is.
      */
     describe("a tab nobody comes back to (#4207)", (): void => {
-      const allFrames: () => Array<CapturedPost> =
-        (): Array<CapturedPost> => {
-          return fetchMock.mock.calls
-            .filter((call: Array<unknown>): boolean => {
-              return String(call[0]).indexOf("session-replay/v1/chunk") >= 0;
-            })
-            .flatMap((call: Array<unknown>): Array<CapturedPost> => {
-              return framesOf(call);
-            });
-        };
+      const allFrames: () => Array<CapturedPost> = (): Array<CapturedPost> => {
+        return fetchMock.mock.calls
+          .filter((call: Array<unknown>): boolean => {
+            return String(call[0]).indexOf("session-replay/v1/chunk") >= 0;
+          })
+          .flatMap((call: Array<unknown>): Array<CapturedPost> => {
+            return framesOf(call);
+          });
+      };
 
       const framesFor: (sessionId: string) => Array<CapturedPost> = (
         sessionId: string,
@@ -3776,9 +3775,8 @@ describe("Recorder", (): void => {
         /* The session that ended gets nothing more. */
         expect(framesFor(firstSessionId)).toHaveLength(0);
 
-        const chunkZero: CapturedPost | undefined = framesFor(
-          secondSessionId,
-        )[0];
+        const chunkZero: CapturedPost | undefined =
+          framesFor(secondSessionId)[0];
 
         expect(chunkZero?.envelope.chunkIndex).toBe(0);
         expect(chunkZero?.envelope.hasFullSnapshot).toBe(true);
@@ -4111,7 +4109,8 @@ describe("Recorder", (): void => {
         await drainMicrotasks();
         await walkAway();
 
-        const longAgo: number = Date.now() - 2 * SESSION_REPLAY_IDLE_ROLLOVER_MS;
+        const longAgo: number =
+          Date.now() - 2 * SESSION_REPLAY_IDLE_ROLLOVER_MS;
 
         writeStored({
           sessionId: "e".repeat(32),

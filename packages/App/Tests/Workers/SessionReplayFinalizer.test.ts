@@ -1026,7 +1026,7 @@ describe("Rum:FinalizeSessions recording end after an idle seal (#4207)", () => 
   ): RawChunkRow {
     return makeChunkRow({
       chunkIndex: chunkIndex,
-      tabId: extra?.tabId,
+      tabId: extra?.tabId ?? "tab-a",
       eventCount: 4,
       hasFullSnapshot: chunkIndex === 0,
       chunkStartUnixMs:
@@ -1043,7 +1043,7 @@ describe("Rum:FinalizeSessions recording end after an idle seal (#4207)", () => 
   ): RawChunkRow {
     return makeChunkRow({
       chunkIndex: chunkIndex,
-      tabId: extra?.tabId,
+      tabId: extra?.tabId ?? "tab-a",
       eventCount: 0,
       payloadBytes: 2,
       hasFullSnapshot: false,
@@ -1125,9 +1125,7 @@ describe("Rum:FinalizeSessions recording end after an idle seal (#4207)", () => 
       seal(1, 30 * MINUTE + 400),
     ];
 
-    expect(aggregateOf(rows).lastChunkEndUnixMs).toBe(
-      sessionStartUnixMs + 400,
-    );
+    expect(aggregateOf(rows).lastChunkEndUnixMs).toBe(sessionStartUnixMs + 400);
     expect(durationOf(rows)).toBe(400);
   });
 

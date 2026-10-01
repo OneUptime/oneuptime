@@ -752,9 +752,7 @@ integration("Rum:FinalizeSessions against ClickHouse", () => {
 
     /* The seal still ends the tab, at its own time. */
     expect(tab.hasFinalChunk).toBe(true);
-    expect(tab.finalChunkEndUnixMs).toBe(
-      sessionStart.getTime() + sealOffsetMs,
-    );
+    expect(tab.finalChunkEndUnixMs).toBe(sessionStart.getTime() + sealOffsetMs);
     expect(hasTabRecordingEnded(tab)).toBe(true);
 
     const outcome: FinalizeSessionOutcome = await finalizeSession({

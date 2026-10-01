@@ -180,9 +180,9 @@ describe("SessionIdentity", () => {
     });
 
     it("is false for activity while the session is live", () => {
-      expect(
-        SessionIdentity.isActivityAfterIdleExpiry(makeState(), NOW),
-      ).toBe(false);
+      expect(SessionIdentity.isActivityAfterIdleExpiry(makeState(), NOW)).toBe(
+        false,
+      );
     });
 
     it("is false for activity older than the stored activity", () => {
