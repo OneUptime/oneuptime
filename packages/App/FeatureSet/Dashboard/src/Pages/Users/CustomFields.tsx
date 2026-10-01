@@ -51,12 +51,17 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
         }}
         noItemsMessage={"No custom fields found."}
         viewPageRoute={Navigation.getCurrentRoute()}
+        formSteps={[
+          { title: "Basic Info", id: "basic-info" },
+          { title: "Field Type", id: "field-type" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Field Name",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Department",
@@ -69,6 +74,7 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
               description: true,
             },
             title: "Field Description",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder:
@@ -79,6 +85,7 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
               customFieldType: true,
             },
             title: "Field Type",
+            stepId: "field-type",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             placeholder: "Please select field type.",
@@ -100,6 +107,7 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
               dropdownOptions: true,
             },
             title: "Dropdown Options",
+            stepId: "field-type",
             description:
               "Add the options that should appear in the dropdown and optionally choose a color for each value.",
             fieldType: FormFieldSchemaType.CustomComponent,

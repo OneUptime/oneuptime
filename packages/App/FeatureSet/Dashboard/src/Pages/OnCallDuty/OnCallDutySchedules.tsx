@@ -73,12 +73,17 @@ const OnCallDutyPage: FunctionComponent<
             },
           ],
         }}
+        formSteps={[
+          { title: "On-Call Schedule Info", id: "on-call-Schedule-info" },
+          { title: "Labels", id: "labels" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "on-call-Schedule-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Schedule Name",
@@ -91,6 +96,7 @@ const OnCallDutyPage: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "on-call-Schedule-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description",
@@ -100,6 +106,7 @@ const OnCallDutyPage: FunctionComponent<
               timezone: true,
             },
             title: "Timezone",
+            stepId: "on-call-Schedule-info",
             description:
               "The timezone this schedule's active-hour restrictions and hand-off times are interpreted in. Defaults to your current timezone.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -113,6 +120,7 @@ const OnCallDutyPage: FunctionComponent<
               labels: true,
             },
             title: "Labels ",
+            stepId: "labels",
             description:
               "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,

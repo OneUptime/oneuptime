@@ -34,12 +34,17 @@ const IncidentRoles: FunctionComponent<
         }}
         noItemsMessage={"No incident roles found."}
         viewPageRoute={Navigation.getCurrentRoute()}
+        formSteps={[
+          { title: "Basic Info", id: "basic-info" },
+          { title: "Appearance", id: "appearance" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Incident Commander",
@@ -52,15 +57,28 @@ const IncidentRoles: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Primary decision maker during an incident.",
           },
           {
             field: {
+              canAssignMultipleUsers: true,
+            },
+            title: "Allow Multiple Users",
+            stepId: "basic-info",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Enable this to allow multiple users to be assigned to this role for the same incident.",
+          },
+          {
+            field: {
               roleIcon: true,
             },
             title: "Role Icon",
+            stepId: "appearance",
             fieldType: FormFieldSchemaType.Icon,
             required: false,
             placeholder: "Select an icon for this role",
@@ -70,19 +88,10 @@ const IncidentRoles: FunctionComponent<
               color: true,
             },
             title: "Role Color",
+            stepId: "appearance",
             fieldType: FormFieldSchemaType.Color,
             required: true,
             placeholder: "Please select color for this role.",
-          },
-          {
-            field: {
-              canAssignMultipleUsers: true,
-            },
-            title: "Allow Multiple Users",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Enable this to allow multiple users to be assigned to this role for the same incident.",
           },
         ]}
         showRefreshButton={true}

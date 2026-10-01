@@ -95,10 +95,15 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description:
             "Reusable response procedures: ordered checklists of manual or automated steps.",
         }}
+        formSteps={[
+          { title: "Basic Info", id: "basic-info" },
+          { title: "Labels", id: "labels" },
+        ]}
         formFields={[
           {
             field: { name: true },
             title: "Name",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Database failover runbook",
@@ -107,6 +112,7 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             field: { description: true },
             title: "Description",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder:
@@ -115,11 +121,13 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             field: { isEnabled: true },
             title: "Enabled",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Toggle,
           },
           {
             field: { labels: true },
             title: "Labels",
+            stepId: "labels",
             description:
               "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,

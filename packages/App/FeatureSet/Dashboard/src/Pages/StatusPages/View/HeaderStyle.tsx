@@ -27,12 +27,17 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         }}
         isEditable={true}
         editButtonText={"Edit Images"}
+        formSteps={[
+          { title: "Logo", id: "logo" },
+          { title: "Cover Image", id: "cover-image" },
+        ]}
         formFields={[
           {
             field: {
               logoFile: true,
             },
             title: "Logo",
+            stepId: "logo",
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
             placeholder: "Upload logo",
@@ -42,6 +47,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               logoAltText: true,
             },
             title: "Logo Alt Text",
+            stepId: "logo",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "Logo of My Company",
@@ -53,6 +59,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               coverImageFile: true,
             },
             title: "Cover",
+            stepId: "cover-image",
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
             placeholder: "Upload cover image",
@@ -62,6 +69,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               coverImageAltText: true,
             },
             title: "Cover Image Alt Text",
+            stepId: "cover-image",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "Description of the cover image",

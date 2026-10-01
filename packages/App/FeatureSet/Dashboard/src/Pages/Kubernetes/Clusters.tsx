@@ -163,12 +163,17 @@ const KubernetesClusters: FunctionComponent<
             "Clusters being monitored in this project. Install the OneUptime kubernetes-agent Helm chart to connect a cluster.",
         }}
         showViewIdButton={true}
+        formSteps={[
+          { title: "Cluster Info", id: "cluster-info" },
+          { title: "Labels", id: "labels" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "cluster-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "production-us-east",
@@ -178,6 +183,7 @@ const KubernetesClusters: FunctionComponent<
               clusterIdentifier: true,
             },
             title: "Cluster Identifier",
+            stepId: "cluster-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "production-us-east-1",
@@ -189,6 +195,7 @@ const KubernetesClusters: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "cluster-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production cluster running in US East",
@@ -198,6 +205,7 @@ const KubernetesClusters: FunctionComponent<
               labels: true,
             },
             title: "Labels",
+            stepId: "labels",
             description:
               "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,

@@ -199,6 +199,25 @@ function editDialog(): HTMLElement {
   return screen.getByRole("dialog", { name: "Edit Telemetry Ingestion Key" });
 }
 
+function activeStep(): string {
+  return (
+    within(editDialog())
+      .getByRole("navigation", { name: "Progress" })
+      .querySelector('[aria-current="step"]')?.textContent || ""
+  );
+}
+
+async function next(user: UserEvent): Promise<void> {
+  await user.click(
+    await within(editDialog()).findByRole("button", { name: "Next" }),
+  );
+}
+
+/*
+ * The edit form walks three steps - Details, Access & Limits, Browser
+ * Settings - so opening it lands on the first, and the origins are two
+ * Next clicks away.
+ */
 async function openEditForm(user: UserEvent): Promise<void> {
   await user.click(
     await screen.findByRole("button", { name: "Edit Telemetry Ingestion Key" }),
@@ -206,6 +225,18 @@ async function openEditForm(user: UserEvent): Promise<void> {
   await waitFor(() => {
     expect(editDialog()).toBeVisible();
   });
+  await within(editDialog()).findByPlaceholderText(
+    "Telemetry Ingestion Key Name",
+  );
+}
+
+async function openBrowserSettings(user: UserEvent): Promise<void> {
+  await openEditForm(user);
+  await next(user);
+  await waitFor(() => {
+    expect(activeStep()).toBe("Access & Limits");
+  });
+  await next(user);
   await within(editDialog()).findByRole("textbox", {
     name: /^Allowed Origins/,
   });
@@ -213,7 +244,7 @@ async function openEditForm(user: UserEvent): Promise<void> {
 
 async function save(user: UserEvent): Promise<TelemetryIngestionKey> {
   await user.click(
-    within(editDialog()).getByRole("button", { name: "Save Changes" }),
+    await within(editDialog()).findByRole("button", { name: "Save Changes" }),
   );
   await waitFor(() => {
     expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -238,9 +269,62 @@ describe("Telemetry ingestion key detail page", () => {
     });
   });
 
-  test("loads the stored origins into the editor as JSON text", async () => {
+  test("walks Details, then Access & Limits, then Browser Settings", async () => {
     const user: UserEvent = await renderDetail();
     await openEditForm(user);
+
+    expect(activeStep()).toBe("Details");
+    expect(
+      within(editDialog()).getByPlaceholderText("Telemetry Ingestion Key Name"),
+    ).toHaveValue("Storefront key");
+    expect(
+      within(editDialog()).queryByRole("textbox", {
+        name: /^Allowed Origins/,
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(editDialog()).queryByRole("button", { name: "Save Changes" }),
+    ).not.toBeInTheDocument();
+
+    await next(user);
+    await waitFor(() => {
+      expect(activeStep()).toBe("Access & Limits");
+    });
+    expect(
+      within(editDialog()).getByRole("switch", { name: /^Enabled/ }),
+    ).toBeVisible();
+    expect(
+      within(editDialog()).getByRole("spinbutton", {
+        name: /^Requests Per Minute Limit/,
+      }),
+    ).toBeVisible();
+    expect(
+      within(editDialog()).queryByPlaceholderText(
+        "Telemetry Ingestion Key Name",
+      ),
+    ).not.toBeInTheDocument();
+
+    await next(user);
+    await waitFor(() => {
+      expect(activeStep()).toBe("Browser Settings");
+    });
+    expect(
+      within(editDialog()).getByRole("textbox", { name: /^Allowed Origins/ }),
+    ).toBeVisible();
+    expect(
+      within(editDialog()).getByPlaceholderText("storefront-web"),
+    ).toBeVisible();
+    expect(
+      await within(editDialog()).findByRole("button", {
+        name: "Save Changes",
+      }),
+    ).toBeVisible();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  test("loads the stored origins into the editor as JSON text", async () => {
+    const user: UserEvent = await renderDetail();
+    await openBrowserSettings(user);
 
     expect(
       within(editDialog()).getByRole("textbox", { name: /^Allowed Origins/ }),
@@ -256,12 +340,21 @@ describe("Telemetry ingestion key detail page", () => {
     const user: UserEvent = await renderDetail();
     await openEditForm(user);
 
-    expect(
-      within(editDialog()).queryByRole("radiogroup", { name: "Key Type" }),
-    ).not.toBeInTheDocument();
-    expect(
-      within(editDialog()).queryByText("Key Type", { exact: true }),
-    ).not.toBeInTheDocument();
+    // On no step: not on the first, nor on either step after it.
+    for (let step: number = 0; step < 3; step++) {
+      expect(
+        within(editDialog()).queryByRole("radiogroup", { name: "Key Type" }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(editDialog()).queryByText("Key Type", { exact: true }),
+      ).not.toBeInTheDocument();
+
+      if (step < 2) {
+        await next(user);
+      }
+    }
+
+    expect(activeStep()).toBe("Browser Settings");
   });
 
   /*
@@ -272,7 +365,7 @@ describe("Telemetry ingestion key detail page", () => {
    */
   test("sends edited origins as an array, not as JSON text", async () => {
     const user: UserEvent = await renderDetail();
-    await openEditForm(user);
+    await openBrowserSettings(user);
 
     fireEvent.change(
       within(editDialog()).getByRole("textbox", { name: /^Allowed Origins/ }),
@@ -293,7 +386,7 @@ describe("Telemetry ingestion key detail page", () => {
 
   test("keeps the untouched origins an array when another field is edited", async () => {
     const user: UserEvent = await renderDetail();
-    await openEditForm(user);
+    await openBrowserSettings(user);
 
     fireEvent.change(
       within(editDialog()).getByPlaceholderText("storefront-web"),
@@ -320,7 +413,7 @@ describe("Telemetry ingestion key detail page", () => {
     });
 
     const user: UserEvent = await renderDetail();
-    await openEditForm(user);
+    await openBrowserSettings(user);
 
     fireEvent.change(
       within(editDialog()).getByRole("textbox", { name: /^Allowed Origins/ }),
@@ -334,7 +427,7 @@ describe("Telemetry ingestion key detail page", () => {
 
   test("refuses to save origins that are not valid JSON", async () => {
     const user: UserEvent = await renderDetail();
-    await openEditForm(user);
+    await openBrowserSettings(user);
 
     fireEvent.change(
       within(editDialog()).getByRole("textbox", { name: /^Allowed Origins/ }),
@@ -355,7 +448,7 @@ describe("Telemetry ingestion key detail page", () => {
 
   test("refuses to save an origin list that is not a list", async () => {
     const user: UserEvent = await renderDetail();
-    await openEditForm(user);
+    await openBrowserSettings(user);
 
     fireEvent.change(
       within(editDialog()).getByRole("textbox", { name: /^Allowed Origins/ }),

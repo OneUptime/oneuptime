@@ -180,12 +180,18 @@ const CloudResources: FunctionComponent<
           description:
             "Managed cloud compute environments auto-discovered from OpenTelemetry — one per cloud.platform + account + region (AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Elastic Beanstalk, App Runner). Per-service breakdown lives under Services.",
         }}
+        formSteps={[
+          { title: "Environment", id: "environment" },
+          { title: "Details", id: "details" },
+          { title: "Labels", id: "labels" },
+        ]}
         formFields={[
           {
             field: {
               cloudPlatform: true,
             },
             title: "Cloud Platform",
+            stepId: "environment",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: PLATFORM_DROPDOWN_OPTIONS,
             required: true,
@@ -198,6 +204,7 @@ const CloudResources: FunctionComponent<
               cloudAccountId: true,
             },
             title: "Cloud Account ID",
+            stepId: "environment",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "123456789012",
@@ -209,6 +216,7 @@ const CloudResources: FunctionComponent<
               cloudRegion: true,
             },
             title: "Cloud Region",
+            stepId: "environment",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "us-east-1",
@@ -220,6 +228,7 @@ const CloudResources: FunctionComponent<
               name: true,
             },
             title: "Name",
+            stepId: "details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "AWS ECS · us-east-1 · 123456789012",
@@ -231,6 +240,7 @@ const CloudResources: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production ECS cluster for the checkout stack",
@@ -240,6 +250,7 @@ const CloudResources: FunctionComponent<
               labels: true,
             },
             title: "Labels",
+            stepId: "labels",
             description:
               "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,

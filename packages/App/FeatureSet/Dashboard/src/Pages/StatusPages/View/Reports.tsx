@@ -276,12 +276,18 @@ const StatusPageReports: FunctionComponent<
         onSaveSuccess={(statusPage: StatusPage) => {
           setStatusPage(statusPage);
         }}
+        formSteps={[
+          { title: "Reports", id: "reports" },
+          { title: "Schedule", id: "schedule" },
+          { title: "Reporting Period", id: "reporting-period" },
+        ]}
         formFields={[
           {
             field: {
               isReportEnabled: true,
             },
             title: "Enable Sending Reports to Subscribers",
+            stepId: "reports",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             placeholder: "Enable Status Page Reports",
@@ -294,6 +300,7 @@ const StatusPageReports: FunctionComponent<
             sectionDescription:
               "When reports go out. Send times and period boundaries are resolved in the timezone below, so they do not shift with the server's clock or with daylight saving.",
             title: "Report Timezone",
+            stepId: "reports",
             description:
               "A monthly report in this timezone runs from the 1st at 00:00 to the last day at 23:59. Defaults to UTC.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -306,6 +313,7 @@ const StatusPageReports: FunctionComponent<
               reportStartDateTime: true,
             },
             title: "When would you like to send the first report?",
+            stepId: "schedule",
             description:
               "Every following report is scheduled from this date by the frequency below - pick the 1st of a month to send on the 1st of every month.",
             fieldType: FormFieldSchemaType.DateTime,
@@ -317,6 +325,7 @@ const StatusPageReports: FunctionComponent<
               reportRecurringInterval: true,
             },
             title: "How often would you like to send reports?",
+            stepId: "schedule",
             description:
               "How often would you like to send reports? You can choose from hourly, daily, weekly, monthly, or yearly.",
             fieldType: FormFieldSchemaType.CustomComponent,
@@ -341,6 +350,7 @@ const StatusPageReports: FunctionComponent<
             sectionDescription:
               "The stretch of time the uptime, downtime and incident numbers in the email are measured over.",
             title: "Reporting period",
+            stepId: "reporting-period",
             description:
               "A calendar period is the last whole period before the email goes out, sized by how often you send - a monthly report covers Jul 1 to Jul 31. A rolling period always ends the moment the email is sent.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -358,6 +368,7 @@ const StatusPageReports: FunctionComponent<
               reportDataInDays: true,
             },
             title: "How many days of data should the report cover?",
+            stepId: "reporting-period",
             description:
               "Counted back from the moment the report is sent. Consecutive reports overlap when this is longer than the send frequency, and leave gaps when it is shorter.",
             fieldType: FormFieldSchemaType.Number,
