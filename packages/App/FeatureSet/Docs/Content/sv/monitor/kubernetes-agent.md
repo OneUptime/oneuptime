@@ -149,7 +149,7 @@ Varningar:
 | Alternativ             | Standard                                                | Beskrivning                                                                                                                  |
 | ---------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `ebpf.enabled`         | `true`                                                  | Huvudbrytare. Sätt till `false` för att hoppa över eBPF-DaemonSet:en helt.                                                   |
-| `ebpf.image.tag`       | `v0.14.0`                                               | OBI-avbildningstagg. OBI är pre-1.0; lås till en känd fungerande version och testa om vid uppgraderingar.                    |
+| `ebpf.image.tag`       | `v0.13.0`                                               | OBI-avbildningstagg. OBI är pre-1.0; lås till en känd fungerande version och testa om vid uppgraderingar.                    |
 | `ebpf.autoTargetExe`   | `*`                                                     | Glob över körbara filer att instrumentera. Snäva in detta (t.ex. `*/python,*/java`) om du vill begränsa autoinstrumentering. |
 | `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI själv) | Kommaseparerade globs att hoppa över.                                                                                        |
 | `ebpf.logLevel`        | `info`                                                  | `debug`, `info`, `warn` eller `error`. Sätt till `debug` vid felsökning.                                                     |

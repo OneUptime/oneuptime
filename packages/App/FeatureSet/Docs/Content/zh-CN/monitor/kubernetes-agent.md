@@ -149,7 +149,7 @@ OBI 还可以跨服务边界传播追踪上下文，使 pod B 端生成的 span 
 | 选项                   | 默认                                                    | 描述                                                                                             |
 | ---------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `ebpf.enabled`         | `true`                                                  | 总开关。设为 `false` 可完全跳过 eBPF DaemonSet。                                                 |
-| `ebpf.image.tag`       | `v0.14.0`                                               | OBI 镜像标签。OBI 仍处于 1.0 之前；请固定到一个已知良好的版本，并在升级时重新测试。              |
+| `ebpf.image.tag`       | `v0.13.0`                                               | OBI 镜像标签。OBI 仍处于 1.0 之前；请固定到一个已知良好的版本，并在升级时重新测试。              |
 | `ebpf.autoTargetExe`   | `*`                                                     | 要进行埋点的可执行文件 glob 模式。如果想缩小自动埋点范围（例如 `*/python,*/java`），请收窄此项。 |
 | `ebpf.excludeExePaths` | （shell、kubelet、runc、containerd、otelcol、OBI 自身） | 要跳过的逗号分隔 glob 模式。                                                                     |
 | `ebpf.logLevel`        | `info`                                                  | `debug`、`info`、`warn` 或 `error`。排查问题时设为 `debug`。                                     |

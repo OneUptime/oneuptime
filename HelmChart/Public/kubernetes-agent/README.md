@@ -529,7 +529,7 @@ Useful knobs:
 | Key | Default | Description |
 | --- | --- | --- |
 | `ebpf.enabled` | `true` | Master switch. |
-| `ebpf.image.tag` | `v0.14.0` | OBI image tag. Pin to a known-good version; OBI is pre-1.0 so minor bumps may introduce changes (since v0.12 it refuses to start on an unknown metrics feature name). Older than v0.14 cannot link Node.js 26+ requests to their calls — see [Every trace is a single span](#every-trace-is-a-single-span). |
+| `ebpf.image.tag` | `v0.13.0` | OBI image tag. Pin to a known-good version; OBI is pre-1.0 so minor bumps may introduce changes (since v0.12 it refuses to start on an unknown metrics feature name). OBI before v0.14 cannot link Node.js 26+ requests to their calls — set `v0.14.0` once it is published; see [Every trace is a single span](#every-trace-is-a-single-span). |
 | `ebpf.autoTargetExe` | `*` | Comma-separated globs of executable paths to auto-instrument. Narrow this (e.g. `*/python,*/java`) if you only want to track specific runtimes. |
 | `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself, browsers, ClickHouse — see `values.yaml`) | Comma-separated globs to skip, so you don't see noise from cluster plumbing. |
 | `ebpf.dropDatabaseServerSpans` | `true` | Drop the span OBI records inside a database server when it is not linked to its caller — see [What eBPF traces look like](#what-ebpf-traces-look-like). |
@@ -855,9 +855,10 @@ Check what kind of span it is before anything else:
       | grep -E 'instrumenting process.*cmd=[^ ]*node|component=nodejs\.Injector|skipping agent injection'
     ```
 
-    - `type=rust` on a `node` executable means that OBI cannot identify the Node.js build: Node.js 26 and later contain Rust code, and OBI before v0.14 checked for Rust before checking for Node.js. This chart runs v0.14; check that `ebpf.image.tag` is not pinned to something older (`helm get values <release> -n oneuptime-kubernetes-agent -a | grep -A3 'image:'`).
-    - `Script successfully injected` means the agent is in. The line names no process; `--set ebpf.logLevel=debug` adds a `loading NodeJS instrumentation pid=…` line before each attempt (OBI v0.14 logs that line at debug only).
-    - `skipping Node.js agent injection` comes with a `reason=`: `process has a custom SIGUSR1 handler` or `process source files reference SIGUSR1` (the app uses the signal itself, and OBI will not interfere), `SIGUSR1 is neither caught nor ignored, so it would terminate the process` or `SIGUSR1 handling is unknown`, `the Node.js version could not be read from the executable`, or `Node.js … does not provide AsyncLocalStorage` (older than 12.17, or a 13.x before 13.10).
+    - `type=rust` on a `node` executable means that OBI cannot identify the Node.js build: Node.js 26 and later contain Rust code, and OBI before v0.14 checked for Rust before checking for Node.js. OBI v0.14 fixes this: run the agent with `--set ebpf.image.tag=v0.14.0` (or later) once that release is published. The chart already renders what v0.14 needs.
+    - `Script successfully injected` means the agent is in. OBI v0.13 logs a `loading NodeJS instrumentation pid=…` line before each attempt; v0.14 logs it at debug only (`--set ebpf.logLevel=debug`).
+    - On OBI v0.13, `Node.js process has a custom SIGUSR1 handler, skipping agent injection` means the app uses SIGUSR1 itself, and OBI will not interfere.
+    - On OBI v0.14, `skipping Node.js agent injection` comes with a `reason=`: `process has a custom SIGUSR1 handler` or `process source files reference SIGUSR1` (the app uses the signal itself, and OBI will not interfere), `SIGUSR1 is neither caught nor ignored, so it would terminate the process` or `SIGUSR1 handling is unknown`, `the Node.js version could not be read from the executable`, or `Node.js … does not provide AsyncLocalStorage` (older than 12.17, or a 13.x before 13.10).
     - `couldn't attach NodeJS injector` (an error) means the injection was tried and failed; its `error=` says why.
     - `injection queue is full, skipping agent injection runtime=node` means OBI found more than 100 Node.js processes at once (at OBI start on a busy node, for example). Restart the affected app pod to have it injected; restarting OBI rediscovers everything at once and can overflow again.
     - No injector line at all for a `type=nodejs` process: check that `ebpf.nodejs.enabled` is not `false`, which turns the agent off entirely.

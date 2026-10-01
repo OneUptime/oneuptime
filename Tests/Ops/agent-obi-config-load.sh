@@ -36,10 +36,11 @@
 #
 # Without the override, a tag nobody can pull fails this test, on purpose: a
 # chart pinning an image that does not exist puts every node in
-# ImagePullBackOff. The chart pins otel/ebpf-instrument:v0.14.0 ahead of its
-# upstream release, so this stays red until that tag is published. That is a
-# signal, not a gate — no status check is required to merge — so the change
-# itself is held as a draft until the tag exists.
+# ImagePullBackOff. Checks that only apply to some OBI versions (the span
+# attribute selection the chart renders for v0.14+, the trace-context setting
+# v0.14 added) follow the rendered tag and the version OBI reports, so the
+# same script covers the pinned release and a newer build tried with
+# OBI_IMAGE.
 #
 # Needs docker, helm and node. Usage: bash Tests/Ops/agent-obi-config-load.sh
 
@@ -427,26 +428,52 @@ if (expected.logCorrelation) {
   check("ebpf.log_enricher.plain_text.enabled = true (untouched)", get(enricher, "plain_text.enabled") === true, enricher.plain_text);
 }
 
+// ebpf.populate_trace_context exists from OBI v0.14; an older OBI always
+// fills the map, has no such setting, and ignores the env var.
+const versionLine = lines.find((l) => {
+  return l.includes("msg=\"OpenTelemetry eBPF Instrumentation\"");
+}) || "";
+const obiVersionMatch = /Version=v?(\d+)\.(\d+)\.(\d+)/.exec(versionLine);
+const obiHasPopulate = !obiVersionMatch ||
+  Number(obiVersionMatch[1]) > 0 || Number(obiVersionMatch[2]) >= 14;
 const populate = get(effective, "ebpf.populate_trace_context");
-check(`ebpf.populate_trace_context = ${expected.populateTraceContext}`, populate === expected.populateTraceContext, populate);
+if (obiHasPopulate) {
+  check(`ebpf.populate_trace_context = ${expected.populateTraceContext}`, populate === expected.populateTraceContext, populate);
+} else {
+  check("ebpf.populate_trace_context unknown to this OBI (it always fills the map)", populate === undefined, populate);
+}
 
-const include = get(effective, "attributes.select.traces.include");
-check(
-  `attributes.select.traces.include = OBI defaults + service.peer.name`,
-  same(sorted(include), sorted(expected.traceAttributes)),
-  include,
-);
-// OBI echoes the list it was given, not the defaults it would otherwise
-// use, so the check above compares the chart with DEFAULT_SPAN_ATTRIBUTES,
-// which is a hand copy. Tie that copy to the OBI it was read from: a chart
-// that pins another tag must have it re-read first.
+// The chart renders its span-attribute list (the v0.14 defaults plus
+// service.peer.name) only for an OBI tag of v0.14 or later, or one that is
+// not a version: the same rule as kubernetes-agent.obiSelectsSpanAttributes.
 const renderedImage = fs.readFileSync(`${dir}/image`, "utf8").trim();
 const renderedTag = renderedImage.slice(renderedImage.lastIndexOf(":") + 1);
-check(
-  `the chart pins the OBI the default span attributes were read from (${DEFAULT_SPAN_ATTRIBUTES_VERIFIED_FOR})`,
-  renderedTag === DEFAULT_SPAN_ATTRIBUTES_VERIFIED_FOR,
-  `${renderedImage}: re-read the true entries of Traces.Section in pkg/export/attributes/attr_defs.go of that OBI, update DEFAULT_SPAN_ATTRIBUTES here and kubernetes-agent.obiSpanAttributes in the chart, then DEFAULT_SPAN_ATTRIBUTES_VERIFIED_FOR`,
-);
+const tagVersion = /^v?(\d+)\.(\d+)\.(\d+)/.exec(renderedTag);
+const chartSelectsAttributes = !tagVersion ||
+  Number(tagVersion[1]) > 0 || Number(tagVersion[2]) >= 14;
+const include = get(effective, "attributes.select.traces.include");
+if (chartSelectsAttributes) {
+  check(
+    `attributes.select.traces.include = OBI defaults + service.peer.name`,
+    same(sorted(include), sorted(expected.traceAttributes)),
+    include,
+  );
+  // OBI echoes the list it was given, not the defaults it would otherwise
+  // use, so the check above compares the chart with
+  // DEFAULT_SPAN_ATTRIBUTES, which is a hand copy. Tie that copy to the OBI
+  // it was read from: a chart that pins another tag must have it re-read.
+  check(
+    `the chart pins the OBI the default span attributes were read from (${DEFAULT_SPAN_ATTRIBUTES_VERIFIED_FOR})`,
+    renderedTag === DEFAULT_SPAN_ATTRIBUTES_VERIFIED_FOR,
+    `${renderedImage}: re-read the true entries of Traces.Section in pkg/export/attributes/attr_defs.go of that OBI, update DEFAULT_SPAN_ATTRIBUTES here and kubernetes-agent.obiSpanAttributes in the chart, then DEFAULT_SPAN_ATTRIBUTES_VERIFIED_FOR`,
+  );
+} else {
+  check(
+    `no span-attribute selection for ${renderedTag}: OBI keeps its own defaults`,
+    isEmpty(include) && rendered.attributes === undefined,
+    include,
+  );
+}
 
 // The DaemonSet rolls when the config changes only if its checksum is of the
 // config OBI reads. (The ConfigMap value carries the newline a YAML block
@@ -530,7 +557,7 @@ EOF
 
 variant defaults '{}'
 # A values file from before v0.14 that still turns hostMetrics on: the chart
-# must not pass `application_host`, which this OBI refuses to start on.
+# must not pass `application_host`, which OBI v0.14 refuses to start on.
 variant old-host-metrics '{}' --set ebpf.features.hostMetrics=true
 variant log-correlation '{"logCorrelation":true}' --set ebpf.logToTraceCorrelation=true
 variant routes \
@@ -553,25 +580,27 @@ variant all-off \
 # which v0.14 only fills when asked to (or for its own log enricher).
 variant profiling '{"populateTraceContext":true}' --set profiling.enabled=true
 
-# Negative control: the default render with the feature that crash-looped
-# v0.14 put back. If this "loads", the checks above prove nothing.
-echo "==> negative control: OTEL_EBPF_METRICS_FEATURES=application_host"
+# Negative control: the default render with a metrics feature no OBI knows —
+# the failure class that application_host would have caused on v0.14. If this
+# "loads", the checks above prove nothing.
+UNKNOWN_FEATURE="not_an_obi_feature"
+echo "==> negative control: OTEL_EBPF_METRICS_FEATURES=${UNKNOWN_FEATURE}"
 control="${WORK_DIR}/negative-control"
 mkdir -p "${control}"
 cp -R "${WORK_DIR}/defaults/config" "${control}/config"
 cp "${WORK_DIR}/defaults/mount-path" "${control}/"
 {
   grep -v '^OTEL_EBPF_METRICS_FEATURES=' "${WORK_DIR}/defaults/env.list"
-  echo "OTEL_EBPF_METRICS_FEATURES=application_host"
+  echo "OTEL_EBPF_METRICS_FEATURES=${UNKNOWN_FEATURE}"
 } >"${control}/env.list"
 run_obi "${control}" "${control}/env.list" "$(cat "${WORK_DIR}/defaults/obi-image")"
 problems="$(load_problems "${control}")"
 if [ "$(cut -d' ' -f1 "${control}/state")" = "exited" ] &&
   [ "$(cut -d' ' -f2 "${control}/state")" != "0" ] &&
-  echo "${problems}" | grep -qE 'unknown metrics feature [^ ]*application_host'; then
+  echo "${problems}" | grep -qE "unknown metrics feature [^ ]*${UNKNOWN_FEATURE}"; then
   echo "    ok     OBI refused it (exit $(cut -d' ' -f2 "${control}/state")) and the harness caught it"
 else
-  echo "    FAILED: expected OBI to exit non-zero with unknown metrics feature \"application_host\" (container: $(cat "${control}/state"))"
+  echo "    FAILED: expected OBI to exit non-zero with unknown metrics feature \"${UNKNOWN_FEATURE}\" (container: $(cat "${control}/state"))"
   echo "${problems}" | sed 's/^/      /'
   show_logs "${control}"
   FAILURES=$((FAILURES + 1))

@@ -238,11 +238,11 @@ tests:
           count: 0
 
   # The tag decides which of OBI's behaviours the tests above are about:
-  # v0.14.0 is the first release that identifies Node.js 26+ as Node.js (and
-  # so links its requests to their calls); it also validates feature names
-  # and no longer misreads Redis replies to blocking commands as requests.
+  # v0.13.0 validates feature names and no longer misreads Redis replies to
+  # blocking commands as requests. (v0.14 adds Node.js 26+ identification;
+  # it is not published yet.)
   - it: runs the pinned OBI release
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: otel/ebpf-instrument:v0.14.0
+          value: otel/ebpf-instrument:v0.13.0

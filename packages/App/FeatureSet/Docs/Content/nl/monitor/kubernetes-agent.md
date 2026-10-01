@@ -149,7 +149,7 @@ Voorbehouden:
 | Optie                  | Standaard                                              | Beschrijving                                                                                                                         |
 | ---------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `ebpf.enabled`         | `true`                                                 | Hoofdschakelaar. Stel in op `false` om de eBPF-DaemonSet volledig over te slaan.                                                     |
-| `ebpf.image.tag`       | `v0.14.0`                                              | OBI-image-tag. OBI is pre-1.0; pin op een bekende werkende versie en hertest bij upgrades.                                           |
+| `ebpf.image.tag`       | `v0.13.0`                                              | OBI-image-tag. OBI is pre-1.0; pin op een bekende werkende versie en hertest bij upgrades.                                           |
 | `ebpf.autoTargetExe`   | `*`                                                    | Glob van uitvoerbare bestanden om te instrumenteren. Versmal dit (bijv. `*/python,*/java`) als u auto-instrumentatie wilt afbakenen. |
 | `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI zelf) | Door komma's gescheiden globs om over te slaan.                                                                                      |
 | `ebpf.logLevel`        | `info`                                                 | `debug`, `info`, `warn` of `error`. Stel in op `debug` tijdens probleemoplossing.                                                    |

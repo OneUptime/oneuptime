@@ -236,7 +236,7 @@ ebpf:
 | 選項                   | 預設                                                    | 描述                                                                                            |
 | ---------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `ebpf.enabled`         | `true`                                                  | 主開關。設定為 `false` 以完全略過 eBPF DaemonSet。                                              |
-| `ebpf.image.tag`       | `v0.14.0`                                               | OBI 映像檔標籤。OBI 處於 pre-1.0；請釘選到一個已知良好的版本，並在升版時重新測試。              |
+| `ebpf.image.tag`       | `v0.13.0`                                               | OBI 映像檔標籤。OBI 處於 pre-1.0；請釘選到一個已知良好的版本，並在升版時重新測試。              |
 | `ebpf.autoTargetExe`   | `*`                                                     | 要檢測的可執行檔的 glob。如果您想要限定自動檢測的範圍，請縮小此範圍（例如 `*/python,*/java`）。 |
 | `ebpf.excludeExePaths` | （shell、kubelet、runc、containerd、otelcol、OBI 自身） | 要略過的以逗號分隔的 glob。                                                                     |
 | `ebpf.logLevel`        | `info`                                                  | `debug`、`info`、`warn` 或 `error`。在進行疑難排解時設定為 `debug`。                            |

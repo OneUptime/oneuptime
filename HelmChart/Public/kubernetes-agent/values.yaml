@@ -790,21 +790,23 @@ ebpf:
   enabled: true
   image:
     repository: otel/ebpf-instrument
-    # v0.14.0, for what changed since the v0.9.0 this chart used to run:
-    #   - Node.js 26 and later are identified as Node.js. Their binaries
-    #     contain Rust code, and older OBI checked for Rust first, so it
-    #     skipped its Node.js agent: a request's outgoing HTTP, SQL and Redis
-    #     calls were not linked to it, and its routes were guessed rather than
-    #     read from the app (upstream #3363).
+    # v0.13.0, for what changed since the v0.9.0 this chart used to run:
     #   - Redis replies to blocking commands (BullMQ's BZPOPMIN) are no longer
     #     parsed as new requests flowing the wrong way, which made a fake
     #     one-span "trace" named after the key (v0.11).
     #   - Go clients only get a `traceparent` injected when contextPropagation
     #     asks for it; v0.9.0 injected it regardless (v0.11).
+    #
+    # Node.js 26 and later: OBI before v0.14 identifies them as Rust (their
+    # binaries contain Rust code, and it checks for Rust first), so it skips
+    # its Node.js agent and their requests are not linked to the calls they
+    # make. Set this to v0.14.0 once it is published; the chart already
+    # renders what v0.14 needs (span attributes, trace-context population).
+    #
     # OBI is pre-1.0: read its release notes before moving this, and check
     # the feature names in kubernetes-agent.ebpfMetricsFeatures still exist —
     # OBI refuses to start on one it does not know.
-    tag: "v0.14.0"
+    tag: "v0.13.0"
     pullPolicy: IfNotPresent
   # OBI's memory scales with the number of processes it instruments and the
   # traffic through them, so the busiest nodes (databases + app tier packed

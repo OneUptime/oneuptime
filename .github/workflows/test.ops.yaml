@@ -127,8 +127,7 @@ jobs:
       # checks the effective configuration OBI prints before it gives up for
       # lack of privileges.
       #
-      # It pulls the image the chart renders, so it is red while that tag is
-      # not published: a chart pinning an image nobody can pull puts every
-      # node in ImagePullBackOff. Last in the job, so a red run here never
-      # skips the steps above.
+      # It pulls the image the chart renders, so a tag nobody can pull fails
+      # it: a chart pinning such an image puts every node in ImagePullBackOff.
+      # Last in the job, so a red run here never skips the steps above.
       - run: bash Tests/Ops/agent-obi-config-load.sh

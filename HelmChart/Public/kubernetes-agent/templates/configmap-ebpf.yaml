@@ -7,11 +7,12 @@
 #     are instrumented, from ebpf.autoTargetExe, ebpf.excludeExePaths and the
 #     `ebpfDiscovery` namespace rules. There is no env var for exclusions.
 #   - routes — HTTP route naming, from ebpf.routes, when set.
-#   - attributes.select.traces.include — the span attributes OBI exports:
-#     always OBI's defaults plus service.peer.name (opt-in since OBI v0.14,
-#     and what the service map names a called service by), then
+#   - attributes.select.traces.include — the span attributes OBI exports,
+#     for OBI v0.14 and later: OBI's defaults plus service.peer.name (opt-in
+#     since v0.14, and what the service map names a called service by), then
 #     ebpf.extraSpanAttributes. Listing any attribute replaces OBI's
 #     defaults, hence the repetition; see kubernetes-agent.obiSpanAttributes.
+#     An older OBI keeps its own defaults.
 #   - ebpf.log_enricher.services — the trace↔log correlation process
 #     selector, when ebpf.logToTraceCorrelation is on (see the warning there:
 #     LD_PRELOAD-based APM agents like Dynatrace conflict with the log enricher
