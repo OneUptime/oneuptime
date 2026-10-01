@@ -328,6 +328,7 @@ test.describe("Workflow builder: the Add Trigger picker", () => {
       /^Manual/,
       /^Schedule/,
       /^Webhook/,
+      /^Incoming Email/,
       /^On Create Incident/,
       /^On Update Incident/,
       /^On Create Alert/,

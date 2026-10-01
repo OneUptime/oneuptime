@@ -92,6 +92,7 @@ describe("what the picker leads with", () => {
       "Manual",
       "Schedule",
       "Webhook",
+      "Incoming Email",
       "On Create Incident",
       "On Update Incident",
       "On Create Alert",
