@@ -194,4 +194,10 @@ export interface ComponentCategory {
   name: string;
   description: string;
   icon: IconProp;
+  /*
+   * Set on the category of a database model's steps, which is named after
+   * the model's singular name. Two models can share that name, so the Add
+   * Component picker matches a model's steps to their category by table.
+   */
+  tableName?: string | undefined;
 }

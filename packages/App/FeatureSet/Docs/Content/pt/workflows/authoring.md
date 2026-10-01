@@ -22,7 +22,7 @@ Para adicionar blocos:
 - **O trigger** — clique no bloco tracejado. Abre um painel chamado **Add Trigger**.
 - **Todo o resto** — clique em **Adicionar componente**, na barra de ferramentas acima do canvas. Abre o mesmo painel, agora chamado **Add Component**.
 
-Os dois painéis têm busca — aperte `/` para pular direto para o campo — e são agrupados por categoria. Selecione um bloco e clique em **Add to Workflow**.
+Os dois painéis abrem nos blocos que a maioria dos workflows usa, em **Popular**, seguidos dos demais blocos embutidos. Em **OneUptime resources**, clique em um recurso como **Incident** para ver o que dá para fazer com ele; **Browse all resources** lista todos. Ou busque: digite algumas palavras, como `create incident`, e a correspondência mais próxima vem primeiro. Aperte `/` para pular para o campo de busca, as setas para percorrer os resultados e **Enter** para adicionar o bloco destacado. Um clique em um bloco o adiciona.
 
 Um bloco novo aparece abaixo do bloco mais baixo do canvas, e um trigger novo assume no topo o lugar do antigo. O bloco novo fica selecionado e, se aparecer fora da vista, o canvas rola só o suficiente para mostrá-lo. As configurações dele não abrem sozinhas: clique no bloco quando quiser configurá-lo. Enquanto as configurações obrigatórias estiverem vazias, o bloco mostra **Click to set up**. Arraste os blocos para onde quiser; o canvas se alinha a uma grade enquanto você arrasta. As posições são salvas, então a próxima pessoa vê o mesmo arranjo que você deixou.
 
@@ -71,8 +71,8 @@ Uma coisa ele não consegue verificar: se um nome de variável existe. Uma vari�
 
 O jeito mais rápido de pegar o jeito do canvas:
 
-1. Clique no bloco tracejado, escolha **Manual** no painel **Add Trigger** e clique em **Add to Workflow**.
-2. Clique em **Adicionar componente**, escolha **Log** (em **Utils**) e clique em **Add to Workflow**. O novo bloco aparece abaixo do trigger. Conecte o ponto **Execute** do trigger ao ponto de entrada do bloco Log.
+1. Clique no bloco tracejado e depois em **Manual** no painel **Add Trigger**.
+2. Clique em **Adicionar componente** e depois em **Log**, em **Popular**. O novo bloco aparece abaixo do trigger. Conecte o ponto **Execute** do trigger ao ponto de entrada do bloco Log.
 3. Clique no bloco Log, que mostra **Click to set up**, e defina o **Valor** como `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` é o **Identifier** do trigger, mostrado no bloco — confira se bate.
 4. Vá em **Visão geral**, clique em **Editar fluxo de trabalho** no cartão **Detalhes do Fluxo de Trabalho** e ligue **Habilitado**. Um workflow desabilitado não roda de jeito nenhum, nem manualmente.
 5. De volta ao **Construtor**, clique em **Executar fluxo de trabalho**, coloque `{ "name": "Ada" }` no campo **JSON**, clique em **Run Workflow Manually** e confirme em **Run**.

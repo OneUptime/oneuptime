@@ -22,7 +22,7 @@ Pour ajouter des blocs :
 - **Le déclencheur** — cliquez sur le bloc en pointillés. Un panneau intitulé **Add Trigger** s'ouvre.
 - **Tout le reste** — cliquez sur **Ajouter un composant** dans la barre d'outils au-dessus du canevas. Le même panneau s'ouvre, intitulé **Ajouter un composant**.
 
-Les deux panneaux se parcourent par recherche — appuyez sur `/` pour sauter dans le champ de recherche — et sont regroupés par catégorie. Sélectionnez un bloc, puis cliquez sur **Add to Workflow**.
+Les deux panneaux s'ouvrent sur les blocs qu'utilisent la plupart des workflows, sous **Popular**, puis sur les autres blocs intégrés. Sous **OneUptime resources**, cliquez sur une ressource comme **Incident** pour voir ce que vous pouvez en faire ; **Browse all resources** les liste toutes. Ou cherchez : tapez quelques mots, comme `create incident`, et la correspondance la plus proche arrive en premier. Appuyez sur `/` pour sauter dans le champ de recherche, sur les flèches pour parcourir les résultats et sur **Entrée** pour ajouter le bloc mis en évidence. Un clic sur un bloc l'ajoute.
 
 Un nouveau bloc se pose sous le bloc le plus bas du canevas, et un nouveau déclencheur prend la place de l'ancien, en haut. Le nouveau bloc est sélectionné et, s'il atterrit hors de la vue, le canevas défile juste assez pour l'afficher. Ses paramètres ne s'ouvrent pas d'eux-mêmes : cliquez sur le bloc quand vous êtes prêt à le configurer. Tant que ses paramètres obligatoires sont vides, il affiche **Click to set up**. Faites glisser les blocs où vous voulez ; le canevas s'aligne sur une grille au fur et à mesure. La position des blocs est enregistrée, si bien que la personne suivante retrouve l'agencement que vous avez laissé.
 
@@ -71,8 +71,8 @@ Une chose lui échappe : savoir si un nom de variable existe. Une variable renom
 
 Le plus rapide pour prendre le canevas en main :
 
-1. Cliquez sur le bloc en pointillés, choisissez **Manual** dans le panneau **Add Trigger**, puis cliquez sur **Add to Workflow**.
-2. Cliquez sur **Ajouter un composant**, choisissez **Log** (dans **Utils**), puis cliquez sur **Add to Workflow**. Le nouveau bloc se pose sous le déclencheur. Reliez le point **Execute** du déclencheur au point d'entrée du bloc Log.
+1. Cliquez sur le bloc en pointillés, puis sur **Manual** dans le panneau **Add Trigger**.
+2. Cliquez sur **Ajouter un composant**, puis sur **Log** sous **Popular**. Le nouveau bloc se pose sous le déclencheur. Reliez le point **Execute** du déclencheur au point d'entrée du bloc Log.
 3. Cliquez sur le bloc Log, qui affiche **Click to set up**, et donnez à sa **Valeur** le contenu `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` est l'**Identifier** du déclencheur, affiché sur son bloc — vérifiez qu'il correspond.
 4. Allez sur **Vue d'ensemble**, cliquez sur **Modifier le flux de travail** dans la carte **Détails du flux de travail** et basculez **Activé** sur oui. Un workflow désactivé ne peut pas s'exécuter du tout, pas même à la main.
 5. De retour sur le **Constructeur**, cliquez sur **Exécuter le flux de travail**, saisissez `{ "name": "Ada" }` dans le champ **JSON**, cliquez sur **Run Workflow Manually**, puis confirmez avec **Run**.

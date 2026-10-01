@@ -31,6 +31,7 @@ import {
   getTelegramDocumentation,
 } from "./MessagingDocumentation";
 import {
+  getIncomingEmailDocumentation,
   getManualDocumentation,
   getScheduleDocumentation,
   getWebhookDocumentation,
@@ -51,6 +52,7 @@ export const BUILT_IN_COMPONENT_DOCUMENTATION: Record<
   ComponentDocumentationBuilder
 > = {
   [ComponentID.Webhook]: getWebhookDocumentation,
+  [ComponentID.IncomingEmail]: getIncomingEmailDocumentation,
   [ComponentID.Schedule]: getScheduleDocumentation,
   [ComponentID.Manual]: getManualDocumentation,
   [ComponentID.Log]: getLogDocumentation,

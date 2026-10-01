@@ -1,14 +1,18 @@
+import IncomingEmailTriggerPanel from "./IncomingEmailTriggerPanel";
 import ManualTriggerPanel from "./ManualTriggerPanel";
 import WebhookTriggerPanel from "./WebhookTriggerPanel";
+import { getIncomingEmailSecretKeyResetGate } from "./WorkflowIncomingEmailSecretKey";
 import {
   getWebhookSecretKeyResetGate,
   isWebhookSecretKeyTheWorkflowId,
 } from "./WorkflowWebhookSecretKey";
-import { WORKFLOW_URL } from "../../Config";
+import { DOCS_URL, INBOUND_EMAIL_DOMAIN, WORKFLOW_URL } from "../../Config";
 import { PermissionGateResult } from "../../Utils/PermissionGate";
 import ObjectID from "../../../Types/ObjectID";
 import { NodeDataProp } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
+import { WorkflowDocsPaths } from "../../../Types/Workflow/Documentation/DocumentationLinks";
+import IncomingEmailTrigger from "../../../Types/Workflow/IncomingEmailTrigger";
 import {
   getWebhookTriggerUrl,
   getWebhookTriggerUrlPrefix,
@@ -34,6 +38,15 @@ export interface ComponentPrimaryPanelContext {
    * rather than "none", and creating one would replace the real one.
    */
   onResetWebhookSecretKey?: (() => Promise<void>) | undefined;
+  /*
+   * The same three for the Incoming Email trigger's address, which is built
+   * from the workflow's incoming email secret key
+   * (WorkflowIncomingEmailSecretKey). The reset also creates the first key of
+   * a workflow that has none.
+   */
+  incomingEmailSecretKey?: string | undefined;
+  canSeeIncomingEmailSecretKey?: boolean | undefined;
+  onResetIncomingEmailSecretKey?: (() => Promise<void>) | undefined;
 }
 
 export type GetComponentPrimaryPanelFunction = (
@@ -47,9 +60,12 @@ export type GetComponentPrimaryPanelFunction = (
  * too. The Manual trigger has none either, and the question there is how it
  * gets started.
  *
+ * The Incoming Email trigger has no settings either: it is opened for its
+ * email address, which is shown, copied and reset the way the Webhook
+ * trigger's URL is.
+ *
  * Every other step opens on its settings, so this returns null for it. A new
- * trigger whose address is the point of it (an inbound email address, say)
- * adds a case here.
+ * trigger whose address is the point of it adds a case here.
  */
 export const getComponentPrimaryPanel: GetComponentPrimaryPanelFunction = (
   context: ComponentPrimaryPanelContext,
@@ -100,6 +116,50 @@ export const getComponentPrimaryPanel: GetComponentPrimaryPanelFunction = (
               ? resetGate.disabledReason
               : undefined
           }
+        />
+      );
+    }
+    case ComponentID.IncomingEmail: {
+      // Empty when this server receives no email; the panel then says so.
+      const inboundDomain: string = INBOUND_EMAIL_DOMAIN || "";
+      const canSeeAddress: boolean =
+        context.canSeeIncomingEmailSecretKey !== false;
+      const secretKey: string = canSeeAddress
+        ? context.incomingEmailSecretKey || ""
+        : "";
+
+      const resetGate: PermissionGateResult =
+        getIncomingEmailSecretKeyResetGate();
+      /*
+       * Offered when the user may reset the address, and shown disabled -
+       * with the permission that is missing - when they may not. Only with
+       * canSeeIncomingEmailSecretKey: without it an empty key could mean
+       * "hidden" rather than "none", and creating one would replace the real
+       * one.
+       */
+      const offersReset: boolean = Boolean(
+        context.onResetIncomingEmailSecretKey &&
+          context.canSeeIncomingEmailSecretKey === true &&
+          (resetGate.isAllowed || resetGate.disabledReason),
+      );
+
+      return (
+        <IncomingEmailTriggerPanel
+          inboundDomain={inboundDomain}
+          address={IncomingEmailTrigger.getAddress({
+            secretKey: secretKey,
+            inboundDomain: inboundDomain,
+          })}
+          canSeeAddress={canSeeAddress}
+          onResetAddress={
+            offersReset ? context.onResetIncomingEmailSecretKey : undefined
+          }
+          resetDisabledReason={
+            offersReset && !resetGate.isAllowed
+              ? resetGate.disabledReason
+              : undefined
+          }
+          setupGuideUrl={`${DOCS_URL.toString()}${WorkflowDocsPaths.inboundEmailSetup}`}
         />
       );
     }

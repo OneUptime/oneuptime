@@ -95,6 +95,74 @@ describe("UtilityCommands", () => {
       expect(consoleLogSpy).toHaveBeenCalledWith("Context: test");
     });
 
+    it("should show the selected context instead of the current context", async () => {
+      ConfigManager.addContext({
+        name: "production",
+        apiUrl: "https://prod.com",
+        apiKey: "production-key",
+      });
+      ConfigManager.addContext({
+        name: "staging",
+        apiUrl: "https://staging.com",
+        apiKey: "staging-key",
+      });
+
+      const program: Command = createProgram();
+      await program.parseAsync([
+        "node",
+        "test",
+        "--context",
+        "staging",
+        "whoami",
+      ]);
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        "URL:     https://staging.com",
+      );
+      expect(consoleLogSpy).toHaveBeenCalledWith("Context: staging");
+      expect(consoleLogSpy).not.toHaveBeenCalledWith("Context: production");
+    });
+
+    it("should not label env credentials as the current context", async () => {
+      ConfigManager.addContext({
+        name: "production",
+        apiUrl: "https://prod.com",
+        apiKey: "production-key",
+      });
+      process.env["ONEUPTIME_API_KEY"] = "env-key";
+      process.env["ONEUPTIME_URL"] = "https://env.com";
+
+      const program: Command = createProgram();
+      await program.parseAsync(["node", "test", "whoami"]);
+
+      expect(consoleLogSpy).toHaveBeenCalledWith("URL:     https://env.com");
+      expect(consoleLogSpy).not.toHaveBeenCalledWith("Context: production");
+    });
+
+    it("should not label flag credentials as the selected context", async () => {
+      ConfigManager.addContext({
+        name: "staging",
+        apiUrl: "https://staging.com",
+        apiKey: "staging-key",
+      });
+
+      const program: Command = createProgram();
+      await program.parseAsync([
+        "node",
+        "test",
+        "--context",
+        "staging",
+        "--api-key",
+        "flag-key",
+        "--url",
+        "https://flag.com",
+        "whoami",
+      ]);
+
+      expect(consoleLogSpy).toHaveBeenCalledWith("URL:     https://flag.com");
+      expect(consoleLogSpy).not.toHaveBeenCalledWith("Context: staging");
+    });
+
     it("should mask short API keys", async () => {
       ConfigManager.addContext({
         name: "short",

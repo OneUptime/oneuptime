@@ -22,7 +22,7 @@ Sådan tilføjer du blokke:
 - **Triggeren** — klik på den stiplede pladsholderblok. Et panel med titlen **Add Trigger** åbner.
 - **Alt andet** — klik **Tilføj komponent** i værktøjslinjen over lærredet. Det samme panel åbner, nu med titlen **Tilføj komponent**.
 
-Der kan søges i begge paneler — tryk `/` for at hoppe til søgefeltet — og de er grupperet efter kategori. Vælg én blok, og klik **Add to Workflow**.
+Begge paneler åbner med de blokke, de fleste workflows bruger, under **Popular**, efterfulgt af de øvrige indbyggede blokke. Under **OneUptime resources** klikker du på en ressource som **Incident** for at se, hvad du kan gøre med den; **Browse all resources** viser dem alle. Eller søg: skriv et par ord, fx `create incident`, så kommer det bedste match først. Tryk `/` for at hoppe til søgefeltet, piletasterne for at bevæge dig gennem resultaterne og **Enter** for at tilføje den fremhævede blok. Et klik på en blok tilføjer den.
 
 En ny blok lander under den nederste blok på lærredet, og en ny trigger tager den gamles plads øverst. Den nye blok er markeret, og lander den uden for synsfeltet, ruller lærredet lige præcis langt nok til at vise den. Dens indstillinger åbner ikke af sig selv: klik på blokken, når du er klar til at sætte den op. Indtil dens påkrævede indstillinger er udfyldt, står der **Click to set up** på den. Træk blokkene, hvorhen du vil; lærredet snapper til et gitter undervejs. Blokkenes placering gemmes, så den næste, der kigger, ser den opstilling, du efterlod.
 
@@ -71,8 +71,8 @@ Den fanger de fejl, der ellers er usynlige, indtil en kørsel går galt — inge
 
 Den hurtigste måde at få fornemmelse for lærredet på:
 
-1. Klik på den stiplede pladsholderblok, vælg **Manual** i panelet **Add Trigger**, og klik **Add to Workflow**.
-2. Klik **Tilføj komponent**, vælg **Log** (under **Utils**), og klik **Add to Workflow**. Den nye blok lander under triggeren. Forbind triggerens **Execute**-prik ned til Log-blokkens input-prik.
+1. Klik på den stiplede pladsholderblok, og klik derefter **Manual** i panelet **Add Trigger**.
+2. Klik **Tilføj komponent**, og klik derefter **Log** under **Popular**. Den nye blok lander under triggeren. Forbind triggerens **Execute**-prik ned til Log-blokkens input-prik.
 3. Klik på Log-blokken, hvor der står **Click to set up**, og sæt dens **Værdi** til `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` er triggerens **Identifier**, som står på trigger-blokken — tjek, at det passer.
 4. Gå til **Oversigt**, klik **Rediger arbejdsgang** på kortet **Arbejdsgangsdetaljer**, og slå **Aktiveret** til. Et deaktiveret workflow kan slet ikke køres, heller ikke i hånden.
 5. Tilbage på **Bygger** klikker du **Kør arbejdsgang**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker **Run Workflow Manually** og bekræfter med **Run**.

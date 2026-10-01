@@ -158,3 +158,73 @@ describe("TelemetryQueueService.addIncomingEmailJob", () => {
     expect(ids[0]).not.toBe(ids[1]);
   });
 });
+
+describe("TelemetryQueueService.addIncomingEmailJob for a workflow's address", () => {
+  const WORKFLOW_SECRET: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+  const WORKFLOW_ADDRESS: string = `workflow-${WORKFLOW_SECRET}@inbound.oneuptime.example`;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    addJobMock.mockResolvedValue(undefined as never);
+  });
+
+  test("carries the workflow's key to the worker, and no monitor key", async () => {
+    await TelemetryQueueService.addIncomingEmailJob({
+      workflowSecretKey: WORKFLOW_SECRET,
+      ...EMAIL,
+      emailTo: WORKFLOW_ADDRESS,
+    });
+
+    const { jobData } = enqueued();
+
+    expect(jobData.probeIngest?.jobType).toBe("incoming-email");
+    expect(jobData.probeIngest?.incomingEmail?.workflowSecretKey).toBe(
+      WORKFLOW_SECRET,
+    );
+    expect(jobData.probeIngest?.incomingEmail?.secretKey).toBeUndefined();
+    expect(jobData.probeIngest?.incomingEmail?.customLocalPart).toBeUndefined();
+  });
+
+  test("carries every To and Cc address, for the workflow to be handed", async () => {
+    await TelemetryQueueService.addIncomingEmailJob({
+      workflowSecretKey: WORKFLOW_SECRET,
+      ...EMAIL,
+      emailToAddresses: [WORKFLOW_ADDRESS, "ops@acme.example"],
+      emailCcAddresses: ["oncall@acme.example"],
+    });
+
+    const { jobData } = enqueued();
+
+    expect(jobData.probeIngest?.incomingEmail?.emailToAddresses).toEqual([
+      WORKFLOW_ADDRESS,
+      "ops@acme.example",
+    ]);
+    expect(jobData.probeIngest?.incomingEmail?.emailCcAddresses).toEqual([
+      "oncall@acme.example",
+    ]);
+  });
+
+  test("stamps when the email was taken, which a workflow is handed as its received time", async () => {
+    await TelemetryQueueService.addIncomingEmailJob({
+      workflowSecretKey: WORKFLOW_SECRET,
+      ...EMAIL,
+    });
+
+    expect(enqueued().jobData.probeIngest?.ingestionTimestamp).toBeInstanceOf(
+      Date,
+    );
+  });
+
+  test("keeps the workflow's key out of the job id", async () => {
+    await TelemetryQueueService.addIncomingEmailJob({
+      workflowSecretKey: WORKFLOW_SECRET,
+      ...EMAIL,
+      emailTo: WORKFLOW_ADDRESS,
+    });
+
+    const { jobId } = enqueued();
+
+    expect(jobId).toMatch(/^incoming-email-/);
+    expect(jobId).not.toContain(WORKFLOW_SECRET);
+  });
+});

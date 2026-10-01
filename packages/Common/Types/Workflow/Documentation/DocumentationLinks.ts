@@ -58,6 +58,8 @@ export const modelReferenceLink: ModelReferenceLinkFunction = (
 export const WorkflowDocsPaths: {
   readonly triggers: string;
   readonly webhookTrigger: string;
+  readonly incomingEmailTrigger: string;
+  readonly inboundEmailSetup: string;
   readonly scheduleTrigger: string;
   readonly manualTrigger: string;
   readonly eventTriggers: string;
@@ -85,6 +87,8 @@ export const WorkflowDocsPaths: {
 } = {
   triggers: "/workflows/triggers",
   webhookTrigger: "/workflows/triggers#webhook",
+  incomingEmailTrigger: "/workflows/triggers#incoming-email",
+  inboundEmailSetup: "/self-hosted/sendgrid-inbound-email",
   scheduleTrigger: "/workflows/triggers#schedule",
   manualTrigger: "/workflows/triggers#manual",
   eventTriggers: "/workflows/triggers#oneuptime-event-triggers",

@@ -61,7 +61,7 @@ Der vollständige Datensatz wird an den nächsten Baustein weitergereicht. Der T
 - **Statusseite Abonnent** – jemanden begrüßen, der eine Statusseite abonniert.
 - **Bereitschaftsrichtlinie** – Änderungen am Dienstplan in ein anderes Rostersystem synchronisieren.
 
-Durchsuchen Sie das Panel **Add Trigger** nach dem Namen, um den passenden zu finden.
+Im Panel **Add Trigger** stehen sie unter **OneUptime resources**: Klicken Sie auf die Ressource und dann auf den Trigger. **Browse all resources** enthält alle, und das Suchfeld findet einen Trigger anhand weniger Wörter, etwa `incident created`.
 
 ## Welchen Trigger sollte ich nehmen?
 

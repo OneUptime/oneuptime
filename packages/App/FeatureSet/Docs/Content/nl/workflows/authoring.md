@@ -22,7 +22,7 @@ Blokken toevoegen:
 - **De trigger** — klik op het gestippelde blok. Er opent een paneel met de titel **Add Trigger**.
 - **Al het andere** — klik op **Component toevoegen** in de werkbalk boven het canvas. Hetzelfde paneel opent, nu met de titel **Component toevoegen**.
 
-In beide panelen kun je zoeken — druk op `/` om naar het zoekveld te springen — en alles staat gegroepeerd per categorie. Selecteer één blok en klik op **Add to Workflow**.
+Beide panelen openen met de blokken die de meeste workflows gebruiken, onder **Popular**, gevolgd door de andere ingebouwde blokken. Klik onder **OneUptime resources** op een resource zoals **Incident** om te zien wat je ermee kunt doen; **Browse all resources** toont ze allemaal. Of zoek: typ een paar woorden, zoals `create incident`, en de beste match staat bovenaan. Druk op `/` om naar het zoekveld te springen, op de pijltjestoetsen om door de resultaten te gaan en op **Enter** om het gemarkeerde blok toe te voegen. Een klik op een blok voegt het toe.
 
 Een nieuw blok landt onder het onderste blok op het canvas, en een nieuwe trigger neemt bovenaan de plek van de oude in. Het nieuwe blok is geselecteerd, en landt het buiten beeld, dan schuift het canvas precies ver genoeg op om het te tonen. De instellingen gaan niet vanzelf open: klik op het blok wanneer je het wilt instellen. Zolang de verplichte instellingen leeg zijn, staat er **Click to set up** op het blok. Sleep blokken waarheen je wilt; het canvas klikt onderweg vast op een raster. Blokposities worden bewaard, dus de volgende persoon ziet dezelfde indeling als jij achterliet.
 
@@ -71,8 +71,8 @@ Eén ding kan hij niet controleren: of een variabelenaam bestaat. Een hernoemde 
 
 De snelste manier om het canvas te leren kennen:
 
-1. Klik op het gestippelde blok, kies **Manual** in het paneel **Add Trigger** en klik op **Add to Workflow**.
-2. Klik op **Component toevoegen**, kies **Log** (onder **Utils**) en klik op **Add to Workflow**. Het nieuwe blok landt onder de trigger. Verbind de stip **Execute** van de trigger met de invoerstip van het Log-blok.
+1. Klik op het gestippelde blok en daarna op **Manual** in het paneel **Add Trigger**.
+2. Klik op **Component toevoegen** en daarna op **Log** onder **Popular**. Het nieuwe blok landt onder de trigger. Verbind de stip **Execute** van de trigger met de invoerstip van het Log-blok.
 3. Klik op het Log-blok, waar **Click to set up** op staat, en zet zijn **Waarde** op `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` is de **Identifier** van de trigger, te zien op het triggerblok — controleer of die klopt.
 4. Ga naar **Overzicht**, klik op **Workflow bewerken** op de kaart **Workflow-details** en zet **Ingeschakeld** aan. Een uitgeschakelde workflow kan helemaal niet draaien, ook niet met de hand.
 5. Terug in de **Bouwer** klik je op **Workflow uitvoeren**, zet je `{ "name": "Ada" }` in het veld **JSON**, klik je op **Run Workflow Manually** en bevestig je met **Run**.

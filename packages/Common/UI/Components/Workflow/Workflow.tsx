@@ -204,6 +204,15 @@ export interface ComponentProps {
    */
   onResetWebhookSecretKey?: (() => Promise<void>) | undefined;
   /**
+   * The key the Incoming Email trigger's address is built from, whether the
+   * user may read it (the builder only loads it when they may), and what
+   * gives the workflow a new one: Reset address, or the first address of a
+   * workflow that has none. Handed to the Incoming Email trigger's settings.
+   */
+  incomingEmailSecretKey?: string | undefined;
+  canSeeIncomingEmailSecretKey?: boolean | undefined;
+  onResetIncomingEmailSecretKey?: (() => Promise<void>) | undefined;
+  /**
    * Called whenever the static checks over the graph are recomputed, so the
    * page around the canvas can show a count and decide what to do about it.
    */
@@ -238,6 +247,23 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     setAllComponentCategories(value.categories);
     setAllComponentMetadata(value.components);
   }, []);
+
+  /*
+   * The same arrays every time a picker opens: it organises and indexes the
+   * catalog once per array (ComponentPicker), so only the first opening
+   * pays for that.
+   */
+  const actionComponents: Array<ComponentMetadata> = useMemo(() => {
+    return allComponentMetadata.filter((comp: ComponentMetadata) => {
+      return comp.componentType === ComponentType.Component;
+    });
+  }, [allComponentMetadata]);
+
+  const triggerComponents: Array<ComponentMetadata> = useMemo(() => {
+    return allComponentMetadata.filter((comp: ComponentMetadata) => {
+      return comp.componentType === ComponentType.Trigger;
+    });
+  }, [allComponentMetadata]);
 
   const edgeUpdateSuccessful: any = useRef(true);
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
@@ -974,9 +1000,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             setShowComponentsModal(false);
           }}
           categories={allComponentCategories}
-          components={allComponentMetadata.filter((comp: ComponentMetadata) => {
-            return comp.componentType === ComponentType.Component;
-          })}
+          components={actionComponents}
           onComponentClick={(component: ComponentMetadata) => {
             setShowComponentsModal(false);
 
@@ -992,9 +1016,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             setShowTriggersModal(false);
           }}
           categories={allComponentCategories}
-          components={allComponentMetadata.filter((comp: ComponentMetadata) => {
-            return comp.componentType === ComponentType.Trigger;
-          })}
+          components={triggerComponents}
           onComponentClick={(component: ComponentMetadata) => {
             setShowTriggersModal(false);
 
@@ -1011,6 +1033,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           webhookSecretKey={props.webhookSecretKey}
           canSeeWebhookSecretKey={props.canSeeWebhookSecretKey}
           onResetWebhookSecretKey={props.onResetWebhookSecretKey}
+          incomingEmailSecretKey={props.incomingEmailSecretKey}
+          canSeeIncomingEmailSecretKey={props.canSeeIncomingEmailSecretKey}
+          onResetIncomingEmailSecretKey={props.onResetIncomingEmailSecretKey}
           component={selectedNodeData}
           title={
             selectedNodeData && selectedNodeData.metadata.title

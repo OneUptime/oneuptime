@@ -5,6 +5,7 @@ import AIComponents from "./Components/AI";
 import ConditionComponents from "./Components/Condition";
 import DiscordComponents from "./Components/Discord";
 import EmailComponents from "./Components/Email";
+import IncomingEmailComponents from "./Components/IncomingEmail";
 import JsonComponents from "./Components/JSON";
 import JavaScriptComponents from "./Components/JavaScript";
 import LogComponents from "./Components/Log";
@@ -30,6 +31,7 @@ const components: Array<ComponentMetadata> = [
   ...JavaScriptComponents,
   ...EmailComponents,
   ...WebhookComponents,
+  ...IncomingEmailComponents,
   ...WorkflowComponents,
   ...ManualComponents,
   ...MicrosoftTeamsComponents,
@@ -97,8 +99,8 @@ export const Categories: Array<ComponentCategory> = [
   },
   {
     name: "Email",
-    description: "Send email to anyone in your workflows.",
-    icon: IconProp.Clock,
+    description: "Receive email to start a workflow, and send email from one.",
+    icon: IconProp.Email,
   },
   {
     name: "Utils",

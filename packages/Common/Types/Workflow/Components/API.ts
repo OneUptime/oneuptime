@@ -398,7 +398,7 @@ const components: Array<ComponentMetadata> = [
     id: ComponentID.ApiDelete,
     title: "API Delete (JSON)",
     category: "API",
-    description: "Send a PATCH Request and get JSON Response",
+    description: "Send a DELETE Request and get JSON Response",
     iconProp: IconProp.Globe,
     componentType: ComponentType.Component,
     arguments: [

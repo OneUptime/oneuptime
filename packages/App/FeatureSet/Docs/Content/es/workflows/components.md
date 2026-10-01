@@ -131,7 +131,7 @@ Convierte entre texto y JSON.
 
 ## Condiciones
 
-Se ramifica según una comparación. En el panel **Add Component** este bloque se llama **If / Else** y está en la categoría Condiciones.
+Se ramifica según una comparación. En el panel **Add Component** este bloque se llama **If / Else** y está en **Popular**.
 
 **Settings**:
 
@@ -159,7 +159,7 @@ Hay un límite de seguridad para que los flujos de trabajo no acaben llamándose
 
 ## Componentes de datos de OneUptime
 
-Para cada tipo de registro de OneUptime (monitores, incidentes, alertas, páginas de estado, políticas de guardia y muchos más), el panel **Add Component** ofrece estos componentes — búscalos por el nombre del tipo. Cada título se genera a partir del tipo de registro, así que el juego de Monitor queda así:
+Para cada tipo de registro de OneUptime (monitores, incidentes, alertas, páginas de estado, políticas de guardia y muchos más), el panel **Add Component** ofrece estos componentes: haz clic en el tipo de registro en **OneUptime resources** (**Browse all resources** tiene los que no se muestran) o búscalo por el nombre del tipo. Cada título se genera a partir del tipo de registro, así que el juego de Monitor queda así:
 
 - **Find One Monitor** — lee un registro que coincida con la consulta.
 - **Find Many Monitors** — lee una lista de registros que coincidan con la consulta.

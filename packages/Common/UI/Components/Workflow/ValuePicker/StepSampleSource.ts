@@ -13,7 +13,9 @@
  * - the same fields again, listed only by a search that names one, so typing
  *   "title" or "{{...request-body." finds them without opening anything;
  * - for a Webhook nothing has called yet, a note that says so, with a test
- *   request to copy, and the list asks again every few seconds while open.
+ *   request to copy, and the list asks again every few seconds while open;
+ *   for an Incoming Email trigger no email has reached yet, the same without
+ *   a request to copy (an email is sent from a mail app).
  *
  * Loading needs the API, so the loader is handed in (DefaultValueSources);
  * this file stays testable on its own.
@@ -90,6 +92,10 @@ export const StepSampleCopy: {
   readonly partial: string;
   readonly cutShortRequest: string;
   readonly cutShortRun: string;
+  readonly waitingForEmail: string;
+  readonly noEmailYet: string;
+  readonly noEmailYetInside: string;
+  readonly cutShortEmail: string;
 } = {
   copyTestRequest: "Copy test request",
   waitingForRequest: "Waiting for a request…",
@@ -104,6 +110,13 @@ export const StepSampleCopy: {
     "The last request was too big to keep, so its fields show up here after the next one.",
   cutShortRun:
     "It was too big to keep in the last run, so its fields show up here after the next one.",
+  waitingForEmail: "Waiting for an email…",
+  noEmailYet:
+    "No email has reached the workflow's address yet. Send one, and its fields show up here.",
+  noEmailYetInside:
+    "No email has arrived yet. Its fields show up here after the first one.",
+  cutShortEmail:
+    "The last email was too big to keep, so its fields show up here after the next one.",
 };
 
 type IsWebhookFunction = (step: NodeDataProp) => boolean;
@@ -115,19 +128,32 @@ const isWebhook: IsWebhookFunction = (step: NodeDataProp): boolean => {
   );
 };
 
+type IsIncomingEmailFunction = (step: NodeDataProp) => boolean;
+
+const isIncomingEmail: IsIncomingEmailFunction = (
+  step: NodeDataProp,
+): boolean => {
+  return (
+    step.metadataId === ComponentID.IncomingEmail ||
+    step.metadata?.id === ComponentID.IncomingEmail
+  );
+};
+
 type SaysWhenFieldsArriveFunction = (step: NodeDataProp) => boolean;
 
 /*
  * Whether running the step is what fills in its values' fields: a Webhook
- * once a request arrives, and any step after a trigger. Not the Manual
- * trigger: JSON typed into Run Workflow arrives as one piece of text, with
- * no fields to list, so promising them would be wrong.
+ * once a request arrives, an Incoming Email trigger once an email does, and
+ * any step after a trigger. Not the Manual trigger: JSON typed into Run
+ * Workflow arrives as one piece of text, with no fields to list, so promising
+ * them would be wrong.
  */
 const saysWhenFieldsArrive: SaysWhenFieldsArriveFunction = (
   step: NodeDataProp,
 ): boolean => {
   return (
     isWebhook(step) ||
+    isIncomingEmail(step) ||
     (step.componentType || step.metadata?.componentType) !==
       ComponentType.Trigger
   );
@@ -165,6 +191,7 @@ const whereFrom: WhereFromFunction = (data: {
   }
 
   const webhook: boolean = isWebhook(data.step);
+  const email: boolean = isIncomingEmail(data.step);
   const isEmpty: boolean = data.value.fields.length === 0;
 
   let sentence: string;
@@ -175,6 +202,12 @@ const whereFrom: WhereFromFunction = (data: {
       : "the last request";
 
     sentence = isEmpty ? `It was empty in ${request}.` : `From ${request}.`;
+  } else if (email) {
+    const received: string = when
+      ? `the email received ${when}`
+      : "the last email";
+
+    sentence = isEmpty ? `It was empty in ${received}.` : `From ${received}.`;
   } else {
     const run: string = when ? `the last run, ${when}` : "the last run";
 
@@ -312,7 +345,9 @@ export const buildStepSampleGroups: BuildStepSampleGroupsFunction = (
               allowsPath: true,
               note: isWebhook(step)
                 ? StepSampleCopy.noRequestYetInside
-                : notRunNote(step),
+                : isIncomingEmail(step)
+                  ? StepSampleCopy.noEmailYetInside
+                  : notRunNote(step),
             },
           });
         }
@@ -341,7 +376,9 @@ export const buildStepSampleGroups: BuildStepSampleGroupsFunction = (
           allowsPath: true,
           note: isWebhook(step)
             ? StepSampleCopy.cutShortRequest
-            : StepSampleCopy.cutShortRun,
+            : isIncomingEmail(step)
+              ? StepSampleCopy.cutShortEmail
+              : StepSampleCopy.cutShortRun,
         };
       } else if (hasFields) {
         const isRecord: boolean = isRecordValue(step, returnValue);
@@ -410,6 +447,14 @@ export const buildStepSampleGroups: BuildStepSampleGroupsFunction = (
             refreshSourceId: STEP_SAMPLE_SOURCE_ID,
             waitingText: StepSampleCopy.waitingForRequest,
           };
+    }
+
+    if (isIncomingEmail(step) && !sample) {
+      note = {
+        text: StepSampleCopy.noEmailYet,
+        refreshSourceId: STEP_SAMPLE_SOURCE_ID,
+        waitingText: StepSampleCopy.waitingForEmail,
+      };
     }
 
     if (items.length === 0 && fieldsToSearch.length === 0 && !note) {

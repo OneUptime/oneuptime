@@ -131,7 +131,7 @@ Convertir entre texte et JSON.
 
 ## Conditions
 
-Créer un embranchement à partir d'une comparaison. Dans le panneau **Ajouter un composant**, ce bloc s'appelle **If / Else**, dans la catégorie Conditions.
+Créer un embranchement à partir d'une comparaison. Dans le panneau **Ajouter un composant**, ce bloc s'appelle **If / Else**, sous **Popular**.
 
 **Paramètres** :
 
@@ -159,7 +159,7 @@ Une limite de sécurité empêche les workflows de s'appeler indéfiniment en bo
 
 ## Composants de données OneUptime
 
-Pour chaque type d'enregistrement dans OneUptime (moniteurs, incidents, alertes, pages de statut, politiques d'astreinte, et bien d'autres), le panneau **Ajouter un composant** propose les composants suivants — cherchez par le nom du type. Chaque titre est engendré à partir du type d'enregistrement ; pour les moniteurs, cela donne :
+Pour chaque type d'enregistrement dans OneUptime (moniteurs, incidents, alertes, pages de statut, politiques d'astreinte, et bien d'autres), le panneau **Ajouter un composant** propose les composants suivants : cliquez sur le type d'enregistrement sous **OneUptime resources** (**Browse all resources** contient ceux qui ne sont pas affichés), ou cherchez par le nom du type. Chaque titre est engendré à partir du type d'enregistrement ; pour les moniteurs, cela donne :
 
 - **Find One Monitor** — lire un enregistrement correspondant à la requête.
 - **Find Many Monitors** — lire la liste des enregistrements correspondant à la requête.
