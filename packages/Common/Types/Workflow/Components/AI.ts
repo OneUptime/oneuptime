@@ -21,7 +21,7 @@ const components: Array<ComponentMetadata> = [
         type: ComponentInputType.LongText,
         name: "System Instructions",
         description:
-          "Optional high-level instructions that define the model's role, tone, or constraints.",
+          "High-level instructions that define the model's role, tone, or constraints.",
         required: false,
         id: "system-prompt",
         placeholder:
@@ -42,7 +42,7 @@ const components: Array<ComponentMetadata> = [
         type: ComponentInputType.JSON,
         name: "Context",
         description:
-          "Optional JSON data appended after an explicit marker as untrusted workflow context.",
+          "JSON data appended after an explicit marker as untrusted workflow context.",
         required: false,
         id: "context",
         placeholder: '{ "incident": "{{...}}" }',

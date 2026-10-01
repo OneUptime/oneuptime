@@ -7,6 +7,12 @@ export interface ComponentProps {
   description: string;
 }
 
+/*
+ * A plain list: a port is a name and a sentence, and boxing each one made a
+ * two-port step look as heavy as a form. The port's internal id ("out",
+ * "success") is not shown. The canvas labels ports by their titles, so the id
+ * only repeated the title in lower case.
+ */
 const ComponentPortViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -16,79 +22,37 @@ const ComponentPortViewer: FunctionComponent<ComponentProps> = (
         <h2 className="text-sm font-semibold text-gray-600">{props.name}</h2>
       )}
       {props.description && (
-        <p className="text-xs text-gray-400 mb-2">{props.description}</p>
+        <p className="mb-2 text-xs text-gray-500">{props.description}</p>
       )}
       {props.ports && props.ports.length === 0 && (
-        <p className="text-xs text-gray-400 italic">No connections.</p>
+        <p className="text-xs italic text-gray-500">No connections.</p>
       )}
-      <div>
-        {props.ports &&
-          props.ports.length > 0 &&
-          props.ports.map((port: Port, i: number) => {
+      {props.ports && props.ports.length > 0 && (
+        <ul className="space-y-2">
+          {props.ports.map((port: Port, i: number) => {
             return (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.625rem",
-                  padding: "0.5rem 0.75rem",
-                  borderRadius: "8px",
-                  backgroundColor: "var(--ou-surface-secondary, #f8fafc)",
-                  border: "1px solid var(--ou-border-subtle, #f1f5f9)",
-                  marginBottom: "0.375rem",
-                }}
+              <li
+                key={port.id || i}
+                className="flex items-start gap-2.5"
+                data-testid="workflow-port"
               >
-                <div
-                  style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                    backgroundColor: "var(--ou-text-subtle, #94a3b8)",
-                    flexShrink: 0,
-                  }}
+                <span
+                  aria-hidden="true"
+                  className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-gray-300"
                 />
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <p
-                    style={{
-                      fontSize: "0.8125rem",
-                      fontWeight: 500,
-                      color: "var(--ou-text-secondary, #334155)",
-                      margin: 0,
-                      lineHeight: "1.25rem",
-                    }}
-                  >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900">
                     {port.title}
-                    <span
-                      style={{
-                        color: "var(--ou-text-subtle, #94a3b8)",
-                        fontWeight: 400,
-                        fontSize: "0.6875rem",
-                        marginLeft: "0.375rem",
-                        fontFamily:
-                          'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
-                      }}
-                    >
-                      {port.id}
-                    </span>
                   </p>
                   {port.description && (
-                    <p
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "var(--ou-text-subtle, #94a3b8)",
-                        margin: 0,
-                        lineHeight: "1rem",
-                      }}
-                    >
-                      {port.description}
-                    </p>
+                    <p className="text-xs text-gray-500">{port.description}</p>
                   )}
                 </div>
-              </div>
+              </li>
             );
           })}
-      </div>
+        </ul>
+      )}
     </div>
   );
 };

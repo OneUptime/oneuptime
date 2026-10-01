@@ -59,21 +59,23 @@ const components: Array<ComponentMetadata> = [
       {
         id: "response-status",
         name: "Response Status",
-        description: "Response Status (200, for example)",
+        description:
+          "The HTTP status code the server answered with, 200 for example.",
         type: ComponentInputType.Number,
         required: false,
       },
       {
         id: "response-headers",
         name: "Response Headers",
-        description: "Response Headers for this request",
+        description: "The headers the server answered with, by header name.",
         type: ComponentInputType.StringDictionary,
         required: false,
       },
       {
         id: "response-body",
         name: "Response Body",
-        description: "Response Body",
+        description:
+          "The body the server answered with. A JSON body can be read field by field.",
         type: ComponentInputType.JSON,
         required: false,
       },
@@ -89,12 +91,14 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Success",
-        description: "This is executed when the message is successfully posted",
+        description:
+          "Runs when the server answers with a success status (2xx).",
         id: "success",
       },
       {
         title: "Error",
-        description: "This is executed when there is an error",
+        description:
+          "Runs when the request fails or the server answers with an error status.",
         id: "error",
       },
     ],
@@ -152,21 +156,23 @@ const components: Array<ComponentMetadata> = [
       {
         id: "response-status",
         name: "Response Status",
-        description: "Response Status (200, for example)",
+        description:
+          "The HTTP status code the server answered with, 200 for example.",
         type: ComponentInputType.Number,
         required: false,
       },
       {
         id: "response-headers",
         name: "Response Headers",
-        description: "Response Headers for this request",
+        description: "The headers the server answered with, by header name.",
         type: ComponentInputType.StringDictionary,
         required: false,
       },
       {
         id: "response-body",
         name: "Response Body",
-        description: "Response Body",
+        description:
+          "The body the server answered with. A JSON body can be read field by field.",
         type: ComponentInputType.JSON,
         required: false,
       },
@@ -182,12 +188,14 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Success",
-        description: "This is executed when the message is successfully posted",
+        description:
+          "Runs when the server answers with a success status (2xx).",
         id: "success",
       },
       {
         title: "Error",
-        description: "This is executed when there is an error",
+        description:
+          "Runs when the request fails or the server answers with an error status.",
         id: "error",
       },
     ],
@@ -245,21 +253,23 @@ const components: Array<ComponentMetadata> = [
       {
         id: "response-status",
         name: "Response Status",
-        description: "Response Status (200, for example)",
+        description:
+          "The HTTP status code the server answered with, 200 for example.",
         type: ComponentInputType.Number,
         required: false,
       },
       {
         id: "response-headers",
         name: "Response Headers",
-        description: "Response Headers for this request",
+        description: "The headers the server answered with, by header name.",
         type: ComponentInputType.StringDictionary,
         required: false,
       },
       {
         id: "response-body",
         name: "Response Body",
-        description: "Response Body",
+        description:
+          "The body the server answered with. A JSON body can be read field by field.",
         type: ComponentInputType.JSON,
         required: false,
       },
@@ -275,12 +285,14 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Success",
-        description: "This is executed when the message is successfully posted",
+        description:
+          "Runs when the server answers with a success status (2xx).",
         id: "success",
       },
       {
         title: "Error",
-        description: "This is executed when there is an error",
+        description:
+          "Runs when the request fails or the server answers with an error status.",
         id: "error",
       },
     ],
@@ -338,21 +350,23 @@ const components: Array<ComponentMetadata> = [
       {
         id: "response-status",
         name: "Response Status",
-        description: "Response Status (200, for example)",
+        description:
+          "The HTTP status code the server answered with, 200 for example.",
         type: ComponentInputType.Number,
         required: false,
       },
       {
         id: "response-headers",
         name: "Response Headers",
-        description: "Response Headers for this request",
+        description: "The headers the server answered with, by header name.",
         type: ComponentInputType.StringDictionary,
         required: false,
       },
       {
         id: "response-body",
         name: "Response Body",
-        description: "Response Body",
+        description:
+          "The body the server answered with. A JSON body can be read field by field.",
         type: ComponentInputType.JSON,
         required: false,
       },
@@ -368,12 +382,14 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Success",
-        description: "This is executed when the message is successfully posted",
+        description:
+          "Runs when the server answers with a success status (2xx).",
         id: "success",
       },
       {
         title: "Error",
-        description: "This is executed when there is an error",
+        description:
+          "Runs when the request fails or the server answers with an error status.",
         id: "error",
       },
     ],
@@ -431,21 +447,23 @@ const components: Array<ComponentMetadata> = [
       {
         id: "response-status",
         name: "Response Status",
-        description: "Response Status (200, for example)",
+        description:
+          "The HTTP status code the server answered with, 200 for example.",
         type: ComponentInputType.Number,
         required: false,
       },
       {
         id: "response-headers",
         name: "Response Headers",
-        description: "Response Headers for this request",
+        description: "The headers the server answered with, by header name.",
         type: ComponentInputType.StringDictionary,
         required: false,
       },
       {
         id: "response-body",
         name: "Response Body",
-        description: "Response Body",
+        description:
+          "The body the server answered with. A JSON body can be read field by field.",
         type: ComponentInputType.JSON,
         required: false,
       },
@@ -461,12 +479,14 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Success",
-        description: "This is executed when the message is successfully posted",
+        description:
+          "Runs when the server answers with a success status (2xx).",
         id: "success",
       },
       {
         title: "Error",
-        description: "This is executed when there is an error",
+        description:
+          "Runs when the request fails or the server answers with an error status.",
         id: "error",
       },
     ],

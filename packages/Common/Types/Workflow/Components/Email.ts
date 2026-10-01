@@ -102,7 +102,7 @@ const components: Array<ComponentMetadata> = [
     outPorts: [
       {
         title: "Success",
-        description: "This is executed when the message is successfully posted",
+        description: "Runs when the mail server accepts the email.",
         id: "success",
       },
       {

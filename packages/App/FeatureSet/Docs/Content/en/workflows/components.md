@@ -200,6 +200,10 @@ A query is always scoped to the project the workflow runs in. You can't reach an
 
 A key that isn't a column is ignored rather than rejected — the run log names the ones it dropped, so check there when a field doesn't land. **Select Fields**, on the Find components and the triggers, uses the same column keys with `true` values: `{"_id": true, "name": true}`.
 
+You rarely type these keys yourself. In the component's settings, **Add a field** (or **Add a condition** on a query) lists the model's columns by name, with the kind of value each one takes. Search it by name, by column key or by what the field does, and press Enter to add the best match. On a create, the fields the record can't be created without come first, then the model's main fields (the ones it fills in for you if you leave them out), then everything else.
+
+Fields OneUptime fills in itself aren't offered when you write a record: the record's `_id`, **Created At**, **Updated At**, **Created by User**, slugs, record numbers and notification statuses. An update only offers fields that can change after a record exists. A query still offers the ID, the timestamps and **Created by User**, because they're useful to filter on. **Deleted At** isn't offered anywhere: records are deleted outright, so it's always empty.
+
 **Skip** and **Limit** are two number fields on Find Many, Update Many, and Delete Many — `Skip: 0` with `Limit: 100` takes the first hundred matches. Limit defaults to `10`, and on Update Many and Delete Many it caps how many records are actually written, not just how many come back. So `Items Deleted: 10` means ten records were deleted, not that ten matched. Raise Limit when you mean to change more than ten.
 
 **Success** and **Error** report whether the query ran, not what it found. A query matching nothing returns `0` and still leaves through Success — that is not a failure. To branch on whether anything matched, read the returned count in an **If / Else** block.
