@@ -6,7 +6,7 @@ Criado o workflow, abra **Construtor** no menu à esquerda. É ali que fica o ca
 
 ## O canvas
 
-Um workflow criado do zero abre com um único bloco tracejado dizendo **Please click here to add trigger**. Esse bloco é o ponto de partida — clique nele para escolher um trigger. Um workflow criado a partir de um modelo já abre com os blocos no lugar.
+Um workflow criado do zero abre com um único bloco tracejado dizendo **Choose what starts this workflow**. Esse bloco é o ponto de partida — clique nele para escolher um trigger. Um workflow criado a partir de um modelo já abre com os blocos no lugar.
 
 Todo workflow tem exatamente um **trigger** no topo. Todo o resto é um **componente**, que faz alguma coisa. Adicionar um segundo trigger substitui o primeiro, e excluir o último traz o bloco tracejado de volta.
 
@@ -17,7 +17,7 @@ Para adicionar blocos:
 
 Os dois painéis têm busca — aperte `/` para pular direto para o campo — e são agrupados por categoria. Selecione um bloco e clique em **Add to Workflow**.
 
-Blocos novos sempre aparecem no mesmo ponto do canvas, então um recém-adicionado pode cair em cima de algo que você já posicionou. Arraste-o para um espaço livre; o canvas se alinha a uma grade enquanto você arrasta. As posições são salvas, então a próxima pessoa vê o mesmo arranjo que você deixou.
+Um bloco novo aparece abaixo do bloco mais baixo do canvas, e um trigger novo assume no topo o lugar do antigo. O bloco novo fica selecionado e, se aparecer fora da vista, o canvas rola só o suficiente para mostrá-lo. As configurações dele não abrem sozinhas: clique no bloco quando quiser configurá-lo. Enquanto as configurações obrigatórias estiverem vazias, o bloco mostra **Click to set up**. Arraste os blocos para onde quiser; o canvas se alinha a uma grade enquanto você arrasta. As posições são salvas, então a próxima pessoa vê o mesmo arranjo que você deixou.
 
 As alterações são salvas sozinhas. Uma pílula na barra de ferramentas mostra o andamento: **Saving…** enquanto a alteração está a caminho, depois **Salvo**, ou **Não foi possível salvar** se algo deu errado. Não há botão de salvar nem etapa separada de publicação.
 
@@ -42,7 +42,7 @@ Dá para conectar uma saída a vários blocos. Todos rodam — mas um depois do 
 
 ## Configurando um bloco
 
-Clique em um bloco para abrir suas configurações em uma janela. Cada configuração tem o tipo de campo adequado — texto, listas, editores de código, chaves e por aí vai. Preencha e clique em **Salvar**.
+Clique em um bloco para abrir suas configurações em uma janela (ou chegue até ele com **Tab** e pressione **Enter**). Cada configuração tem o tipo de campo adequado — texto, listas, editores de código, chaves e por aí vai. Preencha e clique em **Salvar**.
 
 Nessa mesma janela você encontra:
 
@@ -54,7 +54,7 @@ A maioria dos campos de texto aceita variáveis — é assim que os dados fluem 
 
 ## Verificações enquanto você constrói
 
-O Construtor revisa o grafo inteiro a cada alteração e mostra o que encontrou em uma pílula na barra de ferramentas. Clique na pílula para abrir **Problems with this workflow**, que lista cada problema e leva você ao bloco responsável. Blocos com problema também ganham um selo vermelho no canvas.
+O Construtor revisa o grafo inteiro a cada alteração e mostra o que encontrou em uma pílula na barra de ferramentas. Clique na pílula para abrir **Problems with this workflow**, que lista cada problema e leva você ao bloco responsável. No canvas, um bloco com configurações obrigatórias ainda vazias mostra **Click to set up**, e um bloco com qualquer outro problema ganha um selo no canto: vermelho para um erro, âmbar para um aviso. Passe o mouse sobre o selo para ler o que está errado.
 
 Ele pega justamente os erros que ficariam invisíveis até uma execução dar errado — nenhum trigger, dois blocos com o mesmo id, um ponto dentro de um id, um bloco que ninguém conecta, uma configuração obrigatória em branco, JSON malformado, espaços dentro de `{{ }}` e referências a uma etapa ou a um valor de retorno que não existe.
 
@@ -65,8 +65,8 @@ Uma coisa ele não consegue verificar: se um nome de variável existe. Uma vari�
 O jeito mais rápido de pegar o jeito do canvas:
 
 1. Clique no bloco tracejado, escolha **Manual** no painel **Add Trigger** e clique em **Add to Workflow**.
-2. Clique em **Adicionar componente**, escolha **Log** (em **Utils**) e clique em **Add to Workflow**. Arraste o novo bloco para longe do trigger e conecte o ponto **Execute** do trigger ao ponto de entrada do bloco Log.
-3. Abra o bloco Log e defina o **Valor** como `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` é o **Identifier** do trigger, mostrado no bloco — confira se bate.
+2. Clique em **Adicionar componente**, escolha **Log** (em **Utils**) e clique em **Add to Workflow**. O novo bloco aparece abaixo do trigger. Conecte o ponto **Execute** do trigger ao ponto de entrada do bloco Log.
+3. Clique no bloco Log, que mostra **Click to set up**, e defina o **Valor** como `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` é o **Identifier** do trigger, mostrado no bloco — confira se bate.
 4. Vá em **Visão geral**, clique em **Editar fluxo de trabalho** no cartão **Detalhes do Fluxo de Trabalho** e ligue **Habilitado**. Um workflow desabilitado não roda de jeito nenhum, nem manualmente.
 5. De volta ao **Construtor**, clique em **Executar fluxo de trabalho**, coloque `{ "name": "Ada" }` no campo **JSON**, clique em **Run Workflow Manually** e confirme em **Run**.
 6. Um painel **Workflow Run** abre sozinho e acompanha a execução. O registro mostra `Value:` seguido de `Hello from Ada`.

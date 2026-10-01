@@ -6,7 +6,7 @@ Så snart den er opprettet, åpner du **Bygger** i venstremenyen. Der ligger ler
 
 ## Lerretet
 
-En arbeidsflyt du bygger fra bunnen, åpner med én stiplet blokk der det står **Please click here to add trigger**. Den blokken er startpunktet — klikk på den for å velge en trigger. En arbeidsflyt laget fra en mal åpner med blokkene allerede på plass.
+En arbeidsflyt du bygger fra bunnen, åpner med én stiplet blokk der det står **Choose what starts this workflow**. Den blokken er startpunktet — klikk på den for å velge en trigger. En arbeidsflyt laget fra en mal åpner med blokkene allerede på plass.
 
 Hver arbeidsflyt har nøyaktig én **trigger** øverst. Alt annet er en **komponent** som gjør noe. Legger du til en trigger til, erstatter den den forrige, og sletter du den siste, kommer den stiplede plassholderen tilbake.
 
@@ -17,7 +17,7 @@ Slik legger du til blokker:
 
 Du kan søke i begge panelene — trykk `/` for å hoppe til søkefeltet — og innholdet er gruppert etter kategori. Velg én blokk og klikk **Add to Workflow**.
 
-Nye blokker havner alltid på samme punkt på lerretet, så en ny kan lande oppå noe du allerede har plassert. Dra den unna; lerretet snapper til et rutenett underveis. Blokkposisjonene lagres, så neste person ser det samme oppsettet som du forlot.
+En ny blokk havner under den nederste blokken på lerretet, og en ny trigger tar den gamles plass øverst. Den nye blokken er valgt, og havner den utenfor synsfeltet, ruller lerretet akkurat langt nok til å vise den. Innstillingene åpner seg ikke av seg selv: klikk på blokken når du er klar til å sette den opp. Så lenge de påkrevde innstillingene er tomme, står det **Click to set up** på den. Dra blokkene dit du vil; lerretet snapper til et rutenett underveis. Blokkposisjonene lagres, så neste person ser det samme oppsettet som du forlot.
 
 Endringer lagres automatisk. En pille i verktøylinjen holder rede på det: **Saving…** mens endringen er underveis, deretter **Lagret** — eller **Kunne ikke lagre** hvis det ikke gikk. Det finnes ingen lagreknapp og ingen egen publiseringsjobb.
 
@@ -42,7 +42,7 @@ Du kan koble én utgang til flere blokker. Alle kjører — men etter hverandre,
 
 ## Å konfigurere en blokk
 
-Klikk på en blokk for å åpne innstillingene i en dialog. Hver innstilling har den inndatatypen som passer — tekstfelt, nedtrekkslister, kodeeditorer, brytere og så videre. Fyll ut og klikk **Lagre**.
+Klikk på en blokk for å åpne innstillingene i en dialog (eller gå til den med **Tab** og trykk **Enter**). Hver innstilling har den inndatatypen som passer — tekstfelt, nedtrekkslister, kodeeditorer, brytere og så videre. Fyll ut og klikk **Lagre**.
 
 I den samme dialogen finner du også:
 
@@ -54,7 +54,7 @@ De fleste tekstfelt tar imot variabler — det er slik data flyter fra én blokk
 
 ## Kontroller mens du bygger
 
-Byggeren sjekker hele grafen hver gang du endrer noe, og rapporterer det den finner i en pille i verktøylinjen. Klikk på pillen for å åpne **Problems with this workflow**, som lister opp hvert problem og hopper til blokken som er skyld i det. Blokker med problemer får også et rødt merke på lerretet.
+Byggeren sjekker hele grafen hver gang du endrer noe, og rapporterer det den finner i en pille i verktøylinjen. Klikk på pillen for å åpne **Problems with this workflow**, som lister opp hvert problem og hopper til blokken som er skyld i det. På lerretet står det **Click to set up** på en blokk der påkrevde innstillinger fortsatt er tomme, og en blokk med et annet problem får et merke i hjørnet: rødt for en feil, gult for en advarsel. Hold musepekeren over merket for å lese hva som er galt.
 
 Den fanger opp feilene som ellers er usynlige helt til en kjøring går galt — ingen trigger, to blokker som deler en id, et punktum inni en id, en blokk ingenting kobler til, en obligatorisk innstilling som står tom, feilformet JSON, mellomrom inni `{{ }}`, og referanser til et trinn eller en returverdi som ikke finnes.
 
@@ -65,8 +65,8 @@ Den fanger opp feilene som ellers er usynlige helt til en kjøring går galt —
 Den raskeste måten å bli kjent med lerretet på:
 
 1. Klikk på den stiplede plassholderblokken, velg **Manual** i **Add Trigger**-panelet, og klikk **Add to Workflow**.
-2. Klikk **Legg til komponent**, velg **Log** (under **Utils**), og klikk **Add to Workflow**. Dra den nye blokken unna triggeren, og koble deretter triggerens **Execute**-prikk ned til inndataprikken på Log-blokken.
-3. Åpne Log-blokken og sett **Verdi** til `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` er triggerens **Identifier**, som står på triggerblokken — sjekk at den stemmer.
+2. Klikk **Legg til komponent**, velg **Log** (under **Utils**), og klikk **Add to Workflow**. Den nye blokken havner under triggeren. Koble triggerens **Execute**-prikk ned til inndataprikken på Log-blokken.
+3. Klikk på Log-blokken, der det står **Click to set up**, og sett **Verdi** til `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` er triggerens **Identifier**, som står på triggerblokken — sjekk at den stemmer.
 4. Gå til **Oversikt**, klikk **Rediger arbeidsflyt** på kortet **Arbeidsflytdetaljer**, og slå på **Aktivert**. En deaktivert arbeidsflyt kan ikke kjøres i det hele tatt, ikke engang for hånd.
 5. Tilbake i **Bygger** klikker du **Kjør arbeidsflyt**, legger `{ "name": "Ada" }` i **JSON**-feltet, klikker **Run Workflow Manually** og bekrefter med **Run**.
 6. Et **Workflow Run**-panel åpner seg av seg selv og følger kjøringen. Loggen viser `Value:` etterfulgt av `Hello from Ada`.
