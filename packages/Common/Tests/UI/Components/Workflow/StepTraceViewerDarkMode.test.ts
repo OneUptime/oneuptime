@@ -3,42 +3,35 @@ import fs from "fs";
 import path from "path";
 
 /*
- * A workflow step's settings dialog in the dark theme.
+ * A workflow run's Steps view in the dark theme.
  *
  * The dark theme does not use Tailwind's dark: variants. Theme.css re-colours
  * the light utility classes under html.dark, one rule per class and per
- * variant (`.bg-gray-50` does not cover `hover:bg-gray-50`). A class without a
- * rule keeps its light colour - a near-white box on a slate dialog - and
- * nothing fails. So this holds every colour class the dialog's parts use to
- * what Theme.css actually remaps.
+ * variant. A class without a rule keeps its light colour - a pale amber
+ * warning box or a white "Took No" chip on a slate dialog - and nothing fails.
+ * So this holds every colour class the run modal draws with to what Theme.css
+ * actually remaps.
  *
- * The walk lists every file the dialog draws with, including the copy button
- * it now puts beside the webhook URL, the example request and each reference,
- * and the "How to use" help with its callouts and examples.
+ * Unlike a scan of whole string literals, this one also reads the quoted
+ * strings inside a template's ${...}: the viewer picks a step's colours with
+ * `${isFailed ? "border-red-200" : "border-gray-200"}`, and those branches are
+ * exactly the colours worth checking.
  */
 
 const UI_DIR: string = path.join(__dirname, "..", "..", "..", "..", "UI");
 
 const FILES: Array<string> = [
-  "Components/Workflow/ComponentSettingsModal.tsx",
-  "Components/Workflow/ComponentSettingsSection.tsx",
-  "Components/Workflow/ComponentPrimaryPanel.tsx",
-  "Components/Workflow/WebhookTriggerPanel.tsx",
-  "Components/Workflow/ManualTriggerPanel.tsx",
-  "Components/Workflow/ComponentReturnValueViewer.tsx",
-  "Components/Workflow/ComponentPortViewer.tsx",
+  "Components/Workflow/StepTraceViewer.tsx",
+  "Components/Workflow/WorkflowLogModal.tsx",
   "Components/Workflow/BreakableCode.tsx",
-  "Components/Workflow/DocumentationViewer.tsx",
-  "Components/CopyTextButton/CopyTextButton.tsx",
 ];
 
 /*
- * Colours that are right in both themes on purpose, all in the copy button:
- * white text on its solid indigo variant (which no dialog part uses, but the
- * button offers), and the green tick it shows once copied, which reads on the
- * pale emerald tint and on the dark one Theme.css swaps in for it.
+ * Right in both themes on purpose: the white step number and cross on the
+ * path's solid dots (emerald, amber and red 500, which Theme.css leaves as
+ * they are because they read on either surface).
  */
-const SAME_IN_BOTH_THEMES: Array<string> = ["text-white", "text-emerald-400"];
+const SAME_IN_BOTH_THEMES: Array<string> = ["text-white"];
 
 // Block comments only: prose in Theme.css must not count as a rule.
 const THEME_CSS: string = fs
@@ -47,35 +40,37 @@ const THEME_CSS: string = fs
 
 type ReadCodeFunction = (file: string) => string;
 
-// Comments hold prose ("a near-white box"), not classes.
+// Comments hold prose ("a pale amber warning box"), not classes.
 const readCode: ReadCodeFunction = (file: string): string => {
   return fs
     .readFileSync(path.join(UI_DIR, file), "utf8")
     .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/\/\/.*$/gm, " ");
+    .replace(/(^|[^:])\/\/.*$/gm, "$1 ");
 };
 
-type StringTokensFunction = (code: string) => Array<string>;
+type TokensFunction = (code: string) => Array<string>;
+
+const splitTokens: (text: string) => Array<string> = (
+  text: string,
+): Array<string> => {
+  return text.split(/\s+/).filter((token: string): boolean => {
+    return token.length > 0;
+  });
+};
 
 /*
- * Every whitespace-separated token of every string literal: class lists are
- * string literals here (className="...", the tone table), and prose tokens
- * never look like a utility.
+ * Every whitespace-separated token of every quoted string (wherever it sits,
+ * including inside a template's ${...}) and of every template's own text.
  */
-const stringTokens: StringTokensFunction = (code: string): Array<string> => {
+const stringTokens: TokensFunction = (code: string): Array<string> => {
   const tokens: Array<string> = [];
 
-  for (const match of code.matchAll(/"([^"\n]*)"|`([^`]*)`/g)) {
-    const text: string = (match[1] ?? match[2] ?? "").replace(
-      /\$\{[^}]*\}/g,
-      " ",
-    );
+  for (const match of code.matchAll(/"([^"\n]*)"/g)) {
+    tokens.push(...splitTokens(match[1] || ""));
+  }
 
-    tokens.push(
-      ...text.split(/\s+/).filter((token: string): boolean => {
-        return token.length > 0;
-      }),
-    );
+  for (const match of code.matchAll(/`([^`]*)`/g)) {
+    tokens.push(...splitTokens((match[1] || "").replace(/\$\{[^}]*\}/g, " ")));
   }
 
   return tokens;
@@ -85,8 +80,8 @@ type UtilityOfFunction = (token: string) => string;
 
 /*
  * The utility a token applies, after its variants. An arbitrary variant's
- * brackets may hold a colon of their own ("[&>section]:"), so the split skips
- * anything inside brackets.
+ * brackets may hold a colon of their own, so the split skips anything inside
+ * brackets.
  */
 const utilityOf: UtilityOfFunction = (token: string): string => {
   let depth: number = 0;
@@ -111,9 +106,9 @@ const COLOR_UTILITY: RegExp =
   /^(?:bg|text|border|ring|divide|from|via|to|outline|fill|stroke)-(?:white|black|(?:gray|slate|red|amber|yellow|emerald|green|sky|blue|indigo|orange|rose|purple|pink|teal|cyan|lime|violet|fuchsia|zinc|neutral|stone)-\d{2,3})(?:\/\d+)?$/;
 
 /*
- * A mid-tone hue (a 500 or 600 icon or fill) reads the same in both themes.
- * Neutral greys do not: gray-500 text is what Theme.css re-colours for a dark
- * card, so a grey is only fine where a rule of its own says so.
+ * A mid-tone hue (a 500 or 600 dot or icon) reads the same in both themes.
+ * Neutral greys do not: Theme.css re-colours gray text for a dark card, so a
+ * grey is only fine where a rule of its own says so.
  */
 const SOLID: RegExp =
   /^(?:bg|text|border|ring)-(?!(?:gray|slate|zinc|neutral|stone)-)[a-z]+-(?:500|600)$/;
@@ -126,8 +121,7 @@ const TEMPLATED_COLOUR: RegExp =
 
 /*
  * Interaction variants Theme.css remaps by prefix, e.g.
- * [class*="hover:text-indigo-"]:hover. Matched with startsWith: a
- * `group-hover:` token is not covered by a rule for `hover:`.
+ * [class*="focus-visible:ring-indigo-"]:focus-visible.
  */
 const SUBSTRING_VARIANTS: Array<string> = Array.from(
   THEME_CSS.matchAll(/\[class\*="([^"]+)"\]/g),
@@ -159,10 +153,7 @@ const isRemapped: IsRemappedFunction = (token: string): boolean => {
     return true;
   }
 
-  /*
-   * CSS escaping, as Theme.css writes the class: backslashes first, so the
-   * ones added for ":" and "/" are not escaped a second time.
-   */
+  // CSS escaping, as Theme.css writes the class.
   const escapedClass: string = token
     .replace(/\\/g, "\\\\")
     .replace(/:/g, "\\:")
@@ -200,7 +191,7 @@ const COLOR_TOKENS: Array<string> = Array.from(
   ),
 );
 
-describe("the step settings dialog in the dark theme", () => {
+describe("the workflow run's Steps view in the dark theme", () => {
   test("no part uses a dark: variant or builds a colour class from a template", () => {
     for (const [file, code] of Object.entries(CODE_BY_FILE)) {
       expect({ file, usesDarkVariant: code.includes("dark:") }).toEqual({
@@ -214,59 +205,63 @@ describe("the step settings dialog in the dark theme", () => {
     }
   });
 
-  test("every colour class the dialog uses is remapped for dark mode", () => {
+  test("every colour class it draws with is remapped for dark mode", () => {
     const unmapped: Array<string> = COLOR_TOKENS.filter(
       (token: string): boolean => {
         return !isRemapped(token) && !SAME_IN_BOTH_THEMES.includes(token);
       },
     );
 
-    // The scan found the dialog's colours at all, so this is not vacuous.
+    // The scan found the view's colours at all, so this is not vacuous.
     expect(COLOR_TOKENS).toEqual(
       expect.arrayContaining([
-        // Section cards, the primary tint and the documentation tint.
+        // The step card and the path between steps.
         "bg-white",
         "border-gray-200",
+        "bg-gray-200",
+        "ring-white",
+        // The dots: worked, warned, failed (chosen in a ${...}).
+        "bg-emerald-500",
+        "bg-amber-500",
+        "bg-red-500",
+        // "Took No", and the red "Took Error".
         "border-indigo-200",
-        "bg-indigo-50/40",
-        "text-indigo-700",
-        "border-blue-100",
-        "bg-blue-50/40",
-        "text-blue-700",
-        // The URL, the example request and the references.
-        "text-gray-900",
-        "text-gray-800",
-        "text-gray-700",
-        // Returns rows and their type pill.
-        "bg-gray-50",
         "bg-indigo-50",
-        "border-indigo-100",
-        // Ports' bullets.
-        "bg-gray-300",
-        // The copy button and its "Copied!" state.
-        "bg-gray-100",
-        "hover:bg-gray-200",
+        "text-indigo-700",
+        "text-red-700",
+        // Succeeded and Failed.
         "bg-emerald-50",
-        "border-emerald-200",
-        /*
-         * The webhook URL's masked key, the warning for a URL built from the
-         * workflow's ID, and the line confirming a reset.
-         */
-        "text-gray-500",
+        "text-emerald-700",
+        // The warning, the error and the test-of-one-step note.
         "bg-amber-50",
         "border-amber-200",
         "text-amber-800",
-        "text-emerald-700",
-        /*
-         * The help: its step numbers, the tip callout on the blue tint, the
-         * warning callout, and its links.
-         */
-        "bg-blue-100",
+        "bg-red-50",
+        "border-red-200",
+        "text-red-800",
+        "bg-blue-50",
         "border-blue-100",
-        "text-blue-600",
-        "hover:text-blue-700",
+        "text-blue-800",
+        // The end of a sleeping run's path.
+        "bg-indigo-500",
+        "text-indigo-800",
+        // Values.
+        "text-gray-900",
+        "text-gray-800",
+        "bg-gray-50",
       ]),
     );
     expect(unmapped).toEqual([]);
+  });
+
+  /*
+   * The scan is only worth something if it would notice a class with no dark
+   * rule. Prove it on one that has none.
+   */
+  test("the scan does notice a colour with no dark rule", () => {
+    expect(isRemapped("bg-amber-50")).toBe(true);
+    expect(isRemapped("text-gray-500")).toBe(true);
+    expect(isRemapped("bg-lime-50")).toBe(false);
+    expect(isRemapped("text-gray-450")).toBe(false);
   });
 });
