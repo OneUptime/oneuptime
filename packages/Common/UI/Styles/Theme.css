@@ -1088,9 +1088,11 @@ html.dark optgroup {
 /*
  * Switch thumbs are an affordance, not a surface, and must stay distinct -
  * including a knob drawn inside a larger control (the session replay's
- * transport switch), which the first selector cannot reach.
+ * transport switch), which the first selector cannot reach. That switch's
+ * TRACK is a white span straight under its button too, and an off track is
+ * a surface: it keeps the card's dark colour.
  */
-html.dark button[role="switch"] > span.bg-white,
+html.dark button[role="switch"] > span.bg-white:not([data-ou-toggle-track]),
 html.dark [data-ou-toggle-knob].bg-white {
   background-color: #f8fafc !important;
 }

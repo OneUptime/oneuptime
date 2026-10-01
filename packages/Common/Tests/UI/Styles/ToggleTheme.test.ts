@@ -388,6 +388,35 @@ describe("the switch in the dark theme", () => {
     expect(compareSpecificity(tickSpecificity, generalSpecificity)).toBe(1);
   });
 
+  /*
+   * The older thumb rule (a white span straight under a switch button stays
+   * near-white) also matched the session replay switch's off TRACK, a white
+   * span under its button too, and lit the whole track up on a dark card.
+   * Every rule that keeps a switch's white span light must leave tracks out.
+   */
+  test("no rule keeping a switch's knob light lights up an off track", () => {
+    const thumbSelectors: Array<string> = THEME_RULES.filter(
+      (rule: StyleRule): boolean => {
+        return (
+          rule.declarations["background-color"] === "#f8fafc !important"
+        );
+      },
+    )
+      .flatMap((rule: StyleRule): Array<string> => {
+        return rule.selectors;
+      })
+      .filter((selector: string): boolean => {
+        return selector.includes("span.bg-white");
+      });
+
+    expect(thumbSelectors.length).toBeGreaterThan(0);
+
+    for (const selector of thumbSelectors) {
+      expect({ selector, leavesTracksOut: selector.includes(":not([data-ou-toggle-track])") })
+        .toEqual({ selector, leavesTracksOut: true });
+    }
+  });
+
   test("the hooks those rules hang on are the ones the component renders", () => {
     const toggleSource: string = fs.readFileSync(
       path.join(
