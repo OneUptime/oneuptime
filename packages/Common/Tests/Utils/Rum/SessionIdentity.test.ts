@@ -146,6 +146,104 @@ describe("SessionIdentity", () => {
     });
   });
 
+  /*
+   * #4207: activity that comes after the session already went idle is the
+   * first thing of the NEXT session. Written through to the old record it
+   * revived the expired session, with the whole absence inside it.
+   */
+  describe("isActivityAfterIdleExpiry", () => {
+    it("is true for activity a full idle window after the last", () => {
+      expect(
+        SessionIdentity.isActivityAfterIdleExpiry(
+          makeState({ lastActivityUnixMs: NOW - 30 * MINUTE }),
+          NOW,
+        ),
+      ).toBe(true);
+    });
+
+    it("is true for activity after a night away", () => {
+      expect(
+        SessionIdentity.isActivityAfterIdleExpiry(
+          makeState({ lastActivityUnixMs: NOW - 9 * HOUR }),
+          NOW,
+        ),
+      ).toBe(true);
+    });
+
+    it("is false one millisecond inside the idle window", () => {
+      expect(
+        SessionIdentity.isActivityAfterIdleExpiry(
+          makeState({ lastActivityUnixMs: NOW - (30 * MINUTE - 1) }),
+          NOW,
+        ),
+      ).toBe(false);
+    });
+
+    it("is false for activity while the session is live", () => {
+      expect(
+        SessionIdentity.isActivityAfterIdleExpiry(makeState(), NOW),
+      ).toBe(false);
+    });
+
+    it("is false for activity older than the stored activity", () => {
+      expect(
+        SessionIdentity.isActivityAfterIdleExpiry(
+          makeState({ lastActivityUnixMs: NOW }),
+          NOW - HOUR,
+        ),
+      ).toBe(false);
+    });
+
+    it("is false with no stored session: nothing has expired", () => {
+      expect(SessionIdentity.isActivityAfterIdleExpiry(null, NOW)).toBe(false);
+    });
+
+    it("is false for timestamps that are not numbers", () => {
+      expect(
+        SessionIdentity.isActivityAfterIdleExpiry(makeState(), Number.NaN),
+      ).toBe(false);
+      expect(
+        SessionIdentity.isActivityAfterIdleExpiry(
+          makeState({ lastActivityUnixMs: Number.NaN }),
+          NOW,
+        ),
+      ).toBe(false);
+    });
+
+    it("agrees with shouldRotateSession on where the idle window ends", () => {
+      for (const awayMs of [
+        29 * MINUTE,
+        30 * MINUTE - 1,
+        30 * MINUTE,
+        30 * MINUTE + 1,
+        2 * HOUR,
+      ]) {
+        const state: StoredSessionState = makeState({
+          sessionStartUnixMs: NOW - awayMs - MINUTE,
+          lastActivityUnixMs: NOW - awayMs,
+        });
+
+        expect(SessionIdentity.isActivityAfterIdleExpiry(state, NOW)).toBe(
+          SessionIdentity.shouldRotateSession(state, NOW).reason ===
+            SessionRotationReason.Idle,
+        );
+      }
+    });
+
+    it("honours a custom idle window", () => {
+      const state: StoredSessionState = makeState({
+        lastActivityUnixMs: NOW - 10 * MINUTE,
+      });
+
+      expect(
+        SessionIdentity.isActivityAfterIdleExpiry(state, NOW, 5 * MINUTE),
+      ).toBe(true);
+      expect(
+        SessionIdentity.isActivityAfterIdleExpiry(state, NOW, 15 * MINUTE),
+      ).toBe(false);
+    });
+  });
+
   describe("clampSessionStart", () => {
     it("passes through a sane client timestamp", () => {
       expect(SessionIdentity.clampSessionStart(NOW - MINUTE, NOW)).toBe(

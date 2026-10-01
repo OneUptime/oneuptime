@@ -15,6 +15,7 @@ import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerRea
 import ClickRecorder from "../src/ClickRecorder";
 import { RECORDER_VERSION, RecorderInitOptions } from "../src/Config";
 import ConsoleRecorder, { MAX_CONSOLE_RECORDED } from "../src/ConsoleRecorder";
+import { DebugRecord, clearDebugRecords, getDebugRecords } from "../src/Debug";
 import ErrorRecorder from "../src/ErrorRecorder";
 import NetworkRecorder from "../src/NetworkRecorder";
 import PerformanceRecorder, {
@@ -3563,6 +3564,656 @@ describe("Recorder", (): void => {
         // eslint-disable-next-line no-console
         console.error = originalConsoleError;
       }
+    });
+
+    /*
+     * #4207: a tab left open with nobody at it.
+     *
+     * The rollover used to seal the session with an empty final chunk
+     * stamped when it NOTICED - the whole idle window after the user left -
+     * and to mint the next session on the spot. The list then showed a
+     * "30m 00s" session the player ended after under a second, and the
+     * same tab filed another one every half hour, each a single still
+     * frame. Unlike the tests above, nothing here rewrites storage behind
+     * the recorder's back: the clock simply runs with no one there, which
+     * is what an abandoned tab is.
+     */
+    describe("a tab nobody comes back to (#4207)", (): void => {
+      const allFrames: () => Array<CapturedPost> =
+        (): Array<CapturedPost> => {
+          return fetchMock.mock.calls
+            .filter((call: Array<unknown>): boolean => {
+              return String(call[0]).indexOf("session-replay/v1/chunk") >= 0;
+            })
+            .flatMap((call: Array<unknown>): Array<CapturedPost> => {
+              return framesOf(call);
+            });
+        };
+
+      const framesFor: (sessionId: string) => Array<CapturedPost> = (
+        sessionId: string,
+      ): Array<CapturedPost> => {
+        return allFrames().filter((post: CapturedPost): boolean => {
+          return post.envelope.sessionId === sessionId;
+        });
+      };
+
+      const clickPage: () => void = (): void => {
+        document.body.dispatchEvent(
+          new MouseEvent("click", { bubbles: true, clientX: 5, clientY: 5 }),
+        );
+      };
+
+      /* Let the idle window pass with nobody there, tick by tick. */
+      const walkAway: () => Promise<void> = async (): Promise<void> => {
+        jest.advanceTimersByTime(
+          SESSION_REPLAY_IDLE_ROLLOVER_MS + SESSION_REPLAY_FLUSH_INTERVAL_MS,
+        );
+        await drainMicrotasks();
+      };
+
+      /* The deferred wake, and whatever it posts. */
+      const runWake: () => Promise<void> = async (): Promise<void> => {
+        jest.advanceTimersByTime(0);
+        await drainMicrotasks();
+      };
+
+      it("ends the session where the footage ended, not when the rollover noticed", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+        const sessionId: string = instance.getSessionId();
+
+        await drainMicrotasks();
+        await walkAway();
+
+        const frames: Array<CapturedPost> = framesFor(sessionId);
+        const seals: Array<CapturedPost> = frames.filter(
+          (post: CapturedPost): boolean => {
+            return post.envelope.isFinal;
+          },
+        );
+
+        expect(seals).toHaveLength(1);
+
+        const seal: CapturedPost = seals[0] as CapturedPost;
+
+        /* The seal is the terminator: nothing to play, only an end time. */
+        expect(seal.envelope.eventCount).toBe(0);
+        expect(seal.envelope.chunkStartOffsetMs).toBe(
+          seal.envelope.chunkEndOffsetMs,
+        );
+
+        const footageEndMs: number = Math.max(
+          ...frames
+            .filter((post: CapturedPost): boolean => {
+              return post.envelope.eventCount > 0;
+            })
+            .map((post: CapturedPost): number => {
+              return post.envelope.chunkEndOffsetMs;
+            }),
+        );
+
+        /*
+         * The page loaded, was snapshotted, and nobody touched it: the
+         * session is as long as that, and the seal says so. It used to sit
+         * at the full idle window - the "30m 00s" the list showed.
+         */
+        expect(seal.envelope.chunkEndOffsetMs).toBe(footageEndMs);
+        expect(seal.envelope.chunkEndOffsetMs).toBeLessThan(
+          SESSION_REPLAY_FLUSH_INTERVAL_MS,
+        );
+
+        /* Sealed through the ordinary path: the page is alive. */
+        expect(seal.init["keepalive"]).not.toBe(true);
+      });
+
+      it("ends a session at its last interaction when the user leaves partway through", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+        const sessionId: string = instance.getSessionId();
+
+        await drainMicrotasks();
+
+        /* Two minutes of use, then gone. */
+        jest.advanceTimersByTime(2 * 60 * 1000);
+        clickPage();
+        const lastClickOffsetMs: number =
+          Date.now() - readStored().sessionStartUnixMs;
+
+        await drainMicrotasks();
+        await walkAway();
+
+        const seal: CapturedPost | undefined = framesFor(sessionId).find(
+          (post: CapturedPost): boolean => {
+            return post.envelope.isFinal;
+          },
+        );
+
+        expect(seal).toBeDefined();
+        expect(seal?.envelope.chunkEndOffsetMs).toBeGreaterThanOrEqual(
+          lastClickOffsetMs,
+        );
+        expect(seal?.envelope.chunkEndOffsetMs).toBeLessThan(
+          lastClickOffsetMs + SESSION_REPLAY_FLUSH_INTERVAL_MS,
+        );
+      });
+
+      /*
+       * The "15 sessions" the reporter's visitor had: one per half hour the
+       * tab stayed open, each one a still frame.
+       */
+      it("starts no session for nobody, however long the tab stays open", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+        const sessionId: string = instance.getSessionId();
+
+        await drainMicrotasks();
+
+        for (let window_: number = 0; window_ < 4; window_++) {
+          await walkAway();
+        }
+
+        const sessionIds: Set<string> = new Set<string>(
+          allFrames().map((post: CapturedPost): string => {
+            return post.envelope.sessionId;
+          }),
+        );
+
+        expect(Array.from(sessionIds)).toEqual([sessionId]);
+        expect(instance.getSessionId()).toBe(sessionId);
+        expect(readStored().sessionId).toBe(sessionId);
+
+        /* Sealed exactly once, and nothing posted behind the seal. */
+        const frames: Array<CapturedPost> = framesFor(sessionId);
+        const sealIndex: number = frames.findIndex(
+          (post: CapturedPost): boolean => {
+            return post.envelope.isFinal;
+          },
+        );
+
+        expect(sealIndex).toBe(frames.length - 1);
+        expect(
+          frames.filter((post: CapturedPost): boolean => {
+            return post.envelope.isFinal;
+          }),
+        ).toHaveLength(1);
+
+        /* Still recording; just not in any session. */
+        expect(instance.isStopped()).toBe(false);
+      });
+
+      it("starts the next session when the user comes back, on a snapshot of its own", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+        const firstSessionId: string = instance.getSessionId();
+        const tabId: string = instance.getTabId();
+
+        await drainMicrotasks();
+        await walkAway();
+
+        /* Back an hour later. */
+        jest.advanceTimersByTime(SESSION_REPLAY_IDLE_ROLLOVER_MS);
+        await drainMicrotasks();
+
+        fetchMock.mockClear();
+        const returnedAt: number = Date.now();
+
+        clickPage();
+        await runWake();
+
+        const secondSessionId: string = instance.getSessionId();
+
+        expect(secondSessionId).not.toBe(firstSessionId);
+        expect(instance.getTabId()).toBe(tabId);
+
+        /* It begins when the user came back, not when the old one ended. */
+        expect(readStored().sessionStartUnixMs).toBe(returnedAt);
+
+        /* The session that ended gets nothing more. */
+        expect(framesFor(firstSessionId)).toHaveLength(0);
+
+        const chunkZero: CapturedPost | undefined = framesFor(
+          secondSessionId,
+        )[0];
+
+        expect(chunkZero?.envelope.chunkIndex).toBe(0);
+        expect(chunkZero?.envelope.hasFullSnapshot).toBe(true);
+        expect(chunkZero?.envelope.sessionStartUnixMs).toBe(returnedAt);
+        expect(chunkZero?.payload).toContain("oneuptime.session-rotated");
+        expect(chunkZero?.payload).toContain(firstSessionId);
+        expect(chunkZero?.payload).toContain('"rotationReason":"idle"');
+
+        expect(readStored().sessionId).toBe(secondSessionId);
+        expect(readStored().lastActivityUnixMs).toBe(returnedAt);
+      });
+
+      it("wakes once for a burst of activity, not once per event", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+        const firstSessionId: string = instance.getSessionId();
+
+        await drainMicrotasks();
+        await walkAway();
+
+        fetchMock.mockClear();
+
+        clickPage();
+        clickPage();
+        clickPage();
+        await runWake();
+
+        const sessionIds: Set<string> = new Set<string>(
+          allFrames().map((post: CapturedPost): string => {
+            return post.envelope.sessionId;
+          }),
+        );
+
+        expect(sessionIds.size).toBe(1);
+        expect(sessionIds.has(firstSessionId)).toBe(false);
+        expect(
+          allFrames().filter((post: CapturedPost): boolean => {
+            return post.envelope.chunkIndex === 0;
+          }),
+        ).toHaveLength(1);
+      });
+
+      /*
+       * A laptop shut for the night: the timers stood still, so the first
+       * thing that happens on waking can be the user's mouse rather than
+       * the rollover's tick. That activity is the NEXT session's - it used
+       * to be written through to the expired one first, which revived it
+       * with the whole night as a dead zone inside.
+       */
+      it("ends the expired session where the user left when they are back before the rollover noticed", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+        const firstSessionId: string = instance.getSessionId();
+        const leftAt: number = readStored().lastActivityUnixMs;
+
+        await drainMicrotasks();
+
+        /* The clock jumps eight hours; not one timer ran meanwhile. */
+        jest.setSystemTime(Date.now() + 8 * 60 * 60 * 1000);
+
+        clickPage();
+        await drainMicrotasks();
+
+        /* The expired session was sealed, and not revived. */
+        const seal: CapturedPost | undefined = framesFor(firstSessionId).find(
+          (post: CapturedPost): boolean => {
+            return post.envelope.isFinal;
+          },
+        );
+
+        expect(seal).toBeDefined();
+        expect(seal?.envelope.eventCount).toBe(0);
+        expect(seal?.envelope.chunkEndOffsetMs).toBeLessThan(
+          SESSION_REPLAY_FLUSH_INTERVAL_MS,
+        );
+        expect(readStored().sessionId).toBe(firstSessionId);
+        expect(readStored().lastActivityUnixMs).toBe(leftAt);
+
+        await runWake();
+
+        expect(instance.getSessionId()).not.toBe(firstSessionId);
+
+        /* The click went to neither: it happened before the new snapshot. */
+        expect(
+          framesFor(firstSessionId).filter((post: CapturedPost): boolean => {
+            return post.envelope.eventCount > 0;
+          }),
+        ).toHaveLength(1);
+
+        /* And the flush tick that finally runs does not seal anything again. */
+        jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+        await drainMicrotasks();
+
+        expect(
+          framesFor(firstSessionId).filter((post: CapturedPost): boolean => {
+            return post.envelope.isFinal;
+          }),
+        ).toHaveLength(1);
+        expect(
+          framesFor(instance.getSessionId()).some(
+            (post: CapturedPost): boolean => {
+              return post.envelope.isFinal;
+            },
+          ),
+        ).toBe(false);
+      });
+
+      it("does not write activity into a session that had already expired", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+        const firstSessionId: string = instance.getSessionId();
+        const leftAt: number = readStored().lastActivityUnixMs;
+
+        await drainMicrotasks();
+
+        jest.setSystemTime(Date.now() + SESSION_REPLAY_IDLE_ROLLOVER_MS + 1000);
+
+        /* Activity, then the tick, with no chance for the wake in between. */
+        clickPage();
+        jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+        await drainMicrotasks();
+
+        expect(instance.getSessionId()).not.toBe(firstSessionId);
+        expect(readStored().sessionId).toBe(instance.getSessionId());
+        expect(readStored().lastActivityUnixMs).not.toBe(leftAt);
+
+        const seal: CapturedPost | undefined = framesFor(firstSessionId).find(
+          (post: CapturedPost): boolean => {
+            return post.envelope.isFinal;
+          },
+        );
+
+        expect(seal?.envelope.chunkEndOffsetMs).toBeLessThan(
+          SESSION_REPLAY_FLUSH_INTERVAL_MS,
+        );
+      });
+
+      it("drops nothing and counts nothing as lost while nobody is there", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+
+        await drainMicrotasks();
+        await walkAway();
+
+        /* The page keeps changing on its own while nobody watches. */
+        for (let i: number = 0; i < 5; i++) {
+          const node: HTMLDivElement = document.createElement("div");
+          node.textContent = `ticker ${i}`;
+          document.body.appendChild(node);
+          await drainMicrotasks();
+        }
+
+        jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+        await drainMicrotasks();
+
+        clickPage();
+        await runWake();
+
+        jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+        await drainMicrotasks();
+
+        /*
+         * Nothing was lost: what happened while nobody was there belongs to
+         * no session, and the next one opens on a snapshot of the page as
+         * it is now. Disclosing it as dropped footage would mark every
+         * session that follows an absence as damaged.
+         */
+        for (const post of framesFor(instance.getSessionId())) {
+          expect(post.envelope.droppedEvents || 0).toBe(0);
+        }
+      });
+
+      it("uploads nothing for an error on an abandoned tab", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+        const firstSessionId: string = instance.getSessionId();
+
+        await drainMicrotasks();
+        await walkAway();
+
+        fetchMock.mockClear();
+
+        /* A background poll failing, with nobody there. */
+        window.dispatchEvent(new ErrorEvent("error", { message: "boom" }));
+        jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS * 4);
+        await drainMicrotasks();
+
+        expect(allFrames()).toHaveLength(0);
+        expect(instance.getSessionId()).toBe(firstSessionId);
+      });
+
+      /*
+       * Capture on error: nothing uploads until something goes wrong. An
+       * abandoned tab under it mints no session either, so an error while
+       * nobody is there is not filed against the session that ended - and
+       * the user's return brings the trigger back to life.
+       */
+      it("under capture-on-error, mints nothing for an abandoned tab and captures again once the user is back", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder();
+        const firstSessionId: string = instance.getSessionId();
+
+        expect(instance.isUploading()).toBe(false);
+
+        await walkAway();
+
+        expect(instance.getSessionId()).toBe(firstSessionId);
+        expect(readStored().sessionId).toBe(firstSessionId);
+
+        window.dispatchEvent(new ErrorEvent("error", { message: "boom" }));
+        await drainMicrotasks();
+
+        expect(instance.isUploading()).toBe(false);
+        expect(allFrames()).toHaveLength(0);
+
+        clickPage();
+        await runWake();
+
+        const secondSessionId: string = instance.getSessionId();
+
+        expect(secondSessionId).not.toBe(firstSessionId);
+
+        /* The earlier error belonged to the session that ended. */
+        expect(instance.getTriggerReason()).toBeNull();
+        expect(instance.isUploading()).toBe(false);
+
+        /* Far enough from the click not to read as an error-click. */
+        jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+        await drainMicrotasks();
+
+        window.dispatchEvent(
+          new ErrorEvent("error", { message: "after return" }),
+        );
+        await drainMicrotasks();
+
+        expect(instance.isUploading()).toBe(true);
+        expect(instance.getTriggerReason()).toBe(
+          SessionReplayTriggerReason.Error,
+        );
+
+        const chunkZero: CapturedPost | undefined =
+          framesFor(secondSessionId)[0];
+
+        expect(chunkZero?.envelope.chunkIndex).toBe(0);
+        expect(chunkZero?.envelope.hasFullSnapshot).toBe(true);
+        expect(framesFor(firstSessionId)).toHaveLength(0);
+      });
+
+      it("starts the next session for an explicit captureSession()", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+        const firstSessionId: string = instance.getSessionId();
+
+        await drainMicrotasks();
+        await walkAway();
+
+        fetchMock.mockClear();
+
+        instance.captureSession("support asked for this");
+        await drainMicrotasks();
+
+        expect(instance.getSessionId()).not.toBe(firstSessionId);
+        expect(framesFor(firstSessionId)).toHaveLength(0);
+        expect(framesFor(instance.getSessionId())[0]?.envelope.chunkIndex).toBe(
+          0,
+        );
+
+        /* The marker lands in the NEW session, behind its snapshot. */
+        jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+        await drainMicrotasks();
+
+        expect(
+          framesFor(instance.getSessionId())
+            .map((post: CapturedPost): string => {
+              return post.payload;
+            })
+            .join(""),
+        ).toContain("captureSession");
+      });
+
+      it("joins the session a sibling tab started when the user came back there", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+        const firstSessionId: string = instance.getSessionId();
+
+        await drainMicrotasks();
+        await walkAway();
+
+        fetchMock.mockClear();
+
+        const siblingSessionId: string = "d".repeat(32);
+
+        writeStored({
+          sessionId: siblingSessionId,
+          sessionStartUnixMs: Date.now() - 1000,
+          lastActivityUnixMs: Date.now(),
+        });
+
+        window.dispatchEvent(
+          new StorageEvent("storage", { key: SESSION_KEY, newValue: "x" }),
+        );
+        await drainMicrotasks();
+
+        expect(instance.getSessionId()).toBe(siblingSessionId);
+
+        /* Not sealed a second time: it already ended where the user left. */
+        expect(framesFor(firstSessionId)).toHaveLength(0);
+
+        const adopted: CapturedPost | undefined =
+          framesFor(siblingSessionId)[0];
+
+        expect(adopted?.envelope.chunkIndex).toBe(0);
+        expect(adopted?.envelope.hasFullSnapshot).toBe(true);
+        expect(adopted?.payload).toContain('"rotationReason":"adopted"');
+      });
+
+      it("does not mint a session of its own when the stored one a sibling left has expired too", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+
+        await drainMicrotasks();
+        await walkAway();
+
+        const longAgo: number = Date.now() - 2 * SESSION_REPLAY_IDLE_ROLLOVER_MS;
+
+        writeStored({
+          sessionId: "e".repeat(32),
+          sessionStartUnixMs: longAgo,
+          lastActivityUnixMs: longAgo,
+        });
+
+        fetchMock.mockClear();
+
+        window.dispatchEvent(
+          new StorageEvent("storage", { key: SESSION_KEY, newValue: "x" }),
+        );
+        jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS * 2);
+        await drainMicrotasks();
+
+        expect(allFrames()).toHaveLength(0);
+        expect(readStored().sessionId).toBe("e".repeat(32));
+        expect(instance.isStopped()).toBe(false);
+      });
+
+      it("starts the next session at once when the page comes back from the back/forward cache", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+        const firstSessionId: string = instance.getSessionId();
+
+        await drainMicrotasks();
+        await walkAway();
+
+        fetchMock.mockClear();
+
+        const show: Event = new Event("pageshow");
+        Object.defineProperty(show, "persisted", { value: true });
+        window.dispatchEvent(show);
+        await drainMicrotasks();
+
+        expect(instance.getSessionId()).not.toBe(firstSessionId);
+        expect(instance.getState()).toBe("uploading");
+        expect(framesFor(firstSessionId)).toHaveLength(0);
+        expect(
+          framesFor(instance.getSessionId())[0]?.envelope.hasFullSnapshot,
+        ).toBe(true);
+      });
+
+      it("logs the idle end once, for the diagnostics a support ticket reads", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        startRecorder({ samplePercentage: 100 });
+
+        await drainMicrotasks();
+
+        clearDebugRecords();
+
+        await walkAway();
+        await walkAway();
+
+        expect(
+          getDebugRecords().filter((record: DebugRecord): boolean => {
+            return record.code === "session-ended-idle";
+          }),
+        ).toHaveLength(1);
+      });
+
+      /*
+       * Someone reading a long page without touching anything is still
+       * there: inside the idle window nothing about the session changes.
+       */
+      it("leaves a session alone that is quiet but inside the idle window", async (): Promise<void> => {
+        jest.useFakeTimers();
+
+        const instance: Recorder = startRecorder({ samplePercentage: 100 });
+        const sessionId: string = instance.getSessionId();
+
+        await drainMicrotasks();
+
+        jest.advanceTimersByTime(
+          SESSION_REPLAY_IDLE_ROLLOVER_MS - SESSION_REPLAY_FLUSH_INTERVAL_MS,
+        );
+        await drainMicrotasks();
+
+        expect(
+          framesFor(sessionId).some((post: CapturedPost): boolean => {
+            return post.envelope.isFinal;
+          }),
+        ).toBe(false);
+
+        /* A click then starts the window over: the session goes on. */
+        clickPage();
+        await runWake();
+
+        jest.advanceTimersByTime(
+          SESSION_REPLAY_IDLE_ROLLOVER_MS - SESSION_REPLAY_FLUSH_INTERVAL_MS,
+        );
+        await drainMicrotasks();
+
+        expect(instance.getSessionId()).toBe(sessionId);
+        expect(
+          framesFor(sessionId).some((post: CapturedPost): boolean => {
+            return post.envelope.isFinal;
+          }),
+        ).toBe(false);
+      });
     });
   });
 
