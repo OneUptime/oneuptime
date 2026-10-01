@@ -10,6 +10,8 @@ import {
   BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import DeleteItemNames from "Common/UI/Components/DeleteConfirmation/DeleteItemNames";
+import { getRecordDisplayName } from "Common/UI/Utils/ModelDisplayName";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Field from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -238,6 +240,17 @@ const Projects: FunctionComponent = (): ReactElement => {
         },
         confirmMessage: (items: Array<Project>): string => {
           return `Are you sure you want to permanently delete ${items.length} project(s)? This will remove all of their data (monitors, incidents, telemetry, and more) and cannot be undone.`;
+        },
+        // Which projects: a count alone cannot show the one picked by mistake.
+        confirmDetails: (items: Array<Project>): ReactElement => {
+          return (
+            <DeleteItemNames
+              names={items.map((project: Project) => {
+                return getRecordDisplayName(project, { column: "name" });
+              })}
+              totalCount={items.length}
+            />
+          );
         },
         onClick: async (
           onClickProps: BulkActionOnClickProps<Project>,

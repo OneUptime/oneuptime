@@ -6811,5 +6811,13 @@
   "Sites": "Lokasjoner",
   "Start Anchor": "Startpunkt",
   "Subscriber Page": "Abonnentside",
-  "Value Source": "Verdikilde"
+  "Value Source": "Verdikilde",
+  "Are you sure you want to delete {{name}}?": "Er du sikker på at du vil slette {{name}}?",
+  "Permanently delete {{name}}.": "Slett {{name}} permanent.",
+  "and {{remaining}} more": "og {{remaining}} til",
+  "Type {{name}} to confirm.": "Skriv {{name}} for å bekrefte.",
+  "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "Er du sikker på at du vil fjerne {{name}} fra denne hendelsen? Dette sletter alle SLA-sporingsdata for denne regelen.",
+  "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "Er du sikker på at du vil slette kontoen din ({{email}})? Denne handlingen er permanent og kan ikke angres. Alle dine personlige data fjernes.",
+  "Delete View": "Slett visning",
+  "Delete Saved View": "Slett lagret visning"
 }

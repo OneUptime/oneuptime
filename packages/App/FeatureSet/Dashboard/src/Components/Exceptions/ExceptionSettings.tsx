@@ -11,6 +11,7 @@ import Button, {
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
+import { readDisplayText } from "Common/UI/Utils/ModelDisplayName";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, {
   ModelAction,
@@ -48,6 +49,21 @@ interface StatusRow {
   buttonLabel: string;
   buttonIcon: IconProp;
   buttonStyle: ButtonStyleType;
+}
+
+/*
+ * "TypeError: Cannot read properties of undefined" - what the Delete card and
+ * its confirmation call this exception. "" when neither is recorded.
+ */
+export function getExceptionDisplayName(exception: TelemetryException): string {
+  return [
+    readDisplayText(exception.exceptionType),
+    readDisplayText(exception.message),
+  ]
+    .filter((part: string) => {
+      return part.length > 0;
+    })
+    .join(": ");
 }
 
 function getUserName(
@@ -240,6 +256,12 @@ const ExceptionSettings: FunctionComponent<ComponentProps> = (
         <ModelDelete
           modelType={TelemetryException}
           modelId={props.telemetryExceptionId}
+          /*
+           * An exception has no name; it is known by its type and message,
+           * the way the summary above shows it - "TypeError: x is undefined".
+           * Passed in, so the card does not read the exception a second time.
+           */
+          itemName={getExceptionDisplayName(props.exception)}
           onDeleteSuccess={() => {
             Navigation.navigate(
               RouteUtil.populateRouteParams(

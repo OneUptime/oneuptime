@@ -6811,5 +6811,13 @@
   "Sites": "Sites",
   "Start Anchor": "Ponto de início",
   "Subscriber Page": "Página de assinatura",
-  "Value Source": "Origem do valor"
+  "Value Source": "Origem do valor",
+  "Are you sure you want to delete {{name}}?": "Tem certeza de que deseja excluir {{name}}?",
+  "Permanently delete {{name}}.": "Excluir {{name}} permanentemente.",
+  "and {{remaining}} more": "e mais {{remaining}}",
+  "Type {{name}} to confirm.": "Digite {{name}} para confirmar.",
+  "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "Tem certeza de que deseja remover {{name}} deste incidente? Isso excluirá todos os dados de rastreamento de SLA para esta regra.",
+  "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "Tem certeza de que deseja excluir sua conta ({{email}})? Esta ação é permanente e não pode ser desfeita. Todos os seus dados pessoais serão removidos.",
+  "Delete View": "Excluir visualização",
+  "Delete Saved View": "Excluir visualização salva"
 }

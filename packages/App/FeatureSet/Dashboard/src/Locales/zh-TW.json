@@ -6811,5 +6811,13 @@
   "Sites": "站點",
   "Start Anchor": "起點",
   "Subscriber Page": "訂閱頁面",
-  "Value Source": "值來源"
+  "Value Source": "值來源",
+  "Are you sure you want to delete {{name}}?": "確定要刪除 {{name}} 嗎？",
+  "Permanently delete {{name}}.": "永久刪除 {{name}}。",
+  "and {{remaining}} more": "以及另外 {{remaining}} 項",
+  "Type {{name}} to confirm.": "輸入 {{name}} 以確認。",
+  "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "確定要從此事件中移除 {{name}} 嗎？這將刪除此規則的所有 SLA 追蹤資料。",
+  "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "確定要刪除您的帳號（{{email}}）嗎？此操作是永久性的，無法復原。您所有的個人資料將被移除。",
+  "Delete View": "刪除檢視",
+  "Delete Saved View": "刪除已儲存的檢視"
 }

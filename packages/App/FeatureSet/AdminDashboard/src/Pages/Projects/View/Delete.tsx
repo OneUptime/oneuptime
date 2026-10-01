@@ -46,6 +46,11 @@ const DeletePage: FunctionComponent = (): ReactElement => {
         modelType={Project}
         modelId={modelId}
         modelAPI={AdminModelAPI}
+        /*
+         * Deleting a project removes everything in it for every member, so
+         * Delete stays locked until the project's name has been typed.
+         */
+        requireTypedName={true}
         onDeleteSuccess={() => {
           Navigation.navigate(RouteMap[PageMap.PROJECTS] as Route);
         }}
