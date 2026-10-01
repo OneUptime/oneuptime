@@ -843,7 +843,7 @@
         },
         "trackRequestHeaders": {
           "type": "boolean",
-          "description": "Read an incoming W3C traceparent on plain-HTTP servers and continue that trace (OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS). Read-only and independent of `contextPropagation`. Turn on only when callers that already send a traceparent report to the same OneUptime project."
+          "description": "Track HTTP request headers in kernel for traceparent extraction. Only effective if `contextPropagation` is true."
         },
         "nodejs": {
           "type": "object",

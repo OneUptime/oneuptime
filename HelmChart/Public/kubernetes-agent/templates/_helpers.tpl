@@ -230,6 +230,17 @@ database system and no parent. See ebpf.dropUnlinkedDatabaseSpans.
   - parent_span_id == SpanID(0x0000000000000000) is "no parent" in a form
     the pinned collector (0.96.0) understands; IsRootSpan() is newer.
 */}}
+{{/*
+Whether to run `filter/ebpf-unlinked-db`. Only with eBPF on (the traces
+pipeline exists only then), and on unless explicitly set to false: an upgrade
+with --reuse-values keeps the old release's values, which do not have this key,
+and a default-on fix should not silently stay off for those clusters.
+Usage: {{- if eq (include "kubernetes-agent.dropUnlinkedDatabaseSpans" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.dropUnlinkedDatabaseSpans" -}}
+{{- and (.Values.ebpf.enabled | default false) (ne (toString .Values.ebpf.dropUnlinkedDatabaseSpans) "false") -}}
+{{- end -}}
+
 {{- define "kubernetes-agent.ebpfUnlinkedDatabaseSpanCondition" -}}
 resource.attributes["telemetry.distro.name"] == "opentelemetry-ebpf-instrumentation" and parent_span_id == SpanID(0x0000000000000000) and (attributes["db.system.name"] != nil or attributes["db.system"] != nil)
 {{- end }}

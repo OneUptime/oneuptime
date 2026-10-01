@@ -985,20 +985,11 @@ ebpf:
   # — this chart rejects it so a stale override fails loudly at install time
   # rather than silently disabling propagation.)
   contextPropagationMode: "headers"
-  # READ an incoming W3C `traceparent` header on plain-HTTP servers (via
-  # kprobes) and continue that trace, instead of starting a new one. Maps to
-  # `OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS`. Read-only: it writes nothing to any
-  # connection, unlike `contextPropagation` (Go servers always read the header;
-  # this is for every other runtime).
-  #
-  # Independent of `contextPropagation`, which turns header reading on by
-  # itself. Turn this on when callers ALREADY send a `traceparent` — an
-  # ingress, a mesh, or OpenTelemetry SDKs in other apps — AND those callers'
-  # spans go to the same OneUptime project as this cluster's. If they report
-  # to a different project, the eBPF spans adopt parent ids that only exist
-  # over there, and every trace here starts with a "missing parent". OBI also
-  # documents the header scan as costly on high-traffic nodes. Off by default.
-  trackRequestHeaders: false
+  # Track HTTP request headers in kernel for traceparent extraction on
+  # the receiving side via kprobes. Needed for propagation to work across
+  # plain (non-Go, non-TLS) HTTP servers. Only takes effect if
+  # `contextPropagation` is true.
+  trackRequestHeaders: true
 
   # OBI's Node.js support. For a process OBI identifies as Node.js it sends
   # SIGUSR1, which opens Node's inspector on 127.0.0.1:9229 inside the pod's

@@ -18,10 +18,9 @@ spec:
         {{- include "kubernetes-agent.selectorLabels" . | nindent 8 }}
         component: ebpf-instrument
       annotations:
-        # OBI reads its config file once, at startup; roll the pods when it
-        # changes so a new exclusion or route takes effect.
-        # Hashes the config itself (the helper configmap-ebpf.yaml renders),
-        # so only a change OBI would see rolls the pods.
+        # OBI reads its config file once, at startup, so roll the pods when
+        # it changes. Hashes the config itself (the helper configmap-ebpf.yaml
+        # renders), so only a change OBI would see rolls them.
         checksum/config: {{ include "kubernetes-agent.obiConfig" . | sha256sum }}
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
@@ -98,14 +97,6 @@ spec:
             # itself. See ebpf.excludeOtelInstrumentedServices.
             - name: OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES
               value: {{ ternary "false" "true" (eq (toString .Values.ebpf.excludeOtelInstrumentedServices) "false") | quote }}
-            {{- if .Values.ebpf.trackRequestHeaders }}
-            # Read (never write) an incoming W3C traceparent on plain-HTTP
-            # servers. Rendered on its own: it used to sit inside the
-            # contextPropagation block below, where OBI already turns header
-            # reading on, so it could never change anything.
-            - name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
-              value: "true"
-            {{- end }}
             {{- if .Values.ebpf.contextPropagation }}
             # Inject a W3C `traceparent` into outbound traffic so traces link
             # across services. OFF unless explicitly opted into, because every
@@ -120,6 +111,10 @@ spec:
             # that would otherwise stop injection is always open.
             - name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
               value: {{ .Values.ebpf.contextPropagationMode | default "headers" | quote }}
+            {{- if .Values.ebpf.trackRequestHeaders }}
+            - name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
+              value: "true"
+            {{- end }}
             {{- end }}
             # OTLP HTTP export to the in-cluster collector (the
             # metrics-collector Deployment). The collector adds k8sattributes

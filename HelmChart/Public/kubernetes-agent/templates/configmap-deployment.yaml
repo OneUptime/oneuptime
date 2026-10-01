@@ -397,7 +397,7 @@ data:
       {{- include "kubernetes-agent.filterProcessor" (dict "root" . "signals" $signals) | nindent 6 }}
       {{- end }}
 
-      {{- if and .Values.ebpf.enabled .Values.ebpf.dropUnlinkedDatabaseSpans }}
+      {{- if eq (include "kubernetes-agent.dropUnlinkedDatabaseSpans" .) "true" }}
       # Drop eBPF database spans that belong to no trace: the span OBI records
       # inside the database server for every command it receives (database
       # wire protocols carry no trace context, so it can never join the
@@ -526,7 +526,7 @@ data:
             - memory_limiter
             - k8sattributes
             - resource
-            {{- if .Values.ebpf.dropUnlinkedDatabaseSpans }}
+            {{- if eq (include "kubernetes-agent.dropUnlinkedDatabaseSpans" .) "true" }}
             # Before the user's filters and the sampler, so neither spends
             # work on spans that are about to be dropped anyway.
             - filter/ebpf-unlinked-db

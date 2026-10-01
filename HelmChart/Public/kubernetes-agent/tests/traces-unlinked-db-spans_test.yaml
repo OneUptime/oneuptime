@@ -81,6 +81,19 @@ tests:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n        - batch\\n"
 
+  - it: stays on for a release upgraded with --reuse-values from values that predate it
+    set:
+      ebpf.dropUnlinkedDatabaseSpans: null
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-unlinked-db:\\n"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - filter/ebpf-unlinked-db\\n"
+
   - it: does not exist when eBPF is off, since there is no traces pipeline to run it in
     set:
       ebpf.enabled: false

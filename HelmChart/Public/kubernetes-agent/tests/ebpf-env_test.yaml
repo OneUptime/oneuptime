@@ -1,11 +1,5 @@
-# The OTEL_EBPF_* switches on the eBPF DaemonSet that decide how OBI links and
-# names spans.
-#
-# trackRequestHeaders used to render only inside the contextPropagation
-# block. OBI already reads incoming headers whenever propagation is on, so in
-# that position the setting could never change anything — and with
-# propagation off (the default) it was not rendered at all. It is now its own
-# switch, read-only, off by default.
+# The OTEL_EBPF_* switches on the eBPF DaemonSet that decide how OBI links
+# spans into traces.
 suite: eBPF DaemonSet trace-linking switches
 release:
   name: oneuptime-agent
@@ -73,55 +67,23 @@ tests:
             name: OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES
             value: "true"
 
-  - it: neither reads nor writes trace headers by default
+  - it: writes no trace headers by default
     asserts:
-      - notContains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
-          any: true
       - notContains:
           path: spec.template.spec.containers[0].env
           content:
             name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
           any: true
-
-  - it: reads incoming headers without turning on propagation
-    set:
-      ebpf.trackRequestHeaders: true
-    asserts:
-      - contains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
-            value: "true"
-      # The point of the change: reading is not writing.
-      - notContains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
-          any: true
-
-  - it: renders propagation alone when only propagation is on
-    set:
-      ebpf.contextPropagation: true
-    asserts:
-      - contains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
-            value: headers
       - notContains:
           path: spec.template.spec.containers[0].env
           content:
             name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
           any: true
 
-  - it: renders both when both are on
+  - it: renders propagation, with header tracking, when propagation is on
     set:
       ebpf.contextPropagation: true
       ebpf.contextPropagationMode: tcp
-      ebpf.trackRequestHeaders: true
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
@@ -133,6 +95,20 @@ tests:
           content:
             name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
             value: "true"
+
+  # trackRequestHeaders stays where it was: inside the propagation block. Every
+  # values file predating this chart says `true`, and with --reuse-values a
+  # release keeps it, so moving it out would switch on header reading for
+  # clusters that never asked for it.
+  - it: does not read incoming headers on its own, so old values files keep their behaviour
+    set:
+      ebpf.trackRequestHeaders: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
+          any: true
 
   - it: still rejects the removed `ip` propagation mode
     set:
