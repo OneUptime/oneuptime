@@ -25,9 +25,13 @@ import {
   WorkflowStepStatus,
   WorkflowStepTrace,
   WorkflowStepTraceEntry,
+  WorkflowStepTraceFieldName,
+  WorkflowStepTraceNextStep,
+  WorkflowStepTraceWarning,
   appendTraceStep,
   emptyTrace,
   parseTrace,
+  truncateTraceValue,
   truncateTraceValues,
 } from "Common/Types/Workflow/StepTrace";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
@@ -192,6 +196,39 @@ const redactSecretValues: RedactSecretValuesFunction = (
   }
 };
 
+type RedactTraceWarningFunction = (
+  warning: WorkflowStepTraceWarning,
+  secrets: Array<string>,
+) => WorkflowStepTraceWarning;
+
+/*
+ * A warning quotes what the step was configured with - the references that
+ * did not resolve, the variable whose token could not be refreshed - so it is
+ * scrubbed like any other text the run persists.
+ */
+const redactTraceWarning: RedactTraceWarningFunction = (
+  warning: WorkflowStepTraceWarning,
+  secrets: Array<string>,
+): WorkflowStepTraceWarning => {
+  const redacted: WorkflowStepTraceWarning = {
+    message: redactSecretsFromString(String(warning.message || ""), secrets),
+  };
+
+  if (warning.argumentId) {
+    redacted.argumentId = warning.argumentId;
+  }
+
+  if (Array.isArray(warning.unresolvedReferences)) {
+    redacted.unresolvedReferences = warning.unresolvedReferences.map(
+      (reference: string): string => {
+        return redactSecretsFromString(String(reference), secrets);
+      },
+    );
+  }
+
+  return redacted;
+};
+
 type RedactWorkflowStepTraceFunction = (
   trace: WorkflowStepTrace,
   secrets: Array<string>,
@@ -209,10 +246,10 @@ const redactWorkflowStepTrace: RedactWorkflowStepTraceFunction = (
   trace: WorkflowStepTrace,
   secrets: Array<string>,
 ): WorkflowStepTrace => {
-  return {
+  const redacted: WorkflowStepTrace = {
     ...trace,
     steps: trace.steps.map((entry: WorkflowStepTraceEntry) => {
-      return {
+      const redactedEntry: WorkflowStepTraceEntry = {
         ...entry,
         argumentValues: redactSecretValues(
           entry.argumentValues,
@@ -226,8 +263,34 @@ const redactWorkflowStepTrace: RedactWorkflowStepTraceFunction = (
           ? redactSecretsFromString(entry.errorMessage, secrets)
           : undefined,
       };
+
+      if (entry.argumentTemplates) {
+        redactedEntry.argumentTemplates = redactSecretValues(
+          entry.argumentTemplates,
+          secrets,
+        ) as JSONObject;
+      }
+
+      if (Array.isArray(entry.warnings)) {
+        redactedEntry.warnings = entry.warnings.map(
+          (warning: WorkflowStepTraceWarning): WorkflowStepTraceWarning => {
+            return redactTraceWarning(warning, secrets);
+          },
+        );
+      }
+
+      return redactedEntry;
     }),
   };
+
+  if (trace.runErrorMessage) {
+    redacted.runErrorMessage = redactSecretsFromString(
+      trace.runErrorMessage,
+      secrets,
+    );
+  }
+
+  return redacted;
 };
 
 export function getRemainingWorkflowTimeInMs(
@@ -308,6 +371,25 @@ export default class RunWorkflow {
   private callChain: Array<string> = [];
   private workflowDeadlineAtInMs: number = 0;
   private stepTrace: WorkflowStepTrace = emptyTrace();
+  /*
+   * The run stack as the graph draws it, before any narrowing to a single
+   * step. Only read to name the steps a port is wired to.
+   */
+  private graphRunStack: RunStack | null = null;
+  /*
+   * What the runner noticed about the step now running that did not stop it,
+   * such as a {{...}} that resolved to nothing. Gathered while the step is
+   * prepared, written to the run log as it happens, and handed to the step's
+   * trace entry by recordStep, which starts the next step afresh.
+   */
+  private currentStepWarnings: Array<WorkflowStepTraceWarning> = [];
+  /*
+   * Whether the failure that ends the run is already on a step's trace entry.
+   * When it is not - a timeout between steps, a cycle, a failure before the
+   * first step - the trace carries the reason itself, or the Steps view would
+   * show a run that stopped for no reason it could see.
+   */
+  private isRunFailureOnAStep: boolean = false;
   /*
    * An OAuth token whose expiry is unknown is fetched once per run: a token
    * fetched at or after this moment is reused by later steps, one fetched
@@ -491,6 +573,13 @@ export default class RunWorkflow {
       let runStack: RunStack = await this.makeRunStack(workflow.graph);
 
       /*
+       * The graph as drawn, kept even when the run is narrowed below: a step's
+       * trace entry names the steps its port is wired to, and a test of one
+       * step should still say what would have run next.
+       */
+      this.graphRunStack = runStack;
+
+      /*
        * "Run just this step": narrow the stack to the one component and start
        * there. Its out ports are dropped so nothing downstream follows, and
        * because this happens after makeRunStack the component still gets its
@@ -499,13 +588,19 @@ export default class RunWorkflow {
        * Any {{...}} the step reads from another component resolves to nothing,
        * since nothing else ran — the runner already logs a warning naming each
        * reference that did not resolve, which is the honest outcome rather
-       * than a silent empty value.
+       * than a silent empty value. The trace is marked as a test of one step,
+       * so the Steps view can say why.
        */
       if (runProps.runOnlyComponentId) {
         runStack = this.narrowRunStackToSingleComponent(
           runStack,
           runProps.runOnlyComponentId,
         );
+
+        this.stepTrace = {
+          ...this.stepTrace,
+          singleStepComponentId: runProps.runOnlyComponentId,
+        };
       }
 
       /*
@@ -599,6 +694,9 @@ export default class RunWorkflow {
           );
         }
 
+        // A new step: nothing has been noticed about it yet.
+        this.currentStepWarnings = [];
+
         /*
          * Make sure every OAuth 2.0 variable this step refers to holds a
          * token that has not expired, before its arguments are resolved. A
@@ -616,7 +714,7 @@ export default class RunWorkflow {
             node: stackItem.node,
             args: {},
             returnValues: {},
-            executedPort: null,
+            port: null,
             startedAt: OneUptimeDate.getCurrentDate(),
             variables: variables,
             errorMessage:
@@ -630,10 +728,32 @@ export default class RunWorkflow {
 
         // now actually run this component.
 
-        let args: JSONObject = this.getComponentArguments(
-          storageMap,
-          stackItem.node,
-        );
+        let args: JSONObject;
+
+        try {
+          args = this.getComponentArguments(storageMap, stackItem.node);
+        } catch (argumentsError: unknown) {
+          /*
+           * An argument that cannot be read (JSON that does not parse) stops
+           * the run before the component starts. That is still this step
+           * failing, so the trace ends on it rather than on the step before,
+           * which worked.
+           */
+          this.recordStep({
+            node: stackItem.node,
+            args: {},
+            returnValues: {},
+            port: null,
+            startedAt: OneUptimeDate.getCurrentDate(),
+            variables: variables,
+            errorMessage:
+              argumentsError instanceof Exception
+                ? argumentsError.getMessage()
+                : String(argumentsError),
+          });
+
+          throw argumentsError;
+        }
 
         if (stackItem.node.componentType === ComponentType.Trigger) {
           // If this is the trigger. Then pass workflow argument to this component as args to execute.
@@ -652,6 +772,17 @@ export default class RunWorkflow {
         );
         this.log("Component Logs: " + executeComponentId);
 
+        /*
+         * What the step received, kept as it was handed over. Components work
+         * on their arguments in place - If / Else wraps its inputs in quotes,
+         * the database steps parse their queries and add the project - so a
+         * trace read from `args` after the run recorded the component's
+         * working copy rather than its input. Every one of them replaces a
+         * whole argument rather than editing inside one, so a shallow copy is
+         * enough.
+         */
+        const receivedArgs: JSONObject = { ...args };
+
         const stepStartedAt: Date = OneUptimeDate.getCurrentDate();
         let result: RunReturnType;
 
@@ -669,9 +800,9 @@ export default class RunWorkflow {
            */
           this.recordStep({
             node: stackItem.node,
-            args: args,
+            args: receivedArgs,
             returnValues: {},
-            executedPort: null,
+            port: null,
             startedAt: stepStartedAt,
             variables: variables,
             errorMessage:
@@ -689,9 +820,9 @@ export default class RunWorkflow {
          */
         this.recordStep({
           node: stackItem.node,
-          args: args,
+          args: receivedArgs,
           returnValues: result.returnValues,
-          executedPort: result.executePort?.id || null,
+          port: result.executePort || null,
           startedAt: stepStartedAt,
           variables: variables,
           errorMessage: didWorkflowErrorOut
@@ -797,6 +928,7 @@ export default class RunWorkflow {
         return;
       }
 
+      this.recordRunFailure(err);
       this.cleanLogs(variables);
 
       if (err instanceof TimeoutException) {
@@ -908,6 +1040,29 @@ export default class RunWorkflow {
     });
   }
 
+  /*
+   * Put the reason a run stopped on the trace itself, unless a step's entry
+   * already carries it. Called before cleanLogs, which redacts it with the
+   * rest of the trace.
+   */
+  private recordRunFailure(err: unknown): void {
+    if (this.isRunFailureOnAStep) {
+      return;
+    }
+
+    const message: string =
+      err instanceof Error ? err.message : String(err || "");
+
+    if (!message) {
+      return;
+    }
+
+    this.stepTrace = {
+      ...this.stepTrace,
+      runErrorMessage: truncateTraceValue(message) as string,
+    };
+  }
+
   public cleanLogs(variables: Array<WorkflowVariable>): void {
     const secrets: Array<string> = getSecretWorkflowVariableValues(variables);
 
@@ -924,31 +1079,22 @@ export default class RunWorkflow {
   }
 
   /**
-   * Note in the run log every {{...}} reference that went in and came back out
-   * unchanged.
-   *
-   * VMAPI.replaceValueInPlace skips a reference it cannot resolve and leaves
-   * the literal text in place, so a mistyped path — {{local.componets.x}} for
-   * {{local.components.x}} — ships "{{local.componets.x}}" as the value and the
-   * run still reports Success. Whoever reads the log afterwards has no way to
-   * tell that from a value that was genuinely meant to be that text. This says
-   * so out loud.
-   *
-   * Compares against the input rather than just scanning the output, so a
-   * resolved value that happens to contain braces of its own is not reported.
-   */
-  /**
    * Add one step to the run's trace.
    *
    * Redaction goes through exactly the same helper the text log uses, so a
    * value hidden in `logs` cannot reappear here — the trace is readable by
    * anyone who can read the log, and these are the same secrets.
+   *
+   * Besides the values, the entry carries what the Steps view needs to read on
+   * its own: the port taken by name and the steps it is wired to, the names
+   * of the arguments and return values in order, the {{...}} each argument was
+   * configured with, and the warnings gathered while the step was prepared.
    */
   private recordStep(params: {
     node: NodeDataProp;
     args: JSONObject;
     returnValues: JSONObject;
-    executedPort: string | null;
+    port: Port | null;
     startedAt: Date;
     variables: Array<WorkflowVariable>;
     errorMessage?: string | undefined;
@@ -970,8 +1116,16 @@ export default class RunWorkflow {
      * trace recorded them green, collapsed under a check mark.
      */
     const failed: boolean = Boolean(
-      params.errorMessage || params.executedPort === "error",
+      params.errorMessage || params.port?.id === "error",
     );
+
+    /*
+     * Every caller that passes a message stops the run straight after, so a
+     * message here means the run's failure has a step to show it on.
+     */
+    if (params.errorMessage) {
+      this.isRunFailureOnAStep = true;
+    }
 
     const entry: WorkflowStepTraceEntry = {
       componentId: params.node.id,
@@ -999,15 +1153,149 @@ export default class RunWorkflow {
           secrets,
         ) as JSONObject,
       ),
-      executedPort: params.executedPort,
+      executedPort: params.port?.id || null,
       errorMessage: params.errorMessage
         ? redactSecretsFromString(params.errorMessage, secrets)
         : undefined,
+      argumentNames: this.getFieldNames(params.node.metadata?.arguments),
+      returnValueNames: this.getFieldNames(params.node.metadata?.returnValues),
     };
+
+    if (params.port?.id) {
+      entry.executedPortTitle = params.port.title || params.port.id;
+
+      if (params.port.description) {
+        entry.executedPortDescription = params.port.description;
+      }
+
+      entry.nextSteps = this.getStepsWiredToPort(
+        params.node.id,
+        params.port.id,
+      );
+    }
+
+    const argumentTemplates: JSONObject = this.getArgumentTemplates(
+      params.node,
+    );
+
+    if (Object.keys(argumentTemplates).length > 0) {
+      entry.argumentTemplates = truncateTraceValues(
+        redactSecretValues(argumentTemplates, secrets) as JSONObject,
+      );
+    }
+
+    if (this.currentStepWarnings.length > 0) {
+      entry.warnings = this.currentStepWarnings.map(
+        (warning: WorkflowStepTraceWarning): WorkflowStepTraceWarning => {
+          return redactTraceWarning(warning, secrets);
+        },
+      );
+    }
+
+    // The next step starts with nothing noticed about it.
+    this.currentStepWarnings = [];
 
     this.stepTrace = appendTraceStep(this.stepTrace, entry);
   }
 
+  /*
+   * The ids and names of a component's arguments or return values, in the
+   * order its metadata lists them.
+   */
+  private getFieldNames(
+    fields: Array<Argument> | Array<ReturnValue> | undefined,
+  ): Array<WorkflowStepTraceFieldName> {
+    return (fields || []).map(
+      (field: Argument | ReturnValue): WorkflowStepTraceFieldName => {
+        return { id: field.id, name: field.name || field.id };
+      },
+    );
+  }
+
+  /**
+   * The steps a component's port is wired to on the canvas, in the order the
+   * graph connects them - read from the graph as drawn, so a test of a single
+   * step still names what would have run after it.
+   */
+  public getStepsWiredToPort(
+    componentId: string,
+    portId: string,
+  ): Array<WorkflowStepTraceNextStep> {
+    const stack: Dictionary<RunStackItem> = this.graphRunStack?.stack || {};
+    const connected: Array<string> = stack[componentId]?.outPorts[portId] || [];
+
+    return Array.from(new Set(connected)).map(
+      (nextComponentId: string): WorkflowStepTraceNextStep => {
+        const nextNode: NodeDataProp | undefined = stack[nextComponentId]?.node;
+
+        return {
+          componentId: nextComponentId,
+          title:
+            nextNode?.metadata?.title || nextNode?.metadataId || nextComponentId,
+        };
+      },
+    );
+  }
+
+  /**
+   * Each argument as it was configured, for the arguments that refer to
+   * another step or a variable: the value a reader wants to see next to what
+   * it resolved to.
+   *
+   * A sensitive argument is left out whatever it holds. Its configured value
+   * may be a literal secret with a reference beside it, and the trace must not
+   * show what the log hides.
+   */
+  public getArgumentTemplates(node: NodeDataProp): JSONObject {
+    const templates: JSONObject = {};
+
+    for (const argument of node.metadata?.arguments || []) {
+      if (argument.isSensitive) {
+        continue;
+      }
+
+      const configured: JSONValue | undefined = node.arguments?.[argument.id];
+
+      if (configured === undefined || configured === null) {
+        continue;
+      }
+
+      let text: string = "";
+
+      if (typeof configured === "string") {
+        text = configured;
+      } else if (typeof configured === "object") {
+        try {
+          text = JSON.stringify(configured);
+        } catch {
+          continue;
+        }
+      }
+
+      if (parseTemplateExpressions(text).length === 0) {
+        continue;
+      }
+
+      templates[argument.id] = configured;
+    }
+
+    return templates;
+  }
+
+  /**
+   * Note in the run log every {{...}} reference that went in and came back out
+   * unchanged, and keep the same note for the step's trace entry.
+   *
+   * VMAPI.replaceValueInPlace skips a reference it cannot resolve and leaves
+   * the literal text in place, so a mistyped path — {{local.componets.x}} for
+   * {{local.components.x}} — ships "{{local.componets.x}}" as the value and the
+   * run still reports Success. Whoever reads the log afterwards has no way to
+   * tell that from a value that was genuinely meant to be that text. This says
+   * so out loud.
+   *
+   * Compares against the input rather than just scanning the output, so a
+   * resolved value that happens to contain braces of its own is not reported.
+   */
   private logUnresolvedReferences(params: {
     argument: Argument;
     before: JSONValue;
@@ -1034,11 +1322,31 @@ export default class RunWorkflow {
 
     const distinct: Array<string> = Array.from(new Set(unresolved));
 
-    this.log(
-      `Warning: ${distinct.join(", ")} in "${
-        params.argument.name
-      }" did not resolve to anything and was left as literal text. Check the step id and the return value name.`,
+    this.logStepWarning(
+      {
+        message: `${distinct.join(", ")} in "${
+          params.argument.name
+        }" did not resolve to anything and was left as literal text. Check the step id and the return value name.`,
+        argumentId: params.argument.id,
+        unresolvedReferences: distinct,
+      },
+      "Warning: ",
     );
+  }
+
+  /*
+   * A warning about the step being prepared: written to the run log as it
+   * happens, in the same words as before, and kept for the step's trace entry
+   * so the Steps view can show it on the step rather than only in the full
+   * log. The trace keeps the sentence without the log's "Warning:" label,
+   * since the view marks it as a warning already.
+   */
+  private logStepWarning(
+    warning: WorkflowStepTraceWarning,
+    logPrefix: string = "",
+  ): void {
+    this.log(logPrefix + warning.message);
+    this.currentStepWarnings.push(warning);
   }
 
   /**
@@ -1132,9 +1440,9 @@ export default class RunWorkflow {
           cachedExpiresAt &&
           cachedExpiresAt.getTime() > Date.now()
         ) {
-          this.log(
-            `Could not refresh the OAuth 2.0 access token for ${label}: ${reason} Using the cached token, which expires at ${cachedExpiresAt.toISOString()}.`,
-          );
+          this.logStepWarning({
+            message: `Could not refresh the OAuth 2.0 access token for ${label}: ${reason} Using the cached token, which expires at ${cachedExpiresAt.toISOString()}.`,
+          });
           continue;
         }
 
