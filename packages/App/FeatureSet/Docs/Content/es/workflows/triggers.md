@@ -61,7 +61,7 @@ El registro completo se pasa al siguiente bloque. Por ejemplo, el disparador **I
 - **Página de estado Suscriptor** — da la bienvenida a quien se suscribe a una página de estado.
 - **On-Call Duty Policy** — sincroniza los cambios de turno con otro sistema de guardias.
 
-Busca por nombre en el panel **Add Trigger** para dar con el que quieres.
+En el panel **Add Trigger** están en **OneUptime resources**: haz clic en el recurso y luego en el disparador. **Browse all resources** los tiene todos, y el cuadro de búsqueda encuentra un disparador con unas pocas palabras, como `incident created`.
 
 ## ¿Qué disparador me conviene?
 

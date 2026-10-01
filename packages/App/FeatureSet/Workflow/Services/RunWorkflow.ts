@@ -31,6 +31,7 @@ import {
   appendTraceStep,
   emptyTrace,
   parseTrace,
+  sampleTraceValues,
   truncateTraceValue,
   truncateTraceValues,
 } from "Common/Types/Workflow/StepTrace";
@@ -267,6 +268,13 @@ const redactWorkflowStepTrace: RedactWorkflowStepTraceFunction = (
       if (entry.argumentTemplates) {
         redactedEntry.argumentTemplates = redactSecretValues(
           entry.argumentTemplates,
+          secrets,
+        ) as JSONObject;
+      }
+
+      if (entry.returnValueSamples) {
+        redactedEntry.returnValueSamples = redactSecretValues(
+          entry.returnValueSamples,
           secrets,
         ) as JSONObject;
       }
@@ -1118,6 +1126,15 @@ export default class RunWorkflow {
       params.variables,
     );
 
+    // What the log may show of the returned values, before any is cut short.
+    const loggableReturnValues: JSONObject = redactSecretValues(
+      redactSensitiveComponentValuesForLogs(
+        params.returnValues,
+        params.node.metadata?.returnValues || [],
+      ),
+      secrets,
+    ) as JSONObject;
+
     /*
      * Leaving by the error port is a failure, whether or not anything was
      * thrown.
@@ -1158,15 +1175,7 @@ export default class RunWorkflow {
           secrets,
         ) as JSONObject,
       ),
-      returnValues: truncateTraceValues(
-        redactSecretValues(
-          redactSensitiveComponentValuesForLogs(
-            params.returnValues,
-            params.node.metadata?.returnValues || [],
-          ),
-          secrets,
-        ) as JSONObject,
-      ),
+      returnValues: truncateTraceValues(loggableReturnValues),
       executedPort: params.port?.id || null,
       errorMessage: params.errorMessage
         ? redactSecretsFromString(params.errorMessage, secrets)
@@ -1186,6 +1195,18 @@ export default class RunWorkflow {
         params.node.id,
         params.port.id,
       );
+    }
+
+    /*
+     * A value too big to keep whole is kept above as cut-off text. Its
+     * cut-down copy keeps the shape, so the builder can still suggest the
+     * fields inside it - the keys of a large webhook body, say.
+     */
+    const returnValueSamples: JSONObject =
+      sampleTraceValues(loggableReturnValues);
+
+    if (Object.keys(returnValueSamples).length > 0) {
+      entry.returnValueSamples = returnValueSamples;
     }
 
     const argumentTemplates: JSONObject = this.getArgumentTemplates(

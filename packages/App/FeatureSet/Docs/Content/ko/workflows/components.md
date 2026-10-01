@@ -131,7 +131,7 @@ Microsoft Teams 채널에 메시지를 게시합니다.
 
 ## Conditions
 
-비교 결과에 따라 분기합니다. **Add Component** 패널에서 이 블록의 이름은 **If / Else**이며 조건 범주에 있습니다.
+비교 결과에 따라 분기합니다. **Add Component** 패널에서 이 블록의 이름은 **If / Else**이며 **Popular** 아래에 있습니다.
 
 **설정**:
 
@@ -159,7 +159,7 @@ Microsoft Teams 채널에 메시지를 게시합니다.
 
 ## OneUptime 데이터 구성 요소
 
-OneUptime의 모든 레코드 종류(모니터, 인시던트, 경고, 상태 페이지, 온콜 정책 등 다수)에 대해 **Add Component** 패널에는 다음 구성 요소들이 준비되어 있습니다 — 유형 이름으로 검색하세요. 각 제목은 레코드 유형에서 자동으로 만들어지므로, Monitor 계열은 이렇게 나옵니다.
+OneUptime의 모든 레코드 종류(모니터, 인시던트, 경고, 상태 페이지, 온콜 정책 등 다수)에 대해 **Add Component** 패널에는 다음 구성 요소들이 준비되어 있습니다. **OneUptime resources** 아래에서 레코드 유형을 클릭하거나(보이지 않는 유형은 **Browse all resources**에 있습니다) 유형 이름으로 검색하세요. 각 제목은 레코드 유형에서 자동으로 만들어지므로, Monitor 계열은 이렇게 나옵니다.
 
 - **Find One Monitor** — 쿼리에 맞는 레코드 하나를 읽습니다.
 - **Find Many Monitors** — 쿼리에 맞는 레코드 목록을 읽습니다.

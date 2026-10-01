@@ -61,7 +61,7 @@ Fast jedes Textfeld nimmt Variablen entgegen:
 - Der Nachrichtentext bei Slack, Teams, Discord, Telegram, E-Mail.
 - Betreff und Text einer E-Mail.
 - Header- und Body-Felder (innerhalb von String-Werten).
-- Beide Seiten eines Bausteins **If / Else** (zu finden unter der Kategorie Conditions).
+- Beide Seiten eines Bausteins **If / Else**.
 
 In JSON-Feldern können Sie eine Variable innerhalb eines String-Werts verwenden, aber nicht als Schlüssel. Eine Referenz, die allein einen ganzen Wert ausfüllt, wird nackt eingesetzt – so bekommen Sie ein komplettes Objekt in ein JSON-Feld hinein. Wenn Sie eine Struktur dynamisch aufbauen müssen, bauen Sie sie in einem Baustein **Run Custom JavaScript** und geben dessen Ausgabe an den nächsten Baustein weiter.
 

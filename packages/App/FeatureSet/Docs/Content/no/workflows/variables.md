@@ -61,7 +61,7 @@ Nesten hvert tekstfelt tar imot variabler:
 - Meldingsteksten på Slack, Teams, Discord, Telegram, E-post.
 - Emnet og teksten i en e-post.
 - Header- og kroppsfelt (inni strengverdier).
-- Begge sider av en **If / Else**-blokk (som ligger under Betingelser-kategorien).
+- Begge sider av en **If / Else**-blokk.
 
 I JSON-felt kan du bruke en variabel inni en strengverdi, men ikke som nøkkel. En referanse som fyller en hel verdi alene, settes inn rått, så du kan slippe et helt objekt inn i et JSON-felt på den måten. Trenger du å bygge en struktur dynamisk, bruker du en **Run Custom JavaScript**-blokk til å bygge den, og sender utdataene videre til neste blokk.
 

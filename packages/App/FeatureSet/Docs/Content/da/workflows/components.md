@@ -131,7 +131,7 @@ Konvertér mellem tekst og JSON.
 
 ## Conditions
 
-Forgren efter en sammenligning. I panelet **Tilføj komponent** hedder blokken **If / Else** og ligger under kategorien Conditions.
+Forgren efter en sammenligning. I panelet **Tilføj komponent** hedder blokken **If / Else** og ligger under **Popular**.
 
 **Indstillinger**:
 
@@ -159,7 +159,7 @@ Der er en sikkerhedsgrænse, så workflows ikke kan blive ved med at kalde hinan
 
 ## OneUptime-datakomponenter
 
-For hver slags post i OneUptime (monitorer, hændelser, advarsler, statussider, vagtpolitikker og mange flere) har panelet **Tilføj komponent** disse komponenter — søg efter typens navn. Hver titel dannes ud fra posttypen, så sættet for Monitor lyder:
+For hver slags post i OneUptime (monitorer, hændelser, advarsler, statussider, vagtpolitikker og mange flere) har panelet **Tilføj komponent** disse komponenter: klik på posttypen under **OneUptime resources** (**Browse all resources** har dem, der ikke vises), eller søg efter typens navn. Hver titel dannes ud fra posttypen, så sættet for Monitor lyder:
 
 - **Find One Monitor** — læs én post, der matcher forespørgslen.
 - **Find Many Monitors** — læs en liste af poster, der matcher forespørgslen.

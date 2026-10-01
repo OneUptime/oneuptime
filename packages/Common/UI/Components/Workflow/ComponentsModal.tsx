@@ -1,16 +1,71 @@
-// Show a large modal full of components.
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
+/*
+ * The Add Component and Add Trigger picker.
+ *
+ * About two thousand steps can be added to a workflow, and all but some
+ * twenty of them are the eight actions and three triggers generated for each
+ * database model. This panel used to list every one of them, a card each,
+ * grouped by model in registration order, and re-rendered the lot on every
+ * keystroke; it took seconds to open on a slow machine, froze while typing,
+ * and drew a search's results model by model in that same order, so
+ * "incident" showed Incident State above Incident.
+ *
+ * Now it leads with what people use and asks one small question at a time:
+ *
+ *   - Popular: the handful of steps most workflows are built from.
+ *   - More: the rest of the hand-written steps.
+ *   - OneUptime resources: pick Incident, then what to do with it. The
+ *     common resources are shown; every other one is behind "Browse all".
+ *
+ * Search covers everything (ComponentPicker/ComponentSearch.ts): every word
+ * counts, the resource named comes first, plurals and typos are forgiven,
+ * and only the best results are drawn. It runs on a deferred copy of what
+ * was typed, so typing never waits for the list.
+ *
+ * Picking is one click (or Enter): the panel exists to choose a step, so
+ * there is no second "Add to Workflow" button to find at the bottom.
+ */
+import KeyboardShortcut, {
+  KeyboardKey,
+  KeyboardShortcutSize,
+} from "../KeyboardShortcut/KeyboardShortcut";
 import Icon from "../Icon/Icon";
 import SideOver from "../SideOver/SideOver";
-import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import ComponentMetadata, {
   ComponentCategory,
   ComponentType,
 } from "../../../Types/Workflow/Component";
+import {
+  ComponentSearchOutcome,
+  ComponentSearchResult,
+  getComponentSearchIndex,
+  getHighlightSegments,
+  getSearchTokens,
+  searchComponents,
+} from "./ComponentPicker/ComponentSearch";
+import {
+  PickerBuiltInGroup,
+  PickerCatalog,
+  PickerResource,
+  getPickerCatalog,
+} from "./ComponentPicker/PickerCatalog";
+import {
+  ALL_RESOURCES_ITEM_KEY,
+  BackButton,
+  ComponentTile,
+  HighlightedText,
+  IconBox,
+  PICKER_ITEM_ATTRIBUTE,
+  ResourceRow,
+  ResourceTile,
+  SectionHeading,
+  getPickerItemProps,
+  resourceItemKey,
+} from "./ComponentPicker/PickerItems";
 import React, {
   FunctionComponent,
   ReactElement,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -20,239 +75,233 @@ import React, {
 export interface ComponentProps {
   componentsType: ComponentType;
   onCloseModal: () => void;
+  // Called once, with the step that was picked.
   onComponentClick: (componentMetadata: ComponentMetadata) => void;
   components: Array<ComponentMetadata>;
   categories: Array<ComponentCategory>;
 }
 
-const escapeRegExp: (value: string) => string = (value: string): string => {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// How many search results are drawn at first, and added by "Show more".
+export const SEARCH_RESULTS_PAGE_SIZE: number = 50;
+
+export const SEARCH_INPUT_ID: string = "workflow-component-search";
+export const SEARCH_RESULTS_ID: string = "workflow-component-results";
+
+export type SearchOptionIdFunction = (index: number) => string;
+
+export const getSearchOptionId: SearchOptionIdFunction = (
+  index: number,
+): string => {
+  return `workflow-component-option-${index}`;
 };
 
-/**
- * The words of a search, in lower case. Empty when nothing was typed.
- */
-export type SearchTokensFunction = (search: string) => Array<string>;
+export enum PickerViewKind {
+  Home = "Home",
+  AllResources = "AllResources",
+  Resource = "Resource",
+}
 
-export const getSearchTokens: SearchTokensFunction = (
-  search: string,
-): Array<string> => {
-  return search
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((token: string) => {
-      return token.length > 0;
-    });
+interface PickerView {
+  kind: PickerViewKind;
+  resourceKey?: string | undefined;
+}
+
+interface ViewEntry {
+  view: PickerView;
+  // What had the focus, and how far the panel was scrolled, when it was left.
+  returnFocusKey: string | null;
+  scrollTop: number;
+}
+
+type PendingFocus =
+  | { kind: "first-item" }
+  | { kind: "restore"; key: string | null; scrollTop: number }
+  | { kind: "search" };
+
+const EMPTY_OUTCOME: ComponentSearchOutcome = {
+  tokens: [],
+  typoTokens: [],
+  results: [],
 };
 
-/**
- * Does this component match every word typed?
- *
- * Every word, anywhere across title, description and category — not the whole
- * search string as one substring. The database components are generated as
- * "Create One Monitor" / "Database query to create one Monitor" / "Monitor",
- * so a plain substring search answered "create one monitor secret" with one
- * result and "create monitor" with none at all — and the empty state then told
- * the builder the integration did not exist. In a palette holding a component
- * per operation per model, browsing is not a fallback.
- */
-export type MatchesSearchFunction = (
-  componentMetadata: ComponentMetadata,
-  tokens: Array<string>,
-) => boolean;
+const HOME_ENTRY: ViewEntry = {
+  view: { kind: PickerViewKind.Home },
+  returnFocusKey: null,
+  scrollTop: 0,
+};
 
-export const matchesSearch: MatchesSearchFunction = (
-  componentMetadata: ComponentMetadata,
-  tokens: Array<string>,
+type IsTypingTargetFunction = (target: EventTarget | null) => boolean;
+
+const isTypingTarget: IsTypingTargetFunction = (
+  target: EventTarget | null,
 ): boolean => {
-  if (tokens.length === 0) {
-    return true;
-  }
+  const element: HTMLElement | null = target as HTMLElement | null;
 
-  const haystack: string =
-    `${componentMetadata.title} ${componentMetadata.description} ${componentMetadata.category}`.toLowerCase();
-
-  return tokens.every((token: string) => {
-    return haystack.includes(token);
-  });
+  return Boolean(
+    element &&
+      (element.tagName === "INPUT" ||
+        element.tagName === "TEXTAREA" ||
+        element.isContentEditable ||
+        element.getAttribute?.("contenteditable") === "true"),
+  );
 };
 
-const getSearchScoreForToken: (
-  componentMetadata: ComponentMetadata,
-  searchTerm: string,
-) => number = (
-  componentMetadata: ComponentMetadata,
-  searchTerm: string,
-): number => {
-  const title: string = componentMetadata.title.toLowerCase();
-  const description: string = componentMetadata.description.toLowerCase();
-  const category: string = componentMetadata.category.toLowerCase();
+type PrefersTouchFunction = () => boolean;
 
-  let score: number = 0;
-
-  if (title.startsWith(searchTerm)) {
-    score += 140;
-  } else if (title.includes(searchTerm)) {
-    score += 100;
-  }
-
-  if (category.startsWith(searchTerm)) {
-    score += 75;
-  } else if (category.includes(searchTerm)) {
-    score += 55;
-  }
-
-  if (description.includes(searchTerm)) {
-    score += 35;
-  }
-
-  if (
-    title.split(" ").some((word: string) => {
-      return word.trim().startsWith(searchTerm);
-    })
-  ) {
-    score += 15;
-  }
-
-  return score;
-};
-
-/**
- * Ranking, summed over the words typed.
- *
- * Every branch of the per-word score tests one whole token, so scoring the
- * search as a single string gave every multi-word search a score of zero and
- * left the order to the tie-breaker alone.
+/*
+ * On a phone, focusing the search box on open throws the keyboard over half
+ * of what the panel offers. There the panel opens for browsing; a tap on the
+ * box searches.
  */
-export type GetSearchScoreFunction = (
-  componentMetadata: ComponentMetadata,
-  tokens: Array<string>,
-) => number;
-
-export const getSearchScore: GetSearchScoreFunction = (
-  componentMetadata: ComponentMetadata,
-  tokens: Array<string>,
-): number => {
-  return tokens.reduce((total: number, token: string) => {
-    return total + getSearchScoreForToken(componentMetadata, token);
-  }, 0);
+const prefersTouch: PrefersTouchFunction = (): boolean => {
+  try {
+    return Boolean(
+      typeof window !== "undefined" &&
+        window.matchMedia &&
+        window.matchMedia("(pointer: coarse)").matches,
+    );
+  } catch {
+    return false;
+  }
 };
 
 const ComponentsModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [search, setSearch] = useState<string>("");
+  const typeLabel: string =
+    props.componentsType === ComponentType.Trigger ? "trigger" : "component";
+  const typePlural: string = `${typeLabel}s`;
+
+  const catalog: PickerCatalog = useMemo(() => {
+    return getPickerCatalog({
+      components: props.components,
+      categories: props.categories,
+      componentsType: props.componentsType,
+    });
+  }, [props.components, props.categories, props.componentsType]);
+
+  const [query, setQuery] = useState<string>("");
+  // What was typed, a render behind while the list catches up.
+  const deferredQuery: string = useDeferredValue(query);
+
+  const outcome: ComponentSearchOutcome = useMemo(() => {
+    if (getSearchTokens(deferredQuery).length === 0) {
+      return EMPTY_OUTCOME;
+    }
+
+    return searchComponents(getComponentSearchIndex(catalog), deferredQuery);
+  }, [catalog, deferredQuery]);
+
+  const isSearching: boolean = outcome.tokens.length > 0;
+  // The list is a render behind what was typed, for a moment.
+  const isCatchingUp: boolean = query !== deferredQuery;
+
+  // How many results are drawn, and which one Enter adds, for this search.
+  const [shown, setShown] = useState<{ query: string; count: number }>({
+    query: "",
+    count: SEARCH_RESULTS_PAGE_SIZE,
+  });
+  const shownCount: number =
+    shown.query === deferredQuery ? shown.count : SEARCH_RESULTS_PAGE_SIZE;
+  const visibleResults: Array<ComponentSearchResult> = outcome.results.slice(
+    0,
+    shownCount,
+  );
+
+  const [active, setActive] = useState<{ query: string; index: number }>({
+    query: "",
+    index: 0,
+  });
+  const activeIndex: number =
+    active.query === deferredQuery
+      ? Math.min(active.index, Math.max(visibleResults.length - 1, 0))
+      : 0;
+  // Only keyboard moves scroll the list; a pointer resting on it must not.
+  const scrollActiveIntoViewRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  const [viewStack, setViewStack] = useState<Array<ViewEntry>>([HOME_ENTRY]);
+  const currentEntry: ViewEntry = viewStack[viewStack.length - 1] || HOME_ENTRY;
+  const pendingFocusRef: React.MutableRefObject<PendingFocus | null> =
+    useRef<PendingFocus | null>(null);
+
+  const rootRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const searchInputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
 
-  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(
-    null,
-  );
-  const categories: Array<ComponentCategory> = props.categories;
-  const searchTokens: Array<string> = useMemo(() => {
-    return getSearchTokens(search);
-  }, [search]);
-  const components: Array<ComponentMetadata> = useMemo(() => {
-    return props.components.filter((componentMetadata: ComponentMetadata) => {
-      return componentMetadata.componentType === props.componentsType;
-    });
-  }, [props.components, props.componentsType]);
-  const componentsToShow: Array<ComponentMetadata> = useMemo(() => {
-    return components
-      .filter((componentMetadata: ComponentMetadata) => {
-        return matchesSearch(componentMetadata, searchTokens);
-      })
-      .sort((componentA: ComponentMetadata, componentB: ComponentMetadata) => {
-        if (searchTokens.length === 0) {
-          return componentA.title.localeCompare(componentB.title);
-        }
+  type GetScrollContainerFunction = () => HTMLElement | null;
 
-        const scoreDifference: number =
-          getSearchScore(componentB, searchTokens) -
-          getSearchScore(componentA, searchTokens);
+  // The SideOver's scrolling body, which the sticky search box sits in.
+  const getScrollContainer: GetScrollContainerFunction =
+    (): HTMLElement | null => {
+      return (
+        (rootRef.current?.closest(
+          "[data-testid='side-over-content']",
+        ) as HTMLElement | null) || null
+      );
+    };
 
-        if (scoreDifference !== 0) {
-          return scoreDifference;
-        }
+  const openedResource: PickerResource | undefined =
+    currentEntry.view.kind === PickerViewKind.Resource &&
+    currentEntry.view.resourceKey
+      ? catalog.resourcesByKey.get(currentEntry.view.resourceKey)
+      : undefined;
 
-        return componentA.title.localeCompare(componentB.title);
-      });
-  }, [components, searchTokens]);
-  const selectedComponentMetadata: ComponentMetadata | undefined =
-    componentsToShow.find((componentMetadata: ComponentMetadata) => {
-      return componentMetadata.id === selectedComponentId;
-    });
+  // A resource that is no longer in the catalog cannot stay open.
+  const view: PickerViewKind =
+    currentEntry.view.kind === PickerViewKind.Resource && !openedResource
+      ? PickerViewKind.Home
+      : currentEntry.view.kind;
 
   useEffect(() => {
-    // A hidden selection must not be submitted or reappear when search clears.
-    if (!selectedComponentMetadata) {
-      setSelectedComponentId(null);
+    if (!prefersTouch()) {
+      searchInputRef.current?.focus();
     }
-  }, [selectedComponentMetadata]);
-
-  const searchHighlightPattern: RegExp | null = useMemo(() => {
-    if (searchTokens.length === 0) {
-      return null;
-    }
-
-    const alternatives: string = [...new Set(searchTokens)]
-      .sort((tokenA: string, tokenB: string) => {
-        return tokenB.length - tokenA.length;
-      })
-      .map(escapeRegExp)
-      .join("|");
-
-    return new RegExp(`(${alternatives})`, "ig");
-  }, [searchTokens]);
-
-  /*
-   * Grouped once per search rather than re-filtered inside the render loop.
-   * That loop ran once per category — around four hundred of them, each
-   * scanning every component still on screen — on every keystroke, with no
-   * debounce and no windowing.
-   */
-  const componentsByCategory: Dictionary<Array<ComponentMetadata>> =
-    useMemo(() => {
-      const grouped: Dictionary<Array<ComponentMetadata>> = {};
-
-      for (const componentMetadata of componentsToShow) {
-        const bucket: Array<ComponentMetadata> | undefined =
-          grouped[componentMetadata.category];
-
-        if (bucket) {
-          bucket.push(componentMetadata);
-        } else {
-          grouped[componentMetadata.category] = [componentMetadata];
-        }
-      }
-
-      return grouped;
-    }, [componentsToShow]);
-
-  useEffect(() => {
-    searchInputRef.current?.focus();
   }, []);
 
+  /*
+   * Index the catalog while the panel sits idle, so the first key typed does
+   * not wait for it. It is kept per catalog, so this happens once a page.
+   */
+  useEffect(() => {
+    let isCancelled: boolean = false;
+
+    const build: () => void = (): void => {
+      if (!isCancelled) {
+        getComponentSearchIndex(catalog);
+      }
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      const handle: number = window.requestIdleCallback(build, {
+        timeout: 1500,
+      });
+
+      return () => {
+        isCancelled = true;
+        window.cancelIdleCallback?.(handle);
+      };
+    }
+
+    const timer: ReturnType<typeof setTimeout> = setTimeout(build, 300);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [catalog]);
+
+  // "/" jumps to the search box from anywhere in the panel.
   useEffect(() => {
     const handleKeyDown: (event: KeyboardEvent) => void = (
       event: KeyboardEvent,
     ): void => {
-      const target: HTMLElement | null = event.target as HTMLElement | null;
-
-      const isTypingContext: boolean = Boolean(
-        target &&
-          (target.tagName === "INPUT" ||
-            target.tagName === "TEXTAREA" ||
-            target.getAttribute("contenteditable") === "true"),
-      );
-
       if (
         event.key === "/" &&
         !event.metaKey &&
         !event.ctrlKey &&
         !event.altKey &&
-        !isTypingContext
+        !isTypingTarget(event.target)
       ) {
         event.preventDefault();
         searchInputRef.current?.focus();
@@ -266,438 +315,746 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  const hasSearchTerm: boolean = search.trim().length > 0;
-  const normalizedSearch: string = search.trim().toLowerCase();
-  const totalComponentCount: number = components.length;
-  const componentTypeLabel: string = `${props.componentsType.toLowerCase()}${
-    totalComponentCount === 1 ? "" : "s"
-  }`;
-  const suggestedCategories: Array<ComponentCategory> = categories
-    .filter((category: ComponentCategory) => {
-      return components.some((componentMetadata: ComponentMetadata) => {
-        return componentMetadata.category === category.name;
-      });
-    })
-    .slice(0, 4);
+  // A new search starts at the top of the panel.
+  useEffect(() => {
+    if (isSearching) {
+      const container: HTMLElement | null = getScrollContainer();
 
-  const renderHighlightedText: (
-    text: string,
-    markClassName?: string,
-  ) => React.ReactNode = (
-    text: string,
-    markClassName?: string,
-  ): React.ReactNode => {
-    if (!searchHighlightPattern) {
-      return text;
+      if (container) {
+        container.scrollTop = 0;
+      }
+    }
+  }, [deferredQuery]);
+
+  // Keep the option Enter would add in sight while the arrows move it.
+  useEffect(() => {
+    if (!scrollActiveIntoViewRef.current) {
+      return;
     }
 
-    const highlightedParts: Array<string> = text.split(searchHighlightPattern);
+    scrollActiveIntoViewRef.current = false;
+    const option: HTMLElement | null = document.getElementById(
+      getSearchOptionId(activeIndex),
+    );
+    option?.scrollIntoView?.({ block: "nearest" });
+  }, [activeIndex]);
+
+  // Focus and scroll for a view that was just opened or returned to.
+  useEffect(() => {
+    const pending: PendingFocus | null = pendingFocusRef.current;
+    pendingFocusRef.current = null;
+
+    if (!pending) {
+      return;
+    }
+
+    const container: HTMLElement | null = getScrollContainer();
+
+    if (pending.kind === "search") {
+      searchInputRef.current?.focus();
+      return;
+    }
+
+    if (pending.kind === "first-item") {
+      if (container) {
+        container.scrollTop = 0;
+      }
+
+      rootRef.current
+        ?.querySelector<HTMLElement>(`[${PICKER_ITEM_ATTRIBUTE}]`)
+        ?.focus({ preventScroll: true });
+      return;
+    }
+
+    if (container) {
+      container.scrollTop = pending.scrollTop;
+    }
+
+    const returnTo: HTMLElement | undefined = pending.key
+      ? Array.from(
+          rootRef.current?.querySelectorAll<HTMLElement>(
+            `[${PICKER_ITEM_ATTRIBUTE}]`,
+          ) || [],
+        ).find((element: HTMLElement): boolean => {
+          return element.getAttribute(PICKER_ITEM_ATTRIBUTE) === pending.key;
+        })
+      : undefined;
+
+    (returnTo || searchInputRef.current)?.focus({ preventScroll: true });
+  }, [viewStack]);
+
+  type OpenViewFunction = (view: PickerView, fromKey: string) => void;
+
+  const openView: OpenViewFunction = (
+    nextView: PickerView,
+    fromKey: string,
+  ): void => {
+    const scrollTop: number = getScrollContainer()?.scrollTop || 0;
+
+    pendingFocusRef.current = { kind: "first-item" };
+    setViewStack((stack: Array<ViewEntry>): Array<ViewEntry> => {
+      const top: ViewEntry = stack[stack.length - 1] || HOME_ENTRY;
+
+      return [
+        ...stack.slice(0, -1),
+        { ...top, returnFocusKey: fromKey, scrollTop: scrollTop },
+        { view: nextView, returnFocusKey: null, scrollTop: 0 },
+      ];
+    });
+  };
+
+  type GoBackFunction = (focusSearch: boolean) => void;
+
+  const goBack: GoBackFunction = (focusSearch: boolean): void => {
+    if (viewStack.length <= 1) {
+      return;
+    }
+
+    const previous: ViewEntry = viewStack[viewStack.length - 2] || HOME_ENTRY;
+
+    pendingFocusRef.current = focusSearch
+      ? { kind: "search" }
+      : {
+          kind: "restore",
+          key: previous.returnFocusKey,
+          scrollTop: previous.scrollTop,
+        };
+    setViewStack((stack: Array<ViewEntry>): Array<ViewEntry> => {
+      return stack.length > 1 ? stack.slice(0, -1) : stack;
+    });
+  };
+
+  type OpenResourceFunction = (resource: PickerResource) => void;
+
+  const openResource: OpenResourceFunction = (
+    resource: PickerResource,
+  ): void => {
+    openView(
+      { kind: PickerViewKind.Resource, resourceKey: resource.key },
+      resourceItemKey(resource),
+    );
+  };
+
+  type PickFunction = (componentMetadata: ComponentMetadata) => void;
+
+  const pick: PickFunction = (componentMetadata: ComponentMetadata): void => {
+    props.onComponentClick(componentMetadata);
+  };
+
+  type ClearSearchFunction = () => void;
+
+  const clearSearch: ClearSearchFunction = (): void => {
+    setQuery("");
+    searchInputRef.current?.focus();
+  };
+
+  type MoveActiveFunction = (delta: number) => void;
+
+  const moveActive: MoveActiveFunction = (delta: number): void => {
+    if (visibleResults.length === 0) {
+      return;
+    }
+
+    scrollActiveIntoViewRef.current = true;
+    setActive({
+      query: deferredQuery,
+      index: Math.min(
+        Math.max(activeIndex + delta, 0),
+        visibleResults.length - 1,
+      ),
+    });
+  };
+
+  type OnSearchKeyDownFunction = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) => void;
+
+  const onSearchKeyDown: OnSearchKeyDownFunction = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ): void => {
+    if (event.key === "Escape") {
+      if (query.length > 0) {
+        event.preventDefault();
+        event.stopPropagation();
+        setQuery("");
+      } else if (viewStack.length > 1) {
+        event.preventDefault();
+        event.stopPropagation();
+        goBack(true);
+      }
+
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+
+      if (isSearching) {
+        moveActive(1);
+      } else {
+        rootRef.current
+          ?.querySelector<HTMLElement>(`[${PICKER_ITEM_ATTRIBUTE}]`)
+          ?.focus();
+      }
+
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      if (isSearching) {
+        event.preventDefault();
+        moveActive(-1);
+      }
+
+      return;
+    }
+
+    if (event.key === "Enter") {
+      if (getSearchTokens(query).length === 0) {
+        return;
+      }
+
+      event.preventDefault();
+
+      /*
+       * Typed and entered faster than the list caught up: add the best match
+       * for what is in the box, not for what the list still shows.
+       */
+      const result: ComponentSearchResult | undefined =
+        query === deferredQuery
+          ? visibleResults[activeIndex]
+          : searchComponents(getComponentSearchIndex(catalog), query)
+              .results[0];
+
+      if (result) {
+        pick(result.component);
+      }
+    }
+  };
+
+  type OnBrowseKeyDownFunction = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) => void;
+
+  /*
+   * Arrow keys move between the entries of a browse view, the first one up
+   * goes back to the search box, Escape goes back a view, and typing a
+   * letter on an entry starts a search with it.
+   */
+  const onBrowseKeyDown: OnBrowseKeyDownFunction = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ): void => {
+    if (event.defaultPrevented) {
+      return;
+    }
+
+    const items: Array<HTMLElement> = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(
+        `[${PICKER_ITEM_ATTRIBUTE}]`,
+      ),
+    );
+    const position: number = items.indexOf(event.target as HTMLElement);
+
+    if (event.key === "Escape" && viewStack.length > 1) {
+      event.preventDefault();
+      event.stopPropagation();
+      goBack(false);
+      return;
+    }
+
+    if (position === -1) {
+      return;
+    }
+
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+      event.preventDefault();
+      items[Math.min(position + 1, items.length - 1)]?.focus();
+      return;
+    }
+
+    if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+      event.preventDefault();
+
+      if (position === 0) {
+        searchInputRef.current?.focus();
+      } else {
+        items[position - 1]?.focus();
+      }
+
+      return;
+    }
+
+    if (
+      event.key.length === 1 &&
+      event.key !== " " &&
+      event.key !== "/" &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey
+    ) {
+      event.preventDefault();
+      setQuery((current: string): string => {
+        return current + event.key;
+      });
+      searchInputRef.current?.focus();
+    }
+  };
+
+  const searchHasMore: boolean = outcome.results.length > visibleResults.length;
+
+  let statusText: string = "";
+
+  if (isSearching) {
+    if (outcome.results.length === 0) {
+      statusText = `No ${typePlural} match.`;
+    } else if (searchHasMore) {
+      statusText = `Best ${visibleResults.length} of ${outcome.results.length} matches.`;
+    } else {
+      statusText = `${outcome.results.length} ${
+        outcome.results.length === 1 ? "match" : "matches"
+      }.`;
+    }
+  }
+
+  const renderSearchResults: () => ReactElement = (): ReactElement => {
+    if (outcome.results.length === 0) {
+      return (
+        <div className="px-4 py-12 text-center">
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
+            <Icon icon={IconProp.Search} className="h-5 w-5 text-gray-400" />
+          </div>
+          <p className="mt-3 text-sm font-medium text-gray-900">
+            No {typePlural} match &ldquo;{deferredQuery.trim()}&rdquo;
+          </p>
+          <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
+            {props.componentsType === ComponentType.Trigger
+              ? "Check the spelling, or try fewer or different words. To start this workflow from another tool, use the Webhook trigger."
+              : "Check the spelling, or try fewer or different words. For anything that is not here, the API components and Run Custom JavaScript can work with any service."}
+          </p>
+          <button
+            type="button"
+            onClick={clearSearch}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+            Clear search
+          </button>
+        </div>
+      );
+    }
 
     return (
       <>
-        {highlightedParts.map((part: string, index: number) => {
-          if (searchTokens.includes(part.toLowerCase())) {
-            return (
-              <mark
-                key={`${part}-${index}`}
-                className={
-                  markClassName || "rounded bg-amber-100 px-0.5 text-current"
-                }
-              >
-                {part}
-              </mark>
-            );
-          }
+        <ul
+          id={SEARCH_RESULTS_ID}
+          role="listbox"
+          aria-label={`Matching ${typePlural}`}
+          className="space-y-0.5"
+        >
+          {visibleResults.map(
+            (result: ComponentSearchResult, index: number): ReactElement => {
+              const componentMetadata: ComponentMetadata = result.component;
+              const isActive: boolean = index === activeIndex;
+              const resource: PickerResource | undefined =
+                componentMetadata.tableName
+                  ? catalog.resourcesByKey.get(componentMetadata.tableName)
+                  : undefined;
+              const optionId: string = getSearchOptionId(index);
+              const label: string = resource
+                ? resource.disambiguation || resource.name
+                : componentMetadata.category;
 
-          return (
-            <React.Fragment key={`${part}-${index}`}>{part}</React.Fragment>
-          );
-        })}
+              return (
+                <li
+                  key={componentMetadata.id}
+                  id={optionId}
+                  role="option"
+                  aria-selected={isActive}
+                  /*
+                   * Named by the plain title: the marks drawn over the
+                   * matched words must never change what is read out.
+                   */
+                  aria-label={componentMetadata.title}
+                  aria-describedby={`${optionId}-description`}
+                  data-component-id={componentMetadata.id}
+                  onMouseMove={() => {
+                    if (!isActive) {
+                      setActive({ query: deferredQuery, index: index });
+                    }
+                  }}
+                  onClick={() => {
+                    pick(componentMetadata);
+                  }}
+                  className={`flex scroll-mt-28 cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 transition-colors duration-100 ${
+                    isActive ? "bg-indigo-50" : ""
+                  }`}
+                >
+                  <IconBox icon={componentMetadata.iconProp} size="small" />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm text-gray-900">
+                      <HighlightedText
+                        segments={getHighlightSegments(
+                          componentMetadata.title,
+                          outcome.tokens,
+                          outcome.typoTokens,
+                        )}
+                      />
+                    </div>
+                    <div
+                      id={`${optionId}-description`}
+                      className="truncate text-xs text-gray-500"
+                    >
+                      {componentMetadata.description}
+                    </div>
+                  </div>
+                  <span className="max-sm:hidden max-w-[40%] flex-shrink-0 truncate rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-600 sm:inline-block">
+                    {label}
+                  </span>
+                </li>
+              );
+            },
+          )}
+        </ul>
+        {searchHasMore && (
+          <button
+            type="button"
+            onClick={() => {
+              setShown({
+                query: deferredQuery,
+                count: shownCount + SEARCH_RESULTS_PAGE_SIZE,
+              });
+            }}
+            className="mt-3 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            Show{" "}
+            {Math.min(
+              SEARCH_RESULTS_PAGE_SIZE,
+              outcome.results.length - visibleResults.length,
+            )}{" "}
+            more
+          </button>
+        )}
       </>
     );
   };
 
-  return (
-    <SideOver
-      submitButtonText="Add to Workflow"
-      title={`Add ${props.componentsType}`}
-      description={`Choose a ${props.componentsType.toLowerCase()} to add to your workflow.`}
-      onClose={props.onCloseModal}
-      submitButtonDisabled={!selectedComponentMetadata}
-      onSubmit={() => {
-        return (
-          selectedComponentMetadata &&
-          props.onComponentClick(selectedComponentMetadata)
-        );
-      }}
-    >
-      <>
-        <div className="flex flex-col h-full">
-          {/* Search box */}
-          <div className="mt-4 mb-5">
-            <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-indigo-50 to-slate-50 p-3 shadow-sm">
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <label
-                    htmlFor="workflow-component-search"
-                    className="block text-xs font-semibold uppercase tracking-wide text-slate-500"
-                  >
-                    Search {componentTypeLabel}
-                  </label>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {hasSearchTerm
-                      ? "Showing the closest matches first across title, description, and category."
-                      : `Find the right ${props.componentsType.toLowerCase()} by name, category, or the job you need it to do.`}
-                  </p>
-                </div>
-                <div className="inline-flex flex-shrink-0 items-center rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-500 ring-1 ring-slate-200">
-                  {hasSearchTerm
-                    ? `${componentsToShow.length} match${
-                        componentsToShow.length === 1 ? "" : "es"
-                      }`
-                    : `${totalComponentCount} available`}
-                </div>
-              </div>
+  const renderHome: () => ReactElement = (): ReactElement => {
+    const otherBuiltIns: Array<ComponentMetadata> =
+      catalog.otherBuiltInGroups.flatMap(
+        (group: PickerBuiltInGroup): Array<ComponentMetadata> => {
+          return group.components;
+        },
+      );
 
-              <div className="relative flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 px-3 py-3 shadow-sm transition-all duration-200 hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-100">
-                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-white via-indigo-50 to-sky-100 text-indigo-600 ring-1 ring-indigo-100 shadow-sm">
-                  <Icon icon={IconProp.Search} className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <input
-                    id="workflow-component-search"
-                    ref={searchInputRef}
-                    type="text"
-                    value={search}
-                    placeholder={`Search ${componentTypeLabel} by name, description, or category`}
-                    autoComplete="off"
-                    className="block w-full border-0 bg-transparent p-0 text-base font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0"
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                      setSearch(event.target.value);
-                    }}
-                    onKeyDown={(
-                      event: React.KeyboardEvent<HTMLInputElement>,
-                    ) => {
-                      if (event.key === "Escape" && hasSearchTerm) {
-                        setSearch("");
-                        searchInputRef.current?.focus();
-                      }
-                    }}
-                  />
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                    <span>
-                      {hasSearchTerm
-                        ? `Showing ${componentsToShow.length} of ${totalComponentCount} ${componentTypeLabel}.`
-                        : "Searches title, description, and category."}
-                    </span>
-                    {!hasSearchTerm && (
-                      <span className="max-sm:hidden items-center gap-1 rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-500 sm:inline-flex">
-                        <kbd className="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200">
-                          /
-                        </kbd>
-                        Quick focus
-                      </span>
-                    )}
-                    {hasSearchTerm && (
-                      <span className="max-sm:hidden items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 font-medium text-indigo-600 sm:inline-flex">
-                        <kbd className="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-indigo-600 ring-1 ring-indigo-100">
-                          Esc
-                        </kbd>
-                        Clear search
-                      </span>
-                    )}
-                  </div>
-                </div>
+    if (catalog.components.length === 0) {
+      return (
+        <p className="px-1 py-12 text-center text-sm text-gray-500">
+          No {typePlural} to show.
+        </p>
+      );
+    }
 
-                {hasSearchTerm && (
-                  <div className="flex flex-shrink-0 items-center gap-2">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors duration-150 hover:bg-slate-700"
-                      onClick={() => {
-                        setSearch("");
-                        searchInputRef.current?.focus();
-                      }}
-                    >
-                      <Icon icon={IconProp.Close} className="h-3 w-3" />
-                      Clear
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {suggestedCategories.length > 0 && (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-slate-500">
-                    Quick filters:
-                  </span>
-                  {suggestedCategories.map((category: ComponentCategory) => {
-                    const isActive: boolean =
-                      normalizedSearch === category.name.toLowerCase();
-
-                    return (
-                      <button
-                        key={category.name}
-                        type="button"
-                        aria-pressed={isActive}
-                        onClick={() => {
-                          setSearch(category.name);
-                          searchInputRef.current?.focus();
-                        }}
-                        className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
-                          isActive
-                            ? "border-indigo-200 bg-indigo-50 text-indigo-700"
-                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-                        }`}
-                      >
-                        <Icon icon={category.icon} className="h-3 w-3" />
-                        {category.name}
-                      </button>
-                    );
-                  })}
-                </div>
+    return (
+      <div className="space-y-6">
+        {catalog.popular.length > 0 && (
+          <section aria-labelledby="workflow-picker-popular">
+            <SectionHeading id="workflow-picker-popular" title="Popular" />
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {catalog.popular.map(
+                (componentMetadata: ComponentMetadata): ReactElement => {
+                  return (
+                    <ComponentTile
+                      key={componentMetadata.id}
+                      componentMetadata={componentMetadata}
+                      onSelect={pick}
+                    />
+                  );
+                },
               )}
             </div>
-          </div>
+          </section>
+        )}
 
-          <div className="overflow-y-auto overflow-x-hidden flex-1">
-            {!componentsToShow ||
-              (componentsToShow.length === 0 && (
-                <div className="mt-20 flex w-full flex-col items-center justify-center gap-4 px-4">
-                  <div className="max-w-2xl">
-                    {/*
-                     * Says what actually happened. A search only fails now when
-                     * no component contains every word typed, and the fix is
-                     * usually to type fewer words — not to conclude that the
-                     * component does not exist and go and build it by hand.
-                     */}
-                    <ErrorMessage
-                      message={
-                        hasSearchTerm
-                          ? "No components match every word you typed. Try fewer words. If what you need really does not exist, the Custom Code and API components can build anything you like."
-                          : "No components to show."
-                      }
+        {otherBuiltIns.length > 0 && (
+          <section aria-labelledby="workflow-picker-more">
+            <SectionHeading
+              id="workflow-picker-more"
+              title={
+                catalog.popular.length > 0
+                  ? `More ${typePlural}`
+                  : `${typeLabel.charAt(0).toUpperCase()}${typeLabel.slice(1)}s`
+              }
+            />
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {otherBuiltIns.map(
+                (componentMetadata: ComponentMetadata): ReactElement => {
+                  return (
+                    <ComponentTile
+                      key={componentMetadata.id}
+                      componentMetadata={componentMetadata}
+                      onSelect={pick}
                     />
-                  </div>
-                  {hasSearchTerm && (
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-800"
-                      onClick={() => {
-                        setSearch("");
-                        searchInputRef.current?.focus();
-                      }}
-                    >
-                      <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
-                      Reset search
-                    </button>
-                  )}
-                </div>
-              ))}
+                  );
+                },
+              )}
+            </div>
+          </section>
+        )}
 
-            {categories &&
-              categories.length > 0 &&
-              categories.map((category: ComponentCategory, i: number) => {
-                const categoryComponents: Array<ComponentMetadata> =
-                  componentsByCategory[category.name] || [];
-
-                if (categoryComponents.length === 0) {
-                  return <div key={i}></div>;
-                }
-
-                return (
-                  <div key={i} className="mb-6">
-                    {/* Category header */}
-                    <div className="flex items-center gap-2 mb-3 px-1">
-                      <div
-                        className="flex items-center justify-center rounded-md"
-                        style={{
-                          width: "28px",
-                          height: "28px",
-                          backgroundColor:
-                            "var(--ou-surface-tertiary, #f1f5f9)",
-                        }}
-                      >
-                        <Icon
-                          icon={category.icon}
-                          className="h-4 w-4 text-gray-500"
-                        />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-700 leading-tight">
-                          {category.name}
-                        </h4>
-                        <p className="text-xs text-gray-400 leading-tight">
-                          {category.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Component cards grid */}
-                    <div className="grid grid-cols-1 gap-2">
-                      {categoryComponents.map(
-                        (componentMetadata: ComponentMetadata) => {
-                          const isSelected: boolean =
-                            selectedComponentMetadata !== undefined &&
-                            selectedComponentMetadata.id ===
-                              componentMetadata.id;
-
-                          return (
-                            <button
-                              key={componentMetadata.id}
-                              type="button"
-                              aria-label={componentMetadata.title}
-                              aria-describedby={`workflow-component-description-${componentMetadata.id}`}
-                              aria-pressed={isSelected}
-                              onClick={() => {
-                                setSelectedComponentId(componentMetadata.id);
-                              }}
-                              className="w-full cursor-pointer text-left transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                              style={{
-                                padding: "0.75rem",
-                                borderRadius: "10px",
-                                border: isSelected
-                                  ? "2px solid #6366f1"
-                                  : "1px solid var(--ou-border-default, #e2e8f0)",
-                                backgroundColor: isSelected
-                                  ? "var(--ou-accent-soft, #eef2ff)"
-                                  : "var(--ou-surface-primary, #ffffff)",
-                                display: "flex",
-                                alignItems: "flex-start",
-                                gap: "0.75rem",
-                                boxShadow: isSelected
-                                  ? "0 0 0 3px rgba(99, 102, 241, 0.1)"
-                                  : "var(--ou-card-shadow, 0 1px 2px 0 rgba(0, 0, 0, 0.03))",
-                              }}
-                            >
-                              {/* Icon */}
-                              <div
-                                style={{
-                                  width: "36px",
-                                  height: "36px",
-                                  borderRadius: "8px",
-                                  backgroundColor: isSelected
-                                    ? "#6366f1"
-                                    : "var(--ou-surface-tertiary, #f1f5f9)",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  flexShrink: 0,
-                                  transition: "all 0.15s ease",
-                                }}
-                              >
-                                <Icon
-                                  icon={componentMetadata.iconProp}
-                                  style={{
-                                    color: isSelected
-                                      ? "#ffffff"
-                                      : "var(--ou-text-muted, #64748b)",
-                                    width: "1rem",
-                                    height: "1rem",
-                                  }}
-                                />
-                              </div>
-
-                              {/* Text */}
-                              <div style={{ minWidth: 0, flex: 1 }}>
-                                <div className="flex items-start justify-between gap-2">
-                                  <p
-                                    style={{
-                                      fontSize: "0.8125rem",
-                                      fontWeight: 600,
-                                      color: isSelected
-                                        ? "var(--ou-accent-text, #4338ca)"
-                                        : "var(--ou-text-primary, #1e293b)",
-                                      margin: 0,
-                                      lineHeight: "1.25rem",
-                                    }}
-                                  >
-                                    {renderHighlightedText(
-                                      componentMetadata.title,
-                                      isSelected
-                                        ? "rounded bg-white/80 px-0.5 text-current"
-                                        : "rounded bg-amber-100 px-0.5 text-current",
-                                    )}
-                                  </p>
-
-                                  {hasSearchTerm && (
-                                    <span
-                                      className={`mt-0.5 inline-flex flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                                        isSelected
-                                          ? "bg-white/80 text-indigo-700"
-                                          : "bg-slate-100 text-slate-500"
-                                      }`}
-                                    >
-                                      {renderHighlightedText(
-                                        componentMetadata.category,
-                                        isSelected
-                                          ? "rounded bg-indigo-100 px-0.5 text-current"
-                                          : "rounded bg-white px-0.5 text-current",
-                                      )}
-                                    </span>
-                                  )}
-                                </div>
-                                <p
-                                  id={`workflow-component-description-${componentMetadata.id}`}
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: isSelected
-                                      ? "var(--ou-link, #6366f1)"
-                                      : "var(--ou-text-subtle, #94a3b8)",
-                                    margin: 0,
-                                    marginTop: "2px",
-                                    lineHeight: "1rem",
-                                    display: "-webkit-box",
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: "vertical",
-                                    overflow: "hidden",
-                                  }}
-                                >
-                                  {renderHighlightedText(
-                                    componentMetadata.description,
-                                    isSelected
-                                      ? "rounded bg-white/80 px-0.5 text-current"
-                                      : "rounded bg-amber-100 px-0.5 text-current",
-                                  )}
-                                </p>
-                              </div>
-
-                              {/* Selection indicator */}
-                              {isSelected && (
-                                <div
-                                  style={{
-                                    width: "20px",
-                                    height: "20px",
-                                    borderRadius: "50%",
-                                    backgroundColor: "#6366f1",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    flexShrink: 0,
-                                    marginTop: "2px",
-                                  }}
-                                >
-                                  <Icon
-                                    icon={IconProp.Check}
-                                    style={{
-                                      color: "#ffffff",
-                                      width: "0.625rem",
-                                      height: "0.625rem",
-                                    }}
-                                  />
-                                </div>
-                              )}
-                            </button>
-                          );
-                        },
-                      )}
-                    </div>
-                  </div>
+        {catalog.resources.length > 0 && (
+          <section aria-labelledby="workflow-picker-resources">
+            <SectionHeading
+              id="workflow-picker-resources"
+              title="OneUptime resources"
+              description={
+                props.componentsType === ComponentType.Trigger
+                  ? "Start this workflow when an incident, alert, monitor or any other record in this project is created, updated or deleted."
+                  : "Create, find, update or delete incidents, alerts, monitors and every other record in this project."
+              }
+            />
+            {catalog.commonResources.length > 0 && (
+              <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {catalog.commonResources.map(
+                  (resource: PickerResource): ReactElement => {
+                    return (
+                      <ResourceTile
+                        key={resource.key}
+                        resource={resource}
+                        componentsType={props.componentsType}
+                        onOpen={openResource}
+                      />
+                    );
+                  },
+                )}
+              </div>
+            )}
+            <button
+              type="button"
+              {...getPickerItemProps(ALL_RESOURCES_ITEM_KEY)}
+              aria-label={`Browse all resources, ${catalog.resources.length}`}
+              onClick={() => {
+                openView(
+                  { kind: PickerViewKind.AllResources },
+                  ALL_RESOURCES_ITEM_KEY,
                 );
-              })}
+              }}
+              className="flex w-full items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-indigo-300 hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              <span className="min-w-0 flex-1">Browse all resources</span>
+              <span className="flex-shrink-0 rounded-md bg-gray-100 px-2 py-0.5 text-xs font-normal text-gray-600">
+                {catalog.resources.length}
+              </span>
+              <Icon
+                icon={IconProp.ChevronRight}
+                className="h-4 w-4 flex-shrink-0 text-gray-400"
+              />
+            </button>
+          </section>
+        )}
+      </div>
+    );
+  };
+
+  const renderResource: (resource: PickerResource) => ReactElement = (
+    resource: PickerResource,
+  ): ReactElement => {
+    return (
+      <div>
+        <BackButton
+          label="Back"
+          onBack={() => {
+            goBack(false);
+          }}
+        />
+        <div className="mt-3 flex items-start gap-3">
+          <IconBox icon={resource.icon} size="large" />
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold text-gray-900">
+              {resource.name}
+            </h3>
+            {resource.disambiguation && (
+              <p className="text-xs text-gray-500">{resource.disambiguation}</p>
+            )}
+            {resource.description && (
+              <p className="mt-0.5 text-sm text-gray-500">
+                {resource.description}
+              </p>
+            )}
           </div>
         </div>
-      </>
+        <div
+          role="group"
+          aria-label={`${resource.name} ${typePlural}`}
+          className="mt-4 grid grid-cols-1 gap-2"
+        >
+          {resource.components.map(
+            (componentMetadata: ComponentMetadata): ReactElement => {
+              return (
+                <ComponentTile
+                  key={componentMetadata.id}
+                  componentMetadata={componentMetadata}
+                  onSelect={pick}
+                />
+              );
+            },
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderAllResources: () => ReactElement = (): ReactElement => {
+    return (
+      <div>
+        <BackButton
+          label="Back"
+          onBack={() => {
+            goBack(false);
+          }}
+        />
+        <h3 className="mt-3 text-base font-semibold text-gray-900">
+          All resources
+        </h3>
+        <p className="mt-0.5 text-sm text-gray-500">
+          {catalog.resources.length} resources, A to Z. Search above to find one
+          by name.
+        </p>
+        <div
+          role="group"
+          aria-label="All resources"
+          className="mt-3 divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200"
+        >
+          {catalog.resources.map((resource: PickerResource): ReactElement => {
+            return (
+              <ResourceRow
+                key={resource.key}
+                resource={resource}
+                componentsType={props.componentsType}
+                onOpen={openResource}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  let body: ReactElement;
+
+  if (isSearching) {
+    body = renderSearchResults();
+  } else if (view === PickerViewKind.Resource && openedResource) {
+    body = renderResource(openedResource);
+  } else if (view === PickerViewKind.AllResources) {
+    body = renderAllResources();
+  } else {
+    body = renderHome();
+  }
+
+  return (
+    <SideOver
+      title={`Add ${typeLabel.charAt(0).toUpperCase()}${typeLabel.slice(1)}`}
+      description={`Click a ${typeLabel} to add it to your workflow.`}
+      onClose={props.onCloseModal}
+      leftFooterElement={
+        <div className="max-md:hidden items-center gap-4 text-xs text-gray-500 md:flex">
+          <span className="inline-flex items-center gap-1.5">
+            <KeyboardShortcut
+              keys={[KeyboardKey.ArrowUp]}
+              size={KeyboardShortcutSize.ExtraSmall}
+            />
+            <KeyboardShortcut
+              keys={[KeyboardKey.ArrowDown]}
+              size={KeyboardShortcutSize.ExtraSmall}
+            />
+            to move
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <KeyboardShortcut
+              keys={[KeyboardKey.Enter]}
+              size={KeyboardShortcutSize.ExtraSmall}
+            />
+            to add
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <KeyboardShortcut
+              keys={["/"]}
+              size={KeyboardShortcutSize.ExtraSmall}
+            />
+            to search
+          </span>
+        </div>
+      }
+    >
+      <div ref={rootRef} data-testid="workflow-component-picker">
+        <div className="sticky top-0 z-10 -mx-5 border-b border-gray-100 bg-white px-5 pb-3 pt-1 sm:pt-5">
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              ref={searchInputRef}
+              id={SEARCH_INPUT_ID}
+              type="text"
+              role="combobox"
+              aria-label={`Search ${typePlural}`}
+              aria-autocomplete="list"
+              aria-expanded={isSearching && visibleResults.length > 0}
+              aria-controls={isSearching ? SEARCH_RESULTS_ID : undefined}
+              aria-activedescendant={
+                isSearching && visibleResults.length > 0
+                  ? getSearchOptionId(activeIndex)
+                  : undefined
+              }
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              value={query}
+              placeholder={
+                props.componentsType === ComponentType.Trigger
+                  ? "Search triggers, e.g. incident created"
+                  : "Search components, e.g. create incident"
+              }
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                setQuery(event.target.value);
+              }}
+              onKeyDown={onSearchKeyDown}
+              className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-10 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+            {query.length > 0 && (
+              <div className="absolute inset-y-0 right-0 flex items-center pr-1.5">
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={clearSearch}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                >
+                  <Icon icon={IconProp.Close} className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
+          <p
+            role="status"
+            aria-live="polite"
+            className={`text-xs text-gray-500 ${statusText ? "mt-2" : ""}`}
+          >
+            {statusText}
+          </p>
+        </div>
+
+        <div
+          data-testid="workflow-component-picker-body"
+          aria-busy={isCatchingUp}
+          className={`pt-4 transition-opacity duration-150 ${
+            isCatchingUp ? "opacity-60" : ""
+          }`}
+          onKeyDown={onBrowseKeyDown}
+        >
+          {body}
+        </div>
+      </div>
     </SideOver>
   );
 };

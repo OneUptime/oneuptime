@@ -131,7 +131,7 @@ Zwischen Text und JSON umwandeln.
 
 ## Conditions
 
-Anhand eines Vergleichs verzweigen. Im Panel **Komponente hinzufügen** heißt dieser Baustein **If / Else** und steht unter der Kategorie Conditions.
+Anhand eines Vergleichs verzweigen. Im Panel **Komponente hinzufügen** heißt dieser Baustein **If / Else** und steht unter **Popular**.
 
 **Einstellungen**:
 
@@ -159,7 +159,7 @@ Es gibt eine Sicherheitsgrenze, damit Workflows sich nicht endlos gegenseitig au
 
 ## OneUptime-Datenkomponenten
 
-Für jede Art von Datensatz in OneUptime (Monitore, Vorfälle, Warnungen, Statusseiten, Bereitschaftsrichtlinien und viele mehr) hält das Panel **Komponente hinzufügen** diese Komponenten bereit – suchen Sie nach dem Namen des Typs. Jeder Titel wird aus dem Datensatztyp erzeugt, für Monitor lautet der Satz also:
+Für jede Art von Datensatz in OneUptime (Monitore, Vorfälle, Warnungen, Statusseiten, Bereitschaftsrichtlinien und viele mehr) hält das Panel **Komponente hinzufügen** diese Komponenten bereit: Klicken Sie unter **OneUptime resources** auf den Datensatztyp (**Browse all resources** enthält die nicht angezeigten), oder suchen Sie nach dem Namen des Typs. Jeder Titel wird aus dem Datensatztyp erzeugt, für Monitor lautet der Satz also:
 
 - **Find One Monitor** – einen Datensatz lesen, der zur Abfrage passt.
 - **Find Many Monitors** – eine Liste von Datensätzen lesen, die zur Abfrage passen.
