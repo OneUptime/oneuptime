@@ -543,22 +543,23 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new AcceptPendingTeamInvitationsOfProjectMembers(),
   /*
+   * Clears ttl_only_drop_parts on the metric tables and on LogItemV3, which
+   * AddTtlOnlyDropPartsToTelemetryV3 set and the models no longer declare: a
+   * metric partition mixes telemetry retention with monitor retention, and a
+   * log partition mixes it with the per-severity override, so neither expires
+   * as a whole and TTL evicts nothing. Its only ordering requirement is to
+   * come after that migration, so it sits here rather than in the last slot
+   * AddAuditLogMcpClientColumns asserts for itself. Cluster-aware, so it
+   * actually reaches an existing install.
+   */
+  new DropTtlOnlyDropPartsFromMixedRetentionTables(),
+  /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
    * (AuditLogV2.mcpOAuthGrantId, mcpClientName). Metadata-only and
    * idempotent; rows written before it read as "not through an MCP client".
    */
   new AddAuditLogMcpClientColumns(),
-  /*
-   * Clears ttl_only_drop_parts on the metric tables and on LogItemV3, which
-   * AddTtlOnlyDropPartsToTelemetryV3 set and the models no longer declare: a
-   * metric partition mixes telemetry retention with monitor retention, and a
-   * log partition mixes it with the per-severity override, so neither expires
-   * as a whole and TTL evicts nothing. Appended at the end because it only has
-   * to run after that migration, and cluster-aware so it actually reaches an
-   * existing install.
-   */
-  new DropTtlOnlyDropPartsFromMixedRetentionTables(),
 ];
 
 export default DataMigrations;
