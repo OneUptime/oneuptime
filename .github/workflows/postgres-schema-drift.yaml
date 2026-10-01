@@ -471,6 +471,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/TeamMemberInvitationAcceptancePostgres.test.ts --forceExit
 
+      # Clones the migrated McpOAuthClient / McpOAuthGrant / McpOAuthToken
+      # tables into an isolated schema and rebuilds the token -> grant foreign
+      # key from the migrated definition. Of several requests racing to claim
+      # one authorization code exactly one may win, two tokens can never share
+      # a hash, and revoking a grant must really delete it together with
+      # every code and token issued under it.
+      - name: Test the MCP OAuth token store on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MCP_OAUTH_TESTS: "true"
+          MCP_OAUTH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MCP_OAUTH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MCP_OAUTH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/McpOAuthPostgres.test.ts --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service
