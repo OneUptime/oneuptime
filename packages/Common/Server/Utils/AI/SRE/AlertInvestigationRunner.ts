@@ -38,9 +38,11 @@ import {
 import { KubernetesClusterAiAccessStatus } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
 import ClusterAccessContext from "../ClusterAccess/ClusterAccessContext";
-import KubectlInvestigationToolkit, {
-  INVESTIGATION_MAX_WALL_CLOCK_MS,
-} from "../ClusterAccess/KubectlInvestigationToolkit";
+import KubectlInvestigationToolkit from "../ClusterAccess/KubectlInvestigationToolkit";
+import ToolOutputPager from "../Chat/ToolOutputPager";
+import AIAgentRunLimitsHelper, {
+  AIAgentRunLimits,
+} from "../../../../Types/AI/AIAgentRunLimits";
 import { ResourceAiAccessStatus } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
 import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
@@ -248,13 +250,19 @@ export default class AIAlertInvestigationRunner {
     }
 
     /*
-     * The run's wall clock, stated once: the engine enforces it between
-     * tool calls and the kubectl toolkit plans every command's wait to end
-     * before it, so a run_kubectl issued late in the run cannot outlive the
-     * budget (the loop cannot interrupt a tool once it is running).
+     * How far the run may go, stated once: no time limit unless the project
+     * configured one. When it did, the engine enforces it between tool
+     * calls and the command toolkits plan every command's wait to end
+     * before it, so a command issued late in the run cannot outlive it (the
+     * loop cannot interrupt a tool once it is running).
      */
-    const runDeadlineAtMs: number =
-      Date.now() + INVESTIGATION_MAX_WALL_CLOCK_MS;
+    const runLimits: AIAgentRunLimits =
+      await AIInvestigationEngine.getRunLimitsForProject(projectId, "Alert");
+    const runDeadlineAtMs: number | undefined =
+      AIAgentRunLimitsHelper.getDeadlineAtMs(runLimits, Date.now());
+
+    // One pager for the run, so read_tool_output reads every toolkit's output.
+    const outputPager: ToolOutputPager = new ToolOutputPager();
 
     const kubectlToolkit: KubectlInvestigationToolkit =
       new KubectlInvestigationToolkit({
@@ -262,6 +270,7 @@ export default class AIAlertInvestigationRunner {
         aiRunId,
         clusters: clusterStatuses,
         runDeadlineAtMs,
+        outputPager,
       });
     const extraTools: Array<ObservabilityAssistantExtraTool> =
       kubectlToolkit.buildTools();
@@ -280,6 +289,7 @@ export default class AIAlertInvestigationRunner {
           aiRunId,
           resources: resourceStatuses,
           runDeadlineAtMs,
+          outputPager,
         });
       const infrastructureTools: Array<ObservabilityAssistantExtraTool> =
         infrastructureToolkit.buildTools();
@@ -293,6 +303,11 @@ export default class AIAlertInvestigationRunner {
       logger.error(
         `AI: could not offer infrastructure access for alert ${alertId.toString()}; investigating it with OneUptime data only: ${error}`,
       );
+    }
+
+    // Long command output is paged, never cut: offer the reader with the commands.
+    if (extraTools.length > 0) {
+      extraTools.push(outputPager.buildReadTool());
     }
 
     // The cluster rules first, exactly as before; the infrastructure rules after.
@@ -317,7 +332,9 @@ export default class AIAlertInvestigationRunner {
         feature: AI_ALERT_INVESTIGATION_FEATURE,
         alertId,
         contextSummary,
-        maxWallClockMs: INVESTIGATION_MAX_WALL_CLOCK_MS,
+        maxLlmCalls: runLimits.maxLlmCalls,
+        maxToolCalls: runLimits.maxToolCalls,
+        maxWallClockMs: runLimits.maxWallClockMs,
         ...(additionalInstructions.length > 0
           ? { additionalInstructions: additionalInstructions.join("\n\n") }
           : {}),

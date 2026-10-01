@@ -1443,6 +1443,76 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     titles: ["Project", "Logs", "Settings", "Scrub Rules"],
   },
   {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues",
+    titles: ["Project", "Queues"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/archived",
+    titles: ["Project", "Queues", "Archived"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/documentation",
+    titles: ["Project", "Queues", "Documentation"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id",
+    titles: ["Project", "Queues", "View Queue"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id/delete",
+    titles: ["Project", "Queues", "View Queue", "Delete Queue"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id/documentation",
+    titles: ["Project", "Queues", "View Queue", "Documentation"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id/metrics",
+    titles: ["Project", "Queues", "View Queue", "Metrics"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id/owners",
+    titles: ["Project", "Queues", "View Queue", "Owners"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id/settings",
+    titles: ["Project", "Queues", "View Queue", "Settings"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/:id/traces",
+    titles: ["Project", "Queues", "View Queue", "Traces"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/settings/label-rules",
+    titles: ["Project", "Queues", "Label Rules"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/settings/label-rules/:id",
+    titles: ["Project", "Queues", "Label Rules", "View Rule"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/settings/owner-rules",
+    titles: ["Project", "Queues", "Owner Rules"],
+  },
+  {
+    getter: "getMessageQueueBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/queues/settings/owner-rules/:id",
+    titles: ["Project", "Queues", "Owner Rules", "View Rule"],
+  },
+  {
     getter: "getMetricsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/metrics",
     titles: ["Project", "Metrics"],
@@ -1585,7 +1655,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getMonitorBreadcrumbs",
     pagePattern: "/dashboard/:projectId/monitors/inoperational",
-    titles: ["Project", "Monitors", "Inoperational"],
+    titles: ["Project", "Monitors", "Not Operational"],
   },
   {
     getter: "getMonitorBreadcrumbs",

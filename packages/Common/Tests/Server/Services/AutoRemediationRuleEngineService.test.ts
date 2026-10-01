@@ -38,8 +38,9 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * - matching semantics (monitors / severities / labels / monitor labels /
  *   regex; skip-if-empty, AND across criteria; invalid regex never matches
  *   and never throws);
- * - the guardrails: project kill switch, per-subject suggestion cap,
- *   per-rule dedupe, the FullAuto hourly circuit breaker, and the
+ * - the guardrails: the project kill switch (Enable AI, the project's only
+ *   AI switch, which stops deterministic rules too), per-subject suggestion
+ *   cap, per-rule dedupe, the FullAuto hourly circuit breaker, and the
  *   AI-picks-runbook-is-never-FullAuto invariant;
  * - the engine-never-throws-out-of-onCreateSuccess contract.
  */
@@ -129,7 +130,6 @@ function mockProject(overrides: Partial<Record<string, unknown>> = {}): void {
   jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
     id: PROJECT_ID,
     enableAi: true,
-    enableAutoRemediation: true,
     ...overrides,
   } as unknown as Project);
 }
@@ -469,27 +469,69 @@ describe("AutoRemediationRuleEngineService", () => {
       mockProject({ enableAi: false });
       mockRules([fakeRule({ aiSelectsRunbook: true })]);
       const create: jest.SpyInstance = mockSuggestionCreate();
+      const enqueue: jest.SpyInstance = jest
+        .spyOn(AIInvestigationQueue, "enqueue")
+        .mockResolvedValue(AI_RUN_ID);
 
       await AutoRemediationRuleEngineService.applyRulesToIncident(
         fakeIncident(),
       );
 
       expect(create).not.toHaveBeenCalled();
+      expect(enqueue).not.toHaveBeenCalled();
+      // The engine stops at the switch: no provider is even looked up.
+      expect(
+        LlmProviderService.getLLMProviderForProject,
+      ).not.toHaveBeenCalled();
     });
   });
 
   describe("guardrails", () => {
-    it("does nothing when the project kill switch is off", async () => {
-      mockProject({ enableAutoRemediation: false });
+    it("does nothing when Enable AI — the project kill switch — is off, deterministic rules included", async () => {
+      mockProject({ enableAi: false });
       const findRules: jest.SpyInstance = jest
         .spyOn(AutoRemediationRuleService, "findBy")
-        .mockResolvedValue([]);
+        .mockResolvedValue([
+          fakeRule({ executionMode: AutoRemediationExecutionMode.FullAuto }),
+        ]);
+      const start: jest.SpyInstance = jest
+        .spyOn(RunbookRuleEngineService, "startRunbookFor")
+        .mockResolvedValue(null);
+      const create: jest.SpyInstance = mockSuggestionCreate();
 
       await AutoRemediationRuleEngineService.applyRulesToIncident(
         fakeIncident(),
       );
 
       expect(findRules).not.toHaveBeenCalled();
+      expect(start).not.toHaveBeenCalled();
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it("reads the project switch as Enable AI alone", async () => {
+      mockRules([]);
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(
+        fakeIncident(),
+      );
+
+      expect(ProjectService.findOneById).toHaveBeenCalledWith({
+        id: PROJECT_ID,
+        select: { enableAi: true },
+        props: { isRoot: true },
+      });
+    });
+
+    it("treats Enable AI that was not selected (undefined) as on", async () => {
+      mockProject({ enableAi: undefined });
+      mockRules([fakeRule()]);
+      const create: jest.SpyInstance = mockSuggestionCreate();
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(
+        fakeIncident(),
+      );
+
+      expect(create).toHaveBeenCalledTimes(1);
     });
 
     it("stops at the per-subject suggestion cap", async () => {

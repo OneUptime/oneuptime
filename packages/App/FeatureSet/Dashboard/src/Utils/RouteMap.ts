@@ -512,6 +512,28 @@ export const DatabaseRoutePath: Dictionary<string> = {
   [PageMap.DATABASE_ARCHIVED]: `archived`,
 };
 
+/*
+ * The Queues product, under /queues. The static product pages (archived,
+ * documentation, settings/...) sit next to the queue view's `:modelId`;
+ * React Router ranks static segments above a dynamic one, so a queue can
+ * never be shadowed by them nor they by a queue.
+ */
+export const MessageQueueRoutePath: Dictionary<string> = {
+  [PageMap.MESSAGE_QUEUE_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.MESSAGE_QUEUE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.MESSAGE_QUEUE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.MESSAGE_QUEUE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.MESSAGE_QUEUE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.MESSAGE_QUEUE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.MESSAGE_QUEUES_ARCHIVED]: `archived`,
+  [PageMap.MESSAGE_QUEUES_DOCUMENTATION]: `documentation`,
+  [PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
+  [PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+};
+
 export const RumRoutePath: Dictionary<string> = {
   [PageMap.RUM_APPLICATION_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
@@ -5075,6 +5097,93 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATABASE_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/databases/${
       DatabaseRoutePath[PageMap.DATABASE_ARCHIVED]
+    }`,
+  ),
+
+  // Queues
+  [PageMap.MESSAGE_QUEUE_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/*`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES_VIEW]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES_VIEW]
     }`,
   ),
 

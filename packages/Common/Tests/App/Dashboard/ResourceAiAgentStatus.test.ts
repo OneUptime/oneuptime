@@ -9,6 +9,8 @@ import {
   RESOURCE_AI_CHOICE_GAP_CODES,
   RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS,
   ResourceAccessTestResult,
+  ResourceAiAttention,
+  ResourceAiAttentionStep,
   describeResourceAiAgentWriteAccess,
   formatResourceToolVersion,
   getResourceAiAccessRequestBody,
@@ -26,7 +28,10 @@ import {
   getResourceAiAgentSilentText,
   getResourceAiAgentStateSentence,
   getResourceAiAgentStatusPill,
+  getResourceAiAttention,
   getResourceAiAttentionGaps,
+  getResourceAiAttentionStepText,
+  getResourceAiAttentionTitle,
   getResourceAiRefusedRegistrationWarning,
   isResourceUnreachable,
   parseResourceAccessTestResult,
@@ -842,6 +847,10 @@ describe("Needs attention", () => {
   test.each([
     ["investigation_disabled", "turn_on_investigation"],
     ["ai_disabled_for_project", "open_ai_features"],
+    /*
+     * Retired: "Enable auto-remediation" was folded into Enable AI, but an
+     * older server may still send it mid-rollout.
+     */
     ["auto_remediation_disabled_for_project", "open_ai_features"],
     ["llm_provider_missing", "open_llm_providers"],
     ["ai_balance_insufficient", "open_ai_credits"],
@@ -868,6 +877,454 @@ describe("Needs attention", () => {
       ),
     ).toBeNull();
   });
+});
+
+/*
+ * "Needs attention" as ONE item: a headline that says what OneUptime AI
+ * cannot do on the resource, then one short step per gap in this page's
+ * words, each with the action its gap offers.
+ */
+
+const DATABASE: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
+  AiResourceType.DatabaseServer,
+);
+
+// A gap with the flags the server really gives it (see the table below).
+function flaggedGap(
+  code: ResourceAiAccessGapCode,
+  flags: { investigation: boolean; fixes: boolean },
+): ResourceAiAccessGap {
+  return {
+    code,
+    title: `Title of ${code}`,
+    nextStep: `Next step for ${code}`,
+    blocksInvestigation: flags.investigation,
+    blocksRemediation: flags.fixes,
+  };
+}
+
+// What each gap blocks, as ResourceAiAccessService.buildStatus sets it.
+const SERVER_FLAGS: Record<
+  ResourceAiAccessGapCode,
+  { investigation: boolean; fixes: boolean }
+> = {
+  ai_agent_not_connected: { investigation: true, fixes: true },
+  ai_agent_offline: { investigation: true, fixes: true },
+  ai_agent_unreachable_resource: { investigation: true, fixes: true },
+  investigation_disabled: { investigation: true, fixes: false },
+  remediation_disabled: { investigation: false, fixes: true },
+  remediation_write_access_missing: { investigation: false, fixes: true },
+  ai_disabled_for_project: { investigation: true, fixes: true },
+  // Retired (Enable AI covers it): only an older server sends it, like this.
+  auto_remediation_disabled_for_project: { investigation: false, fixes: true },
+  llm_provider_missing: { investigation: true, fixes: true },
+  ai_balance_insufficient: { investigation: true, fixes: true },
+};
+
+function serverGap(code: ResourceAiAccessGapCode): ResourceAiAccessGap {
+  return flaggedGap(code, SERVER_FLAGS[code]);
+}
+
+function stepTexts(attention: ResourceAiAttention | null): Array<string> {
+  return (attention?.steps || []).map(
+    (step: ResourceAiAttentionStep): string => {
+      return step.text;
+    },
+  );
+}
+
+describe("Needs attention, as one item", () => {
+  test("nothing to show without gaps, or with only the fixes-off choice", () => {
+    expect(getResourceAiAttention(makeStatus({ gaps: [] }), DOCKER)).toBeNull();
+    expect(
+      getResourceAiAttention(
+        makeStatus({ gaps: [serverGap("remediation_disabled")] }),
+        DOCKER,
+      ),
+    ).toBeNull();
+  });
+
+  test("the database server in the screenshot: one headline, two short steps", () => {
+    const attention: ResourceAiAttention | null = getResourceAiAttention(
+      makeStatus({
+        resourceType: AiResourceType.DatabaseServer,
+        agent: null,
+        isAiInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps: [
+          serverGap("ai_agent_not_connected"),
+          serverGap("investigation_disabled"),
+          serverGap("remediation_disabled"),
+        ],
+      }),
+      DATABASE,
+    );
+
+    expect(attention).toEqual({
+      title: "OneUptime AI can't investigate this database server",
+      steps: [
+        {
+          gap: serverGap("ai_agent_not_connected"),
+          text: "Install the Database AI agent with the instructions above.",
+          action: null,
+        },
+        {
+          gap: serverGap("investigation_disabled"),
+          text: "Turn on AI investigation.",
+          action: "turn_on_investigation",
+        },
+      ],
+    });
+  });
+
+  test("keeps the server's order and gives each step its gap's action", () => {
+    const gaps: Array<ResourceAiAccessGap> = [
+      serverGap("ai_agent_unreachable_resource"),
+      serverGap("investigation_disabled"),
+      serverGap("remediation_write_access_missing"),
+      serverGap("ai_disabled_for_project"),
+      serverGap("llm_provider_missing"),
+      serverGap("ai_balance_insufficient"),
+      serverGap("auto_remediation_disabled_for_project"),
+    ];
+    const status: ResourceAiAccessStatus = makeStatus({
+      aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+      agent: makeAgent({ posture: makePosture({ reachable: false }) }),
+      isInvestigationReady: false,
+      gaps,
+    });
+    const attention: ResourceAiAttention = getResourceAiAttention(
+      status,
+      DOCKER,
+    )!;
+
+    expect(
+      attention.steps.map((step: ResourceAiAttentionStep): string => {
+        return step.gap.code;
+      }),
+    ).toEqual(
+      gaps.map((item: ResourceAiAccessGap): string => {
+        return item.code;
+      }),
+    );
+    expect(
+      attention.steps.map((step: ResourceAiAttentionStep): string | null => {
+        return step.action;
+      }),
+    ).toEqual([
+      "test_connection",
+      "turn_on_investigation",
+      null,
+      "open_ai_features",
+      "open_llm_providers",
+      "open_ai_credits",
+      "open_ai_features",
+    ]);
+    for (const step of attention.steps) {
+      expect(step.action).toBe(getResourceAiAgentGapAction(step.gap, status));
+      expect(step.text).toBe(
+        getResourceAiAttentionStepText(step.gap, status, DOCKER),
+      );
+    }
+  });
+
+  test("one gap is one step", () => {
+    const attention: ResourceAiAttention | null = getResourceAiAttention(
+      makeStatus({
+        isAiInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps: [serverGap("investigation_disabled")],
+      }),
+      DOCKER,
+    );
+
+    expect(attention?.title).toBe(
+      "OneUptime AI can't investigate this Docker host",
+    );
+    expect(stepTexts(attention)).toEqual(["Turn on AI investigation."]);
+  });
+});
+
+describe("Needs attention's headline", () => {
+  test("investigation blocked, fixes off: only investigation is named", () => {
+    expect(
+      getResourceAiAttentionTitle(
+        makeStatus({
+          agent: null,
+          gaps: [
+            serverGap("ai_agent_not_connected"),
+            serverGap("remediation_disabled"),
+          ],
+        }),
+        DOCKER,
+      ),
+    ).toBe("OneUptime AI can't investigate this Docker host");
+  });
+
+  test.each([
+    ResourceAiRemediationMode.RequireApproval,
+    ResourceAiRemediationMode.Automatic,
+    ResourceAiRemediationMode.BypassApproval,
+  ])(
+    "investigation and fixes blocked with fixes on (%s): both are named",
+    (mode: ResourceAiRemediationMode) => {
+      expect(
+        getResourceAiAttentionTitle(
+          makeStatus({
+            agent: null,
+            aiRemediationMode: mode,
+            gaps: [serverGap("ai_agent_not_connected")],
+          }),
+          DOCKER,
+        ),
+      ).toBe(
+        "OneUptime AI can't investigate this Docker host or run fixes on it",
+      );
+    },
+  );
+
+  test("investigation off while fixes are on and working: only investigation", () => {
+    expect(
+      getResourceAiAttentionTitle(
+        makeStatus({
+          isAiInvestigationEnabled: false,
+          aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+          gaps: [serverGap("investigation_disabled")],
+        }),
+        DOCKER,
+      ),
+    ).toBe("OneUptime AI can't investigate this Docker host");
+  });
+
+  test("a read-only agent while fixes are on: only fixes are named", () => {
+    expect(
+      getResourceAiAttentionTitle(
+        makeStatus({
+          aiRemediationMode: ResourceAiRemediationMode.Automatic,
+          gaps: [serverGap("remediation_write_access_missing")],
+        }),
+        DOCKER,
+      ),
+    ).toBe("OneUptime AI can't run fixes on this Docker host");
+  });
+
+  test("a gap that blocks only fixes still says fixes when they are off", () => {
+    // An older server's retired gap is the one that arrives beside fixes-off.
+    expect(
+      getResourceAiAttentionTitle(
+        makeStatus({
+          gaps: [
+            serverGap("remediation_disabled"),
+            serverGap("auto_remediation_disabled_for_project"),
+          ],
+        }),
+        DOCKER,
+      ),
+    ).toBe("OneUptime AI can't run fixes on this Docker host");
+  });
+
+  test("the fixes-off choice never counts toward the headline", () => {
+    expect(
+      getResourceAiAttentionTitle(
+        makeStatus({
+          aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+          gaps: [
+            // Not what the server sends together, but the choice must not count.
+            serverGap("remediation_disabled"),
+            serverGap("investigation_disabled"),
+          ],
+        }),
+        DOCKER,
+      ),
+    ).toBe("OneUptime AI can't investigate this Docker host");
+  });
+
+  test("an unknown fixes mode reads as off", () => {
+    expect(
+      getResourceAiAttentionTitle(
+        makeStatus({
+          agent: null,
+          aiRemediationMode: "Sometimes" as ResourceAiRemediationMode,
+          gaps: [serverGap("ai_agent_not_connected")],
+        }),
+        DOCKER,
+      ),
+    ).toBe("OneUptime AI can't investigate this Docker host");
+  });
+
+  test("a gap that blocks neither falls back to a plain sentence", () => {
+    expect(
+      getResourceAiAttentionTitle(
+        makeStatus({
+          gaps: [
+            flaggedGap("ai_agent_offline", {
+              investigation: false,
+              fixes: false,
+            }),
+          ],
+        }),
+        DOCKER,
+      ),
+    ).toBe("OneUptime AI can't do all of its job on this Docker host");
+  });
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "names the resource: %s",
+    (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+
+      expect(
+        getResourceAiAttentionTitle(
+          makeStatus({
+            resourceType: type,
+            agent: null,
+            gaps: [serverGap("ai_agent_not_connected")],
+          }),
+          descriptor,
+        ),
+      ).toBe(`OneUptime AI can't investigate this ${descriptor.noun}`);
+    },
+  );
+});
+
+describe("Needs attention's steps", () => {
+  const reachable: ResourceAiAccessStatus = makeStatus();
+  const unreachable: ResourceAiAccessStatus = makeStatus({
+    agent: makeAgent({
+      posture: makePosture({
+        reachable: false,
+        reachError: "Cannot connect to the Docker daemon",
+      }),
+    }),
+  });
+
+  test.each([
+    [
+      "ai_agent_not_connected",
+      "Install the Docker AI agent with the instructions above.",
+    ],
+    [
+      "ai_agent_offline",
+      "Bring the Docker AI agent back online. Its logs say why it is offline (the command is above).",
+    ],
+    ["investigation_disabled", "Turn on AI investigation."],
+    [
+      "remediation_write_access_missing",
+      "Give the Docker AI agent write access with the steps below.",
+    ],
+    ["ai_disabled_for_project", "Turn on AI for this project."],
+    [
+      "llm_provider_missing",
+      "Add an AI provider for this project, or use OneUptime AI credits.",
+    ],
+    [
+      "ai_balance_insufficient",
+      "Add AI credits to this project, or turn on auto-recharge.",
+    ],
+    // Retired: Enable AI covers it, so it asks for the same thing.
+    ["auto_remediation_disabled_for_project", "Turn on AI for this project."],
+  ])("%s: %s", (code: string, text: string) => {
+    expect(
+      getResourceAiAttentionStepText(
+        serverGap(code as ResourceAiAccessGapCode),
+        reachable,
+        DOCKER,
+      ),
+    ).toBe(text);
+  });
+
+  test("an agent that could not reach the resource: fix it, then test", () => {
+    expect(
+      getResourceAiAttentionStepText(
+        serverGap("ai_agent_unreachable_resource"),
+        unreachable,
+        DOCKER,
+      ),
+    ).toBe(
+      "Let the Docker AI agent reach this Docker host (its error and the logs command are above), then test the connection.",
+    );
+  });
+
+  test("an agent that has not said whether it can reach the resource: wait, then test", () => {
+    const expected: string =
+      "Wait a minute for the Docker AI agent to report that it can reach this Docker host, then test the connection.";
+
+    for (const status of [
+      makeStatus({ agent: makeAgent({ posture: null }) }),
+      makeStatus({ agent: makeAgent({ posture: undefined }) }),
+      reachable,
+    ]) {
+      expect(
+        getResourceAiAttentionStepText(
+          serverGap("ai_agent_unreachable_resource"),
+          status,
+          DOCKER,
+        ),
+      ).toBe(expected);
+    }
+  });
+
+  test("a gap this build does not know keeps the server's next step, or its title", () => {
+    const unknown: ResourceAiAccessGap = {
+      ...serverGap("ai_agent_offline"),
+      code: "something_new" as ResourceAiAccessGapCode,
+      title: "Something new is wrong",
+      nextStep: "Do the new thing.",
+    };
+
+    expect(getResourceAiAttentionStepText(unknown, reachable, DOCKER)).toBe(
+      "Do the new thing.",
+    );
+    expect(
+      getResourceAiAttentionStepText(
+        { ...unknown, nextStep: "" },
+        reachable,
+        DOCKER,
+      ),
+    ).toBe("Something new is wrong");
+  });
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "every step names %s's own agent and noun, and never sends the reader to this page",
+    (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      const status: ResourceAiAccessStatus = makeStatus({
+        resourceType: type,
+        agent: makeAgent({
+          posture: makePosture({ resourceType: type, reachable: false }),
+        }),
+      });
+      const texts: Record<string, string> = {};
+
+      for (const code of Object.keys(
+        SERVER_FLAGS,
+      ) as Array<ResourceAiAccessGapCode>) {
+        if (code === "remediation_disabled") {
+          continue;
+        }
+        texts[code] = getResourceAiAttentionStepText(
+          serverGap(code),
+          status,
+          descriptor,
+        );
+      }
+
+      expect(texts["ai_agent_not_connected"]).toBe(
+        `Install the ${AI_RESOURCE_TYPE_INFO[type].agentDisplayName} with the instructions above.`,
+      );
+      expect(texts["ai_agent_unreachable_resource"]).toContain(
+        `reach this ${descriptor.noun}`,
+      );
+      for (const text of Object.values(texts)) {
+        expect(text).not.toMatch(/Next step for|Title of/);
+        expect(text).not.toContain("AI → AI agent");
+        expect(text).not.toContain("AI agent page");
+        expect(text).toMatch(/\.$/);
+      }
+    },
+  );
 });
 
 describe("the write-access instructions", () => {

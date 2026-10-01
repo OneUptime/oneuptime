@@ -132,7 +132,7 @@ import KubectlExecutor, {
   getRequestTimeoutMs,
   replaceNulCharacters,
 } from "../../Services/KubectlExecutor";
-import { MAX_OUTPUT_BYTES } from "../../Config";
+import { MAX_KUBECTL_OUTPUT_BYTES as MAX_OUTPUT_BYTES } from "../../Config";
 import KubernetesPosture from "../../Utils/KubernetesPosture";
 import KubernetesAgentMode from "../../Utils/KubernetesAgentMode";
 import KubectlPolicy, {
@@ -1027,7 +1027,7 @@ describe("KubectlExecutor", () => {
     test("a huge stdout is cut and stderr survives intact", async () => {
       childProcessMock.__set({
         exitCode: 1,
-        stdout: "x".repeat(120_000),
+        stdout: "x".repeat(MAX_OUTPUT_BYTES + 70_000),
         stderr: `${FORBIDDEN}\n`,
       });
 
@@ -1052,7 +1052,7 @@ describe("KubectlExecutor", () => {
     test("a huge stdout with no stderr uses the whole budget and says nothing about stderr", async () => {
       childProcessMock.__set({
         exitCode: 0,
-        stdout: "y".repeat(60_000),
+        stdout: "y".repeat(MAX_OUTPUT_BYTES + 10_000),
         stderr: "",
       });
 

@@ -7,9 +7,16 @@ import { JSONObject, JSONValue } from "../../../../Types/JSON";
  * LlmLog.requestPrompt) passes through here first.
  */
 
-const MAX_ROWS: number = 50;
-const MAX_FIELD_LENGTH: number = 500;
-const MAX_PAYLOAD_BYTES: number = 16 * 1024;
+/*
+ * Rows beyond this are summarized ("showing the first 50 of N rows") so the
+ * model narrows the query instead of reading an unbounded table. A single
+ * field keeps up to MAX_FIELD_LENGTH characters — enough for a whole stack
+ * trace or a long log line, which used to be cut at 500 and lose exactly the
+ * frame that mattered — and one result keeps up to MAX_PAYLOAD_BYTES.
+ */
+export const MAX_ROWS: number = 50;
+export const MAX_FIELD_LENGTH: number = 4000;
+export const MAX_PAYLOAD_BYTES: number = 64 * 1024;
 
 interface RedactionRule {
   name: string;

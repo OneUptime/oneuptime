@@ -1499,69 +1499,12 @@ export default class Project extends TenantModel {
   })
   public autoRechargeAiWhenCurrentBalanceFallsInUSD?: number = undefined;
 
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadProject,
-      Permission.UnAuthorizedSsoUser,
-      Permission.ProjectUser,
-    ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
-  })
-  @TableColumn({
-    required: true,
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Enable AI",
-    description: "Enable AI services for this project.",
-    defaultValue: true,
-    example: true,
-  })
-  @Column({
-    nullable: false,
-    default: true,
-    type: ColumnType.Boolean,
-  })
-  public enableAi?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadProject,
-      Permission.UnAuthorizedSsoUser,
-      Permission.ProjectUser,
-    ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
-  })
-  @TableColumn({
-    required: true,
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Enable Auto Remediation",
-    description:
-      "Kill switch for auto-remediation: when disabled, no auto-remediation rule fires in this project.",
-    defaultValue: true,
-    example: true,
-  })
-  @Column({
-    nullable: false,
-    default: true,
-    type: ColumnType.Boolean,
-  })
-  public enableAutoRemediation?: boolean = undefined;
-
   /*
-   * Explicit opt-in (=== true semantics, unlike the kill switches above):
-   * AI-composed remediation COMMANDS never run in a project that has not
-   * turned this on, even when auto-remediation itself is enabled.
+   * The project's one AI switch. It used to have two companions, "Enable
+   * auto-remediation" and "Enable AI command execution"; both were folded
+   * into it, so auto-remediation and AI commands on Runners are on exactly
+   * when this is. Read with `=== false`: the column is NOT NULL DEFAULT
+   * true, so undefined means "not selected", never "off".
    */
   @ColumnAccessControl({
     create: [],
@@ -1580,18 +1523,18 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
-    title: "Enable AI Command Execution",
+    title: "Enable AI",
     description:
-      "When enabled, auto-remediation rules may let the AI compose and run commands on opted-in Runners (with an operator allowlist for auto-execution, and one-click approval for everything else), and AI may fix Kubernetes clusters reached through a Runner with a Kubernetes credential. Fixes on a cluster through its in-cluster Kubernetes AI agent do not need it: that cluster's AI agent page and the agent's write access decide. Off by default.",
-    defaultValue: false,
-    example: false,
+      "Master switch for AI in this project. When disabled, every AI feature stops: Ask AI, investigations, postmortem drafts, auto-remediation and AI commands on Runners.",
+    defaultValue: true,
+    example: true,
   })
   @Column({
     nullable: false,
-    default: false,
+    default: true,
     type: ColumnType.Boolean,
   })
-  public enableAiCommandExecution?: boolean = undefined;
+  public enableAi?: boolean = undefined;
 
   /*
    * The automatic-investigation opt-ins are ON for projects created from now
@@ -2394,6 +2337,60 @@ export default class Project extends TenantModel {
     type: ColumnType.Number,
   })
   public alertAiMaxConcurrentInvestigations?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Incident Investigation Time Limit (Minutes)",
+    description:
+      "Stop an incident AI investigation after this many minutes and report what it found. Unset (the default) means no time limit — the investigation runs until it is done.",
+    example: 15,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public incidentAiInvestigationTimeLimitInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Alert Investigation Time Limit (Minutes)",
+    description:
+      "Stop an alert AI investigation after this many minutes and report what it found. Unset (the default) means no time limit — the investigation runs until it is done.",
+    example: 15,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public alertAiInvestigationTimeLimitInMinutes?: number = undefined;
 
   @ColumnAccessControl({
     create: [],

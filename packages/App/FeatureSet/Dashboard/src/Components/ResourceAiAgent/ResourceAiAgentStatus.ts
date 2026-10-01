@@ -509,7 +509,7 @@ export function getResourceAiAttentionGaps(
 }
 
 /*
- * The one action a "Needs attention" row offers, or null when its next
+ * The one action a "Needs attention" step offers, or null when its next
  * step is a command already on the page (install, logs, write access).
  */
 export type ResourceAiAgentGapAction =
@@ -526,6 +526,10 @@ export function getResourceAiAgentGapAction(
   switch (gap.code) {
     case "investigation_disabled":
       return "turn_on_investigation";
+    /*
+     * auto_remediation_disabled_for_project is retired (Enable AI covers
+     * it); an older server may still send it mid-rollout.
+     */
     case "ai_disabled_for_project":
     case "auto_remediation_disabled_for_project":
       return "open_ai_features";
@@ -539,6 +543,134 @@ export function getResourceAiAgentGapAction(
     default:
       return null;
   }
+}
+
+/*
+ * "Needs attention" is one item, not a row per gap: a headline saying what
+ * OneUptime AI cannot do on this resource, then the steps that fix it.
+ *
+ * The headline reads the gaps' own flags. Fixes only count while they are
+ * on: an agent that is not connected blocks both investigation and fixes
+ * for the server, but "can't run fixes" says nothing to someone who turned
+ * fixes off.
+ */
+export function getResourceAiAttentionTitle(
+  status: ResourceAiAccessStatus,
+  descriptor: ResourceAiAgentDescriptor,
+): string {
+  const gaps: Array<ResourceAiAccessGap> = getResourceAiAttentionGaps(status);
+  const blocksInvestigation: boolean = gaps.some(
+    (gap: ResourceAiAccessGap): boolean => {
+      return gap.blocksInvestigation === true;
+    },
+  );
+  const blocksFixes: boolean = gaps.some(
+    (gap: ResourceAiAccessGap): boolean => {
+      return gap.blocksRemediation === true;
+    },
+  );
+  const areFixesOn: boolean =
+    parseResourceAiRemediationMode(status.aiRemediationMode) !==
+    ResourceAiRemediationMode.Disabled;
+  const noun: string = descriptor.noun;
+
+  if (blocksInvestigation && blocksFixes && areFixesOn) {
+    return `OneUptime AI can't investigate this ${noun} or run fixes on it`;
+  }
+
+  if (blocksInvestigation) {
+    return `OneUptime AI can't investigate this ${noun}`;
+  }
+
+  if (blocksFixes) {
+    return `OneUptime AI can't run fixes on this ${noun}`;
+  }
+
+  return `OneUptime AI can't do all of its job on this ${noun}`;
+}
+
+/*
+ * One gap as a step, in this page's words. The server's next steps are
+ * written for every surface that shows a gap, so they send the reader to
+ * "the AI agent page (AI → AI agent)" — this page — and repeat the install
+ * snippet the agent card already shows. Here a step points at what is on
+ * the page instead. A gap this build does not know keeps the server's
+ * next step.
+ */
+export function getResourceAiAttentionStepText(
+  gap: ResourceAiAccessGap,
+  status: ResourceAiAccessStatus,
+  descriptor: ResourceAiAgentDescriptor,
+): string {
+  const agentName: string = descriptor.agentName;
+  const noun: string = descriptor.noun;
+
+  switch (gap.code) {
+    case "ai_agent_not_connected":
+      return `Install the ${agentName} with the instructions above.`;
+    case "ai_agent_offline":
+      return `Bring the ${agentName} back online. Its logs say why it is offline (the command is above).`;
+    case "ai_agent_unreachable_resource":
+      // The server has two cases: it could not reach it, or has not said.
+      return status.agent?.posture?.reachable === false
+        ? `Let the ${agentName} reach this ${noun} (its error and the logs command are above), then test the connection.`
+        : `Wait a minute for the ${agentName} to report that it can reach this ${noun}, then test the connection.`;
+    case "investigation_disabled":
+      return "Turn on AI investigation.";
+    case "remediation_write_access_missing":
+      return `Give the ${agentName} write access with the steps below.`;
+    /*
+     * auto_remediation_disabled_for_project is retired: Enable AI covers
+     * it, so an older server that still sends it mid-rollout gets the same
+     * step.
+     */
+    case "ai_disabled_for_project":
+    case "auto_remediation_disabled_for_project":
+      return "Turn on AI for this project.";
+    case "llm_provider_missing":
+      return "Add an AI provider for this project, or use OneUptime AI credits.";
+    case "ai_balance_insufficient":
+      return "Add AI credits to this project, or turn on auto-recharge.";
+    default:
+      return gap.nextStep || gap.title;
+  }
+}
+
+export interface ResourceAiAttentionStep {
+  gap: ResourceAiAccessGap;
+  text: string;
+  action: ResourceAiAgentGapAction | null;
+}
+
+export interface ResourceAiAttention {
+  title: string;
+  steps: Array<ResourceAiAttentionStep>;
+}
+
+/*
+ * The "Needs attention" item, or null when there is nothing to show: one
+ * step per gap, in the server's order.
+ */
+export function getResourceAiAttention(
+  status: ResourceAiAccessStatus,
+  descriptor: ResourceAiAgentDescriptor,
+): ResourceAiAttention | null {
+  const gaps: Array<ResourceAiAccessGap> = getResourceAiAttentionGaps(status);
+
+  if (gaps.length === 0) {
+    return null;
+  }
+
+  return {
+    title: getResourceAiAttentionTitle(status, descriptor),
+    steps: gaps.map((gap: ResourceAiAccessGap): ResourceAiAttentionStep => {
+      return {
+        gap,
+        text: getResourceAiAttentionStepText(gap, status, descriptor),
+        action: getResourceAiAgentGapAction(gap, status),
+      };
+    }),
+  };
 }
 
 /*

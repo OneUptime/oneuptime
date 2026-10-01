@@ -419,6 +419,7 @@ describe("both layers take their text metrics from one rule", () => {
       "PublicDashboard",
       "StatusPage",
     ];
+    const pageWideFontRule: RegExp = /^\s*\*\s*\{[^}]*font-family/m;
 
     for (const frontend of frontends) {
       const index: string = fs.readFileSync(
@@ -434,7 +435,7 @@ describe("both layers take their text metrics from one rule", () => {
         "utf8",
       );
 
-      expect([frontend, /^\s*\*\s*\{[^}]*font-family/m.test(index)]).toEqual([
+      expect([frontend, pageWideFontRule.test(index)]).toEqual([
         frontend,
         true,
       ]);
@@ -617,12 +618,10 @@ describe("CodeBlock's global highlight theme never leaks into the editor", () =>
     ];
 
     expect(reshaped.length).toBeGreaterThan(0);
-    expect(ruleFor(".ou-code-editor__highlight *").declarations).toMatchObject(
-      {
-        "font-weight": "inherit",
-        "font-style": "inherit",
-      },
-    );
+    expect(ruleFor(".ou-code-editor__highlight *").declarations).toMatchObject({
+      "font-weight": "inherit",
+      "font-style": "inherit",
+    });
   });
 
   test("token colours come from the palette variables", () => {

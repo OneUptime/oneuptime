@@ -17,8 +17,9 @@ export interface ComponentProps {
   description: string;
   /*
    * The function being set up (its Documentation tab): its identifier fills
-   * in faas.name, and the cloud.platform it reported opens the matching
-   * platform. Both omitted on the product pages.
+   * in faas.name (OTEL_SERVICE_NAME on Azure Functions), and the
+   * cloud.platform it reported opens the matching platform. Both omitted on
+   * the product pages.
    */
   functionName?: string | undefined;
   cloudPlatform?: string | undefined;

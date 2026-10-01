@@ -21,7 +21,7 @@ What differs:
 - **Write access is an environment variable.** `ONEUPTIME_AI_ALLOW_WRITES=true` on the agent lets it apply fixes at all, and `ONEUPTIME_AI_WRITE_TARGETS` limits which containers, services, VMs, OSDs, sessions or units they may touch. On a cluster the chart's RBAC and `aiAgent.remediation.namespaces` do this.
 - **It starts switched off.** A resource starts with investigation and fixes off. The agent's first connection turns investigation on (see [Connecting to OneUptime](#connecting-to-oneuptime)).
 
-Like the Kubernetes AI agent, a resource AI agent is not a Runner. It never appears under Project Settings → Runners, it is never used as a Bash or SSH host for runbooks, and fixes through it do not need the project's **Enable AI Command Execution** switch; that switch is for commands a Runner runs.
+Like the Kubernetes AI agent, a resource AI agent is not a Runner. It never appears under Project Settings → Runners, and it is never used as a Bash or SSH host for runbooks.
 
 ## Supported resources
 
@@ -118,7 +118,7 @@ On its first connection the agent turns **investigation** on for its resource an
 
 ## What an investigation may run
 
-An investigation only ever runs **Read** commands: they look at the resource and change nothing. OneUptime AI sees the resources linked to the incident or alert (through their monitors and telemetry, at most 10 per signal) whose AI agent is connected and whose **Investigate** switch is on, and runs up to 8 commands per investigation, each cited like any other evidence. Every command is one program with its arguments — never through a shell, so pipes, redirects, `;`, `&&`, `$(…)` and `sudo` are refused with a message that says so. A command gets 30 seconds by default and 2 minutes at most, its output is capped at 50 KB on the agent, and OneUptime AI reads at most 8,000 characters of it. If an agent does not pick a command up, OneUptime AI stops sending that resource commands for the rest of the investigation.
+An investigation only ever runs **Read** commands: they look at the resource and change nothing. OneUptime AI sees the resources linked to the incident or alert (through their monitors and telemetry, at most 10 per signal) whose AI agent is connected and whose **Investigate** switch is on, and runs as many commands as the investigation needs (up to 200 per investigation, a guard against a runaway loop), each cited like any other evidence. Every command is one program with its arguments — never through a shell, so pipes, redirects, `;`, `&&`, `$(…)` and `sudo` are refused with a message that says so. A command gets 30 seconds by default and 2 minutes at most, and its output is capped at 1024 KB on the agent. Nothing of that output is cut off before OneUptime AI: a long output is shown a page at a time — the first 40,000 characters, then the rest on request. If an agent does not pick a command up, OneUptime AI stops sending that resource commands for the rest of the investigation.
 
 What each kind of resource may read is below. It is the same list the AI itself is given; everything not on it is refused.
 
@@ -191,7 +191,7 @@ Query text in the output is normalized — every string and number literal becom
 
 ## How fixes work
 
-Fixes are off until you turn them on, and that takes two switches: `ONEUPTIME_AI_ALLOW_WRITES=true` on the agent (see [Write access on the agent](#write-access-on-the-agent)), and **Fixes** on the resource's AI agent page. Either one alone changes nothing. Fixes also need auto-remediation to be enabled for the project, which it is unless someone turned it off.
+Fixes are off until you turn them on, and that takes two switches: `ONEUPTIME_AI_ALLOW_WRITES=true` on the agent (see [Write access on the agent](#write-access-on-the-agent)), and **Fixes** on the resource's AI agent page. Either one alone changes nothing. Fixes also need AI to be enabled for the project (**Enable AI** under Project Settings → AI Features), which it is unless someone turned it off.
 
 ### Fix modes
 

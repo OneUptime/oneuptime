@@ -124,6 +124,11 @@ export type KubernetesAiAccessGapCode =
   | "remediation_disabled"
   | "remediation_write_access_missing"
   | "project_ai_disabled"
+  /*
+   * Retired: the project's "Enable auto-remediation" and "Enable AI command
+   * execution" switches, both folded into Enable AI (project_ai_disabled).
+   * The server no longer produces either; they stay for compatibility.
+   */
   | "project_auto_remediation_disabled"
   | "project_ai_command_execution_disabled"
   | "llm_provider_missing"
@@ -546,11 +551,18 @@ export type KubernetesAgentRunnerBindingState =
   | "bound_to_other_runner"
   | "left_unbound_by_operator";
 
-// Caps shared by the investigation tool and the remediation toolkit.
-export const MAX_KUBECTL_COMMANDS_PER_INVESTIGATION: number = 8;
+/*
+ * Caps shared by the investigation tool and the remediation toolkit.
+ *
+ * The command count is a runaway guard, not a ration: an investigation runs
+ * as many kubectl commands as it needs. The output cap is what a caller that
+ * does not page gets; the investigation and conversation toolkits read the
+ * whole output and page it (ToolOutputPager), so nothing is cut there.
+ */
+export const MAX_KUBECTL_COMMANDS_PER_INVESTIGATION: number = 200;
 export const DEFAULT_KUBECTL_TIMEOUT_MS: number = 30 * 1000;
 export const MAX_KUBECTL_TIMEOUT_MS: number = 2 * 60 * 1000;
-export const MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM: number = 8000;
+export const MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM: number = 40_000;
 
 /*
  * Namespaces OneUptime AI never changes without a human, in every mode —

@@ -367,18 +367,22 @@ describe("ResourceCommandJobRunner.redactAndCap", () => {
   it("caps at the shared limit and cuts stdout from the top without stderr", () => {
     const redacted: RedactedResourceCommandOutput =
       ResourceCommandJobRunner.redactAndCap({
-        output: `[stdout]\n${"line\n".repeat(5000)}`,
+        output: `[stdout]\n${"line\n".repeat(
+          Math.ceil(MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM / 5) * 2,
+        )}`,
         resourceType: AiResourceType.Host,
         program: "journalctl",
       });
 
-    expect(MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM).toBe(8000);
+    // The cap for callers that do not page; the toolkits read everything.
+    expect(MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM).toBe(40_000);
     expect(redacted.isTruncated).toBe(true);
     expect(
       redacted.text.endsWith(RESOURCE_COMMAND_OUTPUT_TRUNCATED_SUFFIX),
     ).toBe(true);
     expect(redacted.text.length).toBe(
-      8000 + RESOURCE_COMMAND_OUTPUT_TRUNCATED_SUFFIX.length,
+      MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM +
+        RESOURCE_COMMAND_OUTPUT_TRUNCATED_SUFFIX.length,
     );
   });
 
@@ -402,9 +406,9 @@ describe("ResourceCommandJobRunner.redactAndCap", () => {
   it("keeps the tail of a stderr longer than its share, and says it was cut", () => {
     const redacted: RedactedResourceCommandOutput =
       ResourceCommandJobRunner.redactAndCap({
-        output: `[stdout]\n${"y".repeat(9000)}\n${stderr(
-          `${"z".repeat(5000)}THE-END`,
-        )}`,
+        output: `[stdout]\n${"y".repeat(
+          MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM + 1000,
+        )}\n${stderr(`${"z".repeat(5000)}THE-END`)}`,
         resourceType: AiResourceType.CephCluster,
         program: "ceph",
       });

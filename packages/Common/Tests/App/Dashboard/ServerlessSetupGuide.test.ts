@@ -44,6 +44,9 @@ import {
  *     as a serverless function;
  *   - faas.name, which every tab of a function filters on — suggested on the
  *     product pages, the function's own identifier on its Documentation tab;
+ *   - on Azure Functions, OTEL_SERVICE_NAME in its place, with faas.name
+ *     left out as the docs' Azure Functions section says: ingest writes the
+ *     function app's service.name onto the telemetry as faas.name;
  *   - that no platform is told to use a CLI form that splits
  *     OTEL_RESOURCE_ATTRIBUTES on its commas or replaces every variable the
  *     function already has;
@@ -149,6 +152,10 @@ const docsPageExists: (url: string) => boolean = (url: string): boolean => {
   );
 };
 
+// The OTEL_RESOURCE_ATTRIBUTES the Azure Functions guide sets: no faas.name.
+const AZURE_RESOURCE_ATTRIBUTES: string =
+  "cloud.provider=azure,cloud.platform=azure_functions";
+
 describe("the platform picker", () => {
   test("offers Lambda, Google Cloud Functions, Azure Functions and other runtimes, Lambda first", () => {
     expect(PLATFORM_KEYS).toEqual([
@@ -248,6 +255,7 @@ describe.each(PLATFORM_KEYS)("the %s guide", (platform: ServerlessPlatform) => {
   const markdown: string = getSetupGuideMarkdown(guide);
   const steps: string = stepsText(guide);
   const isLambda: boolean = platform === "aws-lambda";
+  const isAzure: boolean = platform === "azure-functions";
   const cloudPlatform: string | undefined =
     getServerlessCloudPlatform(platform);
 
@@ -314,6 +322,30 @@ describe.each(PLATFORM_KEYS)("the %s guide", (platform: ServerlessPlatform) => {
       return;
     }
 
+    if (isAzure) {
+      /*
+       * The function app's service.name names the function, for every
+       * process of the app; a faas.name in the app settings would name
+       * every function in it, and is never replaced.
+       */
+      expect(lines).toContain(
+        `OTEL_SERVICE_NAME=${SERVERLESS_EXAMPLE_FUNCTION_NAME}`,
+      );
+      expect(resourceLine).toBe(
+        `OTEL_RESOURCE_ATTRIBUTES=${AZURE_RESOURCE_ATTRIBUTES}`,
+      );
+      expect(markdown).not.toContain("faas.name=");
+      expect(steps).toContain(
+        "Leave `faas.name` out of `OTEL_RESOURCE_ATTRIBUTES`",
+      );
+      return;
+    }
+
+    expect(
+      lines.some((line: string): boolean => {
+        return line.startsWith("OTEL_SERVICE_NAME=");
+      }),
+    ).toBe(false);
     expect(resourceLine).toBe(
       `OTEL_RESOURCE_ATTRIBUTES=${getServerlessResourceAttributes({
         platform: platform,
@@ -486,12 +518,21 @@ describe.each(PLATFORM_KEYS)("the %s guide", (platform: ServerlessPlatform) => {
     }
   });
 
-  test("the attribute table names every serverless cloud.platform ingest reads", () => {
+  test("the attribute table names what identifies a function and every serverless cloud.platform ingest reads", () => {
     const attributes: string =
       guide.advanced?.find((topic: SetupGuideTopic): boolean => {
         return topic.title === "Resource attributes OneUptime reads";
       })?.markdown || "";
-    expect(attributes).toContain("| `faas.name` | **yes** |");
+    // faas.name, or else service.name on a serverless cloud.platform.
+    expect(attributes).toContain(
+      "| `faas.name` | **yes**, unless the next two are set |",
+    );
+    expect(attributes).toContain(
+      "| `cloud.platform` | with `service.name`, when there is no `faas.name` |",
+    );
+    expect(attributes).toContain(
+      "| `service.name` | on a serverless `cloud.platform` without `faas.name` | Function identity, written onto the telemetry as `faas.name` |",
+    );
     for (const value of Object.values(FaasCloudPlatform)) {
       expect(attributes).toContain(`\`${value}\``);
     }
@@ -512,10 +553,14 @@ describe.each(PLATFORM_KEYS)("the %s guide", (platform: ServerlessPlatform) => {
       variableLinesIn(labels).find((line: string): boolean => {
         return line.startsWith("OTEL_RESOURCE_ATTRIBUTES=");
       }) || "";
-    // Off Lambda, the label line still names the function.
+    /*
+     * Off Lambda, the label line carries the guide's own attributes too —
+     * on Azure Functions, without faas.name.
+     */
     expect(
       labelLine.includes(`faas.name=${SERVERLESS_EXAMPLE_FUNCTION_NAME}`),
-    ).toBe(!isLambda);
+    ).toBe(!isLambda && !isAzure);
+    expect(labelLine.includes(AZURE_RESOURCE_ATTRIBUTES)).toBe(isAzure);
   });
 
   test("troubleshooting covers the key, a missing function, empty tabs and disconnects", () => {
@@ -538,8 +583,41 @@ describe.each(PLATFORM_KEYS)("the %s guide", (platform: ServerlessPlatform) => {
     expect(missing.includes("AWS_LAMBDA_EXEC_WRAPPER")).toBe(isLambda);
     expect(
       missing.includes("`OTEL_RESOURCE_ATTRIBUTES` carries `faas.name`"),
-    ).toBe(!isLambda);
+    ).toBe(!isLambda && !isAzure);
+    expect(
+      missing.includes(
+        "`OTEL_RESOURCE_ATTRIBUTES` carries `cloud.platform=azure_functions`",
+      ),
+    ).toBe(isAzure);
     expect(missing).toContain("only sends telemetry while it runs");
+  });
+
+  /*
+   * Ingest writes service.name onto the telemetry of a function named by it
+   * (stampServerlessFunctionNameAttribute), so such a function's tabs fill
+   * without a faas.name of its own; only telemetry stored before that is
+   * missing it, and it is not updated.
+   */
+  test("empty tabs are never blamed on a missing faas.name that ingest fills in", () => {
+    const empty: string =
+      guide.troubleshooting?.find((topic: SetupGuideTopic): boolean => {
+        return topic.title === "The function is listed, but its tabs are empty";
+      })?.markdown || "";
+    expect(empty).toContain(
+      "whose `faas.name` equals its **Function Identifier** exactly",
+    );
+    expect(empty).not.toContain("has no `faas.name` on its telemetry");
+    expect(empty).not.toContain("add `faas.name`");
+    expect(
+      empty.includes(
+        "OneUptime writes the `service.name` onto the telemetry as `faas.name` as it arrives",
+      ),
+    ).toBe(!isLambda);
+    expect(
+      empty.includes(
+        "Telemetry stored before OneUptime began filling in `faas.name` is not updated",
+      ),
+    ).toBe(!isLambda);
   });
 
   test("links to the serverless functions docs page, which exists", () => {
@@ -576,8 +654,11 @@ describe("the function name", () => {
       "other",
     ] as Array<ServerlessPlatform>) {
       const steps: string = stepsText(guideFor(platform));
+      // Azure Functions asks for the function app's name.
       expect(steps).toContain(
-        `Replace \`${SERVERLESS_EXAMPLE_FUNCTION_NAME}\` with your function's name`,
+        platform === "azure-functions"
+          ? `Replace \`${SERVERLESS_EXAMPLE_FUNCTION_NAME}\` with your function app's name`
+          : `Replace \`${SERVERLESS_EXAMPLE_FUNCTION_NAME}\` with your function's name`,
       );
       expect(steps).toContain("a new name registers a new function");
     }
@@ -635,11 +716,59 @@ describe("the function name", () => {
   });
 
   test("a blank name counts as unknown", () => {
-    const steps: string = stepsText(
-      guideFor("azure-functions", { functionName: "   " }),
+    for (const platform of [
+      "google-cloud-functions",
+      "azure-functions",
+    ] as Array<ServerlessPlatform>) {
+      const steps: string = stepsText(
+        guideFor(platform, { functionName: "   " }),
+      );
+      expect(variableLinesIn(steps)).toContain(
+        platform === "azure-functions"
+          ? `OTEL_SERVICE_NAME=${SERVERLESS_EXAMPLE_FUNCTION_NAME}`
+          : `OTEL_RESOURCE_ATTRIBUTES=faas.name=${SERVERLESS_EXAMPLE_FUNCTION_NAME},faas.version=${SERVERLESS_EXAMPLE_FUNCTION_VERSION},cloud.platform=gcp_cloud_functions`,
+      );
+      expect(steps).toContain(
+        `Replace \`${SERVERLESS_EXAMPLE_FUNCTION_NAME}\``,
+      );
+    }
+  });
+
+  /*
+   * On Azure Functions the function app's service.name names the function:
+   * the Functions host and Azure's resource detectors never set faas.name,
+   * app settings reach every function in the app, and a faas.name that is
+   * sent is never replaced. The guide sets OTEL_SERVICE_NAME instead, and
+   * ingest writes it onto the telemetry as faas.name.
+   */
+  test("on Azure Functions a function's own tab sets OTEL_SERVICE_NAME to its identifier and leaves faas.name out", () => {
+    const guide: SetupGuideContent = guideFor("azure-functions", {
+      functionName: "orders-func-app",
+    });
+    const steps: string = stepsText(guide);
+    const lines: Array<string> = variableLinesIn(steps);
+    expect(lines).toContain("OTEL_SERVICE_NAME=orders-func-app");
+    expect(lines).toContain(
+      `OTEL_RESOURCE_ATTRIBUTES=${AZURE_RESOURCE_ATTRIBUTES}`,
     );
-    expect(steps).toContain(`faas.name=${SERVERLESS_EXAMPLE_FUNCTION_NAME},`);
-    expect(steps).toContain(`Replace \`${SERVERLESS_EXAMPLE_FUNCTION_NAME}\``);
+    expect(steps).toContain(
+      "`OTEL_SERVICE_NAME` is **`orders-func-app`**, this function's identifier — keep it as it is",
+    );
+    expect(steps).not.toContain(
+      `Replace \`${SERVERLESS_EXAMPLE_FUNCTION_NAME}\``,
+    );
+    // Nowhere: not the steps, the CLI, the reference, nor the label example.
+    expect(getSetupGuideMarkdown(guide)).not.toContain("faas.name=");
+  });
+
+  test("on Azure Functions the name goes into OTEL_SERVICE_NAME as written", () => {
+    const name: string = "billing jobs,v2=%";
+    const steps: string = stepsText(
+      guideFor("azure-functions", { functionName: name }),
+    );
+    // A plain string, not percent-decoded like OTEL_RESOURCE_ATTRIBUTES.
+    expect(variableLinesIn(steps)).toContain(`OTEL_SERVICE_NAME=${name}`);
+    expect(steps).not.toContain("percent-encoded");
   });
 });
 
@@ -712,8 +841,13 @@ describe("the Azure CLI tab", () => {
     }
     // The comma-separated attributes stay one argument.
     expect(cli).toContain(
-      "    OTEL_RESOURCE_ATTRIBUTES=faas.name=checkout-handler,faas.version=1.4.2,cloud.platform=azure_functions",
+      `    OTEL_RESOURCE_ATTRIBUTES=${AZURE_RESOURCE_ATTRIBUTES}`,
     );
+    // The function app's name names the function; faas.name stays out.
+    expect(cli).toContain(
+      `    OTEL_SERVICE_NAME=${SERVERLESS_EXAMPLE_FUNCTION_NAME}`,
+    );
+    expect(cli).not.toContain("faas.name");
     expect(cliMarkdown(KEY)).toContain(
       "adds or updates only the settings you pass",
     );
@@ -743,6 +877,23 @@ describe("the variables", () => {
       { name: "OTEL_EXPORTER_OTLP_ENDPOINT", value: `${URL}/otlp` },
       { name: "OTEL_EXPORTER_OTLP_HEADERS", value: `x-oneuptime-token=${KEY}` },
       { name: "OTEL_EXPORTER_OTLP_PROTOCOL", value: "http/protobuf" },
+    ]);
+  });
+
+  test("Azure Functions names the function app with OTEL_SERVICE_NAME and sets no faas.name", () => {
+    expect(
+      getServerlessEnvironmentVariables({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        platform: "azure-functions",
+        functionName: SERVERLESS_EXAMPLE_FUNCTION_NAME,
+      }),
+    ).toEqual([
+      { name: "OTEL_EXPORTER_OTLP_ENDPOINT", value: `${URL}/otlp` },
+      { name: "OTEL_EXPORTER_OTLP_HEADERS", value: `x-oneuptime-token=${KEY}` },
+      { name: "OTEL_EXPORTER_OTLP_PROTOCOL", value: "http/protobuf" },
+      { name: "OTEL_SERVICE_NAME", value: SERVERLESS_EXAMPLE_FUNCTION_NAME },
+      { name: "OTEL_RESOURCE_ATTRIBUTES", value: AZURE_RESOURCE_ATTRIBUTES },
     ]);
   });
 
@@ -778,24 +929,41 @@ describe("what the guide says matches the product", () => {
     return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
   };
 
-  test("ingest registers a function from faas.name and reads the attributes the table lists", () => {
+  /*
+   * resolveServerlessFunctionIdentity decides which function a batch is (an
+   * explicit faas.name, or else service.name on a serverless
+   * cloud.platform), stampServerlessFunctionNameAttribute writes a
+   * service.name identity onto the batch as faas.name, and
+   * autoDiscoverServerless registers the function and reads the rest.
+   */
+  test("ingest registers a function from faas.name or service.name and reads the attributes the table lists", () => {
     const ingest: string = read(
       "packages/App/FeatureSet/Telemetry/Services/OtelIngestBaseService.ts",
     );
-    const start: number = ingest.indexOf(
+    const identityStart: number = ingest.indexOf(
+      "protected static resolveServerlessFunctionIdentity(",
+    );
+    const discoveryStart: number = ingest.indexOf(
       "protected static async autoDiscoverServerless(",
     );
     const end: number = ingest.indexOf(
       "protected static async promoteOneuptimeLabelsToServerlessFunction(",
     );
-    expect(start).toBeGreaterThan(-1);
-    expect(end).toBeGreaterThan(start);
-    const discovery: string = ingest.slice(start, end);
+    expect(identityStart).toBeGreaterThan(-1);
+    expect(discoveryStart).toBeGreaterThan(identityStart);
+    expect(end).toBeGreaterThan(discoveryStart);
+
+    const identity: string = ingest.slice(identityStart, discoveryStart);
+    for (const attribute of ["faas.name", "cloud.platform", "service.name"]) {
+      expect(identity).toContain(`"${attribute}"`);
+    }
+    expect(identity).toContain("FAAS_CLOUD_PLATFORM_VALUES");
+
+    const discovery: string = ingest.slice(discoveryStart, end);
+    expect(discovery).toContain("this.resolveServerlessFunctionIdentity(");
     for (const attribute of [
-      "faas.name",
       "faas.version",
       "faas.instance",
-      "cloud.platform",
       "cloud.provider",
       "cloud.region",
       "cloud.account.id",
@@ -804,8 +972,48 @@ describe("what the guide says matches the product", () => {
     ]) {
       expect(discovery).toContain(`"${attribute}"`);
     }
-    expect(discovery).toContain("FAAS_CLOUD_PLATFORM_VALUES");
     expect(discovery).toContain("promoteOneuptimeLabelsToServerlessFunction");
+  });
+
+  test("ingest writes a service.name identity onto every signal's telemetry as faas.name, as the guide says", () => {
+    const ingest: string = read(
+      "packages/App/FeatureSet/Telemetry/Services/OtelIngestBaseService.ts",
+    );
+    expect(ingest).toContain(
+      "protected static stampServerlessFunctionNameAttribute(",
+    );
+    for (const signal of ["Traces", "Logs", "Metrics", "Profiles"]) {
+      expect({
+        signal,
+        stamps: read(
+          `packages/App/FeatureSet/Telemetry/Services/Otel${signal}IngestService.ts`,
+        ).includes("this.stampServerlessFunctionNameAttribute("),
+      }).toEqual({ signal, stamps: true });
+    }
+  });
+
+  test("the Azure Functions guide follows the docs page's Azure Functions section", () => {
+    const docs: string = fs.readFileSync(
+      path.join(DOCS_CONTENT, "telemetry/serverless-functions.md"),
+      "utf8",
+    );
+    // The section the guide links to, and what it says about faas.name.
+    expect(docs).toContain("\n## Azure Functions\n");
+    expect(docs).toContain(
+      "Don't add `faas.name` to `OTEL_RESOURCE_ATTRIBUTES` on a Function App",
+    );
+    // The settings it gives a worker without an Azure resource detector.
+    expect(docs).toContain("OTEL_SERVICE_NAME=my-function-app");
+    expect(docs).toContain(
+      `"OTEL_RESOURCE_ATTRIBUTES=${AZURE_RESOURCE_ATTRIBUTES}"`,
+    );
+
+    const markdown: string = getSetupGuideMarkdown(guideFor("azure-functions"));
+    expect(markdown).toContain(`${SERVERLESS_DOCS_URL}#azure-functions`);
+    expect(markdown).not.toContain("faas.name=");
+    expect(markdown).toContain(
+      `OTEL_RESOURCE_ATTRIBUTES=${AZURE_RESOURCE_ATTRIBUTES}`,
+    );
   });
 
   test("every tab of a function filters on resource.faas.name", () => {

@@ -833,7 +833,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           isAllProbesDisconnectedFromThisMonitor: true,
           monitorType: true,
         }}
-        noItemsMessage={props.noItemsMessage || "No monitors found."}
+        noItemsMessage={props.noItemsMessage}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
         viewPageRoute={RouteUtil.populateRouteParams(

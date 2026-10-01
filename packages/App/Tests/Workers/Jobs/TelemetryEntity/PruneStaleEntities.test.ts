@@ -201,6 +201,23 @@ describe("entity pruning is scoped to discovered rows", () => {
     expect(swept).not.toContain(EntityType.DatabaseServer);
   });
 
+  test("message.queue is never swept: it is membership-only", async () => {
+    /*
+     * Like database.server, its keys only ride along on signals, for the
+     * Queues product; the MessageQueue table, not the registry, holds the
+     * row, so there is nothing of the type to reap.
+     */
+    await runTick();
+
+    const swept: Array<EntityType | undefined> = entityDeleteCalls().map(
+      (call: DeleteCall) => {
+        return call.query.entityType;
+      },
+    );
+
+    expect(swept).not.toContain(EntityType.MessageQueue);
+  });
+
   test("every swept type is one with a telemetry heartbeat", async () => {
     /*
      * The belt to the source predicate's braces: even if the predicate were

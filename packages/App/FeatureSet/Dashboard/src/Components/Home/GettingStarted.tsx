@@ -17,6 +17,10 @@ import Button, {
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  ModelAction,
+  PermissionCheckableModel,
+} from "Common/UI/Utils/PermissionGate";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -42,8 +46,36 @@ interface GettingStartedTask {
   icon: IconProp;
   iconBackgroundClassName: string;
   pageMap: PageMap;
+  /*
+   * A page of its own that creates what the step asks for. Only someone who
+   * may create that model is sent there: a create form they cannot submit
+   * would only fail at the end (issue #3306). Everyone else lands on
+   * `pageMap`, whose create button is shown disabled, with the reason.
+   */
+  createPage?:
+    | {
+        pageMap: PageMap;
+        modelType: { new (): PermissionCheckableModel };
+      }
+    | undefined;
   isComplete: (projectId: ObjectID) => Promise<boolean>;
 }
+
+type GetTaskPageMapFunction = (task: GettingStartedTask) => PageMap;
+
+const getTaskPageMap: GetTaskPageMapFunction = (
+  task: GettingStartedTask,
+): PageMap => {
+  if (
+    task.createPage &&
+    PermissionGate.check(new task.createPage.modelType(), ModelAction.Create)
+      .isAllowed
+  ) {
+    return task.createPage.pageMap;
+  }
+
+  return task.pageMap;
+};
 
 const gettingStartedTasks: Array<GettingStartedTask> = [
   {
@@ -54,6 +86,11 @@ const gettingStartedTasks: Array<GettingStartedTask> = [
     icon: IconProp.AltGlobe,
     iconBackgroundClassName: "bg-indigo-500",
     pageMap: PageMap.MONITORS,
+    // The step says "create", so it opens the form, not the (empty) list.
+    createPage: {
+      pageMap: PageMap.MONITOR_CREATE,
+      modelType: Monitor,
+    },
     isComplete: async (projectId: ObjectID): Promise<boolean> => {
       return (
         (await ModelAPI.count<Monitor>({
@@ -87,7 +124,12 @@ const gettingStartedTasks: Array<GettingStartedTask> = [
       "Bring teammates on board so the right people can respond when something breaks.",
     icon: IconProp.Team,
     iconBackgroundClassName: "bg-amber-500",
-    pageMap: PageMap.TEAMS,
+    /*
+     * Users, not Teams: the Teams page lists the three built-in teams and
+     * offers "Create Team", with no way to invite anyone. "Invite User" is on
+     * the Users page.
+     */
+    pageMap: PageMap.USERS,
     isComplete: async (projectId: ObjectID): Promise<boolean> => {
       // every project starts with its creator as the first team member.
       return (
@@ -268,7 +310,9 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                 task: task.key,
               });
               Navigation.navigate(
-                RouteUtil.populateRouteParams(RouteMap[task.pageMap] as Route),
+                RouteUtil.populateRouteParams(
+                  RouteMap[getTaskPageMap(task)] as Route,
+                ),
               );
             };
 

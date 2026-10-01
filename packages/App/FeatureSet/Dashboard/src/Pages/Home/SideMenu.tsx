@@ -167,7 +167,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       items: [
         {
           link: {
-            title: "Inoperational",
+            title: "Not Operational",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route,
             ),

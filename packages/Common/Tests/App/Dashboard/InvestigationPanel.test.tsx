@@ -4784,3 +4784,119 @@ describe("InvestigationPanel as one flat card", () => {
     }
   });
 });
+
+/*
+ * The conversation with OneUptime AI is supplied by the page and placed by
+ * the panel: at the bottom of the investigation card while there is a run,
+ * or as its own card under the "not investigated" explanation — the box is
+ * two-way whether or not an automatic investigation ran.
+ */
+describe("InvestigationPanel conversation slot", () => {
+  const renderConversationMock: MockFunction = getJestMockFunction();
+
+  function renderWithConversation(): ReturnType<typeof render> {
+    renderConversationMock.mockImplementation(((
+      variant: "embedded" | "card",
+    ): React.ReactElement => {
+      return React.createElement(
+        "div",
+        { "data-testid": `conversation-${variant}` },
+        "Ask OneUptime AI",
+      );
+    }) as never);
+
+    return render(
+      <InvestigationPanel
+        subjectType="incident"
+        subjectId={INCIDENT_ID}
+        renderConversation={(variant: "embedded" | "card") => {
+          return renderConversationMock(variant) as React.ReactElement;
+        }}
+      />,
+    );
+  }
+
+  afterEach(() => {
+    renderConversationMock.mockReset();
+  });
+
+  test("closes a completed investigation card with the embedded conversation", async () => {
+    postMock.mockResolvedValue(completedResponse() as never);
+
+    renderWithConversation();
+    await flush();
+
+    const embedded: HTMLElement = screen.getByTestId("conversation-embedded");
+    const region: HTMLElement = screen.getByRole("region", {
+      name: "AI Investigation",
+    });
+
+    expect(region).toContainElement(embedded);
+    expect(screen.queryByTestId("conversation-card")).toBeNull();
+
+    // It is the last thing in the card, after the report and its actions.
+    expect(region.lastElementChild).toBe(embedded);
+  });
+
+  test("is embedded while the investigation is still running", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({
+          status: AIRunStatus.Running,
+          events: [activityEvent],
+        }),
+      ) as never,
+    );
+
+    renderWithConversation();
+    await flush();
+
+    expect(screen.getByTestId("conversation-embedded")).toBeInTheDocument();
+    expect(renderConversationMock).not.toHaveBeenCalledWith("card");
+  });
+
+  test("stands as its own card when no investigation ran", async () => {
+    postMock.mockResolvedValue(noInvestigationResponse() as never);
+
+    renderWithConversation();
+    await flush();
+
+    expect(
+      screen.getByText("No investigation has been recorded"),
+    ).toBeVisible();
+
+    const card: HTMLElement = screen.getByTestId("conversation-card");
+    expect(card).toBeInTheDocument();
+    expect(screen.queryByTestId("conversation-embedded")).toBeNull();
+    // Its own card, beside the explanation rather than inside it.
+    expect(
+      screen.getByRole("region", { name: "AI Investigation" }),
+    ).not.toContainElement(card);
+  });
+
+  test("waits for the investigation status before showing it", async () => {
+    const deferred: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock.mockReturnValue(deferred.promise as never);
+
+    renderWithConversation();
+    await flush();
+
+    expect(screen.getByText("Checking investigation status…")).toBeVisible();
+    expect(screen.queryByTestId("conversation-card")).toBeNull();
+    expect(screen.queryByTestId("conversation-embedded")).toBeNull();
+
+    await resolveDeferred(deferred, completedResponse());
+
+    expect(screen.getByTestId("conversation-embedded")).toBeInTheDocument();
+  });
+
+  test("renders nothing extra when the page supplies no conversation", async () => {
+    postMock.mockResolvedValue(noInvestigationResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    expect(screen.queryByTestId("conversation-card")).toBeNull();
+    expect(screen.getAllByTestId("card")).toHaveLength(1);
+  });
+});

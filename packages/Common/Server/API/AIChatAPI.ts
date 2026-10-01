@@ -32,7 +32,6 @@ import {
   AIChatToolActionStatus,
 } from "../../Types/AI/AIChatTypes";
 import { JSONArray, JSONObject } from "../../Types/JSON";
-import AIRunEventType from "../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIConversation from "../../Models/DatabaseModels/AIConversation";
@@ -40,11 +39,9 @@ import AIConversationMessage, {
   AIConversationMessageFeedback,
 } from "../../Models/DatabaseModels/AIConversationMessage";
 import AIRun from "../../Models/DatabaseModels/AIRun";
-import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
 import Project from "../../Models/DatabaseModels/Project";
 import AIConversationService from "../Services/AIConversationService";
 import AIConversationMessageService from "../Services/AIConversationMessageService";
-import AIRunEventService from "../Services/AIRunEventService";
 import AIRunService from "../Services/AIRunService";
 import ProjectService from "../Services/ProjectService";
 import { AI_DISABLED_MESSAGE } from "../Services/AIService";
@@ -54,20 +51,13 @@ import ChatAgentRunner, {
   ResumeToolDecision,
 } from "../Utils/AI/Chat/ChatAgentRunner";
 import QueryHelper from "../Types/Database/QueryHelper";
+import ChatRunCancellation, {
+  ChatRunCancellationResult,
+} from "../Utils/AI/Chat/ChatRunCancellation";
 import logger from "../Utils/Logger";
 
 const MAX_USER_MESSAGE_LENGTH: number = 8000;
 const MAX_CONCURRENT_RUNS_PER_PROJECT: number = 3;
-
-// Final message content and run error for a turn the user stopped.
-const STOPPED_BY_USER_TEXT: string = "Stopped by user.";
-
-/*
- * Cancel's terminal event must sort after every progress event the runner
- * emitted — same convention as the runner's own failure finalizer, which
- * starts its event sequence at 100000.
- */
-const CANCEL_EVENT_SEQUENCE: number = 100000;
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -806,115 +796,24 @@ router.post(
         throw new BadDataException("Conversation not found.");
       }
 
-      /*
-       * The conversation's live run: actively generating (Running) or paused
-       * for the user's approval (WaitingForApproval). The per-conversation
-       * governor allows at most one, so no sort is needed.
-       */
-      const activeRun: AIRun | null = await AIRunService.findOneBy({
-        query: {
-          conversationId: conversationId,
-          projectId: projectId,
-          status: QueryHelper.any([
-            AIRunStatus.Running,
-            AIRunStatus.WaitingForApproval,
-          ]),
-        },
-        select: { _id: true },
-        props: { isRoot: true },
-      });
+      // The shared, status-guarded stop (see ChatRunCancellation).
+      const cancellation: ChatRunCancellationResult | null =
+        await ChatRunCancellation.cancelActiveRun({
+          projectId,
+          conversationId,
+          userId,
+        });
 
-      if (!activeRun) {
+      if (!cancellation) {
         throw new BadDataException(
           "No response is being generated in this conversation.",
         );
       }
 
-      /*
-       * Status-guarded finalization, the same shape as the runner's own
-       * finalizer: only a still-in-flight run is flipped, so a run the runner
-       * completed (or errored) inside the race window is never overwritten.
-       * updateOneBy returns the matched-row count — zero from both guards
-       * means the other side won and already wrote the final state.
-       */
-      let cancelledRunCount: number = 0;
-
-      for (const inFlightRunStatus of [
-        AIRunStatus.Running,
-        AIRunStatus.WaitingForApproval,
-      ]) {
-        cancelledRunCount += await AIRunService.updateOneBy({
-          query: {
-            _id: activeRun.id!.toString(),
-            status: inFlightRunStatus,
-          },
-          data: {
-            status: AIRunStatus.Cancelled,
-            completedAt: OneUptimeDate.getCurrentDate(),
-            errorMessage: STOPPED_BY_USER_TEXT,
-            // A cancelled turn must never be resumable.
-            pausedState: null,
-          } as never,
-          props: { isRoot: true },
-        });
-      }
-
-      /*
-       * Finalize the run's in-flight assistant message the same guarded way:
-       * a message another path already finalized — completed with its full
-       * answer, or errored — keeps what it has.
-       */
-      for (const inFlightMessageStatus of [
-        AIChatMessageStatus.InProgress,
-        AIChatMessageStatus.WaitingForApproval,
-      ]) {
-        await AIConversationMessageService.updateOneBy({
-          query: {
-            aiRunId: activeRun.id!,
-            status: inFlightMessageStatus,
-          },
-          data: {
-            status: AIChatMessageStatus.Cancelled,
-            contentInMarkdown: STOPPED_BY_USER_TEXT,
-          } as never,
-          props: { isRoot: true },
-        });
-      }
-
-      /*
-       * Terminal event, only when this request actually took the run —
-       * emitting closure over a turn the runner finished would tell the UI a
-       * completed answer failed. RunFailed is the event enum's terminal
-       * "did not finish" member; the summary carries the human reason.
-       */
-      if (cancelledRunCount > 0) {
-        try {
-          const cancelEvent: AIRunEvent = new AIRunEvent();
-          cancelEvent.projectId = projectId;
-          cancelEvent.aiRunId = activeRun.id!;
-          cancelEvent.userId = userId;
-          cancelEvent.sequence = CANCEL_EVENT_SEQUENCE;
-          cancelEvent.eventType = AIRunEventType.RunFailed;
-          cancelEvent.resultSummary = { errorMessage: STOPPED_BY_USER_TEXT };
-
-          await AIRunEventService.create({
-            data: cancelEvent,
-            props: { isRoot: true },
-          });
-        } catch (error) {
-          // Events are progress telemetry — never fail the cancel over them.
-          logger.error(
-            `Failed to emit AI chat cancel event: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          );
-        }
-      }
-
       Response.sendJsonObjectResponse(req, res, {
         conversationId: conversationId.toString(),
-        aiRunId: activeRun.id!.toString(),
-        cancelled: cancelledRunCount > 0,
+        aiRunId: cancellation.aiRunId.toString(),
+        cancelled: cancellation.cancelled,
       });
       return;
     } catch (err) {

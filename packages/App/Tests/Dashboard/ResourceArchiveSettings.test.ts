@@ -35,6 +35,7 @@ const RESOURCES: Array<ArchivableResource> = [
   { resource: "Inventory", model: "InventoryItem", overview: "Index.tsx" },
   { resource: "Slo", model: "ServiceLevelObjective", overview: "Index.tsx" },
   { resource: "Database", model: "DatabaseServer" },
+  { resource: "MessageQueue", model: "MessageQueue" },
 ];
 
 function readSource(relativePath: string): string {
@@ -135,6 +136,12 @@ const NEW_SETTINGS_ROUTES: Array<SettingsRoute> = [
     resource: "Database",
     component: "DatabaseServerSettings",
     pageKey: "DATABASE_SERVER_VIEW_SETTINGS",
+  },
+  {
+    router: "MessageQueueRoutes",
+    resource: "MessageQueue",
+    component: "MessageQueueSettings",
+    pageKey: "MESSAGE_QUEUE_VIEW_SETTINGS",
   },
 ];
 

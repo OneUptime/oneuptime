@@ -1242,8 +1242,17 @@ test.describe("connections empty state", () => {
     const tableCard: Locator = connectionsCard(page);
     await expect(tableCard).toHaveCount(1);
 
-    // Rendered by the table as its no-items message, in the body cell.
-    await expect(tableCard.locator(`td #${CONNECTIONS_ID}`)).toHaveCount(1);
+    /*
+     * Rendered by the table as its no-items message, in the block it draws
+     * under the table (not in a row, which would centre it across columns
+     * scrolled out of view).
+     */
+    await expect(
+      tableCard
+        .getByTestId("security-event-connections-table-no-items")
+        .locator(`#${CONNECTIONS_ID}`),
+    ).toHaveCount(1);
+    await expect(tableCard.locator(`td #${CONNECTIONS_ID}`)).toHaveCount(0);
     const refresh: Locator = tableCard.getByTestId("refresh-button");
     await expect(refresh).toHaveText("Refresh?");
     const summary: Locator = tableCard.getByTestId("pagination-summary");

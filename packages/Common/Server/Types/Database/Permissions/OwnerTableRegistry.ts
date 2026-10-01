@@ -40,6 +40,8 @@ import VMwareVCenterOwnerTeamService from "../../../Services/VMwareVCenterOwnerT
 import VMwareVCenterOwnerUserService from "../../../Services/VMwareVCenterOwnerUserService";
 import DatabaseServerOwnerTeamService from "../../../Services/DatabaseServerOwnerTeamService";
 import DatabaseServerOwnerUserService from "../../../Services/DatabaseServerOwnerUserService";
+import MessageQueueOwnerTeamService from "../../../Services/MessageQueueOwnerTeamService";
+import MessageQueueOwnerUserService from "../../../Services/MessageQueueOwnerUserService";
 import IoTFleetOwnerTeamService from "../../../Services/IoTFleetOwnerTeamService";
 import IoTFleetOwnerUserService from "../../../Services/IoTFleetOwnerUserService";
 import NetworkDeviceOwnerTeamService from "../../../Services/NetworkDeviceOwnerTeamService";
@@ -322,6 +324,20 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       fkColumn: "databaseServerId",
       canOwnTelemetry: true,
       modelService: DatabaseServerService,
+    },
+  ],
+  [
+    /*
+     * No canOwnTelemetry: a queue owns no telemetry row. Messaging spans and
+     * client metrics belong to the producing or consuming service, and a
+     * queue's telemetry is selected by its entity key (keyForMessageQueue),
+     * never by primaryEntityId - owning a queue grants the queue row alone.
+     */
+    "MessageQueue",
+    {
+      ownerUserService: MessageQueueOwnerUserService,
+      ownerTeamService: MessageQueueOwnerTeamService,
+      fkColumn: "messageQueueId",
     },
   ],
   [

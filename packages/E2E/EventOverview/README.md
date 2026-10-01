@@ -43,6 +43,9 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
     answers 400.
   - alert: an `AlertList` (C1), charts, tables, a trace, and an `ExceptionList` (C8).
   - pinned (`isPinnedToInvestigationTime`) and current-data citations are both present.
+- **AI investigation conversation**: `POST /ai-investigation/conversation` answers an empty
+  thread for every incident and alert (nobody has asked anything yet). Sending a question,
+  answering an approval and stopping a run are not modelled.
     `verdict` and `create-fix-task` record and succeed.
 - **Alert #311** "Payment webhook 5xx rate above 5%" with its monitor and alert episode #7. Its
   hero offers Declare Incident after the state actions, which opens the create-incident page

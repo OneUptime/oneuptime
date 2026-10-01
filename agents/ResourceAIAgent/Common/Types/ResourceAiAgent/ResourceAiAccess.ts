@@ -395,8 +395,13 @@ export function parseResourceAiAgentPosture(
  * remediation_disabled:          the remediation mode is Disabled.
  * remediation_write_access_missing: the agent runs read-only
  *                                (RESOURCE_AI_ALLOW_WRITES_ENV is not true).
- * ai_disabled_for_project / auto_remediation_disabled_for_project /
- * llm_provider_missing / ai_balance_insufficient: the project-wide gates.
+ * ai_disabled_for_project / llm_provider_missing / ai_balance_insufficient:
+ *                                the project-wide gates.
+ * auto_remediation_disabled_for_project: retired. It was the project's
+ *                                "Enable auto-remediation" switch, folded
+ *                                into Enable AI (ai_disabled_for_project);
+ *                                the status no longer produces it and the
+ *                                code stays for compatibility.
  */
 export type ResourceAiAccessGapCode =
   | "ai_agent_not_connected"
@@ -566,9 +571,15 @@ export interface ResourceCommandJobPayload {
   tier: ResourceCommandTier;
 }
 
-// Caps shared by the investigation tool, the remediation toolkit and the agent.
-export const MAX_RESOURCE_COMMANDS_PER_INVESTIGATION: number = 8;
+/*
+ * Caps shared by the investigation tool, the remediation toolkit and the
+ * agent. The command count is a runaway guard, not a ration. The agent keeps
+ * up to a megabyte of a command's output, and the investigation and
+ * conversation toolkits read all of it and page it (ToolOutputPager); the
+ * character cap is only what a caller that does not page gets.
+ */
+export const MAX_RESOURCE_COMMANDS_PER_INVESTIGATION: number = 200;
 export const DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS: number = 30 * 1000;
 export const MAX_RESOURCE_COMMAND_TIMEOUT_MS: number = 2 * 60 * 1000;
-export const MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM: number = 8000;
-export const MAX_RESOURCE_AGENT_OUTPUT_BYTES: number = 50 * 1024;
+export const MAX_RESOURCE_COMMAND_OUTPUT_CHARS_FOR_LLM: number = 40_000;
+export const MAX_RESOURCE_AGENT_OUTPUT_BYTES: number = 1024 * 1024;

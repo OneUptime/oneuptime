@@ -26,9 +26,10 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * Contract under test — the aiComposesCommands branch of the
  * auto-remediation rule engine (AI-composed commands, Phase 3):
  *
- * - a matched command rule needs BOTH the AI gate (enableAi + an LLM
- *   provider) AND the strict project opt-in
- *   enableAiCommandExecution === true — anything else skips silently;
+ * - a matched command rule needs only the AI gate: Enable AI (the
+ *   project's only AI switch — there is no separate command-execution
+ *   opt-in any more) and an LLM provider. Enable AI off stops the engine
+ *   before any rule is read; no provider skips the rule silently;
  * - the happy path creates a Planning CommandPlan suggestion that
  *   snapshots the rule's executionMode and verification window, enqueues a
  *   RemediationExecution run carrying the suggestion id, and links the
@@ -87,14 +88,14 @@ function mockProject(overrides: Partial<Record<string, unknown>> = {}): void {
   jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
     id: PROJECT_ID,
     enableAi: true,
-    enableAutoRemediation: true,
-    enableAiCommandExecution: true,
     ...overrides,
   } as unknown as Project);
 }
 
-function mockRules(rules: Array<AutoRemediationRule>): void {
-  jest.spyOn(AutoRemediationRuleService, "findBy").mockResolvedValue(rules);
+function mockRules(rules: Array<AutoRemediationRule>): jest.SpyInstance {
+  return jest
+    .spyOn(AutoRemediationRuleService, "findBy")
+    .mockResolvedValue(rules);
 }
 
 function mockExistingSuggestions(
@@ -147,26 +148,76 @@ describe("AutoRemediationRuleEngineService — aiComposesCommands rules", () => 
     jest.restoreAllMocks();
   });
 
-  it("skips a matched command rule when the project has not opted in to AI command execution", async () => {
-    mockProject({ enableAiCommandExecution: false });
+  /*
+   * The project used to have to opt in to AI command execution on top of
+   * Enable AI. That switch is gone: a project row that carries Enable AI
+   * alone runs a matched command rule.
+   */
+  it("runs a matched command rule with Enable AI on and no other project switch", async () => {
+    mockProject();
     mockRules([fakeCommandRule()]);
     const create: jest.SpyInstance = mockSuggestionCreate();
     const enqueue: jest.SpyInstance = mockEnqueue(AI_RUN_ID);
 
     await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
 
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          suggestionType: AutoRemediationSuggestionType.CommandPlan,
+          autoRemediationRuleId: RULE_ID,
+        }),
+      }),
+    );
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        remediationRunType: AIRunType.RemediationExecution,
+      }),
+    );
+  });
+
+  it("runs a matched command rule when Enable AI was not selected (undefined is on: the column is NOT NULL DEFAULT true)", async () => {
+    mockProject({ enableAi: undefined });
+    mockRules([fakeCommandRule()]);
+    const create: jest.SpyInstance = mockSuggestionCreate();
+    mockEnqueue(AI_RUN_ID);
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
+
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips a matched command rule when Enable AI is off — the rules and the provider are never even read", async () => {
+    mockProject({ enableAi: false });
+    const findRules: jest.SpyInstance = mockRules([
+      fakeCommandRule({ executionMode: AutoRemediationExecutionMode.FullAuto }),
+    ]);
+    const create: jest.SpyInstance = mockSuggestionCreate();
+    const enqueue: jest.SpyInstance = mockEnqueue(AI_RUN_ID);
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
+
+    expect(findRules).not.toHaveBeenCalled();
+    expect(LlmProviderService.getLLMProviderForProject).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
     expect(enqueue).not.toHaveBeenCalled();
   });
 
-  it("skips a matched command rule when the opt-in column is absent (opt-in is === true, not truthy-default)", async () => {
-    mockProject({ enableAiCommandExecution: undefined });
+  it("reads Enable AI and nothing else from the project", async () => {
     mockRules([fakeCommandRule()]);
-    const create: jest.SpyInstance = mockSuggestionCreate();
+    mockSuggestionCreate();
+    mockEnqueue(AI_RUN_ID);
 
     await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
 
-    expect(create).not.toHaveBeenCalled();
+    expect(ProjectService.findOneById).toHaveBeenCalledTimes(1);
+    expect(ProjectService.findOneById).toHaveBeenCalledWith({
+      id: PROJECT_ID,
+      select: { enableAi: true },
+      props: { isRoot: true },
+    });
   });
 
   it("skips a matched command rule when no LLM provider is configured", async () => {

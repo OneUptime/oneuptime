@@ -3016,31 +3016,84 @@ interface PanelOffender {
  * browser's computed styles: a tinted background, a frame on all four sides,
  * or a shadow, on anything big enough to be a region (small marks such as a
  * spinner are not panels). Controls (buttons, links, tabs, the verdict's
- * answer group, the rows block of an evidence query), inline code and
+ * answer group, the rows block of an evidence query, and the conversation's
+ * text box together with the frame drawn around it), inline code and
  * collapsed content are left out. The card used to hold a tinted summary box,
  * a report box with an amber callout inside it, a details box and an actions
  * box.
+ *
+ * The card is read at rest. A row's hover wash is not a panel, but one caught
+ * fading out reads as a tinted background: clicking an evidence row moves the
+ * pointer off the Evidence and activity header it opened, whose wash then
+ * fades for 150ms. So the pointer is parked off the card and transitions are
+ * suspended while the styles are read, which settles every wash at once.
  */
 async function panelsInsideTheCard(page: Page): Promise<Array<PanelOffender>> {
+  await page.mouse.move(0, 0);
+
   return page
     .locator("#ai-investigation")
     .evaluate((region: Element): Array<PanelOffender> => {
       const offenders: Array<PanelOffender> = [];
+      const atRest: HTMLStyleElement = document.createElement("style");
+      atRest.textContent =
+        "*, *::before, *::after { transition: none !important; }";
+      document.head.appendChild(atRest);
+      // Declared in here: this callback runs in the page, not in Node.
+      const zeroAlphaRgba: RegExp = /rgba\([^)]*,\s*0\)$/;
       const isTransparent: (color: string) => boolean = (
         color: string,
       ): boolean => {
         return (
           color === "transparent" ||
-          /rgba\([^)]*,\s*0\)$/.test(color) ||
+          zeroAlphaRgba.test(color) ||
           color === "rgba(0, 0, 0, 0)"
         );
       };
 
+      const isFramed: (element: Element) => boolean = (
+        element: Element,
+      ): boolean => {
+        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+
+        return ["top", "right", "bottom", "left"].every(
+          (side: string): boolean => {
+            return (
+              parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0 &&
+              style.getPropertyValue(`border-${side}-style`) !== "none"
+            );
+          },
+        );
+      };
+
+      /*
+       * A textarea draws no border of its own: the frame around it (the
+       * nearest framed ancestor) is what shows it as a text box, so the two
+       * are one control, like a button.
+       */
+      const textBoxFrames: Array<Element> = [];
+
+      for (const textBox of Array.from(region.querySelectorAll("textarea"))) {
+        let ancestor: Element | null = textBox.parentElement;
+
+        while (ancestor && ancestor !== region) {
+          if (isFramed(ancestor)) {
+            textBoxFrames.push(ancestor);
+            break;
+          }
+
+          ancestor = ancestor.parentElement;
+        }
+      }
+
       for (const element of Array.from(region.querySelectorAll("*"))) {
         if (
           element.closest(
-            "button, a, [role='tab'], [role='group'], code, pre, kbd, [hidden]",
-          )
+            "button, a, [role='tab'], [role='group'], code, pre, kbd, [hidden], textarea",
+          ) ||
+          textBoxFrames.some((frame: Element): boolean => {
+            return frame.contains(element);
+          })
         ) {
           continue;
         }
@@ -3052,16 +3105,6 @@ async function panelsInsideTheCard(page: Page): Promise<Array<PanelOffender>> {
         }
 
         const style: CSSStyleDeclaration = window.getComputedStyle(element);
-        const sides: Array<string> = ["Top", "Right", "Bottom", "Left"];
-        const isFramed: boolean = sides.every((side: string): boolean => {
-          return (
-            parseFloat(
-              style.getPropertyValue(`border-${side.toLowerCase()}-width`),
-            ) > 0 &&
-            style.getPropertyValue(`border-${side.toLowerCase()}-style`) !==
-              "none"
-          );
-        });
         const shadowColors: Array<string> =
           style.boxShadow === "none"
             ? []
@@ -3077,7 +3120,7 @@ async function panelsInsideTheCard(page: Page): Promise<Array<PanelOffender>> {
           reasons.push(`background ${style.backgroundColor}`);
         }
 
-        if (isFramed) {
+        if (isFramed(element)) {
           reasons.push("framed");
         }
 
@@ -3093,6 +3136,8 @@ async function panelsInsideTheCard(page: Page): Promise<Array<PanelOffender>> {
           });
         }
       }
+
+      atRest.remove();
 
       return offenders;
     });
@@ -3217,6 +3262,8 @@ test.describe("one flat AI investigation card", () => {
       "Evidence and activity",
       "Act on this investigation",
       VERDICT_QUESTION,
+      // The shared conversation under the report.
+      "Ask OneUptime AI",
     ]);
     expect(
       new Set(

@@ -4,6 +4,12 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   message: string | ReactElement;
   onRefreshClick?: undefined | (() => void);
+  /*
+   * A way forward to offer under the message - an empty table's "Create X"
+   * button. It takes the place of the Refresh link: reloading a list that
+   * just loaded empty only shows the same nothing again.
+   */
+  action?: undefined | ReactElement;
 }
 
 const ErrorMessage: FunctionComponent<ComponentProps> = (
@@ -18,7 +24,11 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
   return (
     <div className="text-center my-10 text-gray-500 text-sm">
       {translatedMessage}
-      {props.onRefreshClick ? (
+      {props.action ? (
+        <div className="mt-4 flex justify-center" data-testid="empty-action">
+          {props.action}
+        </div>
+      ) : props.onRefreshClick ? (
         /*
          * This is the only recovery control on the app-wide failure and
          * empty-state surface, and it used to be a <div role="refresh-button">
