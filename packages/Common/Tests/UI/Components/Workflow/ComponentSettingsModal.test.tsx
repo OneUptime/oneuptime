@@ -1,7 +1,7 @@
 /*
  * A workflow step's settings dialog, rendered for real: the actual Modal,
- * ArgumentsForm and BasicForm. Only the network, the dashboard's configured
- * host and the documentation file are stubbed.
+ * ArgumentsForm, BasicForm and "How to use" help. Only the network and the
+ * dashboard's configured host are stubbed.
  *
  * The complaint this answers: someone opening the Webhook trigger is looking
  * for its URL, and it was buried at the bottom of a narrow sidebar, below a
@@ -85,23 +85,6 @@ jest.mock("../../../../UI/Utils/User", () => {
       getUserId: (): null => {
         return null;
       },
-    },
-  };
-});
-
-/*
- * The documentation is a markdown file fetched from the server; what it says
- * is not under test here, only where its section sits.
- */
-jest.mock("../../../../UI/Components/Workflow/DocumentationViewer", () => {
-  return {
-    __esModule: true,
-    default: (props: { documentationLink: { toString: () => string } }) => {
-      return (
-        <div data-testid="documentation-viewer">
-          {props.documentationLink.toString()}
-        </div>
-      );
     },
   };
 });
@@ -409,8 +392,8 @@ describe("Webhook trigger: the URL is what it is opened for", () => {
       "returns",
       "documentation",
     ]);
-    expect(screen.getByTestId("documentation-viewer")).toHaveTextContent(
-      "/workflow/docs/Webhook.md",
+    expect(section("documentation")).toHaveTextContent(
+      "Starts this workflow each time another app or service calls its URL.",
     );
   });
 
@@ -490,24 +473,20 @@ describe("Webhook trigger: the URL is what it is opened for", () => {
     expect(sectionOrder()[0]).toBe("webhook-url");
   });
 
-  test("the documentation file no longer repeats the URL the dialog shows above it", () => {
-    const markdown: string = fs.readFileSync(
-      path.join(
-        PACKAGES_DIR,
-        "App",
-        "FeatureSet",
-        "Workflow",
-        "Docs",
-        "ComponentDocumentation",
-        "Webhook.md",
-      ),
-      "utf8",
+  test("the help does not repeat the URL the dialog shows above it, or its secret", () => {
+    renderModal(makeNode(ComponentID.Webhook, "webhook-1"));
+
+    fireEvent.click(
+      within(section("documentation")).getByRole("button", {
+        name: "Learn more",
+      }),
     );
 
-    expect(markdown).not.toContain("{{webhookSecretKey}}");
-    expect(markdown).not.toContain("{{serverUrl}}");
-    expect(markdown).not.toContain("workflow/trigger/");
-    expect(markdown).toContain("top of this dialog");
+    const help: string = section("documentation").textContent || "";
+
+    expect(help).toContain("at the top of this dialog");
+    expect(help).not.toContain(SECRET);
+    expect(help).not.toContain("workflow/trigger/");
   });
 });
 
@@ -827,7 +806,13 @@ describe("Manual trigger: says how it is started", () => {
   test("opens on how to run it, with no Settings section", () => {
     renderModal(makeNode(ComponentID.Manual, "manual-1"));
 
-    expect(sectionOrder()).toEqual(["how-to-run", "id", "outputs", "returns"]);
+    expect(sectionOrder()).toEqual([
+      "how-to-run",
+      "id",
+      "outputs",
+      "returns",
+      "documentation",
+    ]);
 
     const howToRun: HTMLElement = screen.getByTestId(
       "manual-trigger-how-to-run",
@@ -885,7 +870,12 @@ describe("Steps with settings open on them", () => {
   test("Schedule opens on its schedule", () => {
     renderModal(makeNode(ComponentID.Schedule, "schedule-1"));
 
-    expect(sectionOrder()).toEqual(["settings", "id", "outputs"]);
+    expect(sectionOrder()).toEqual([
+      "settings",
+      "id",
+      "outputs",
+      "documentation",
+    ]);
     expect(section("settings")).toHaveTextContent("Schedule at");
   });
 
@@ -898,6 +888,7 @@ describe("Steps with settings open on them", () => {
       "inputs",
       "outputs",
       "returns",
+      "documentation",
     ]);
     expect(section("settings")).toHaveTextContent("URL");
   });

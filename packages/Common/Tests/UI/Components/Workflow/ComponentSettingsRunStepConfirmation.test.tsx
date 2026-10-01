@@ -27,9 +27,9 @@ const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
  * way out. The step's own Delete confirmation stays red and starts on Cancel,
  * since deleting is not undone.
  *
- * The settings form and the documentation pane are stubbed: the form loads
- * the project's workflow variables and the pane fetches a markdown file, and
- * neither has anything to do with the footers under test.
+ * The settings form and the "How to use" help are stubbed: the form loads the
+ * project's workflow variables, and neither has anything to do with the
+ * footers under test.
  */
 jest.mock("../../../../UI/Components/Workflow/ArgumentsForm", () => {
   return {
