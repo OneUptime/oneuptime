@@ -1,0 +1,98 @@
+# eBPF database spans that belong to no trace are dropped in the collector.
+#
+# On the test cluster, 95% of what OBI sent were Redis commands, each its own
+# one-span "trace" named after the bare command (set, evalsha, eval, get):
+#
+#   - valkey-server's own span for every command it received. RESP carries no
+#     trace context, so it can never join the caller's trace — and the caller
+#     already recorded the same command as a client span.
+#   - BullMQ queue workers polling Redis, which runs outside any request and
+#     so has no parent either.
+#
+# Those buried every request trace in the Traces list. The filter drops an
+# OBI span when it has a database system and no parent. These tests pin the
+# condition text (its behaviour against a real collector is covered by
+# Tests/Ops/agent-trace-filter-behaviour.sh), its scope — OBI spans only — and
+# its position in the traces pipeline.
+suite: collector drops unlinked eBPF database spans
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-deployment.yaml
+  - templates/configmap-daemonset.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: defines the filter by default, scoped to OBI spans with a database system and no parent
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-unlinked-db:\\n    error_mode: ignore\\n    traces:\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and parent_span_id == SpanID\\(0x0000000000000000\\) and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\)'\\n"
+
+  - it: runs it right after the metadata processors, before batch
+    asserts:
+      # A strict line chain, not a [\s\S]*? gap: a lazy gap can run out of the
+      # traces pipeline and match something in another one.
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-db\\n        - batch\\n"
+
+  - it: runs it before the user's span filters and the sampler, so neither works on spans about to be dropped
+    set:
+      sampling.traces.percentage: 25
+      namespaceFilters.rules:
+        - action: exclude
+          namespaces: [noisy]
+          scopes: [traces]
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-db\\n(?: *#[^\\n]*\\n)*        - filter/telemetry\\n(?: *#[^\\n]*\\n)*        - probabilistic_sampler\\n        - batch\\n"
+
+  - it: never runs it on metrics or logs
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*? *- filter/ebpf-unlinked-db\\n"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    logs:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*? *- filter/ebpf-unlinked-db\\n"
+
+  - it: can be turned off, leaving neither the definition nor a dangling pipeline reference
+    set:
+      ebpf.dropUnlinkedDatabaseSpans: false
+    asserts:
+      # A processor referenced but not defined (or the reverse) is a collector
+      # that refuses to start.
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-unlinked-db"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n        - batch\\n"
+
+  - it: does not exist when eBPF is off, since there is no traces pipeline to run it in
+    set:
+      ebpf.enabled: false
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-unlinked-db"
+
+  - it: is never added to the node collector, which has no traces pipeline
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-unlinked-db"

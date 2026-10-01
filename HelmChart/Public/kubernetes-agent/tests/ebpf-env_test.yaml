@@ -1,0 +1,142 @@
+# The OTEL_EBPF_* switches on the eBPF DaemonSet that decide how OBI links and
+# names spans.
+#
+# trackRequestHeaders used to render only inside the contextPropagation
+# block. OBI already reads incoming headers whenever propagation is on, so in
+# that position the setting could never change anything — and with
+# propagation off (the default) it was not rendered at all. It is now its own
+# switch, read-only, off by default.
+suite: eBPF DaemonSet trace-linking switches
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/daemonset-ebpf.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: keeps OBI's Node.js agent on by default
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_NODEJS_ENABLED
+            value: "true"
+
+  - it: turns OBI's Node.js agent off on request
+    set:
+      ebpf.nodejs.enabled: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_NODEJS_ENABLED
+            value: "false"
+
+  - it: treats a values file without ebpf.nodejs as enabled (upgrades from older values)
+    set:
+      ebpf.nodejs: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_NODEJS_ENABLED
+            value: "true"
+
+  - it: follows OBI's default of not double-tracing apps that export OTLP themselves
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES
+            value: "true"
+
+  - it: traces SDK-instrumented apps too when asked
+    set:
+      ebpf.excludeOtelInstrumentedServices: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES
+            value: "false"
+
+  - it: treats a values file without excludeOtelInstrumentedServices as OBI's default
+    set:
+      ebpf.excludeOtelInstrumentedServices: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES
+            value: "true"
+
+  - it: neither reads nor writes trace headers by default
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
+          any: true
+
+  - it: reads incoming headers without turning on propagation
+    set:
+      ebpf.trackRequestHeaders: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
+            value: "true"
+      # The point of the change: reading is not writing.
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
+          any: true
+
+  - it: renders propagation alone when only propagation is on
+    set:
+      ebpf.contextPropagation: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
+            value: headers
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
+          any: true
+
+  - it: renders both when both are on
+    set:
+      ebpf.contextPropagation: true
+      ebpf.contextPropagationMode: tcp
+      ebpf.trackRequestHeaders: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
+            value: tcp
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
+            value: "true"
+
+  - it: still rejects the removed `ip` propagation mode
+    set:
+      ebpf.contextPropagation: true
+      ebpf.contextPropagationMode: ip
+    asserts:
+      - failedTemplate: {}

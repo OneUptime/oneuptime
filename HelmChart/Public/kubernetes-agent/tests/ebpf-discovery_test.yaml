@@ -1,0 +1,369 @@
+# Which processes OBI instruments, and how that reaches it.
+#
+# OBI only reads process selection from its YAML config file —
+# `discovery.instrument` / `discovery.exclude_instrument`. The chart used to
+# pass it as environment variables instead:
+#
+#   OTEL_EBPF_EXCLUDE_AUTO_TARGET_EXE      (ebpf.excludeExePaths)
+#   OTEL_EBPF_DISCOVERY_NAMESPACE          (namespaceFilters, ebpfDiscovery include)
+#   OTEL_EBPF_DISCOVERY_EXCLUDE_NAMESPACE  (namespaceFilters, ebpfDiscovery exclude)
+#
+# None of those is an OBI setting, in any release. Nothing was ever excluded:
+# on the test cluster OBI instrumented bash, dash, Playwright's chrome and
+# ClickHouse (whose exclusion values.yaml calls essential), and its one-span
+# traces from them went straight to OneUptime. Rendering the selectors into
+# the config file is the fix; these tests pin both halves of it — that the
+# file says the right thing, and that the dead variables never come back.
+#
+# OBI also compiles each `exe_path` as ONE glob, where a comma is a literal
+# character, so a comma-separated list has to be split into one selector per
+# entry. The old OTEL_EBPF_AUTO_TARGET_EXE="*/python,*/java" matched nothing.
+suite: eBPF process discovery reaches OBI through its config file
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  # ---------------------------------------------------------------- DaemonSet
+  - it: always points OBI at its config file
+    templates:
+      - templates/daemonset-ebpf.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_CONFIG_PATH
+            value: /etc/obi/obi-config.yaml
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: obi-config
+            mountPath: /etc/obi
+            readOnly: true
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: obi-config
+            configMap:
+              name: oneuptime-agent-kubernetes-agent-ebpf
+
+  - it: still mounts the config file when log correlation is on
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.logToTraceCorrelation: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_CONFIG_PATH
+            value: /etc/obi/obi-config.yaml
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: obi-config
+            mountPath: /etc/obi
+            readOnly: true
+
+  - it: rolls the eBPF pods when the OBI config changes
+    templates:
+      - templates/daemonset-ebpf.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.metadata.annotations["checksum/config"]
+          pattern: ^[0-9a-f]{64}$
+
+  - it: never renders the env vars OBI does not read
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: "*/sh,*/bash"
+      namespaceFilters.rules:
+        - action: include
+          namespaces: [payments]
+          scopes: [ebpfDiscovery]
+        - action: exclude
+          namespaces: [kube-system]
+          scopes: [ebpfDiscovery]
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_EXCLUDE_AUTO_TARGET_EXE
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_DISCOVERY_NAMESPACE
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_DISCOVERY_EXCLUDE_NAMESPACE
+          any: true
+
+  - it: does not set OTEL_EBPF_AUTO_TARGET_EXE, which OBI would OR in as an extra selector
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      namespaceFilters.rules:
+        - action: include
+          namespaces: [payments]
+          scopes: [ebpfDiscovery]
+    asserts:
+      # With it set, OBI appends {exe_path: <it>} to discovery.instrument and
+      # instruments every namespace again, include rules or not.
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_AUTO_TARGET_EXE
+          any: true
+
+  # ------------------------------------------------- OBI config: what it says
+  - it: instruments everything and skips the default exclusions out of the box
+    templates:
+      - templates/configmap-ebpf.yaml
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "^discovery:\\n  instrument:\\n    - exe_path: \"\\*\"\\n  exclude_instrument:\\n"
+      # The binaries values.yaml singles out: ClickHouse refuses to start with
+      # a uprobe attached; Playwright's browser and its crash reporter churn
+      # through processes fast enough to peg OBI.
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    - exe_path: \"\\*/clickhouse\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    - exe_path: \"\\*/chrome\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    - exe_path: \"\\*/chrome_crashpad_handler\"\\n"
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    - exe_path: \"\\*/bash\"\\n"
+      # The default namespace rule (kube-system, ebpfDiscovery scope).
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    - k8s_namespace: \"kube-system\"\\n"
+
+  - it: gives every comma-separated exclusion its own selector, trimmed and de-duplicated
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: " */sh , */bash,,*/sh "
+      namespaceFilters.rules: []
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+              exclude_instrument:
+                - exe_path: "*/sh"
+                - exe_path: "*/bash"
+
+  - it: renders no exclude_instrument at all when there is nothing to exclude
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules: []
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+
+  - it: splits a comma-separated autoTargetExe into one selector per glob
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.autoTargetExe: "*/python,*/java"
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules: []
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*/python"
+                - exe_path: "*/java"
+
+  - it: falls back to every process when autoTargetExe is blank, rather than an empty selector OBI rejects
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.autoTargetExe: " , "
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules: []
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+
+  - it: turns namespace include rules into (executable, namespace) selectors, so a process must match both
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.autoTargetExe: "*/python,*/java"
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules:
+        - action: include
+          namespaces: ["team-*", payments]
+          scopes: [ebpfDiscovery]
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*/python"
+                  k8s_namespace: "team-*"
+                - exe_path: "*/java"
+                  k8s_namespace: "team-*"
+                - exe_path: "*/python"
+                  k8s_namespace: "payments"
+                - exe_path: "*/java"
+                  k8s_namespace: "payments"
+
+  - it: turns namespace exclude rules into k8s_namespace exclusions next to the executable ones
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: "*/sh"
+      namespaceFilters.rules:
+        - action: exclude
+          namespaces: [kube-system, "batch-*"]
+          scopes: [ebpfDiscovery, podLogs]
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+              exclude_instrument:
+                - exe_path: "*/sh"
+                - k8s_namespace: "kube-system"
+                - k8s_namespace: "batch-*"
+
+  - it: ignores namespace rules that do not carry the ebpfDiscovery scope
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules:
+        - action: exclude
+          namespaces: [noisy]
+          scopes: [podLogs, traces]
+        - action: include
+          namespaces: [only-these-logs]
+          scopes: [podLogs]
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+
+  - it: leaves route naming to OBI's default unless asked
+    templates:
+      - templates/configmap-ebpf.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "(?m)^routes:"
+
+  - it: passes route patterns and the unmatched policy through
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules: []
+      ebpf.routes.patterns: ["/api/items/{id}", "/otlp/v1/{signal}"]
+      ebpf.routes.unmatched: low-cardinality
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+            routes:
+              unmatched: "low-cardinality"
+              patterns:
+                - "/api/items/{id}"
+                - "/otlp/v1/{signal}"
+
+  - it: passes route patterns alone, keeping OBI's default unmatched policy
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.excludeExePaths: ""
+      namespaceFilters.rules: []
+      ebpf.routes.patterns: ["/otlp/v1/{signal}"]
+    asserts:
+      - equal:
+          path: data["obi-config.yaml"]
+          value: |
+            discovery:
+              instrument:
+                - exe_path: "*"
+            routes:
+              patterns:
+                - "/otlp/v1/{signal}"
+
+  - it: rejects an unmatched policy OBI does not know
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.routes.unmatched: guess
+    asserts:
+      - failedTemplate: {}
+
+  - it: keeps the log enricher selector out of the config unless log correlation is on
+    templates:
+      - templates/configmap-ebpf.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "log_enricher"
+
+  - it: adds the log enricher selector when log correlation is on
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.logToTraceCorrelation: true
+      ebpf.logEnricher.services:
+        - service:
+            - languages: "python,go"
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\nebpf:\\n  log_enricher:\\n    services:\\n      - service:\\n        - languages: python,go\\n"
+      # Process selection is still there; the enricher is added, not swapped in.
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "^discovery:\\n  instrument:\\n"
+
+  - it: renders neither the config nor the DaemonSet when eBPF is off
+    templates:
+      - templates/configmap-ebpf.yaml
+      - templates/daemonset-ebpf.yaml
+    set:
+      ebpf.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0

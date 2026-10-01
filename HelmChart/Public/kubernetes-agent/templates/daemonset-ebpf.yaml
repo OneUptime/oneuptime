@@ -20,7 +20,9 @@ spec:
       annotations:
         # OBI reads its config file once, at startup; roll the pods when it
         # changes so a new exclusion or route takes effect.
-        checksum/config: {{ include (print $.Template.BasePath "/configmap-ebpf.yaml") . | sha256sum }}
+        # Hashes the config itself (the helper configmap-ebpf.yaml renders),
+        # so only a change OBI would see rolls the pods.
+        checksum/config: {{ include "kubernetes-agent.obiConfig" . | sha256sum }}
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
       hostPID: true
