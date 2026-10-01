@@ -24,6 +24,8 @@ const FILES: Array<string> = [
   "Components/Workflow/StepTraceViewer.tsx",
   "Components/Workflow/WorkflowLogModal.tsx",
   "Components/Workflow/BreakableCode.tsx",
+  // Copy log and Download, above the modal's tabs.
+  "Components/Workflow/WorkflowRunExportActions.tsx",
 ];
 
 /*
@@ -249,6 +251,12 @@ describe("the workflow run's Steps view in the dark theme", () => {
         "text-gray-900",
         "text-gray-800",
         "bg-gray-50",
+        // Copy log and Download in the header, and the copy's tick or cross.
+        "text-gray-500",
+        "hover:bg-gray-100",
+        "hover:text-gray-700",
+        "text-emerald-600",
+        "text-red-600",
       ]),
     );
     expect(unmapped).toEqual([]);

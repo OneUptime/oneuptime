@@ -6,6 +6,9 @@
  * that only one is mounted at a time, and — because the builder re-renders this
  * every couple of seconds while a run goes — that a poll does not throw the
  * reader back to the other tab.
+ *
+ * And what it shows can be taken away: Copy log and Download sit in the
+ * header (WorkflowRunExportActions.test.tsx covers the controls themselves).
  */
 
 import WorkflowLogModal, {
@@ -13,10 +16,15 @@ import WorkflowLogModal, {
   STEPS_TAB_NAME,
 } from "../../../../UI/Components/Workflow/WorkflowLogModal";
 import {
+  WorkflowRunDetails,
+  buildWorkflowRunJsonText,
+} from "../../../../UI/Components/Workflow/WorkflowRunExport";
+import {
   WorkflowStepStatus,
   WorkflowStepTrace,
   WorkflowStepTraceEntry,
 } from "../../../../Types/Workflow/StepTrace";
+import WorkflowStatus from "../../../../Types/Workflow/WorkflowStatus";
 import "@testing-library/jest-dom";
 import {
   RenderResult,
@@ -27,7 +35,32 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+
+interface DownloadCall {
+  content: Blob | string;
+  filename: string;
+  mimeType?: string | undefined;
+}
+
+const mockDownloads: Array<DownloadCall> = [];
+
+// The browser's download, replaced by a recorder of what would be saved.
+jest.mock("../../../../UI/Utils/DownloadFile", () => {
+  return {
+    __esModule: true,
+    default: (data: DownloadCall): void => {
+      mockDownloads.push(data);
+    },
+  };
+});
 
 type StepOverrides = Partial<WorkflowStepTraceEntry>;
 
@@ -533,8 +566,10 @@ describe("WorkflowLogModal", () => {
 
   describe("the toolbar", () => {
     /*
-     * Actions on the run as a whole (downloading it, say) sit beside the
-     * status line, above the tabs, so they work from either tab.
+     * More actions on the run as a whole sit beside the status line, above
+     * the tabs, so they work from either tab. (This used to be the place a
+     * Download button was meant to go; Download is built into the header
+     * now, so a stand-in action is used.)
      */
     test("sits beside the status line", () => {
       render(
@@ -542,7 +577,7 @@ describe("WorkflowLogModal", () => {
           logs="a line"
           stepTrace={traceWithOneStep()}
           statusMessage="Run finished successfully."
-          toolbar={<button type="button">Download</button>}
+          toolbar={<button type="button">Open workflow</button>}
           onClose={jest.fn()}
         />,
       );
@@ -551,7 +586,7 @@ describe("WorkflowLogModal", () => {
 
       expect(row).toHaveTextContent("Run finished successfully.");
       expect(
-        within(row).getByRole("button", { name: "Download" }),
+        within(row).getByRole("button", { name: "Open workflow" }),
       ).toBeInTheDocument();
     });
 
@@ -560,19 +595,19 @@ describe("WorkflowLogModal", () => {
         <WorkflowLogModal
           logs="a line"
           stepTrace={traceWithOneStep()}
-          toolbar={<button type="button">Download</button>}
+          toolbar={<button type="button">Open workflow</button>}
           onClose={jest.fn()}
         />,
       );
 
       expect(
-        screen.getByRole("button", { name: "Download" }),
+        screen.getByRole("button", { name: "Open workflow" }),
       ).toBeInTheDocument();
 
       openLogTab();
 
       expect(
-        screen.getByRole("button", { name: "Download" }),
+        screen.getByRole("button", { name: "Open workflow" }),
       ).toBeInTheDocument();
     });
 
@@ -581,14 +616,40 @@ describe("WorkflowLogModal", () => {
         <WorkflowLogModal
           logs="a line"
           stepTrace={traceWithOneStep()}
-          toolbar={<button type="button">Download</button>}
+          toolbar={<button type="button">Open workflow</button>}
           onClose={jest.fn()}
         />,
       );
 
       expect(screen.getByTestId("workflow-run-toolbar")).toHaveTextContent(
-        "Download",
+        "Open workflow",
       );
+    });
+
+    test("holds only its own actions: Copy log and Download are in the header", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={traceWithOneStep()}
+          toolbar={<button type="button">Open workflow</button>}
+          onClose={jest.fn()}
+        />,
+      );
+
+      const row: HTMLElement = screen.getByTestId("workflow-run-status-row");
+
+      expect(
+        within(row)
+          .getAllByRole("button")
+          .map((button: HTMLElement) => {
+            return button.textContent;
+          }),
+      ).toEqual(["Open workflow"]);
+      expect(
+        within(screen.getByTestId("modal-header")).getByTestId(
+          "workflow-run-copy-log",
+        ),
+      ).toBeInTheDocument();
     });
 
     test("is not there unless given", () => {
@@ -606,6 +667,10 @@ describe("WorkflowLogModal", () => {
       ).not.toBeInTheDocument();
     });
 
+    /*
+     * A run with a log to copy and download still has no row of its own:
+     * those live in the header.
+     */
     test("leaves no empty row when there is neither", () => {
       render(
         <WorkflowLogModal
@@ -618,6 +683,317 @@ describe("WorkflowLogModal", () => {
       expect(
         screen.queryByTestId("workflow-run-status-row"),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("copying and downloading the run", () => {
+    const RUN_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
+
+    const RUN: WorkflowRunDetails = {
+      runId: RUN_ID,
+      workflowId: "0193c0de-7777-4aaa-8bbb-000000000007",
+      workflowName: "Route alerts",
+      status: WorkflowStatus.Success,
+      scheduledAt: new Date("2026-10-01T10:33:06.000Z"),
+      startedAt: new Date("2026-10-01T10:33:07.000Z"),
+      completedAt: new Date("2026-10-01T10:33:08.000Z"),
+    };
+
+    const chooseDownload: (label: string) => void = (label: string): void => {
+      fireEvent.click(screen.getByTestId("workflow-run-download"));
+      fireEvent.click(screen.getByRole("menuitem", { name: label }));
+    };
+
+    beforeEach(() => {
+      mockDownloads.length = 0;
+    });
+
+    /*
+     * The maintainer's report: the Full Log tab had a Close button and no
+     * way to take the log anywhere.
+     *
+     * They are in the header, beside the ×: the body scrolls under a long
+     * log or a long list of steps, and the header does not.
+     */
+    test("Copy log and Download are in the header, beside the close button", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={traceWithOneStep()}
+          run={RUN}
+          onClose={jest.fn()}
+        />,
+      );
+
+      const header: HTMLElement = screen.getByTestId("modal-header");
+
+      expect(
+        within(header).getByTestId("workflow-run-copy-log"),
+      ).toHaveTextContent("Copy log");
+      expect(
+        within(header).getByTestId("workflow-run-download"),
+      ).toHaveTextContent("Download");
+      expect(
+        within(header)
+          .getAllByRole("button")
+          .map((button: HTMLElement) => {
+            return button.getAttribute("data-testid");
+          }),
+      ).toEqual([
+        "workflow-run-copy-log",
+        "workflow-run-download",
+        "close-button",
+      ]);
+      expect(
+        within(screen.getByTestId("modal-content")).queryByTestId(
+          "workflow-run-export-actions",
+        ),
+      ).not.toBeInTheDocument();
+    });
+
+    /*
+     * The header is where a dialog never starts its focus, so opening a run
+     * with the keyboard does not land on - or light up - Copy log.
+     */
+    test("opening the run does not put the focus on them", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={traceWithOneStep()}
+          run={RUN}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(
+        screen
+          .getByTestId("workflow-run-export-actions")
+          .contains(document.activeElement),
+      ).toBe(false);
+    });
+
+    test("are there on the Full Log tab too", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={traceWithOneStep()}
+          run={RUN}
+          initialTabName={FULL_LOG_TAB_NAME}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(screen.getByTestId("workflow-run-copy-log")).toBeInTheDocument();
+      expect(screen.getByTestId("workflow-run-download")).toBeInTheDocument();
+
+      openStepsTab();
+
+      expect(screen.getByTestId("workflow-run-copy-log")).toBeInTheDocument();
+    });
+
+    test("leave the run's status line to itself", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={traceWithOneStep()}
+          statusMessage="Run finished successfully."
+          run={RUN}
+          onClose={jest.fn()}
+        />,
+      );
+
+      const row: HTMLElement = screen.getByTestId("workflow-run-status-row");
+
+      expect(row).toHaveTextContent("Run finished successfully.");
+      expect(
+        within(row).queryByTestId("workflow-run-export-actions"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("workflow-run-download")).toBeInTheDocument();
+    });
+
+    test("are not there before the run has logged or recorded anything", () => {
+      render(
+        <WorkflowLogModal
+          logs=""
+          stepTrace={emptyTrace()}
+          isRunning={true}
+          statusMessage="Starting run…"
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId("workflow-run-export-actions"),
+      ).not.toBeInTheDocument();
+      // The status line itself stays.
+      expect(screen.getByText("Starting run…")).toBeInTheDocument();
+    });
+
+    test("come as soon as the first line does", () => {
+      const view: RenderResult = render(
+        <WorkflowLogModal
+          logs=""
+          stepTrace={emptyTrace()}
+          isRunning={true}
+          onClose={jest.fn()}
+        />,
+      );
+
+      view.rerender(
+        <WorkflowLogModal
+          logs="the first line"
+          stepTrace={emptyTrace()}
+          isRunning={true}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(screen.getByTestId("workflow-run-copy-log")).toBeInTheDocument();
+    });
+
+    test("Download log saves the full log, named after the run", () => {
+      render(
+        <WorkflowLogModal
+          logs={"line one\nline two"}
+          stepTrace={traceWithOneStep()}
+          run={RUN}
+          onClose={jest.fn()}
+        />,
+      );
+
+      chooseDownload("Download log");
+
+      expect(mockDownloads).toHaveLength(1);
+      expect(mockDownloads[0]!.filename).toBe(
+        `route-alerts-run-${RUN_ID}-2026-10-01T10-33-07.txt`,
+      );
+      expect(mockDownloads[0]!.content).toBe(
+        [
+          "Workflow: Route alerts",
+          "Workflow ID: 0193c0de-7777-4aaa-8bbb-000000000007",
+          `Run ID: ${RUN_ID}`,
+          "Status: Executed",
+          "Scheduled at: 2026-10-01T10:33:06.000Z",
+          "Started at: 2026-10-01T10:33:07.000Z",
+          "Completed at: 2026-10-01T10:33:08.000Z",
+          "",
+          "line one",
+          "line two",
+          "",
+        ].join("\n"),
+      );
+    });
+
+    test("Download run as JSON saves the steps the Steps tab shows", () => {
+      const trace: WorkflowStepTrace = {
+        steps: [
+          aStep(),
+          aStep({ componentId: "if-else-1", executedPort: "no" }),
+        ],
+      };
+
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={trace}
+          run={RUN}
+          onClose={jest.fn()}
+        />,
+      );
+
+      chooseDownload("Download run as JSON");
+
+      expect(mockDownloads[0]!.filename).toBe(
+        `route-alerts-run-${RUN_ID}-2026-10-01T10-33-07.json`,
+      );
+      expect(mockDownloads[0]!.content).toBe(
+        buildWorkflowRunJsonText({ ...RUN, logs: "a line", stepTrace: trace }),
+      );
+    });
+
+    /*
+     * The Full Log tab draws every line; the download is how a log too long
+     * to read there gets read, so it is the whole log, not what is drawn.
+     */
+    test("a very long log downloads whole", () => {
+      const longLog: string = Array.from(
+        { length: 20000 },
+        (_unused: unknown, index: number): string => {
+          return `line ${index}`;
+        },
+      ).join("\n");
+
+      render(
+        <WorkflowLogModal
+          logs={longLog}
+          stepTrace={traceWithOneStep()}
+          run={RUN}
+          onClose={jest.fn()}
+        />,
+      );
+
+      chooseDownload("Download log");
+
+      expect(
+        (mockDownloads[0]!.content as string).endsWith(`\n\n${longLog}\n`),
+      ).toBe(true);
+    });
+
+    test("without the run's details it still downloads, under a plain name", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={traceWithOneStep()}
+          onClose={jest.fn()}
+        />,
+      );
+
+      chooseDownload("Download log");
+
+      expect(mockDownloads[0]!.filename).toBe("workflow-run.txt");
+      expect(mockDownloads[0]!.content).toBe("a line\n");
+    });
+
+    test("a run still going saves what it has logged so far", () => {
+      render(
+        <WorkflowLogModal
+          logs="so far"
+          stepTrace={emptyTrace()}
+          isRunning={true}
+          statusMessage="Run running…"
+          run={{ ...RUN, status: WorkflowStatus.Running, completedAt: null }}
+          onClose={jest.fn()}
+        />,
+      );
+
+      chooseDownload("Download log");
+
+      const content: string = mockDownloads[0]!.content as string;
+
+      expect(content).toContain("Status: Running");
+      expect(content).not.toContain("Completed at");
+      expect(content.endsWith("\n\nso far\n")).toBe(true);
+    });
+
+    test("they add no second way out to the footer", () => {
+      render(
+        <WorkflowLogModal
+          logs="a line"
+          stepTrace={traceWithOneStep()}
+          run={RUN}
+          onClose={jest.fn()}
+        />,
+      );
+
+      const footer: HTMLElement = screen.getByTestId("modal-footer");
+
+      expect(
+        within(footer)
+          .getAllByRole("button")
+          .map((button: HTMLElement) => {
+            return button.textContent;
+          }),
+      ).toEqual(["Close"]);
     });
   });
 

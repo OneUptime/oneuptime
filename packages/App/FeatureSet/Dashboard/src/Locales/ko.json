@@ -6819,5 +6819,11 @@
   "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "{{name}}을(를) 이 인시던트에서 제거하시겠습니까? 이 규칙에 대한 모든 SLA 추적 데이터가 삭제됩니다.",
   "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "계정({{email}})을 삭제하시겠습니까? 이 작업은 영구적이며 취소할 수 없습니다. 모든 개인 데이터가 제거됩니다.",
   "Delete View": "보기 삭제",
-  "Delete Saved View": "저장된 보기 삭제"
+  "Delete Saved View": "저장된 보기 삭제",
+  "Copy log": "로그 복사",
+  "Copy failed": "복사 실패",
+  "The log could not be copied. Download it instead.": "로그를 복사하지 못했습니다. 대신 다운로드하세요.",
+  "Download log": "로그 다운로드",
+  "Download run as JSON": "실행을 JSON으로 다운로드",
+  "This run could not be downloaded. Try again.": "이 실행을 다운로드하지 못했습니다. 다시 시도하세요."
 }

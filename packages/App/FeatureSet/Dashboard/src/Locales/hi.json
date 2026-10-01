@@ -6819,5 +6819,11 @@
   "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "क्या आप वाकई इस घटना से {{name}} को हटाना चाहते हैं? यह इस नियम के लिए सभी SLA ट्रैकिंग डेटा को हटा देगा।",
   "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "क्या आप वाकई अपना खाता ({{email}}) हटाना चाहते हैं? यह क्रिया स्थायी है और इसे पूर्ववत नहीं किया जा सकता। आपका सभी व्यक्तिगत डेटा हटा दिया जाएगा।",
   "Delete View": "दृश्य हटाएँ",
-  "Delete Saved View": "सहेजा गया दृश्य हटाएँ"
+  "Delete Saved View": "सहेजा गया दृश्य हटाएँ",
+  "Copy log": "लॉग कॉपी करें",
+  "Copy failed": "कॉपी नहीं हो सका",
+  "The log could not be copied. Download it instead.": "लॉग कॉपी नहीं हो सका। इसके बजाय इसे डाउनलोड करें।",
+  "Download log": "लॉग डाउनलोड करें",
+  "Download run as JSON": "रन को JSON के रूप में डाउनलोड करें",
+  "This run could not be downloaded. Try again.": "यह रन डाउनलोड नहीं हो सका। कृपया पुनः प्रयास करें।"
 }

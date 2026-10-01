@@ -6819,5 +6819,11 @@
   "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "Er du sikker på, at du vil fjerne {{name}} fra denne hændelse? Dette sletter alle SLA-sporingsdata for denne regel.",
   "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "Er du sikker på, at du vil slette din konto ({{email}})? Denne handling er permanent og kan ikke fortrydes. Alle dine personlige data fjernes.",
   "Delete View": "Slet visning",
-  "Delete Saved View": "Slet gemt visning"
+  "Delete Saved View": "Slet gemt visning",
+  "Copy log": "Kopiér log",
+  "Copy failed": "Kopiering mislykkedes",
+  "The log could not be copied. Download it instead.": "Loggen kunne ikke kopieres. Download den i stedet.",
+  "Download log": "Download log",
+  "Download run as JSON": "Download kørsel som JSON",
+  "This run could not be downloaded. Try again.": "Kørslen kunne ikke downloades. Prøv igen."
 }

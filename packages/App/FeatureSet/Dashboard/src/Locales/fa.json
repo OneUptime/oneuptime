@@ -6819,5 +6819,11 @@
   "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "مطمئنید می‌خواهید {{name}} را از این حادثه حذف کنید؟ این کار همه داده‌های پیگیری SLA این قاعده را حذف می‌کند.",
   "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "مطمئنید می‌خواهید حسابتان ({{email}}) را حذف کنید؟ این کار دائمی است و قابل بازگشت نیست. همه داده‌های شخصی شما حذف می‌شود.",
   "Delete View": "حذف نما",
-  "Delete Saved View": "حذف نمای ذخیره‌شده"
+  "Delete Saved View": "حذف نمای ذخیره‌شده",
+  "Copy log": "کپی لاگ",
+  "Copy failed": "کپی ناموفق بود",
+  "The log could not be copied. Download it instead.": "لاگ کپی نشد. به‌جای آن، آن را دانلود کنید.",
+  "Download log": "دانلود لاگ",
+  "Download run as JSON": "دانلود اجرا به‌صورت JSON",
+  "This run could not be downloaded. Try again.": "این اجرا دانلود نشد. لطفاً دوباره تلاش کنید."
 }

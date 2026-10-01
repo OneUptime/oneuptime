@@ -6819,5 +6819,11 @@
   "Are you sure you want to remove {{name}} from this incident? This will delete all SLA tracking data for this rule.": "Tem certeza de que deseja remover {{name}} deste incidente? Isso excluirá todos os dados de rastreamento de SLA para esta regra.",
   "Are you sure you want to delete your account ({{email}})? This action is permanent and cannot be undone. All your personal data will be removed.": "Tem certeza de que deseja excluir sua conta ({{email}})? Esta ação é permanente e não pode ser desfeita. Todos os seus dados pessoais serão removidos.",
   "Delete View": "Excluir visualização",
-  "Delete Saved View": "Excluir visualização salva"
+  "Delete Saved View": "Excluir visualização salva",
+  "Copy log": "Copiar log",
+  "Copy failed": "Falha ao copiar",
+  "The log could not be copied. Download it instead.": "Não foi possível copiar o log. Baixe-o em vez disso.",
+  "Download log": "Baixar log",
+  "Download run as JSON": "Baixar execução como JSON",
+  "This run could not be downloaded. Try again.": "Não foi possível baixar esta execução. Tente novamente."
 }
