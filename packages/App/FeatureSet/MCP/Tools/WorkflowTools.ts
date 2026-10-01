@@ -293,6 +293,29 @@ function requireString(args: Record<string, unknown>, key: string): string {
 }
 
 /**
+ * The rows of a list response.
+ *
+ * The API client hands a list back as the rows themselves: HTTPResponse
+ * unwraps the `{ data, count, skip, limit }` envelope a get-list endpoint
+ * answers with, so `makeAuthenticatedApiCall` returns the array. Reading
+ * `.data` off that array finds nothing - which made every list these tools
+ * read look empty ("no project visible", "could not find the Acknowledged
+ * state") whatever the caller was allowed to see. The envelope is still
+ * accepted, for a caller that passes one through untouched.
+ */
+function listRows(response: unknown): JSONArray {
+  if (Array.isArray(response)) {
+    return response as JSONArray;
+  }
+
+  const wrapped: unknown = (response as JSONObject | null | undefined)?.[
+    "data"
+  ];
+
+  return Array.isArray(wrapped) ? (wrapped as JSONArray) : [];
+}
+
+/**
  * Look up the project's state row (e.g. Acknowledged / Resolved) for
  * incidents or alerts.
  */
@@ -316,8 +339,7 @@ async function findStateId(data: {
     credential: data.credential,
   });
 
-  const rows: JSONArray =
-    ((response as JSONObject)?.["data"] as JSONArray) || [];
+  const rows: JSONArray = listRows(response);
   const firstRow: JSONObject | undefined = rows[0] as JSONObject | undefined;
 
   if (!firstRow || !firstRow["_id"]) {
@@ -481,8 +503,7 @@ async function whoami(input: McpCredentialInput): Promise<JSONObject> {
     credential: input,
   });
 
-  const rows: JSONArray =
-    ((response as JSONObject)?.["data"] as JSONArray) || [];
+  const rows: JSONArray = listRows(response);
   const projects: JSONArray = rows.map((row: unknown): JSONObject => {
     const projectRow: JSONObject = row as JSONObject;
     return {
