@@ -790,7 +790,16 @@ ebpf:
   enabled: true
   image:
     repository: otel/ebpf-instrument
-    tag: "v0.9.0"
+    # v0.13.0 over v0.9.0: Redis replies to blocking commands (BullMQ's
+    # BZPOPMIN) are no longer parsed as new requests flowing the wrong way —
+    # v0.9.0 turned each into a fake one-span "trace" named after the key —
+    # and Go clients only get a `traceparent` injected when
+    # contextPropagation asks for it (v0.9.0 injected it regardless).
+    #
+    # Node.js 25 and later: OBI before v0.14 identifies these as Rust (they
+    # contain Rust code) and skips its Node.js agent, so their outgoing calls
+    # are not linked to the request that made them. Fixed upstream for v0.14.
+    tag: "v0.13.0"
     pullPolicy: IfNotPresent
   # OBI's memory scales with the number of processes it instruments and the
   # traffic through them, so the busiest nodes (databases + app tier packed

@@ -116,3 +116,33 @@ tests:
       ebpf.contextPropagationMode: ip
     asserts:
       - failedTemplate: {}
+
+  # OBI v0.13+ refuses to start on a metrics feature it does not know, and
+  # `stats` there also turns on stats_tcp_io, a probe on every TCP send and
+  # receive. tcpStats promises RTT, failed connections and retransmits.
+  - it: asks for the three TCP stats families by name, not the catch-all `stats`
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span,application_service_graph,application_host,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+
+  - it: drops the TCP stats families together
+    set:
+      ebpf.features.tcpStats: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_METRICS_FEATURES
+            value: application,application_span,application_service_graph,application_host,network
+
+  # The tag decides which of OBI's behaviours the tests above are about:
+  # v0.13.0 is the first release that both validates feature tokens and stops
+  # misreading Redis replies to blocking commands as new requests.
+  - it: runs the pinned OBI release
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: otel/ebpf-instrument:v0.13.0

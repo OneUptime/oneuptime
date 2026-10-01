@@ -529,7 +529,7 @@ Useful knobs:
 | Key | Default | Description |
 | --- | --- | --- |
 | `ebpf.enabled` | `true` | Master switch. |
-| `ebpf.image.tag` | `v0.9.0` | OBI image tag. Pin to a known-good version; OBI is pre-1.0 so minor bumps may introduce changes. |
+| `ebpf.image.tag` | `v0.13.0` | OBI image tag. Pin to a known-good version; OBI is pre-1.0 so minor bumps may introduce changes (v0.13 refuses to start on an unknown metrics feature name). Node.js 25+ request linking needs OBI v0.14 — see [Every trace is a single span](#every-trace-is-a-single-span). |
 | `ebpf.autoTargetExe` | `*` | Comma-separated globs of executable paths to auto-instrument. Narrow this (e.g. `*/python,*/java`) if you only want to track specific runtimes. |
 | `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself, browsers, ClickHouse — see `values.yaml`) | Comma-separated globs to skip, so you don't see noise from cluster plumbing. |
 | `ebpf.dropUnlinkedDatabaseSpans` | `true` | Drop eBPF database spans that belong to no trace — see [What eBPF traces look like](#what-ebpf-traces-look-like). |

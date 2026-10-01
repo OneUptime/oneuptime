@@ -106,7 +106,9 @@ Usage (the include is nindent-ed under the `nodeSelector:` key):
 {{/*
 Build the OTEL_EBPF_METRICS_FEATURES env var value from .Values.ebpf.features
 toggles. Returns a comma-separated string of the OBI feature names that are
-currently enabled. Empty list -> empty string (OBI then exports no metrics).
+currently enabled. (An empty string does NOT mean "no metrics": OBI falls back
+to its default, `application`.) OBI v0.13+ refuses to start on a token it does
+not know, so every token here must exist in the pinned version.
 */}}
 {{- define "kubernetes-agent.ebpfMetricsFeatures" -}}
 {{- $features := list -}}
@@ -116,7 +118,10 @@ currently enabled. Empty list -> empty string (OBI then exports no metrics).
 {{- if .Values.ebpf.features.hostMetrics -}}{{- $features = append $features "application_host" -}}{{- end -}}
 {{- if .Values.ebpf.features.networkMetrics -}}{{- $features = append $features "network" -}}{{- end -}}
 {{- if .Values.ebpf.features.networkInterZoneMetrics -}}{{- $features = append $features "network_inter_zone" -}}{{- end -}}
-{{- if .Values.ebpf.features.tcpStats -}}{{- $features = append $features "stats" -}}{{- end -}}
+{{- /* Not `stats`: since OBI v0.13 that also turns on stats_tcp_io, a probe on
+     every TCP send and receive — far more events than the three
+     close/failure/retransmit counters tcpStats describes. */ -}}
+{{- if .Values.ebpf.features.tcpStats -}}{{- $features = concat $features (list "stats_tcp_rtt" "stats_tcp_failed_connections" "stats_tcp_retransmits") -}}{{- end -}}
 {{- join "," $features -}}
 {{- end }}
 
@@ -151,11 +156,15 @@ OTEL_EBPF_DISCOVERY_NAMESPACE and OTEL_EBPF_DISCOVERY_EXCLUDE_NAMESPACE, none
 of which any OBI release reads, so excludeExePaths and the ebpfDiscovery
 namespace rules silently did nothing.
 
-  discovery.instrument — one selector per autoTargetExe glob. With namespace
-    include rules, one per (glob, namespace) pair, so a process has to match
-    both. OTEL_EBPF_AUTO_TARGET_EXE must NOT be set alongside: OBI ORs it in
-    as one more selector, which would widen discovery back to every
-    namespace.
+  discovery.instrument — one selector per autoTargetExe glob, each also
+    requiring a Kubernetes namespace: `k8s_namespace: "*"`, or with namespace
+    include rules one selector per (glob, namespace) pair. The namespace
+    requirement keeps node daemons (kubelet, containerd, sshd — processes with
+    no pod) out, which OBI v0.10+ otherwise matches, and holds back a pod's
+    process until OBI knows its pod, so a namespace exclusion cannot be
+    skipped by a process seen before its pod metadata arrived.
+    OTEL_EBPF_AUTO_TARGET_EXE must NOT be set alongside: OBI ORs it in as one
+    more selector, which would widen discovery back to every namespace.
   discovery.exclude_instrument — one selector per excludeExePaths glob and
     per excluded namespace. OBI still appends its built-in exclusions (itself,
     OTel collectors, the system namespaces) after these.
@@ -184,6 +193,7 @@ discovery:
 {{- else }}
 {{- range $exe := $targets }}
     - exe_path: {{ $exe | quote }}
+      k8s_namespace: "*"
 {{- end }}
 {{- end }}
 {{- if or $excludes $nsExclude }}
@@ -214,6 +224,12 @@ ebpf:
   log_enricher:
     services:
 {{ toYaml .Values.ebpf.logEnricher.services | indent 6 }}
+    # JSON lines only, as documented on ebpf.logToTraceCorrelation. Since
+    # v0.11 OBI also appends " trace_id=… span_id=…" to plain-text lines by
+    # default, which the node collector does not parse and which changes
+    # every non-JSON log line the app writes.
+    plain_text:
+      enabled: false
 {{- end }}
 {{- end }}
 

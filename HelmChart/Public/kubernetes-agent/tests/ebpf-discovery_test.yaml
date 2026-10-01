@@ -129,7 +129,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["obi-config.yaml"]
-          pattern: "^discovery:\\n  instrument:\\n    - exe_path: \"\\*\"\\n  exclude_instrument:\\n"
+          pattern: "^discovery:\\n  instrument:\\n    - exe_path: \"\\*\"\\n      k8s_namespace: \"\\*\"\\n  exclude_instrument:\\n"
       # The binaries values.yaml singles out: ClickHouse refuses to start with
       # a uprobe attached; Playwright's browser and its crash reporter churn
       # through processes fast enough to peg OBI.
@@ -163,6 +163,7 @@ tests:
             discovery:
               instrument:
                 - exe_path: "*"
+                  k8s_namespace: "*"
               exclude_instrument:
                 - exe_path: "*/sh"
                 - exe_path: "*/bash"
@@ -180,6 +181,7 @@ tests:
             discovery:
               instrument:
                 - exe_path: "*"
+                  k8s_namespace: "*"
 
   - it: splits a comma-separated autoTargetExe into one selector per glob
     templates:
@@ -195,7 +197,9 @@ tests:
             discovery:
               instrument:
                 - exe_path: "*/python"
+                  k8s_namespace: "*"
                 - exe_path: "*/java"
+                  k8s_namespace: "*"
 
   - it: falls back to every process when autoTargetExe is blank, rather than an empty selector OBI rejects
     templates:
@@ -211,6 +215,7 @@ tests:
             discovery:
               instrument:
                 - exe_path: "*"
+                  k8s_namespace: "*"
 
   - it: turns namespace include rules into (executable, namespace) selectors, so a process must match both
     templates:
@@ -253,6 +258,7 @@ tests:
             discovery:
               instrument:
                 - exe_path: "*"
+                  k8s_namespace: "*"
               exclude_instrument:
                 - exe_path: "*/sh"
                 - k8s_namespace: "kube-system"
@@ -277,6 +283,27 @@ tests:
             discovery:
               instrument:
                 - exe_path: "*"
+                  k8s_namespace: "*"
+
+  # OBI v0.10+ forwards processes outside any pod (kubelet, containerd,
+  # sshd) to the matcher, and a bare exe_path "*" instruments them. Requiring
+  # a namespace keeps them out — metadata selectors need the key present —
+  # and holds a pod's process back until its pod metadata arrives, so a
+  # namespace exclusion cannot be skipped in that window.
+  - it: requires a Kubernetes namespace on every selector, so node daemons are never instrumented
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.autoTargetExe: "*/python,*"
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "^discovery:\\n  instrument:\\n    - exe_path: \"\\*/python\"\\n      k8s_namespace: \"\\*\"\\n    - exe_path: \"\\*\"\\n      k8s_namespace: \"\\*\"\\n"
+      # And nothing but those two selectors: every instrument entry is an
+      # exe_path followed by its namespace requirement, up to the exclusions.
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "^discovery:\\n  instrument:\\n(?:    - exe_path: \"[^\"]*\"\\n      k8s_namespace: \"[^\"]*\"\\n){2}  exclude_instrument:\\n"
 
   - it: leaves route naming to OBI's default unless asked
     templates:
@@ -301,6 +328,7 @@ tests:
             discovery:
               instrument:
                 - exe_path: "*"
+                  k8s_namespace: "*"
             routes:
               unmatched: "low-cardinality"
               patterns:
@@ -321,6 +349,7 @@ tests:
             discovery:
               instrument:
                 - exe_path: "*"
+                  k8s_namespace: "*"
             routes:
               patterns:
                 - "/otlp/v1/{signal}"
@@ -353,6 +382,11 @@ tests:
       - matchRegex:
           path: data["obi-config.yaml"]
           pattern: "\\nebpf:\\n  log_enricher:\\n    services:\\n      - service:\\n        - languages: python,go\\n"
+      # JSON lines only: OBI v0.11+ would otherwise also rewrite every
+      # plain-text line with a trace_id/span_id suffix.
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    plain_text:\\n      enabled: false\\n"
       # Process selection is still there; the enricher is added, not swapped in.
       - matchRegex:
           path: data["obi-config.yaml"]

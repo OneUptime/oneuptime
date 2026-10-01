@@ -144,7 +144,7 @@ spec:
               mountPath: /sys/fs/bpf
               mountPropagation: HostToContainer
             # tracefs / debugfs are required by the `stats` feature
-            # (`OTEL_EBPF_METRICS_FEATURES` includes `stats`) so OBI can
+            # (`OTEL_EBPF_METRICS_FEATURES` includes `stats_tcp_*`) so OBI can
             # attach to kernel tracepoints like `sock/inet_sock_set_state`
             # for TCP RTT, failed-connection, and retransmit metrics. The
             # mounts are no-ops on hosts that don't expose these, so it's
