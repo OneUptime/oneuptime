@@ -52,7 +52,8 @@ import { DataSource, Logger } from "typeorm";
  * service's only side effects outside Postgres, are stubbed. Every statement
  * Postgres rejects fails the test, even if a caller swallowed it.
  */
-const describePostgres: typeof describe =
+// describe.skip's type is the one both branches share.
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_MONITOR_SECRET_ACCESS_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -322,6 +323,22 @@ describePostgres("monitor secret access against a migrated Postgres", () => {
     }
 
     return id;
+  }
+
+  /*
+   * Through the production service, as root. An update payload that carries
+   * relation lists is too deep for TypeScript to check against PartialEntity,
+   * so it is typed loosely here; the service checks it at runtime.
+   */
+  function update(
+    id: ObjectID,
+    data: Record<string, unknown>,
+  ): Promise<number> {
+    return MonitorSecretService.updateOneById({
+      id: id,
+      data: data as never,
+      props: { isRoot: true },
+    });
   }
 
   async function resolve(
@@ -720,12 +737,8 @@ describePostgres("monitor secret access against a migrated Postgres", () => {
         labels: [prod],
       });
 
-      await MonitorSecretService.updateOneById({
-        id: id,
-        data: {
-          monitorAccess: MonitorSecretAccess.AllMonitors,
-        },
-        props: { isRoot: true },
+      await update(id, {
+        monitorAccess: MonitorSecretAccess.AllMonitors,
       });
 
       expect(await storedLists(id)).toEqual({
@@ -746,16 +759,13 @@ describePostgres("monitor secret access against a migrated Postgres", () => {
         monitors: [m1],
       });
 
-      await MonitorSecretService.updateOneById({
-        id: id,
-        data: {
-          monitorAccess: MonitorSecretAccess.MonitorsWithLabels,
-          labels: [prod, edge].map((labelId: ObjectID): Label => {
-            return new Label(labelId);
-          }),
-          monitors: [new Monitor(m1)],
-        },
-        props: { isRoot: true },
+      const labels: Array<Label> = [new Label(prod), new Label(edge)];
+      const monitors: Array<Monitor> = [new Monitor(m1)];
+
+      await update(id, {
+        monitorAccess: MonitorSecretAccess.MonitorsWithLabels,
+        labels: labels,
+        monitors: monitors,
       });
 
       expect(await storedLists(id)).toEqual({
@@ -776,22 +786,14 @@ describePostgres("monitor secret access against a migrated Postgres", () => {
         monitors: [m1],
       });
 
-      await MonitorSecretService.updateOneById({
-        id: id,
-        data: {
-          monitorAccess: MonitorSecretAccess.MonitorsWithLabels,
-          labels: [new Label(prod)],
-        },
-        props: { isRoot: true },
+      await update(id, {
+        monitorAccess: MonitorSecretAccess.MonitorsWithLabels,
+        labels: [new Label(prod)],
       });
 
-      await MonitorSecretService.updateOneById({
-        id: id,
-        data: {
-          monitorAccess: MonitorSecretAccess.SpecificMonitors,
-          monitors: [new Monitor(m2)],
-        },
-        props: { isRoot: true },
+      await update(id, {
+        monitorAccess: MonitorSecretAccess.SpecificMonitors,
+        monitors: [new Monitor(m2)],
       });
 
       expect(await storedLists(id)).toEqual({
@@ -811,13 +813,9 @@ describePostgres("monitor secret access against a migrated Postgres", () => {
         monitors: [m1],
       });
 
-      await MonitorSecretService.updateOneById({
-        id: id,
-        data: {
-          name: "renamed",
-          secretValue: "rotated",
-        },
-        props: { isRoot: true },
+      await update(id, {
+        name: "renamed",
+        secretValue: "rotated",
       });
 
       expect(await storedLists(id)).toEqual({
@@ -864,12 +862,8 @@ describePostgres("monitor secret access against a migrated Postgres", () => {
       });
 
       await expect(
-        MonitorSecretService.updateOneById({
-          id: id,
-          data: {
-            monitors: [new Monitor(a1), new Monitor(b1)],
-          },
-          props: { isRoot: true },
+        update(id, {
+          monitors: [new Monitor(a1), new Monitor(b1)],
         }),
       ).rejects.toThrow(/belong to a different project/);
 

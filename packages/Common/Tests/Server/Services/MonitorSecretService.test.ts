@@ -529,8 +529,8 @@ describe("MonitorSecretService.onBeforeCreate", () => {
   test("a root write with no project to compare against does not look anything up", async () => {
     const secret: MonitorSecret = newSecret({
       monitors: monitors(MONITOR_B1),
+      projectId: undefined,
     });
-    secret.projectId = undefined;
 
     await runBeforeCreate(secret, { isRoot: true });
 
