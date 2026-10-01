@@ -47,7 +47,7 @@ Starter du en kjøring fra **Bygger**, åpnes denne samme visningen og følger k
 
 ### «Arbeidsflyten min kjørte ikke.»
 
-1. Kontroller at arbeidsflyten er **Aktivert** på **Oversikt**-siden sin. Nye arbeidsflyter starter deaktivert, og en deaktivert arbeidsflyt avviser enhver kjøring — også de manuelle.
+1. Kontroller at arbeidsflyten er **Aktivert**: bryteren ligger øverst i **Bygger**, som sier fra over lerretet når arbeidsflyten er slått av. Nye arbeidsflyter starter deaktivert, og en deaktivert arbeidsflyt avviser enhver kjøring — også de manuelle. Et kall til webhooken får HTTP 400 med en melding om hvordan den slås på.
 2. For en OneUptime-hendelsestrigger: bekreft at hendelsen faktisk fant sted. Åpne posten og sjekk historikken.
 3. For en webhook-trigger: bekreft at det andre systemet sender til riktig URL. De fleste verktøy logger når de sender en webhook — sjekk der.
 4. For en tidsplantrigger: bekreft at cron-uttrykket treffer tidspunktet du forventer.

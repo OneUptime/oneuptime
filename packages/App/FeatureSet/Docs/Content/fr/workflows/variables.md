@@ -61,7 +61,7 @@ Presque tous les champs de texte acceptent des variables :
 - Le texte du message sur Slack, Teams, Discord, Telegram, Email.
 - L'objet et le corps d'un e-mail.
 - Les en-têtes et les champs du corps de requête (à l'intérieur des valeurs de type chaîne).
-- Les deux côtés d'un bloc **If / Else** (rangé dans la catégorie Conditions).
+- Les deux côtés d'un bloc **If / Else**.
 
 Dans un champ JSON, vous pouvez utiliser une variable à l'intérieur d'une valeur de type chaîne, mais pas comme clé. Une référence qui occupe une valeur entière à elle seule est substituée telle quelle : vous pouvez donc déposer un objet complet dans un champ JSON de cette façon. Si vous devez construire une structure dynamiquement, faites-la fabriquer par un bloc **Run Custom JavaScript**, puis passez sa sortie au bloc suivant.
 

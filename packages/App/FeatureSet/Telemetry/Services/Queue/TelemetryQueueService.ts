@@ -41,16 +41,25 @@ export type ProbeIngestJobType =
 
 export interface IncomingEmailJobData {
   /*
-   * Which monitor the mail is for, read from the recipient address. Exactly
-   * one of the two is set: `secretKey` for a generated
-   * `monitor-{secretKey}@` address, `customLocalPart` for a custom one (see
-   * IncomingEmailMonitorAddress). Jobs queued before custom addresses existed
-   * carry `secretKey` only.
+   * Which monitor or workflow the mail is for, read from the recipient
+   * address. Exactly one of the three is set: `secretKey` for a monitor's
+   * generated `monitor-{secretKey}@` address, `customLocalPart` for a
+   * monitor's custom one, `workflowSecretKey` for a workflow's Incoming Email
+   * trigger, `workflow-{secretKey}@` (see IncomingEmailMonitorAddress). Jobs
+   * queued before custom addresses existed carry `secretKey` only.
    */
   secretKey?: string | undefined;
   customLocalPart?: string | undefined;
+  workflowSecretKey?: string | undefined;
   emailFrom: string;
   emailTo: string;
+  /*
+   * Every address in the To and Cc headers. A workflow is handed both lists;
+   * a monitor evaluates `emailTo`, as it always has. Absent on jobs queued
+   * before workflows received email.
+   */
+  emailToAddresses?: Array<string> | undefined;
+  emailCcAddresses?: Array<string> | undefined;
   emailSubject: string;
   emailBody: string;
   emailBodyHtml: string | undefined;
@@ -750,8 +759,11 @@ export default class TelemetryQueueService {
   public static async addIncomingEmailJob(data: {
     secretKey?: string | undefined;
     customLocalPart?: string | undefined;
+    workflowSecretKey?: string | undefined;
     emailFrom: string;
     emailTo: string;
+    emailToAddresses?: Array<string> | undefined;
+    emailCcAddresses?: Array<string> | undefined;
     emailSubject: string;
     emailBody: string;
     emailBodyHtml?: string | undefined;
@@ -771,8 +783,11 @@ export default class TelemetryQueueService {
         incomingEmail: {
           secretKey: data.secretKey,
           customLocalPart: data.customLocalPart,
+          workflowSecretKey: data.workflowSecretKey,
           emailFrom: data.emailFrom,
           emailTo: data.emailTo,
+          emailToAddresses: data.emailToAddresses,
+          emailCcAddresses: data.emailCcAddresses,
           emailSubject: data.emailSubject,
           emailBody: data.emailBody,
           emailBodyHtml: data.emailBodyHtml,
@@ -789,7 +804,8 @@ export default class TelemetryQueueService {
 
       /*
        * The recipient is deliberately not part of the id: it is the monitor's
-       * credential, and job ids end up in queue dashboards and logs.
+       * or the workflow's credential, and job ids end up in queue dashboards
+       * and logs.
        */
       const jobId: string = `incoming-email-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
 

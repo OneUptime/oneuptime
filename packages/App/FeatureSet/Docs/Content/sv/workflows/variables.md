@@ -61,7 +61,7 @@ Nästan varje textfält tar emot variabler:
 - Meddelandetexten på Slack, Teams, Discord, Telegram, Email.
 - Ämnet och brödtexten i ett e-postmeddelande.
 - Header- och body-fält (inuti strängvärden).
-- Båda sidorna av ett **If / Else**-block (listat under kategorin Conditions).
+- Båda sidorna av ett **If / Else**-block.
 
 I JSON-fält kan du använda en variabel inuti ett strängvärde, men inte som nyckel. En referens som ensam upptar ett helt värde ersätts rakt av, så du kan släppa in ett helt objekt i ett JSON-fält på det sättet. Behöver du bygga en struktur dynamiskt, använd ett **Run Custom JavaScript**-block för att bygga den och skicka sedan dess output till nästa block.
 

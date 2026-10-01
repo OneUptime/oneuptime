@@ -1,6 +1,13 @@
 # Een workflow maken
 
-Om een workflow te maken open je **Workflows** en klik je op **Workflow maken**. Een wizard met de titel **Create a workflow** loodst je erdoorheen: eerst **Start from** — kies **Start from scratch** of een van de sjablonen — dan **Naam**, en tot slot een stap **Configureren**, die alleen verschijnt wanneer het gekozen sjabloon om eigen instellingen vraagt.
+Om een workflow te maken open je **Workflows** en klik je op **Workflow maken**. Een wizard met de titel **Create a workflow** loodst je erdoorheen: eerst **Start from**, dan **Naam**, en tot slot een stap **Configureren**, die alleen verschijnt wanneer het gekozen sjabloon om eigen instellingen vraagt.
+
+Bij **Start from** kies je hoe je begint:
+
+- **Vanaf nul beginnen**, naast het zoekvak, geeft je een leeg canvas.
+- Een sjabloon geeft je een werkende workflow om aan te passen. De stap opent met een paar sjablonen onder **Aanbevolen**. De rest staat in hun categorieën, zoals **Incidenten**, **Monitoren** en **Jira**, elk met het aantal sjablonen dat erin zit, en **Alle sjablonen** toont ze allemaal. Een zoekopdracht doorzoekt ze allemaal: elk woord dat je typt moet overeenkomen, en elke categorie laat zien hoeveel van haar sjablonen overeenkwamen.
+
+Klik op een sjabloon om te zien wat het doet voordat je het kiest: de trigger, de stappen waaruit het bestaat en de instellingen waar het om vraagt. **Dit sjabloon gebruiken** neemt het mee naar **Naam**, en dat doen **Enter** en dubbelklikken ook. Met de pijltjestoetsen ga je door de lijst, en `/` brengt je terug naar het zoekvak.
 
 Zodra hij bestaat, open je **Bouwer** in het linkermenu. Dat is het canvas waarop je de workflow ontwerpt.
 
@@ -15,7 +22,7 @@ Blokken toevoegen:
 - **De trigger** — klik op het gestippelde blok. Er opent een paneel met de titel **Add Trigger**.
 - **Al het andere** — klik op **Component toevoegen** in de werkbalk boven het canvas. Hetzelfde paneel opent, nu met de titel **Component toevoegen**.
 
-In beide panelen kun je zoeken — druk op `/` om naar het zoekveld te springen — en alles staat gegroepeerd per categorie. Selecteer één blok en klik op **Add to Workflow**.
+Beide panelen openen met de blokken die de meeste workflows gebruiken, onder **Popular**, gevolgd door de andere ingebouwde blokken. Klik onder **OneUptime resources** op een resource zoals **Incident** om te zien wat je ermee kunt doen; **Browse all resources** toont ze allemaal. Of zoek: typ een paar woorden, zoals `create incident`, en de beste match staat bovenaan. Druk op `/` om naar het zoekveld te springen, op de pijltjestoetsen om door de resultaten te gaan en op **Enter** om het gemarkeerde blok toe te voegen. Een klik op een blok voegt het toe.
 
 Een nieuw blok landt onder het onderste blok op het canvas, en een nieuwe trigger neemt bovenaan de plek van de oude in. Het nieuwe blok is geselecteerd, en landt het buiten beeld, dan schuift het canvas precies ver genoeg op om het te tonen. De instellingen gaan niet vanzelf open: klik op het blok wanneer je het wilt instellen. Zolang de verplichte instellingen leeg zijn, staat er **Click to set up** op het blok. Sleep blokken waarheen je wilt; het canvas klikt onderweg vast op een raster. Blokposities worden bewaard, dus de volgende persoon ziet dezelfde indeling als jij achterliet.
 
@@ -64,10 +71,10 @@ Eén ding kan hij niet controleren: of een variabelenaam bestaat. Een hernoemde 
 
 De snelste manier om het canvas te leren kennen:
 
-1. Klik op het gestippelde blok, kies **Manual** in het paneel **Add Trigger** en klik op **Add to Workflow**.
-2. Klik op **Component toevoegen**, kies **Log** (onder **Utils**) en klik op **Add to Workflow**. Het nieuwe blok landt onder de trigger. Verbind de stip **Execute** van de trigger met de invoerstip van het Log-blok.
+1. Klik op het gestippelde blok en daarna op **Manual** in het paneel **Add Trigger**.
+2. Klik op **Component toevoegen** en daarna op **Log** onder **Popular**. Het nieuwe blok landt onder de trigger. Verbind de stip **Execute** van de trigger met de invoerstip van het Log-blok.
 3. Klik op het Log-blok, waar **Click to set up** op staat, en zet zijn **Waarde** op `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` is de **Identifier** van de trigger, te zien op het triggerblok — controleer of die klopt.
-4. Ga naar **Overzicht**, klik op **Workflow bewerken** op de kaart **Workflow-details** en zet **Ingeschakeld** aan. Een uitgeschakelde workflow kan helemaal niet draaien, ook niet met de hand.
+4. Zet **Ingeschakeld** aan, bovenaan de Bouwer. Een uitgeschakelde workflow kan helemaal niet draaien, ook niet met de hand; sla je deze stap over, dan vraagt **Workflow uitvoeren** eerst of hij aan moet.
 5. Terug in de **Bouwer** klik je op **Workflow uitvoeren**, zet je `{ "name": "Ada" }` in het veld **JSON**, klik je op **Run Workflow Manually** en bevestig je met **Run**.
 6. Er opent vanzelf een paneel **Workflow Run** dat de uitvoering volgt. Het logboek toont `Value:` gevolgd door `Hello from Ada`.
 
@@ -75,11 +82,13 @@ Die cyclus — toevoegen, verbinden, instellen, draaien, het logboek lezen — i
 
 ## Hem aanzetten
 
-Nieuwe workflows beginnen uitgeschakeld, en dat geldt ook voor elke workflow die je dupliceert of importeert.
+Nieuwe workflows beginnen uitgeschakeld, en dat geldt ook voor elke workflow die je dupliceert of importeert. Zolang een workflow uit staat, zegt de Bouwer dat boven het canvas, met een knop **Workflow inschakelen**.
 
-De schakelaar **Ingeschakeld** staat op de pagina **Overzicht** van de workflow, in de kaart **Workflow-details** — niet op de pagina Instellingen. Diezelfde kaart toont de huidige stand als een groene pil **Ingeschakeld** of een rode pil **Uitgeschakeld**.
+De schakelaar **Ingeschakeld** staat bovenaan de **Bouwer**, naast **Component toevoegen** en **Workflow uitvoeren**. Hij staat ook op de pagina **Overzicht** van de workflow: klik op **Workflow bewerken** op de kaart **Workflow-details**, die de huidige stand toont als een groene pil **Ingeschakeld** of een rode pil **Uitgeschakeld**. Alleen wie de workflow mag bewerken, kan hem aan- of uitzetten; anderen zien de schakelaar grijs.
 
-Een uitgeschakelde workflow kan helemaal niet draaien. Handmatige uitvoeringen worden net zo goed geweigerd met "This workflow is not enabled" als getriggerde, dus de volgorde is: zet hem aan, test hem met **Workflow uitvoeren**, lees het runlogboek, en zet **Ingeschakeld** weer uit als je nog niet klaar bent om zijn trigger te laten afgaan. Wil je één blok testen zonder het geheel te draaien, gebruik dan **Run just this step** in de instellingen van dat blok.
+Een uitgeschakelde workflow kan helemaal niet draaien: zijn trigger wordt genegeerd, en **Workflow uitvoeren** en **Run just this step** ook. Voer je hem, of een van zijn blokken, uit terwijl hij uit staat, dan vraagt de Bouwer in plaats daarvan **Deze workflow inschakelen?**. **Inschakelen en uitvoeren** (of **Inschakelen en stap uitvoeren**) zet de workflow aan en voert daarna uit wat je vroeg, met de waarden die je opgaf. De volgorde is dus: bouw hem, test hem met **Workflow uitvoeren**, lees het runlogboek, en zet **Ingeschakeld** weer uit als je nog niet klaar bent om zijn trigger te laten afgaan. Wil je één blok testen zonder het geheel te draaien, gebruik dan **Run just this step** in de instellingen van dat blok.
+
+Al het andere dat een uitgeschakelde workflow start, wordt met hetzelfde advies afgewezen. Een aanroep van zijn webhook-URL krijgt HTTP 400 en "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again." Een **Execute Workflow**-blok dat hem aanroept, neemt zijn **Error**-pad, en de fout noemt de aangeroepen workflow.
 
 Wil je een workflow pauzeren zonder hem te verwijderen, zet **Ingeschakeld** dan uit. Er starten geen nieuwe uitvoeringen. Een run die al bezig is, maakt hij af, maar een run die geparkeerd staat op een **Sleep**-blok wordt bij het ontwaken geannuleerd en als fout vastgelegd.
 

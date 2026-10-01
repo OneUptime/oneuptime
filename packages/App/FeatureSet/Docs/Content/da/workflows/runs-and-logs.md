@@ -47,7 +47,7 @@ Starter du en kørsel fra **Bygger**, åbner den samme visning og følger allere
 
 ### "Mit workflow kørte ikke."
 
-1. Sikr dig, at workflowet er **Aktiveret** på siden **Oversigt**. Nye workflows starter deaktiveret, og et deaktiveret workflow afviser hver eneste kørsel — også de manuelle.
+1. Sikr dig, at workflowet er **Aktiveret**: kontakten sidder øverst i dets **Bygger**, som siger det over lærredet, når workflowet er slået fra. Nye workflows starter deaktiveret, og et deaktiveret workflow afviser hver eneste kørsel — også de manuelle. Et kald til dets webhook får HTTP 400 med en besked om, hvordan det slås til.
 2. Ved en OneUptime-begivenhedstrigger: bekræft, at begivenheden rent faktisk skete. Åbn posten, og tjek dens historik.
 3. Ved en webhook-trigger: bekræft, at det andet system sender til den rigtige URL. De fleste værktøjer logger, når de sender en webhook — kig der.
 4. Ved en tidsplanstrigger: bekræft, at cron-udtrykket rammer det tidspunkt, du forventer.

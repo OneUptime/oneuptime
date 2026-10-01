@@ -43,7 +43,7 @@ Abre **Flujos de Trabajo** en la navegación izquierda. Esa sección contiene:
 Abre un flujo de trabajo concreto y su propio menú izquierdo contiene:
 
 - **Vista General** — nombre, descripción, etiquetas y el interruptor **Habilitado**.
-- **Constructor** — el lienzo donde diseñas el flujo de trabajo.
+- **Constructor** — el lienzo donde diseñas el flujo de trabajo, con el interruptor **Habilitado** arriba.
 - **Variables de Flujo** — valores que solo existen para este flujo de trabajo.
 - **Registros → Ejecuciones** — cada ejecución de este flujo de trabajo, con sus detalles.
 - **Ajustes** — duplicar y exportar.
@@ -53,7 +53,7 @@ Abre un flujo de trabajo concreto y su propio menú izquierdo contiene:
 1. **Crea** — elige un punto de partida y ponle nombre a tu flujo de trabajo.
 2. **Elige un disparador** — manual, programado, webhook o un evento de OneUptime.
 3. **Añade componentes** — pon acciones en el lienzo y conéctalas.
-4. **Enciéndelo** — activa **Habilitado** desde la página **Vista General**. Un flujo de trabajo deshabilitado no puede ejecutarse de ninguna manera, ni siquiera a mano.
+4. **Enciéndelo** — activa **Habilitado** en la parte superior del **Constructor**. Un flujo de trabajo deshabilitado no puede ejecutarse de ninguna manera, ni siquiera a mano.
 5. **Pruébalo** — haz clic en **Ejecutar flujo de trabajo** en el Constructor y observa el registro de la ejecución.
 
 ## Un ejemplo rápido

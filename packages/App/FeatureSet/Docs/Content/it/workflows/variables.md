@@ -61,7 +61,7 @@ Le accetta quasi ogni campo di testo:
 - Il testo del messaggio su Slack, Teams, Discord, Telegram, Email.
 - L'oggetto e il corpo di un'email.
 - I campi degli header e del body (dentro i valori stringa).
-- Entrambi i lati di un blocco **If / Else** (che trovi nella categoria Conditions).
+- Entrambi i lati di un blocco **If / Else**.
 
 Nei campi JSON puoi usare una variabile dentro un valore stringa, ma non come chiave. Un riferimento che occupa da solo un intero valore viene sostituito così com'è, quindi in questo modo puoi calare un oggetto intero dentro un campo JSON. Se devi costruire una struttura in modo dinamico, usa un blocco **Run Custom JavaScript** per crearla e passa il suo output al blocco successivo.
 

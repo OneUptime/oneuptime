@@ -1,6 +1,13 @@
 # Authoring a Workflow
 
-To create a workflow, open **Workflows** and click **Create Workflow**. A wizard called **Create a workflow** walks you through it: first **Start from** — pick **Start from scratch** or one of the templates — then **Name**, and finally a **Configure** step, which only appears when the template you picked asks for settings of its own.
+To create a workflow, open **Workflows** and click **Create Workflow**. A wizard called **Create a workflow** walks you through it: first **Start from**, then **Name**, and finally a **Configure** step, which only appears when the template you picked asks for settings of its own.
+
+On **Start from**, choose how to begin:
+
+- **Start from scratch**, beside the search box, gives you an empty canvas.
+- A template gives you a working workflow to change. The step opens on a few **Recommended** templates. The rest are under their categories, such as **Incidents**, **Monitors** and **Jira**, each with how many templates it holds, and **All templates** lists every one. A search looks through all of them: every word you type has to match, and each category shows how many of its templates did.
+
+Click a template to see what it does before you choose it: its trigger, the steps it is made of, and the settings it will ask for. **Use this template** takes it on to **Name**, and so do **Enter** and a double-click. The arrow keys move through the list, and `/` goes back to the search box.
 
 Once it's created, open **Builder** in the left menu. That's the canvas where you design the workflow.
 
@@ -15,7 +22,7 @@ Adding blocks:
 - **The trigger** — click the dashed placeholder block. A panel titled **Add Trigger** opens.
 - **Everything else** — click **Add Component** in the toolbar above the canvas. The same panel opens, titled **Add Component**.
 
-Both panels are searchable — press `/` to jump to the search box — and grouped by category. Select one block and click **Add to Workflow**.
+Both panels open on the blocks most workflows use, under **Popular**, followed by the other built-in blocks. Under **OneUptime resources**, click a resource such as **Incident** to see what you can do with it; **Browse all resources** lists every one. Or search: type a few words, such as `create incident`, and the closest match comes first. Press `/` to jump to the search box, the arrow keys to move through the results, and **Enter** to add the highlighted block. Clicking a block adds it.
 
 A new block lands below the lowest block on the canvas, and a new trigger takes the old one's place at the top. The new block is selected, and if it landed out of view, the canvas scrolls just far enough to show it. Its settings don't open by themselves: click the block when you're ready to set it up. Until its required settings are filled in, it says **Click to set up**. Drag blocks wherever you like; the canvas snaps to a grid as you go. Block positions are saved, so the next person sees the same arrangement you left behind.
 
@@ -66,7 +73,7 @@ In the setting, a value shows as a chip such as **Webhook › Request Body**. Ho
 - **Only values that will exist are offered.** That's the trigger and the blocks that run before this one. A block that runs later has no output yet. Until a block is connected, only the trigger's values are listed, and the list says so.
 - **A record opens to its fields.** A Find One or On Create block returns a whole record. Pick it to see its fields, starting with the ones the block's **Select Fields** reads. A JSON value or a set of headers can be opened to a box where you type a path, such as `title` or `alerts[0].status`.
 - **Once a block has run, the list knows what's inside its values.** Each value says what it held in the latest run — `"production"`, or `3 fields` — and a JSON value or a set of headers opens to the fields it had, each with what it held. So from a Webhook's **Request Body** you pick **incident.title** instead of typing a path. Searching finds these fields too: type `title`, or `{{` and the start of a path. A record's fields show what they held as well. The fields come from the latest run, so one that a later request leaves out is empty in that run. A value that looks like a secret, such as an `Authorization` header, a token or a password, is listed without what it held.
-- **A Webhook that hasn't received a request yet says so** at the top of its values, with **Copy test request**: a `curl` command that sends `{"message": "Hello"}` to the workflow's webhook URL. Run it in a terminal while the list is open, and the request's fields turn up in it once the run it starts has finished, usually within seconds. The workflow has to be enabled, or the request is turned away. Only people who can see the webhook URL get the button.
+- **A Webhook that hasn't received a request yet says so** at the top of its values, with **Copy test request**: a `curl` command that sends `{"message": "Hello"}` to the workflow's webhook URL. Run it in a terminal while the list is open, and the request's fields turn up in it once the run it starts has finished, usually within seconds. The workflow has to be enabled, or the request is turned away. Only people who can see the webhook URL get the button. An Incoming Email trigger that hasn't received an email yet says so in the same place; send an email to its address, and its headers and attachments turn up the same way.
 - **Code editors have Insert value in their toolbar.** In JSON it adds the quotes a value needs inside a document. **Run Custom JavaScript** reads values through its **Arguments**, so its code has no picker.
 - **Numbers, passwords, switches and dates keep their own control,** with **{ }** beside it. A picked value replaces the control, and **abc** goes back to typing one.
 
@@ -84,10 +91,10 @@ One thing it can't check: whether a variable name exists. A block's settings can
 
 The quickest way to feel out the canvas:
 
-1. Click the dashed placeholder block, pick **Manual** in the **Add Trigger** panel, and click **Add to Workflow**.
-2. Click **Add Component**, pick **Log** (under **Utils**), and click **Add to Workflow**. The new block lands below the trigger. Connect the trigger's **Execute** dot down to the Log block's input dot.
+1. Click the dashed placeholder block, then click **Manual** in the **Add Trigger** panel.
+2. Click **Add Component**, then click **Log** under **Popular**. The new block lands below the trigger. Connect the trigger's **Execute** dot down to the Log block's input dot.
 3. Click the Log block, which says **Click to set up**, and type `Hello from ` in its **Value**. Click **{ }**, click the arrow beside **JSON** under **Manual**, type `name` and click **Insert**. The setting shows **Manual › JSON › name**, and saves `{{local.components.manual-1.returnValues.value.name}}`. `manual-1` is the trigger's **Identifier**, shown on the trigger block.
-4. Go to **Overview**, click **Edit Workflow** on the **Workflow Details** card, and switch **Enabled** on. A disabled workflow can't be run at all, not even by hand.
+4. Switch **Enabled** on, at the top of the Builder. A disabled workflow can't be run at all, not even by hand; if you skip this, **Run Workflow** asks to turn it on first.
 5. Back on the **Builder**, click **Run Workflow**, put `{ "name": "Ada" }` in the **JSON** field, click **Run Workflow Manually**, and confirm with **Run**.
 6. A **Workflow Run** panel opens by itself and follows the run. The log shows `Value:` followed by `Hello from Ada`.
 
@@ -95,11 +102,13 @@ That cycle — add, connect, configure, run, read the log — is how you'll buil
 
 ## Turning it on
 
-New workflows start disabled, and so does any workflow you duplicate or import.
+New workflows start disabled, and so does any workflow you duplicate or import. While a workflow is off, the Builder says so above the canvas, with a **Turn on workflow** button.
 
-The **Enabled** switch is on the workflow's **Overview** page, in the **Workflow Details** card — not on the Settings page. The same card shows the current state as a green **Enabled** or red **Disabled** pill.
+The **Enabled** switch is at the top of the **Builder**, next to **Add Component** and **Run Workflow**. It is also on the workflow's **Overview** page: click **Edit Workflow** on the **Workflow Details** card, which shows the current state as a green **Enabled** or red **Disabled** pill. Only people who can edit the workflow can turn it on or off; anyone else sees the switch greyed out.
 
-A disabled workflow can't run at all. Manual runs are rejected with "This workflow is not enabled" exactly like triggered ones, so the order is: enable it, test it with **Run Workflow**, read the run log, and switch **Enabled** back off if you're not ready for its trigger to fire. To test a single block without running the whole thing, use **Run just this step** in that block's settings.
+A disabled workflow can't run at all: its trigger is ignored, and so are **Run Workflow** and **Run just this step**. Run it, or one of its blocks, while it's off and the Builder asks **Turn on this workflow?** instead. **Turn on and run** (or **Turn on and run step**) turns the workflow on and then runs what you asked for, with the values you gave. So the order is: build it, test it with **Run Workflow**, read the run log, and switch **Enabled** back off if you're not ready for its trigger to fire. To test a single block without running the whole thing, use **Run just this step** in that block's settings.
+
+Anything else that starts a disabled workflow is turned away with the same advice. A call to its webhook URL gets HTTP 400 and "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again." An **Execute Workflow** block that calls it takes its **Error** path, and the error names the workflow it called.
 
 To pause a workflow without deleting it, switch **Enabled** off. No new runs start. A run that is mid-execution finishes, but one parked on a **Sleep** block is cancelled when it wakes and recorded as an error.
 

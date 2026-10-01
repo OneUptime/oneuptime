@@ -6,6 +6,11 @@
  * declares variables, so "Start from scratch" and the zero-config templates
  * stay two clicks away.
  *
+ * The first step is the template picker (WorkflowTemplatePicker): a handful
+ * of recommended templates, the rest under categories or a search, and a
+ * preview of the highlighted one. Its state lives here, so stepping back
+ * from Name finds the picker as it was left.
+ *
  * The order of writes at the end matters. The workflow is created through the
  * ordinary Workflow create path because that is what denormalizes the trigger
  * onto the row (WorkflowService.onCreateSuccess) — build the graph any other
@@ -41,11 +46,8 @@ import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import {
   WorkflowTemplate,
-  WorkflowTemplateCategories,
-  WorkflowTemplateCategory,
   WorkflowTemplateVariable,
   getWorkflowTemplate,
-  getWorkflowTemplatesByCategory,
 } from "Common/Types/Workflow/Templates";
 import {
   WorkflowTemplateVariableErrors,
@@ -54,6 +56,12 @@ import {
   buildWorkflowVariables,
   validateTemplateVariableValues,
 } from "../../Utils/Workflow/WorkflowTemplateCreateUtil";
+import {
+  INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
+  WorkflowTemplatePickerState,
+  getActiveWorkflowTemplate,
+} from "../../Utils/Workflow/WorkflowTemplatePickerUtil";
+import WorkflowTemplatePicker from "./WorkflowTemplatePicker";
 
 export interface ComponentProps {
   onClose: () => void;
@@ -95,76 +103,6 @@ export const getWorkflowWizardFormSteps: GetWorkflowWizardFormStepsFunction = (
   return steps;
 };
 
-interface TemplateCardProps {
-  title: string;
-  description: string;
-  icon: IconProp;
-  isSelected: boolean;
-  badge?: string | undefined;
-  onClick: () => void;
-}
-
-const TemplateCard: FunctionComponent<TemplateCardProps> = (
-  props: TemplateCardProps,
-): ReactElement => {
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-pressed={props.isSelected}
-      data-testid={`workflow-template-card-${props.title}`}
-      className={`relative flex cursor-pointer flex-col rounded-lg border p-4 shadow-sm transition-all duration-200 hover:border-indigo-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-        props.isSelected
-          ? "border-indigo-500 bg-indigo-50/50"
-          : "border-gray-200 bg-white"
-      }`}
-      onClick={props.onClick}
-      onKeyDown={(event: React.KeyboardEvent) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          props.onClick();
-        }
-      }}
-    >
-      <div className="mb-3 flex items-start justify-between">
-        <span
-          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-            props.isSelected ? "bg-indigo-100" : "bg-gray-100"
-          }`}
-        >
-          <Icon
-            icon={props.icon}
-            size={SizeProp.Large}
-            className={`h-5 w-5 ${
-              props.isSelected ? "text-indigo-600" : "text-gray-600"
-            }`}
-          />
-        </span>
-        {props.isSelected ? (
-          <Icon
-            icon={IconProp.CheckCircle}
-            size={SizeProp.Large}
-            className="h-5 w-5 text-indigo-500"
-          />
-        ) : (
-          <></>
-        )}
-      </div>
-      <p className="text-sm font-semibold text-gray-900">{props.title}</p>
-      <p className="mt-1 text-sm leading-relaxed text-gray-500">
-        {props.description}
-      </p>
-      {props.badge ? (
-        <p className="mt-3 inline-flex w-fit items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-          {props.badge}
-        </p>
-      ) : (
-        <></>
-      )}
-    </div>
-  );
-};
-
 const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -185,13 +123,20 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
     useState<WorkflowTemplateVariableValues>({});
   const [variableErrors, setVariableErrors] =
     useState<WorkflowTemplateVariableErrors>({});
-  const [search, setSearch] = useState<string>("");
+  const [pickerState, setPickerState] = useState<WorkflowTemplatePickerState>(
+    INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
+  );
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   const selectedTemplate: WorkflowTemplate | null = useMemo(() => {
     return selectedTemplateId ? getWorkflowTemplate(selectedTemplateId) : null;
   }, [selectedTemplateId]);
+
+  // The template the picker has highlighted, which "Use this template" takes.
+  const highlightedTemplate: WorkflowTemplate | null = useMemo(() => {
+    return getActiveWorkflowTemplate(pickerState);
+  }, [pickerState]);
 
   const variables: Array<WorkflowTemplateVariable> =
     selectedTemplate?.variables || [];
@@ -200,37 +145,31 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   const wizardFormSteps: Array<FormStep<JSONObject>> =
     getWorkflowWizardFormSteps(showConfigureStep);
 
-  type MatchesSearchFunction = (template: WorkflowTemplate) => boolean;
+  type ChooseStartFunction = (template: WorkflowTemplate | null) => void;
 
-  const matchesSearch: MatchesSearchFunction = (
-    template: WorkflowTemplate,
-  ): boolean => {
-    const query: string = search.trim().toLowerCase();
-
-    if (!query) {
-      return true;
-    }
-
-    return (
-      template.name.toLowerCase().includes(query) ||
-      template.description.toLowerCase().includes(query) ||
-      template.teaches.toLowerCase().includes(query) ||
-      template.category.toLowerCase().includes(query)
-    );
-  };
-
-  type SelectTemplateFunction = (template: WorkflowTemplate | null) => void;
-
-  const selectTemplate: SelectTemplateFunction = (
+  /*
+   * Moves on to Name with a template, or with null for an empty canvas. The
+   * name, description and settings start from the template's suggestions,
+   * unless this is the start already chosen: going Back to look around and
+   * then taking the same template again keeps what was typed for it.
+   */
+  const chooseStart: ChooseStartFunction = (
     template: WorkflowTemplate | null,
   ): void => {
+    const templateId: string | null = template ? template.id : null;
+    const isSameStart: boolean = hasChosen && selectedTemplateId === templateId;
+
     setHasChosen(true);
-    setSelectedTemplateId(template ? template.id : null);
-    setName(template ? template.workflowName : "");
-    setDescription(template ? template.workflowDescription : "");
+    setSelectedTemplateId(templateId);
+
+    if (!isSameStart) {
+      setName(template ? template.workflowName : "");
+      setDescription(template ? template.workflowDescription : "");
+      setVariableValues({});
+      setVariableErrors({});
+    }
+
     setNameError("");
-    setVariableValues({});
-    setVariableErrors({});
     setError("");
     setStep(WizardStep.NameIt);
   };
@@ -372,122 +311,18 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   type RenderPickStepFunction = () => ReactElement;
 
   const renderPickStep: RenderPickStepFunction = (): ReactElement => {
-    const categoriesWithMatches: Array<{
-      category: WorkflowTemplateCategory;
-      templates: Array<WorkflowTemplate>;
-    }> = WorkflowTemplateCategories.map(
-      (category: WorkflowTemplateCategory) => {
-        return {
-          category: category,
-          templates:
-            getWorkflowTemplatesByCategory(category).filter(matchesSearch),
-        };
-      },
-    ).filter(
-      (group: {
-        category: WorkflowTemplateCategory;
-        templates: Array<WorkflowTemplate>;
-      }) => {
-        return group.templates.length > 0;
-      },
-    );
-
-    const blankMatches: boolean =
-      !search.trim() ||
-      "start from scratch blank empty".includes(search.trim().toLowerCase());
-
     return (
-      <div>
-        <Input
-          placeholder="Search templates…"
-          value={search}
-          onChange={(value: string) => {
-            setSearch(value);
-          }}
-          dataTestId="workflow-template-search"
-        />
-
-        <div className="mt-5 space-y-6">
-          {blankMatches ? (
-            <div>
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Blank
-              </h3>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <TemplateCard
-                  title="Start from scratch"
-                  description="An empty canvas. Add your own trigger and steps."
-                  icon={IconProp.Add}
-                  isSelected={hasChosen && selectedTemplateId === null}
-                  onClick={() => {
-                    selectTemplate(null);
-                  }}
-                />
-              </div>
-            </div>
-          ) : (
-            <></>
-          )}
-
-          {categoriesWithMatches.map(
-            (group: {
-              category: WorkflowTemplateCategory;
-              templates: Array<WorkflowTemplate>;
-            }): ReactElement => {
-              return (
-                <div key={group.category}>
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                    {group.category}
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {group.templates.map(
-                      (template: WorkflowTemplate): ReactElement => {
-                        return (
-                          <TemplateCard
-                            key={template.id}
-                            title={template.name}
-                            description={template.description}
-                            icon={template.icon}
-                            isSelected={selectedTemplateId === template.id}
-                            badge={
-                              template.variables.length > 0
-                                ? `Needs ${template.variables.length} setting${
-                                    template.variables.length === 1 ? "" : "s"
-                                  }`
-                                : undefined
-                            }
-                            onClick={() => {
-                              selectTemplate(template);
-                            }}
-                          />
-                        );
-                      },
-                    )}
-                  </div>
-                </div>
-              );
-            },
-          )}
-
-          {!blankMatches && categoriesWithMatches.length === 0 ? (
-            <div className="py-10 text-center">
-              <Icon
-                icon={IconProp.Search}
-                size={SizeProp.Large}
-                className="mx-auto h-6 w-6 text-gray-400"
-              />
-              <p className="mt-2 text-sm font-medium text-gray-900">
-                No templates match “{search}”.
-              </p>
-              <p className="mt-1 text-sm text-gray-500">
-                Try a different word, or start from scratch.
-              </p>
-            </div>
-          ) : (
-            <></>
-          )}
-        </div>
-      </div>
+      <WorkflowTemplatePicker
+        state={pickerState}
+        onStateChange={setPickerState}
+        onUseTemplate={(template: WorkflowTemplate) => {
+          chooseStart(template);
+        }}
+        onStartFromScratch={() => {
+          chooseStart(null);
+        }}
+        isStartFromScratchChosen={hasChosen && selectedTemplateId === null}
+      />
     );
   };
 
@@ -642,9 +477,26 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
       error={error || undefined}
       isLoading={isCreating}
       submitButtonText={
-        step === WizardStep.PickTemplate ? undefined : submitButtonText()
+        step === WizardStep.PickTemplate
+          ? "Use this template"
+          : submitButtonText()
       }
-      onSubmit={step === WizardStep.PickTemplate ? undefined : onSubmit}
+      /*
+       * The picker's one way on, and the dialog's one primary button. Start
+       * from scratch is the other way, drawn plain beside the search.
+       */
+      onSubmit={
+        step === WizardStep.PickTemplate
+          ? () => {
+              if (highlightedTemplate) {
+                chooseStart(highlightedTemplate);
+              }
+            }
+          : onSubmit
+      }
+      disableSubmitButton={
+        step === WizardStep.PickTemplate && !highlightedTemplate
+      }
       leftFooterElement={
         step === WizardStep.PickTemplate ? (
           <></>
@@ -661,8 +513,13 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
       }
     >
       <div className="flex">
+        {/*
+         * The rail keeps its width. The picker's rows are as wide as their
+         * longest description before they truncate, and with the rail free to
+         * shrink, "Start from" was squeezed onto two lines.
+         */}
         <div
-          style={{ flex: "0 1 auto" }}
+          style={{ flex: "0 0 auto" }}
           className="mr-10 max-lg:hidden lg:block"
           data-testid="workflow-wizard-steps"
         >
@@ -676,7 +533,7 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
           />
         </div>
         <div
-          className="w-auto pt-6"
+          className="w-auto min-w-0 pt-6"
           style={{ flex: "1 1 auto" }}
           data-testid="workflow-wizard-step-content"
         >

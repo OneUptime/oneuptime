@@ -4,14 +4,14 @@ Esta página reúne as configurações e os limites de segurança que vale conhe
 
 ## Ligar e desligar um workflow
 
-Todo workflow tem uma chave **Habilitado** em **Configurações**. Com ela desligada, o workflow não roda — chamadas de webhook, horários agendados e eventos do OneUptime são todos ignorados. Workflows novos nascem desabilitados.
+Todo workflow tem uma chave **Habilitado** no topo do **Construtor** e na página **Visão geral** dele. Com ela desligada, o workflow não roda — chamadas de webhook, horários agendados e eventos do OneUptime são todos ignorados, assim como **Executar fluxo de trabalho** e **Run just this step**. Workflows novos nascem desabilitados.
 
 Use essa chave como o seu portão de "pronto para valer":
 
 1. Monte o workflow.
-2. Clique em **Executar fluxo de trabalho** no **Construtor**, com valores realistas.
+2. Clique em **Executar fluxo de trabalho** no **Construtor**, com valores realistas. Um workflow desabilitado não roda nem manualmente, então o Construtor pede para ativá-lo primeiro: clique em **Ativar e executar**.
 3. Confira os **Registros** — verifique se cada bloco foi para onde você esperava.
-4. Ligue **Habilitado**.
+4. Deixe **Habilitado** ligado se estiver pronto. Se não estiver, desligue até que esteja: enquanto ele estiver ligado, o trigger dispara com eventos reais.
 
 Desligar um workflow não interrompe as execuções que já estão em andamento; apenas impede que novas comecem.
 

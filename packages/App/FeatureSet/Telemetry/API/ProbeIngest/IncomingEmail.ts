@@ -11,6 +11,7 @@ import logger, {
 import InboundEmailProviderFactory from "Common/Server/Services/InboundEmail/InboundEmailProviderFactory";
 import InboundEmailProvider, {
   ParsedInboundEmail,
+  getInboundEmailRecipientAddresses,
 } from "Common/Server/Services/InboundEmail/InboundEmailProvider";
 import { JSONObject } from "Common/Types/JSON";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
@@ -26,6 +27,12 @@ const router: ExpressRouter = Express.getRouter();
  * Webhook endpoint for SendGrid inbound emails
  * SendGrid sends data as multipart/form-data
  * The webhook secret must be passed as the last path segment: /incoming-email/sendgrid/:secret
+ *
+ * Mail on the inbound domain is for an Incoming Email monitor
+ * (monitor-{key}@, or a custom name) or for a workflow's Incoming Email
+ * trigger (workflow-{key}@). Each address the email was delivered to is
+ * queued as a job of its own, and the queue worker decides whether a monitor
+ * or a workflow really owns it.
  */
 router.post(
   "/incoming-email/sendgrid/:secret",
@@ -94,49 +101,61 @@ router.post(
       );
 
       /*
-       * Work out which monitor address the mail was sent to: a generated
-       * monitor-{secretKey}@ address, or a custom name. Which monitor (if
-       * any) owns it is decided by the queue worker.
+       * Work out which addresses on the inbound domain the mail was
+       * delivered to: a monitor's generated monitor-{secretKey}@ address or
+       * custom name, or a workflow's workflow-{secretKey}@ address. The
+       * envelope says when the provider gives one - it is the only way to
+       * know about a Bcc or a forwarding rule - and otherwise everyone in To
+       * and Cc counts. Which monitor or workflow (if any) owns each address
+       * is decided by the queue worker.
        */
-      const recipient: IncomingEmailRecipient | null =
-        IncomingEmailMonitorAddress.parseRecipient({
-          emailAddress: parsedEmail.to,
+      const recipients: Array<IncomingEmailRecipient> =
+        IncomingEmailMonitorAddress.parseRecipients({
+          emailAddresses: getInboundEmailRecipientAddresses(parsedEmail),
           inboundDomain: provider.getInboundDomain(),
         });
 
-      if (!recipient) {
+      if (recipients.length === 0) {
         logger.error(
-          `Email is not addressed to a monitor address: ${parsedEmail.to}`,
+          `Email is not addressed to a monitor or workflow address: ${parsedEmail.to}`,
           getLogAttributesFromRequest(req as any),
         );
         throw new BadDataException(
-          "Invalid monitor email address. The email was not sent to a monitor's address on the inbound email domain.",
+          "Invalid recipient. The email was not sent to the address of a monitor or a workflow on the inbound email domain.",
         );
       }
 
-      logger.debug(
-        `Email is addressed to a ${recipient.kind.toLowerCase()} monitor address`,
-        getLogAttributesFromRequest(req as any),
-      );
+      for (const recipient of recipients) {
+        logger.debug(
+          `Email is addressed to a ${recipient.kind.toLowerCase()} address`,
+          getLogAttributesFromRequest(req as any),
+        );
 
-      // Queue the email for async processing using the unified Telemetry queue
-      await TelemetryQueueService.addIncomingEmailJob({
-        secretKey:
-          recipient.kind === IncomingEmailRecipientKind.Generated
-            ? recipient.secretKey
-            : undefined,
-        customLocalPart:
-          recipient.kind === IncomingEmailRecipientKind.Custom
-            ? recipient.localPart
-            : undefined,
-        emailFrom: parsedEmail.from,
-        emailTo: parsedEmail.to,
-        emailSubject: parsedEmail.subject,
-        emailBody: parsedEmail.body,
-        emailBodyHtml: parsedEmail.bodyHtml,
-        emailHeaders: parsedEmail.headers,
-        attachments: parsedEmail.attachments,
-      });
+        // Queue the email for async processing using the unified Telemetry queue
+        await TelemetryQueueService.addIncomingEmailJob({
+          secretKey:
+            recipient.kind === IncomingEmailRecipientKind.Generated
+              ? recipient.secretKey
+              : undefined,
+          customLocalPart:
+            recipient.kind === IncomingEmailRecipientKind.Custom
+              ? recipient.localPart
+              : undefined,
+          workflowSecretKey:
+            recipient.kind === IncomingEmailRecipientKind.Workflow
+              ? recipient.secretKey
+              : undefined,
+          emailFrom: parsedEmail.from,
+          emailTo: parsedEmail.to,
+          emailToAddresses: parsedEmail.toAddresses,
+          emailCcAddresses: parsedEmail.ccAddresses,
+          emailSubject: parsedEmail.subject,
+          emailBody: parsedEmail.body,
+          emailBodyHtml: parsedEmail.bodyHtml,
+          emailHeaders: parsedEmail.headers,
+          attachments: parsedEmail.attachments,
+        });
+      }
 
       logger.debug(
         "Email queued for processing",

@@ -131,7 +131,7 @@ Converte tra testo e JSON.
 
 ## Conditions
 
-Ramifica in base a un confronto. Nel pannello **Aggiungi componente** questo blocco si chiama **If / Else** e sta nella categoria Conditions.
+Ramifica in base a un confronto. Nel pannello **Aggiungi componente** questo blocco si chiama **If / Else** e sta sotto **Popular**.
 
 **Settings**:
 
@@ -159,7 +159,7 @@ C'è un limite di sicurezza, così i workflow non possono chiamarsi a vicenda al
 
 ## Componenti sui dati di OneUptime
 
-Per ogni tipo di record di OneUptime (monitor, incidenti, avvisi, pagine di stato, policy di reperibilità e molti altri) il pannello **Aggiungi componente** offre questi componenti — cercali per il nome del tipo. Ogni titolo è generato a partire dal tipo di record, quindi per i monitor l'elenco diventa:
+Per ogni tipo di record di OneUptime (monitor, incidenti, avvisi, pagine di stato, policy di reperibilità e molti altri) il pannello **Aggiungi componente** offre questi componenti: clicca il tipo di record sotto **OneUptime resources** (quelli non mostrati sono in **Browse all resources**), oppure cercalo per il nome del tipo. Ogni titolo è generato a partire dal tipo di record, quindi per i monitor l'elenco diventa:
 
 - **Find One Monitor** — legge un record che corrisponde alla query.
 - **Find Many Monitors** — legge l'elenco dei record che corrispondono alla query.

@@ -1,6 +1,13 @@
 # Crear un flujo de trabajo
 
-Para crear un flujo de trabajo, abre **Flujos de Trabajo** y haz clic en **Crear flujo de trabajo**. Se abre un asistente, **Create a workflow**, que te lleva de la mano: primero **Start from** — elige **Start from scratch** o una de las plantillas —, luego **Name**, y por último un paso **Configure**, que solo aparece si la plantilla que elegiste pide ajustes propios.
+Para crear un flujo de trabajo, abre **Flujos de Trabajo** y haz clic en **Crear flujo de trabajo**. Se abre un asistente, **Create a workflow**, que te lleva de la mano: primero **Start from**, luego **Name**, y por último un paso **Configure**, que solo aparece si la plantilla que elegiste pide ajustes propios.
+
+En **Start from** eliges cómo empezar:
+
+- **Empezar desde cero**, junto al cuadro de búsqueda, te da un lienzo vacío.
+- Una plantilla te da un flujo de trabajo que ya funciona, listo para cambiarlo. El paso se abre con unas pocas plantillas en **Recomendadas**. El resto está en sus categorías, como **Incidentes**, **Monitores** y **Jira**, cada una con cuántas plantillas tiene, y **Todas las plantillas** las muestra todas. Una búsqueda mira en todas: cada palabra que escribas tiene que coincidir, y cada categoría muestra cuántas de sus plantillas coincidieron.
+
+Haz clic en una plantilla para ver qué hace antes de elegirla: su disparador, los pasos que la forman y los ajustes que te pedirá. **Usar esta plantilla** te lleva con ella a **Name**, y lo mismo hacen **Enter** y un doble clic. Las flechas te mueven por la lista, y `/` te devuelve al cuadro de búsqueda.
 
 Una vez creado, abre **Constructor** en el menú izquierdo. Ese es el lienzo donde diseñas el flujo de trabajo.
 
@@ -15,7 +22,7 @@ Para añadir bloques:
 - **El disparador** — haz clic en el bloque punteado. Se abre un panel titulado **Add Trigger**.
 - **Todo lo demás** — haz clic en **Añadir componente** en la barra de herramientas, encima del lienzo. Se abre ese mismo panel, ahora titulado **Add Component**.
 
-Los dos paneles tienen buscador — pulsa `/` para saltar al cuadro de búsqueda — y están agrupados por categoría. Selecciona un bloque y haz clic en **Add to Workflow**.
+Los dos paneles empiezan por los bloques que usan casi todos los flujos de trabajo, en **Popular**, seguidos del resto de bloques integrados. En **OneUptime resources**, haz clic en un recurso como **Incident** para ver qué puedes hacer con él; **Browse all resources** los muestra todos. O busca: escribe unas pocas palabras, como `create incident`, y la coincidencia más cercana sale primero. Pulsa `/` para saltar al cuadro de búsqueda, las flechas para moverte por los resultados y **Enter** para añadir el bloque resaltado. Un clic en un bloque lo añade.
 
 Un bloque nuevo aparece debajo del bloque más bajo del lienzo, y un disparador nuevo ocupa arriba el lugar del anterior. El bloque nuevo queda seleccionado y, si aparece fuera de la vista, el lienzo se desplaza lo justo para mostrarlo. Sus ajustes no se abren solos: haz clic en el bloque cuando quieras configurarlo. Mientras falten sus ajustes obligatorios, el bloque dice **Click to set up**. Arrastra los bloques adonde quieras; el lienzo se ajusta a una cuadrícula mientras los mueves. Las posiciones se guardan, de modo que la siguiente persona verá la misma disposición que dejaste tú.
 
@@ -64,10 +71,10 @@ Hay una cosa que no puede comprobar: si un nombre de variable existe. Una variab
 
 La forma más rápida de cogerle el pulso al lienzo:
 
-1. Haz clic en el bloque punteado, elige **Manual** en el panel **Add Trigger** y haz clic en **Add to Workflow**.
-2. Haz clic en **Añadir componente**, elige **Log** (dentro de **Utils**) y haz clic en **Add to Workflow**. El bloque nuevo aparece debajo del disparador. Conecta el punto **Execute** del disparador con el punto de entrada del bloque Log.
+1. Haz clic en el bloque punteado y luego en **Manual**, en el panel **Add Trigger**.
+2. Haz clic en **Añadir componente** y luego en **Log**, dentro de **Popular**. El bloque nuevo aparece debajo del disparador. Conecta el punto **Execute** del disparador con el punto de entrada del bloque Log.
 3. Haz clic en el bloque Log, que dice **Click to set up**, y pon en su **Valor** `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` es el **Identifier** del disparador, visible en su bloque — comprueba que coincide.
-4. Ve a **Vista General**, haz clic en **Editar flujo de trabajo** en la tarjeta **Detalles del flujo de trabajo** y activa **Habilitado**. Un flujo de trabajo deshabilitado no se puede ejecutar de ninguna manera, ni siquiera a mano.
+4. Activa **Habilitado** en la parte superior del Constructor. Un flujo de trabajo deshabilitado no se puede ejecutar de ninguna manera, ni siquiera a mano; si te saltas este paso, **Ejecutar flujo de trabajo** te pide activarlo primero.
 5. Vuelve al **Constructor**, haz clic en **Ejecutar flujo de trabajo**, pon `{ "name": "Ada" }` en el campo **JSON**, haz clic en **Run Workflow Manually** y confirma con **Run**.
 6. Se abre solo un panel **Workflow Run** que sigue la ejecución. El registro muestra `Value:` seguido de `Hello from Ada`.
 
@@ -75,11 +82,13 @@ Ese ciclo — añadir, conectar, configurar, ejecutar y leer el registro — es 
 
 ## Encenderlo
 
-Los flujos de trabajo nuevos nacen deshabilitados, y también los que duplicas o importas.
+Los flujos de trabajo nuevos nacen deshabilitados, y también los que duplicas o importas. Mientras un flujo de trabajo está apagado, el Constructor lo indica encima del lienzo, con un botón **Activar flujo de trabajo**.
 
-El interruptor **Habilitado** está en la página **Vista General** del flujo de trabajo, dentro de la tarjeta **Detalles del flujo de trabajo** — no en la página de ajustes. Esa misma tarjeta muestra el estado actual como una píldora verde **Habilitado** o roja **Deshabilitado**.
+El interruptor **Habilitado** está en la parte superior del **Constructor**, junto a **Añadir componente** y **Ejecutar flujo de trabajo**. También está en la página **Vista General** del flujo de trabajo: haz clic en **Editar flujo de trabajo** en la tarjeta **Detalles del flujo de trabajo**, que muestra el estado actual como una píldora verde **Habilitado** o roja **Deshabilitado**. Solo quien puede editar el flujo de trabajo puede encenderlo o apagarlo; los demás ven el interruptor atenuado.
 
-Un flujo de trabajo deshabilitado no se ejecuta en absoluto. Las ejecuciones manuales se rechazan con «This workflow is not enabled» igual que las disparadas, así que el orden es: habilítalo, pruébalo con **Ejecutar flujo de trabajo**, lee el registro de la ejecución y vuelve a apagar **Habilitado** si aún no quieres que su disparador salte. Para probar un solo bloque sin ejecutar todo lo demás, usa **Run just this step** en los ajustes de ese bloque.
+Un flujo de trabajo deshabilitado no se ejecuta en absoluto: su disparador se ignora, y también **Ejecutar flujo de trabajo** y **Run just this step**. Si lo ejecutas, o ejecutas uno de sus bloques, mientras está apagado, el Constructor te pregunta **¿Activar este flujo de trabajo?**. **Activar y ejecutar** (o **Activar y ejecutar paso**) lo enciende y luego ejecuta lo que pediste, con los valores que diste. Así que el orden es: constrúyelo, pruébalo con **Ejecutar flujo de trabajo**, lee el registro de la ejecución y vuelve a apagar **Habilitado** si aún no quieres que su disparador salte. Para probar un solo bloque sin ejecutar todo lo demás, usa **Run just this step** en los ajustes de ese bloque.
+
+Todo lo demás que inicia un flujo de trabajo deshabilitado se rechaza con el mismo consejo. Una llamada a su URL de webhook recibe un HTTP 400 y «This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again.» Un bloque **Execute Workflow** que lo llama toma su camino **Error**, y el error nombra el flujo de trabajo al que llamó.
 
 Para pausar un flujo de trabajo sin eliminarlo, apaga **Habilitado**. No arranca ninguna ejecución nueva. Una ejecución que esté a medias termina, pero una que esté aparcada en un bloque **Sleep** se cancela al despertar y queda registrada como error.
 
