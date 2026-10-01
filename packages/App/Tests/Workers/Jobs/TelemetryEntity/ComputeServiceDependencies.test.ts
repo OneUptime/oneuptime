@@ -2320,6 +2320,145 @@ function sqlWith(mock: jest.Mock, marker: string): Array<string> {
     });
 }
 
+/*
+ * The bug report: eBPF instrumentation swapped the two ends of the worker's
+ * Redis connections, so each CLIENT span named the worker's own ephemeral
+ * port as the server, and discovery created one database per connection
+ * ("Redis oneuptime-worker.default.svc.cluster.local:46600", ":46482", …).
+ */
+describe("database servers from client spans — a client's own socket", () => {
+  const SWAPPED_PORTS: Array<string> = [
+    "46600",
+    "46482",
+    "60538",
+    "49114",
+    "41892",
+    "38616",
+    "45986",
+  ];
+
+  function swappedRows(): Array<Record<string, unknown>> {
+    return SWAPPED_PORTS.map((port: string): Record<string, unknown> => {
+      return databaseRow({
+        dbSystem: "redis",
+        serverAddress: "oneuptime-worker",
+        serverPort: port,
+        callerNamespace: "default",
+        callerCluster: "gke-test-cluster",
+        callCount: "300",
+      });
+    });
+  }
+
+  let savedMinCalls: string | undefined;
+
+  beforeEach(() => {
+    savedMinCalls = process.env[DATABASE_SERVER_MIN_CALLS_ENV];
+    delete process.env[DATABASE_SERVER_MIN_CALLS_ENV];
+  });
+
+  afterEach(() => {
+    if (savedMinCalls === undefined) {
+      delete process.env[DATABASE_SERVER_MIN_CALLS_ENV];
+    } else {
+      process.env[DATABASE_SERVER_MIN_CALLS_ENV] = savedMinCalls;
+    }
+  });
+
+  test("creates no database for any of the worker's connections", async () => {
+    arrange({ databases: swappedRows() });
+    arrangeDatabaseRows([]);
+
+    await discoverDatabaseServersForProject({
+      projectId: PROJECT_ID,
+      startSql: WINDOW.startSql,
+      endSql: WINDOW.endSql,
+    });
+
+    expect(createAttempts()).toEqual([]);
+    expect(databaseServerMock.findOrCreateByEndpoint).not.toHaveBeenCalled();
+    expect(databaseServerMock.recordSighting).not.toHaveBeenCalled();
+    // Nothing to create means the budget is never even asked.
+    expect(databaseServerMock.isUnderAutoCreateBudget).not.toHaveBeenCalled();
+    expect(endpointMock.claimEndpoint).not.toHaveBeenCalled();
+  });
+
+  test("a run over every connection, again and again, still creates nothing", async () => {
+    arrange({ databases: swappedRows() });
+    arrangeDatabaseRows([]);
+
+    for (let run: number = 0; run < 3; run++) {
+      await discoverDatabaseServersForProject({
+        projectId: PROJECT_ID,
+        startSql: WINDOW.startSql,
+        endSql: WINDOW.endSql,
+      });
+    }
+
+    expect(createAttempts()).toEqual([]);
+  });
+
+  test("the Redis the worker really calls is still created, beside its swapped connections", async () => {
+    arrange({
+      databases: [
+        ...swappedRows(),
+        databaseRow({
+          dbSystem: "redis",
+          serverAddress: "oneuptime-redis-master",
+          serverPort: "6379",
+          callerNamespace: "default",
+          callerCluster: "gke-test-cluster",
+          callCount: "9000",
+        }),
+      ],
+    });
+    arrangeDatabaseRows([]);
+
+    await discoverDatabaseServersForProject({
+      projectId: PROJECT_ID,
+      startSql: WINDOW.startSql,
+      endSql: WINDOW.endSql,
+    });
+
+    expect(
+      createAttempts().map((args: FindOrCreateArgs): string => {
+        return formatDatabaseEndpoint(args.endpoint);
+      }),
+    ).toEqual([
+      "oneuptime-redis-master.default.svc.cluster.local:6379@gke-test-cluster",
+    ]);
+    expect(databaseServerMock.recordSighting).toHaveBeenCalledTimes(1);
+  });
+
+  test("a database that already owns such an endpoint is still matched and sighted", async () => {
+    /*
+     * A person added a database on a high port by hand (a Docker random
+     * host port, say): the create policy never stands between it and the
+     * spans that call it.
+     */
+    const owned: string =
+      "oneuptime-worker.default.svc.cluster.local:46600@gke-test-cluster";
+    arrange({ databases: swappedRows() });
+    arrangeDatabaseRows({ [owned]: "by-hand" });
+
+    await discoverDatabaseServersForProject({
+      projectId: PROJECT_ID,
+      startSql: WINDOW.startSql,
+      endSql: WINDOW.endSql,
+    });
+
+    expect(createAttempts()).toEqual([]);
+    const lookups: Array<FindOrCreateArgs> = findOrCreateCalls();
+    expect(lookups).toHaveLength(1);
+    expect(formatDatabaseEndpoint(lookups[0]!.endpoint)).toBe(owned);
+    expect(lookups[0]!.allowCreate).toBe(false);
+    expect(databaseServerMock.recordSighting).toHaveBeenCalledTimes(1);
+    expect(databaseServerMock.recordSighting.mock.calls[0]![0].toString()).toBe(
+      rowId("by-hand").toString(),
+    );
+  });
+});
+
 describe("message queues from messaging spans and broker metrics", () => {
   let savedMinSpans: string | undefined;
 

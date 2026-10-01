@@ -9,11 +9,14 @@ import {
   DatabaseCallerContext,
   DatabaseEndpoint,
   DatabaseEndpointPurpose,
+  EPHEMERAL_PORT_RANGE_START,
   formatDatabaseEndpoint,
   getDatabaseClusterHost,
   getDatabaseEndpointScope,
+  isClientSocketDatabaseEndpoint,
   isClusterScopedDatabaseHost,
   isEphemeralCaller,
+  isEphemeralPort,
   isHostRelativeDatabaseHost,
   isIpLiteralHost,
   isKubernetesDatabaseCaller,
@@ -31,7 +34,10 @@ import {
   readDatabaseInstanceName,
   splitDatabaseHostInstance,
 } from "../../../Types/DatabaseServer/DatabaseEndpoint";
-import { DATABASE_SYSTEMS } from "../../../Types/DatabaseServer/DatabaseSystem";
+import {
+  DATABASE_SYSTEMS,
+  getDefaultDatabasePort,
+} from "../../../Types/DatabaseServer/DatabaseSystem";
 import { keyForDatabaseEndpoint } from "../../../Utils/Telemetry/EntityKey";
 import { describe, expect, test } from "@jest/globals";
 
@@ -2653,5 +2659,225 @@ describe("isKubernetesServiceDnsHost", () => {
     );
 
     expect(performance.now() - started).toBeLessThan(1000);
+  });
+});
+
+describe("isEphemeralPort", () => {
+  test("the range starts at Linux's default ip_local_port_range", () => {
+    expect(EPHEMERAL_PORT_RANGE_START).toBe(32768);
+  });
+
+  test("Linux's default range and IANA's dynamic range are ephemeral", () => {
+    for (const port of [32768, 38616, 46600, 49114, 49152, 60538, 60999]) {
+      expect(isEphemeralPort(port)).toBe(true);
+    }
+    for (const port of [61000, 65000, 65535]) {
+      expect(isEphemeralPort(port)).toBe(true);
+    }
+  });
+
+  test("server ports, Kubernetes NodePorts and the boundary below are not", () => {
+    for (const port of [1, 443, 5432, 6379, 27017, 30000, 30015, 32767]) {
+      expect(isEphemeralPort(port)).toBe(false);
+    }
+  });
+
+  test("a numeric string reads like the number", () => {
+    expect(isEphemeralPort("46600")).toBe(true);
+    expect(isEphemeralPort(" 46600 ")).toBe(true);
+    expect(isEphemeralPort("6379")).toBe(false);
+  });
+
+  test("anything that is not a valid port is not ephemeral", () => {
+    for (const value of [
+      0,
+      -40000,
+      65536,
+      99999,
+      40000.5,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      "",
+      "46600abc",
+      "4e4",
+      null,
+      undefined,
+      {},
+      [46600],
+      true,
+    ]) {
+      expect(isEphemeralPort(value)).toBe(false);
+    }
+  });
+});
+
+describe("isClientSocketDatabaseEndpoint", () => {
+  const worker: (port: number | null) => DatabaseEndpoint = (
+    port: number | null,
+  ): DatabaseEndpoint => {
+    return {
+      host: "oneuptime-worker.default.svc.cluster.local",
+      port: port,
+      kubernetesClusterName: "gke-test-cluster",
+    };
+  };
+
+  test("the swapped Redis spans of the bug report name client sockets", () => {
+    for (const port of [38616, 41892, 45986, 46482, 46600, 49114, 60538]) {
+      expect(
+        isClientSocketDatabaseEndpoint({
+          system: "redis",
+          endpoint: worker(port),
+        }),
+      ).toBe(true);
+    }
+  });
+
+  test("a server on its usual port is not one", () => {
+    expect(
+      isClientSocketDatabaseEndpoint({
+        system: "redis",
+        endpoint: worker(6379),
+      }),
+    ).toBe(false);
+    expect(
+      isClientSocketDatabaseEndpoint({
+        system: "postgresql",
+        endpoint: { host: "orders.example.com", port: 5432 },
+      }),
+    ).toBe(false);
+  });
+
+  test("a server on a non-default port below the ephemeral range is not one", () => {
+    for (const port of [6380, 7000, 12000, 25060, 30015, 32767]) {
+      expect(
+        isClientSocketDatabaseEndpoint({
+          system: "redis",
+          endpoint: { host: "cache.example.com", port },
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("an engine whose own default port is ephemeral keeps it (Db2 on 50000)", () => {
+    expect(getDefaultDatabasePort("ibm.db2")).toBe(50000);
+    expect(
+      isClientSocketDatabaseEndpoint({
+        system: "ibm.db2",
+        endpoint: { host: "ledger.example.com", port: 50000 },
+      }),
+    ).toBe(false);
+    // Any other ephemeral port of Db2 is still a client socket.
+    expect(
+      isClientSocketDatabaseEndpoint({
+        system: "ibm.db2",
+        endpoint: { host: "ledger.example.com", port: 50001 },
+      }),
+    ).toBe(true);
+    // And 50000 is no exemption for an engine that does not listen there.
+    expect(
+      isClientSocketDatabaseEndpoint({
+        system: "postgresql",
+        endpoint: { host: "ledger.example.com", port: 50000 },
+      }),
+    ).toBe(true);
+  });
+
+  test("an engine alias exempts its default port like the canonical name", () => {
+    expect(getDefaultDatabasePort("db2")).toBe(50000);
+    expect(
+      isClientSocketDatabaseEndpoint({
+        system: "db2",
+        endpoint: { host: "ledger.example.com", port: 50000 },
+      }),
+    ).toBe(false);
+  });
+
+  test("no catalogued engine's default port is ever read as a client socket", () => {
+    for (const descriptor of DATABASE_SYSTEMS) {
+      if (descriptor.defaultPort === null) {
+        continue;
+      }
+      expect(
+        isClientSocketDatabaseEndpoint({
+          system: descriptor.system,
+          endpoint: { host: "db.example.com", port: descriptor.defaultPort },
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("an unknown engine has no default to exempt", () => {
+    expect(
+      isClientSocketDatabaseEndpoint({
+        system: "acmedb",
+        endpoint: { host: "db.example.com", port: 46600 },
+      }),
+    ).toBe(true);
+    expect(
+      isClientSocketDatabaseEndpoint({
+        system: "acmedb",
+        endpoint: { host: "db.example.com", port: 4600 },
+      }),
+    ).toBe(false);
+  });
+
+  test("an endpoint without a port (a SQL Server named instance) is not one", () => {
+    expect(
+      isClientSocketDatabaseEndpoint({
+        system: "microsoft.sql_server",
+        endpoint: { host: "sql1.corp\\inst01", port: null },
+      }),
+    ).toBe(false);
+  });
+
+  test("it reads only the port: the host, its scope and its cluster do not matter", () => {
+    for (const endpoint of [
+      { host: "10.0.0.5", port: 46600 },
+      { host: "db.example.com", port: 46600 },
+      { host: "2001:db8::1", port: 46600 },
+      {
+        host: "redis.shop.svc.cluster.local",
+        port: 46600,
+        kubernetesClusterName: "prod",
+      },
+    ]) {
+      expect(
+        isClientSocketDatabaseEndpoint({ system: "redis", endpoint }),
+      ).toBe(true);
+    }
+  });
+
+  test("a port read from a stored row as a numeric string counts like the number", () => {
+    expect(
+      isClientSocketDatabaseEndpoint({
+        system: "redis",
+        endpoint: {
+          host: "x.example.com",
+          port: "46600" as unknown as number,
+        },
+      }),
+    ).toBe(true);
+  });
+
+  test("missing or malformed input is never a client socket", () => {
+    for (const endpoint of [
+      null,
+      undefined,
+      { host: "x.example.com", port: 70000 },
+      { host: "x.example.com", port: 0 },
+      { host: "x.example.com", port: Number.NaN },
+    ]) {
+      expect(
+        isClientSocketDatabaseEndpoint({ system: "redis", endpoint }),
+      ).toBe(false);
+    }
+    expect(
+      isClientSocketDatabaseEndpoint(
+        undefined as unknown as Parameters<
+          typeof isClientSocketDatabaseEndpoint
+        >[0],
+      ),
+    ).toBe(false);
   });
 });

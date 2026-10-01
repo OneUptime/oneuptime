@@ -19,7 +19,9 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
 });
 
 import DatabaseServerService, {
+  ClientSocketDatabaseServerRow,
   UpsertWorkloadDatabaseData,
+  isClientSocketDatabaseServerRow,
 } from "../../../Server/Services/DatabaseServerService";
 import DatabaseServerEndpointService, {
   DatabaseServerEndpointClaimResult,
@@ -3316,6 +3318,424 @@ describe("DatabaseServerService.autoArchiveStaleDatabaseServers", () => {
       DatabaseServerService.autoArchiveStaleDatabaseServers(),
     ).resolves.toBe(2);
     expect(feed).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The databases traces created for a client's end of a connection
+ * ---------------------------------------------------------------------------
+ */
+describe("isClientSocketDatabaseServerRow", () => {
+  // A row as the eBPF-swapped spans of the bug report created it.
+  function swapped(
+    overrides: Partial<ClientSocketDatabaseServerRow> = {},
+  ): ClientSocketDatabaseServerRow {
+    return {
+      _id: ObjectID.generate().toString(),
+      projectId: PROJECT_ID.toString(),
+      name: "Redis oneuptime-worker.default.svc.cluster.local:46600",
+      dbSystem: "redis",
+      serverAddress: "oneuptime-worker.default.svc.cluster.local",
+      serverPort: 46600,
+      endpoints: [
+        "oneuptime-worker.default.svc.cluster.local:46600@gke-test-cluster",
+      ],
+      ...overrides,
+    };
+  }
+
+  test("the rows of the bug report are client sockets", () => {
+    for (const port of [38616, 41892, 45986, 46482, 46600, 49114, 60538]) {
+      expect(
+        isClientSocketDatabaseServerRow(
+          swapped({
+            name: `Redis oneuptime-worker.default.svc.cluster.local:${port}`,
+            serverPort: port,
+            endpoints: [
+              `oneuptime-worker.default.svc.cluster.local:${port}@gke-test-cluster`,
+            ],
+          }),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("a port read back from Postgres as a string counts like the number", () => {
+    expect(
+      isClientSocketDatabaseServerRow(swapped({ serverPort: "46600" })),
+    ).toBe(true);
+  });
+
+  test("a row without endpoints is judged by its own address and port", () => {
+    expect(isClientSocketDatabaseServerRow(swapped({ endpoints: [] }))).toBe(
+      true,
+    );
+    expect(
+      isClientSocketDatabaseServerRow(swapped({ endpoints: undefined })),
+    ).toBe(true);
+  });
+
+  test("a row a person renamed is theirs, whatever its port", () => {
+    expect(
+      isClientSocketDatabaseServerRow(swapped({ name: "Worker queue Redis" })),
+    ).toBe(false);
+  });
+
+  test("a row whose own port is a server's is never one", () => {
+    expect(
+      isClientSocketDatabaseServerRow(
+        swapped({
+          name: "Redis cache.example.com:6379",
+          serverAddress: "cache.example.com",
+          serverPort: 6379,
+          endpoints: ["cache.example.com:6379"],
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  test("one endpoint that is a real server keeps the whole row", () => {
+    expect(
+      isClientSocketDatabaseServerRow(
+        swapped({
+          endpoints: [
+            "oneuptime-worker.default.svc.cluster.local:46600@gke-test-cluster",
+            "cache.example.com:6379",
+          ],
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  test("several client-socket endpoints are still all client sockets", () => {
+    expect(
+      isClientSocketDatabaseServerRow(
+        swapped({
+          endpoints: [
+            "oneuptime-worker.default.svc.cluster.local:46600@gke-test-cluster",
+            "oneuptime-worker.default.svc.cluster.local:46601@gke-test-cluster",
+          ],
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  test("an endpoint that does not parse keeps the row (never delete on a guess)", () => {
+    for (const endpoint of ["", "localhost:46600", "admin@10.0.0.5:46600", 7]) {
+      expect(
+        isClientSocketDatabaseServerRow(swapped({ endpoints: [endpoint] })),
+      ).toBe(false);
+    }
+  });
+
+  test("Db2 on its own default port 50000 is a database", () => {
+    expect(
+      isClientSocketDatabaseServerRow(
+        swapped({
+          name: "Db2 ledger.example.com:50000",
+          dbSystem: "ibm.db2",
+          serverAddress: "ledger.example.com",
+          serverPort: 50000,
+          endpoints: ["ledger.example.com:50000"],
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  test("a row missing its engine, address or port is never one", () => {
+    for (const overrides of [
+      { dbSystem: undefined },
+      { dbSystem: "  " },
+      { serverAddress: null },
+      { serverAddress: "" },
+      { serverPort: null },
+      { serverPort: "x" },
+      { serverPort: 46600.5 },
+    ] as Array<Partial<ClientSocketDatabaseServerRow>>) {
+      expect(isClientSocketDatabaseServerRow(swapped(overrides))).toBe(false);
+    }
+    expect(isClientSocketDatabaseServerRow(null)).toBe(false);
+    expect(isClientSocketDatabaseServerRow(undefined)).toBe(false);
+  });
+});
+
+describe("DatabaseServerService.deleteClientSocketDatabaseServers", () => {
+  const OTHER_PROJECT_ID: ObjectID = ObjectID.generate();
+  let logs: ReturnType<typeof silenceLogs>;
+  let query: jest.Mock;
+  let deleteBy: jest.SpyInstance;
+
+  function swappedRow(
+    port: number,
+    overrides: Partial<ClientSocketDatabaseServerRow> = {},
+  ): ClientSocketDatabaseServerRow {
+    return {
+      _id: ObjectID.generate().toString(),
+      projectId: PROJECT_ID.toString(),
+      name: `Redis oneuptime-worker.default.svc.cluster.local:${port}`,
+      dbSystem: "redis",
+      serverAddress: "oneuptime-worker.default.svc.cluster.local",
+      serverPort: port,
+      endpoints: [
+        `oneuptime-worker.default.svc.cluster.local:${port}@gke-test-cluster`,
+      ],
+      ...overrides,
+    };
+  }
+
+  // A page of candidates per query, in order; then nothing.
+  function mockPages(
+    ...pages: Array<Array<ClientSocketDatabaseServerRow>>
+  ): jest.Mock {
+    query = jest.fn(async () => {
+      return [];
+    });
+    for (const page of pages) {
+      query.mockImplementationOnce(async () => {
+        return page;
+      });
+    }
+    getJestSpyOn(service, "getRepository").mockReturnValue({
+      manager: { query },
+    } as never);
+    return query;
+  }
+
+  function fullPage(
+    make: (index: number) => ClientSocketDatabaseServerRow,
+  ): Array<ClientSocketDatabaseServerRow> {
+    const rows: Array<ClientSocketDatabaseServerRow> = [];
+    for (let index: number = 0; index < 500; index++) {
+      rows.push(make(index));
+    }
+    return rows;
+  }
+
+  beforeEach(() => {
+    logs = silenceLogs();
+    deleteBy = getJestSpyOn(service, "deleteBy").mockResolvedValue(1);
+  });
+
+  test("selects only untouched, trace-created rows whose own port is ephemeral", async () => {
+    mockPages([]);
+
+    await expect(
+      DatabaseServerService.deleteClientSocketDatabaseServers(),
+    ).resolves.toBe(0);
+
+    expect(query).toHaveBeenCalledTimes(1);
+    const [sql, params] = query.mock.calls[0] as [string, Array<unknown>];
+
+    expect(sql).toContain(`ds."deletedAt" IS NULL`);
+    // Created by application traces, never a workload's row.
+    expect(sql).toContain(`ds."discoverySource" = $1`);
+    expect(params[0]).toBe("client-spans");
+    expect(sql).toContain(`ds."workloadIdentifier" IS NULL`);
+    // Its own port is ephemeral.
+    expect(sql).toContain(`ds."serverPort" >= $2`);
+    expect(params[1]).toBe(32768);
+    // Never restored by a person, never archived by one.
+    expect(sql).toContain(`ds."manuallyRestoredAt" IS NULL`);
+    expect(sql).toContain(
+      `(ds."isArchived" = false OR ds."autoArchivedAt" IS NOT NULL)`,
+    );
+    expect(sql).toContain(`COALESCE(BTRIM(ds."description"), '') = ''`);
+    // Nobody invested in it - the same predicate the archive sweep uses.
+    expect(sql).toContain(`ds."retainTelemetryDataForDays" IS NULL`);
+    for (const table of [
+      "DatabaseServerLabel",
+      "DatabaseServerOwnerUser",
+      "DatabaseServerOwnerTeam",
+      "IncidentDatabaseServer",
+      "AlertDatabaseServer",
+      "ScheduledMaintenanceDatabaseServer",
+    ]) {
+      expect(sql).toContain(`"${table}"`);
+    }
+    expect(sql).toContain(`e."source" = 'user'`);
+    // Every live endpoint of the row, from its own project.
+    expect(sql).toMatch(
+      /ARRAY\(\s*SELECT e\."endpoint"::text FROM "DatabaseServerEndpoint" e\s+WHERE e\."databaseServerId" = ds\."_id"\s+AND e\."projectId" = ds\."projectId"\s+AND e\."deletedAt" IS NULL\s*\) AS "endpoints"/,
+    );
+    // Keyset paging by id.
+    expect(sql).toContain(`($4::uuid IS NULL OR ds."_id" > $4::uuid)`);
+    expect(sql).toContain(`ORDER BY ds."_id" ASC`);
+    expect(sql).toContain("LIMIT $3");
+    expect(params[2]).toBe(500);
+    expect(params[3]).toBeNull();
+    expect(deleteBy).not.toHaveBeenCalled();
+  });
+
+  test("deletes each client-socket row by id within its own project, with hooks", async () => {
+    const first: ClientSocketDatabaseServerRow = swappedRow(46600);
+    const second: ClientSocketDatabaseServerRow = swappedRow(60538, {
+      projectId: OTHER_PROJECT_ID.toString(),
+    });
+    mockPages([first, second]);
+
+    await expect(
+      DatabaseServerService.deleteClientSocketDatabaseServers(),
+    ).resolves.toBe(2);
+
+    expect(deleteBy).toHaveBeenCalledTimes(2);
+    const [call] = deleteBy.mock.calls[0] as [any];
+    expect(call.query._id).toBe(first._id);
+    expect(call.query.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(call.limit).toBe(1);
+    expect(call.props.isRoot).toBe(true);
+    // Hooks run, so the row's resource AI agent goes with it.
+    expect(call.props.ignoreHooks).toBeUndefined();
+    const [secondCall] = deleteBy.mock.calls[1] as [any];
+    expect(secondCall.query._id).toBe(second._id);
+    expect(secondCall.query.projectId.toString()).toBe(
+      OTHER_PROJECT_ID.toString(),
+    );
+
+    expect(logs.info).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `deleted database ${String(first._id)} (Redis oneuptime-worker.default.svc.cluster.local:46600)`,
+      ),
+      { projectId: PROJECT_ID.toString() },
+    );
+  });
+
+  test("rows SQL cannot rule out are left alone, and the rest still go", async () => {
+    const deletable: ClientSocketDatabaseServerRow = swappedRow(46600);
+    mockPages([
+      swappedRow(46601, { name: "Worker queue Redis" }),
+      swappedRow(46602, {
+        endpoints: [
+          "oneuptime-worker.default.svc.cluster.local:46602@gke-test-cluster",
+          "cache.example.com:6379",
+        ],
+      }),
+      swappedRow(50000, {
+        name: "Db2 ledger.example.com:50000",
+        dbSystem: "ibm.db2",
+        serverAddress: "ledger.example.com",
+        endpoints: ["ledger.example.com:50000"],
+      }),
+      swappedRow(46603, { endpoints: ["localhost:46603"] }),
+      swappedRow(46604, { _id: null }),
+      swappedRow(46605, { projectId: undefined }),
+      deletable,
+    ]);
+
+    await expect(
+      DatabaseServerService.deleteClientSocketDatabaseServers(),
+    ).resolves.toBe(1);
+
+    expect(deleteBy).toHaveBeenCalledTimes(1);
+    expect((deleteBy.mock.calls[0] as [any])[0].query._id).toBe(deletable._id);
+  });
+
+  test("a row already gone is not counted", async () => {
+    mockPages([swappedRow(46600), swappedRow(46601)]);
+    deleteBy.mockResolvedValueOnce(0).mockResolvedValueOnce(1);
+
+    await expect(
+      DatabaseServerService.deleteClientSocketDatabaseServers(),
+    ).resolves.toBe(1);
+    expect(logs.info).toHaveBeenCalledTimes(1);
+  });
+
+  test("a row that cannot be deleted is logged and never holds up the rest", async () => {
+    const stuck: ClientSocketDatabaseServerRow = swappedRow(46600);
+    mockPages([stuck, swappedRow(46601)]);
+    deleteBy
+      .mockRejectedValueOnce(new Error("lock timeout"))
+      .mockResolvedValueOnce(1);
+
+    await expect(
+      DatabaseServerService.deleteClientSocketDatabaseServers(),
+    ).resolves.toBe(1);
+
+    expect(deleteBy).toHaveBeenCalledTimes(2);
+    expect(logs.warn).toHaveBeenCalledWith(
+      expect.stringContaining(`could not delete database ${String(stuck._id)}`),
+      { projectId: PROJECT_ID.toString() },
+    );
+    expect(logs.warn).toHaveBeenCalledWith(
+      expect.stringContaining("lock timeout"),
+      expect.anything(),
+    );
+  });
+
+  test("pages past a full page of rows it keeps, from the last id it read", async () => {
+    const kept: Array<ClientSocketDatabaseServerRow> = fullPage(
+      (index: number) => {
+        return swappedRow(40000 + index, { name: `Renamed ${index}` });
+      },
+    );
+    const deletable: ClientSocketDatabaseServerRow = swappedRow(46600);
+    mockPages(kept, [deletable]);
+
+    await expect(
+      DatabaseServerService.deleteClientSocketDatabaseServers(),
+    ).resolves.toBe(1);
+
+    expect(query).toHaveBeenCalledTimes(2);
+    expect((query.mock.calls[0] as [string, Array<unknown>])[1][3]).toBeNull();
+    expect((query.mock.calls[1] as [string, Array<unknown>])[1][3]).toBe(
+      kept[kept.length - 1]!._id,
+    );
+    expect((deleteBy.mock.calls[0] as [any])[0].query._id).toBe(deletable._id);
+  });
+
+  test("a short page is the last one", async () => {
+    mockPages([swappedRow(46600)], [swappedRow(46601)]);
+
+    await expect(
+      DatabaseServerService.deleteClientSocketDatabaseServers(),
+    ).resolves.toBe(1);
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  test("pages are bounded per run", async () => {
+    query = jest.fn(async () => {
+      return fullPage((index: number) => {
+        return swappedRow(40000 + index, { name: "Renamed" });
+      });
+    });
+    getJestSpyOn(service, "getRepository").mockReturnValue({
+      manager: { query },
+    } as never);
+
+    await expect(
+      DatabaseServerService.deleteClientSocketDatabaseServers(),
+    ).resolves.toBe(0);
+    expect(query).toHaveBeenCalledTimes(20);
+  });
+
+  test("deletes are bounded per run; the rest wait for the next one", async () => {
+    mockPages(
+      fullPage((index: number) => {
+        return swappedRow(40000 + index);
+      }),
+      fullPage((index: number) => {
+        return swappedRow(50001 + index);
+      }),
+    );
+
+    await expect(
+      DatabaseServerService.deleteClientSocketDatabaseServers(),
+    ).resolves.toBe(500);
+    expect(deleteBy).toHaveBeenCalledTimes(500);
+  });
+
+  test("a failing candidate query propagates to the cron, which logs it", async () => {
+    query = jest.fn(async () => {
+      throw new Error("postgres down");
+    });
+    getJestSpyOn(service, "getRepository").mockReturnValue({
+      manager: { query },
+    } as never);
+
+    await expect(
+      DatabaseServerService.deleteClientSocketDatabaseServers(),
+    ).rejects.toThrow("postgres down");
+    expect(deleteBy).not.toHaveBeenCalled();
   });
 });
 
