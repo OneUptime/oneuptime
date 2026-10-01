@@ -21,7 +21,7 @@ import { describe, expect, test } from "@jest/globals";
  *
  * Sweeping every model rather than asserting on a list is the point: a mis-key
  * in a model nobody is looking at fails here instead of in production. The
- * sweep found twenty-one more of them, listed below; they are recorded as a
+ * sweep found twenty more of them, listed below; they are recorded as a
  * baseline rather than fixed, because each needs its own judgement about which
  * permission was meant.
  */
