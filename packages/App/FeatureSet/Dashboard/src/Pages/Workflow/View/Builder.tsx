@@ -37,6 +37,11 @@ import Workflow, {
   getEdgeDefaultProps,
   getPlaceholderTriggerNode,
 } from "Common/UI/Components/Workflow/Workflow";
+import {
+  getWebhookSecretKeySelect,
+  resetWebhookSecretKey,
+} from "Common/UI/Components/Workflow/WorkflowWebhookSecretKey";
+import Select from "Common/Types/BaseDatabase/Select";
 import { WORKFLOW_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -65,7 +70,14 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [nodes, setNodes] = useState<Array<Node>>([]);
   const [edges, setEdges] = useState<Array<Edge>>([]);
   const [error, setError] = useState<string>("");
+  /*
+   * The Webhook trigger's URL is built from this key, and its settings show,
+   * copy and reset it. Only loaded when the user may read it: see
+   * WorkflowWebhookSecretKey.
+   */
   const [webhookSecretKey, setWebhookSecretKey] = useState<string>("");
+  const [canSeeWebhookSecretKey, setCanSeeWebhookSecretKey] =
+    useState<boolean>(false);
 
   const [showComponentPickerModal, setShowComponentPickerModal] =
     useState<boolean>(false);
@@ -143,20 +155,31 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const loadGraph: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsLoading(true);
+
+      /*
+       * Asking for a column the user cannot read fails the whole request, and
+       * the key is readable only by people who can edit the workflow. Anyone
+       * else still gets the builder; the Webhook trigger then says who can
+       * see its URL.
+       */
+      const webhookSecretKeySelect: Select<WorkflowModel> =
+        getWebhookSecretKeySelect();
+
       const workflow: WorkflowModel | null = await ModelAPI.getItem({
         modelType: WorkflowModel,
         id: modelId,
         select: {
           graph: true,
-          webhookSecretKey: true,
+          ...webhookSecretKeySelect,
         },
         requestOptions: {},
       });
 
       if (workflow) {
-        if (workflow.webhookSecretKey) {
-          setWebhookSecretKey(workflow.webhookSecretKey);
-        }
+        setCanSeeWebhookSecretKey(
+          Boolean(webhookSecretKeySelect.webhookSecretKey),
+        );
+        setWebhookSecretKey(workflow.webhookSecretKey || "");
 
         const allComponents: {
           components: Array<ComponentMetadata>;
@@ -440,6 +463,17 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <Workflow
             workflowId={modelId}
             webhookSecretKey={webhookSecretKey}
+            canSeeWebhookSecretKey={canSeeWebhookSecretKey}
+            onResetWebhookSecretKey={async (): Promise<void> => {
+              /*
+               * Saved straight away, not with the graph: the old URL stops
+               * working the moment this resolves. A failure is shown by the
+               * Webhook trigger's confirmation, which stays open for it.
+               */
+              const secretKey: string = await resetWebhookSecretKey(modelId);
+
+              setWebhookSecretKey(secretKey);
+            }}
             showComponentsPickerModal={showComponentPickerModal}
             onComponentPickerModalUpdate={(value: boolean) => {
               setShowComponentPickerModal(value);

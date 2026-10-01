@@ -26,6 +26,26 @@ export const WEBHOOK_TRIGGER_HTTP_METHODS: ReadonlyArray<HTTPMethod> = [
  */
 export const WEBHOOK_TRIGGER_EXAMPLE_BODY: string = '{"message": "Hello"}';
 
+/*
+ * Shown in place of the secret key until the reader asks to see it: the URL is
+ * the credential, and a dialog is often open on a shared screen. A fixed
+ * length, so the mask says nothing about the key behind it.
+ */
+export const WEBHOOK_TRIGGER_SECRET_MASK: string = "•".repeat(16);
+
+export type GetWebhookTriggerUrlPrefixFunction = (data: {
+  workflowServiceUrl: string;
+}) => string;
+
+// Everything before the secret key, ending in a slash.
+export const getWebhookTriggerUrlPrefix: GetWebhookTriggerUrlPrefixFunction =
+  (data: { workflowServiceUrl: string }): string => {
+    // With or without a trailing slash, the base gives the same URL.
+    const base: string = data.workflowServiceUrl.replace(/\/+$/, "");
+
+    return `${base}${WEBHOOK_TRIGGER_PATH}/`;
+  };
+
 export type GetWebhookTriggerUrlFunction = (data: {
   workflowServiceUrl: string;
   secretKey: string;
@@ -35,11 +55,18 @@ export const getWebhookTriggerUrl: GetWebhookTriggerUrlFunction = (data: {
   workflowServiceUrl: string;
   secretKey: string;
 }): string => {
-  // With or without a trailing slash, the base gives the same URL.
-  const base: string = data.workflowServiceUrl.replace(/\/+$/, "");
-
-  return `${base}${WEBHOOK_TRIGGER_PATH}/${encodeURIComponent(data.secretKey)}`;
+  return `${getWebhookTriggerUrlPrefix(data)}${encodeURIComponent(data.secretKey)}`;
 };
+
+export type GetMaskedWebhookTriggerUrlFunction = (data: {
+  workflowServiceUrl: string;
+}) => string;
+
+// The same URL with the secret key masked. Never built from the key.
+export const getMaskedWebhookTriggerUrl: GetMaskedWebhookTriggerUrlFunction =
+  (data: { workflowServiceUrl: string }): string => {
+    return `${getWebhookTriggerUrlPrefix(data)}${WEBHOOK_TRIGGER_SECRET_MASK}`;
+  };
 
 export type GetWebhookTriggerCurlExampleFunction = (
   webhookUrl: string,

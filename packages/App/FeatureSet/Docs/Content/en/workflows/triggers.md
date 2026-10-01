@@ -30,6 +30,8 @@ OneUptime creates a unique URL. Anything that hits that URL starts the workflow.
 
 To get the URL, click the Webhook trigger on the canvas. The URL is at the top of its settings, with a **Copy URL** button, the methods it accepts, and a `curl` command you can paste into a terminal to try it.
 
+The last part of the URL is the workflow's secret key, and anyone who has the URL can start the workflow. So the key is masked until you click **Show**, and **Copy URL** copies the whole URL without showing it. If the URL leaks, click **Reset URL** in the same place: the workflow gets a new URL, and the old one stops working at once, so update anything that calls it. Only people who can edit the workflow can see or reset its URL — see [Webhook security](/docs/workflows/configuration#webhook-security).
+
 Good for: receiving data into OneUptime from another tool — CI/CD callbacks, alerts from other monitoring, signups in your CRM.
 
 **Output**:

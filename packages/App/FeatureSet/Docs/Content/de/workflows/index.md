@@ -46,7 +46,7 @@ Das alles bauen Sie sichtbar auf einer Arbeitsfläche. Für die meisten Workflow
 - **Builder** – die Arbeitsfläche, auf der Sie den Workflow entwerfen.
 - **Workflow-Variablen** – Werte, die nur für diesen einen Workflow gelten.
 - **Ausführungen & Protokolle** – jede Ausführung dieses Workflows, mit Details.
-- **Einstellungen** – Webhook-Secret, Duplizieren und Export.
+- **Einstellungen** – Duplizieren und Export.
 
 ## Ihren ersten Workflow bauen
 

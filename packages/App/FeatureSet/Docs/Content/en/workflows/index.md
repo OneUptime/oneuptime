@@ -46,7 +46,7 @@ Open a single workflow and its own left menu holds:
 - **Builder** — the canvas where you design the workflow.
 - **Workflow Variables** — values scoped to this one workflow.
 - **Runs & Logs** — every run of this workflow, with details.
-- **Settings** — webhook secret, duplicate, and export.
+- **Settings** — duplicate and export.
 
 ## Building your first workflow
 

@@ -46,7 +46,7 @@ Abre un flujo de trabajo concreto y su propio menú izquierdo contiene:
 - **Constructor** — el lienzo donde diseñas el flujo de trabajo.
 - **Variables de Flujo** — valores que solo existen para este flujo de trabajo.
 - **Ejecuciones y Registros** — cada ejecución de este flujo de trabajo, con sus detalles.
-- **Ajustes** — el secreto del webhook, duplicar y exportar.
+- **Ajustes** — duplicar y exportar.
 
 ## Construir tu primer flujo de trabajo
 

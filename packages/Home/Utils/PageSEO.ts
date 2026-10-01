@@ -1008,6 +1008,42 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/queues": {
+    title:
+      "Message Queue Monitoring | Kafka, RabbitMQ, SQS, Pub/Sub & More | OneUptime",
+    description:
+      "Every queue, topic and subscription your applications use, discovered from OpenTelemetry traces and broker metrics: producers and consumers, backlog, consumer lag and dead letters, with alerts wired to on-call. Open source.",
+    canonicalPath: "/product/queues",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Queues", url: "/product/queues" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Queue Monitoring",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor every message queue, topic and subscription your applications use: queues discovered from OpenTelemetry messaging spans and broker metrics; messages published and consumed, errors and p95 processing time with the services on each side; broker health from an OpenTelemetry Collector or the cloud provider's monitoring API, including backlog, consumer lag, dead letters and oldest message age; and metric monitors with starting thresholds, with on-call escalation in the same product.",
+      features: [
+        "Auto-discovery from OpenTelemetry messaging spans and broker metrics",
+        "Producers and consumers of every queue, with their own counts",
+        "Messages published and consumed, errors and p95 processing time",
+        "Broker health: backlog, consumer lag, dead letters and oldest message age",
+        "Apache Kafka, RabbitMQ, Amazon SQS and SNS, Google Cloud Pub/Sub and Azure Service Bus",
+        "Apache ActiveMQ and JMS, Azure Event Hubs, Apache Pulsar, Apache RocketMQ, NATS and BullMQ",
+        "Broker metrics from OpenTelemetry Collector receivers and cloud monitoring APIs",
+        "Create a monitor from any broker health gauge, with a starting threshold",
+        "Destination names normalised across instrumentations and semantic convention versions",
+        "Owners, labels, label and owner rules, and archiving per queue",
+        "OpenTelemetry native",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/profiles": {
     title:
       "Continuous Profiling | CPU, Memory & Allocation Profiling | OneUptime",

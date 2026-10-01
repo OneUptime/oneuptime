@@ -46,7 +46,7 @@ Ouvrez un workflow en particulier et son propre menu de gauche contient :
 - **Constructeur** — le canevas sur lequel vous le concevez.
 - **Variables de flux de travail** — les valeurs limitées à ce seul workflow.
 - **Exécutions & journaux** — chaque exécution de ce workflow, avec ses détails.
-- **Paramètres** — secret du webhook, duplication et export.
+- **Paramètres** — duplication et export.
 
 ## Construire votre premier workflow
 

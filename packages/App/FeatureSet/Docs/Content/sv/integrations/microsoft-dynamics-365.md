@@ -230,13 +230,13 @@ Nu den andra riktningen: någon stänger ärendet i Dynamics, eller en handlägg
 ### Bygg det mottagande arbetsflödet först
 
 1. **Skapa arbetsflöde**, namnge det `Dynamics 365 → OneUptime` och lägg till utlösaren **Webhook**.
-2. Öppna **Inställningar** på det arbetsflödet och kopiera **Webhookens hemliga nyckel**. Din URL är:
+2. Öppna arbetsflödets **Byggare**, klicka på **Webhook**-utlösaren och klicka på **Kopiera URL** högst upp i dess inställningar. URL:en ser ut så här:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   På en självhostad installation byter du in din egen värd. Behandla URL:en som ett lösenord — vem som helst som har den kan starta arbetsflödet. Du kan återställa nyckeln från samma sida.
+   Självhostade installationer använder sin egen värd. Behandla URL:en som ett lösenord — vem som helst som har den kan starta arbetsflödet. Om den läcker klickar du på **Återställ URL** på samma ställe; den gamla URL:en slutar fungera direkt.
 
 3. Lägg till ett **If / Else**-block som kontrollerar en delad hemlighet innan något annat händer. **Input 1** är `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — ett värde du hittar på och sparar som en hemlig global variabel.
 4. Från grenen **Yes**, lägg till ett **Update One Incident**-block:
