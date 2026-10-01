@@ -71,6 +71,14 @@ export interface WorkflowStepTraceEntry {
   argumentValues: JSONObject;
   /** Returned values, already redacted for sensitive fields. */
   returnValues: JSONObject;
+  /**
+   * For each returned value too big to keep whole - one that returnValues
+   * holds cut off, as text - a cut-down copy of the same shape: its keys, the
+   * first item of each list and short strings (see sampleTraceValue). It is
+   * what lets the builder suggest the fields of a large webhook body. Redacted
+   * like returnValues; absent when every value fitted.
+   */
+  returnValueSamples?: JSONObject | undefined;
   /** The id of the out port taken ("no"), or null when the step took none. */
   executedPort: string | null;
   /** Present only on a failed step. */
@@ -198,6 +206,166 @@ export const truncateTraceValues: TruncateTraceValuesFunction = (
   }
 
   return truncated;
+};
+
+/*
+ * How far sampleTraceValue cuts a value down, gentlest first. The first that
+ * brings it within MAX_TRACE_VALUE_LENGTH is used.
+ */
+interface TraceSampleLevel {
+  /** Strings longer than this are cut, and end in "…". */
+  maxStringLength: number;
+  /** Items kept from each list, from the front. */
+  maxListItems: number;
+  /** Keys kept from each object, in their order. */
+  maxObjectKeys: number;
+  /** Below this depth an object is {} and a list is []. */
+  maxDepth: number;
+}
+
+const TRACE_SAMPLE_LEVELS: Array<TraceSampleLevel> = [
+  { maxStringLength: 120, maxListItems: 2, maxObjectKeys: 200, maxDepth: 8 },
+  { maxStringLength: 60, maxListItems: 1, maxObjectKeys: 100, maxDepth: 6 },
+  { maxStringLength: 30, maxListItems: 1, maxObjectKeys: 60, maxDepth: 6 },
+  { maxStringLength: 16, maxListItems: 1, maxObjectKeys: 40, maxDepth: 5 },
+  { maxStringLength: 8, maxListItems: 1, maxObjectKeys: 25, maxDepth: 4 },
+  { maxStringLength: 0, maxListItems: 1, maxObjectKeys: 15, maxDepth: 3 },
+];
+
+/*
+ * The runner's marker for a redacted value. Never cut: a cut marker would
+ * read as data.
+ */
+const TRACE_REDACTED_MARKER: string = "[REDACTED]";
+
+type CutDownFunction = (
+  value: JSONValue,
+  level: TraceSampleLevel,
+  depth: number,
+) => JSONValue;
+
+const cutDown: CutDownFunction = (
+  value: JSONValue,
+  level: TraceSampleLevel,
+  depth: number,
+): JSONValue => {
+  if (typeof value === "string") {
+    if (
+      value.length <= level.maxStringLength ||
+      value === TRACE_REDACTED_MARKER
+    ) {
+      return value;
+    }
+
+    return `${value.slice(0, level.maxStringLength)}…`;
+  }
+
+  if (value === null || value === undefined || typeof value !== "object") {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    if (depth >= level.maxDepth) {
+      return [];
+    }
+
+    return value.slice(0, level.maxListItems).map((item: JSONValue) => {
+      return cutDown(item, level, depth + 1);
+    });
+  }
+
+  if (depth >= level.maxDepth) {
+    return {};
+  }
+
+  const cut: JSONObject = {};
+
+  for (const key of Object.keys(value).slice(0, level.maxObjectKeys)) {
+    cut[key] = cutDown(
+      (value as JSONObject)[key] as JSONValue,
+      level,
+      depth + 1,
+    );
+  }
+
+  return cut;
+};
+
+export type SampleTraceValueFunction = (
+  value: JSONValue,
+) => JSONValue | undefined;
+
+/**
+ * A cut-down copy of an object or a list too big for the trace to keep whole,
+ * within the same limit: its keys, the first item of each list, and short
+ * strings. The deepest parts go first, and the top-level keys last.
+ *
+ * truncateTraceValue keeps such a value as cut-off JSON text, which the run's
+ * Steps view can show but nothing can read fields out of. This copy keeps the
+ * shape, so the builder can still suggest the fields of a large webhook body.
+ *
+ * Undefined for anything that fits, or is not an object or a list: the trace
+ * already holds it whole.
+ */
+export const sampleTraceValue: SampleTraceValueFunction = (
+  value: JSONValue,
+): JSONValue | undefined => {
+  if (value === null || value === undefined || typeof value !== "object") {
+    return undefined;
+  }
+
+  let serialized: string | undefined;
+
+  try {
+    serialized = JSON.stringify(value);
+  } catch {
+    return undefined;
+  }
+
+  if (serialized === undefined || serialized.length <= MAX_TRACE_VALUE_LENGTH) {
+    return undefined;
+  }
+
+  for (const level of TRACE_SAMPLE_LEVELS) {
+    const cut: JSONValue = cutDown(value, level, 0);
+    let cutSerialized: string | undefined;
+
+    try {
+      cutSerialized = JSON.stringify(cut);
+    } catch {
+      return undefined;
+    }
+
+    if (
+      cutSerialized !== undefined &&
+      cutSerialized.length <= MAX_TRACE_VALUE_LENGTH
+    ) {
+      return cut;
+    }
+  }
+
+  return undefined;
+};
+
+export type SampleTraceValuesFunction = (values: JSONObject) => JSONObject;
+
+/** sampleTraceValue for each value that needs it, by the same keys. */
+export const sampleTraceValues: SampleTraceValuesFunction = (
+  values: JSONObject,
+): JSONObject => {
+  const samples: JSONObject = {};
+
+  for (const key of Object.keys(values || {})) {
+    const sample: JSONValue | undefined = sampleTraceValue(
+      values[key] as JSONValue,
+    );
+
+    if (sample !== undefined) {
+      samples[key] = sample;
+    }
+  }
+
+  return samples;
 };
 
 export type AppendTraceStepFunction = (
