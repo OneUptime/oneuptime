@@ -524,6 +524,7 @@ function useBulkOwnerActions<T extends BaseModel>(
             setBulkActionProps(null);
           }}
           submitButtonText="Remove Owner"
+          submitButtonStyleType={ButtonStyleType.DANGER}
           onSubmit={async (formData: { ownerKeys: Array<string> }) => {
             await applyOwners(formData.ownerKeys || [], "remove");
           }}

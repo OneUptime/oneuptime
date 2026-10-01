@@ -6,7 +6,7 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import {
+import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
@@ -426,14 +426,26 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
       description="The most recent jobs this queue's workers failed to process, with full detail. Use the failure reason, stack trace, job body and logs to diagnose what is wedging the worker."
       modalWidth={ModalWidth.Large}
       isBodyLoading={isLoading}
-      submitButtonText="Refresh"
-      submitButtonStyleType={ButtonStyleType.NORMAL}
-      onSubmit={() => {
-        setIsLoading(true);
-        loadFailedJobs().catch(() => {
-          // handled via setError
-        });
-      }}
+      /*
+       * Refresh is a utility rather than what this viewer is for, so it sits
+       * on the footer's left as a plain button and the dialog has no primary
+       * action: its one way out, Close, is on the right.
+       */
+      leftFooterElement={
+        <Button
+          title="Refresh"
+          icon={IconProp.Refresh}
+          buttonStyle={ButtonStyleType.NORMAL}
+          disabled={isLoading}
+          dataTestId="failed-jobs-refresh"
+          onClick={() => {
+            setIsLoading(true);
+            loadFailedJobs().catch(() => {
+              // handled via setError
+            });
+          }}
+        />
+      }
       onClose={props.onClose}
       closeButtonText="Close"
     >

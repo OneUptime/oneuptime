@@ -322,7 +322,7 @@ const Push: () => JSX.Element = (): ReactElement => {
         <ConfirmModal
           title="Device Registered Successfully"
           description="Your device has been registered for push notifications. You will now receive notifications for alerts, incidents, and other important events."
-          submitButtonType={ButtonStyleType.SUCCESS}
+          submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText="Close"
           onSubmit={() => {
             setShowRegistrationSuccessModal(false);

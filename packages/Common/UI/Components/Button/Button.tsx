@@ -133,7 +133,15 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
   };
 
-  let buttonStyleCssClass: string = `inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
+  /*
+   * The focus ring is for keyboard focus only (focus-visible). Drawn on every
+   * :focus it also ringed whatever a script focused: a dialog opened with a
+   * click put its initial focus on Cancel, and the ring made Cancel the most
+   * prominent button on the dialog - a plain button wearing the highlight the
+   * action should have. The browser still draws it for anyone moving through
+   * the page with the keyboard, which is who it is for.
+   */
+  let buttonStyleCssClass: string = `inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
   let loadingIconClassName: string = `w-5 h-5 mr-3 -ml-1 mr-1 animate-spin`;
   let iconClassName: string = `w-5 h-5`;
 
@@ -165,39 +173,39 @@ const Button: FunctionComponent<ComponentProps> = ({
   if (buttonStyle === ButtonStyleType.DANGER) {
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 text-base font-medium text-white shadow-sm ${
       disabled ? "" : "hover:bg-red-700"
-    } focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
+    } focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.DANGER_OUTLINE) {
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm ${
       disabled ? "" : "hover:bg-red-50"
-    } focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
+    } focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.PRIMARY) {
     loadingIconClassName += ` text-indigo-100`;
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent ${
       disabled ? "bg-indigo-300" : "bg-indigo-600 hover:bg-indigo-700"
-    } text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
+    } text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.SECONDARY) {
     loadingIconClassName += ` text-indigo-500`;
     buttonStyleCssClass = `inline-flex rounded-md border border-transparent ${
       disabled ? "bg-indigo-300" : "bg-indigo-100 hover:bg-indigo-200"
-    } text-sm font-medium text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`;
+    } text-sm font-medium text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
   }
 
   if (buttonStyle === ButtonStyleType.ICON_LIGHT) {
     buttonStyleCssClass = `rounded-md bg-white text-gray-400 ${
       disabled ? "" : "hover:text-gray-500"
-    }  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`;
+    }  focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
   }
 
   if (buttonStyle === ButtonStyleType.ICON) {
     buttonStyleCssClass = `rounded-md bg-transparent text-gray-600 ${
       disabled ? "" : "hover:text-gray-900"
-    }  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`;
+    }  focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
   }
 
   if (
@@ -224,25 +232,25 @@ const Button: FunctionComponent<ComponentProps> = ({
   if (buttonStyle === ButtonStyleType.SUCCESS) {
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 text-base font-medium text-white shadow-sm ${
       disabled ? "" : "hover:bg-green-700"
-    }  focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
+    }  focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.SUCCESS_OUTLINE) {
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm ${
       disabled ? "" : "hover:bg-green-50"
-    }  focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
+    }  focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.WARNING) {
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-yellow-600 text-base font-medium text-white shadow-sm  ${
       disabled ? "" : "hover:bg-yellow-700"
-    }  focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
+    }  focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.WARNING_OUTLINE) {
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm ${
       disabled ? "" : "hover:bg-yellow-50"
-    }   focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
+    }   focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
   }
 
   // Center the icon against both desktop and taller mobile label lines.
