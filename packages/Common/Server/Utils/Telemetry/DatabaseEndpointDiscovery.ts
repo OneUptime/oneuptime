@@ -9,6 +9,7 @@ import {
   buildDatabaseServerDisplayName,
   formatDatabaseEndpoint,
   getDatabaseClusterHost,
+  isClientSocketDatabaseEndpoint,
   isIpLiteralHost,
 } from "../../../Types/DatabaseServer/DatabaseEndpoint";
 import {
@@ -669,9 +670,12 @@ export function getDatabaseServerMinCalls(): number {
  * project budget (which needs the database): a GLOBAL-scope endpoint (never
  * a single-label name, an unqualified cluster-local / private-network
  * address or a link-local one), named by host rather than a bare IP (an IP
- * says nothing stable about which server it is), of a known engine that is
- * not a cloud-API or in-process database, and called at least `minCalls`
- * times in the window (a managed cluster's members counted together).
+ * says nothing stable about which server it is), on a port a server listens
+ * on rather than a client's ephemeral one (isClientSocketDatabaseEndpoint:
+ * eBPF instrumentation that swaps a connection's two ends names a new
+ * "server" port for every connection), of a known engine that is not a
+ * cloud-API or in-process database, and called at least `minCalls` times
+ * in the window (a managed cluster's members counted together).
  */
 export function isDatabaseEndpointAutoCreateCandidate(data: {
   discovered: DiscoveredDatabaseEndpoint;
@@ -682,6 +686,10 @@ export function isDatabaseEndpointAutoCreateCandidate(data: {
   return (
     discovered.scope === "global" &&
     !isIpLiteralHost(discovered.endpoint.host) &&
+    !isClientSocketDatabaseEndpoint({
+      system: discovered.system,
+      endpoint: discovered.endpoint,
+    }) &&
     isAutoCreatableDatabaseSystem(discovered.system) &&
     discovered.callCount >= data.minCalls
   );
