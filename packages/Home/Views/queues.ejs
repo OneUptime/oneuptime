@@ -837,7 +837,7 @@
                 <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Queue Alerting</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Alerts on backlog, lag and dead letters, wired to on-call</h3>
-              <p class="mt-4 text-lg text-gray-600">Press <strong class="font-medium text-gray-800">Create monitor</strong> beside a broker health chart and a Metrics monitor opens, already filtered to that one queue, with a starting threshold where the metric has an obvious bad direction: backlog, consumer lag, dead letters, oldest message age, throttling and errors. Cloud metrics arrive minutes late, so their monitors start with a window long enough to hold them.</p>
+              <p class="mt-4 text-lg text-gray-600">Press <strong class="font-medium text-gray-800">Create monitor</strong> beside a broker health chart and a Metrics monitor opens, already filtered to that one queue, with a starting threshold where the metric has an obvious bad direction: backlog, consumer lag, dead letters, oldest message age, throttling and errors. CloudWatch and Cloud Monitoring publish minutes late, so monitors on SQS, SNS and Pub/Sub charts start with a window long enough to hold their points.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1067,7 +1067,7 @@
                   </svg>
                 </div>
                 <h3 class="mt-6 text-xl font-semibold text-gray-900">Late Cloud Metrics, Handled</h3>
-                <p class="mt-4 text-gray-600 leading-relaxed">CloudWatch, Azure Monitor and Cloud Monitoring publish each number minutes after the time it measures. Discovery reads their metrics from the last hour, so a late point still finds its queue, and monitors built from their charts start with windows long enough to hold one.</p>
+                <p class="mt-4 text-gray-600 leading-relaxed">CloudWatch, Azure Monitor and Cloud Monitoring publish each number minutes after the time it measures. Discovery reads their metrics from the last hour, so a late point still finds its queue, and monitors built from SQS, SNS and Pub/Sub charts start with windows long enough to hold one.</p>
               </div>
             </div>
 
