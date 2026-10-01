@@ -18,6 +18,7 @@ import ProductCompare, {
   getProductCompareSlugs,
 } from "./ProductCompare";
 import { JSONObject } from "Common/Types/JSON";
+import { McpOAuthScopeUtil } from "Common/Types/Mcp/McpOAuthScope";
 
 /*
  * Minimal blog post shape so this module does not depend on the blog utils
@@ -490,20 +491,48 @@ export function generateCompareMarkdown(
   return lines.join("\n");
 }
 
-// Manifest served at /.well-known/mcp.json for MCP client discovery.
-export function generateMcpManifest(homeUrl: string): JSONObject {
+/*
+ * Manifest served at /.well-known/mcp.json for MCP client discovery.
+ *
+ * `isOAuthEnabled` is false on an instance that has OAuth sign-in for the MCP
+ * server switched off (DISABLE_MCP_OAUTH); the manifest then describes API
+ * keys only, as it did before sign-in existed. An MCP client does not need
+ * any of this - it discovers OAuth from the endpoint's own 401 - so what is
+ * said here is for people and crawlers reading the manifest.
+ */
+export function generateMcpManifest(
+  homeUrl: string,
+  options?: { isOAuthEnabled?: boolean | undefined } | undefined,
+): JSONObject {
   const baseUrl: string = normalizeBaseUrl(homeUrl);
+  const isOAuthEnabled: boolean = options?.isOAuthEnabled !== false;
+
+  const apiKeyInstructions: string = `Create an API key in your OneUptime project settings. Public status page tools and help tools work without authentication. See ${baseUrl}/docs/ai/mcp-server`;
+
   return {
     name: "OneUptime MCP Server",
     description:
       "Model Context Protocol server for OneUptime. Lets AI agents query and manage incidents, monitors, alerts, on-call schedules, status pages, logs, metrics and traces.",
     endpoint: `${baseUrl}/mcp`,
     transport: ["streamable-http"],
-    authentication: {
-      type: "apiKey",
-      headers: ["x-api-key", "Authorization: Bearer <api-key>"],
-      instructions: `Create an API key in your OneUptime project settings. Public status page tools and help tools work without authentication. See ${baseUrl}/docs/ai/mcp-server`,
-    },
+    authentication: isOAuthEnabled
+      ? {
+          type: "oauth2",
+          methods: ["oauth2", "apiKey"],
+          oauth2: {
+            protectedResourceMetadata: `${baseUrl}/mcp/.well-known/oauth-protected-resource`,
+            authorizationServerMetadata: `${baseUrl}/.well-known/oauth-authorization-server/mcp`,
+            scopes: [...McpOAuthScopeUtil.ACCESS_SCOPES],
+          },
+          headers: ["x-api-key", "Authorization: Bearer <api-key>"],
+          instructions: `Add the endpoint to an MCP client with no credentials and sign in to OneUptime when the client asks; the client then acts as you in the project you choose. For an unattended agent, use an API key instead: ${apiKeyInstructions}`,
+        }
+      : {
+          type: "apiKey",
+          methods: ["apiKey"],
+          headers: ["x-api-key", "Authorization: Bearer <api-key>"],
+          instructions: apiKeyInstructions,
+        },
     capabilities: {
       tools: true,
       resources: false,

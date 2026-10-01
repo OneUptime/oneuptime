@@ -28,4 +28,25 @@ export default interface DatabaseCommonInteractionProps {
    * as `All`.
    */
   userTeamIds?: Array<ObjectID> | undefined;
+  /*
+   * Which credential the caller used, carried for the audit trail only: no
+   * permission check reads them. An API key request has no userId, so without
+   * these an audit entry could say that "an API key" made a change but not
+   * which; and a change an MCP client makes for a member would be
+   * indistinguishable from one the member made in the dashboard.
+   */
+  apiKeyId?: ObjectID | undefined;
+  apiKeyName?: string | undefined;
+  mcpOAuthGrantId?: ObjectID | undefined;
+  mcpClientName?: string | undefined;
+  /*
+   * The caller's credential was issued for reading only: an MCP client its
+   * user authorized as read-only. Every create, update and delete made with
+   * these props is refused, whatever the caller's permissions would allow
+   * (DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite). The MCP
+   * server already refuses the tools that change things for such a client;
+   * this is the same promise kept by the API itself, so it does not rest on
+   * every tool being classified correctly.
+   */
+  isReadOnlyCredential?: boolean | undefined;
 }

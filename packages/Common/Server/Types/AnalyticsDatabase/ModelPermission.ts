@@ -80,6 +80,8 @@ export default class ModelPermission {
     query: Query<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): Promise<Query<TBaseModel>> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
     if (props.isRoot || props.isMasterAdmin) {
       query = await this.addTenantScopeToQueryAsRoot(modelType, query, props);
     }
@@ -110,6 +112,8 @@ export default class ModelPermission {
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
   ): Promise<Query<TBaseModel>> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
     if (props.isRoot || props.isMasterAdmin) {
       return query;
     }
@@ -141,6 +145,8 @@ export default class ModelPermission {
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
   ): void {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
     // If system is making this query then let the query run!
     if (props.isRoot || props.isMasterAdmin) {
       return;

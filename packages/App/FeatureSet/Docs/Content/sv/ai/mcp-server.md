@@ -18,7 +18,7 @@ MCP-servern körs tillsammans med din OneUptime-instans och är åtkomlig via St
 - **Cirka 155 verktyg**: Fullständiga CRUD-verktyg för 22 resurstyper (incidenter, varningar, monitorer, statussidor, jour med mera), skrivskyddade telemetriverktyg samt arbetsflödes- och hjälpverktyg
 - **Realtidsoperationer**: Skapa, läs, uppdatera och ta bort resurser i realtid
 - **Typsäkert gränssnitt**: Fullständigt typsatt med omfattande indatavalidering
-- **Säker autentisering**: API-nyckelautentisering per förfrågan med korrekt felhantering
+- **Säker autentisering**: Logga in med ditt OneUptime-konto (OAuth 2.1), eller skicka en API-nyckel per förfrågan för agenter som körs obevakat
 - **Säkerhetsannoteringar**: Skrivskyddade verktyg bär `readOnlyHint` och borttagningsverktyg bär `destructiveHint`, så att MCP-klienter kan godkänna säkra anrop automatiskt och fråga före destruktiva
 - **Enkel integration**: Fungerar med Claude Desktop och andra MCP-kompatibla klienter
 - **Tillståndslös som design**: Inga sessions-ID:n — varje förfrågan är självständig, så servern fungerar bakom lastbalanserare och driftsättningar med flera repliker
@@ -39,9 +39,48 @@ Med OneUptime MCP-servern kan AI-assistenter hjälpa dig att:
 
 - OneUptime-instans (moln eller egeninstallerad)
 - MCP-kompatibel klient (Claude Desktop, VS Code med GitHub Copilot etc.)
-- Giltig OneUptime API-nyckel (krävs endast för autentiserade operationer – offentliga verktyg fungerar utan den)
+- Ett OneUptime-konto att logga in med, eller en OneUptime API-nyckel för en agent som körs obevakat (krävs endast för autentiserade operationer – offentliga verktyg fungerar utan någondera)
+
+## Logga in med OneUptime
+
+Det enklaste sättet att ansluta är att ge din MCP-klient serverns URL och inget annat. Första gången klienten behöver dina data öppnar den en OneUptime-sida i din webbläsare, där du:
+
+1. Loggar in på OneUptime, om du inte redan är inloggad
+2. Väljer det projekt som klienten ska arbeta i
+3. Väljer om klienten ska få **läs- och skrivåtkomst** eller **endast läsåtkomst**
+4. Klickar på **Godkänn**
+
+Klienten agerar sedan i ditt namn i det projektet. Det finns ingen API-nyckel att skapa, kopiera eller rotera, och inget hemligt lagras i en konfigurationsfil.
+
+Vad en ansluten klient kan göra:
+
+- **Den har dina behörigheter, och aldrig fler.** Det dina team låter dig göra i projektet är det klienten kan göra. Om din roll ändras eller du lämnar projektet gäller det redan vid klientens nästa förfrågan.
+- **Endast läsåtkomst betyder endast läsåtkomst.** En klient som har godkänts med endast läsåtkomst kan använda `get_`-, `list_`- och `count_`-verktygen. Verktyg som skapar, uppdaterar, tar bort, kvitterar eller löser nekas, både av MCP-servern och av OneUptimes API bakom den. Du kan aldrig ge en klient mer åtkomst än den bad om.
+- **Den gäller för ett projekt.** För att använda ett annat projekt ansluter du klienten igen och väljer det projektet.
+- **Den fungerar bara via MCP-servern.** Klientens åtkomsttoken accepteras av MCP-slutpunkten och ingen annanstans. Den kan inte användas för att anropa OneUptimes REST API direkt.
+- **Instansadministratörer får ingen särbehandling.** En klient som har anslutits av en master admin har det som den personens team ger i projektet, inte åtkomst till hela instansen.
+
+### Hantera anslutna klienter
+
+Varje klient som har anslutits genom inloggning visas under **Projektinställningar** → **MCP-server** → **Connected MCP Clients** (anslutna MCP-klienter), med vem som anslöt den, vad den får göra och när den senast användes. Du ser de klienter du själv har anslutit; projektägare och administratörer ser allas.
+
+Klicka på **Disconnect** (koppla från) för att logga ut en klient. Den slutar fungera omedelbart.
+
+En klient förblir ansluten så länge den används. En klient som inte har använts på 30 dagar måste logga in igen.
+
+### Styra vem som får ansluta klienter
+
+Som standard kan varje projektmedlem ansluta en MCP-klient. För att hindra medlemmarna i ett team från att göra det öppnar du teamet, går till **Blockera behörigheter** och lägger till behörigheten **Authorize MCP Client** (godkänna MCP-klient). Klienter som de medlemmarna redan har anslutit slutar fungera direkt.
+
+Om projektet kräver Single Sign-On loggar du in på projektet med SSO i din webbläsare innan du godkänner en klient. Klientens anslutning varar lika länge som den SSO-inloggningen; när den löper ut ansluter du klienten igen.
+
+På OneUptime Cloud är anslutning av en MCP-klient tillgänglig i samma planer som API-nycklar (Growth och högre).
+
+I Enterprise Edition registreras varje ändring som en ansluten klient gör i granskningsloggen under den person som anslöt klienten, tillsammans med klientens namn. Ändringar som görs med en API-nyckel visar nyckelns namn.
 
 ## Hämta din API-nyckel
+
+Använd en API-nyckel för en agent som körs obevakat – ett schemalagt jobb eller en CI-pipeline – där ingen finns på plats för att logga in.
 
 1. Logga in på din OneUptime-instans
 2. Navigera till **Projektinställningar** → **API-nycklar**
@@ -55,6 +94,53 @@ API-nycklar är projektbundna: MCP-servern härleder ditt projekt från nyckeln,
 > **Varning — ge aldrig en AI-agent en huvudnyckel.** En OneUptime-*huvudnyckel* (master-API-nyckel) accepteras också i detta huvud och ger administratörsåtkomst till hela instansen. Använd alltid en projekt-API-nyckel med de minsta behörigheter agenten behöver (en skrivskyddad nyckel räcker för alla `get_`-/`list_`-/`count_`-verktyg).
 
 ## Konfiguration
+
+### Ansluta genom att logga in
+
+Lägg till serverns URL i din klient utan autentiseringsuppgifter. Använd `https://your-oneuptime-domain.com/mcp` för en egeninstallerad instans.
+
+**Claude Code**
+
+```bash
+claude mcp add --transport http oneuptime https://oneuptime.com/mcp
+```
+
+Kör sedan `/mcp` i Claude Code och välj **oneuptime** för att logga in.
+
+**Claude (webb och skrivbord)**
+
+Öppna **Customize** → **Connectors**, välj **Add custom connector** och ange `https://oneuptime.com/mcp`. Claude ber dig logga in på OneUptime första gången den behöver dina data.
+
+**VS Code med GitHub Copilot**
+
+Lägg till detta i din MCP-konfiguration (se [VS Code med GitHub Copilot](#vs-code-med-github-copilot) för var den filen finns). VS Code öppnar OneUptime så att du kan logga in när du startar servern:
+
+```json
+{
+  "servers": {
+    "oneuptime": {
+      "type": "http",
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+
+**Cursor**
+
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+
+Alla andra klienter som stöder MCP-auktorisering fungerar på samma sätt: ge klienten URL:en så upptäcker den resten själv. Se [Inloggning (OAuth 2.1)](#inloggning-oauth-21) för protokolldetaljerna.
+
+Resten av detta avsnitt visar samma klienter konfigurerade med en API-nyckel istället.
 
 ### Claude Desktop-konfiguration
 
@@ -214,9 +300,20 @@ Konfigurationen ovan använder indatavariabler med `"password": true` för att p
 | `/mcp/health` | GET    | Hälsokontrollslutpunkt                                                                                                           |
 | `/mcp/tools`  | GET    | REST API för att lista tillgängliga verktyg                                                                                      |
 
+MCP-klienter som loggar in använder även OAuth-slutpunkterna nedan. En klient hittar dem själv; de listas här för den som skriver en klient eller konfigurerar en proxy.
+
+| Slutpunkt                                     | Metod  | Beskrivning |
+| --------------------------------------------- | ------ | ------------------------------------------------------------------------ |
+| `/mcp/.well-known/oauth-protected-resource`   | GET    | Metadata för skyddad resurs (RFC 9728). Finns även på `/.well-known/oauth-protected-resource/mcp` |
+| `/.well-known/oauth-authorization-server/mcp` | GET    | Metadata för auktoriseringsserver (RFC 8414). Finns även på `/mcp/.well-known/oauth-authorization-server` |
+| `/mcp/oauth/authorize`                        | GET    | Auktoriseringsslutpunkt: dit klienten skickar din webbläsare för att logga in |
+| `/mcp/oauth/token`                            | POST   | Tokenslutpunkt: växlar in en auktoriseringskod eller en uppdateringstoken |
+| `/mcp/oauth/register`                         | POST   | Dynamisk klientregistrering (RFC 7591) |
+| `/mcp/oauth/revoke`                           | POST   | Återkallande av token (RFC 7009) |
+
 ## Autentisering
 
-MCP-servern stöder två driftslägen:
+MCP-servern stöder tre driftslägen:
 
 ### Offentliga verktyg (ingen autentisering krävs)
 
@@ -231,14 +328,30 @@ Du kan ansluta till MCP-servern utan en API-nyckel för att komma åt offentliga
 
 Verktyg för offentliga statussidor accepterar antingen ett statussid-ID (UUID) eller statussidans domännamn.
 
-### Autentiserade verktyg (API-nyckel krävs)
+### Inloggning (OAuth 2.1)
 
-För alla andra operationer (hantering av monitorer, incidenter, team etc.) krävs autentisering via ett av följande huvuden:
+För alla andra operationer (hantering av monitorer, incidenter, team etc.) måste anroparen identifieras. En klient som inte skickar några autentiseringsuppgifter och anropar ett av dessa verktyg får `401 Unauthorized` till svar, tillsammans med ett `WWW-Authenticate`-huvud som pekar på serverns metadata för skyddad resurs. Det är den signal som en MCP-klient agerar på för att logga in dig; `initialize`, `tools/list` och de offentliga verktygen ber aldrig om det.
+
+Servern implementerar [MCP-auktoriseringsspecifikationen](https://modelcontextprotocol.io/specification/latest/basic/authorization):
+
+- **Flöde**: OAuth 2.1-auktoriseringskod med PKCE (endast `S256`). Åtkomsttoken skickas som `Authorization: Bearer`.
+- **Upptäckt**: metadata för skyddad resurs (RFC 9728) och metadata för auktoriseringsserver (RFC 8414). Utfärdaren och resursen är båda `https://<host>/mcp`.
+- **Klientidentitet**: ett Client ID Metadata Document (klient-ID:t är en `https`-URL som servern hämtar), eller dynamisk klientregistrering (Dynamic Client Registration, RFC 7591). Ingen klient behöver registreras av en administratör.
+- **Omfång (scopes)**: `mcp:read` för `get_`-, `list_`- och `count_`-verktygen; `mcp:write` lägger till alla verktyg som ändrar något, och inkluderar `mcp:read`. En token med endast läsåtkomst som anropar ett skrivverktyg får `403` och `error="insufficient_scope"` till svar.
+- **Tokenlivslängd**: en åtkomsttoken gäller i en timme. En uppdateringstoken (refresh token) gäller i 30 dagar och ersätts varje gång den används; att använda en uppdateringstoken som redan har ersatts avslutar anslutningen.
+- **Resursindikatorer** (RFC 8707): en token utfärdas för `https://<host>/mcp` och accepteras inte någon annanstans.
+- **Återkallande** (RFC 7009): om någon av de två token återkallas avslutas anslutningen.
+
+### API-nyckel
+
+En agent som körs obevakat autentiserar sig med en OneUptime API-nyckel i ett av följande huvuden:
 
 - `x-api-key`: Din OneUptime API-nyckel
 - `Authorization`: Bearer-token med din API-nyckel (t.ex. `Bearer your-api-key-here`)
 
-`Bearer`-schemat är skiftlägesokänsligt. Verktygsfel returneras som verktygsresultat i själva svaret (`isError: true`) med en `statusCode`, detaljer och ett förslag — inte som MCP-protokollfel — så att agenter kan läsa felet och korrigera sig själva.
+`Bearer`-schemat är skiftlägesokänsligt. En förfrågan som innehåller en API-nyckel ombeds aldrig att logga in.
+
+Verktygsfel returneras som verktygsresultat i själva svaret (`isError: true`) med en `statusCode`, detaljer och ett förslag — inte som MCP-protokollfel — så att agenter kan läsa felet och korrigera sig själva.
 
 ## Arbetsflödesverktyg
 
@@ -253,7 +366,7 @@ En typisk loop: `list_incidents` → `acknowledge_incident` → undersök med `l
 
 ## Vem är jag
 
-Verktyget **`oneuptime_whoami`** returnerar det projekt som din API-nyckel tillhör (ID och namn). Det är ett användbart första anrop för att en agent ska orientera sig — och eftersom skapa-verktyg härleder `projectId` från API-nyckeln behöver agenten aldrig skicka ett projekt-ID.
+Verktyget **`oneuptime_whoami`** returnerar det projekt som dina autentiseringsuppgifter tillhör (ID och namn). För en klient som har loggat in returnerar det även vem den är inloggad som och om den får göra ändringar. Det är ett användbart första anrop för att en agent ska orientera sig — och eftersom skapa-verktyg härleder `projectId` från autentiseringsuppgifterna behöver agenten aldrig skicka ett projekt-ID.
 
 ## Fråga efter telemetri
 
@@ -388,11 +501,32 @@ För full åtkomst för att skapa, uppdatera och ta bort resurser, se till att d
 - Övervaka användning: Håll koll på API-nyckelns användning i OneUptime
 - Separata nycklar: Använd olika API-nycklar för olika miljöer
 
+## Konfiguration för egeninstallerade instanser
+
+Inloggning fungerar direkt på en egeninstallerad instans, utan extra konfiguration. Två inställningar finns tillgängliga:
+
+| Miljövariabel | Helm-värde | Vad den gör |
+| --- | --- | --- |
+| `DISABLE_MCP_OAUTH` | `mcpOAuth.disabled` | Sätt till `true` för att stänga av inloggning. OAuth-slutpunkterna slutar att tillhandahållas och MCP-servern accepterar endast API-nycklar. Ingenting tas bort; anslutna klienter fungerar igen när inställningen slås tillbaka. |
+| `DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS` | `mcpOAuth.disableClientIdMetadataDocuments` | Sätt till `true` på en instans som inte kan nå internet. En klient kan identifiera sig med en URL som OneUptime hämtar; med den här inställningen registrerar sig klienterna istället direkt hos din instans, vilket inte kräver någon utgående förfrågan. |
+
+Om du kör en egen omvänd proxy framför OneUptime ska du vidarebefordra `/.well-known/oauth-protected-resource` och `/.well-known/oauth-authorization-server` (och allt under dem) till OneUptime tillsammans med `/mcp`. Den medföljande ingressen gör redan det.
+
+Servern bygger varje OAuth-URL utifrån inställningarna `HOST` och `HTTP_PROTOCOL`, så de måste stämma överens med den adress som användarna når din instans på.
+
 ## Felsökning
+
+### Inloggningsproblem
+
+- **Klienten ber mig aldrig att logga in**: klienten kanske inte stöder MCP-auktorisering, eller så är den konfigurerad med ett API-nyckelhuvud, som har företräde. Ta bort huvudet för att logga in istället.
+- **Mitt projekt är nedtonat på godkännandesidan**: sidan anger orsaken bredvid projektnamnet – projektets plan omfattar inte anslutning av MCP-klienter, projektet kräver SSO och den här webbläsaren har inte loggat in på det med SSO, eller så är ditt team blockerat från att ansluta klienter.
+- **Ett verktyg nekas med "read-only"**: klienten godkändes med endast läsåtkomst. Anslut den igen och välj **Läs- och skrivåtkomst**.
+- **Klienten slutade fungera**: den kopplades från, användes inte på 30 dagar, du togs bort från projektet eller så löpte projektets SSO-inloggning ut. Anslut den igen.
+- **Egeninstallerad – klienten rapporterar att den inte hittar auktoriseringsservern**: kontrollera att `HOST` och `HTTP_PROTOCOL` stämmer överens med din offentliga adress, och att din proxy vidarebefordrar `/.well-known/oauth-*`-sökvägarna.
 
 ### Behörighetsfel
 
-Se till att din API-nyckel har de nödvändiga behörigheterna:
+Se till att din API-nyckel – eller, för en klient som har loggat in, ditt eget konto – har de nödvändiga behörigheterna:
 
 - Läsåtkomst för att lista resurser
 - Skrivåtkomst för att skapa/uppdatera resurser

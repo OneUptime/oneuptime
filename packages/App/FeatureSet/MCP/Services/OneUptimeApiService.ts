@@ -6,6 +6,7 @@
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import { OneUptimeToolCallArgs } from "../Types/McpTypes";
+import McpCredentialUtil, { McpCredentialInput } from "../Types/McpCredential";
 import { generateAllFieldsSelect } from "./SelectFieldGenerator";
 import MCPLogger from "../Utils/MCPLogger";
 import API from "Common/Utils/API";
@@ -81,7 +82,11 @@ export default class OneUptimeApiService {
     modelType: ModelType,
     apiPath: string,
     args: OneUptimeToolCallArgs,
-    apiKey: string,
+    /*
+     * An API key (a bare string, as it has always been) or the credential of
+     * a client that signed in with OAuth. See Types/McpCredential.
+     */
+    credential: McpCredentialInput,
   ): Promise<JSONValue> {
     /*
      * `arguments` is optional in the MCP CallToolRequest — normalize here so
@@ -90,11 +95,11 @@ export default class OneUptimeApiService {
     args = args || {};
 
     this.validateInitialization();
-    this.validateApiKey(apiKey);
+    this.validateCredential(credential);
     this.validateOperationArgs(operation, args);
 
     const route: Route = this.buildApiRoute(apiPath, operation, args.id);
-    const headers: Headers = this.buildHeaders(apiKey);
+    const headers: Headers = this.buildHeaders(credential);
     const data: JSONObject | undefined = this.buildRequestData(
       operation,
       args,
@@ -134,13 +139,13 @@ export default class OneUptimeApiService {
     method: "POST" | "PUT" | "DELETE";
     path: string;
     body?: JSONObject | undefined;
-    apiKey: string;
+    credential: McpCredentialInput;
   }): Promise<JSONValue> {
     this.validateInitialization();
-    this.validateApiKey(data.apiKey);
+    this.validateCredential(data.credential);
 
     const route: Route = new Route(data.path);
-    const headers: Headers = this.buildHeaders(data.apiKey);
+    const headers: Headers = this.buildHeaders(data.credential);
     const url: URL = new URL(this.api.protocol, this.api.hostname, route);
     const options: { url: URL; headers: Headers; data?: JSONObject } = {
       url,
@@ -446,13 +451,15 @@ export default class OneUptimeApiService {
   }
 
   /**
-   * Build headers for API request
+   * Build headers for API request. An API key is forwarded as it came; an
+   * OAuth credential is presented as a freshly minted delegation token (see
+   * Types/McpCredential), never as the client's own access token.
    */
-  private static buildHeaders(apiKey: string): Headers {
+  private static buildHeaders(credential: McpCredentialInput): Headers {
     return {
       "Content-Type": "application/json",
       Accept: "application/json",
-      APIKey: apiKey,
+      ...McpCredentialUtil.getApiHeaders(credential),
     };
   }
 
@@ -468,10 +475,13 @@ export default class OneUptimeApiService {
   }
 
   /**
-   * Validate that an API key is provided
+   * Validate that the caller presented a credential: an API key, or an OAuth
+   * sign-in. The MCP endpoint normally refuses an unauthenticated call before
+   * it gets this far (OAuth/RequestGate); this is what such a call meets when
+   * OAuth is switched off, or when it arrives some other way.
    */
-  private static validateApiKey(apiKey: string): void {
-    if (!apiKey) {
+  private static validateCredential(credential: McpCredentialInput): void {
+    if (!McpCredentialUtil.isPresent(credential)) {
       throw new Error(
         "API key is required. Please provide x-api-key header in your request.",
       );

@@ -151,6 +151,51 @@ describe("Nostr identity route", () => {
   });
 });
 
+describe("MCP manifest route", () => {
+  /*
+   * What the manifest says is covered by AIDiscovery.test.ts. The route's own
+   * job is to exist, to answer cross-origin, and to tell the generator
+   * whether this instance has OAuth sign-in for the MCP server switched off:
+   * without that last part an instance running with DISABLE_MCP_OAUTH=true
+   * would still advertise a sign-in its MCP server refuses to offer.
+   */
+  test("the manifest is registered and served cross-origin", () => {
+    expect(hasGetRoute("/.well-known/mcp.json")).toBe(true);
+
+    const body: string = bodyOfGetRoute("/.well-known/mcp.json")!;
+
+    expect(body).toContain('res.setHeader("Access-Control-Allow-Origin", "*")');
+    expect(body).toContain("generateMcpManifest(");
+  });
+
+  test("the manifest is told whether OAuth sign-in is switched off on this instance", () => {
+    const body: string = bodyOfGetRoute("/.well-known/mcp.json")!;
+
+    // Enabled unless the kill switch says otherwise - never the other way round.
+    expect(body).toContain("isOAuthEnabled: !DisableMcpOAuth");
+    expect(body).not.toContain("isOAuthEnabled: DisableMcpOAuth");
+  });
+
+  test("the kill switch is the instance's own setting, read from the environment config", () => {
+    const environmentImport: RegExpMatchArray | null = routesSource.match(
+      /import\s*\{([^}]*)\}\s*from\s*"Common\/Server\/EnvironmentConfig";/,
+    );
+
+    expect(environmentImport).not.toBeNull();
+    expect(
+      environmentImport![1]!.split(",").map((name: string): string => {
+        return name.trim();
+      }),
+    ).toContain("DisableMcpOAuth");
+  });
+
+  test("the manifest is still built for the URL the visitor asked on", () => {
+    const body: string = bodyOfGetRoute("/.well-known/mcp.json")!;
+
+    expect(body).toContain('res.locals["homeUrl"] as string');
+  });
+});
+
 describe("Sitemap hygiene", () => {
   test("every redirect-only path is excluded from the sitemap", () => {
     for (const routePath of [

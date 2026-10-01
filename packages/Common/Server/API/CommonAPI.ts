@@ -391,6 +391,25 @@ export default class CommonAPI {
       props.userTeamIds = (req as OneUptimeRequest).userTeamIds;
     }
 
+    // Which credential made the request; read only by the audit trail.
+    if ((req as OneUptimeRequest).apiKeyId) {
+      props.apiKeyId = (req as OneUptimeRequest).apiKeyId;
+    }
+
+    if ((req as OneUptimeRequest).apiKeyName) {
+      props.apiKeyName = (req as OneUptimeRequest).apiKeyName;
+    }
+
+    if ((req as OneUptimeRequest).mcpOAuth) {
+      props.mcpOAuthGrantId = (req as OneUptimeRequest).mcpOAuth!.grantId;
+      props.mcpClientName = (req as OneUptimeRequest).mcpOAuth!.clientName;
+
+      // Not audit-only: a read-only client's writes are refused (see props).
+      if ((req as OneUptimeRequest).mcpOAuth!.isReadOnly) {
+        props.isReadOnlyCredential = true;
+      }
+    }
+
     if ((req as OneUptimeRequest).tenantId) {
       props.tenantId = (req as OneUptimeRequest).tenantId || undefined;
     }

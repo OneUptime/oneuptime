@@ -72,7 +72,11 @@ import {
   getGitHubCommitsCount,
   formatCount,
 } from "./Jobs/FetchGitHubStats";
-import { Host, GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
+import {
+  DisableMcpOAuth,
+  Host,
+  GoogleTagManagerEnabled,
+} from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
 // Helper to get SEO data and merge with homeUrl for templates
@@ -206,7 +210,11 @@ const HomeFeatureSet: FeatureSet = {
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader("Cache-Control", "public, max-age=600");
         res.setHeader("Access-Control-Allow-Origin", "*");
-        res.json(generateMcpManifest(res.locals["homeUrl"] as string));
+        res.json(
+          generateMcpManifest(res.locals["homeUrl"] as string, {
+            isOAuthEnabled: !DisableMcpOAuth,
+          }),
+        );
       },
     );
 
