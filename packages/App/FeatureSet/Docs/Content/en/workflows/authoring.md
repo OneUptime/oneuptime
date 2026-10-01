@@ -26,7 +26,7 @@ Changes save automatically. A pill in the toolbar tracks it: **Saving…** while
 | Field                         | What it does                                                                                                                                                                                                |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Identifier** (under **ID**) | The short id shown on the block, like `log-1`. This is how other blocks refer to this one, so renaming it breaks every `{{local.components.…}}` reference pointing at it. The block's heading is the component's own name and can't be changed. |
-| **Settings**                  | What the block needs to do its job — a URL, a Slack channel, a message body. Optional fields are labelled **(Optional)**; everything else is required. Less-used settings sit behind an **Advanced** disclosure. |
+| **Settings**                  | What the block needs to do its job — a URL, a Slack channel, a message body. Optional fields are labelled **(Optional)**; everything else is required. An on/off switch carries neither, because it always holds a value. Less-used settings sit behind an **Advanced** disclosure. |
 | **Input**                     | The dot on the top edge, where lines come in from earlier blocks. Triggers don't have one — nothing runs before them.                                                                                       |
 | **Outputs**                   | The dots along the bottom edge, labelled just above them, where lines go out to the next blocks. Many blocks have separate **Success** and **Error** outputs so you can handle both cases.                  |
 
@@ -42,7 +42,7 @@ You can connect one output to several blocks. All of them run — but one after 
 
 ## Configuring a block
 
-Click a block to open its settings in a dialog. Each setting has the right kind of input. Anything you write in words — a message, a prompt, a value to log — gets a box that grows as you type, and **Enter** starts a new line. Short values such as a URL, an ID or a subject line stay on one line. Code and HTML get a code editor, JSON a JSON editor, and on/off settings a toggle. Fill it in and click **Save**.
+Click a block to open its settings in a dialog. Each setting has the right kind of input. Anything you write in words — a message, a prompt, a value to log — gets a box that grows as you type, and **Enter** starts a new line. Short values such as a URL, an ID or a subject line stay on one line. Code and HTML get a code editor, JSON a JSON editor, and on/off settings a switch with its name beside it: click the switch or its name to turn it on or off. Fill it in and click **Save**.
 
 The dialog opens on what you most likely came for. For a **Webhook** trigger that is its URL, with a **Copy URL** button, the methods it accepts and an example request. For a **Manual** trigger it is how the workflow gets started. Every other block opens on its settings. A block with no settings has no **Settings** section at all.
 

@@ -413,3 +413,232 @@ describe("the switch in the dark theme", () => {
     }
   });
 });
+
+/*
+ * Every colour class the switch is drawn with, held to what Theme.css
+ * re-colours. The dark theme is class remaps, not dark: variants: a class
+ * with no rule keeps its light colour - a white knob on a white card - and
+ * nothing fails. Both modules that draw a switch are read: the Toggle, and
+ * the session replay's transport-row switch, which borrows its dark rules.
+ */
+describe("the switch's colour classes in the dark theme", () => {
+  const UI_DIR: string = path.join(__dirname, "..", "..", "..", "UI");
+  const REPOSITORY_ROOT: string = path.join(UI_DIR, "..", "..", "..");
+
+  const TOGGLE_FILE: string = path.join(
+    UI_DIR,
+    "Components",
+    "Toggle",
+    "Toggle.tsx",
+  );
+
+  const REPLAY_UI_FILE: string = path.join(
+    REPOSITORY_ROOT,
+    "packages",
+    "App",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    "Components",
+    "SessionReplay",
+    "ReplayUi.tsx",
+  );
+
+  /*
+   * The code that draws a switch: the whole Toggle module, and only the
+   * ReplaySwitch component out of the replay's control kit, from its
+   * declaration to the next export.
+   */
+  function switchCode(file: string): string {
+    const code: string = fs.readFileSync(file, "utf8");
+
+    if (file !== REPLAY_UI_FILE) {
+      return code;
+    }
+
+    const start: number = code.indexOf("export const ReplaySwitch");
+    const end: number = code.indexOf("\nexport ", start + 1);
+
+    if (start === -1) {
+      throw new Error("ReplayUi.tsx no longer declares ReplaySwitch");
+    }
+
+    return code.slice(start, end === -1 ? undefined : end);
+  }
+
+  const FILES: Array<string> = [TOGGLE_FILE, REPLAY_UI_FILE];
+
+  /*
+   * text-red-400 is every form field's error colour (Input, TextArea,
+   * Dropdown): 5.9:1 on a dark card, so it needs no rule of its own.
+   */
+  const SAME_IN_BOTH_THEMES: Array<string> = ["text-red-400"];
+
+  // Block comments only: prose in Theme.css must not count as a rule.
+  const THEME_CSS: string = fs
+    .readFileSync(path.join(UI_DIR, "Styles", "Theme.css"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, " ");
+
+  const COLOR_UTILITY: RegExp =
+    /^(?:bg|text|border|ring|divide|from|via|to|outline|fill|stroke)-(?:white|black|(?:gray|slate|red|amber|yellow|emerald|green|sky|blue|indigo|orange|rose|purple|pink|teal|cyan|lime|violet|fuchsia|zinc|neutral|stone)-\d{2,3})(?:\/\d+)?$/;
+
+  /*
+   * A mid-tone hue (a 500 or 600) reads alike in both themes, and Theme.css
+   * leaves most of them alone. Greys do not: they are always re-coloured.
+   */
+  const SOLID: RegExp =
+    /^(?:bg|text|border|ring)-(?!(?:gray|slate|zinc|neutral|stone)-)[a-z]+-(?:500|600)$/;
+
+  const IDENTIFIER_CHAR: RegExp = /[\w-]/;
+
+  // Interaction variants Theme.css remaps by prefix: [class*="hover:text-indigo-"].
+  const SUBSTRING_VARIANTS: Array<string> = Array.from(
+    THEME_CSS.matchAll(/\[class\*="([^"]+)"\]/g),
+    (match: RegExpMatchArray): string => {
+      return match[1]!;
+    },
+  ).filter((prefix: string): boolean => {
+    return prefix.includes(":");
+  });
+
+  function utilityOf(token: string): string {
+    let depth: number = 0;
+    let lastColon: number = -1;
+
+    for (let i: number = 0; i < token.length; i++) {
+      const character: string = token.charAt(i);
+
+      if (character === "[") {
+        depth++;
+      } else if (character === "]") {
+        depth--;
+      } else if (character === ":" && depth === 0) {
+        lastColon = i;
+      }
+    }
+
+    return token.slice(lastColon + 1);
+  }
+
+  function isRemapped(token: string): boolean {
+    if (SOLID.test(utilityOf(token))) {
+      return true;
+    }
+
+    if (THEME_CSS.includes(`[class~="${token}"]`)) {
+      return true;
+    }
+
+    if (
+      SUBSTRING_VARIANTS.some((prefix: string): boolean => {
+        return token.startsWith(prefix);
+      })
+    ) {
+      return true;
+    }
+
+    const escapedClass: string = token
+      .replace(/\\/g, "\\\\")
+      .replace(/:/g, "\\:")
+      .replace(/\//g, "\\/");
+    let from: number = THEME_CSS.indexOf(`.${escapedClass}`);
+
+    while (from !== -1) {
+      const next: string =
+        THEME_CSS.charAt(from + escapedClass.length + 1) || " ";
+
+      // So bg-gray-50 is not taken for bg-gray-500.
+      if (!IDENTIFIER_CHAR.test(next)) {
+        return true;
+      }
+
+      from = THEME_CSS.indexOf(`.${escapedClass}`, from + 1);
+    }
+
+    return false;
+  }
+
+  function colourTokens(file: string): Array<string> {
+    const code: string = switchCode(file)
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/\/\/.*$/gm, " ");
+    const texts: Array<string> = [];
+
+    // Every quoted string, including the branches inside a template's ${}.
+    for (const match of code.matchAll(/"([^"\n]*)"/g)) {
+      texts.push(match[1] ?? "");
+    }
+
+    // And every template's own text, its substitutions left out.
+    for (const match of code.matchAll(/`([^`]*)`/g)) {
+      texts.push((match[1] ?? "").replace(/\$\{[^}]*\}/g, " "));
+    }
+
+    const found: Array<string> = [];
+
+    for (const text of texts) {
+      for (const token of text.split(/\s+/)) {
+        if (token && COLOR_UTILITY.test(utilityOf(token))) {
+          found.push(token);
+        }
+      }
+    }
+
+    return Array.from(new Set(found));
+  }
+
+  test("neither switch uses dark: variants", () => {
+    for (const file of FILES) {
+      expect({
+        file: path.basename(file),
+        usesDarkVariant: switchCode(file).includes("dark:"),
+      }).toEqual({ file: path.basename(file), usesDarkVariant: false });
+    }
+  });
+
+  test("the replay's switch is drawn with the Toggle's colours", () => {
+    expect(colourTokens(REPLAY_UI_FILE)).toEqual(
+      expect.arrayContaining([
+        "border-gray-500",
+        "bg-white",
+        "bg-gray-500",
+        "border-indigo-600",
+        "bg-indigo-600",
+      ]),
+    );
+    expect(switchCode(REPLAY_UI_FILE)).toContain("data-ou-toggle-track");
+    expect(switchCode(REPLAY_UI_FILE)).toContain("data-ou-toggle-knob");
+    expect(colourTokens(REPLAY_UI_FILE)).not.toContain("bg-gray-300");
+  });
+
+  test("every colour class the switch uses is re-coloured for the dark theme", () => {
+    const toggleTokens: Array<string> = colourTokens(TOGGLE_FILE);
+
+    // The scan found the switch's colours, so a pass is not vacuous.
+    expect(toggleTokens).toEqual(
+      expect.arrayContaining([
+        "border-gray-500",
+        "bg-white",
+        "bg-gray-500",
+        "hover:border-gray-700",
+        "bg-indigo-600",
+        "border-indigo-600",
+        "hover:bg-indigo-700",
+        "hover:border-indigo-700",
+        "text-indigo-600",
+        "focus-visible:ring-indigo-600",
+        "text-gray-900",
+        "text-gray-500",
+        "text-gray-400",
+      ]),
+    );
+
+    const unmapped: Array<string> = FILES.flatMap(colourTokens).filter(
+      (token: string): boolean => {
+        return !isRemapped(token) && !SAME_IN_BOTH_THEMES.includes(token);
+      },
+    );
+
+    expect(unmapped).toEqual([]);
+  });
+});
