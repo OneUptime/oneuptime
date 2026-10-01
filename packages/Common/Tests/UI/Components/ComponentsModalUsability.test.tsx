@@ -226,10 +226,14 @@ describe("the search box", () => {
     renderPicker({ onCloseModal });
 
     await user.type(searchBox(), "update monitor");
+    await settled();
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+
     await user.keyboard("{Escape}");
 
     expect(searchBox()).toHaveValue("");
     expect(searchBox()).toHaveFocus();
+    await settled();
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     expect(onCloseModal).not.toHaveBeenCalled();
   });
