@@ -186,7 +186,7 @@ export default class FixPerformanceTaskTrigger {
 
     if (!hasConnectedRepository) {
       throw new BadDataException(
-        "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one under AI > Code Repositories.",
+        "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one under Tasks > Code Repositories.",
       );
     }
 

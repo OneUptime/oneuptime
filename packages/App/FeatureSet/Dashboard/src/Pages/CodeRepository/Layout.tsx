@@ -1,7 +1,7 @@
 import { getCodeRepositoryBreadcrumbs } from "../../Utils/Breadcrumbs";
 import { RouteUtil } from "../../Utils/RouteMap";
 import LayoutPageComponentProps from "../LayoutPageComponentProps";
-import SideMenu from "./SideMenu";
+import CodeSideMenu from "../../Components/Code/CodeSideMenu";
 import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -14,7 +14,7 @@ const CodeRepositoryLayout: FunctionComponent<LayoutPageComponentProps> = (
   return (
     <Page
       title={"Code Repositories"}
-      sideMenu={<SideMenu />}
+      sideMenu={<CodeSideMenu />}
       breadcrumbLinks={getCodeRepositoryBreadcrumbs(path)}
     >
       <Outlet />

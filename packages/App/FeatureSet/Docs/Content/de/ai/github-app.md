@@ -14,7 +14,7 @@ Erwähnen Sie sie in einem Issue, und sie öffnet einen Pull Request. Erwähnen 
 
 ## Bevor Sie beginnen
 
-- Das Repository muss über die GitHub App **mit einem OneUptime-Projekt verbunden** sein. Die Einrichtung beschreibt [GitHub-Integration (selbst gehostet)](/docs/self-hosted/github-integration); in OneUptime Cloud verbinden Sie es unter **Projekteinstellungen → Code-Repositories**.
+- Das Repository muss über die GitHub App **mit einem OneUptime-Projekt verbunden** sein. Die Einrichtung beschreibt [GitHub-Integration (selbst gehostet)](/docs/self-hosted/github-integration); in OneUptime Cloud verbinden Sie es unter **Aufgaben → Code-Repositories**.
 - Ein **Runner mit der Fähigkeit „Führt KI-Codekorrekturen aus"** muss online sein — derselbe Runner, der auch [KI-Korrekturaufgaben](/docs/ai/ai-agent) ausführt. Ohne ihn werden Befehle zwar angenommen, scheitern aber nach 30 Minuten mit dem Hinweis, dass kein Agent sie aufgenommen hat.
 - Die GitHub App braucht die Berechtigung **Issues: Lesen & Schreiben** und muss die Webhook-Ereignisse abonniert haben, die unter [Was Sie abonnieren müssen](#was-sie-abonnieren-müssen) aufgeführt sind.
 
@@ -129,7 +129,7 @@ Behandeln Sie einen von der KI verfassten Pull Request so, wie Sie einen von ein
 
 ## Fehlerbehebung
 
-**Es passiert nichts, wenn ich sie erwähne.** Prüfen Sie zuerst das Handle — es ist der Slug der App, nicht ihr Anzeigename. Prüfen Sie dann, ob das Repository mit einem Projekt verbunden ist (**Projekteinstellungen → Code-Repositories**), ob **Auf GitHub-Befehle reagieren** eingeschaltet ist und ob Ihre GitHub App die oben genannten Ereignisse abonniert hat.
+**Es passiert nichts, wenn ich sie erwähne.** Prüfen Sie zuerst das Handle — es ist der Slug der App, nicht ihr Anzeigename. Prüfen Sie dann, ob das Repository mit einem Projekt verbunden ist (**Aufgaben → Code-Repositories**), ob **Auf GitHub-Befehle reagieren** eingeschaltet ist und ob Ihre GitHub App die oben genannten Ereignisse abonniert hat.
 
 **Sie reagiert mit 😕 und sagt nichts.** Sie haben keinen Schreibzugriff auf das Repository.
 

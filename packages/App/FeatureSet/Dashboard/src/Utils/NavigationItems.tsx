@@ -26,6 +26,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
   const essentialsCategory: string = t("navbar.categories.essentials");
   const observabilityCategory: string = t("navbar.categories.observability");
   const aiCategory: string = t("navbar.categories.ai", "AI");
+  const codeCategory: string = t("navbar.categories.code", "Code");
   const resourcesCategory: string = t("navbar.categories.resources");
   const infrastructureCategory: string = t(
     "navbar.categories.infrastructure",
@@ -320,26 +321,6 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: aiCategory,
     },
     {
-      title: t("navbar.items.aiAgentsTitle", "Tasks"),
-      keywords: [
-        "ai agents",
-        "agent tasks",
-        "automated fixes",
-        "fix pull requests",
-      ],
-      description: t(
-        "navbar.items.aiAgentsDescription",
-        "Automated AI tasks — fix pull requests and their status.",
-      ),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.AI_AGENT_TASKS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.AI_AGENT_TASKS],
-      icon: IconProp.CPUChip,
-      iconColor: "violet",
-      category: aiCategory,
-    },
-    {
       title: t("navbar.items.sentinelInsightsTitle", "Insights"),
       keywords: [
         "sentinel",
@@ -360,20 +341,41 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       iconColor: "violet",
       category: aiCategory,
     },
+    /*
+     * Code — the AI's work in your source code. One item, not a Tasks item
+     * and a Code Repositories item: every task runs in a connected
+     * repository, and a repository is only there so tasks have somewhere to
+     * open pull requests. So Tasks is the product and Code Repositories is a
+     * page in its side menu (as Network holds devices and sites), and the
+     * item stays lit on both.
+     */
     {
-      title: t("navbar.items.codeRepositoriesTitle"),
-      keywords: ["git", "github", "source code", "repos", "pull requests"],
+      title: t("navbar.items.aiAgentsTitle", "Tasks"),
+      keywords: [
+        "ai agents",
+        "agent tasks",
+        "automated fixes",
+        "fix pull requests",
+        "pull requests",
+        "code repositories",
+        "repositories",
+        "repos",
+        "git",
+        "github",
+        "source code",
+      ],
       description: t(
-        "navbar.items.codeRepositoriesDescription",
-        "Connect GitHub so AI can open fix PRs.",
+        "navbar.items.aiAgentsDescription",
+        "AI opens pull requests that fix your code. Connect GitHub here.",
       ),
       route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.CODE_REPOSITORY] as Route,
+        RouteMap[PageMap.AI_AGENT_TASKS] as Route,
       ),
-      activeRoute: RouteMap[PageMap.CODE_REPOSITORY],
-      icon: IconProp.Code,
+      activeRoute: RouteMap[PageMap.AI_AGENT_TASKS],
+      additionalActiveRoutes: [RouteMap[PageMap.CODE_REPOSITORY] as Route],
+      icon: IconProp.CPUChip,
       iconColor: "violet",
-      category: aiCategory,
+      category: codeCategory,
     },
     // Resources — the catalogs that span every kind of infrastructure
     {

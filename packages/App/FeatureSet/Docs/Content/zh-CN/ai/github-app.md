@@ -14,7 +14,7 @@ OneUptime GitHub App 不只是一条通往代码的连接——您可以在自�
 
 ## 开始之前
 
-- 仓库必须通过 GitHub App **连接到某个 OneUptime 项目**。安装步骤参见 [GitHub 集成（自托管）](/docs/self-hosted/github-integration)；在 OneUptime Cloud 上，从 **项目设置 → 代码仓库** 连接即可。
+- 仓库必须通过 GitHub App **连接到某个 OneUptime 项目**。安装步骤参见 [GitHub 集成（自托管）](/docs/self-hosted/github-integration)；在 OneUptime Cloud 上，从 **任务 → 代码仓库** 连接即可。
 - 必须有一个启用了 **执行 AI 代码修复** 能力的 Runner 在线——就是执行 [AI 修复任务](/docs/ai/ai-agent)的那个 Runner。没有它，命令会被接受，然后在 30 分钟后失败，并提示没有任何代理接手。
 - GitHub App 必须具备 **Issues：读写** 权限，并订阅[需要订阅哪些事件](#需要订阅哪些事件)中列出的 Webhook 事件。
 
@@ -129,7 +129,7 @@ Issue 文本、Pull Request 描述、diff 和评论都会成为代理提示词�
 
 ## 故障排查
 
-**我提及它，什么都没发生。** 先检查 handle——它是应用的 slug，不是显示名称。然后检查仓库是否已连接到某个项目（**项目设置 → 代码仓库**）、**Respond to GitHub Commands** 是否开启，以及您的 GitHub App 是否订阅了上面列出的事件。
+**我提及它，什么都没发生。** 先检查 handle——它是应用的 slug，不是显示名称。然后检查仓库是否已连接到某个项目（**任务 → 代码仓库**）、**Respond to GitHub Commands** 是否开启，以及您的 GitHub App 是否订阅了上面列出的事件。
 
 **它回了个 😕，什么也没说。** 您对该仓库没有写入权限。
 

@@ -14,7 +14,7 @@ Nævn den i et issue, og den åbner en pull request. Nævn den i en pull request
 
 ## Før du går i gang
 
-- Repositoryet skal være **forbundet til et OneUptime-projekt** gennem GitHub Appen. Se [GitHub-integration (selvhostet)](/docs/self-hosted/github-integration) for opsætningen, eller forbind det fra **Projektindstillinger → Kode-repositorier** på OneUptime Cloud.
+- Repositoryet skal være **forbundet til et OneUptime-projekt** gennem GitHub Appen. Se [GitHub-integration (selvhostet)](/docs/self-hosted/github-integration) for opsætningen, eller forbind det fra **Opgaver → Kode-repositorier** på OneUptime Cloud.
 - En **Runbook-agent med egenskaben "Kører AI-koderettelser"** skal være online — den samme agent, der udfører [AI-rettelsesopgaver](/docs/ai/ai-agent). Uden en bliver kommandoer taget imod og fejler så efter 30 minutter med en besked om, at ingen agent tog dem op.
 - GitHub Appen skal have tilladelsen **Issues: Læs og skriv** og abonnere på de webhook-hændelser, der står under [Hvad du skal abonnere på](#hvad-du-skal-abonnere-på).
 
@@ -129,7 +129,7 @@ Behandl en AI-skrevet pull request, som du ville behandle en fra en ny bidragyde
 
 ## Fejlfinding
 
-**Der sker ingenting, når jeg nævner den.** Tjek først navnet, du nævner — det er appens slug, ikke dens visningsnavn. Tjek derefter, at repositoryet er forbundet til et projekt (**Projektindstillinger → Kode-repositorier**), at **Svar på GitHub-kommandoer** er slået til, og at din GitHub App abonnerer på hændelserne ovenfor.
+**Der sker ingenting, når jeg nævner den.** Tjek først navnet, du nævner — det er appens slug, ikke dens visningsnavn. Tjek derefter, at repositoryet er forbundet til et projekt (**Opgaver → Kode-repositorier**), at **Svar på GitHub-kommandoer** er slået til, og at din GitHub App abonnerer på hændelserne ovenfor.
 
 **Den reagerer 😕 og siger ikke noget.** Du har ikke skriveadgang til repositoryet.
 
