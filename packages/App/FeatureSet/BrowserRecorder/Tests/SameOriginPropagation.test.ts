@@ -1,4 +1,6 @@
 import {
+  SESSION_REPLAY_FLUSH_INTERVAL_MS,
+  SESSION_REPLAY_IDLE_ROLLOVER_MS,
   SessionReplayChunkEnvelope,
   SessionReplayConfigResponse,
 } from "Common/Types/Rum/SessionReplay";
@@ -411,6 +413,49 @@ describe("same-origin propagation through the Recorder", (): void => {
     await window.fetch("/api/unsampled");
 
     expect(pageCalls()[1]?.[1]).toBeUndefined();
+  });
+
+  /*
+   * #4207: once the idle rollover has ended the session, a background poll
+   * on the abandoned tab is no part of any recording - and the id it would
+   * carry belongs to a session that ended at the user's last activity. The
+   * user's return starts the next session, and the requests carry that.
+   */
+  it("sends nothing from a tab whose session ended idle, and the next session once the user is back", async (): Promise<void> => {
+    jest.useFakeTimers();
+
+    try {
+      const instance: Recorder = startRecorder();
+      const firstSessionId: string = instance.getSessionId();
+
+      await window.fetch("/api/before-idle");
+
+      expect(sidOf(0)).toBe(firstSessionId);
+
+      jest.advanceTimersByTime(
+        SESSION_REPLAY_IDLE_ROLLOVER_MS + SESSION_REPLAY_FLUSH_INTERVAL_MS,
+      );
+
+      await window.fetch("/api/background-poll");
+
+      expect(pageCalls()[1]?.[1]).toBeUndefined();
+      expect(instance.getSessionId()).toBe(firstSessionId);
+
+      document.body.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, clientX: 5, clientY: 5 }),
+      );
+      jest.advanceTimersByTime(0);
+
+      const secondSessionId: string = instance.getSessionId();
+
+      expect(secondSessionId).not.toBe(firstSessionId);
+
+      await window.fetch("/api/after-return");
+
+      expect(sidOf(2)).toBe(secondSessionId);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("never puts the visitor id in any header", async (): Promise<void> => {

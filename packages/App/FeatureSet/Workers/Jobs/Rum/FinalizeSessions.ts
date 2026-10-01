@@ -20,6 +20,7 @@ import {
   SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS,
   SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS,
   SESSION_REPLAY_IDLE_FINALIZE_MS,
+  SESSION_REPLAY_IDLE_ROLLOVER_MS,
   SESSION_REPLAY_MAX_SESSION_MS,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
@@ -443,6 +444,12 @@ export interface TabChunkAggregate {
    */
   firstChunkStartUnixMs: number;
 
+  /*
+   * Where this tab's recording ended - its last chunk's end, except an empty
+   * seal sent a whole idle window after the footage, which ends it where
+   * the footage did (see resolveTabRecordingEndUnixMs). The session's
+   * endTime and duration are the latest of these.
+   */
   lastChunkEndUnixMs: number;
   maxChunkEndOffsetMs: number;
   schemaVersion: number;
@@ -922,6 +929,15 @@ export function buildTabAggregateStatement(data: {
       max(version) AS lastChunkStoredAtUnixMs,
       toUnixTimestamp64Milli(min(sessionStartTime)) AS sessionStartUnixMs,
       toUnixTimestamp64Milli(max(chunkEndTime)) AS lastChunkEndUnixMs,
+      /*
+       * Where the tab's FOOTAGE ended, as opposed to its last chunk: the
+       * last chunk is often an empty seal (eventCount 0), which carries an
+       * end time and nothing to play. resolveTabRecordingEndUnixMs reads
+       * the two together. countIf guards maxIf over no rows, which is the
+       * epoch rather than "none".
+       */
+      toUnixTimestamp64Milli(maxIf(chunkEndTime, eventCount > 0)) AS lastFootageEndUnixMs,
+      countIf(eventCount > 0) AS footageChunkCount,
       max(chunkEndOffsetMs) AS maxChunkEndOffsetMs,
       max(schemaVersion) AS schemaVersion,
       any(recorderKind) AS recorderKind,
@@ -1161,7 +1177,55 @@ export function buildSessionTraceIdStatement(data: {
   return statement;
 }
 
+/*
+ * When a tab's recording really ended: its last chunk's end - unless that
+ * chunk is an empty seal sent a whole idle window after the last footage.
+ *
+ * A seal that late is not the user doing anything. It is a recorder that
+ * learned the user had left only once the idle window ran out, and dated
+ * its seal THEN: browser recorders before #4207's fix did so on every tab
+ * left open with nobody at it, and a tab still running one keeps doing it
+ * until it is reloaded. Taken at its word, the seal stretched each of
+ * those sessions by the whole window - listed as "30m 00s" while the
+ * player ended after under a second. Nothing can be recorded across an
+ * idle window without the session ending (the recorder rotates on it), so
+ * the tab ended where its footage did.
+ *
+ * Only an EMPTY trailing chunk is ever moved: footage dates itself, and a
+ * seal inside the window (a page closed after someone read it without
+ * touching anything) is the real end of a visible page. With no footage at
+ * all there is nothing to move it back to, and the chunk end stands.
+ */
+export function resolveTabRecordingEndUnixMs(data: {
+  lastChunkEndUnixMs: number;
+  lastFootageEndUnixMs: number;
+  footageChunkCount: number;
+}): number {
+  if (data.footageChunkCount <= 0 || data.lastFootageEndUnixMs <= 0) {
+    return data.lastChunkEndUnixMs;
+  }
+
+  if (
+    data.lastChunkEndUnixMs - data.lastFootageEndUnixMs >=
+    SESSION_REPLAY_IDLE_ROLLOVER_MS
+  ) {
+    return data.lastFootageEndUnixMs;
+  }
+
+  return data.lastChunkEndUnixMs;
+}
+
 export function parseTabAggregateRow(row: JSONObject): TabChunkAggregate {
+  /*
+   * A row from before these columns existed (and the fixtures that stand
+   * in for the query) simply has no footage facts, and keeps its chunk end.
+   */
+  const lastChunkEndUnixMs: number = resolveTabRecordingEndUnixMs({
+    lastChunkEndUnixMs: toNumberValue(row["lastChunkEndUnixMs"]),
+    lastFootageEndUnixMs: toNumberValue(row["lastFootageEndUnixMs"]),
+    footageChunkCount: toNumberValue(row["footageChunkCount"]),
+  });
+
   return {
     tabId: toTextValue(row["tabId"]),
     chunkCount: toNumberValue(row["chunkCount"]),
@@ -1195,7 +1259,7 @@ export function parseTabAggregateRow(row: JSONObject): TabChunkAggregate {
     lastChunkStoredAtUnixMs: toNumberValue(row["lastChunkStoredAtUnixMs"]),
     sessionStartUnixMs: toNumberValue(row["sessionStartUnixMs"]),
     firstChunkStartUnixMs: toNumberValue(row["firstChunkStartUnixMs"]),
-    lastChunkEndUnixMs: toNumberValue(row["lastChunkEndUnixMs"]),
+    lastChunkEndUnixMs: lastChunkEndUnixMs,
     maxChunkEndOffsetMs: toNumberValue(row["maxChunkEndOffsetMs"]),
     schemaVersion: toNumberValue(row["schemaVersion"]),
     recorderKind: toTextValue(row["recorderKind"]),
