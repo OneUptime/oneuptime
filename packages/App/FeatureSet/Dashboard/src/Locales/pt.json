@@ -6825,5 +6825,22 @@
   "The log could not be copied. Download it instead.": "Não foi possível copiar o log. Baixe-o em vez disso.",
   "Download log": "Baixar log",
   "Download run as JSON": "Baixar execução como JSON",
-  "This run could not be downloaded. Try again.": "Não foi possível baixar esta execução. Tente novamente."
+  "This run could not be downloaded. Try again.": "Não foi possível baixar esta execução. Tente novamente.",
+  "Email address": "Endereço de e-mail",
+  "Send an email to this address to start the workflow.": "Envie um e-mail para este endereço para iniciar o fluxo de trabalho.",
+  "Copy address": "Copiar endereço",
+  "Copy the email address": "Copiar o endereço de e-mail",
+  "Show the full address": "Mostrar o endereço completo",
+  "Anyone with this address can start the workflow, so keep it private.": "Qualquer pessoa com este endereço pode iniciar o fluxo de trabalho, então mantenha-o privado.",
+  "If the address leaks, reset it.": "Se o endereço vazar, redefina-o.",
+  "Reset address": "Redefinir endereço",
+  "Reset the email address?": "Redefinir o endereço de e-mail?",
+  "The workflow gets a new address, and the current one stops working at once. Email sent to the current address will be ignored, so give the new one to everything that emails the workflow.": "O fluxo de trabalho recebe um novo endereço, e o atual para de funcionar imediatamente. Os e-mails enviados ao endereço atual serão ignorados, então forneça o novo a tudo o que envia e-mails ao fluxo de trabalho.",
+  "Address reset. The old one no longer works, so give this one to anything that should email the workflow.": "Endereço redefinido. O antigo não funciona mais, então forneça este a tudo o que deve enviar e-mails ao fluxo de trabalho.",
+  "Creating this workflow's email address...": "Criando o endereço de e-mail deste fluxo de trabalho...",
+  "This workflow does not have an email address yet.": "Este fluxo de trabalho ainda não tem um endereço de e-mail.",
+  "Create address": "Criar endereço",
+  "The email address contains this workflow's secret key, so only people who can edit this workflow can see it. Ask one of them for it.": "O endereço de e-mail contém a chave secreta deste fluxo de trabalho, então só quem pode editar este fluxo de trabalho consegue vê-lo. Peça-o a uma dessas pessoas.",
+  "This OneUptime server is not set up to receive email, so this workflow has no address yet. Ask your OneUptime administrator to set up inbound email.": "Este servidor OneUptime não está configurado para receber e-mails, então este fluxo de trabalho ainda não tem endereço. Peça ao administrador do OneUptime para configurar o recebimento de e-mails.",
+  "How to set up inbound email": "Como configurar o recebimento de e-mails"
 }

@@ -59,6 +59,19 @@ export interface ComponentProps {
    * URL. Takes effect at once, whether or not this dialog is then saved.
    */
   onResetWebhookSecretKey?: (() => Promise<void>) | undefined;
+  /*
+   * The Incoming Email trigger's address is built from this key; see
+   * ComponentPrimaryPanel. Like the webhook's, it is only what the workflow
+   * really has when canSeeIncomingEmailSecretKey says the user may read it.
+   */
+  incomingEmailSecretKey?: string | undefined;
+  canSeeIncomingEmailSecretKey?: boolean | undefined;
+  /*
+   * Gives the workflow a new incoming email secret key - Reset address, or
+   * the first address of a workflow that has none. Takes effect at once,
+   * whether or not this dialog is then saved.
+   */
+  onResetIncomingEmailSecretKey?: (() => Promise<void>) | undefined;
 }
 
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
@@ -150,6 +163,9 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     webhookSecretKey: props.webhookSecretKey,
     canSeeWebhookSecretKey: props.canSeeWebhookSecretKey,
     onResetWebhookSecretKey: props.onResetWebhookSecretKey,
+    incomingEmailSecretKey: props.incomingEmailSecretKey,
+    canSeeIncomingEmailSecretKey: props.canSeeIncomingEmailSecretKey,
+    onResetIncomingEmailSecretKey: props.onResetIncomingEmailSecretKey,
   });
 
   const settingsSection: ReactElement | null = hasSettings ? (

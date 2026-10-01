@@ -6825,5 +6825,22 @@
   "The log could not be copied. Download it instead.": "The log could not be copied. Download it instead.",
   "Download log": "Download log",
   "Download run as JSON": "Download run as JSON",
-  "This run could not be downloaded. Try again.": "This run could not be downloaded. Try again."
+  "This run could not be downloaded. Try again.": "This run could not be downloaded. Try again.",
+  "Email address": "Email address",
+  "Send an email to this address to start the workflow.": "Send an email to this address to start the workflow.",
+  "Copy address": "Copy address",
+  "Copy the email address": "Copy the email address",
+  "Show the full address": "Show the full address",
+  "Anyone with this address can start the workflow, so keep it private.": "Anyone with this address can start the workflow, so keep it private.",
+  "If the address leaks, reset it.": "If the address leaks, reset it.",
+  "Reset address": "Reset address",
+  "Reset the email address?": "Reset the email address?",
+  "The workflow gets a new address, and the current one stops working at once. Email sent to the current address will be ignored, so give the new one to everything that emails the workflow.": "The workflow gets a new address, and the current one stops working at once. Email sent to the current address will be ignored, so give the new one to everything that emails the workflow.",
+  "Address reset. The old one no longer works, so give this one to anything that should email the workflow.": "Address reset. The old one no longer works, so give this one to anything that should email the workflow.",
+  "Creating this workflow's email address...": "Creating this workflow's email address...",
+  "This workflow does not have an email address yet.": "This workflow does not have an email address yet.",
+  "Create address": "Create address",
+  "The email address contains this workflow's secret key, so only people who can edit this workflow can see it. Ask one of them for it.": "The email address contains this workflow's secret key, so only people who can edit this workflow can see it. Ask one of them for it.",
+  "This OneUptime server is not set up to receive email, so this workflow has no address yet. Ask your OneUptime administrator to set up inbound email.": "This OneUptime server is not set up to receive email, so this workflow has no address yet. Ask your OneUptime administrator to set up inbound email.",
+  "How to set up inbound email": "How to set up inbound email"
 }

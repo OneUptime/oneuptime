@@ -79,7 +79,7 @@ export const getIncomingEmailDocumentation: TriggerDocumentationFunction = (
     summary:
       "Starts this workflow each time an email arrives at its own address.",
     steps: [
-      "Copy the address at the top of this dialog, and send, copy or forward to it the email that should start the workflow.",
+      "Copy the address at the top of this dialog, and have the email that should start the workflow sent or forwarded to it.",
       "Connect **Out** to the steps that should run for each email.",
       "Turn the workflow on. While it is off, email to the address is ignored.",
     ],

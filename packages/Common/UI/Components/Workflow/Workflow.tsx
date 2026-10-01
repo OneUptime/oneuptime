@@ -204,6 +204,15 @@ export interface ComponentProps {
    */
   onResetWebhookSecretKey?: (() => Promise<void>) | undefined;
   /**
+   * The key the Incoming Email trigger's address is built from, whether the
+   * user may read it (the builder only loads it when they may), and what
+   * gives the workflow a new one: Reset address, or the first address of a
+   * workflow that has none. Handed to the Incoming Email trigger's settings.
+   */
+  incomingEmailSecretKey?: string | undefined;
+  canSeeIncomingEmailSecretKey?: boolean | undefined;
+  onResetIncomingEmailSecretKey?: (() => Promise<void>) | undefined;
+  /**
    * Called whenever the static checks over the graph are recomputed, so the
    * page around the canvas can show a count and decide what to do about it.
    */
@@ -1011,6 +1020,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           webhookSecretKey={props.webhookSecretKey}
           canSeeWebhookSecretKey={props.canSeeWebhookSecretKey}
           onResetWebhookSecretKey={props.onResetWebhookSecretKey}
+          incomingEmailSecretKey={props.incomingEmailSecretKey}
+          canSeeIncomingEmailSecretKey={props.canSeeIncomingEmailSecretKey}
+          onResetIncomingEmailSecretKey={props.onResetIncomingEmailSecretKey}
           component={selectedNodeData}
           title={
             selectedNodeData && selectedNodeData.metadata.title
