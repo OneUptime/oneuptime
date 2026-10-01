@@ -55,8 +55,9 @@ export default class BaseModelComponent {
     /*
      * Each of these steps has "How to use" help of its own, written for its
      * operation and its model: Types/Workflow/Documentation/
-     * DatabaseDocumentation.ts, which reads the operation off the id suffixes
-     * below. Rename a suffix there too.
+     * DatabaseDocumentation.ts. It, and the Add Component picker, read the
+     * operation off the id suffixes below through
+     * Types/Workflow/DatabaseOperation.ts. Rename a suffix there too.
      */
 
     if (model.enableWorkflowOn.read) {
