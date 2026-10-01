@@ -13,6 +13,11 @@
 # apart, and only on the collector version the agent actually runs: OTTL
 # grammar moves between releases (IsRootSpan() does not exist on 0.96.0).
 #
+# Two variants: the defaults (both ebpf.dropDatabaseServerSpans and
+# ebpf.dropUnlinkedDatabaseCalls on), and dropUnlinkedDatabaseCalls=false,
+# which must keep an application's unlinked calls while still dropping the
+# database server's own spans.
+#
 # The spans below are shaped like the ones OBI sent from the test cluster:
 # its resource carries telemetry.distro.name=opentelemetry-ebpf-instrumentation,
 # database spans carry db.system.name, and "no parent" is an empty parent id.
@@ -28,7 +33,7 @@ RUN_ID="agent-trace-filter-$$"
 
 WORK_DIR="$(mktemp -d)"
 cleanup() {
-  docker rm -f "${RUN_ID}-collector" >/dev/null 2>&1 || true
+  docker ps -aq --filter "name=${RUN_ID}-" | xargs docker rm -f >/dev/null 2>&1 || true
   docker network rm "${RUN_ID}" >/dev/null 2>&1 || true
   rm -rf "${WORK_DIR}"
 }
@@ -39,19 +44,23 @@ mkdir -p "${WORK_DIR}/out"
 chmod 0777 "${WORK_DIR}/out"
 chmod 0755 "${WORK_DIR}"
 
-echo "==> rendering kubernetes-agent chart"
-helm template behaviour "${CHART}" \
-  --set clusterName=behaviour-test \
-  --set oneuptime.url=https://oneuptime.example.com \
-  --set oneuptime.apiKey=behaviour-test \
-  >"${WORK_DIR}/rendered.yaml"
-
 # js-yaml is a devDependency of this package.
 cd "${REPO_ROOT}/Tests/Ops"
 
-# Lift the processor definition and the collector image out of the render, so
-# this tests what ships rather than a copy of it.
-COLLECTOR_IMAGE="$(node -e '
+# render_variant <dir> [helm --set args...]: render the chart and lift the
+# processor definition (<dir>/config.yaml) and the collector image
+# (<dir>/image) out of it, so this tests what ships rather than a copy of it.
+render_variant() {
+  local dir="$1"
+  shift
+  mkdir -p "${dir}"
+  helm template behaviour "${CHART}" \
+    --set clusterName=behaviour-test \
+    --set oneuptime.url=https://oneuptime.example.com \
+    --set oneuptime.apiKey=behaviour-test \
+    "$@" \
+    >"${dir}/rendered.yaml"
+  node -e '
 const fs = require("fs");
 const yaml = require("js-yaml");
 const [rendered, outDir] = process.argv.slice(1);
@@ -92,13 +101,16 @@ const config = {
   },
 };
 fs.writeFileSync(`${outDir}/config.yaml`, yaml.dump(config));
-process.stdout.write(image);
-' "${WORK_DIR}/rendered.yaml" "${WORK_DIR}")"
-chmod 0644 "${WORK_DIR}/config.yaml"
-echo "    collector image: ${COLLECTOR_IMAGE}"
+fs.writeFileSync(`${outDir}/image`, image);
+' "${dir}/rendered.yaml" "${dir}"
+  chmod 0755 "${dir}"
+  chmod 0644 "${dir}/config.yaml"
+}
 
-# Each span is named for what must happen to it. Ids are hex: the collector's
-# OTLP/JSON decoder reads trace and span ids as hex, not base64.
+# Each span is named for what must happen to it: SERVER (a database server's
+# own unlinked span) and CALL (an application's unlinked database call) are
+# dropped while their switch is on; KEEP is always kept. Ids are hex: the
+# collector's OTLP/JSON decoder reads trace and span ids as hex, not base64.
 node -e '
 const fs = require("fs");
 const OBI = "opentelemetry-ebpf-instrumentation";
@@ -133,11 +145,11 @@ const payload = {
   resourceSpans: [
     // valkey-server: its own span for every command it receives. Never linked.
     resource(OBI, "oneuptime-valkey", [
-      span("DROP valkey server set", SERVER, "", { "db.system.name": "redis", "db.operation.name": "set" }),
+      span("SERVER valkey server set", SERVER, "", { "db.system.name": "redis", "db.operation.name": "set" }),
     ]),
     // A queue worker polling Redis outside any request, and one inside one.
     resource(OBI, "oneuptime-worker", [
-      span("DROP worker unlinked evalsha", CLIENT, "", { "db.system.name": "redis", "db.operation.name": "evalsha" }),
+      span("CALL worker unlinked evalsha", CLIENT, "", { "db.system.name": "redis", "db.operation.name": "evalsha" }),
       span("KEEP worker evalsha inside a request", CLIENT, PARENT, { "db.system.name": "redis" }),
       span("KEEP worker kafka publish", PRODUCER, "", { "messaging.system": "kafka" }),
     ]),
@@ -145,10 +157,10 @@ const payload = {
       span("KEEP app request root", SERVER, "", { "http.request.method": "POST", "http.route": "/otlp/v1/traces" }),
       span("KEEP app SELECT inside the request", CLIENT, PARENT, { "db.system.name": "postgresql" }),
       // The older semantic-convention key, for an OBI that still sends it.
-      span("DROP app unlinked SELECT on db.system", CLIENT, "", { "db.system": "postgresql" }),
+      span("CALL app unlinked SELECT on db.system", CLIENT, "", { "db.system": "postgresql" }),
     ]),
     resource(OBI, "oneuptime-postgresql", [
-      span("DROP postgres server SELECT", SERVER, "", { "db.system.name": "postgresql" }),
+      span("SERVER postgres server SELECT", SERVER, "", { "db.system.name": "postgresql" }),
       // Linked by OBI on the same node (black-box propagation): a real child.
       span("KEEP postgres server SELECT with a parent", SERVER, PARENT, { "db.system.name": "postgresql" }),
     ]),
@@ -165,86 +177,112 @@ fs.writeFileSync(process.argv[1], JSON.stringify(payload));
 ' "${WORK_DIR}/payload.json"
 chmod 0644 "${WORK_DIR}/payload.json"
 
-docker network create "${RUN_ID}" >/dev/null
-docker run -d --name "${RUN_ID}-collector" --network "${RUN_ID}" \
-  -v "${WORK_DIR}/config.yaml":/etc/behaviour/config.yaml:ro \
-  -v "${WORK_DIR}/out":/out \
-  "${COLLECTOR_IMAGE}" --config /etc/behaviour/config.yaml >/dev/null
-
 # Posted from a container on the same network: newer collectors listen on
 # [::] and a published port does not always reach that from the host.
+# post <label> <file>
 post() {
   docker run --rm --network "${RUN_ID}" -v "${WORK_DIR}":/work:ro "${CURL_IMAGE}" \
     -s -o /dev/null -w "%{http_code}" -H "Content-Type: application/json" \
-    --data "@/work/$1" "http://${RUN_ID}-collector:4318/v1/traces" || true
+    --data "@/work/$2" "http://${RUN_ID}-$1:4318/v1/traces" || true
 }
 
 echo '{"resourceSpans":[]}' >"${WORK_DIR}/empty.json"
 chmod 0644 "${WORK_DIR}/empty.json"
-ready=""
-for _ in $(seq 1 30); do
-  if [ "$(post empty.json)" = "200" ]; then
-    ready=yes
-    break
+
+# run_variant <label> <mode> [helm --set args...]: render the chart with the
+# given values, run its filter in its collector, post the spans and check
+# what survives. mode: "defaults" (SERVER and CALL dropped) or "calls-kept"
+# (SERVER dropped, CALL kept).
+run_variant() {
+  local label="$1"
+  local mode="$2"
+  shift 2
+  local dir="${WORK_DIR}/${label}"
+  echo "==> ${label}: rendering kubernetes-agent chart $*"
+  render_variant "${dir}" "$@"
+  local image
+  image="$(cat "${dir}/image")"
+  echo "    collector image: ${image}"
+  mkdir -p "${dir}/out"
+  chmod 0777 "${dir}/out"
+  local status
+  local ready
+  docker run -d --name "${RUN_ID}-${label}" --network "${RUN_ID}" \
+    -v "${dir}/config.yaml":/etc/behaviour/config.yaml:ro \
+    -v "${dir}/out":/out \
+    "${image}" --config /etc/behaviour/config.yaml >/dev/null
+
+  ready=""
+  for _ in $(seq 1 30); do
+    if [ "$(post "${label}" empty.json)" = "200" ]; then
+      ready=yes
+      break
+    fi
+    sleep 1
+  done
+  if [ -z "${ready}" ]; then
+    echo "    FAILED: the collector never accepted OTLP"
+    docker logs "${RUN_ID}-${label}" 2>&1 | tail -20
+    exit 1
   fi
-  sleep 1
-done
-if [ -z "${ready}" ]; then
-  echo "    FAILED: the collector never accepted OTLP"
-  docker logs "${RUN_ID}-collector" 2>&1 | tail -20
-  exit 1
-fi
 
-status="$(post payload.json)"
-if [ "${status}" != "200" ]; then
-  echo "    FAILED: posting the spans returned HTTP ${status}"
-  docker logs "${RUN_ID}-collector" 2>&1 | tail -20
-  exit 1
-fi
-
-# The file exporter writes as spans arrive; give it a moment to flush.
-for _ in $(seq 1 20); do
-  if [ -s "${WORK_DIR}/out/spans.json" ] && grep -q "KEEP" "${WORK_DIR}/out/spans.json"; then
-    break
+  status="$(post "${label}" payload.json)"
+  if [ "${status}" != "200" ]; then
+    echo "    FAILED: posting the spans returned HTTP ${status}"
+    docker logs "${RUN_ID}-${label}" 2>&1 | tail -20
+    exit 1
   fi
-  sleep 0.5
-done
 
-node -e '
-const fs = require("fs");
-const [exported, payloadFile] = process.argv.slice(1);
-const kept = new Set();
-const text = fs.existsSync(exported) ? fs.readFileSync(exported, "utf8") : "";
-for (const line of text.split("\n").filter(Boolean)) {
-  for (const rs of JSON.parse(line).resourceSpans || []) {
-    for (const ss of rs.scopeSpans || []) {
-      for (const span of ss.spans || []) {
-        kept.add(span.name);
+  # The file exporter writes as spans arrive; give it a moment to flush.
+  for _ in $(seq 1 20); do
+    if [ -s "${dir}/out/spans.json" ] && grep -q "KEEP" "${dir}/out/spans.json"; then
+      break
+    fi
+    sleep 0.5
+  done
+
+  node -e '
+  const fs = require("fs");
+  const [exported, payloadFile, mode] = process.argv.slice(1);
+  const keepCalls = mode === "calls-kept";
+  const kept = new Set();
+  const text = fs.existsSync(exported) ? fs.readFileSync(exported, "utf8") : "";
+  for (const line of text.split("\n").filter(Boolean)) {
+    for (const rs of JSON.parse(line).resourceSpans || []) {
+      for (const ss of rs.scopeSpans || []) {
+        for (const span of ss.spans || []) {
+          kept.add(span.name);
+        }
       }
     }
   }
-}
-const sent = [];
-for (const rs of JSON.parse(fs.readFileSync(payloadFile, "utf8")).resourceSpans) {
-  for (const ss of rs.scopeSpans) {
-    for (const span of ss.spans) {
-      sent.push(span.name);
+  const sent = [];
+  for (const rs of JSON.parse(fs.readFileSync(payloadFile, "utf8")).resourceSpans) {
+    for (const ss of rs.scopeSpans) {
+      for (const span of ss.spans) {
+        sent.push(span.name);
+      }
     }
   }
-}
-let failures = 0;
-for (const name of sent) {
-  const shouldKeep = name.startsWith("KEEP");
-  const ok = kept.has(name) === shouldKeep;
-  console.log(`    ${ok ? "ok    " : "FAILED"} ${name} -> ${kept.has(name) ? "kept" : "dropped"}`);
-  if (!ok) {
-    failures++;
+  let failures = 0;
+  for (const name of sent) {
+    const shouldKeep =
+      name.startsWith("KEEP") || (name.startsWith("CALL") && keepCalls);
+    const ok = kept.has(name) === shouldKeep;
+    console.log(`    ${ok ? "ok    " : "FAILED"} ${name} -> ${kept.has(name) ? "kept" : "dropped"}`);
+    if (!ok) {
+      failures++;
+    }
   }
+  if (failures > 0) {
+    console.error(`${failures} span(s) were handled wrongly by filter/ebpf-unlinked-db`);
+    process.exit(1);
+  }
+  ' "${dir}/out/spans.json" "${WORK_DIR}/payload.json" "${mode}"
+  echo "    ${label}: filter/ebpf-unlinked-db behaves as documented on ${image}"
 }
-if (failures > 0) {
-  console.error(`${failures} span(s) were handled wrongly by filter/ebpf-unlinked-db`);
-  process.exit(1);
-}
-' "${WORK_DIR}/out/spans.json" "${WORK_DIR}/payload.json"
 
-echo "==> filter/ebpf-unlinked-db behaves as documented on ${COLLECTOR_IMAGE}"
+docker network create "${RUN_ID}" >/dev/null
+run_variant defaults defaults
+run_variant calls-kept calls-kept --set ebpf.dropUnlinkedDatabaseCalls=false
+echo "==> filter/ebpf-unlinked-db behaves as documented"

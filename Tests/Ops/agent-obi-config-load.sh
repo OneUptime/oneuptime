@@ -9,7 +9,7 @@
 # TEXT, and text cannot tell whether OBI accepts them or what it does with
 # them. Each of these has bitten, or nearly:
 #
-#   - OBI v0.13+ refuses to start on a metrics feature it does not know, so
+#   - OBI (since v0.12) refuses to start on a metrics feature it does not know, so
 #     the `application_host` the chart used to pass crash-loops every node on
 #     v0.14. A wrong config is a DaemonSet that never comes up.
 #   - OBI's YAML loader ignores keys it does not know, so a setting OBI renamed
@@ -37,8 +37,9 @@
 # Without the override, a tag nobody can pull fails this test, on purpose: a
 # chart pinning an image that does not exist puts every node in
 # ImagePullBackOff. The chart pins otel/ebpf-instrument:v0.14.0 ahead of its
-# upstream release, so this stays red until that tag is published — which is
-# what holds the change back until then.
+# upstream release, so this stays red until that tag is published. That is a
+# signal, not a gate — no status check is required to merge — so the change
+# itself is held as a draft until the tag exists.
 #
 # Needs docker, helm and node. Usage: bash Tests/Ops/agent-obi-config-load.sh
 
@@ -158,6 +159,8 @@ if (key.includes("/") || !configMap.data || configMap.data[key] === undefined) {
 }
 fs.copyFileSync(`${dir}/config/${key}`, `${dir}/obi-config.rendered.yaml`);
 fs.writeFileSync(`${dir}/env.list`, lines.join("\n") + "\n");
+const annotations = (daemonSet.spec.template.metadata || {}).annotations || {};
+fs.writeFileSync(`${dir}/checksum`, annotations["checksum/config"] || "");
 fs.writeFileSync(`${dir}/mount-path`, mount.mountPath);
 fs.writeFileSync(`${dir}/image`, container.image);
 ' "$1"
@@ -293,6 +296,7 @@ const rendered = yaml.load(fs.readFileSync(`${dir}/obi-config.rendered.yaml`, "u
 // (pkg/export/attributes/attr_defs.go, the Traces section). The chart has to
 // list them all next to service.peer.name, which v0.14 made opt-in and the
 // service map reads: a non-empty include list replaces these.
+const DEFAULT_SPAN_ATTRIBUTES_VERIFIED_FOR = "v0.14.0";
 const DEFAULT_SPAN_ATTRIBUTES = [
   "dns.question.name",
   "url.query",
@@ -432,6 +436,25 @@ check(
   same(sorted(include), sorted(expected.traceAttributes)),
   include,
 );
+// OBI echoes the list it was given, not the defaults it would otherwise
+// use, so the check above compares the chart with DEFAULT_SPAN_ATTRIBUTES,
+// which is a hand copy. Tie that copy to the OBI it was read from: a chart
+// that pins another tag must have it re-read first.
+const renderedImage = fs.readFileSync(`${dir}/image`, "utf8").trim();
+const renderedTag = renderedImage.slice(renderedImage.lastIndexOf(":") + 1);
+check(
+  `the chart pins the OBI the default span attributes were read from (${DEFAULT_SPAN_ATTRIBUTES_VERIFIED_FOR})`,
+  renderedTag === DEFAULT_SPAN_ATTRIBUTES_VERIFIED_FOR,
+  `${renderedImage}: re-read the true entries of Traces.Section in pkg/export/attributes/attr_defs.go of that OBI, update DEFAULT_SPAN_ATTRIBUTES here and kubernetes-agent.obiSpanAttributes in the chart, then DEFAULT_SPAN_ATTRIBUTES_VERIFIED_FOR`,
+);
+
+// The DaemonSet rolls when the config changes only if its checksum is of the
+// config OBI reads. (The ConfigMap value carries the newline a YAML block
+// scalar adds; the template hashes the text without it.)
+const checksum = fs.readFileSync(`${dir}/checksum`, "utf8").trim();
+const configText = fs.readFileSync(`${dir}/obi-config.rendered.yaml`, "utf8").replace(/\n$/, "");
+const configHash = require("crypto").createHash("sha256").update(configText).digest("hex");
+check("the DaemonSet checksum/config is the sha256 of the OBI config", checksum === configHash, `${checksum} vs ${configHash}`);
 
 const nodejs = get(effective, "nodejs.enabled");
 check(`nodejs.enabled = ${expected.nodejs}`, nodejs === expected.nodejs, nodejs);
