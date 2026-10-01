@@ -1031,16 +1031,14 @@ describe("TeamMemberService.acceptPendingInvitationsInProject", () => {
     });
 
     const after: Date = new Date();
-    const data: TeamMember = lastUpdate().data as TeamMember;
+    const data: Record<string, unknown> = lastUpdate()
+      .data as unknown as Record<string, unknown>;
+    const acceptedAt: Date = data["invitationAcceptedAt"] as Date;
 
-    expect(data.hasAcceptedInvitation).toBe(true);
-    expect(data.invitationAcceptedAt).toBeInstanceOf(Date);
-    expect(data.invitationAcceptedAt!.getTime()).toBeGreaterThanOrEqual(
-      before.getTime(),
-    );
-    expect(data.invitationAcceptedAt!.getTime()).toBeLessThanOrEqual(
-      after.getTime(),
-    );
+    expect(data["hasAcceptedInvitation"]).toBe(true);
+    expect(acceptedAt).toBeInstanceOf(Date);
+    expect(acceptedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(acceptedAt.getTime()).toBeLessThanOrEqual(after.getTime());
   });
 
   test("writes as root, without re-running the hooks its callers are already in", async () => {
