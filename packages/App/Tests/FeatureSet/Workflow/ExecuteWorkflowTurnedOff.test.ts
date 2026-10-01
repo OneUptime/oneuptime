@@ -145,7 +145,7 @@ describe("Execute Workflow calling a workflow that is off", () => {
 
     const result: RunReturnType = await runTheStep(prepared.runner);
 
-    expect(result.executePort.id).toBe("error");
+    expect(result.executePort?.id).toBe("error");
     expect((result.returnValues as JSONObject)["error"]).toBe(
       getChildWorkflowTurnedOffMessage({
         workflowId: CALLED_WORKFLOW_ID.toString(),
@@ -212,7 +212,7 @@ describe("Execute Workflow calling a workflow that is off", () => {
     const result: RunReturnType = await runTheStep(prepared.runner);
     const error: string = String((result.returnValues as JSONObject)["error"]);
 
-    expect(result.executePort.id).toBe("error");
+    expect(result.executePort?.id).toBe("error");
     expect(error).toBe("Target workflow does not belong to this project.");
     expect(error).not.toContain("Another team's secret workflow");
     expect(prepared.enqueue.mock.calls).toHaveLength(0);
@@ -229,7 +229,7 @@ describe("Execute Workflow calling a workflow that is on", () => {
 
     const result: RunReturnType = await runTheStep(prepared.runner);
 
-    expect(result.executePort.id).toBe("out");
+    expect(result.executePort?.id).toBe("out");
     expect(prepared.enqueue.mock.calls).toHaveLength(1);
 
     const queued: {
