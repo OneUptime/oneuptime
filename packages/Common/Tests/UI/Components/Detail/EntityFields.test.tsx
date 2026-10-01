@@ -66,6 +66,14 @@ const requireElement: (
   return element;
 };
 
+// A coloured badge is a tint of its colour; its dot is the colour itself.
+const badgeColor: (badge: HTMLElement) => string = (
+  badge: HTMLElement,
+): string => {
+  return requireElement(badge.querySelector<HTMLElement>("[data-ou-pill-dot]"))
+    .style.backgroundColor;
+};
+
 afterEach(() => {
   cleanup();
 });
@@ -82,7 +90,7 @@ describe("Detail entity fields", () => {
     );
 
     expect(badge.textContent).toContain("Critical");
-    expect(badge.style.backgroundColor).toEqual("rgb(239, 68, 68)");
+    expect(badgeColor(badge)).toEqual("rgb(239, 68, 68)");
   });
 
   test("renders an uncolored badge when the relation has no color selected", () => {
@@ -130,9 +138,7 @@ describe("Detail entity fields", () => {
 
     expect(badges).toHaveLength(2);
     expect(requireElement(badges[0]).textContent).toContain("Backend");
-    expect(requireElement(badges[0]).style.backgroundColor).toEqual(
-      "rgb(34, 197, 94)",
-    );
+    expect(badgeColor(requireElement(badges[0]))).toEqual("rgb(34, 197, 94)");
     expect(requireElement(badges[1]).textContent).toContain("Database");
   });
 

@@ -10,6 +10,7 @@ import {
   renderCustomFieldValue,
 } from "../../../../UI/Components/ModelTable/CustomFieldColumns";
 import FieldType from "../../../../UI/Components/Types/FieldType";
+import { getPillColors } from "../../../../UI/Components/Pill/PillColors";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorCustomField from "../../../../Models/DatabaseModels/MonitorCustomField";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
@@ -116,6 +117,14 @@ const requireElement: (
   }
 
   return element;
+};
+
+// A coloured badge is a tint of its colour; its dot is the colour itself.
+const badgeColor: (badge: HTMLElement) => string = (
+  badge: HTMLElement,
+): string => {
+  return requireElement(badge.querySelector<HTMLElement>("[data-ou-pill-dot]"))
+    .style.backgroundColor;
 };
 
 type ColumnAtFunction = (
@@ -950,19 +959,19 @@ describe("CustomFieldColumns.renderCustomFieldValue", () => {
 
     expect(badgeElement).not.toBeNull();
     expect(requireElement(badgeElement).textContent).toContain("High");
-    expect(requireElement(badgeElement).style.backgroundColor).toEqual(
+    expect(badgeColor(requireElement(badgeElement))).toEqual(
       "rgb(239, 68, 68)",
     );
-    expect(requireElement(badgeElement).style.borderColor).toEqual("#ef4444");
     expect(
       requireElement(badgeElement).getAttribute("data-dropdown-value-color"),
     ).toEqual("#ef4444");
-    expect(requireElement(badgeElement).style.color).toEqual(
-      "rgb(249, 250, 251)",
-    );
+    // Text in a shade of the colour that reads on the badge, not white on red.
+    expect(requireElement(badgeElement)).toHaveStyle({
+      color: getPillColors("#ef4444").light.textColor,
+    });
   });
 
-  test("uses dark text on a light dropdown color", () => {
+  test("uses a deeper shade of a light dropdown color for its text", () => {
     const container: HTMLElement = renderValue({
       value: "Low",
       definition: {
@@ -976,8 +985,9 @@ describe("CustomFieldColumns.renderCustomFieldValue", () => {
         container.querySelector<HTMLElement>(
           '[data-dropdown-value-badge="true"]',
         ),
-      ).style.color,
-    ).toEqual("rgb(17, 24, 39)");
+      ),
+    ).toHaveStyle({ color: getPillColors("#fef08a").light.textColor });
+    expect(getPillColors("#fef08a").light.textColor).not.toBe("#fef08a");
   });
 
   test("falls back to the uncolored badge for a saved value no longer in the options", () => {
@@ -1026,12 +1036,8 @@ describe("CustomFieldColumns.renderCustomFieldValue", () => {
     );
 
     expect(badges).toHaveLength(3);
-    expect(requireElement(badges[0]).style.backgroundColor).toEqual(
-      "rgb(14, 165, 233)",
-    );
-    expect(requireElement(badges[1]).style.backgroundColor).toEqual(
-      "rgb(168, 85, 247)",
-    );
+    expect(badgeColor(requireElement(badges[0]))).toEqual("rgb(14, 165, 233)");
+    expect(badgeColor(requireElement(badges[1]))).toEqual("rgb(168, 85, 247)");
     expect(requireElement(badges[2]).classList.contains("bg-indigo-50")).toBe(
       true,
     );

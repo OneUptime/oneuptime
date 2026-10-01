@@ -170,17 +170,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 {t("eventItem.affectedResources")}
               </div>
               {props.eventResourcesAffected?.map((item: string, i: number) => {
-                return (
-                  <Pill
-                    key={i}
-                    text={item}
-                    color={VeryLightGray}
-                    style={{
-                      backgroundColor: "var(--ou-surface-tertiary, #f3f4f6)",
-                      color: "var(--ou-text-subtle, #9ca3af)",
-                    }}
-                  />
-                );
+                return <Pill key={i} text={item} color={VeryLightGray} />;
               })}
             </div>
           </div>

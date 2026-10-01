@@ -1,11 +1,15 @@
 import "@testing-library/jest-dom";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import React from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import SecurityEventSeverityPill, {
   getSeverityColor,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventSeverityPill";
 import { PillSize } from "../../../UI/Components/Pill/Pill";
+import {
+  getPillColors,
+  parseColor,
+} from "../../../UI/Components/Pill/PillColors";
 import Color from "../../../Types/Color";
 import { Blue, Gray500, Orange, Red, Yellow } from "../../../Types/BrandColors";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
@@ -40,6 +44,11 @@ type GetPillFunction = () => HTMLElement;
 
 const getPill: GetPillFunction = (): HTMLElement => {
   return screen.getByTestId("pill");
+};
+
+// The pill is a tint of its colour; the dot is the colour itself.
+const getDot: GetPillFunction = (): HTMLElement => {
+  return within(getPill()).getByTestId("pill-dot");
 };
 
 describe("getSeverityColor", () => {
@@ -106,11 +115,9 @@ describe("getSeverityColor", () => {
     (severity: OcsfSeverity) => {
       const color: Color = getSeverityColor(severity);
       expect(color).toBeInstanceOf(Color);
-      // Pill derives its text colour from the hex; anything else throws.
+      // Pill derives its shades from the hex; anything else reads as gray.
       expect(color.toString()).toMatch(/^#[0-9a-f]{6}$/i);
-      expect(() => {
-        return Color.shouldUseDarkText(color);
-      }).not.toThrow();
+      expect(parseColor(color)).not.toBeNull();
     },
   );
 });
@@ -130,7 +137,7 @@ describe("<SecurityEventSeverityPill />", () => {
     render(<SecurityEventSeverityPill severityName="Vendor Special" />);
 
     expect(getPill()).toHaveTextContent(/^Vendor Special$/);
-    expect(getPill()).toHaveStyle({
+    expect(getDot()).toHaveStyle({
       backgroundColor: Gray500.toString(),
     });
   });
@@ -139,7 +146,7 @@ describe("<SecurityEventSeverityPill />", () => {
     render(<SecurityEventSeverityPill />);
 
     expect(getPill()).toHaveTextContent(/^Unknown$/);
-    expect(getPill()).toHaveStyle({
+    expect(getDot()).toHaveStyle({
       backgroundColor: Gray500.toString(),
     });
   });
@@ -151,25 +158,41 @@ describe("<SecurityEventSeverityPill />", () => {
   });
 
   test.each(ALL_SEVERITIES)(
-    "fills the %s pill with getSeverityColor",
+    "colours the %s pill with getSeverityColor",
     (severity: OcsfSeverity) => {
       render(<SecurityEventSeverityPill severityName={severity} />);
 
-      expect(getPill()).toHaveStyle({
+      expect(getDot()).toHaveStyle({
         backgroundColor: getSeverityColor(severity).toString(),
+      });
+      expect(getPill()).toHaveStyle({
+        backgroundColor: getPillColors(getSeverityColor(severity)).light
+          .backgroundColor,
       });
     },
   );
 
-  test("picks dark text on the light yellow Medium fill and white text on red", () => {
+  test("sets the Medium and Critical text in a readable shade of their colour", () => {
+    /*
+     * This used to be black on the yellow fill and white on the red one -
+     * and white on #fd625e is 3:1. Pill now picks the shade (PillColors
+     * holds it to 4.5:1 and up); what matters here is that it is used.
+     */
     const { unmount } = render(
       <SecurityEventSeverityPill severityName={OcsfSeverity.Medium} />,
     );
-    expect(getPill()).toHaveStyle({ color: "#000000" });
+    expect(getPill()).toHaveStyle({
+      color: getPillColors(getSeverityColor(OcsfSeverity.Medium)).light
+        .textColor,
+    });
     unmount();
 
     render(<SecurityEventSeverityPill severityName={OcsfSeverity.Critical} />);
-    expect(getPill()).toHaveStyle({ color: "#ffffff" });
+    expect(getPill()).toHaveStyle({
+      color: getPillColors(getSeverityColor(OcsfSeverity.Critical)).light
+        .textColor,
+    });
+    expect(getPill().style.color).not.toBe("rgb(255, 255, 255)");
   });
 
   test("keeps the normal 13px size when no size is passed", () => {
@@ -201,9 +224,9 @@ describe("<SecurityEventSeverityPill />", () => {
       );
 
       expect(getPill().style.fontSize).toBe(size);
-      // Size must not disturb the text or the severity fill.
+      // Size must not disturb the text or the severity colour.
       expect(getPill()).toHaveTextContent(/^Critical$/);
-      expect(getPill()).toHaveStyle({
+      expect(getDot()).toHaveStyle({
         backgroundColor: getSeverityColor(OcsfSeverity.Critical).toString(),
       });
     },
@@ -228,6 +251,7 @@ describe("<SecurityEventSeverityPill />", () => {
     expect(container.firstElementChild).toBe(getPill());
     expect(getPill().tagName).toBe("SPAN");
     expect(getPill().querySelector("svg")).toBeNull();
-    expect(screen.getByText("High")).toBe(getPill());
+    expect(getPill().textContent).toBe("High");
+    expect(getPill()).toContainElement(screen.getByText("High"));
   });
 });

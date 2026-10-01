@@ -706,7 +706,8 @@ describe("EventStatusPanel header layouts", () => {
       actions: [],
     });
 
-    expect(screen.getByTestId("pill")).toHaveStyle({
+    // The pill is a tint of its colour; its dot is the colour itself.
+    expect(screen.getByTestId("pill-dot")).toHaveStyle({
       backgroundColor: "#000000",
     });
   });
