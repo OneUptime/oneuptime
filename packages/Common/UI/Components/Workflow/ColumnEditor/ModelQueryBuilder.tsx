@@ -19,7 +19,6 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 export interface ComponentProps {
   rows: Array<ModelColumnRow>;
   columns: Array<ModelSchemaColumn>;
-  suggestions?: Array<string> | undefined;
   onChange: (rows: Array<ModelColumnRow>) => void;
 }
 
@@ -88,7 +87,6 @@ const ModelQueryBuilder: FunctionComponent<ComponentProps> = (
                     row={row}
                     column={findColumn(props.columns, row.columnId)}
                     columns={offerableColumns}
-                    suggestions={props.suggestions}
                     autoFocus={row.key === justAddedKey}
                     onChange={(nextRow: ModelColumnRow) => {
                       replaceRow(index, nextRow);

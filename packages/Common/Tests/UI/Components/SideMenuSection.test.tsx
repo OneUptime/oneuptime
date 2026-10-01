@@ -218,6 +218,206 @@ describe("SideMenuSection", () => {
     });
   });
 
+  /*
+   * "Please always collapse the advanced section by default. Please do this
+   * for entire project." The rule lives in the section itself, keyed on the
+   * title a menu passes in, so every menu gets it without a flag - including
+   * menus written after it.
+   */
+  describe("a section titled Advanced", () => {
+    test("starts collapsed without being told to", () => {
+      render(<SideMenuSection title="Advanced">{menuRows()}</SideMenuSection>);
+
+      expect(sectionToggle()).toHaveAttribute("aria-expanded", "false");
+      expect(sectionBody()).toHaveClass("max-h-0", "opacity-0", "invisible");
+    });
+
+    test.each(["advanced", "ADVANCED", "  Advanced  "])(
+      "matches the title %p regardless of case and spacing",
+      (title: string) => {
+        render(<SideMenuSection title={title}>{menuRows()}</SideMenuSection>);
+
+        expect(sectionToggle()).toHaveAttribute("aria-expanded", "false");
+      },
+    );
+
+    /*
+     * Only the section NAMED Advanced. "Advanced Settings" is a page in the
+     * status page menu, and Settings sections decide for themselves.
+     */
+    test.each(["Basic", "Settings", "Advanced Settings", "Danger Zone"])(
+      "leaves a section titled %p open",
+      (title: string) => {
+        render(<SideMenuSection title={title}>{menuRows()}</SideMenuSection>);
+
+        expect(sectionToggle()).toHaveAttribute("aria-expanded", "true");
+        expect(sectionBody()).not.toHaveClass("invisible");
+      },
+    );
+
+    test("a menu can still keep it open with defaultCollapsed={false}", () => {
+      render(
+        <SideMenuSection title="Advanced" defaultCollapsed={false}>
+          {menuRows()}
+        </SideMenuSection>,
+      );
+
+      expect(sectionToggle()).toHaveAttribute("aria-expanded", "true");
+      expect(sectionBody()).toHaveClass("opacity-100");
+    });
+
+    // Collapsing must never hide the page the user is on.
+    test("starts open when the current page is inside it", () => {
+      render(
+        <SideMenuSection title="Advanced" isActive={true}>
+          {menuRows()}
+        </SideMenuSection>,
+      );
+
+      expect(sectionToggle()).toHaveAttribute("aria-expanded", "true");
+      expect(sectionBody()).not.toHaveClass("max-h-0");
+      expect(sectionBody()).not.toHaveClass("invisible");
+    });
+
+    /*
+     * A menu inside a layout stays mounted while the user moves between its
+     * pages. Arriving on a page inside Advanced (from a link elsewhere on the
+     * page, say) must open it there and then.
+     */
+    test("opens when the user arrives on a page inside it", () => {
+      const { rerender } = render(
+        <SideMenuSection title="Advanced" isActive={false}>
+          {menuRows()}
+        </SideMenuSection>,
+      );
+
+      expect(sectionToggle()).toHaveAttribute("aria-expanded", "false");
+
+      rerender(
+        <SideMenuSection title="Advanced" isActive={true}>
+          {menuRows()}
+        </SideMenuSection>,
+      );
+
+      expect(sectionToggle()).toHaveAttribute("aria-expanded", "true");
+      expect(sectionBody()).not.toHaveClass("invisible");
+    });
+
+    /*
+     * And it does not snap shut under the user when they leave: folding is
+     * where a menu starts, not something done to it while it is being used.
+     */
+    test("stays open when the user leaves a page inside it", () => {
+      const { rerender } = render(
+        <SideMenuSection title="Advanced" isActive={true}>
+          {menuRows()}
+        </SideMenuSection>,
+      );
+
+      rerender(
+        <SideMenuSection title="Advanced" isActive={false}>
+          {menuRows()}
+        </SideMenuSection>,
+      );
+
+      expect(sectionToggle()).toHaveAttribute("aria-expanded", "true");
+    });
+
+    test("opens on click and folds away again", () => {
+      render(<SideMenuSection title="Advanced">{menuRows()}</SideMenuSection>);
+
+      fireEvent.click(sectionToggle());
+
+      expect(sectionToggle()).toHaveAttribute("aria-expanded", "true");
+      expect(sectionBody()).toHaveClass("opacity-100");
+      expect(sectionBody()).not.toHaveClass("invisible");
+
+      fireEvent.click(sectionToggle());
+
+      expect(sectionToggle()).toHaveAttribute("aria-expanded", "false");
+      expect(sectionBody()).toHaveClass("max-h-0", "opacity-0", "invisible");
+    });
+
+    test("keeps its rows mounted while folded, so their badge fetches do not restart", () => {
+      render(<SideMenuSection title="Advanced">{menuRows()}</SideMenuSection>);
+
+      expect(sectionRoot().querySelectorAll("a")).toHaveLength(2);
+      expect(screen.getByText("Uptime")).toBeInTheDocument();
+    });
+
+    /*
+     * A section that cannot collapse has no toggle, so starting it collapsed
+     * would hide its rows for good.
+     */
+    test("never starts collapsed when it cannot collapse", () => {
+      render(
+        <SideMenuSection title="Advanced" collapsible={false}>
+          {menuRows()}
+        </SideMenuSection>,
+      );
+
+      expect(screen.getByText("Uptime")).toBeInTheDocument();
+      expect(
+        sectionHeading().parentElement!.parentElement!.nextElementSibling,
+      ).not.toHaveClass("max-h-0");
+    });
+  });
+
+  /*
+   * max-h-0 and opacity-0 only stop folded rows being SEEN. They stayed tab
+   * stops, so a keyboard user walked through every link of a folded section
+   * on a focus ring nobody could see, and a screen reader read them out.
+   * `invisible` (visibility: hidden) takes them out of both, and the toggle
+   * says which element it opens.
+   */
+  describe("a folded section is out of the way for keyboard and screen reader users", () => {
+    test("its body is invisible while collapsed and visible while open", () => {
+      render(
+        <SideMenuSection title={SECTION_TITLE} defaultCollapsed={true}>
+          {menuRows()}
+        </SideMenuSection>,
+      );
+
+      expect(sectionBody()).toHaveClass("invisible");
+
+      fireEvent.click(sectionToggle());
+
+      expect(sectionBody()).not.toHaveClass("invisible");
+    });
+
+    test("the toggle names the body it controls", () => {
+      render(
+        <SideMenuSection title={SECTION_TITLE}>{menuRows()}</SideMenuSection>,
+      );
+
+      const bodyId: string | null = sectionBody().getAttribute("id");
+
+      expect(bodyId).toBeTruthy();
+      expect(sectionToggle()).toHaveAttribute("aria-controls", bodyId!);
+    });
+
+    test("two sections never share a body id", () => {
+      render(
+        <>
+          <SideMenuSection title="Basic">{menuRows()}</SideMenuSection>
+          <SideMenuSection title="Advanced">{menuRows()}</SideMenuSection>
+        </>,
+      );
+
+      const ids: Array<string | null> = Array.from(
+        document.querySelectorAll("button[aria-controls]"),
+      ).map((toggle: Element): string | null => {
+        return toggle.getAttribute("aria-controls");
+      });
+
+      expect(ids).toHaveLength(2);
+      expect(new Set(ids).size).toBe(2);
+      ids.forEach((id: string | null) => {
+        expect(document.getElementById(id!)).not.toBeNull();
+      });
+    });
+  });
+
   describe("collapsible={false}", () => {
     /*
      * A section that cannot collapse must not look like it can, to ANY user.

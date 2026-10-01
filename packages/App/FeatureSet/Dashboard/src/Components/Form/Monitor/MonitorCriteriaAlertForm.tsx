@@ -17,6 +17,7 @@ import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import TemplateVariablesModal from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesModal";
+import { hasAlertAdvancedOptions } from "./CriteriaAdvancedOptions";
 
 export interface ComponentProps {
   initialValue?: undefined | CriteriaAlert;
@@ -69,11 +70,8 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
   const hasNotifications: boolean = Boolean(
     criteriaAlert.onCallPolicyIds?.length,
   );
-  const hasAdvancedOptions: boolean = Boolean(
-    criteriaAlert.autoResolveAlert ||
-      criteriaAlert.remediationNotes ||
-      criteriaAlert.isPrivate === true,
-  );
+  // Only what the user chose: a default rule's auto-resolve does not count.
+  const hasAdvancedOptions: boolean = hasAlertAdvancedOptions(criteriaAlert);
 
   const [isTemplateModalOpen, setIsTemplateModalOpen] =
     useState<boolean>(false);

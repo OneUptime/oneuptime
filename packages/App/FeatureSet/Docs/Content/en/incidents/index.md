@@ -139,7 +139,7 @@ Open an incident and you get a left side menu, grouped like this:
 - **Roles**, **On-Call Executions**, **Owners** — who is on it, which policies fired, and who gets notified.
 - **Notification Logs**, **AI Logs**, **Audit Logs** — what was sent and what changed.
 - **Private Notes** and **Public Notes** — under the **Notes** section of the side menu.
-- **Custom Fields**, **Settings**, **Delete Incident** — under **Advanced**. The **Settings** page holds **Visible on Status Page**, **Private Incident** and the **Reminders** card.
+- **Custom Fields**, **Settings**, **Delete Incident** — under **Advanced**, which starts collapsed: click **Advanced** to show them. The **Settings** page holds **Visible on Status Page**, **Private Incident** and the **Reminders** card.
 
 [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) covers the collaboration pages in depth.
 

@@ -109,7 +109,15 @@ test.describe.skip("Inventory Product", () => {
      * Each tab is its own route, so each has to resolve on its own — this is
      * what a tabbed detail page would not have exercised.
      */
-    const subpages: Array<{ link: string; expectText: string }> = [
+    /*
+     * `section` names a side-menu section that starts folded away (Advanced,
+     * as in every menu): it is opened before its page is clicked.
+     */
+    const subpages: Array<{
+      link: string;
+      expectText: string;
+      section?: string;
+    }> = [
       { link: "Connections", expectText: "Connections" },
       { link: "Logs", expectText: "Logs" },
       { link: "Traces", expectText: "Traces" },
@@ -118,10 +126,26 @@ test.describe.skip("Inventory Product", () => {
       { link: "Exceptions", expectText: "Exceptions" },
       { link: "Custom Fields", expectText: "Custom Fields" },
       { link: "Incidents", expectText: "No incidents for this item" },
-      { link: "Audit Logs", expectText: "Item Audit Logs" },
+      {
+        link: "Audit Logs",
+        expectText: "Item Audit Logs",
+        section: "Advanced",
+      },
     ];
 
     for (const subpage of subpages) {
+      if (subpage.section) {
+        const sectionToggle: Locator = page
+          .locator("aside[role='navigation'][aria-label='Main navigation']")
+          .locator(
+            `xpath=.//h6[normalize-space(.)='${subpage.section}']/ancestor::button[1]`,
+          );
+
+        await expect(sectionToggle).toHaveAttribute("aria-expanded", "false");
+        await sectionToggle.click();
+        await expect(sectionToggle).toHaveAttribute("aria-expanded", "true");
+      }
+
       await page.getByRole("link", { name: subpage.link }).first().click();
       await expect(page.getByText(subpage.expectText).first()).toBeVisible({
         timeout: 30000,

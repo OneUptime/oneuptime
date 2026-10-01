@@ -166,6 +166,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
       return (
         <div className="flex items-center h-[38px]">
           <Toggle
+            ariaLabel={fieldDefinition.label}
             value={boolChecked}
             onChange={(value: boolean) => {
               props.onChange({

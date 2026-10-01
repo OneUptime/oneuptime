@@ -1414,14 +1414,26 @@ test.describe.skip("Queues Product", () => {
     const deleteLink: Locator = page.locator(
       `a[href='${serviceBusPath}/delete']`,
     );
+    // The queue's Advanced section, which holds Delete Queue, by its heading.
+    const advancedToggle: Locator = page
+      .locator("aside[role='navigation'][aria-label='Main navigation']")
+      .locator(
+        "xpath=.//h6[normalize-space(.)='Advanced']/ancestor::button[1]",
+      );
 
     await gotoProjectPage({
       page,
       projectId: ctx.projectId,
       url: urlFor(serviceBusPath),
-      ready: deleteLink.first(),
+      ready: advancedToggle,
     });
     await expect(deleteLink.first()).toHaveText("Delete Queue");
+
+    // Advanced starts folded away, as in every menu; open it to reach Delete.
+    await expect(advancedToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(deleteLink.first()).toBeHidden();
+    await advancedToggle.click();
+    await expect(deleteLink.first()).toBeVisible();
     await deleteLink.first().click();
     await expect(page).toHaveURL(urlFor(`${serviceBusPath}/delete`));
 

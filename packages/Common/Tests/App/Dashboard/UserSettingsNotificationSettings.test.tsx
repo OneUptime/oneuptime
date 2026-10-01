@@ -177,7 +177,7 @@ describe("user settings > notification settings", () => {
       ).not.toBeInTheDocument();
       expect(screen.queryByText("Email Rollup")).not.toBeInTheDocument();
       expect(
-        screen.queryByRole("switch", { name: /^Roll up notification emails:/ }),
+        screen.queryByRole("switch", { name: /^Roll up notification emails/ }),
       ).not.toBeInTheDocument();
     });
   });

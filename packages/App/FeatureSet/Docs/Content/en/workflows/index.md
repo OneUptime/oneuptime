@@ -48,6 +48,8 @@ Open a single workflow and its own left menu holds:
 - **Logs → Runs** — every run of this workflow, with details.
 - **Settings** — duplicate and export.
 
+**Settings** sits in the menu's **Advanced** section with **Audit Logs** and **Delete Workflow**. **Advanced** starts collapsed, in this menu and every other one, so the pages you use every day come first. Click **Advanced** to show its pages. It opens by itself whenever you are on one of them.
+
 ## Building your first workflow
 
 1. **Create** — pick a starting point, then give your workflow a name.

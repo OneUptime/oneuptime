@@ -53,6 +53,14 @@ function stepCard(page: Page, componentId: string): Locator {
 }
 
 // The open settings dialog, once it shows the step's identifier.
+/*
+ * The Log step's Value: a text box that shows values from earlier steps as
+ * chips (the value picker), named by its label.
+ */
+function valueBox(dialog: Locator): Locator {
+  return dialog.getByRole("textbox", { name: /^Value/ });
+}
+
 async function expectSettingsFor(
   page: Page,
   componentId: string,
@@ -214,15 +222,23 @@ test.describe("Workflow builder: adding a step", () => {
     const dialog: Locator = await expectSettingsFor(page, "log-2");
     await page.waitForTimeout(300);
 
-    // Whatever the dialog focused first got no stray new line from that Enter.
+    /*
+     * Whatever the dialog focused first got no stray new line from that
+     * Enter: an input's value, or the text of the box values show as chips in.
+     */
     const focusedValue: string = await page.evaluate((): string => {
       const active: Element | null = document.activeElement;
-      return active && "value" in active
-        ? String((active as HTMLInputElement).value)
+
+      if (active && "value" in active) {
+        return String((active as HTMLInputElement).value);
+      }
+
+      return active instanceof HTMLElement && active.isContentEditable
+        ? active.textContent || ""
         : "";
     });
     expect(focusedValue).not.toContain("\n");
-    await expect(dialog.locator("textarea").first()).toHaveValue("");
+    await expect(valueBox(dialog)).toHaveText("");
   });
 
   test("a step added with the mouse draws no focus ring", async ({
@@ -343,7 +359,7 @@ test.describe("Workflow builder: adding a step", () => {
 
     const dialog: Locator = page.locator(SETTINGS_DIALOG);
     await expect(dialog).toBeVisible();
-    await dialog.locator("textarea").first().fill("Hello");
+    await valueBox(dialog).fill("Hello");
     await dialog.getByRole("button", { name: "Save" }).click();
     await expect(dialog).toHaveCount(0);
 
@@ -362,7 +378,7 @@ test.describe("Workflow builder: adding a step", () => {
     // Not connected yet, so the canvas still has something to say about it.
     await stepCard(page, "log-2").click();
     const dialog: Locator = page.locator(SETTINGS_DIALOG);
-    await dialog.locator("textarea").first().fill("Hello");
+    await valueBox(dialog).fill("Hello");
     await dialog.getByRole("button", { name: "Save" }).click();
     await expect(dialog).toHaveCount(0);
     await expect(

@@ -28,7 +28,6 @@ export interface ComponentProps {
    * that exists - and neither offers what OneUptime fills in itself.
    */
   use: ColumnUse.Create | ColumnUse.Update;
-  suggestions?: Array<string> | undefined;
   onChange: (rows: Array<ModelColumnRow>) => void;
 }
 
@@ -118,7 +117,6 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
                   column={findColumn(props.columns, row.columnId)}
                   knownColumnIds={knownColumnIds}
                   isRequired={requiredColumnIds.includes(row.columnId)}
-                  suggestions={props.suggestions}
                   autoFocus={row.key === justAddedKey}
                   onChange={(nextRow: ModelColumnRow) => {
                     replaceRow(index, nextRow);

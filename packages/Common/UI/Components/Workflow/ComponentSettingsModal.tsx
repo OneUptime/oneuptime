@@ -12,6 +12,7 @@ import ComponentPortViewer from "./ComponentPortViewer";
 import ComponentReturnValueViewer from "./ComponentReturnValueViewer";
 import ComponentSettingsSection from "./ComponentSettingsSection";
 import DocumentationViewer from "./DocumentationViewer";
+import { StepValueSources } from "./ValuePicker/StepGraph";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
@@ -41,6 +42,11 @@ export interface ComponentProps {
   onRunStep?: ((component: NodeDataProp) => void) | undefined;
   component: NodeDataProp;
   graphComponents: Array<NodeDataProp>;
+  /*
+   * Which steps run before and after this one, so its settings only offer
+   * values that will exist when it runs. See ValuePicker/StepGraph.
+   */
+  valueSources?: StepValueSources | undefined;
   workflowId: ObjectID;
   webhookSecretKey?: string | undefined;
   /*
@@ -154,6 +160,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     >
       <ArgumentsForm
         graphComponents={props.graphComponents}
+        valueSources={props.valueSources}
         workflowId={props.workflowId}
         component={component}
         onFormChange={(c: NodeDataProp) => {
