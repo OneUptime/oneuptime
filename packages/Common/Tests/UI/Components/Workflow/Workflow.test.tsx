@@ -5,6 +5,8 @@ import Workflow, {
 import { ComponentProps as PickerProps } from "../../../../UI/Components/Workflow/ComponentsModal";
 import { ComponentProps as SettingsProps } from "../../../../UI/Components/Workflow/ComponentSettingsModal";
 import { ComponentProps as RunProps } from "../../../../UI/Components/Workflow/RunModal";
+import { WorkflowNodeRenderData } from "../../../../UI/Components/Workflow/GraphLintSummary";
+import { NEW_NODE_HEIGHT_ESTIMATE } from "../../../../UI/Components/Workflow/NodePlacement";
 import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
@@ -40,10 +42,17 @@ import {
  * boundaries are replaced: jsdom cannot measure the canvas, and form field
  * validation is covered in the modal suites. Clicks travel through ReactFlow's
  * node-click event, matching the production canvas's settings entry point.
+ *
+ * The stand-in canvas draws each step the way react-flow's own node wrapper
+ * does as far as these tests care: a focusable element with the class
+ * react-flow__node and the node's id in data-id, inside a wrapper that carries
+ * the builder's own props (onKeyDown among them).
  */
 let mockFlowProps: ReactFlowProps | null = null;
 let mockSettingsProps: SettingsProps | null = null;
 const mockSetCenter: MockFunction = getJestMockFunction();
+const mockSetViewport: MockFunction = getJestMockFunction();
+const mockGetViewport: MockFunction = getJestMockFunction();
 const mockGetZoom: MockFunction = getJestMockFunction();
 
 jest.mock("reactflow", () => {
@@ -60,26 +69,31 @@ jest.mock("reactflow", () => {
       React.useEffect(() => {
         props.onInit?.({
           setCenter: mockSetCenter,
+          setViewport: mockSetViewport,
+          getViewport: mockGetViewport,
           getZoom: mockGetZoom,
         } as unknown as ReactFlowInstance);
       }, []);
 
       return (
-        <div data-testid="workflow-canvas">
+        <div data-testid="workflow-canvas" onKeyDown={props.onKeyDown}>
           {(props.nodes || []).map((node: Node): ReactElement => {
             const data: NodeDataProp = node.data as NodeDataProp;
 
             return (
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 key={node.id}
+                className="react-flow__node"
+                data-id={node.id}
                 data-testid={`workflow-node-${node.id}`}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                onClick={(event: React.MouseEvent<HTMLDivElement>) => {
                   props.onNodeClick?.(event, node);
                 }}
               >
                 {data.id || "Add trigger"}
-              </button>
+              </div>
             );
           })}
         </div>
@@ -339,41 +353,52 @@ const renderBuilder: RenderBuilderFunction = (
   };
 };
 
-type GetRenderedNodesFunction = () => Array<Node<NodeDataProp>>;
+type GetRenderedNodesFunction = () => Array<Node<WorkflowNodeRenderData>>;
 
 const getRenderedNodes: GetRenderedNodesFunction = (): Array<
-  Node<NodeDataProp>
+  Node<WorkflowNodeRenderData>
 > => {
-  return (mockFlowProps?.nodes || []) as Array<Node<NodeDataProp>>;
+  return (mockFlowProps?.nodes || []) as Array<Node<WorkflowNodeRenderData>>;
 };
 
 type GetStoredNodesFunction = (
   harness: BuilderHarness,
-) => Array<Node<NodeDataProp>>;
+) => Array<Node<WorkflowNodeRenderData>>;
 
 const getStoredNodes: GetStoredNodesFunction = (
   harness: BuilderHarness,
-): Array<Node<NodeDataProp>> => {
+): Array<Node<WorkflowNodeRenderData>> => {
   const calls: Array<Array<unknown>> = harness.onUpdated.mock.calls;
-  return calls[calls.length - 1]?.[0] as Array<Node<NodeDataProp>>;
+  return calls[calls.length - 1]?.[0] as Array<Node<WorkflowNodeRenderData>>;
 };
 
-type FindRenderedNodeFunction = (componentId: string) => Node<NodeDataProp>;
+type FindRenderedNodeFunction = (
+  componentId: string,
+) => Node<WorkflowNodeRenderData>;
 
 const findRenderedNode: FindRenderedNodeFunction = (
   componentId: string,
-): Node<NodeDataProp> => {
-  const node: Node<NodeDataProp> | undefined = getRenderedNodes().find(
-    (candidate: Node<NodeDataProp>) => {
+): Node<WorkflowNodeRenderData> => {
+  const node: Node<WorkflowNodeRenderData> | undefined =
+    getRenderedNodes().find((candidate: Node<WorkflowNodeRenderData>) => {
       return candidate.data.id === componentId;
-    },
-  );
+    });
 
   if (!node) {
     throw new Error(`Expected ${componentId} on the workflow canvas.`);
   }
 
   return node;
+};
+
+type GetNodeElementFunction = (componentId: string) => HTMLElement;
+
+const getNodeElement: GetNodeElementFunction = (
+  componentId: string,
+): HTMLElement => {
+  return screen.getByTestId(
+    `workflow-node-${findRenderedNode(componentId).id}`,
+  );
 };
 
 type GetSettingsPropsFunction = () => SettingsProps;
@@ -405,68 +430,435 @@ const chooseAction: ChooseActionFunction = (): void => {
   );
 };
 
+type AddActionFunction = (harness: BuilderHarness) => void;
+
+const addAction: AddActionFunction = (harness: BuilderHarness): void => {
+  openPicker(harness);
+  chooseAction();
+};
+
+type SetCanvasSizeFunction = (width: number, height: number) => void;
+
+/*
+ * jsdom lays nothing out, so the canvas has no size and no step is ever in
+ * view. Tests about a step that is already on screen give it one.
+ */
+const setCanvasSize: SetCanvasSizeFunction = (
+  width: number,
+  height: number,
+): void => {
+  const frame: HTMLElement = screen.getByTestId("workflow-canvas")
+    .parentElement as HTMLElement;
+
+  Object.defineProperty(frame, "clientWidth", {
+    configurable: true,
+    value: width,
+  });
+  Object.defineProperty(frame, "clientHeight", {
+    configurable: true,
+    value: height,
+  });
+};
+
+type PressKeyFunction = (
+  element: HTMLElement,
+  init: { key: string } & Partial<KeyboardEventInit>,
+) => boolean;
+
+/** Presses a key on an element; true when nothing cancelled the keydown. */
+const pressKey: PressKeyFunction = (
+  element: HTMLElement,
+  init: { key: string } & Partial<KeyboardEventInit>,
+): boolean => {
+  return fireEvent.keyDown(element, init);
+};
+
 beforeEach(() => {
   mockFlowProps = null;
   mockSettingsProps = null;
   mockSetCenter.mockReset();
   mockSetCenter.mockResolvedValue(true);
+  mockSetViewport.mockReset();
+  mockGetViewport.mockReset();
+  mockGetViewport.mockReturnValue({ x: 0, y: 0, zoom: 1 });
   mockGetZoom.mockReset();
   mockGetZoom.mockReturnValue(1);
 });
 
 afterEach(() => {
   cleanup();
+  delete (window as unknown as { matchMedia?: unknown }).matchMedia;
 });
 
-describe("Workflow builder: adding and configuring steps", () => {
-  test("opens settings immediately after choosing a component and closes the picker", () => {
+describe("Workflow builder: adding a step leaves its settings closed", () => {
+  test("choosing a component closes the picker and adds the step, selected, without opening its settings", () => {
     const harness: BuilderHarness = renderBuilder();
-    openPicker(harness);
-    chooseAction();
+    addAction(harness);
 
     expect(screen.queryByTestId("picker-Component")).not.toBeInTheDocument();
-    expect(screen.getByTestId("settings-step-id")).toHaveTextContent(
-      "write-log-1",
-    );
     expect(harness.onPickerUpdate).toHaveBeenLastCalledWith(false);
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+    expect(mockSettingsProps).toBeNull();
     expect(getRenderedNodes()).toHaveLength(2);
     expect(findRenderedNode("write-log-1").selected).toBe(true);
-    expect(getSettingsProps().workflowId).toEqual(harness.props.workflowId);
+    expect(findRenderedNode("manual-trigger-1").selected).toBe(false);
   });
 
-  test("a newly added component can be reopened after its settings are closed", () => {
+  test("clicking the new step opens its settings", () => {
+    const harness: BuilderHarness = renderBuilder();
+    addAction(harness);
+
+    fireEvent.click(getNodeElement("write-log-1"));
+
+    expect(screen.getByTestId("settings-step-id")).toHaveTextContent(
+      "write-log-1",
+    );
+    expect(getSettingsProps().workflowId).toEqual(harness.props.workflowId);
+    expect(findRenderedNode("write-log-1").data.onClick).toBeUndefined();
+  });
+
+  test("choosing a trigger from the placeholder does not open its settings either", () => {
+    const placeholder: Node = getPlaceholderTriggerNode();
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [placeholder],
+    });
+    fireEvent.click(screen.getByTestId(`workflow-node-${placeholder.id}`));
+    fireEvent.click(
+      screen.getByRole("button", { name: `Choose ${TRIGGER_METADATA.title}` }),
+    );
+
+    expect(screen.queryByTestId("picker-Trigger")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+    expect(getStoredNodes(harness)).toHaveLength(1);
+    expect(findRenderedNode("manual-trigger-1").selected).toBe(true);
+
+    fireEvent.click(getNodeElement("manual-trigger-1"));
+    expect(screen.getByTestId("settings-step-id")).toHaveTextContent(
+      "manual-trigger-1",
+    );
+  });
+
+  test("several steps can be added in a row without a dialog in between", () => {
+    const harness: BuilderHarness = renderBuilder();
+
+    for (let index: number = 1; index <= 3; index++) {
+      addAction(harness);
+      expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("picker-Component")).not.toBeInTheDocument();
+    }
+
+    expect(getRenderedNodes()).toHaveLength(4);
+    expect(
+      getRenderedNodes()
+        .filter((node: Node<WorkflowNodeRenderData>) => {
+          return node.selected;
+        })
+        .map((node: Node<WorkflowNodeRenderData>) => {
+          return node.data.id;
+        }),
+    ).toEqual(["write-log-3"]);
+  });
+
+  test("adding a step while the canvas is otherwise idle never opens a settings dialog later", () => {
+    const harness: BuilderHarness = renderBuilder();
+    addAction(harness);
+
+    // Anything that re-renders the builder must not bring the dialog back.
+    harness.view.rerender(
+      <Workflow {...harness.props} showComponentsPickerModal={false} />,
+    );
+    act(() => {
+      mockFlowProps?.onNodesChange?.([
+        {
+          id: findRenderedNode("write-log-1").id,
+          type: "dimensions",
+          dimensions: { width: 256, height: 170 },
+        },
+      ]);
+    });
+
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+  });
+
+  test("a step that still needs its required settings is drawn with that, and it is never saved", () => {
+    const harness: BuilderHarness = renderBuilder();
+    addAction(harness);
+
+    expect(findRenderedNode("write-log-1").data.issueSummary).toEqual({
+      missingSettingMessages: ['"Message" is required but empty.'],
+      errorMessages: [],
+      warningMessages: [
+        "Nothing connects to this step from the trigger, so it will never run.",
+      ],
+    });
+
+    for (const node of getStoredNodes(harness)) {
+      expect(node.data.issueSummary).toBeUndefined();
+      expect(node.data.error).toBe("");
+    }
+  });
+
+  test("filling in the required setting takes the setup prompt away", () => {
+    const harness: BuilderHarness = renderBuilder();
+    addAction(harness);
+    fireEvent.click(getNodeElement("write-log-1"));
+    fireEvent.change(screen.getByRole("textbox", { name: "Step message" }), {
+      target: { value: "Deployment finished" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
+
+    expect(
+      findRenderedNode("write-log-1").data.issueSummary?.missingSettingMessages,
+    ).toEqual([]);
+  });
+
+  test("closing the picker without choosing anything opens nothing", () => {
     const harness: BuilderHarness = renderBuilder();
     openPicker(harness);
-    chooseAction();
-    fireEvent.click(screen.getByRole("button", { name: "Close settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close picker" }));
 
-    const added: Node<NodeDataProp> = findRenderedNode("write-log-1");
-    expect(added.data.onClick).toBeUndefined();
-    fireEvent.click(screen.getByTestId(`workflow-node-${added.id}`));
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+    expect(getRenderedNodes()).toHaveLength(1);
+  });
+});
+
+describe("Workflow builder: the keyboard reaches a new step", () => {
+  test("the new step takes the keyboard focus once it is on the canvas", () => {
+    const harness: BuilderHarness = renderBuilder();
+    addAction(harness);
+
+    expect(document.activeElement).toBe(getNodeElement("write-log-1"));
+  });
+
+  test("Enter on the focused step opens its settings", () => {
+    const harness: BuilderHarness = renderBuilder();
+    addAction(harness);
+
+    const notCancelled: boolean = pressKey(getNodeElement("write-log-1"), {
+      key: "Enter",
+    });
+
+    expect(screen.getByTestId("settings-step-id")).toHaveTextContent(
+      "write-log-1",
+    );
+    // Cancelled, so the Enter does not go on to type into the opened settings.
+    expect(notCancelled).toBe(false);
+  });
+
+  test("Enter opens any step's settings, not only a new one", () => {
+    const trigger: Node<NodeDataProp> = makeNode(TRIGGER_METADATA);
+    const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+    renderBuilder({ initialNodes: [trigger, action] });
+
+    pressKey(screen.getByTestId(`workflow-node-${action.id}`), {
+      key: "Enter",
+    });
 
     expect(screen.getByTestId("settings-step-id")).toHaveTextContent(
       "write-log-1",
     );
   });
 
-  test("brings an added step into view after the canvas has initialized", () => {
-    const harness: BuilderHarness = renderBuilder();
-    expect(mockSetCenter).not.toHaveBeenCalled();
-    openPicker(harness);
-    chooseAction();
+  test("Enter on the trigger placeholder opens the trigger picker", () => {
+    const placeholder: Node = getPlaceholderTriggerNode();
+    renderBuilder({ initialNodes: [placeholder] });
 
-    const added: Node<NodeDataProp> = findRenderedNode("write-log-1");
-    expect(mockSetCenter).toHaveBeenCalledTimes(1);
-    const call: Array<unknown> = mockSetCenter.mock.calls[0] as Array<unknown>;
-    expect(call[0]).toBeGreaterThan(added.position.x);
-    expect(call[1]).toBeGreaterThan(added.position.y);
-    expect(call[2]).toEqual(expect.objectContaining({ zoom: 1 }));
+    pressKey(screen.getByTestId(`workflow-node-${placeholder.id}`), {
+      key: "Enter",
+    });
+
+    expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
   });
 
+  test.each([
+    ["Space", { key: " " }],
+    ["a letter", { key: "a" }],
+    ["Escape", { key: "Escape" }],
+    ["Ctrl+Enter", { key: "Enter", ctrlKey: true }],
+    ["Cmd+Enter", { key: "Enter", metaKey: true }],
+    ["Alt+Enter", { key: "Enter", altKey: true }],
+    ["Shift+Enter", { key: "Enter", shiftKey: true }],
+  ])(
+    "%s on a step opens nothing and is left alone",
+    (_label: string, init: { key: string } & Partial<KeyboardEventInit>) => {
+      const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+      renderBuilder({ initialNodes: [action] });
+
+      const notCancelled: boolean = pressKey(
+        screen.getByTestId(`workflow-node-${action.id}`),
+        init,
+      );
+
+      expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+      expect(notCancelled).toBe(true);
+    },
+  );
+
+  test("Enter on the canvas itself, rather than on a step, opens nothing", () => {
+    renderBuilder();
+
+    const notCancelled: boolean = pressKey(
+      screen.getByTestId("workflow-canvas"),
+      { key: "Enter" },
+    );
+
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+    expect(notCancelled).toBe(true);
+  });
+
+  test("an Enter something else already handled opens nothing", () => {
+    const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+    renderBuilder({ initialNodes: [action] });
+
+    const element: HTMLElement = screen.getByTestId(
+      `workflow-node-${action.id}`,
+    );
+    element.addEventListener("keydown", (event: KeyboardEvent) => {
+      event.preventDefault();
+    });
+    pressKey(element, { key: "Enter" });
+
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+  });
+
+  test("Enter on a step that is no longer on the canvas opens nothing", () => {
+    const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+    renderBuilder({ initialNodes: [action] });
+
+    const stray: HTMLDivElement = document.createElement("div");
+    stray.className = "react-flow__node";
+    stray.setAttribute("data-id", "deleted-node");
+    screen.getByTestId("workflow-canvas").appendChild(stray);
+
+    pressKey(stray, { key: "Enter" });
+
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+  });
+
+  test("focus that has gone somewhere else is not taken back", () => {
+    const harness: BuilderHarness = renderBuilder();
+    const elsewhere: HTMLInputElement = document.createElement("input");
+    elsewhere.setAttribute("aria-label", "Somewhere else");
+    document.body.appendChild(elsewhere);
+
+    openPicker(harness);
+    elsewhere.focus();
+    chooseAction();
+
+    expect(document.activeElement).toBe(elsewhere);
+    elsewhere.remove();
+  });
+
+  test("the focused step's Enter is the only way in besides a click: adding never focuses the settings", () => {
+    const harness: BuilderHarness = renderBuilder();
+    addAction(harness);
+
+    expect(
+      screen.getByTestId("workflow-canvas").contains(document.activeElement),
+    ).toBe(true);
+    expect(screen.queryByRole("textbox", { name: "Step message" })).toBeNull();
+  });
+});
+
+describe("Workflow builder: bringing a new step into view", () => {
+  test("a step that lands off screen is scrolled to, at the zoom the builder chose", () => {
+    mockGetViewport.mockReturnValue({ x: 0, y: 0, zoom: 0.75 });
+    const harness: BuilderHarness = renderBuilder();
+    setCanvasSize(1200, 500);
+    addAction(harness);
+
+    // It lands at y 520, so at zoom 0.75 its bottom is drawn at 555.
+    const added: Node<WorkflowNodeRenderData> = findRenderedNode("write-log-1");
+    expect(added.position.y).toBe(520);
+    expect(mockSetViewport).toHaveBeenCalledTimes(1);
+    const [viewport, options] = mockSetViewport.mock.calls[0] as [
+      { x: number; y: number; zoom: number },
+      { duration: number },
+    ];
+    expect(viewport.zoom).toBe(0.75);
+    // Only as far as it takes: the step's bottom ends up at the margin.
+    expect(
+      (added.position.y + NEW_NODE_HEIGHT_ESTIMATE) * 0.75 + viewport.y,
+    ).toBe(500 - 24);
+    expect(viewport.x).toBe(0);
+    expect(options).toEqual({ duration: 200 });
+    // The old behaviour centred on the step and reset the zoom to 1.
+    expect(mockSetCenter).not.toHaveBeenCalled();
+  });
+
+  test("a step that lands in view does not move the canvas", () => {
+    const harness: BuilderHarness = renderBuilder();
+    setCanvasSize(1200, 900);
+    addAction(harness);
+
+    // The trigger sits at y 240, so the step lands at 240 + 200 + 80 = 520.
+    expect(findRenderedNode("write-log-1").position.y).toBe(520);
+    expect(mockSetViewport).not.toHaveBeenCalled();
+    expect(mockSetCenter).not.toHaveBeenCalled();
+  });
+
+  test("a step under the minimap is scrolled clear of it", () => {
+    const harness: BuilderHarness = renderBuilder();
+    setCanvasSize(1200, 900);
+
+    const minimap: HTMLDivElement = document.createElement("div");
+    minimap.className = "react-flow__minimap";
+    minimap.getBoundingClientRect = (): DOMRect => {
+      return {
+        left: 100,
+        top: 600,
+        right: 400,
+        bottom: 880,
+        width: 300,
+        height: 280,
+        x: 100,
+        y: 600,
+        toJSON: () => {
+          return {};
+        },
+      } as DOMRect;
+    };
+    screen.getByTestId("workflow-canvas").appendChild(minimap);
+
+    addAction(harness);
+
+    expect(mockSetViewport).toHaveBeenCalledTimes(1);
+    const [viewport] = mockSetViewport.mock.calls[0] as [
+      { x: number; y: number; zoom: number },
+    ];
+    // The step's bottom has to clear the minimap's top, 600, by the margin.
+    expect(520 + NEW_NODE_HEIGHT_ESTIMATE + viewport.y).toBe(600 - 24);
+  });
+
+  test("with reduced motion the canvas jumps rather than glides", () => {
+    window.matchMedia = ((query: string) => {
+      return {
+        matches: query === "(prefers-reduced-motion: reduce)",
+      };
+    }) as unknown as typeof window.matchMedia;
+    const harness: BuilderHarness = renderBuilder();
+    addAction(harness);
+
+    const [, options] = mockSetViewport.mock.calls[0] as [
+      unknown,
+      { duration: number },
+    ];
+    expect(options).toEqual({ duration: 0 });
+  });
+
+  test("nothing moves until the canvas has finished starting up", () => {
+    renderBuilder();
+    expect(mockSetViewport).not.toHaveBeenCalled();
+    expect(mockSetCenter).not.toHaveBeenCalled();
+  });
+});
+
+describe("Workflow builder: configuring steps", () => {
   test("saving arguments updates the graph and reopening shows the saved values", () => {
     const harness: BuilderHarness = renderBuilder();
-    openPicker(harness);
-    chooseAction();
+    addAction(harness);
+    fireEvent.click(getNodeElement("write-log-1"));
 
     fireEvent.change(screen.getByRole("textbox", { name: "Step message" }), {
       target: { value: "Deployment finished" },
@@ -474,29 +866,53 @@ describe("Workflow builder: adding and configuring steps", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
 
     expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
-    const stored: Node<NodeDataProp> | undefined = getStoredNodes(harness).find(
-      (node: Node<NodeDataProp>) => {
-        return node.data.id === "write-log-1";
-      },
-    );
+    const stored: Node<WorkflowNodeRenderData> | undefined = getStoredNodes(
+      harness,
+    ).find((node: Node<WorkflowNodeRenderData>) => {
+      return node.data.id === "write-log-1";
+    });
     expect(stored?.data.arguments).toEqual({ message: "Deployment finished" });
 
-    const added: Node<NodeDataProp> = findRenderedNode("write-log-1");
-    fireEvent.click(screen.getByTestId(`workflow-node-${added.id}`));
+    fireEvent.click(getNodeElement("write-log-1"));
     expect(screen.getByRole("textbox", { name: "Step message" })).toHaveValue(
       "Deployment finished",
     );
   });
 
+  test("the settings get the step as it is drawn, and save it without what the canvas added", () => {
+    const harness: BuilderHarness = renderBuilder();
+    addAction(harness);
+    fireEvent.click(getNodeElement("write-log-1"));
+
+    const drawn: WorkflowNodeRenderData = getSettingsProps()
+      .component as WorkflowNodeRenderData;
+    expect(drawn.issueSummary?.missingSettingMessages).toEqual([
+      '"Message" is required but empty.',
+    ]);
+
+    act(() => {
+      getSettingsProps().onSave({
+        ...drawn,
+        arguments: { message: "Hello" },
+      });
+    });
+
+    const stored: Node<WorkflowNodeRenderData> | undefined = getStoredNodes(
+      harness,
+    ).find((node: Node<WorkflowNodeRenderData>) => {
+      return node.data.id === "write-log-1";
+    });
+    expect(stored?.data).not.toHaveProperty("issueSummary");
+    expect(stored?.data.error).toBe("");
+    expect(stored?.data.arguments).toEqual({ message: "Hello" });
+  });
+
   test("adding the same component twice keeps every identity unique and only the newest selected", () => {
     const harness: BuilderHarness = renderBuilder();
-    openPicker(harness);
-    chooseAction();
-    fireEvent.click(screen.getByRole("button", { name: "Close settings" }));
-    openPicker(harness);
-    chooseAction();
+    addAction(harness);
+    addAction(harness);
 
-    const nodes: Array<Node<NodeDataProp>> = getRenderedNodes();
+    const nodes: Array<Node<WorkflowNodeRenderData>> = getRenderedNodes();
     expect(nodes).toHaveLength(3);
     expect(
       new Set(
@@ -507,7 +923,7 @@ describe("Workflow builder: adding and configuring steps", () => {
     ).toBe(3);
     expect(
       new Set(
-        nodes.map((node: Node<NodeDataProp>) => {
+        nodes.map((node: Node<WorkflowNodeRenderData>) => {
           return node.data.internalId;
         }),
       ).size,
@@ -515,9 +931,8 @@ describe("Workflow builder: adding and configuring steps", () => {
     expect(findRenderedNode("write-log-1").selected).toBe(false);
     expect(findRenderedNode("manual-trigger-1").selected).toBe(false);
     expect(findRenderedNode("write-log-2").selected).toBe(true);
-    expect(screen.getByTestId("settings-step-id")).toHaveTextContent(
-      "write-log-2",
-    );
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(getNodeElement("write-log-2"));
   });
 
   test("allocates the next free component id without overwriting an existing step", () => {
@@ -526,8 +941,7 @@ describe("Workflow builder: adding and configuring steps", () => {
     const harness: BuilderHarness = renderBuilder({
       initialNodes: [makeNode(TRIGGER_METADATA), existing],
     });
-    openPicker(harness);
-    chooseAction();
+    addAction(harness);
 
     expect(findRenderedNode("write-log-1").data.arguments).toEqual({
       message: "Keep this message",
@@ -544,14 +958,11 @@ describe("Workflow builder: adding and configuring steps", () => {
     const harness: BuilderHarness = renderBuilder({
       initialNodes: [makeNode(TRIGGER_METADATA), existing],
     });
-    openPicker(harness);
-    chooseAction();
-    const first: Node<NodeDataProp> = findRenderedNode("write-log-2");
+    addAction(harness);
+    const first: Node<WorkflowNodeRenderData> = findRenderedNode("write-log-2");
     expect(first.position.y).toBeGreaterThan(1080);
 
-    fireEvent.click(screen.getByRole("button", { name: "Close settings" }));
-    openPicker(harness);
-    chooseAction();
+    addAction(harness);
     expect(findRenderedNode("write-log-3").position.y).toBeGreaterThan(
       first.position.y,
     );
@@ -569,8 +980,7 @@ describe("Workflow builder: adding and configuring steps", () => {
       initialNodes: [trigger, existing],
       initialEdges: [edge],
     });
-    openPicker(harness);
-    chooseAction();
+    addAction(harness);
 
     expect(mockFlowProps?.edges).toHaveLength(1);
     expect(mockFlowProps?.edges?.[0]).toEqual(expect.objectContaining(edge));
@@ -581,16 +991,16 @@ describe("Workflow builder: adding and configuring steps", () => {
 
   test("closing configuration leaves the newly added step available for later editing", () => {
     const harness: BuilderHarness = renderBuilder();
-    openPicker(harness);
-    chooseAction();
+    addAction(harness);
+    fireEvent.click(getNodeElement("write-log-1"));
     fireEvent.change(screen.getByRole("textbox", { name: "Step message" }), {
       target: { value: "Unsaved draft" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Close settings" }));
 
-    const added: Node<NodeDataProp> = findRenderedNode("write-log-1");
+    const added: Node<WorkflowNodeRenderData> = findRenderedNode("write-log-1");
     expect(added.data.arguments?.["message"]).toBeUndefined();
-    fireEvent.click(screen.getByTestId(`workflow-node-${added.id}`));
+    fireEvent.click(getNodeElement("write-log-1"));
     expect(screen.getByRole("textbox", { name: "Step message" })).toHaveValue(
       "",
     );
@@ -598,7 +1008,7 @@ describe("Workflow builder: adding and configuring steps", () => {
 });
 
 describe("Workflow builder: trigger setup and deletion", () => {
-  test("the placeholder opens the trigger picker, and the chosen trigger opens settings", () => {
+  test("the placeholder opens the trigger picker, and the chosen trigger replaces it", () => {
     const placeholder: Node = getPlaceholderTriggerNode();
     const harness: BuilderHarness = renderBuilder({
       initialNodes: [placeholder],
@@ -615,11 +1025,10 @@ describe("Workflow builder: trigger setup and deletion", () => {
     );
 
     expect(screen.queryByTestId("picker-Trigger")).not.toBeInTheDocument();
-    expect(screen.getByTestId("settings-step-id")).toHaveTextContent(
-      "manual-trigger-1",
-    );
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
     expect(getStoredNodes(harness)).toHaveLength(1);
     expect(getRenderedNodes()[0]?.data.nodeType).toBe(NodeType.Node);
+    expect(getRenderedNodes()[0]?.data.id).toBe("manual-trigger-1");
   });
 
   test("replacing a placeholder preserves existing components and selects only the new trigger", () => {
@@ -641,11 +1050,12 @@ describe("Workflow builder: trigger setup and deletion", () => {
     expect(findRenderedNode("write-log-1").selected).toBe(false);
     expect(findRenderedNode("manual-trigger-1").selected).toBe(true);
     expect(
-      getRenderedNodes().some((node: Node<NodeDataProp>) => {
+      getRenderedNodes().some((node: Node<WorkflowNodeRenderData>) => {
         return node.data.nodeType === NodeType.PlaceholderNode;
       }),
     ).toBe(false);
     expect(mockFlowProps?.edges).toEqual([]);
+    expect(document.activeElement).toBe(getNodeElement("manual-trigger-1"));
   });
 
   test("deleting a trigger restores a clickable placeholder and removes only its connections", () => {
@@ -668,11 +1078,10 @@ describe("Workflow builder: trigger setup and deletion", () => {
     fireEvent.click(screen.getByTestId(`workflow-node-${trigger.id}`));
     fireEvent.click(screen.getByRole("button", { name: "Delete step" }));
 
-    const placeholder: Node<NodeDataProp> | undefined = getRenderedNodes().find(
-      (node: Node<NodeDataProp>) => {
+    const placeholder: Node<WorkflowNodeRenderData> | undefined =
+      getRenderedNodes().find((node: Node<WorkflowNodeRenderData>) => {
         return node.data.nodeType === NodeType.PlaceholderNode;
-      },
-    );
+      });
     expect(placeholder?.data.onClick).toBeUndefined();
     expect(getRenderedNodes()).toHaveLength(3);
     expect(mockFlowProps?.edges).toEqual([expect.objectContaining(retained)]);
@@ -704,11 +1113,10 @@ describe("Workflow builder: trigger setup and deletion", () => {
     fireEvent.click(screen.getByTestId(`workflow-node-${action.id}`));
     fireEvent.click(screen.getByRole("button", { name: "Delete step" }));
 
-    const placeholders: Array<Node<NodeDataProp>> = getRenderedNodes().filter(
-      (node: Node<NodeDataProp>) => {
+    const placeholders: Array<Node<WorkflowNodeRenderData>> =
+      getRenderedNodes().filter((node: Node<WorkflowNodeRenderData>) => {
         return node.data.nodeType === NodeType.PlaceholderNode;
-      },
-    );
+      });
     expect(placeholders).toHaveLength(1);
     expect(getRenderedNodes()).toHaveLength(2);
     expect(placeholders[0]?.id).toBe(placeholder.id);
@@ -745,9 +1153,13 @@ describe("Workflow builder: rendering and persistence boundaries", () => {
     });
 
     expect(findRenderedNode("write-log-1").data.error).toContain("Message");
+    expect(
+      findRenderedNode("write-log-1").data.issueSummary?.missingSettingMessages,
+    ).toEqual(['"Message" is required but empty.']);
     for (const node of getStoredNodes(harness)) {
       expect(node.data.error).toBe("");
       expect(node.data.onClick).toBeUndefined();
+      expect(node.data.issueSummary).toBeUndefined();
     }
     expect(harness.onLint).toHaveBeenLastCalledWith(
       expect.objectContaining({ errorCount: 1 }),
@@ -760,13 +1172,31 @@ describe("Workflow builder: rendering and persistence boundaries", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
 
     expect(findRenderedNode("write-log-1").data.error).toBe("");
+    expect(findRenderedNode("write-log-1").data.issueSummary).toBeUndefined();
     expect(harness.onLint).toHaveBeenLastCalledWith(
       expect.objectContaining({ errorCount: 0 }),
     );
     for (const node of getStoredNodes(harness)) {
       expect(node.data.error).toBe("");
       expect(node.data.onClick).toBeUndefined();
+      expect(node.data).not.toHaveProperty("issueSummary");
     }
+  });
+
+  test("a step the checks have nothing to say about is handed to the canvas untouched", () => {
+    const trigger: Node<NodeDataProp> = makeNode(TRIGGER_METADATA);
+    const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+    action.data.arguments = { message: "Configured" };
+    renderBuilder({
+      initialNodes: [trigger, action],
+      initialEdges: [
+        { id: "connected", source: trigger.id, target: action.id },
+      ],
+    });
+
+    // Same object, so react-flow can skip redrawing it.
+    expect(findRenderedNode("write-log-1").data).toBe(action.data);
+    expect(findRenderedNode("manual-trigger-1").data).toBe(trigger.data);
   });
 
   test("editing an existing step does not modify the node objects supplied by its caller", () => {
@@ -795,7 +1225,8 @@ describe("Workflow builder: rendering and persistence boundaries", () => {
     });
 
     expect(getStoredNodes(harness)).toHaveLength(1);
-    const renamed: Node<NodeDataProp> = findRenderedNode("deployment-log");
+    const renamed: Node<WorkflowNodeRenderData> =
+      findRenderedNode("deployment-log");
     expect(renamed.id).toBe(action.id);
     expect(renamed.data.internalId).toBe(action.data.internalId);
     fireEvent.click(screen.getByTestId(`workflow-node-${renamed.id}`));
@@ -967,6 +1398,19 @@ describe("Workflow builder: running and modal state", () => {
     },
   );
 
+  test("right after a step is added the canvas shortcuts are live, since no dialog is open", () => {
+    const harness: BuilderHarness = renderBuilder();
+    addAction(harness);
+
+    expect(mockFlowProps).toEqual(
+      expect.objectContaining({
+        panActivationKeyCode: "Space",
+        deleteKeyCode: "Backspace",
+        selectionKeyCode: "Shift",
+      }),
+    );
+  });
+
   test("turning the external run flag off closes the run modal without closing the component picker", () => {
     const harness: BuilderHarness = renderBuilder({
       showRunModal: true,
@@ -1026,7 +1470,8 @@ describe("Workflow builder: running and modal state", () => {
 
   test("closing the picker reports its state without changing the graph", () => {
     const harness: BuilderHarness = renderBuilder();
-    const initialNodes: Array<Node<NodeDataProp>> = getStoredNodes(harness);
+    const initialNodes: Array<Node<WorkflowNodeRenderData>> =
+      getStoredNodes(harness);
     openPicker(harness);
     fireEvent.click(screen.getByRole("button", { name: "Close picker" }));
 

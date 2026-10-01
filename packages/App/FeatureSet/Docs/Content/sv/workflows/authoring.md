@@ -6,7 +6,7 @@ När det är skapat, öppna **Byggare** i vänstermenyn. Det är arbetsytan där
 
 ## Arbetsytan
 
-Ett arbetsflöde som byggs från grunden öppnas med ett enda streckat block där det står **Please click here to add trigger**. Det blocket är startpunkten — klicka på det för att välja en utlösare. Ett arbetsflöde skapat från en mall öppnas med sina block redan på plats.
+Ett arbetsflöde som byggs från grunden öppnas med ett enda streckat block där det står **Choose what starts this workflow**. Det blocket är startpunkten — klicka på det för att välja en utlösare. Ett arbetsflöde skapat från en mall öppnas med sina block redan på plats.
 
 Varje arbetsflöde har exakt en **utlösare** högst upp. Allt annat är en **komponent** som gör något. Lägger du till en andra utlösare ersätter den den första, och tar du bort den sista kommer den streckade platshållaren tillbaka.
 
@@ -17,7 +17,7 @@ Att lägga till block:
 
 Båda panelerna är sökbara — tryck på `/` för att hoppa till sökrutan — och grupperade efter kategori. Markera ett block och klicka på **Add to Workflow**.
 
-Nya block landar alltid på samma plats på arbetsytan, så ett nytt kan hamna ovanpå något du redan placerat. Dra undan det; arbetsytan snäpper till ett rutnät medan du drar. Blockens positioner sparas, så nästa person ser samma upplägg som du lämnade efter dig.
+Ett nytt block landar under det nedersta blocket på arbetsytan, och en ny utlösare tar den gamlas plats högst upp. Det nya blocket är markerat, och landar det utanför synfältet rullar arbetsytan precis så långt att det syns. Dess inställningar öppnas inte av sig själva: klicka på blocket när du är redo att ställa in det. Så länge de obligatoriska inställningarna är tomma står det **Click to set up** på det. Dra blocken dit du vill; arbetsytan snäpper till ett rutnät medan du drar. Blockens positioner sparas, så nästa person ser samma upplägg som du lämnade efter dig.
 
 Ändringar sparas automatiskt. En liten etikett i verktygsfältet håller koll på det: **Saving…** medan ändringen är på väg, sedan **Sparad**, eller **Could not save** om det inte gick. Det finns ingen spara-knapp och inget separat publiceringssteg.
 
@@ -42,7 +42,7 @@ Du kan koppla en utgång till flera block. Alla körs — men en i taget, i en e
 
 ## Konfigurera ett block
 
-Klicka på ett block för att öppna dess inställningar i en dialog. Varje inställning har rätt sorts inmatning — textfält, rullgardinsmenyer, kodredigerare, växlar och så vidare. Fyll i och klicka på **Spara**.
+Klicka på ett block för att öppna dess inställningar i en dialog (eller gå till det med **Tab** och tryck på **Enter**). Varje inställning har rätt sorts inmatning — textfält, rullgardinsmenyer, kodredigerare, växlar och så vidare. Fyll i och klicka på **Spara**.
 
 I samma dialog hittar du också:
 
@@ -54,7 +54,7 @@ De flesta textfält tar emot variabler — det är så data flödar från ett bl
 
 ## Kontroller medan du bygger
 
-Byggaren kontrollerar hela grafen varje gång du ändrar något och rapporterar vad den hittar i en etikett i verktygsfältet. Klicka på etiketten för att öppna **Problems with this workflow**, som listar varje problem och tar dig till blocket som orsakar det. Block med problem får också en röd markering på arbetsytan.
+Byggaren kontrollerar hela grafen varje gång du ändrar något och rapporterar vad den hittar i en etikett i verktygsfältet. Klicka på etiketten för att öppna **Problems with this workflow**, som listar varje problem och tar dig till blocket som orsakar det. På arbetsytan står det **Click to set up** på ett block vars obligatoriska inställningar fortfarande är tomma, och ett block med något annat problem får en markering i hörnet: röd för ett fel, gul för en varning. Håll muspekaren över markeringen för att läsa vad som är fel.
 
 Den fångar misstagen som annars är osynliga tills en körning går fel — ingen utlösare, två block som delar id, en punkt inuti ett id, ett block som ingenting kopplar till, en obligatorisk inställning som lämnats tom, felformad JSON, mellanslag inuti `{{ }}` och referenser till ett steg eller returvärde som inte finns.
 
@@ -65,8 +65,8 @@ En sak den inte kan kontrollera: om ett variabelnamn finns. En omdöpt variabel 
 Snabbaste sättet att få känsla för arbetsytan:
 
 1. Klicka på det streckade platshållarblocket, välj **Manual** i panelen **Add Trigger** och klicka på **Add to Workflow**.
-2. Klicka på **Lägg till komponent**, välj **Log** (under **Utils**) och klicka på **Add to Workflow**. Dra det nya blocket undan från utlösaren och koppla sedan utlösarens **Execute**-punkt ner till Log-blockets inmatningspunkt.
-3. Öppna Log-blocket och sätt dess **Value** till `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` är utlösarens **Identifier**, som står på utlösarblocket — kontrollera att det stämmer.
+2. Klicka på **Lägg till komponent**, välj **Log** (under **Utils**) och klicka på **Add to Workflow**. Det nya blocket landar under utlösaren. Koppla utlösarens **Execute**-punkt ner till Log-blockets inmatningspunkt.
+3. Klicka på Log-blocket, där det står **Click to set up**, och sätt dess **Value** till `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` är utlösarens **Identifier**, som står på utlösarblocket — kontrollera att det stämmer.
 4. Gå till **Översikt**, klicka på **Redigera arbetsflöde** på kortet **Arbetsflödesdetaljer** och slå på **Aktiverad**. Ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand.
 5. Tillbaka i **Byggare**, klicka på **Kör arbetsflöde**, lägg `{ "name": "Ada" }` i fältet **JSON**, klicka på **Run Workflow Manually** och bekräfta med **Run**.
 6. En panel med **Workflow Run** öppnas av sig själv och följer körningen. Loggen visar `Value:` följt av `Hello from Ada`.

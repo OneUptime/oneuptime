@@ -20,6 +20,7 @@
     "test-pencil-button-ui": "playwright test --config playwright.pencil-button.config.ts",
     "test-code-editor-ui": "playwright test --config playwright.code-editor-ui.config.ts",
     "test-topology-ui": "playwright test --config playwright.topology.config.ts",
+    "test-workflow-builder-ui": "playwright test --config playwright.workflow-builder-ui.config.ts",
     "test-discovery-ui": "playwright test --config playwright.discovery.config.ts",
     "test-label-rule-transfer": "playwright test --config playwright.label-rules.config.ts",
     "test-label-rule-transfer-ui": "playwright test --config playwright.label-rules-ui.config.ts",
