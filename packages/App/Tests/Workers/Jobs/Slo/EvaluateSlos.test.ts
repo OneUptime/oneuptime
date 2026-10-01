@@ -1445,6 +1445,8 @@ describe("Slo:EvaluateSlos worker", () => {
 
   describe("Paused guard (fix 4)", () => {
     test.each([
+      // Archived monitors are not checked either: no live signal.
+      "isArchived",
       "disableActiveMonitoring",
       "disableActiveMonitoringBecauseOfManualIncident",
       "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent",
@@ -1463,6 +1465,50 @@ describe("Slo:EvaluateSlos worker", () => {
         expect(historyService.insertHistoryRows).not.toHaveBeenCalled();
       },
     );
+
+    test("the guard reads every monitor's archive flag along with the pause flags", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      monitorService.findBy.mockResolvedValue([enabledMonitor(MONITOR_A_ID)]);
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+
+      await runWorkerTick();
+
+      const selects: Array<Record<string, unknown>> =
+        monitorService.findBy.mock.calls.map((call: Array<unknown>) => {
+          return ((call[0] as { select?: Record<string, unknown> }) || {})
+            .select as Record<string, unknown>;
+        });
+
+      expect(
+        selects.some((select: Record<string, unknown> | undefined) => {
+          return Boolean(
+            select &&
+              select["isArchived"] === true &&
+              select["disableActiveMonitoring"] === true,
+          );
+        }),
+      ).toBe(true);
+    });
+
+    test("an archived monitor beside a live one keeps the SLO evaluating on the live one", async () => {
+      const archived: Monitor = enabledMonitor(MONITOR_B_ID);
+      archived.isArchived = true;
+
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({
+          monitors: [new Monitor(MONITOR_A_ID), new Monitor(MONITOR_B_ID)],
+        }),
+      ]);
+      monitorService.findBy.mockResolvedValue([
+        enabledMonitor(MONITOR_A_ID),
+        archived,
+      ]);
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBe(SloStatus.Healthy);
+    });
 
     test("one still-enabled monitor keeps the SLO evaluating instead of Paused", async () => {
       const disabled: Monitor = enabledMonitor(MONITOR_B_ID);
