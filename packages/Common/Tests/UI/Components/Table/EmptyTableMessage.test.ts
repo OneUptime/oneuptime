@@ -1,7 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { createTranslator } from "../../../../UI/Utils/TranslateTemplate";
 import {
+  COULD_NOT_LOAD_TEMPLATE,
   COULD_NOT_LOAD_THIS_LIST,
   EmptyMessageParts,
   LONGEST_HEADLINE,
@@ -782,5 +784,78 @@ describe("getEmptyMessageParts", () => {
     expect(
       getEmptyMessageParts({ message: `${title}.`, defaultTitle: "Default" }),
     ).toEqual({ title: title });
+  });
+});
+
+/*
+ * A locale that words the sentence as a template ("{{itemsName}} konnten
+ * nicht geladen werden.") heads a failed load with its own word for the
+ * table's noun, as the empty-table sentence does since the translator came
+ * in - before falling back to the noun-free "Couldn't load this list.".
+ */
+describe("getLoadErrorTitle with the reader's translator", () => {
+  const GERMAN: Record<string, string> = {
+    Monitors: "Monitore",
+    [COULD_NOT_LOAD_TEMPLATE]: "{{itemsName}} konnten nicht geladen werden.",
+    [COULD_NOT_LOAD_THIS_LIST]: "Diese Liste konnte nicht geladen werden.",
+  };
+
+  const lookup: TranslateFunction = (text: string): string => {
+    return GERMAN[text] ?? text;
+  };
+
+  test("is the locale's template with its word for the noun, headed", () => {
+    expect(
+      getLoadErrorTitle({
+        pluralLabel: "Monitors",
+        translate: lookup,
+        translator: createTranslator(lookup, "de"),
+      }),
+    ).toBe("Monitore konnten nicht geladen werden");
+  });
+
+  test("a locale without the template says its noun-free sentence", () => {
+    const withoutTemplate: TranslateFunction = (text: string): string => {
+      return text === COULD_NOT_LOAD_TEMPLATE ? text : lookup(text);
+    };
+
+    expect(
+      getLoadErrorTitle({
+        pluralLabel: "Monitors",
+        translate: withoutTemplate,
+        translator: createTranslator(withoutTemplate, "de"),
+      }),
+    ).toBe("Diese Liste konnte nicht geladen werden");
+  });
+
+  test("English is unchanged by a translator", () => {
+    const english: TranslateFunction = (text: string): string => {
+      return text;
+    };
+
+    expect(
+      getLoadErrorTitle({
+        pluralLabel: "API Keys",
+        translate: english,
+        translator: createTranslator(english, "en"),
+      }),
+    ).toBe("Couldn't load API keys");
+  });
+
+  test("the empty-table title takes the template path too", () => {
+    const withNoItemsTemplate: TranslateFunction = (text: string): string => {
+      return text === "No {{itemsName}} yet."
+        ? "Noch keine {{itemsName}}."
+        : lookup(text);
+    };
+
+    expect(
+      getEmptyTableTitle({
+        pluralLabel: "Monitors",
+        isFiltered: false,
+        translate: withNoItemsTemplate,
+        translator: createTranslator(withNoItemsTemplate, "de"),
+      }),
+    ).toBe("Noch keine Monitore");
   });
 });
