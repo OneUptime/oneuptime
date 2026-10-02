@@ -100,9 +100,10 @@ export interface IncidentSubscriberAudienceResult {
    */
   excludedStatusPages: Array<IncidentSubscriberAudienceExcludedStatusPage>;
   /*
-   * Status pages the incident is limited to that list none of its monitors.
-   * The scope only narrows where the monitors already reach, so the incident
-   * does not show on, or notify, these. Only pages the caller can see.
+   * Status pages the incident is limited to that list none of its monitors -
+   * every one of them when it is on no monitor at all. The scope only
+   * narrows where the monitors already reach, so the incident does not show
+   * on, or notify, these. Only pages the caller can see.
    */
   selectedStatusPagesNotListingMonitors: Array<IncidentSubscriberAudienceNamedStatusPage>;
 }

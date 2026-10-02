@@ -78,7 +78,11 @@ const ActiveAlerts: FunctionComponent<
           description:
             "Here is a list of active alerts for all of the projects you are a part of.",
         }}
-        noItemsMessage={"No alert found."}
+        emptyState={{
+          isAllClear: true,
+          title: "No active alerts",
+          description: "Nice work! Every alert is resolved.",
+        }}
         singularName="Active Alert"
         pluralName="Active Alerts"
         onViewPage={(item: Alert): Promise<Route> => {

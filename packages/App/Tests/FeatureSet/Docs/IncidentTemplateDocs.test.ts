@@ -1317,6 +1317,11 @@ describe("Incident docs", () => {
       expect(editor).toMatch(/useState<EditorMode>\("wysiwyg"\)/);
       expect(editor).toMatch(/mode === "wysiwyg" \? "Markdown" : "Visual"/);
 
+      /*
+       * The buttons the docs name, by the names the editor gives them: each
+       * toolbar action's label is its button's title and its item in the
+       * More formatting menu.
+       */
       for (const title of [
         ...UNDO_BYPASSING_BUTTONS,
         "Task List",
@@ -1325,7 +1330,7 @@ describe("Incident docs", () => {
       ]) {
         expect({
           title: title,
-          button: editor.includes(`title="${title}"`),
+          button: editor.includes(`label: "${title}"`),
         }).toEqual({ title: title, button: true });
       }
 

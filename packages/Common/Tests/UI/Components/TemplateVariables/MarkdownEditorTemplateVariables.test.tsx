@@ -182,7 +182,7 @@ describe("a Markdown editor with template variables", () => {
 
     // The last button of the toolbar, after the Markdown/Visual switch.
     const toolbarButtons: Array<Element> = Array.from(
-      (button.closest(".flex-wrap") as HTMLElement).querySelectorAll("button"),
+      screen.getByTestId("markdown-editor-toolbar").querySelectorAll("button"),
     );
 
     expect(toolbarButtons[toolbarButtons.length - 1]).toBe(button);

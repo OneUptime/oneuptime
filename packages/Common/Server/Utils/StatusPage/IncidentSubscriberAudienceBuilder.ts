@@ -474,14 +474,15 @@ export default class IncidentSubscriberAudienceBuilder {
 
     /*
      * Pages the incident is limited to that its monitors do not reach. With
-     * no monitor at all nothing is reached, which the summary says on its
-     * own, so they are not listed then.
+     * no monitor at all that is every one of them: a status page shows an
+     * incident through its monitors. The dashboard warns about them under
+     * the status page picker, and the audience summary names them - it no
+     * longer says "no monitors are attached" on its own.
      */
-    const selectedNotListingMonitorIds: Array<string> = data.inputs.hasMonitors
-      ? data.inputs.scopedStatusPageIds.filter((id: string): boolean => {
-          return !reachedIds.includes(id);
-        })
-      : [];
+    const selectedNotListingMonitorIds: Array<string> =
+      data.inputs.scopedStatusPageIds.filter((id: string): boolean => {
+        return !reachedIds.includes(id);
+      });
 
     const readableNames: Dictionary<string> = await this.getReadableNames({
       projectId: data.projectId,

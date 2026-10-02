@@ -603,6 +603,23 @@ test.describe("writing a note", () => {
     );
   });
 
+  test("the composer's toolbar is one line in the feed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+
+    expect(
+      await toolbarLayout(composer.getByTestId("markdown-editor-toolbar")),
+    ).toEqual({
+      rows: 1,
+      spillsPastTheLine: false,
+      isOneButtonTall: true,
+    });
+  });
+
   test("a fenced block pasted at the end of a line is posted as a code block", async ({
     page,
   }: {
@@ -1206,7 +1223,132 @@ test.describe("small screens", () => {
 
     await screenshot(page, "incident-public-notes-mobile");
   });
+
+  /*
+   * "The controls of the markdown editor show in two lines" - on a phone
+   * they took five, pushing the note itself down the screen. The toolbar
+   * keeps one line: the buttons that do not fit are under More formatting.
+   */
+  test("the composer's toolbar keeps one line, the rest under More formatting", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+    const toolbar: Locator = composer.getByTestId("markdown-editor-toolbar");
+
+    expect(await toolbarLayout(toolbar)).toEqual({
+      rows: 1,
+      spillsPastTheLine: false,
+      isOneButtonTall: true,
+    });
+
+    const more: Locator = toolbar.getByRole("button", {
+      name: "More formatting",
+    });
+    await expect(more).toBeVisible();
+    // The first group is still on the line.
+    await expect(toolbar.getByTitle(/^Bold/)).toBeVisible();
+    await expect(toolbar.getByTitle("Code Block")).toHaveCount(0);
+
+    await more.click();
+    const menu: Locator = page.getByRole("menu");
+    await expect(
+      menu.getByRole("menuitem", { name: /Code Block/ }),
+    ).toBeVisible();
+
+    // The menu opens inside the phone's screen.
+    const menuBox: { x: number; width: number } | null =
+      await menu.boundingBox();
+    expect(menuBox!.x).toBeGreaterThanOrEqual(0);
+    expect(menuBox!.x + menuBox!.width).toBeLessThanOrEqual(390);
+
+    /*
+     * Once it has faded in, and of the screen as it is: a full-page shot
+     * stretches the viewport, which moves a fixed menu off its button.
+     */
+    await expect(menu).toHaveCSS("opacity", "1");
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await page.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "incident-public-notes-composer-toolbar-mobile-synthetic.png",
+      ),
+    });
+
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+    await expect(more).toBeFocused();
+  });
+
+  test("a code block picked from More formatting goes in at the cursor and is posted as one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Run:");
+
+    await composer.getByRole("button", { name: "More formatting" }).click();
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: /Code Block/ })
+      .click();
+    // Back in the editor, the block's placeholder selected, as the button leaves it.
+    await page.keyboard.type("npm ci");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(card(page, "npm ci")).toHaveCount(1);
+    expect((await fixture(page)).creates[0]!.data!["note"]).toBe(
+      "Run:\n```\nnpm ci\n```",
+    );
+  });
 });
+
+/*
+ * The rows the toolbar's buttons sit on, whether any reaches past the end of
+ * the toolbar's line, and whether the bar is one button tall.
+ */
+async function toolbarLayout(toolbar: Locator): Promise<{
+  rows: number;
+  spillsPastTheLine: boolean;
+  isOneButtonTall: boolean;
+}> {
+  return toolbar.evaluate(
+    (
+      element: HTMLElement,
+    ): {
+      rows: number;
+      spillsPastTheLine: boolean;
+      isOneButtonTall: boolean;
+    } => {
+      const line: HTMLElement = element.querySelector(
+        "[data-testid='markdown-editor-toolbar-line']",
+      ) as HTMLElement;
+      const buttons: Array<DOMRect> = Array.from(
+        element.querySelectorAll("button"),
+      ).map((button: HTMLButtonElement): DOMRect => {
+        return button.getBoundingClientRect();
+      });
+      const lineRight: number = line.getBoundingClientRect().right;
+
+      return {
+        rows: new Set(
+          buttons.map((box: DOMRect): number => {
+            return Math.round(box.top + box.height / 2);
+          }),
+        ).size,
+        spillsPastTheLine: buttons.some((box: DOMRect): boolean => {
+          return box.right > lineRight + 0.5;
+        }),
+        // A 32px row in the bar's 8px padding, and its border.
+        isOneButtonTall: element.getBoundingClientRect().height < 56,
+      };
+    },
+  );
+}
 
 /*
  * ---------------------------------------------------------------------------

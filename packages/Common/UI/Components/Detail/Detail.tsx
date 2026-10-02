@@ -12,6 +12,7 @@ import Link from "../Link/Link";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import ObjectIDView from "../ObjectID/ObjectIDView";
 import FieldType from "../Types/FieldType";
+import BooleanValue from "./BooleanValue";
 import Field from "./Field";
 import FieldLabelElement from "./FieldLabel";
 import PlaceholderText from "./PlaceholderText";
@@ -568,21 +569,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     if (field.fieldType === FieldType.Boolean) {
-      if (data) {
-        data = (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-sm font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-            Yes
-          </span>
-        );
-      } else {
-        data = (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-sm font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-            No
-          </span>
-        );
-      }
+      data = <BooleanValue value={Boolean(data)} />;
     }
 
     if (field.fieldType === FieldType.DateTime) {

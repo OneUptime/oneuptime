@@ -41,7 +41,7 @@ The first card is titled **Logo, Cover and Favicon**, with an **Edit Images** bu
 - **Cover** — image upload, placeholder `Upload cover image`. This is the wide banner behind the header.
 - **Cover Image Alt Text** — the same idea for the cover.
 
-Below it is a **Header Links** table ("Header Links for your status page"). Each link has a **Title** and a **Link** (a URL, placeholder `https://link.com`), and rows are reordered by dragging. With none configured the table reads "No status header link for this status page."
+Below it is a **Header Links** table ("Header Links for your status page"). Each link has a **Title** and a **Link** (a URL, placeholder `https://link.com`), and rows are reordered by dragging. With none configured the table says **No status header link for this status page**, with **Create Status Page Header Link** under it.
 
 Good for: pointing visitors back to your marketing site, your docs, or a support portal without making them guess the URL.
 
@@ -94,7 +94,7 @@ Sixteen languages ship with OneUptime: English, German, French, Spanish, Italian
 
 By default a status page is reachable at the preview URL shown on its **Overview** screen. To put it on your own hostname, go to **Status Pages → your page → Branding → Custom Domains** (`{id}/domains`).
 
-The card is titled **Custom Domains** and its description spells out the requirement directly: add your installation's status page CNAME record as the CNAME for these domains for this to work. With nothing configured the table reads "No custom domains found." The table has two columns, **Domain** and **Status**, and filters for **Domain**, **CNAME Valid** and **SSL Provisioned**.
+The card is titled **Custom Domains** and its description spells out the requirement directly: add your installation's status page CNAME record as the CNAME for these domains for this to work. With nothing configured the table says **No custom domains found**, with **Create Status Page Domain** under it. The table has two columns, **Domain** and **Status**, and filters for **Domain**, **CNAME Valid** and **SSL Provisioned**.
 
 ### Before you start
 
