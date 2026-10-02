@@ -1,13 +1,26 @@
 import { gunzipSync, strFromU8 } from "fflate";
 import {
+  CUSTOM_EVENT_TAG,
   ERROR_CUSTOM_EVENT_TAG,
+  IDLE_PAUSED_CUSTOM_EVENT_TAG,
+  IDLE_RESUMED_CUSTOM_EVENT_TAG,
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   MOBILE_RECORDER_KIND,
+  ROUTE_CUSTOM_EVENT_TAG,
   RrwebEvent,
+  RrwebEventType,
+  SESSION_REPLAY_FLUSH_INTERVAL_MS,
+  SESSION_REPLAY_IDLE_PAUSE_MS,
   SESSION_REPLAY_IDLE_ROLLOVER_MS,
+  SESSION_ROTATED_CUSTOM_EVENT_TAG,
   SessionReplayChunkEnvelope,
   SessionReplayFidelityNotice,
+  SessionReplayIdlePausedPayload,
+  SessionReplayIdleResumedPayload,
   SessionReplayMaskingMode,
+  TAGS_CUSTOM_EVENT_TAG,
+  TOUCH_CUSTOM_EVENT_TAG,
+  VISIBILITY_CUSTOM_EVENT_TAG,
 } from "../src/Contract";
 import {
   ReplayFetch,
@@ -17,6 +30,7 @@ import {
 import MobileReplayRecorder, {
   getReplayStorageNamespace,
   MobileReplayDiagnosticEvent,
+  MobileReplayRecorderDependencies,
   MOBILE_POLICY_REFRESH_INTERVAL_MS,
 } from "../src/MobileReplayRecorder";
 import ReplayOutbox, { frameId } from "../src/Outbox";
@@ -24,6 +38,7 @@ import {
   enabledConfig,
   envelope,
   FakeAppState,
+  FakeKeyboard,
   FakeNativeViewTree,
   MemoryStorage,
   response,
@@ -43,7 +58,9 @@ interface RecorderHarness {
   storage: MemoryStorage;
   native: FakeNativeViewTree;
   appState: FakeAppState;
+  keyboard: FakeKeyboard;
   advance(milliseconds: number): void;
+  nowUnixMs(): number;
 }
 
 type ReplayFetchInit = NonNullable<Parameters<ReplayFetch>[1]>;
@@ -70,6 +87,7 @@ function decodePost(body: unknown): DecodedPost {
 
 function harness(
   configOverrides: Record<string, unknown> = {},
+  dependencyOverrides: Partial<MobileReplayRecorderDependencies> = {},
 ): RecorderHarness {
   const posted: Array<DecodedPost> = [];
   const fetch: jest.MockedFunction<ReplayFetch> = jest.fn(
@@ -84,14 +102,17 @@ function harness(
   const storage: MemoryStorage = new MemoryStorage();
   const native: FakeNativeViewTree = new FakeNativeViewTree();
   const appState: FakeAppState = new FakeAppState();
+  const keyboard: FakeKeyboard = new FakeKeyboard();
   let now: number = 100_000;
   const recorder: MobileReplayRecorder = new MobileReplayRecorder({
     storage,
     nativeViewTree: native,
     appState,
+    keyboard,
     now: (): number => {
       return now;
     },
+    ...dependencyOverrides,
   });
   recorder.setRootTag(101);
   return {
@@ -101,8 +122,12 @@ function harness(
     storage,
     native,
     appState,
+    keyboard,
     advance(milliseconds: number): void {
       now += milliseconds;
+    },
+    nowUnixMs(): number {
+      return now;
     },
   };
 }
@@ -110,6 +135,75 @@ function harness(
 function allEvents(posts: Array<DecodedPost>): Array<RrwebEvent> {
   return posts.flatMap((post: DecodedPost): Array<RrwebEvent> => {
     return post.events;
+  });
+}
+
+function customTag(event: RrwebEvent): string | null {
+  if (event.type !== RrwebEventType.Custom) {
+    return null;
+  }
+  const tag: unknown = (event.data as { tag?: unknown }).tag;
+  return typeof tag === "string" ? tag : null;
+}
+
+function customPayload<T>(event: RrwebEvent): T {
+  return (event.data as { payload: T }).payload;
+}
+
+function eventsTagged(
+  posts: Array<DecodedPost>,
+  tag: string,
+): Array<RrwebEvent> {
+  return allEvents(posts).filter((event: RrwebEvent): boolean => {
+    return customTag(event) === tag;
+  });
+}
+
+function indexOfPostWith(posts: Array<DecodedPost>, tag: string): number {
+  return posts.findIndex((post: DecodedPost): boolean => {
+    return post.events.some((event: RrwebEvent): boolean => {
+      return customTag(event) === tag;
+    });
+  });
+}
+
+/* What an event is, for asserting order: a custom event's tag, else its type. */
+function describeEvent(event: RrwebEvent): string {
+  const tag: string | null = customTag(event);
+  if (tag) {
+    return tag;
+  }
+  if (event.type === RrwebEventType.Meta) {
+    return "meta";
+  }
+  if (event.type === RrwebEventType.FullSnapshot) {
+    return "full-snapshot";
+  }
+  return event.type === RrwebEventType.IncrementalSnapshot
+    ? "incremental"
+    : `type-${event.type}`;
+}
+
+function diagnosticCodes(recorder: MobileReplayRecorder): Array<string> {
+  return recorder
+    .getDiagnostics()
+    .events.map((event: MobileReplayDiagnosticEvent): string => {
+      return event.code;
+    });
+}
+
+function touchAt(
+  test: RecorderHarness,
+  x: number,
+  y: number,
+  targetTag: number = 1,
+): void {
+  test.recorder.recordTouch({
+    phase: "start",
+    x,
+    y,
+    timestamp: test.nowUnixMs(),
+    targetTag,
   });
 }
 
@@ -2209,4 +2303,1273 @@ describe("MobileReplayRecorder end-to-end", () => {
       ).toBe(true);
     },
   );
+});
+
+/*
+ * The idle pause (#4208): five minutes without a touch and the recorder
+ * stops capturing altogether, then resumes the same session on a fresh
+ * snapshot when the person comes back - or, past the idle window, ends the
+ * session where its footage ended and lets the next input start a new one.
+ *
+ * Fake timers drive the sampler and flush timers; the recorder's injected
+ * clock moves with them (live), as it would for an app left on screen.
+ */
+describe("MobileReplayRecorder idle pause", () => {
+  /* harness() starts its clock here, and start() counts as input. */
+  const START_UNIX_MS: number = 100_000;
+  const PAUSED_AT_UNIX_MS: number =
+    START_UNIX_MS + SESSION_REPLAY_IDLE_PAUSE_MS;
+  /* Nothing is recorded via appendEvent before the pause: the start is the session's last activity. */
+  const ROLLOVER_AT_UNIX_MS: number =
+    START_UNIX_MS + SESSION_REPLAY_IDLE_ROLLOVER_MS;
+
+  beforeEach((): void => {
+    jest.useFakeTimers();
+  });
+
+  afterEach((): void => {
+    jest.useRealTimers();
+  });
+
+  /*
+   * An app on screen living through `milliseconds`: the clock first, then
+   * the timers due in that step, so every tick sees the time it fires at.
+   */
+  const live: (
+    test: RecorderHarness,
+    milliseconds: number,
+    stepMs?: number,
+  ) => Promise<void> = async (
+    test: RecorderHarness,
+    milliseconds: number,
+    stepMs: number = 5_000,
+  ): Promise<void> => {
+    let elapsed: number = 0;
+    while (elapsed < milliseconds) {
+      const step: number = Math.min(stepMs, milliseconds - elapsed);
+      test.advance(step);
+      await jest.advanceTimersByTimeAsync(step);
+      elapsed += step;
+    }
+  };
+
+  const flush: () => Promise<void> = async (): Promise<void> => {
+    await jest.advanceTimersByTimeAsync(0);
+  };
+
+  /* Started and then left alone: returns the index of the post the pause closed. */
+  const startAndLeaveAlone: (test: RecorderHarness) => Promise<number> = async (
+    test: RecorderHarness,
+  ): Promise<number> => {
+    expect(await test.recorder.start(startOptions({ fetch: test.fetch }))).toBe(
+      true,
+    );
+    await live(test, SESSION_REPLAY_IDLE_PAUSE_MS);
+    const pauseIndex: number = indexOfPostWith(
+      test.posted,
+      IDLE_PAUSED_CUSTOM_EVENT_TAG,
+    );
+    expect(pauseIndex).toBeGreaterThanOrEqual(0);
+    return pauseIndex;
+  };
+
+  test("keeps capturing through any stretch without input shorter than the pause window", async () => {
+    const test: RecorderHarness = harness();
+    await test.recorder.start(startOptions({ fetch: test.fetch }));
+    await live(test, SESSION_REPLAY_IDLE_PAUSE_MS - 5_000);
+    expect(test.recorder.getDiagnostics().status).toBe("recording");
+
+    /* A touch just inside the window starts it over. */
+    touchAt(test, 10, 20);
+    await flush();
+    const capturesAfterTouch: number = test.native.captures;
+    await live(test, SESSION_REPLAY_IDLE_PAUSE_MS - 5_000);
+
+    expect(test.native.captures).toBeGreaterThan(capturesAfterTouch + 50);
+    expect(test.recorder.getDiagnostics().status).toBe("recording");
+    expect(diagnosticCodes(test.recorder)).not.toContain("idle-paused");
+    await test.recorder.stop();
+    expect(eventsTagged(test.posted, IDLE_PAUSED_CUSTOM_EVENT_TAG)).toEqual([]);
+  });
+
+  test("pauses five minutes after the last input, closing the open chunk on the idle-paused marker", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+
+    /* The pause's chunk went out at once, and nothing has gone since. */
+    expect(pauseIndex).toBe(test.posted.length - 1);
+    const pausePost: DecodedPost = test.posted[pauseIndex]!;
+    const marker: RrwebEvent = pausePost.events[pausePost.events.length - 1]!;
+    expect(customTag(marker)).toBe(IDLE_PAUSED_CUSTOM_EVENT_TAG);
+    expect(marker.timestamp).toBe(PAUSED_AT_UNIX_MS);
+    expect(customPayload<SessionReplayIdlePausedPayload>(marker)).toEqual({
+      idleSinceUnixMs: START_UNIX_MS,
+      pausedAtUnixMs: PAUSED_AT_UNIX_MS,
+    });
+    expect(pausePost.envelope).toMatchObject({
+      isFinal: false,
+      chunkEndOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
+    });
+    expect(
+      eventsTagged(test.posted, IDLE_PAUSED_CUSTOM_EVENT_TAG),
+    ).toHaveLength(1);
+    expect(test.recorder.getDiagnostics()).toMatchObject({
+      status: "paused",
+      pendingEvents: 0,
+    });
+    expect(diagnosticCodes(test.recorder)).toContain("idle-paused");
+    await test.recorder.stop();
+  });
+
+  test("captures nothing, uploads nothing and refreshes no policy for as long as it is paused", async () => {
+    const test: RecorderHarness = harness();
+    await startAndLeaveAlone(test);
+    const captureViewTree: jest.SpyInstance = jest.spyOn(
+      test.native,
+      "captureViewTree",
+    );
+    const postsAtPause: number = test.posted.length;
+    const fetchesAtPause: number = test.fetch.mock.calls.length;
+    /* The sampler is stopped; only the 15-second heartbeat is left. */
+    expect(jest.getTimerCount()).toBe(1);
+
+    /* 24 minutes: short of the half hour that ends the session. */
+    await live(test, 24 * 60_000, 15_000);
+
+    expect(captureViewTree).not.toHaveBeenCalled();
+    expect(test.posted).toHaveLength(postsAtPause);
+    expect(test.fetch.mock.calls.length).toBe(fetchesAtPause);
+    expect(test.recorder.getDiagnostics()).toMatchObject({
+      status: "paused",
+      pendingEvents: 0,
+    });
+
+    /* A replay root remounted by the app is not input either. */
+    test.recorder.setRootTag(202);
+    await flush();
+    expect(captureViewTree).not.toHaveBeenCalled();
+    expect(test.fetch.mock.calls.length).toBe(fetchesAtPause);
+    await test.recorder.stop();
+  });
+
+  test("a touch resumes the same session and tab at the next chunk index: the snapshot, then the resume marker, then the touch", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    const pausePost: DecodedPost = test.posted[pauseIndex]!;
+    await live(test, 3 * 60_000, 15_000);
+    const capturesWhilePaused: number = test.native.captures;
+
+    const resumedAtUnixMs: number = test.nowUnixMs();
+    touchAt(test, 123, 456);
+    await flush();
+    expect(test.native.captures).toBe(capturesWhilePaused + 1);
+    expect(test.recorder.getDiagnostics().status).toBe("recording");
+    /* The sampler and the flush timer, both back. */
+    expect(jest.getTimerCount()).toBe(2);
+    await live(test, SESSION_REPLAY_FLUSH_INTERVAL_MS, 500);
+
+    expect(test.posted.length).toBeGreaterThan(pauseIndex + 1);
+    const resumePost: DecodedPost = test.posted[pauseIndex + 1]!;
+    expect(resumePost.envelope).toMatchObject({
+      sessionId: pausePost.envelope["sessionId"],
+      tabId: pausePost.envelope["tabId"],
+      chunkIndex: (pausePost.envelope["chunkIndex"] as number) + 1,
+      hasFullSnapshot: true,
+      isFinal: false,
+    });
+    expect(resumePost.events.slice(0, 5).map(describeEvent)).toEqual([
+      "meta",
+      "full-snapshot",
+      IDLE_RESUMED_CUSTOM_EVENT_TAG,
+      "incremental",
+      TOUCH_CUSTOM_EVENT_TAG,
+    ]);
+    const [, snapshot, marker, touch] = resumePost.events;
+    expect(snapshot?.timestamp).toBe(resumedAtUnixMs);
+    expect(marker?.timestamp).toBe(resumedAtUnixMs);
+    expect(customPayload<SessionReplayIdleResumedPayload>(marker!)).toEqual({
+      pausedAtUnixMs: PAUSED_AT_UNIX_MS,
+      resumedAtUnixMs,
+    });
+    expect(touch).toMatchObject({
+      timestamp: resumedAtUnixMs,
+      data: { x: 123, y: 456 },
+    });
+    expect(resumePost.envelope["signals"]).toMatchObject({ clickCount: 1 });
+
+    /* The sampler is running again. */
+    expect(test.native.captures).toBeGreaterThan(capturesWhilePaused + 1);
+    expect(diagnosticCodes(test.recorder)).toContain("idle-resumed");
+    await test.recorder.stop();
+  });
+
+  test("coming back to the foreground resumes the paused session, with no visibility rows for the time away", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    const pausePost: DecodedPost = test.posted[pauseIndex]!;
+
+    test.appState.emit("background");
+    await flush();
+    expect(test.recorder.getDiagnostics().status).toBe("background");
+    await live(test, 4 * 60_000, 15_000);
+    expect(test.posted).toHaveLength(pauseIndex + 1);
+
+    const returnedAtUnixMs: number = test.nowUnixMs();
+    test.appState.emit("active");
+    await flush();
+    expect(test.recorder.getDiagnostics().status).toBe("recording");
+    await live(test, SESSION_REPLAY_FLUSH_INTERVAL_MS, 500);
+
+    const resumePost: DecodedPost = test.posted[pauseIndex + 1]!;
+    expect(resumePost.envelope).toMatchObject({
+      sessionId: pausePost.envelope["sessionId"],
+      tabId: pausePost.envelope["tabId"],
+      chunkIndex: (pausePost.envelope["chunkIndex"] as number) + 1,
+      hasFullSnapshot: true,
+    });
+    expect(resumePost.events.slice(0, 3).map(describeEvent)).toEqual([
+      "meta",
+      "full-snapshot",
+      IDLE_RESUMED_CUSTOM_EVENT_TAG,
+    ]);
+    expect(
+      customPayload<SessionReplayIdleResumedPayload>(resumePost.events[2]!),
+    ).toEqual({
+      pausedAtUnixMs: PAUSED_AT_UNIX_MS,
+      resumedAtUnixMs: returnedAtUnixMs,
+    });
+    expect(
+      eventsTagged(test.posted.slice(pauseIndex), VISIBILITY_CUSTOM_EVENT_TAG),
+    ).toEqual([]);
+    await test.recorder.stop();
+  });
+
+  test("backgrounding while paused neither throws, records, captures nor resumes", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    const capturesAtPause: number = test.native.captures;
+
+    expect((): void => {
+      test.appState.emit("background");
+    }).not.toThrow();
+    await flush();
+    await live(test, 10 * 60_000, 15_000);
+
+    expect(test.native.captures).toBe(capturesAtPause);
+    expect(test.posted).toHaveLength(pauseIndex + 1);
+    expect(test.recorder.getDiagnostics().status).toBe("background");
+    expect(diagnosticCodes(test.recorder)).not.toContain(
+      "app-state-transition-failed",
+    );
+
+    /* A touch reported while the app is away resumes nothing. */
+    touchAt(test, 5, 5);
+    await flush();
+    expect(test.native.captures).toBe(capturesAtPause);
+    expect(test.posted).toHaveLength(pauseIndex + 1);
+    await test.recorder.stop();
+  });
+
+  test("coming back to the foreground is the person returning: the session's idle window starts over from there", async () => {
+    const test: RecorderHarness = harness();
+    await startAndLeaveAlone(test);
+    const sessionId: string | null = test.recorder.getSessionId();
+    test.appState.emit("background");
+    await flush();
+
+    /* Back 25 minutes after the session's last activity: inside its window. */
+    await live(test, START_UNIX_MS + 25 * 60_000 - test.nowUnixMs(), 60_000);
+    const returnedAtUnixMs: number = test.nowUnixMs();
+    test.appState.emit("active");
+    await flush();
+
+    /* Looked at, never touched: it pauses again five minutes later... */
+    await live(test, 10 * 60_000);
+    expect(test.recorder.getDiagnostics().status).toBe("paused");
+    const markers: Array<RrwebEvent> = eventsTagged(
+      test.posted,
+      IDLE_PAUSED_CUSTOM_EVENT_TAG,
+    );
+    expect(markers).toHaveLength(2);
+    expect(customPayload<SessionReplayIdlePausedPayload>(markers[1]!)).toEqual({
+      idleSinceUnixMs: returnedAtUnixMs,
+      pausedAtUnixMs: returnedAtUnixMs + SESSION_REPLAY_IDLE_PAUSE_MS,
+    });
+    /* ...but the session runs on: half an hour from the return, not the start. */
+    expect(test.recorder.getSessionId()).toBe(sessionId);
+    expect(
+      test.posted.some((post: DecodedPost): boolean => {
+        return post.envelope["isFinal"] === true;
+      }),
+    ).toBe(false);
+    await test.recorder.stop();
+  });
+
+  test("an app that leaves between the waking touch and its snapshot stays paused, and its return resumes cleanly", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    await live(test, 60_000, 15_000);
+    const capturesAtPause: number = test.native.captures;
+
+    touchAt(test, 15, 25);
+    test.appState.emit("background");
+    await flush();
+
+    expect(test.native.captures).toBe(capturesAtPause);
+    expect(test.posted).toHaveLength(pauseIndex + 1);
+    expect(test.recorder.getDiagnostics().status).toBe("background");
+
+    await live(test, 2 * 60_000, 15_000);
+    const returnedAtUnixMs: number = test.nowUnixMs();
+    test.appState.emit("active");
+    await flush();
+    await live(test, SESSION_REPLAY_FLUSH_INTERVAL_MS, 500);
+
+    /* Nothing from the aborted resume - no touch, no "hidden" - leaks into it. */
+    const resumePost: DecodedPost = test.posted[pauseIndex + 1]!;
+    expect(resumePost.events.map(describeEvent)).toEqual([
+      "meta",
+      "full-snapshot",
+      IDLE_RESUMED_CUSTOM_EVENT_TAG,
+    ]);
+    expect(
+      customPayload<SessionReplayIdleResumedPayload>(resumePost.events[2]!),
+    ).toEqual({
+      pausedAtUnixMs: PAUSED_AT_UNIX_MS,
+      resumedAtUnixMs: returnedAtUnixMs,
+    });
+    expect(
+      eventsTagged(test.posted.slice(pauseIndex), VISIBILITY_CUSTOM_EVENT_TAG),
+    ).toEqual([]);
+    expect(JSON.stringify(allEvents(test.posted))).not.toContain('"x":15');
+    await test.recorder.stop();
+  });
+
+  test("drops what the app emits while paused - events, tags, routes, errors - and counts none of it", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    const capturesAtPause: number = test.native.captures;
+
+    test.recorder.track("emitted-while-paused", { cart: 3 });
+    test.recorder.addTag("phase", "tagged-while-paused");
+    await test.recorder.setRoute("/changed-while-paused");
+    await test.recorder.captureError(new TypeError("background poll failed"));
+    await flush();
+    expect(test.posted).toHaveLength(pauseIndex + 1);
+    expect(test.native.captures).toBe(capturesAtPause);
+
+    await live(test, 60_000, 15_000);
+    touchAt(test, 40, 50);
+    await flush();
+    await live(test, SESSION_REPLAY_FLUSH_INTERVAL_MS, 500);
+
+    const afterPause: Array<DecodedPost> = test.posted.slice(pauseIndex + 1);
+    expect(afterPause.length).toBeGreaterThan(0);
+    expect(JSON.stringify(allEvents(afterPause))).not.toContain(
+      "emitted-while-paused",
+    );
+    for (const tag of [
+      CUSTOM_EVENT_TAG,
+      ROUTE_CUSTOM_EVENT_TAG,
+      ERROR_CUSTOM_EVENT_TAG,
+      TAGS_CUSTOM_EVENT_TAG,
+    ]) {
+      expect(eventsTagged(afterPause, tag)).toEqual([]);
+    }
+    for (const post of afterPause) {
+      expect(post.envelope["signals"]).toMatchObject({
+        customEventCount: 0,
+        routeCount: 0,
+        errorCount: 0,
+      });
+    }
+
+    /*
+     * What the app changed is still known: the resume's snapshot is on the
+     * route it moved to, and the tag is on the session.
+     */
+    const resumePost: DecodedPost = afterPause[0]!;
+    expect(resumePost.envelope["url"]).toBe(
+      "app://com.example.checkout/changed-while-paused",
+    );
+    expect(resumePost.envelope["meta"]).toMatchObject({
+      tags: { phase: "tagged-while-paused" },
+    });
+    expect(test.recorder.getDiagnostics().triggered).toBe(false);
+    await test.recorder.stop();
+  });
+
+  test("an app that keeps raising events by itself cannot hold off the pause or the end of the session", async () => {
+    const test: RecorderHarness = harness();
+    await test.recorder.start(startOptions({ fetch: test.fetch }));
+    for (let minute: number = 1; minute <= 4; minute += 1) {
+      await live(test, 60_000);
+      test.recorder.track(`poll-${minute}`);
+      await test.recorder.setRoute(`/auto-refresh-${minute}`);
+    }
+    await live(test, 60_000);
+
+    expect(test.recorder.getDiagnostics().status).toBe("paused");
+    const markers: Array<RrwebEvent> = eventsTagged(
+      test.posted,
+      IDLE_PAUSED_CUSTOM_EVENT_TAG,
+    );
+    expect(markers).toHaveLength(1);
+    expect(customPayload<SessionReplayIdlePausedPayload>(markers[0]!)).toEqual({
+      idleSinceUnixMs: START_UNIX_MS,
+      pausedAtUnixMs: PAUSED_AT_UNIX_MS,
+    });
+    /* Recorded while nobody had been gone for long. */
+    expect(JSON.stringify(allEvents(test.posted))).toContain("poll-4");
+
+    /*
+     * Still polling while paused: none of it is recorded or moves the idle
+     * window, which runs out half an hour after the last recorded event.
+     */
+    const lastRecordedUnixMs: number = START_UNIX_MS + 4 * 60_000;
+    while (
+      test.nowUnixMs() <
+      lastRecordedUnixMs + SESSION_REPLAY_IDLE_ROLLOVER_MS
+    ) {
+      await live(test, 60_000, 15_000);
+      test.recorder.track("poll-while-paused");
+    }
+    await live(test, 15_000, 15_000);
+    expect(test.recorder.getSessionId()).toBeNull();
+    expect(diagnosticCodes(test.recorder)).toContain("idle-session-ended");
+    expect(JSON.stringify(allEvents(test.posted))).not.toContain(
+      "poll-while-paused",
+    );
+    await test.recorder.stop();
+  });
+
+  test("a touch counts as input even where it is never recorded - inside a ReplayMask", async () => {
+    const test: RecorderHarness = harness();
+    test.native.isTouchTargetPrivate = jest.fn(
+      async (targetTag: number): Promise<boolean> => {
+        return targetTag === 2;
+      },
+    );
+    await test.recorder.start(startOptions({ fetch: test.fetch }));
+    for (let round: number = 0; round < 3; round += 1) {
+      await live(test, 4 * 60_000);
+      touchAt(test, 77, 88, 2);
+      await flush();
+    }
+    await live(test, 4 * 60_000);
+
+    expect(test.recorder.getDiagnostics().status).toBe("recording");
+    expect(diagnosticCodes(test.recorder)).toContain(
+      "touch-suppressed-private-region",
+    );
+    await test.recorder.stop();
+    expect(eventsTagged(test.posted, IDLE_PAUSED_CUSTOM_EVENT_TAG)).toEqual([]);
+    expect(JSON.stringify(allEvents(test.posted))).not.toContain('"x":77');
+  });
+
+  test("a resumed recording pauses again after another five minutes without input, in one session with contiguous chunks", async () => {
+    const test: RecorderHarness = harness();
+    await startAndLeaveAlone(test);
+    await live(test, 60_000, 15_000);
+    const touchedAtUnixMs: number = test.nowUnixMs();
+    touchAt(test, 60, 70);
+    await flush();
+    await live(test, SESSION_REPLAY_IDLE_PAUSE_MS);
+
+    const markers: Array<RrwebEvent> = eventsTagged(
+      test.posted,
+      IDLE_PAUSED_CUSTOM_EVENT_TAG,
+    );
+    expect(markers).toHaveLength(2);
+    expect(customPayload<SessionReplayIdlePausedPayload>(markers[1]!)).toEqual({
+      idleSinceUnixMs: touchedAtUnixMs,
+      pausedAtUnixMs: touchedAtUnixMs + SESSION_REPLAY_IDLE_PAUSE_MS,
+    });
+    expect(
+      eventsTagged(test.posted, IDLE_RESUMED_CUSTOM_EVENT_TAG),
+    ).toHaveLength(1);
+    expect(test.recorder.getDiagnostics().status).toBe("paused");
+
+    const chunkIndexes: Array<number> = test.posted.map(
+      (post: DecodedPost): number => {
+        return post.envelope["chunkIndex"] as number;
+      },
+    );
+    expect(chunkIndexes).toEqual(
+      chunkIndexes.map((_index: number, position: number): number => {
+        return position;
+      }),
+    );
+    expect(
+      new Set(
+        test.posted.map((post: DecodedPost): unknown => {
+          return post.envelope["sessionId"];
+        }),
+      ).size,
+    ).toBe(1);
+    expect(
+      new Set(
+        test.posted.map((post: DecodedPost): unknown => {
+          return post.envelope["tabId"];
+        }),
+      ).size,
+    ).toBe(1);
+    await test.recorder.stop();
+  });
+
+  test("what happens between the waking touch and its snapshot lands behind the resume marker", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    await live(test, 60_000, 15_000);
+
+    touchAt(test, 12, 34);
+    /* The screen the touch opened says so before the snapshot is taken. */
+    test.recorder.track("opened-by-the-waking-touch");
+    await flush();
+    await live(test, SESSION_REPLAY_FLUSH_INTERVAL_MS, 500);
+
+    const resumePost: DecodedPost = test.posted[pauseIndex + 1]!;
+    expect(resumePost.events.slice(0, 6).map(describeEvent)).toEqual([
+      "meta",
+      "full-snapshot",
+      IDLE_RESUMED_CUSTOM_EVENT_TAG,
+      CUSTOM_EVENT_TAG,
+      "incremental",
+      TOUCH_CUSTOM_EVENT_TAG,
+    ]);
+    expect(resumePost.envelope["signals"]).toMatchObject({
+      customEventCount: 1,
+      clickCount: 1,
+    });
+    await test.recorder.stop();
+  });
+
+  test("the touch that wakes the recorder is checked against the screen it resumed on, not the one before the pause", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    /* While nobody watched, the app put a masked surface where the next touch lands. */
+    test.native.tree = {
+      ...test.native.tree,
+      touchOriginX: 0,
+      touchOriginY: 0,
+      children: [
+        {
+          nativeId: 3,
+          kind: "masked",
+          masked: true,
+          x: 150,
+          y: 250,
+          width: 100,
+          height: 100,
+          children: [],
+        },
+      ],
+    };
+    await live(test, 60_000, 15_000);
+
+    touchAt(test, 200, 300);
+    await flush();
+    await live(test, SESSION_REPLAY_FLUSH_INTERVAL_MS, 500);
+    await test.recorder.stop();
+
+    const afterPause: Array<DecodedPost> = test.posted.slice(pauseIndex + 1);
+    expect(
+      eventsTagged(afterPause, IDLE_RESUMED_CUSTOM_EVENT_TAG),
+    ).toHaveLength(1);
+    expect(JSON.stringify(allEvents(afterPause))).not.toContain('"x":200');
+    expect(diagnosticCodes(test.recorder)).toContain(
+      "touch-suppressed-private-region",
+    );
+  });
+
+  test("ends a session nobody came back to, dated at its pause, and the next touch starts a new one", async () => {
+    const test: RecorderHarness = harness();
+    const seen: Array<string | null> = [];
+    test.recorder.onSessionChange((sessionId: string | null): void => {
+      seen.push(sessionId);
+    });
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    const pausePost: DecodedPost = test.posted[pauseIndex]!;
+    const pausedSessionId: string | null = test.recorder.getSessionId();
+    expect(pausedSessionId).toEqual(expect.any(String));
+
+    await live(test, ROLLOVER_AT_UNIX_MS - test.nowUnixMs() + 15_000, 15_000);
+
+    expect(test.posted).toHaveLength(pauseIndex + 2);
+    const seal: DecodedPost = test.posted[pauseIndex + 1]!;
+    expect(seal.envelope).toMatchObject({
+      sessionId: pausedSessionId,
+      tabId: pausePost.envelope["tabId"],
+      chunkIndex: (pausePost.envelope["chunkIndex"] as number) + 1,
+      isFinal: true,
+      hasFullSnapshot: false,
+      chunkStartOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
+      chunkEndOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
+    });
+    expect(seal.events).toEqual([
+      {
+        type: RrwebEventType.Custom,
+        timestamp: PAUSED_AT_UNIX_MS,
+        data: {
+          tag: SESSION_ROTATED_CUSTOM_EVENT_TAG,
+          payload: { reason: "idle" },
+        },
+      },
+    ]);
+    expect(test.recorder.getSessionId()).toBeNull();
+    expect(seen).toEqual([pausedSessionId, null]);
+    expect(test.recorder.getDiagnostics().status).toBe("paused");
+    expect(diagnosticCodes(test.recorder)).toContain("idle-session-ended");
+
+    /* Over, and nobody here: nothing more is sent, sampled or kept alive. */
+    expect(jest.getTimerCount()).toBe(0);
+    const capturesAfterSeal: number = test.native.captures;
+    await live(test, 20 * 60_000, 15_000);
+    expect(test.posted).toHaveLength(pauseIndex + 2);
+    expect(test.native.captures).toBe(capturesAfterSeal);
+
+    touchAt(test, 321, 654);
+    await flush();
+    const nextSessionId: string | null = test.recorder.getSessionId();
+    expect(nextSessionId).toEqual(expect.any(String));
+    expect(nextSessionId).not.toBe(pausedSessionId);
+    expect(seen).toEqual([pausedSessionId, null, nextSessionId]);
+    await live(test, SESSION_REPLAY_FLUSH_INTERVAL_MS, 500);
+    await test.recorder.stop();
+
+    const nextPosts: Array<DecodedPost> = test.posted.filter(
+      (post: DecodedPost): boolean => {
+        return post.envelope["sessionId"] === nextSessionId;
+      },
+    );
+    expect(nextPosts[0]?.envelope).toMatchObject({
+      chunkIndex: 0,
+      hasFullSnapshot: true,
+    });
+    expect(nextPosts[0]?.events.slice(0, 2).map(describeEvent)).toEqual([
+      "meta",
+      "full-snapshot",
+    ]);
+    expect(eventsTagged(nextPosts, IDLE_RESUMED_CUSTOM_EVENT_TAG)).toEqual([]);
+    /* As ever after the rollover, the touch that found the session over is not recorded. */
+    expect(JSON.stringify(allEvents(nextPosts))).not.toContain('"x":321');
+    expect(diagnosticCodes(test.recorder)).toContain(
+      "touch-dropped-session-rotation",
+    );
+    expect(
+      test.posted.filter((post: DecodedPost): boolean => {
+        return post.envelope["sessionId"] === pausedSessionId;
+      }),
+    ).toHaveLength(pauseIndex + 2);
+  });
+
+  test("a touch after the idle window ran out, before the heartbeat noticed, still seals the session at its pause", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    const pausedSessionId: string | null = test.recorder.getSessionId();
+    await live(test, ROLLOVER_AT_UNIX_MS - test.nowUnixMs() - 15_000, 15_000);
+    expect(test.posted).toHaveLength(pauseIndex + 1);
+
+    /* Past the window, between two heartbeats. */
+    test.advance(20_000);
+    touchAt(test, 1, 2);
+    await flush();
+    await live(test, SESSION_REPLAY_FLUSH_INTERVAL_MS, 500);
+
+    const seal: DecodedPost = test.posted[pauseIndex + 1]!;
+    expect(seal.envelope).toMatchObject({
+      sessionId: pausedSessionId,
+      isFinal: true,
+      chunkEndOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
+    });
+    expect(seal.events.map(describeEvent)).toEqual([
+      SESSION_ROTATED_CUSTOM_EVENT_TAG,
+    ]);
+    expect(seal.events[0]?.timestamp).toBe(PAUSED_AT_UNIX_MS);
+    expect(test.recorder.getSessionId()).not.toBe(pausedSessionId);
+    expect(test.recorder.getDiagnostics().status).toBe("recording");
+    await test.recorder.stop();
+  });
+
+  test("a paused session that ran out while the app was in the background is sealed at its pause when the app returns", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    const pausedSessionId: string | null = test.recorder.getSessionId();
+
+    test.appState.emit("background");
+    await flush();
+    await live(test, 40 * 60_000, 60_000);
+    expect(test.posted).toHaveLength(pauseIndex + 1);
+
+    test.appState.emit("active");
+    await flush();
+
+    const seal: DecodedPost = test.posted[pauseIndex + 1]!;
+    expect(seal.envelope).toMatchObject({
+      sessionId: pausedSessionId,
+      isFinal: true,
+      chunkStartOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
+      chunkEndOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
+    });
+    expect(seal.events.map(describeEvent)).toEqual([
+      SESSION_ROTATED_CUSTOM_EVENT_TAG,
+    ]);
+    expect(seal.events[0]?.timestamp).toBe(PAUSED_AT_UNIX_MS);
+
+    const nextSessionId: string | null = test.recorder.getSessionId();
+    expect(nextSessionId).toEqual(expect.any(String));
+    expect(nextSessionId).not.toBe(pausedSessionId);
+    await live(test, SESSION_REPLAY_FLUSH_INTERVAL_MS, 500);
+    await test.recorder.stop();
+
+    /* The new session opens as a return to the foreground always opens one. */
+    const nextPosts: Array<DecodedPost> = test.posted.filter(
+      (post: DecodedPost): boolean => {
+        return post.envelope["sessionId"] === nextSessionId;
+      },
+    );
+    expect(
+      eventsTagged(nextPosts, VISIBILITY_CUSTOM_EVENT_TAG).map(
+        (event: RrwebEvent): unknown => {
+          return customPayload<{ state: string }>(event).state;
+        },
+      ),
+    ).toEqual(["visible", "stopped"]);
+    expect(
+      nextPosts.some((post: DecodedPost): boolean => {
+        return post.envelope["hasFullSnapshot"] === true;
+      }),
+    ).toBe(true);
+    expect(eventsTagged(nextPosts, IDLE_RESUMED_CUSTOM_EVENT_TAG)).toEqual([]);
+  });
+
+  test("stopping while paused seals the session at its pause, not at the stop", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    const pausePost: DecodedPost = test.posted[pauseIndex]!;
+    await live(test, 10 * 60_000, 15_000);
+    const capturesBeforeStop: number = test.native.captures;
+
+    await test.recorder.stop();
+
+    expect(test.native.captures).toBe(capturesBeforeStop);
+    expect(test.posted).toHaveLength(pauseIndex + 2);
+    const final: DecodedPost = test.posted[pauseIndex + 1]!;
+    expect(final.envelope).toMatchObject({
+      sessionId: pausePost.envelope["sessionId"],
+      chunkIndex: (pausePost.envelope["chunkIndex"] as number) + 1,
+      isFinal: true,
+      chunkStartOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
+      chunkEndOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
+    });
+    expect(final.events).toEqual([
+      {
+        type: RrwebEventType.Custom,
+        timestamp: PAUSED_AT_UNIX_MS,
+        data: {
+          tag: VISIBILITY_CUSTOM_EVENT_TAG,
+          payload: { state: "stopped" },
+        },
+      },
+    ]);
+    expect(test.recorder.getDiagnostics().status).toBe("stopped");
+  });
+
+  test("stopping after the paused session ended sends nothing more for it", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    await live(test, ROLLOVER_AT_UNIX_MS - test.nowUnixMs() + 15_000, 15_000);
+    expect(test.posted).toHaveLength(pauseIndex + 2);
+
+    await test.recorder.stop();
+
+    expect(test.posted).toHaveLength(pauseIndex + 2);
+    expect(test.recorder.getDiagnostics().status).toBe("stopped");
+  });
+
+  test("a relaunch after a paused session ended starts a new session rather than continuing it", async () => {
+    const test: RecorderHarness = harness();
+    await startAndLeaveAlone(test);
+    const endedSessionId: string | null = test.recorder.getSessionId();
+    await live(test, ROLLOVER_AT_UNIX_MS - test.nowUnixMs() + 15_000, 15_000);
+    expect(test.recorder.getSessionId()).toBeNull();
+
+    /* Killed: no stop(), no timers. Relaunched a minute later. */
+    jest.clearAllTimers();
+    const relaunchedAtUnixMs: number = test.nowUnixMs() + 60_000;
+    const relaunched: MobileReplayRecorder = new MobileReplayRecorder({
+      storage: test.storage,
+      nativeViewTree: new FakeNativeViewTree(),
+      appState: new FakeAppState(),
+      now: (): number => {
+        return relaunchedAtUnixMs;
+      },
+    });
+    relaunched.setRootTag(101);
+    expect(await relaunched.start(startOptions({ fetch: test.fetch }))).toBe(
+      true,
+    );
+
+    expect(relaunched.getSessionId()).toEqual(expect.any(String));
+    expect(relaunched.getSessionId()).not.toBe(endedSessionId);
+    await relaunched.stop();
+  });
+
+  test("an error-triggered recorder drops its pre-roll at the pause, and an error while paused triggers nothing", async () => {
+    const test: RecorderHarness = harness({
+      captureTrigger: "OnErrorOrFrustration",
+      samplePercentage: 0,
+    });
+    await test.recorder.start(startOptions({ fetch: test.fetch }));
+    await live(test, SESSION_REPLAY_IDLE_PAUSE_MS);
+    expect(test.recorder.getDiagnostics()).toMatchObject({
+      status: "paused",
+      pendingEvents: 0,
+    });
+
+    await test.recorder.captureError(new Error("background poll failed"));
+    await flush();
+    expect(test.posted).toHaveLength(0);
+    expect(test.recorder.getDiagnostics().triggered).toBe(false);
+
+    /*
+     * Back well inside the pre-roll's own minute, so nothing from before
+     * the pause would have aged out of it by itself.
+     */
+    await live(test, 30_000, 15_000);
+    const resumedAtUnixMs: number = test.nowUnixMs();
+    touchAt(test, 9, 9);
+    await flush();
+    await test.recorder.captureError(new Error("the user hit a real error"));
+    await flush();
+
+    expect(test.recorder.getDiagnostics().triggered).toBe(true);
+    expect(test.posted.length).toBeGreaterThan(0);
+    const uploaded: Array<RrwebEvent> = allEvents(test.posted);
+    expect(describeEvent(uploaded[0]!)).toBe("meta");
+    for (const event of uploaded) {
+      expect(event.timestamp).toBeGreaterThanOrEqual(resumedAtUnixMs);
+    }
+    /* No pause was ever in an uploaded stream, so none is answered. */
+    expect(eventsTagged(test.posted, IDLE_PAUSED_CUSTOM_EVENT_TAG)).toEqual([]);
+    expect(eventsTagged(test.posted, IDLE_RESUMED_CUSTOM_EVENT_TAG)).toEqual(
+      [],
+    );
+    await test.recorder.stop();
+  });
+
+  test("an identity change while paused ends the outgoing user's session at its pause, and the next user's starts with the next input", async () => {
+    const test: RecorderHarness = harness({ captureUserIdentity: true });
+    expect(
+      await test.recorder.start(
+        startOptions({ fetch: test.fetch, userRef: "alice@example.com" }),
+      ),
+    ).toBe(true);
+    await live(test, SESSION_REPLAY_IDLE_PAUSE_MS);
+    const pauseIndex: number = indexOfPostWith(
+      test.posted,
+      IDLE_PAUSED_CUSTOM_EVENT_TAG,
+    );
+    expect(pauseIndex).toBeGreaterThanOrEqual(0);
+    const aliceSessionId: string | null = test.recorder.getSessionId();
+    const capturesAtPause: number = test.native.captures;
+
+    /* The app signs out the user who walked away. */
+    test.recorder.identify("bob@example.com");
+    await flush();
+
+    expect(test.recorder.getSessionId()).toBeNull();
+    expect(test.native.captures).toBe(capturesAtPause);
+    const seal: DecodedPost = test.posted[pauseIndex + 1]!;
+    expect(seal.envelope).toMatchObject({
+      sessionId: aliceSessionId,
+      isFinal: true,
+      chunkEndOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
+    });
+    expect(seal.events).toEqual([
+      {
+        type: RrwebEventType.Custom,
+        timestamp: PAUSED_AT_UNIX_MS,
+        data: {
+          tag: SESSION_ROTATED_CUSTOM_EVENT_TAG,
+          payload: { reason: "identity" },
+        },
+      },
+    ]);
+
+    /* Nobody here: no session of nobody for the new user meanwhile. */
+    await live(test, 10 * 60_000, 15_000);
+    expect(test.posted).toHaveLength(pauseIndex + 2);
+    expect(test.native.captures).toBe(capturesAtPause);
+
+    touchAt(test, 3, 4);
+    await flush();
+    const bobSessionId: string | null = test.recorder.getSessionId();
+    expect(bobSessionId).toEqual(expect.any(String));
+    expect(bobSessionId).not.toBe(aliceSessionId);
+    await live(test, SESSION_REPLAY_FLUSH_INTERVAL_MS, 500);
+    await test.recorder.stop();
+
+    const bobPosts: Array<DecodedPost> = test.posted.filter(
+      (post: DecodedPost): boolean => {
+        return post.envelope["sessionId"] === bobSessionId;
+      },
+    );
+    expect(bobPosts[0]?.envelope).toMatchObject({
+      chunkIndex: 0,
+      hasFullSnapshot: true,
+      meta: expect.objectContaining({ identifiedUserRef: "bob@example.com" }),
+    });
+    const alicePosts: Array<DecodedPost> = test.posted.filter(
+      (post: DecodedPost): boolean => {
+        return post.envelope["sessionId"] === aliceSessionId;
+      },
+    );
+    expect(alicePosts).toHaveLength(pauseIndex + 2);
+    expect(JSON.stringify(alicePosts)).not.toContain("bob@example.com");
+  });
+
+  /*
+   * captureSession() while paused, as in the browser recorder: an explicit
+   * ask for this moment, so capture resumes at once - but it is not input,
+   * so the next pause check pauses again if nobody is there.
+   */
+  test("captureSession() while paused resumes the same session at once - snapshot, resume marker, then its marker - and the next check pauses again", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    const pausePost: DecodedPost = test.posted[pauseIndex]!;
+    await live(test, 2 * 60_000, 15_000);
+
+    const capturedAtUnixMs: number = test.nowUnixMs();
+    await test.recorder.captureSession("support-request");
+    expect(test.recorder.getDiagnostics().status).toBe("recording");
+
+    /* Not input: the next pause check finds nobody there. */
+    await live(test, 500, 500);
+    expect(test.recorder.getDiagnostics().status).toBe("paused");
+
+    const capturePost: DecodedPost = test.posted[pauseIndex + 1]!;
+    expect(capturePost.envelope).toMatchObject({
+      sessionId: pausePost.envelope["sessionId"],
+      tabId: pausePost.envelope["tabId"],
+      chunkIndex: (pausePost.envelope["chunkIndex"] as number) + 1,
+      hasFullSnapshot: true,
+    });
+    expect(capturePost.events.map(describeEvent)).toEqual([
+      "meta",
+      "full-snapshot",
+      IDLE_RESUMED_CUSTOM_EVENT_TAG,
+      CUSTOM_EVENT_TAG,
+      IDLE_PAUSED_CUSTOM_EVENT_TAG,
+    ]);
+    expect(capturePost.events[1]?.timestamp).toBe(capturedAtUnixMs);
+    expect(
+      customPayload<SessionReplayIdleResumedPayload>(capturePost.events[2]!),
+    ).toEqual({
+      pausedAtUnixMs: PAUSED_AT_UNIX_MS,
+      resumedAtUnixMs: capturedAtUnixMs,
+    });
+    expect(customPayload(capturePost.events[3]!)).toMatchObject({
+      name: "oneuptime.capture",
+    });
+    /* The idle clock still runs from the person's last input: the start. */
+    expect(
+      customPayload<SessionReplayIdlePausedPayload>(capturePost.events[4]!),
+    ).toEqual({
+      idleSinceUnixMs: START_UNIX_MS,
+      pausedAtUnixMs: capturedAtUnixMs + 500,
+    });
+    await test.recorder.stop();
+  });
+
+  test("captureSession() after the paused session ended starts the next session, and its marker lands in it", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    const endedSessionId: string | null = test.recorder.getSessionId();
+    await live(test, ROLLOVER_AT_UNIX_MS - test.nowUnixMs() + 15_000, 15_000);
+    expect(test.posted).toHaveLength(pauseIndex + 2);
+    expect(test.recorder.getSessionId()).toBeNull();
+
+    const capturedAtUnixMs: number = test.nowUnixMs();
+    await test.recorder.captureSession("support-request");
+    const nextSessionId: string | null = test.recorder.getSessionId();
+    expect(nextSessionId).toEqual(expect.any(String));
+    expect(nextSessionId).not.toBe(endedSessionId);
+    await live(test, 500, 500);
+    expect(test.recorder.getDiagnostics().status).toBe("paused");
+
+    const nextPosts: Array<DecodedPost> = test.posted.filter(
+      (post: DecodedPost): boolean => {
+        return post.envelope["sessionId"] === nextSessionId;
+      },
+    );
+    expect(nextPosts[0]?.envelope).toMatchObject({
+      chunkIndex: 0,
+      hasFullSnapshot: true,
+    });
+    expect(nextPosts[0]?.events.map(describeEvent)).toEqual([
+      "meta",
+      "full-snapshot",
+      CUSTOM_EVENT_TAG,
+      IDLE_PAUSED_CUSTOM_EVENT_TAG,
+    ]);
+    /* Nobody there before this session began: idle since it began. */
+    expect(
+      customPayload<SessionReplayIdlePausedPayload>(nextPosts[0]!.events[3]!),
+    ).toEqual({
+      idleSinceUnixMs: capturedAtUnixMs,
+      pausedAtUnixMs: capturedAtUnixMs + 500,
+    });
+    expect(eventsTagged(nextPosts, IDLE_RESUMED_CUSTOM_EVENT_TAG)).toEqual([]);
+    expect(
+      test.posted.filter((post: DecodedPost): boolean => {
+        return post.envelope["sessionId"] === endedSessionId;
+      }),
+    ).toHaveLength(pauseIndex + 2);
+    await test.recorder.stop();
+  });
+
+  test("captureSession() on a paused error-triggered recorder starts the upload, opening on the snapshot it resumes on", async () => {
+    const test: RecorderHarness = harness({
+      captureTrigger: "OnErrorOrFrustration",
+      samplePercentage: 0,
+    });
+    await test.recorder.start(startOptions({ fetch: test.fetch }));
+    await live(test, SESSION_REPLAY_IDLE_PAUSE_MS);
+    expect(test.recorder.getDiagnostics().status).toBe("paused");
+    expect(test.posted).toHaveLength(0);
+    await live(test, 30_000, 15_000);
+
+    const capturedAtUnixMs: number = test.nowUnixMs();
+    await test.recorder.captureSession("support-request");
+
+    expect(test.recorder.getDiagnostics().triggered).toBe(true);
+    expect(test.posted.length).toBeGreaterThan(0);
+    const first: DecodedPost = test.posted[0]!;
+    expect(first.envelope).toMatchObject({
+      chunkIndex: 0,
+      hasFullSnapshot: true,
+      triggerReason: "manual",
+    });
+    expect(first.events.map(describeEvent)).toEqual([
+      "meta",
+      "full-snapshot",
+      CUSTOM_EVENT_TAG,
+    ]);
+    expect(first.events[0]?.timestamp).toBe(capturedAtUnixMs);
+    /* Nothing from before the pause: its pre-roll was dropped there. */
+    for (const event of allEvents(test.posted)) {
+      expect(event.timestamp).toBeGreaterThanOrEqual(capturedAtUnixMs);
+    }
+    /* That pause was never in an uploaded stream, so nothing answers it. */
+    expect(eventsTagged(test.posted, IDLE_RESUMED_CUSTOM_EVENT_TAG)).toEqual(
+      [],
+    );
+
+    /* Not input: it pauses again - and now that it uploads, says so. */
+    await live(test, 500, 500);
+    expect(test.recorder.getDiagnostics().status).toBe("paused");
+    const markers: Array<RrwebEvent> = eventsTagged(
+      test.posted,
+      IDLE_PAUSED_CUSTOM_EVENT_TAG,
+    );
+    expect(markers).toHaveLength(1);
+    expect(customPayload<SessionReplayIdlePausedPayload>(markers[0]!)).toEqual({
+      idleSinceUnixMs: START_UNIX_MS,
+      pausedAtUnixMs: capturedAtUnixMs + 500,
+    });
+    await test.recorder.stop();
+  });
+
+  /*
+   * The soft keyboard: what is typed on it reaches no view the recorder
+   * sees, so it stands in for the keystrokes.
+   */
+  test("someone typing with the soft keyboard up for ten minutes and more is never taken for nobody", async () => {
+    const test: RecorderHarness = harness();
+    await test.recorder.start(startOptions({ fetch: test.fetch }));
+    await live(test, 60_000);
+    test.keyboard.show();
+    await flush();
+
+    await live(test, 12 * 60_000);
+
+    expect(test.recorder.getDiagnostics().status).toBe("recording");
+    expect(eventsTagged(test.posted, IDLE_PAUSED_CUSTOM_EVENT_TAG)).toEqual([]);
+    const capturesWhileTyping: number = test.native.captures;
+    await live(test, 30_000);
+    expect(test.native.captures).toBeGreaterThan(capturesWhileTyping);
+    await test.recorder.stop();
+  });
+
+  test.each<[string, (keyboard: FakeKeyboard) => void]>([
+    [
+      "coming up",
+      (keyboard: FakeKeyboard): void => {
+        keyboard.show();
+      },
+    ],
+    [
+      "going away",
+      (keyboard: FakeKeyboard): void => {
+        keyboard.hide();
+      },
+    ],
+  ])(
+    "the soft keyboard %s is input: it resumes a paused recorder on a fresh snapshot",
+    async (_label: string, change: (keyboard: FakeKeyboard) => void) => {
+      const test: RecorderHarness = harness();
+      const pauseIndex: number = await startAndLeaveAlone(test);
+      const pausePost: DecodedPost = test.posted[pauseIndex]!;
+      await live(test, 2 * 60_000, 15_000);
+
+      const resumedAtUnixMs: number = test.nowUnixMs();
+      change(test.keyboard);
+      await flush();
+      expect(test.recorder.getDiagnostics().status).toBe("recording");
+      await live(test, SESSION_REPLAY_FLUSH_INTERVAL_MS, 500);
+
+      const resumePost: DecodedPost = test.posted[pauseIndex + 1]!;
+      expect(resumePost.envelope).toMatchObject({
+        sessionId: pausePost.envelope["sessionId"],
+        tabId: pausePost.envelope["tabId"],
+        chunkIndex: (pausePost.envelope["chunkIndex"] as number) + 1,
+        hasFullSnapshot: true,
+      });
+      expect(resumePost.events.slice(0, 3).map(describeEvent)).toEqual([
+        "meta",
+        "full-snapshot",
+        IDLE_RESUMED_CUSTOM_EVENT_TAG,
+      ]);
+      expect(
+        customPayload<SessionReplayIdleResumedPayload>(resumePost.events[2]!),
+      ).toEqual({
+        pausedAtUnixMs: PAUSED_AT_UNIX_MS,
+        resumedAtUnixMs,
+      });
+      await test.recorder.stop();
+    },
+  );
+
+  test("once the keyboard goes away, five minutes of nothing pauses as usual", async () => {
+    const test: RecorderHarness = harness();
+    await test.recorder.start(startOptions({ fetch: test.fetch }));
+    test.keyboard.show();
+    await flush();
+    await live(test, 8 * 60_000);
+
+    const hiddenAtUnixMs: number = test.nowUnixMs();
+    test.keyboard.hide();
+    await flush();
+    await live(test, SESSION_REPLAY_IDLE_PAUSE_MS - 5_000);
+    expect(test.recorder.getDiagnostics().status).toBe("recording");
+    await live(test, 5_000);
+
+    expect(test.recorder.getDiagnostics().status).toBe("paused");
+    const markers: Array<RrwebEvent> = eventsTagged(
+      test.posted,
+      IDLE_PAUSED_CUSTOM_EVENT_TAG,
+    );
+    expect(markers).toHaveLength(1);
+    expect(customPayload<SessionReplayIdlePausedPayload>(markers[0]!)).toEqual({
+      idleSinceUnixMs: hiddenAtUnixMs,
+      pausedAtUnixMs: hiddenAtUnixMs + SESSION_REPLAY_IDLE_PAUSE_MS,
+    });
+    await test.recorder.stop();
+  });
+
+  test("a recording started with the keyboard already up does not pause until it goes away", async () => {
+    const test: RecorderHarness = harness();
+    test.keyboard.visible = true;
+    await test.recorder.start(startOptions({ fetch: test.fetch }));
+    await live(test, 7 * 60_000);
+    expect(test.recorder.getDiagnostics().status).toBe("recording");
+
+    test.keyboard.hide();
+    await flush();
+    await live(test, SESSION_REPLAY_IDLE_PAUSE_MS);
+    expect(test.recorder.getDiagnostics().status).toBe("paused");
+    await test.recorder.stop();
+  });
+
+  test("listens to the keyboard only while recording: stopping removes its listeners", async () => {
+    const test: RecorderHarness = harness();
+    expect(test.keyboard.listenerCount()).toBe(0);
+    await test.recorder.start(startOptions({ fetch: test.fetch }));
+    expect(test.keyboard.listenerCount()).toBe(2);
+
+    await test.recorder.stop();
+    expect(test.keyboard.listenerCount()).toBe(0);
+    const postsAfterStop: number = test.posted.length;
+    expect((): void => {
+      test.keyboard.show();
+    }).not.toThrow();
+    await flush();
+    expect(test.posted).toHaveLength(postsAfterStop);
+
+    /* A restart listens again, once; a withdrawal of consent stops it too. */
+    await test.recorder.start(startOptions({ fetch: test.fetch }));
+    expect(test.keyboard.listenerCount()).toBe(2);
+    await test.recorder.revokeConsent();
+    expect(test.keyboard.listenerCount()).toBe(0);
+  });
+
+  test("listens to React Native's own Keyboard module by default", async () => {
+    const reactNative: {
+      Keyboard: { addListener: jest.Mock };
+    } = jest.requireMock("react-native");
+    const test: RecorderHarness = harness();
+    const recorder: MobileReplayRecorder = new MobileReplayRecorder({
+      storage: test.storage,
+      nativeViewTree: test.native,
+      appState: test.appState,
+      now: (): number => {
+        return test.nowUnixMs();
+      },
+    });
+    recorder.setRootTag(101);
+    expect(await recorder.start(startOptions({ fetch: test.fetch }))).toBe(
+      true,
+    );
+
+    expect(reactNative.Keyboard.addListener).toHaveBeenCalledWith(
+      "keyboardDidShow",
+      expect.any(Function),
+    );
+    expect(reactNative.Keyboard.addListener).toHaveBeenCalledWith(
+      "keyboardDidHide",
+      expect.any(Function),
+    );
+    await recorder.stop();
+    for (const result of reactNative.Keyboard.addListener.mock.results) {
+      expect(
+        (result.value as { remove: jest.Mock }).remove,
+      ).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  test("a keyboard module that cannot be observed costs only the typing signal", async () => {
+    const test: RecorderHarness = harness(
+      {},
+      {
+        keyboard: {
+          addListener(): { remove(): void } {
+            throw new Error("Keyboard is not linked");
+          },
+          isVisible(): boolean {
+            throw new Error("Keyboard is not linked");
+          },
+        },
+      },
+    );
+    expect(await test.recorder.start(startOptions({ fetch: test.fetch }))).toBe(
+      true,
+    );
+    expect(diagnosticCodes(test.recorder)).toContain(
+      "keyboard-subscribe-failed",
+    );
+    await live(test, SESSION_REPLAY_IDLE_PAUSE_MS);
+    expect(test.recorder.getDiagnostics().status).toBe("paused");
+    await test.recorder.stop();
+  });
 });
