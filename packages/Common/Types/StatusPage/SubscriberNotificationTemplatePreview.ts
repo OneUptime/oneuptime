@@ -146,7 +146,8 @@ export default class SubscriberNotificationTemplatePreview {
 
   /*
    * A sample for every variable the event offers, and for each custom field
-   * placeholder these templates place ({{customFields.<key>}}), in each
+   * placeholder these templates place ({{incident.customFields.<key>}}, or
+   * the older {{customFields.<key>}}, which is filled the same), in each
    * channel's format.
    */
   public static getSampleValues(data: {
@@ -189,7 +190,12 @@ export default class SubscriberNotificationTemplatePreview {
         values: values,
         name: name,
         sample: {
-          text: `Sample ${name.slice(dynamicVariable.prefix.length)}`,
+          text: `Sample ${
+            SubscriberNotificationTemplateVariables.getDynamicVariableKey(
+              dynamicVariable,
+              name,
+            ) || name
+          }`,
         },
         isHtmlInEmailBody: false,
       });

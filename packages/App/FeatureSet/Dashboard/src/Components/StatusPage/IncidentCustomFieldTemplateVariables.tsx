@@ -27,8 +27,9 @@ import React, {
 /*
  * Under a subscriber notification template's variable reference, for an
  * incident event: the project's incident custom fields, each with the
- * {{customFields.<key>}} variable that places its value, and whether it is
- * already in the default messages (Include in Subscriber Notifications).
+ * {{incident.customFields.<key>}} variable that places its value - the same
+ * name a note template uses - and whether it is already in the default
+ * messages (Include in Subscriber Notifications).
  *
  * The reference names the variable family with its key left open; only the
  * project knows its keys, so they are read here. Above them is a line saying

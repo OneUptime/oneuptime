@@ -284,7 +284,7 @@ export function isNoteBlank(text: string | undefined | null): boolean {
  * draft takes the template, anything else gets it appended after a blank line.
  *
  * With `variables`, the template's {{placeholders}} are filled in first
- * ({{incident.title}}, {{customFields.impact}}...; see
+ * ({{incident.title}}, {{incident.customFields.impact}}...; see
  * IncidentNoteTemplateVariables). Only the template's: what was already typed
  * is left exactly as it is. A placeholder with no value stays as written.
  */

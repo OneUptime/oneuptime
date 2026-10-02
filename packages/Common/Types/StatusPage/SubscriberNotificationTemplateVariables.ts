@@ -1,6 +1,8 @@
 import {
   CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
+  isCustomFieldTemplateVariableName,
   isValidCustomFieldVariableKey,
+  LEGACY_CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
 } from "../CustomField/CustomFieldVariableKey";
 import BadDataException from "../Exception/BadDataException";
 import StatusPageSubscriberNotificationEventType from "./StatusPageSubscriberNotificationEventType";
@@ -21,15 +23,21 @@ export interface SubscriberNotificationTemplateVariable {
 
 /*
  * A family of variables whose names are not known in advance: one per
- * incident custom field, {{customFields.<key>}}, where <key> is the field's
- * Template Variable key (IncidentCustomField.variableKey). Which keys exist
- * depends on the project, so the family is listed by its prefix, and the
- * worker passes one variable for every field the project has - an empty
+ * incident custom field, {{incident.customFields.<key>}}, where <key> is the
+ * field's Template Variable key (IncidentCustomField.variableKey). Which keys
+ * exist depends on the project, so the family is listed by its prefix, and
+ * the worker passes one variable for every field the project has - an empty
  * string when the incident holds no value for it.
  */
 export interface SubscriberNotificationTemplateDynamicVariable {
   // What every name in the family starts with, dot included.
   prefix: string;
+  /*
+   * Older prefixes the family still answers to, so templates saved with them
+   * keep working: the worker fills those names too, with the same values.
+   * Never shown: the reference documents `prefix` only.
+   */
+  legacyPrefixes?: Array<string> | undefined;
   // How the rest of the name is shown in the reference: "<key>".
   placeholder: string;
   // Whether what follows the prefix is a name in the family.
@@ -47,11 +55,11 @@ export interface SubscriberNotificationTemplateDynamicVariable {
  * The variables every incident event offers on top of its own: the
  * incident's labels, the status pages it is on, and its custom fields.
  *
- * affectedStatusPages and the custom fields are internal data - a status
- * page's subscribers are usually outside the team, and the list of pages
- * names every other audience the incident reaches - so the worker never puts
- * them into a message on its own. They reach subscribers only where a
- * template author places them, and the template form warns about it.
+ * The worker never puts affectedStatusPages, or a custom field that is not
+ * marked Include in Subscriber Notifications, into a message on its own: a
+ * status page's subscribers are usually outside the team, and the list of
+ * pages names every other audience the incident reaches. They reach
+ * subscribers only where a template author places them.
  */
 const INCIDENT_VARIABLES: Array<SubscriberNotificationTemplateVariable> = [
   {
@@ -61,7 +69,7 @@ const INCIDENT_VARIABLES: Array<SubscriberNotificationTemplateVariable> = [
   {
     name: "affectedStatusPages",
     description:
-      "Names of every status page the incident is shown on, separated by commas. Internal: it names the status pages of every audience the incident reaches",
+      "Names of every status page the incident is shown on, separated by commas",
   },
 ];
 
@@ -69,10 +77,11 @@ const INCIDENT_DYNAMIC_VARIABLES: Array<SubscriberNotificationTemplateDynamicVar
   [
     {
       prefix: CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
+      legacyPrefixes: [LEGACY_CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX],
       placeholder: "<key>",
       isValidKey: isValidCustomFieldVariableKey,
       description:
-        "The value of an incident custom field, by the field's Template Variable key. Internal: any custom field can be placed, whether or not it is marked to be included in subscriber notifications",
+        "The value of an incident custom field, by the field's Template Variable key, whether or not the field is included in subscriber notifications",
       mayBeHtmlInEmailBody: true,
     },
   ];
@@ -80,7 +89,8 @@ const INCIDENT_DYNAMIC_VARIABLES: Array<SubscriberNotificationTemplateDynamicVar
 /*
  * The variables that read the team's own incident records rather than what
  * the incident's status pages already show: its labels, and every custom
- * field ({{customFields.<key>}}), marked for subscribers or not. The title,
+ * field ({{incident.customFields.<key>}}, or the older
+ * {{customFields.<key>}}), marked for subscribers or not. The title,
  * description, severity, state and public notes are on the status page for
  * anyone who can see it; these are not, and the status page roles that may
  * write templates may not read them. So a template can place them only if
@@ -470,7 +480,7 @@ export default class SubscriberNotificationTemplateVariables {
 
   /*
    * The families of variables this event offers on top of the listed ones,
-   * by prefix: the incident events' {{customFields.<key>}}.
+   * by prefix: the incident events' {{incident.customFields.<key>}}.
    */
   public static getDynamicVariablesForEventType(
     eventType: StatusPageSubscriberNotificationEventType,
@@ -480,28 +490,58 @@ export default class SubscriberNotificationTemplateVariables {
           (
             variable: SubscriberNotificationTemplateDynamicVariable,
           ): SubscriberNotificationTemplateDynamicVariable => {
-            return { ...variable };
+            return {
+              ...variable,
+              ...(variable.legacyPrefixes
+                ? { legacyPrefixes: [...variable.legacyPrefixes] }
+                : {}),
+            };
           },
         )
       : [];
   }
 
   /*
-   * The family this name belongs to, when it is one: the prefix followed by
-   * a key of the family's shape (for a custom field, the shape its Template
-   * Variable key is made in, which the template compiler fills). Null for a
-   * listed variable, a bare prefix, or a name the event does not offer.
+   * The family this name belongs to, when it is one: its prefix (or one of
+   * its older prefixes) followed by a key of the family's shape (for a
+   * custom field, the shape its Template Variable key is made in, which the
+   * template compiler fills). Null for a listed variable, a bare prefix, or
+   * a name the event does not offer.
    */
   public static getDynamicVariableForName(
     eventType: StatusPageSubscriberNotificationEventType,
     name: string,
   ): SubscriberNotificationTemplateDynamicVariable | null {
     for (const variable of this.getDynamicVariablesForEventType(eventType)) {
-      if (
-        name.startsWith(variable.prefix) &&
-        variable.isValidKey(name.slice(variable.prefix.length))
-      ) {
+      if (this.getDynamicVariableKey(variable, name) !== null) {
         return variable;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * What follows the family's prefix in this name - a custom field's key -
+   * when the name is a member of the family, written with its prefix or one
+   * of its older ones. Null otherwise.
+   */
+  public static getDynamicVariableKey(
+    variable: SubscriberNotificationTemplateDynamicVariable,
+    name: string,
+  ): string | null {
+    for (const prefix of [
+      variable.prefix,
+      ...(variable.legacyPrefixes || []),
+    ]) {
+      if (!name.startsWith(prefix)) {
+        continue;
+      }
+
+      const key: string = name.slice(prefix.length);
+
+      if (variable.isValidKey(key)) {
+        return key;
       }
     }
 
@@ -511,10 +551,11 @@ export default class SubscriberNotificationTemplateVariables {
   /**
    * The placeholders in these texts - a template's body and email subject -
    * that read the team's incident records (INCIDENT_RECORD_VARIABLE_NAMES
-   * and any {{customFields.<key>}}, whether or not such a field exists),
-   * each once, sorted. Found exactly as the compiler finds what it fills,
-   * whatever the template's event type: an update can change the event type
-   * without touching the text.
+   * and any {{incident.customFields.<key>}} or older {{customFields.<key>}},
+   * whether or not such a field exists), each once, as written, sorted.
+   * Found exactly as the compiler finds what it fills, whatever the
+   * template's event type: an update can change the event type without
+   * touching the text.
    */
   public static getIncidentRecordPlaceholders(
     texts: Array<string | null | undefined>,
@@ -525,7 +566,7 @@ export default class SubscriberNotificationTemplateVariables {
       .filter((name: string): boolean => {
         return (
           INCIDENT_RECORD_VARIABLE_NAMES.includes(name) ||
-          name.startsWith(CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX)
+          isCustomFieldTemplateVariableName(name)
         );
       })
       .sort();
