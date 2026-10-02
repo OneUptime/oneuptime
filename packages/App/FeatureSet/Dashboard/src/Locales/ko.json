@@ -7314,5 +7314,8 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value.": "드롭다운에 표시할 옵션을 추가하고, 원하면 값마다 색을 고르세요.",
   "Copying custom field values from a related resource": "관련 리소스에서 사용자 정의 필드 값 복사하기",
   "When and how a field's value is copied, and what copying will never do.": "필드 값이 언제 어떻게 복사되는지, 그리고 복사가 절대 하지 않는 일.",
-  "A field whose value is copied from a monitor custom field instead of being typed in.": "값을 직접 입력하는 대신 모니터의 사용자 정의 필드에서 복사하는 필드입니다."
+  "A field whose value is copied from a monitor custom field instead of being typed in.": "값을 직접 입력하는 대신 모니터의 사용자 정의 필드에서 복사하는 필드입니다.",
+  "Made from the name": "이름에서 만들어집니다",
+  "Make it from the name": "이름에서 만들기",
+  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "영문 소문자(a-z), 숫자, 하이픈을 사용하고 영문자나 숫자로 시작하세요. 최대 50자입니다."
 }

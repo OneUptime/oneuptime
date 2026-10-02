@@ -7314,5 +7314,8 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value.": "Voeg de opties toe die in de vervolgkeuzelijst moeten verschijnen en kies eventueel een kleur voor elke waarde.",
   "Copying custom field values from a related resource": "Waarden van aangepaste velden overnemen uit een gekoppelde resource",
   "When and how a field's value is copied, and what copying will never do.": "Wanneer en hoe de waarde van een veld wordt gekopieerd, en wat kopiëren nooit doet.",
-  "A field whose value is copied from a monitor custom field instead of being typed in.": "Een veld waarvan de waarde wordt overgenomen uit een aangepast veld van de monitor in plaats van te worden ingetypt."
+  "A field whose value is copied from a monitor custom field instead of being typed in.": "Een veld waarvan de waarde wordt overgenomen uit een aangepast veld van de monitor in plaats van te worden ingetypt.",
+  "Made from the name": "Wordt gemaakt van de naam",
+  "Make it from the name": "Maken van de naam",
+  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "Gebruik kleine letters (a-z), cijfers en koppeltekens, beginnend met een letter of een cijfer, maximaal 50 tekens."
 }

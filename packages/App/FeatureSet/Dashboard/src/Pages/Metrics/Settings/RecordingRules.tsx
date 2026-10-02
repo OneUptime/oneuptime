@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { getGeneratedKeyFormField } from "Common/UI/Components/Forms/Fields/GeneratedKeyField";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
@@ -10,6 +11,7 @@ import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRul
 import RecordingRuleDefinition, {
   RecordingRuleDefinitionUtil,
 } from "Common/Types/Metrics/RecordingRuleDefinition";
+import { getOutputMetricNameFromRuleName } from "Common/Types/Metrics/RecordingRuleOutputMetricName";
 import MetricRecordingRuleDefinitionEditor from "../../../Components/Metrics/RecordingRule/MetricRecordingRuleDefinitionEditor";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -19,7 +21,7 @@ const documentationMarkdown: string = `
 
 A Recording Rule computes a new metric from one or more existing metrics on a schedule.
 
-Every minute, the Recording Rules worker evaluates each enabled rule for the **previous 1-minute bucket**. The result is written into the metric store under your chosen **Output Metric Name**, tagged with the rule ID so you can tell derived series apart from raw data.
+Every minute, the Recording Rules worker evaluates each enabled rule for the **previous 1-minute bucket**. The result is written into the metric store under the rule's **Output Metric Name**, tagged with the rule ID so you can tell derived series apart from raw data. The output metric name is made from the rule's name - "HTTP 5xx error rate" writes \`http_5xx_error_rate\` - unless you choose **Edit** next to it and type your own.
 
 ### Definition
 
@@ -95,6 +97,21 @@ const MetricRecordingRules: FunctionComponent<
           required: false,
           placeholder: "What this rule computes and why.",
         },
+        /*
+         * On Create, made from the rule's name as it is typed (and by the
+         * server when the create leaves it out); never asked for.
+         */
+        getGeneratedKeyFormField<MetricRecordingRule>({
+          field: { outputMetricName: true },
+          nameField: "name",
+          title: "Output Metric Name",
+          stepId: "basic-info",
+          makeKey: getOutputMetricNameFromRuleName,
+          placeholder: "e.g. http.error_rate",
+          description:
+            "The name the new derived metric will be written under. Must be unique per project.",
+        }),
+        // On Edit, a rule's output metric can still be renamed.
         {
           field: { outputMetricName: true },
           title: "Output Metric Name",
@@ -104,6 +121,7 @@ const MetricRecordingRules: FunctionComponent<
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "e.g. http.error_rate",
+          doNotShowWhenCreating: true,
         },
         {
           field: { isEnabled: true },
