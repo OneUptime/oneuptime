@@ -16,6 +16,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -34,6 +35,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: PlanType.Free,
 })
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "sortOrder", scopeColumns: ["projectId"] })
 @CrudApiEndpoint(new Route("/metric-pipeline-rule"))
 @OwnedThrough("serviceId", Service)
 @Entity({
@@ -696,8 +698,7 @@ export default class MetricPipelineRule extends BaseModel {
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     description:
-      "Evaluation order within its scope (service-level or project-level).",
-    defaultValue: 0,
+      "Where this rule is evaluated among the project's metric pipeline rules, lowest number first. A new rule is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.Number,

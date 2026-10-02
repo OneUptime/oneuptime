@@ -17,6 +17,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import TotalItemsBy from "../../Types/Database/TotalItemsBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
@@ -26,6 +27,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @EnableDocumentation()
 @CanAccessIfCanReadOn("statusPage")
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "order", scopeColumns: ["statusPageId"] })
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -473,10 +475,12 @@ export default class StatusPageHeaderLink extends BaseModel {
     ],
   })
   @TableColumn({
+    required: false,
     isDefaultValueColumn: false,
     type: TableColumnType.Number,
     title: "Order",
-    description: "Order / Priority of this resource",
+    description:
+      "Where this link appears among the status page's header links, lowest number first. A new link is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.Number,

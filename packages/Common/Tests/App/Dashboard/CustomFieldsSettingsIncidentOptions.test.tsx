@@ -11,13 +11,15 @@ import { cleanup, render, screen } from "@testing-library/react";
 import React, { ReactElement } from "react";
 
 /*
- * The custom field settings pages. Incident fields have four more settings
- * than the other eight resources - the order they are listed in, whether
- * they are asked for (and required) when an incident is declared, and
- * whether they go out in subscriber emails - plus the key templates reach
- * them by. What must hold:
+ * The custom field settings pages. Incident fields have three more settings
+ * than the other eight resources - whether they are asked for (and
+ * required) when an incident is declared, and whether they go out in
+ * subscriber emails - plus the key templates reach them by, and an order:
+ * the order they are listed in, which is set by dragging the rows, never
+ * typed in. What must hold:
  *
- *   - the incident settings page offers the four inputs, and the columns;
+ *   - the incident settings page offers the three inputs, and the columns,
+ *     and is dragged into order with no Order input or column at all;
  *   - no other resource's page does, because its definition table has none
  *     of those columns and the table's select would fail;
  *   - every settings page, the team member one included, offers the Long
@@ -54,6 +56,7 @@ import CustomFieldsPageBase from "../../../../App/FeatureSet/Dashboard/src/Pages
 import TeamMemberCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/CustomFields";
 import IncidentCustomFieldSettingsCopy, {
   CUSTOM_FIELD_TYPE_LABELS,
+  CustomFieldsPageCopy,
   getCustomFieldTypeOptions,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomFields/CustomFieldSettingsCopy";
 import AlertCustomField from "../../../Models/DatabaseModels/AlertCustomField";
@@ -91,7 +94,6 @@ interface RecordedColumn {
 }
 
 const INCIDENT_SETTINGS: Array<string> = [
-  "sortOrder",
   "showOnCreate",
   "isRequiredOnCreate",
   "includeInSubscriberNotifications",
@@ -149,15 +151,9 @@ afterEach(() => {
 });
 
 describe("incident custom field settings", () => {
-  test("offers order, show on create, required on create and subscriber notifications", () => {
+  test("offers show on create, required on create and subscriber notifications", () => {
     renderSettingsPage(IncidentCustomField);
 
-    expect(formField("sortOrder")).toMatchObject({
-      title: IncidentCustomFieldSettingsCopy.sortOrderTitle,
-      description: IncidentCustomFieldSettingsCopy.sortOrderDescription,
-      fieldType: FormFieldSchemaType.Number,
-      required: false,
-    });
     expect(formField("showOnCreate")).toMatchObject({
       title: IncidentCustomFieldSettingsCopy.showOnCreateTitle,
       fieldType: FormFieldSchemaType.Toggle,
@@ -176,17 +172,51 @@ describe("incident custom field settings", () => {
     });
   });
 
-  test("puts the four settings after the field's type, options and mapping", () => {
+  test("puts the three settings after the field's type, options and mapping", () => {
     renderSettingsPage(IncidentCustomField);
 
     const keys: Array<string> = formFields().map((field: RecordedField) => {
       return Object.keys(field.field || {})[0] || "";
     });
 
-    expect(keys.slice(-4)).toEqual(INCIDENT_SETTINGS);
+    expect(keys.slice(-3)).toEqual(INCIDENT_SETTINGS);
     expect(keys.indexOf("customFieldType")).toBeLessThan(
-      keys.indexOf("sortOrder"),
+      keys.indexOf("showOnCreate"),
     );
+  });
+
+  /*
+   * The maintainer's ask: no Order number in the form or the table - the
+   * rows are dragged into order and a new field goes to the end.
+   */
+  test("asks for no order: the form has no Order input and the table no Order column", () => {
+    renderSettingsPage(IncidentCustomField);
+
+    expect(formField("sortOrder")).toBeUndefined();
+    expect(column("sortOrder")).toBeUndefined();
+
+    for (const field of formFields()) {
+      expect(field.fieldType === FormFieldSchemaType.Number).toBe(false);
+      expect((field.title || "").toLowerCase()).not.toContain("order");
+    }
+  });
+
+  test("is dragged into order, by the column the list keeps", () => {
+    renderSettingsPage(IncidentCustomField);
+
+    expect(lastTable()["enableDragAndDrop"]).toBe(true);
+    expect(lastTable()["dragDropIndexField"]).toBe("sortOrder");
+    expect(new IncidentCustomField().getListOrder()?.column).toBe(
+      lastTable()["dragDropIndexField"],
+    );
+  });
+
+  test("says on the card that a field is dragged to change where it appears", () => {
+    renderSettingsPage(IncidentCustomField);
+
+    expect(
+      (lastTable()["cardProps"] as { description: string }).description,
+    ).toBe(CustomFieldsPageCopy.reorderDescription);
   });
 
   test("asks whether a field is required only when it is shown on create", () => {
@@ -213,7 +243,6 @@ describe("incident custom field settings", () => {
   test("lists the settings and the template variable as columns", () => {
     renderSettingsPage(IncidentCustomField);
 
-    expect(column("sortOrder")).toMatchObject({ type: FieldType.Number });
     expect(column("showOnCreate")).toMatchObject({ type: FieldType.Boolean });
     expect(column("isRequiredOnCreate")).toMatchObject({
       type: FieldType.Boolean,
@@ -288,12 +317,18 @@ describe("the other resources' custom field settings", () => {
     (_name: string, modelType: { new (): BaseModel }) => {
       renderSettingsPage(modelType);
 
-      for (const key of [...INCIDENT_SETTINGS, "variableKey"]) {
+      for (const key of [...INCIDENT_SETTINGS, "sortOrder", "variableKey"]) {
         expect(formField(key)).toBeUndefined();
         expect(column(key)).toBeUndefined();
       }
 
+      // Their fields have no order to keep, so there is nothing to drag.
       expect(lastTable()["sortBy"]).toBeUndefined();
+      expect(lastTable()["enableDragAndDrop"]).toBeUndefined();
+      expect(new modelType().getListOrder()).toBeNull();
+      expect(
+        (lastTable()["cardProps"] as { description: string }).description,
+      ).toBe(CustomFieldsPageCopy.description);
 
       // They still get the two new types.
       const values: Array<string> = formField(

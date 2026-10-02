@@ -16,6 +16,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -31,6 +32,7 @@ import {
 
 @EnableDocumentation()
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "order", scopeColumns: ["projectId"] })
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -246,12 +248,11 @@ export default class IncidentSlaRule extends RuleBaseModel {
   })
   @Index()
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.Number,
     title: "Order",
     description:
-      "Order/priority of this rule. Rules are evaluated in order (lowest first). First matching rule wins.",
-    defaultValue: 1,
+      "Where this rule sits in the list. Rules are evaluated from the top of the list down, lowest number first, and the first one that matches wins. A new rule is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
     isDefaultValueColumn: true,
   })
   @Column({

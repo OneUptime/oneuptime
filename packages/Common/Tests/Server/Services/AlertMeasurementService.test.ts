@@ -233,27 +233,32 @@ describe("AlertMeasurementService", () => {
       );
     });
 
-    test("puts a new definition after the project's last one, so the settings list has a stable order", async () => {
-      const highest: AlertMeasurement = new AlertMeasurement();
-      highest.order = 4;
-
-      jest
-        .spyOn(AlertMeasurementService, "findOneBy")
-        .mockResolvedValue(highest as never);
+    /*
+     * Where a new definition goes is the list's business, not this hook's:
+     * the model is a drag-ordered list (@ListOrderColumn), and
+     * DatabaseService puts a row created without an order at the end of its
+     * project's list (see DatabaseServiceListOrder.test.ts).
+     */
+    test("leaves the order of a new definition to the list, which puts it at the end", async () => {
+      const findOneBy: jest.SpyInstance = jest.spyOn(
+        AlertMeasurementService,
+        "findOneBy",
+      ) as unknown as jest.SpyInstance;
 
       const createBy: CreateBy<AlertMeasurement> = buildCreateBy({});
 
       await hooks.onBeforeCreate(createBy);
 
-      expect(createBy.data.order).toBe(5);
+      expect(createBy.data.order).toBeUndefined();
+      expect(findOneBy).not.toHaveBeenCalled();
     });
 
-    test("gives the first definition in a project order 1", async () => {
-      const createBy: CreateBy<AlertMeasurement> = buildCreateBy({});
-
-      await hooks.onBeforeCreate(createBy);
-
-      expect(createBy.data.order).toBe(1);
+    test("is a list ordered within its project, lowest number first", () => {
+      expect(new AlertMeasurement().getListOrder()).toEqual({
+        column: "order",
+        scopeColumns: ["projectId"],
+        sortOrder: "ASC",
+      });
     });
 
     test("keeps an order the caller supplied, so a reordered list is not overwritten on save", async () => {

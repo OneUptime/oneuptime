@@ -2,11 +2,14 @@ import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import RowActions from "../ActionButton/RowActions";
 import Detail from "../Detail/Detail";
 import Field from "../Detail/Field";
-import Icon, { ThickProp } from "../Icon/Icon";
+import DragHandle from "../Table/DragHandle";
 import GenericObject from "../../../Types/GenericObject";
-import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useState, useEffect } from "react";
-import { Draggable, DraggableProvided } from "react-beautiful-dnd";
+import {
+  Draggable,
+  DraggableProvided,
+  DraggableStateSnapshot,
+} from "react-beautiful-dnd";
 
 export interface ListDetailProps {
   showDetailsInNumberOfColumns?: number | undefined;
@@ -20,6 +23,12 @@ export interface ComponentProps<T extends GenericObject> {
   dragAndDropScope?: string | undefined;
   dragDropIdField?: keyof T | undefined;
   dragDropIndexField?: keyof T | undefined;
+  // Where the card is in the list on screen: the Draggable's index.
+  dragIndex?: number | undefined;
+  isDragDisabled?: boolean | undefined;
+  dragDisabledReason?: string | undefined;
+  // What the card is, for its grip's accessible name.
+  itemLabel?: string | undefined;
   listDetailOptions?: ListDetailProps | undefined;
 }
 
@@ -46,25 +55,32 @@ const ListRow: ListRowFunction = <T extends GenericObject>(
     };
   }, []);
 
-  type GetRowFunction = (provided?: DraggableProvided) => ReactElement;
+  type GetRowFunction = (
+    provided?: DraggableProvided,
+    snapshot?: DraggableStateSnapshot,
+  ) => ReactElement;
 
   const getRow: GetRowFunction = (
     provided?: DraggableProvided,
+    snapshot?: DraggableStateSnapshot,
   ): ReactElement => {
     return (
       <div
         {...provided?.draggableProps}
         ref={provided?.innerRef}
-        className="bg-white px-4 py-6 shadow sm:rounded-lg sm:px-6"
+        className={`bg-white px-4 py-6 sm:rounded-lg sm:px-6 ${
+          snapshot?.isDragging ? "shadow-lg ring-1 ring-gray-200" : "shadow"
+        }`}
       >
         <div>
           {props.enableDragAndDrop && (
             <div className="flex">
-              <div className="ml-0 -ml-2 w-10" {...provided?.dragHandleProps}>
-                <Icon
-                  icon={IconProp.Drag}
-                  thick={ThickProp.Thick}
-                  className=" h-6 w-6 text-gray-500 hover:text-gray-700 m-auto cursor-ns-resize"
+              <div className="-ml-2 mr-2 flex w-8 flex-none justify-center">
+                <DragHandle
+                  dragHandleProps={provided?.dragHandleProps}
+                  itemLabel={props.itemLabel}
+                  isDisabled={props.isDragDisabled}
+                  disabledReason={props.dragDisabledReason}
                 />
               </div>
               <Detail
@@ -99,18 +115,15 @@ const ListRow: ListRowFunction = <T extends GenericObject>(
     );
   };
 
-  if (
-    props.enableDragAndDrop &&
-    props.dragDropIdField &&
-    props.dragDropIndexField
-  ) {
+  if (props.enableDragAndDrop && props.dragDropIdField) {
     return (
       <Draggable
-        draggableId={(props.item[props.dragDropIdField] as string) || ""}
-        index={(props.item[props.dragDropIndexField] as number) || 0}
+        draggableId={props.item[props.dragDropIdField]?.toString() || ""}
+        index={props.dragIndex || 0}
+        isDragDisabled={Boolean(props.isDragDisabled)}
       >
-        {(provided: DraggableProvided) => {
-          return getRow(provided);
+        {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => {
+          return getRow(provided, snapshot);
         }}
       </Draggable>
     );

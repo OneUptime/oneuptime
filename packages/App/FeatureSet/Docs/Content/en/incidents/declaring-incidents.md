@@ -54,7 +54,7 @@ Only the first step has required fields, plus any custom field your admins marke
 
 ### Details — your incident custom fields
 
-This step appears only when at least one incident custom field has **Show on Create** turned on at **Incidents → Settings → Custom Fields** — or, when you declare from a template, when the template's **Custom Fields on Create** asks for one. It asks for those fields, in their **Order** (fields without one come last), with the input their type calls for — a dropdown, a number, a date, a yes/no switch, long text, or rich text in the Markdown editor. It is also left out for someone who cannot read the project's incident custom fields: on OneUptime Cloud they need the **Growth** plan or above, and a role that can view incident custom fields.
+This step appears only when at least one incident custom field has **Show on Create** turned on at **Incidents → Settings → Custom Fields** — or, when you declare from a template, when the template's **Custom Fields on Create** asks for one. It asks for those fields, in their **Order** — the order they are dragged into on that settings page — with the input their type calls for — a dropdown, a number, a date, a yes/no switch, long text, or rich text in the Markdown editor. It is also left out for someone who cannot read the project's incident custom fields: on OneUptime Cloud they need the **Growth** plan or above, and a role that can view incident custom fields.
 
 - A field marked **Required on Create** must be filled in before you can declare. A required yes/no field — an acknowledgement, say — must be switched on.
 - A 0 or a switch left off is an answer, and is saved as one.

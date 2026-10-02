@@ -1,11 +1,12 @@
 import PageComponentProps from "../../PageComponentProps";
 import {
+  CUSTOM_FIELDS_DESCRIPTION,
+  CUSTOM_FIELDS_REORDER_DESCRIPTION,
   CustomFieldTypeOption,
   getCustomFieldTypeOptions,
   IncidentCustomFieldSettingsCopy,
-  SORT_ORDER_PLACEHOLDER,
 } from "../../../Components/CustomFields/CustomFieldSettingsCopy";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { ListOrderSettings } from "Common/Types/Database/ListOrderColumn";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import { getCustomFieldTemplateVariableName } from "Common/Types/CustomField/CustomFieldVariableKey";
 import {
@@ -257,17 +258,26 @@ const CustomFieldsPageBase: (
     : [];
 
   /*
-   * The settings only incident fields have: where a field sits, whether it is
-   * asked for (and required) when an incident is declared, whether it goes
-   * out in subscriber emails, and the key templates reach it by. Offered for
-   * any definition model that has the columns - today only
-   * IncidentCustomField - rather than by name, because the form and the
-   * table's select would fail for a model without them.
+   * The settings only incident fields have: whether a field is asked for
+   * (and required) when an incident is declared, whether it goes out in
+   * subscriber emails, and the key templates reach it by. Offered for any
+   * definition model that has the columns - today only IncidentCustomField -
+   * rather than by name, because the form and the table's select would fail
+   * for a model without them.
    */
   const definitionModel: CustomFieldsBaseModels = new props.modelType();
 
+  /*
+   * Where a field sits among the others is not typed in: the rows are
+   * dragged into order, and a new field goes to the end (the model's
+   * @ListOrderColumn keeps the numbers). Only a definition model whose order
+   * means something has one - today IncidentCustomField, whose order is the
+   * order the incident page, the Details step of declaring an incident and
+   * subscriber messages list its fields in.
+   */
+  const listOrder: ListOrderSettings | null = definitionModel.getListOrder();
+
   const hasIncidentFieldSettings: boolean =
-    definitionModel.hasColumn("sortOrder") &&
     definitionModel.hasColumn("showOnCreate") &&
     definitionModel.hasColumn("isRequiredOnCreate") &&
     definitionModel.hasColumn("includeInSubscriberNotifications");
@@ -277,17 +287,6 @@ const CustomFieldsPageBase: (
   const incidentSettingsFormFields: Array<Field<CustomFieldsBaseModels>> =
     hasIncidentFieldSettings
       ? [
-          {
-            field: {
-              sortOrder: true,
-            } as any,
-            title: IncidentCustomFieldSettingsCopy.sortOrderTitle,
-            stepId: "incident-settings",
-            description: IncidentCustomFieldSettingsCopy.sortOrderDescription,
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: SORT_ORDER_PLACEHOLDER,
-          },
           {
             field: {
               showOnCreate: true,
@@ -353,14 +352,6 @@ const CustomFieldsPageBase: (
   const incidentSettingsColumns: Columns<CustomFieldsBaseModels> = [
     ...(hasIncidentFieldSettings
       ? [
-          {
-            field: {
-              sortOrder: true,
-            } as any,
-            title: IncidentCustomFieldSettingsCopy.sortOrderTitle,
-            type: FieldType.Number,
-            noValueMessage: "-",
-          },
           {
             field: {
               showOnCreate: true,
@@ -466,11 +457,13 @@ const CustomFieldsPageBase: (
               selectMoreFields: { mapFromResourceType: true } as any,
             }
           : {})}
-        {...(hasIncidentFieldSettings
+        {...(listOrder
           ? {
-              // Listed in the order the fields appear on an incident.
-              sortBy: "sortOrder" as any,
-              sortOrder: SortOrder.Ascending,
+              // Listed, and dragged, in the order the fields appear.
+              enableDragAndDrop: true,
+              dragDropIndexField: listOrder.column as any,
+              sortBy: listOrder.column as any,
+              sortOrder: listOrder.sortOrder,
             }
           : {})}
         userPreferencesKey="custom-fields-table"
@@ -488,8 +481,9 @@ const CustomFieldsPageBase: (
         isCreateable={true}
         cardProps={{
           title: props.title,
-          description:
-            "Custom fields help you add new fields to your resources in OneUptime.",
+          description: listOrder
+            ? CUSTOM_FIELDS_REORDER_DESCRIPTION
+            : CUSTOM_FIELDS_DESCRIPTION,
         }}
         noItemsMessage={"No custom fields found."}
         viewPageRoute={Navigation.getCurrentRoute()}

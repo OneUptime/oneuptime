@@ -1,5 +1,3 @@
-import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate } from "../Types/Database/Hooks";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/IncidentSlaRule";
@@ -23,36 +21,6 @@ export class Service extends DatabaseService<Model> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
-  }
-
-  @CaptureSpan()
-  protected override async onBeforeCreate(
-    createBy: CreateBy<Model>,
-  ): Promise<OnCreate<Model>> {
-    // Auto-assign order on creation
-    if (!createBy.data.order) {
-      const highestOrderRule: Model | null = await this.findOneBy({
-        query: {
-          projectId: createBy.data.projectId!,
-        },
-        select: {
-          order: true,
-        },
-        sort: {
-          order: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      createBy.data.order = (highestOrderRule?.order || 0) + 1;
-    }
-
-    return {
-      createBy,
-      carryForward: null,
-    };
   }
 
   @CaptureSpan()

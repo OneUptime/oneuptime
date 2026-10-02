@@ -85,7 +85,7 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
   }
 
   const description: string = isSiteAssignment
-    ? "Evaluate this rule against the network devices that already exist and assign the ones it matches to its site. Rules normally only run when a device is discovered or renamed, so this is how a rule reaches devices that were already in your inventory when you wrote it.\n\nDevices that already belong to a site are left alone, and a device that also matches a higher-priority rule is left to that rule."
+    ? "Evaluate this rule against the network devices that already exist and assign the ones it matches to its site. Rules normally only run when a device is discovered or renamed, so this is how a rule reaches devices that were already in your inventory when you wrote it.\n\nDevices that already belong to a site are left alone, and a device that also matches a rule higher in the list is left to that rule."
     : "Evaluate this rule against the network devices that already exist and attach its labels to the ones it matches. Rules normally only run when a device is discovered, so this is how a rule reaches devices that were already in your inventory when you wrote it.\n\nLabels are only added, never removed, so running this more than once is safe.";
 
   return (
