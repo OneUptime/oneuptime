@@ -55,6 +55,7 @@ const CLUSTER: Cluster = { id: "prod-eu", name: "prod-eu-west-1" };
 
 const SHOW_ID: ActionButtonSchema<Cluster> = {
   title: "Show ID",
+  icon: IconProp.Identification,
   buttonStyleType: ButtonStyleType.OUTLINE,
   hideOnMobile: true,
   placement: ActionButtonPlacement.MoreMenu,
@@ -63,6 +64,7 @@ const SHOW_ID: ActionButtonSchema<Cluster> = {
 
 const VIEW: ActionButtonSchema<Cluster> = {
   title: "View Kubernetes Cluster",
+  icon: IconProp.Eye,
   buttonStyleType: ButtonStyleType.NORMAL,
   placement: ActionButtonPlacement.Primary,
   onClick: () => {},
@@ -70,6 +72,7 @@ const VIEW: ActionButtonSchema<Cluster> = {
 
 const EDIT: ActionButtonSchema<Cluster> = {
   title: "Edit",
+  icon: IconProp.Edit,
   buttonStyleType: ButtonStyleType.OUTLINE,
   onClick: () => {},
 };

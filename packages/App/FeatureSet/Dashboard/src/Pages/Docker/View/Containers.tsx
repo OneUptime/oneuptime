@@ -320,6 +320,7 @@ const DockerHostContainers: FunctionComponent<
   const actionButtons: Array<ActionButtonSchema<DockerContainerRow>> = [
     {
       title: "View",
+      icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       onClick: (
         row: DockerContainerRow,

@@ -81,6 +81,7 @@ const makeRowActions: () => RowActionMocks = (): RowActionMocks => {
     actions: [
       {
         title: "Show ID",
+        icon: IconProp.Identification,
         buttonStyleType: ButtonStyleType.OUTLINE,
         hideOnMobile: true,
         placement: ActionButtonPlacement.MoreMenu,
@@ -88,6 +89,7 @@ const makeRowActions: () => RowActionMocks = (): RowActionMocks => {
       },
       {
         title: "Verify",
+        icon: IconProp.Check,
         buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
         isVisible: (row: Row) => {
           return !row.isVerified;
@@ -96,6 +98,7 @@ const makeRowActions: () => RowActionMocks = (): RowActionMocks => {
       },
       {
         title: "View Domain",
+        icon: IconProp.Eye,
         buttonStyleType: ButtonStyleType.NORMAL,
         placement: ActionButtonPlacement.Primary,
         onClick: onView,

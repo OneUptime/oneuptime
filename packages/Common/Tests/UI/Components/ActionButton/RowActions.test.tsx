@@ -4,6 +4,12 @@ import ActionButtonSchema, {
 import RowActions from "../../../../UI/Components/ActionButton/RowActions";
 import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
 import IconProp from "../../../../Types/Icon/IconProp";
+import {
+  getGlyphOfIcon,
+  getGlyphOfMenuItem,
+  getMenuItem,
+  getMenuItemsWithoutAnIcon,
+} from "../MenuItemIcons";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -70,6 +76,7 @@ const makeActions: () => Actions = (): Actions => {
   return {
     showId: {
       title: "Show ID",
+      icon: IconProp.Identification,
       buttonStyleType: ButtonStyleType.OUTLINE,
       hideOnMobile: true,
       placement: ActionButtonPlacement.MoreMenu,
@@ -77,12 +84,14 @@ const makeActions: () => Actions = (): Actions => {
     },
     view: {
       title: "View User",
+      icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       placement: ActionButtonPlacement.Primary,
       onClick: onView,
     },
     edit: {
       title: "Edit",
+      icon: IconProp.Edit,
       buttonStyleType: ButtonStyleType.OUTLINE,
       onClick: onEdit,
     },
@@ -349,32 +358,221 @@ describe("RowActions", () => {
       ).not.toHaveClass("text-red-600");
     });
 
-    test("lines up labels when only some items have an icon", () => {
+    /*
+     * "We have some items in the More menu that don't have an icon": Show ID
+     * sat as a bare label above a red Delete with its bin. Every action has
+     * an icon now, and the menu draws each one.
+     */
+    test("every item in the menu shows its action's icon", () => {
       const actions: Actions = makeActions();
 
-      renderRow([actions.view, actions.edit, actions.remove]);
+      renderRow([actions.showId, actions.view, actions.edit, actions.remove]);
 
-      const editItem: HTMLElement = within(openMenu()).getByRole("menuitem", {
-        name: "Edit",
-      });
-      const spacer: Element | null = editItem.querySelector(
-        'span[aria-hidden="true"]',
+      const menu: HTMLElement = openMenu();
+
+      expect(getMenuItemsWithoutAnIcon(menu)).toEqual([]);
+      expect(getGlyphOfMenuItem(getMenuItem(menu, "Show ID"))).toBe(
+        getGlyphOfIcon(IconProp.Identification),
       );
-
-      expect(spacer).not.toBeNull();
-      expect(spacer).toHaveClass("w-4");
+      expect(getGlyphOfMenuItem(getMenuItem(menu, "Edit"))).toBe(
+        getGlyphOfIcon(IconProp.Edit),
+      );
+      expect(getGlyphOfMenuItem(getMenuItem(menu, "Remove from Project"))).toBe(
+        getGlyphOfIcon(IconProp.Trash),
+      );
     });
 
-    test("reserves no icon gutter when no item has an icon", () => {
+    test("an item's icon is its own, not a neighbour's", () => {
       const actions: Actions = makeActions();
 
-      renderRow([actions.view, actions.showId, actions.edit]);
+      renderRow([actions.showId, actions.view, actions.edit, actions.remove]);
 
-      const editItem: HTMLElement = within(openMenu()).getByRole("menuitem", {
-        name: "Edit",
+      const glyphs: Array<string> = within(openMenu())
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement) => {
+          return getGlyphOfMenuItem(item);
+        });
+
+      expect(new Set(glyphs).size).toBe(glyphs.length);
+    });
+
+    test("no item is left with an empty icon gutter", () => {
+      const actions: Actions = makeActions();
+
+      renderRow([actions.showId, actions.view, actions.edit, actions.remove]);
+
+      for (const item of within(openMenu()).getAllByRole("menuitem")) {
+        const blankGutters: Array<Element> = Array.from(
+          item.querySelectorAll('span[aria-hidden="true"]'),
+        ).filter((span: Element) => {
+          return !span.hasAttribute("data-testid") && !span.firstChild;
+        });
+
+        expect(blankGutters).toEqual([]);
+      }
+    });
+
+    test("an action the split moves into the menu shows its icon there", () => {
+      const actions: Actions = makeActions();
+
+      /*
+       * Two Primary actions: the first is the row's button and the second
+       * goes in the menu - the way a table's own Primary action pushes View
+       * off the row.
+       */
+      renderRow([
+        {
+          title: "Verify",
+          icon: IconProp.Check,
+          buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
+          placement: ActionButtonPlacement.Primary,
+          onClick: jest.fn<OnClick>(),
+        },
+        actions.view,
+        actions.remove,
+      ]);
+
+      const menu: HTMLElement = openMenu();
+
+      expect(getGlyphOfMenuItem(getMenuItem(menu, "View User"))).toBe(
+        getGlyphOfIcon(IconProp.Eye),
+      );
+      expect(getMenuItemsWithoutAnIcon(menu)).toEqual([]);
+    });
+
+    test("a locked item keeps its icon beside the lock's reason", () => {
+      const actions: Actions = makeActions();
+
+      renderRow([
+        actions.view,
+        {
+          ...actions.remove,
+          disabled: true,
+          tooltip: "You need the Delete permission.",
+        },
+      ]);
+
+      const removeItem: HTMLElement = getMenuItem(
+        openMenu(),
+        "Remove from Project",
+      );
+
+      expect(removeItem).toHaveAttribute("aria-disabled", "true");
+      expect(getGlyphOfMenuItem(removeItem)).toBe(
+        getGlyphOfIcon(IconProp.Trash),
+      );
+    });
+  });
+
+  /*
+   * The row's one button is read by its label. Its icon on every row of a
+   * table would repeat that label down a whole column, so the icons are the
+   * menu's, and the button looks the same on every table - View and Edit
+   * never had one, while a few tables' own actions did.
+   */
+  describe("the row's button", () => {
+    test("is its label alone, with no icon", () => {
+      const actions: Actions = makeActions();
+
+      renderRow([actions.view, actions.remove]);
+
+      const button: HTMLElement = screen.getByRole("button", {
+        name: "View User",
       });
 
-      expect(editItem.querySelector('span[aria-hidden="true"]')).toBeNull();
+      expect(button.querySelector("svg")).toBeNull();
+      expect((button.textContent || "").trim()).toBe("View User");
+    });
+
+    test("an action given its own icon is still a label on the row", () => {
+      renderRow([
+        {
+          title: "Verify",
+          icon: IconProp.Check,
+          buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
+          placement: ActionButtonPlacement.Primary,
+          onClick: jest.fn<OnClick>(),
+        },
+      ]);
+
+      expect(
+        screen.getByRole("button", { name: "Verify" }).querySelector("svg"),
+      ).toBeNull();
+    });
+
+    test("a lone destructive action on the row is a label too", () => {
+      const actions: Actions = makeActions();
+
+      renderRow([actions.remove]);
+
+      const button: HTMLElement = screen.getByRole("button", {
+        name: "Remove from Project",
+      });
+
+      expect(button.querySelector("svg")).toBeNull();
+      expect(queryMoreButton()).toBeNull();
+    });
+
+    test("the same action is a label on the row and an icon and label in the menu", () => {
+      const actions: Actions = makeActions();
+      const verify: ActionButtonSchema<Member> = {
+        title: "Verify",
+        icon: IconProp.Check,
+        buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
+        placement: ActionButtonPlacement.Primary,
+        onClick: jest.fn<OnClick>(),
+      };
+
+      const { unmount } = renderRow([verify, actions.view]);
+
+      expect(
+        screen.getByRole("button", { name: "Verify" }).querySelector("svg"),
+      ).toBeNull();
+
+      unmount();
+
+      renderRow([actions.view, verify]);
+
+      expect(getGlyphOfMenuItem(getMenuItem(openMenu(), "Verify"))).toBe(
+        getGlyphOfIcon(IconProp.Check),
+      );
+    });
+
+    test("still shows its spinner while its action runs", () => {
+      const actions: Actions = makeActions();
+
+      const { rerender } = renderRow([
+        {
+          ...actions.view,
+          onClick: () => {
+            // Never completes, like an action that navigates away.
+          },
+        },
+        actions.remove,
+      ]);
+
+      fireEvent.click(screen.getByRole("button", { name: "View User" }));
+
+      rerender(
+        <div data-testid="row">
+          <RowActions<Member>
+            item={ADA}
+            actionButtons={[
+              {
+                ...actions.view,
+                onClick: () => {},
+              },
+              actions.remove,
+            ]}
+          />
+        </div>,
+      );
+
+      const button: HTMLElement = screen.getByRole("button", {
+        name: "View User",
+      });
+
+      expect(button.querySelector("svg.animate-spin")).not.toBeNull();
     });
   });
 
@@ -531,6 +729,7 @@ describe("RowActions", () => {
       renderRow([
         {
           title: "Verify",
+          icon: IconProp.Check,
           buttonStyleType: ButtonStyleType.NORMAL,
           onClick: (
             _item: Member,
@@ -555,6 +754,7 @@ describe("RowActions", () => {
       renderRow([
         {
           title: "Verify",
+          icon: IconProp.Check,
           buttonStyleType: ButtonStyleType.NORMAL,
           onClick: (_item: Member, complete: () => void) => {
             complete();

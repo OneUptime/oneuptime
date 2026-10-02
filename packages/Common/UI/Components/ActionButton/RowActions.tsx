@@ -123,12 +123,6 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
     );
   };
 
-  const hasMenuIcons: boolean = moreMenu.some(
-    (entry: IndexedActionButton<T>) => {
-      return Boolean(entry.button.icon);
-    },
-  );
-
   const menuItems: Array<ReactElement> = [];
 
   moreMenu.forEach((entry: IndexedActionButton<T>, position: number) => {
@@ -152,12 +146,16 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
       props.item,
     );
 
+    /*
+     * Every action has an icon (ActionButtonSchema requires one), and the
+     * menu always draws it: a list of items is read down its column of
+     * icons, and an item without one looked like a missing one.
+     */
     menuItems.push(
       <MoreMenuItem
         key={`action-${entry.index}`}
         text={title}
         icon={entry.button.icon}
-        isIconSpaceReserved={hasMenuIcons}
         isDestructive={isDestructive}
         isDisabled={lock.isDisabled}
         tooltip={translateString(lock.tooltip)}
@@ -199,12 +197,18 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
          * size of its label on every surface - a Table card and a List card
          * alike - instead of stretching whenever the row's container happens
          * to be a block.
+         *
+         * The row's button is its label alone. Every action has an icon for
+         * the ⋯ menu, where a list of items is read down its icons; one
+         * button beside the menu is read by its label, and its icon on every
+         * row of a table would only repeat that label 25 times in a column.
+         * It also keeps the row's button the same on every table - View and
+         * Edit never drew one, a few custom actions did.
          */
         <div className="shrink-0">
           <Button
             buttonSize={ButtonSize.Small}
             title={primary.button.title}
-            icon={primary.button.icon}
             buttonStyle={getRowButtonStyle(primary.button.buttonStyleType)}
             isLoading={loadingActionIndexes.current[primary.index]}
             disabled={primaryLock?.isDisabled}

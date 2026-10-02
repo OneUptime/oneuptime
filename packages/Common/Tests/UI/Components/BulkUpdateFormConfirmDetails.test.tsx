@@ -7,6 +7,7 @@ import BulkUpdateForm, {
   BulkActionButtonSchema,
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
+import IconProp from "../../../Types/Icon/IconProp";
 
 /*
  * A bulk action's confirmation can draw which records it is about to touch,
@@ -72,6 +73,7 @@ describe("BulkUpdateForm confirmDetails", () => {
 
     renderWithAction({
       title: "Delete",
+      icon: IconProp.Trash,
       buttonStyleType: ButtonStyleType.DANGER,
       confirmButtonStyleType: ButtonStyleType.DANGER,
       confirmTitle: (items: Array<Row>): string => {
@@ -106,6 +108,7 @@ describe("BulkUpdateForm confirmDetails", () => {
   test("draws nothing more when the action has nothing to add", () => {
     renderWithAction({
       title: "Archive",
+      icon: IconProp.Archive,
       buttonStyleType: ButtonStyleType.NORMAL,
       confirmMessage: (): string => {
         return "Archive them?";
@@ -127,6 +130,7 @@ describe("BulkUpdateForm confirmDetails", () => {
 
     renderWithAction({
       title: "Delete",
+      icon: IconProp.Trash,
       buttonStyleType: ButtonStyleType.DANGER,
       confirmButtonStyleType: ButtonStyleType.DANGER,
       confirmMessage: (): string => {
