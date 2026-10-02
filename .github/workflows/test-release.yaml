@@ -11,6 +11,12 @@ name: Push Test Images to Docker Hub and GitHub Container Registry
 # cancelled runs had still spent their runner time. Letting a run finish costs nothing extra and
 # means each one ends in a result. Every job below has a timeout, so a hung run
 # cannot hold the queue for GitHub's six-hour job limit.
+#
+# Because a run now outlives the pushes after it, every job checks out the
+# commit that triggered the run (actions/checkout's default), never the
+# branch: `ref: ${{ github.ref }}` fetches master's tip as of when the job
+# starts, so a job that started after a newer push would build the newer
+# commit, and one run would push images of two commits under one version.
 concurrency:
   group: test-release
   cancel-in-progress: false
@@ -49,8 +55,6 @@ jobs:
       patch: ${{ steps.determine.outputs.patch }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
       - name: Determine semver base
         id: determine
         env:
@@ -122,10 +126,14 @@ jobs:
     # A normal build takes 2-30 minutes (home is the slowest); this leaves
     # room for build_docker_images.sh's retries.
     timeout-minutes: 150
+    # Set in every CI job: it is what tells prerun's Scripts/Install/configure.sh
+    # it is in CI, where it must not `git pull` - which here fetched every
+    # branch and tag of the repository (~45s a job) and could move the
+    # checkout past the commit this run is building.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -168,8 +176,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -211,10 +217,14 @@ jobs:
     # A normal build takes 2-30 minutes (home is the slowest); this leaves
     # room for build_docker_images.sh's retries.
     timeout-minutes: 150
+    # Set in every CI job: it is what tells prerun's Scripts/Install/configure.sh
+    # it is in CI, where it must not `git pull` - which here fetched every
+    # branch and tag of the repository (~45s a job) and could move the
+    # checkout past the commit this run is building.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -257,8 +267,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -299,10 +307,14 @@ jobs:
     # A normal build takes 2-30 minutes (home is the slowest); this leaves
     # room for build_docker_images.sh's retries.
     timeout-minutes: 150
+    # Set in every CI job: it is what tells prerun's Scripts/Install/configure.sh
+    # it is in CI, where it must not `git pull` - which here fetched every
+    # branch and tag of the repository (~45s a job) and could move the
+    # checkout past the commit this run is building.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -345,8 +357,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -387,10 +397,14 @@ jobs:
     # A normal build takes 2-30 minutes (home is the slowest); this leaves
     # room for build_docker_images.sh's retries.
     timeout-minutes: 150
+    # Set in every CI job: it is what tells prerun's Scripts/Install/configure.sh
+    # it is in CI, where it must not `git pull` - which here fetched every
+    # branch and tag of the repository (~45s a job) and could move the
+    # checkout past the commit this run is building.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       # The home image is the biggest one (the blog repository's full
       # history is in it), so this asks for room - and frees it only on a
@@ -439,8 +453,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -481,10 +493,14 @@ jobs:
     # A normal build takes 2-30 minutes (home is the slowest); this leaves
     # room for build_docker_images.sh's retries.
     timeout-minutes: 150
+    # Set in every CI job: it is what tells prerun's Scripts/Install/configure.sh
+    # it is in CI, where it must not `git pull` - which here fetched every
+    # branch and tag of the repository (~45s a job) and could move the
+    # checkout past the commit this run is building.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -527,8 +543,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -569,10 +583,14 @@ jobs:
     # A normal build takes 2-30 minutes (home is the slowest); this leaves
     # room for build_docker_images.sh's retries.
     timeout-minutes: 150
+    # Set in every CI job: it is what tells prerun's Scripts/Install/configure.sh
+    # it is in CI, where it must not `git pull` - which here fetched every
+    # branch and tag of the repository (~45s a job) and could move the
+    # checkout past the commit this run is building.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -615,8 +633,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -657,10 +673,14 @@ jobs:
     # A normal build takes 2-30 minutes (home is the slowest); this leaves
     # room for build_docker_images.sh's retries.
     timeout-minutes: 150
+    # Set in every CI job: it is what tells prerun's Scripts/Install/configure.sh
+    # it is in CI, where it must not `git pull` - which here fetched every
+    # branch and tag of the repository (~45s a job) and could move the
+    # checkout past the commit this run is building.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -703,8 +723,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -752,10 +770,14 @@ jobs:
     # A normal build takes 2-30 minutes (home is the slowest); this leaves
     # room for build_docker_images.sh's retries.
     timeout-minutes: 150
+    # Set in every CI job: it is what tells prerun's Scripts/Install/configure.sh
+    # it is in CI, where it must not `git pull` - which here fetched every
+    # branch and tag of the repository (~45s a job) and could move the
+    # checkout past the commit this run is building.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -798,8 +820,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -847,10 +867,14 @@ jobs:
     # A normal build takes 2-30 minutes (home is the slowest); this leaves
     # room for build_docker_images.sh's retries.
     timeout-minutes: 150
+    # Set in every CI job: it is what tells prerun's Scripts/Install/configure.sh
+    # it is in CI, where it must not `git pull` - which here fetched every
+    # branch and tag of the repository (~45s a job) and could move the
+    # checkout past the commit this run is building.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -893,8 +917,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -935,10 +957,14 @@ jobs:
     # A normal build takes 2-30 minutes (home is the slowest); this leaves
     # room for build_docker_images.sh's retries.
     timeout-minutes: 150
+    # Set in every CI job: it is what tells prerun's Scripts/Install/configure.sh
+    # it is in CI, where it must not `git pull` - which here fetched every
+    # branch and tag of the repository (~45s a job) and could move the
+    # checkout past the commit this run is building.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -981,8 +1007,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1024,8 +1048,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -1696,8 +1718,6 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Free disk space if the runner is short of it
         uses: ./.github/actions/free-disk-space

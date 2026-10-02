@@ -266,6 +266,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -348,6 +352,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -430,6 +438,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -518,6 +530,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -600,6 +616,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -682,6 +702,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -764,6 +788,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -846,6 +874,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -930,6 +962,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1014,6 +1050,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1098,6 +1138,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1189,6 +1233,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1280,6 +1328,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1362,6 +1414,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
