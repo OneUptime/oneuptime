@@ -10,8 +10,8 @@
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Episode Title:" text=episodeTitle }}
-{{> DetailBoxField title="Current State: " text=currentState  }}
-{{> DetailBoxField title="Severity: " text=episodeSeverity  }}
+{{> DetailBoxField title="Current State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
+{{> DetailBoxField title="Severity: " plainText=episodeSeverity color=episodeSeverityColor textColor=episodeSeverityTextColor }}
 {{#if isPrivateNote}}
 {{> DetailBoxField title="Private Note: " text=note  }}
 {{else}}

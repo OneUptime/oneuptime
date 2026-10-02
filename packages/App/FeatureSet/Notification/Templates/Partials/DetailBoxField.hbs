@@ -36,6 +36,15 @@
     use a div so Markdown paragraphs, lists and tables remain inside the
     styled value container. Keep both names for existing callers; dates
     also continue to use the inline HTML `text` slot.
+
+    `color` and `textColor` paint a `plainText` severity, state or status
+    name in its own colour: a small dot in `color` - ringed in `textColor`,
+    so a near-white colour still shows - and the name in `textColor`, the
+    nearest shade of the colour that reads on these cards. Both are the
+    #rrggbb that Common/Utils/Email/EmailColorUtil writes (spread in with
+    getTemplateVariables), never a colour as a project typed it, because a
+    double stash escapes HTML but not CSS. Without `color` the value renders
+    exactly as it always has, in the neutral text colour.
   --}}
   {{#if blockText}}
     <div
@@ -45,5 +54,5 @@
   {{/if}}
 
   {{#if text}}<div class="st-DetailCard-value st-Rich" style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">{{{text}}}</div>{{/if}}
-  {{#if plainText}}<div class="st-DetailCard-value" style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">{{plainText}}</div>{{/if}}
+  {{#if plainText}}<div class="st-DetailCard-value" style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">{{#if color}}<span class="st-ColorDot" aria-hidden="true" style="display: inline-block; width: 8px; height: 8px; margin: 0 8px 0 0; border: 1px solid {{textColor}}; border-radius: 9999px; background-color: {{color}}; vertical-align: middle;"></span><span class="st-ColorText" style="color: {{textColor}}; font-weight: 600; vertical-align: middle;">{{plainText}}</span>{{else}}{{plainText}}{{/if}}</div>{{/if}}
 </div>
