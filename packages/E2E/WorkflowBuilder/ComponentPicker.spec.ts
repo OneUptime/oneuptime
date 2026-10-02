@@ -55,6 +55,51 @@ async function optionNames(panel: Locator): Promise<Array<string>> {
     });
 }
 
+// The side panel's 1.5rem under its last row, at every width.
+const ROOM_BELOW_LAST_ROW: number = 24;
+
+/*
+ * Short enough that every view of the picker scrolls, on a laptop and on a
+ * phone alike: a view that fits has no last row to sit on the footer.
+ */
+async function useShortViewport(page: Page): Promise<void> {
+  await page.setViewportSize({
+    width: page.viewportSize()!.width,
+    height: 640,
+  });
+}
+
+// The gap between a row and the footer's divider, as the panel is scrolled now.
+async function roomBelow(row: Locator): Promise<number> {
+  return row.evaluate((element: Element): number => {
+    const content: Element = element.closest(
+      "[data-testid='side-over-content']",
+    )!;
+
+    return Math.round(
+      content.getBoundingClientRect().bottom -
+        element.getBoundingClientRect().bottom,
+    );
+  });
+}
+
+// The same, once the panel is scrolled all the way down.
+async function roomBelowAtTheEnd(row: Locator): Promise<number> {
+  await row.evaluate((element: Element): void => {
+    const content: Element = element.closest(
+      "[data-testid='side-over-content']",
+    )!;
+
+    if (content.scrollHeight <= content.clientHeight) {
+      throw new Error("The view fits without scrolling; nothing to measure.");
+    }
+
+    content.scrollTop = content.scrollHeight;
+  });
+
+  return roomBelow(row);
+}
+
 test.describe("Workflow builder: the Add Component picker", () => {
   let pageErrors: Array<string> = [];
 
@@ -302,6 +347,129 @@ test.describe("Workflow builder: the Add Component picker", () => {
       );
       expect({ step, overflow }).toEqual({ step, overflow: 0 });
     }
+  });
+
+  /*
+   * "Please have a little bottom margin for this": "Browse all resources",
+   * the start view's last row, sat flush on the footer's divider, and so did
+   * the end of every other view, on any screen 640px or wider - the side
+   * panel dropped its bottom padding from the sm breakpoint up.
+   */
+  test("leaves room under the last row of every view, above the footer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await useShortViewport(page);
+    const panel: Locator = await openComponentPicker(page);
+    const search: Locator = panel.locator("#workflow-component-search");
+    const browseAll: Locator = panel.getByRole("button", {
+      name: /^Browse all resources/,
+    });
+
+    await expect
+      .poll(() => {
+        return roomBelowAtTheEnd(browseAll);
+      })
+      .toBe(ROOM_BELOW_LAST_ROW);
+
+    await panel.getByRole("button", { name: "Incident, 8 actions" }).click();
+    await expect
+      .poll(() => {
+        return roomBelowAtTheEnd(
+          panel
+            .getByRole("group", { name: "Incident components" })
+            .getByRole("button")
+            .last(),
+        );
+      })
+      .toBe(ROOM_BELOW_LAST_ROW);
+    await panel.getByRole("button", { name: "Back" }).click();
+
+    // Every resource, A to Z: one bordered list, measured from its border.
+    await browseAll.click();
+    await expect
+      .poll(() => {
+        return roomBelowAtTheEnd(
+          panel.getByRole("group", { name: "All resources" }),
+        );
+      })
+      .toBe(ROOM_BELOW_LAST_ROW);
+    await panel.getByRole("button", { name: "Back" }).click();
+
+    // A search with more results than it draws ends on Show more.
+    await search.fill("incident");
+    await expect
+      .poll(() => {
+        return roomBelowAtTheEnd(
+          panel.getByRole("button", { name: /^Show \d+ more$/ }),
+        );
+      })
+      .toBe(ROOM_BELOW_LAST_ROW);
+
+    // One that draws them all ends on its last result.
+    await search.fill("monitor status");
+    await expect(
+      panel.getByRole("button", { name: /^Show \d+ more$/ }),
+    ).toHaveCount(0);
+    await expect
+      .poll(() => {
+        return roomBelowAtTheEnd(panel.getByRole("option").last());
+      })
+      .toBe(ROOM_BELOW_LAST_ROW);
+  });
+
+  test("keeps what the arrow keys move to clear of the footer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await useShortViewport(page);
+    const panel: Locator = await openComponentPicker(page);
+    const search: Locator = panel.locator("#workflow-component-search");
+
+    // Down every result of a search: each one scrolled into view stops short.
+    await search.fill("incident");
+    await expect(
+      panel.getByRole("button", { name: /^Show \d+ more$/ }),
+    ).toBeVisible();
+    const options: Locator = panel.getByRole("option");
+    const optionCount: number = await options.count();
+    expect(optionCount).toBeGreaterThan(20);
+
+    await search.focus();
+    for (let index: number = 1; index < optionCount; index++) {
+      await page.keyboard.press("ArrowDown");
+    }
+
+    await expect(options.last()).toHaveAttribute("aria-selected", "true");
+    await expect
+      .poll(() => {
+        return roomBelow(options.last());
+      })
+      .toBe(ROOM_BELOW_LAST_ROW);
+
+    // Down every entry of the start view, to Browse all resources.
+    await search.fill("");
+    await expect(panel.getByRole("region", { name: "Popular" })).toBeVisible();
+    const entryCount: number = await panel
+      .locator("[data-picker-item]")
+      .count();
+
+    await search.focus();
+    for (let index: number = 0; index < entryCount; index++) {
+      await page.keyboard.press("ArrowDown");
+    }
+
+    const browseAll: Locator = panel.getByRole("button", {
+      name: /^Browse all resources/,
+    });
+    await expect(browseAll).toBeFocused();
+    await expect
+      .poll(() => {
+        return roomBelow(browseAll);
+      })
+      .toBe(ROOM_BELOW_LAST_ROW);
   });
 });
 
