@@ -178,8 +178,14 @@ test.describe("Turning a workflow on from the Builder", () => {
         .getByRole("button", { name: "Run Workflow", exact: true })
         .click();
 
+      /*
+       * The side-over's root is a zero-size wrapper around a fixed panel, so
+       * Playwright never calls it visible: wait for what is inside it.
+       */
       const runPanel: Locator = page.getByTestId("side-over");
-      await expect(runPanel).toBeVisible(SERVER);
+      await expect(
+        runPanel.getByRole("heading", { name: "Run Workflow", exact: true }),
+      ).toBeVisible(SERVER);
       await runPanel
         .getByTestId("side-over-footer")
         .getByRole("button", { name: "Run Workflow Manually" })
