@@ -10,6 +10,7 @@ import ModelForm, {
 } from "../Forms/ModelForm";
 import FormValues from "../Forms/Types/FormValues";
 import FormAnalyticsName from "../Forms/Utils/FormAnalyticsName";
+import { getFormModalWidth } from "../Forms/Utils/FormModalWidth";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../../Types/ObjectID";
@@ -80,6 +81,13 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
   if (hasSteps) {
     modalWidth = props.modalWidth || ModalWidth.Medium;
   }
+
+  // A form with a Markdown editor opens wide, its toolbar on one line.
+  modalWidth =
+    getFormModalWidth({
+      fields: props.formProps.fields,
+      width: modalWidth,
+    }) ?? modalWidth;
 
   return (
     <Modal
