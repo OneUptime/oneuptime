@@ -5,10 +5,8 @@ import {
   getFormFieldIssues,
   getQuestionOptions,
   isFormFieldLocked,
-  serializeQuestionOptions,
 } from "../FormBuilderState";
 import FormsCopy, { FORM_QUESTION_TYPE_TEXT } from "../FormsCopy";
-import OptionsEditor from "./OptionsEditor";
 import QuestionInputPreview from "./QuestionInputPreview";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import {
@@ -39,6 +37,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import DropdownOptionsInput from "Common/UI/Components/CustomFields/DropdownOptionsInput";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -322,7 +321,6 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
           </label>
           <Input
             id={`${editorId}-label`}
-            className="mt-1.5"
             value={field.label}
             placeholder={tx(FormsCopy.questionLabelPlaceholder)}
             dataTestId={`form-question-label-${field.id}`}
@@ -343,7 +341,6 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
           </label>
           <TextArea
             id={`${editorId}-help`}
-            className="mt-1.5"
             rows={2}
             autoGrow={true}
             maxRows={6}
@@ -408,14 +405,20 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
             <p className="block text-sm font-medium text-gray-700">
               {tx(FormsCopy.options)}
             </p>
-            <div className="mt-1.5">
-              <OptionsEditor
-                questionId={field.id}
-                options={getQuestionOptions(field)}
-                onChange={(options: Array<string>) => {
-                  props.onChange({
-                    dropdownOptions: serializeQuestionOptions(options),
-                  });
+            <div
+              className="mt-1.5"
+              data-testid={`form-question-options-${field.id}`}
+            >
+              {/*
+               * The custom fields' own options editor, so a question's
+               * options work like a dropdown custom field's - colors too.
+               * Keyed by the question: it keeps its rows itself.
+               */}
+              <DropdownOptionsInput
+                key={field.id}
+                initialValue={field.dropdownOptions}
+                onChange={(value: string) => {
+                  props.onChange({ dropdownOptions: value });
                 }}
               />
             </div>

@@ -74,9 +74,6 @@ export const FormsCopy: {
   requiredLocked: string;
   answerType: string;
   options: string;
-  optionPlaceholder: string;
-  addOption: string;
-  removeOption: string;
   choicesOffered: string;
   choicesOfferedMustChoose: string;
   choicesOfferedSeverity: string;
@@ -285,9 +282,6 @@ export const FormsCopy: {
     "Always required: a scheduled maintenance event cannot be created without it.",
   answerType: "Answer Type",
   options: "Options",
-  optionPlaceholder: "Option",
-  addOption: "Add Option",
-  removeOption: "Remove Option",
   choicesOffered: "Choices Offered",
   choicesOfferedMustChoose:
     "Only the ones you choose are listed on the public form.",
@@ -304,7 +298,7 @@ export const FormsCopy: {
     "This custom field was deleted, so the question is not asked. Delete the question.",
   issueNoAllowedOptions:
     "Choose at least one to offer, or the question is not asked.",
-  issueNoOptions: "Every option needs some text.",
+  issueNoOptions: "Add at least one option.",
   issueNoLabel: "Write the question.",
   badgeCustomField: "Custom Field",
   badgeSubmitter: "Submitter",

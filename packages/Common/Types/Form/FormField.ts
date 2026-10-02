@@ -1,4 +1,7 @@
-import { parseCustomFieldDropdownOptions } from "../CustomField/CustomFieldDropdownOption";
+import {
+  parseCustomFieldDropdownOptions,
+  serializeCustomFieldDropdownOptions,
+} from "../CustomField/CustomFieldDropdownOption";
 import CustomFieldType from "../CustomField/CustomFieldType";
 import ColumnLength from "../Database/ColumnLength";
 import ObjectID from "../ObjectID";
@@ -785,6 +788,17 @@ export const validateFormFields: ValidateFormFieldsFunction = (data: {
   }`;
 };
 
+export type GetDefaultQuestionOptionsFunction = () => string;
+
+// The options a new dropdown question starts with, as they are stored.
+export const getDefaultQuestionOptions: GetDefaultQuestionOptionsFunction =
+  (): string => {
+    return serializeCustomFieldDropdownOptions([
+      { value: "Option 1" },
+      { value: "Option 2" },
+    ]);
+  };
+
 export type CreateQuestionFieldFunction = (data: {
   type: CustomFieldType;
   label: string;
@@ -809,8 +823,7 @@ export const createQuestionField: CreateQuestionFieldFunction = (data: {
 
   if (FORM_CHOICE_QUESTION_TYPES.includes(data.type)) {
     field.dropdownOptions =
-      data.dropdownOptions ||
-      JSON.stringify([{ value: "Option 1" }, { value: "Option 2" }]);
+      data.dropdownOptions || getDefaultQuestionOptions();
   }
 
   return field;

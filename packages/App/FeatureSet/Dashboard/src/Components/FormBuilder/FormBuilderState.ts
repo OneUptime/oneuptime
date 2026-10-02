@@ -14,6 +14,7 @@ import {
   FormFieldSource,
   FormSubmitterField,
   generateFormFieldId,
+  getDefaultQuestionOptions,
 } from "Common/Types/Form/FormField";
 import { FormCustomFieldDefinition } from "Common/Types/Form/FormPublic";
 import {
@@ -260,10 +261,11 @@ export type UpdateFormFieldFunction = (data: {
 }) => Array<FormField>;
 
 /*
- * Changes a question. Its id and source never change, and a question the
- * target cannot do without stays required. A question of the form's own that
- * becomes a dropdown gets two starting options, and one that stops being one
- * drops its options.
+ * Changes a question. Its id and source never change. A question of the
+ * form's own whose type becomes a dropdown gets two starting options when it
+ * has none, and one that stops being one drops its options; options the
+ * change sets itself (even none, while somebody is editing them) are kept as
+ * they are - the server refuses a dropdown with no option, and says so.
  */
 export const updateFormField: UpdateFormFieldFunction = (data: {
   fields: Array<FormField>;
@@ -287,11 +289,12 @@ export const updateFormField: UpdateFormFieldFunction = (data: {
         updated.type,
       );
 
-      if (isChoice && !updated.dropdownOptions) {
-        updated.dropdownOptions = JSON.stringify([
-          { value: "Option 1" },
-          { value: "Option 2" },
-        ]);
+      if (
+        isChoice &&
+        data.changes.type !== undefined &&
+        !updated.dropdownOptions
+      ) {
+        updated.dropdownOptions = getDefaultQuestionOptions();
       }
 
       if (!isChoice) {
@@ -410,25 +413,6 @@ export const getQuestionOptions: GetQuestionOptionsFunction = (
   );
 };
 
-export type SerializeQuestionOptionsFunction = (
-  options: Array<string>,
-) => string;
-
-/*
- * Options as they are stored: the custom fields' JSON format. Blank options
- * are kept while somebody is typing them; the server refuses a blank or a
- * repeated option when the form is saved, and says which.
- */
-export const serializeQuestionOptions: SerializeQuestionOptionsFunction = (
-  options: Array<string>,
-): string => {
-  return JSON.stringify(
-    options.map((value: string): { value: string } => {
-      return { value: value };
-    }),
-  );
-};
-
 export type AreFormFieldsEqualFunction = (
   a: Array<FormField>,
   b: Array<FormField>,
@@ -447,7 +431,7 @@ export enum FormFieldIssue {
   CustomFieldDeleted = "CustomFieldDeleted",
   // A choice of records with none chosen, on a target that needs some.
   NoAllowedOptions = "NoAllowedOptions",
-  // A dropdown question with no option, or a blank one.
+  // A dropdown question with no option.
   NoOptions = "NoOptions",
   // No label.
   NoLabel = "NoLabel",
@@ -508,14 +492,7 @@ export const getFormFieldIssues: GetFormFieldIssuesFunction = (data: {
     data.field.type &&
     FORM_CHOICE_QUESTION_TYPES.includes(data.field.type)
   ) {
-    const options: Array<string> = getQuestionOptions(data.field);
-
-    if (
-      options.length === 0 ||
-      options.some((option: string): boolean => {
-        return !option.trim();
-      })
-    ) {
+    if (getQuestionOptions(data.field).length === 0) {
       issues.push(FormFieldIssue.NoOptions);
     }
   }

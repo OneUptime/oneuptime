@@ -310,7 +310,7 @@ export default class Form extends BaseModel {
         source: "Question",
         type: "Dropdown",
         label: "Which office are you in?",
-        dropdownOptions: '[{"value":"Berlin"},{"value":"London"}]',
+        dropdownOptions: "Berlin\nLondon",
         isRequired: false,
       },
     ],
