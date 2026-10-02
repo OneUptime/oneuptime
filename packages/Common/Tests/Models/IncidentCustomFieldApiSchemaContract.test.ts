@@ -180,6 +180,10 @@ describe("IncidentCustomField settings in the published API", () => {
     );
     // The key survives a rename.
     expect(description("variableKey")).toContain("never changed afterwards");
+    // And is placed the way the dashboard and the docs write it.
+    expect(description("variableKey")).toContain(
+      "{{incident.customFields.<key>}}",
+    );
   });
 });
 

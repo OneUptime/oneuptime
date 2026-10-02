@@ -299,7 +299,8 @@ import {
   AFFECTED_LOCATION,
   AFFECTED_LOCATION_HTML,
   CUSTOM_FIELD_DEFINITIONS,
-  CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE,
+  CUSTOM_FIELD_PLACEHOLDERS_CASES,
+  CustomFieldPlaceholdersCase,
   CUSTOM_FIELD_VALUES,
   EXPECTED_CUSTOM_FIELD_ROWS,
   EXPECTED_INCLUDED_FIELDS_FEED,
@@ -2340,8 +2341,9 @@ describe("IncidentStateTimeline unsubscribe links", () => {
  * four; three are marked "Include in Subscriber Notifications" (see
  * IncidentCustomFieldFixtures). Those reach the default email, Slack, Teams
  * and webhook messages, in their order; the default SMS stays as it was.
- * Every field is offered to custom templates as {{customFields.<key>}}, and
- * the feed item records the values that went out.
+ * Every field is offered to custom templates as
+ * {{incident.customFields.<key>}} (and the older {{customFields.<key>}}),
+ * and the feed item records the values that went out.
  */
 describe("IncidentStateTimeline with incident custom fields", () => {
   beforeEach(() => {
@@ -2463,69 +2465,74 @@ ${IMPACT_DETAILS}
     ).toEqual([IMPACT_DETAILS]);
   });
 
-  test("custom templates place any field by its key, escaped only in the email body", async () => {
-    mock(
-      StatusPageSubscriberService.getStatusPagesToSendNotification,
-    ).mockResolvedValue([statusPage({ withCustomSmtpAndSms: true })] as never);
-    mock(
-      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
-    ).mockImplementation(async (args: unknown) => {
-      const method: string = (args as JSONObject)[
-        "notificationMethod"
-      ] as string;
-      return {
-        templateBody: `${method}\n${CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE}`,
-      };
-    });
+  test.each(CUSTOM_FIELD_PLACEHOLDERS_CASES)(
+    "custom templates written with $written place any field by its key, escaped only in the email body",
+    async (placeholders: CustomFieldPlaceholdersCase) => {
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([
+        statusPage({ withCustomSmtpAndSms: true }),
+      ] as never);
+      mock(
+        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+      ).mockImplementation(async (args: unknown) => {
+        const method: string = (args as JSONObject)[
+          "notificationMethod"
+        ] as string;
+        return {
+          templateBody: `${method}\n${placeholders.template}`,
+        };
+      });
 
-    await runJob();
+      await runJob();
 
-    expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toBe(
-      [
-        StatusPageSubscriberNotificationMethod.Email,
-        `location=[${AFFECTED_LOCATION_HTML}]`,
-        "ack=[No]",
-        `impact=[${IMPACT_DETAILS_HTML}]`,
-        `ticket=[${INTERNAL_TICKET}]`,
-      ].join("\n"),
-    );
-    expect(sentSms()).toEqual([
-      [
-        StatusPageSubscriberNotificationMethod.SMS,
-        `location=[${AFFECTED_LOCATION}]`,
-        "ack=[No]",
-        `impact=[${IMPACT_DETAILS_TEXT}]`,
-        `ticket=[${INTERNAL_TICKET}]`,
-      ].join("\n"),
-    ]);
-    expect(sentSlack()[0]).toContain(`impact=[${IMPACT_DETAILS}]`);
-    expect(sentTeams()[0]).toContain(`location=[${AFFECTED_LOCATION}]`);
+      expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toBe(
+        [
+          StatusPageSubscriberNotificationMethod.Email,
+          `location=[${AFFECTED_LOCATION_HTML}]`,
+          "ack=[No]",
+          `impact=[${IMPACT_DETAILS_HTML}]`,
+          `ticket=[${INTERNAL_TICKET}]`,
+        ].join("\n"),
+      );
+      expect(sentSms()).toEqual([
+        [
+          StatusPageSubscriberNotificationMethod.SMS,
+          `location=[${AFFECTED_LOCATION}]`,
+          "ack=[No]",
+          `impact=[${IMPACT_DETAILS_TEXT}]`,
+          `ticket=[${INTERNAL_TICKET}]`,
+        ].join("\n"),
+      ]);
+      expect(sentSlack()[0]).toContain(`impact=[${IMPACT_DETAILS}]`);
+      expect(sentTeams()[0]).toContain(`location=[${AFFECTED_LOCATION}]`);
 
-    for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
-      expectNoHtmlEntities(message);
-    }
+      for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
+        expectNoHtmlEntities(message);
+      }
 
-    const compiles: Array<RecordedCompile> = recordedCompiles(
-      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
-      StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
-    );
+      const compiles: Array<RecordedCompile> = recordedCompiles(
+        StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+        StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+      );
 
-    for (const call of compiles) {
-      expectOnlyOfferedVariables(EVENT_TYPE, call.rawVariables);
-    }
+      for (const call of compiles) {
+        expectOnlyOfferedVariables(EVENT_TYPE, call.rawVariables);
+      }
 
-    expectOnlyTheListedHtmlVariables(
-      compiles.find((call: RecordedCompile): boolean => {
-        return call.emailBody;
-      })!.rawVariables,
-      EVENT_TYPE,
-    );
+      expectOnlyTheListedHtmlVariables(
+        compiles.find((call: RecordedCompile): boolean => {
+          return call.emailBody;
+        })!.rawVariables,
+        EVENT_TYPE,
+      );
 
-    // The field left out of subscriber notifications went out: it is recorded.
-    expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
-      "- **Internal Ticket:** OPS\\-4411",
-    );
-  });
+      // The field left out of subscriber notifications went out: it is recorded.
+      expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
+        "- **Internal Ticket:** OPS\\-4411",
+      );
+    },
+  );
 });
 
 /*

@@ -350,12 +350,12 @@ describe("applyTemplateToDraft", () => {
 
   describe("with values for the template's placeholders", () => {
     const TEMPLATE: string =
-      "**Incident**: {{incident.title}} ({{incident.severity}})\n**Impact**: {{customFields.impact}}\n**Owner**: {{incident.owner}}";
+      "**Incident**: {{incident.title}} ({{incident.severity}})\n**Impact**: {{incident.customFields.impact}}\n**Owner**: {{incident.owner}}";
 
     const VARIABLES: Record<string, string> = {
       "incident.title": "Payments are failing",
       "incident.severity": "Critical",
-      "customFields.impact": "High",
+      "incident.customFields.impact": "High",
     };
 
     test("fills the known placeholders and leaves the unknown ones as written", () => {

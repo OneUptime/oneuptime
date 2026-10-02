@@ -20,7 +20,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * Under a subscriber notification template's variable reference, for an
  * incident event: who may place custom fields and labels, and the project's
- * incident custom fields with the {{customFields.<key>}} variable each is
+ * incident custom fields with the {{incident.customFields.<key>}} variable each is
  * placed by and whether it is already in the default messages.
  *
  * No warning box: a yellow "Internal data" one used to open the panel, the
@@ -91,11 +91,16 @@ jest.mock("../../../UI/Utils/Translation", () => {
   };
 });
 
-import IncidentCustomFieldTemplateVariables from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/IncidentCustomFieldTemplateVariables";
+import IncidentCustomFieldTemplateVariables, {
+  fetchIncidentCustomFieldTemplateVariables,
+  IncidentCustomFieldTemplateVariableRow,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/IncidentCustomFieldTemplateVariables";
 import IncidentCustomFieldTemplateVariablesCopy from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/IncidentCustomFieldTemplateVariablesCopy";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import { getCustomFieldTemplateVariableName } from "../../../Types/CustomField/CustomFieldVariableKey";
 import StatusPageSubscriberNotificationEventType from "../../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import { INCIDENT_NOTE_CUSTOM_FIELD_VARIABLE_PREFIX } from "../../../Utils/Incident/IncidentNoteTemplateVariables";
 
 const Event: typeof StatusPageSubscriberNotificationEventType =
   StatusPageSubscriberNotificationEventType;
@@ -206,7 +211,7 @@ describe("IncidentCustomFieldTemplateVariables", () => {
       await waitFor(() => {
         expect(
           screen.getByTestId(
-            "incident-custom-field-template-variable-customFields.affected_location",
+            "incident-custom-field-template-variable-incident.customFields.affected_location",
           ),
         ).toBeInTheDocument();
       });
@@ -234,7 +239,7 @@ describe("IncidentCustomFieldTemplateVariables", () => {
     await waitFor(() => {
       expect(
         screen.getByTestId(
-          "incident-custom-field-template-variable-customFields.affected_location",
+          "incident-custom-field-template-variable-incident.customFields.affected_location",
         ),
       ).toBeInTheDocument();
     });
@@ -248,13 +253,13 @@ describe("IncidentCustomFieldTemplateVariables", () => {
         return row.querySelector("code")!.textContent || "";
       }),
     ).toEqual([
-      "{{customFields.affected_location}}",
-      "{{customFields.internal_ticket}}",
-      "{{customFields.impact}}",
+      "{{incident.customFields.affected_location}}",
+      "{{incident.customFields.internal_ticket}}",
+      "{{incident.customFields.impact}}",
     ]);
 
     const location: HTMLElement = screen.getByTestId(
-      "incident-custom-field-template-variable-customFields.affected_location",
+      "incident-custom-field-template-variable-incident.customFields.affected_location",
     );
     expect(within(location).getByText("Affected Location")).toBeInTheDocument();
     expect(
@@ -263,12 +268,12 @@ describe("IncidentCustomFieldTemplateVariables", () => {
     expect(within(location).getByText("Yes")).toBeInTheDocument();
 
     const ticket: HTMLElement = screen.getByTestId(
-      "incident-custom-field-template-variable-customFields.internal_ticket",
+      "incident-custom-field-template-variable-incident.customFields.internal_ticket",
     );
     expect(within(ticket).getByText("No")).toBeInTheDocument();
 
     const impact: HTMLElement = screen.getByTestId(
-      "incident-custom-field-template-variable-customFields.impact",
+      "incident-custom-field-template-variable-incident.customFields.impact",
     );
     expect(
       within(impact).getByText("Rich text (Markdown)"),
@@ -276,6 +281,64 @@ describe("IncidentCustomFieldTemplateVariables", () => {
 
     // A field with no usable key is not offered.
     expect(screen.queryByText("Legacy")).not.toBeInTheDocument();
+  });
+
+  /*
+   * "This custom fields.key template should be prefixed with incident." The
+   * panel hands out the name a note template uses too, so one variable works
+   * in both, and never the older {{customFields.<key>}}.
+   */
+  test("hands out each field's variable named after the incident, as a note template writes it", async () => {
+    render(
+      <IncidentCustomFieldTemplateVariables
+        eventType={Event.SubscriberIncidentCreated}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          "incident-custom-field-template-variable-incident.customFields.impact",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    const panel: HTMLElement = screen.getByTestId(
+      "incident-custom-field-template-variables",
+    );
+    const shown: Array<string> = Array.from(
+      panel.querySelectorAll("tbody code"),
+    ).map((code: Element): string => {
+      return code.textContent || "";
+    });
+
+    expect(shown).toHaveLength(3);
+
+    for (const variable of shown) {
+      expect(
+        variable.startsWith(`{{${INCIDENT_NOTE_CUSTOM_FIELD_VARIABLE_PREFIX}`),
+      ).toBe(true);
+    }
+
+    expect(panel).not.toHaveTextContent(/\{\{customFields\./);
+  });
+
+  test("fetchIncidentCustomFieldTemplateVariables names each row's variable the documented way", async () => {
+    const rows: Array<IncidentCustomFieldTemplateVariableRow> =
+      await fetchIncidentCustomFieldTemplateVariables();
+
+    expect(
+      rows.map((row: IncidentCustomFieldTemplateVariableRow): string => {
+        return row.variableName;
+      }),
+    ).toEqual([
+      getCustomFieldTemplateVariableName("affected_location"),
+      getCustomFieldTemplateVariableName("internal_ticket"),
+      getCustomFieldTemplateVariableName("impact"),
+    ]);
+    expect(rows[0]!.variableName).toBe(
+      "incident.customFields.affected_location",
+    );
   });
 
   test("reads the current project's incident custom fields, with their keys and settings", async () => {
@@ -455,7 +518,7 @@ describe("IncidentCustomFieldTemplateVariables", () => {
     await waitFor(() => {
       expect(
         screen.getByTestId(
-          "incident-custom-field-template-variable-customFields.impact",
+          "incident-custom-field-template-variable-incident.customFields.impact",
         ),
       ).toBeInTheDocument();
     });
