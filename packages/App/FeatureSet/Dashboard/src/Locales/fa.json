@@ -7201,5 +7201,19 @@
   "The template content in HTML format.": "محتوای قالب با فرمت HTML.",
   "The template content in plain text format. Keep it concise for SMS.": "محتوای قالب به صورت متن ساده. برای پیامک کوتاه بنویسید.",
   "The template content in JSON format.": "محتوای قالب با فرمت JSON.",
-  "The template content in Markdown format.": "محتوای قالب با فرمت Markdown."
+  "The template content in Markdown format.": "محتوای قالب با فرمت Markdown.",
+  "Pagination for {{items}}": "صفحه‌بندی {{items}}",
+  "Rows per page": "ردیف در هر صفحه",
+  "Go to previous page": "رفتن به صفحه قبل",
+  "Go to next page": "رفتن به صفحه بعد",
+  "Page {{page}}": "صفحه {{page}}",
+  "Go to page {{page}}": "رفتن به صفحه {{page}}",
+  "Page {{page}} of {{total}}": "صفحه {{page}} از {{total}}",
+  "Go to a page in between": "رفتن به یکی از صفحه‌های میانی",
+  "Go to page": "رفتن به صفحه",
+  "Page number": "شماره صفحه",
+  "This list has {{count}} pages. Enter the one you want to see.": "این فهرست {{count}} صفحه دارد. شماره صفحه‌ای را که می‌خواهید ببینید وارد کنید.",
+  "Showing {{range}} of {{total}}": "نمایش {{range}} از {{total}}",
+  "Showing {{range}}": "نمایش {{range}}",
+  "No items": "موردی وجود ندارد"
 }

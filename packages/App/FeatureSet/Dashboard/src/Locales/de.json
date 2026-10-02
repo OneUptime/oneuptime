@@ -7201,5 +7201,19 @@
   "The template content in HTML format.": "Der Vorlageninhalt im HTML-Format.",
   "The template content in plain text format. Keep it concise for SMS.": "Der Vorlageninhalt als reiner Text. Halten Sie ihn für SMS kurz.",
   "The template content in JSON format.": "Der Vorlageninhalt im JSON-Format.",
-  "The template content in Markdown format.": "Der Vorlageninhalt im Markdown-Format."
+  "The template content in Markdown format.": "Der Vorlageninhalt im Markdown-Format.",
+  "Pagination for {{items}}": "Seitennavigation: {{items}}",
+  "Rows per page": "Zeilen pro Seite",
+  "Go to previous page": "Zur vorherigen Seite",
+  "Go to next page": "Zur nächsten Seite",
+  "Page {{page}}": "Seite {{page}}",
+  "Go to page {{page}}": "Zu Seite {{page}}",
+  "Page {{page}} of {{total}}": "Seite {{page}} von {{total}}",
+  "Go to a page in between": "Zu einer Seite dazwischen",
+  "Go to page": "Zu Seite springen",
+  "Page number": "Seitennummer",
+  "This list has {{count}} pages. Enter the one you want to see.": "Diese Liste hat {{count}} Seiten. Geben Sie die Seite ein, die Sie sehen möchten.",
+  "Showing {{range}} of {{total}}": "Einträge {{range}} von {{total}}",
+  "Showing {{range}}": "Einträge {{range}}",
+  "No items": "Keine Einträge"
 }

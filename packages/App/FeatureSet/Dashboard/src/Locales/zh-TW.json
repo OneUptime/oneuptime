@@ -7201,5 +7201,19 @@
   "The template content in HTML format.": "HTML 格式的範本內容。",
   "The template content in plain text format. Keep it concise for SMS.": "純文字格式的範本內容。簡訊請保持簡潔。",
   "The template content in JSON format.": "JSON 格式的範本內容。",
-  "The template content in Markdown format.": "Markdown 格式的範本內容。"
+  "The template content in Markdown format.": "Markdown 格式的範本內容。",
+  "Pagination for {{items}}": "{{items}}分頁",
+  "Rows per page": "每頁列數",
+  "Go to previous page": "前往上一頁",
+  "Go to next page": "前往下一頁",
+  "Page {{page}}": "第 {{page}} 頁",
+  "Go to page {{page}}": "前往第 {{page}} 頁",
+  "Page {{page}} of {{total}}": "第 {{page}} 頁，共 {{total}} 頁",
+  "Go to a page in between": "前往中間的某一頁",
+  "Go to page": "跳至指定頁",
+  "Page number": "頁碼",
+  "This list has {{count}} pages. Enter the one you want to see.": "此清單共有 {{count}} 頁。請輸入您要查看的頁碼。",
+  "Showing {{range}} of {{total}}": "第 {{range}} 筆，共 {{total}} 筆",
+  "Showing {{range}}": "第 {{range}} 筆",
+  "No items": "暫無資料"
 }

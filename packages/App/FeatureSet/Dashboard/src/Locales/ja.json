@@ -7201,5 +7201,19 @@
   "The template content in HTML format.": "HTML 形式のテンプレート内容です。",
   "The template content in plain text format. Keep it concise for SMS.": "プレーンテキスト形式のテンプレート内容です。SMS では簡潔にしてください。",
   "The template content in JSON format.": "JSON 形式のテンプレート内容です。",
-  "The template content in Markdown format.": "Markdown 形式のテンプレート内容です。"
+  "The template content in Markdown format.": "Markdown 形式のテンプレート内容です。",
+  "Pagination for {{items}}": "{{items}}のページ送り",
+  "Rows per page": "1ページの行数",
+  "Go to previous page": "前のページへ移動",
+  "Go to next page": "次のページへ移動",
+  "Page {{page}}": "{{page}} ページ",
+  "Go to page {{page}}": "{{page}} ページへ移動",
+  "Page {{page}} of {{total}}": "{{page}} / {{total}} ページ",
+  "Go to a page in between": "間のページへ移動",
+  "Go to page": "ページへ移動",
+  "Page number": "ページ番号",
+  "This list has {{count}} pages. Enter the one you want to see.": "このリストには {{count}} ページあります。表示したいページを入力してください。",
+  "Showing {{range}} of {{total}}": "{{total}} 件中 {{range}} 件を表示",
+  "Showing {{range}}": "{{range}} 件を表示",
+  "No items": "項目はありません"
 }

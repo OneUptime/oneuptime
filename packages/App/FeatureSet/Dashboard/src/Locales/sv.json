@@ -7201,5 +7201,19 @@
   "The template content in HTML format.": "Mallens innehåll i HTML-format.",
   "The template content in plain text format. Keep it concise for SMS.": "Mallens innehåll som oformaterad text. Håll det kort för SMS.",
   "The template content in JSON format.": "Mallens innehåll i JSON-format.",
-  "The template content in Markdown format.": "Mallens innehåll i Markdown-format."
+  "The template content in Markdown format.": "Mallens innehåll i Markdown-format.",
+  "Pagination for {{items}}": "Sidnavigering: {{items}}",
+  "Rows per page": "Rader per sida",
+  "Go to previous page": "Gå till föregående sida",
+  "Go to next page": "Gå till nästa sida",
+  "Page {{page}}": "Sida {{page}}",
+  "Go to page {{page}}": "Gå till sida {{page}}",
+  "Page {{page}} of {{total}}": "Sida {{page}} av {{total}}",
+  "Go to a page in between": "Gå till en sida däremellan",
+  "Go to page": "Gå till sida",
+  "Page number": "Sidnummer",
+  "This list has {{count}} pages. Enter the one you want to see.": "Den här listan har {{count}} sidor. Ange den sida du vill se.",
+  "Showing {{range}} of {{total}}": "Visar {{range}} av {{total}}",
+  "Showing {{range}}": "Visar {{range}}",
+  "No items": "Inga objekt"
 }

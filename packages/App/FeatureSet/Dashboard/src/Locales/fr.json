@@ -7201,5 +7201,19 @@
   "The template content in HTML format.": "Le contenu du modèle au format HTML.",
   "The template content in plain text format. Keep it concise for SMS.": "Le contenu du modèle en texte brut. Restez concis pour les SMS.",
   "The template content in JSON format.": "Le contenu du modèle au format JSON.",
-  "The template content in Markdown format.": "Le contenu du modèle au format Markdown."
+  "The template content in Markdown format.": "Le contenu du modèle au format Markdown.",
+  "Pagination for {{items}}": "Pagination : {{items}}",
+  "Rows per page": "Lignes par page",
+  "Go to previous page": "Aller à la page précédente",
+  "Go to next page": "Aller à la page suivante",
+  "Page {{page}}": "Page {{page}}",
+  "Go to page {{page}}": "Aller à la page {{page}}",
+  "Page {{page}} of {{total}}": "Page {{page}} sur {{total}}",
+  "Go to a page in between": "Aller à une page intermédiaire",
+  "Go to page": "Aller à la page",
+  "Page number": "Numéro de page",
+  "This list has {{count}} pages. Enter the one you want to see.": "Cette liste compte {{count}} pages. Saisissez celle que vous voulez voir.",
+  "Showing {{range}} of {{total}}": "Éléments {{range}} sur {{total}}",
+  "Showing {{range}}": "Éléments {{range}}",
+  "No items": "Aucun élément"
 }

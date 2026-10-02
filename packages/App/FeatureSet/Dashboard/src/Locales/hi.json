@@ -7201,5 +7201,19 @@
   "The template content in HTML format.": "HTML फ़ॉर्मेट में टेम्पलेट सामग्री।",
   "The template content in plain text format. Keep it concise for SMS.": "सादे टेक्स्ट फ़ॉर्मेट में टेम्पलेट सामग्री। SMS के लिए इसे संक्षिप्त रखें।",
   "The template content in JSON format.": "JSON फ़ॉर्मेट में टेम्पलेट सामग्री।",
-  "The template content in Markdown format.": "Markdown फ़ॉर्मेट में टेम्पलेट सामग्री।"
+  "The template content in Markdown format.": "Markdown फ़ॉर्मेट में टेम्पलेट सामग्री।",
+  "Pagination for {{items}}": "{{items}} पृष्ठांकन",
+  "Rows per page": "प्रति पृष्ठ पंक्तियाँ",
+  "Go to previous page": "पिछले पृष्ठ पर जाएँ",
+  "Go to next page": "अगले पृष्ठ पर जाएँ",
+  "Page {{page}}": "पृष्ठ {{page}}",
+  "Go to page {{page}}": "पृष्ठ {{page}} पर जाएँ",
+  "Page {{page}} of {{total}}": "पृष्ठ {{page}} / {{total}}",
+  "Go to a page in between": "बीच के किसी पृष्ठ पर जाएँ",
+  "Go to page": "पृष्ठ पर जाएँ",
+  "Page number": "पृष्ठ संख्या",
+  "This list has {{count}} pages. Enter the one you want to see.": "इस सूची में {{count}} पृष्ठ हैं। जिस पृष्ठ को आप देखना चाहते हैं, उसकी संख्या दर्ज करें।",
+  "Showing {{range}} of {{total}}": "{{total}} में से {{range}} दिखाए जा रहे हैं",
+  "Showing {{range}}": "{{range}} दिखाए जा रहे हैं",
+  "No items": "कोई आइटम नहीं"
 }

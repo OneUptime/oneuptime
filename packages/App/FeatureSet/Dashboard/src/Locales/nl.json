@@ -7201,5 +7201,19 @@
   "The template content in HTML format.": "De inhoud van het sjabloon in HTML-indeling.",
   "The template content in plain text format. Keep it concise for SMS.": "De inhoud van het sjabloon als platte tekst. Houd het kort voor sms.",
   "The template content in JSON format.": "De inhoud van het sjabloon in JSON-indeling.",
-  "The template content in Markdown format.": "De inhoud van het sjabloon in Markdown-indeling."
+  "The template content in Markdown format.": "De inhoud van het sjabloon in Markdown-indeling.",
+  "Pagination for {{items}}": "Paginering: {{items}}",
+  "Rows per page": "Rijen per pagina",
+  "Go to previous page": "Ga naar de vorige pagina",
+  "Go to next page": "Ga naar de volgende pagina",
+  "Page {{page}}": "Pagina {{page}}",
+  "Go to page {{page}}": "Ga naar pagina {{page}}",
+  "Page {{page}} of {{total}}": "Pagina {{page}} van {{total}}",
+  "Go to a page in between": "Ga naar een pagina hiertussen",
+  "Go to page": "Ga naar pagina",
+  "Page number": "Paginanummer",
+  "This list has {{count}} pages. Enter the one you want to see.": "Deze lijst heeft {{count}} pagina's. Vul de pagina in die je wilt zien.",
+  "Showing {{range}} of {{total}}": "Items {{range}} van {{total}}",
+  "Showing {{range}}": "Items {{range}}",
+  "No items": "Geen items"
 }

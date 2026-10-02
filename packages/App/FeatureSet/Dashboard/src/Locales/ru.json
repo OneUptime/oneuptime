@@ -7201,5 +7201,19 @@
   "The template content in HTML format.": "Содержимое шаблона в формате HTML.",
   "The template content in plain text format. Keep it concise for SMS.": "Содержимое шаблона в виде обычного текста. Для SMS пишите кратко.",
   "The template content in JSON format.": "Содержимое шаблона в формате JSON.",
-  "The template content in Markdown format.": "Содержимое шаблона в формате Markdown."
+  "The template content in Markdown format.": "Содержимое шаблона в формате Markdown.",
+  "Pagination for {{items}}": "Постраничная навигация: {{items}}",
+  "Rows per page": "Строк на странице",
+  "Go to previous page": "Перейти на предыдущую страницу",
+  "Go to next page": "Перейти на следующую страницу",
+  "Page {{page}}": "Страница {{page}}",
+  "Go to page {{page}}": "Перейти на страницу {{page}}",
+  "Page {{page}} of {{total}}": "Страница {{page}} из {{total}}",
+  "Go to a page in between": "Перейти на одну из промежуточных страниц",
+  "Go to page": "Перейти на страницу",
+  "Page number": "Номер страницы",
+  "This list has {{count}} pages. Enter the one you want to see.": "Страниц в этом списке: {{count}}. Введите номер нужной страницы.",
+  "Showing {{range}} of {{total}}": "Показаны {{range}} из {{total}}",
+  "Showing {{range}}": "Показаны {{range}}",
+  "No items": "Нет записей"
 }

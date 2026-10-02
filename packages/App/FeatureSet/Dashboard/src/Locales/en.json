@@ -7201,5 +7201,19 @@
   "The template content in HTML format.": "The template content in HTML format.",
   "The template content in plain text format. Keep it concise for SMS.": "The template content in plain text format. Keep it concise for SMS.",
   "The template content in JSON format.": "The template content in JSON format.",
-  "The template content in Markdown format.": "The template content in Markdown format."
+  "The template content in Markdown format.": "The template content in Markdown format.",
+  "Pagination for {{items}}": "Pagination for {{items}}",
+  "Rows per page": "Rows per page",
+  "Go to previous page": "Go to previous page",
+  "Go to next page": "Go to next page",
+  "Page {{page}}": "Page {{page}}",
+  "Go to page {{page}}": "Go to page {{page}}",
+  "Page {{page}} of {{total}}": "Page {{page}} of {{total}}",
+  "Go to a page in between": "Go to a page in between",
+  "Go to page": "Go to page",
+  "Page number": "Page number",
+  "This list has {{count}} pages. Enter the one you want to see.": "This list has {{count}} pages. Enter the one you want to see.",
+  "Showing {{range}} of {{total}}": "Showing {{range}} of {{total}}",
+  "Showing {{range}}": "Showing {{range}}",
+  "No items": "No items"
 }
