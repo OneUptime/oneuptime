@@ -245,6 +245,13 @@
     "then": "then",
     "title": "Keyboard shortcuts"
   },
+  "eventItem": {
+    "affectedResources": "Affected resources",
+    "postedOn": "posted on",
+    "stateChangedTo": "state changed to",
+    "updateTo": "Update to this {{eventType}}",
+    "view": "View {{eventType}}"
+  },
   "Active Incidents": "Active Incidents",
   "Active Episodes": "Active Episodes",
   "Active Alerts": "Active Alerts",
