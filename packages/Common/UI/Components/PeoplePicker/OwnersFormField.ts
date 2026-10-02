@@ -1,10 +1,7 @@
 import type SelectFormFields from "../../Types/SelectEntityField";
 import type Field from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
-import {
-  PeoplePickerFieldConfig,
-  PeoplePickerKind,
-} from "./PeoplePickerTypes";
+import { PeoplePickerFieldConfig, PeoplePickerKind } from "./PeoplePickerTypes";
 
 /*
  * The one "Owners" field every form that asks for owners uses: people and

@@ -311,9 +311,11 @@ describe("looking people up by id", () => {
     expect((request.query.userId as Includes).values).toEqual([ADA, BOB]);
     expect(request.limit).toBe(LIMIT_PER_PROJECT);
     // Only who was found: the picker marks the rest as unknown.
-    expect(options.map((option: PeoplePickerOption) => option.id)).toEqual([
-      ADA,
-    ]);
+    expect(
+      options.map((option: PeoplePickerOption) => {
+        return option.id;
+      }),
+    ).toEqual([ADA]);
   });
 
   test("asks nothing for no ids", async () => {
@@ -331,7 +333,10 @@ describe("teams", () => {
 
   test("are searched by name, in name order", async () => {
     getListMock.mockResolvedValue(
-      listResult([makeTeam(DATABASE, "Database"), makeTeam(PLATFORM, "Platform")]),
+      listResult([
+        makeTeam(DATABASE, "Database"),
+        makeTeam(PLATFORM, "Platform"),
+      ]),
     );
 
     const options: Array<PeoplePickerOption> = await TEAMS.search({
@@ -395,7 +400,10 @@ describe("related rows a record already holds", () => {
     expect(
       getPeoplePickerOptionsFromModels([
         { kind: PeoplePickerKind.User, models: [ada, ada] },
-        { kind: PeoplePickerKind.Team, models: [makeTeam(PLATFORM, "Platform")] },
+        {
+          kind: PeoplePickerKind.Team,
+          models: [makeTeam(PLATFORM, "Platform")],
+        },
       ]),
     ).toEqual([
       {
@@ -417,7 +425,9 @@ describe("related rows a record already holds", () => {
         { kind: PeoplePickerKind.Team, models: makeTeam(PLATFORM, "Platform") },
         { kind: PeoplePickerKind.User, models: undefined },
       ]),
-    ).toEqual([{ kind: PeoplePickerKind.Team, id: PLATFORM, name: "Platform" }]);
+    ).toEqual([
+      { kind: PeoplePickerKind.Team, id: PLATFORM, name: "Platform" },
+    ]);
   });
 
   test("skip a row with no id", () => {

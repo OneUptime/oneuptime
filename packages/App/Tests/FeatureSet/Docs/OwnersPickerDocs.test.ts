@@ -111,8 +111,6 @@ describe("the docs on picking owners", () => {
     expect(onSubmit).toMatch(
       /^\| \*\*Owners\*\* +\| \*\*Owners\*\* +\| \*\*Owners\*\* +\|$/m,
     );
-    expect(onSubmit).toContain(
-      "**Owners** is one picker for people and teams",
-    );
+    expect(onSubmit).toContain("**Owners** is one picker for people and teams");
   });
 });

@@ -303,9 +303,10 @@ describe("the project's forms", () => {
   });
 
   test("every owner rule form asks for its owners with one picker, on its Owners step", () => {
+    const ownerRulesLabel: RegExp = / Owner Rules$/;
     const ownerRuleForms: Array<FormFacts> = forms.filter(
       (form: FormFacts): boolean => {
-        return / Owner Rules$/.test(form.label);
+        return ownerRulesLabel.test(form.label);
       },
     );
 
@@ -330,8 +331,9 @@ describe("the project's forms", () => {
     const template: FormFacts | undefined = forms.find(
       (form: FormFacts): boolean => {
         return (
-          form.file.endsWith("Pages/Incidents/Settings/IncidentTemplates.tsx") &&
-          form.host === "ModelTable"
+          form.file.endsWith(
+            "Pages/Incidents/Settings/IncidentTemplates.tsx",
+          ) && form.host === "ModelTable"
         );
       },
     );

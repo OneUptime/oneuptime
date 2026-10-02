@@ -898,8 +898,13 @@ const FormField: <T extends GenericObject>(
                   props.currentValues,
                 )}
                 onChange={(value: PeoplePickerValue) => {
-                  const formValues: Record<string, Array<string>> =
-                    toPeoplePickerFormValues(props.field.peoplePicker!, value);
+                  const formValues: Record<
+                    string,
+                    Array<string>
+                  > = toPeoplePickerFormValues(
+                    props.field.peoplePicker!,
+                    value,
+                  );
 
                   onChange(formValues);
 

@@ -43,9 +43,10 @@ describe("toPeoplePickerIds", () => {
   });
 
   test("reads ObjectIDs", () => {
-    expect(toPeoplePickerIds([new ObjectID(ADA), new ObjectID(BOB)])).toEqual(
-      [ADA, BOB],
-    );
+    expect(toPeoplePickerIds([new ObjectID(ADA), new ObjectID(BOB)])).toEqual([
+      ADA,
+      BOB,
+    ]);
   });
 
   test("reads related rows by their _id, whether a string or an ObjectID", () => {
@@ -149,7 +150,10 @@ describe("a picker field's form values", () => {
     };
 
     expect(
-      readPeoplePickerFormValue(OWNERS, toPeoplePickerFormValues(OWNERS, value)),
+      readPeoplePickerFormValue(
+        OWNERS,
+        toPeoplePickerFormValues(OWNERS, value),
+      ),
     ).toEqual(value);
   });
 
@@ -188,9 +192,7 @@ describe("picking and unpicking", () => {
       [PeoplePickerKind.Team]: [PLATFORM],
     });
     // Never the same pick twice; the same value back, so nothing re-renders.
-    expect(addToPeoplePickerValue(once, PeoplePickerKind.User, BOB)).toBe(
-      once,
-    );
+    expect(addToPeoplePickerValue(once, PeoplePickerKind.User, BOB)).toBe(once);
     // The value it was given is not changed.
     expect(start[PeoplePickerKind.User]).toEqual([ADA]);
   });

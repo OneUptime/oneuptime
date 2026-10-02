@@ -84,15 +84,11 @@ describe.each(PAGES)("$file", (page: OwnersPage) => {
     expect(code).toContain(
       'import OwnersCard from "../../../Components/Owners/OwnersCard";',
     );
-    expect(code).toContain(
-      `<OwnersCard<${page.userModel}, ${page.teamModel}>`,
-    );
+    expect(code).toContain(`<OwnersCard<${page.userModel}, ${page.teamModel}>`);
     expect(code).toContain(`ownerUserModelType={${page.userModel}}`);
     expect(code).toContain(`ownerTeamModelType={${page.teamModel}}`);
     expect(code).toContain(`resourceIdField="${page.resourceIdField}"`);
-    expect(code).toContain(
-      `resourceDisplayName="${page.resourceDisplayName}"`,
-    );
+    expect(code).toContain(`resourceDisplayName="${page.resourceDisplayName}"`);
     expect(code).toContain("resourceId={modelId}");
   });
 

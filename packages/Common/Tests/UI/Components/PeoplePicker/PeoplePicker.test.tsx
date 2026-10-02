@@ -450,7 +450,9 @@ describe("PeoplePicker", () => {
       expect(chipNames()).toEqual(["Unknown user", "Deleted teamTeam"]);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove Deleted team" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove Deleted team" }),
+    );
 
     expect(lastChange()).toEqual({
       [PeoplePickerKind.User]: [GONE_USER],

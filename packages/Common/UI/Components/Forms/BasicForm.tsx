@@ -732,9 +732,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           field.fieldType === FormFieldSchemaType.PeoplePicker &&
           field.peoplePicker
         ) {
-          for (const valueKey of getPeoplePickerValueKeys(
-            field.peoplePicker,
-          )) {
+          for (const valueKey of getPeoplePickerValueKeys(field.peoplePicker)) {
             const startValue: unknown = (values as any)[valueKey];
 
             if (startValue !== undefined && startValue !== null) {

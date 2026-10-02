@@ -154,7 +154,12 @@ describe("getRuleDetailFields", () => {
       monitorLabels: true,
       monitorNamePattern: true,
       // Everything a chip shows: the name, a person's email and picture.
-      ownerUsers: { _id: true, name: true, email: true, profilePictureId: true },
+      ownerUsers: {
+        _id: true,
+        name: true,
+        email: true,
+        profilePictureId: true,
+      },
       ownerTeams: { _id: true, name: true },
     });
   });

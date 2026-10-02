@@ -558,9 +558,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                 <span className="font-semibold text-gray-900">
                   {confirmRemove.name}
                 </span>
-                {confirmRemove.kind === PeoplePickerKind.Team
-                  ? " (Team)"
-                  : ""}{" "}
+                {confirmRemove.kind === PeoplePickerKind.Team ? " (Team)" : ""}{" "}
                 as an owner of this {resourceDisplayName}?
               </span>
             }

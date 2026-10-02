@@ -194,7 +194,9 @@ const getPeoplePickerSummaryElement: <T extends GenericObject>(
 
   const config: PeoplePickerFieldConfig = field.peoplePicker;
 
-  return (item: FormValues<T>): ReactElement => {
+  const PeoplePickerSummary: SummaryElementFn<T> = (
+    item: FormValues<T>,
+  ): ReactElement => {
     return (
       <PeopleListFromIds
         kinds={getPeoplePickerKinds(config)}
@@ -202,6 +204,8 @@ const getPeoplePickerSummaryElement: <T extends GenericObject>(
       />
     );
   };
+
+  return PeoplePickerSummary;
 };
 
 export interface ComponentProps<T> {

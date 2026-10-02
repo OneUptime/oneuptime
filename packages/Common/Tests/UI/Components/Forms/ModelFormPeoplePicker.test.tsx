@@ -206,9 +206,8 @@ async function pick(name: string): Promise<void> {
     name: "Add owner",
   });
 
-  const options: Array<HTMLElement> = await within(dialog).findAllByRole(
-    "option",
-  );
+  const options: Array<HTMLElement> =
+    await within(dialog).findAllByRole("option");
 
   fireEvent.click(
     options.find((option: HTMLElement): boolean => {

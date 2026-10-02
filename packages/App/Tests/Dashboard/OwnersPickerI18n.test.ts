@@ -22,7 +22,14 @@ const DASHBOARD_SRC: string = path.join(
   "src",
 );
 
-const COMMON_UI: string = path.join(__dirname, "..", "..", "..", "Common", "UI");
+const COMMON_UI: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "Common",
+  "UI",
+);
 
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
@@ -147,6 +154,8 @@ const stripComments: StripCommentsFunction = (source: string): string => {
   return source.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
 };
 
+const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
+
 type ListSourcesFunction = (directory: string) => Array<string>;
 
 const listSources: ListSourcesFunction = (directory: string): Array<string> => {
@@ -156,22 +165,17 @@ const listSources: ListSourcesFunction = (directory: string): Array<string> => {
       const full: string = path.join(directory, entry.name);
 
       if (entry.isDirectory()) {
-        return ["node_modules", "Locales", "build", "dist"].includes(
-          entry.name,
-        )
+        return ["node_modules", "Locales", "build", "dist"].includes(entry.name)
           ? []
           : listSources(full);
       }
 
-      return /\.tsx?$/.test(entry.name) ? [full] : [];
+      return TYPESCRIPT_FILE.test(entry.name) ? [full] : [];
     });
 };
 
 // The code the strings are drawn from, without the prose about it.
-const CODE: string = [
-  ...listSources(DASHBOARD_SRC),
-  ...listSources(COMMON_UI),
-]
+const CODE: string = [...listSources(DASHBOARD_SRC), ...listSources(COMMON_UI)]
   .map((file: string): string => {
     return stripComments(fs.readFileSync(file, "utf8"));
   })
@@ -206,26 +210,27 @@ describe("the owners picker's strings", () => {
   test("English carries every new string as itself", () => {
     const english: Record<string, unknown> = readLocale("en.json");
 
-    const wrong: Array<string> = NEW_STRINGS.filter(
-      (text: string): boolean => {
-        return english[text] !== text;
-      },
-    );
+    const wrong: Array<string> = NEW_STRINGS.filter((text: string): boolean => {
+      return english[text] !== text;
+    });
 
     expect(wrong).toEqual([]);
   });
 
-  test.each(LOCALE_FILES)("%s keeps none of the retired keys", (file: string) => {
-    const locale: Record<string, unknown> = readLocale(file);
+  test.each(LOCALE_FILES)(
+    "%s keeps none of the retired keys",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
 
-    const kept: Array<string> = RETIRED_STRINGS.filter(
-      (text: string): boolean => {
-        return text in locale;
-      },
-    );
+      const kept: Array<string> = RETIRED_STRINGS.filter(
+        (text: string): boolean => {
+          return text in locale;
+        },
+      );
 
-    expect(kept).toEqual([]);
-  });
+      expect(kept).toEqual([]);
+    },
+  );
 
   test.each(NON_ENGLISH_FILES)(
     "%s translates every new string",
@@ -248,7 +253,9 @@ describe("the owners picker's strings", () => {
             .sort()
             .join(",");
 
-          if ((value.match(PLACEHOLDER) || []).sort().join(",") !== placeholders) {
+          if (
+            (value.match(PLACEHOLDER) || []).sort().join(",") !== placeholders
+          ) {
             return [`placeholders changed: ${text}`];
           }
 

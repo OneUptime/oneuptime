@@ -1456,7 +1456,9 @@ export class FormStepsScanner {
     ) => ts.ObjectLiteralElementLike | undefined = (
       name: string,
     ): ts.ObjectLiteralElementLike | undefined => {
-      return (call ? propertyOf(call, name) : undefined) || propertyOf(node, name);
+      return (
+        (call ? propertyOf(call, name) : undefined) || propertyOf(node, name)
+      );
     };
 
     const initializerOf: (name: string) => ts.Node | null = (

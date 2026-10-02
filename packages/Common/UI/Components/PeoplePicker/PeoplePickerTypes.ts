@@ -40,7 +40,9 @@ export interface PeoplePickerOption {
 }
 
 // The picks, as ids per kind.
-export type PeoplePickerValue = Partial<Record<PeoplePickerKind, Array<string>>>;
+export type PeoplePickerValue = Partial<
+  Record<PeoplePickerKind, Array<string>>
+>;
 
 // A kind a form field offers, and the form value its picks are kept in.
 export interface PeoplePickerFieldKind {

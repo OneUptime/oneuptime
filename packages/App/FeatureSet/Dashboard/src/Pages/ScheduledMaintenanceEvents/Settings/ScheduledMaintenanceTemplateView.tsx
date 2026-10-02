@@ -458,7 +458,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
        * Its owners, people and teams together, added and removed the way
        * the Owners pages and every owners field do.
        */}
-      <OwnersCard<ScheduledMaintenanceTemplateOwnerUser, ScheduledMaintenanceTemplateOwnerTeam>
+      <OwnersCard<
+        ScheduledMaintenanceTemplateOwnerUser,
+        ScheduledMaintenanceTemplateOwnerTeam
+      >
         resourceId={modelId}
         resourceIdField="scheduledMaintenanceTemplateId"
         resourceDisplayName="scheduled maintenance template"

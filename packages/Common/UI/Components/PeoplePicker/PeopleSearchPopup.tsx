@@ -289,33 +289,34 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
     return null;
   }
 
-  const onSearchKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void =
-    (event: React.KeyboardEvent<HTMLInputElement>): void => {
-      if (event.key === "ArrowDown") {
-        event.preventDefault();
-        setActiveIndex(
-          visibleRows.length === 0
-            ? 0
-            : Math.min(clampedActiveIndex + 1, visibleRows.length - 1),
-        );
-        return;
-      }
+  const onSearchKeyDown: (
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) => void = (event: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex(
+        visibleRows.length === 0
+          ? 0
+          : Math.min(clampedActiveIndex + 1, visibleRows.length - 1),
+      );
+      return;
+    }
 
-      if (event.key === "ArrowUp") {
-        event.preventDefault();
-        setActiveIndex(Math.max(clampedActiveIndex - 1, 0));
-        return;
-      }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex(Math.max(clampedActiveIndex - 1, 0));
+      return;
+    }
 
-      if (event.key === "Enter") {
-        // Enter picks; it must never submit the form the picker sits in.
-        event.preventDefault();
+    if (event.key === "Enter") {
+      // Enter picks; it must never submit the form the picker sits in.
+      event.preventDefault();
 
-        if (activeRow) {
-          void pick(activeRow);
-        }
+      if (activeRow) {
+        void pick(activeRow);
       }
-    };
+    }
+  };
 
   const searchPlaceholder: string =
     props.searchPlaceholder || "Search people or teams...";
@@ -355,7 +356,9 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
             aria-autocomplete="list"
             aria-expanded={true}
             aria-controls={listboxId}
-            aria-activedescendant={activeRow ? getOptionId(activeRow) : undefined}
+            aria-activedescendant={
+              activeRow ? getOptionId(activeRow) : undefined
+            }
             aria-label={translateString(searchPlaceholder) || searchPlaceholder}
             data-testid="people-search-input"
             value={searchText}
@@ -363,7 +366,9 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
               setSearchText(event.target.value);
             }}
             onKeyDown={onSearchKeyDown}
-            placeholder={translateString(searchPlaceholder) || searchPlaceholder}
+            placeholder={
+              translateString(searchPlaceholder) || searchPlaceholder
+            }
             className="w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </div>
@@ -373,7 +378,9 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
         id={listboxId}
         role="listbox"
         aria-label={translateString(props.ariaLabel) || props.ariaLabel}
-        aria-multiselectable={props.selectionMode === "toggle" ? true : undefined}
+        aria-multiselectable={
+          props.selectionMode === "toggle" ? true : undefined
+        }
         aria-busy={isLoading}
         className="min-h-0 flex-1 overflow-y-auto py-1"
       >
@@ -389,7 +396,10 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
             role="alert"
             className="flex items-start gap-2 px-3 py-4 text-sm text-red-600"
           >
-            <Icon icon={IconProp.Alert} className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <Icon
+              icon={IconProp.Alert}
+              className="mt-0.5 h-4 w-4 flex-shrink-0"
+            />
             <span>{loadError}</span>
           </div>
         )}
@@ -423,7 +433,10 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
                 {group.rows.map((row: PeoplePickerOption): ReactElement => {
                   rowIndex++;
                   const index: number = rowIndex;
-                  const key: string = getPeoplePickerOptionKey(row.kind, row.id);
+                  const key: string = getPeoplePickerOptionKey(
+                    row.kind,
+                    row.id,
+                  );
                   const isPicked: boolean = props.selectedKeys.has(key);
                   const isActive: boolean = index === clampedActiveIndex;
                   const isPending: boolean = pendingKey === key;

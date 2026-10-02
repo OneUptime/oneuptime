@@ -60,9 +60,7 @@ const OwnerCircle: FunctionComponent<OwnerCircleProps> = (
           {item.name}
         </div>
         <div className="text-xs text-gray-500 truncate">
-          {item.kind === PeoplePickerKind.Team
-            ? "Team"
-            : item.email || "Owner"}
+          {item.kind === PeoplePickerKind.Team ? "Team" : item.email || "Owner"}
         </div>
       </div>
     </div>

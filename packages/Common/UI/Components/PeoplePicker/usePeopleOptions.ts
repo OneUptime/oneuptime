@@ -29,7 +29,10 @@ import {
 
 export interface PeopleOptionsLookup {
   // The option for a pick, once known; undefined while it is looked up.
-  getOption: (kind: PeoplePickerKind, id: string) => PeoplePickerOption | undefined;
+  getOption: (
+    kind: PeoplePickerKind,
+    id: string,
+  ) => PeoplePickerOption | undefined;
   // Options already in hand - a search result - so they are never fetched.
   remember: (options: Array<PeoplePickerOption>) => void;
   isLoading: boolean;
@@ -57,8 +60,9 @@ const usePeopleOptions: (data: {
   kinds: Array<PeoplePickerKind>;
   value: PeoplePickerValue;
 }): PeopleOptionsLookup => {
-  const cacheRef: MutableRefObject<Map<string, PeoplePickerOption>> =
-    useRef<Map<string, PeoplePickerOption>>(new Map());
+  const cacheRef: MutableRefObject<Map<string, PeoplePickerOption>> = useRef<
+    Map<string, PeoplePickerOption>
+  >(new Map());
   const pendingRef: MutableRefObject<Set<string>> = useRef<Set<string>>(
     new Set(),
   );

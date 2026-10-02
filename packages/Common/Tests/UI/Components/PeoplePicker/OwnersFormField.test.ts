@@ -41,8 +41,9 @@ describe("getOwnersFormField", () => {
   });
 
   test("keeps people in ownerUsers and teams in ownerTeams, people first", () => {
-    const field: Field<MonitorOwnerRule> =
-      getOwnersFormField<MonitorOwnerRule>({});
+    const field: Field<MonitorOwnerRule> = getOwnersFormField<MonitorOwnerRule>(
+      {},
+    );
 
     expect(field.peoplePicker?.kinds).toEqual([
       { kind: PeoplePickerKind.User, valueKey: "ownerUsers" },
@@ -51,8 +52,9 @@ describe("getOwnersFormField", () => {
   });
 
   test("says what its button and search box are for", () => {
-    const field: Field<MonitorOwnerRule> =
-      getOwnersFormField<MonitorOwnerRule>({});
+    const field: Field<MonitorOwnerRule> = getOwnersFormField<MonitorOwnerRule>(
+      {},
+    );
 
     expect(field.peoplePicker?.addButtonText).toBe(OWNERS_ADD_BUTTON_TEXT);
     expect(OWNERS_ADD_BUTTON_TEXT).toBe("Add owner");
@@ -80,10 +82,11 @@ describe("getOwnersFormField", () => {
   });
 
   test("carries what the form says about the field", () => {
-    const showIf: (values: FormValues<ServiceLevelObjectiveBurnRateRule>) => boolean =
-      (): boolean => {
-        return true;
-      };
+    const showIf: (
+      values: FormValues<ServiceLevelObjectiveBurnRateRule>,
+    ) => boolean = (): boolean => {
+      return true;
+    };
 
     const field: Field<ServiceLevelObjectiveBurnRateRule> =
       getOwnersFormField<ServiceLevelObjectiveBurnRateRule>({
@@ -114,7 +117,7 @@ describe("getOwnersFormField", () => {
         ...({
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           formOnly: false,
-        } as object),
+        } as Record<string, unknown>),
       },
     );
 
@@ -123,8 +126,9 @@ describe("getOwnersFormField", () => {
   });
 
   test("builds a new field each time, so no form can change another's", () => {
-    const first: Field<MonitorOwnerRule> =
-      getOwnersFormField<MonitorOwnerRule>({});
+    const first: Field<MonitorOwnerRule> = getOwnersFormField<MonitorOwnerRule>(
+      {},
+    );
     const second: Field<MonitorOwnerRule> =
       getOwnersFormField<MonitorOwnerRule>({});
 

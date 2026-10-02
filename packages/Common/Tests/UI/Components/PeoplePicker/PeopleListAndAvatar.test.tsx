@@ -87,9 +87,9 @@ describe("getPeopleAvatarPalette", () => {
       expect(
         getPeopleAvatarPalette(PeoplePickerKind.User, name).bg,
       ).not.toMatch(/slate|gray|stone|zinc|neutral/);
-      expect(
-        getPeopleAvatarPalette(PeoplePickerKind.Team, name).bg,
-      ).toMatch(/from-(slate|gray|stone|zinc|neutral)-700/);
+      expect(getPeopleAvatarPalette(PeoplePickerKind.Team, name).bg).toMatch(
+        /from-(slate|gray|stone|zinc|neutral)-700/,
+      );
     }
   });
 });
@@ -101,7 +101,9 @@ describe("PeopleAvatar", () => {
 
   test("draws a person without a picture as their initials", () => {
     const { container } = render(
-      <PeopleAvatar item={{ kind: PeoplePickerKind.User, name: "Ada Lovelace" }} />,
+      <PeopleAvatar
+        item={{ kind: PeoplePickerKind.User, name: "Ada Lovelace" }}
+      />,
     );
 
     expect(container).toHaveTextContent("AL");
@@ -159,7 +161,9 @@ describe("PeopleAvatar", () => {
 
     try {
       const { container } = render(
-        <PeopleAvatar item={{ kind: PeoplePickerKind.Team, name: "Primary" }} />,
+        <PeopleAvatar
+          item={{ kind: PeoplePickerKind.Team, name: "Primary" }}
+        />,
       );
 
       expect(container).not.toHaveTextContent("P");
@@ -221,9 +225,7 @@ describe("PeopleList", () => {
       />,
     );
 
-    expect(screen.getByTestId("people-chip")).toHaveTextContent(
-      "Deleted team",
-    );
+    expect(screen.getByTestId("people-chip")).toHaveTextContent("Deleted team");
   });
 });
 

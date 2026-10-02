@@ -871,4 +871,3 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     stepId: "incident-details",
   },
 ];
-

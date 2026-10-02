@@ -402,7 +402,8 @@ describe("OwnersCard", () => {
     ownerTeamRows = [];
 
     renderCard({
-      description: "People and teams who own every incident declared from this template.",
+      description:
+        "People and teams who own every incident declared from this template.",
       emptyDescription:
         "Add a teammate or a team to own every incident declared from this template.",
     });

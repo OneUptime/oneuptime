@@ -150,7 +150,9 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    change(addToPeoplePickerValue(latestValueRef.current, option.kind, option.id));
+    change(
+      addToPeoplePickerValue(latestValueRef.current, option.kind, option.id),
+    );
   };
 
   const addButtonText: string = props.addButtonText || "Add";

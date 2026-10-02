@@ -36,12 +36,14 @@ const DASHBOARD_COMPONENTS: string = path.join(
   "Components",
 );
 
+const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
+
 // Every file the picker and the card draw with.
 const SOURCE_PATHS: Array<string> = [
   ...fs
     .readdirSync(PICKER_DIR)
     .filter((name: string): boolean => {
-      return /\.tsx?$/.test(name);
+      return TYPESCRIPT_FILE.test(name);
     })
     .sort()
     .map((name: string): string => {
@@ -285,15 +287,18 @@ describe("the owners picker in the dark theme", () => {
     SOURCE_PATHS.map((sourcePath: string) => {
       return [path.basename(sourcePath)];
     }),
-  )("every colour class in %s is remapped for dark mode", (fileName: string) => {
-    const unmapped: Array<string> = colorTokensOf(codeOf(fileName)).filter(
-      (token: string): boolean => {
-        return !isRemapped(token);
-      },
-    );
+  )(
+    "every colour class in %s is remapped for dark mode",
+    (fileName: string) => {
+      const unmapped: Array<string> = colorTokensOf(codeOf(fileName)).filter(
+        (token: string): boolean => {
+          return !isRemapped(token);
+        },
+      );
 
-    expect(unmapped).toEqual([]);
-  });
+      expect(unmapped).toEqual([]);
+    },
+  );
 
   test("the scan found the picker's colours at all, so it is not vacuous", () => {
     // The search list: the panel, the box, the rows and the picked tick.

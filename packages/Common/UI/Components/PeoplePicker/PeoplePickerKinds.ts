@@ -63,7 +63,9 @@ export interface PeoplePickerKindDefinition {
   // A related row, read with relationSelect, as an option.
   fromModel: (model: BaseModel) => PeoplePickerOption | null;
   search: (data: PeoplePickerSearchData) => Promise<Array<PeoplePickerOption>>;
-  getByIds: (data: PeoplePickerLookupData) => Promise<Array<PeoplePickerOption>>;
+  getByIds: (
+    data: PeoplePickerLookupData,
+  ) => Promise<Array<PeoplePickerOption>>;
 }
 
 export const PEOPLE_PICKER_SEARCH_LIMIT: number = 25;
@@ -76,56 +78,62 @@ const readString: (value: unknown) => string = (value: unknown): string => {
   return value.toString().trim();
 };
 
-const userToOption: (user: BaseModel | undefined) => PeoplePickerOption | null =
-  (user: BaseModel | undefined): PeoplePickerOption | null => {
-    if (!user) {
-      return null;
-    }
+const userToOption: (
+  user: BaseModel | undefined,
+) => PeoplePickerOption | null = (
+  user: BaseModel | undefined,
+): PeoplePickerOption | null => {
+  if (!user) {
+    return null;
+  }
 
-    const record: Record<string, unknown> = user as unknown as Record<
-      string,
-      unknown
-    >;
-    const id: string = readString(record["_id"]);
+  const record: Record<string, unknown> = user as unknown as Record<
+    string,
+    unknown
+  >;
+  const id: string = readString(record["_id"]);
 
-    if (!id) {
-      return null;
-    }
+  if (!id) {
+    return null;
+  }
 
-    const email: string = readString(record["email"]);
+  const email: string = readString(record["email"]);
 
-    return {
-      kind: PeoplePickerKind.User,
-      id: id,
-      name: readString(record["name"]) || email || "Unknown user",
-      description: email || undefined,
-      userId: id,
-      hasProfilePicture: Boolean(record["profilePictureId"]),
-    };
+  return {
+    kind: PeoplePickerKind.User,
+    id: id,
+    name: readString(record["name"]) || email || "Unknown user",
+    description: email || undefined,
+    userId: id,
+    hasProfilePicture: Boolean(record["profilePictureId"]),
   };
+};
 
-const teamToOption: (team: BaseModel | undefined) => PeoplePickerOption | null =
-  (team: BaseModel | undefined): PeoplePickerOption | null => {
-    if (!team) {
-      return null;
-    }
+const teamToOption: (
+  team: BaseModel | undefined,
+) => PeoplePickerOption | null = (
+  team: BaseModel | undefined,
+): PeoplePickerOption | null => {
+  if (!team) {
+    return null;
+  }
 
-    const record: Record<string, unknown> = team as unknown as Record<
-      string,
-      unknown
-    >;
-    const id: string = readString(record["_id"]);
+  const record: Record<string, unknown> = team as unknown as Record<
+    string,
+    unknown
+  >;
+  const id: string = readString(record["_id"]);
 
-    if (!id) {
-      return null;
-    }
+  if (!id) {
+    return null;
+  }
 
-    return {
-      kind: PeoplePickerKind.Team,
-      id: id,
-      name: readString(record["name"]) || "Deleted team",
-    };
+  return {
+    kind: PeoplePickerKind.Team,
+    id: id,
+    name: readString(record["name"]) || "Deleted team",
   };
+};
 
 const byName: (a: PeoplePickerOption, b: PeoplePickerOption) => number = (
   a: PeoplePickerOption,

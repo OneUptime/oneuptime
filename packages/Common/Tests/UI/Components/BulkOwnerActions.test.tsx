@@ -127,7 +127,6 @@ const ALICE_ID: string = "33333333-3333-4333-8333-333333333331";
 const BOB_ID: string = "33333333-3333-4333-8333-333333333332";
 const CAROL_ID: string = "33333333-3333-4333-8333-333333333333";
 const TEAM_ONE_ID: string = "44444444-4444-4444-8444-444444444441";
-const TEAM_TWO_ID: string = "44444444-4444-4444-8444-444444444442";
 const OWNER_ROW_ID: string = "55555555-5555-4555-8555-555555555551";
 const OWNER_ROW_TWO_ID: string = "55555555-5555-4555-8555-555555555552";
 
@@ -399,11 +398,7 @@ const openOwnersList: OpenOwnersListFunction =
       { timeout: WAIT_TIMEOUT },
     );
 
-    await within(list).findAllByRole(
-      "option",
-      {},
-      { timeout: WAIT_TIMEOUT },
-    );
+    await within(list).findAllByRole("option", {}, { timeout: WAIT_TIMEOUT });
 
     return list;
   };
