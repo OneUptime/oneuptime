@@ -18,7 +18,6 @@ import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 export const FormsCopy: {
   // The product.
   productTitle: string;
-  productDescription: string;
 
   // The list of forms.
   listDescription: string;
@@ -106,7 +105,6 @@ export const FormsCopy: {
   previewSkipped: string;
 
   // On Submit.
-  onSubmitTitle: string;
   targetCardTitle: string;
   targetCardDescription: string;
   changeTargetTitle: string;
@@ -165,7 +163,6 @@ export const FormsCopy: {
   deletedRecord: string;
 
   // Share.
-  shareTitle: string;
   statusCardTitle: string;
   statusCardDescription: string;
   acceptingSubmissions: string;
@@ -217,8 +214,6 @@ export const FormsCopy: {
   deleteFormNote: string;
 } = {
   productTitle: "Forms",
-  productDescription:
-    "Forms anyone can fill in that create incidents or scheduled maintenance events.",
 
   listDescription:
     "Forms anyone with the link can fill in, without a OneUptime account. Each submission creates an incident or a scheduled maintenance event.",
@@ -321,7 +316,6 @@ export const FormsCopy: {
   previewSkipped:
     "Some questions are not shown, because they cannot be answered yet. Their cards say why.",
 
-  onSubmitTitle: "On Submit",
   targetCardTitle: "What Each Submission Creates",
   targetCardDescription:
     "Every submission through this form creates one of these in your project.",
@@ -397,7 +391,6 @@ export const FormsCopy: {
   stepPublishing: "Publishing",
   deletedRecord: "Deleted",
 
-  shareTitle: "Share",
   statusCardTitle: "Status",
   statusCardDescription:
     "Turn the form off to stop submissions without deleting it. Its link then shows a not-available message.",

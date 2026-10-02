@@ -15,7 +15,7 @@ You can declare an incident by hand at 3am, or let a monitor declare it for you 
 - **Numbered per project** — every incident gets an incident number, rendered as `#42` by default or with your own prefix, like `INC-42`.
 - **Two kinds of notes** — private notes (internal notes) for your team, public notes for status page subscribers.
 - **Alerts link to incidents** — link the alerts that are part of an incident, or declare an incident straight from alerts — from an alerts list or from an alert's own page — and acknowledge them as you do. See [Linked Alerts](/docs/incidents/linked-alerts).
-- **Settings live under Incidents, not Project Settings** — states, severities, templates, forms, custom fields and the rule engines are all at **Incidents → Settings** and **Incidents → Rules**.
+- **Settings live under Incidents, not Project Settings** — states, severities, templates, custom fields and the rule engines are all at **Incidents → Settings** and **Incidents → Rules**.
 
 ## Key terms
 
@@ -119,7 +119,7 @@ Open **Incidents** in the left navigation. Its side menu is organized into secti
 | **Episodes**  | Incident episodes, a separate grouping feature with its own pages.                                                                                                         |
 | **Workspace** | **Slack** and **Microsoft Teams** connections for incidents.                                                                                                               |
 | **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Auto Remediation Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**. |
-| **Settings**  | **AI**, **Incident State**, **Incident Severity**, **Incident Templates**, **Forms**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **More Settings**. |
+| **Settings**  | **AI**, **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **More Settings**. |
 
 **Rules** and **Settings** are collapsed by default — expand them to find the pages the rest of these docs refer to. Incident configuration is not under Project Settings; it all lives here.
 

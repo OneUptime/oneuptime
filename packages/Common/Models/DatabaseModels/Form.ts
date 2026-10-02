@@ -356,7 +356,7 @@ export default class Form extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.Markdown,
-    title: "Success Message",
+    title: "Thank-You Message",
     description:
       "Shown after the form is submitted, together with the number of what the submission created. Markdown.",
     example:

@@ -2,7 +2,7 @@
 
 Incident configuration does not live in Project Settings. It lives inside the Incidents product area itself, under **Incidents → Settings** and **Incidents → Rules**, at routes beginning `/dashboard/{projectId}/incidents/settings/`. If you have been hunting through **Project Settings** for incident templates or custom fields, that is why you could not find them.
 
-Both the **Rules** and the **Settings** sections of the Incidents side menu are collapsed by default, so you have to expand them before the items below appear. Everything here is project-scoped: templates, forms, roles, custom fields and rules belong to one project and apply to every incident declared in it.
+Both the **Rules** and the **Settings** sections of the Incidents side menu are collapsed by default, so you have to expand them before the items below appear. Everything here is project-scoped: templates, roles, custom fields and rules belong to one project and apply to every incident declared in it.
 
 This page is the reference for that configuration — what each page holds, and which of it runs automatically the moment an incident is created.
 
@@ -16,7 +16,6 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 | **Incident State**       | Add, rename, recolor and reorder the states an incident moves through.                       |
 | **Incident Severity**    | Add, rename, recolor and reorder severity levels.                                            |
 | **Incident Templates**   | Pre-fill a whole incident — title, description, resources, on-call policies, owners, labels. |
-| **Forms**                | Share a link that anyone can use to report an incident, without a OneUptime account.        |
 | **Note Templates**       | Reusable text for public and private notes.                                                  |
 | **Postmortem Templates** | Reusable postmortem structures.                                                              |
 | **Custom Fields**        | Define extra fields that appear on every incident.                                           |

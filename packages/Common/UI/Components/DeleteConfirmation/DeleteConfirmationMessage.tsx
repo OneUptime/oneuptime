@@ -36,8 +36,8 @@ export type DeleteConfirmationKind = "question" | "statement";
  *
  * The question keeps the shape the product has always used, so the
  * translations that exist for it ("Are you sure you want to delete this
- * incident form?") still apply. The card's statement has no such sentence:
- * its title already says "Delete Incident Form", and a sentence built from an
+ * form?") still apply. The card's statement has no such sentence:
+ * its title already says "Delete Form", and a sentence built from an
  * English model name would be the one line of the card left in English - so
  * an unnamed card says only that the delete cannot be undone.
  */

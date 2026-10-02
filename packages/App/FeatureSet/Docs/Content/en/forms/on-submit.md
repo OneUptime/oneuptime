@@ -97,7 +97,7 @@ Every submission leaves a private note on what it created:
 
 > Submitted through the form **Report a Problem** by Ada Lovelace (<ada@example.com>).
 >
-> **Which office are you in?**
+> **Which office are you in?**\
 > Berlin
 
 It names the form and the submitter — "Submitted anonymously through the form **Report a Problem**." when the form did not ask who they are — and then lists the answers to the form's own questions, each under its question, in the form's order. The answers to linked questions are already on the record: its title, its severity, its custom fields. Being private, the note never reaches a status page, but it is posted to the record's Slack and Microsoft Teams channels like any other note.

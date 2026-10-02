@@ -6,7 +6,7 @@
  * Incidents and scheduled maintenance events are where Forms start. Another
  * kind of record is added here, with its fields in FormTargetCatalog, its
  * settings in FormTargetSettings and a target handler on the server
- * (Server/Services/Form/FormTargets) - nothing else in the form builder, the
+ * (Server/Utils/Form/FormTargets) - nothing else in the form builder, the
  * public page or the submit route is written for one target in particular.
  *
  * The values are stored in Form.targetType and FormSubmission.targetType, so

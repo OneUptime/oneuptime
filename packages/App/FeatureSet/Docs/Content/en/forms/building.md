@@ -23,7 +23,7 @@ The palette has four groups.
 | ----------------- | -------------------------------------------- |
 | **Short Answer**  | One line of text.                            |
 | **Paragraph**     | Several lines of text.                       |
-| **Rich Text**     | Text with formatting and links, in Markdown. |
+| **Rich Text**     | Text with formatting and links.              |
 | **Number**        | A number.                                    |
 | **Dropdown**      | One choice from a list.                      |
 | **Multi-Select**  | Any number of choices from a list.           |

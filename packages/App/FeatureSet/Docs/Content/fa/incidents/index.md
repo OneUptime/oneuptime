@@ -15,7 +15,7 @@
 - **شماره‌گذاری به ازای هر پروژه** — هر حادثه‌ای شماره حادثه‌ای می‌گیرد، که به‌طور پیش‌فرض `#42` یا با پیشوند خودتان مانند `INC-42` ترسیم می‌شود.
 - **دو گونه یادداشت** — یادداشت‌های خصوصی (یادداشت‌های داخلی) برای تیمتان، یادداشت‌های عمومی برای مشترکان صفحه وضعیت.
 - **هشدارها به حادثه‌ها پیوند می‌شوند** — هشدارهایی را که بخشی از یک حادثه‌اند به آن پیوند دهید، یا حادثه‌ای را مستقیم از روی هشدارها اعلام کنید — از فهرست هشدارها یا از صفحه خودِ یک هشدار — و همزمان آن‌ها را تصدیق کنید. [هشدارهای پیوندشده](/docs/incidents/linked-alerts) را ببینید.
-- **تنظیمات زیر Incidents زندگی می‌کنند، نه Project Settings** — وضعیت‌ها، شدت‌ها، قالب‌ها، فرم‌ها، فیلدهای سفارشی و موتورهای قاعده همه در **Incidents → Settings** و **Incidents → Rules** هستند.
+- **تنظیمات زیر Incidents زندگی می‌کنند، نه Project Settings** — وضعیت‌ها، شدت‌ها، قالب‌ها، فیلدهای سفارشی و موتورهای قاعده همه در **Incidents → Settings** و **Incidents → Rules** هستند.
 
 ## اصطلاح‌های کلیدی
 
@@ -119,7 +119,7 @@
 | **Episodes** | اپیزودهای حادثه، قابلیتی جدا برای گروه‌بندی با صفحه‌های خودش. |
 | **Workspace** | اتصال‌های **Slack** و **Microsoft Teams** برای حادثه‌ها. |
 | **Rules** | موتورهای قاعده: **Grouping Rules**، **On-Call Rules**، **Owner Rules**، **Runbook Rules**، **Auto Remediation Rules**، **Privacy Rules**، **Label Rules**، **SLA Rules**، **Reminder Rules**. |
-| **Settings** | **AI**، **Incident State**، **Incident Severity**، **Incident Templates**، **Forms**، **Note Templates**، **Postmortem Templates**، **Custom Fields**، **Incident Roles**، **More Settings**. |
+| **Settings** | **AI**، **Incident State**، **Incident Severity**، **Incident Templates**، **Note Templates**، **Postmortem Templates**، **Custom Fields**، **Incident Roles**، **More Settings**. |
 
 بخش‌های **Rules** و **Settings** به‌طور پیش‌فرض جمع‌اند — بگسترانیدشان تا صفحه‌هایی را که باقی این مستندات به آن‌ها ارجاع می‌دهند بیابید. پیکربندی حادثه زیر Project Settings نیست؛ همه‌اش اینجا زندگی می‌کند.
 
