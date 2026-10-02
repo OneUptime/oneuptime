@@ -39,6 +39,14 @@ on:
 permissions:
   contents: read
 
+# Supersede in-flight runs for the same branch/PR: only the newest commit needs
+# CI. It is also the group cancel-closed-pr-runs.yml joins to stop a pull
+# request's run when the pull request closes. The weekly run shares master's
+# group with the push runs; whichever starts last audits the newest master.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   npm-audit:
     runs-on: ubuntu-latest

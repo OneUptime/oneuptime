@@ -1,0 +1,87 @@
+name: Cancel Closed PR Runs
+
+# Stops a pull request's CI as soon as the pull request is closed or merged.
+#
+# Every workflow that runs on pull_request supersedes itself: its concurrency
+# group is "<workflow name>-<PR number>" with cancel-in-progress, so a new push
+# cancels the previous push's run. Closing or merging pushes nothing to the
+# pull request, so its runs used to carry on to the end, holding runners that
+# master's push runs were queued for. PR 4222 was merged at 05:43 UTC on
+# 2026-10-02, 31 seconds after the push that started its CI; at 06:15 its jobs
+# were still being started, while six push runs on master sat in the queue.
+#
+# Each job below joins one of those groups. Concurrency groups are shared by
+# every job and workflow in the repository, so a job that joins "Compile-4222"
+# with cancel-in-progress cancels Compile's run for PR 4222, queued or running.
+# GitHub cancels it when the job is queued, before the job has a runner. That
+# is why this does not call the API to cancel the runs: a job that did would
+# first wait for a runner, behind the jobs it was meant to cancel, and runners
+# are scarce exactly when cancelling matters. Joining a group needs no token.
+#
+# Runs that already finished keep their result. The merge commit's own push
+# runs are in "<workflow name>-refs/heads/master", a different group, and are
+# not touched. Tests/Ops/CancelClosedPrRuns.test.js holds the matrix to the
+# workflows that run on pull_request, and each of their groups to
+# "<name>-<PR number>".
+
+on:
+  # pull_request_target, not pull_request: this file is read from the base
+  # branch, so it also runs for pull requests from forks (with no approval) and
+  # a pull request cannot change what it does. It is safe because nothing here
+  # checks out or runs the pull request's code, and the token has no
+  # permissions.
+  pull_request_target:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  cancel:
+    name: Cancel ${{ matrix.workflow }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      # The jobs are independent. One is cancelled when a reopened pull
+      # request's new run takes its group back; that must not stop the rest.
+      fail-fast: false
+      matrix:
+        # The name of every workflow that runs on pull_request.
+        workflow:
+          - App Test
+          - Browser Recorder Test
+          - Build
+          - CLI Test
+          - Common Jobs
+          - Common Test
+          - Compile
+          - Dependency Audit
+          - Enterprise Edition Test
+          - Infrastructure Agent Test
+          - Kubernetes AI Agent Test
+          - Kubernetes Log Tailer Test
+          - Mobile Recorder Native Consumer Build
+          - Mobile Recorder Test
+          - MobileApp Test
+          - Nginx Test
+          - OpenAPI Spec Generation
+          - Ops Config Test
+          - Postgres Schema Drift
+          - Probe Test
+          - Resource AI Agent Test
+          - Runner Test
+          - Terraform Provider E2E Tests
+          - Terraform Provider Generation
+          - Tests
+    # The cancelling happens here, when the job is queued. No `needs` and no
+    # `if`: a job waiting on another one would not be queued until that one had
+    # a runner, and a skipped job joins no group.
+    concurrency:
+      group: ${{ matrix.workflow }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - name: Report
+        env:
+          WORKFLOW: ${{ matrix.workflow }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Joined concurrency group '${WORKFLOW}-${PR_NUMBER}': any ${WORKFLOW} run still queued or running for pull request #${PR_NUMBER} has been cancelled."
