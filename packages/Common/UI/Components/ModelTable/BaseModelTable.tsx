@@ -42,7 +42,6 @@ import Card, {
 } from "../Card/Card";
 import { getRefreshButton } from "../Card/CardButtons/Refresh";
 import Field from "../Detail/Field";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import ClassicFilterType from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
 import { FormProps, FormSummaryConfig } from "../Forms/BasicForm";
@@ -62,7 +61,13 @@ import Filter from "../ModelFilter/Filter";
 import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
 import Pill from "../Pill/Pill";
 import Table from "../Table/Table";
-import { getEmptyTableMessage } from "../Table/EmptyTableMessage";
+import TableEmptyState from "../Table/TableEmptyState";
+import EmptyStateOptions from "./EmptyStateOptions";
+import {
+  ModelTableEmptyState,
+  buildModelTableEmptyState,
+  buildNoAccessState,
+} from "./ModelTableEmptyState";
 import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
 import ModelTableColumn from "./Column";
@@ -292,7 +297,18 @@ export interface BaseTableProps<
   disablePagination?: undefined | boolean;
   formFields?: undefined | Array<ModelField<TBaseModel>>;
   formSteps?: undefined | Array<FormStep<TBaseModel>>;
+  /*
+   * The page's own words for an empty table. A sentence is split into the
+   * empty state's title (its first sentence) and description (the rest);
+   * an element replaces the whole empty state. See emptyState.
+   */
   noItemsMessage?: undefined | string | ReactElement;
+  /*
+   * The table's own title, description or icon for its empty state, or
+   * that an empty list is good news here (isAllClear). See
+   * EmptyStateOptions: most tables need none of it.
+   */
+  emptyState?: EmptyStateOptions | undefined;
   showRefreshButton?: undefined | boolean;
   isViewable?: undefined | boolean;
   showViewIdButton?: undefined | boolean;
@@ -3269,73 +3285,28 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return false;
   };
 
-  type GetNoItemsMessageFunction = () => string | ReactElement;
-
-  /*
-   * An empty table has two quite different causes and used to have one
-   * sentence for both. A monitors table with nothing in it said "No monitor"
-   * - ungrammatical, and worse, it said the same thing after a search that
-   * matched nothing, so a typo in the search box looked exactly like an empty
-   * project. A caller's own noItemsMessage is deliberately overridden while a
-   * search or filter is active: those are usually "create your first X"
-   * panels, and offering one to someone whose search just missed is wrong.
-   */
-  const getNoItemsMessage: GetNoItemsMessageFunction = ():
-    | string
-    | ReactElement => {
-    const pluralLabel: string = props.pluralName || model.pluralName || "items";
-
-    if (isSearchActive() || hasFilterApplied(filterData)) {
-      return getEmptyTableMessage({
-        pluralLabel: pluralLabel,
-        isFiltered: true,
-        translate: tx,
-      });
-    }
-
-    return (
-      props.noItemsMessage ||
-      getEmptyTableMessage({
-        pluralLabel: pluralLabel,
-        isFiltered: false,
-        translate: tx,
-      })
-    );
-  };
-
-  type GetNoItemsActionFunction = () => ReactElement | undefined;
+  type GetMirroredCreateButtonFunction = () => CardButtonSchema | undefined;
 
   /*
    * The way forward from an empty table: the "Create X" button the card's
    * header already shows - same handler, same permission gate, same label -
-   * repeated under "No X yet.", where a new user is looking. It is drawn the
-   * way the header's is, as a NORMAL button: a filled indigo one in the
-   * middle of an otherwise quiet empty card shouted, and made the two
-   * buttons that do the same thing look like different actions.
+   * repeated in the empty state, where a new user is looking. It is drawn
+   * the way the header's is, as a plain button: a filled indigo one in the
+   * middle of an otherwise quiet card shouted, and made two buttons that do
+   * the same thing look like different actions.
    *
-   * Only under the table's own "No X yet.". A page that words its empty
-   * state itself is describing a slice of the list ("Nice work! No Active
-   * Incidents so far.", "No monitors are reporting a problem."), where a big
-   * "Create" button answers a question nobody asked. And never when a
-   * search or filter emptied the table: creating one is the wrong answer to
-   * a search that missed.
+   * A header button counts as "create" when it carries the Add icon and is
+   * drawn NORMAL or PRIMARY - an OUTLINE Add is an import or a template
+   * picker, not the way to make the first one.
    */
-  const getNoItemsAction: GetNoItemsActionFunction = ():
-    | ReactElement
+  const getMirroredCreateButton: GetMirroredCreateButtonFunction = ():
+    | CardButtonSchema
     | undefined => {
     if (!props.cardProps) {
       return undefined;
     }
 
-    if (isSearchActive() || hasFilterApplied(filterData)) {
-      return undefined;
-    }
-
-    if (props.noItemsMessage) {
-      return undefined;
-    }
-
-    const createButton: CardButtonSchema | undefined = cardButtons.find(
+    return cardButtons.find(
       (button: CardButtonSchema | ReactElement): boolean => {
         if (React.isValidElement(button)) {
           return false;
@@ -3350,29 +3321,86 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         );
       },
     ) as CardButtonSchema | undefined;
-
-    if (!createButton) {
-      return undefined;
-    }
-
-    return (
-      <Button
-        title={createButton.title}
-        icon={createButton.icon}
-        buttonStyle={ButtonStyleType.NORMAL}
-        disabled={createButton.disabled}
-        tooltip={createButton.tooltip}
-        dataTestId="empty-table-create-button"
-        onClick={() => {
-          if (createButton.disabled) {
-            return;
-          }
-
-          createButton.onClick?.();
-        }}
-      />
-    );
   };
+
+  type GetEmptyStateFunction = () => ModelTableEmptyState;
+
+  /*
+   * What the table shows when a load comes back with no rows. An empty table
+   * has quite different causes and used to have one grey sentence for all of
+   * them: a typo in the search box looked exactly like an empty project, and
+   * neither said what the list was for. buildModelTableEmptyState decides
+   * between "nothing here yet", "nothing matches" and "all clear", and what
+   * each offers.
+   */
+  const getEmptyState: GetEmptyStateFunction = (): ModelTableEmptyState => {
+    const isSearchOn: boolean = isSearchActive();
+    const isFilterOn: boolean = hasFilterApplied(filterData);
+    const createCheck: PermissionGateResult = PermissionGate.check(
+      model,
+      ModelAction.Create,
+    );
+
+    return buildModelTableEmptyState({
+      pluralLabel: props.pluralName || model.pluralName || "items",
+      options: props.emptyState,
+      noItemsMessage:
+        typeof props.noItemsMessage === "string"
+          ? props.noItemsMessage
+          : undefined,
+      hasCustomElement: React.isValidElement(props.noItemsMessage),
+      cardDescription: props.cardProps?.description,
+      modelIcon: (model as { icon?: IconProp | null }).icon,
+      isSearchActive: isSearchOn,
+      isFilterActive: isFilterOn,
+      onClearSearchAndFilters: (): void => {
+        clearSearchAndFilters({ isFilterOn: isFilterOn });
+      },
+      createButton: getMirroredCreateButton(),
+      isCreateDeniedByPermission:
+        !createCheck.isAllowed && Boolean(createCheck.disabledReason),
+      help: props.helpContent
+        ? {
+            title: props.helpContent.title,
+            onClick: (): void => {
+              setShowHelpModal(true);
+            },
+          }
+        : undefined,
+      onDocumentationClick: props.documentationLink
+        ? (): void => {
+            Navigation.navigate(props.documentationLink!, {
+              openInNewTab: true,
+            });
+          }
+        : undefined,
+      translate: tx,
+    });
+  };
+
+  type ClearSearchAndFiltersFunction = (data: { isFilterOn: boolean }) => void;
+
+  /*
+   * The empty state's way out of a search or filter that hides every row:
+   * the search box and its label chips are emptied at once (not after the
+   * search debounce), and the filters go the way the filter form clears them.
+   */
+  const clearSearchAndFilters: ClearSearchAndFiltersFunction = (data: {
+    isFilterOn: boolean;
+  }): void => {
+    setSearchText("");
+    setDebouncedSearchText("");
+    setSelectedLabels([]);
+    setIsSearchExpanded(false);
+
+    if (data.isFilterOn) {
+      onFilterChanged({});
+      setTableView(null);
+      props.onFilterApplied?.(false);
+    }
+  };
+
+  const emptyState: ModelTableEmptyState = getEmptyState();
 
   /*
    * Drag-and-drop reordering, for both the table and the list layout.
@@ -3798,8 +3826,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
           setItemsOnPage(newItemsOnPage);
         }}
-        noItemsMessage={getNoItemsMessage()}
-        noItemsAction={getNoItemsAction()}
+        noItemsMessage={
+          React.isValidElement(props.noItemsMessage)
+            ? props.noItemsMessage
+            : undefined
+        }
+        emptyStateProps={emptyState.emptyStateProps}
         onRefreshClick={async () => {
           await fetchItems();
         }}
@@ -3865,7 +3897,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
           setItemsOnPage(newItemsOnPage);
         }}
-        noItemsMessage={getNoItemsMessage()}
+        noItemsMessage={
+          React.isValidElement(props.noItemsMessage)
+            ? props.noItemsMessage
+            : undefined
+        }
+        emptyStateProps={emptyState.emptyStateProps}
         onRefreshClick={async () => {
           await fetchItems();
         }}
@@ -4887,12 +4924,29 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const headerButtons: Array<CardButtonSchema | ReactElement> =
       getHeaderButtonsWithSearch();
 
+    /*
+     * While the empty state is on screen and says what the list is for in
+     * the card's own words, the card leaves its description out of the
+     * header - the same sentence twice, a few lines apart, read as a bug.
+     */
+    const isEmptyStateShown: boolean =
+      !getTableLoadingState() &&
+      !error &&
+      data.length === 0 &&
+      tableColumns.length > 0;
+
+    const cardDescription: CardComponentProps["description"] =
+      isEmptyStateShown && emptyState.usesCardDescription
+        ? undefined
+        : props.cardProps?.description;
+
     if (showAs === ShowAs.Table || showAs === ShowAs.List) {
       return (
         <div>
           {props.cardProps && (
             <Card
               {...props.cardProps}
+              description={cardDescription}
               buttons={headerButtons}
               bodyClassName={
                 showAs === ShowAs.List
@@ -4909,11 +4963,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                * what it always did: every column was denied by permission.
                */}
               {tableColumns.length === 0 && allColumns.length > 0 ? (
-                <ErrorMessage
-                  message={`You are not authorized to view this table. You need any one of these permissions: ${PermissionGate.getPermissionTitles(
-                    model.getReadPermissions(),
-                  ).join(", ")}`}
-                />
+                <div data-testid={`${props.id}-no-access`}>
+                  <TableEmptyState
+                    {...buildNoAccessState({
+                      permissionTitles: PermissionGate.getPermissionTitles(
+                        model.getReadPermissions(),
+                      ),
+                      translate: tx,
+                    })}
+                  />
+                </div>
               ) : (
                 <></>
               )}

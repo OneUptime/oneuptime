@@ -1,7 +1,15 @@
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import Field from "../Detail/Field";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import TableEmptyState, {
+  TableEmptyStateKind,
+  TableEmptyStateProps,
+} from "../Table/TableEmptyState";
+import { EmptyMessageParts } from "../Table/EmptyTableMessage";
+import {
+  getLoadErrorStateProps,
+  getMessageEmptyStateParts,
+} from "../Table/TableEmptyStateBuilders";
 import FilterViewer from "../Filters/FilterViewer";
 import FilterType from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
@@ -46,7 +54,10 @@ export interface ComponentProps<T extends GenericObject> {
   pluralLabel: string;
   actionButtons?: undefined | Array<ActionButtonSchema<T>>;
   onRefreshClick?: undefined | (() => void);
+  // See Table: a sentence is split into a title and a description.
   noItemsMessage?: undefined | string | ReactElement;
+  // See Table: the empty state, fully built. Wins over noItemsMessage.
+  emptyStateProps?: TableEmptyStateProps | undefined;
   listDetailOptions?: undefined | ListDetailProps;
 
   isFilterLoading?: undefined | boolean;
@@ -85,6 +96,54 @@ const List: ListFunction = <T extends GenericObject>(
   const isRefetchingWithData: boolean =
     props.isLoading && props.data.length > 0;
 
+  const isEmptyResult: boolean =
+    !props.isLoading && !props.error && props.data.length === 0;
+
+  const isLoadError: boolean = !props.isLoading && Boolean(props.error);
+
+  // See Table: an empty first page has nothing to page through.
+  const isPaginationHidden: boolean =
+    Boolean(props.disablePagination) ||
+    ((isEmptyResult || isLoadError) &&
+      props.currentPageNumber <= 1 &&
+      !props.hasMore);
+
+  const translate: (value: string) => string = (value: string): string => {
+    return translateString(value) ?? value;
+  };
+
+  const getEmptyStateElement: GetReactElementFunction = (): ReactElement => {
+    if (props.emptyStateProps) {
+      return <TableEmptyState {...props.emptyStateProps} />;
+    }
+
+    // The page's own element, in the frame the old message had.
+    if (React.isValidElement(props.noItemsMessage)) {
+      return (
+        <div className="my-10 text-center text-sm text-gray-500">
+          {props.noItemsMessage}
+        </div>
+      );
+    }
+
+    const parts: EmptyMessageParts = getMessageEmptyStateParts({
+      pluralLabel: props.pluralLabel,
+      noItemsMessage:
+        typeof props.noItemsMessage === "string"
+          ? props.noItemsMessage
+          : undefined,
+      translate: translate,
+    });
+
+    return (
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title={parts.title}
+        description={parts.description}
+      />
+    );
+  };
+
   const getListbody: GetReactElementFunction = (): ReactElement => {
     if (props.isLoading && props.data.length === 0) {
       return (
@@ -100,12 +159,16 @@ const List: ListFunction = <T extends GenericObject>(
      * skeletons): while a refetch is in flight the stale cards render, never
      * a stale error or a premature "no items".
      */
-    if (!props.isLoading && props.error) {
+    if (isLoadError) {
       return (
-        <div className="p-6">
-          <ErrorMessage
-            message={props.error}
-            onRefreshClick={props.onRefreshClick}
+        <div className="px-6" data-testid={`${props.id}-load-error`}>
+          <TableEmptyState
+            {...getLoadErrorStateProps({
+              pluralLabel: props.pluralLabel,
+              error: props.error,
+              onRetry: props.onRefreshClick,
+              translate: translate,
+            })}
           />
         </div>
       );
@@ -113,15 +176,8 @@ const List: ListFunction = <T extends GenericObject>(
 
     if (props.data.length === 0) {
       return (
-        <div className="p-6">
-          <ErrorMessage
-            message={
-              props.noItemsMessage
-                ? props.noItemsMessage
-                : `No ${props.singularLabel.toLocaleLowerCase()}`
-            }
-            onRefreshClick={props.onRefreshClick}
-          />
+        <div className="px-6" data-testid={`${props.id}-no-items`}>
+          {getEmptyStateElement()}
         </div>
       );
     }
@@ -207,7 +263,7 @@ const List: ListFunction = <T extends GenericObject>(
               {getListbody()}
             </div>
           </DragDropContext>
-          {!props.disablePagination && (
+          {!isPaginationHidden && (
             <div className="mt-5 -mb-6">
               <Pagination
                 singularLabel={props.singularLabel}
