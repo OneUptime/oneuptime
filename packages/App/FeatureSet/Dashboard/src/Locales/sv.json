@@ -7085,5 +7085,6 @@
   "Use 20 characters or fewer.": "Använd högst 20 tecken.",
   "Use only letters, numbers and - _ . / : # (no spaces).": "Använd bara bokstäver, siffror och - _ . / : # (inga mellanslag).",
   "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "Avsluta med en bokstav eller ett tecken som -. En siffra på slutet flyter ihop med numret: SEV1 skulle ge SEV142.",
-  "Archived Policies": "Arkiverade policyer"
+  "Archived Policies": "Arkiverade policyer",
+  "Currently Active": "Aktiv nu"
 }

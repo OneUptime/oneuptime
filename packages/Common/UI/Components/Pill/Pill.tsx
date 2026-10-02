@@ -27,6 +27,13 @@ export interface ComponentProps {
   isMinimal?: boolean | undefined;
   tooltip?: string | undefined;
   icon?: IconProp | undefined;
+  /*
+   * A ring ripples out of the dot, over and over: "this is happening right
+   * now". Only while motion is welcome - under prefers-reduced-motion the dot
+   * stays still and the text alone says it. Ignored when `icon` replaces the
+   * dot.
+   */
+  isPulsing?: boolean | undefined;
 }
 
 /*
@@ -62,6 +69,29 @@ const Pill: FunctionComponent<ComponentProps> = (
             thick={ThickProp.Thick}
             className="h-[1em] w-[1em] flex-shrink-0"
           />
+        ) : props.isPulsing ? (
+          /*
+           * The dot, with a copy of itself behind it that grows and fades.
+           * Both are painted like the plain dot, so the dark theme swaps both.
+           */
+          <span
+            data-testid="pill-dot"
+            data-pulsing="true"
+            className="relative inline-flex h-[0.5em] w-[0.5em] flex-shrink-0"
+            aria-hidden="true"
+          >
+            <span
+              data-testid="pill-dot-pulse"
+              data-ou-pill-dot=""
+              className="absolute inline-flex h-full w-full rounded-full opacity-75 motion-safe:animate-ping"
+              style={getPillDotStyle(colors)}
+            ></span>
+            <span
+              data-ou-pill-dot=""
+              className="relative inline-flex h-full w-full rounded-full"
+              style={getPillDotStyle(colors)}
+            ></span>
+          </span>
         ) : (
           <span
             data-testid="pill-dot"

@@ -12,6 +12,10 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
+import {
+  getStateTimelineDurationColumn,
+  getStateTimelineEndsAtColumn,
+} from "Common/UI/Components/StateTimeline/StateTimelineColumns";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -209,31 +213,8 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
             title: "Starts At",
             type: FieldType.DateTime,
           },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Ends At",
-            type: FieldType.DateTime,
-            noValueMessage: "Currently Active",
-          },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Duration",
-            type: FieldType.Text,
-            getElement: (item: MonitorStatusTimeline): ReactElement => {
-              return (
-                <p>
-                  {OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
-                    item["startsAt"] as Date,
-                    (item["endsAt"] as Date) || OneUptimeDate.getCurrentDate(),
-                  )}
-                </p>
-              );
-            },
-          },
+          getStateTimelineEndsAtColumn<MonitorStatusTimeline>(),
+          getStateTimelineDurationColumn<MonitorStatusTimeline>(),
         ]}
       />
       {showViewLogsModal ? (
