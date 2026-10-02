@@ -16,23 +16,67 @@ import React, { ReactElement, ReactNode } from "react";
  * Section titles that start collapsed in every menu, unless the menu says
  * otherwise with an explicit `defaultCollapsed`.
  *
- * "Advanced" holds what most visits never need: settings, audit logs, owners,
- * custom fields and the Delete page. Left open, it puts all of that beside
- * the pages people came for, and the menu reads as a wall of choices. So it
- * folds away by default, everywhere, including in menus written after this
- * rule, and still opens by itself on any page inside it.
+ * "We need to make the UI very simple to understand and use, and one of the
+ * ways to do that is collapsing things in the side menu that are not used
+ * frequently ... This will make sure users don't have decision paralysis"
+ * (the maintainer, on the Incidents menu: Overview and Episodes open; AI,
+ * Workspace, Rules and Settings folded away).
  *
- * "Developer" (Terraform, API, AI Assistants: managing a resource from code
- * rather than from the dashboard) is the same kind of section: there on
- * every resource's menu, wanted on few visits.
+ * So a side menu shows, open, the sections that hold what people come to it
+ * for: the lists and overviews of a product, and the views of the resource
+ * whose page this is. Every other section is folded down to its title: still
+ * there to be found and opened with one click, and open by itself on any page
+ * inside it, but not one more row of choices on every visit. These titles
+ * name that kind of section in every menu that has one:
+ *
+ *  - what most visits never need: "Advanced" (settings, audit logs, owners,
+ *    custom fields, the Delete page) and "Developer" (Terraform, API, AI
+ *    Assistants: managing a resource from code rather than the dashboard);
+ *  - setting things up, done once and revisited rarely: settings, rules,
+ *    chat workspaces, AI, owners, branding, security, notification setup;
+ *  - records looked at when something needs checking: logs and reports;
+ *  - reading for a first visit rather than every visit: help;
+ *  - deleting things: the danger zone.
+ *
+ * A section whose title is not here starts open. A menu with a section that
+ * is rarely used but titled for its own subject (the "Calendar" feed in a
+ * person's User Settings, say) sets `defaultCollapsed` on it; one whose
+ * section here is an everyday one (a workflow's run history, in "Logs")
+ * keeps it open with `defaultCollapsed: false`. The guard
+ * Common/Tests/App/RarelyUsedMenuSectionsCollapsed.test.tsx renders every
+ * side menu and holds each of them to this.
  *
  * The match is on the title a menu passes in (English, before translation).
  * A menu that passes an already translated title, as the Admin Dashboard
- * does, sets `defaultCollapsed` on its Advanced section itself.
+ * does, sets `defaultCollapsed` on those sections itself.
  */
 export const SECTION_TITLES_COLLAPSED_BY_DEFAULT: ReadonlyArray<string> = [
+  // What most visits never need.
   "Advanced",
   "Developer",
+  // Setting things up: done once, revisited rarely.
+  "Settings",
+  "Configuration",
+  "Manage",
+  "Management",
+  "Rules",
+  "Workspace",
+  "AI",
+  "Owners",
+  "Ownership",
+  "Branding",
+  "Security",
+  "Notifications",
+  // Records, looked at when something needs checking.
+  "Logs",
+  "Notification Logs",
+  "Audit Logs",
+  "On-Call Logs",
+  "Reports",
+  // Reading for a first visit, not every visit.
+  "Help",
+  // Deleting things.
+  "Danger Zone",
 ];
 
 export function isTitleCollapsedByDefault(title: string): boolean {

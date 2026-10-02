@@ -40,9 +40,14 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
      * run history is where people go to check that a workflow worked, so it
      * should not read as one more thing to build. The page keeps its old
      * /workflows/logs URL, which the section's name now matches.
+     *
+     * Open on purpose. Logs sections start collapsed in other menus, where
+     * they hold records looked at now and then (notification logs, say);
+     * workflow runs are what workflows are checked by.
      */
     {
       title: "Logs",
+      defaultCollapsed: false,
       items: [
         {
           link: {
