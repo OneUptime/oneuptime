@@ -308,6 +308,8 @@ export default class MonitorStep extends DatabaseProperty {
     offlineMonitorStatusId: ObjectID;
     defaultIncidentSeverityId: ObjectID;
     defaultAlertSeverityId: ObjectID;
+    // See MonitorCriteria.getDefaultMonitorCriteria.
+    warningAlertSeverityId?: ObjectID | undefined;
   }): MonitorStep {
     const monitorStep: MonitorStep = new MonitorStep();
 

@@ -1119,4 +1119,131 @@ describe("Criteria after the monitor type changes under them", () => {
       ).toBe(false);
     });
   });
+
+  /*
+   * SSL Certificate and Domain monitors start with a third criteria, an
+   * "expires soon" warning, whose alert takes the project's warning alert
+   * severity. The form seeds with that severity and hands the same one to
+   * the alignment; these pin what goes wrong when the two disagree, and
+   * what the warning becomes on a change of monitor type.
+   */
+  describe("the expiry warnings of SSL Certificate and Domain monitors", () => {
+    const WARNING_ALERT_SEVERITY_ID: ObjectID = new ObjectID(
+      "eeeeeeeeeeeeeeeeeeeeeeee",
+    );
+
+    const SEED_OPTIONS_WITH_WARNING: CriteriaSeedOptions = {
+      ...SEED_OPTIONS,
+      warningAlertSeverityId: WARNING_ALERT_SEVERITY_ID,
+    };
+
+    function stepsSeededWithWarningFor(monitorType: MonitorType): MonitorSteps {
+      return MonitorSteps.getDefaultMonitorSteps({
+        monitorType: monitorType,
+        monitorName: SEED_OPTIONS.monitorName,
+        defaultMonitorStatusId: SEED_OPTIONS.onlineMonitorStatusId,
+        onlineMonitorStatusId: SEED_OPTIONS.onlineMonitorStatusId,
+        offlineMonitorStatusId: SEED_OPTIONS.offlineMonitorStatusId,
+        defaultIncidentSeverityId: SEED_OPTIONS.defaultIncidentSeverityId,
+        defaultAlertSeverityId: SEED_OPTIONS.defaultAlertSeverityId,
+        warningAlertSeverityId: WARNING_ALERT_SEVERITY_ID,
+      });
+    }
+
+    test.each([MonitorType.SSLCertificate, MonitorType.Domain])(
+      "%s defaults seeded with the warning severity read as untouched with the same seed",
+      (monitorType: MonitorType) => {
+        const seeded: MonitorSteps = stepsSeededWithWarningFor(monitorType);
+
+        const aligned: MonitorStepsAlignmentResult =
+          MonitorCriteriaAlignmentUtil.alignMonitorStepsWithMonitorType({
+            monitorSteps: seeded,
+            monitorType: monitorType,
+            seedOptions: SEED_OPTIONS_WITH_WARNING,
+          });
+
+        expect(aligned.didChange).toBe(false);
+        expect(aligned.monitorSteps).toBe(seeded);
+      },
+    );
+
+    /*
+     * Why CriteriaSeedIds carries the warning severity at all: without it,
+     * the form's own untouched SSL defaults look edited (their warning alert
+     * names a severity the comparison did not seed with), so a change of
+     * monitor type would repair them filter by filter - keeping
+     * "certificate" names on a Domain monitor - instead of re-seeding.
+     */
+    test("defaults seeded with the warning severity do not read as untouched without it", () => {
+      expect(
+        MonitorCriteriaAlignmentUtil.isUntouchedDefaultFor({
+          monitorCriteria: stepsSeededWithWarningFor(MonitorType.SSLCertificate)
+            .data!.monitorStepsInstanceArray[0]!.data!.monitorCriteria,
+          monitorType: MonitorType.SSLCertificate,
+          seedOptions: SEED_OPTIONS,
+        }),
+      ).toBe(false);
+    });
+
+    test("SSL Certificate to Domain swaps in the Domain defaults, warning included", () => {
+      const aligned: MonitorStepsAlignmentResult =
+        MonitorCriteriaAlignmentUtil.alignMonitorStepsWithMonitorType({
+          monitorSteps: stepsSeededWithWarningFor(MonitorType.SSLCertificate),
+          monitorType: MonitorType.Domain,
+          seedOptions: SEED_OPTIONS_WITH_WARNING,
+        });
+
+      expect(aligned.didChange).toBe(true);
+      expect(criteriaNamesOf(aligned.monitorSteps)).toEqual(
+        criteriaNamesOf(stepsSeededWithWarningFor(MonitorType.Domain)),
+      );
+      expect(describeFilters(aligned.monitorSteps)).toEqual(
+        describeFilters(stepsSeededWithWarningFor(MonitorType.Domain)),
+      );
+      expect(unrenderable(aligned.monitorSteps, MonitorType.Domain)).toEqual(
+        [],
+      );
+
+      const warning: MonitorCriteriaInstance = criteriaOf(
+        aligned.monitorSteps,
+      )[1]!;
+
+      expect(warning.data!.name).toBe("Check if Acme domain expires soon");
+      expect(warning.data!.alerts[0]!.alertSeverityId?.toString()).toBe(
+        WARNING_ALERT_SEVERITY_ID.toString(),
+      );
+    });
+
+    test("Website to SSL Certificate brings the warning with it", () => {
+      const aligned: MonitorStepsAlignmentResult =
+        MonitorCriteriaAlignmentUtil.alignMonitorStepsWithMonitorType({
+          monitorSteps: stepsSeededWithWarningFor(MonitorType.Website),
+          monitorType: MonitorType.SSLCertificate,
+          seedOptions: SEED_OPTIONS_WITH_WARNING,
+        });
+
+      expect(criteriaNamesOf(aligned.monitorSteps)).toEqual([
+        "Check if Acme certificate is not valid",
+        "Check if Acme certificate expires soon",
+        "Check if Acme certificate is valid",
+      ]);
+    });
+
+    test("SSL Certificate to Website leaves no warning behind", () => {
+      const aligned: MonitorStepsAlignmentResult =
+        MonitorCriteriaAlignmentUtil.alignMonitorStepsWithMonitorType({
+          monitorSteps: stepsSeededWithWarningFor(MonitorType.SSLCertificate),
+          monitorType: MonitorType.Website,
+          seedOptions: SEED_OPTIONS_WITH_WARNING,
+        });
+
+      expect(criteriaNamesOf(aligned.monitorSteps)).toEqual([
+        "Check if Acme is offline",
+        "Check if Acme is online",
+      ]);
+      expect(unrenderable(aligned.monitorSteps, MonitorType.Website)).toEqual(
+        [],
+      );
+    });
+  });
 });

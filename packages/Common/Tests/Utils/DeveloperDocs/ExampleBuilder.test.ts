@@ -223,6 +223,49 @@ describe("a new monitor", () => {
     expect(steps).toContain(fixtureRecordId("MonitorStatus", "Offline"));
   });
 
+  test("a website example counts any 2xx or 3xx answer as up, as the dashboard does", () => {
+    const steps: string = JSON.stringify(
+      resolveDeveloperDocsValue({
+        modelType: Monitor,
+        column: "monitorSteps",
+        value: {
+          kind: "monitorSteps",
+          monitorType: MonitorType.Website,
+          destination: { type: "URL", value: "https://example.com" },
+        },
+        context: project(),
+      }).json,
+    );
+
+    expect(steps).toContain(
+      '{"checkOn":"Response Status Code","filterType":"Greater Than Or Equal To","value":200}',
+    );
+    expect(steps).toContain(
+      '{"checkOn":"Response Status Code","filterType":"Less Than","value":400}',
+    );
+    expect(steps).not.toContain('"filterType":"Not Equal To"');
+  });
+
+  test("an SSL certificate example warns before expiry with an alert at the project's second alert severity", () => {
+    const steps: string = JSON.stringify(
+      resolveDeveloperDocsValue({
+        modelType: Monitor,
+        column: "monitorSteps",
+        value: {
+          kind: "monitorSteps",
+          monitorType: MonitorType.SSLCertificate,
+          destination: { type: "URL", value: "https://example.com" },
+        },
+        context: project(),
+      }).json,
+    );
+
+    expect(steps).toContain("certificate expires soon");
+    expect(steps).toContain(fixtureRecordId("AlertSeverity", "Low"));
+    // The offline criteria opens no alert, so its template is left out.
+    expect(steps).not.toContain(fixtureRecordId("AlertSeverity", "High"));
+  });
+
   test("with no statuses looked up, the steps say which ids to fill in", () => {
     const hcl: string =
       getTerraformCreateExample({
