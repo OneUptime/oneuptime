@@ -1,10 +1,10 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddSeverityAndStateColorsToNotificationEmailRollup1797500000000
+export class AddSeverityAndStateColorsToNotificationEmailRollup1797600000000
   implements MigrationInterface
 {
   public name: string =
-    "AddSeverityAndStateColorsToNotificationEmailRollup1797500000000";
+    "AddSeverityAndStateColorsToNotificationEmailRollup1797600000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

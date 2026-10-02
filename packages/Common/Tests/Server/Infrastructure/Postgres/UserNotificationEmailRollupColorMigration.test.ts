@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddSeverityAndStateToNotificationEmailRollup1791900000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1791900000000-AddSeverityAndStateToNotificationEmailRollup";
-import { AddSeverityAndStateColorsToNotificationEmailRollup1797500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797500000000-AddSeverityAndStateColorsToNotificationEmailRollup";
+import { AddSeverityAndStateColorsToNotificationEmailRollup1797600000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797600000000-AddSeverityAndStateColorsToNotificationEmailRollup";
 import UserNotificationEmailRollupItem from "../../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -36,7 +36,7 @@ describe("notification email rollup colour migration", () => {
   test("adds only the two colour snapshot columns, sized for a colour", async () => {
     const { runner, statements } = recordQueries();
 
-    await new AddSeverityAndStateColorsToNotificationEmailRollup1797500000000().up(
+    await new AddSeverityAndStateColorsToNotificationEmailRollup1797600000000().up(
       runner,
     );
 
@@ -49,7 +49,7 @@ describe("notification email rollup colour migration", () => {
   test("keeps queued notifications valid without inventing colours", async () => {
     const { runner, statements } = recordQueries();
 
-    await new AddSeverityAndStateColorsToNotificationEmailRollup1797500000000().up(
+    await new AddSeverityAndStateColorsToNotificationEmailRollup1797600000000().up(
       runner,
     );
 
@@ -61,7 +61,7 @@ describe("notification email rollup colour migration", () => {
   test("rollback removes only the colour columns, in reverse order", async () => {
     const { runner, statements } = recordQueries();
 
-    await new AddSeverityAndStateColorsToNotificationEmailRollup1797500000000().down(
+    await new AddSeverityAndStateColorsToNotificationEmailRollup1797600000000().down(
       runner,
     );
 
@@ -74,14 +74,14 @@ describe("notification email rollup colour migration", () => {
   test("is registered exactly once, after the migration that added the names", () => {
     const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
     const colourIndex: number = registered.indexOf(
-      AddSeverityAndStateColorsToNotificationEmailRollup1797500000000,
+      AddSeverityAndStateColorsToNotificationEmailRollup1797600000000,
     );
 
     expect(
       registered.filter((migration: unknown): boolean => {
         return (
           migration ===
-          AddSeverityAndStateColorsToNotificationEmailRollup1797500000000
+          AddSeverityAndStateColorsToNotificationEmailRollup1797600000000
         );
       }),
     ).toHaveLength(1);
@@ -93,11 +93,11 @@ describe("notification email rollup colour migration", () => {
   });
 
   test("uses a stable name for TypeORM migration accounting", () => {
-    const migration: AddSeverityAndStateColorsToNotificationEmailRollup1797500000000 =
-      new AddSeverityAndStateColorsToNotificationEmailRollup1797500000000();
+    const migration: AddSeverityAndStateColorsToNotificationEmailRollup1797600000000 =
+      new AddSeverityAndStateColorsToNotificationEmailRollup1797600000000();
 
     expect(migration.name).toBe(
-      AddSeverityAndStateColorsToNotificationEmailRollup1797500000000.name,
+      AddSeverityAndStateColorsToNotificationEmailRollup1797600000000.name,
     );
   });
 

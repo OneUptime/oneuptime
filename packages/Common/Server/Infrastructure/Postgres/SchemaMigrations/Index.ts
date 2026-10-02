@@ -35,7 +35,7 @@ import { AddMonitorSecretAccess1797100000000 } from "./1797100000000-AddMonitorS
 import { AddArchiveToMoreResources1797200000000 } from "./1797200000000-AddArchiveToMoreResources";
 import { TurnOnLinkedAlertSwitchesByDefault1797300000000 } from "./1797300000000-TurnOnLinkedAlertSwitchesByDefault";
 import { MigrateIncidentFormsToForms1797400000000 } from "./1797400000000-MigrateIncidentFormsToForms";
-import { AddSeverityAndStateColorsToNotificationEmailRollup1797500000000 } from "./1797500000000-AddSeverityAndStateColorsToNotificationEmailRollup";
+import { AddSeverityAndStateColorsToNotificationEmailRollup1797600000000 } from "./1797600000000-AddSeverityAndStateColorsToNotificationEmailRollup";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1271,5 +1271,5 @@ export default [
   AddArchiveToMoreResources1797200000000,
   TurnOnLinkedAlertSwitchesByDefault1797300000000,
   MigrateIncidentFormsToForms1797400000000,
-  AddSeverityAndStateColorsToNotificationEmailRollup1797500000000,
+  AddSeverityAndStateColorsToNotificationEmailRollup1797600000000,
 ];
