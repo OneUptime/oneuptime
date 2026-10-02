@@ -999,10 +999,13 @@ describe("SessionReplayUsersTable paging, reload, empty and error", () => {
     expect(screen.getByTestId("session-users-empty")).toHaveTextContent(
       "Widen the time range",
     );
-    expect(screen.getByTestId("session-users-pagination")).toBeInTheDocument();
-    expect(screen.getByTestId("pagination-summary")).toHaveTextContent(
-      "No users",
-    );
+    /*
+     * Every table leaves its footer out under an empty first page: the empty
+     * state already says nobody is here, and "No users" under it said it
+     * twice.
+     */
+    expect(screen.queryByTestId("session-users-pagination")).toBeNull();
+    expect(screen.queryByTestId("pagination-summary")).toBeNull();
   });
 
   it("a failed request reads as its kind, with a Retry that refetches", async () => {

@@ -94,7 +94,9 @@ export const isFilterValueSet: (value: unknown) => boolean = (
  */
 export const hasFilterValues: (
   filterData: { [key: string]: unknown } | undefined,
-) => boolean = (filterData: { [key: string]: unknown } | undefined): boolean => {
+) => boolean = (
+  filterData: { [key: string]: unknown } | undefined,
+): boolean => {
   if (!filterData) {
     return false;
   }

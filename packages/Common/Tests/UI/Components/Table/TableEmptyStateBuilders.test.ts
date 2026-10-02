@@ -32,7 +32,8 @@ const GERMAN: TranslateFunction = (value: string): string => {
   const dictionary: Record<string, string> = {
     "Couldn't load this list.": "Diese Liste konnte nicht geladen werden.",
     "Nothing here yet.": "Hier ist noch nichts.",
-    "No site types yet. Add one.": "Noch keine Standorttypen. Fügen Sie einen hinzu.",
+    "No site types yet. Add one.":
+      "Noch keine Standorttypen. Fügen Sie einen hinzu.",
   };
 
   return dictionary[value] ?? value;

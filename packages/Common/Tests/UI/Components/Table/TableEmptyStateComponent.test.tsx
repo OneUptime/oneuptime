@@ -83,7 +83,10 @@ describe("the title", () => {
 
   test("keeps the marks that say something", () => {
     render(
-      <TableEmptyState kind={TableEmptyStateKind.AllClear} title="Nice work!" />,
+      <TableEmptyState
+        kind={TableEmptyStateKind.AllClear}
+        title="Nice work!"
+      />,
     );
 
     expect(screen.getByTestId(`${ROOT}-title`)).toHaveTextContent(
@@ -154,7 +157,10 @@ describe("the description", () => {
 
   test("is left out entirely when there is none", () => {
     render(
-      <TableEmptyState kind={TableEmptyStateKind.Empty} title="No labels yet" />,
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No labels yet"
+      />,
     );
 
     expect(screen.queryByTestId(`${ROOT}-description`)).toBeNull();
@@ -164,7 +170,10 @@ describe("the description", () => {
 describe("the illustration", () => {
   test("is decoration only: hidden from screen readers", () => {
     render(
-      <TableEmptyState kind={TableEmptyStateKind.Empty} title="No labels yet" />,
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No labels yet"
+      />,
     );
 
     expect(screen.getByTestId(`${ROOT}-illustration`)).toHaveAttribute(
@@ -179,17 +188,20 @@ describe("the illustration", () => {
     [TableEmptyStateKind.AllClear, IconProp.CheckCircle],
     [TableEmptyStateKind.Error, IconProp.Error],
     [TableEmptyStateKind.NoAccess, IconProp.Lock],
-  ])("%s draws %s unless told otherwise", (kind: TableEmptyStateKind, icon: IconProp) => {
-    render(<TableEmptyState kind={kind} title="Title" />);
+  ])(
+    "%s draws %s unless told otherwise",
+    (kind: TableEmptyStateKind, icon: IconProp) => {
+      render(<TableEmptyState kind={kind} title="Title" />);
 
-    expect(
-      screen.getByTestId(`${ROOT}-illustration`).querySelector("[data-icon]"),
-    ).toHaveAttribute("data-icon", icon);
-    expect(screen.getByTestId(ROOT)).toHaveAttribute(
-      "data-empty-state-kind",
-      kind,
-    );
-  });
+      expect(
+        screen.getByTestId(`${ROOT}-illustration`).querySelector("[data-icon]"),
+      ).toHaveAttribute("data-icon", icon);
+      expect(screen.getByTestId(ROOT)).toHaveAttribute(
+        "data-empty-state-kind",
+        kind,
+      );
+    },
+  );
 
   test("a table's own icon wins", () => {
     render(
@@ -424,7 +436,10 @@ describe("the note", () => {
 
   test("is left out when there is nothing to say", () => {
     render(
-      <TableEmptyState kind={TableEmptyStateKind.Empty} title="No labels yet" />,
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No labels yet"
+      />,
     );
 
     expect(screen.queryByTestId(`${ROOT}-note`)).toBeNull();
@@ -434,7 +449,10 @@ describe("the note", () => {
 describe("its size and hooks", () => {
   test("a table's empty state has room around it; a compact one less", () => {
     const { unmount } = render(
-      <TableEmptyState kind={TableEmptyStateKind.Empty} title="No labels yet" />,
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No labels yet"
+      />,
     );
 
     expect(screen.getByTestId(ROOT).className).toContain("py-12");

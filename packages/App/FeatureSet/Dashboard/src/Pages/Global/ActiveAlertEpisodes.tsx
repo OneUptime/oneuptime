@@ -86,7 +86,7 @@ const ActiveAlertEpisodes: FunctionComponent<
             "Here is a list of active alert episodes for all of the projects you are a part of.",
         }}
         noItemsMessage="No active episodes. All episodes are resolved."
-  emptyState={{ isAllClear: true }}
+        emptyState={{ isAllClear: true }}
         singularName="Active Alert Episode"
         pluralName="Active Alert Episodes"
         onViewPage={(item: AlertEpisode): Promise<Route> => {

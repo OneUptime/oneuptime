@@ -317,7 +317,9 @@ describe("empty table message", () => {
     renderTable({ rows: [], noItemsMessage: "Connect your first monitor." });
 
     await waitFor(() => {
-      expect(screen.getByText("Connect your first monitor")).toBeInTheDocument();
+      expect(
+        screen.getByText("Connect your first monitor"),
+      ).toBeInTheDocument();
     });
   });
 

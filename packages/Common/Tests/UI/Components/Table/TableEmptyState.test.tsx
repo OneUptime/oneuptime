@@ -220,7 +220,9 @@ describe("what the empty state says", () => {
     expect(titleIn(NO_ITEMS_TEST_ID)).toHaveTextContent(/^No monitors yet$/);
     expect(titleIn(NO_ITEMS_TEST_ID).tagName).toBe("H3");
     expect(
-      screen.getByTestId(NO_ITEMS_TEST_ID).querySelector("[data-empty-state-kind]"),
+      screen
+        .getByTestId(NO_ITEMS_TEST_ID)
+        .querySelector("[data-empty-state-kind]"),
     ).toHaveAttribute("data-empty-state-kind", TableEmptyStateKind.Empty);
   });
 
@@ -267,7 +269,9 @@ describe("what the empty state says", () => {
 
     renderTable();
 
-    expect(titleIn(NO_ITEMS_TEST_ID)).toHaveTextContent(/^Noch keine Monitore$/);
+    expect(titleIn(NO_ITEMS_TEST_ID)).toHaveTextContent(
+      /^Noch keine Monitore$/,
+    );
   });
 
   test("a locale without it shows its noun-free sentence", () => {
@@ -406,9 +410,10 @@ describe("a filter that hides every row", () => {
 
     const block: HTMLElement = screen.getByTestId(NO_ITEMS_TEST_ID);
 
-    expect(
-      block.querySelector("[data-empty-state-kind]"),
-    ).toHaveAttribute("data-empty-state-kind", TableEmptyStateKind.Filtered);
+    expect(block.querySelector("[data-empty-state-kind]")).toHaveAttribute(
+      "data-empty-state-kind",
+      TableEmptyStateKind.Filtered,
+    );
     expect(titleIn(NO_ITEMS_TEST_ID)).toHaveTextContent(
       /^No monitors match your search or filters$/,
     );
@@ -485,9 +490,10 @@ describe("a failed load", () => {
     const block: HTMLElement = screen.getByTestId(LOAD_ERROR_TEST_ID);
 
     expect(block.closest("table")).toBeNull();
-    expect(
-      block.querySelector("[data-empty-state-kind]"),
-    ).toHaveAttribute("data-empty-state-kind", TableEmptyStateKind.Error);
+    expect(block.querySelector("[data-empty-state-kind]")).toHaveAttribute(
+      "data-empty-state-kind",
+      TableEmptyStateKind.Error,
+    );
     expect(titleIn(LOAD_ERROR_TEST_ID)).toHaveTextContent(
       /^Couldn't load monitors$/,
     );

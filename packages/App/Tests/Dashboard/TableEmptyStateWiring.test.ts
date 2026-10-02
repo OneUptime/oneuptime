@@ -137,27 +137,33 @@ describe("tables under a facet bar tell their empty state about the chips", () =
     );
   });
 
-  test.each(FACET_TABLES)("%s passes the hook's emptyState to its table", (file: string) => {
-    const code: string = readDashboardCode(file);
+  test.each(FACET_TABLES)(
+    "%s passes the hook's emptyState to its table",
+    (file: string) => {
+      const code: string = readDashboardCode(file);
 
-    expect(code).toContain("emptyState: facetEmptyState,");
-    expect(
-      code.includes("emptyState={facetEmptyState}") ||
-        code.includes("...facetEmptyState"),
-    ).toBe(true);
-  });
+      expect(code).toContain("emptyState: facetEmptyState,");
+      expect(
+        code.includes("emptyState={facetEmptyState}") ||
+          code.includes("...facetEmptyState"),
+      ).toBe(true);
+    },
+  );
 
   /*
    * The old way: each page worded its own "No X matches the filters above."
    * on hasActiveFilters - no way to clear them, the wrong illustration, and
    * a Create button under it once pages' own sentences got one.
    */
-  test.each(FACET_TABLES)("%s does not word the filtered state itself", (file: string) => {
-    const code: string = readDashboardCode(file);
+  test.each(FACET_TABLES)(
+    "%s does not word the filtered state itself",
+    (file: string) => {
+      const code: string = readDashboardCode(file);
 
-    expect(code).not.toMatch(/noItemsMessage=\{ ?hasActiveFilters/);
-    expect(code).not.toMatch(/matches the (filters|facets) above/);
-  });
+      expect(code).not.toMatch(/noItemsMessage=\{ ?hasActiveFilters/);
+      expect(code).not.toMatch(/matches the (filters|facets) above/);
+    },
+  );
 
   test.each([
     "Components/Incident/IncidentsTable.tsx",
@@ -321,6 +327,14 @@ const ALL_TABLE_SOURCES: Array<string> = [
   ...listSourceFiles(path.join(EE_ROOT, "AdminDashboard")),
 ];
 
+// Named rather than inline: eslint's wrap-regex and prettier disagree on these.
+const POINTS_AT_CREATE_BUTTON: RegExp = new RegExp(
+  "Click on the \\\\?[\"']Create\\\\?[\"'] button",
+  "i",
+);
+const POINTS_ABOVE: RegExp = new RegExp("above to add", "i");
+const ENDS_IN_FULL_STOP: RegExp = new RegExp("[.。]$");
+
 const NO_ITEMS_LITERAL: RegExp = new RegExp(
   "noItemsMessage=\\{?\\s*(\"[^\"]*\"|'[^']*'|`[^`]*`)",
   "g",
@@ -350,8 +364,7 @@ describe("no empty table sends the reader to a button elsewhere", () => {
     const pointers: Array<[string, string]> = messages.filter(
       ([, message]: [string, string]): boolean => {
         return (
-          /Click on the \\?["']Create\\?["'] button/i.test(message) ||
-          /above to add/i.test(message)
+          POINTS_AT_CREATE_BUTTON.test(message) || POINTS_ABOVE.test(message)
         );
       },
     );
@@ -429,7 +442,7 @@ describe("the empty states' words are translated everywhere", () => {
         const value: string = locales[code]![title] as string;
 
         expect([code, title, value.length < 60]).toEqual([code, title, true]);
-        expect([code, title, /[.。]$/.test(value)]).toEqual([
+        expect([code, title, ENDS_IN_FULL_STOP.test(value)]).toEqual([
           code,
           title,
           false,

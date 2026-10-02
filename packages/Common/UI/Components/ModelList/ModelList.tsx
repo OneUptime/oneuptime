@@ -9,9 +9,7 @@ import ModelAPI, {
   RequestOptions,
 } from "../../Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
-import TableEmptyState, {
-  TableEmptyStateKind,
-} from "../Table/TableEmptyState";
+import TableEmptyState, { TableEmptyStateKind } from "../Table/TableEmptyState";
 import {
   EmptyMessageParts,
   splitEmptyMessage,

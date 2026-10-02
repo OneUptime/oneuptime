@@ -54,7 +54,9 @@ interface Calls {
 
 let calls: Calls = { creates: 0, clears: 0, pageClears: 0, helps: 0, docs: 0 };
 
-const createButton: (overrides?: Partial<CardButtonSchema>) => CardButtonSchema = (
+const createButton: (
+  overrides?: Partial<CardButtonSchema>,
+) => CardButtonSchema = (
   overrides?: Partial<CardButtonSchema>,
 ): CardButtonSchema => {
   return {
@@ -178,15 +180,17 @@ describe("nothing here yet: the table's own empty state", () => {
       build({ createButton: undefined }),
     );
 
-    expect(findAction(props, EMPTY_TABLE_CREATE_BUTTON_TEST_ID)).toBeUndefined();
+    expect(
+      findAction(props, EMPTY_TABLE_CREATE_BUTTON_TEST_ID),
+    ).toBeUndefined();
     expect(props.actions).toEqual([]);
   });
 
   test("the model's icon is drawn, unless the table names its own", () => {
     expect(propsOf(build()).icon).toBe(IconProp.Clock);
-    expect(
-      propsOf(build({ options: { icon: IconProp.Bolt } })).icon,
-    ).toBe(IconProp.Bolt);
+    expect(propsOf(build({ options: { icon: IconProp.Bolt } })).icon).toBe(
+      IconProp.Bolt,
+    );
     // A model without an icon (analytics models) leaves it to the kind.
     expect(propsOf(build({ modelIcon: null })).icon).toBeUndefined();
   });
@@ -242,9 +246,7 @@ describe("a page's own words", () => {
       build({ noItemsMessage: "No site types yet. Add one." }),
     );
 
-    expect(
-      findAction(props, EMPTY_TABLE_CREATE_BUTTON_TEST_ID),
-    ).toBeDefined();
+    expect(findAction(props, EMPTY_TABLE_CREATE_BUTTON_TEST_ID)).toBeDefined();
   });
 
   test("an element the page drew is the whole empty state", () => {
@@ -284,7 +286,9 @@ describe("a page's own words", () => {
       build({
         options: { title: "Nothing here yet." },
         translate: (value: string): string => {
-          return value === "Nothing here yet." ? "Hier ist noch nichts." : value;
+          return value === "Nothing here yet."
+            ? "Hier ist noch nichts."
+            : value;
         },
       }),
     );
@@ -349,7 +353,9 @@ describe("all clear: an empty list that is good news", () => {
   test("offers no create button: creating one is not the answer to all clear", () => {
     const props: TableEmptyStateProps = propsOf(build({ options: ALL_CLEAR }));
 
-    expect(findAction(props, EMPTY_TABLE_CREATE_BUTTON_TEST_ID)).toBeUndefined();
+    expect(
+      findAction(props, EMPTY_TABLE_CREATE_BUTTON_TEST_ID),
+    ).toBeUndefined();
   });
 
   test("draws its own check, not the model's icon", () => {
@@ -525,7 +531,9 @@ describe("a way to read more", () => {
 describe("nothing matches: a search or filter hides every row", () => {
   test("a search: says so, and clears the search", () => {
     reset();
-    const props: TableEmptyStateProps = propsOf(build({ isSearchActive: true }));
+    const props: TableEmptyStateProps = propsOf(
+      build({ isSearchActive: true }),
+    );
     const clear: TableEmptyStateAction = findAction(
       props,
       EMPTY_TABLE_CLEAR_FILTERS_TEST_ID,
@@ -588,15 +596,16 @@ describe("nothing matches: a search or filter hides every row", () => {
 
   test("wins over all clear: a search that missed is not good news", () => {
     expect(
-      propsOf(
-        build({ isSearchActive: true, options: { isAllClear: true } }),
-      ).kind,
+      propsOf(build({ isSearchActive: true, options: { isAllClear: true } }))
+        .kind,
     ).toBe(TableEmptyStateKind.Filtered);
   });
 
   test("never says it in the card's words", () => {
     expect(build({ isFilterActive: true }).usesCardDescription).toBe(false);
-    expect(propsOf(build({ isFilterActive: true })).description).toBeUndefined();
+    expect(
+      propsOf(build({ isFilterActive: true })).description,
+    ).toBeUndefined();
   });
 
   test("a locale says its noun-free sentence", () => {
@@ -635,7 +644,9 @@ describe("filters the page applies itself (facet chips)", () => {
 
     expect(props.kind).toBe(TableEmptyStateKind.Filtered);
     expect(clear.title).toBe(CLEAR_FILTERS);
-    expect(findAction(props, EMPTY_TABLE_CREATE_BUTTON_TEST_ID)).toBeUndefined();
+    expect(
+      findAction(props, EMPTY_TABLE_CREATE_BUTTON_TEST_ID),
+    ).toBeUndefined();
 
     clear.onClick();
     expect(calls.pageClears).toBe(1);
@@ -683,9 +694,7 @@ describe("filters the page applies itself (facet chips)", () => {
     );
 
     expect(props.kind).toBe(TableEmptyStateKind.Empty);
-    expect(
-      findAction(props, EMPTY_TABLE_CREATE_BUTTON_TEST_ID),
-    ).toBeDefined();
+    expect(findAction(props, EMPTY_TABLE_CREATE_BUTTON_TEST_ID)).toBeDefined();
   });
 });
 

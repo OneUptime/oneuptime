@@ -131,7 +131,8 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
   const style: KindStyle = TABLE_EMPTY_STATE_KIND_STYLES[props.kind];
   const icon: IconProp = props.icon || style.icon;
   const actions: Array<TableEmptyStateAction> = props.actions || [];
-  const hasActions: boolean = actions.length > 0 || Boolean(props.actionElement);
+  const hasActions: boolean =
+    actions.length > 0 || Boolean(props.actionElement);
 
   return (
     <div

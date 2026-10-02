@@ -63,7 +63,7 @@ const ActiveIncidentEpisodes: FunctionComponent<
             ),
           }}
           noItemsMessage="No active episodes. All episodes are resolved."
-    emptyState={{ isAllClear: true }}
+          emptyState={{ isAllClear: true }}
           title="Active Incident Episodes"
           description="Episodes group related incidents so you can respond to them together. These are the episodes that are not resolved yet."
         />

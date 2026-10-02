@@ -552,7 +552,9 @@ describe("getEmptyTableTitle", () => {
       getEmptyTableTitle({
         pluralLabel: "Monitors",
         isFiltered: false,
-        translate: translatorFor({ "No monitors yet.": "Noch keine Monitore." }),
+        translate: translatorFor({
+          "No monitors yet.": "Noch keine Monitore.",
+        }),
       }),
     ).toBe("Noch keine Monitore");
     expect(
@@ -590,7 +592,8 @@ describe("getLoadErrorTitle", () => {
         pluralLabel: "Monitors",
         translate: translatorFor({
           "Couldn't load monitors.": "Monitore konnten nicht geladen werden.",
-          [COULD_NOT_LOAD_THIS_LIST]: "Diese Liste konnte nicht geladen werden.",
+          [COULD_NOT_LOAD_THIS_LIST]:
+            "Diese Liste konnte nicht geladen werden.",
         }),
       }),
     ).toBe("Monitore konnten nicht geladen werden");
@@ -598,7 +601,8 @@ describe("getLoadErrorTitle", () => {
       getLoadErrorTitle({
         pluralLabel: "Monitors",
         translate: translatorFor({
-          [COULD_NOT_LOAD_THIS_LIST]: "Diese Liste konnte nicht geladen werden.",
+          [COULD_NOT_LOAD_THIS_LIST]:
+            "Diese Liste konnte nicht geladen werden.",
         }),
       }),
     ).toBe("Diese Liste konnte nicht geladen werden");
@@ -615,7 +619,10 @@ describe("getLoadErrorTitle", () => {
       },
     });
 
-    expect(looked).toEqual(["Couldn't load monitors.", COULD_NOT_LOAD_THIS_LIST]);
+    expect(looked).toEqual([
+      "Couldn't load monitors.",
+      COULD_NOT_LOAD_THIS_LIST,
+    ]);
   });
 });
 
@@ -661,9 +668,12 @@ describe("splitEmptyMessage: a page's own message as a title and a description",
     ["Version 1.2 is required. ok"],
     ["Send spans to otel.example.com first"],
     ["Use host:port, i.e. db.internal:5432."],
-  ])("a stop not followed by a new sentence does not split: %s", (message: string) => {
-    expect(splitEmptyMessage(message).description).toBeUndefined();
-  });
+  ])(
+    "a stop not followed by a new sentence does not split: %s",
+    (message: string) => {
+      expect(splitEmptyMessage(message).description).toBeUndefined();
+    },
+  );
 
   test("a sentence may start with a digit or a quote", () => {
     expect(splitEmptyMessage("No runs yet. 3 are queued.")).toEqual({
@@ -759,7 +769,10 @@ describe("getEmptyMessageParts", () => {
     const message: string = `Please wait ${"while things refresh ".repeat(8)}now.`;
 
     expect(
-      getEmptyMessageParts({ message: `  ${message}  `, defaultTitle: "No users yet" }),
+      getEmptyMessageParts({
+        message: `  ${message}  `,
+        defaultTitle: "No users yet",
+      }),
     ).toEqual({ title: "No users yet", description: message });
   });
 

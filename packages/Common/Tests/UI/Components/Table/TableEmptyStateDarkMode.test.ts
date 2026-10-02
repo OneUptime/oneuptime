@@ -160,7 +160,9 @@ const colorTokens: ColorTokensFunction = (code: string): Array<string> => {
   );
 };
 
-const EMPTY_STATE_CODE: string = readCode("Components/Table/TableEmptyState.tsx");
+const EMPTY_STATE_CODE: string = readCode(
+  "Components/Table/TableEmptyState.tsx",
+);
 
 describe("the empty state in the dark theme", () => {
   test("uses no dark: variant and builds no colour class from a template", () => {
@@ -202,11 +204,12 @@ describe("the empty state in the dark theme", () => {
     (kind: TableEmptyStateKind) => {
       const style: { backCardClassName: string; iconClassName: string } =
         TABLE_EMPTY_STATE_KIND_STYLES[kind];
-      const tokens: Array<string> = `${style.backCardClassName} ${style.iconClassName}`
-        .split(/\s+/)
-        .filter((token: string): boolean => {
-          return token.length > 0;
-        });
+      const tokens: Array<string> =
+        `${style.backCardClassName} ${style.iconClassName}`
+          .split(/\s+/)
+          .filter((token: string): boolean => {
+            return token.length > 0;
+          });
 
       expect(tokens.length).toBeGreaterThan(2);
       expect(
