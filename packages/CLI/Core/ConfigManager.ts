@@ -127,8 +127,8 @@ export function getResolvedCredentials(
   const currentCtx: CLIContext | null = getCurrentContext();
   if (currentCtx) {
     return applyCliOverrides({
-      apiKey: currentCtx.apiKey,
-      apiUrl: currentCtx.apiUrl,
+      apiKey: envApiKey || currentCtx.apiKey,
+      apiUrl: envUrl || currentCtx.apiUrl,
     });
   }
 

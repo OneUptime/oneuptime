@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { ResourceInfo } from "../Types/CLITypes";
 import { buildProgram } from "../Program";
+import * as ConfigManager from "../Core/ConfigManager";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -208,6 +209,26 @@ describe("ResourceCommands", () => {
     });
 
     describe("list subcommand", () => {
+      it("should use an env API key with the current context URL", async () => {
+        ConfigManager.addContext({
+          name: "saved",
+          apiUrl: "https://test.oneuptime.com",
+          apiKey: "saved-key",
+        });
+        process.env["ONEUPTIME_API_KEY"] = "env-key";
+        delete process.env["ONEUPTIME_URL"];
+
+        const program: Command = createProgramWithResources();
+        await program.parseAsync(["node", "test", "incident", "list"]);
+
+        expect(mockExecuteApiRequest).toHaveBeenCalledWith(
+          expect.objectContaining({
+            apiKey: "env-key",
+            apiUrl: "https://test.oneuptime.com",
+          }),
+        );
+      });
+
       it("should call API with list operation", async () => {
         const program: Command = createProgramWithResources();
         await program.parseAsync(["node", "test", "incident", "list"]);

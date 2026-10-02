@@ -427,7 +427,7 @@ describe("ConfigManager", () => {
       expect(creds.apiUrl).toBe("https://partial.com");
     });
 
-    it("should combine partial env var with context", () => {
+    it("should use an env API key with the current context URL", () => {
       process.env["ONEUPTIME_API_KEY"] = "env-key";
       ConfigManager.addContext({
         name: "ctx",
@@ -438,13 +438,22 @@ describe("ConfigManager", () => {
       const creds: ResolvedCredentials = ConfigManager.getResolvedCredentials(
         {},
       );
-      /*
-       * env vars take priority: both are set so goes through priority 2
-       * Actually, only ONEUPTIME_API_KEY is set, not ONEUPTIME_URL
-       * So it falls through to priority 4 (current context)
-       */
-      expect(creds.apiKey).toBe("ctx-key");
+      expect(creds.apiKey).toBe("env-key");
       expect(creds.apiUrl).toBe("https://ctx.com");
+    });
+
+    it("should combine a URL env var with the current context", () => {
+      process.env["ONEUPTIME_URL"] = "https://env.com";
+      ConfigManager.addContext({
+        name: "ctx",
+        apiUrl: "https://ctx.com",
+        apiKey: "ctx-key",
+      });
+
+      expect(ConfigManager.getResolvedCredentials({})).toEqual({
+        apiKey: "ctx-key",
+        apiUrl: "https://env.com",
+      });
     });
 
     it("should throw when no credentials available at all", () => {
