@@ -435,7 +435,7 @@ export default class AnalyticsDatabaseService<
        * the check refuses any key that is not a column. Without it, counting
        * the rows of a list narrowed by a resource facet failed outright.
        */
-      if (!countBy.props.ignoreHooks) {
+      if (!countBy.props?.ignoreHooks) {
         countBy = await this.onBeforeCount(countBy);
       }
 
