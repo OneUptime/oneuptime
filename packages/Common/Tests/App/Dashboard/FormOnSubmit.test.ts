@@ -11,6 +11,8 @@ import {
 } from "../../../Types/Form/FormTargetSettings";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import { JSONObject } from "../../../Types/JSON";
+import Color from "../../../Types/Color";
+import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import { PeoplePickerKind } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
@@ -633,5 +635,59 @@ describe("naming records", () => {
       { value: TEAM_ID, label: "SRE" },
     ]);
     expect(toDropdownOptions(undefined)).toEqual([]);
+  });
+
+  /*
+   * A severity (or a label) is offered with its colour, as every other
+   * severity picker offers it - the Severity setting used to list plain
+   * names.
+   */
+  test("as dropdown options, keeping a record's colour", () => {
+    const options: Array<DropdownOption> = toDropdownOptions([
+      { id: SEVERITY_ID, name: "Major", color: "#ef4444" },
+      { id: TEAM_ID, name: "SRE" },
+      { id: LABEL_ID, name: "customer-report", color: "  " },
+    ]);
+
+    expect(
+      options.map((option: DropdownOption) => {
+        return [option.label, option.color?.toString()];
+      }),
+    ).toEqual([
+      ["Major", "#ef4444"],
+      ["SRE", undefined],
+      ["customer-report", undefined],
+    ]);
+    expect(options[0]!.color).toBeInstanceOf(Color);
+    expect(Object.keys(options[1]!)).not.toContain("color");
+  });
+
+  test("the Severity setting offers each severity with its colour", () => {
+    const fields: Array<Field<JSONObject>> = getFormSettingsFields({
+      targetType: FormTargetType.Incident,
+      reference: {
+        ...REFERENCE,
+        lists: {
+          ...REFERENCE.lists,
+          [FormTargetSettingReferenceModel.IncidentSeverity]: [
+            { id: SEVERITY_ID, name: "Major", color: "#ef4444" },
+          ],
+        },
+      },
+    });
+
+    const severity: Field<JSONObject> | undefined = fields.find(
+      (field: Field<JSONObject>): boolean => {
+        return Object.keys(field.field || {})[0] === "incidentSeverityId";
+      },
+    );
+
+    expect(
+      (severity?.dropdownOptions as Array<DropdownOption>).map(
+        (option: DropdownOption) => {
+          return [option.label, option.color?.toString()];
+        },
+      ),
+    ).toEqual([["Major", "#ef4444"]]);
   });
 });

@@ -38,6 +38,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
 import ObjectID from "Common/Types/ObjectID";
@@ -553,11 +554,10 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           title="Change Episode State"
           description="Select the state to change episodes to. Episodes already at or past the selected state will be skipped. Member alerts will also be updated."
           stateFieldKey="alertStateId"
-          stateOptions={alertStates.map((state: AlertState) => {
-            return {
-              label: state.name || "",
-              value: state.id?.toString() || "",
-            };
+          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: alertStates,
+            labelField: "name",
+            valueField: "_id",
           })}
           noteType={BulkStateChangeNoteType.Private}
           noteTitle="Private Note"

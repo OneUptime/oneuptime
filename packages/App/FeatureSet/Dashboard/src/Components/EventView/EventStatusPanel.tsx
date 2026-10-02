@@ -334,6 +334,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
                     <MoreMenuItem
                       key={state.id}
                       text={state.name}
+                      color={state.color}
                       onClick={() => {
                         props.onStateSelect!(state.id);
                       }}

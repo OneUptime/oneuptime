@@ -92,12 +92,24 @@ type ToDropdownOptionsFunction = (
   options: Array<MonitorRecommendationSeverityOption>,
 ) => Array<DropdownOption>;
 
-const toDropdownOptions: ToDropdownOptionsFunction = (
+// Each severity with its colour, as every other severity picker shows it.
+export const toSeverityDropdownOptions: ToDropdownOptionsFunction = (
   options: Array<MonitorRecommendationSeverityOption>,
 ): Array<DropdownOption> => {
-  return options.map((option: MonitorRecommendationSeverityOption) => {
-    return { value: option.id.toString(), label: option.name };
-  });
+  return options.map(
+    (option: MonitorRecommendationSeverityOption): DropdownOption => {
+      const dropdownOption: DropdownOption = {
+        value: option.id.toString(),
+        label: option.name,
+      };
+
+      if (option.color) {
+        dropdownOption.color = option.color;
+      }
+
+      return dropdownOption;
+    },
+  );
 };
 
 const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
@@ -220,7 +232,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
     severityMap: MonitorRecommendationSeverityMap;
     onChange: (severityId: ObjectID) => void;
   }): ReactElement => {
-    const dropdownOptions: Array<DropdownOption> = toDropdownOptions(
+    const dropdownOptions: Array<DropdownOption> = toSeverityDropdownOptions(
       data.options,
     );
     const currentId: ObjectID | undefined = data.severityMap[data.severity];
