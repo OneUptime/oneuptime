@@ -1,18 +1,18 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { getJestSpyOn } from "../../Spy";
 import {
-  getIncidentFormIpAllowlistPlan,
-  isIncidentFormIpAllowlistEditableOnCurrentPlan,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/IncidentForm/IncidentFormPlan";
-import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
+  getFormIpAllowlistPlan,
+  isFormIpAllowlistEditableOnCurrentPlan,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormPlan";
+import Form from "../../../Models/DatabaseModels/Form";
 import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
 import ProjectUtil from "../../../UI/Utils/Project";
 
 /*
- * Whether a project's plan lets it change an incident form's IP allowlist
- * (issue #4114), for the note on the form's Access card. The plan comes from
+ * Whether a project's plan lets it change a form's IP allowlist, for the
+ * note on the form's Share page. The plan comes from
  * the column's own billing rule, so the note says what the server enforces;
  * and like the dashboard's other plan notes it fails open - with billing off,
  * or a plan it cannot tell, it says nothing.
@@ -46,11 +46,11 @@ afterEach(() => {
 });
 
 describe("the plan an IP allowlist needs", () => {
-  test("is the one IncidentForm.ipWhitelist's billing rule names for updates: Scale", () => {
-    expect(getIncidentFormIpAllowlistPlan()).toBe(PlanType.Scale);
+  test("is the one Form.ipWhitelist's billing rule names for updates: Scale", () => {
+    expect(getFormIpAllowlistPlan()).toBe(PlanType.Scale);
     expect(
-      new IncidentForm().getColumnBillingAccessControl("ipWhitelist").update,
-    ).toBe(getIncidentFormIpAllowlistPlan());
+      new Form().getColumnBillingAccessControl("ipWhitelist").update,
+    ).toBe(getFormIpAllowlistPlan());
   });
 });
 
@@ -59,7 +59,7 @@ describe("whether this project may change it", () => {
     onPlan(null);
     const accessible: SpyInstance = accessibleWhen(false);
 
-    expect(isIncidentFormIpAllowlistEditableOnCurrentPlan()).toBe(true);
+    expect(isFormIpAllowlistEditableOnCurrentPlan()).toBe(true);
     expect(accessible).not.toHaveBeenCalled();
   });
 
@@ -67,7 +67,7 @@ describe("whether this project may change it", () => {
     onPlan(PlanType.Growth);
     const accessible: SpyInstance = accessibleWhen(false);
 
-    expect(isIncidentFormIpAllowlistEditableOnCurrentPlan()).toBe(false);
+    expect(isFormIpAllowlistEditableOnCurrentPlan()).toBe(false);
     expect(accessible).toHaveBeenCalledTimes(1);
     expect(accessible.mock.calls[0]![0]).toBe(PlanType.Scale);
     expect(accessible.mock.calls[0]![1]).toBe(PlanType.Growth);
@@ -77,13 +77,13 @@ describe("whether this project may change it", () => {
     onPlan(PlanType.Scale);
     accessibleWhen(true);
 
-    expect(isIncidentFormIpAllowlistEditableOnCurrentPlan()).toBe(true);
+    expect(isFormIpAllowlistEditableOnCurrentPlan()).toBe(true);
   });
 
   test("yes when the environment does not describe the plan: the server decides", () => {
     onPlan(PlanType.Growth);
     accessibleWhen(new Error("Invalid Plan"));
 
-    expect(isIncidentFormIpAllowlistEditableOnCurrentPlan()).toBe(true);
+    expect(isFormIpAllowlistEditableOnCurrentPlan()).toBe(true);
   });
 });

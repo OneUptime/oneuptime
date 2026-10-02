@@ -737,6 +737,8 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
                 description: FormsCopy.descriptionDescription,
                 fieldType: FormFieldSchemaType.Markdown,
                 required: false,
+                // Shown on the public page, where a private image cannot load.
+                allowImageUpload: false,
               },
             ],
           }}

@@ -22,8 +22,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * An incident form's Share Link card (issue #4114): the link anyone can open
- * to report an incident, copying it, opening it, and Reset Link.
+ * A form's Share Link card: the link anyone can open to fill the form in,
+ * copying it, opening it, and Reset Link.
  *
  * Only the network, the permission gate, the clipboard and the translation
  * lookup are stubbed: the card, ResetObjectID behind it and their dialogs are
@@ -77,13 +77,13 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-import IncidentFormShareLinkCard from "../../../../App/FeatureSet/Dashboard/src/Components/IncidentForm/IncidentFormShareLinkCard";
-import IncidentFormCopy from "../../../../App/FeatureSet/Dashboard/src/Components/IncidentForm/IncidentFormCopy";
+import FormShareLinkCard from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormShareLinkCard";
+import FormsCopy from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import {
-  getIncidentFormShareLink,
-  INCIDENT_FORM_PUBLIC_ROUTE_SEGMENT,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/IncidentForm/IncidentFormShareLink";
-import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
+  getFormShareLink,
+  FORM_PUBLIC_ROUTE_SEGMENT,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormShareLink";
+import Form from "../../../Models/DatabaseModels/Form";
 import ObjectID from "../../../Types/ObjectID";
 import { ACCOUNTS_URL } from "../../../UI/Config";
 import Clipboard from "../../../UI/Utils/Clipboard";
@@ -100,7 +100,7 @@ const NEW_SHARE_KEY: string = "0b1d3c5e-7f90-4a1b-8c2d-3e4f5a6b7c8d";
 
 // The link the card must show for a key: Accounts, then the form's route.
 function expectedLink(shareKey: string): string {
-  return `${ACCOUNTS_URL.toString()}/incident-form/${shareKey}`;
+  return `${ACCOUNTS_URL.toString()}/form/${shareKey}`;
 }
 
 interface StoredForm {
@@ -130,7 +130,7 @@ beforeEach(() => {
       return null;
     }
 
-    const form: IncidentForm = new IncidentForm();
+    const form: Form = new Form();
     form._id = FORM_ID;
 
     if (storedForm.shareKey) {
@@ -176,7 +176,7 @@ async function renderCard(refresher: boolean = false): Promise<RenderResult> {
   await act(async (): Promise<void> => {
     result = render(
       <MemoryRouter>
-        <IncidentFormShareLinkCard
+        <FormShareLinkCard
           modelId={new ObjectID(FORM_ID)}
           refresher={refresher}
         />
@@ -191,14 +191,14 @@ async function renderLoadedCard(): Promise<RenderResult> {
   const result: RenderResult = await renderCard();
 
   await waitFor(() => {
-    expect(screen.getByTestId("incident-form-share-link")).toBeInTheDocument();
+    expect(screen.getByTestId("form-share-link")).toBeInTheDocument();
   });
 
   return result;
 }
 
 function shownLink(): string {
-  return screen.getByTestId("incident-form-share-link").textContent || "";
+  return screen.getByTestId("form-share-link").textContent || "";
 }
 
 function cardButtons(): Array<HTMLElement> {
@@ -236,17 +236,17 @@ describe("the link", () => {
       select: Record<string, unknown>;
     };
 
-    expect(request.modelType).toBe(IncidentForm);
+    expect(request.modelType).toBe(Form);
     expect(request.id.toString()).toBe(FORM_ID);
     expect(request.select).toEqual({ shareKey: true, isEnabled: true });
   });
 
-  test("is the Accounts app's incident-form route with the form's share key", async () => {
+  test("is the Accounts app's form route with the form's share key", async () => {
     await renderLoadedCard();
 
     expect(shownLink()).toBe(expectedLink(SHARE_KEY));
-    expect(INCIDENT_FORM_PUBLIC_ROUTE_SEGMENT).toBe("incident-form");
-    expect(getIncidentFormShareLink(SHARE_KEY).toString()).toBe(
+    expect(FORM_PUBLIC_ROUTE_SEGMENT).toBe("form");
+    expect(getFormShareLink(SHARE_KEY).toString()).toBe(
       expectedLink(SHARE_KEY),
     );
   });
@@ -260,12 +260,12 @@ describe("the link", () => {
   test("building a link leaves the shared Accounts URL alone", () => {
     const before: string = ACCOUNTS_URL.toString();
 
-    getIncidentFormShareLink(SHARE_KEY);
-    getIncidentFormShareLink(new ObjectID(NEW_SHARE_KEY));
+    getFormShareLink(SHARE_KEY);
+    getFormShareLink(new ObjectID(NEW_SHARE_KEY));
 
     expect(ACCOUNTS_URL.toString()).toBe(before);
     expect(
-      getIncidentFormShareLink(new ObjectID(NEW_SHARE_KEY)).toString(),
+      getFormShareLink(new ObjectID(NEW_SHARE_KEY)).toString(),
     ).toBe(expectedLink(NEW_SHARE_KEY));
   });
 
@@ -305,7 +305,7 @@ describe("the link", () => {
       "Share Link",
     );
     expect(screen.getByTestId("card-description")).toHaveTextContent(
-      IncidentFormCopy.shareLinkDescription,
+      FormsCopy.shareLinkDescription,
     );
   });
 });
@@ -315,7 +315,7 @@ describe("a form that is turned off", () => {
     await renderLoadedCard();
 
     expect(
-      screen.queryByTestId("incident-form-share-link-turned-off"),
+      screen.queryByTestId("form-share-link-turned-off"),
     ).not.toBeInTheDocument();
   });
 
@@ -325,7 +325,7 @@ describe("a form that is turned off", () => {
     await renderLoadedCard();
 
     expect(
-      screen.getByTestId("incident-form-share-link-turned-off"),
+      screen.getByTestId("form-share-link-turned-off"),
     ).toHaveTextContent(
       "This form is turned off, so its link shows a 'not available' message.",
     );
@@ -339,7 +339,7 @@ describe("a form that is turned off", () => {
     await renderLoadedCard();
 
     expect(
-      screen.queryByTestId("incident-form-share-link-turned-off"),
+      screen.queryByTestId("form-share-link-turned-off"),
     ).not.toBeInTheDocument();
   });
 
@@ -351,7 +351,7 @@ describe("a form that is turned off", () => {
     await act(async (): Promise<void> => {
       result.rerender(
         <MemoryRouter>
-          <IncidentFormShareLinkCard
+          <FormShareLinkCard
             modelId={new ObjectID(FORM_ID)}
             refresher={true}
           />
@@ -361,7 +361,7 @@ describe("a form that is turned off", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByTestId("incident-form-share-link-turned-off"),
+        screen.getByTestId("form-share-link-turned-off"),
       ).toBeInTheDocument();
     });
 
@@ -374,7 +374,7 @@ describe("a form that is turned off", () => {
     await act(async (): Promise<void> => {
       result.rerender(
         <MemoryRouter>
-          <IncidentFormShareLinkCard
+          <FormShareLinkCard
             modelId={new ObjectID(FORM_ID)}
             refresher={false}
           />
@@ -406,7 +406,7 @@ describe("reading the form again", () => {
             return;
           }
 
-          const model: IncidentForm = new IncidentForm();
+          const model: Form = new Form();
           model._id = FORM_ID;
 
           if (form.shareKey) {
@@ -437,7 +437,7 @@ describe("reading the form again", () => {
     return act(async (): Promise<void> => {
       result.rerender(
         <MemoryRouter>
-          <IncidentFormShareLinkCard
+          <FormShareLinkCard
             modelId={new ObjectID(modelId)}
             refresher={refresher}
           />
@@ -466,7 +466,7 @@ describe("reading the form again", () => {
     await answer(1, { shareKey: SHARE_KEY, isEnabled: false });
 
     expect(
-      screen.getByTestId("incident-form-share-link-turned-off"),
+      screen.getByTestId("form-share-link-turned-off"),
     ).toBeInTheDocument();
   });
 
@@ -487,7 +487,7 @@ describe("reading the form again", () => {
     await answer(1, { shareKey: SHARE_KEY, isEnabled: true });
 
     expect(
-      screen.getByTestId("incident-form-share-link-turned-off"),
+      screen.getByTestId("form-share-link-turned-off"),
     ).toBeInTheDocument();
   });
 
@@ -501,10 +501,10 @@ describe("reading the form again", () => {
     await answer(1, null);
 
     expect(
-      screen.queryByTestId("incident-form-share-link"),
+      screen.queryByTestId("form-share-link"),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText(IncidentFormCopy.shareLinkNotFound),
+      screen.getByText(FormsCopy.shareLinkNotFound),
     ).toBeInTheDocument();
     expect(cardButtons()).toHaveLength(0);
   });
@@ -521,7 +521,7 @@ describe("reading the form again", () => {
     await rerenderWith(result, OTHER_FORM_ID, false);
 
     expect(
-      screen.queryByTestId("incident-form-share-link"),
+      screen.queryByTestId("form-share-link"),
     ).not.toBeInTheDocument();
     expect(screen.getByTestId("component-loader")).toBeInTheDocument();
     expect(cardButtons()).toHaveLength(0);
@@ -555,9 +555,9 @@ describe("Reset Link", () => {
 
     expect(screen.getByTestId("modal-title")).toHaveTextContent("Reset Link");
     expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
-      IncidentFormCopy.resetLinkConfirmation,
+      FormsCopy.resetLinkConfirmation,
     );
-    expect(IncidentFormCopy.resetLinkConfirmation).toContain(
+    expect(FormsCopy.resetLinkConfirmation).toContain(
       "the current one stops working at once",
     );
     expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
@@ -605,7 +605,7 @@ describe("Reset Link", () => {
       data: Record<string, unknown>;
     };
 
-    expect(request.modelType).toBe(IncidentForm);
+    expect(request.modelType).toBe(Form);
     expect(request.id.toString()).toBe(FORM_ID);
     // Only the key: nothing else about the form changes.
     expect(request.data).toEqual({ shareKey: NEW_SHARE_KEY });
@@ -616,7 +616,7 @@ describe("Reset Link", () => {
       expect(screen.getByTestId("modal-title")).toHaveTextContent("New Link");
     });
     expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
-      IncidentFormCopy.newLinkDescription,
+      FormsCopy.newLinkDescription,
     );
 
     await act(async (): Promise<void> => {
@@ -688,14 +688,14 @@ describe("Reset Link", () => {
     expect(screen.queryByTestId("modal-title")).not.toBeInTheDocument();
     expect(shownLink()).toBe(expectedLink(SHARE_KEY));
     // Nothing was shown as a new link.
-    expect(screen.queryByText(IncidentFormCopy.newLinkDescription)).toBeNull();
+    expect(screen.queryByText(FormsCopy.newLinkDescription)).toBeNull();
   });
 
   test("a viewer who may not update the form can still copy and open the link, but Reset Link is locked and says why", async () => {
     gate = {
       isAllowed: false,
       disabledReason:
-        "You do not have permission to update this Incident Form.",
+        "You do not have permission to update this Form.",
     };
 
     await renderLoadedCard();
@@ -707,7 +707,7 @@ describe("Reset Link", () => {
     fireEvent.mouseEnter(button.parentElement as HTMLElement);
 
     expect(screen.getByRole("tooltip")).toHaveTextContent(
-      "You do not have permission to update this Incident Form.",
+      "You do not have permission to update this Form.",
     );
 
     fireEvent.click(button);
@@ -722,13 +722,13 @@ describe("Reset Link", () => {
     expect(openFormLink().getAttribute("href")).toBe(expectedLink(SHARE_KEY));
   });
 
-  test("the gate is asked about updating an incident form", async () => {
+  test("the gate is asked about updating a form", async () => {
     await renderLoadedCard();
 
     expect(
       permissionCheckSpy.mock.calls.some((call: Array<unknown>): boolean => {
         return (
-          call[0] instanceof IncidentForm && call[1] === ModelAction.Update
+          call[0] instanceof Form && call[1] === ModelAction.Update
         );
       }),
     ).toBe(true);
@@ -749,7 +749,7 @@ describe("before there is a link", () => {
 
     expect(screen.getByTestId("component-loader")).toBeInTheDocument();
     expect(
-      screen.queryByTestId("incident-form-share-link"),
+      screen.queryByTestId("form-share-link"),
     ).not.toBeInTheDocument();
     expect(cardButtons()).toHaveLength(0);
     expect(screen.getByTestId("card-details-heading")).toHaveTextContent(
@@ -762,19 +762,19 @@ describe("before there is a link", () => {
   });
 
   test("a load that failed says why, with no button", async () => {
-    storedForm = new Error("Incident forms are not on your plan.");
+    storedForm = new Error("Forms are not on your plan.");
 
     await renderCard();
 
     await waitFor(() => {
       expect(
-        screen.getByText("Incident forms are not on your plan."),
+        screen.getByText("Forms are not on your plan."),
       ).toBeInTheDocument();
     });
 
     expect(cardButtons()).toHaveLength(0);
     expect(
-      screen.queryByTestId("incident-form-share-link"),
+      screen.queryByTestId("form-share-link"),
     ).not.toBeInTheDocument();
   });
 
@@ -801,7 +801,7 @@ describe("before there is a link", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(IncidentFormCopy.shareLinkNotFound),
+        screen.getByText(FormsCopy.shareLinkNotFound),
       ).toBeInTheDocument();
     });
 
@@ -826,8 +826,8 @@ describe("translation", () => {
     ).toHaveTextContent("[de] Copy Link");
     expect(screen.getByText("[de] Open Form")).toBeInTheDocument();
     expect(
-      screen.getByTestId("incident-form-share-link-turned-off"),
-    ).toHaveTextContent(`[de] ${IncidentFormCopy.formTurnedOff}`);
+      screen.getByTestId("form-share-link-turned-off"),
+    ).toHaveTextContent(`[de] ${FormsCopy.formTurnedOff}`);
     expect(resetLinkButton()).toHaveTextContent("[de] Reset Link");
 
     // The link itself is never translated.

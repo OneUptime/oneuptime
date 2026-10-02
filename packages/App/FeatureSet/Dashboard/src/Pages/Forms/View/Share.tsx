@@ -88,6 +88,8 @@ const FormShare: FunctionComponent<PageComponentProps> = (): ReactElement => {
             description: FormsCopy.successMessageDescription,
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
+            // Shown on the public page, where a private image cannot load.
+            allowImageUpload: false,
           },
         ]}
         modelDetailProps={{
