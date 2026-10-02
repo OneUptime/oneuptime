@@ -57,6 +57,36 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
    */
   public static readonly DEFAULT_INCOMING_BODY_ERROR_KEYWORD: string = "error";
 
+  /*
+   * The HTTP status codes a new Website or API monitor counts as up: every
+   * 2xx and 3xx, i.e. from DEFAULT_HEALTHY_STATUS_CODE_FROM up to, but not
+   * including, DEFAULT_HEALTHY_STATUS_CODE_BELOW.
+   *
+   * The probe reports any answer at all as "online", so the status code is
+   * what tells a healthy endpoint from a failing one. The defaults used to
+   * demand exactly 200, which opened an incident the moment a monitor was
+   * created on a health check that answers 201 or 204, or on a redirect
+   * watched with "Do not follow redirects" on - none of which is an outage.
+   * 4xx and 5xx are still offline.
+   */
+  public static readonly DEFAULT_HEALTHY_STATUS_CODE_FROM: number = 200;
+  public static readonly DEFAULT_HEALTHY_STATUS_CODE_BELOW: number = 400;
+
+  /*
+   * How many days before expiry a new SSL Certificate monitor, and a new
+   * Domain monitor, raise their "expires soon" alert.
+   *
+   * Certificates get two weeks: renewal is automated almost everywhere
+   * (Let's Encrypt renews with a third of the lifetime left, and lifetimes
+   * are shrinking towards 47 days), so a certificate inside its last 14 days
+   * is one whose renewal has failed, and 14 days is still time to fix it by
+   * hand. Domains get 30: a registration is renewed once a year through a
+   * registrar, often with a payment or a contact check in the way, and a
+   * lapsed domain takes the website and its email down with it.
+   */
+  public static readonly DEFAULT_SSL_CERTIFICATE_EXPIRY_WARNING_DAYS: number = 14;
+  public static readonly DEFAULT_DOMAIN_EXPIRY_WARNING_DAYS: number = 30;
+
   public data: MonitorCriteriaInstanceType | undefined = undefined;
 
   public constructor() {
@@ -380,8 +410,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
-        name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} is online`,
+        name: `Check if ${arg.monitorName} certificate is valid`,
+        description: `This criteria checks if the ${arg.monitorName} SSL certificate is valid`,
       };
 
       return monitorCriteriaInstance;
@@ -478,11 +508,25 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         arg.monitorType === MonitorType.Website ||
         arg.monitorType === MonitorType.API
       ) {
-        monitorCriteriaInstance.data.filters.push({
-          checkOn: CheckOn.ResponseStatusCode,
-          filterType: FilterType.EqualTo,
-          value: 200,
-        });
+        /*
+         * Up means answering with any 2xx or 3xx status, not exactly 200:
+         * see DEFAULT_HEALTHY_STATUS_CODE_FROM. The offline criteria is the
+         * exact complement, so every answer lands in one of the two.
+         */
+        monitorCriteriaInstance.data.filters.push(
+          {
+            checkOn: CheckOn.ResponseStatusCode,
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: MonitorCriteriaInstance.DEFAULT_HEALTHY_STATUS_CODE_FROM,
+          },
+          {
+            checkOn: CheckOn.ResponseStatusCode,
+            filterType: FilterType.LessThan,
+            value: MonitorCriteriaInstance.DEFAULT_HEALTHY_STATUS_CODE_BELOW,
+          },
+        );
+
+        monitorCriteriaInstance.data.description = `This criteria checks if the ${arg.monitorName} is online and responds with a 2xx or 3xx status code`;
       }
 
       return monitorCriteriaInstance;
@@ -690,6 +734,120 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: false,
         name: `Check if ${arg.monitorName} is operational`,
         description: `This criteria checks if the ${arg.monitorName} external status page is reachable and has no active incidents`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
+    return null;
+  }
+
+  /*
+   * The "expires soon" criteria a new SSL Certificate or Domain monitor
+   * starts with, or null for every other monitor type.
+   *
+   * It is a heads-up, not an outage. It raises an alert, not an incident:
+   * nothing shows on a status page and nobody is paged unless an on-call
+   * policy is added to it. It leaves the monitor's status alone, because
+   * the certificate or the registration still works, so a monitor that was
+   * Operational stays Operational. The alert resolves itself once the
+   * renewal is picked up, because the online criteria then matches instead.
+   *
+   * MonitorCriteria.getDefaultMonitorCriteria places it between the offline
+   * and the online criteria. Only the first criteria that matches is acted
+   * on (MonitorCriteriaEvaluator.processMonitorStep), and a certificate
+   * that is valid but about to expire matches the online criteria too, so
+   * the warning has to be looked at first. Each one also requires a still
+   * valid certificate, or a registration that has not yet expired, so that
+   * it never claims an expired one even if the criteria are reordered.
+   *
+   * alertSeverityId should be the project's "warning" alert severity (the
+   * second one, see MonitorRecommendationSeverityMapper), not its most
+   * severe one: on a new project that is "Low" rather than "High".
+   */
+  public static getDefaultWarningMonitorCriteriaInstance(arg: {
+    monitorType: MonitorType;
+    alertSeverityId: ObjectID;
+    monitorName: string;
+  }): MonitorCriteriaInstance | null {
+    if (arg.monitorType === MonitorType.SSLCertificate) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: undefined,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.IsValidCertificate,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.ExpiresInDays,
+            filterType: FilterType.LessThanOrEqualTo,
+            value:
+              MonitorCriteriaInstance.DEFAULT_SSL_CERTIFICATE_EXPIRY_WARNING_DAYS,
+          },
+        ],
+        incidents: [],
+        alerts: [
+          {
+            title: `${arg.monitorName} certificate expires soon`,
+            description: `The SSL certificate of ${arg.monitorName} expires soon. Renew it before it expires, so visitors do not see a certificate error.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: false,
+        createIncidents: false,
+        createAlerts: true,
+        name: `Check if ${arg.monitorName} certificate expires soon`,
+        description: `This criteria checks if the ${arg.monitorName} SSL certificate is valid but expires in ${MonitorCriteriaInstance.DEFAULT_SSL_CERTIFICATE_EXPIRY_WARNING_DAYS} days or less`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
+    if (arg.monitorType === MonitorType.Domain) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: undefined,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.DomainIsExpired,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.DomainExpiresDaysIn,
+            filterType: FilterType.LessThanOrEqualTo,
+            value: MonitorCriteriaInstance.DEFAULT_DOMAIN_EXPIRY_WARNING_DAYS,
+          },
+        ],
+        incidents: [],
+        alerts: [
+          {
+            title: `${arg.monitorName} domain expires soon`,
+            description: `The registration of ${arg.monitorName} expires soon. Renew it with your registrar before it expires, or the websites and email that use it stop working.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: false,
+        createIncidents: false,
+        createAlerts: true,
+        name: `Check if ${arg.monitorName} domain expires soon`,
+        description: `This criteria checks if the ${arg.monitorName} domain registration expires in ${MonitorCriteriaInstance.DEFAULT_DOMAIN_EXPIRY_WARNING_DAYS} days or less`,
       };
 
       return monitorCriteriaInstance;
@@ -1078,6 +1236,12 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       arg.monitorType === MonitorType.API ||
       arg.monitorType === MonitorType.Website
     ) {
+      /*
+       * Offline means unreachable, or answering with a status outside
+       * 2xx-3xx: the exact complement of the online criteria, see
+       * DEFAULT_HEALTHY_STATUS_CODE_FROM. It used to fire on anything but
+       * 200, so a 201, 204 or 301 opened an incident.
+       */
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,
@@ -1090,14 +1254,19 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           },
           {
             checkOn: CheckOn.ResponseStatusCode,
-            filterType: FilterType.NotEqualTo,
-            value: 200,
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: MonitorCriteriaInstance.DEFAULT_HEALTHY_STATUS_CODE_BELOW,
+          },
+          {
+            checkOn: CheckOn.ResponseStatusCode,
+            filterType: FilterType.LessThan,
+            value: MonitorCriteriaInstance.DEFAULT_HEALTHY_STATUS_CODE_FROM,
           },
         ],
         alerts: [
           {
             title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            description: `${arg.monitorName} is not responding, or is responding with an error status code.`,
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1108,7 +1277,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         incidents: [
           {
             title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            description: `${arg.monitorName} is not responding, or is responding with an error status code.`,
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1118,7 +1287,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: true,
         name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} is offline`,
+        description: `This criteria checks if the ${arg.monitorName} is offline or responds with an error status code`,
       };
     }
 
@@ -1502,14 +1671,21 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }
 
     if (arg.monitorType === MonitorType.SSLCertificate) {
+      /*
+       * Named for what went wrong. "Is Not A Valid Certificate" covers an
+       * expired, self-signed or otherwise untrusted certificate, and one
+       * that could not be checked because the endpoint did not answer - the
+       * incident's root cause says which. "<name> is offline" described none
+       * of them.
+       */
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,
         filterCondition: FilterCondition.Any,
         alerts: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: `${arg.monitorName} certificate is not valid`,
+            description: `The SSL certificate of ${arg.monitorName} is not valid, or could not be checked.`,
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1526,8 +1702,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         incidents: [
           {
-            title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            title: `${arg.monitorName} certificate is not valid`,
+            description: `The SSL certificate of ${arg.monitorName} is not valid, or could not be checked.`,
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1536,8 +1712,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         changeMonitorStatus: true,
         createIncidents: true,
-        name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} is offline`,
+        name: `Check if ${arg.monitorName} certificate is not valid`,
+        description: `This criteria checks if the ${arg.monitorName} SSL certificate is not valid or could not be checked`,
       };
     }
 

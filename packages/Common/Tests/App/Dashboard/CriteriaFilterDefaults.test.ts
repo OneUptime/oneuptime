@@ -125,7 +125,10 @@ const ALL_FILTER_TYPES: Array<FilterType> = Object.values(
 /*
  * The default criteria a monitor of this type is created with, as the criteria
  * form would receive them. `getDefaultOnlineMonitorCriteriaInstance` returns
- * null for monitor types that only ship an offline criteria.
+ * null for monitor types that only ship an offline criteria, and
+ * `getDefaultWarningMonitorCriteriaInstance` for every type but SSL
+ * Certificate and Domain, whose "expires soon" warning is held to the same
+ * bar as everything else seeded.
  */
 function seededCriteriaInstances(
   monitorType: MonitorType,
@@ -138,6 +141,11 @@ function seededCriteriaInstances(
       alertSeverityId: new ObjectID("cccccccccccccccccccccccc"),
       monitorName: "Acme",
       metricOptions: { metricAliases: ["cpu"] },
+    }),
+    MonitorCriteriaInstance.getDefaultWarningMonitorCriteriaInstance({
+      monitorType: monitorType,
+      alertSeverityId: new ObjectID("eeeeeeeeeeeeeeeeeeeeeeee"),
+      monitorName: "Acme",
     }),
     MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
       monitorType: monitorType,
@@ -216,6 +224,61 @@ describe("Criteria filter defaults", () => {
           );
 
         expect(designed.length).toBeGreaterThan(0);
+      },
+    );
+
+    /*
+     * The thresholds new monitors start with: the healthy status range of a
+     * Website or API monitor and the expiry warnings of SSL Certificate and
+     * Domain monitors. Pinned here so the sweeps above provably cover them,
+     * and so each arrives with its number in the value box rather than as a
+     * condition waiting for one.
+     */
+    test.each([
+      [MonitorType.Website, CheckOn.ResponseStatusCode, FilterType.LessThan],
+      [
+        MonitorType.Website,
+        CheckOn.ResponseStatusCode,
+        FilterType.GreaterThanOrEqualTo,
+      ],
+      [MonitorType.API, CheckOn.ResponseStatusCode, FilterType.LessThan],
+      [
+        MonitorType.API,
+        CheckOn.ResponseStatusCode,
+        FilterType.GreaterThanOrEqualTo,
+      ],
+      [
+        MonitorType.SSLCertificate,
+        CheckOn.ExpiresInDays,
+        FilterType.LessThanOrEqualTo,
+      ],
+      [
+        MonitorType.Domain,
+        CheckOn.DomainExpiresDaysIn,
+        FilterType.LessThanOrEqualTo,
+      ],
+    ])(
+      "%s seeds a %s / %s threshold the form can draw, value included",
+      (monitorType: MonitorType, checkOn: CheckOn, filterType: FilterType) => {
+        const seeded: Array<CriteriaFilter> = seededCriteriaInstances(
+          monitorType,
+        ).flatMap((instance: MonitorCriteriaInstance) => {
+          return instance.data!.filters.filter((filter: CriteriaFilter) => {
+            return (
+              filter.checkOn === checkOn && filter.filterType === filterType
+            );
+          });
+        });
+
+        expect(seeded.length).toBeGreaterThan(0);
+
+        for (const filter of seeded) {
+          expect(checkOnOptionsFor(monitorType)).toContain(checkOn.toString());
+          expect(filterTypeOptionsFor(checkOn)).toContain(
+            filterType.toString(),
+          );
+          expect(typeof filter.value).toBe("number");
+        }
       },
     );
 
