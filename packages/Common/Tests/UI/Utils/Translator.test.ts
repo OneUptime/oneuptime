@@ -18,9 +18,11 @@ import { describe, expect, test } from "@jest/globals";
  * count-dependent sentences, and model names inside a sentence.
  *
  * These run it against plain dictionaries shaped the way the Dashboard's
- * locale files are (the English text is the key, plural forms live under the
- * key plus "_one", "_few", ...). A lookup answers with the key itself when it
- * has nothing, exactly as useTranslateValue().translateString does.
+ * locale files are (the English text is the key, a sentence's one form lives
+ * under the key plus "_one"). The Russian one also has i18next's "_few" and
+ * "_many" forms, which the translator reads when a dictionary has them. A
+ * lookup answers with the key itself when it has nothing, exactly as
+ * useTranslateValue().translateString does.
  */
 
 type Dictionary = Record<string, string>;
@@ -66,6 +68,7 @@ const GERMAN: Dictionary = {
   [SHOWING.other]: "{{range}} von {{total}} {{itemsName}}",
   [`${SHOWING.other}_one`]: "{{range}} von {{total}} {{itemName}}",
   "Create {{itemName}}": "{{itemName}} erstellen",
+  "No {{itemsName}} yet.": "Noch keine {{itemsName}}.",
   "Incident Grouping Rule": "Vorfall-Gruppierungsregel",
   Incidents: "Vorfälle",
   Incident: "Vorfall",
@@ -252,10 +255,29 @@ describe("translateTerm", () => {
     );
   });
 
-  test("an untranslated name follows English casing", () => {
+  /*
+   * German writes "Labels" and "Monitor" as English does, so the locale holds
+   * them unchanged - and they keep their capital, as German nouns do.
+   */
+  test("a name spelled the same in the reader's language is cased its way", () => {
+    expect(german.translateTerm("Labels", { inSentence: true })).toBe("Labels");
     expect(german.translateTerm("API Keys", { inSentence: true })).toBe(
+      "API Keys",
+    );
+    expect(
+      frenchPlaceholders.translateTerm("API Keys", { inSentence: true }),
+    ).toBe("API keys");
+    expect(english.translateTerm("API Keys", { inSentence: true })).toBe(
       "API keys",
     );
+  });
+
+  test("a translated German sentence keeps the capital of a noun German shares with English", () => {
+    expect(
+      german.translateTemplate("No {{itemsName}} yet.", {
+        itemsName: translatableTerm("Labels", { inSentence: true }),
+      }),
+    ).toBe("Noch keine Labels.");
   });
 
   test("an empty name is an empty string", () => {
@@ -384,6 +406,22 @@ describe("translatePlural", () => {
   test("English placeholders in a locale give the English sentence", () => {
     expect(frenchPlaceholders.translatePlural(ROWS, 1)).toBe("1 row");
     expect(frenchPlaceholders.translatePlural(ROWS, 2)).toBe("2 rows");
+  });
+
+  /*
+   * French counts 0 as "one", Russian counts 21 as "one": with the English
+   * placeholder still in the "_one" key, the sentence is English and takes
+   * English's form for the count.
+   */
+  test("an English one form left in a locale never puts other counts in the singular", () => {
+    const russianPlaceholders: Translator = createTranslator(
+      lookupFrom(FRENCH_UNTRANSLATED, ENGLISH),
+      "ru",
+    );
+
+    expect(frenchPlaceholders.translatePlural(ROWS, 0)).toBe("0 rows");
+    expect(russianPlaceholders.translatePlural(ROWS, 21)).toBe("21 rows");
+    expect(russianPlaceholders.translatePlural(ROWS, 1)).toBe("1 row");
   });
 
   test("a locale without the template gives the English sentence", () => {

@@ -16,10 +16,14 @@ import i18next from "i18next";
  * every placeholder.
  *
  * A sentence whose wording depends on a number ("1 incident", "5 incidents")
- * is a PluralTemplate: the English "other" sentence is the key, and the
- * locale's own form for the count (Russian has four) is stored under the key
- * plus "_one", "_few", "_many"... - i18next's plural suffixes, picked with
- * Intl.PluralRules (see App/FeatureSet/Dashboard/src/Locales/README.md).
+ * is a PluralTemplate: the English "other" sentence is the key and holds the
+ * locale's general wording, and the "one" form is stored under the key plus
+ * "_one" - used for the counts the language calls "one" (Intl.PluralRules: 1
+ * in German, 21 in Russian, 0 and 1 in French). A language with more forms
+ * words its general sentence so it reads right for any count ("Строк:
+ * {{count}}"). i18next's other suffixes ("_few", "_many") are read when a
+ * dictionary has them, but the Dashboard's locale files hold exactly
+ * en.json's keys (see App/FeatureSet/Dashboard/src/Locales/README.md).
  *
  * A value that is itself a word to translate - a model's name, "Incidents" -
  * is passed as a translatableTerm(). It is translated along with the sentence,
@@ -334,16 +338,18 @@ export const createTranslator: (
       return "";
     }
 
-    const translated: string | undefined = find(text);
+    const translated: string = find(text) ?? text;
 
     if (!options?.inSentence) {
-      return (translated ?? text).trim();
+      return translated.trim();
     }
 
-    // An untranslated name follows English casing; a translated one, its own.
-    return translated === undefined
-      ? toSentenceTerm(text, DEFAULT_LANGUAGE)
-      : toSentenceTerm(translated, activeLanguage);
+    /*
+     * Cased the reader's way, translated or not: a German noun spelled as in
+     * English ("Labels", "Monitor") keeps its capital in a German sentence.
+     * An English sentence never comes here - it is filled by fillTemplate.
+     */
+    return toSentenceTerm(translated, activeLanguage);
   };
 
   // Every value as the translated sentence shows it.
@@ -438,9 +444,19 @@ export const createTranslator: (
   ): string => {
     // English has two forms: exactly one, and everything else.
     const english: string = count === 1 ? template.one : template.other;
+    const stored: string | undefined = findPlural(template.other, count);
+
+    /*
+     * An English form left in a locale is a placeholder, not a translation:
+     * the sentence is English, in English's form for the count. Russian puts
+     * 21 in its "one" form, French puts 0 there - neither may borrow the
+     * English "1 row" for it.
+     */
+    const translated: string | undefined =
+      stored === template.one || stored === template.other ? undefined : stored;
 
     // {{count}} is written the reader's way unless the caller passes its own.
-    return fill(findPlural(template.other, count), english, {
+    return fill(translated, english, {
       count: formatNumber(count),
       ...values,
     });
@@ -526,17 +542,19 @@ export const translatePlural: (
  * "Delete Status Page" - from a template with an {{itemName}} slot. The whole
  * English phrase is looked up first, so a locale can word one model's button
  * its own way (gender, case); otherwise the template is filled with the
- * locale's word for the name.
+ * locale's word for the name. `values` fill any other placeholder - the verb
+ * of "{{action}} {{itemName}}", for one.
  */
 export const translateNamedAction: (
   translator: Translator,
-  data: { template: string; itemName: string },
+  data: { template: string; itemName: string; values?: TemplateValues },
 ) => string = (
   translator: Translator,
-  data: { template: string; itemName: string },
+  data: { template: string; itemName: string; values?: TemplateValues },
 ): string => {
   // The slot is {{itemName}}, or {{itemsName}} for a plural name.
   const phrase: string = fillTemplate(data.template, {
+    ...(data.values || {}),
     itemName: data.itemName.trim(),
     itemsName: data.itemName.trim(),
   });
@@ -546,6 +564,7 @@ export const translateNamedAction: (
   }
 
   return translator.translateTemplate(data.template, {
+    ...(data.values || {}),
     itemName: translatableTerm(data.itemName),
     itemsName: translatableTerm(data.itemName),
   });

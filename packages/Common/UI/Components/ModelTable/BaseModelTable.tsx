@@ -523,9 +523,9 @@ const getDeleteLabel: GetDeleteLabelFunction = (
 };
 
 /*
- * The header's create button for each verb a table uses, as a whole phrase
- * a locale can reorder ("{{itemName}} erstellen"). A verb not listed here
- * goes through the verb-and-noun template, which only reorders.
+ * The create button for each verb a table uses, as a whole phrase a locale
+ * can reorder ("{{itemName}} erstellen"). A verb not listed here goes through
+ * the verb-and-noun template, which only reorders.
  */
 const CREATE_BUTTON_TEMPLATES: Record<string, string> = {
   Add: translationKey("Add {{itemName}}"),
@@ -533,6 +533,36 @@ const CREATE_BUTTON_TEMPLATES: Record<string, string> = {
   Declare: translationKey("Declare {{itemName}}"),
   Invite: translationKey("Invite {{itemName}}"),
   Link: translationKey("Link {{itemName}}"),
+};
+
+/*
+ * "<verb> <noun>" on a create button - the table header's, and the create
+ * dialog's submit button. Translating the two words separately reads the
+ * verb out of context - "Link" comes back as the noun in many languages, and
+ * word order differs - so the whole phrase is looked up first ("Link Alert"),
+ * then the verb's template with the locale's word for the noun in it. In
+ * English all of them read the same.
+ */
+export const translateCreateAction: (
+  translator: Translator,
+  data: { verb?: string | undefined; itemName: string },
+) => string = (
+  translator: Translator,
+  data: { verb?: string | undefined; itemName: string },
+): string => {
+  const verb: string = data.verb || "Create";
+  const noun: string = data.itemName.trim();
+
+  // A table that keeps its button down to the verb ("Invite").
+  if (!noun) {
+    return translator.translateText(verb) || verb;
+  }
+
+  return translateNamedAction(translator, {
+    template: CREATE_BUTTON_TEMPLATES[verb] || "{{action}} {{itemName}}",
+    itemName: noun,
+    values: { action: translatableTerm(verb) },
+  });
 };
 
 export const BULK_DELETE_TITLE: PluralTemplate = {
@@ -608,38 +638,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return getRecordDisplayName(item, { model: model });
   };
 
-  /*
-   * The header's create button, "<verb> <noun>". Translating the two words
-   * separately reads the verb out of context - "Link" comes back as the noun
-   * in many languages, and word order differs - so the whole phrase is looked
-   * up first ("Link Alert") and the word-by-word join is only the fallback
-   * for a phrase with no entry of its own. In English both are the same.
-   */
+  // The header's create button, "<verb> <noun>".
   const getCreateButtonTitle: () => string = (): string => {
-    const verb: string = props.createVerb || "Create";
-    const noun: string = (
-      props.singularName ||
-      model.singularName ||
-      ""
-    ).trim();
-
-    // A table that keeps its button down to the verb ("Invite").
-    if (!noun) {
-      return tx(verb);
-    }
-
-    const template: string | undefined = CREATE_BUTTON_TEMPLATES[verb];
-
-    if (!template) {
-      return translator.translateTemplate("{{action}} {{itemName}}", {
-        action: translatableTerm(verb),
-        itemName: translatableTerm(noun),
-      });
-    }
-
-    return translateNamedAction(translator, {
-      template: template,
-      itemName: noun,
+    return translateCreateAction(translator, {
+      verb: props.createVerb,
+      itemName: props.singularName || model.singularName || "",
     });
   };
 

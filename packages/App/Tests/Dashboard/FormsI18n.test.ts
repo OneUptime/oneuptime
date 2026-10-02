@@ -425,32 +425,65 @@ describe("the glossary's words", () => {
 });
 
 describe("the composed strings", () => {
+  /*
+   * The shared components build these from the model's name with a template
+   * ("Create {{itemName}}"), and look the whole English phrase up first
+   * ("Create Form"), so the phrases the Forms locales word themselves win.
+   */
   test("are what the shared components build from the model's name", () => {
-    // The create button: the whole phrase is looked up first.
-    expect(readCommon("ModelTable", "BaseModelTable.tsx")).toContain(
-      "const phrase: string = `${verb} ${noun}`;",
+    // The whole phrase first, then the template with the name translated.
+    expect(readCommon("..", "Utils", "TranslateTemplate.ts")).toContain(
+      "if (translator.hasTranslation(phrase)) { return translator.translateText(phrase) || phrase; }",
     );
-    // The create modal's title, and its submit button.
+
+    // The create button, and the create dialog's submit button.
+    const baseModelTable: string = readCommon(
+      "ModelTable",
+      "BaseModelTable.tsx",
+    );
+
+    expect(baseModelTable).toContain(
+      'Create: translationKey("Create {{itemName}}"),',
+    );
+    expect(baseModelTable).toContain(
+      'return translateCreateAction(translator, { verb: props.createVerb, itemName: props.singularName || model.singularName || "", });',
+    );
+
+    // The create dialog's title and its submit button.
     const modelTable: string = readCommon("ModelTable", "ModelTable.tsx");
 
     expect(modelTable).toContain(
-      '`${props.createVerb || "Create"} New ${ props.singularName || model.singularName }`',
+      'Create: translationKey("Create New {{itemName}}"),',
     );
     expect(modelTable).toContain(
-      '`${props.createVerb || "Create"} ${ props.singularName || model.singularName }`',
+      'itemName: props.singularName || model.singularName || "", values: { action: translatableTerm(props.createVerb || "") },',
     );
-    // Each card's edit modal.
+    expect(modelTable).toContain(
+      '? translateCreateAction(translator, { verb: props.createVerb, itemName: props.singularName || model.singularName || "", })',
+    );
+
     /*
      * Each card's edit modal: "Edit <model>", unless the card names its
      * dialog itself. The Forms cards do not.
      */
-    expect(readCommon("ModelDetail", "CardModelDetail.tsx")).toContain(
-      "title={props.editModalTitle || `Edit ${model.singularName}`}",
+    const cardModelDetail: string = readCommon(
+      "ModelDetail",
+      "CardModelDetail.tsx",
     );
+
+    expect(cardModelDetail).toContain(
+      'const editTitle: string = translateNamedAction(translator, { template: "Edit {{itemName}}", itemName: model.singularName || "", });',
+    );
+    expect(cardModelDetail).toContain(
+      "title={props.editModalTitle || editTitle}",
+    );
+
     // The delete card, its button and its confirmation.
     const modelDelete: string = readCommon("ModelDelete", "ModelDelete.tsx");
 
-    expect(modelDelete).toContain("title={`Delete ${model.singularName}`}");
+    expect(modelDelete).toContain(
+      'title={translateNamedAction(translator, { template: "Delete {{itemName}}", itemName: model.singularName || "", })}',
+    );
     expect(modelDelete).toContain(
       'const typeLabel: string = model.singularName || "item";',
     );
@@ -465,6 +498,10 @@ describe("the composed strings", () => {
     );
     expect(deleteMessage).toContain(
       "return `Are you sure you want to delete this ${typeLabel}?`;",
+    );
+    // That sentence is looked up whole before the template is used.
+    expect(deleteMessage).toContain(
+      "if (translator.hasTranslation(sentence)) { return translator.translateText(sentence) || sentence; }",
     );
   });
 });

@@ -255,6 +255,24 @@ describe("BaseModelTable header create button title", () => {
     ).toBe("Zuweisen Besitzer");
   });
 
+  test("a verb with no template of its own still has its whole phrase looked up first", async () => {
+    dictionary = {
+      "Assign Owner": "Besitzer zuweisen",
+      Assign: "Zuweisen",
+      Owner: "Besitzer",
+    };
+
+    expect(
+      await renderedTitle({ createVerb: "Assign", singularName: "Owner" }),
+    ).toBe("Besitzer zuweisen");
+  });
+
+  test("a verb with no template of its own reads the same in English", async () => {
+    expect(
+      await renderedTitle({ createVerb: "Assign", singularName: "Owner" }),
+    ).toBe("Assign Owner");
+  });
+
   test("a blank name leaves the verb on its own", async () => {
     dictionary = {
       Invite: "Einladen",

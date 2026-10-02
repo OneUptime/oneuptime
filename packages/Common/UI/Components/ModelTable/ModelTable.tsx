@@ -17,6 +17,7 @@ import BaseModelTable, {
   BaseTableProps,
   BulkActionProps,
   ModalType,
+  translateCreateAction,
 } from "./BaseModelTable";
 import {
   BulkActionButtonSchema,
@@ -35,6 +36,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  translatableTerm,
   translateNamedAction,
   translationKey,
   Translator,
@@ -43,9 +45,9 @@ import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useState } from "react";
 
 /*
- * The create and edit dialogs' titles. A table's own verb ("Add", "Invite")
- * gets its own phrase, so a locale can word each one; an unlisted verb falls
- * back to "Create".
+ * The create dialog's title. A table's own verb ("Add", "Invite") gets its
+ * own phrase, so a locale can word each one; an unlisted verb goes through
+ * the verb-and-noun template.
  */
 const CREATE_NEW_TEMPLATES: Record<string, string> = {
   Add: translationKey("Add New {{itemName}}"),
@@ -54,6 +56,10 @@ const CREATE_NEW_TEMPLATES: Record<string, string> = {
   Invite: translationKey("Invite New {{itemName}}"),
   Link: translationKey("Link New {{itemName}}"),
 };
+
+const CREATE_NEW_TEMPLATE: string = translationKey(
+  "{{action}} New {{itemName}}",
+);
 import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
 import Sort from "../../../Types/BaseDatabase/Sort";
@@ -303,9 +309,10 @@ const ModelTable: <TBaseModel extends BaseModel>(
                   template:
                     modalType === ModalType.Create
                       ? CREATE_NEW_TEMPLATES[props.createVerb || "Create"] ||
-                        "Create New {{itemName}}"
+                        CREATE_NEW_TEMPLATE
                       : "Edit {{itemName}}",
                   itemName: props.singularName || model.singularName || "",
+                  values: { action: translatableTerm(props.createVerb || "") },
                 })}
                 formRef={props.createEditFromRef}
                 modalWidth={props.createEditModalWidth}
@@ -326,9 +333,11 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 onClose={onClose}
                 submitButtonText={
                   modalType === ModalType.Create
-                    ? `${props.createVerb || "Create"} ${
-                        props.singularName || model.singularName
-                      }`
+                    ? translateCreateAction(translator, {
+                        verb: props.createVerb,
+                        itemName:
+                          props.singularName || model.singularName || "",
+                      })
                     : `Save Changes`
                 }
                 onSuccess={onSuccess}
