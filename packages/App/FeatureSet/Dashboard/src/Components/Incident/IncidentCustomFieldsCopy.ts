@@ -33,8 +33,6 @@ export const IncidentCustomFieldsCopy: {
   templateCustomFieldsCardTitle: string;
   templateCustomFieldsCardDescription: string;
   noteTemplatePlaceholdersIntro: string;
-  noteTemplateInternalDataWarningTitle: string;
-  noteTemplateInternalDataWarning: string;
 } = {
   detailsStepTitle: INCIDENT_DETAILS_STEP_TITLE,
   templateCustomFieldsStepTitle: INCIDENT_TEMPLATE_CUSTOM_FIELDS_STEP_TITLE,
@@ -43,14 +41,6 @@ export const IncidentCustomFieldsCopy: {
     "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.",
   noteTemplatePlaceholdersIntro:
     "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.",
-  /*
-   * The same template fills public notes, which go to status pages and
-   * their subscribers; the placeholders fill every custom field, marked for
-   * subscribers or not. The subscriber template panel warns the same way.
-   */
-  noteTemplateInternalDataWarningTitle: "Internal data",
-  noteTemplateInternalDataWarning:
-    "Custom field values, labels and the affected status pages come from your team's incident records, whether or not a field is marked Include in Subscriber Notifications. A public note is shown on the status pages the incident is on and emailed to their subscribers, so read the filled-in text before you post a public note.",
 };
 
 export default IncidentCustomFieldsCopy;
