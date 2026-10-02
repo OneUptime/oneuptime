@@ -1,0 +1,10 @@
+{
+  "baseline": {
+    "keys": 19851,
+    "untranslated": 12686
+  },
+  "sameAsEnglish": [
+    "Label: {{name}}",
+    "{{field}} is {{value}}"
+  ]
+}
