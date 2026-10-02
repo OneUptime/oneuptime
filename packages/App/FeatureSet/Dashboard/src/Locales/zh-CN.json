@@ -7080,6 +7080,7 @@
   "Use only letters, numbers and - _ . / : # (no spaces).": "只能使用字母、数字以及 - _ . / : #（不能有空格）。",
   "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "请以字母或 - 等符号结尾。结尾是数字会与编号连在一起：SEV1 会变成 SEV142。",
   "Archived Policies": "已归档策略",
+  "Currently Active": "当前进行中",
   "Template variables": "模板变量",
   "Insert variable": "插入变量",
   "Search variables": "搜索变量",

@@ -7080,6 +7080,7 @@
   "Use only letters, numbers and - _ . / : # (no spaces).": "Use apenas letras, números e - _ . / : # (sem espaços).",
   "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "Termine com uma letra ou um símbolo como -. Um dígito no final se junta ao número: SEV1 daria SEV142.",
   "Archived Policies": "Políticas arquivadas",
+  "Currently Active": "Atualmente ativo",
   "Template variables": "Variáveis de modelo",
   "Insert variable": "Inserir variável",
   "Search variables": "Pesquisar variáveis",

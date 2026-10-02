@@ -84,13 +84,33 @@ test.describe("Runners live under Runbooks", () => {
         return body.data;
       };
 
-      // The Runbooks menu lists both Runner pages.
+      /*
+       * The Runbooks menu lists both Runner pages, in a Runners section that
+       * starts folded down to its title, like every rarely used section: its
+       * rows are hidden until it is opened.
+       */
+      const runnersSectionToggle: Locator = page
+        .locator("aside[role='navigation'][aria-label='Main navigation']")
+        .locator(
+          "xpath=.//h6[normalize-space(.)='Runners']/ancestor::button[1]",
+        );
       await gotoProjectPage({
         page,
         projectId,
         url: urlFor(runbooksPath),
-        ready: runnersLink.first(),
+        ready: runnersSectionToggle,
       });
+      await expect(runnersSectionToggle).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
+      await expect(runnersLink.first()).toBeHidden();
+      await runnersSectionToggle.click();
+      await expect(runnersSectionToggle).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+      await expect(runnersLink.first()).toBeVisible();
       await expect(credentialsLink.first()).toBeVisible();
 
       // Its Runners entry opens the list, under Runbooks.

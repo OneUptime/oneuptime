@@ -364,7 +364,9 @@ const RegisterPage: () => JSX.Element = () => {
         );
       },
       ariaDescribedby: passwordRequirementsId,
+      // The new account's password: password managers suggest and save it.
       autoComplete: "new-password",
+      isOwnCredential: true,
       placeholder: t("common.password"),
       title: t("common.password"),
       required: true,
@@ -395,6 +397,7 @@ const RegisterPage: () => JSX.Element = () => {
       fieldType: FormFieldSchemaType.Password,
       spanFullRow: true,
       autoComplete: "new-password",
+      isOwnCredential: true,
       placeholder: t("common.confirmPassword"),
       title: t("common.confirmPassword"),
       overrideFieldKey: "confirmPassword",

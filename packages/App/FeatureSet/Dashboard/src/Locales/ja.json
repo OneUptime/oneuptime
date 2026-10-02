@@ -7080,6 +7080,7 @@
   "Use only letters, numbers and - _ . / : # (no spaces).": "使用できるのは文字、数字、- _ . / : # のみです（スペース不可）。",
   "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "末尾は文字か - などの記号にしてください。末尾が数字だと番号とつながってしまいます（SEV1 だと SEV142 になります）。",
   "Archived Policies": "アーカイブ済みポリシー",
+  "Currently Active": "現在アクティブ",
   "Template variables": "テンプレート変数",
   "Insert variable": "変数を挿入",
   "Search variables": "変数を検索",

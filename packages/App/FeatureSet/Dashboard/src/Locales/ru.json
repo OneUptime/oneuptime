@@ -7080,6 +7080,7 @@
   "Use only letters, numbers and - _ . / : # (no spaces).": "Используйте только буквы, цифры и - _ . / : # (без пробелов).",
   "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "Заканчивайте буквой или символом, например -. Цифра в конце сливается с номером: из SEV1 получится SEV142.",
   "Archived Policies": "Архивированные политики",
+  "Currently Active": "Сейчас активно",
   "Template variables": "Переменные шаблона",
   "Insert variable": "Вставить переменную",
   "Search variables": "Поиск переменных",

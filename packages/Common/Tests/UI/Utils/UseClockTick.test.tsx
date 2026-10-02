@@ -11,10 +11,17 @@ const START: Date = new Date("2026-08-03T18:07:09.500Z");
  * the value through a real component lifecycle (mount, re-render, unmount)
  * rather than poking at the hook in isolation.
  */
-const ClockProbe: FunctionComponent<{ showSeconds: boolean }> = (props: {
+const ClockProbe: FunctionComponent<{
   showSeconds: boolean;
+  isEnabled?: boolean | undefined;
+}> = (props: {
+  showSeconds: boolean;
+  isEnabled?: boolean | undefined;
 }): ReactElement => {
-  const now: Date = useClockTick(props.showSeconds);
+  const now: Date = useClockTick(
+    props.showSeconds,
+    props.isEnabled === undefined ? undefined : { isEnabled: props.isEnabled },
+  );
 
   return <div data-testid="now">{now.toISOString()}</div>;
 };
@@ -271,6 +278,134 @@ describe("useClockTick", () => {
       view.rerender(<ClockProbe showSeconds={true} />);
 
       expect(jest.getTimerCount()).toBe(1);
+    });
+  });
+
+  /*
+   * A live duration turns its clock off once the row it times has ended, so
+   * a table of finished timeline rows must cost nothing at all.
+   */
+  describe("when the clock is switched off", () => {
+    it("still reports the time it was mounted at", () => {
+      render(<ClockProbe showSeconds={true} isEnabled={false} />);
+
+      expect(renderedTime()).toBe(START.toISOString());
+    });
+
+    it("arms no timer", () => {
+      render(<ClockProbe showSeconds={true} isEnabled={false} />);
+
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    it("never advances, however long it is left", () => {
+      render(<ClockProbe showSeconds={true} isEnabled={false} />);
+
+      advance(60 * 60 * 1000);
+
+      expect(renderedTime()).toBe(START.toISOString());
+    });
+
+    it("does not listen for the tab coming back", () => {
+      const addSpy: jest.SpyInstance = jest.spyOn(document, "addEventListener");
+
+      render(<ClockProbe showSeconds={true} isEnabled={false} />);
+
+      expect(addSpy).not.toHaveBeenCalledWith(
+        "visibilitychange",
+        expect.any(Function),
+      );
+
+      addSpy.mockRestore();
+    });
+
+    it("ignores the tab coming back", () => {
+      render(<ClockProbe showSeconds={true} isEnabled={false} />);
+
+      act(() => {
+        jest.setSystemTime(new Date("2026-08-03T18:42:31.000Z"));
+      });
+      becomeVisible();
+
+      expect(renderedTime()).toBe(START.toISOString());
+    });
+
+    it("is on when the option is left out, and when it says true", () => {
+      render(<ClockProbe showSeconds={true} isEnabled={true} />);
+
+      advance(500);
+
+      expect(renderedTime()).toBe("2026-08-03T18:07:10.000Z");
+      expect(jest.getTimerCount()).toBe(1);
+    });
+
+    it("stops a running clock and drops its timer and its listener", () => {
+      const removeSpy: jest.SpyInstance = jest.spyOn(
+        document,
+        "removeEventListener",
+      );
+
+      const view: ReturnType<typeof render> = render(
+        <ClockProbe showSeconds={true} />,
+      );
+
+      advance(500);
+      expect(renderedTime()).toBe("2026-08-03T18:07:10.000Z");
+
+      view.rerender(<ClockProbe showSeconds={true} isEnabled={false} />);
+
+      expect(jest.getTimerCount()).toBe(0);
+      expect(removeSpy).toHaveBeenCalledWith(
+        "visibilitychange",
+        expect.any(Function),
+      );
+
+      // Frozen on the last tick it made.
+      advance(5000);
+      expect(renderedTime()).toBe("2026-08-03T18:07:10.000Z");
+
+      removeSpy.mockRestore();
+    });
+
+    it("reads the real time on the very render it is switched back on", () => {
+      const view: ReturnType<typeof render> = render(
+        <ClockProbe showSeconds={true} isEnabled={false} />,
+      );
+
+      // A long pause: the time it held is now ten minutes stale.
+      act(() => {
+        jest.setSystemTime(new Date("2026-08-03T18:17:09.500Z"));
+      });
+
+      view.rerender(<ClockProbe showSeconds={true} isEnabled={true} />);
+
+      expect(renderedTime()).toBe("2026-08-03T18:17:09.500Z");
+    });
+
+    it("ticks on the second boundaries again once it is back on", () => {
+      const view: ReturnType<typeof render> = render(
+        <ClockProbe showSeconds={true} isEnabled={false} />,
+      );
+
+      view.rerender(<ClockProbe showSeconds={true} isEnabled={true} />);
+
+      expect(jest.getTimerCount()).toBe(1);
+
+      advance(500);
+      expect(renderedTime()).toBe("2026-08-03T18:07:10.000Z");
+
+      advance(1000);
+      expect(renderedTime()).toBe("2026-08-03T18:07:11.000Z");
+    });
+
+    it("leaves nothing behind when unmounted while off", () => {
+      const view: ReturnType<typeof render> = render(
+        <ClockProbe showSeconds={true} isEnabled={false} />,
+      );
+
+      view.unmount();
+
+      expect(jest.getTimerCount()).toBe(0);
     });
   });
 });

@@ -94,14 +94,47 @@ describe("Alerts side menu", () => {
       ]);
     });
 
+    // As the maintainer drew the Incidents menu, which this one mirrors.
     test("the day-to-day sections are expanded and the configuration sections are collapsed", async () => {
       await renderAlertsMenu();
 
       expect(isExpanded("Alerts")).toBe(true);
       expect(isExpanded("Episodes")).toBe(true);
-      expect(isExpanded("Workspace")).toBe(true);
+      expect(isExpanded("Workspace")).toBe(false);
       expect(isExpanded("Rules")).toBe(false);
       expect(isExpanded("Settings")).toBe(false);
+      expect(isExpanded("Developer")).toBe(false);
+      expect(sectionBody("Workspace")).toHaveClass(
+        "max-h-0",
+        "opacity-0",
+        "invisible",
+      );
+    });
+
+    test.each([
+      ["Slack", PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK],
+      ["Microsoft Teams", PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS],
+    ])(
+      "Workspace opens by itself on the %s page, and marks it",
+      async (title: string, pageMapKey: string) => {
+        goTo(routeFor(pageMapKey));
+        await renderAlertsMenu();
+
+        expect(isExpanded("Workspace")).toBe(true);
+        expect(sectionBody("Workspace")).not.toHaveClass("invisible");
+        expect(isExpanded("Rules")).toBe(false);
+        expect(isExpanded("Settings")).toBe(false);
+        expect(activeLinkTitles()).toEqual([title]);
+      },
+    );
+
+    test("Workspace opens with a click", async () => {
+      await renderAlertsMenu();
+
+      fireEvent.click(sectionToggle("Workspace"));
+
+      expect(isExpanded("Workspace")).toBe(true);
+      expect(sectionBody("Workspace")).toHaveClass("opacity-100");
     });
 
     test("the alert, episode and workspace sections are unchanged by the move", async () => {

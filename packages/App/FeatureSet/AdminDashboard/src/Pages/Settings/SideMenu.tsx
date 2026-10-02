@@ -24,7 +24,18 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
 
-      <SideMenuSection title={t("sideMenu.settingsAuthentication")}>
+      {/*
+       * Every page here is set up once and revisited rarely, so only Basic
+       * starts open, and the sections below fold down to their titles: an
+       * index of what can be configured, each opening with one click and by
+       * itself on its own pages. The shared SideMenuSection folds a section
+       * by its English title (see SideMenuSectionState.ts); these titles are
+       * already translated, so each one says it here.
+       */}
+      <SideMenuSection
+        title={t("sideMenu.settingsAuthentication")}
+        defaultCollapsed={true}
+      >
         <SideMenuItem
           link={{
             title: "Global SSO",
@@ -45,7 +56,10 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
 
-      <SideMenuSection title={t("sideMenu.settingsNotifications")}>
+      <SideMenuSection
+        title={t("sideMenu.settingsNotifications")}
+        defaultCollapsed={true}
+      >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsEmails"),
@@ -84,7 +98,10 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
 
-      <SideMenuSection title={t("sideMenu.settingsMonitoring")}>
+      <SideMenuSection
+        title={t("sideMenu.settingsMonitoring")}
+        defaultCollapsed={true}
+      >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsGlobalProbes"),
@@ -95,7 +112,10 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Signal}
         />
       </SideMenuSection>
-      <SideMenuSection title={t("sideMenu.settingsDataRetention")}>
+      <SideMenuSection
+        title={t("sideMenu.settingsDataRetention")}
+        defaultCollapsed={true}
+      >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsDataRetention"),
@@ -106,7 +126,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Database}
         />
       </SideMenuSection>
-      <SideMenuSection title={t("sideMenu.settingsAi")}>
+      <SideMenuSection title={t("sideMenu.settingsAi")} defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsGlobalAiAgents"),
@@ -126,7 +146,10 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Brain}
         />
       </SideMenuSection>
-      <SideMenuSection title={t("sideMenu.settingsApiIntegrations")}>
+      <SideMenuSection
+        title={t("sideMenu.settingsApiIntegrations")}
+        defaultCollapsed={true}
+      >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsApiKey"),

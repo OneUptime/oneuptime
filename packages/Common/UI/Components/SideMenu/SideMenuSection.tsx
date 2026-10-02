@@ -14,9 +14,11 @@ export interface ComponentProps {
   title: string;
   children: ReactElement | Array<ReactElement>;
   /*
-   * Leave unset to follow the product rule: a section titled "Advanced"
-   * starts collapsed, every other section starts open (see
-   * SideMenuSectionState.ts). Set it to decide for this section either way.
+   * Leave unset to follow the product rule: a section whose title names a
+   * rarely used kind of section (Advanced, Developer, Settings, Rules,
+   * Workspace, AI, Logs and the rest of SECTION_TITLES_COLLAPSED_BY_DEFAULT
+   * in SideMenuSectionState.ts) starts collapsed, every other section starts
+   * open. Set it to decide for this section either way.
    */
   defaultCollapsed?: boolean;
   collapsible?: boolean;

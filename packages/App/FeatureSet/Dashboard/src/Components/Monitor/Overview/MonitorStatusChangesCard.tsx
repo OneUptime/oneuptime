@@ -9,6 +9,7 @@ import MonitorStatusDot from "./MonitorStatusDot";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
+import CurrentlyActiveIndicator from "Common/UI/Components/StateTimeline/CurrentlyActiveIndicator";
 import MonitorStatusHistoryUtil, {
   MonitorStatusChangeRow,
 } from "Common/Utils/Monitor/MonitorStatusHistoryUtil";
@@ -22,8 +23,10 @@ export interface ComponentProps {
 
 /*
  * The last few times this monitor changed status, newest first, with how
- * long each lasted. Only the newest open row is "ongoing": an older row the
- * reconciler has not closed yet is capped at the start of the next one.
+ * long each lasted. Only the newest open row is ongoing - marked "Currently
+ * Active", as on the full status timeline, with a duration that keeps
+ * counting: an older row the reconciler has not closed yet is capped at the
+ * start of the next one.
  */
 const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -38,7 +41,7 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
     if (row.isOngoing) {
       return (
         <>
-          {"ongoing, "}
+          {"for "}
           <LiveDuration startDate={row.startsAt} />
           {" · "}
         </>
@@ -104,11 +107,12 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
                   data-testid="monitor-status-change-row"
                   className="py-2.5"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <MonitorStatusDot color={row.statusColor} />
                     <span className="text-sm font-medium text-gray-900">
                       {row.statusName}
                     </span>
+                    {row.isOngoing ? <CurrentlyActiveIndicator /> : <></>}
                   </div>
                   <p className="mt-0.5 text-xs text-gray-500">
                     {getDuration(row)}

@@ -7080,6 +7080,7 @@
   "Use only letters, numbers and - _ . / : # (no spaces).": "Use only letters, numbers and - _ . / : # (no spaces).",
   "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.",
   "Archived Policies": "Archived Policies",
+  "Currently Active": "Currently Active",
   "Template variables": "Template variables",
   "Insert variable": "Insert variable",
   "Search variables": "Search variables",

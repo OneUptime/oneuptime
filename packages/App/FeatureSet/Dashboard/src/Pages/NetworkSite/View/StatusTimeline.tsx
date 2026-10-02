@@ -19,6 +19,10 @@ import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteS
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import {
+  getStateTimelineDurationColumn,
+  getStateTimelineEndsAtColumn,
+} from "Common/UI/Components/StateTimeline/StateTimelineColumns";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -299,55 +303,16 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
             title: "From",
             type: FieldType.DateTime,
           },
-          {
-            field: {
-              endsAt: true,
-            },
+          /*
+           * The same two columns as every other status timeline - the
+           * pulsing "Currently Active" marker and a live duration - in this
+           * page's own words, with the marker sized to the status pill.
+           */
+          getStateTimelineEndsAtColumn<NetworkSiteStatusTimeline>({
             title: "Until",
-            type: FieldType.Element,
-            getElement: (item: NetworkSiteStatusTimeline): ReactElement => {
-              if (!item.endsAt) {
-                return (
-                  <span className="text-sm font-medium text-emerald-700">
-                    Ongoing
-                  </span>
-                );
-              }
-              return (
-                <span className="text-sm text-gray-600">
-                  {OneUptimeDate.getDateAsLocalFormattedString(
-                    OneUptimeDate.fromString(item.endsAt),
-                  )}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              startsAt: true,
-            },
-            title: "Duration",
-            type: FieldType.Element,
-            getElement: (item: NetworkSiteStatusTimeline): ReactElement => {
-              if (!item.startsAt) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-
-              const start: Date = OneUptimeDate.fromString(item.startsAt);
-              const end: Date = item.endsAt
-                ? OneUptimeDate.fromString(item.endsAt)
-                : OneUptimeDate.getCurrentDate();
-
-              return (
-                <span className="text-sm text-gray-600">
-                  {OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
-                    start,
-                    end,
-                  )}
-                </span>
-              );
-            },
-          },
+            indicatorSize: PillSize.Small,
+          }),
+          getStateTimelineDurationColumn<NetworkSiteStatusTimeline>(),
         ]}
       />
     </Fragment>

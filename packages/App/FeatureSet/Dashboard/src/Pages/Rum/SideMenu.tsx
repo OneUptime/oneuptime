@@ -27,9 +27,12 @@ const RumSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     /*
-     * settings-setup-5: this section used to start collapsed, which hid the
-     * project-wide replay switch that every piece of replay copy points at.
-     * Three items do not need collapsing.
+     * Starts collapsed, like the Settings section of every other product's
+     * menu: the project-wide replay switch here is set once, not visited
+     * every day. It was kept open for a while (settings-setup-5) because the
+     * replay copy points at "Real User Monitoring > Settings > Session
+     * Replay"; that path still reads true, since the folded section shows
+     * its title, and it opens by itself on each of these pages.
      */
     {
       title: "Settings",

@@ -202,13 +202,27 @@
       scrollbar-color: #475569 #0f172a;
     }
 
+    /*
+     * A fullscreen dashboard (or replay) and its backdrop take the page colour
+     * instead of the browser's black.
+     *
+     * Only the fullscreen backdrop. Every element in the browser's top layer
+     * gets a viewport-sized ::backdrop under it: fullscreen elements, modal
+     * dialogs and popovers. Password managers and other extensions show their
+     * in-page UI as popovers - 1Password's "Sign in" prompt is a
+     * <com-1password-uso popover> - and a popover's backdrop is see-through
+     * unless the page paints it. A bare ::backdrop here painted it in the page
+     * colour, so the whole dashboard vanished behind the prompt until it was
+     * dismissed. Common/Tests/UI/Styles/TopLayerBackdrop.test.ts keeps every
+     * ::backdrop rule the frontends ship scoped.
+     */
     :fullscreen,
-    ::backdrop {
+    :fullscreen::backdrop {
       background-color: rgb(249, 250, 251);
     }
 
     html.dark :fullscreen,
-    html.dark ::backdrop {
+    html.dark :fullscreen::backdrop {
       background-color: rgb(15, 23, 42);
     }
   </style>

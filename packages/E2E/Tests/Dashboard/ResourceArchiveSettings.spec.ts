@@ -108,13 +108,30 @@ test.describe("Resource archive actions live in Settings", () => {
         const settingsLink: Locator = page.locator(
           `a[href='${listPath}/${record._id}/settings']`,
         );
+        /*
+         * The resource's Settings page sits in a Settings section that
+         * starts folded down to its title, like every rarely used section:
+         * its row is hidden until the section is opened.
+         */
+        const settingsSectionToggle: Locator = page
+          .locator("aside[role='navigation'][aria-label='Main navigation']")
+          .locator(
+            "xpath=.//h6[normalize-space(.)='Settings']/ancestor::button[1]",
+          );
 
         await gotoProjectPage({
           page,
           projectId,
           url: overviewUrl,
-          ready: settingsLink.first(),
+          ready: settingsSectionToggle,
         });
+        await expect(settingsSectionToggle).toHaveAttribute(
+          "aria-expanded",
+          "false",
+        );
+        await expect(settingsLink.first()).toBeHidden();
+        await settingsSectionToggle.click();
+        await expect(settingsLink.first()).toBeVisible();
         await expect(
           page.getByRole("heading", { name: resourceName, exact: true }),
         ).toBeVisible();
