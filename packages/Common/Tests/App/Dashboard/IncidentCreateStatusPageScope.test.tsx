@@ -16,11 +16,17 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Declaring an incident limited to some status pages: the Create page's
  * status page picker, the warnings it raises with the fields it interacts
  * with, the audience summary on the last step, and the template prefill.
+ * The picker has no banner explaining an empty list ("No status pages to
+ * pick from ... Ask a project admin."): the maintainer asked for it to go.
  *
  * ModelForm is stubbed to capture the fields it is handed (as
  * IncidentCreateFromAlerts.test.tsx does); each field's footer and summary
  * are then rendered with the form values a person would have entered.
  */
+
+// The removed banner's opening words, and its test id.
+const REMOVED_BANNER_TEXT: RegExp = /No status pages to pick from/;
+const REMOVED_BANNER_TEST_ID: string = "status-page-picker-no-access";
 
 jest.mock("react-i18next", () => {
   return {
@@ -41,7 +47,9 @@ type CapturedField = {
   placeholder?: string;
   stepId?: string;
   fieldType?: string;
+  required?: boolean;
   dropdownModal?: { type: unknown; labelField: string; valueField: string };
+  footerElement?: unknown;
   getFooterElement?: (values: Record<string, unknown>) => unknown;
   getSummaryElement?: (values: Record<string, unknown>) => unknown;
 };
@@ -212,6 +220,28 @@ async function renderElement(element: unknown): Promise<void> {
   });
 }
 
+// Renders an element on its own and returns the container it went into.
+async function renderAlone(element: unknown): Promise<HTMLElement> {
+  const container: HTMLElement = document.createElement("div");
+  document.body.appendChild(container);
+
+  await act(async () => {
+    render(
+      <MemoryRouter>{(element as React.ReactElement) || <></>}</MemoryRouter>,
+      { container: container },
+    );
+  });
+
+  return container;
+}
+
+// The page's requests to count status pages.
+function statusPageCountRequests(): Array<unknown> {
+  return countMock.mock.calls.filter((call: Array<unknown>): boolean => {
+    return (call[0] as { modelType?: unknown }).modelType === StatusPage;
+  });
+}
+
 beforeEach(() => {
   capturedForms = [];
   queryString = {};
@@ -267,26 +297,59 @@ describe("the status page picker on the Create page", () => {
     );
   });
 
-  test("says why it is empty when the person cannot read status pages", async () => {
-    countMock.mockRejectedValue(new Error("Not allowed"));
-
+  test("is optional, so someone who cannot read status pages can still declare", async () => {
     await renderCreate();
-    await renderElement(
-      fieldFor("statusPages").getFooterElement!({ statusPages: [] }),
-    );
 
-    expect(
-      screen.getByTestId("status-page-picker-no-access"),
-    ).toHaveTextContent(IncidentStatusPageScopeCopy.pickerNoAccessHint);
+    expect(fieldFor("statusPages").required).toBe(false);
   });
 
-  test("no hint when there are status pages to pick", async () => {
+  /*
+   * Someone with no status page to pick from - an incident role cannot read
+   * status pages - used to get an information banner under the picker. It
+   * is gone: the picker is simply empty, and the footer shows nothing.
+   */
+  test("shows no banner under the picker when the person cannot read status pages", async () => {
+    countMock.mockRejectedValue(
+      new Error("You do not have permissions to read Status Page."),
+    );
+
+    await renderCreate();
+
+    const footer: HTMLElement = await renderAlone(
+      fieldFor("statusPages").getFooterElement!({ statusPages: [] }),
+    );
+
+    expect(footer).toBeEmptyDOMElement();
+    expect(screen.queryByTestId(REMOVED_BANNER_TEST_ID)).toBeNull();
+    expect(screen.queryByText(REMOVED_BANNER_TEXT)).toBeNull();
+  });
+
+  test("shows no banner when the project has no status pages either", async () => {
+    countMock.mockResolvedValue(0);
+
+    await renderCreate();
+
+    const footer: HTMLElement = await renderAlone(
+      fieldFor("statusPages").getFooterElement!({ statusPages: [] }),
+    );
+
+    expect(footer).toBeEmptyDOMElement();
+    expect(screen.queryByRole("note")).toBeNull();
+  });
+
+  test("never asks how many status pages the person can read", async () => {
     await renderCreate();
     await renderElement(
       fieldFor("statusPages").getFooterElement!({ statusPages: [] }),
     );
 
-    expect(screen.queryByTestId("status-page-picker-no-access")).toBeNull();
+    expect(statusPageCountRequests()).toEqual([]);
+  });
+
+  test("has no fixed footer of its own, only the warnings worked out from the form", async () => {
+    await renderCreate();
+
+    expect(fieldFor("statusPages").footerElement).toBeUndefined();
   });
 
   test("warns about a picked page that lists none of the chosen monitors", async () => {
@@ -311,6 +374,29 @@ describe("the status page picker on the Create page", () => {
         names: "Site 07",
       }),
     );
+  });
+
+  test("with pages picked, that warning is the only notice: no banner beside it", async () => {
+    // What used to bring the banner up: no status page the person can read.
+    countMock.mockRejectedValue(
+      new Error("You do not have permissions to read Status Page."),
+    );
+
+    await renderCreate();
+    await renderElement(
+      fieldFor("statusPages").getFooterElement!({
+        monitors: [{ _id: MONITOR_ID, name: "API" }],
+        statusPages: [SITE_03, SITE_07],
+      }),
+    );
+
+    await screen.findByTestId("status-pages-not-listing-monitors", undefined, {
+      timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000,
+    });
+
+    expect(screen.getAllByRole("note")).toHaveLength(1);
+    expect(screen.queryByTestId(REMOVED_BANNER_TEST_ID)).toBeNull();
+    expect(screen.queryByText(REMOVED_BANNER_TEXT)).toBeNull();
   });
 
   test("the summary step names the pages, or says it is not limited", async () => {
@@ -596,6 +682,26 @@ describe("declaring from a template", () => {
           "incident-create-template-scoped-to-deleted-pages",
         ),
       ).toBeNull();
+    });
+
+    test("the warning stands alone, even for someone who cannot read status pages", async () => {
+      queryString = { incidentTemplateId: TEMPLATE_ID };
+      getItemMock.mockResolvedValue(scopedTemplateWithoutPages());
+      countMock.mockRejectedValue(
+        new Error("You do not have permissions to read Status Page."),
+      );
+
+      await renderCreate();
+      await renderElement(
+        fieldFor("statusPages").getFooterElement!({ statusPages: [] }),
+      );
+
+      expect(screen.getAllByRole("note")).toHaveLength(1);
+      expect(screen.getByRole("note")).toHaveAttribute(
+        "data-testid",
+        "incident-create-template-scoped-to-deleted-pages",
+      );
+      expect(screen.queryByText(REMOVED_BANNER_TEXT)).toBeNull();
     });
   });
 });

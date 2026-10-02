@@ -994,6 +994,34 @@ describe("One Status Page per Audience docs", () => {
       }
     });
 
+    /*
+     * The dashboard no longer explains an empty status page picker (its "No
+     * status pages to pick from ... Ask a project admin." banner was removed
+     * at the maintainer's request), so the guide must not say it does. It is
+     * where the explanation lives now.
+     */
+    it("says an empty picker means no read access, without promising the picker says so", () => {
+      expect(Object.keys(IncidentStatusPageScopeCopy)).not.toContain(
+        "pickerNoAccessHint",
+      );
+
+      const english: string = readPage(GUIDE_PAGE, "en");
+
+      expect(english.split("Without it the picker is empty").length - 1).toBe(
+        2,
+      );
+      expect(english).not.toContain("and says why");
+      expect(english).not.toContain("The picker says so");
+
+      const persian: string = readPage(GUIDE_PAGE, "fa");
+
+      expect(persian.split("بدون آن انتخابگر خالی است").length - 1).toBe(2);
+      expect(persian).not.toContain("و می‌گوید چرا");
+      expect(persian).not.toContain(
+        "وقتی انتخابگر چیزی برای فهرست کردن نداشته باشد",
+      );
+    });
+
     it("lets the roles that declare, edit or post a public note see the audience", () => {
       /*
        * IncidentSubscriberAudienceBuilder.PERMISSIONS is what the audience

@@ -126,8 +126,8 @@ describe("the dashboard renders the shared strings", () => {
       source.indexOf("field: { monitors: true, }"),
     );
 
-    // The permission hint, and the three warnings.
-    expect(source).toContain("<StatusPagePickerAccessHint");
+    // The three warnings - and no banner explaining an empty picker.
+    expect(source).not.toContain("StatusPagePickerAccessHint");
     expect(source).toContain("<StatusPagesNotListingMonitorsWarning");
     expect(source).toContain(
       "IncidentStatusPageScopeCopy.changeMonitorStatusWarning",
@@ -203,6 +203,10 @@ describe("the dashboard renders the shared strings", () => {
     );
     expect(source).toContain("statusPagesNotifiedOnCreation: true,");
     expect(source).toContain("<IncidentStatusPageScopeView");
+
+    // No banner explaining an empty picker.
+    expect(source).not.toContain("StatusPagePickerAccessHint");
+    expect(source).not.toContain("useStatusPagePickerAccess");
   });
 
   test("the added-pages checkbox takes its text from the shared constants", () => {
@@ -248,7 +252,9 @@ describe("the dashboard renders the shared strings", () => {
       expect(source).toContain(
         "description: IncidentStatusPageScopeCopy.templatePickerDescription,",
       );
-      expect(source).toContain("<StatusPagePickerAccessHint");
+      // No banner explaining an empty picker.
+      expect(source).not.toContain("StatusPagePickerAccessHint");
+      expect(source).not.toContain("useStatusPagePickerAccess");
     }
   });
 
