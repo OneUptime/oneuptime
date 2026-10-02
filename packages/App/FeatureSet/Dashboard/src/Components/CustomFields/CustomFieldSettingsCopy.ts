@@ -2,10 +2,10 @@ import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import { CUSTOM_FIELD_MUST_BE_CHECKED_MESSAGE } from "Common/UI/Components/CustomFields/CustomFieldFormFields";
 
 /*
- * Text the custom field settings pages show: the name of each field type in
- * the "Field Type" picker, the incident-only settings (show and require on
- * create, include in subscriber notifications, template key), and the card's
- * description.
+ * Text the custom field settings pages show: the name of each field type (in
+ * the "Field Type" picker, the table's Field Type column and its filter), the
+ * incident-only settings (show and require on create, include in subscriber
+ * notifications), and the card's description.
  *
  * Kept in one React-free module so the pages render these exact strings, and
  * App/Tests/Dashboard/CustomFieldSettingsI18n checks that each has an entry
@@ -53,6 +53,26 @@ export const getCustomFieldTypeOptions: () => Array<CustomFieldTypeOption> =
   };
 
 /*
+ * A stored `customFieldType` as the settings pages name it: the picker's
+ * label for a type OneUptime knows ("Dropdown (multi-select)", never
+ * "MultiSelectDropdown"), the stored text itself for one it does not - so a
+ * row never reads as blank - and undefined when there is no type at all.
+ */
+export const getCustomFieldTypeLabelForValue: (
+  value: unknown,
+) => string | undefined = (value: unknown): string | undefined => {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return undefined;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(CUSTOM_FIELD_TYPE_LABELS, value)) {
+    return CUSTOM_FIELD_TYPE_LABELS[value as CustomFieldType];
+  }
+
+  return value;
+};
+
+/*
  * What the custom fields card says about itself. A definition whose order
  * means something (incident custom fields: the order the incident page, the
  * Details step and subscriber messages list them in) is reordered by
@@ -74,6 +94,11 @@ export const CUSTOM_FIELDS_DESCRIPTION: string =
 export const CUSTOM_FIELDS_REORDER_DESCRIPTION: string =
   CustomFieldsPageCopy.reorderDescription;
 
+/*
+ * The settings only an incident field has, as its form asks for them. They
+ * are not columns of the settings table, which lists a field's name and type
+ * only (CustomFieldDefinitionTable).
+ */
 export const IncidentCustomFieldSettingsCopy: {
   showOnCreateTitle: string;
   showOnCreateDescription: string;
@@ -81,9 +106,6 @@ export const IncidentCustomFieldSettingsCopy: {
   isRequiredOnCreateDescription: string;
   includeInSubscriberNotificationsTitle: string;
   includeInSubscriberNotificationsDescription: string;
-  includeInSubscriberNotificationsColumnTitle: string;
-  variableKeyColumnTitle: string;
-  variableKeyColumnDescription: string;
   requiredBooleanMustBeChecked: string;
 } = {
   showOnCreateTitle: "Show on Create",
@@ -95,10 +117,6 @@ export const IncidentCustomFieldSettingsCopy: {
   includeInSubscriberNotificationsTitle: "Include in Subscriber Notifications",
   includeInSubscriberNotificationsDescription:
     "Show this field and its value in the messages status page subscribers get about an incident: email, Slack, Microsoft Teams and webhooks. The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.",
-  includeInSubscriberNotificationsColumnTitle: "In Subscriber Notifications",
-  variableKeyColumnTitle: "Template Variable",
-  variableKeyColumnDescription:
-    "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.",
   requiredBooleanMustBeChecked: CUSTOM_FIELD_MUST_BE_CHECKED_MESSAGE,
 };
 

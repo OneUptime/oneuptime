@@ -392,6 +392,39 @@ async function selectOption(
   await page.getByRole("option", { name: value, exact: true }).click();
 }
 
+/*
+ * Owners are one people picker per output - people and teams in one list -
+ * where there used to be an Owner Teams and an Owner Users dropdown. Opens
+ * it, picks each name with one click, and closes it with Escape (which the
+ * list keeps from closing the dialog).
+ */
+async function pickOwners(
+  page: Page,
+  output: string,
+  names: Array<string>,
+): Promise<void> {
+  const owners: Locator = page.getByRole("group", { name: `${output} Owners` });
+  await owners.getByRole("button", { name: "Add owner", exact: true }).click();
+
+  const list: Locator = page.getByRole("dialog", {
+    name: "Add owner",
+    exact: true,
+  });
+
+  for (const name of names) {
+    await list.getByRole("option").filter({ hasText: name }).click();
+  }
+
+  await page.keyboard.press("Escape");
+  await expect(list).toHaveCount(0);
+
+  for (const name of names) {
+    await expect(
+      owners.getByTestId("people-chip").filter({ hasText: name }),
+    ).toBeVisible();
+  }
+}
+
 async function openEditForm(page: Page, ruleName: string): Promise<void> {
   await page
     .locator("tr")
@@ -455,11 +488,15 @@ test("each output keeps title and severity beside collapsible optional sections"
       page.getByRole("textbox", { name: `${output} Description` }),
     ).toBeVisible();
     await setSection(page, "Ownership & Labels", true);
-    for (const field of ["Owner Teams", "Owner Users", "Labels"]) {
-      await expect(
-        page.getByRole("combobox", { name: `${output} ${field}` }),
-      ).toBeVisible();
-    }
+    // One picker for people and teams, then the labels.
+    await expect(
+      page
+        .getByRole("group", { name: `${output} Owners` })
+        .getByRole("button", { name: "Add owner", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("combobox", { name: `${output} Labels` }),
+    ).toBeVisible();
     await setSection(page, "On-Call", true);
     await expect(
       page.getByRole("combobox", { name: `${output} On-Call Duty Policies` }),
@@ -538,8 +575,7 @@ async function configureOutput(
     .getByRole("textbox", { name: `${output} Description` })
     .fill(values.description);
   await setSection(page, "Ownership & Labels", true);
-  await selectOption(page, `${output} Owner Teams`, values.team);
-  await selectOption(page, `${output} Owner Users`, values.user);
+  await pickOwners(page, output, [values.user, values.team]);
   await selectOption(page, `${output} Labels`, values.label);
   await setSection(page, "On-Call", true);
   await selectOption(page, `${output} On-Call Duty Policies`, values.policy);

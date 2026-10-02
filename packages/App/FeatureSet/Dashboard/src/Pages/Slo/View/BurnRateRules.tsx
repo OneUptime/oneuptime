@@ -7,10 +7,8 @@ import {
   describeBurnRateOutputs,
   willCreateAlert,
   willDeclareIncident,
-  withOwnerUserDropdownOptions,
 } from "../Utils/BurnRateRuleForm";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
-import ProjectUser from "../../../Utils/ProjectUser";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
@@ -26,8 +24,6 @@ import {
 } from "Common/Utils/Slo/SloBurnRateRuleState";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -153,7 +149,6 @@ The alert and incident steps appear and disappear with the toggles on **What It 
 export {
   BURN_RATE_RULE_FORM_FIELDS,
   BURN_RATE_RULE_FORM_STEPS,
-  BURN_RATE_RULE_OWNER_USER_COLUMNS,
   BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE,
   describeBurnRateOutputOptions,
   describeBurnRateOutputs,
@@ -162,39 +157,17 @@ export {
   validateBurnRateWindows,
   willCreateAlert,
   willDeclareIncident,
-  withOwnerUserDropdownOptions,
 } from "../Utils/BurnRateRuleForm";
 export type {
   BurnRateRuleOptionFlags,
   BurnRateRuleOutputFlags,
   DescribeBurnRateOutputOptionsFunction,
   DescribeBurnRateOutputsFunction,
-  FetchBurnRateRuleOwnerUserOptionsFunction,
   ReadsBurnRateOutputFlagFunction,
   ValidateBurnRateOutputsFunction,
   ValidateBurnRateThresholdFunction,
   ValidateBurnRateWindowsFunction,
-  WithOwnerUserDropdownOptionsFunction,
 } from "../Utils/BurnRateRuleForm";
-
-/*
- * The form fields, with the two owner-user pickers given their options. User
- * is not a project-listable model, so a dropdownModal cannot list it; the
- * project's users come from its team members instead. Built once at module
- * level: the loader reads the current project when it RUNS, not when this is
- * built, and a stable array keeps ModelTable from seeing new form fields on
- * every render.
- */
-const BURN_RATE_RULE_FORM_FIELDS_WITH_OWNER_USERS: Array<
-  ModelField<ServiceLevelObjectiveBurnRateRule>
-> = withOwnerUserDropdownOptions(
-  BURN_RATE_RULE_FORM_FIELDS,
-  async (): Promise<Array<DropdownOption>> => {
-    return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-      ProjectUtil.getCurrentProjectId()!,
-    );
-  },
-);
 
 type RenderLinesFunction = (lines: Array<string>) => ReactElement;
 
@@ -343,7 +316,7 @@ const SloBurnRateRules: FunctionComponent<
         ]}
         createEditModalWidth={ModalWidth.Large}
         formSteps={BURN_RATE_RULE_FORM_STEPS}
-        formFields={BURN_RATE_RULE_FORM_FIELDS_WITH_OWNER_USERS}
+        formFields={BURN_RATE_RULE_FORM_FIELDS}
         columns={[
           {
             field: {

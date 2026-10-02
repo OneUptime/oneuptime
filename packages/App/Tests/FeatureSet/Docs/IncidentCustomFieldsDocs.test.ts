@@ -2,6 +2,7 @@ import {
   CUSTOM_FIELD_TYPE_LABELS,
   IncidentCustomFieldSettingsCopy,
 } from "../../../FeatureSet/Dashboard/src/Components/CustomFields/CustomFieldSettingsCopy";
+import IncidentCustomFieldTemplateVariablesCopy from "../../../FeatureSet/Dashboard/src/Components/StatusPage/IncidentCustomFieldTemplateVariablesCopy";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
@@ -364,11 +365,16 @@ const definition: DefinitionFunction = (
 
 describe("incident custom fields docs", () => {
   describe("the settings", () => {
+    /*
+     * The three settings as the field's form asks for them, and the
+     * template variable as the template editors list it - the settings
+     * table shows a field's name and type only.
+     */
     const SETTING_NAMES: ReadonlyArray<string> = [
       IncidentCustomFieldSettingsCopy.showOnCreateTitle,
       IncidentCustomFieldSettingsCopy.isRequiredOnCreateTitle,
       IncidentCustomFieldSettingsCopy.includeInSubscriberNotificationsTitle,
-      IncidentCustomFieldSettingsCopy.variableKeyColumnTitle,
+      IncidentCustomFieldTemplateVariablesCopy.variableColumnTitle,
     ];
 
     test.each(LANGUAGES)(

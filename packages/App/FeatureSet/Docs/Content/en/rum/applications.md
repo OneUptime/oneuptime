@@ -56,7 +56,7 @@ A rule with no conditions matches everything, which is a legitimate way to say "
 
 ## Owner rules and ownership
 
-_RUM → Settings → Owner Rules_. Same conditions as label rules, but the outcome is **Owner Teams** and **Owner Users**.
+_RUM → Settings → Owner Rules_. Same conditions as label rules, but the outcome is **Owners**: the people and teams the rule adds as owners, picked from one list.
 
 Owners are the people responsible for an application; they are who notifications about it reach. **Notify Owners** controls whether being added by the rule sends a notification — turn it off for a bulk backfill you do not want to page anyone about.
 

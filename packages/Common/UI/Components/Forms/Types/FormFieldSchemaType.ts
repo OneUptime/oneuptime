@@ -39,6 +39,11 @@ enum FormFieldSchemaType {
   Dictionary = "Dictionary",
   CardSelect = "CardSelect",
   Icon = "Icon",
+  /*
+   * One picker for several kinds of record at once - people and teams, for
+   * owners - each kind kept in a form value of its own (Field.peoplePicker).
+   */
+  PeoplePicker = "PeoplePicker",
 }
 
 export default FormFieldSchemaType;

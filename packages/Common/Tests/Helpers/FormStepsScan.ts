@@ -27,6 +27,11 @@ import ts from "typescript";
  * a loop, data from the server) makes the form "uncountable", and the guard
  * asks for those to be listed with a reason too.
  *
+ * A field a helper builds (getOwnersFormField({ stepId: "owners", ... })) is
+ * the object the helper returns, read with what the call hands it: a step,
+ * title or showIf written in the call's object argument is the field's, so
+ * the field is placed on its step like one written out in full.
+ *
  * What counts as a field the user can see. Every element of the list, less
  * the ones whose showIf is a constant `() => false` (registrations that only
  * make ModelForm select a column). A field shown under a condition counts:
@@ -96,6 +101,8 @@ export interface FormFieldFacts {
   // The column or override key the field writes, when it is written down.
   key: string;
   title: string;
+  // The fieldType as written ("FormFieldSchemaType.PeoplePicker"), or "".
+  fieldType: string;
   /*
    * The step the field is on: a string when written as one, null when it is
    * computed (a variable, a spread), undefined when the field has none.
@@ -186,8 +193,18 @@ interface ParsedFile {
   assignments: Map<string, Array<{ value: ts.Expression; inLoop: boolean }>>;
 }
 
+interface ResolvedItem {
+  parsed: ParsedFile;
+  node: ts.ObjectLiteralExpression;
+  /*
+   * For a field a helper returns: the object the call handed the helper,
+   * whose properties (stepId, title, showIf...) the field carries.
+   */
+  call?: ts.ObjectLiteralExpression | undefined;
+}
+
 interface Resolution {
-  items: Array<{ parsed: ParsedFile; node: ts.ObjectLiteralExpression }>;
+  items: Array<ResolvedItem>;
   // Plain literals written in the file the form itself is in.
   plain: Set<ts.ObjectLiteralExpression>;
   reasons: Array<string>;
@@ -1113,7 +1130,24 @@ export class FormStepsScanner {
 
           if (last) {
             // A helper's field: counted, but never a plain literal here.
-            return this.resolveItem(found.parsed, last, depth + 1, false);
+            const resolved: Resolution = this.resolveItem(
+              found.parsed,
+              last,
+              depth + 1,
+              false,
+            );
+
+            const argument: ts.Node | undefined = element.arguments[0]
+              ? unwrap(element.arguments[0])
+              : undefined;
+
+            if (argument && ts.isObjectLiteralExpression(argument)) {
+              for (const item of resolved.items) {
+                item.call = item.call || argument;
+              }
+            }
+
+            return resolved;
           }
         }
       }
@@ -1162,11 +1196,12 @@ export class FormStepsScanner {
     );
 
     const fields: Array<FormFieldFacts> = fieldResolution.items.map(
-      (item: { parsed: ParsedFile; node: ts.ObjectLiteralExpression }) => {
+      (item: ResolvedItem) => {
         return this.describeField(
           item.parsed,
           item.node,
           fieldResolution.plain.has(item.node),
+          item.call,
         );
       },
     );
@@ -1191,11 +1226,9 @@ export class FormStepsScanner {
         steps = null;
         hasSteps = true;
       } else {
-        steps = stepResolution.items.map(
-          (item: { parsed: ParsedFile; node: ts.ObjectLiteralExpression }) => {
-            return this.describeStep(item.parsed, item.node);
-          },
-        );
+        steps = stepResolution.items.map((item: ResolvedItem) => {
+          return this.describeStep(item.parsed, item.node);
+        });
         hasSteps = steps.length > 0;
       }
     }
@@ -1397,20 +1430,34 @@ export class FormStepsScanner {
     parsed: ParsedFile,
     node: ts.ObjectLiteralExpression,
     isPlainLiteral: boolean,
+    call?: ts.ObjectLiteralExpression | undefined,
   ): FormFieldFacts {
+    const propertyOf: (
+      container: ts.ObjectLiteralExpression,
+      name: string,
+    ) => ts.ObjectLiteralElementLike | undefined = (
+      container: ts.ObjectLiteralExpression,
+      name: string,
+    ): ts.ObjectLiteralElementLike | undefined => {
+      return container.properties.find(
+        (candidate: ts.ObjectLiteralElementLike): boolean => {
+          return (
+            (ts.isPropertyAssignment(candidate) ||
+              ts.isShorthandPropertyAssignment(candidate)) &&
+            candidate.name.getText(container.getSourceFile()) === name
+          );
+        },
+      );
+    };
+
+    // What the helper's caller wrote wins over the helper's own default.
     const property: (
       name: string,
     ) => ts.ObjectLiteralElementLike | undefined = (
       name: string,
     ): ts.ObjectLiteralElementLike | undefined => {
-      return node.properties.find(
-        (candidate: ts.ObjectLiteralElementLike): boolean => {
-          return (
-            (ts.isPropertyAssignment(candidate) ||
-              ts.isShorthandPropertyAssignment(candidate)) &&
-            candidate.name.getText(parsed.sourceFile) === name
-          );
-        },
+      return (
+        (call ? propertyOf(call, name) : undefined) || propertyOf(node, name)
       );
     };
 
@@ -1446,14 +1493,14 @@ export class FormStepsScanner {
     if (overrideKey && ts.isStringLiteralLike(overrideKey)) {
       key = overrideKey.text;
     } else if (overrideKey) {
-      key = overrideKey.getText(parsed.sourceFile);
+      key = overrideKey.getText(overrideKey.getSourceFile());
     } else if (
       field &&
       ts.isObjectLiteralExpression(field) &&
       field.properties[0]?.name
     ) {
       key = field.properties[0].name
-        .getText(parsed.sourceFile)
+        .getText(field.getSourceFile())
         .replace(/^\[|\]$/g, "")
         .replace(/^["']|["']$/g, "");
     }
@@ -1475,12 +1522,17 @@ export class FormStepsScanner {
       stepIdValue = null;
     }
 
+    // A helper's field is reported where it is called.
+    const position: ts.Node = call || node;
+    const fieldType: ts.Node | null = initializerOf("fieldType");
+
     return {
       key,
+      fieldType: fieldType ? fieldType.getText(fieldType.getSourceFile()) : "",
       title: title
         ? ts.isStringLiteralLike(title)
           ? title.text
-          : title.getText(parsed.sourceFile)
+          : title.getText(title.getSourceFile())
         : "",
       stepId: stepIdValue,
       isPlainLiteral,
@@ -1488,11 +1540,16 @@ export class FormStepsScanner {
       isConditional: Boolean(showIf && !isConstantFalseFunction(showIf)),
       isCreateOnly: isTrue("doNotShowWhenEditing"),
       isEditOnly: isTrue("doNotShowWhenCreating"),
-      file: toRepositoryPath(this.repositoryRoot, parsed.file),
+      file: toRepositoryPath(
+        this.repositoryRoot,
+        call ? call.getSourceFile().fileName : parsed.file,
+      ),
       line:
-        parsed.sourceFile.getLineAndCharacterOfPosition(
-          node.getStart(parsed.sourceFile),
-        ).line + 1,
+        position
+          .getSourceFile()
+          .getLineAndCharacterOfPosition(
+            position.getStart(position.getSourceFile()),
+          ).line + 1,
     };
   }
 

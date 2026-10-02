@@ -35,7 +35,6 @@ export interface ComponentProps {
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
-  teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   monitorType: MonitorType;
@@ -311,9 +310,6 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                     }
                                     labelDropdownOptions={
                                       props.labelDropdownOptions
-                                    }
-                                    teamDropdownOptions={
-                                      props.teamDropdownOptions
                                     }
                                     userDropdownOptions={
                                       props.userDropdownOptions

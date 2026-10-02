@@ -38,6 +38,12 @@ export interface AnchoredFieldPopupOptions {
   // Intrinsic width of the popup, used to clamp it inside the viewport.
   popupWidth: number;
   popupMaxHeight: number;
+  /*
+   * Changes when the anchor may have moved while the popup stays open - the
+   * Owners page's add button moves along as owners are added in front of it -
+   * so the popup is placed against it again.
+   */
+  repositionKey?: string | number | undefined;
 }
 
 export interface AnchoredFieldPopup {
@@ -90,7 +96,7 @@ type UseAnchoredFieldPopupFunction = (
 const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
   options: AnchoredFieldPopupOptions,
 ): AnchoredFieldPopup => {
-  const { popupWidth, popupMaxHeight } = options;
+  const { popupWidth, popupMaxHeight, repositionKey } = options;
 
   const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
   const [popupPosition, setPopupPosition] =
@@ -285,7 +291,7 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
         window.cancelAnimationFrame(animationFrame);
       }
     };
-  }, [isPopupOpen, updatePopupPosition]);
+  }, [isPopupOpen, updatePopupPosition, repositionKey]);
 
   // Outside click. Portal aware: the popup is not a DOM child of the anchor.
   useEffect(() => {

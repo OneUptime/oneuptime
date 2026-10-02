@@ -16,7 +16,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import React from "react";
+import React, { FunctionComponent } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import Permission, { UserPermission } from "../../../Types/Permission";
 
@@ -167,10 +167,10 @@ const PAGE_PROPS: PageComponentProps = {
 };
 
 function captureTable(
-  page: React.FunctionComponent<PageComponentProps>,
+  page: FunctionComponent<PageComponentProps>,
 ): CapturedTable {
   capturedTables = [];
-  const Page: React.FunctionComponent<PageComponentProps> = page;
+  const Page: FunctionComponent<PageComponentProps> = page;
   render(<Page {...PAGE_PROPS} />);
   const table: CapturedTable | undefined =
     capturedTables[capturedTables.length - 1];
@@ -184,7 +184,7 @@ function captureTable(
 }
 
 interface OpenFormOptions<TModel extends BaseModel> {
-  page: React.FunctionComponent<PageComponentProps>;
+  page: FunctionComponent<PageComponentProps>;
   modelType: { new (): TModel };
   singularName: string;
   formType: FormType;

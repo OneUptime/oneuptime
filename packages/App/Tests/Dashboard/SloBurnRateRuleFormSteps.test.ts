@@ -3,12 +3,9 @@ import {
   BURN_RATE_RULE_FORM_FIELDS,
   BURN_RATE_RULE_FORM_STEPS,
   BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
-  BURN_RATE_RULE_OWNER_USER_COLUMNS,
-  FetchBurnRateRuleOwnerUserOptionsFunction,
   validateBurnRateOutputs,
   willCreateAlert,
   willDeclareIncident,
-  withOwnerUserDropdownOptions,
 } from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateRuleForm";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -21,6 +18,10 @@ import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import {
+  getPeoplePickerValueKeys,
+  PeoplePickerKind,
+} from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import {
   DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
@@ -100,10 +101,22 @@ function columnOf(field: FieldOf): string {
   return keys[0]!;
 }
 
+/*
+ * The columns a field writes: its one column, or - for an owners people
+ * picker, one field for people and teams - the column each kind is kept in.
+ */
+function columnsOf(field: FieldOf): Array<string> {
+  if (field.peoplePicker) {
+    return getPeoplePickerValueKeys(field.peoplePicker);
+  }
+
+  return [columnOf(field)];
+}
+
 function fieldFor(column: string): FieldOf {
   const field: FieldOf | undefined = BURN_RATE_RULE_FORM_FIELDS.find(
     (candidate: FieldOf): boolean => {
-      return columnOf(candidate) === column;
+      return columnsOf(candidate).includes(column);
     },
   );
 
@@ -117,7 +130,7 @@ function fieldFor(column: string): FieldOf {
 function columnsOnStep(stepId: string): Array<string> {
   return BURN_RATE_RULE_FORM_FIELDS.filter((field: FieldOf): boolean => {
     return field.stepId === stepId;
-  }).map(columnOf);
+  }).flatMap(columnsOf);
 }
 
 function columnMetadata(column: string): TableColumnMetadata {
@@ -201,8 +214,9 @@ describe("the burn rate rule form steps", () => {
       "alertTitleTemplate",
       "alertSeverity",
       "alertDescriptionTemplate",
-      "alertOwnerTeams",
+      // One Alert Owners picker: people, then teams.
       "alertOwnerUsers",
+      "alertOwnerTeams",
       "alertLabels",
       "onCallDutyPolicies",
       "autoResolveAlert",
@@ -214,8 +228,8 @@ describe("the burn rate rule form steps", () => {
       "incidentTitleTemplate",
       "incidentSeverity",
       "incidentDescriptionTemplate",
-      "incidentOwnerTeams",
       "incidentOwnerUsers",
+      "incidentOwnerTeams",
       "incidentLabels",
       "incidentOnCallDutyPolicies",
       "autoResolveIncident",
@@ -231,7 +245,7 @@ describe("the burn rate rule form steps", () => {
    */
   test("offers every user-editable rule column except the deliberate omissions", () => {
     const onForm: Set<string> = new Set(
-      BURN_RATE_RULE_FORM_FIELDS.map(columnOf),
+      BURN_RATE_RULE_FORM_FIELDS.flatMap(columnsOf),
     );
 
     const deliberatelyAbsent: Set<string> = new Set([
@@ -581,8 +595,6 @@ describe("the relation pickers", () => {
   }> = [
     { column: "onCallDutyPolicies", modelType: OnCallDutyPolicy },
     { column: "incidentOnCallDutyPolicies", modelType: OnCallDutyPolicy },
-    { column: "alertOwnerTeams", modelType: Team },
-    { column: "incidentOwnerTeams", modelType: Team },
     { column: "alertLabels", modelType: Label },
     { column: "incidentLabels", modelType: Label },
   ];
@@ -601,94 +613,63 @@ describe("the relation pickers", () => {
     }
   });
 
-  test("the owner-user pickers join to User and carry no loader of their own", () => {
-    expect([...BURN_RATE_RULE_OWNER_USER_COLUMNS]).toEqual([
-      "alertOwnerUsers",
-      "incidentOwnerUsers",
-    ]);
+  /*
+   * "Instead of having two different dropdowns ..." - each output's owners
+   * are one people picker, which still saves people and teams in their own
+   * columns, each joined to its own model.
+   */
+  test.each([
+    ["alert", "Alert Owners"],
+    ["incident", "Incident Owners"],
+  ])(
+    "the %s's owners are one people picker over its user and team columns",
+    (output: string, title: string) => {
+      const users: string = `${output}OwnerUsers`;
+      const teams: string = `${output}OwnerTeams`;
+      const field: FieldOf = fieldFor(users);
 
-    for (const column of BURN_RATE_RULE_OWNER_USER_COLUMNS) {
-      const field: FieldOf = fieldFor(column);
+      // People and teams are the same field.
+      expect(fieldFor(teams)).toBe(field);
+      expect(field.title).toBe(title);
+      expect(field.fieldType).toBe(FormFieldSchemaType.PeoplePicker);
+      expect(field.peoplePicker?.kinds).toEqual([
+        { kind: PeoplePickerKind.User, valueKey: users },
+        { kind: PeoplePickerKind.Team, valueKey: teams },
+      ]);
+      expect(field.formOnly).toBe(true);
+      expect(field.stepId).toBe(`${output}-details`);
 
-      expect(field.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
-      expect(columnMetadata(column).modelType).toBe(User);
+      expect(columnMetadata(users).type).toBe(TableColumnType.EntityArray);
+      expect(columnMetadata(users).modelType).toBe(User);
+      expect(columnMetadata(teams).type).toBe(TableColumnType.EntityArray);
+      expect(columnMetadata(teams).modelType).toBe(Team);
+    },
+  );
 
-      /*
-       * User is not project-listable, so a dropdownModal would list nothing.
-       * The loader needs ProjectUser, which reads `window` at module load, so
-       * this React-free module must leave it to the page.
-       */
-      expect(field.dropdownModal).toBeUndefined();
-      expect(field.fetchDropdownOptions).toBeUndefined();
-    }
+  test("the two owners pickers name themselves apart in the form", () => {
+    const pickers: Array<string> = BURN_RATE_RULE_FORM_FIELDS.filter(
+      (field: FieldOf): boolean => {
+        return Boolean(field.peoplePicker);
+      },
+    ).map(columnOf);
+
+    expect(pickers).toEqual(["alertOwners", "incidentOwners"]);
   });
 });
 
-describe("withOwnerUserDropdownOptions", () => {
-  const loader: FetchBurnRateRuleOwnerUserOptionsFunction = async () => {
-    return [{ value: "user-1", label: "Jane Doe" }];
-  };
-
-  test("gives exactly the two owner-user pickers the loader", () => {
-    const wired: Array<FieldOf> = withOwnerUserDropdownOptions(
-      BURN_RATE_RULE_FORM_FIELDS,
-      loader,
-    );
-
-    expect(wired).toHaveLength(BURN_RATE_RULE_FORM_FIELDS.length);
-
-    const withLoader: Array<string> = wired
-      .filter((field: FieldOf): boolean => {
-        return field.fetchDropdownOptions === loader;
-      })
-      .map(columnOf);
-
-    expect(withLoader).toEqual(["alertOwnerUsers", "incidentOwnerUsers"]);
-  });
-
-  test("leaves every other field as the very same object, in the same order", () => {
-    const wired: Array<FieldOf> = withOwnerUserDropdownOptions(
-      BURN_RATE_RULE_FORM_FIELDS,
-      loader,
-    );
-
-    BURN_RATE_RULE_FORM_FIELDS.forEach((field: FieldOf, index: number) => {
-      if (BURN_RATE_RULE_OWNER_USER_COLUMNS.includes(columnOf(field))) {
-        // A copy with everything else intact.
-        expect(wired[index]).not.toBe(field);
-        expect({ ...wired[index], fetchDropdownOptions: undefined }).toEqual({
-          ...field,
-          fetchDropdownOptions: undefined,
-        });
-        return;
-      }
-
-      expect(wired[index]).toBe(field);
-    });
-  });
-
-  test("never mutates the shared field array it was given", () => {
-    withOwnerUserDropdownOptions(BURN_RATE_RULE_FORM_FIELDS, loader);
-
-    expect(fieldFor("alertOwnerUsers").fetchDropdownOptions).toBeUndefined();
-    expect(fieldFor("incidentOwnerUsers").fetchDropdownOptions).toBeUndefined();
-  });
-
-  test("hands the loader through untouched, so it runs with the form's values", async () => {
-    const wired: Array<FieldOf> = withOwnerUserDropdownOptions(
-      BURN_RATE_RULE_FORM_FIELDS,
-      loader,
-    );
-
-    const ownerField: FieldOf | undefined = wired.find(
-      (field: FieldOf): boolean => {
-        return columnOf(field) === "alertOwnerUsers";
-      },
-    );
-
-    await expect(ownerField!.fetchDropdownOptions!({})).resolves.toEqual([
-      { value: "user-1", label: "Jane Doe" },
-    ]);
+/*
+ * The module stays plain data: the people picker searches the project's
+ * people and teams itself, so nothing here fetches and the page hands
+ * nothing in - the owner-user loader it used to inject is gone.
+ */
+describe("the form fields fetch nothing", () => {
+  test("no field carries an option loader", () => {
+    for (const field of BURN_RATE_RULE_FORM_FIELDS) {
+      expect({
+        field: columnOf(field),
+        loads: Boolean(field.fetchDropdownOptions),
+      }).toEqual({ field: columnOf(field), loads: false });
+    }
   });
 });
 
@@ -842,8 +823,8 @@ describe("the output sections", () => {
         output + "TitleTemplate",
         output + "Severity",
         output + "DescriptionTemplate",
-        output + "OwnerTeams",
         output + "OwnerUsers",
+        output + "OwnerTeams",
         output + "Labels",
         output === "alert"
           ? "onCallDutyPolicies"

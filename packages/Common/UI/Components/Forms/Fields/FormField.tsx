@@ -41,6 +41,13 @@ import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
 import HorizontalRule from "../../HorizontalRule/HorizontalRule";
 import MarkdownEditor from "../../Markdown.tsx/MarkdownEditor";
 import YamlEditor from "../../CodeEditor/YamlEditor";
+import PeoplePicker from "../../PeoplePicker/PeoplePicker";
+import {
+  getPeoplePickerKinds,
+  PeoplePickerValue,
+  readPeoplePickerFormValue,
+  toPeoplePickerFormValues,
+} from "../../PeoplePicker/PeoplePickerTypes";
 import InsertTemplateVariableButton from "../../TemplateVariables/InsertTemplateVariableButton";
 import TemplateVariableTextControl from "../../TemplateVariables/TemplateVariableTextControl";
 import {
@@ -960,6 +967,52 @@ const FormField: <T extends GenericObject>(
                 ? undefined
                 : fieldLabelId,
             })}
+
+          {/*
+           * One picker writing a form value per kind - owners are the
+           * people in ownerUsers and the teams in ownerTeams - so each is
+           * written to the form on its own, as two dropdowns used to.
+           */}
+          {props.field.fieldType === FormFieldSchemaType.PeoplePicker &&
+            props.field.peoplePicker && (
+              <PeoplePicker
+                kinds={getPeoplePickerKinds(props.field.peoplePicker)}
+                value={readPeoplePickerFormValue(
+                  props.field.peoplePicker,
+                  props.currentValues,
+                )}
+                onChange={(value: PeoplePickerValue) => {
+                  const formValues: Record<
+                    string,
+                    Array<string>
+                  > = toPeoplePickerFormValues(
+                    props.field.peoplePicker!,
+                    value,
+                  );
+
+                  onChange(formValues);
+
+                  for (const valueKey of Object.keys(formValues)) {
+                    props.setFieldValue(
+                      valueKey,
+                      formValues[valueKey] as Array<string>,
+                    );
+                  }
+
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                onBlur={() => {
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                addButtonText={props.field.peoplePicker.addButtonText}
+                searchPlaceholder={props.field.peoplePicker.searchPlaceholder}
+                emptyText={props.field.peoplePicker.emptyText}
+                disabled={props.field.disabled}
+                error={props.touched && props.error ? props.error : undefined}
+                ariaLabelledby={fieldLabelId}
+                dataTestId={props.field.dataTestId}
+              />
+            )}
 
           {(props.field.fieldType === FormFieldSchemaType.HTML ||
             props.field.fieldType === FormFieldSchemaType.CSS ||
