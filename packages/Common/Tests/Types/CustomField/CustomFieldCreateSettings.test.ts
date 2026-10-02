@@ -7,8 +7,6 @@ import {
   compactCustomFieldCreateSettings,
   getCustomFieldCreateSetting,
   getEffectiveCustomFieldCreateSetting,
-  getIncidentFormAskedDefinitions,
-  getIncidentFormCustomFieldSetting,
   isCustomFieldCreateSetting,
   readCustomFieldCreateSettings,
   validateCustomFieldCreateSettings,
@@ -22,7 +20,7 @@ import fs from "fs";
 import path from "path";
 
 /*
- * A template's (or a form's) say over which incident custom fields are asked
+ * A template's say over which incident custom fields are asked
  * when an incident is declared, and which must be filled in (issue #4114).
  *
  * What matters most here:
@@ -31,8 +29,6 @@ import path from "path";
  *     (Terraform compares the column with its configuration);
  *   - a TEMPLATE only overrides: Default and unlisted fields keep their own
  *     Show on Create / Required on Create;
- *   - a FORM only asks what it lists as Required or Optional - never a field
- *     because of its project-wide switches, since the form is public;
  *   - nothing here changes the definitions it is handed.
  */
 
@@ -663,35 +659,6 @@ describe("getEffectiveCustomFieldCreateSetting: what the Details step does with 
   });
 });
 
-describe("getIncidentFormCustomFieldSetting: a form asks only what it lists", () => {
-  test.each([
-    ["Required", CustomFieldCreateSetting.Required],
-    ["Optional", CustomFieldCreateSetting.Optional],
-    ["Hidden", CustomFieldCreateSetting.Hidden],
-    ["Default", CustomFieldCreateSetting.Hidden],
-    ["required", CustomFieldCreateSetting.Hidden],
-  ])(
-    "a field listed as %j is %s",
-    (stored: string, expected: CustomFieldCreateSetting) => {
-      expect(
-        getIncidentFormCustomFieldSetting({ impact: stored }, "impact"),
-      ).toBe(expected);
-    },
-  );
-
-  test("a field that is not listed is not asked", () => {
-    expect(getIncidentFormCustomFieldSetting({}, "impact")).toBe(
-      CustomFieldCreateSetting.Hidden,
-    );
-    expect(getIncidentFormCustomFieldSetting(null, "impact")).toBe(
-      CustomFieldCreateSetting.Hidden,
-    );
-    expect(getIncidentFormCustomFieldSetting({ impact: "Required" })).toBe(
-      CustomFieldCreateSetting.Hidden,
-    );
-  });
-});
-
 describe("applyTemplateCustomFieldCreateSettings: a template only overrides", () => {
   test("Required, Optional and Hidden set both switches; Default and unlisted fields keep theirs", () => {
     const applied: Array<Definition> = applyTemplateCustomFieldCreateSettings(
@@ -884,120 +851,6 @@ describe("applyTemplateCustomFieldCreateSettings: a template only overrides", ()
   });
 });
 
-describe("getIncidentFormAskedDefinitions: a public form asks only what it lists", () => {
-  test("asks the Required and Optional fields, with the form's own Required", () => {
-    const asked: Array<Definition> = getIncidentFormAskedDefinitions(
-      projectFields(),
-      {
-        additional_information: "Required",
-        customer: "Optional",
-      },
-    );
-
-    expect(switchesOf(asked)).toEqual([
-      {
-        name: "Additional Information",
-        showOnCreate: true,
-        isRequiredOnCreate: true,
-      },
-      { name: "Customer", showOnCreate: true, isRequiredOnCreate: false },
-    ]);
-  });
-
-  test("never asks a field because of its project-wide switches", () => {
-    /*
-     * Impact is shown and required on the dashboard's Declare Incident form,
-     * but this form does not list it, so its name and its options must not
-     * reach the public page.
-     */
-    expect(names(getIncidentFormAskedDefinitions(projectFields(), {}))).toEqual(
-      [],
-    );
-    expect(
-      names(
-        getIncidentFormAskedDefinitions(projectFields(), {
-          impact: "Default",
-          affected_location: "Hidden",
-        }),
-      ),
-    ).toEqual([]);
-  });
-
-  test("a form's Optional does not become required because the project requires the field", () => {
-    const [asked] = getIncidentFormAskedDefinitions(projectFields(), {
-      impact: "Optional",
-    });
-
-    expect(asked!.name).toBe("Impact");
-    expect(asked!.isRequiredOnCreate).toBe(false);
-  });
-
-  test("puts the fields in the order fields are shown everywhere else", () => {
-    const fields: Array<Definition> = [
-      definition("Unordered B", "unordered_b"),
-      definition("Third", "third", { sortOrder: 3 }),
-      definition("Unordered A", "unordered_a"),
-      definition("First", "first", { sortOrder: 1 }),
-    ];
-
-    expect(
-      names(
-        getIncidentFormAskedDefinitions(fields, {
-          unordered_b: "Optional",
-          third: "Required",
-          unordered_a: "Optional",
-          first: "Optional",
-        }),
-      ),
-    ).toEqual(["First", "Third", "Unordered B", "Unordered A"]);
-  });
-
-  test("never asks a field with no key, or anything with no valid settings", () => {
-    const fields: Array<Definition> = [
-      definition("Legacy", undefined, { showOnCreate: true }),
-      definition("Impact", "impact"),
-    ];
-
-    expect(
-      getIncidentFormAskedDefinitions(fields, { legacy: "Required" }),
-    ).toEqual([]);
-
-    for (const settings of [undefined, null, [], "Required", 5]) {
-      expect(getIncidentFormAskedDefinitions(fields, settings)).toEqual([]);
-    }
-  });
-
-  test("returns copies and never touches the definitions it is given", () => {
-    const fields: Array<Definition> = deepFreeze(projectFields());
-
-    const asked: Array<Definition> = getIncidentFormAskedDefinitions(fields, {
-      impact: "Optional",
-    });
-
-    expect(asked[0]).not.toBe(fields[0]);
-    expect(fields).toEqual(projectFields());
-  });
-
-  test("a model instance comes back as an instance of its own class", () => {
-    class FieldRow {
-      public name: string = "Impact";
-      public variableKey: string = "impact";
-      public sortOrder: number = 1;
-
-      public label(): string {
-        return this.name.toUpperCase();
-      }
-    }
-
-    const [asked] = getIncidentFormAskedDefinitions([new FieldRow()], {
-      impact: "Required",
-    });
-
-    expect(asked).toBeInstanceOf(FieldRow);
-    expect(asked!.label()).toBe("IMPACT");
-  });
-});
-
 describe("compactCustomFieldCreateSettings: the smallest value that means the same", () => {
   test("drops Default entries and invalid ones, keeps the rest", () => {
     expect(
@@ -1013,23 +866,6 @@ describe("compactCustomFieldCreateSettings: the smallest value that means the sa
       impact: "Required",
       affected_location: "Optional",
       additional_information: "Hidden",
-    });
-  });
-
-  test("for a form, drops Hidden too: it means not asked, as Default does", () => {
-    expect(
-      compactCustomFieldCreateSettings(
-        {
-          impact: "Required",
-          affected_location: "Optional",
-          additional_information: "Hidden",
-          customer: "Default",
-        },
-        { dropHidden: true },
-      ),
-    ).toEqual({
-      impact: "Required",
-      affected_location: "Optional",
     });
   });
 
@@ -1064,20 +900,14 @@ describe("compactCustomFieldCreateSettings: the smallest value that means the sa
 
     const compacted: CustomFieldCreateSettings =
       compactCustomFieldCreateSettings(settings);
-    const compactedForForm: CustomFieldCreateSettings =
-      compactCustomFieldCreateSettings(settings, { dropHidden: true });
 
     expect(validateCustomFieldCreateSettings(compacted)).toBeNull();
-    expect(validateCustomFieldCreateSettings(compactedForForm)).toBeNull();
 
     expect(
       applyTemplateCustomFieldCreateSettings(projectFields(), compacted),
     ).toEqual(
       applyTemplateCustomFieldCreateSettings(projectFields(), settings),
     );
-    expect(
-      getIncidentFormAskedDefinitions(projectFields(), compactedForForm),
-    ).toEqual(getIncidentFormAskedDefinitions(projectFields(), settings));
   });
 });
 

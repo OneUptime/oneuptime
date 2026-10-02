@@ -329,11 +329,6 @@ describe("Incidents side menu", () => {
           title: "Incident Templates",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_TEMPLATES),
         },
-        // Incident forms (issue #4114): right after the templates.
-        {
-          title: "Forms",
-          href: routeFor(PageMap.INCIDENTS_SETTINGS_FORMS),
-        },
         {
           title: "Note Templates",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES),
@@ -373,6 +368,25 @@ describe("Incidents side menu", () => {
       expect(settingsHrefs).not.toContain(
         routeFor(PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES),
       );
+    });
+
+    /*
+     * Incident forms became the Forms product (/dashboard/:projectId/forms),
+     * with a menu of its own: the incidents menu links to no form page.
+     */
+    test("holds no Forms page, which is a product of its own now", async () => {
+      await renderIncidentsMenu();
+
+      expect(
+        hrefsInMenu().filter((href: string): boolean => {
+          return href.includes("/forms");
+        }),
+      ).toEqual([]);
+      expect(
+        linksIn("Settings").map((link: MenuLink): string => {
+          return link.title;
+        }),
+      ).not.toContain("Forms");
     });
 
     test("no longer holds any rule page", async () => {
@@ -484,14 +498,6 @@ describe("Incidents side menu", () => {
       await renderIncidentsMenu();
 
       expect(mobileSummaryText()).toContain("Settings / Incident Roles");
-    });
-
-    // Forms are configuration, like templates, not a rule.
-    test("names the Settings section on the forms page", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/forms`);
-      await renderIncidentsMenu();
-
-      expect(mobileSummaryText()).toContain("Settings / Forms");
     });
   });
 });

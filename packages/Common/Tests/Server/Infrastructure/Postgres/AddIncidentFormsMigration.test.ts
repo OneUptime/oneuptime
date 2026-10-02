@@ -1,17 +1,9 @@
 import { AddIncidentForms1796400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796400000000-AddIncidentForms";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import IncidentForm from "../../../../Models/DatabaseModels/IncidentForm";
-import IncidentFormSubmission from "../../../../Models/DatabaseModels/IncidentFormSubmission";
-import { DEFAULT_INCIDENT_FORM_DESCRIPTION_SETTING } from "../../../../Types/Incident/IncidentFormPublic";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import {
-  DefaultNamingStrategy,
-  QueryRunner,
-  getMetadataArgsStorage,
-} from "typeorm";
-import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
+import { DefaultNamingStrategy, QueryRunner } from "typeorm";
 
 /*
  * The schema half of incident forms and per-template custom field settings.
@@ -79,24 +71,48 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-// Columns a model persists, inherited ones (_id, version, ...) included.
-function persistedColumns(modelType: unknown): Array<string> {
-  const names: Array<string> = [];
-  let current: unknown = modelType;
+/*
+ * The columns the incident forms models persisted, inherited ones included.
+ * The models are gone - incident forms became Form and FormSubmission, and
+ * MigrateIncidentFormsToForms1797300000000 copies these tables over and
+ * drops them - so they are written out: this migration must keep creating
+ * every column that one reads.
+ */
+const INCIDENT_FORM_COLUMNS: Array<string> = [
+  "_id",
+  "createdAt",
+  "updatedAt",
+  "deletedAt",
+  "version",
+  "projectId",
+  "name",
+  "description",
+  "isEnabled",
+  "shareKey",
+  "incidentSeverityId",
+  "allowReporterToChooseSeverity",
+  "incidentTemplateId",
+  "descriptionSetting",
+  "customFieldSettings",
+  "isReporterDetailsRequired",
+  "successMessage",
+  "ipWhitelist",
+  "createdByUserId",
+  "deletedByUserId",
+];
 
-  while (typeof current === "function" && current !== Function.prototype) {
-    for (const column of getMetadataArgsStorage().columns) {
-      if (column.target === current) {
-        const args: ColumnMetadataArgs = column;
-        names.push(args.options.name || args.propertyName);
-      }
-    }
-
-    current = Object.getPrototypeOf(current);
-  }
-
-  return names;
-}
+const INCIDENT_FORM_SUBMISSION_COLUMNS: Array<string> = [
+  "_id",
+  "createdAt",
+  "updatedAt",
+  "deletedAt",
+  "version",
+  "projectId",
+  "incidentFormId",
+  "incidentId",
+  "reporterName",
+  "reporterEmail",
+];
 
 function createTableStatement(
   statements: Array<string>,
@@ -230,31 +246,13 @@ describe("AddIncidentForms migration - up()", () => {
     }
   });
 
-  test("creates IncidentForm with every column the model persists", async () => {
+  test("creates IncidentForm with every column incident forms persisted", async () => {
     const statement: string = createTableStatement(
       await recordQueries("up"),
       FORM,
     );
 
-    const columns: Array<string> = persistedColumns(IncidentForm);
-
-    expect(columns).toEqual(
-      expect.arrayContaining([
-        "_id",
-        "projectId",
-        "name",
-        "shareKey",
-        "incidentSeverityId",
-        "incidentTemplateId",
-        "descriptionSetting",
-        "customFieldSettings",
-        "ipWhitelist",
-        "createdByUserId",
-        "deletedByUserId",
-      ]),
-    );
-
-    for (const column of columns) {
+    for (const column of INCIDENT_FORM_COLUMNS) {
       expect({ column, created: statement.includes(`"${column}"`) }).toEqual({
         column,
         created: true,
@@ -273,7 +271,7 @@ describe("AddIncidentForms migration - up()", () => {
     ['"allowReporterToChooseSeverity" boolean NOT NULL DEFAULT false'],
     ['"incidentTemplateId" uuid,'],
     [
-      `"descriptionSetting" character varying(100) NOT NULL DEFAULT '${DEFAULT_INCIDENT_FORM_DESCRIPTION_SETTING}'`,
+      `"descriptionSetting" character varying(100) NOT NULL DEFAULT 'Optional'`,
     ],
     ['"customFieldSettings" jsonb,'],
     ['"isReporterDetailsRequired" boolean NOT NULL DEFAULT true'],
@@ -311,13 +309,13 @@ describe("AddIncidentForms migration - up()", () => {
     }
   });
 
-  test("creates IncidentFormSubmission with every column the model persists", async () => {
+  test("creates IncidentFormSubmission with every column incident forms persisted", async () => {
     const statement: string = createTableStatement(
       await recordQueries("up"),
       SUBMISSION,
     );
 
-    for (const column of persistedColumns(IncidentFormSubmission)) {
+    for (const column of INCIDENT_FORM_SUBMISSION_COLUMNS) {
       expect({ column, created: statement.includes(`"${column}"`) }).toEqual({
         column,
         created: true,

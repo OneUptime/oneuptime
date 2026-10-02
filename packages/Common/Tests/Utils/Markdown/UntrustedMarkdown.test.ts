@@ -6,10 +6,8 @@ import {
   neutralizeUntrustedPlainText,
 } from "../../../Utils/Markdown/UntrustedMarkdown";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
-import {
-  INCIDENT_FORM_CUSTOM_FIELD_TEXT_MAX_LENGTH,
-  INCIDENT_FORM_DESCRIPTION_MAX_LENGTH,
-} from "../../../Types/Incident/IncidentFormPublic";
+import { FORM_TEXT_ANSWER_MAX_LENGTH } from "../../../Types/Form/FormField";
+import { FORM_DESCRIPTION_MAX_LENGTH } from "../../../Types/Form/FormTargetCatalog";
 import { renderAsDashboard } from "./DashboardMarkdownRenderer";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { Lexer, Token, Tokens, marked } from "marked";
@@ -921,8 +919,8 @@ describe("neutralizeMarkdownImagesAndDiagrams - images", () => {
     "neutralises a text made of %s quickly, at every length a form takes",
     (_label: string, shape: (length: number) => string) => {
       for (const length of [
-        INCIDENT_FORM_DESCRIPTION_MAX_LENGTH,
-        INCIDENT_FORM_CUSTOM_FIELD_TEXT_MAX_LENGTH,
+        FORM_DESCRIPTION_MAX_LENGTH,
+        FORM_TEXT_ANSWER_MAX_LENGTH,
         LEXED_TEXT_MAX_LENGTH,
       ]) {
         const text: string = shape(length);
