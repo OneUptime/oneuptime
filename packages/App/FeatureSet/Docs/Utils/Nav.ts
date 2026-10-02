@@ -450,10 +450,6 @@ const DocsNav: NavGroup[] = [
         title: "Incident Settings & Automation",
         url: "/docs/incidents/settings",
       },
-      {
-        title: "Incident Forms",
-        url: "/docs/incidents/forms",
-      },
     ],
   },
   {
@@ -507,6 +503,27 @@ const DocsNav: NavGroup[] = [
       {
         title: "Runbook Configuration & Safety",
         url: "/docs/runbooks/configuration",
+      },
+    ],
+  },
+  {
+    title: "Forms",
+    links: [
+      {
+        title: "Forms Overview",
+        url: "/docs/forms/index",
+      },
+      {
+        title: "Building a Form",
+        url: "/docs/forms/building",
+      },
+      {
+        title: "What a Submission Creates",
+        url: "/docs/forms/on-submit",
+      },
+      {
+        title: "Sharing & Security",
+        url: "/docs/forms/sharing-and-security",
       },
     ],
   },

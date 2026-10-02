@@ -327,9 +327,9 @@ export const FormsCopy: {
     "Every submission through this form creates one of these in your project.",
   changeTargetTitle: "Change What Submissions Create",
   changeTargetToIncident:
-    "From now on, each submission declares an incident. Questions linked to scheduled maintenance fields become questions of the form's own, and the On Submit settings start over.",
+    "From now on, each submission declares an incident. The title, description, monitors and labels stay linked. Other linked questions become questions of the form's own, and the On Submit settings start over.",
   changeTargetToScheduledMaintenance:
-    "From now on, each submission schedules a maintenance event. Questions linked to incident fields become questions of the form's own, the On Submit settings start over, and the form asks when the maintenance starts and ends.",
+    "From now on, each submission schedules a maintenance event. The title, description, monitors and labels stay linked. Other linked questions become questions of the form's own, the On Submit settings start over, and the form asks when the maintenance starts and ends.",
   changeTargetConfirm: "Change",
   mappingIncidentTitle: "How a Submission Becomes an Incident",
   mappingScheduledMaintenanceTitle:
