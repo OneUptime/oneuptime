@@ -137,10 +137,19 @@ export class FormTargetHelpers {
     for (const field of context.fields) {
       const binding: FormFieldBinding | undefined = context.bindings[field.id];
 
-      if (
-        !binding ||
-        !Object.prototype.hasOwnProperty.call(context.answers, field.id)
-      ) {
+      if (!binding) {
+        continue;
+      }
+
+      /*
+       * The label a built-in field is asked with, answered or not: a
+       * refusal about a field left empty names it as the form does.
+       */
+      if (binding.source === FormFieldSource.TargetField) {
+        sorted.targetFieldLabels[binding.definition.key] = field.label;
+      }
+
+      if (!Object.prototype.hasOwnProperty.call(context.answers, field.id)) {
         continue;
       }
 
@@ -149,7 +158,6 @@ export class FormTargetHelpers {
       switch (binding.source) {
         case FormFieldSource.TargetField:
           sorted.targetFields[binding.definition.key] = value;
-          sorted.targetFieldLabels[binding.definition.key] = field.label;
           break;
 
         case FormFieldSource.TargetCustomField:

@@ -15,7 +15,7 @@ import path from "path";
  * A form hands its template's owners to IncidentService.create, and the
  * create's own onCreateSuccess chain adds them once the incident's Slack /
  * Microsoft Teams channels exist - seconds after the incident is written,
- * with a workspace connected, and after the reporter has their answer. The
+ * with a workspace connected, and after the submitter has their answer. The
  * owners' "Incident Created" notification is sent by a job
  * (IncidentOwner:SendCreatedResourceEmail) that runs every minute and takes
  * every incident not yet marked as notified. Had it taken the form's
@@ -45,18 +45,20 @@ jest.mock("../../../Server/Utils/Logger", () => {
 });
 
 import Incident from "../../../Models/DatabaseModels/Incident";
-import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
+import Form from "../../../Models/DatabaseModels/Form";
+import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../../Models/DatabaseModels/IncidentOwnerUser";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerUser from "../../../Models/DatabaseModels/IncidentTemplateOwnerUser";
-import IncidentFormRateLimit from "../../../Server/Middleware/IncidentFormRateLimit";
+import FormRateLimit from "../../../Server/Middleware/FormRateLimit";
 import AutoRemediationRuleEngineService from "../../../Server/Services/AutoRemediationRuleEngineService";
 import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
 import IncidentCustomFieldService from "../../../Server/Services/IncidentCustomFieldService";
-import IncidentFormService from "../../../Server/Services/IncidentFormService";
-import IncidentFormSubmissionService from "../../../Server/Services/IncidentFormSubmissionService";
+import FormService from "../../../Server/Services/FormService";
+import FormSubmissionService from "../../../Server/Services/FormSubmissionService";
+import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
 import IncidentGroupingEngineService from "../../../Server/Services/IncidentGroupingEngineService";
 import IncidentInternalNoteService from "../../../Server/Services/IncidentInternalNoteService";
 import IncidentLabelRuleEngineService from "../../../Server/Services/IncidentLabelRuleEngineService";
@@ -82,10 +84,9 @@ import AIIncidentInvestigationRunner from "../../../Server/Utils/AI/SRE/Incident
 import CaptchaUtil from "../../../Server/Utils/Captcha";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
-import {
-  IncidentFormFieldSetting,
-  PublicIncidentFormSubmissionResult,
-} from "../../../Types/Incident/IncidentFormPublic";
+import { FormFieldSource } from "../../../Types/Form/FormField";
+import { PublicFormSubmissionResult } from "../../../Types/Form/FormPublic";
+import FormTargetType from "../../../Types/Form/FormTargetType";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -119,19 +120,28 @@ let workspaceStarted: boolean;
 let finishWorkspace: () => void;
 let ownerRulesApplied: boolean;
 
-function buildForm(): IncidentForm {
-  const form: IncidentForm = new IncidentForm();
+// A form that asks for a title only, declaring from a template.
+function buildForm(): Form {
+  const form: Form = new Form();
   form._id = FORM_ID;
   form.projectId = PROJECT_ID;
   form.name = "Report a Problem";
   form.isEnabled = true;
   form.shareKey = new ObjectID(SHARE_KEY);
-  form.incidentSeverityId = new ObjectID(FORM_SEVERITY_ID);
-  form.incidentTemplateId = new ObjectID(TEMPLATE_ID);
-  form.allowReporterToChooseSeverity = false;
-  form.descriptionSetting = IncidentFormFieldSetting.Optional;
-  form.customFieldSettings = {};
-  form.isReporterDetailsRequired = false;
+  form.targetType = FormTargetType.Incident;
+  form.fields = [
+    {
+      id: "title",
+      source: FormFieldSource.TargetField,
+      targetField: "title",
+      label: "Title",
+      isRequired: true,
+    },
+  ];
+  form.targetSettings = {
+    incidentSeverityId: FORM_SEVERITY_ID,
+    incidentTemplateId: TEMPLATE_ID,
+  };
   form.ipWhitelist = "";
   return form;
 }
@@ -172,10 +182,10 @@ async function waitUntil(condition: () => boolean): Promise<void> {
   throw new Error("The onCreateSuccess chain did not get there.");
 }
 
-function submit(): Promise<PublicIncidentFormSubmissionResult> {
-  return IncidentFormService.submitPublicForm({
+function submit(): Promise<PublicFormSubmissionResult> {
+  return FormService.submitPublicForm({
     shareKey: SHARE_KEY,
-    request: { data: { title: "Checkout is down" } } as never,
+    request: { data: { answers: { title: "Checkout is down" } } },
     clientIp: "203.0.113.7",
   });
 }
@@ -190,14 +200,22 @@ beforeEach(() => {
 
   // What submitPublicForm reads and writes.
   jest
-    .spyOn(IncidentFormService, "findOneBy")
+    .spyOn(FormService, "findOneBy")
     .mockResolvedValue(buildForm() as never);
   jest
-    .spyOn(IncidentFormService, "isProjectOnPlan")
+    .spyOn(FormService, "isProjectOnPlan")
     .mockResolvedValue(true as never);
+  // The form's severity exists in its project.
+  jest
+    .spyOn(IncidentSeverityService, "findOneBy")
+    .mockImplementation((async (): Promise<IncidentSeverity> => {
+      const severity: IncidentSeverity = new IncidentSeverity();
+      severity._id = FORM_SEVERITY_ID;
+      return severity;
+    }) as never);
   jest.spyOn(CaptchaUtil, "isCaptchaEnabled").mockReturnValue(false);
   jest
-    .spyOn(IncidentFormRateLimit, "reserveFormSubmission")
+    .spyOn(FormRateLimit, "reserveFormSubmission")
     .mockResolvedValue(undefined as never);
   jest
     .spyOn(IncidentCustomFieldService, "findBy")
@@ -213,7 +231,7 @@ beforeEach(() => {
     .spyOn(IncidentTemplateOwnerTeamService, "findBy")
     .mockResolvedValue([] as never);
   jest
-    .spyOn(IncidentFormSubmissionService, "create")
+    .spyOn(FormSubmissionService, "create")
     .mockImplementation((async (createBy: { data: unknown }) => {
       return createBy.data;
     }) as never);
@@ -396,10 +414,10 @@ afterEach(() => {
 
 describe("the Incident Created notification of an incident reported through a form", () => {
   test("waits for the template's owners: the job cannot take the incident until they are its owners", async () => {
-    const result: PublicIncidentFormSubmissionResult = await submit();
+    const result: PublicFormSubmissionResult = await submit();
 
-    // The reporter has their answer; the chain is still creating the channels.
-    expect(result.incidentNumber).toBe("INC-7");
+    // The submitter has their answer; the chain is still creating the channels.
+    expect(result.reference).toBe("INC-7");
     await waitUntil((): boolean => {
       return workspaceStarted;
     });
