@@ -13,6 +13,8 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -20,6 +22,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
 @TenantColumn("projectId")
+@ListOrderColumn({
+  column: "priority",
+  scopeColumns: ["projectId"],
+  sortOrder: SortOrder.Descending,
+})
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -359,12 +366,11 @@ export default class NetworkSiteAssignmentRule extends RuleBaseModel {
   })
   @TableColumn({
     isDefaultValueColumn: true,
-    required: true,
+    required: false,
     type: TableColumnType.Number,
     title: "Priority",
     description:
-      "Higher priority number wins; ties broken by earlier creation.",
-    defaultValue: 0,
+      "Where this rule sits in the list: when several rules match a device, the one highest in the list wins. The rule at the top has the highest number. A new rule is added to the end of the list, with the lowest number. Setting a number moves the rule to that place, and the rules in between shift by one. In the dashboard, drag the rows to reorder them.",
     example: "0",
   })
   @Column({

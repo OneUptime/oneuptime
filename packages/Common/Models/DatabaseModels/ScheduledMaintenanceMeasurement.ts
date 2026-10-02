@@ -14,6 +14,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import MeasurementAggregationType from "../../Types/Measurement/MeasurementAggregationType";
@@ -26,6 +27,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "order", scopeColumns: ["projectId"] })
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -854,11 +856,11 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
   })
   @Index()
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.Number,
     title: "Order",
-    description: "Order in which this measurement is displayed. Lowest first.",
-    defaultValue: 1,
+    description:
+      "Where this measurement appears in the list of measurements: 1 is the first. A new measurement is added to the end of the list. Setting a number moves it to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
     isDefaultValueColumn: true,
   })
   @Column({

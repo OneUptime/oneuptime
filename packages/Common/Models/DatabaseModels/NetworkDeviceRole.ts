@@ -13,6 +13,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
@@ -21,6 +22,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "order", scopeColumns: ["projectId"] })
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -496,7 +498,7 @@ export default class NetworkDeviceRole extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Order",
     description:
-      "Where this role appears in the role picker and the topology map legend. Lower numbers come first.",
+      "Where this role appears in the role picker and the topology map legend: 1 is the first. A new role is added to the end of the list. Setting a number moves it to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
     example: "1",
   })
   @Column({

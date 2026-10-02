@@ -14,6 +14,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -29,6 +30,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: PlanType.Free,
 })
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "sortOrder", scopeColumns: ["logPipelineId"] })
 @CrudApiEndpoint(new Route("/log-pipeline-processor"))
 @Entity({
   name: "LogPipelineProcessor",
@@ -388,12 +390,11 @@ export default class LogPipelineProcessor extends BaseModel {
   })
   @TableColumn({
     title: "Sort Order",
-    required: true,
+    required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     description:
-      "Determines the execution order of this processor within its pipeline.",
-    defaultValue: 0,
+      "Where this processor runs within its pipeline: 1 runs first. A new processor is added to the end of the list. Setting a number moves it to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.Number,
