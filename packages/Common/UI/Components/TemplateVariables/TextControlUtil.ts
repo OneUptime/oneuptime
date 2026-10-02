@@ -94,7 +94,7 @@ const makeRect: MakeRectFunction = (
     height: height,
     right: left + width,
     bottom: top + height,
-    toJSON: (): object => {
+    toJSON: (): Record<string, number> => {
       return { left, top, width, height };
     },
   } as DOMRect;
@@ -275,7 +275,7 @@ export const insertIntoTextControl: InsertIntoTextControlFunction = (
   }
 
   if (!inserted || control.value !== expected) {
-    const prototype: object =
+    const prototype: HTMLTextAreaElement | HTMLInputElement =
       control.tagName === "TEXTAREA"
         ? HTMLTextAreaElement.prototype
         : HTMLInputElement.prototype;

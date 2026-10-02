@@ -153,7 +153,7 @@ const LOCALE_FILES: Array<string> = fs
 
 describe("the 'Internal data' warning stays removed", () => {
   describe("the copy", () => {
-    test("the note template copy carries no warning, and keeps the placeholders' intro", () => {
+    test("the note template copy carries no warning, and keeps the variables' intro", () => {
       const keys: Array<string> = Object.keys(IncidentCustomFieldsCopy);
       const values: Array<string> = Object.values(IncidentCustomFieldsCopy);
 
@@ -169,8 +169,12 @@ describe("the 'Internal data' warning stays removed", () => {
         expect(values).not.toContain(removed);
       }
 
-      expect(IncidentCustomFieldsCopy.noteTemplatePlaceholdersIntro).toBe(
-        "When this template is used in an incident's notes, these placeholders are filled in with the incident's values. A placeholder with no value stays as written.",
+      /*
+       * The intro is the first line of the note's Template variables list
+       * now, and says "variables", as the list does.
+       */
+      expect(IncidentCustomFieldsCopy.noteTemplateVariablesIntro).toBe(
+        "When this template is used in an incident's notes, these variables are filled in with the incident's values. A variable with no value stays as written.",
       );
     });
 
@@ -297,9 +301,9 @@ describe("the 'Internal data' warning stays removed", () => {
         }
       });
 
-      test("still translates the placeholders' intro and who may place fields", () => {
+      test("still translates the variables' intro and who may place fields", () => {
         for (const kept of [
-          IncidentCustomFieldsCopy.noteTemplatePlaceholdersIntro,
+          IncidentCustomFieldsCopy.noteTemplateVariablesIntro,
           IncidentCustomFieldTemplateVariablesCopy.placementPermission,
         ]) {
           expect(typeof translations[kept]).toBe("string");

@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import type { Mock } from "jest-mock";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { cleanup, render, screen } from "@testing-library/react";
 import React, { ReactElement, useState } from "react";
@@ -77,7 +78,7 @@ describe("isTextControl and findTextControl", () => {
 
 describe("insertIntoTextControl", () => {
   test("puts the text in place of the range, through the control's own change handling", () => {
-    const onValue: jest.Mock<(value: string) => void> =
+    const onValue: Mock<(value: string) => void> =
       jest.fn<(value: string) => void>();
 
     render(<ControlledTextArea initial="Hi {{inc there" onValue={onValue} />);
@@ -97,7 +98,7 @@ describe("insertIntoTextControl", () => {
   });
 
   test("at a cursor, adds without replacing anything", () => {
-    const onValue: jest.Mock<(value: string) => void> =
+    const onValue: Mock<(value: string) => void> =
       jest.fn<(value: string) => void>();
 
     render(<ControlledTextArea initial="Severity: " onValue={onValue} />);

@@ -54,12 +54,17 @@ describe("template variables in the visual editor", () => {
     "- Severity: {{incident.severity}}\n- Labels: {{incident.labels}}",
     "{{ incident.title }}",
     "Started {{incident.startedAt}}, now {{incident.state}}.",
-  ])("%j comes back from the editor exactly as it went in", (markdown: string) => {
-    expect(roundTrip(markdown)).toBe(markdown);
-  });
+  ])(
+    "%j comes back from the editor exactly as it went in",
+    (markdown: string) => {
+      expect(roundTrip(markdown)).toBe(markdown);
+    },
+  );
 
   test("a variable inside bold stays inside it, as text", () => {
-    const html: string = markdownToHtml("**{{incident.customFields.on_call_lead}}**");
+    const html: string = markdownToHtml(
+      "**{{incident.customFields.on_call_lead}}**",
+    );
 
     expect(html).toContain(
       "<strong>{{incident.customFields.on_call_lead}}</strong>",

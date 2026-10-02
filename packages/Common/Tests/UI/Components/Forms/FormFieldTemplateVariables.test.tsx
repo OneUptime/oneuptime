@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import type { Mock } from "jest-mock";
 import React, { ReactElement, ReactNode } from "react";
 import {
   act,
@@ -40,7 +41,7 @@ const GROUPS: TemplateVariableGroups = [
   },
 ];
 
-type SetFieldValueMock = jest.Mock<(name: string, value: unknown) => void>;
+type SetFieldValueMock = Mock<(name: string, value: unknown) => void>;
 
 interface RenderOptions {
   fieldType: FormFieldSchemaType;
@@ -130,7 +131,10 @@ describe("a template field offers its variables", () => {
 
     fireEvent.click(cardFor("incident.title"));
 
-    expect(setFieldValue).toHaveBeenLastCalledWith("body", "{{incident.title}}");
+    expect(setFieldValue).toHaveBeenLastCalledWith(
+      "body",
+      "{{incident.title}}",
+    );
   });
 
   test("a text field: the list under the input, whose cards go in at the cursor", () => {
@@ -185,10 +189,7 @@ describe("a template field offers its variables", () => {
     expect(lastValue(setFieldValue)).toBe("Severity: {{incident.severity}}");
   });
 
-  test.each([
-    [FormFieldSchemaType.HTML],
-    [FormFieldSchemaType.JSON],
-  ])(
+  test.each([[FormFieldSchemaType.HTML], [FormFieldSchemaType.JSON]])(
     "a %s code field: Insert variable in the editor's toolbar puts the pick at the cursor",
     (fieldType: FormFieldSchemaType) => {
       const setFieldValue: SetFieldValueMock =
@@ -220,7 +221,9 @@ describe("a template field offers its variables", () => {
       expect(lastValue(setFieldValue)).toBe("<p>{{incident.title}}</p>");
       // And the list is under the editor too, collapsed.
       expect(listOf()).not.toHaveAttribute("open");
-      expect(within(listOf()).getByText("{{incident.title}}")).not.toBeVisible();
+      expect(
+        within(listOf()).getByText("{{incident.title}}"),
+      ).not.toBeVisible();
     },
   );
 
@@ -318,19 +321,22 @@ describe("a field that is not a template", () => {
     [FormFieldSchemaType.LongText],
     [FormFieldSchemaType.HTML],
     [FormFieldSchemaType.JSON],
-  ])("a %s field shows no variables and no Insert variable", (fieldType: FormFieldSchemaType) => {
-    renderField({
-      fieldType: fieldType,
-      overrides: {
-        templateVariables: undefined,
-        templateVariablesDescription: undefined,
-      },
-    });
+  ])(
+    "a %s field shows no variables and no Insert variable",
+    (fieldType: FormFieldSchemaType) => {
+      renderField({
+        fieldType: fieldType,
+        overrides: {
+          templateVariables: undefined,
+          templateVariablesDescription: undefined,
+        },
+      });
 
-    expect(screen.queryByTestId(/template-variables$/)).toBeNull();
-    expect(screen.queryByTestId(/insert-variable$/)).toBeNull();
-    expect(screen.queryByText("Insert variable")).toBeNull();
-  });
+      expect(screen.queryByTestId(/template-variables$/)).toBeNull();
+      expect(screen.queryByTestId(/insert-variable$/)).toBeNull();
+      expect(screen.queryByText("Insert variable")).toBeNull();
+    },
+  );
 
   test("an empty list of variables is no variables", () => {
     renderField({

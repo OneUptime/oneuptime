@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import type { Mock } from "jest-mock";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
   cleanup,
@@ -211,7 +212,7 @@ describe("the Template variables list", () => {
   });
 
   test("a click on a card adds that variable", () => {
-    const onInsert: jest.Mock<(variable: TemplateVariable) => void> =
+    const onInsert: Mock<(variable: TemplateVariable) => void> =
       jest.fn<(variable: TemplateVariable) => void>();
 
     render(<TemplateVariablesList groups={GROUPS} onInsert={onInsert} />);

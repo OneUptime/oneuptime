@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import type { Mock } from "jest-mock";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
   act,
@@ -86,7 +87,7 @@ describe("the Insert variable button", () => {
   });
 
   test("keeps the editor's focus while pressed, and remembers its cursor first", () => {
-    const onPressStart: jest.Mock<() => void> = jest.fn<() => void>();
+    const onPressStart: Mock<() => void> = jest.fn<() => void>();
 
     render(
       <InsertTemplateVariableButton
@@ -104,7 +105,7 @@ describe("the Insert variable button", () => {
   });
 
   test("a keyboard press, which has no mousedown, remembers the cursor too", () => {
-    const onPressStart: jest.Mock<() => void> = jest.fn<() => void>();
+    const onPressStart: Mock<() => void> = jest.fn<() => void>();
 
     render(
       <InsertTemplateVariableButton
@@ -120,7 +121,7 @@ describe("the Insert variable button", () => {
   });
 
   test("picking puts the variable in and closes the list", () => {
-    const onPick: jest.Mock<(variable: TemplateVariable) => void> =
+    const onPick: Mock<(variable: TemplateVariable) => void> =
       jest.fn<(variable: TemplateVariable) => void>();
 
     render(<InsertTemplateVariableButton groups={GROUPS} onPick={onPick} />);
@@ -136,7 +137,7 @@ describe("the Insert variable button", () => {
   });
 
   test("Enter in the search box picks the first match", () => {
-    const onPick: jest.Mock<(variable: TemplateVariable) => void> =
+    const onPick: Mock<(variable: TemplateVariable) => void> =
       jest.fn<(variable: TemplateVariable) => void>();
 
     render(<InsertTemplateVariableButton groups={GROUPS} onPick={onPick} />);
@@ -152,7 +153,7 @@ describe("the Insert variable button", () => {
   });
 
   test("Escape closes the list - only the list - and goes back to the editor", () => {
-    const onCloseFocus: jest.Mock<() => void> = jest.fn<() => void>();
+    const onCloseFocus: Mock<() => void> = jest.fn<() => void>();
     const dialogKeys: Array<string> = [];
     const dialogListener: (event: KeyboardEvent) => void = (
       event: KeyboardEvent,
@@ -201,7 +202,7 @@ describe("the Insert variable button", () => {
   });
 
   test("Tab leaves the list for the editor, instead of the dialog's first field", () => {
-    const onCloseFocus: jest.Mock<() => void> = jest.fn<() => void>();
+    const onCloseFocus: Mock<() => void> = jest.fn<() => void>();
 
     render(
       <InsertTemplateVariableButton
@@ -302,7 +303,10 @@ describe("the popup, while typing", () => {
 
     const popup: HTMLElement = screen.getByTestId("template-variable-popup");
 
-    expect(popup).toHaveAttribute("data-mode", TemplateVariablePopupMode.Inline);
+    expect(popup).toHaveAttribute(
+      "data-mode",
+      TemplateVariablePopupMode.Inline,
+    );
     expect(popup.className).toContain("fixed");
     expect(popup.style.top).toBe("40px");
     expect(popup.style.left).toBe("10px");
@@ -319,7 +323,7 @@ describe("the popup, while typing", () => {
   });
 
   test("a press in the field keeps it open; anywhere else closes it", () => {
-    const onClose: jest.Mock<(reason: TemplateVariablePopupCloseReason) => void> =
+    const onClose: Mock<(reason: TemplateVariablePopupCloseReason) => void> =
       jest.fn<(reason: TemplateVariablePopupCloseReason) => void>();
 
     render(<InlinePopup onClose={onClose} />);
@@ -330,11 +334,13 @@ describe("the popup, while typing", () => {
     act(() => {
       fireEvent.mouseDown(document.body);
     });
-    expect(onClose).toHaveBeenCalledWith(TemplateVariablePopupCloseReason.Outside);
+    expect(onClose).toHaveBeenCalledWith(
+      TemplateVariablePopupCloseReason.Outside,
+    );
   });
 
   test("leaves Escape to the field, which closes it itself", () => {
-    const onClose: jest.Mock<(reason: TemplateVariablePopupCloseReason) => void> =
+    const onClose: Mock<(reason: TemplateVariablePopupCloseReason) => void> =
       jest.fn<(reason: TemplateVariablePopupCloseReason) => void>();
 
     render(<InlinePopup onClose={onClose} />);

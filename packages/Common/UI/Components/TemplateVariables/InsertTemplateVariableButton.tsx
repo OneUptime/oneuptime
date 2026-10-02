@@ -125,7 +125,7 @@ const InsertTemplateVariableButton: FunctionComponent<
               height: rect.height,
               x: rect.right - width,
               y: rect.top,
-              toJSON: (): object => {
+              toJSON: (): Record<string, number> => {
                 return {};
               },
             } as DOMRect;

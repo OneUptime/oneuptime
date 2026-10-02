@@ -5,7 +5,7 @@ import CategoryCheckbox from "../../CategoryCheckbox/Index";
 import CheckboxElement, {
   CategoryCheckboxValue,
 } from "../../Checkbox/Checkbox";
-import CodeEditor from "../../CodeEditor/CodeEditor";
+import CodeEditor, { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import DictionaryForm, { ValueType } from "../../Dictionary/Dictionary";
 import Dropdown, { DropdownValue } from "../../Dropdown/Dropdown";
 import EntityDropdown from "../../EntityDropdown/EntityDropdown";
@@ -41,7 +41,6 @@ import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
 import HorizontalRule from "../../HorizontalRule/HorizontalRule";
 import MarkdownEditor from "../../Markdown.tsx/MarkdownEditor";
 import YamlEditor from "../../CodeEditor/YamlEditor";
-import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import InsertTemplateVariableButton from "../../TemplateVariables/InsertTemplateVariableButton";
 import TemplateVariableTextControl from "../../TemplateVariables/TemplateVariableTextControl";
 import {

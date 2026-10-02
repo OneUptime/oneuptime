@@ -10,6 +10,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Navigation from "Common/UI/Utils/Navigation";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
+import NoteTemplateFormCopy from "../../../Components/NoteTemplate/NoteTemplateFormCopy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -97,7 +98,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               note: true,
             },
-            title: "Note",
+            title: NoteTemplateFormCopy.noteFieldTitle,
+            description: NoteTemplateFormCopy.noteFieldDescription,
             fieldType: FormFieldSchemaType.Markdown,
             required: true,
             validation: {

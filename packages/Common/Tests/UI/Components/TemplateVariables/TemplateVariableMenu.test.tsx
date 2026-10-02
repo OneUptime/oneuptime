@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import type { Mock } from "jest-mock";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
   act,
@@ -49,14 +50,12 @@ afterEach(() => {
   cleanup();
 });
 
-type PickMock = jest.Mock<(variable: TemplateVariable) => void>;
+type PickMock = Mock<(variable: TemplateVariable) => void>;
 
 function optionNames(): Array<string> {
-  return screen
-    .queryAllByRole("option")
-    .map((option: HTMLElement): string => {
-      return option.dataset["variableName"] || "";
-    });
+  return screen.queryAllByRole("option").map((option: HTMLElement): string => {
+    return option.dataset["variableName"] || "";
+  });
 }
 
 function activeName(): string | undefined {
@@ -69,7 +68,7 @@ function activeName(): string | undefined {
 
 function keyEvent(key: string): {
   key: string;
-  preventDefault: jest.Mock<() => void>;
+  preventDefault: Mock<() => void>;
 } {
   return { key: key, preventDefault: jest.fn<() => void>() };
 }
@@ -131,7 +130,11 @@ describe("the template variable menu", () => {
 
   test("with a search box, searches by name or by what a variable holds", () => {
     render(
-      <TemplateVariableMenu groups={GROUPS} hasSearchBox={true} onPick={() => {}} />,
+      <TemplateVariableMenu
+        groups={GROUPS}
+        hasSearchBox={true}
+        onPick={() => {}}
+      />,
     );
 
     const search: HTMLElement = screen.getByTestId("template-variable-search");
@@ -148,7 +151,11 @@ describe("the template variable menu", () => {
 
   test("says so when nothing matches", () => {
     render(
-      <TemplateVariableMenu groups={GROUPS} hasSearchBox={true} onPick={() => {}} />,
+      <TemplateVariableMenu
+        groups={GROUPS}
+        hasSearchBox={true}
+        onPick={() => {}}
+      />,
     );
 
     fireEvent.change(screen.getByTestId("template-variable-search"), {
@@ -165,7 +172,11 @@ describe("the template variable menu", () => {
     const onPick: PickMock = jest.fn<(variable: TemplateVariable) => void>();
 
     render(
-      <TemplateVariableMenu groups={GROUPS} hasSearchBox={true} onPick={onPick} />,
+      <TemplateVariableMenu
+        groups={GROUPS}
+        hasSearchBox={true}
+        onPick={onPick}
+      />,
     );
 
     const search: HTMLElement = screen.getByTestId("template-variable-search");
@@ -194,7 +205,11 @@ describe("the template variable menu", () => {
 
   test("a new search starts at the top of what it found", () => {
     render(
-      <TemplateVariableMenu groups={GROUPS} hasSearchBox={true} onPick={() => {}} />,
+      <TemplateVariableMenu
+        groups={GROUPS}
+        hasSearchBox={true}
+        onPick={() => {}}
+      />,
     );
 
     const search: HTMLElement = screen.getByTestId("template-variable-search");
@@ -262,7 +277,11 @@ describe("the template variable menu", () => {
     const onPick: PickMock = jest.fn<(variable: TemplateVariable) => void>();
 
     render(
-      <TemplateVariableMenu groups={GROUPS} hasSearchBox={true} onPick={onPick} />,
+      <TemplateVariableMenu
+        groups={GROUPS}
+        hasSearchBox={true}
+        onPick={onPick}
+      />,
     );
 
     fireEvent.keyDown(screen.getByTestId("template-variable-search"), {
@@ -315,7 +334,7 @@ describe("the template variable menu", () => {
   });
 
   test("tells the field which option the keys are on, for its aria-activedescendant", () => {
-    const onActiveOptionChange: jest.Mock<(id: string | undefined) => void> =
+    const onActiveOptionChange: Mock<(id: string | undefined) => void> =
       jest.fn<(id: string | undefined) => void>();
 
     render(
@@ -329,9 +348,7 @@ describe("the template variable menu", () => {
     );
 
     expect(screen.getByRole("listbox")).toHaveAttribute("id", "variables");
-    expect(onActiveOptionChange).toHaveBeenLastCalledWith(
-      "variables-option-0",
-    );
+    expect(onActiveOptionChange).toHaveBeenLastCalledWith("variables-option-0");
     expect(screen.getAllByRole("option")[0]).toHaveAttribute(
       "id",
       "variables-option-0",

@@ -56,9 +56,7 @@ function namesOf(groups: Array<TemplateVariableGroup>): Array<string> {
 describe("formatTemplateVariable", () => {
   test("writes the name between double braces", () => {
     expect(formatTemplateVariable("incident.title")).toBe("{{incident.title}}");
-    expect(formatTemplateVariable("statusPageName")).toBe(
-      "{{statusPageName}}",
-    );
+    expect(formatTemplateVariable("statusPageName")).toBe("{{statusPageName}}");
   });
 });
 
@@ -176,7 +174,13 @@ describe("filterTemplateVariableGroups", () => {
 
   test("keeps the group's title and description with what it found", () => {
     const filtered: Array<TemplateVariableGroup> = filterTemplateVariableGroups(
-      [{ title: "Incident", description: "Its own values", variables: [TITLE] }],
+      [
+        {
+          title: "Incident",
+          description: "Its own values",
+          variables: [TITLE],
+        },
+      ],
       "tit",
     );
 

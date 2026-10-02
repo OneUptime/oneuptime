@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import type { Mock } from "jest-mock";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
   act,
@@ -37,7 +38,7 @@ afterEach(() => {
   cleanup();
 });
 
-type ValueMock = jest.Mock<(value: string) => void>;
+type ValueMock = Mock<(value: string) => void>;
 
 function renderInput(
   initialValue: string,
@@ -58,7 +59,10 @@ function renderInput(
   return screen.getByTestId("field") as HTMLInputElement;
 }
 
-function renderTextArea(initialValue: string, onChange: ValueMock): HTMLTextAreaElement {
+function renderTextArea(
+  initialValue: string,
+  onChange: ValueMock,
+): HTMLTextAreaElement {
   render(
     <TemplateVariableTextControl groups={GROUPS}>
       <TextArea
@@ -73,7 +77,10 @@ function renderTextArea(initialValue: string, onChange: ValueMock): HTMLTextArea
 }
 
 // Types `text` as the field's whole value, with the cursor at its end.
-function type(control: HTMLInputElement | HTMLTextAreaElement, text: string): void {
+function type(
+  control: HTMLInputElement | HTMLTextAreaElement,
+  text: string,
+): void {
   act(() => {
     control.focus();
   });
@@ -94,7 +101,10 @@ function suggestedNames(): Array<string> {
 
 describe("typing {{ in a text field", () => {
   test("opens the variables under the cursor, and what follows the braces filters them", () => {
-    const control: HTMLInputElement = renderInput("", jest.fn());
+    const control: HTMLInputElement = renderInput(
+      "",
+      jest.fn<(value: string) => void>(),
+    );
 
     type(control, "Down: {{");
 
@@ -112,7 +122,7 @@ describe("typing {{ in a text field", () => {
 
   test("Enter puts the variable in place of the braces - and does not submit the form", () => {
     const onChange: ValueMock = jest.fn<(value: string) => void>();
-    const onEnterPress: jest.Mock<() => void> = jest.fn<() => void>();
+    const onEnterPress: Mock<() => void> = jest.fn<() => void>();
     const control: HTMLInputElement = renderInput("", onChange, onEnterPress);
 
     type(control, "Down: {{sev");
@@ -128,8 +138,12 @@ describe("typing {{ in a text field", () => {
   });
 
   test("with no list open, Enter is the field's again", () => {
-    const onEnterPress: jest.Mock<() => void> = jest.fn<() => void>();
-    const control: HTMLInputElement = renderInput("", jest.fn(), onEnterPress);
+    const onEnterPress: Mock<() => void> = jest.fn<() => void>();
+    const control: HTMLInputElement = renderInput(
+      "",
+      jest.fn<(value: string) => void>(),
+      onEnterPress,
+    );
 
     type(control, "Plain title");
     fireEvent.keyDown(control, { key: "Enter" });
@@ -138,7 +152,10 @@ describe("typing {{ in a text field", () => {
   });
 
   test("the arrow keys choose, and Tab takes the chosen one", () => {
-    const control: HTMLInputElement = renderInput("", jest.fn());
+    const control: HTMLInputElement = renderInput(
+      "",
+      jest.fn<(value: string) => void>(),
+    );
 
     type(control, "{{");
     fireEvent.keyDown(control, { key: "ArrowDown" });
@@ -148,7 +165,10 @@ describe("typing {{ in a text field", () => {
   });
 
   test("a click on a suggestion takes it", () => {
-    const control: HTMLInputElement = renderInput("", jest.fn());
+    const control: HTMLInputElement = renderInput(
+      "",
+      jest.fn<(value: string) => void>(),
+    );
 
     type(control, "At {{");
     fireEvent.click(
@@ -171,7 +191,10 @@ describe("typing {{ in a text field", () => {
     document.addEventListener("keydown", dialogListener);
 
     try {
-      const control: HTMLInputElement = renderInput("", jest.fn());
+      const control: HTMLInputElement = renderInput(
+        "",
+        jest.fn<(value: string) => void>(),
+      );
 
       type(control, "{{inc");
       fireEvent.keyDown(control, { key: "Escape" });
@@ -189,7 +212,10 @@ describe("typing {{ in a text field", () => {
   });
 
   test("nothing opens for what matches no variable", () => {
-    const control: HTMLInputElement = renderInput("", jest.fn());
+    const control: HTMLInputElement = renderInput(
+      "",
+      jest.fn<(value: string) => void>(),
+    );
 
     type(control, "{{nothing");
 
@@ -197,7 +223,10 @@ describe("typing {{ in a text field", () => {
   });
 
   test("closes once the braces are closed by hand", () => {
-    const control: HTMLInputElement = renderInput("", jest.fn());
+    const control: HTMLInputElement = renderInput(
+      "",
+      jest.fn<(value: string) => void>(),
+    );
 
     type(control, "{{incident.title");
     expect(suggestions()).toBeInTheDocument();
@@ -207,7 +236,10 @@ describe("typing {{ in a text field", () => {
   });
 
   test("closes when the field loses the focus", () => {
-    const control: HTMLInputElement = renderInput("", jest.fn());
+    const control: HTMLInputElement = renderInput(
+      "",
+      jest.fn<(value: string) => void>(),
+    );
 
     type(control, "{{");
     fireEvent.blur(control);
@@ -216,7 +248,10 @@ describe("typing {{ in a text field", () => {
   });
 
   test("closes when the cursor is moved away from the braces", () => {
-    const control: HTMLInputElement = renderInput("", jest.fn());
+    const control: HTMLInputElement = renderInput(
+      "",
+      jest.fn<(value: string) => void>(),
+    );
 
     type(control, "Hi {{inc");
     control.setSelectionRange(1, 1);
@@ -226,16 +261,19 @@ describe("typing {{ in a text field", () => {
   });
 
   test("tells assistive technology which list the field drives and where its keys are", () => {
-    const control: HTMLInputElement = renderInput("", jest.fn());
+    const control: HTMLInputElement = renderInput(
+      "",
+      jest.fn<(value: string) => void>(),
+    );
 
     expect(control).toHaveAttribute("aria-autocomplete", "list");
     expect(control).not.toHaveAttribute("aria-controls");
 
     type(control, "{{");
 
-    const listbox: HTMLElement = within(
-      suggestions() as HTMLElement,
-    ).getByRole("listbox");
+    const listbox: HTMLElement = within(suggestions() as HTMLElement).getByRole(
+      "listbox",
+    );
 
     expect(control).toHaveAttribute("aria-controls", listbox.id);
     expect(control).toHaveAttribute(
@@ -272,7 +310,10 @@ describe("typing {{ in a long text field", () => {
   });
 
   test("takes in the closing braces already there", () => {
-    const control: HTMLTextAreaElement = renderTextArea("", jest.fn());
+    const control: HTMLTextAreaElement = renderTextArea(
+      "",
+      jest.fn<(value: string) => void>(),
+    );
 
     type(control, "{{}} now");
     control.setSelectionRange(2, 2);
@@ -285,12 +326,14 @@ describe("typing {{ in a long text field", () => {
 
 describe("the list under the field", () => {
   test("is there, collapsed, with every variable and what they are filled with", () => {
-    renderInput("", jest.fn());
+    renderInput("", jest.fn<(value: string) => void>());
 
     const list: HTMLElement = screen.getByTestId("template-variables");
 
     expect(list).not.toHaveAttribute("open");
-    expect(within(list).getByText("{{incident.startedAt}}")).toBeInTheDocument();
+    expect(
+      within(list).getByText("{{incident.startedAt}}"),
+    ).toBeInTheDocument();
     expect(
       within(list).getByTestId("template-variables-description"),
     ).toHaveTextContent("Filled in.");
@@ -321,7 +364,7 @@ describe("the list under the field", () => {
   test("into a field nobody has used yet, it goes at the end", () => {
     const control: HTMLTextAreaElement = renderTextArea(
       "Episode on ",
-      jest.fn(),
+      jest.fn<(value: string) => void>(),
     );
 
     fireEvent.click(
@@ -336,7 +379,10 @@ describe("the list under the field", () => {
   });
 
   test("replaces what is selected", () => {
-    const control: HTMLInputElement = renderInput("", jest.fn());
+    const control: HTMLInputElement = renderInput(
+      "",
+      jest.fn<(value: string) => void>(),
+    );
 
     type(control, "Severity: TODO");
     control.setSelectionRange(10, 14);

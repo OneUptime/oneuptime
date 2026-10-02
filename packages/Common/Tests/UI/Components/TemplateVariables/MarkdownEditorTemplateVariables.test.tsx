@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import type { Mock } from "jest-mock";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
   act,
@@ -45,7 +46,7 @@ const GROUPS: TemplateVariableGroups = [
   },
 ];
 
-type ChangeMock = jest.Mock<(value: string) => void>;
+type ChangeMock = Mock<(value: string) => void>;
 
 afterEach(() => {
   cleanup();
@@ -118,9 +119,7 @@ function lastChange(onChange: ChangeMock): string {
 }
 
 function cardFor(name: string): HTMLElement {
-  return within(
-    screen.getByTestId("markdown-editor-template-variables"),
-  )
+  return within(screen.getByTestId("markdown-editor-template-variables"))
     .getAllByTestId("template-variable-insert")
     .find((element: HTMLElement): boolean => {
       return element.dataset["variableName"] === name;
@@ -183,9 +182,7 @@ describe("a Markdown editor with template variables", () => {
 
     // The last button of the toolbar, after the Markdown/Visual switch.
     const toolbarButtons: Array<Element> = Array.from(
-      (button.closest(".flex-wrap") as HTMLElement).querySelectorAll(
-        "button",
-      ),
+      (button.closest(".flex-wrap") as HTMLElement).querySelectorAll("button"),
     );
 
     expect(toolbarButtons[toolbarButtons.length - 1]).toBe(button);
@@ -342,7 +339,9 @@ describe("a Markdown editor with template variables", () => {
       fireEvent.mouseDown(button);
       fireEvent.click(button);
 
-      const search: HTMLElement = screen.getByTestId("template-variable-search");
+      const search: HTMLElement = screen.getByTestId(
+        "template-variable-search",
+      );
 
       // The search box has the focus; the editor's selection is gone.
       expect(search).toHaveFocus();
@@ -352,16 +351,12 @@ describe("a Markdown editor with template variables", () => {
       fireEvent.keyDown(search, { key: "Enter" });
 
       expect(lastChange(onChange)).toBe("Declared: {{incident.startedAt}}.");
-      expect(
-        screen.queryByTestId("insert-template-variable-popup"),
-      ).toBeNull();
+      expect(screen.queryByTestId("insert-template-variable-popup")).toBeNull();
       expect(editableOf()).toHaveFocus();
     });
 
     test("typing {{ opens the variables under the braces, filtered as the name is typed", () => {
-      render(
-        <MarkdownEditor initialValue="Down" templateVariables={GROUPS} />,
-      );
+      render(<MarkdownEditor initialValue="Down" templateVariables={GROUPS} />);
 
       typeInEditor("Down", "Down: {{");
 
@@ -375,9 +370,7 @@ describe("a Markdown editor with template variables", () => {
 
       typeInEditor("Down", "Down: {{lead");
 
-      expect(suggestedNames()).toEqual([
-        "incident.customFields.on_call_lead",
-      ]);
+      expect(suggestedNames()).toEqual(["incident.customFields.on_call_lead"]);
     });
 
     test("Enter takes the chosen variable in place of the braces and what was typed", () => {

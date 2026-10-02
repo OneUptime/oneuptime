@@ -1,4 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
+import { INCIDENT_EPISODE_TEMPLATE_VARIABLE_GROUPS } from "Common/Utils/Episode/EpisodeTemplateVariables";
+import EpisodeTemplateVariablesCopy from "../../../Components/IncidentGroupingRule/EpisodeTemplateVariablesCopy";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -590,6 +592,10 @@ const IncidentGroupingRulesPage: FunctionComponent<
             field: {
               episodeTitleTemplate: true,
             },
+            // The variables, under the field and one "{{" away.
+            templateVariables: INCIDENT_EPISODE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              EpisodeTemplateVariablesCopy.incidentVariablesDescription,
             title: "Episode Title Template",
             stepId: "episode-template",
             fieldType: FormFieldSchemaType.Text,
@@ -603,6 +609,10 @@ const IncidentGroupingRulesPage: FunctionComponent<
             field: {
               episodeDescriptionTemplate: true,
             },
+            // The variables, under the field and one "{{" away.
+            templateVariables: INCIDENT_EPISODE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              EpisodeTemplateVariablesCopy.incidentVariablesDescription,
             title: "Episode Description Template",
             stepId: "episode-template",
             fieldType: FormFieldSchemaType.LongText,
@@ -611,62 +621,6 @@ const IncidentGroupingRulesPage: FunctionComponent<
               "Episode created from {{incidentSeverity}} incident: {{incidentTitle}} on monitor {{monitorName}}",
             description:
               "Template for auto-generated episode descriptions. Uses the first incident's data to generate the description.",
-            footerElement: (
-              <div className="mt-4 p-4 bg-gray-50 rounded-md border border-gray-200 text-sm">
-                <p className="font-medium mb-3">
-                  Supported Template Variables:
-                </p>
-                <div className="mb-3">
-                  <p className="text-xs font-medium text-gray-500 mb-1">
-                    Static Variables (from first incident):
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-gray-700">
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{incidentTitle}}"}
-                      </code>{" "}
-                      - Title of the incident
-                    </li>
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{incidentDescription}}"}
-                      </code>{" "}
-                      - Description of the incident
-                    </li>
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{incidentSeverity}}"}
-                      </code>{" "}
-                      - Severity level (e.g., Critical, Warning)
-                    </li>
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{monitorName}}"}
-                      </code>{" "}
-                      - Name of the monitor that triggered the incident
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">
-                    Dynamic Variables (updated as incidents join):
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-gray-700">
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{incidentCount}}"}
-                      </code>{" "}
-                      - Number of incidents in the episode
-                    </li>
-                  </ul>
-                </div>
-                <p className="mt-3 text-gray-500 text-xs">
-                  Static variables use data from the first incident. Dynamic
-                  variables update automatically when incidents are added or
-                  removed.
-                </p>
-              </div>
-            ),
           },
           // Episode Settings Fields
           {
