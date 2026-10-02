@@ -5,16 +5,22 @@ import TableColumnType from "../../../Types/Database/TableColumnType";
 import RuleCriteria, {
   RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
 } from "../../../Types/Rules/RuleCriteria";
-import { getRuleCriteriaValidationError } from "../../../Utils/Rules/RuleCriteriaMatcher";
+import { isRuleCriteriaConditionRequired } from "../../../Types/Rules/RuleCriteriaFieldRegistry";
 import SelectFormFields from "../../Types/SelectEntityField";
 import React, { ReactElement } from "react";
 import Field, { CustomElementProps } from "../Forms/Types/Field";
 import Fields from "../Forms/Types/Fields";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
-import RuleCriteriaBuilder, {
+import { translateValidationMessage } from "../Forms/Validation";
+import RuleCriteriaBuilder from "./RuleCriteriaBuilder";
+import {
+  formatRuleCriteriaMessage,
+  getAvailableRuleCriteriaFields,
   getRuleCriteriaFieldName,
-} from "./RuleCriteriaBuilder";
+  getRuleCriteriaFormProblem,
+  RuleCriteriaMessage,
+} from "./RuleCriteriaFields";
 
 export const MATCH_CRITERIA_STEP_ID: string = "match-criteria";
 export const RULE_CRITERIA_FIELD_NAME: string = "criteria";
@@ -152,16 +158,30 @@ export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
     },
   );
 
+  /*
+   * A rule kind that matches nothing without a condition (and whose API
+   * refuses one with none) says so: the field is not "(Optional)", the empty
+   * builder asks for a condition, and the form asks before it sends. Until
+   * the builder has filled in a value - a create form that never reached this
+   * step - "required" is what stops the form; a rule saved before conditions
+   * existed has none (null) and keeps working from its old columns.
+   */
+  const requiresCondition: boolean = isRuleCriteriaConditionRequired(
+    model.tableName,
+  );
+
   const criteriaField: Field<TEntity> = {
     field: {
       [RULE_CRITERIA_FIELD_NAME]: true,
     } as SelectFormFields<TEntity>,
     title: "Conditions",
-    description:
-      "Add one or more conditions and choose whether every condition or any condition must match.",
     stepId: MATCH_CRITERIA_STEP_ID,
     fieldType: FormFieldSchemaType.CustomComponent,
-    required: false,
+    required: requiresCondition
+      ? (values: FormValues<TEntity>): boolean => {
+          return (values as { criteria?: unknown }).criteria !== null;
+        }
+      : false,
     spanFullRow: true,
     dataTestId: "rule-criteria-field",
     customValidation: (values: FormValues<TEntity>): string | null => {
@@ -171,7 +191,18 @@ export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
         return null;
       }
 
-      return getRuleCriteriaValidationError(criteria);
+      const problem: RuleCriteriaMessage | null = getRuleCriteriaFormProblem({
+        criteria: criteria,
+        fields: getAvailableRuleCriteriaFields(
+          legacyFields,
+          values as unknown as Record<string, unknown>,
+        ),
+        requiresCondition: requiresCondition,
+      });
+
+      return problem
+        ? formatRuleCriteriaMessage(problem, translateValidationMessage)
+        : null;
     },
     getCustomElement: (
       values: FormValues<TEntity>,
@@ -183,6 +214,7 @@ export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
           legacyValues={values as unknown as Record<string, unknown>}
           value={(values as { criteria?: RuleCriteria }).criteria}
           error={customElementProps.error}
+          requiresCondition={requiresCondition}
           onChange={(criteria: RuleCriteria): void => {
             customElementProps.onChange?.(criteria);
           }}

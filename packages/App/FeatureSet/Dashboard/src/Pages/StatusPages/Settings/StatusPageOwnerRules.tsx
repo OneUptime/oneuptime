@@ -158,7 +158,7 @@ const StatusPageOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { statusPageNamePattern: true },
-          title: "Status Page Name Pattern",
+          title: "Status Page Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -169,7 +169,7 @@ const StatusPageOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { statusPageDescriptionPattern: true },
-          title: "Status Page Description Pattern",
+          title: "Status Page Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

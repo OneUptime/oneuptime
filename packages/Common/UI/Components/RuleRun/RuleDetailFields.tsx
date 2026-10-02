@@ -8,7 +8,7 @@ import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
 import LabelsElement from "../Label/Labels";
 import Field from "../ModelDetail/Field";
-import { getRuleCriteriaFieldName } from "../RuleCriteria/RuleCriteriaBuilder";
+import { getRuleCriteriaFieldName } from "../RuleCriteria/RuleCriteriaFields";
 import {
   getLegacyRuleCriteriaFields,
   RULE_CRITERIA_FIELD_NAME,

@@ -157,7 +157,7 @@ const HostOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { hostNamePattern: true },
-          title: "Host Name Pattern",
+          title: "Host Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -168,7 +168,7 @@ const HostOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { hostDescriptionPattern: true },
-          title: "Host Description Pattern",
+          title: "Host Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

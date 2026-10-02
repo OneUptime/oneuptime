@@ -157,7 +157,7 @@ const MonitorOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { monitorNamePattern: true },
-          title: "Monitor Name Pattern",
+          title: "Monitor Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -168,7 +168,7 @@ const MonitorOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { monitorDescriptionPattern: true },
-          title: "Monitor Description Pattern",
+          title: "Monitor Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

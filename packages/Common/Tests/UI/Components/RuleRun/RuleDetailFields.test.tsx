@@ -98,7 +98,7 @@ const OWNER_FORM: Array<ModelField<MonitorOwnerRule>> = [
   },
   {
     field: { monitorNamePattern: true },
-    title: "Monitor Name Pattern",
+    title: "Monitor Name",
     stepId: "match-criteria",
     fieldType: FormFieldSchemaType.Text,
   },
@@ -185,7 +185,7 @@ describe("getRuleDetailFields", () => {
       item: rule,
     });
 
-    expect(expected).not.toBe("Matches all resources");
+    expect(expected).toBe("Match all: Monitor Name matches pattern “prod-.*”");
     expect(
       renderElement(fieldTitled(detail, "Match Criteria"), rule),
     ).toHaveTextContent(expected);

@@ -116,7 +116,7 @@ const CloudResourceOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { matchLabels: true },
-          title: "Match Labels",
+          title: "Resource Labels",
           stepId: "match-criteria",
           sectionTitle: "Match by Attributes",
           sectionDescription:
@@ -132,7 +132,7 @@ const CloudResourceOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { nameRegexPattern: true },
-          title: "Name Regex Pattern",
+          title: "Resource Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -143,7 +143,7 @@ const CloudResourceOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { descriptionRegexPattern: true },
-          title: "Description Regex Pattern",
+          title: "Resource Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

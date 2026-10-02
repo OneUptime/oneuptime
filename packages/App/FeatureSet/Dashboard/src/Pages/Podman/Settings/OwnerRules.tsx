@@ -158,7 +158,7 @@ const PodmanHostOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { podmanHostNamePattern: true },
-          title: "Podman Host Name Pattern",
+          title: "Podman Host Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -169,7 +169,7 @@ const PodmanHostOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { podmanHostDescriptionPattern: true },
-          title: "Podman Host Description Pattern",
+          title: "Podman Host Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

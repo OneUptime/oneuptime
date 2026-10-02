@@ -144,7 +144,7 @@ const VMwareVCenterLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { vmwareVCenterNamePattern: true },
-          title: "vCenter Name Pattern",
+          title: "vCenter Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -155,7 +155,7 @@ const VMwareVCenterLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { vmwareVCenterDescriptionPattern: true },
-          title: "vCenter Description Pattern",
+          title: "vCenter Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

@@ -224,7 +224,8 @@ describe.each([
         return Boolean(field["field"]["messageQueueSystemPattern"]);
       },
     );
-    expect(system["title"]).toBe("Messaging System Pattern");
+    // The operator says it is a pattern; the criterion is the system itself.
+    expect(system["title"]).toBe("Messaging System");
     expect(system["placeholder"]).toBe("^kafka$");
     expect(system["description"]).toContain("messaging.system value");
     expect(system["description"]).toContain("display name");
@@ -243,8 +244,11 @@ describe.each([
 
     const help: Props = tableProps()["helpContent"];
     expect(help["markdown"]).toMatch(/^### Match Criteria$/m);
-    expect(help["markdown"]).toContain("**Messaging System Pattern**");
+    expect(help["markdown"]).toContain("**Messaging System**");
+    expect(help["markdown"]).not.toContain("Messaging System Pattern");
     expect(help["markdown"]).toContain("^kafka$");
+    // The naming tips sit outside the section the shared help rewrites.
+    expect(help["markdown"]).toMatch(/^### Matching Discovered Queues$/m);
   });
 });
 

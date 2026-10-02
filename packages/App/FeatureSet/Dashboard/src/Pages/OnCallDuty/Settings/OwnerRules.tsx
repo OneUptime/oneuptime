@@ -201,7 +201,7 @@ const OnCallPolicyOwnerRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { onCallDutyPolicyNamePattern: true },
-          title: "On-Call Policy Name Pattern",
+          title: "On-Call Policy Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -212,7 +212,7 @@ const OnCallPolicyOwnerRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { onCallDutyPolicyDescriptionPattern: true },
-          title: "On-Call Policy Description Pattern",
+          title: "On-Call Policy Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -380,7 +380,7 @@ const OnCallScheduleOwnerRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { onCallDutyPolicyScheduleNamePattern: true },
-          title: "On-Call Schedule Name Pattern",
+          title: "On-Call Schedule Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -391,7 +391,7 @@ const OnCallScheduleOwnerRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { onCallDutyPolicyScheduleDescriptionPattern: true },
-          title: "On-Call Schedule Description Pattern",
+          title: "On-Call Schedule Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -557,7 +557,7 @@ const IncomingCallPolicyOwnerRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { incomingCallPolicyNamePattern: true },
-          title: "Incoming Call Policy Name Pattern",
+          title: "Incoming Call Policy Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -568,7 +568,7 @@ const IncomingCallPolicyOwnerRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { incomingCallPolicyDescriptionPattern: true },
-          title: "Incoming Call Policy Description Pattern",
+          title: "Incoming Call Policy Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
