@@ -1,15 +1,14 @@
 import { LIMIT_PER_PROJECT } from "../Database/LimitMax";
 import Dictionary from "../Dictionary";
-import { sortCustomFieldDefinitions } from "./CustomFieldOrder";
 import { isValidCustomFieldVariableKey } from "./CustomFieldVariableKey";
 
 /*
  * What happens to an incident custom field when an incident is declared: is
  * it asked for, and must it be filled in? A project answers that once per
  * field, with the field's own Show on Create and Required on Create switches.
- * This module is how an incident template - and an incident form - answers
- * it differently for itself (issue #4114): a template for a data breach can
- * require "Affected Location" while the others leave it out.
+ * This module is how an incident template answers it differently for itself
+ * (issue #4114): a template for a data breach can require "Affected
+ * Location" while the others leave it out.
  *
  * The settings are one JSON object KEYED BY THE FIELD'S TEMPLATE VARIABLE KEY
  * (IncidentCustomField.variableKey), never by its name. Values are stored by
@@ -18,25 +17,17 @@ import { isValidCustomFieldVariableKey } from "./CustomFieldVariableKey";
  * template exported to another project finds the same fields there. A field
  * the object does not list is Default.
  *
- * Two readers, and Default means something different to each:
+ * A template only overrides: Default (or no entry) leaves the field's own
+ * switches in charge - see applyTemplateCustomFieldCreateSettings.
  *
- *   - an incident TEMPLATE only overrides. Default (or no entry) leaves the
- *     field's own switches in charge - see
- *     applyTemplateCustomFieldCreateSettings;
- *   - an incident FORM is a page anyone with its link can fill in, so it asks
- *     only for the fields it names as Required or Optional. Default and Hidden
- *     are both "not asked" there - see getIncidentFormAskedDefinitions. A
- *     public page must never show a field's name, or a dropdown's options,
- *     that an admin did not choose to put on it.
+ * Only the dashboard's Declare Incident form applies them. Incidents created
+ * through the API, by monitors, workflows, integrations and forms never see
+ * a template's settings, exactly as they never see the project-wide Required
+ * on Create. (A form - the Forms product - asks the custom fields its own
+ * questions are linked to, and nothing else; see Types/Form/FormField.)
  *
- * Only the dashboard's Declare Incident form and the public incident form
- * apply them. Incidents created through the API, by monitors, workflows and
- * integrations never see a template's settings, exactly as they never see the
- * project-wide Required on Create.
- *
- * Pure, with no database or React imports, so the server that checks a write,
- * the dashboard that applies a template and the public form all read the
- * settings the same way.
+ * Pure, with no database or React imports, so the server that checks a write
+ * and the dashboard that applies a template read the settings the same way.
  */
 
 export enum CustomFieldCreateSetting {
@@ -173,7 +164,7 @@ export type ValidateCustomFieldCreateSettingsFunction = (
 ) => string | null;
 
 /**
- * Why a value cannot be stored as a template's or form's custom field
+ * Why a value cannot be stored as a template's custom field
  * settings, or null when it can. Nothing (null or undefined) is fine: it
  * clears the settings.
  *
@@ -341,36 +332,6 @@ export const getEffectiveCustomFieldCreateSetting: GetEffectiveCustomFieldCreate
       : CustomFieldCreateSetting.Optional;
   };
 
-export type GetIncidentFormCustomFieldSettingFunction = (
-  settings: unknown,
-  variableKey?: string | null | undefined,
-) => EffectiveCustomFieldCreateSetting;
-
-/**
- * One field's setting on an incident form, where only Required and Optional
- * ask for anything: Default, Hidden and a field the form does not list are
- * all Hidden ("not asked").
- */
-export const getIncidentFormCustomFieldSetting: GetIncidentFormCustomFieldSettingFunction =
-  (
-    settings: unknown,
-    variableKey?: string | null | undefined,
-  ): EffectiveCustomFieldCreateSetting => {
-    const setting: CustomFieldCreateSetting = getCustomFieldCreateSetting(
-      settings,
-      variableKey,
-    );
-
-    if (
-      setting === CustomFieldCreateSetting.Required ||
-      setting === CustomFieldCreateSetting.Optional
-    ) {
-      return setting;
-    }
-
-    return CustomFieldCreateSetting.Hidden;
-  };
-
 type CopyWithFunction = <T extends CustomFieldCreateSettingsDefinition>(
   definition: T,
   changes: {
@@ -451,94 +412,25 @@ export const applyTemplateCustomFieldCreateSettings: ApplyTemplateCustomFieldCre
     });
   };
 
-export type GetIncidentFormAskedDefinitionsFunction = <
-  T extends CustomFieldCreateSettingsDefinition & {
-    sortOrder?: number | null | undefined;
-  },
->(
-  definitions: Array<T>,
-  settings: unknown,
-) => Array<T>;
-
-/**
- * The fields an incident form asks for: only those its settings make
- * Required or Optional, whatever their own Show on Create says. Each comes
- * back as a copy with showOnCreate on and isRequiredOnCreate saying whether
- * the form requires it, in the order fields are shown everywhere else
- * (sortCustomFieldDefinitions).
- *
- * The public form is built from this list and its answers are checked
- * against it, so a field that is not on it can neither be seen nor filled in
- * through the form.
- */
-export const getIncidentFormAskedDefinitions: GetIncidentFormAskedDefinitionsFunction =
-  <
-    T extends CustomFieldCreateSettingsDefinition & {
-      sortOrder?: number | null | undefined;
-    },
-  >(
-    definitions: Array<T>,
-    settings: unknown,
-  ): Array<T> => {
-    const read: CustomFieldCreateSettings =
-      readCustomFieldCreateSettings(settings);
-
-    const asked: Array<T> = [];
-
-    for (const definition of definitions) {
-      const setting: EffectiveCustomFieldCreateSetting =
-        getIncidentFormCustomFieldSetting(read, definition.variableKey);
-
-      if (setting === CustomFieldCreateSetting.Hidden) {
-        continue;
-      }
-
-      asked.push(
-        copyWith(definition, {
-          showOnCreate: true,
-          isRequiredOnCreate: setting === CustomFieldCreateSetting.Required,
-        }),
-      );
-    }
-
-    return sortCustomFieldDefinitions(asked);
-  };
-
 export type CompactCustomFieldCreateSettingsFunction = (
   settings: unknown,
-  options?: {
-    /*
-     * For an incident form, where Hidden and Default both mean "not asked":
-     * drop Hidden entries too, so only the questions the form asks remain.
-     */
-    dropHidden?: boolean | undefined;
-  },
 ) => CustomFieldCreateSettings;
 
 /**
  * The smallest settings object that means the same thing, for a settings
  * form to save: Default entries (which say nothing) and invalid ones are
- * left out, and with dropHidden so are Hidden ones. The server never does
+ * left out. The server never does
  * this to what it is sent (see validateCustomFieldCreateSettings); a client
  * that wants a tidy value sends one.
  */
 export const compactCustomFieldCreateSettings: CompactCustomFieldCreateSettingsFunction =
-  (
-    settings: unknown,
-    options?: {
-      dropHidden?: boolean | undefined;
-    },
-  ): CustomFieldCreateSettings => {
+  (settings: unknown): CustomFieldCreateSettings => {
     const compacted: CustomFieldCreateSettings = {};
 
     for (const [key, setting] of Object.entries(
       readCustomFieldCreateSettings(settings),
     )) {
       if (setting === CustomFieldCreateSetting.Default) {
-        continue;
-      }
-
-      if (options?.dropHidden && setting === CustomFieldCreateSetting.Hidden) {
         continue;
       }
 

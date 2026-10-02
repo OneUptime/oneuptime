@@ -587,51 +587,64 @@ describe("building has no side effects; sending does", () => {
     expect(variables.getSentCustomFieldsMarkdown()).toContain("Impact details");
   });
 
-  test("a custom template records only the fields it places, on recordSending", async () => {
-    emailTemplate = template({
-      body: "<div>{{customFields.impact_details}}</div>",
-      subject: "{{incidentTitle}}",
-    });
+  /*
+   * {{incident.customFields.<key>}} is the documented name; a template saved
+   * with the older {{customFields.<key>}} still places the field.
+   */
+  test.each([
+    [
+      "the documented name",
+      "<div>{{incident.customFields.impact_details}}</div>",
+    ],
+    ["the older name", "<div>{{customFields.impact_details}}</div>"],
+  ])(
+    "a custom template records only the fields it places, on recordSending (%s)",
+    async (_name: string, templateBody: string) => {
+      emailTemplate = template({
+        body: templateBody,
+        subject: "{{incidentTitle}}",
+      });
 
-    const { pageEmail, variables } = await build({
-      event: SubscriberIncidentEmailEvent.IncidentCreated,
-      page: statusPage({ smtp: true }),
-    });
+      const { pageEmail, variables } = await build({
+        event: SubscriberIncidentEmailEvent.IncidentCreated,
+        page: statusPage({ smtp: true }),
+      });
 
-    const recordFieldsUsedBy: Mock<() => Promise<void>> = jest.fn(
-      async (): Promise<void> => {
-        return undefined;
-      },
-    );
-    const recordIncludedFieldsSent: Mock<() => Promise<void>> = jest.fn(
-      async (): Promise<void> => {
-        return undefined;
-      },
-    );
-    jest
-      .spyOn(variables, "recordFieldsUsedBy")
-      .mockImplementation(recordFieldsUsedBy as never);
-    jest
-      .spyOn(variables, "recordIncludedFieldsSent")
-      .mockImplementation(recordIncludedFieldsSent as never);
+      const recordFieldsUsedBy: Mock<() => Promise<void>> = jest.fn(
+        async (): Promise<void> => {
+          return undefined;
+        },
+      );
+      const recordIncludedFieldsSent: Mock<() => Promise<void>> = jest.fn(
+        async (): Promise<void> => {
+          return undefined;
+        },
+      );
+      jest
+        .spyOn(variables, "recordFieldsUsedBy")
+        .mockImplementation(recordFieldsUsedBy as never);
+      jest
+        .spyOn(variables, "recordIncludedFieldsSent")
+        .mockImplementation(recordIncludedFieldsSent as never);
 
-    const body: string = String(
-      (
-        pageEmail.forSubscriber({ unsubscribeUrl: UNSUBSCRIBE_URL }).envelope
-          .vars as JSONObject
-      )["body"],
-    );
-    expect(body).toContain(IMAGE_URL);
-    expect(recordFieldsUsedBy).not.toHaveBeenCalled();
+      const body: string = String(
+        (
+          pageEmail.forSubscriber({ unsubscribeUrl: UNSUBSCRIBE_URL }).envelope
+            .vars as JSONObject
+        )["body"],
+      );
+      expect(body).toContain(IMAGE_URL);
+      expect(recordFieldsUsedBy).not.toHaveBeenCalled();
 
-    await pageEmail.recordSending();
+      await pageEmail.recordSending();
 
-    expect(recordFieldsUsedBy).toHaveBeenCalledWith([
-      "<div>{{customFields.impact_details}}</div>",
-      "{{incidentTitle}}",
-    ]);
-    expect(recordIncludedFieldsSent).not.toHaveBeenCalled();
-  });
+      expect(recordFieldsUsedBy).toHaveBeenCalledWith([
+        templateBody,
+        "{{incidentTitle}}",
+      ]);
+      expect(recordIncludedFieldsSent).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("buildTemplateVariables", () => {

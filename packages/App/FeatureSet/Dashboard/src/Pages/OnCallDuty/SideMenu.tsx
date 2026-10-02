@@ -55,20 +55,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.ShieldCheck,
         },
-        /*
-         * Archived policies are filtered out of the policy list, so without
-         * this entry the only way back to one would be its URL. After
-         * Readiness, which must stay right under the list (see above).
-         */
-        {
-          link: {
-            title: "Archived",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
-        },
       ],
     },
     {
@@ -148,6 +134,21 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon: IconProp.Logs,
           subItemIcon: IconProp.Clock,
           subItemLink: subItemMenuLink,
+        },
+        /*
+         * The way back to archived on-call policies, which the policy list
+         * leaves out. Named for what it holds: out of the Policies section,
+         * a bare "Archived" would not say which of this menu's things it
+         * lists.
+         */
+        {
+          link: {
+            title: "Archived Policies",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
         },
       ],
     },

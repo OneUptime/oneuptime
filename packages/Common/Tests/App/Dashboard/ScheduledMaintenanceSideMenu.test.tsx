@@ -101,14 +101,44 @@ describe("Scheduled maintenance side menu", () => {
       expect(sectionTitlesInOrder()).not.toContain("AI");
     });
 
+    // As the maintainer drew the Incidents menu, which this one mirrors.
     test("the day-to-day sections are expanded and the configuration sections are collapsed", async () => {
       await renderScheduledMaintenanceMenu();
 
       expect(isExpanded("Overview")).toBe(true);
-      expect(isExpanded("Workspace")).toBe(true);
+      expect(isExpanded("Workspace")).toBe(false);
       expect(isExpanded("Rules")).toBe(false);
       expect(isExpanded("Settings")).toBe(false);
+      expect(isExpanded("Developer")).toBe(false);
+      expect(sectionBody("Workspace")).toHaveClass(
+        "max-h-0",
+        "opacity-0",
+        "invisible",
+      );
     });
+
+    test.each([
+      [
+        "Slack",
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK,
+      ],
+      [
+        "Microsoft Teams",
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      ],
+    ])(
+      "Workspace opens by itself on the %s page, and marks it",
+      async (title: string, pageMapKey: string) => {
+        goTo(routeFor(pageMapKey));
+        await renderScheduledMaintenanceMenu();
+
+        expect(isExpanded("Workspace")).toBe(true);
+        expect(sectionBody("Workspace")).not.toHaveClass("invisible");
+        expect(isExpanded("Rules")).toBe(false);
+        expect(isExpanded("Settings")).toBe(false);
+        expect(activeLinkTitles()).toEqual([title]);
+      },
+    );
 
     test("the overview and workspace sections are unchanged by the move", async () => {
       await renderScheduledMaintenanceMenu();

@@ -267,7 +267,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     },
   ];
 
-  // Only add Configuration section if there are items
+  /*
+   * Only add Configuration section if there are items. It starts folded down
+   * to its title, like every rarely used kind of section (by its title: see
+   * SideMenuSectionState.ts): a monitor's criteria and probes are set up
+   * once and tuned now and then, while its overview and activity above are
+   * what this menu is opened for. It opens by itself on its own pages.
+   */
   if (configurationItems.length > 0) {
     sections.push({
       title: "Configuration",

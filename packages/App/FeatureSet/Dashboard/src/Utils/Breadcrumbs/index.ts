@@ -3,6 +3,7 @@ export * from "./ScheduledMaintenanceBreadcrumbs";
 export * from "./StatusPagesBreadcrumbs";
 export * from "./WorkflowsBreadcrumbs";
 export * from "./RunbooksBreadcrumbs";
+export * from "./FormsBreadcrumbs";
 export * from "./OnCallDutyBreadcrumbs";
 export * from "./LogsBreadcrumbs";
 export * from "./SecurityEventsBreadcrumbs";

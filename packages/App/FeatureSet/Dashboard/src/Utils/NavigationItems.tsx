@@ -754,6 +754,36 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       iconColor: "teal",
       category: analyticsAutomationCategory,
     },
+    /*
+     * Forms sit with the automation products: a form turns what someone
+     * outside the team fills in into an incident or a maintenance event,
+     * the way a workflow turns an event into actions.
+     */
+    {
+      title: t("navbar.items.formsTitle", "Forms"),
+      keywords: [
+        "form",
+        "form builder",
+        "public form",
+        "intake form",
+        "request form",
+        "report form",
+        "incident form",
+        "maintenance request",
+        "change request",
+        "questionnaire",
+        "submissions",
+      ],
+      description: t(
+        "navbar.items.formsDescription",
+        "Forms anyone can fill in that create incidents or scheduled maintenance events.",
+      ),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.FORMS] as Route),
+      activeRoute: RouteMap[PageMap.FORMS],
+      icon: IconProp.ClipboardDocumentList,
+      iconColor: "teal",
+      category: analyticsAutomationCategory,
+    },
     // Settings
     {
       title: t("navbar.items.usersTitle"),

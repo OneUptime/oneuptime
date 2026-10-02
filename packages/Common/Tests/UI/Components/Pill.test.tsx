@@ -293,6 +293,134 @@ describe("<Pill />", () => {
 
       expect(getDot()).toHaveAttribute("aria-hidden", "true");
     });
+
+    test("does not pulse unless asked to", () => {
+      render(<Pill text="Love" color={Green} />);
+
+      expect(screen.queryByTestId("pill-dot-pulse")).toBeNull();
+      expect(getDot()).not.toHaveAttribute("data-pulsing");
+      expect(getPill().innerHTML).not.toContain("animate-ping");
+    });
+  });
+
+  /*
+   * A pulsing pill says "this is happening right now" - the Currently Active
+   * marker on the status and state timelines.
+   */
+  describe("pulsing", () => {
+    function getPulse(): HTMLElement {
+      return within(getDot()).getByTestId("pill-dot-pulse");
+    }
+
+    test("ripples a ring out of the dot", () => {
+      render(<Pill text="Currently Active" color={Green} isPulsing={true} />);
+
+      expect(getDot()).toHaveAttribute("data-pulsing", "true");
+      expect(getPulse()).toHaveClass("absolute", "rounded-full");
+    });
+
+    test("only while motion is welcome: the animation is motion-safe", () => {
+      render(<Pill text="Currently Active" color={Green} isPulsing={true} />);
+
+      /*
+       * prefers-reduced-motion: reduce switches motion-safe utilities off, so
+       * the ring then sits still behind the dot. A bare animate-ping would
+       * keep pulsing for a reader who asked for no motion.
+       */
+      expect(getPulse()).toHaveClass("motion-safe:animate-ping");
+      expect(getPulse().className.split(/\s+/)).not.toContain("animate-ping");
+    });
+
+    test("with reduced motion the still ring is hidden behind the dot", () => {
+      render(<Pill text="Currently Active" color={Green} isPulsing={true} />);
+
+      const layers: Array<Element> = Array.from(getDot().children);
+
+      // Painted first, so the dot itself lands on top of it.
+      expect(layers).toHaveLength(2);
+      expect(layers[0]).toBe(getPulse());
+      expect(layers[1]).toHaveClass("relative", "h-full", "w-full");
+      expect(getPulse()).toHaveClass("h-full", "w-full");
+    });
+
+    test("paints both the ring and the dot in the caller's colour", () => {
+      render(<Pill text="Currently Active" color={Green} isPulsing={true} />);
+
+      const layers: Array<Element> = Array.from(getDot().children);
+
+      for (const layer of layers) {
+        expect(layer).toHaveStyle({ backgroundColor: Green.toString() });
+      }
+    });
+
+    test("carries the dark theme's dot colour on both, for Theme.css", () => {
+      const colors: PillColors = getPillColors(Green);
+      render(<Pill text="Currently Active" color={Green} isPulsing={true} />);
+
+      for (const layer of Array.from(getDot().children)) {
+        expect(layer).toHaveAttribute("data-ou-pill-dot");
+        expect(
+          (layer as HTMLElement).style.getPropertyValue("--ou-pill-dark-dot"),
+        ).toBe(colors.dark.dotColor);
+      }
+    });
+
+    test("keeps the dot's size, so a pulsing pill lines up with a still one", () => {
+      render(<Pill text="Currently Active" color={Green} isPulsing={true} />);
+
+      expect(getDot()).toHaveClass("h-[0.5em]", "w-[0.5em]", "flex-shrink-0");
+    });
+
+    test("is hidden from assistive technology, ring and all", () => {
+      render(<Pill text="Currently Active" color={Green} isPulsing={true} />);
+
+      expect(getDot()).toHaveAttribute("aria-hidden", "true");
+    });
+
+    test("adds no text of its own", () => {
+      render(<Pill text="Currently Active" color={Green} isPulsing={true} />);
+
+      expect(getPill().textContent).toBe("Currently Active");
+    });
+
+    test("leaves the pill itself as it was", () => {
+      const colors: PillColors = getPillColors(Green);
+      render(<Pill text="Currently Active" color={Green} isPulsing={true} />);
+
+      expect(getPill()).toHaveAttribute("data-ou-pill");
+      expect(getPill()).toHaveStyle({
+        backgroundColor: colors.light.backgroundColor,
+        color: colors.light.textColor,
+      });
+    });
+
+    test("an icon still takes the dot's place, and nothing pulses", () => {
+      const { container } = render(
+        <Pill
+          text="Currently Active"
+          color={Green}
+          icon={IconProp.Clock}
+          isPulsing={true}
+        />,
+      );
+
+      expect(container.querySelector("svg")).not.toBeNull();
+      expect(screen.queryByTestId("pill-dot")).toBeNull();
+      expect(screen.queryByTestId("pill-dot-pulse")).toBeNull();
+    });
+
+    test("works on a minimal pill too", () => {
+      render(
+        <Pill
+          text="Currently Active"
+          color={Red}
+          isMinimal={true}
+          isPulsing={true}
+        />,
+      );
+
+      expect(getPulse()).toHaveStyle({ backgroundColor: Red.toString() });
+    });
   });
 
   describe("long text", () => {

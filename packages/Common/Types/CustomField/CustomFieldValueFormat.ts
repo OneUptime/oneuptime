@@ -3,8 +3,9 @@ import { isCustomFieldValueEmpty } from "./CustomFieldValueMapping";
 /*
  * How a stored custom field value reads as words, for everything that puts a
  * value in front of a person outside the Custom Fields card: an incident
- * note's {{customFields.<key>}} placeholder (Common/Utils/Incident/
- * IncidentNoteTemplateVariables) and the status page subscriber messages
+ * note's {{incident.customFields.<key>}} placeholder
+ * (Common/Utils/Incident/IncidentNoteTemplateVariables) and the status page
+ * subscriber messages
  * (Common/Server/Utils/StatusPage/IncidentTemplateVariableBuilder).
  *
  * Only the reading is shared here. Where the words then go decides the rest:

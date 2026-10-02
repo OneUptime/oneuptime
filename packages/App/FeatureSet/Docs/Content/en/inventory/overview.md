@@ -38,9 +38,9 @@ The restriction exists to stop duplicates. A hand-made row of an observable type
 
 **Deleting** a discovered or mirrored item does not stick. Ingest re-creates it on the next batch; the mirror re-creates it on the next sweep. Archive those instead — it is the only disposal that survives.
 
-Archived items live under **Inventory → Archived**.
+Archived items live under **Inventory → Advanced → Archived**. **Advanced** starts collapsed: click it to show **Archived**.
 
-> If a mirrored device is removed from its owning table, OneUptime removes the catalog row too — **unless that row is carrying custom field values you entered.** In that case it is archived rather than deleted, because those values are the only copy and there is no undo. You will find it under Archived with everything you typed intact.
+> If a mirrored device is removed from its owning table, OneUptime removes the catalog row too — **unless that row is carrying custom field values you entered.** In that case it is archived rather than deleted, because those values are the only copy and there is no undo. You will find it under **Advanced → Archived** with everything you typed intact.
 
 ## Relationships and Topology
 

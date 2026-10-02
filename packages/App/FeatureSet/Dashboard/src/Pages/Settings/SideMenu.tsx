@@ -9,6 +9,15 @@ import { BILLING_ENABLED } from "Common/UI/Config";
 import React, { ReactElement } from "react";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
+  /*
+   * Every page here is set up once and revisited rarely, so only Basic (the
+   * project itself and its labels) starts open. The other sections fold down
+   * to their titles, which read as an index of what can be configured, and
+   * each opens by itself on its own pages. Most of them fold by their title
+   * (Workspace, Notifications, AI, Advanced, Security, Audit Logs, Danger
+   * Zone: see SideMenuSectionState.ts); Telemetry & APM and Billing say so
+   * here.
+   */
   const sections: SideMenuSectionProps[] = [
     {
       title: "Basic",
@@ -58,6 +67,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     },
     {
       title: "Telemetry & APM",
+      defaultCollapsed: true,
       items: [
         {
           link: {
@@ -279,6 +289,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     // Insert Billing section before Security (second to last)
     sections.splice(-2, 0, {
       title: "Billing and Invoices",
+      defaultCollapsed: true,
       items: [
         {
           link: {

@@ -24,15 +24,6 @@ const ServiceSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.List,
         },
-        {
-          link: {
-            title: "Archived",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SERVICE_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
-        },
       ],
     },
     {
@@ -56,6 +47,25 @@ const ServiceSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Tag,
+        },
+      ],
+    },
+    /*
+     * The way back to archived services, which the list leaves out. Few visits
+     * need it, so it waits in Advanced: folded away until opened, and open by
+     * itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
         },
       ],
     },

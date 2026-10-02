@@ -23,6 +23,13 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
     };
   }
 
+  /*
+   * Get Started and Alerts & Notifications start open: the checklist that
+   * walks through everything below, and the three pages people come here
+   * for (how they are reached, about what, and how much email). Everything
+   * after them is set up once and folds down to its title, an index of what
+   * else can be set, until it is opened or one of its pages is the one open.
+   */
   const sections: SideMenuSectionProps[] = [
     /*
      * First, because it is the page that explains the other twelve. Somebody
@@ -86,6 +93,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
     },
     {
       title: "Incident On-Call",
+      defaultCollapsed: true,
       items: [
         {
           link: {
@@ -111,6 +119,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
     },
     {
       title: "Alert On-Call",
+      defaultCollapsed: true,
       items: [
         {
           link: {
@@ -152,6 +161,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
     },
     {
       title: "Incoming Call Policy",
+      defaultCollapsed: true,
       items: [
         {
           link: {
@@ -172,6 +182,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
      */
     {
       title: "Calendar",
+      defaultCollapsed: true,
       items: [
         {
           link: {
@@ -211,6 +222,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
     },
     {
       title: "Profile",
+      defaultCollapsed: true,
       items: [
         {
           link: {

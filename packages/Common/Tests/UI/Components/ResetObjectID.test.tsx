@@ -61,7 +61,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import ResetObjectID, {
   ComponentProps,
 } from "../../../UI/Components/ResetObjectID/ResetObjectID";
-import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
+import Form from "../../../Models/DatabaseModels/Form";
 import ObjectID from "../../../Types/ObjectID";
 import PermissionGate, {
   PermissionGateResult,
@@ -94,11 +94,11 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-type ExtraProps = Partial<ComponentProps<IncidentForm>>;
+type ExtraProps = Partial<ComponentProps<Form>>;
 
 function renderReset(extra: ExtraProps = {}): void {
-  const props: ComponentProps<IncidentForm> = {
-    modelType: IncidentForm,
+  const props: ComponentProps<Form> = {
+    modelType: Form,
     fieldName: "shareKey",
     title: "Reset Share Key",
     description: "Replace the key with a new one.",
@@ -109,7 +109,7 @@ function renderReset(extra: ExtraProps = {}): void {
     ...extra,
   };
 
-  render(<ResetObjectID<IncidentForm> {...props} />);
+  render(<ResetObjectID<Form> {...props} />);
 }
 
 function cardButton(): HTMLElement {
@@ -153,7 +153,7 @@ describe("by default", () => {
 
     await click(cardButton());
 
-    // IncidentForm.shareKey's column title is "Share Key".
+    // Form.shareKey's column title is "Share Key".
     expect(modalTitle()).toBe("Reset Share Key");
     expect(modalDescription()).toBe(
       "Are you sure you want to reset Share Key?",

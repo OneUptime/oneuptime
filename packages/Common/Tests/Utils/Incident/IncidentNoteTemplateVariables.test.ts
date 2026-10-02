@@ -2,6 +2,10 @@
 
 import Markdown, { MarkdownContentType } from "../../../Server/Types/Markdown";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import {
+  CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
+  isCustomFieldTemplateVariableName,
+} from "../../../Types/CustomField/CustomFieldVariableKey";
 import OneUptimeDate from "../../../Types/Date";
 import Timezone from "../../../Types/Timezone";
 import SubscriberNotificationTemplateCompiler from "../../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
@@ -25,9 +29,11 @@ import { describe, expect, test } from "@jest/globals";
  * show before the note is posted.
  *
  * What is pinned: the names; that a known placeholder is filled and an unknown
- * one stays as written; custom fields by their template key, with each type
- * written the way it reads; labels and status pages as lists; and that no
- * value can become a link, an image or HTML once the note is rendered.
+ * one stays as written; custom fields by their template key, as
+ * {{incident.customFields.<key>}} and the older {{customFields.<key>}}, with
+ * each type written the way it reads; labels and status pages as lists; and
+ * that no value can become a link, an image or HTML once the note is
+ * rendered.
  */
 
 const formatDateTime: (date: Date) => string = (date: Date): string => {
@@ -128,8 +134,46 @@ describe("the placeholders a note template can use", () => {
       "incident.startedAt",
       "incident.labels",
       "incident.affectedStatusPages",
-      "customFields.<key>",
+      "incident.customFields.<key>",
     ]);
+  });
+
+  /*
+   * "This custom fields.key template should be prefixed with incident": every
+   * placeholder a note template offers is the incident's, and says so.
+   */
+  test("every one is the incident's: each starts with incident.", () => {
+    for (const variable of INCIDENT_NOTE_TEMPLATE_VARIABLES) {
+      expect(variable.name.startsWith("incident.")).toBe(true);
+    }
+  });
+
+  test("the custom fields are {{incident.customFields.<key>}}, the name subscriber templates use too", () => {
+    expect(INCIDENT_NOTE_CUSTOM_FIELD_VARIABLE_PREFIX).toBe(
+      "incident.customFields.",
+    );
+    expect(INCIDENT_NOTE_CUSTOM_FIELD_VARIABLE_PREFIX).toBe(
+      CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
+    );
+
+    const customFields: Array<IncidentNoteTemplateVariableInfo> =
+      INCIDENT_NOTE_TEMPLATE_VARIABLES.filter(
+        (variable: IncidentNoteTemplateVariableInfo) => {
+          return isCustomFieldTemplateVariableName(variable.name);
+        },
+      );
+
+    expect(
+      customFields.map((variable: IncidentNoteTemplateVariableInfo) => {
+        return variable.name;
+      }),
+    ).toEqual(["incident.customFields.<key>"]);
+  });
+
+  test("the older {{customFields.<key>}} is not offered", () => {
+    for (const variable of INCIDENT_NOTE_TEMPLATE_VARIABLES) {
+      expect(variable.name.startsWith("customFields.")).toBe(false);
+    }
   });
 
   test("every listed name except the custom field pattern is one the compiler fills", () => {
@@ -244,20 +288,59 @@ describe("buildIncidentNoteTemplateVariables: custom fields", () => {
       buildIncidentNoteTemplateVariables(source());
 
     expect(variables).toMatchObject({
-      "customFields.impact": "High",
-      "customFields.ticket": "OPS-7",
-      "customFields.affected_users": "Staff, Visitors",
-      "customFields.expected_resolution": "AT 2026-09-27T12:00:00.000Z",
-      "customFields.go_live_date": "2026-10-01",
+      "incident.customFields.impact": "High",
+      "incident.customFields.ticket": "OPS-7",
+      "incident.customFields.affected_users": "Staff, Visitors",
+      "incident.customFields.expected_resolution":
+        "AT 2026-09-27T12:00:00.000Z",
+      "incident.customFields.go_live_date": "2026-10-01",
     });
+  });
+
+  /*
+   * Note templates were written with {{customFields.<key>}} before the
+   * placeholder was named after the incident. They keep working: the older
+   * name is filled with exactly the same value.
+   */
+  test("each field is filled under the older {{customFields.<key>}} too, with the same value", () => {
+    const variables: NoteTemplateVariables =
+      buildIncidentNoteTemplateVariables(source());
+
+    for (const definition of DEFINITIONS) {
+      const key: string = definition.variableKey as string;
+
+      expect(variables).toHaveProperty([`incident.customFields.${key}`]);
+      expect(variables[`customFields.${key}`]).toBe(
+        variables[`incident.customFields.${key}`],
+      );
+    }
+  });
+
+  test("the only names filled are the incident's own and the custom fields, both ways", () => {
+    const variables: NoteTemplateVariables =
+      buildIncidentNoteTemplateVariables(source());
+
+    const customFieldNames: Array<string> = Object.keys(variables).filter(
+      (name: string) => {
+        return isCustomFieldTemplateVariableName(name);
+      },
+    );
+
+    expect(customFieldNames).toHaveLength(DEFINITIONS.length * 2);
+
+    for (const name of Object.keys(variables)) {
+      expect(
+        name.startsWith("incident.") || name.startsWith("customFields."),
+      ).toBe(true);
+    }
   });
 
   test("0 and false are answers, not blanks", () => {
     const variables: NoteTemplateVariables =
       buildIncidentNoteTemplateVariables(source());
 
-    expect(variables["customFields.estimated_duration"]).toBe("0");
-    expect(variables["customFields.acknowledgement"]).toBe("No");
+    expect(variables["incident.customFields.estimated_duration"]).toBe("0");
+    expect(variables["incident.customFields.acknowledgement"]).toBe("No");
   });
 
   test("a ticked yes/no field reads Yes", () => {
@@ -265,14 +348,14 @@ describe("buildIncidentNoteTemplateVariables: custom fields", () => {
       source({ customFields: { Acknowledgement: true } }),
     );
 
-    expect(variables["customFields.acknowledgement"]).toBe("Yes");
+    expect(variables["incident.customFields.acknowledgement"]).toBe("Yes");
   });
 
   test("long text keeps its lines", () => {
     const variables: NoteTemplateVariables =
       buildIncidentNoteTemplateVariables(source());
 
-    expect(variables["customFields.additional_information"]).toBe(
+    expect(variables["incident.customFields.additional_information"]).toBe(
       "Line one\nLine two",
     );
   });
@@ -281,7 +364,7 @@ describe("buildIncidentNoteTemplateVariables: custom fields", () => {
     const variables: NoteTemplateVariables =
       buildIncidentNoteTemplateVariables(source());
 
-    expect(variables["customFields.customer_message"]).toBe(
+    expect(variables["incident.customFields.customer_message"]).toBe(
       "**Please** use the [backup site](https://backup.example).",
     );
   });
@@ -291,7 +374,7 @@ describe("buildIncidentNoteTemplateVariables: custom fields", () => {
       source({ customFields: {} }),
     );
 
-    expect(variables["customFields.impact"]).toBe("");
+    expect(variables["incident.customFields.impact"]).toBe("");
   });
 
   test("the value is read by the field's current name, whatever its key", () => {
@@ -309,7 +392,7 @@ describe("buildIncidentNoteTemplateVariables: custom fields", () => {
       }),
     );
 
-    expect(variables["customFields.impact"]).toBe("Low");
+    expect(variables["incident.customFields.impact"]).toBe("Low");
   });
 
   test("a field without a key, or with one the compiler would not fill, is not offered", () => {
@@ -326,9 +409,10 @@ describe("buildIncidentNoteTemplateVariables: custom fields", () => {
       }),
     );
 
+    // Under neither name.
     expect(
       Object.keys(variables).filter((name: string) => {
-        return name.startsWith("customFields.");
+        return isCustomFieldTemplateVariableName(name);
       }),
     ).toEqual([]);
   });
@@ -340,7 +424,7 @@ describe("buildIncidentNoteTemplateVariables: custom fields", () => {
 
     expect(
       Object.keys(variables).some((name: string) => {
-        return name.startsWith("customFields.");
+        return isCustomFieldTemplateVariableName(name);
       }),
     ).toBe(false);
   });
@@ -350,6 +434,9 @@ describe("buildIncidentNoteTemplateVariables: custom fields", () => {
       source({ customFields: { "Deleted Field": "x" } }),
     );
 
+    expect(variables).not.toHaveProperty([
+      "incident.customFields.deleted_field",
+    ]);
     expect(variables).not.toHaveProperty(["customFields.deleted_field"]);
   });
 });
@@ -429,7 +516,7 @@ describe("formatCustomFieldValueForNote", () => {
 
 describe("fillNoteTemplate", () => {
   const TEMPLATE: string =
-    "## Root Cause Analysis\n\n**Incident**: {{incident.title}}\n\n**Start Time**: {{incident.startedAt}}\n\n**Impact**: {{customFields.impact}}\n\n**Owner**: {{incident.owner}}";
+    "## Root Cause Analysis\n\n**Incident**: {{incident.title}}\n\n**Start Time**: {{incident.startedAt}}\n\n**Impact**: {{incident.customFields.impact}}\n\n**Owner**: {{incident.owner}}";
 
   test("fills the known placeholders and leaves the unknown ones as written", () => {
     expect(
@@ -437,6 +524,41 @@ describe("fillNoteTemplate", () => {
     ).toBe(
       "## Root Cause Analysis\n\n**Incident**: Payments are failing\n\n**Start Time**: AT 2026-09-27T09:30:00.000Z\n\n**Impact**: High\n\n**Owner**: {{incident.owner}}",
     );
+  });
+
+  test("a template saved with the older {{customFields.<key>}} is filled in the same", () => {
+    const older: string =
+      "**Impact**: {{customFields.impact}} - **Ticket**: {{ customFields.ticket }}";
+    const documented: string =
+      "**Impact**: {{incident.customFields.impact}} - **Ticket**: {{ incident.customFields.ticket }}";
+
+    const variables: NoteTemplateVariables =
+      buildIncidentNoteTemplateVariables(source());
+
+    expect(fillNoteTemplate(older, variables)).toBe(
+      "**Impact**: High - **Ticket**: OPS-7",
+    );
+    expect(fillNoteTemplate(older, variables)).toBe(
+      fillNoteTemplate(documented, variables),
+    );
+  });
+
+  test("a template may mix the two names of one field", () => {
+    expect(
+      fillNoteTemplate(
+        "{{incident.customFields.impact}} / {{customFields.impact}}",
+        buildIncidentNoteTemplateVariables(source()),
+      ),
+    ).toBe("High / High");
+  });
+
+  test("an unknown key stays as written under either name", () => {
+    expect(
+      fillNoteTemplate(
+        "{{incident.customFields.unknown}} {{customFields.unknown}}",
+        buildIncidentNoteTemplateVariables(source()),
+      ),
+    ).toBe("{{incident.customFields.unknown}} {{customFields.unknown}}");
   });
 
   test("a placeholder whose value could not be read stays as written", () => {
@@ -564,7 +686,7 @@ describe("a filled note cannot carry a link, an image or HTML it was not written
 
   test("a custom field value is escaped the same way", async () => {
     const filled: string = fillNoteTemplate(
-      "**Ticket**: {{customFields.ticket}}",
+      "**Ticket**: {{incident.customFields.ticket}}",
       buildIncidentNoteTemplateVariables(
         source({
           customFields: { Ticket: "[OPS-7](https://evil.example)" },
@@ -584,7 +706,7 @@ describe("a filled note cannot carry a link, an image or HTML it was not written
 
   test("rich text keeps its links, but the renderer still drops unsafe ones and raw HTML", async () => {
     const filled: string = fillNoteTemplate(
-      "{{customFields.customer_message}}",
+      "{{incident.customFields.customer_message}}",
       buildIncidentNoteTemplateVariables(
         source({
           customFields: {

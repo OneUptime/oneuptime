@@ -24,15 +24,6 @@ const ServerlessSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.List,
         },
-        {
-          link: {
-            title: "Archived",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SERVERLESS_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
-        },
       ],
     },
     {
@@ -56,6 +47,25 @@ const ServerlessSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Tag,
+        },
+      ],
+    },
+    /*
+     * The way back to archived functions, which the list leaves out. Few visits
+     * need it, so it waits in Advanced: folded away until opened, and open by
+     * itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVERLESS_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
         },
       ],
     },

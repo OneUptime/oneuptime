@@ -1,22 +1,29 @@
 import {
   CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
+  CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIXES,
   CUSTOM_FIELD_VARIABLE_KEY_FALLBACK,
   CUSTOM_FIELD_VARIABLE_KEY_MAX_LENGTH,
   generateCustomFieldVariableKey,
   getCustomFieldTemplateVariableName,
+  getCustomFieldTemplateVariableNames,
   getCustomFieldVariableKeyBase,
+  getCustomFieldVariableKeyFromTemplateVariableName,
+  isCustomFieldTemplateVariableName,
   isValidCustomFieldVariableKey,
+  LEGACY_CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
+  normalizeCustomFieldTemplateVariableName,
 } from "../../../Types/CustomField/CustomFieldVariableKey";
 import Slug from "../../../Utils/Slug";
 import SubscriberNotificationTemplateCompiler from "../../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * An incident custom field's template key is how a custom subscriber email
- * reaches its value: {{customFields.<key>}}. The template compiler fills only
- * placeholders of ASCII word characters and dots, so what matters most here
- * is that every key - whatever the name, whatever else the project holds -
- * is one the compiler will actually fill.
+ * An incident custom field's template key is how a note template or a custom
+ * subscriber email reaches its value: {{incident.customFields.<key>}}. The
+ * template compiler fills only placeholders of ASCII word characters and
+ * dots, so what matters most here is that every key - whatever the name,
+ * whatever else the project holds - is one the compiler will actually fill,
+ * under the documented name and the older {{customFields.<key>}} alike.
  */
 
 type FillFunction = (key: string, value: string) => string;
@@ -280,19 +287,25 @@ describe("keys always fit the template placeholder pattern", () => {
 
       expect(key).toMatch(/^[a-z0-9]+(?:_[a-z0-9]+)*$/);
       expect(isValidCustomFieldVariableKey(key)).toBe(true);
-      expect(
-        SubscriberNotificationTemplateCompiler.isPlaceholderName(
-          getCustomFieldTemplateVariableName(key),
-        ),
-      ).toBe(true);
+
+      for (const variableName of getCustomFieldTemplateVariableNames(key)) {
+        expect(
+          SubscriberNotificationTemplateCompiler.isPlaceholderName(
+            variableName,
+          ),
+        ).toBe(true);
+      }
+
       expect(fill(key, "High")).toBe("Impact: High");
     },
   );
 
-  test("the prefix is the one custom templates use", () => {
-    expect(CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX).toBe("customFields.");
+  test("the prefix names the incident: {{incident.customFields.<key>}}", () => {
+    expect(CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX).toBe(
+      "incident.customFields.",
+    );
     expect(getCustomFieldTemplateVariableName("impact")).toBe(
-      "customFields.impact",
+      "incident.customFields.impact",
     );
   });
 
@@ -301,12 +314,136 @@ describe("keys always fit the template placeholder pattern", () => {
     const slug: string = Slug.getSlug("Expected Resolution");
 
     expect(isValidCustomFieldVariableKey(slug)).toBe(false);
+
+    for (const variableName of getCustomFieldTemplateVariableNames(slug)) {
+      expect(
+        SubscriberNotificationTemplateCompiler.compileTemplate(
+          `{{${variableName}}}`,
+          { [variableName]: "x" },
+        ),
+      ).toBe(`{{${variableName}}}`);
+    }
+  });
+});
+
+/*
+ * "This custom fields.key template should be prefixed with incident." The
+ * documented name of a custom field variable is
+ * {{incident.customFields.<key>}}, beside {{incident.title}} and the other
+ * incident values; templates saved with the older {{customFields.<key>}}
+ * keep working, so the older name is still recognised everywhere a variable
+ * is filled or checked - but it is never the one handed out.
+ */
+describe("the template variable names a field is reached by", () => {
+  test("the documented prefix comes first, then the older one", () => {
+    expect(LEGACY_CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX).toBe("customFields.");
+    expect(CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIXES).toEqual([
+      "incident.customFields.",
+      "customFields.",
+    ]);
+  });
+
+  test("a key is reached by both names, the documented one first", () => {
+    expect(getCustomFieldTemplateVariableNames("expected_resolution")).toEqual([
+      "incident.customFields.expected_resolution",
+      "customFields.expected_resolution",
+    ]);
+    expect(getCustomFieldTemplateVariableNames("impact")[0]).toBe(
+      getCustomFieldTemplateVariableName("impact"),
+    );
+  });
+
+  test("a template written either way is filled with the same value", () => {
+    const values: Record<string, string> = {};
+
+    for (const variableName of getCustomFieldTemplateVariableNames("impact")) {
+      values[variableName] = "High";
+    }
+
     expect(
       SubscriberNotificationTemplateCompiler.compileTemplate(
-        `{{customFields.${slug}}}`,
-        { [`customFields.${slug}`]: "x" },
+        "new={{incident.customFields.impact}} old={{customFields.impact}} spaced={{ incident.customFields.impact }}",
+        values,
       ),
-    ).toBe(`{{customFields.${slug}}}`);
+    ).toBe("new=High old=High spaced=High");
+  });
+
+  test.each([
+    ["incident.customFields.impact", "impact"],
+    ["customFields.impact", "impact"],
+    ["incident.customFields.expected_resolution_2", "expected_resolution_2"],
+    // Not checked for shape: a mistyped key still names a custom field.
+    ["incident.customFields.Not-A-Key", "Not-A-Key"],
+    ["customFields.", ""],
+    ["incident.customFields.", ""],
+  ])("%j reaches the key %j", (name: string, key: string) => {
+    expect(getCustomFieldVariableKeyFromTemplateVariableName(name)).toBe(key);
+    expect(isCustomFieldTemplateVariableName(name)).toBe(true);
+  });
+
+  test.each([
+    "incidentTitle",
+    "incident.title",
+    "incident.labels",
+    "incidentLabels",
+    "affectedStatusPages",
+    "customfields.impact",
+    "incident.customfields.impact",
+    "Incident.customFields.impact",
+    "customFieldsimpact",
+    "incident.customFieldsimpact",
+    "alert.customFields.impact",
+    "monitor.customFields.impact",
+    "",
+  ])("%j is not a custom field variable", (name: string) => {
+    expect(getCustomFieldVariableKeyFromTemplateVariableName(name)).toBeNull();
+    expect(isCustomFieldTemplateVariableName(name)).toBe(false);
+    // Anything else is left exactly as it is.
+    expect(normalizeCustomFieldTemplateVariableName(name)).toBe(name);
+  });
+
+  test("tolerates a name that is not a string", () => {
+    expect(
+      getCustomFieldVariableKeyFromTemplateVariableName(
+        undefined as unknown as string,
+      ),
+    ).toBeNull();
+  });
+
+  test("the older name of a field reads as its documented name", () => {
+    expect(
+      normalizeCustomFieldTemplateVariableName("customFields.impact"),
+    ).toBe("incident.customFields.impact");
+    expect(
+      normalizeCustomFieldTemplateVariableName("incident.customFields.impact"),
+    ).toBe("incident.customFields.impact");
+    expect(
+      normalizeCustomFieldTemplateVariableName("customFields.root_cause"),
+    ).toBe(
+      normalizeCustomFieldTemplateVariableName(
+        "incident.customFields.root_cause",
+      ),
+    );
+    expect(
+      normalizeCustomFieldTemplateVariableName("customFields.root_cause"),
+    ).not.toBe(normalizeCustomFieldTemplateVariableName("customFields.impact"));
+  });
+
+  test("every generated key is valid under both names", () => {
+    for (const name of ["Impact", "Expected Resolution", "影响", "2FA"]) {
+      const key: string = generateCustomFieldVariableKey({
+        name: name,
+        existingKeys: [],
+      });
+
+      expect(isValidCustomFieldVariableKey(key)).toBe(true);
+
+      for (const variableName of getCustomFieldTemplateVariableNames(key)) {
+        expect(
+          getCustomFieldVariableKeyFromTemplateVariableName(variableName),
+        ).toBe(key);
+      }
+    }
   });
 });
 
@@ -339,7 +476,13 @@ describe("isValidCustomFieldVariableKey", () => {
 
 describe("SubscriberNotificationTemplateCompiler.isPlaceholderName", () => {
   test("agrees with what the compiler fills", () => {
-    for (const name of ["a", "a.b", "customFields.impact_2", "A_1.b"]) {
+    for (const name of [
+      "a",
+      "a.b",
+      "incident.customFields.impact_2",
+      "customFields.impact_2",
+      "A_1.b",
+    ]) {
       expect(
         SubscriberNotificationTemplateCompiler.isPlaceholderName(name),
       ).toBe(true);

@@ -44,13 +44,61 @@ function paths(routes: Array<MenuRoute>): Array<string> {
 }
 
 describe("isTitleCollapsedByDefault", () => {
-  test("Advanced and Developer are the titles that fold away by default", () => {
+  /*
+   * "Collapsing things in the side menu that are not used frequently", in
+   * every side menu (the maintainer, drawing the Incidents menu with AI,
+   * Workspace, Rules and Settings folded). The kinds of section that are
+   * rarely used whatever menu they are in, by the title they go by.
+   */
+  test("the rarely used kinds of section are the titles that fold away by default", () => {
     expect(SECTION_TITLES_COLLAPSED_BY_DEFAULT).toEqual([
       "Advanced",
       "Developer",
+      "Settings",
+      "Configuration",
+      "Manage",
+      "Management",
+      "Rules",
+      "Workspace",
+      "AI",
+      "Owners",
+      "Ownership",
+      "Branding",
+      "Security",
+      "Notifications",
+      "Logs",
+      "Notification Logs",
+      "Audit Logs",
+      "On-Call Logs",
+      "Reports",
+      "Help",
+      "Danger Zone",
     ]);
-    expect(isTitleCollapsedByDefault("Advanced")).toBe(true);
-    expect(isTitleCollapsedByDefault("Developer")).toBe(true);
+  });
+
+  test.each([...SECTION_TITLES_COLLAPSED_BY_DEFAULT])(
+    "%p folds away by default",
+    (title: string) => {
+      expect(isTitleCollapsedByDefault(title)).toBe(true);
+    },
+  );
+
+  // The four the maintainer folded in the Incidents menu, and the two before them.
+  test.each(["AI", "Workspace", "Rules", "Settings", "Advanced", "Developer"])(
+    "%p, from the maintainer's Incidents menu, is one of them",
+    (title: string) => {
+      expect(SECTION_TITLES_COLLAPSED_BY_DEFAULT).toContain(title);
+    },
+  );
+
+  test("no title is listed twice, in any case", () => {
+    const lowerCased: Array<string> = SECTION_TITLES_COLLAPSED_BY_DEFAULT.map(
+      (title: string): string => {
+        return title.toLowerCase();
+      },
+    );
+
+    expect(new Set(lowerCased).size).toBe(lowerCased.length);
   });
 
   test.each([
@@ -60,20 +108,41 @@ describe("isTitleCollapsedByDefault", () => {
     "\tadvanced\n",
     "developer",
     " DEVELOPER ",
+    "settings",
+    " Workspace ",
+    "RULES",
+    "ai",
+    "danger zone",
+    "Audit logs",
   ])("ignores case and surrounding space: %p", (title: string) => {
     expect(isTitleCollapsedByDefault(title)).toBe(true);
   });
 
+  /*
+   * Whole titles only. The sections people open a menu for keep their
+   * titles open, and a title that merely contains a rarely used word ("Log
+   * Settings", the one section of the log settings menu) is not one of them.
+   */
   test.each([
     "",
     "Basic",
-    "Settings",
+    "Overview",
+    "Episodes",
+    "Monitors",
+    "Telemetry",
+    "Observability",
+    "Activity",
+    "Notes",
     "Advanced Settings",
     "Advanced Options",
     "Not Advanced",
-    "Danger Zone",
     "Developers",
     "Developer Tools",
+    "Log Settings",
+    "Metric Settings",
+    "Trace Settings",
+    "AI Assistance",
+    "Settings and Rules",
   ])("leaves %p open", (title: string) => {
     expect(isTitleCollapsedByDefault(title)).toBe(false);
   });
@@ -83,6 +152,31 @@ describe("startsCollapsed", () => {
   test("Advanced starts collapsed, everything else open", () => {
     expect(startsCollapsed({ title: "Advanced" })).toBe(true);
     expect(startsCollapsed({ title: "Basic" })).toBe(false);
+  });
+
+  test("a rarely used kind of section starts collapsed without a flag", () => {
+    for (const title of ["Workspace", "Rules", "Settings", "AI", "Logs"]) {
+      expect({ title, collapsed: startsCollapsed({ title }) }).toEqual({
+        title,
+        collapsed: true,
+      });
+    }
+
+    expect(startsCollapsed({ title: "Episodes" })).toBe(false);
+  });
+
+  // A workflow's run history sits in Logs, and its menus keep it open.
+  test("a menu keeps a rarely used title open with defaultCollapsed: false", () => {
+    expect(startsCollapsed({ title: "Logs", defaultCollapsed: false })).toBe(
+      false,
+    );
+  });
+
+  // A section titled for its own subject folds when its menu says so.
+  test("any other title starts collapsed when the menu says so", () => {
+    expect(startsCollapsed({ title: "Calendar", defaultCollapsed: true })).toBe(
+      true,
+    );
   });
 
   test("an explicit defaultCollapsed wins in both directions", () => {

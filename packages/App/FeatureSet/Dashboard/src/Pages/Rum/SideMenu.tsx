@@ -24,21 +24,15 @@ const RumSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.List,
         },
-        {
-          link: {
-            title: "Archived",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.RUM_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
-        },
       ],
     },
     /*
-     * settings-setup-5: this section used to start collapsed, which hid the
-     * project-wide replay switch that every piece of replay copy points at.
-     * Three items do not need collapsing.
+     * Starts collapsed, like the Settings section of every other product's
+     * menu: the project-wide replay switch here is set once, not visited
+     * every day. It was kept open for a while (settings-setup-5) because the
+     * replay copy points at "Real User Monitoring > Settings > Session
+     * Replay"; that path still reads true, since the folded section shows
+     * its title, and it opens by itself on each of these pages.
      */
     {
       title: "Settings",
@@ -69,6 +63,25 @@ const RumSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Film,
+        },
+      ],
+    },
+    /*
+     * The way back to archived applications, which the list leaves out. Few
+     * visits need it, so it waits in Advanced: folded away until opened, and
+     * open by itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUM_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
         },
       ],
     },

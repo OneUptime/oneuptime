@@ -45,19 +45,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               },
             ]
           : []),
-        /*
-         * Archived monitors are left out of every list above, so without
-         * this entry the only way back to one would be its URL.
-         */
-        {
-          link: {
-            title: "Archived",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITORS_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
-        },
       ],
     },
     {
@@ -222,6 +209,25 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Signal,
+        },
+      ],
+    },
+    /*
+     * The way back to archived monitors, which the list leaves out. Few visits
+     * need it, so it waits in Advanced: folded away until opened, and open by
+     * itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
         },
       ],
     },

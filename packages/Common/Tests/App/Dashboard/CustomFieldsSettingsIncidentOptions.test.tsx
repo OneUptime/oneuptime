@@ -267,9 +267,13 @@ describe("incident custom field settings", () => {
 
     render(column("variableKey")!.getElement!(field));
 
+    // Named after the incident, as note and subscriber templates use it.
     expect(
-      screen.getByText("{{customFields.expected_resolution}}"),
+      screen.getByText("{{incident.customFields.expected_resolution}}"),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText("{{customFields.expected_resolution}}"),
+    ).not.toBeInTheDocument();
 
     cleanup();
 

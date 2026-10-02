@@ -292,6 +292,43 @@ const DocsFeatureSet: FeatureSet = {
       },
     );
 
+    /*
+     * Backward-compat: incident forms had a page in the Incidents section
+     * (/docs/incidents/forms). Forms are now a product of their own, with a
+     * docs section of their own (/docs/forms/...). Permanently redirect the
+     * old URL in every shape it was reachable, so inbound links, bookmarks
+     * and search-indexed results keep working instead of 404ing.
+     */
+    app.get(
+      "/docs/as-markdown/:lang/incidents/forms",
+      (req: ExpressRequest, res: ExpressResponse) => {
+        const lang: string = req.params["lang"] || DEFAULT_DOCS_LANGUAGE;
+        return res.redirect(301, `/docs/as-markdown/${lang}/forms/index`);
+      },
+    );
+    app.get(
+      "/docs/as-markdown/incidents/forms",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return res.redirect(301, "/docs/as-markdown/forms/index");
+      },
+    );
+    app.get(
+      "/docs/:lang/incidents/forms",
+      (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        const lang: string = req.params["lang"] || "";
+        if (!isSupportedDocsLanguage(lang)) {
+          return next();
+        }
+        return res.redirect(301, `/docs/${lang}/forms/index`);
+      },
+    );
+    app.get(
+      "/docs/incidents/forms",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return res.redirect(301, "/docs/forms/index");
+      },
+    );
+
     // /docs/:lang — redirect to that language's getting-started page.
     app.get(
       "/docs/:lang",

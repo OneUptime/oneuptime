@@ -143,7 +143,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
       const fields: Array<ModelField<IncidentTemplate>> =
         buildCustomFieldSettingsModelFormFields<IncidentTemplate>({
           definitions: customFieldSettingDefinitions,
-          mode: "template",
           stepId: INCIDENT_TEMPLATE_CUSTOM_FIELD_SETTINGS_STEP_ID,
         });
 
@@ -272,7 +271,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             packCustomFieldSettingsFormValues({
               definitions: customFieldSettingDefinitions,
               formValues: formValues,
-              mode: "template",
             });
 
           removeCustomFieldSettingsFormKeys(miscDataProps);

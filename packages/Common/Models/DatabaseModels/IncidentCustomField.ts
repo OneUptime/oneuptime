@@ -521,7 +521,9 @@ export default class IncidentCustomField extends BaseModel {
   public includeInSubscriberNotifications?: boolean = undefined;
 
   /*
-   * The key templates reach this field by, {{customFields.<variableKey>}}.
+   * The key templates reach this field by,
+   * {{incident.customFields.<variableKey>}} (templates saved with the older
+   * {{customFields.<variableKey>}} are filled too).
    * Made from the name when the field is created
    * (IncidentCustomFieldService.onBeforeCreate, with
    * generateCustomFieldVariableKey) and never changed afterwards, so renaming
@@ -554,7 +556,7 @@ export default class IncidentCustomField extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Template Variable Key",
     description:
-      "The key this field is reached by in templates, as {{customFields.<key>}}. Made from the field's name when it is created - lowercase letters, digits and underscores, with _2, _3 and so on added when another field already has it - and never changed afterwards, so renaming the field does not break templates that use it.",
+      "The key this field is reached by in templates, as {{incident.customFields.<key>}}. Made from the field's name when it is created - lowercase letters, digits and underscores, with _2, _3 and so on added when another field already has it - and never changed afterwards, so renaming the field does not break templates that use it.",
     example: "expected_resolution",
   })
   @Column({

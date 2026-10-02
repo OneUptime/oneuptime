@@ -188,7 +188,9 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
       {/*
        * Right after Basic, so it is not buried under forty resource links:
        * what OneUptime AI investigated and changed here, and the in-cluster
-       * agent it works through (with what it may do).
+       * agent it works through (with what it may do). Folded down to its
+       * title until opened, like the AI section of every menu (see
+       * SideMenuSectionState.ts), and open by itself on its pages.
        */}
       <SideMenuSection title="AI">
         <SideMenuItem
@@ -383,7 +385,15 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Scaling">
+      {/*
+       * Autoscalers, and the cluster's events, control plane and service
+       * mesh, are where a deeper dig goes, not where a visit starts: the
+       * workloads, nodes and telemetry above are. So these two fold down to
+       * their titles, which keeps the longest menu in the product to what
+       * most visits need. Each opens with one click, and by itself on its
+       * own pages.
+       */}
+      <SideMenuSection title="Scaling" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "HPAs",
@@ -408,7 +418,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Observability">
+      <SideMenuSection title="Observability" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "Events",

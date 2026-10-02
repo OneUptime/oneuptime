@@ -184,7 +184,7 @@ export function htmlVariableNames(
  * to be escaped.
  *
  * A family of variables listed by prefix - an incident's
- * {{customFields.<key>}} - may be HTML when the family says so (a Rich text
+ * {{incident.customFields.<key>}} - may be HTML when the family says so (a Rich text
  * field's rendered Markdown, say): those are left out of the comparison,
  * and any other family's members must be plain text.
  */

@@ -62,10 +62,6 @@ import IncidentSettingsTemplates from "../Pages/Incidents/Settings/IncidentTempl
 
 import IncidentSettingsTemplatesView from "../Pages/Incidents/Settings/IncidentTemplatesView";
 
-import IncidentSettingsForms from "../Pages/Incidents/Settings/IncidentForms";
-
-import IncidentSettingsFormView from "../Pages/Incidents/Settings/IncidentFormView";
-
 import IncidentSettingsNoteTemplates from "../Pages/Incidents/Settings/IncidentNoteTemplates";
 
 import IncidentSettingsNoteTemplatesView from "../Pages/Incidents/Settings/IncidentNoteTemplateView";
@@ -149,6 +145,17 @@ import IncidentModel from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
+import MovedFormPageRedirect from "../Components/FormBuilder/MovedFormPageRedirect";
+import RouteParams from "../Utils/RouteParams";
+
+/*
+ * Where incident forms lived before Forms replaced them (Incidents > Settings
+ * > Forms), relative to the incidents mount. They forward to Forms.
+ */
+export const MOVED_INCIDENT_FORM_PATHS: { forms: string; formView: string } = {
+  forms: "settings/forms",
+  formView: `settings/forms/${RouteParams.ModelID}`,
+};
 
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -167,6 +174,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
 
   return (
     <Routes>
+      {/*
+       * Incident forms became Forms, a product of its own, and kept their
+       * ids. Their old URLs forward there (see MovedFormPageRedirect) -
+       * outside the Incidents layout, so its menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_INCIDENT_FORM_PATHS.forms}
+        element={<MovedFormPageRedirect pageMap={PageMap.FORMS} />}
+      />
+      <PageRoute
+        path={MOVED_INCIDENT_FORM_PATHS.formView}
+        element={<MovedFormPageRedirect pageMap={PageMap.FORM_VIEW} />}
+      />
+
       {/*
        * Number prefixes were on More Settings. Its old URL forwards to the
        * Number Prefix page - outside the layout, so the side menu never
@@ -290,28 +311,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS] || ""}
-          element={
-            <IncidentSettingsForms
-              {...props}
-              pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_FORMS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS_VIEW] || ""}
-          element={
-            <IncidentSettingsFormView
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.INCIDENTS_SETTINGS_FORMS_VIEW] as Route
               }
             />
           }

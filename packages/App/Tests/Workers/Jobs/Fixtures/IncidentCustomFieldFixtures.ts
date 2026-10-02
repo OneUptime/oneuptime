@@ -162,19 +162,57 @@ export function plainTextOfImpactDetails(
 
 /*
  * A template body that prints every custom field's placeholder as
- * name=[value], so a test sees what each channel was given.
+ * name=[value], so a test sees what each channel was given. Written the
+ * documented way, {{incident.customFields.<key>}}.
  */
 export const CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE: string = [
+  "location=[{{incident.customFields.affected_location}}]",
+  "ack=[{{incident.customFields.acknowledgement}}]",
+  "impact=[{{incident.customFields.impact_details}}]",
+  "ticket=[{{incident.customFields.internal_ticket}}]",
+].join("\n");
+
+/*
+ * The same template written with the older {{customFields.<key>}}, as
+ * templates saved before the variables were named after the incident are.
+ * Every channel must get exactly what the documented one gets.
+ */
+export const OLDER_CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE: string = [
   "location=[{{customFields.affected_location}}]",
   "ack=[{{customFields.acknowledgement}}]",
   "impact=[{{customFields.impact_details}}]",
   "ticket=[{{customFields.internal_ticket}}]",
 ].join("\n");
 
+export interface CustomFieldPlaceholdersCase {
+  // How the template names the fields, for the test title.
+  written: string;
+  // Prints every field as name=[value].
+  template: string;
+  // An email subject that places one field.
+  subject: string;
+}
+
+// Each custom template test runs with both names of the fields.
+export const CUSTOM_FIELD_PLACEHOLDERS_CASES: Array<CustomFieldPlaceholdersCase> =
+  [
+    {
+      written: "{{incident.customFields.<key>}}",
+      template: CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE,
+      subject: "Subject {{incident.customFields.affected_location}}",
+    },
+    {
+      written: "the older {{customFields.<key>}}",
+      template: OLDER_CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE,
+      subject: "Subject {{customFields.affected_location}}",
+    },
+  ];
+
 /*
  * Variables a compile may carry beyond the listed ones: those the event's
- * dynamic families (customFields.<key>) take in. Used by the tests that hold
- * each channel's variables to the advertised list.
+ * dynamic families (incident.customFields.<key>, and the older
+ * customFields.<key>) take in. Used by the tests that hold each channel's
+ * variables to the advertised list.
  */
 export function listedVariableNames(
   eventType: StatusPageSubscriberNotificationEventType,

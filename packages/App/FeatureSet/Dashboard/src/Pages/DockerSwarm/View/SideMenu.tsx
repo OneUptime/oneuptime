@@ -255,7 +255,12 @@ const DockerSwarmClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Config">
+      {/*
+       * The cluster's secrets and configs are looked up now and then, not on
+       * most visits, so they fold down to the section's title until opened
+       * (and open by themselves on their own pages).
+       */}
+      <SideMenuSection title="Config" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "Secrets",

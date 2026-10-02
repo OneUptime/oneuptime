@@ -14,12 +14,13 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  * Linking a custom subscriber notification template to a status page sends
  * that page's subscribers whatever the template places. A template may place
  * values from the team's incident records ({{incidentLabels}},
- * {{customFields.<key>}}), which only someone who may read them may put in a
- * template (SubscriberTemplateIncidentRecordAccess) - and the status page
- * roles that may link templates may also add a Slack, Teams or webhook
- * subscriber of their own to a page. So linking such a template, or moving a
- * link to another template or page, is checked as placing everything the
- * template holds. Root and master admin writes are not checked.
+ * {{incident.customFields.<key>}}), which only someone who may read them may
+ * put in a template (SubscriberTemplateIncidentRecordAccess) - and the
+ * status page roles that may link templates may also add a Slack, Teams or
+ * webhook subscriber of their own to a page. So linking such a template, or
+ * moving a link to another template or page, is checked as placing
+ * everything the template holds. Root and master admin writes are not
+ * checked.
  */
 export class Service extends DatabaseService<Model> {
   public constructor() {
