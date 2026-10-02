@@ -716,8 +716,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
      * editing this one, so someone may edit a field whose options they cannot
      * list - an incident member and the status pages an incident is limited
      * to - and a form-wide error on every step would say the form is broken
-     * when it is not. Pages that care explain the empty list next to the
-     * field.
+     * when it is not. The dropdown then just has nothing to pick.
      */
     let firstFetchError: unknown = null;
 

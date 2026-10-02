@@ -117,7 +117,7 @@ Open **Incidents** in the left navigation. Its side menu is organized into secti
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Overview**  | **All Incidents** and **Active Incidents** — the latter carries a red badge with the count of incidents that are not in the resolved state.                                |
 | **Episodes**  | Incident episodes, a separate grouping feature with its own pages.                                                                                                         |
-| **Workspace** | **Slack** and **Microsoft Teams** connections for incidents.                                                                                                               |
+| **Workspace** | The chat workspaces this project has connected: **Slack**, **Microsoft Teams** or both, each with its notification rules for incidents. With neither connected, it holds **Connect Slack or Teams**, a page showing both and how to connect them. |
 | **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Auto Remediation Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**. |
 | **Settings**  | **AI**, **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Number Prefix**. |
 

@@ -92,7 +92,6 @@ import SubscriberNotificationPreviewButton from "../../Components/Incident/Subsc
 import { getIncidentCreatedPreviewRequest } from "../../Components/Incident/SubscriberNotificationPreviewRequests";
 import IncidentStatusPageScopeCopy from "../../Components/Incident/IncidentStatusPageScopeCopy";
 import {
-  StatusPagePickerAccessHint,
   StatusPagesNotListingMonitorsWarning,
   TranslatedScopeNotice,
   TranslatedScopeText,
@@ -101,9 +100,6 @@ import {
   getIdsFromFormValue,
   isScopedToDeletedStatusPages,
 } from "../../Components/Incident/IncidentStatusPageScopeForm";
-import useStatusPagePickerAccess, {
-  StatusPagePickerAccess,
-} from "../../Components/Incident/useStatusPagePickerAccess";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import {
@@ -324,12 +320,6 @@ const IncidentCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  /*
-   * Whether the status page picker has anything to offer: picking status
-   * pages needs status page read access, which incident roles do not have.
-   */
-  const statusPagePickerAccess: StatusPagePickerAccess =
-    useStatusPagePickerAccess();
   // Declaring from a template whose status pages have all been deleted.
   const [
     isTemplateScopedToDeletedStatusPages,
@@ -1578,9 +1568,6 @@ const IncidentCreate: FunctionComponent<
                   getFooterElement: (values: FormValues<Incident>) => {
                     return (
                       <>
-                        <StatusPagePickerAccessHint
-                          access={statusPagePickerAccess}
-                        />
                         <StatusPagesNotListingMonitorsWarning
                           monitorIds={values.monitors}
                           statusPageIds={values.statusPages}

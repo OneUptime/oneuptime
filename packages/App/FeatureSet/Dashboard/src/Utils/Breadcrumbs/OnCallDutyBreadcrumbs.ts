@@ -48,6 +48,11 @@ export function getOnCallDutyBreadcrumbs(
       PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       ["Project", "On-Call Duty", "Microsoft Teams"],
     ),
+    // which chat workspaces are connected, and how to connect one
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS,
+      ["Project", "On-Call Duty", "Workspace"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SCHEDULES, [
       "Project",
       "On-Call Duty",

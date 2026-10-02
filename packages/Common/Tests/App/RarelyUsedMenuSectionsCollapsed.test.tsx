@@ -622,11 +622,16 @@ describe("the Incidents menu, as the maintainer drew it", () => {
       "true",
     );
     expect(isExpanded("Workspace")).toBe(true);
+    /*
+     * The project in this sweep has no chat workspace connected (every list
+     * comes back empty), so Workspace holds the one entry that connects one
+     * instead of Slack and Microsoft Teams.
+     */
     expect(
       linksIn("Workspace").map((link: MenuLink): string => {
         return link.title;
       }),
-    ).toEqual(["Slack", "Microsoft Teams"]);
+    ).toEqual(["Connect Slack or Teams"]);
   });
 });
 
