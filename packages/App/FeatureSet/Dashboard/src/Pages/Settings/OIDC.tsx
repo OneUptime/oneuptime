@@ -261,7 +261,7 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
           description={
             <span>
               <TranslatedSentence
-                template="Here’s a link which will help you test OIDC integration before you force it on your organization: {{link}}"
+                template="Here's a link which will help you test OIDC integration before you force it on your organization: {{link}}"
                 slots={{
                   link: (
                     <Link openInNewTab={true} to={URL.fromString(testUrl)}>

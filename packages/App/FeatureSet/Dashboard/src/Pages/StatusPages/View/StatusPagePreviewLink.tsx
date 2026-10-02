@@ -20,7 +20,7 @@ const StatusPagePreviewLink: FunctionComponent<ComponentProps> = (
         description={
           <span>
             <TranslatedSentence
-              template="Here’s a link to preview your status page: {{link}}"
+              template="Here's a link to preview your status page: {{link}}"
               slots={{
                 link: (
                   <Link

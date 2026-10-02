@@ -36,6 +36,8 @@ import {
 import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const MIB: number = 1024 * 1024;
 const KIB: number = 1024;
@@ -43,6 +45,7 @@ const KIB: number = 1024;
 const VMwareVCenterHostDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Route shape: .../vmware/:modelId/hosts/:subModelId — subModelId is
    * the percent-encoded inventory externalId ("host/<dc>/<host>"), not
@@ -130,7 +133,10 @@ const VMwareVCenterHostDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "host_cpu",
       title: "CPU Utilization",
-      description: `vcenter.host.cpu.utilization for ESXi host ${hostName} — already a percentage, no transform applied.`,
+      description: translator.translateTemplate(
+        "vcenter.host.cpu.utilization for ESXi host {{hostName}} — already a percentage, no transform applied.",
+        { hostName: hostName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -151,7 +157,10 @@ const VMwareVCenterHostDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "host_memory",
       title: "Memory Usage",
-      description: `vcenter.host.memory.usage for ESXi host ${hostName} (reported in MiB, shown in bytes).`,
+      description: translator.translateTemplate(
+        "vcenter.host.memory.usage for ESXi host {{hostName}} (reported in MiB, shown in bytes).",
+        { hostName: hostName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -182,7 +191,10 @@ const VMwareVCenterHostDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "host_network",
       title: "Network Throughput",
-      description: `vcenter.host.network.throughput per direction and NIC for ESXi host ${hostName}.`,
+      description: translator.translateTemplate(
+        "vcenter.host.network.throughput per direction and NIC for ESXi host {{hostName}}.",
+        { hostName: hostName },
+      ),
       legend: "Network",
       legendUnit: "",
     },
@@ -209,7 +221,10 @@ const VMwareVCenterHostDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "host_disk_throughput",
       title: "Disk Throughput",
-      description: `vcenter.host.disk.throughput per direction and disk for ESXi host ${hostName}.`,
+      description: translator.translateTemplate(
+        "vcenter.host.disk.throughput per direction and disk for ESXi host {{hostName}}.",
+        { hostName: hostName },
+      ),
       legend: "Disk",
       legendUnit: "",
     },
@@ -236,7 +251,10 @@ const VMwareVCenterHostDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "host_disk_latency",
       title: "Disk Latency (max)",
-      description: `vcenter.host.disk.latency.max per disk for ESXi host ${hostName}. Sustained values above ~20-50 ms point at storage contention.`,
+      description: translator.translateTemplate(
+        "vcenter.host.disk.latency.max per disk for ESXi host {{hostName}}. Sustained values above ~20-50 ms point at storage contention.",
+        { hostName: hostName },
+      ),
       legend: "Latency",
       legendUnit: "ms",
     },
@@ -257,7 +275,10 @@ const VMwareVCenterHostDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "host_packet_errors",
       title: "Network Packet Errors",
-      description: `vcenter.host.network.packet.error.rate for ESXi host ${hostName} — anything above zero deserves a look at the physical NIC / switch port.`,
+      description: translator.translateTemplate(
+        "vcenter.host.network.packet.error.rate for ESXi host {{hostName}} — anything above zero deserves a look at the physical NIC / switch port.",
+        { hostName: hostName },
+      ),
       legend: "Errors",
       legendUnit: "/s",
     },
@@ -278,7 +299,10 @@ const VMwareVCenterHostDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "host_packet_drops",
       title: "Network Packet Drops",
-      description: `vcenter.host.network.packet.drop.rate for ESXi host ${hostName}.`,
+      description: translator.translateTemplate(
+        "vcenter.host.network.packet.drop.rate for ESXi host {{hostName}}.",
+        { hostName: hostName },
+      ),
       legend: "Drops",
       legendUnit: "/s",
     },
@@ -386,7 +410,9 @@ const VMwareVCenterHostDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Host Metrics: ${hostName}`}
+          title={translator.translateTemplate("Host Metrics: {{hostName}}", {
+            hostName: hostName,
+          })}
           description="CPU, memory, network, disk throughput, disk latency and NIC errors for this ESXi host over the selected time range."
         >
           <ResourceMetricsTab

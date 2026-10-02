@@ -23,10 +23,13 @@ import {
   resolveSamplePercentage,
 } from "Common/Types/Telemetry/DropFilterSampling";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (
@@ -148,7 +151,9 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
                     <div className="flex items-center gap-3">
                       <Pill color={Red} text="Drop" icon={IconProp.Trash} />
                       <span className="text-sm text-gray-500">
-                        All matching spans are permanently discarded
+                        {translator.translateText(
+                          "All matching spans are permanently discarded",
+                        )}
                       </span>
                     </div>
                   );
@@ -162,13 +167,17 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
                         icon={IconProp.Filter}
                       />
                       <span className="text-sm text-gray-500">
-                        Only a percentage of matching spans are kept
+                        {translator.translateText(
+                          "Only a percentage of matching spans are kept",
+                        )}
                       </span>
                     </div>
                   );
                 }
                 return (
-                  <span className="text-sm text-gray-400">Not configured</span>
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Not configured")}
+                  </span>
                 );
               },
             },
@@ -187,9 +196,13 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
                 if (!isSamplePercentageConfigured(item.samplePercentage)) {
                   return (
                     <span className="text-sm text-gray-400">
-                      Not configured — no spans are being sampled away. Set a
-                      percentage between {MIN_SAMPLE_PERCENTAGE} and{" "}
-                      {MAX_SAMPLE_PERCENTAGE} to start sampling.
+                      {translator.translateTemplate(
+                        "Not configured — no spans are being sampled away. Set a percentage between {{min}} and {{max}} to start sampling.",
+                        {
+                          min: MIN_SAMPLE_PERCENTAGE,
+                          max: MAX_SAMPLE_PERCENTAGE,
+                        },
+                      )}
                     </span>
                   );
                 }
@@ -200,7 +213,10 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
 
                 return (
                   <span className="text-sm text-gray-900">
-                    {pct}% kept • {100 - pct}% discarded
+                    {translator.translateTemplate(
+                      "{{kept}}% kept • {{discarded}}% discarded",
+                      { kept: pct, discarded: 100 - pct },
+                    )}
                   </span>
                 );
               },
@@ -242,7 +258,9 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
                 if (dropped === 0) {
                   return (
                     <span className="text-sm text-gray-400">
-                      This filter has never matched a span.
+                      {translator.translateText(
+                        "This filter has never matched a span.",
+                      )}
                     </span>
                   );
                 }

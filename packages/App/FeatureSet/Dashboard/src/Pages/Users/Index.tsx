@@ -55,10 +55,13 @@ import {
   RevenueEventName,
   RevenueFunnelStage,
 } from "Common/Types/Analytics/RevenueEvent";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const Users: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showInviteUserModal, setShowInviteUserModal] =
     React.useState<boolean>(false);
   const [showScimErrorModal, setShowScimErrorModal] =
@@ -330,7 +333,7 @@ const Users: FunctionComponent<PageComponentProps> = (
             type: FieldType.Element,
             getElement: (item: TeamMember) => {
               if (!item.user) {
-                return <p>User not found</p>;
+                return <p>{translator.translateText("User not found")}</p>;
               }
               return <UserElement user={item.user!} />;
             },
@@ -348,7 +351,7 @@ const Users: FunctionComponent<PageComponentProps> = (
               const teams: Array<Team> = (item as ProjectUserRow).teamsForUser;
 
               if (!teams || teams.length === 0) {
-                return <p>No team assigned</p>;
+                return <p>{translator.translateText("No team assigned")}</p>;
               }
 
               return <TeamsElement teams={teams} />;
@@ -402,9 +405,13 @@ const Users: FunctionComponent<PageComponentProps> = (
                   <Pill text="Member" color={Green} />
                   {pendingTeamCount > 0 && (
                     <Pill
-                      text={`${pendingTeamCount} Invitation${
-                        pendingTeamCount === 1 ? "" : "s"
-                      } Pending`}
+                      text={translator.translatePlural(
+                        {
+                          one: "{{count}} Invitation Pending",
+                          other: "{{count}} Invitations Pending",
+                        },
+                        pendingTeamCount,
+                      )}
                       color={Yellow}
                     />
                   )}

@@ -708,12 +708,12 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
             <div>
               {monitorToRemove.name ? (
                 <TranslatedSentence
-                  template="Remove {{monitor}} from this SLO? It will no longer count towards the SLO’s SLI and error budget. The monitor itself is not changed."
+                  template="Remove {{monitor}} from this SLO? It will no longer count towards the SLO's SLI and error budget. The monitor itself is not changed."
                   slots={{ monitor: <strong>{monitorToRemove.name}</strong> }}
                 />
               ) : (
                 translator.translateText(
-                  "Remove this monitor from this SLO? It will no longer count towards the SLO’s SLI and error budget. The monitor itself is not changed.",
+                  "Remove this monitor from this SLO? It will no longer count towards the SLO's SLI and error budget. The monitor itself is not changed.",
                 )
               )}
             </div>

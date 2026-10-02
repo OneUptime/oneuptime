@@ -35,6 +35,8 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import VMwareDocumentationCard from "../../Components/VMware/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * While the project has no vCenters yet, re-count on this cadence so the
@@ -46,6 +48,7 @@ const FIRST_DATA_POLL_INTERVAL_MS: number = 10 * 1000;
 const VMwareVCenters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [clusterCount, setClusterCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -283,7 +286,9 @@ const VMwareVCenters: FunctionComponent<
                       isConnected ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected
+                      ? translator.translateText("Connected")
+                      : translator.translateText("Disconnected")}
                   </span>
                 </div>
               );

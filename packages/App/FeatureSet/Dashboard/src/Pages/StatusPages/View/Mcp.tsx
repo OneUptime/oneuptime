@@ -99,7 +99,7 @@ const StatusPageMcp: FunctionComponent<
             <CodeBlock language="text" code={mcpUrl} />
             <p>
               <TranslatedSentence
-                template="This one endpoint serves every status page, so it is the URL to connect to no matter which page you want. Agents pick out this page by passing a {{argument}} argument on each tool call. Use this page’s ID:"
+                template="This one endpoint serves every status page, so it is the URL to connect to no matter which page you want. Agents pick out this page by passing a {{argument}} argument on each tool call. Use this page's ID:"
                 slots={{ argument: <code>statusPageIdOrDomain</code> }}
               />
             </p>
