@@ -150,6 +150,9 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                   minLength: 6,
                 },
                 fieldType: FormFieldSchemaType.Password,
+                // The sign-in password: password managers fill it.
+                autoComplete: "current-password",
+                isOwnCredential: true,
                 sideLink: {
                   text: t("accounts.login.forgotPassword"),
                   url: new Route(

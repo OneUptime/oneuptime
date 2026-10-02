@@ -110,7 +110,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="On Call">
+      {/*
+       * Who the alert paged, and when: a record looked at when something
+       * needs checking, like the Logs below, so it folds away until opened
+       * (and opens by itself on its page).
+       */}
+      <SideMenuSection title="On Call" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "On Call Executions",

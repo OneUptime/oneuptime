@@ -242,10 +242,11 @@ describe("SideMenuSection", () => {
     );
 
     /*
-     * Only the section NAMED Advanced. "Advanced Settings" is a page in the
-     * status page menu, and Settings sections decide for themselves.
+     * Only the section NAMED Advanced, or named for another rarely used kind
+     * of section (below). "Advanced Settings" is a page in the status page
+     * menu, not a section; Basic and Monitors are what menus are opened for.
      */
-    test.each(["Basic", "Settings", "Advanced Settings", "Danger Zone"])(
+    test.each(["Basic", "Monitors", "Advanced Settings", "Advanced Options"])(
       "leaves a section titled %p open",
       (title: string) => {
         render(<SideMenuSection title={title}>{menuRows()}</SideMenuSection>);
@@ -360,6 +361,77 @@ describe("SideMenuSection", () => {
       expect(
         sectionHeading().parentElement!.parentElement!.nextElementSibling,
       ).not.toHaveClass("max-h-0");
+    });
+  });
+
+  /*
+   * "Collapsing things in the side menu that are not used frequently ...
+   * for every side menu across the project" (the maintainer). Advanced was
+   * the first such section; settings, rules, chat workspaces, AI, logs and
+   * the rest (SECTION_TITLES_COLLAPSED_BY_DEFAULT) fold the same way, by
+   * their title, in every menu, including menus written later.
+   */
+  describe("a section titled for another rarely used kind of section", () => {
+    test.each([
+      "Settings",
+      "Rules",
+      "Workspace",
+      "AI",
+      "Logs",
+      "Owners",
+      "Branding",
+      "Security",
+      "Help",
+      "Danger Zone",
+    ])("%p starts collapsed without being told to", (title: string) => {
+      render(<SideMenuSection title={title}>{menuRows()}</SideMenuSection>);
+
+      expect(sectionToggle()).toHaveAttribute("aria-expanded", "false");
+      expect(sectionBody()).toHaveClass("max-h-0", "opacity-0", "invisible");
+    });
+
+    test("shows its title while folded, so it can still be found", () => {
+      render(<SideMenuSection title="Workspace">{menuRows()}</SideMenuSection>);
+
+      expect(sectionHeading()).toHaveTextContent("Workspace");
+      expect(sectionToggle()).toBeVisible();
+    });
+
+    test("starts open when the current page is inside it", () => {
+      render(
+        <SideMenuSection title="Workspace" isActive={true}>
+          {menuRows()}
+        </SideMenuSection>,
+      );
+
+      expect(sectionToggle()).toHaveAttribute("aria-expanded", "true");
+      expect(sectionBody()).not.toHaveClass("invisible");
+    });
+
+    test("opens on click and folds away again", () => {
+      render(<SideMenuSection title="Rules">{menuRows()}</SideMenuSection>);
+
+      fireEvent.click(sectionToggle());
+
+      expect(sectionToggle()).toHaveAttribute("aria-expanded", "true");
+      expect(sectionBody()).not.toHaveClass("invisible");
+
+      fireEvent.click(sectionToggle());
+
+      expect(sectionToggle()).toHaveAttribute("aria-expanded", "false");
+      expect(sectionBody()).toHaveClass("invisible");
+    });
+
+    // A workflow's run history sits in a Logs section its menus keep open.
+    test("a menu can keep one open with defaultCollapsed={false}", () => {
+      render(
+        <SideMenuSection title="Logs" defaultCollapsed={false}>
+          {menuRows()}
+        </SideMenuSection>,
+      );
+
+      expect(sectionToggle()).toHaveAttribute("aria-expanded", "true");
+      expect(sectionBody()).toHaveClass("opacity-100");
     });
   });
 

@@ -26,8 +26,15 @@ import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { getSubscriberNotificationTemplateVariablesDocumentation } from "../../../Utils/SubscriberNotificationTemplateVariables";
-import IncidentCustomFieldTemplateVariables from "../../../Components/StatusPage/IncidentCustomFieldTemplateVariables";
+import IncidentCustomFieldTemplateVariables, {
+  IncidentCustomFieldTemplateVariablesState,
+} from "../../../Components/StatusPage/IncidentCustomFieldTemplateVariables";
 import SubscriberTemplateLivePreview from "../../../Components/StatusPage/SubscriberTemplateLivePreview";
+import SubscriberTemplateVariablesFooter, {
+  getSubscriberTemplateVariableGroups,
+} from "../../../Components/StatusPage/SubscriberTemplateVariables";
+import SubscriberTemplateVariablesCopy from "../../../Components/StatusPage/SubscriberTemplateVariablesCopy";
+import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 const SubscriberNotificationTemplateView: FunctionComponent<
@@ -40,6 +47,12 @@ const SubscriberNotificationTemplateView: FunctionComponent<
   const [notificationMethod, setNotificationMethod] = useState<
     StatusPageSubscriberNotificationMethod | undefined
   >(undefined);
+  /*
+   * The project's incident custom fields, read by the body's variables list
+   * once the Edit dialog shows an incident event's body.
+   */
+  const [customFields, setCustomFields] =
+    useState<IncidentCustomFieldTemplateVariablesState>({ status: "loading" });
 
   useEffect(() => {
     // Fetch the template to get its event type
@@ -64,6 +77,10 @@ const SubscriberNotificationTemplateView: FunctionComponent<
     };
     fetchTemplate();
   }, [modelId.toString()]);
+
+  // What the template's content can use: the variables of its event.
+  const templateVariableGroups: TemplateVariableGroups =
+    getSubscriberTemplateVariableGroups(eventType, customFields);
 
   const getTemplateBodyFieldType: () => FormFieldSchemaType =
     (): FormFieldSchemaType => {
@@ -187,8 +204,12 @@ const SubscriberNotificationTemplateView: FunctionComponent<
                   },
                   title: "Email Subject",
                   description:
-                    "Subject line for email notifications. You can use template variables like {{incidentTitle}}.",
+                    SubscriberTemplateVariablesCopy.emailSubjectDescription,
                   fieldType: FormFieldSchemaType.Text,
+                  // The event's variables, under the subject and one "{{" away.
+                  templateVariables: templateVariableGroups,
+                  templateVariablesDescription:
+                    SubscriberTemplateVariablesCopy.variablesDescription,
                   required: false,
                   placeholder: "{{statusPageName}}: {{incidentTitle}}",
                 },
@@ -203,6 +224,18 @@ const SubscriberNotificationTemplateView: FunctionComponent<
                   required: true,
                   placeholder:
                     "<p>Hello,</p><p>{{incidentTitle}} has been created.</p>",
+                  // The event's variables, collapsed under the body.
+                  templateVariables: templateVariableGroups,
+                  templateVariablesDescription:
+                    SubscriberTemplateVariablesCopy.variablesDescription,
+                  getTemplateVariablesFooter: (): ReactElement => {
+                    return (
+                      <SubscriberTemplateVariablesFooter
+                        eventType={eventType}
+                        onCustomFieldsChange={setCustomFields}
+                      />
+                    );
+                  },
                   // The subject and body as typed, filled in with sample values.
                   getFooterElement: (
                     values: FormValues<StatusPageSubscriberNotificationTemplate>,
@@ -242,6 +275,18 @@ const SubscriberNotificationTemplateView: FunctionComponent<
                     StatusPageSubscriberNotificationMethod.SMS
                       ? "{{statusPageName}}: {{incidentTitle}} - {{incidentDescription}}"
                       : "**{{incidentTitle}}**\n{{incidentDescription}}",
+                  // The event's variables, collapsed under the body.
+                  templateVariables: templateVariableGroups,
+                  templateVariablesDescription:
+                    SubscriberTemplateVariablesCopy.variablesDescription,
+                  getTemplateVariablesFooter: (): ReactElement => {
+                    return (
+                      <SubscriberTemplateVariablesFooter
+                        eventType={eventType}
+                        onCustomFieldsChange={setCustomFields}
+                      />
+                    );
+                  },
                   // The body as typed, filled in with sample values.
                   getFooterElement: (
                     values: FormValues<StatusPageSubscriberNotificationTemplate>,

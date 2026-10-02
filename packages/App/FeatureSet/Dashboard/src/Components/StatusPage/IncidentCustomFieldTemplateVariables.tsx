@@ -54,10 +54,19 @@ export interface IncidentCustomFieldTemplateVariableRow {
   isIncludedInSubscriberNotifications: boolean;
 }
 
-type LoadState =
+/*
+ * The project's fields as far as they are known: still being read, read, or
+ * not readable (no permission, or a plan without custom fields). The note
+ * template form and the subscriber template forms offer them as variables
+ * from the same state (IncidentNoteTemplatePlaceholders,
+ * SubscriberTemplateVariables).
+ */
+export type IncidentCustomFieldTemplateVariablesState =
   | { status: "loading" }
   | { status: "loaded"; rows: Array<IncidentCustomFieldTemplateVariableRow> }
   | { status: "failed" };
+
+type LoadState = IncidentCustomFieldTemplateVariablesState;
 
 /**
  * The project's incident custom fields that a template can place, in their

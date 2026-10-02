@@ -10,6 +10,7 @@ import React, {
   ReactElement,
   useEffect,
   useId,
+  useMemo,
   useState,
 } from "react";
 import OwnersPicker, {
@@ -21,6 +22,9 @@ import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import TemplateVariablesModal from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesModal";
+import TemplateVariablesCatalog from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
+import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
+import MonitorCriteriaTemplateCopy from "./MonitorCriteriaTemplateCopy";
 import { hasAlertAdvancedOptions } from "./CriteriaAdvancedOptions";
 
 export interface ComponentProps {
@@ -76,6 +80,18 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
   );
   // Only what the user chose: a default rule's auto-resolve does not count.
   const hasAdvancedOptions: boolean = hasAlertAdvancedOptions(criteriaAlert);
+
+  /*
+   * The variables this monitor's alert description and remediation notes
+   * can use, offered by their editors: collapsed under each, behind its
+   * Insert variable button, and when "{{" is typed.
+   */
+  const templateVariableGroups: TemplateVariableGroups = useMemo(() => {
+    return TemplateVariablesCatalog.getTemplateVariableGroups({
+      monitorType: props.monitorType ?? MonitorType.API,
+      seriesAttributeKeys: props.seriesAttributeKeys,
+    });
+  }, [props.monitorType, props.seriesAttributeKeys]);
 
   const [isTemplateModalOpen, setIsTemplateModalOpen] =
     useState<boolean>(false);
@@ -153,12 +169,14 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="Alert Description"
-            description={
-              <span>Description for the alert. {templateDocsLink}</span>
-            }
+            description={MonitorCriteriaTemplateCopy.alertDescriptionHelp}
           />
           <MarkdownEditor
             initialValue={criteriaAlert.description || ""}
+            templateVariables={templateVariableGroups}
+            templateVariablesDescription={
+              MonitorCriteriaTemplateCopy.alertVariablesDescription
+            }
             placeholder="Describe the alert..."
             onChange={(value: string) => {
               updateField("description", value);
@@ -305,15 +323,14 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
           <div>
             <FieldLabelElement
               title="Remediation Notes"
-              description={
-                <span>
-                  Notes for on-call engineer to resolve this alert.{" "}
-                  {templateDocsLink}
-                </span>
-              }
+              description={MonitorCriteriaTemplateCopy.alertRemediationHelp}
             />
             <MarkdownEditor
               initialValue={criteriaAlert.remediationNotes || ""}
+              templateVariables={templateVariableGroups}
+              templateVariablesDescription={
+                MonitorCriteriaTemplateCopy.alertVariablesDescription
+              }
               placeholder="Steps to resolve this alert..."
               onChange={(value: string) => {
                 updateField("remediationNotes", value);

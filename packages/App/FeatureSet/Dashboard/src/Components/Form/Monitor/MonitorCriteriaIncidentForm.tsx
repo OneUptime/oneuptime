@@ -13,6 +13,7 @@ import React, {
   ReactElement,
   useEffect,
   useId,
+  useMemo,
   useState,
 } from "react";
 import OwnersPicker, {
@@ -24,6 +25,9 @@ import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import TemplateVariablesModal from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesModal";
+import TemplateVariablesCatalog from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
+import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
+import MonitorCriteriaTemplateCopy from "./MonitorCriteriaTemplateCopy";
 import { hasIncidentAdvancedOptions } from "./CriteriaAdvancedOptions";
 
 export interface IncidentRoleOption {
@@ -183,6 +187,18 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     updateField("incidentMemberRoles", filteredRoles);
   };
 
+  /*
+   * The variables this monitor's incident description and remediation notes
+   * can use, offered by their editors: collapsed under each, behind its
+   * Insert variable button, and when "{{" is typed.
+   */
+  const templateVariableGroups: TemplateVariableGroups = useMemo(() => {
+    return TemplateVariablesCatalog.getTemplateVariableGroups({
+      monitorType: props.monitorType ?? MonitorType.API,
+      seriesAttributeKeys: props.seriesAttributeKeys,
+    });
+  }, [props.monitorType, props.seriesAttributeKeys]);
+
   const [isTemplateModalOpen, setIsTemplateModalOpen] =
     useState<boolean>(false);
 
@@ -263,12 +279,14 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="Incident Description"
-            description={
-              <span>Description for the incident. {templateDocsLink}</span>
-            }
+            description={MonitorCriteriaTemplateCopy.incidentDescriptionHelp}
           />
           <MarkdownEditor
             initialValue={criteriaIncident.description || ""}
+            templateVariables={templateVariableGroups}
+            templateVariablesDescription={
+              MonitorCriteriaTemplateCopy.incidentVariablesDescription
+            }
             placeholder="Describe the incident..."
             onChange={(value: string) => {
               updateField("description", value);
@@ -528,15 +546,14 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
           <div>
             <FieldLabelElement
               title="Remediation Notes"
-              description={
-                <span>
-                  Notes for on-call engineer to resolve this incident.{" "}
-                  {templateDocsLink}
-                </span>
-              }
+              description={MonitorCriteriaTemplateCopy.incidentRemediationHelp}
             />
             <MarkdownEditor
               initialValue={criteriaIncident.remediationNotes || ""}
+              templateVariables={templateVariableGroups}
+              templateVariablesDescription={
+                MonitorCriteriaTemplateCopy.incidentVariablesDescription
+              }
               placeholder="Steps to resolve this incident..."
               onChange={(value: string) => {
                 updateField("remediationNotes", value);

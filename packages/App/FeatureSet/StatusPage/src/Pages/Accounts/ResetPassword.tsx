@@ -132,6 +132,9 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                   },
                   showEvenIfPermissionDoesNotExist: true,
                   fieldType: FormFieldSchemaType.Password,
+                  // The person's new password: password managers save it.
+                  autoComplete: "new-password",
+                  isOwnCredential: true,
                   validation: {
                     minLength: 6,
                   },
@@ -150,6 +153,8 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                   },
                   showEvenIfPermissionDoesNotExist: true,
                   fieldType: FormFieldSchemaType.Password,
+                  autoComplete: "new-password",
+                  isOwnCredential: true,
                   placeholder: t("accounts.shared.confirmPassword"),
                   title: t("accounts.shared.confirmPassword"),
                   overrideFieldKey: "confirmPassword",

@@ -107,7 +107,7 @@ SLO burn rate: {{sloName}} — {{ruleName}}
 
 and the description names the rule, states the burn rate over both windows against the threshold, and gives the error budget remaining.
 
-To write your own, use template variables in the title, the description and the remediation notes. They are filled in at the moment the rule fires:
+To write your own, use template variables in the title, the description and the remediation notes. Each of those fields lists them under it, under **Template variables**: click one to put it where the cursor is, or type `{{` in the field and pick one from the list that opens. The description and remediation notes editors also have **Insert variable** in their toolbar. They are filled in at the moment the rule fires:
 
 | Variable                             | What it holds                                                                                  | Example                                                |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------ |

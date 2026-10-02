@@ -143,6 +143,9 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
                 required: true,
                 placeholder: "Enter password",
                 fieldType: FormFieldSchemaType.Password,
+                // What unlocks the dashboard: password managers may fill it.
+                autoComplete: "current-password",
+                isOwnCredential: true,
                 disableSpellCheck: true,
               },
             ]}

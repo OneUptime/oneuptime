@@ -7,6 +7,7 @@ import {
   DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
   SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+  SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
   SLO_BURN_RATE_TEMPLATE_VARIABLES,
   SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
   SloBurnRateTemplateVariableDefinition,
@@ -274,11 +275,13 @@ export const BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE: string = [
 ].join("\n");
 
 /*
- * Named in the descriptions of every template field. Three is enough to show
- * the shape; the help panel carries the full table.
+ * Every template field offers the variables itself: collapsed under the
+ * field, behind the Markdown editor's Insert variable button, and when "{{"
+ * is typed. They were three names run into each field's description, with
+ * the rest in the page's help panel.
  */
-const TEMPLATE_VARIABLES_HINT: string =
-  'Supports template variables such as {{sloName}}, {{ruleName}} and {{longWindowBurnRate}} - see "How Burn Rate Rules Work" for the full list.';
+export const BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION: string =
+  "When the rule fires, these variables are filled in with the SLO's values at that moment.";
 
 /*
  * Each output has one step, matching the monitor form: title and severity
@@ -602,8 +605,10 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       alertTitleTemplate: true,
     },
     title: "Alert Title",
-    description: `Title of the alert this rule raises. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default: ${DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE}`,
+    description: `Title of the alert this rule raises. Leave empty to use the default: ${DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE}`,
     fieldType: FormFieldSchemaType.Text,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     required: false,
     placeholder: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
     defaultValue: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
@@ -634,8 +639,11 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       alertDescriptionTemplate: true,
     },
     title: "Alert Description",
-    description: `Description of the alert, in Markdown. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.`,
+    description:
+      "Description of the alert, in Markdown. Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.",
     fieldType: FormFieldSchemaType.Markdown,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     defaultValue: DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
     required: false,
     validation: {
@@ -727,8 +735,10 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       alertRemediationNotes: true,
     },
     title: "Alert Remediation Notes",
-    description: `Steps for whoever picks the alert up, in Markdown. ${TEMPLATE_VARIABLES_HINT}`,
+    description: "Steps for whoever picks the alert up, in Markdown.",
     fieldType: FormFieldSchemaType.Markdown,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     required: false,
     validation: {
       maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
@@ -741,8 +751,10 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       incidentTitleTemplate: true,
     },
     title: "Incident Title",
-    description: `Title of the incident this rule declares. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default: ${DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE}`,
+    description: `Title of the incident this rule declares. Leave empty to use the default: ${DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE}`,
     fieldType: FormFieldSchemaType.Text,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     required: false,
     placeholder: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
     defaultValue: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
@@ -773,8 +785,11 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       incidentDescriptionTemplate: true,
     },
     title: "Incident Description",
-    description: `Description of the incident, in Markdown. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.`,
+    description:
+      "Description of the incident, in Markdown. Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.",
     fieldType: FormFieldSchemaType.Markdown,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     defaultValue: DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
     required: false,
     validation: {
@@ -861,8 +876,10 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       incidentRemediationNotes: true,
     },
     title: "Incident Remediation Notes",
-    description: `Steps for whoever picks the incident up, in Markdown. ${TEMPLATE_VARIABLES_HINT}`,
+    description: "Steps for whoever picks the incident up, in Markdown.",
     fieldType: FormFieldSchemaType.Markdown,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     required: false,
     validation: {
       maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,

@@ -5,12 +5,19 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
-import IncidentNoteTemplatePlaceholders from "../../../Components/Incident/IncidentNoteTemplatePlaceholders";
+import useIncidentNoteTemplateVariables, {
+  IncidentNoteTemplateVariables,
+} from "../../../Components/Incident/IncidentNoteTemplatePlaceholders";
+import NoteTemplateFormCopy from "../../../Components/NoteTemplate/NoteTemplateFormCopy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  // What the note can use, the project's custom fields included.
+  const noteTemplateVariables: IncidentNoteTemplateVariables =
+    useIncidentNoteTemplateVariables();
+
   return (
     <Fragment>
       <ModelTable<IncidentNoteTemplate>
@@ -76,10 +83,16 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
             field: {
               note: true,
             },
-            title: "Public or Private note template.",
-            // The {{placeholders}} it can use, filled in from the incident.
-            description: <IncidentNoteTemplatePlaceholders />,
+            title: NoteTemplateFormCopy.noteFieldTitle,
+            description: NoteTemplateFormCopy.noteFieldDescription,
             fieldType: FormFieldSchemaType.Markdown,
+            /*
+             * The {{variables}} it can use, filled in from the incident:
+             * collapsed under the editor, behind its Insert variable button,
+             * and under the cursor when "{{" is typed.
+             */
+            templateVariables: noteTemplateVariables.groups,
+            templateVariablesDescription: noteTemplateVariables.description,
             stepId: "note-details",
             required: true,
             validation: {

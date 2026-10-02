@@ -10,11 +10,17 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
-import IncidentNoteTemplatePlaceholders from "../../../Components/Incident/IncidentNoteTemplatePlaceholders";
+import useIncidentNoteTemplateVariables, {
+  IncidentNoteTemplateVariables,
+} from "../../../Components/Incident/IncidentNoteTemplatePlaceholders";
+import NoteTemplateFormCopy from "../../../Components/NoteTemplate/NoteTemplateFormCopy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  // What the note can use, the project's custom fields included.
+  const noteTemplateVariables: IncidentNoteTemplateVariables =
+    useIncidentNoteTemplateVariables();
 
   return (
     <Fragment>
@@ -98,10 +104,16 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               note: true,
             },
-            title: "Note",
-            // The {{placeholders}} it can use, filled in from the incident.
-            description: <IncidentNoteTemplatePlaceholders />,
+            title: NoteTemplateFormCopy.noteFieldTitle,
+            description: NoteTemplateFormCopy.noteFieldDescription,
             fieldType: FormFieldSchemaType.Markdown,
+            /*
+             * The {{variables}} it can use, filled in from the incident:
+             * collapsed under the editor, behind its Insert variable button,
+             * and under the cursor when "{{" is typed.
+             */
+            templateVariables: noteTemplateVariables.groups,
+            templateVariablesDescription: noteTemplateVariables.description,
             required: true,
             validation: {
               minLength: 2,

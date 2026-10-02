@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   BURN_RATE_RULE_FORM_FIELDS,
   BURN_RATE_RULE_FORM_STEPS,
+  BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
   validateBurnRateOutputs,
   willCreateAlert,
   willDeclareIncident,
@@ -25,9 +26,16 @@ import {
   DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
   SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+  SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+  SLO_BURN_RATE_TEMPLATE_VARIABLES,
   SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
+  SloBurnRateTemplateVariableDefinition,
   isSloBurnRateTemplateVariable,
 } from "Common/Utils/Slo/SloBurnRateTemplate";
+import {
+  TemplateVariable,
+  TemplateVariableGroup,
+} from "Common/Types/Template/TemplateVariable";
 
 /*
  * The create form is a wizard now, and every way of getting a wizard wrong is
@@ -504,19 +512,60 @@ describe("the template fields", () => {
     }
   });
 
-  test("every template field tells the user about the variables, naming only real ones", () => {
+  /*
+   * The variables used to be three names run into every description, with
+   * "see How Burn Rate Rules Work for the full list". Each template field now
+   * offers every variable itself - collapsed under it, behind the Markdown
+   * editor's Insert variable, and when "{{" is typed - with its example.
+   */
+  test("every template field offers every variable the worker fills, with its example", () => {
+    for (const column of [...TITLE_COLUMNS, ...MARKDOWN_COLUMNS]) {
+      const field: FieldOf = fieldFor(column);
+
+      expect({ column, groups: field.templateVariables }).toEqual({
+        column,
+        groups: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+      });
+      expect(field.templateVariablesDescription).toBe(
+        BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
+      );
+    }
+
+    const offered: Array<string> =
+      SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS.flatMap(
+        (group: TemplateVariableGroup): Array<string> => {
+          return group.variables.map((variable: TemplateVariable): string => {
+            return variable.name;
+          });
+        },
+      );
+
+    expect(offered).toEqual(
+      SLO_BURN_RATE_TEMPLATE_VARIABLES.map(
+        (definition: SloBurnRateTemplateVariableDefinition): string => {
+          return definition.key;
+        },
+      ),
+    );
+
+    for (const group of SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS) {
+      for (const variable of group.variables) {
+        expect(variable.example).toBeTruthy();
+      }
+    }
+  });
+
+  test("no description sends the user to a list somewhere else, and any variable it names is real", () => {
     for (const column of [...TITLE_COLUMNS, ...MARKDOWN_COLUMNS]) {
       const description: string = descriptionOf(fieldFor(column));
+
+      expect(description).not.toMatch(/Supports template variables/);
+      expect(description).not.toMatch(/for the full list/);
 
       const named: Array<string> = [
         ...description.matchAll(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g),
       ].map((match: RegExpMatchArray): string => {
         return match[1]!;
-      });
-
-      expect({ column, namesVariables: named.length > 0 }).toEqual({
-        column,
-        namesVariables: true,
       });
 
       for (const name of named) {
