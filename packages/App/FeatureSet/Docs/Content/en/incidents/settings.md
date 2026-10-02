@@ -40,7 +40,7 @@ Go to **Incidents → Settings → Incident Templates** (`/dashboard/{projectId}
 - **Custom Fields** — only when your project has incident custom fields: the values incidents declared from this template start with. Every field is offered here, not only the ones the **Details** step asks for, and none is required. An existing template has a **Custom Fields** card to change them.
 - **Custom Fields on Create** — also only when your project has incident custom fields: which of them the **Details** step asks for when an incident is declared from this template, and which must be filled in. An existing template has a **Custom Fields on Create** card to change them. See [Custom fields on create](#custom-fields-on-create).
 - **On-Call** — **On-Call Policy**, the policies to execute when an incident created from this template is declared.
-- **Owners** — **Owner - Teams** and **Owner - Users**.
+- **Owners** — **Owners**: the people and teams who own incidents declared from the template. **Add owner** opens one list of both, the same list as an incident's **Owners** page; each pick shows as a chip you can remove. An existing template shows them on an **Owners** card.
 - **Labels** — **Labels**.
 
 A few quick rules:

@@ -22,6 +22,10 @@ import { FormStep } from "./Types/FormStep";
 import FormValues from "./Types/FormValues";
 import Validation from "./Validation";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
+import {
+  getPeoplePickerValueKeys,
+  toPeoplePickerIds,
+} from "../PeoplePicker/PeoplePickerTypes";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import { VoidFunction } from "../../../Types/FunctionTypes";
@@ -716,6 +720,25 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           ).map((value: DropdownValue | ObjectID): DropdownValue => {
             return value instanceof ObjectID ? value.toString() : value;
           });
+        }
+
+        /*
+         * A people picker keeps its picks in form values of its own (owners
+         * in ownerUsers and ownerTeams). Whatever the form started with -
+         * ObjectIDs, related rows, ids - is held as plain ids, which is what
+         * the picker writes, so an untouched picker sends what it shows.
+         */
+        if (
+          field.fieldType === FormFieldSchemaType.PeoplePicker &&
+          field.peoplePicker
+        ) {
+          for (const valueKey of getPeoplePickerValueKeys(field.peoplePicker)) {
+            const startValue: unknown = (values as any)[valueKey];
+
+            if (startValue !== undefined && startValue !== null) {
+              (values as any)[valueKey] = toPeoplePickerIds(startValue);
+            }
+          }
         }
 
         // if the field is still null but has a default value then... have the default initial value

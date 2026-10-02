@@ -1,15 +1,13 @@
-import React, { ReactElement, useEffect, useMemo, useState } from "react";
+import React, { ReactElement, useState } from "react";
 
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Team from "../../../Models/DatabaseModels/Team";
-import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import IconProp from "../../../Types/Icon/IconProp";
+import { JSONObject } from "../../../Types/JSON";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import Query from "../../../Types/BaseDatabase/Query";
-import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
@@ -19,9 +17,10 @@ import PermissionGate, {
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
 import { ButtonStyleType } from "../Button/Button";
-import { DropdownOption, DropdownOptionGroup } from "../Dropdown/Dropdown";
 import BasicFormModal from "../FormModal/BasicFormModal";
-import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
+import Field from "../Forms/Types/Field";
+import getOwnersFormField from "../PeoplePicker/OwnersFormField";
+import { toPeoplePickerIds } from "../PeoplePicker/PeoplePickerTypes";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
@@ -43,8 +42,35 @@ export interface BulkOwnerActionsResult<T extends BaseModel> {
 
 type BulkOwnerMode = "add" | "remove";
 
-const USER_PREFIX: string = "user:";
-const TEAM_PREFIX: string = "team:";
+// The people and teams picked in the dialog, as ids.
+interface PickedOwners {
+  userIds: Array<string>;
+  teamIds: Array<string>;
+}
+
+/*
+ * The dialogs' one Owners field: the people picker every owners form uses,
+ * people and teams in one list, at least one required.
+ */
+const ownersField: (description: string) => Field<JSONObject> = (
+  description: string,
+): Field<JSONObject> => {
+  return getOwnersFormField<JSONObject>({
+    usersKey: "ownerUserIds",
+    teamsKey: "ownerTeamIds",
+    description: description,
+    required: true,
+  });
+};
+
+const readPickedOwners: (formData: JSONObject) => PickedOwners = (
+  formData: JSONObject,
+): PickedOwners => {
+  return {
+    userIds: toPeoplePickerIds(formData["ownerUserIds"]),
+    teamIds: toPeoplePickerIds(formData["ownerTeamIds"]),
+  };
+};
 
 /**
  * Reusable hook that provides "Add Owner" and "Remove Owner" bulk actions
@@ -64,100 +90,21 @@ const TEAM_PREFIX: string = "team:";
 function useBulkOwnerActions<T extends BaseModel>(
   config: BulkOwnerActionsConfig,
 ): BulkOwnerActionsResult<T> {
-  const [userOptions, setUserOptions] = useState<Array<DropdownOption>>([]);
-  const [teamOptions, setTeamOptions] = useState<Array<DropdownOption>>([]);
+  /*
+   * Owners are picked with the people picker, which searches the project's
+   * people and teams when its list opens - nothing is read up front, so a
+   * table that offers these actions costs no requests until they are used.
+   */
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [showRemoveModal, setShowRemoveModal] = useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<T> | null>(null);
 
-  useEffect(() => {
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
-      return;
-    }
-
-    const fetchOwners: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const [teamMembersResult, teamsResult]: [
-          ListResult<TeamMember>,
-          ListResult<Team>,
-        ] = await Promise.all([
-          ModelAPI.getList<TeamMember>({
-            modelType: TeamMember,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-              _id: true,
-              user: {
-                _id: true,
-                name: true,
-                email: true,
-              },
-            },
-            sort: {},
-          }),
-          ModelAPI.getList<Team>({
-            modelType: Team,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-              _id: true,
-              name: true,
-            },
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          }),
-        ]);
-
-        const seenUserIds: Set<string> = new Set<string>();
-        const users: Array<DropdownOption> = [];
-
-        for (const member of teamMembersResult.data) {
-          const userId: string = member.user?._id?.toString() || "";
-          if (!userId || seenUserIds.has(userId)) {
-            continue;
-          }
-          seenUserIds.add(userId);
-          users.push({
-            value: `${USER_PREFIX}${userId}`,
-            label:
-              member.user?.name?.toString() ||
-              member.user?.email?.toString() ||
-              "",
-          });
-        }
-
-        users.sort((a: DropdownOption, b: DropdownOption) => {
-          return a.label.toLowerCase().localeCompare(b.label.toLowerCase());
-        });
-
-        setUserOptions(users);
-
-        setTeamOptions(
-          teamsResult.data.map((team: Team) => {
-            return {
-              value: `${TEAM_PREFIX}${team._id?.toString() || ""}`,
-              label: team.name?.toString() || "",
-            };
-          }),
-        );
-      } catch {
-        // dropdowns will remain empty; modal will show no options
-      }
-    };
-
-    void fetchOwners();
-  }, []);
-
   const applyOwners: (
-    selectedKeys: Array<string>,
+    picked: PickedOwners,
     mode: BulkOwnerMode,
   ) => Promise<void> = async (
-    selectedKeys: Array<string>,
+    picked: PickedOwners,
     mode: BulkOwnerMode,
   ): Promise<void> => {
     if (!bulkActionProps) {
@@ -171,22 +118,8 @@ function useBulkOwnerActions<T extends BaseModel>(
     setShowAddModal(false);
     setShowRemoveModal(false);
 
-    const userIds: Array<string> = [];
-    const teamIds: Array<string> = [];
-
-    for (const key of selectedKeys) {
-      if (key.startsWith(USER_PREFIX)) {
-        const id: string = key.slice(USER_PREFIX.length);
-        if (id) {
-          userIds.push(id);
-        }
-      } else if (key.startsWith(TEAM_PREFIX)) {
-        const id: string = key.slice(TEAM_PREFIX.length);
-        if (id) {
-          teamIds.push(id);
-        }
-      }
-    }
+    const userIds: Array<string> = picked.userIds;
+    const teamIds: Array<string> = picked.teamIds;
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
@@ -403,18 +336,6 @@ function useBulkOwnerActions<T extends BaseModel>(
     setBulkActionProps(null);
   };
 
-  const groupedOwnerOptions: Array<DropdownOption | DropdownOptionGroup> =
-    useMemo((): Array<DropdownOption | DropdownOptionGroup> => {
-      const groups: Array<DropdownOptionGroup> = [];
-      if (userOptions.length > 0) {
-        groups.push({ label: "People", options: userOptions });
-      }
-      if (teamOptions.length > 0) {
-        groups.push({ label: "Teams", options: teamOptions });
-      }
-      return groups;
-    }, [userOptions, teamOptions]);
-
   /*
    * Bulk actions are handed straight to the table's action bar, which never
    * looks at permissions - so a viewer on an otherwise gated table could still
@@ -488,28 +409,20 @@ function useBulkOwnerActions<T extends BaseModel>(
       {showAddModal && (
         <BasicFormModal
           title="Add Owner"
-          description="Select users and/or teams to add as owners to the selected items. Existing owners will be preserved."
+          description="Pick the people and teams to add as owners of the selected items. Their existing owners are kept."
           onClose={() => {
             setShowAddModal(false);
             setBulkActionProps(null);
           }}
           submitButtonText="Add Owner"
-          onSubmit={async (formData: { ownerKeys: Array<string> }) => {
-            await applyOwners(formData.ownerKeys || [], "add");
+          onSubmit={async (formData: JSONObject) => {
+            await applyOwners(readPickedOwners(formData), "add");
           }}
           formProps={{
             fields: [
-              {
-                field: {
-                  ownerKeys: true,
-                },
-                title: "Select Owners",
-                description:
-                  "These users and teams will be added as owners to each selected item.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                required: true,
-                dropdownOptions: groupedOwnerOptions,
-              },
+              ownersField(
+                "These people and teams are added as owners of each selected item.",
+              ),
             ],
           }}
         />
@@ -518,29 +431,21 @@ function useBulkOwnerActions<T extends BaseModel>(
       {showRemoveModal && (
         <BasicFormModal
           title="Remove Owner"
-          description="Select users and/or teams to remove from the selected items. Items that do not have any of these owners will be skipped."
+          description="Pick the people and teams to remove as owners of the selected items. Items that have none of them are skipped."
           onClose={() => {
             setShowRemoveModal(false);
             setBulkActionProps(null);
           }}
           submitButtonText="Remove Owner"
           submitButtonStyleType={ButtonStyleType.DANGER}
-          onSubmit={async (formData: { ownerKeys: Array<string> }) => {
-            await applyOwners(formData.ownerKeys || [], "remove");
+          onSubmit={async (formData: JSONObject) => {
+            await applyOwners(readPickedOwners(formData), "remove");
           }}
           formProps={{
             fields: [
-              {
-                field: {
-                  ownerKeys: true,
-                },
-                title: "Select Owners",
-                description:
-                  "These users and teams will be removed as owners from each selected item.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                required: true,
-                dropdownOptions: groupedOwnerOptions,
-              },
+              ownersField(
+                "These people and teams are removed as owners of each selected item.",
+              ),
             ],
           }}
         />

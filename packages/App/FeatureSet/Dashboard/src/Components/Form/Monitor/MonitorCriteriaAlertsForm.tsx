@@ -11,8 +11,6 @@ export interface ComponentProps {
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
-  teamDropdownOptions: Array<DropdownOption>;
-  userDropdownOptions: Array<DropdownOption>;
   monitorType?: MonitorType | undefined;
   seriesAttributeKeys?: Array<string> | undefined;
 }
@@ -48,8 +46,6 @@ const MonitorCriteriaAlertsForm: FunctionComponent<ComponentProps> = (
             alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
             onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
             labelDropdownOptions={props.labelDropdownOptions}
-            teamDropdownOptions={props.teamDropdownOptions}
-            userDropdownOptions={props.userDropdownOptions}
             monitorType={props.monitorType}
             seriesAttributeKeys={props.seriesAttributeKeys}
             initialValue={i}

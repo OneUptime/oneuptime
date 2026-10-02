@@ -1,5 +1,4 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import ProjectUser from "../../../Utils/ProjectUser";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -23,7 +22,6 @@ import AffectedResourcesPicker, {
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import Team from "Common/Models/DatabaseModels/Team";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
 import { StatusPagePickerAccessHint } from "../../../Components/Incident/IncidentStatusPageScopeNotices";
@@ -69,6 +67,7 @@ import {
   removeCustomFieldSettingsFormKeys,
 } from "../../../Components/Incident/IncidentCustomFieldCreateSettingsForm";
 import { CustomFieldCreateSettings } from "Common/Types/CustomField/CustomFieldCreateSettings";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 const IncidentTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -592,44 +591,15 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "Monitor Status",
           },
-          {
-            overrideField: {
-              ownerTeams: true,
-            },
-            showEvenIfPermissionDoesNotExist: true,
-            title: "Owner - Teams",
+          /*
+           * People and teams in one picker, kept in ownerUsers / ownerTeams:
+           * IncidentTemplateService adds them as the template's owners.
+           */
+          getOwnersFormField({
             stepId: "owners",
             description:
-              "Select which teams own this incident. They will be notified when the incident is created or updated.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Teams",
-            overrideFieldKey: "ownerTeams",
-          },
-          {
-            overrideField: {
-              ownerUsers: true,
-            },
-            showEvenIfPermissionDoesNotExist: true,
-            title: "Owner - Users",
-            stepId: "owners",
-            description:
-              "Select which users own this incident. They will be notified when the incident is created or updated.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            fetchDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-            required: false,
-            placeholder: "Select Users",
-            overrideFieldKey: "ownerUsers",
-          },
+              "Who owns incidents declared from this template. They are notified when the incident is created or updated.",
+          }),
           {
             field: {
               labels: true,

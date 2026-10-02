@@ -6,6 +6,7 @@ import {
 } from "../../../ForeignHiddenRuleGuard";
 import {
   FormFacts,
+  FormFieldFacts,
   FormStepProblem,
   LONG_FORM_FIELD_LIMIT,
   SourceFileSystem,
@@ -439,6 +440,59 @@ describe("the stepped form checks", () => {
     });
 
     expect(findStepProblems([form])).toEqual([]);
+  });
+
+  /*
+   * The owners field is a helper's (getOwnersFormField), written on some
+   * forty forms with the step in the call. That step is the field's: a typo
+   * in it, or a step left with nothing but it, is found like any other.
+   */
+  test("place a helper's field on the step its call names", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import getOwnersFormField from "./Owners";
+        const Page = () => <ModelTable name="Rules" formSteps={[{ title: "One", id: "one" }, { title: "Owners", id: "owners" }]} formFields={[${field("a", 'stepId: "one",')}, getOwnersFormField({ stepId: "owners", description: "Who owns it." })]} />;`,
+      "Owners.ts": `
+        export const OWNERS_KEY = "owners";
+        export const getOwnersFormField = (options) => {
+          const { fieldKey, ...rest } = options;
+          return { title: "Owners", ...rest, field: { [fieldKey || OWNERS_KEY]: true }, fieldType: FormFieldSchemaType.PeoplePicker, formOnly: true };
+        };
+        export default getOwnersFormField;`,
+    });
+
+    const owners: FormFieldFacts | undefined = form.fields.find(
+      (candidate: FormFieldFacts): boolean => {
+        return candidate.title === "Owners";
+      },
+    );
+
+    expect(owners?.stepId).toBe("owners");
+    expect(owners?.isPlainLiteral).toBe(false);
+    // Reported where it is called, not inside the helper.
+    expect(owners?.file).toBe("Page.tsx");
+    expect(findStepProblems([form])).toEqual([]);
+  });
+
+  test("flag a helper's field on a step the form does not declare", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import getOwnersFormField from "./Owners";
+        const Page = () => <ModelTable name="Rules" formSteps={[{ title: "One", id: "one" }, { title: "Owners", id: "owners" }]} formFields={[${field("a", 'stepId: "one",')}, getOwnersFormField({ stepId: "ownres" })]} />;`,
+      "Owners.ts": `
+        export const OWNERS_KEY = "owners";
+        export const getOwnersFormField = (options) => {
+          const { fieldKey, ...rest } = options;
+          return { title: "Owners", ...rest, field: { [fieldKey || OWNERS_KEY]: true }, fieldType: FormFieldSchemaType.PeoplePicker, formOnly: true };
+        };
+        export default getOwnersFormField;`,
+    });
+
+    expect(
+      findStepProblems([form]).map((problem: FormStepProblem): string => {
+        return problem.kind;
+      }),
+    ).toEqual(["field-on-undeclared-step", "empty-step"]);
   });
 
   test("flag a field on a step the form does not declare", () => {

@@ -142,10 +142,8 @@ export const FormsCopy: {
   alwaysStatusPagesDescription: string;
   onCallPolicies: string;
   onCallPoliciesDescription: string;
-  ownerUsers: string;
-  ownerUsersDescription: string;
-  ownerTeams: string;
-  ownerTeamsDescription: string;
+  owners: string;
+  ownersDescription: string;
   showOnStatusPages: string;
   showOnStatusPagesDescription: string;
   notifySubscribers: string;
@@ -368,10 +366,8 @@ export const FormsCopy: {
     "The status pages the event belongs to, together with any the submitter chooses.",
   onCallPolicies: "On-Call Policies",
   onCallPoliciesDescription: "Executed for every incident the form declares.",
-  ownerUsers: "Owner Users",
-  ownerUsersDescription: "Own every submission, and are told about it.",
-  ownerTeams: "Owner Teams",
-  ownerTeamsDescription: "Own every submission, and are told about it.",
+  owners: "Owners",
+  ownersDescription: "Own every submission, and are told about it.",
   showOnStatusPages: "Show on Status Pages",
   showOnStatusPagesDescription:
     "Off: the event stays off its status pages until someone on your team shows it. Turn it on only when you trust everyone with the link.",
