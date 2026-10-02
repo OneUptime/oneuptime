@@ -16,7 +16,7 @@ Label rules can be exported to a file and imported into another project — see 
 
 ## Owner rules
 
-An owner rule has a name, an optional description, whether it is **enabled**, whether to **Notify Owners**, its match criteria, and the **Owner Teams** and **Owner Users** to add.
+An owner rule has a name, an optional description, whether it is **enabled**, whether to **Notify Owners**, its match criteria, and the **Owners** to add — people and teams, picked from one list with **Add owner**.
 
 When the rule matches an SLO, every user and team on the rule is added as an owner. Owners the SLO already has are skipped, and when several rules match, the SLO gets all of their owners. SLO owners are who hears about the SLO — see [Error Budgets](/docs/slo/error-budget) for the notifications they get.
 

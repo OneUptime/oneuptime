@@ -1,5 +1,4 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import ProjectUser from "../../../Utils/ProjectUser";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -20,7 +19,6 @@ import AffectedResourcesPicker, {
 } from "../../../Components/AffectedResources/AffectedResourcesPicker";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import Team from "Common/Models/DatabaseModels/Team";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -29,6 +27,7 @@ import RecurringFieldElement from "Common/UI/Components/Events/RecurringFieldEle
 import Recurring from "Common/Types/Events/Recurring";
 import OneUptimeDate from "Common/Types/Date";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 type GetTemplateFormFieldsFunction = (data: {
   isViewPage: boolean;
@@ -245,44 +244,12 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
 
   if (!data.isViewPage) {
     fields = fields.concat([
-      {
-        overrideField: {
-          ownerTeams: true,
-        },
-        showEvenIfPermissionDoesNotExist: true,
-        title: "Owner - Teams",
+      // ScheduledMaintenanceTemplateService adds them as the template's owners.
+      getOwnersFormField<ScheduledMaintenanceTemplate>({
         stepId: "owners",
         description:
-          "Select which teams own this event. They will be notified when event status changes.",
-        fieldType: FormFieldSchemaType.MultiSelectDropdown,
-        dropdownModal: {
-          type: Team,
-          labelField: "name",
-          valueField: "_id",
-        },
-        required: false,
-        placeholder: "Select Teams",
-        overrideFieldKey: "ownerTeams",
-      },
-      {
-        overrideField: {
-          ownerUsers: true,
-        },
-        showEvenIfPermissionDoesNotExist: true,
-        title: "Owner - Users",
-        stepId: "owners",
-        description:
-          "Select which users own this event. They will be notified when event status changes.",
-        fieldType: FormFieldSchemaType.MultiSelectDropdown,
-        fetchDropdownOptions: async () => {
-          return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-            ProjectUtil.getCurrentProjectId()!,
-          );
-        },
-        required: false,
-        placeholder: "Select Users",
-        overrideFieldKey: "ownerUsers",
-      },
+          "Who owns events scheduled from this template. They are notified when the event's status changes.",
+      }),
     ]);
   }
 

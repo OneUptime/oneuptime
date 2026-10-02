@@ -31,9 +31,32 @@ import {
   isCaretOnEmptyLine,
   moveCaretIntoEmptyListAhead,
 } from "./MarkdownVisualEditing";
+import InsertTemplateVariableButton from "../TemplateVariables/InsertTemplateVariableButton";
+import TemplateVariableMenu, {
+  TemplateVariableMenuHandle,
+} from "../TemplateVariables/TemplateVariableMenu";
+import TemplateVariablePopup, {
+  TemplateVariablePopupMode,
+} from "../TemplateVariables/TemplateVariablePopup";
+import TemplateVariablesCopy from "../TemplateVariables/TemplateVariablesCopy";
+import TemplateVariablesList from "../TemplateVariables/TemplateVariablesList";
+import useTemplateVariableTyping, {
+  TemplateVariableTyping,
+} from "../TemplateVariables/useTemplateVariableTyping";
+import {
+  TemplateVariable,
+  TemplateVariableGroups,
+  TemplateVariableTrigger,
+  countTemplateVariables,
+  filterTemplateVariableGroups,
+  findTemplateVariableTrigger,
+  formatTemplateVariable,
+  hasTemplateVariables,
+} from "../../../Types/Template/TemplateVariable";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useState,
   useRef,
   useEffect,
@@ -60,9 +83,47 @@ export interface ComponentProps {
    * files are ignored rather than failing to upload.
    */
   allowImageUpload?: boolean | undefined;
+  /*
+   * The template variables this text can use - a note template's
+   * {{incident.title}}, an SLA reminder's {{elapsedTime}}. With any, the
+   * toolbar has an Insert variable button, typing "{{" opens them under the
+   * cursor, and the Template variables list sits collapsed under the editor;
+   * each puts the variable where the cursor is, in either view.
+   */
+  templateVariables?: TemplateVariableGroups | undefined;
+  // What the variables are filled with: the first line of the open list.
+  templateVariablesDescription?: string | ReactElement | undefined;
+  // More for the open list, after the variables (a panel of the field's own).
+  templateVariablesFooter?: ReactNode | undefined;
 }
 
 type EditorMode = "wysiwyg" | "markdown";
+
+// The visual editor's "{{" being typed: in which text node, and where.
+interface EditableVariableTrigger {
+  node: Text;
+  trigger: TemplateVariableTrigger;
+  rect: DOMRect;
+}
+
+// Keys that move the cursor without changing the text.
+const CARET_KEYS: Array<string> = [
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "ArrowDown",
+  "Home",
+  "End",
+  "PageUp",
+  "PageDown",
+];
+
+// A rectangle with nothing in it: no layout, or a cursor on an empty line.
+const isEmptyRect: (rect: DOMRect | null | undefined) => boolean = (
+  rect: DOMRect | null | undefined,
+): boolean => {
+  return !rect || (rect.width === 0 && rect.height === 0);
+};
 
 const MAX_IMAGE_SIZE_BYTES: number = 10 * 1024 * 1024; // 10MB
 
@@ -369,6 +430,49 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     },
   );
 
+  /*
+   * Template variables. Something to pick is what puts the toolbar button
+   * and the "{{" list in; the list under the editor also shows for a group
+   * with none yet, which says why (a project with no custom fields).
+   */
+  const templateVariables: TemplateVariableGroups =
+    props.templateVariables || [];
+  const canPickVariables: boolean =
+    countTemplateVariables(templateVariables) > 0;
+  const showsVariablesList: boolean = hasTemplateVariables(templateVariables);
+  const variableListboxId: string = `markdown-editor-variables-${useId()}`;
+  const variableMenuRef: React.MutableRefObject<TemplateVariableMenuHandle | null> =
+    useRef<TemplateVariableMenuHandle | null>(null);
+  // The visual editor's "{{" being typed, while its list is open.
+  const [editableTrigger, setEditableTrigger] =
+    useState<EditableVariableTrigger | null>(null);
+  const [editableActiveOptionId, setEditableActiveOptionId] = useState<
+    string | undefined
+  >(undefined);
+  /*
+   * Where the cursor last was in the visual editor. A pick made from outside
+   * it - the toolbar button's search box takes the focus, the list under the
+   * editor may be clicked long after - goes there.
+   */
+  const savedRangeRef: React.MutableRefObject<Range | null> =
+    useRef<Range | null>(null);
+  // The source view is a plain textarea: the shared typing support drives it.
+  const sourceTyping: TemplateVariableTyping = useTemplateVariableTyping({
+    groups: templateVariables,
+    getControl: (): HTMLTextAreaElement | null => {
+      return textareaRef.current;
+    },
+    isEnabled: canPickVariables && mode === "markdown",
+  });
+
+  const describeVariable: (variable: TemplateVariable) => string = (
+    variable: TemplateVariable,
+  ): string => {
+    return variable.isDescriptionVerbatim
+      ? variable.description
+      : translateString(variable.description) || variable.description;
+  };
+
   useEffect(() => {
     if (
       props.initialValue !== undefined &&
@@ -382,6 +486,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   // A new editable in each mode: records about the old one's nodes are no use.
   useEffect(() => {
     history.clear();
+    // Nor is a list opened for the other view's cursor, or its cursor.
+    setEditableTrigger(null);
+    setEditableActiveOptionId(undefined);
+    savedRangeRef.current = null;
+    sourceTyping.close();
   }, [mode]);
 
   /*
@@ -485,6 +594,8 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       history.clearRedo();
     }
     syncFromEditable();
+    updateEditableTrigger(true);
+    rememberEditableSelection();
   };
 
   /*
@@ -908,6 +1019,243 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     });
     syncFromEditable();
   };
+
+  // Remembers where the cursor is in the visual editor, when it is in it.
+  const rememberEditableSelection: () => void = (): void => {
+    const editable: HTMLDivElement | null = editableRef.current;
+    const selection: Selection | null =
+      typeof window !== "undefined" ? window.getSelection() : null;
+    if (!editable || !selection || selection.rangeCount === 0) {
+      return;
+    }
+    const range: Range = selection.getRangeAt(0);
+    if (
+      editable.contains(range.startContainer) &&
+      editable.contains(range.endContainer)
+    ) {
+      savedRangeRef.current = range.cloneRange();
+    }
+  };
+
+  // The remembered cursor, while it is still somewhere in the editor.
+  const savedEditableRange: () => Range | null = (): Range | null => {
+    const editable: HTMLDivElement | null = editableRef.current;
+    const saved: Range | null = savedRangeRef.current;
+    if (
+      !editable ||
+      !saved ||
+      !editable.contains(saved.startContainer) ||
+      !editable.contains(saved.endContainer)
+    ) {
+      return null;
+    }
+    return saved;
+  };
+
+  const closeEditableTrigger: () => void = (): void => {
+    setEditableTrigger(null);
+    setEditableActiveOptionId(undefined);
+  };
+
+  // Where the "{{" at `start` is on screen, for the list to open under it.
+  const rectOfBraces: (node: Text, start: number) => DOMRect | null = (
+    node: Text,
+    start: number,
+  ): DOMRect | null => {
+    const range: Range = document.createRange();
+    range.setStart(node, start);
+    range.setEnd(node, Math.min(start + 2, node.data.length));
+    const rect: DOMRect | null =
+      typeof range.getBoundingClientRect === "function"
+        ? range.getBoundingClientRect()
+        : null;
+    if (!isEmptyRect(rect)) {
+      return rect;
+    }
+    return editableRef.current?.getBoundingClientRect() || null;
+  };
+
+  /*
+   * The visual editor's cursor after "{{" opens the list of variables under
+   * the braces, filtered by what follows them; anywhere else it closes.
+   * Typing opens it; moving the cursor only keeps a list that is open (for
+   * the braces it was opened for), so clicking into an old "{{" does not.
+   */
+  const updateEditableTrigger: (isTyping: boolean) => void = (
+    isTyping: boolean,
+  ): void => {
+    if (!canPickVariables) {
+      return;
+    }
+    const editable: HTMLDivElement | null = editableRef.current;
+    const selection: Selection | null = window.getSelection();
+    const node: Node | null = selection?.anchorNode || null;
+    if (
+      !editable ||
+      !selection ||
+      selection.rangeCount === 0 ||
+      !selection.isCollapsed ||
+      !node ||
+      node.nodeType !== Node.TEXT_NODE ||
+      !editable.contains(node)
+    ) {
+      if (editableTrigger) {
+        closeEditableTrigger();
+      }
+      return;
+    }
+    const textNode: Text = node as Text;
+    const trigger: TemplateVariableTrigger | null = findTemplateVariableTrigger(
+      textNode.data,
+      selection.anchorOffset,
+    );
+    const sameBraces: boolean = Boolean(
+      trigger &&
+        editableTrigger &&
+        editableTrigger.node === textNode &&
+        editableTrigger.trigger.start === trigger.start,
+    );
+    if (
+      !trigger ||
+      (!isTyping && !sameBraces) ||
+      filterTemplateVariableGroups(
+        templateVariables,
+        trigger.query,
+        describeVariable,
+      ).length === 0
+    ) {
+      if (editableTrigger) {
+        closeEditableTrigger();
+      }
+      return;
+    }
+    // The list stays where it opened while the rest of the name is typed.
+    const rect: DOMRect | null =
+      sameBraces && editableTrigger
+        ? editableTrigger.rect
+        : rectOfBraces(textNode, trigger.start);
+    if (!rect) {
+      return;
+    }
+    setEditableTrigger({ node: textNode, trigger: trigger, rect: rect });
+  };
+
+  /*
+   * Puts {{name}} into the visual editor: over `range` (the braces and what
+   * was typed after them), else where the cursor is or last was, else at the
+   * end. It goes in as a paste of the same text would, so Ctrl+Z takes it
+   * back and the markdown is updated.
+   */
+  const insertVariableInEditable: (
+    variable: TemplateVariable,
+    range: Range | null,
+  ) => void = (variable: TemplateVariable, range: Range | null): void => {
+    const editable: HTMLDivElement | null = editableRef.current;
+    if (!editable) {
+      return;
+    }
+    const selection: Selection | null = window.getSelection();
+    const current: Range | null =
+      selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    const isCurrentInEditor: boolean = Boolean(
+      current &&
+        editable.contains(current.startContainer) &&
+        editable.contains(current.endContainer),
+    );
+    let target: Range | null =
+      range || (isCurrentInEditor ? current : null) || savedEditableRange();
+    if (!target) {
+      // Never in the editor: on a line of its own at the end.
+      target = document.createRange();
+      target.selectNodeContents(editable);
+      target.collapse(false);
+    }
+    // Focusing an editable that lost its selection puts the cursor at its start.
+    const kept: Range = target.cloneRange();
+    editable.focus();
+    if (selection) {
+      selection.removeAllRanges();
+      selection.addRange(kept);
+    }
+    insertHtmlAtCursorInEditable(
+      sanitizeHtml(markdownToHtml(formatTemplateVariable(variable.name))),
+    );
+    rememberEditableSelection();
+  };
+
+  // A pick from the list the visual editor's "{{" opened.
+  const pickEditableVariable: (variable: TemplateVariable) => void = (
+    variable: TemplateVariable,
+  ): void => {
+    const current: EditableVariableTrigger | null = editableTrigger;
+    closeEditableTrigger();
+    const editable: HTMLDivElement | null = editableRef.current;
+    if (!current || !editable || !editable.contains(current.node)) {
+      return;
+    }
+    const data: string = current.node.data;
+    // What is typed after the braces now, if the cursor is still after them.
+    let end: number = current.trigger.end;
+    const selection: Selection | null = window.getSelection();
+    if (selection && selection.anchorNode === current.node) {
+      const now: TemplateVariableTrigger | null = findTemplateVariableTrigger(
+        data,
+        selection.anchorOffset,
+      );
+      if (now && now.start === current.trigger.start) {
+        end = now.end;
+      }
+    }
+    const range: Range = document.createRange();
+    range.setStart(current.node, Math.min(current.trigger.start, data.length));
+    range.setEnd(current.node, Math.min(end, data.length));
+    insertVariableInEditable(variable, range);
+  };
+
+  // A pick from the toolbar button or the list under the editor.
+  const insertVariableAtCursor: (variable: TemplateVariable) => void = (
+    variable: TemplateVariable,
+  ): void => {
+    if (mode === "markdown") {
+      sourceTyping.insertAtCursor(variable);
+      return;
+    }
+    closeEditableTrigger();
+    insertVariableInEditable(variable, null);
+  };
+
+  // Back into the editor, where its cursor was: the toolbar list closed.
+  const focusEditor: () => void = (): void => {
+    if (mode === "markdown") {
+      textareaRef.current?.focus();
+      return;
+    }
+    const editable: HTMLDivElement | null = editableRef.current;
+    if (!editable) {
+      return;
+    }
+    const saved: Range | null = savedEditableRange();
+    editable.focus();
+    const selection: Selection | null = window.getSelection();
+    if (saved && selection) {
+      selection.removeAllRanges();
+      selection.addRange(saved.cloneRange());
+    }
+  };
+
+  // Remember the visual editor's cursor wherever it moves, by keys or clicks.
+  useEffect(() => {
+    if (!canPickVariables || mode !== "wysiwyg") {
+      return undefined;
+    }
+    const listener: () => void = (): void => {
+      rememberEditableSelection();
+    };
+    document.addEventListener("selectionchange", listener);
+    return () => {
+      document.removeEventListener("selectionchange", listener);
+    };
+  }, [canPickVariables, mode]);
 
   /*
    * Visual mode. The browser's own paste would bring the source's markup in
@@ -1584,6 +1932,23 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     e: React.KeyboardEvent<HTMLDivElement>,
   ) => void = (e: React.KeyboardEvent<HTMLDivElement>): void => {
     /*
+     * While the list "{{" opened is showing, its keys are its own: the
+     * arrows move through it, Enter and Tab pick, and Escape closes the list
+     * - not the dialog the editor is in.
+     */
+    if (editableTrigger) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        closeEditableTrigger();
+        return;
+      }
+      if (variableMenuRef.current?.handleKeyDown(e)) {
+        e.stopPropagation();
+        return;
+      }
+    }
+    /*
      * Ctrl+Z right after an edit the editor made itself -- a list move, an
      * insert made by hand -- takes that edit back, and Ctrl+Shift+Z makes
      * it again. Otherwise the key is the browser's, as always.
@@ -1623,6 +1988,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   const handleTextareaKeyDown: (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
   ) => void = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+    // The list "{{" opened takes its keys first, as in the visual editor.
+    if (sourceTyping.handleKeyDown(e)) {
+      e.stopPropagation();
+      return;
+    }
     if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
         case "b":
@@ -1876,6 +2246,23 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               {mode === "wysiwyg" ? "Markdown" : "Visual"}
             </button>
           </div>
+
+          {/*
+           * Template variables, at the far end of the toolbar: the list to
+           * pick one from, which goes in where the cursor is.
+           */}
+          {canPickVariables ? (
+            <div className="ml-auto flex items-center">
+              <InsertTemplateVariableButton
+                groups={templateVariables}
+                dataTestId="markdown-editor-insert-variable"
+                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm font-medium text-indigo-700 transition-colors duration-200 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                onPressStart={rememberEditableSelection}
+                onPick={insertVariableAtCursor}
+                onCloseFocus={focusEditor}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -1900,6 +2287,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               aria-labelledby={props.ariaLabelledby}
               aria-invalid={props.error ? "true" : undefined}
               aria-describedby={props.error ? errorId : undefined}
+              aria-autocomplete={canPickVariables ? "list" : undefined}
+              aria-controls={editableTrigger ? variableListboxId : undefined}
+              aria-activedescendant={
+                editableTrigger ? editableActiveOptionId : undefined
+              }
               contentEditable
               suppressContentEditableWarning
               spellCheck={props.disableSpellCheck !== true}
@@ -1913,12 +2305,25 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onKeyDown={handleEditableKeyDown}
+              onKeyUp={(e: React.KeyboardEvent<HTMLDivElement>) => {
+                if (canPickVariables && CARET_KEYS.includes(e.key)) {
+                  updateEditableTrigger(false);
+                  rememberEditableSelection();
+                }
+              }}
+              onMouseUp={() => {
+                if (canPickVariables) {
+                  updateEditableTrigger(false);
+                  rememberEditableSelection();
+                }
+              }}
               onFocus={() => {
                 if (props.onFocus) {
                   props.onFocus();
                 }
               }}
               onBlur={() => {
+                closeEditableTrigger();
                 if (props.onBlur) {
                   props.onBlur();
                 }
@@ -1958,6 +2363,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               spellCheck={props.disableSpellCheck !== true}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                 handleChange(e.target.value);
+                sourceTyping.handleInput();
               }}
               onPaste={handleTextareaPaste}
               onDragOver={handleDragOver}
@@ -1965,14 +2371,24 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onFocus={() => {
+                sourceTyping.handleFocus();
                 if (props.onFocus) {
                   props.onFocus();
                 }
               }}
               onBlur={() => {
+                sourceTyping.handleBlur();
                 if (props.onBlur) {
                   props.onBlur();
                 }
+              }}
+              onKeyUp={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                if (CARET_KEYS.includes(e.key)) {
+                  sourceTyping.handleCaretMove();
+                }
+              }}
+              onMouseUp={() => {
+                sourceTyping.handleCaretMove();
               }}
               onKeyDown={handleTextareaKeyDown}
               tabIndex={props.tabIndex}
@@ -2003,6 +2419,53 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
           {props.error}
         </p>
       )}
+
+      {/*
+       * The template variables, collapsed under the editor: each one, when
+       * clicked, goes in where the cursor is.
+       */}
+      {showsVariablesList ? (
+        <TemplateVariablesList
+          groups={templateVariables}
+          description={props.templateVariablesDescription}
+          onInsert={canPickVariables ? insertVariableAtCursor : undefined}
+          supportsTyping={canPickVariables}
+          dataTestId="markdown-editor-template-variables"
+        >
+          {props.templateVariablesFooter}
+        </TemplateVariablesList>
+      ) : null}
+
+      {/* The list "{{" opened, under the braces (portalled). */}
+      {editableTrigger ? (
+        <TemplateVariablePopup
+          mode={TemplateVariablePopupMode.Inline}
+          ariaLabel={
+            translateString(TemplateVariablesCopy.listTitle) ||
+            TemplateVariablesCopy.listTitle
+          }
+          dataTestId="template-variable-suggestions"
+          positionKey={`${editableTrigger.trigger.start}-${editableTrigger.rect.left}-${editableTrigger.rect.top}`}
+          getAnchorRect={(): DOMRect | null => {
+            return editableTrigger.rect;
+          }}
+          isInsideAnchor={(target: Node): boolean => {
+            return Boolean(editableRef.current?.contains(target));
+          }}
+          onClose={closeEditableTrigger}
+        >
+          <TemplateVariableMenu
+            ref={variableMenuRef}
+            groups={templateVariables}
+            hasSearchBox={false}
+            query={editableTrigger.trigger.query}
+            listboxId={variableListboxId}
+            onActiveOptionChange={setEditableActiveOptionId}
+            onPick={pickEditableVariable}
+          />
+        </TemplateVariablePopup>
+      ) : null}
+      {sourceTyping.popup}
 
       {/* Help Text */}
       <TinyFormDocumentation title={helpTitle}>

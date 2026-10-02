@@ -1,21 +1,16 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
-import TeamElement from "../../../Components/Team/Team";
-import UserElement from "../../../Components/User/User";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../../Utils/PageMap";
-import ProjectUser from "../../../Utils/ProjectUser";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -38,7 +33,6 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import Team from "Common/Models/DatabaseModels/Team";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
@@ -51,12 +45,12 @@ import { isScopedToDeletedStatusPages } from "../../../Components/Incident/Incid
 import useStatusPagePickerAccess, {
   StatusPagePickerAccess,
 } from "../../../Components/Incident/useStatusPagePickerAccess";
-import User from "Common/Models/DatabaseModels/User";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
 import IncidentCustomFieldsCopy from "../../../Components/Incident/IncidentCustomFieldsCopy";
 import IncidentCustomFieldSettingsCard from "../../../Components/Incident/IncidentCustomFieldSettingsCard";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import OwnersCard from "../../../Components/Owners/OwnersCard";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -632,186 +626,18 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
        */}
       <IncidentCustomFieldSettingsCard modelId={modelId} />
 
-      <ModelTable<IncidentTemplateOwnerTeam>
-        modelType={IncidentTemplateOwnerTeam}
-        id="table-incident-owner-team"
-        userPreferencesKey="incident-owner-team-table"
-        name="Incident Template > Owner Team"
-        saveFilterProps={{
-          tableId: "incident-template-owner-team-table",
-        }}
-        singularName="Team"
-        isDeleteable={true}
-        createVerb={"Add"}
-        isCreateable={true}
-        isViewable={false}
-        showViewIdButton={true}
-        query={{
-          incidentTemplateId: modelId,
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        onBeforeCreate={(
-          item: IncidentTemplateOwnerTeam,
-        ): Promise<IncidentTemplateOwnerTeam> => {
-          item.incidentTemplateId = modelId;
-          item.projectId = ProjectUtil.getCurrentProjectId()!;
-          return Promise.resolve(item);
-        }}
-        cardProps={{
-          title: "Owners (Teams)",
-          description:
-            "These are the list of teams that will be added to the incident by default when its created.",
-        }}
-        noItemsMessage={
-          "No teams associated with this incident template so far."
-        }
-        formFields={[
-          {
-            field: {
-              team: true,
-            },
-            title: "Team",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            placeholder: "Select Team",
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-          },
-        ]}
-        showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        filters={[
-          {
-            field: {
-              team: {
-                name: true,
-              },
-            },
-            title: "Team",
-            type: FieldType.Text,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              team: {
-                name: true,
-              },
-            },
-            title: "Team",
-            type: FieldType.Entity,
-
-            getElement: (item: IncidentTemplateOwnerTeam): ReactElement => {
-              if (!item["team"]) {
-                throw new BadDataException("Team not found");
-              }
-
-              return <TeamElement team={item["team"] as Team} />;
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Owner since",
-            type: FieldType.DateTime,
-          },
-        ]}
-      />
-
-      <ModelTable<IncidentTemplateOwnerUser>
-        modelType={IncidentTemplateOwnerUser}
-        id="table-incident-owner-team"
-        name="Incident > Owner Team"
-        userPreferencesKey="incident-owner-user-table"
-        saveFilterProps={{
-          tableId: "incident-template-owner-user-table",
-        }}
-        isDeleteable={true}
-        singularName="User"
-        isCreateable={true}
-        isViewable={false}
-        showViewIdButton={true}
-        createVerb={"Add"}
-        query={{
-          incidentTemplateId: modelId,
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        onBeforeCreate={(
-          item: IncidentTemplateOwnerUser,
-        ): Promise<IncidentTemplateOwnerUser> => {
-          item.incidentTemplateId = modelId;
-          item.projectId = ProjectUtil.getCurrentProjectId()!;
-          return Promise.resolve(item);
-        }}
-        cardProps={{
-          title: "Owners (Users)",
-          description:
-            "These are the list of users that will be added to the incident by default when its created.",
-        }}
-        noItemsMessage={
-          "No users associated with this incident template so far."
-        }
-        formFields={[
-          {
-            field: {
-              user: true,
-            },
-            title: "User",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            placeholder: "Select User",
-            fetchDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-          },
-        ]}
-        showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        filters={[
-          {
-            field: {
-              user: {
-                name: true,
-                email: true,
-              },
-            },
-            title: "User",
-            type: FieldType.Entity,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              user: {
-                name: true,
-                email: true,
-                profilePictureId: true,
-              },
-            },
-            title: "User",
-            type: FieldType.Entity,
-            getElement: (item: IncidentTemplateOwnerUser): ReactElement => {
-              if (!item["user"]) {
-                throw new BadDataException("User not found");
-              }
-
-              return <UserElement user={item["user"] as User} />;
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Owner since",
-            type: FieldType.DateTime,
-          },
-        ]}
+      {/*
+       * Its owners, people and teams together, added and removed the way
+       * the Owners pages and every owners field do.
+       */}
+      <OwnersCard<IncidentTemplateOwnerUser, IncidentTemplateOwnerTeam>
+        resourceId={modelId}
+        resourceIdField="incidentTemplateId"
+        resourceDisplayName="incident template"
+        ownerUserModelType={IncidentTemplateOwnerUser}
+        ownerTeamModelType={IncidentTemplateOwnerTeam}
+        description="People and teams who own every incident declared from this template. They are added as the incident's owners and notified."
+        emptyDescription="Add a teammate or a team to own every incident declared from this template."
       />
 
       <ModelDelete

@@ -1109,11 +1109,12 @@ describe("build.yml: pull requests build the Kubernetes AI agent image", () => {
  * warms those images first, from Docker Hub if need be, and compose's default
  * builder then finds them locally (see Scripts/GHA/warm_base_images.sh). As in
  * build.yml, it names every Dockerfile it builds. The warm-up reads the
- * rendered Dockerfiles, so prerun has to come first. The E2E jobs of
- * test-release.yaml build their e2e container with a `docker compose -f` of
- * it, and the Terraform E2E bring-up builds app and ingress with
- * `npm run dev`; both are read. Other npm scripts that build from it
- * (`build`, `force-build`) are not, and no workflow runs them.
+ * rendered Dockerfiles, so prerun has to come first. Both ways of building
+ * from it are read: a `docker compose -f` of it, and `npm run dev`, which the
+ * Terraform E2E bring-up builds app and ingress with. (The E2E jobs of
+ * test-release.yaml built their e2e container the first way until they began
+ * running the image the workflow pushes.) Other npm scripts that build from
+ * it (`build`, `force-build`) are not read, and no workflow runs them.
  */
 describe("every job that builds from the dev compose file warms the base images first", () => {
   const composeBuildJobs = workflowFiles.flatMap((file) => {
@@ -1138,15 +1139,46 @@ describe("every job that builds from the dev compose file warms the base images 
       : [];
   };
 
-  test("test-release.yaml's E2E jobs are found, building the e2e container", () => {
+  /*
+   * test-release.yaml's E2E jobs used to build their e2e container from this
+   * file, once in every job. They now run the e2e image the workflow's own
+   * e2e-docker-image-build pushed, as release.yml's E2E jobs do, so there is
+   * nothing for them to build or warm here. They must wait for that image's
+   * merge, or they would run the previous push's suite against this push's
+   * stack.
+   */
+  test("test-release.yaml's E2E jobs build nothing from it: they run the e2e image the workflow pushed", () => {
+    const jobs = readYaml(TEST_RELEASE_WORKFLOW).jobs;
+
+    expect(
+      readYaml("packages/E2E/docker-compose.e2e.yml").services.e2e.image,
+    ).toBe("ghcr.io/oneuptime/e2e:${APP_TAG}");
+
     for (const job of [
       "test-e2e-test-saas",
       "test-e2e-test-self-hosted",
       "test-e2e-test-enterprise",
     ]) {
-      expect(builtBy(`${TEST_RELEASE_WORKFLOW}: ${job}`)).toContain(
-        "./packages/E2E/Dockerfile",
-      );
+      const commands = jobs[job].steps.map(stepCommand).join("\n");
+
+      expect({
+        job,
+        built: builtBy(`${TEST_RELEASE_WORKFLOW}: ${job}`),
+      }).toEqual({ job, built: [] });
+      expect({ job, needs: needsOf(jobs[job]) }).toEqual({
+        job,
+        needs: expect.arrayContaining(["e2e-docker-image-merge"]),
+      });
+      expect({
+        job,
+        runsThePushedImage:
+          /-f packages\/E2E\/docker-compose\.e2e\.yml (?:up|run)\b[^\n]*\se2e\b/.test(
+            commands,
+          ),
+      }).toEqual({
+        job,
+        runsThePushedImage: true,
+      });
     }
   });
 

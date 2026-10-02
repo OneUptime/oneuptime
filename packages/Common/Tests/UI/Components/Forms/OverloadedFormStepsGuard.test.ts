@@ -106,6 +106,19 @@ export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
       reason: INHERIT_CHECKLIST_REASON,
     };
   }),
+  /*
+   * Read since the form's fields stopped going through a wrapper the scan
+   * could not follow (the owner-user loader the owners picker replaced).
+   */
+  ...["alert-details", "incident-details"].map((step: string): ListedStep => {
+    return {
+      file: `${DASHBOARD}/Pages/Slo/View/BurnRateRules.tsx`,
+      form: "ModelTable: SLO > Burn Rate Rules",
+      step,
+      reason:
+        "Only the title and the severity are open: everything else on the step sits in four collapsed sections (Description, Ownership & Labels, On-Call, Advanced Options) that open one at a time, so the step reads as two fields and four headings.",
+    };
+  }),
   {
     file: `${DASHBOARD}/Pages/Metrics/Settings/PipelineRules.tsx`,
     form: "ModelTable: Metrics > Settings > Pipeline Rules",
@@ -260,12 +273,33 @@ describe("the step size detector", () => {
     expect(counts(form)).toEqual({ "match-criteria": 1 });
   });
 
-  // A helper that takes its step as an argument is left to its own tests.
-  test("does not place a field whose step is not written down", () => {
+  /*
+   * A helper's field is on the step its call names: the owners picker is
+   * getOwnersFormField({ stepId: "owners", ... }) on some forty forms.
+   */
+  test("places a helper's field on the step its call writes down", () => {
     const form: FormFacts = only({
       "Page.tsx": `
         import { getMacField } from "./Mac";
         const Page = () => <CardModelDetail name="Card" formSteps={${TWO_STEPS}} formFields={[${fieldsOn("one", 5)}, getMacField({ stepId: "one" }), ${fieldsOn("two", 1)}]} />;`,
+      "Mac.ts": `export function getMacField(data) { return { field: { mac: true }, title: "MAC", stepId: data.stepId }; }`,
+    });
+
+    expect(counts(form)).toEqual({ one: 6, two: 1 });
+    expect(
+      findOverloadedSteps([form]).map((count: StepFieldCount) => {
+        return count.step.id;
+      }),
+    ).toEqual(["one"]);
+  });
+
+  // A step the call computes is left to the helper's own tests.
+  test("does not place a field whose step is not written down", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getMacField } from "./Mac";
+        const STEP = "one";
+        const Page = () => <CardModelDetail name="Card" formSteps={${TWO_STEPS}} formFields={[${fieldsOn("one", 5)}, getMacField({ stepId: STEP }), ${fieldsOn("two", 1)}]} />;`,
       "Mac.ts": `export function getMacField(data) { return { field: { mac: true }, title: "MAC", stepId: data.stepId }; }`,
     });
 
@@ -411,35 +445,30 @@ describe("the project's stepped forms", () => {
       "ModelTable: Settings > Workspace Notification Rules",
       ["basic", "conditions", "destination"],
     ],
-    [
-      `${DASHBOARD}/Pages/Alerts/Settings/AlertGroupingRules.tsx`,
-      "ModelTable: Settings > Alert Grouping Rules",
-      [
-        "basic-info",
-        "match-criteria",
-        "group-by",
-        "time-settings",
-        "auto-resolve",
-        "episode-template",
-        "episode-settings",
-        "on-call-ownership",
-      ],
-    ],
-    [
-      `${DASHBOARD}/Pages/Incidents/Settings/IncidentGroupingRules.tsx`,
-      "ModelTable: Settings > Incident Grouping Rules",
-      [
-        "basic-info",
-        "match-criteria",
-        "group-by",
-        "time-settings",
-        "auto-resolve",
-        "episode-template",
-        "episode-settings",
-        "episode-roles",
-        "on-call-ownership",
-      ],
-    ],
+    /*
+     * Grouping rules ask two questions and then create: Grouping (how to
+     * group, how close together, name) and which incidents. Group By shows
+     * only for a custom mix of switches, and the last three only behind
+     * "Show advanced settings" (each switch-and-minutes setting is one
+     * control, so Episode Lifecycle holds three).
+     */
+    ...[
+      ["Alerts/Settings/AlertGroupingRules.tsx", "Alert"],
+      ["Incidents/Settings/IncidentGroupingRules.tsx", "Incident"],
+    ].map(([file, kind]: Array<string>): [string, string, Array<string>] => {
+      return [
+        `${DASHBOARD}/Pages/${file}`,
+        `ModelTable: Settings > ${kind} Grouping Rules`,
+        [
+          "grouping",
+          "group-by",
+          "match-criteria",
+          "episode-lifecycle",
+          "details",
+          "on-call-ownership",
+        ],
+      ];
+    }),
     ...[
       ["Alerts/Settings/AlertOwnerRules.tsx", "Alert"],
       ["Incidents/Settings/IncidentOwnerRules.tsx", "Incident"],

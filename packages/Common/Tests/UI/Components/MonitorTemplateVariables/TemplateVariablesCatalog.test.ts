@@ -3,6 +3,11 @@ import TemplateVariablesCatalog, {
   TemplateVariableGroup,
 } from "../../../../UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
+import {
+  TemplateVariable as EditorTemplateVariable,
+  TemplateVariableGroup as EditorTemplateVariableGroup,
+  TemplateVariableGroups,
+} from "../../../../Types/Template/TemplateVariable";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -720,5 +725,70 @@ describe("TemplateVariablesCatalog.getVariables - determinism and isolation", ()
 
     first.push({ title: "Injected", variables: [] });
     expect(titlesOf(second)).not.toContain("Injected");
+  });
+});
+
+/*
+ * The same catalog as a template editor offers it: a monitor criteria's
+ * incident and alert descriptions and remediation notes list these under the
+ * Markdown editor and behind its Insert variable button.
+ */
+describe("TemplateVariablesCatalog.getTemplateVariableGroups", () => {
+  it.each([
+    [MonitorType.API, undefined],
+    [MonitorType.SSLCertificate, undefined],
+    [MonitorType.Kubernetes, ["host.name", "region"]],
+    [MonitorType.Metrics, undefined],
+  ])(
+    "for %s, the same groups, in the same order, with the same variables and examples",
+    (
+      monitorType: MonitorType,
+      seriesAttributeKeys: Array<string> | undefined,
+    ) => {
+      const catalog: Array<TemplateVariableGroup> =
+        TemplateVariablesCatalog.getVariables({
+          monitorType,
+          seriesAttributeKeys,
+        });
+
+      const groups: TemplateVariableGroups =
+        TemplateVariablesCatalog.getTemplateVariableGroups({
+          monitorType,
+          seriesAttributeKeys,
+        });
+
+      expect(groups).toEqual(
+        catalog.map((group: TemplateVariableGroup) => {
+          return {
+            title: group.title,
+            description: group.description,
+            variables: group.variables.map((variable: TemplateVariable) => {
+              return {
+                name: variable.key,
+                description: variable.description,
+                example: variable.example,
+              };
+            }),
+          };
+        }),
+      );
+    },
+  );
+
+  it("offers a grouped monitor's series labels by their attribute key", () => {
+    const names: Array<string> =
+      TemplateVariablesCatalog.getTemplateVariableGroups({
+        monitorType: MonitorType.Kubernetes,
+        seriesAttributeKeys: ["host.name"],
+      }).flatMap((group: EditorTemplateVariableGroup): Array<string> => {
+        return group.variables.map(
+          (variable: EditorTemplateVariable): string => {
+            return variable.name;
+          },
+        );
+      });
+
+    expect(names).toContain("monitorName");
+    expect(names).toContain("host.name");
   });
 });

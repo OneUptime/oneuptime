@@ -135,12 +135,58 @@ jobs:
             output/playwright/user-flows-ui/test-results
           retention-days: 7
 
+  # Eighteen browser suites that each bundle real Dashboard or Status Page
+  # sources with esbuild and serve them against fixture data: no database or
+  # Docker stack. They used to run one after another in a single 41-minute
+  # job, the longest of every pull request's checks. They are independent -
+  # each starts its own fixture server on its own port - so they run here as
+  # three groups of about 13 minutes each, balanced by measured duration
+  # (Event Overview alone is ~11.5 of them). Each suite still runs exactly as
+  # before: same config, same browsers, one worker.
+  #
+  # A suite added to packages/E2E needs a place in one group's `suites`, and
+  # its output paths in the upload step below.
   dashboard-offline-ui:
-    name: Dashboard Offline UI
+    name: Dashboard Offline UI (${{ matrix.group }})
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     permissions:
       contents: read
+    strategy:
+      # Every group reports its own suites, whatever happens to the others.
+      fail-fast: false
+      matrix:
+        include:
+          - group: 1
+            browsers: chromium
+            suites: >-
+              test-event-overview-ui
+              test-slo-burn-rate-ui
+              test-incoming-call-policies-ui
+          # The Alerts suite also runs in Firefox, and so do Code Editor (the
+          # editor's text layers must line up in both) and Value Picker (the
+          # chip editor's caret handling differs in each).
+          - group: 2
+            browsers: chromium firefox
+            suites: >-
+              test-chart-time-zoom-ui
+              test-topology-ui
+              test-workflow-builder-ui
+              test-code-editor-ui
+              test-exception-detail-ui
+              test-alerts-ui
+              test-pencil-button-ui
+          - group: 3
+            browsers: chromium firefox
+            suites: >-
+              test-monitor-overview-ui
+              test-value-picker-ui
+              test-discovery-ui
+              test-event-notes-ui
+              test-trace-detail-ui
+              test-security-events-empty-states-ui
+              test-status-page-search-ui
+              test-label-rule-transfer-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -152,8 +198,6 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      # Each suite bundles real Dashboard / Status Page sources with esbuild and
-      # serves them against fixture data on 127.0.0.1: no database or Docker stack.
       - name: Install shared dependencies
         uses: ./.github/actions/npm-install
         with:
@@ -174,88 +218,50 @@ jobs:
           args: --ignore-scripts
       - name: Install browsers
         working-directory: packages/E2E
-        # The Alerts suite also runs in Firefox; every other suite is Chromium only.
-        run: npx playwright install --with-deps chromium firefox
-      # Every suite runs even if an earlier one failed, so one run reports them all.
-      - name: Run Incoming Call Policies UI regressions
-        if: ${{ !cancelled() }}
+        env:
+          BROWSERS: ${{ matrix.browsers }}
+        run: npx playwright install --with-deps $BROWSERS
+      # Every suite in the group runs even if an earlier one failed, so one run
+      # reports them all, and the step fails at the end if any did. A name that
+      # is not a script in packages/E2E/package.json fails before anything
+      # runs, rather than quietly running nothing.
+      - name: Run this group's UI regressions
         working-directory: packages/E2E
-        run: npm run test-incoming-call-policies-ui
-      - name: Run SLO Burn Rate UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-slo-burn-rate-ui
-      - name: Run Exception Detail UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-exception-detail-ui
-      - name: Run Trace Detail UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-trace-detail-ui
-      - name: Run Event Overview UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-event-overview-ui
-      - name: Run Event Notes UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-event-notes-ui
-      - name: Run Monitor Overview UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-monitor-overview-ui
-      - name: Run Chart Time Zoom UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-chart-time-zoom-ui
-      - name: Run Security Events Empty States UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-security-events-empty-states-ui
-      - name: Run Status Page Search UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-status-page-search-ui
-      - name: Run Pencil Button UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-pencil-button-ui
-      # Chromium and Firefox: the editor's text layers must line up in both.
-      - name: Run Code Editor UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-code-editor-ui
-      # Chromium and Firefox: the chip editor's caret handling differs in each.
-      - name: Run Workflow Value Picker UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-value-picker-ui
-      - name: Run Alerts UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-alerts-ui
-      - name: Run Label Rules UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-label-rule-transfer-ui
-      - name: Run Discovery UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-discovery-ui
-      - name: Run Topology UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-topology-ui
-      - name: Run Workflow Builder UI regressions
-        if: ${{ !cancelled() }}
-        working-directory: packages/E2E
-        run: npm run test-workflow-builder-ui
+        env:
+          SUITES: ${{ matrix.suites }}
+        run: |
+          set -uo pipefail
+          read -ra suites <<<"$SUITES"
+          for suite in "${suites[@]}"; do
+            if ! node -e 'process.exit(require("./package.json").scripts[process.argv[1]] ? 0 : 1)' "$suite"; then
+              echo "::error title=Unknown UI suite::\"${suite}\" is not a script in packages/E2E/package.json."
+              exit 1
+            fi
+          done
+          failed=()
+          {
+            echo "| Suite | Result |"
+            echo "| --- | --- |"
+          } >>"$GITHUB_STEP_SUMMARY"
+          for suite in "${suites[@]}"; do
+            echo ""
+            echo "▶ npm run ${suite}"
+            if npm run "$suite"; then
+              echo "| ${suite} | passed |" >>"$GITHUB_STEP_SUMMARY"
+            else
+              failed+=("$suite")
+              echo "| ${suite} | **failed** |" >>"$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          if ((${#failed[@]} > 0)); then
+            echo "::error title=UI regressions failed::${failed[*]}"
+            exit 1
+          fi
       - name: Upload browser screenshots and failure traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ github.job }}-${{ github.run_attempt }}
+          name: test-results-${{ github.job }}-${{ matrix.group }}-${{ github.run_attempt }}
           path: |
             output/playwright/incoming-call-policies/*.png
             output/playwright/incoming-call-policies/test-results

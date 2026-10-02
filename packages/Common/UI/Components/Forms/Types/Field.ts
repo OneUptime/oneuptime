@@ -17,6 +17,8 @@ import Route from "../../../../Types/API/Route";
 import URL from "../../../../Types/API/URL";
 import MimeType from "../../../../Types/File/MimeType";
 import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
+import type { PeoplePickerFieldConfig } from "../../PeoplePicker/PeoplePickerTypes";
+import type { TemplateVariableGroups } from "../../../../Types/Template/TemplateVariable";
 import { ReactElement, ReactNode } from "react";
 
 export enum FormFieldStyleType {
@@ -170,8 +172,27 @@ export default interface Field<TEntity> {
    */
   customElementDrawsOwnLabel?: boolean | undefined;
   categoryCheckboxProps?: CategoryCheckboxProps | undefined; // props for the category checkbox component. If fieldType is CategoryCheckbox, this prop is required.
+  /*
+   * For a PeoplePicker field: the kinds of record it offers (people, teams),
+   * in the order its search list shows them, and the form value each kind's
+   * picks are kept in. One picker can so stand in for an "owner users" and an
+   * "owner teams" dropdown and save exactly what they saved: ModelForm saves
+   * a value that is a column of its model as that column, and sends any
+   * other as misc data. The field's own key names it in the form only (use
+   * formOnly). OwnersFormField.ts builds the owners one.
+   */
+  peoplePicker?: PeoplePickerFieldConfig | undefined;
   dataTestId?: string | undefined;
   autoComplete?: string | undefined;
+  /*
+   * A Password field that holds the person's own password, on a page where
+   * they sign in, sign up or change it. Set it together with the matching
+   * autoComplete ("current-password" to sign in, "new-password" to set one)
+   * so password managers fill and save it. Every other Password and
+   * EncryptedText field holds a secret the product stores for something else,
+   * and is kept away from password managers (see Input).
+   */
+  isOwnCredential?: boolean | undefined;
   ariaDescribedby?: string | undefined;
 
   // set this to true if you want to show this field in the form even when the form is in edit mode.
@@ -220,6 +241,30 @@ export default interface Field<TEntity> {
    * -- the Image button is hidden and image files are ignored.
    */
   allowImageUpload?: boolean | undefined;
+
+  /*
+   * The {{variables}} this field's value can use, when the value is a
+   * template: a note template, an SLA reminder, a subscriber notification.
+   * The field then shows them collapsed under its input, as cards that each
+   * add their variable where the cursor is, and typing "{{" in the field
+   * opens them under the cursor. A Markdown field's toolbar, and a code
+   * field's, also get an Insert variable button.
+   *
+   * Works for Markdown, Text, LongText and the code fields (HTML, CSS,
+   * JavaScript, JSON). A function is given the form's values, for variables
+   * that depend on another field (a subscriber template's event type).
+   * Don't also list the variables in the description: this is where they go.
+   */
+  templateVariables?:
+    | TemplateVariableGroups
+    | ((values: FormValues<TEntity>) => TemplateVariableGroups)
+    | undefined;
+  // What the variables are filled with: the first line of the open list.
+  templateVariablesDescription?: string | ReactElement | undefined;
+  // More for the open variables list, after the variables (a panel of its own).
+  getTemplateVariablesFooter?:
+    | ((values: FormValues<TEntity>) => ReactElement | undefined)
+    | undefined;
 
   getSummaryElement?: (item: FormValues<TEntity>) => ReactElement | undefined;
 

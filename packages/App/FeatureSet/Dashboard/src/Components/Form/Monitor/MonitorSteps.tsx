@@ -21,7 +21,6 @@ import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import Team from "Common/Models/DatabaseModels/Team";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import useAsyncEffect from "use-async-effect";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -62,10 +61,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     React.useState<Array<DropdownOption>>([]);
 
   const [labelDropdownOptions, setLabelDropdownOptions] = React.useState<
-    Array<DropdownOption>
-  >([]);
-
-  const [teamDropdownOptions, setTeamDropdownOptions] = React.useState<
     Array<DropdownOption>
   >([]);
 
@@ -281,30 +276,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         );
       }
 
-      // Fetch teams
-      const teamList: ListResult<Team> = await ModelAPI.getList({
-        modelType: Team,
-        query: {},
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          name: true,
-        },
-        sort: {
-          name: SortOrder.Ascending,
-        },
-      });
-
-      if (teamList.data) {
-        setTeamDropdownOptions(
-          teamList.data.map((i: Team) => {
-            return {
-              value: i._id!,
-              label: i.name!,
-            };
-          }),
-        );
-      }
+      /*
+       * Owners are picked with the people picker, which searches the
+       * project's people and teams itself.
+       */
 
       // Fetch users
       const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -487,7 +462,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               alertSeverityDropdownOptions={alertSeverityDropdownOptions}
               onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
               labelDropdownOptions={labelDropdownOptions}
-              teamDropdownOptions={teamDropdownOptions}
               userDropdownOptions={userDropdownOptions}
               incidentRoleOptions={incidentRoleOptions}
               value={i}

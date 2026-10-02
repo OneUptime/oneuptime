@@ -1,0 +1,138 @@
+name: Free disk space when the runner is short of it
+description: >-
+  Measures the free space on / and runs the disk cleanup the heavy jobs need
+  only when there is less than `min-free-gb`. Needs a Linux runner, and the
+  repository checked out (it is a local action).
+
+# The image builds, the e2e jobs, the Helm chart test and the Terraform e2e
+# test all used to run a cleanup unconditionally -- jlumbroso/free-disk-space,
+# and in some jobs a hand-written purge on top -- from when a hosted runner
+# had about 14 GB free. It cost 1.5 to 11 minutes per job, on every run.
+# Today's ubuntu-latest runners start with about 86 GB free on / (145 GB
+# disk), and ubuntu-24.04-arm with about 108 GB, measured on every such job of
+# the release workflows in October 2026, which is far more than any of those
+# jobs uses. So the cleanup now runs only on a runner that really is short --
+# the same cleanup as before, so such a runner is no worse off than it used to
+# be -- and the first step always prints how much space there was.
+
+inputs:
+  min-free-gb:
+    description: >-
+      Free space on /, in GB, below which the cleanup runs. The default leaves
+      room for the largest job (the SaaS e2e stack, whose home image alone is
+      about 8 GB compressed).
+    required: false
+    default: "50"
+  tool-cache:
+    description: >-
+      Passed to jlumbroso/free-disk-space: also delete the hosted tool cache
+      (/opt/hostedtoolcache). Only for jobs that set up every tool they use.
+    required: false
+    default: "false"
+  aggressive:
+    description: >-
+      Before jlumbroso/free-disk-space, also purge the big apt packages and
+      delete the other preinstalled SDKs and tool directories -- the cleanup
+      the release e2e jobs ran.
+    required: false
+    default: "false"
+
+outputs:
+  cleaned:
+    description: "'true' when the runner was short of space and the cleanup ran, else 'false'."
+    value: ${{ steps.measure.outputs.short }}
+
+runs:
+  using: composite
+  steps:
+    - name: Measure free disk space
+      id: measure
+      shell: bash
+      env:
+        MIN_FREE_GB: ${{ inputs.min-free-gb }}
+      run: |
+        set -euo pipefail
+        if ! [[ "$MIN_FREE_GB" =~ ^[0-9]+$ ]]; then
+          echo "::error title=free-disk-space::min-free-gb must be a whole number of GB, got '${MIN_FREE_GB}'."
+          exit 1
+        fi
+        df -h /
+        free_kb="$(df --output=avail -k / | tail -n 1 | tr -d '[:space:]')"
+        free_gb=$((free_kb / 1024 / 1024))
+        if ((free_gb < MIN_FREE_GB)); then
+          echo "::notice title=Freeing disk space::Only ${free_gb} GB free on /, under the ${MIN_FREE_GB} GB this job asks for, so the disk cleanup runs."
+          echo "short=true" >>"$GITHUB_OUTPUT"
+        else
+          echo "${free_gb} GB free on /, at least the ${MIN_FREE_GB} GB this job asks for: no cleanup needed."
+          echo "short=false" >>"$GITHUB_OUTPUT"
+        fi
+
+    - name: Purge large packages and preinstalled SDKs
+      if: steps.measure.outputs.short == 'true' && inputs.aggressive == 'true'
+      shell: bash
+      run: |
+        # Purge apt-installed packages before rm-ing their files so dpkg state stays consistent.
+        # Otherwise a later `apt-get install` triggers reconfiguration of half-removed packages
+        # (e.g. google-cloud-cli's postinst calls /usr/bin/gcloud) and fails with exit 100.
+        sudo DEBIAN_FRONTEND=noninteractive apt-get purge -y \
+          google-cloud-cli \
+          azure-cli \
+          firefox \
+          powershell \
+          mono-devel \
+          google-chrome-stable 2>/dev/null || true
+        # Remove pre-installed software not needed for this job
+        sudo rm -rf /usr/share/dotnet || true
+        sudo rm -rf /usr/local/lib/android || true
+        sudo rm -rf /opt/ghc || true
+        sudo rm -rf /opt/hostedtoolcache || true
+        sudo rm -rf /usr/local/share/boost || true
+        sudo rm -rf /usr/local/graalvm/ || true
+        sudo rm -rf /usr/local/share/powershell || true
+        sudo rm -rf /usr/local/share/chromium || true
+        sudo rm -rf /usr/local/lib/node_modules || true
+        sudo rm -rf /usr/share/swift || true
+        sudo rm -rf /usr/share/miniconda || true
+        sudo rm -rf /usr/lib/google-cloud-sdk || true
+        sudo rm -rf /usr/lib/jvm || true
+        sudo rm -rf /usr/lib/firefox || true
+        sudo rm -rf /usr/lib/heroku || true
+        sudo rm -rf /usr/local/julia* || true
+        sudo rm -rf /opt/az || true
+        sudo rm -rf /opt/microsoft || true
+        sudo rm -rf /opt/pipx || true
+        sudo rm -rf /opt/actionarchivecache || true
+        sudo rm -rf /imagegeneration || true
+        sudo rm -rf /usr/share/az_* || true
+        sudo rm -rf /usr/share/sbt || true
+        sudo rm -rf /usr/share/gradle* || true
+        sudo rm -rf /usr/share/kotlinc || true
+        sudo rm -rf /usr/share/ri || true
+        sudo rm -rf /usr/local/.ghcup || true
+        # Repair any dpkg state left half-broken by the rm operations above
+        sudo dpkg --configure -a 2>/dev/null || true
+        sudo DEBIAN_FRONTEND=noninteractive apt-get --fix-broken install -y 2>/dev/null || true
+        # Clean apt cache
+        sudo apt-get clean || true
+        sudo rm -rf /var/lib/apt/lists/* || true
+        # Clean temp files
+        sudo rm -rf /tmp/* || true
+        # Docker cleanup
+        docker system prune -af --volumes || true
+
+    - name: Free disk space
+      if: steps.measure.outputs.short == 'true'
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: ${{ inputs.tool-cache }}
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: true
+
+    - name: Report free disk space after the cleanup
+      if: steps.measure.outputs.short == 'true'
+      shell: bash
+      run: df -h /

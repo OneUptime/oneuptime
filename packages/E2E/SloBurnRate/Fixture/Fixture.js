@@ -149,8 +149,9 @@ const people = [
 ];
 
 /*
- * The owner-user pickers list the project's users through its team members
- * (User itself is not project-listable), so the fixture serves those.
+ * The owners pickers list the project's people through its team members
+ * (User itself is not project-listable), and its teams, so the fixture
+ * serves both.
  */
 const teamMembers = people.map((member, index) => {
   const record = new TeamMember();

@@ -3,6 +3,7 @@ import { i18nReady } from "./Utils/i18n";
 import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
+import ForeignDomMutationGuard from "Common/UI/Utils/ForeignDomMutationGuard";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ThemeUtil from "Common/UI/Utils/Theme";
 import UserUtil from "Common/UI/Utils/User";
@@ -11,6 +12,14 @@ import { enablePrivateImageSessionRefresh } from "Common/UI/Components/Markdown.
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+
+/*
+ * Before anything renders. Browser extensions - translators, password
+ * managers - wrap, move or remove nodes React manages, and React's next commit
+ * would then throw NotFoundError and take the page down with it (see
+ * ForeignDomMutationGuard).
+ */
+ForeignDomMutationGuard.install();
 
 ThemeUtil.initialize();
 

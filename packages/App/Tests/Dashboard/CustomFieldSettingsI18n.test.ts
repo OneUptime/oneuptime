@@ -172,12 +172,21 @@ describe("the settings pages render the shared strings", () => {
       "isRequiredOnCreateDescription",
       "includeInSubscriberNotificationsTitle",
       "includeInSubscriberNotificationsDescription",
-      "includeInSubscriberNotificationsColumnTitle",
-      "variableKeyColumnTitle",
-      "variableKeyColumnDescription",
     ]) {
       expect(source).toContain(`IncidentCustomFieldSettingsCopy.${key}`);
     }
+  });
+
+  /*
+   * The settings table lists a field's name and type only, so the copy has
+   * no column titles left to carry (CustomFieldTablesTwoColumns).
+   */
+  test("the shared copy carries no column of the settings table", () => {
+    expect(
+      Object.keys(IncidentCustomFieldSettingsCopy).filter((key: string) => {
+        return key.toLowerCase().includes("column");
+      }),
+    ).toEqual([]);
   });
 
   /*
