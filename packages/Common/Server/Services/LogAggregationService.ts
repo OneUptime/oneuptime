@@ -3,7 +3,10 @@ import {
   Statement,
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
-import { appendAttributeOperatorFilter } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
+import {
+  appendAttributeOperatorFilter,
+  appendAttributeValuesPrefilter,
+} from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import LogDatabaseService from "./LogService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
@@ -1058,11 +1061,16 @@ export class LogAggregationService {
          * often uses camelCase like `requestId`), and forcing users to
          * remember the exact casing is a poor experience. The user-supplied
          * key is validated above.
+         *
+         * Plain values get the same has()/hasAny() pre-filter as the
+         * operator forms, so idx_attribute_values can skip granules — see
+         * appendAttributeValuesPrefilter.
          */
         if (Array.isArray(attrValue)) {
           if (attrValue.length === 0) {
             continue;
           }
+          appendAttributeValuesPrefilter({ statement, values: attrValue });
           statement.append(
             SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
               type: TableColumnType.Text,
@@ -1093,6 +1101,7 @@ export class LogAggregationService {
             { _type: ObjectType.IsNull },
           );
         } else {
+          appendAttributeValuesPrefilter({ statement, values: [attrValue] });
           statement.append(
             SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
               type: TableColumnType.Text,

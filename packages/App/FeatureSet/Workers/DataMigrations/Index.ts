@@ -123,6 +123,7 @@ import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboard
 import BackfillStatusPageSubscriberUnsubscribeColumns from "./BackfillStatusPageSubscriberUnsubscribeColumns";
 import BackfillIncidentCustomFieldVariableKeys from "./BackfillIncidentCustomFieldVariableKeys";
 import AcceptPendingTeamInvitationsOfProjectMembers from "./AcceptPendingTeamInvitationsOfProjectMembers";
+import MaterializeAttributeValuesIndexOnLogTable from "./MaterializeAttributeValuesIndexOnLogTable";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -565,6 +566,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Cluster-aware; after the migration above only so the two read in order.
    */
   new RoundTtlToDayOnMixedRetentionTables(),
+  /*
+   * Builds idx_attribute_values (bloom filter over log attribute values) for
+   * log parts written before boot schema-sync added it, so attribute-filtered
+   * log searches skip old granules too instead of timing out on long time
+   * ranges. Background mutation; best-effort, never halts the chain.
+   * Idempotent. It needs only the table boot schema-sync creates, so it sits
+   * here rather than in the last slot AddAuditLogMcpClientColumns asserts
+   * for itself.
+   */
+  new MaterializeAttributeValuesIndexOnLogTable(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
