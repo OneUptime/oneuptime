@@ -79,10 +79,10 @@ function existingRole(name: string): IncidentRole {
 }
 
 describe("a new project's incident roles", () => {
-  let findBySpy: SpyInstance;
-  let createSpy: SpyInstance;
-  let deleteSpy: SpyInstance;
-  let updateSpy: SpyInstance;
+  let findBySpy: SpyInstance<typeof IncidentRoleService.findBy>;
+  let createSpy: SpyInstance<typeof IncidentRoleService.create>;
+  let deleteSpy: SpyInstance<typeof IncidentRoleService.deleteBy>;
+  let updateSpy: SpyInstance<typeof IncidentRoleService.updateBy>;
 
   beforeEach(() => {
     // getExistingProjectScopedNames reads the project's roles through findBy.
