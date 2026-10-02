@@ -7317,5 +7317,19 @@
   "A field whose value is copied from a monitor custom field instead of being typed in.": "Et felt der verdien kopieres fra et egendefinert felt på monitoren i stedet for å skrives inn.",
   "Made from the name": "Lages ut fra navnet",
   "Make it from the name": "Lag ut fra navnet",
-  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "Bruk små bokstaver (a-z), tall og bindestreker, og start med en bokstav eller et tall. Maks 50 tegn."
+  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "Bruk små bokstaver (a-z), tall og bindestreker, og start med en bokstav eller et tall. Maks 50 tegn.",
+  "Pagination for {{items}}": "Sidenavigering: {{items}}",
+  "Rows per page": "Rader per side",
+  "Go to previous page": "Gå til forrige side",
+  "Go to next page": "Gå til neste side",
+  "Page {{page}}": "Side {{page}}",
+  "Go to page {{page}}": "Gå til side {{page}}",
+  "Page {{page}} of {{total}}": "Side {{page}} av {{total}}",
+  "Go to a page in between": "Gå til en side imellom",
+  "Go to page": "Gå til side",
+  "Page number": "Sidenummer",
+  "This list has {{count}} pages. Enter the one you want to see.": "Denne listen har {{count}} sider. Skriv inn siden du vil se.",
+  "Showing {{range}} of {{total}}": "Viser {{range}} av {{total}}",
+  "Showing {{range}}": "Viser {{range}}",
+  "No items": "Ingen elementer"
 }

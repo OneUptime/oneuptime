@@ -7317,5 +7317,19 @@
   "A field whose value is copied from a monitor custom field instead of being typed in.": "Ett fält vars värde kopieras från ett anpassat fält på monitorn i stället för att skrivas in.",
   "Made from the name": "Skapas utifrån namnet",
   "Make it from the name": "Skapa utifrån namnet",
-  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "Använd små bokstäver (a-z), siffror och bindestreck, och börja med en bokstav eller en siffra. Högst 50 tecken."
+  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "Använd små bokstäver (a-z), siffror och bindestreck, och börja med en bokstav eller en siffra. Högst 50 tecken.",
+  "Pagination for {{items}}": "Sidnavigering: {{items}}",
+  "Rows per page": "Rader per sida",
+  "Go to previous page": "Gå till föregående sida",
+  "Go to next page": "Gå till nästa sida",
+  "Page {{page}}": "Sida {{page}}",
+  "Go to page {{page}}": "Gå till sida {{page}}",
+  "Page {{page}} of {{total}}": "Sida {{page}} av {{total}}",
+  "Go to a page in between": "Gå till en sida däremellan",
+  "Go to page": "Gå till sida",
+  "Page number": "Sidnummer",
+  "This list has {{count}} pages. Enter the one you want to see.": "Den här listan har {{count}} sidor. Ange den sida du vill se.",
+  "Showing {{range}} of {{total}}": "Visar {{range}} av {{total}}",
+  "Showing {{range}}": "Visar {{range}}",
+  "No items": "Inga objekt"
 }

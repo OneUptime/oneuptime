@@ -7317,5 +7317,19 @@
   "A field whose value is copied from a monitor custom field instead of being typed in.": "ऐसा फ़ील्ड जिसका मान टाइप करने के बजाय मॉनिटर के कस्टम फ़ील्ड से कॉपी होता है।",
   "Made from the name": "नाम से बनाया जाता है",
   "Make it from the name": "नाम से बनाएँ",
-  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "छोटे अंग्रेज़ी अक्षर (a-z), अंक और हाइफ़न इस्तेमाल करें, शुरुआत किसी अक्षर या अंक से करें, अधिकतम 50 वर्ण।"
+  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "छोटे अंग्रेज़ी अक्षर (a-z), अंक और हाइफ़न इस्तेमाल करें, शुरुआत किसी अक्षर या अंक से करें, अधिकतम 50 वर्ण।",
+  "Pagination for {{items}}": "{{items}} पृष्ठांकन",
+  "Rows per page": "प्रति पृष्ठ पंक्तियाँ",
+  "Go to previous page": "पिछले पृष्ठ पर जाएँ",
+  "Go to next page": "अगले पृष्ठ पर जाएँ",
+  "Page {{page}}": "पृष्ठ {{page}}",
+  "Go to page {{page}}": "पृष्ठ {{page}} पर जाएँ",
+  "Page {{page}} of {{total}}": "पृष्ठ {{page}} / {{total}}",
+  "Go to a page in between": "बीच के किसी पृष्ठ पर जाएँ",
+  "Go to page": "पृष्ठ पर जाएँ",
+  "Page number": "पृष्ठ संख्या",
+  "This list has {{count}} pages. Enter the one you want to see.": "इस सूची में {{count}} पृष्ठ हैं। जिस पृष्ठ को आप देखना चाहते हैं, उसकी संख्या दर्ज करें।",
+  "Showing {{range}} of {{total}}": "{{total}} में से {{range}} दिखाए जा रहे हैं",
+  "Showing {{range}}": "{{range}} दिखाए जा रहे हैं",
+  "No items": "कोई आइटम नहीं"
 }

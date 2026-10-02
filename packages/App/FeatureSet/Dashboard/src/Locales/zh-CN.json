@@ -7317,5 +7317,19 @@
   "A field whose value is copied from a monitor custom field instead of being typed in.": "其值从监视器的自定义字段复制而来、无需手动输入的字段。",
   "Made from the name": "根据名称生成",
   "Make it from the name": "改为根据名称生成",
-  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "请使用小写字母 (a-z)、数字和连字符，并以字母或数字开头，最多 50 个字符。"
+  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "请使用小写字母 (a-z)、数字和连字符，并以字母或数字开头，最多 50 个字符。",
+  "Pagination for {{items}}": "{{items}}分页",
+  "Rows per page": "每页行数",
+  "Go to previous page": "转到上一页",
+  "Go to next page": "转到下一页",
+  "Page {{page}}": "第 {{page}} 页",
+  "Go to page {{page}}": "转到第 {{page}} 页",
+  "Page {{page}} of {{total}}": "第 {{page}} 页，共 {{total}} 页",
+  "Go to a page in between": "转到中间的某一页",
+  "Go to page": "跳转到指定页",
+  "Page number": "页码",
+  "This list has {{count}} pages. Enter the one you want to see.": "此列表共有 {{count}} 页。请输入您要查看的页码。",
+  "Showing {{range}} of {{total}}": "第 {{range}} 条，共 {{total}} 条",
+  "Showing {{range}}": "第 {{range}} 条",
+  "No items": "暂无数据"
 }

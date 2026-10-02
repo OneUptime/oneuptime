@@ -7317,5 +7317,19 @@
   "A field whose value is copied from a monitor custom field instead of being typed in.": "Поле, значение которого копируется из пользовательского поля монитора, а не вводится вручную.",
   "Made from the name": "Создаётся из названия",
   "Make it from the name": "Создать из названия",
-  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "Используйте строчные латинские буквы (a-z), цифры и дефисы; первым символом должна быть буква или цифра; не более 50 символов."
+  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "Используйте строчные латинские буквы (a-z), цифры и дефисы; первым символом должна быть буква или цифра; не более 50 символов.",
+  "Pagination for {{items}}": "Постраничная навигация: {{items}}",
+  "Rows per page": "Строк на странице",
+  "Go to previous page": "Перейти на предыдущую страницу",
+  "Go to next page": "Перейти на следующую страницу",
+  "Page {{page}}": "Страница {{page}}",
+  "Go to page {{page}}": "Перейти на страницу {{page}}",
+  "Page {{page}} of {{total}}": "Страница {{page}} из {{total}}",
+  "Go to a page in between": "Перейти на одну из промежуточных страниц",
+  "Go to page": "Перейти на страницу",
+  "Page number": "Номер страницы",
+  "This list has {{count}} pages. Enter the one you want to see.": "Страниц в этом списке: {{count}}. Введите номер нужной страницы.",
+  "Showing {{range}} of {{total}}": "Показаны {{range}} из {{total}}",
+  "Showing {{range}}": "Показаны {{range}}",
+  "No items": "Нет записей"
 }

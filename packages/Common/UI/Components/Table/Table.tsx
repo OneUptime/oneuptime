@@ -590,7 +590,12 @@ const Table: TableFunction = <T extends GenericObject>(
           </div>
         </div>
         {isEmptyResult && getNoItemsElement()}
-        <div className="bg-gray-50 text-right md:-mx-6 -mb-6 rounded-b-xl">
+        {/*
+         * The footer sits flush on the card's rounded bottom edge. Clipped to
+         * the same curve, so the pagination bar's square white corners do not
+         * paint over the card's corners and border.
+         */}
+        <div className="bg-gray-50 text-right md:-mx-6 -mb-6 rounded-b-xl overflow-hidden">
           {!props.disablePagination && (
             <Pagination
               singularLabel={translatedSingularLabel}

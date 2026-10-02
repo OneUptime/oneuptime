@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 import Table from "../../../UI/Components/Table/Table";
 import LocalTable from "../../../UI/Components/Table/LocalTable";
+import List from "../../../UI/Components/List/List";
 import Columns from "../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -163,6 +164,86 @@ describe("Pagination in a Table", () => {
       "No monitors",
     );
     expect(screen.getByTestId("pagination-next-button")).toBeDisabled();
+  });
+
+  it("draws the full-size bar under a table", () => {
+    renderTable();
+
+    expect(screen.getByTestId("pagination-previous-button")).toHaveClass(
+      "h-7",
+      "w-7",
+    );
+    expect(screen.getByTestId("pagination-items-on-page-select")).toHaveClass(
+      "h-7",
+    );
+  });
+
+  /*
+   * The footer sits flush on the card's rounded bottom edge. The bar inside
+   * it is a white rectangle, and with nothing clipping it its square corners
+   * painted over the card's rounded corners and border.
+   */
+  it("clips the bar to the card's rounded bottom corners", () => {
+    renderTable();
+
+    const footer: HTMLElement = screen.getByRole("navigation").parentElement!;
+
+    expect(footer).toHaveClass("rounded-b-xl", "overflow-hidden");
+  });
+
+  it("still opens the jump dialog out of the clipped footer", () => {
+    renderTable({ currentPageNumber: 12 });
+
+    fireEvent.click(screen.getByTestId("pagination-ellipsis-end"));
+
+    // The dialog is fixed to the viewport, which overflow does not clip.
+    expect(screen.getByTestId("modal")).toBeInTheDocument();
+    expect(screen.getByTestId("modal").closest(".fixed")).not.toBeNull();
+  });
+});
+
+describe("Pagination in a List", () => {
+  interface Item {
+    id: string;
+    name: string;
+  }
+
+  it("draws the full-size bar and pages the list", () => {
+    const onNavigateToPage: MockFunction = getJestMockFunction();
+
+    render(
+      <List<Item>
+        id="test-list"
+        data={[
+          { id: "1", name: "First" },
+          { id: "2", name: "Second" },
+        ]}
+        fields={[{ title: "Name", key: "name", fieldType: FieldType.Text }]}
+        onNavigateToPage={
+          onNavigateToPage as unknown as (
+            pageNumber: number,
+            itemsOnPage: number,
+          ) => void
+        }
+        currentPageNumber={1}
+        totalItemsCount={12}
+        itemsOnPage={5}
+        error=""
+        isLoading={false}
+        singularLabel="Item"
+        pluralLabel="Items"
+      />,
+    );
+
+    expect(screen.getByTestId("list-pagination")).toBeInTheDocument();
+    expect(screen.getByTestId("pagination-summary")).toHaveTextContent(
+      "Showing 1-2 of 12 items",
+    );
+    expect(screen.getByTestId("pagination-next-button")).toHaveClass("h-7");
+
+    fireEvent.click(screen.getByTestId("pagination-next-button"));
+
+    expect(onNavigateToPage).toHaveBeenCalledWith(2, 5);
   });
 });
 
@@ -336,6 +417,22 @@ describe("LogsPagination", () => {
       screen.getByTestId("pagination-items-on-page-select"),
     ).toBeDisabled();
   });
+
+  it("draws the compact bar under the denser logs view", () => {
+    renderLogsPagination();
+
+    expect(screen.getByTestId("logs-pagination")).toHaveClass(
+      "py-2",
+      "bg-gray-50/50",
+    );
+    expect(screen.getByTestId("pagination-previous-button")).toHaveClass(
+      "h-6",
+      "w-6",
+    );
+    expect(screen.getByTestId("pagination-items-on-page-select")).toHaveClass(
+      "h-6",
+    );
+  });
 });
 
 describe("TelemetryPagination", () => {
@@ -407,5 +504,15 @@ describe("TelemetryPagination", () => {
     fireEvent.click(screen.getByTestId("pagination-page-12"));
 
     expect(onPageChange).toHaveBeenCalledWith(12);
+  });
+
+  it("draws the compact bar under the traces view", () => {
+    renderTelemetryPagination();
+
+    expect(screen.getByTestId("telemetry-pagination")).toHaveClass("py-2");
+    expect(screen.getByTestId("pagination-next-button")).toHaveClass(
+      "h-6",
+      "w-6",
+    );
   });
 });

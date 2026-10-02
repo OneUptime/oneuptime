@@ -7317,5 +7317,19 @@
   "A field whose value is copied from a monitor custom field instead of being typed in.": "Un campo il cui valore viene copiato da un campo personalizzato del monitor invece di essere digitato.",
   "Made from the name": "Ricavato dal nome",
   "Make it from the name": "Ricava dal nome",
-  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "Usa lettere minuscole (a-z), numeri e trattini, iniziando con una lettera o un numero, al massimo 50 caratteri."
+  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "Usa lettere minuscole (a-z), numeri e trattini, iniziando con una lettera o un numero, al massimo 50 caratteri.",
+  "Pagination for {{items}}": "Paginazione: {{items}}",
+  "Rows per page": "Righe per pagina",
+  "Go to previous page": "Vai alla pagina precedente",
+  "Go to next page": "Vai alla pagina successiva",
+  "Page {{page}}": "Pagina {{page}}",
+  "Go to page {{page}}": "Vai alla pagina {{page}}",
+  "Page {{page}} of {{total}}": "Pagina {{page}} di {{total}}",
+  "Go to a page in between": "Vai a una pagina intermedia",
+  "Go to page": "Vai alla pagina",
+  "Page number": "Numero di pagina",
+  "This list has {{count}} pages. Enter the one you want to see.": "Questo elenco ha {{count}} pagine. Inserisci quella che vuoi vedere.",
+  "Showing {{range}} of {{total}}": "Elementi {{range}} di {{total}}",
+  "Showing {{range}}": "Elementi {{range}}",
+  "No items": "Nessun elemento"
 }

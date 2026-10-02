@@ -7317,5 +7317,19 @@
   "A field whose value is copied from a monitor custom field instead of being typed in.": "値を入力する代わりに、モニターのカスタムフィールドからコピーするフィールド。",
   "Made from the name": "名前から作成されます",
   "Make it from the name": "名前から作成する",
-  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "小文字の英字 (a-z)、数字、ハイフンを使い、英字または数字で始めてください。最大 50 文字です。"
+  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "小文字の英字 (a-z)、数字、ハイフンを使い、英字または数字で始めてください。最大 50 文字です。",
+  "Pagination for {{items}}": "{{items}}のページ送り",
+  "Rows per page": "1ページの行数",
+  "Go to previous page": "前のページへ移動",
+  "Go to next page": "次のページへ移動",
+  "Page {{page}}": "{{page}} ページ",
+  "Go to page {{page}}": "{{page}} ページへ移動",
+  "Page {{page}} of {{total}}": "{{page}} / {{total}} ページ",
+  "Go to a page in between": "間のページへ移動",
+  "Go to page": "ページへ移動",
+  "Page number": "ページ番号",
+  "This list has {{count}} pages. Enter the one you want to see.": "このリストには {{count}} ページあります。表示したいページを入力してください。",
+  "Showing {{range}} of {{total}}": "{{total}} 件中 {{range}} 件を表示",
+  "Showing {{range}}": "{{range}} 件を表示",
+  "No items": "項目はありません"
 }
