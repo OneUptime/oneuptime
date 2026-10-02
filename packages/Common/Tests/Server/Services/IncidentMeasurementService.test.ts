@@ -168,10 +168,25 @@ describe("IncidentMeasurementService", () => {
       await expect(
         hooks.onBeforeCreate(buildCreateBy({ key: "Time To Detect" })),
       ).rejects.toThrow(BadDataException);
+    });
 
-      await expect(
-        hooks.onBeforeCreate(buildCreateBy({ key: "" })),
-      ).rejects.toThrow(BadDataException);
+    /*
+     * An empty key is no longer refused: it is a key left out, made from the
+     * name. The rest of that behaviour, for all three kinds of measurement,
+     * is in MeasurementKeyGeneration.test.ts.
+     */
+    test("makes the key from the name when the create sends an empty one", async () => {
+      const createBy: CreateBy<IncidentMeasurement> = buildCreateBy({
+        key: "",
+        name: "Time to Detect",
+      });
+
+      await hooks.onBeforeCreate(createBy);
+
+      expect(createBy.data.key).toBe("time-to-detect");
+      expect(createBy.data.metricName).toBe(
+        "oneuptime.incident.measurement.time-to-detect",
+      );
     });
 
     test("accepts a lowercase hyphenated key", async () => {

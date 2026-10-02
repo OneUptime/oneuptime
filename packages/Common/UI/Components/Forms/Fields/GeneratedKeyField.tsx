@@ -8,9 +8,7 @@ import SelectFormFields from "../../../Types/SelectEntityField";
 import React, {
   FunctionComponent,
   ReactElement,
-  useEffect,
   useId,
-  useRef,
   useState,
 } from "react";
 
@@ -84,11 +82,17 @@ const GeneratedKeyField: FunctionComponent<ComponentProps> = (
   const dataTestId: string = props.dataTestId || "generated-key-field";
 
   /*
-   * What the text box shows, or null while it is closed. It opens by itself
-   * for a key someone typed - one the form already holds when the field is
-   * drawn again, after the user went to another step and came back.
+   * Whether the text box is open. It opens by itself for a key someone
+   * typed - one the form already holds when the field is drawn again, after
+   * the user went to another step and came back.
    */
-  const [draft, setDraft] = useState<string | null>(
+  const [isOpen, setIsOpen] = useState<boolean>(Boolean(props.value));
+
+  /*
+   * What was typed into the box, or null while it shows the name's key and
+   * follows the name: opening the box to look is not typing a key.
+   */
+  const [typedText, setTypedText] = useState<string | null>(
     props.value ? props.value : null,
   );
 
@@ -97,23 +101,6 @@ const GeneratedKeyField: FunctionComponent<ComponentProps> = (
    * open again with the step: then the form's first field keeps it.
    */
   const [focusWhenOpened, setFocusWhenOpened] = useState<boolean>(false);
-
-  /*
-   * The text box follows the name too, as long as what it shows is what the
-   * name made: opening it to look is not the same as typing a key.
-   */
-  const previousGeneratedValue: React.MutableRefObject<string> = useRef<string>(
-    props.generatedValue,
-  );
-
-  useEffect(() => {
-    const previous: string = previousGeneratedValue.current;
-    previousGeneratedValue.current = props.generatedValue;
-
-    if (draft !== null && draft === previous && !props.value) {
-      setDraft(props.generatedValue);
-    }
-  }, [props.generatedValue]);
 
   const translate: (text: string) => string = (text: string): string => {
     return translateString(text) ?? text;
@@ -127,7 +114,7 @@ const GeneratedKeyField: FunctionComponent<ComponentProps> = (
     : undefined;
 
   const errorElement: ReactElement | null =
-    error && draft === null ? (
+    error && !isOpen ? (
       <p
         className="mt-1 text-sm text-red-400"
         role="alert"
@@ -137,7 +124,7 @@ const GeneratedKeyField: FunctionComponent<ComponentProps> = (
       </p>
     ) : null;
 
-  if (draft === null) {
+  if (!isOpen) {
     return (
       /*
        * Drawn up towards the name field above it, whose key it is: the
@@ -173,7 +160,8 @@ const GeneratedKeyField: FunctionComponent<ComponentProps> = (
             data-testid={`${dataTestId}-edit`}
             onClick={() => {
               setFocusWhenOpened(true);
-              setDraft(effectiveValue);
+              setTypedText(props.value ? props.value : null);
+              setIsOpen(true);
             }}
           >
             {translate(GeneratedKeyFieldText.edit)}
@@ -194,16 +182,22 @@ const GeneratedKeyField: FunctionComponent<ComponentProps> = (
       />
       <Input
         id={inputId}
-        value={draft}
+        value={typedText === null ? props.generatedValue : typedText}
         autoFocus={focusWhenOpened}
         disableSpellCheck={true}
         dataTestId={`${dataTestId}-input`}
         placeholder={props.generatedValue || props.placeholder}
         error={error}
         onChange={(text: string) => {
-          setDraft(text);
-          // The name's own key, typed back or left as it was, is no override.
-          props.onChange(text === props.generatedValue ? "" : text);
+          /*
+           * The name's own key, typed back in, is no override: the box
+           * follows the name again, and the form holds nothing.
+           */
+          const isNamesKey: boolean =
+            text.length > 0 && text === props.generatedValue;
+
+          setTypedText(isNamesKey ? null : text);
+          props.onChange(isNamesKey ? "" : text);
         }}
         onBlur={props.onBlur}
       />
@@ -213,7 +207,8 @@ const GeneratedKeyField: FunctionComponent<ComponentProps> = (
           className="mt-1 rounded text-sm font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           data-testid={`${dataTestId}-make-from-name`}
           onClick={() => {
-            setDraft(null);
+            setTypedText(null);
+            setIsOpen(false);
             props.onChange("");
           }}
         >

@@ -261,7 +261,7 @@ Leave `sort_order` out and a new field goes to the end of the list. Give it the 
 
 A measurement is a named duration between two points in an incident's life, computed for every incident automatically. "Time to Detect", "Time to Mitigate" and "Time to Resolve" are measurements. They are definitions you write once, not numbers somebody reads off a timeline.
 
-Go to **Incidents → Settings → Measurements** (`/dashboard/{projectId}/incidents/settings/measurements`). Each definition has a **name**, a permanent **key**, a **starting point** and an **ending point**.
+Go to **Incidents → Settings → Measurements** (`/dashboard/{projectId}/incidents/settings/measurements`). Each definition has a **name**, a **starting point** and an **ending point**. Its permanent **key** is made from the name as you type it — "Time to Detect" gets `time-to-detect` — so there is nothing to fill in. To pick a key of your own, choose **Edit** next to it before you create the measurement.
 
 Alerts and scheduled maintenance events have the same feature, at **Alerts → Settings → Measurements** and **Scheduled Maintenance → Settings → Measurements**. Everything below applies to all three, with each domain's own vocabulary.
 
@@ -315,6 +315,8 @@ Each enabled measurement writes a metric named `oneuptime.incident.measurement.<
 Definitions are ordinary API resources, so the Terraform provider manages them as `oneuptime_incident_measurement`, `oneuptime_alert_measurement` and `oneuptime_scheduled_maintenance_measurement`. Computed values are read-only and surface as data sources.
 
 The **key** is permanent because it is part of the metric name — changing it would orphan the series. Rename the measurement freely; the key stays.
+
+Over the API and in Terraform the key can be left out too: it is made from the name, with `-2`, `-3` and so on added when another measurement of the project already has it. A key you do send is kept as you wrote it. It must be lowercase letters, numbers and hyphens, starting with a letter or a number, at most 50 characters, and no other measurement of the project may have it.
 
 ### Migrating from another incident platform
 
