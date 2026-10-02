@@ -18,6 +18,7 @@ import {
   SESSION_REPLAY_MAX_SESSION_MS,
   SESSION_REPLAY_MOBILE_RECORDER_CAPABILITIES,
   SESSION_REPLAY_SCHEMA_VERSION,
+  SESSION_ROTATED_CUSTOM_EVENT_TAG,
   SESSION_REPLAY_WIRE_VERSION,
   SYNTHETIC_RRWEB_VERSION,
   TAGS_CUSTOM_EVENT_TAG,
@@ -316,6 +317,20 @@ export default class MobileReplayRecorder {
   } | null = null;
   private identityPersisted: boolean = false;
   private sessionLastActivityUnixMs: number = 0;
+
+  /*
+   * The session went the idle window without activity, was sealed where it
+   * ended, and nobody has come back since.
+   *
+   * Rotating on the spot instead (the old behaviour) started a session
+   * nobody was in: an app left open in the foreground with the screen on
+   * re-snapshots every minute, so it filed a new session every half hour
+   * for as long as it stayed open. Now nothing is captured, uploaded or
+   * handed to the host as a session id until the user is back - a touch,
+   * the app returning to the foreground, or an explicit captureSession() -
+   * and that starts the next session (see maybeRotateSession).
+   */
+  private sealedForIdle: boolean = false;
   private rotatingSession: boolean = false;
   private rotationPromise: Promise<void> | null = null;
   private appStateQueue: Promise<void> = Promise.resolve();
@@ -418,6 +433,7 @@ export default class MobileReplayRecorder {
     this.appStateQueue = Promise.resolve();
     this.rotationPromise = null;
     this.rotatingSession = false;
+    this.sealedForIdle = false;
     this.policyRefreshPromise = null;
     this.lastPolicyRefreshAtUnixMs = 0;
     this.forceFullSnapshot = true;
@@ -835,6 +851,16 @@ export default class MobileReplayRecorder {
     }
 
     this.route = next;
+
+    /*
+     * A navigation on an app whose session ended idle is not the user
+     * coming back - it can be a timer, or an inactivity logout - so it
+     * starts nothing. The next session opens on this route when they do.
+     */
+    if (this.sealedForIdle) {
+      return;
+    }
+
     this.appendCustom(
       ROUTE_CUSTOM_EVENT_TAG,
       {
@@ -854,7 +880,12 @@ export default class MobileReplayRecorder {
     if (!this.running || !this.acceptingEvents) {
       return;
     }
-    await this.maybeRotateSession(this.now());
+    /*
+     * An explicit ask for a recording starts the next session on an app
+     * whose last one ended idle, so the marker lands in it rather than
+     * nowhere.
+     */
+    await this.maybeRotateForUser(this.now());
     const safeReason: string = truncate(
       (typeof reason === "string" ? reason.trim() : "") || "manual",
       MAX_CAPTURE_REASON_LENGTH,
@@ -872,6 +903,13 @@ export default class MobileReplayRecorder {
       return;
     }
     await this.maybeRotateSession(this.now());
+    /*
+     * The session ended idle and nobody is back: an error a background
+     * poll threw belongs to no recording, and triggers nothing.
+     */
+    if (this.sealedForIdle) {
+      return;
+    }
     const rawName: string =
       error instanceof Error && typeof error.name === "string"
         ? error.name.trim()
@@ -944,10 +982,19 @@ export default class MobileReplayRecorder {
       this.lastTouchMoveAtUnixMs = touch.timestamp;
     }
 
+    /*
+     * A touch is the user, so on an idle session it starts the next one.
+     * The touch itself is dropped: it lands before that session's first
+     * snapshot, which shows its result anyway.
+     */
     const nowUnixMs: number = this.now();
-    if (this.rotatingSession || this.rotationReason(nowUnixMs)) {
+    if (
+      this.rotatingSession ||
+      this.sealedForIdle ||
+      this.rotationReason(nowUnixMs)
+    ) {
       this.diagnostic("touch-dropped-session-rotation");
-      void this.maybeRotateSession(nowUnixMs);
+      void this.maybeRotateForUser(nowUnixMs);
       return;
     }
 
@@ -1010,9 +1057,14 @@ export default class MobileReplayRecorder {
     };
   }
 
-  /** Current consented replay session for host trace/log correlation. */
+  /**
+   * Current consented replay session for host trace/log correlation. None
+   * while the session has ended idle and nobody is back: a background poll
+   * on an idle app is no part of a recording that ended at the user's last
+   * activity.
+   */
   public getSessionId(): string | null {
-    return this.running && this.identityPersisted
+    return this.running && this.identityPersisted && !this.sealedForIdle
       ? this.identity?.sessionId ?? null
       : null;
   }
@@ -1102,11 +1154,18 @@ export default class MobileReplayRecorder {
 
   private async captureTick(force: boolean = false): Promise<void> {
     const generation: number = this.lifecycleGeneration;
+    /*
+     * Nothing is captured while the session has ended idle: there is no
+     * session to put it in until the user is back (see sealedForIdle), and
+     * an idle app left in the foreground is not walking the view tree
+     * twice a second for nobody.
+     */
     if (
       !this.running ||
       !this.acceptingEvents ||
       !this.foreground ||
       !this.rootTag ||
+      this.sealedForIdle ||
       this.captureGeneration === generation ||
       !this.options
     ) {
@@ -1129,7 +1188,8 @@ export default class MobileReplayRecorder {
         !this.running ||
         !this.acceptingEvents ||
         !this.foreground ||
-        !this.isCurrentGeneration(generation)
+        !this.isCurrentGeneration(generation) ||
+        this.sealedForIdle
       ) {
         return;
       }
@@ -1148,7 +1208,6 @@ export default class MobileReplayRecorder {
         return;
       }
       this.touchPrivacyMap = deriveTouchPrivacyMap(tree);
-      const size: { width: number; height: number } = getViewport();
       const shouldForce: boolean =
         force ||
         this.forceFullSnapshot ||
@@ -1167,22 +1226,7 @@ export default class MobileReplayRecorder {
         return;
       }
 
-      const capture: SerializedCapture = this.serializer.capture(tree, {
-        timestamp: nowUnixMs,
-        url: toAppUrl(this.options.mobileAppIdentifier, this.route),
-        viewportWidth: size.width,
-        viewportHeight: size.height,
-        forceFullSnapshot: shouldForce,
-      });
-      this.droppedEvents += capture.droppedNodes;
-      this.chunkBuffer.appendMany(capture.events, {
-        route: toAppUrl(this.options.mobileAppIdentifier, this.route),
-        fidelityNotices: capture.fidelityNotices,
-      });
-      if (capture.hasFullSnapshot) {
-        this.lastFullSnapshotAtUnixMs = nowUnixMs;
-        this.forceFullSnapshot = false;
-      }
+      this.appendCapture(tree, this.options, nowUnixMs, shouldForce);
       if (this.chunkBuffer.shouldFlush()) {
         await this.closeCurrent(false);
       }
@@ -1197,6 +1241,32 @@ export default class MobileReplayRecorder {
       if (this.captureGeneration === generation) {
         this.captureGeneration = null;
       }
+    }
+  }
+
+  private appendCapture(
+    tree: NativeViewTreeNode,
+    options: ValidatedStartOptions,
+    nowUnixMs: number,
+    forceFullSnapshot: boolean,
+  ): void {
+    const size: { width: number; height: number } = getViewport();
+    const url: string = toAppUrl(options.mobileAppIdentifier, this.route);
+    const capture: SerializedCapture = this.serializer.capture(tree, {
+      timestamp: nowUnixMs,
+      url,
+      viewportWidth: size.width,
+      viewportHeight: size.height,
+      forceFullSnapshot,
+    });
+    this.droppedEvents += capture.droppedNodes;
+    this.chunkBuffer.appendMany(capture.events, {
+      route: url,
+      fidelityNotices: capture.fidelityNotices,
+    });
+    if (capture.hasFullSnapshot) {
+      this.lastFullSnapshotAtUnixMs = nowUnixMs;
+      this.forceFullSnapshot = false;
     }
   }
 
@@ -1219,6 +1289,14 @@ export default class MobileReplayRecorder {
     allowWhenQuiesced: boolean = false,
   ): void {
     if (!this.running || (!this.acceptingEvents && !allowWhenQuiesced)) {
+      return;
+    }
+    /*
+     * Not counted as dropped: nothing is lost. The session ended idle, an
+     * event dated after that is no part of it, and the next session opens
+     * on a snapshot of its own.
+     */
+    if (this.sealedForIdle) {
       return;
     }
     if (!Number.isFinite(event.timestamp)) {
@@ -1254,9 +1332,15 @@ export default class MobileReplayRecorder {
   }
 
   private async closeCurrent(isFinal: boolean): Promise<void> {
+    /*
+     * Never on a session that ended idle: the cap's marker would be dated
+     * now, long after its footage, and the rotation after it would start a
+     * session nobody is in.
+     */
     const closesFinalChunkSlot: boolean =
       !isFinal &&
       !this.rotatingSession &&
+      !this.sealedForIdle &&
       this.uploadActive &&
       this.sessionStore?.getNextChunkIndex() ===
         MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1;
@@ -1273,7 +1357,7 @@ export default class MobileReplayRecorder {
       }
       this.chunkBuffer.append(
         createCustomEvent(
-          "oneuptime.session-rotated",
+          SESSION_ROTATED_CUSTOM_EVENT_TAG,
           { reason: "chunk-cap" },
           this.now(),
         ),
@@ -1504,16 +1588,30 @@ export default class MobileReplayRecorder {
       if (!policyReady) {
         return;
       }
-      await this.maybeRotateSession(this.now());
+      /* Coming back to the app is the user returning. */
+      const sessionIdBeforeResume: string | undefined =
+        this.identity?.sessionId;
+      await this.maybeRotateSession(this.now(), true);
       if (!this.running || !this.isCurrentGeneration(generation)) {
         return;
       }
       this.appendCustom(VISIBILITY_CUSTOM_EVENT_TAG, { state: "visible" });
-      this.forceFullSnapshot = true;
+      /*
+       * Any other return takes a fresh checkout, as the screen may have
+       * changed while the app was away. A session the return just started
+       * already leads with a snapshot of this screen; a second one would
+       * only repeat it.
+       */
+      const openedOnSnapshot: boolean =
+        this.identity?.sessionId !== sessionIdBeforeResume &&
+        this.lastFullSnapshotAtUnixMs > 0;
+      if (!openedOnSnapshot) {
+        this.forceFullSnapshot = true;
+      }
       this.startTimers();
       this.diagnosticsStatus =
         this.consentState() === "Unknown" ? "consent-required" : "recording";
-      await this.captureTick(true);
+      await this.captureTick(!openedOnSnapshot);
 
       /*
        * Offline mode: returning to the app is the most likely moment the
@@ -1881,9 +1979,16 @@ export default class MobileReplayRecorder {
         return;
       }
 
+      /*
+       * A session that ended idle needs no rotation to keep two accounts
+       * apart: it records nothing more, and the next one - minted when the
+       * user is back - belongs to the new identity. Rotating here would
+       * start a session nobody is in (an inactivity logout is the usual
+       * case).
+       */
       if (this.rotationPromise) {
         await this.rotationPromise;
-      } else {
+      } else if (!this.sealedForIdle) {
         this.rotatingSession = true;
         const rotation: Promise<void> = this.performSessionRotation(
           this.now(),
@@ -2307,21 +2412,29 @@ export default class MobileReplayRecorder {
     };
   }
 
+  /*
+   * Idle before the duration cap, the order Common's SessionIdentity decides
+   * them in. A session left for the idle window ended where it was left,
+   * even when it has outlived the cap by the time anything notices, and
+   * only an idle rotation dates its end there (see performSessionRotation):
+   * called "duration", a session three hours old put in the background for
+   * two more was sealed two hours after its footage.
+   */
   private rotationReason(nowUnixMs: number): SessionRotationReason | null {
     if (!this.identity) {
       return null;
-    }
-    if (
-      nowUnixMs - this.identity.sessionStartUnixMs >=
-      SESSION_REPLAY_MAX_SESSION_MS
-    ) {
-      return "duration";
     }
     if (
       nowUnixMs - this.sessionLastActivityUnixMs >=
       SESSION_REPLAY_IDLE_ROLLOVER_MS
     ) {
       return "idle";
+    }
+    if (
+      nowUnixMs - this.identity.sessionStartUnixMs >=
+      SESSION_REPLAY_MAX_SESSION_MS
+    ) {
+      return "duration";
     }
     return null;
   }
@@ -2368,10 +2481,26 @@ export default class MobileReplayRecorder {
     });
   }
 
-  private async maybeRotateSession(nowUnixMs: number): Promise<void> {
-    if (this.rotationPromise) {
+  /*
+   * isUserBack: the caller knows the user is here - a touch, the app
+   * returning to the foreground, an explicit captureSession(). An idle
+   * session then rotates at once. Anything else (a capture tick, a route
+   * change, a developer event) only finds out the session went idle, and
+   * seals it to wait for them (see sealedForIdle).
+   */
+  private async maybeRotateSession(
+    nowUnixMs: number,
+    isUserBack: boolean = false,
+  ): Promise<void> {
+    while (this.rotationPromise) {
       await this.rotationPromise;
-      return;
+      /*
+       * What was in flight may have been the idle seal; a returning user
+       * still starts the next session after it.
+       */
+      if (!isUserBack || !this.sealedForIdle) {
+        return;
+      }
     }
     if (
       !this.running ||
@@ -2384,16 +2513,24 @@ export default class MobileReplayRecorder {
       return;
     }
 
-    const reason: SessionRotationReason | null = this.rotationReason(nowUnixMs);
+    let reason: SessionRotationReason | null;
+    if (this.sealedForIdle) {
+      if (!isUserBack) {
+        return;
+      }
+      reason = "idle";
+    } else {
+      reason = this.rotationReason(nowUnixMs);
+    }
     if (!reason) {
       return;
     }
 
     this.rotatingSession = true;
-    const operation: Promise<void> = this.performSessionRotation(
-      nowUnixMs,
-      reason,
-    );
+    const operation: Promise<void> =
+      reason === "idle" && !isUserBack
+        ? this.sealForIdle()
+        : this.performSessionRotation(nowUnixMs, reason);
     this.rotationPromise = operation;
     try {
       await operation;
@@ -2405,11 +2542,76 @@ export default class MobileReplayRecorder {
     }
   }
 
+  /*
+   * maybeRotateSession for a user who is here. On an app whose session
+   * ended idle, the policy is brought up to date first: no capture tick has
+   * refreshed it while the app sat idle, and the next session must not open
+   * under one that has since changed (or turned replay off).
+   */
+  private async maybeRotateForUser(nowUnixMs: number): Promise<void> {
+    if (this.sealedForIdle && !this.rotatingSession) {
+      const policyReady: boolean = await this.refreshRuntimePolicy(
+        this.lifecycleGeneration,
+        false,
+        "periodic",
+      );
+      if (!policyReady) {
+        return;
+      }
+    }
+    await this.maybeRotateSession(nowUnixMs, true);
+  }
+
+  /*
+   * End the session as idle, where it really ended, and wait for the user.
+   *
+   * Sealed with whatever footage is still buffered - dated by that footage,
+   * never by now - and with no marker of its own: a marker stamped now
+   * would date the session's end half an hour or more after anything the
+   * player can show. With nothing buffered nothing is sent, and the server
+   * ends the session at its last chunk.
+   */
+  private async sealForIdle(): Promise<void> {
+    /* First, so nothing appended while the seal uploads lands in it. */
+    this.sealedForIdle = true;
+    this.diagnostic("session-ended-idle", {
+      idleForMs: Math.max(0, this.now() - this.sessionLastActivityUnixMs),
+    });
+    this.notifySessionChange();
+    await this.closeCurrent(true);
+    await this.closeQueue;
+    if (!this.running) {
+      return;
+    }
+    if (this.uploadActive) {
+      await this.transport?.drain();
+    } else {
+      /* Pre-roll of a session that ended; a later trigger is the next one's. */
+      this.rollingBuffer.clear();
+    }
+  }
+
   private async performSessionRotation(
     nowUnixMs: number,
     reason: SessionRotationReason,
   ): Promise<void> {
-    this.appendCustom("oneuptime.session-rotated", { reason }, undefined, true);
+    /*
+     * The marker closes the outgoing session for a rotation the user was
+     * active through (the duration cap, an identity change): dated now, it
+     * is where that session ended. Not for an idle one. That session ended
+     * at its last activity - possibly hours ago, with the app in the
+     * background since - and a marker dated now, as its final chunk,
+     * stretched it by the whole absence. It opens the next session instead
+     * (openSessionAfterIdle).
+     */
+    if (reason !== "idle") {
+      this.appendCustom(
+        SESSION_ROTATED_CUSTOM_EVENT_TAG,
+        { reason },
+        undefined,
+        true,
+      );
+    }
     await this.closeCurrent(true);
     await this.closeQueue;
     if (!this.running) {
@@ -2425,6 +2627,62 @@ export default class MobileReplayRecorder {
     }
 
     await this.completeSessionIdentityRotation(nowUnixMs, reason);
+    if (reason === "idle" && this.running) {
+      await this.openSessionAfterIdle();
+    }
+  }
+
+  /*
+   * The first things a session after an idle one records: a full snapshot
+   * of the screen the user came back to, then the rotation marker - the
+   * snapshot first, so chunk 0 is a seek anchor rather than a lone marker.
+   *
+   * Taken here, inside the rotation, rather than left to the next capture
+   * tick: until the rotation settles, touches are dropped and every other
+   * event waits for it (rotatingSession), so nothing can land ahead of the
+   * snapshot. A user who has just come back is touching the screen, and
+   * half a second of that was otherwise a chunk 0 with no screen in it.
+   *
+   * In the background or without a registered root there is no screen to
+   * capture yet; the marker opens the session alone.
+   */
+  private async openSessionAfterIdle(): Promise<void> {
+    const generation: number = this.lifecycleGeneration;
+    const rootTag: number | null = this.rootTag;
+    const options: ValidatedStartOptions | null = this.options;
+    const sessionId: string | undefined = this.identity?.sessionId;
+    if (this.foreground && rootTag && options && sessionId) {
+      const capturedAtUnixMs: number = this.now();
+      let tree: NativeViewTreeNode;
+      try {
+        tree = await this.nativeViewTree.captureViewTree(rootTag);
+      } catch (error) {
+        if (this.running && this.isCurrentGeneration(generation)) {
+          this.disable("native-capture-failed", {
+            name: error instanceof Error ? error.name : "Error",
+          });
+          this.haltCapture();
+        }
+        return;
+      }
+      if (
+        !this.running ||
+        !this.isCurrentGeneration(generation) ||
+        this.identity?.sessionId !== sessionId
+      ) {
+        return;
+      }
+      if (this.foreground) {
+        this.touchPrivacyMap = deriveTouchPrivacyMap(tree);
+        this.appendCapture(tree, options, capturedAtUnixMs, true);
+      }
+    }
+    this.appendCustom(
+      SESSION_ROTATED_CUSTOM_EVENT_TAG,
+      { reason: "idle" },
+      undefined,
+      true,
+    );
   }
 
   private async completeSessionIdentityRotation(
@@ -2437,6 +2695,8 @@ export default class MobileReplayRecorder {
     this.identity = this.identityPersisted
       ? await this.sessionStore!.rotate(nowUnixMs)
       : this.ephemeralIdentity(nowUnixMs);
+    /* Before the notification, which hands the host the new id. */
+    this.sealedForIdle = false;
     this.notifySessionChange();
     this.sampled = this.identityPersisted
       ? deterministicSample(

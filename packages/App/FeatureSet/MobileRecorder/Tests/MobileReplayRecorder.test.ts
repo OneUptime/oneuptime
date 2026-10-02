@@ -1376,9 +1376,14 @@ describe("MobileReplayRecorder end-to-end", () => {
     ).toBeGreaterThanOrEqual(2);
   });
 
+  /*
+   * Four hours away is past the duration cap too, but the session ended
+   * idle long before that, so idle is the reason (see IdleRotation.test.ts
+   * for a duration-cap rotation of a session the user is still in).
+   */
   test.each([
     [30 * 60_000, "idle"],
-    [4 * 60 * 60_000, "duration"],
+    [4 * 60 * 60_000, "idle"],
   ])(
     "rotates a long-running session on resume after %sms",
     async (elapsed: number, reason: string) => {
