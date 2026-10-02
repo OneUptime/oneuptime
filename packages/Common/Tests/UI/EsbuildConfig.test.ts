@@ -384,6 +384,45 @@ describe("the frontend build config's production output settings", () => {
       ]);
     });
 
+    test("runs a frontend's additionalPlugins after the shared four, without new config keys", () => {
+      // The Dashboard passes its runtime-locales plugin this way.
+      const output: string = runNode(
+        `
+        const c = require(${JSON.stringify(ESBUILD_CONFIG)});
+        const cfg = c.createConfig({
+          serviceName: "Dashboard",
+          publicPath: "/dashboard/dist/",
+          additionalPlugins: [
+            { name: "first-extra", setup: function () {} },
+            { name: "second-extra", setup: function () {} },
+          ],
+        });
+        console.log(JSON.stringify({
+          pluginNames: cfg.plugins.map(function (p) { return p.name; }),
+          keys: Object.keys(cfg).sort(),
+        }));
+        `,
+        "production",
+      );
+      const withExtras: { pluginNames: Array<string>; keys: Array<string> } =
+        JSON.parse(output) as {
+          pluginNames: Array<string>;
+          keys: Array<string>;
+        };
+
+      expect(withExtras.pluginNames).toEqual([
+        "mermaid-prebundled",
+        "refractor-compatibility",
+        "css",
+        "file-loader",
+        "first-extra",
+        "second-extra",
+      ]);
+      expect(withExtras.keys).toEqual(
+        [...readConfig("production").keys].sort(),
+      );
+    });
+
     test("leaves the metafile gated on the analyze flag, not on NODE_ENV", () => {
       expect(readConfig("production").metafile).toBe(false);
       expect(readConfig(null).metafile).toBe(false);
