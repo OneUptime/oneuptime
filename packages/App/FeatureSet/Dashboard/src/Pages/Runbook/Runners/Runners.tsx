@@ -35,6 +35,8 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showSetupAgent, setShowSetupAgent] = useState<Runner | null>(null);
@@ -48,6 +50,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     useState<RunnerFormRestrictions>(NO_RUNNER_FORM_RESTRICTIONS);
 
   const { translateString }: UseTranslateValueResult = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   return (
     <Fragment>
@@ -200,7 +203,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               if (!item.lastAlive) {
                 return (
                   <span className="text-gray-500">
-                    {translateString("Never") || "Never"}
+                    {translator.translateText("Never")}
                   </span>
                 );
               }
@@ -229,7 +232,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               if (capabilities.length === 0) {
                 return (
                   <span className="text-gray-500">
-                    {translateString("None") || "None"}
+                    {translator.translateText("None")}
                   </span>
                 );
               }

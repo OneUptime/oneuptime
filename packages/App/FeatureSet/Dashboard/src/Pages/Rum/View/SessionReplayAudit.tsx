@@ -26,6 +26,8 @@ import {
   SessionReplayAuditSummary,
 } from "../../../Components/SessionReplay/SessionReplayAuditSummary";
 import { RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/RumMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Who watched a real end user's screen, and for how long.
@@ -69,6 +71,7 @@ interface SessionSummaryState {
 const RumApplicationSessionReplayAudit: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   // Route is ":id/session-replay-audit", so the model id is one from the end.
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const modelIdString: string = modelId.toString();
@@ -248,12 +251,18 @@ const RumApplicationSessionReplayAudit: FunctionComponent<
               if (item.viewedByApiKeyId) {
                 return (
                   <span className="text-sm text-gray-600">
-                    API key {item.viewedByApiKeyId.toString().slice(0, 8)}
+                    {translator.translateTemplate("API key {{keyId}}", {
+                      keyId: item.viewedByApiKeyId.toString().slice(0, 8),
+                    })}
                   </span>
                 );
               }
 
-              return <span className="text-sm text-gray-500">Unknown</span>;
+              return (
+                <span className="text-sm text-gray-500">
+                  {translator.translateText("Unknown")}
+                </span>
+              );
             },
           },
           {
@@ -301,7 +310,9 @@ const RumApplicationSessionReplayAudit: FunctionComponent<
               if (!item.accessReason || item.accessReason.trim().length === 0) {
                 return (
                   <span className="text-xs text-gray-500">
-                    None given (opened from the list)
+                    {translator.translateText(
+                      "None given (opened from the list)",
+                    )}
                   </span>
                 );
               }
