@@ -731,10 +731,11 @@ export const MEASUREMENT_PAGE_COPY: Record<
       "An event that never reaches this moment gets no number, rather than a zero.",
     startStateDescription: "The clock starts when the event enters this state.",
     endStateDescription: "The clock stops when the event enters this state.",
+    // A maintenance event only moves forward through its states.
     startOccurrenceDescription:
-      "An event can reach the same state again, for example when it is rescheduled. The first time is the usual choice.",
+      "Only matters if an event's timeline has the same state twice. The first time is the usual choice.",
     endOccurrenceDescription:
-      "For example, an event that ends, starts again and ends again.",
+      "Only matters if an event's timeline has the same state twice.",
     chartSummaryDescription:
       "How View Chart sums up many maintenance events. Average is the usual choice.",
   },
