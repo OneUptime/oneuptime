@@ -246,6 +246,8 @@ import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet
 import IncidentService from "Common/Server/Services/IncidentService";
 import Dictionary from "Common/Types/Dictionary";
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import {
   StoredIncidentScope,
   allSites,
@@ -1068,6 +1070,58 @@ describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers", () => {
         StatusPageSubscriberNotificationStatus.Skipped,
       subscriberNotificationStatusMessage: row.message,
     });
+  });
+});
+
+/*
+ * The default email paints the episode's new state and its severity the way
+ * the owner emails do: a dot in each one's colour and the name in a readable
+ * shade of it. The other channels carry the names as before.
+ */
+describe("IncidentEpisodeStateTimeline default email colours", () => {
+  test("sends the state's and the severity's dot and name colours", async () => {
+    const timeline: IncidentEpisodeStateTimeline = stateTimeline();
+    timeline.incidentState!.color = Blue500;
+    pendingTimelines = [timeline];
+    storedEpisode!.incidentSeverity!.color = Yellow500;
+
+    await runJob();
+
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        episodeState: STATE_NAME,
+        ...EmailColorUtil.getTemplateVariables("episodeState", Blue500),
+        episodeSeverity: EPISODE_SEVERITY,
+        ...EmailColorUtil.getTemplateVariables("episodeSeverity", Yellow500),
+      }),
+    );
+    expect(sentMail()[0]!["vars"]).toHaveProperty(
+      "episodeSeverityTextColor",
+      EmailColorUtil.getColorPair(Yellow500)!.textColor,
+    );
+    expect(JSON.stringify(sentWebhooks())).not.toContain(Blue500.toString());
+  });
+
+  test("unusable colours are left out and the names stay plain", async () => {
+    const timeline: IncidentEpisodeStateTimeline = stateTimeline();
+    timeline.incidentState!.color = new Color("#fff; position: fixed");
+    pendingTimelines = [timeline];
+    storedEpisode!.incidentSeverity!.color = new Color("tomato");
+
+    await runJob();
+
+    const vars: JSONObject = sentMail()[0]!["vars"] as JSONObject;
+
+    expect(vars["episodeState"]).toBe(STATE_NAME);
+    expect(vars["episodeSeverity"]).toBe(EPISODE_SEVERITY);
+    for (const name of [
+      "episodeStateColor",
+      "episodeStateTextColor",
+      "episodeSeverityColor",
+      "episodeSeverityTextColor",
+    ]) {
+      expect(vars).not.toHaveProperty(name);
+    }
   });
 });
 

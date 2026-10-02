@@ -17,6 +17,7 @@ import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Timezone from "Common/Types/Timezone";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 
 /*
  * Regression tests for the AlertOwner:SendCreatedResourceEmail cron's
@@ -995,7 +996,86 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
       await runWorkerTick();
 
       expect(sentVars()[0]!["severityColor"]).toBe(DEFAULT_SEVERITY_COLOR);
+      expect(sentVars()[0]!["severityTextColor"]).toBe(DEFAULT_SEVERITY_COLOR);
       expect(sentVars()[0]!["severityColor"]).not.toBe("");
+    });
+
+    /*
+     * The badge's name sits on white in the severity's colour, so a pale
+     * severity gets the nearest shade of it that reads, while the dot and
+     * the outline keep the colour itself.
+     */
+    test("the badge's name takes a readable shade of a pale severity colour", async () => {
+      alertService.findAllBy.mockResolvedValue([
+        makeAlert({ severityColor: new Color("#FACC15") }),
+      ] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]!["severityColor"]).toBe("#facc15");
+      expect(sentVars()[0]!["severityTextColor"]).toBe(
+        EmailColorUtil.getColorPair("#facc15")!.textColor,
+      );
+      expect(sentVars()[0]!["severityTextColor"]).not.toBe("#facc15");
+    });
+
+    /*
+     * Severity colours are project data and the API takes any string for
+     * them. What lands in the badge's style attribute is either a colour
+     * EmailColorUtil wrote or the slate fallback - never the raw value.
+     */
+    test.each([
+      "#fff; background-image: url(https://evil.example/t.gif)",
+      '#fff" onmouseover="alert(1)',
+      "tomato",
+    ])(
+      "the unusable severity colour %p falls back to slate",
+      async (stored: string) => {
+        alertService.findAllBy.mockResolvedValue([
+          makeAlert({ severityColor: new Color(stored) }),
+        ] as never);
+        alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+        await runWorkerTick();
+
+        expect(sentVars()[0]!["severityColor"]).toBe(DEFAULT_SEVERITY_COLOR);
+        expect(sentVars()[0]!["severityTextColor"]).toBe(
+          DEFAULT_SEVERITY_COLOR,
+        );
+        expect(sentVars()[0]).not.toHaveProperty("alertSeverityColor");
+        expect(JSON.stringify(sentVars()[0])).not.toContain(stored);
+      },
+    );
+
+    test("the Severity and Current State rows get their own colour pairs", async () => {
+      const alert: Alert = makeAlert({ severityColor: new Color("#dc2626") });
+      const state: AlertState = new AlertState();
+      state.name = "Identified";
+      state.color = new Color("#f97316");
+      alert.currentAlertState = state;
+      alertService.findAllBy.mockResolvedValue([alert] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]).toMatchObject({
+        alertSeverityColor: "#dc2626",
+        alertSeverityTextColor:
+          EmailColorUtil.getColorPair("#dc2626")!.textColor,
+        currentStateColor: "#f97316",
+        currentStateTextColor:
+          EmailColorUtil.getColorPair("#f97316")!.textColor,
+      });
+
+      const select: Record<string, unknown> = (
+        alertService.findAllBy.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      expect(select["currentAlertState"]).toEqual({ name: true, color: true });
+      expect(select["alertSeverity"]).toEqual({ name: true, color: true });
     });
 
     /*

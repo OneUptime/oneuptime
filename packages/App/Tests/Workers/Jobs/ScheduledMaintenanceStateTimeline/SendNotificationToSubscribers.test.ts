@@ -8,7 +8,9 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import URL from "Common/Types/API/URL";
+import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject } from "Common/Types/JSON";
@@ -1029,6 +1031,43 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
       unsubscribeUrl: UNSUBSCRIBE_URL,
       subscriberEmailNotificationFooterText: "Footer text",
     });
+  });
+
+  /*
+   * The default email paints the event's new state the way the owner emails
+   * paint theirs: a dot in the state's colour and the name in a readable
+   * shade of it. The other channels carry the name as before.
+   */
+  test("the default email paints the event state in its own colour", async () => {
+    pendingTimelines[0]!.scheduledMaintenanceState!.color = new Color(
+      "#22C55E",
+    );
+
+    await runJob();
+
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        eventState: STATE_NAME,
+        eventStateColor: "#22c55e",
+        eventStateTextColor: EmailColorUtil.getColorPair("#22c55e")!.textColor,
+      }),
+    );
+    expect(JSON.stringify(sentWebhooks())).not.toContain("#22c55e");
+    expect(sentSms().join(" ")).not.toContain("#22c55e");
+  });
+
+  test("an event state without a usable colour sends the plain name", async () => {
+    pendingTimelines[0]!.scheduledMaintenanceState!.color = new Color(
+      "#fff; background: url(https://evil.example/t.gif)",
+    );
+
+    await runJob();
+
+    const vars: JSONObject = sentMail()[0]!["vars"] as JSONObject;
+
+    expect(vars["eventState"]).toBe(STATE_NAME);
+    expect(vars).not.toHaveProperty("eventStateColor");
+    expect(vars).not.toHaveProperty("eventStateTextColor");
   });
 
   test("sends the webhook payload it always has, plus the description as written", async () => {

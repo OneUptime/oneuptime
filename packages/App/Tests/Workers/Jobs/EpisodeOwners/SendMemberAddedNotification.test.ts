@@ -8,7 +8,10 @@ import IncidentService from "Common/Server/Services/IncidentService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import logger from "Common/Server/Utils/Logger";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
+import Color from "Common/Types/Color";
+import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import "../../../../FeatureSet/Workers/Jobs/AlertEpisodeOwners/SendAlertAddedNotification";
 import "../../../../FeatureSet/Workers/Jobs/IncidentEpisodeOwners/SendIncidentAddedNotification";
 
@@ -151,6 +154,8 @@ interface EpisodeCase {
   stateKey: string;
   memberResourceKey: string;
   memberEpisodeKey: string;
+  // The email's list of added members.
+  listKey: string;
 }
 
 const cases: Array<EpisodeCase> = [
@@ -165,6 +170,7 @@ const cases: Array<EpisodeCase> = [
     stateKey: "currentAlertState",
     memberResourceKey: "alertId",
     memberEpisodeKey: "alertEpisodeId",
+    listKey: "alerts",
   },
   {
     name: "incident",
@@ -177,6 +183,7 @@ const cases: Array<EpisodeCase> = [
     stateKey: "currentIncidentState",
     memberResourceKey: "incidentId",
     memberEpisodeKey: "incidentEpisodeId",
+    listKey: "incidents",
   },
 ];
 
@@ -295,6 +302,100 @@ describe.each(cases)(
       expect(envelope.subject).toBe(
         `[Episode EPI-3] 1 new ${entry.name} added - Rollout of {{ .Values.image.tag }} stalled`,
       );
+    });
+
+    /*
+     * The email lists every member it adds with that member's severity, and
+     * leads with the episode's state: each one is painted in its own colour,
+     * a dot and a readable shade for the name.
+     */
+    test("paints the episode state, its severity and each member's severity in their own colours", async () => {
+      entry.findResources.mockResolvedValue([
+        {
+          id: RESOURCE_ID,
+          title: "Member notification",
+          [entry.severityKey]: {
+            name: "Member warning",
+            color: new Color("#facc15"),
+          },
+        },
+      ]);
+      entry.episodeService.findOneById.mockResolvedValue({
+        title: "Database disruption",
+        project: { name: "Acme" },
+        episodeNumber: 3,
+        episodeNumberWithPrefix: "EPI-3",
+        [entry.severityKey]: { name: "SEV 1", color: new Color("#dc2626") },
+        [entry.stateKey]: {
+          name: "Investigating",
+          color: new Color("#3b82f6"),
+        },
+      });
+
+      await handlers.get(entry.jobName)!();
+
+      expect(entry.findResources).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            [entry.severityKey]: { name: true, color: true },
+          }),
+        }),
+      );
+
+      const vars: JSONObject = (
+        (UserNotificationSettingService.sendUserNotification as jest.Mock).mock
+          .calls[0][0].emailEnvelope as EmailEnvelope
+      ).vars as JSONObject;
+
+      expect(vars).toMatchObject({
+        currentState: "Investigating",
+        ...EmailColorUtil.getTemplateVariables("currentState", "#3b82f6"),
+        episodeSeverity: "SEV 1",
+        ...EmailColorUtil.getTemplateVariables("episodeSeverity", "#dc2626"),
+      });
+
+      const members: Array<JSONObject> = vars[
+        entry.listKey
+      ] as unknown as Array<JSONObject>;
+
+      expect(members).toHaveLength(1);
+      expect(members[0]).toMatchObject({
+        [entry.severityKey]: "Member warning",
+        [`${entry.severityKey}Color`]: "#facc15",
+        [`${entry.severityKey}TextColor`]:
+          EmailColorUtil.getColorPair("#facc15")!.textColor,
+      });
+    });
+
+    test("a member or episode without a usable colour keeps its plain name", async () => {
+      entry.episodeService.findOneById.mockResolvedValue({
+        title: "Database disruption",
+        project: { name: "Acme" },
+        episodeNumber: 3,
+        episodeNumberWithPrefix: "EPI-3",
+        [entry.stateKey]: {
+          name: "Investigating",
+          color: new Color("#fff; position: fixed"),
+        },
+      });
+
+      await handlers.get(entry.jobName)!();
+
+      const vars: JSONObject = (
+        (UserNotificationSettingService.sendUserNotification as jest.Mock).mock
+          .calls[0][0].emailEnvelope as EmailEnvelope
+      ).vars as JSONObject;
+      const members: Array<JSONObject> = vars[
+        entry.listKey
+      ] as unknown as Array<JSONObject>;
+
+      expect(vars["currentState"]).toBe("Investigating");
+      expect(vars).not.toHaveProperty("currentStateColor");
+      expect(vars["episodeSeverity"]).toBe("Not Set");
+      expect(vars).not.toHaveProperty("episodeSeverityColor");
+      // The beforeEach member has a severity name and no colour.
+      expect(members[0]![entry.severityKey]).toBe("Member warning");
+      expect(members[0]).not.toHaveProperty(`${entry.severityKey}Color`);
     });
   },
 );
