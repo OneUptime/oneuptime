@@ -20048,5 +20048,11 @@
   "Requests sign in with a project API key, sent in the ApiKey header. The project comes from the key.": "Requests sign in with a project API key, sent in the ApiKey header. The project comes from the key.",
   "Start State Role": "Start State Role",
   "Terraform signs in with a project API key, and the provider points it at this OneUptime.": "Terraform signs in with a project API key, and the provider points it at this OneUptime.",
-  "skip and limit": "skip and limit"
+  "skip and limit": "skip and limit",
+  "Bold": "Bold",
+  "Indent": "Indent",
+  "Italic": "Italic",
+  "More formatting": "More formatting",
+  "Outdent": "Outdent",
+  "Upload Image": "Upload Image"
 }
