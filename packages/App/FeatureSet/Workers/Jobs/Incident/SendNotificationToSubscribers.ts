@@ -154,6 +154,7 @@ RunCron(
           },
           incidentSeverity: {
             name: true,
+            color: true,
           },
           incidentNumber: true,
           incidentNumberWithPrefix: true,

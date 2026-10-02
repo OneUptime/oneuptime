@@ -6,6 +6,7 @@ import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import SMS from "Common/Types/SMS/SMS";
@@ -153,6 +154,7 @@ RunCron(
             incidentStateId: true,
             incidentState: {
               name: true,
+              color: true,
               isCreatedState: true,
             },
           },
@@ -285,6 +287,7 @@ RunCron(
                 projectId: true,
                 incidentSeverity: {
                   name: true,
+                  color: true,
                 },
                 isVisibleOnStatusPage: true,
                 episodeNumber: true,
@@ -831,8 +834,16 @@ RunCron(
                                   resourcesAffectedHtml || "None",
                                 episodeSeverity:
                                   episode.incidentSeverity?.name || " - ",
+                                ...EmailColorUtil.getTemplateVariables(
+                                  "episodeSeverity",
+                                  episode.incidentSeverity?.color,
+                                ),
                                 episodeTitle: episode.title || "",
                                 episodeState: episodeStateName,
+                                ...EmailColorUtil.getTemplateVariables(
+                                  "episodeState",
+                                  episodeStateTimeline.incidentState?.color,
+                                ),
                                 unsubscribeUrl: unsubscribeUrl,
                                 subscriberEmailNotificationFooterText:
                                   StatusPageServiceType.getSubscriberEmailFooterText(

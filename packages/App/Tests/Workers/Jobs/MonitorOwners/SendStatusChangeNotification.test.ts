@@ -4,12 +4,14 @@ import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTim
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import { Green } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import Timezone from "Common/Types/Timezone";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 
 /*
  * Regression tests for the MonitorOwner:SendStatusChangeEmail cron's per-owner
@@ -366,8 +368,13 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
       projectName: "Acme Status",
       currentStatus: "Operational",
       currentStatusColor: Green.toString(),
+      // The readable shade of the status colour, for its name.
+      currentStatusTextColor: EmailColorUtil.getColorPair(Green)!.textColor,
+      /*
+       * No previous status, so no previous colour either: the template drops
+       * the whole previous column when previousStatus is empty.
+       */
       previousStatus: "",
-      previousStatusColor: "#94a3b8",
       previousStatusDurationText: "",
       monitorDescription: expectedDescriptionHtml,
       statusChangedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
@@ -571,5 +578,59 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
     expect(emailEnvelope.subject).toBe(
       "[Operational Monitor] {{ .Release.Name }}-api",
     );
+  });
+
+  /*
+   * The transition paints both statuses: a dot in each one's own colour and
+   * the name in a readable shade of it. A colour that is not a hex or rgb()
+   * colour never reaches the email - the old code passed it on as written.
+   */
+  describe("status colours", () => {
+    test("paints the previous and the new status in their own colours", async () => {
+      timelineService.findAllBy.mockResolvedValue([
+        makeTimeline({ id: "timeline-1" }),
+      ]);
+      const previousTimeline: MonitorStatusTimeline = new MonitorStatusTimeline(
+        new ObjectID("timeline-0"),
+      );
+      previousTimeline.monitorStatusId = new ObjectID("status-offline");
+      previousTimeline.startsAt = new Date(CHANGED_AT.getTime() - 60000);
+      timelineService.findOneBy.mockResolvedValue(previousTimeline);
+      const offline: MonitorStatus = new MonitorStatus();
+      offline.name = "Offline";
+      offline.color = new Color("#EF4444");
+      monitorStatusService.findOneById.mockResolvedValue(offline);
+      monitorService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]).toMatchObject({
+        previousStatus: "Offline",
+        previousStatusColor: "#ef4444",
+        previousStatusTextColor:
+          EmailColorUtil.getColorPair("#ef4444")!.textColor,
+        currentStatus: "Operational",
+        currentStatusColor: Green.toString(),
+        currentStatusTextColor: EmailColorUtil.getColorPair(Green)!.textColor,
+      });
+    });
+
+    test("a status colour that is not a colour is dropped, not passed on as written", async () => {
+      const timeline: MonitorStatusTimeline = makeTimeline({
+        id: "timeline-1",
+      });
+      timeline.monitorStatus!.color = new Color(
+        "#fff; background: url(https://evil.example/t.gif)",
+      );
+      timelineService.findAllBy.mockResolvedValue([timeline]);
+      monitorService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]!["currentStatus"]).toBe("Operational");
+      expect(sentVars()[0]).not.toHaveProperty("currentStatusColor");
+      expect(sentVars()[0]).not.toHaveProperty("currentStatusTextColor");
+      expect(JSON.stringify(sentVars()[0])).not.toContain("evil.example");
+    });
   });
 });

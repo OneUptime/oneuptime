@@ -17,6 +17,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
@@ -63,6 +64,7 @@ RunCron(
           },
           currentScheduledMaintenanceState: {
             name: true,
+            color: true,
           },
           scheduledMaintenanceNumber: true,
           scheduledMaintenanceNumberWithPrefix: true,
@@ -265,6 +267,10 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
         scheduledMaintenanceNumber: scheduledMaintenanceNumberStr,
         projectName: scheduledMaintenance.project!.name!,
         currentState: currentStateName,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          scheduledMaintenance.currentScheduledMaintenanceState?.color,
+        ),
         openDuration: openDuration,
         openedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
           date: openedAt,

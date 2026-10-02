@@ -16,6 +16,7 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
@@ -139,9 +140,11 @@ RunCron(
           },
           currentIncidentState: {
             name: true,
+            color: true,
           },
           incidentSeverity: {
             name: true,
+            color: true,
           },
           incidentNumber: true,
           incidentNumberWithPrefix: true,
@@ -175,6 +178,10 @@ RunCron(
           incidentNumber: incidentNumber,
           projectName: incident.project!.name!,
           currentState: incident.currentIncidentState!.name!,
+          ...EmailColorUtil.getTemplateVariables(
+            "currentState",
+            incident.currentIncidentState?.color,
+          ),
           incidentRole: roleName,
           incidentDescription: await Markdown.convertToHTML(
             incident.description! || "",
@@ -182,6 +189,10 @@ RunCron(
           ),
           resourcesAffected: resourcesAffected,
           incidentSeverity: incident.incidentSeverity!.name!,
+          ...EmailColorUtil.getTemplateVariables(
+            "incidentSeverity",
+            incident.incidentSeverity?.color,
+          ),
           incidentViewLink: (
             await IncidentService.getIncidentLinkInDashboard(
               incident.projectId!,

@@ -12,6 +12,9 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import Timezone from "Common/Types/Timezone";
+import { Red500, Yellow500 } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 
 /*
  * Regression tests for the IncidentOwner:SendCreatedResourceEmail cron's
@@ -560,5 +563,94 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
     expect(envelope.subject).toBe(
       "[New Incident #12] - Rollout of {{ .Values.image.tag }} stalled",
     );
+  });
+
+  /*
+   * The email paints the state and the severity in their own colours: a dot
+   * in the colour and the name in a readable shade of it.
+   */
+  describe("severity and state colours", () => {
+    test("reads each colour with its name", async () => {
+      await runWorkerTick();
+
+      const select: Record<string, unknown> = (
+        incidentService.findAllBy.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      expect(select["currentIncidentState"]).toEqual({
+        name: true,
+        color: true,
+      });
+      expect(select["incidentSeverity"]).toEqual({ name: true, color: true });
+    });
+
+    test("sends each one's dot colour and name colour beside its name", async () => {
+      const incident: Incident = makeIncident({});
+      incident.currentIncidentState!.color = Red500;
+      incident.incidentSeverity!.color = Yellow500;
+      incidentService.findAllBy.mockResolvedValue([incident]);
+      incidentService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]).toMatchObject({
+        currentState: "Identified",
+        currentStateColor: Red500.toString(),
+        currentStateTextColor: EmailColorUtil.getColorPair(Red500)!.textColor,
+        incidentSeverity: "Major",
+        incidentSeverityColor: Yellow500.toString(),
+        incidentSeverityTextColor:
+          EmailColorUtil.getColorPair(Yellow500)!.textColor,
+      });
+    });
+
+    test("an unusable colour is left out, so the email shows the plain name", async () => {
+      const incident: Incident = makeIncident({});
+      incident.currentIncidentState!.color = new Color("transparent");
+      incident.incidentSeverity!.color = new Color("#fff; position: fixed");
+      incidentService.findAllBy.mockResolvedValue([incident]);
+      incidentService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+
+      await runWorkerTick();
+
+      const vars: Dictionary<string> = sentVars()[0]!;
+
+      expect(vars["currentState"]).toBe("Identified");
+      expect(vars["incidentSeverity"]).toBe("Major");
+      for (const name of [
+        "currentStateColor",
+        "currentStateTextColor",
+        "incidentSeverityColor",
+        "incidentSeverityTextColor",
+      ]) {
+        expect(vars).not.toHaveProperty(name);
+      }
+    });
+
+    test("every owner gets the same colours", async () => {
+      const incident: Incident = makeIncident({});
+      incident.incidentSeverity!.color = Yellow500;
+      incidentService.findAllBy.mockResolvedValue([incident]);
+      incidentService.findOwners.mockResolvedValue([
+        makeOwner("user-1"),
+        makeOwner("user-2", Timezone.AmericaNew_York),
+      ]);
+
+      await runWorkerTick();
+
+      const colours: Array<string | undefined> = sentVars().map(
+        (vars: Dictionary<string>): string | undefined => {
+          return vars["incidentSeverityTextColor"];
+        },
+      );
+
+      expect(colours).toHaveLength(2);
+      expect(new Set(colours).size).toBe(1);
+      expect(colours[0]).toBe(
+        EmailColorUtil.getColorPair(Yellow500)!.textColor,
+      );
+    });
   });
 });
