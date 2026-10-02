@@ -51,7 +51,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/mobile-recorder-package"
           cd packages/App/FeatureSet/MobileRecorder
-          npm install
+          bash "$GITHUB_WORKSPACE/Scripts/GHA/npm_install.sh" install
           npm run compile
           npm pack --pack-destination "$RUNNER_TEMP/mobile-recorder-package"
 
@@ -94,10 +94,10 @@ jobs:
       - name: Install app and packed SDK
         run: |
           cd packages/MobileApp
-          npm install
+          bash "$GITHUB_WORKSPACE/Scripts/GHA/npm_install.sh" install
           package_file="$(find "$RUNNER_TEMP/mobile-recorder-package" -type f -name '*.tgz' -print -quit)"
           test -f "$package_file"
-          npm install --no-save --package-lock=false "$package_file"
+          bash "$GITHUB_WORKSPACE/Scripts/GHA/npm_install.sh" install --no-save --package-lock=false "$package_file"
 
           # The checkout remains unchanged. This temporary manifest entry makes
           # Expo treat the no-save install as a direct consumer dependency so
@@ -151,7 +151,7 @@ jobs:
           mkdir -p "$consumer_dir"
           cd "$consumer_dir"
           npm init --yes
-          npm install --no-save --package-lock=false --legacy-peer-deps "$package_file"
+          bash "$GITHUB_WORKSPACE/Scripts/GHA/npm_install.sh" install --no-save --package-lock=false --legacy-peer-deps "$package_file"
 
       - name: Compile native library against React Native 0.73
         run: |
@@ -184,10 +184,10 @@ jobs:
       - name: Install app and packed SDK
         run: |
           cd packages/MobileApp
-          npm install
+          bash "$GITHUB_WORKSPACE/Scripts/GHA/npm_install.sh" install
           package_file="$(find "$RUNNER_TEMP/mobile-recorder-package" -type f -name '*.tgz' -print -quit)"
           test -f "$package_file"
-          npm install --no-save --package-lock=false "$package_file"
+          bash "$GITHUB_WORKSPACE/Scripts/GHA/npm_install.sh" install --no-save --package-lock=false "$package_file"
 
           # See the Android job: this entry exists only in the runner checkout
           # and lets Expo autolink the package installed from the real tarball.

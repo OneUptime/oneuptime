@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# Unit tests for Scripts/GHA/npm_install.sh and .github/actions/npm-install.
+# Unit tests for Scripts/GHA/npm_install.sh and .github/actions/npm-install,
+# and a guard that every workflow installs through them.
 #
 # On 2026-10-01 a connection the registry dropped mid-download failed two jobs
 # in two minutes, because nothing retried their `npm install`. The helper
@@ -473,6 +474,39 @@ assert_eq "0 [ci]	[--ignore-scripts]" "${STATUS} $(cut -f 2- "$CALL_LOG")" "pass
 touch "${WORK_DIR}/package.json"
 run_action install "  -g   depcheck *.json "
 assert_eq "0 [install]	[-g]	[depcheck]	[*.json]" "${STATUS} $(cut -f 2- "$CALL_LOG")" "splits args on whitespace, without globbing"
+
+echo ""
+echo "workflows install through the helper"
+
+# A bare `npm install` or `npm ci` in a workflow is one dropped connection away
+# from failing its job, which is what 2026-10-01 was. Every workflow and
+# action is read except the npm-install action itself, which names the
+# command in its prose. Comments, and the name and description fields, are
+# prose too and are skipped.
+WORKFLOW_FILES=()
+for file in "${REPO_ROOT}"/.github/workflows/*.yml "${REPO_ROOT}"/.github/workflows/*.yaml "${REPO_ROOT}"/.github/actions/*/action.yml; do
+	[[ -e "$file" && "$file" != */.github/actions/npm-install/* ]] && WORKFLOW_FILES+=("$file")
+done
+
+# A grep that cannot search (exit 2) must fail the check, not pass it.
+MATCHES="$(grep -HnE '(^|[^[:alnum:]_./-])npm[[:space:]]+(install|i|ci|clean-install|install-clean|add)([[:space:]]|$)' "${WORKFLOW_FILES[@]}")"
+GREP_STATUS=$?
+BARE_INSTALLS="$(printf '%s\n' "$MATCHES" | grep -vE '^[^:]+:[0-9]+:[[:space:]]*(#|(- )?(name|description):)' | sed "s#^${REPO_ROOT}/##")"
+if ((GREP_STATUS > 1)); then
+	fail "could not search the workflows for npm install (grep exit ${GREP_STATUS})"
+elif [[ -z "$BARE_INSTALLS" ]]; then
+	pass "none of the ${#WORKFLOW_FILES[@]} workflows and actions runs npm install or npm ci directly"
+else
+	fail "these run npm install or npm ci directly; use ./.github/actions/npm-install, or Scripts/GHA/npm_install.sh inside a run block:
+${BARE_INSTALLS}"
+fi
+
+USES="$(grep -hoE 'uses: \./\.github/actions/npm-install' "${WORKFLOW_FILES[@]}" | wc -l | tr -d ' ')"
+if ((USES > 0)); then
+	pass "workflows install through ./.github/actions/npm-install (${USES} steps)"
+else
+	fail "no workflow uses ./.github/actions/npm-install, so the check above proves nothing"
+fi
 
 echo ""
 if ((FAIL > 0)); then

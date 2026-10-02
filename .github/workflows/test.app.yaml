@@ -69,8 +69,15 @@ jobs:
       - run: cd packages/Common && bash test-setup.sh
       # App tests import Common sources directly (jest maps Common/* to
       # ../Common), so Common's own dependencies must be installed too.
-      - run: cd packages/Common && npm install
-      - run: cd packages/App && npm install && npm run test
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+      - name: Install App dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App
+      - run: cd packages/App && npm run test
 
   session-replay-ui:
     name: Session Replay UI
@@ -92,15 +99,19 @@ jobs:
       # These browser tests render Dashboard sources with fixture API data.
       # They need the frontend dependencies, but no test database or Docker stack.
       - name: Install shared dependencies
-        working-directory: packages/Common
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
       - name: Install Dashboard dependencies
-        working-directory: packages/App/FeatureSet/Dashboard
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/Dashboard
       - name: Install browser test dependencies
-        working-directory: packages/E2E
-        # Skip the preinstall hook that downloads every browser; this suite uses Chromium.
-        run: npm install --ignore-scripts
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          # Skip the preinstall hook that downloads every browser; this suite uses Chromium.
+          args: --ignore-scripts
       - name: Install Chromium
         working-directory: packages/E2E
         run: npx playwright install --with-deps chromium
@@ -144,18 +155,23 @@ jobs:
       # Each suite bundles real Dashboard / Status Page sources with esbuild and
       # serves them against fixture data on 127.0.0.1: no database or Docker stack.
       - name: Install shared dependencies
-        working-directory: packages/Common
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
       - name: Install Dashboard dependencies
-        working-directory: packages/App/FeatureSet/Dashboard
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/Dashboard
       - name: Install Status Page dependencies
-        working-directory: packages/App/FeatureSet/StatusPage
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/StatusPage
       - name: Install browser test dependencies
-        working-directory: packages/E2E
-        # Skip the preinstall hook that downloads every browser.
-        run: npm install --ignore-scripts
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          # Skip the preinstall hook that downloads every browser.
+          args: --ignore-scripts
       - name: Install browsers
         working-directory: packages/E2E
         # The Alerts suite also runs in Firefox; every other suite is Chromium only.
