@@ -19,6 +19,11 @@ import TelemetryActiveFilterChips from "./components/TelemetryActiveFilterChips"
 import { TelemetrySignal } from "../../../Utils/Telemetry/LockedFilterSearch";
 import TelemetryHistogram from "./components/TelemetryHistogram";
 import TelemetryPagination from "./components/TelemetryPagination";
+import TelemetryResultTotal from "./components/TelemetryResultTotal";
+import {
+  ResultTotal,
+  ResultTotalStatus,
+} from "../../Utils/Telemetry/ResultTotal";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Icon from "../Icon/Icon";
@@ -147,7 +152,24 @@ export interface TelemetryViewerProps<T> {
   // -- Pagination --
   page: number;
   pageSize: number;
+  /*
+   * How many rows the query matches — or, for a list read from an analytics
+   * endpoint, the lower bound that endpoint answers with (see `hasMore`).
+   */
   totalCount: number;
+  /*
+   * Whether rows follow this page, for a list whose endpoint answers with
+   * that instead of a total (the analytics list endpoints skip COUNT(*)).
+   * Set, and with no exact `resultTotal`, the footer pages forward while
+   * more rows follow and prints no "of N" and no page numbers.
+   */
+  hasMore?: boolean | undefined;
+  /*
+   * The size of the whole result set, worked out apart from the list (see
+   * UseResultTotal). Set, the list opens with it — "712,345 spans",
+   * "Counting spans…" — and the footer numbers its pages once it is exact.
+   */
+  resultTotal?: ResultTotal | undefined;
   pageSizeOptions?: Array<number> | undefined;
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
@@ -207,6 +229,28 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
   const facetPanelId: string = useId();
 
   const showFacetToggle: boolean = showFacets && !props.mainContentOverride;
+
+  /*
+   * The total the footer may number its pages by. A caller tracking the
+   * result total supplies it once exact; one that only says "more follow"
+   * has none; one that says neither passes an exact count (a Postgres-backed
+   * list), as every explorer used to.
+   */
+  const exactTotalCount: number | undefined = props.resultTotal
+    ? props.resultTotal.status === ResultTotalStatus.Exact
+      ? props.resultTotal.count || 0
+      : undefined
+    : props.hasMore === undefined
+      ? props.totalCount
+      : undefined;
+
+  const rowsThroughPage: number =
+    (Math.max(props.page, 1) - 1) * props.pageSize + props.items.length;
+
+  // Not over an empty list: its empty state already says there is nothing.
+  const showResultTotal: boolean = Boolean(
+    props.resultTotal && !props.error && props.items.length > 0,
+  );
 
   const viewer: ReactElement = (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-3">
@@ -383,6 +427,16 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
           className="flex min-w-0 flex-1 flex-col rounded-lg border border-gray-200 bg-white"
           data-testid={TELEMETRY_VIEWER_LIST_TEST_ID}
         >
+          {showResultTotal && props.resultTotal && (
+            <div className="border-b border-gray-100 px-4 py-2">
+              <TelemetryResultTotal
+                total={props.resultTotal}
+                rowsThroughPage={rowsThroughPage}
+                itemLabel={props.itemLabel}
+              />
+            </div>
+          )}
+
           {props.error && (
             <div className="p-4">
               <ErrorMessage message={props.error} />
@@ -426,9 +480,26 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             </div>
           )}
 
+          {/*
+           * An exact total numbers the pages. Without one the footer does not
+           * print the endpoint's lower bound as if it were a total ("of 51"):
+           * it pages forward while more rows follow.
+           */}
           <TelemetryPagination
             currentPage={props.page}
-            totalItems={props.totalCount}
+            totalItems={
+              exactTotalCount === undefined ? props.totalCount : exactTotalCount
+            }
+            hasMore={
+              exactTotalCount === undefined
+                ? props.hasMore ?? props.items.length >= props.pageSize
+                : undefined
+            }
+            itemsOnCurrentPage={
+              props.resultTotal || props.hasMore !== undefined
+                ? props.items.length
+                : undefined
+            }
             pageSize={props.pageSize}
             pageSizeOptions={props.pageSizeOptions || DEFAULT_PAGE_SIZE_OPTIONS}
             onPageChange={props.onPageChange}

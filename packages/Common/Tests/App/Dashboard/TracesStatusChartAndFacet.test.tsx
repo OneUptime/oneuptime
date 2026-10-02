@@ -425,7 +425,8 @@ describe("TracesViewer — span status in the chart, the facets and the search h
      * nothing.
      */
     expect(series).toEqual([OK_SERIES, UNSET_SERIES, ERROR_SERIES]);
-    expect(lastViewerProps().histogramTitle).toBe("Traces over time");
+    // Every span is counted, so the bars are spans (issue #4202).
+    expect(lastViewerProps().histogramTitle).toBe("Spans over time");
 
     for (const option of series) {
       expect(option.color).not.toBe(OLD_UNSET_GREY);
