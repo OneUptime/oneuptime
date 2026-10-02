@@ -17,7 +17,7 @@ import { FeedOptions } from "../../../UI/Components/Feed/FeedOptions";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "../../../UI/Components/Feed/useFeedOptions";
-import MoreMenu from "../../../UI/Components/MoreMenu/MoreMenu";
+import FeedActionsMenu from "../../../UI/Components/Feed/FeedActionsMenu";
 import MoreMenuItem from "../../../UI/Components/MoreMenu/MoreMenuItem";
 
 jest.mock("react-i18next", () => {
@@ -81,10 +81,7 @@ const Harness: React.FunctionComponent<HarnessProps> = (
       onRefresh={props.onRefresh}
       actions={
         props.withActions ? (
-          <MoreMenu
-            key="actions"
-            elementToBeShownInsteadOfButton={<span>Actions</span>}
-          >
+          <FeedActionsMenu key="actions">
             {[
               <MoreMenuItem
                 key="note"
@@ -93,7 +90,7 @@ const Harness: React.FunctionComponent<HarnessProps> = (
                 onClick={() => {}}
               />,
             ]}
-          </MoreMenu>
+          </FeedActionsMenu>
         ) : undefined
       }
     >

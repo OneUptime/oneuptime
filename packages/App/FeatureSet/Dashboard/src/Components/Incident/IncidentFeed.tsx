@@ -24,15 +24,14 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
-import Icon from "Common/UI/Components/Icon/Icon";
 import RunbookPicker from "../Runbook/RunbookPicker";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
 import FeedCard from "Common/UI/Components/Feed/FeedCard";
+import FeedActionsMenu from "Common/UI/Components/Feed/FeedActionsMenu";
 import {
   getFeedEventTypeQuery,
   getFeedNoItemsMessage,
@@ -236,19 +235,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       feedOptions={feedOptions}
       onRefresh={refresh}
       actions={
-        <MoreMenu
-          key="incident-feed-actions-menu"
-          elementToBeShownInsteadOfButton={
-            <div className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none">
-              <Icon icon={IconProp.Bolt} className="h-4 w-4 text-gray-500" />
-              <span>Actions</span>
-              <Icon
-                icon={IconProp.ChevronDown}
-                className="h-3.5 w-3.5 text-gray-400 ml-0.5"
-              />
-            </div>
-          }
-        >
+        <FeedActionsMenu key="incident-feed-actions-menu">
           <MoreMenuItem
             key="incident-action-run-runbook"
             text="Execute Runbook"
@@ -281,7 +268,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
               setShowPrivateNoteModal(true);
             }}
           />
-        </MoreMenu>
+        </FeedActionsMenu>
       }
     >
       <div>

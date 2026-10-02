@@ -59,7 +59,7 @@ interface FeedEventTypeSpec {
 }
 
 /*
- * Every dashboard activity feed that gets the "Filter & Sort" button. Each
+ * Every dashboard activity feed that gets the event type filter. Each
  * one's event types become a checklist, so every label below has to read well
  * and be told apart from its neighbours. "the feed inventory" below checks
  * this table against the models on disk, so a new feed model cannot slip
@@ -174,7 +174,7 @@ const MODELS_DIRECTORY: string = path.resolve(
 
 /*
  * A feed model is recognised by the enum of event types its timeline holds;
- * that enum is exactly what the "Filter & Sort" checklist is built from.
+ * that enum is exactly what the event type filter's checklist is built from.
  */
 const FEED_EVENT_TYPE_ENUM_PATTERN: RegExp =
   /export enum (\w+FeedEventType)\b/g;

@@ -8,6 +8,8 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import fs from "fs";
+import path from "path";
 import React from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -264,5 +266,56 @@ describe("a feed's ⋯ is the table's card-header ⋯", () => {
 
     expect(feedTrigger.textContent).toBe("");
     expect(feedTrigger).toHaveAttribute("aria-haspopup", "menu");
+  });
+});
+
+/*
+ * The parity above holds because there is one component for a card header's
+ * ⋯, and both draw it. These keep it that way: a table or a feed that went
+ * back to its own MoreMenu could restyle its ⋯ apart from the other's.
+ */
+describe("one component for every card header's ⋯", () => {
+  const COMPONENTS: string = path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "..",
+    "UI",
+    "Components",
+  );
+
+  const read: (relativePath: string) => string = (
+    relativePath: string,
+  ): string => {
+    return fs.readFileSync(path.join(COMPONENTS, relativePath), "utf8");
+  };
+
+  test("the table's card header draws its ⋯ with CardMoreMenu, and no MoreMenu of its own", () => {
+    const source: string = read("ModelTable/BaseModelTable.tsx");
+
+    expect(source).toContain(
+      'import CardMoreMenu from "../Card/CardMoreMenu";',
+    );
+    expect(source).toMatch(/<CardMoreMenu key="model-table-more-menu">/);
+    expect(source).not.toMatch(/<MoreMenu\b/);
+  });
+
+  test("a feed's ⋯ is CardMoreMenu too", () => {
+    const source: string = read("Feed/FeedMoreMenu.tsx");
+
+    expect(source).toContain(
+      'import CardMoreMenu from "../Card/CardMoreMenu";',
+    );
+    expect(source).toMatch(/<CardMoreMenu>/);
+    expect(source).not.toMatch(/<MoreMenu\b/);
+  });
+
+  test("CardMoreMenu is the three-dots button with no label", () => {
+    const source: string = read("Card/CardMoreMenu.tsx");
+
+    expect(source).toMatch(
+      /<MoreMenu menuIcon=\{IconProp\.EllipsisHorizontal\} text="">/,
+    );
   });
 });
