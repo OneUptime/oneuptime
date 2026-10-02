@@ -6498,7 +6498,6 @@
   "Optional. Leave empty to show this incident on, and notify the subscribers of, every status page that lists its monitors. When you pick pages, only the picked pages among those are used. Use the Labels tab to add every page with a label.": "選填。留空時，此事件會顯示在列出其監測器的每個狀態頁面上，並通知這些頁面的訂閱者。選擇頁面後，只會使用其中所選的頁面。使用「標籤」分頁可加入帶有某個標籤的所有頁面。",
   "Every status page that lists the monitors": "列出這些監測器的所有狀態頁面",
   "Optional. Incidents declared from this template are limited to these status pages: they show on, and notify the subscribers of, only these pages among the status pages that list their monitors.": "選填。以此範本宣告的事件將僅限於這些狀態頁面：在列出其監測器的狀態頁面中，只會顯示在這些頁面上，也只會通知這些頁面的訂閱者。",
-  "No status pages to pick from. If this project has status pages, you need a role that can read them, such as Status Page Viewer (it can be limited to pages with certain labels). Ask a project admin.": "沒有可選擇的狀態頁面。如果此專案有狀態頁面，您需要可以讀取它們的角色，例如 Status Page Viewer（可限定為帶有特定標籤的頁面）。請洽專案管理員。",
   "Not limited: shown on, and notifies, every status page that lists its monitors.": "未限定：顯示在列出其監測器的每個狀態頁面上，並通知這些頁面的訂閱者。",
   "A monitor's status is shared by every status page that lists it. Changing it here also changes it on status pages this incident is not limited to.": "監測器的狀態由列出它的所有狀態頁面共用。在此變更後，此事件未限定的狀態頁面上也會一併變更。",
   "Private incidents are hidden from all status pages, including the ones this incident is limited to, and notify no subscribers.": "私人事件會在所有狀態頁面上隱藏（包括此事件限定的頁面），也不會通知任何訂閱者。",

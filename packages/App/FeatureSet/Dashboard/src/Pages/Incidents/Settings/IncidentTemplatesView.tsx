@@ -38,14 +38,10 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
 import {
-  StatusPagePickerAccessHint,
   TranslatedScopeNotice,
   TranslatedScopeText,
 } from "../../../Components/Incident/IncidentStatusPageScopeNotices";
 import { isScopedToDeletedStatusPages } from "../../../Components/Incident/IncidentStatusPageScopeForm";
-import useStatusPagePickerAccess, {
-  StatusPagePickerAccess,
-} from "../../../Components/Incident/useStatusPagePickerAccess";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
 import IncidentCustomFieldsCopy from "../../../Components/Incident/IncidentCustomFieldsCopy";
@@ -57,10 +53,6 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const currentProjectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-  // Picking status pages needs status page read access (see the hint).
-  const statusPagePickerAccess: StatusPagePickerAccess =
-    useStatusPagePickerAccess();
 
   return (
     <Fragment>
@@ -545,9 +537,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             required: false,
             placeholder: IncidentStatusPageScopeCopy.pickerPlaceholder,
-            footerElement: (
-              <StatusPagePickerAccessHint access={statusPagePickerAccess} />
-            ),
           },
         ]}
         modelDetailProps={{
