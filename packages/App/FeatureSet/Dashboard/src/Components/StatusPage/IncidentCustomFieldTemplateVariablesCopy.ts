@@ -1,9 +1,8 @@
 /*
  * The text under a subscriber notification template's variable reference
- * for an incident event: the warning that custom fields and the affected
- * status pages are internal data, and the project's incident custom fields
- * with the template variable each is placed by
- * (IncidentCustomFieldTemplateVariables).
+ * for an incident event: who may place custom fields and labels, and the
+ * project's incident custom fields with the template variable each is
+ * placed by (IncidentCustomFieldTemplateVariables).
  *
  * Kept in one React-free module so the component renders these exact strings
  * and App/Tests/Dashboard/IncidentCustomFieldTemplateVariablesI18n can check
@@ -17,8 +16,6 @@
  */
 
 export const IncidentCustomFieldTemplateVariablesCopy: {
-  internalDataWarningTitle: string;
-  internalDataWarning: string;
   placementPermission: string;
   customFieldsTitle: string;
   customFieldsDescription: string;
@@ -31,9 +28,6 @@ export const IncidentCustomFieldTemplateVariablesCopy: {
   noCustomFields: string;
   customFieldsUnavailable: string;
 } = {
-  internalDataWarningTitle: "Internal data",
-  internalDataWarning:
-    "Custom field values and the list of affected status pages come from your team's incident records. The subscribers of a status page are usually outside your team, and the affected status pages name every audience the incident reaches. Place them only in templates whose subscribers may see them.",
   // The save refuses it otherwise (SubscriberTemplateIncidentRecordAccess).
   placementPermission:
     "Only someone who can read every incident and its custom fields can save a template that places a custom field or the incident's labels. The status page roles on their own cannot add them.",
