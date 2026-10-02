@@ -153,6 +153,8 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import ConnectedWorkspaces from "@oneuptime/dashboard/Utils/Workspace/ConnectedWorkspaces";
 
 const EDITOR: Array<string> = [Permission.ProjectAdmin];
 // May read the team's rules but not change them.
@@ -263,6 +265,16 @@ const withPaused: (settingIds: Array<string>) => TeamComplianceStatusJSON = (
 beforeEach(() => {
   capturedFormModal = null;
   mockPermissions = [];
+  /*
+   * Both chat workspaces connected, so the rule form offers everything.
+   * Recorded rather than asked, so no test counts that request as its own.
+   */
+  window.localStorage.clear();
+  ConnectedWorkspaces.reset();
+  ConnectedWorkspaces.setConnected(PROJECT_ID, [
+    WorkspaceType.Slack,
+    WorkspaceType.MicrosoftTeams,
+  ]);
   jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
   jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(TEAM_ID);
@@ -278,6 +290,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
+  ConnectedWorkspaces.setFetcher(null);
+  ConnectedWorkspaces.reset();
 });
 
 describe("reading the status", () => {
@@ -2031,6 +2045,147 @@ describe("pausing and resuming a rule", () => {
       }),
     ).toHaveAttribute("aria-checked", "true");
     expect(apiGet).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * A rule about Slack or Microsoft Teams in a project that never connected
+ * it is a rule nobody can meet, so a new rule offers them only for the
+ * workspaces the project has connected, as every Workspace menu does. An
+ * edit offers everything, so a saved rule still shows what it asks for.
+ */
+describe("Slack and Microsoft Teams in the rule form", () => {
+  type OfferedChoices = { ruleTypes: Array<unknown>; channels: Array<unknown> };
+
+  const offeredChoices: () => OfferedChoices = (): OfferedChoices => {
+    const fields: Array<{
+      field?: Record<string, unknown>;
+      cardSelectOptions?: Array<{ options: Array<{ value: unknown }> }>;
+      dropdownOptions?: Array<{ value: unknown }>;
+    }> = (capturedFormModal?.formProps?.fields || []) as Array<{
+      field?: Record<string, unknown>;
+      cardSelectOptions?: Array<{ options: Array<{ value: unknown }> }>;
+      dropdownOptions?: Array<{ value: unknown }>;
+    }>;
+
+    const ruleTypeField: (typeof fields)[number] | undefined = fields.find(
+      (field: (typeof fields)[number]): boolean => {
+        return Boolean(field.field?.["ruleType"]);
+      },
+    );
+    const channelsField: (typeof fields)[number] | undefined = fields.find(
+      (field: (typeof fields)[number]): boolean => {
+        return Boolean(field.field?.["notificationChannels"]);
+      },
+    );
+
+    return {
+      ruleTypes: (ruleTypeField?.cardSelectOptions || []).flatMap(
+        (group: { options: Array<{ value: unknown }> }): Array<unknown> => {
+          return group.options.map((option: { value: unknown }): unknown => {
+            return option.value;
+          });
+        },
+      ),
+      channels: (channelsField?.dropdownOptions || []).map(
+        (option: { value: unknown }): unknown => {
+          return option.value;
+        },
+      ),
+    };
+  };
+
+  test("a new rule in a Slack-only project offers Slack, and not Microsoft Teams", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID, [WorkspaceType.Slack]);
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
+
+    const offered: OfferedChoices = offeredChoices();
+
+    expect(offered.ruleTypes).toContain(
+      ComplianceRuleType.HasNotificationSlackMethod,
+    );
+    expect(offered.ruleTypes).not.toContain(
+      ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
+    );
+    expect(offered.channels).toContain(ComplianceNotificationChannel.Slack);
+    expect(offered.channels).not.toContain(
+      ComplianceNotificationChannel.MicrosoftTeams,
+    );
+    // Everything else is offered as before.
+    expect(offered.ruleTypes).toContain(
+      ComplianceRuleType.HasNotificationCallMethod,
+    );
+    expect(offered.channels).toContain(ComplianceNotificationChannel.Call);
+  });
+
+  test("a new rule in a project with neither connected offers neither", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID, []);
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
+
+    const offered: OfferedChoices = offeredChoices();
+
+    expect(offered.ruleTypes).not.toContain(
+      ComplianceRuleType.HasNotificationSlackMethod,
+    );
+    expect(offered.ruleTypes).not.toContain(
+      ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
+    );
+    expect(offered.channels).not.toContain(ComplianceNotificationChannel.Slack);
+    expect(offered.channels).not.toContain(
+      ComplianceNotificationChannel.MicrosoftTeams,
+    );
+    expect(offered.ruleTypes).toHaveLength(11);
+    expect(offered.channels).toHaveLength(7);
+  });
+
+  test("editing a rule offers everything, so it still shows what it was saved with", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID, []);
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: `Edit ${CALL_LABEL}` }));
+
+    const offered: OfferedChoices = offeredChoices();
+
+    expect(offered.ruleTypes).toContain(
+      ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
+    );
+    expect(offered.channels).toContain(ComplianceNotificationChannel.Slack);
+    expect(offered.ruleTypes).toHaveLength(13);
+    expect(offered.channels).toHaveLength(9);
+  });
+
+  test("the page asks which workspaces are connected once, as it opens", async () => {
+    ConnectedWorkspaces.reset();
+    const fetcher: jest.Mock = jest.fn(
+      async (): Promise<Array<WorkspaceType>> => {
+        return [WorkspaceType.MicrosoftTeams];
+      },
+    );
+    ConnectedWorkspaces.setFetcher(fetcher as never);
+    mockPermissions = EDITOR;
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(offeredChoices().channels).toContain(
+      ComplianceNotificationChannel.MicrosoftTeams,
+    );
+    expect(offeredChoices().channels).not.toContain(
+      ComplianceNotificationChannel.Slack,
+    );
   });
 });
 
