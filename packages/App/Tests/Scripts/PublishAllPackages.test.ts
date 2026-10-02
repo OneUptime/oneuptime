@@ -127,14 +127,35 @@ describe("PublishAllPackages", () => {
       "utf8",
     );
 
-    expect(compileWorkflow).toContain("compile-mobile-recorder:");
-    expect(compileWorkflow).toContain(
-      "cd packages/App/FeatureSet/MobileRecorder && npm install && npm run compile && npm run build",
+    /*
+     * Each job installs the package's own dependencies first - a step of its
+     * own, through ./.github/actions/npm-install, which retries a network
+     * failure - and then compiles, or tests, the package.
+     */
+    const install: RegExp =
+      /uses: \.\/\.github\/actions\/npm-install\s+with:\s+working-directory: packages\/App\/FeatureSet\/MobileRecorder\s/;
+    const jobKey: RegExp = /\n {2}[A-Za-z0-9_-]+:\n/;
+
+    const compileJob: string = compileWorkflow.slice(
+      compileWorkflow.indexOf("\n  compile-mobile-recorder:\n") + 1,
     );
+    const compile: number = compileJob.indexOf(
+      "cd packages/App/FeatureSet/MobileRecorder && npm run compile && npm run build",
+    );
+
+    expect(compileJob.startsWith("  compile-mobile-recorder:\n")).toBe(true);
+    expect(compileJob.search(install)).toBeGreaterThan(-1);
+    expect(compile).toBeGreaterThan(compileJob.search(install));
+    // The install and the compile are both compile-mobile-recorder's steps.
+    expect(compileJob.slice(1, compile)).not.toMatch(jobKey);
+
+    const test: number = testWorkflow.indexOf(
+      "cd packages/App/FeatureSet/MobileRecorder && npm run test",
+    );
+
     expect(testWorkflow).toContain("name: Mobile Recorder Test");
-    expect(testWorkflow).toContain(
-      "cd packages/App/FeatureSet/MobileRecorder && npm install && npm run test",
-    );
+    expect(testWorkflow.search(install)).toBeGreaterThan(-1);
+    expect(test).toBeGreaterThan(testWorkflow.search(install));
   });
 
   it("builds generated distribution files as part of npm packing", () => {

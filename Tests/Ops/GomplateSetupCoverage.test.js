@@ -47,6 +47,13 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const yaml = require("js-yaml");
 
+const {
+  NPM_INSTALL_ACTION,
+  isNpmInstallStep,
+  stepCommand,
+  stepWorkingDirectory,
+} = require("./Utils/WorkflowStep");
+
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const WORKFLOWS_DIR = ".github/workflows";
 const ACTIONS_DIR = ".github/actions";
@@ -543,18 +550,10 @@ function followNpm(root, args, cwd, stack) {
  */
 
 /*
- * What a step runs as shell: its `run`, or the `command` of a
+ * What a step runs as shell is stepCommand (Utils/WorkflowStep): its `run`,
+ * the npm command of an npm-install step, or the `command` of a
  * nick-fields/retry step.
  */
-function stepCommand(step) {
-  if (typeof step.run === "string") {
-    return step.run;
-  }
-  if (step.with && typeof step.with.command === "string") {
-    return step.with.command;
-  }
-  return "";
-}
 
 function stepLabel(steps, index) {
   const step = steps[index];
@@ -563,11 +562,16 @@ function stepLabel(steps, index) {
 }
 
 function workingDirectory(workflow, job, step) {
-  const configured =
-    step["working-directory"] ??
-    job.defaults?.run?.["working-directory"] ??
-    workflow.defaults?.run?.["working-directory"] ??
-    "";
+  /*
+   * An npm-install step installs in its own `working-directory` input, the
+   * root by default: `defaults.run` applies to `run` steps, not to `uses`.
+   */
+  const configured = isNpmInstallStep(step)
+    ? stepWorkingDirectory(step)
+    : step["working-directory"] ??
+      job.defaults?.run?.["working-directory"] ??
+      workflow.defaults?.run?.["working-directory"] ??
+      "";
   const resolved = resolvePath("", String(configured));
   return resolved === null ? "" : resolved;
 }
@@ -806,7 +810,7 @@ describe("every CI job that reaches configure.sh sets up the pinned gomplate fir
     expect(stale).toEqual([]);
   });
 
-  test("no local composite action reaches configure.sh (the walk does not follow `uses: ./.github/actions/...`)", () => {
+  test("no local composite action reaches configure.sh (the walk does not follow `uses: ./.github/actions/...`, except to read an npm-install step as the npm command it runs)", () => {
     const reaching = actionFiles.filter((file) => {
       const steps = (readYaml(file).runs || {}).steps || [];
       return steps.some((step) => {
@@ -928,6 +932,46 @@ describe("the walk from a step to configure.sh", () => {
   test("follows a script run from its step's working directory", () => {
     expect(reaches("bash test-setup.sh", "packages/Common")).toBe(true);
     expect(reaches("bash test-setup.sh")).toBe(false);
+  });
+
+  test("reads an npm-install step as the npm command it runs, in the directory it is given", () => {
+    const reachesStep = (step, job = {}) => {
+      return (
+        reachesConfigure(
+          root,
+          stepCommand(step),
+          workingDirectory({}, job, step),
+          "run",
+        ) !== null
+      );
+    };
+    const install = {
+      uses: NPM_INSTALL_ACTION,
+      with: { "working-directory": "packages/Postinstall" },
+    };
+
+    // Its install runs the package's postinstall, which reaches configure.sh.
+    expect(reachesStep(install)).toBe(true);
+    expect(
+      reachesStep({
+        ...install,
+        with: { ...install.with, command: "ci" },
+      }),
+    ).toBe(true);
+    // --ignore-scripts runs no lifecycle script.
+    expect(
+      reachesStep({
+        ...install,
+        with: { ...install.with, command: "ci", args: "--ignore-scripts" },
+      }),
+    ).toBe(false);
+    // With no directory it installs at the root; a job's run default is not its.
+    expect(
+      reachesStep(
+        { uses: NPM_INSTALL_ACTION },
+        { defaults: { run: { "working-directory": "packages/Postinstall" } } },
+      ),
+    ).toBe(false);
   });
 
   test.each([
