@@ -152,6 +152,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Incident Severity",
@@ -454,6 +457,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: MonitorStatus,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Monitor Status",

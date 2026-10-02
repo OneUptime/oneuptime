@@ -154,6 +154,9 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
               type: IncidentState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
           },
           {

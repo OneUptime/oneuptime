@@ -1,15 +1,13 @@
 import logger from "../Utils/Logger";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import QueryHelper from "../Types/Database/QueryHelper";
-import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import StateOrderGuard from "../Utils/Database/StateOrderGuard";
 import TeamComplianceSettingService from "./TeamComplianceSettingService";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
 import { ComplianceSeverityKind } from "../../Types/Team/ComplianceRule";
 import Model from "../../Models/DatabaseModels/AlertSeverity";
 import Queue, { QueueName } from "../Infrastructure/Queue";
@@ -26,8 +24,6 @@ const BACKFILL_NOTIFICATION_RULES_JOB_NAME: string =
 
 // What a delete carries from onBeforeDelete to onDeleteSuccess.
 interface SeverityDeleteCarryForward {
-  // The deleted severity, for re-ranking the rest; signed-in deletes only.
-  alertSeverity: Model | null;
   // Team compliance rules scoped only to severities this delete removes.
   complianceSettingIds: Array<string>;
 }
@@ -37,23 +33,21 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  /*
+   * A severity created without a place goes to the end of the list - the
+   * least severe - and one created with a number takes that place, the ones
+   * in the way stepping down: DatabaseService keeps the order
+   * (@ListOrderColumn), for the dashboard, the API and Terraform alike.
+   */
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    if (!createBy.data.order) {
-      throw new BadDataException("Alert severity order is required");
-    }
-
-    if (!createBy.data.projectId) {
-      throw new BadDataException("Alert severity projectId is required");
-    }
-
-    await this.rearrangeOrder(
-      createBy.data.order,
-      createBy.data.projectId,
-      true,
-    );
+    await StateOrderGuard.beforeCreate({
+      service: this,
+      definition: STATE_LISTS[StateListType.AlertSeverity],
+      createBy: createBy,
+    });
 
     return {
       createBy: createBy,
@@ -119,7 +113,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnDelete<Model>> {
     if (!deleteBy.query._id && !deleteBy.props.isRoot) {
       throw new BadDataException(
-        "_id should be present when deleting alert states. Please try the delete with objectId",
+        "_id should be present when deleting alert severities. Please try the delete with objectId",
       );
     }
 
@@ -132,7 +126,6 @@ export class Service extends DatabaseService<Model> {
       query: deleteBy.query,
       select: {
         _id: true,
-        order: true,
         projectId: true,
       },
       limit: deleteBy.limit,
@@ -143,8 +136,6 @@ export class Service extends DatabaseService<Model> {
     });
 
     const carryForward: SeverityDeleteCarryForward = {
-      // Only a signed-in delete re-ranks the severities that remain.
-      alertSeverity: deleteBy.props.isRoot ? null : severities[0] || null,
       complianceSettingIds:
         await TeamComplianceSettingService.getRulesScopedToAnyOf({
           severityKind: ComplianceSeverityKind.Alert,
@@ -166,17 +157,6 @@ export class Service extends DatabaseService<Model> {
     const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
     const carryForward: SeverityDeleteCarryForward | null =
       (onDelete.carryForward as SeverityDeleteCarryForward | null) || null;
-    const alertSeverity: Model | null = carryForward?.alertSeverity || null;
-
-    if (!deleteBy.props.isRoot && alertSeverity) {
-      if (alertSeverity && alertSeverity.order && alertSeverity.projectId) {
-        await this.rearrangeOrder(
-          alertSeverity.order,
-          alertSeverity.projectId,
-          false,
-        );
-      }
-    }
 
     /*
      * The severity is gone, so a compliance rule that was scoped only to it
@@ -206,80 +186,6 @@ export class Service extends DatabaseService<Model> {
       deleteBy: deleteBy,
       carryForward: null,
     };
-  }
-
-  @CaptureSpan()
-  protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>,
-  ): Promise<OnUpdate<Model>> {
-    if (updateBy.data.order && !updateBy.props.isRoot) {
-      throw new BadDataException(
-        "Alert Severity order should not be updated. Delete this alert state and create a new state with the right order.",
-      );
-    }
-
-    return { updateBy, carryForward: null };
-  }
-
-  private async rearrangeOrder(
-    currentOrder: number,
-    projectId: ObjectID,
-    increaseOrder: boolean = true,
-  ): Promise<void> {
-    // get alert with this order.
-    const alertSeverities: Array<Model> = await this.findBy({
-      query: {
-        order: QueryHelper.greaterThanEqualTo(currentOrder),
-        projectId: projectId,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      sort: {
-        order: SortOrder.Ascending,
-      },
-    });
-
-    let newOrder: number = currentOrder;
-
-    for (const alertSeverity of alertSeverities) {
-      if (increaseOrder) {
-        newOrder = alertSeverity.order! + 1;
-      } else {
-        newOrder = alertSeverity.order! - 1;
-      }
-
-      /*
-       * Concurrent deletes (e.g. Terraform destroying several items in
-       * parallel) can soft-delete a row between the findBy above and
-       * this update; save() would then INSERT with a null projectId and
-       * fail the whole delete with a 500. A row that vanished
-       * mid-rearrange needs no repositioning - skip it.
-       */
-      try {
-        await this.updateOneBy({
-          query: {
-            _id: alertSeverity._id!,
-          },
-          data: {
-            order: newOrder,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      } catch (err) {
-        logger.warn(
-          `rearrange: skipping row (likely deleted concurrently): ${err}`,
-        );
-      }
-    }
   }
 }
 export default new Service();

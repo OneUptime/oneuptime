@@ -329,7 +329,7 @@ If you are coming from a tool with declarative measurement definitions, these ma
 | Time to Mitigate        | Timeline Start → State Entered (a **Mitigated** state you add between Acknowledged and Resolved) |
 | Time to Resolve         | Timeline Start → State Role Entered (resolved)                                      |
 
-Time to Mitigate needs a state that does not exist by default. Add it on **Incidents → Settings → Incident State** — the ordered list lets you insert a state between two existing ones, and everything after it shifts down.
+Time to Mitigate needs a state that does not exist by default. Add it on **Incidents → Settings → Incident State** — a new state is added just above the resolved state, and you can drag it anywhere between the others.
 
 **One thing to know about history.** A definition you create today fills in for past incidents in the background, and those stored values appear on each incident. Charted history fills forward from the moment you create the definition; individual past incidents also refresh on their next state change.
 

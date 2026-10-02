@@ -55,7 +55,7 @@ That distinction matters more than it sounds:
 
 **Note the naming.** The first seeded state is named **Identified**, even though several descriptions inside the product still call it the created state. If you are looking for "Created" in your project's state list, it is the row named **Identified**.
 
-You can add your own states at **Incidents → Settings → Incident State**. New states are appended to the end of the ordered list and you can drag to reorder. The three flagged states cannot be deleted — OneUptime blocks it — but you can rename and recolor them, which is why the UI reads state names dynamically.
+You can add your own states at **Incidents → Settings → Incident State**. A new state is added just above the resolved state, and you drag the rows to reorder them; the **Counts as** column shows what an incident in each state counts as — not acknowledged, acknowledged or resolved. The three flagged states are tagged **Built-in**: they keep their order and cannot be deleted, but you can rename, recolor and move them, which is why the UI reads state names dynamically.
 
 Order is enforced, not cosmetic: an incident cannot move to a state that sits earlier in the order than its current one.
 

@@ -271,6 +271,9 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               type: ScheduledMaintenanceState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Maintenance State",
@@ -360,6 +363,9 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
               type: ScheduledMaintenanceState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Maintenance State",

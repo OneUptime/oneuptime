@@ -279,6 +279,9 @@ const IncidentMeasurementsPage: FunctionComponent<
               type: IncidentState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Incident State",
@@ -361,6 +364,9 @@ const IncidentMeasurementsPage: FunctionComponent<
               type: IncidentState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Incident State",

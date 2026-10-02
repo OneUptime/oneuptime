@@ -145,6 +145,9 @@ const EpisodeCreate: FunctionComponent<
                     type: AlertSeverity,
                     labelField: "name",
                     valueField: "_id",
+                    sort: {
+                      order: SortOrder.Ascending,
+                    },
                   },
                   required: false,
                   placeholder: "Alert Severity",

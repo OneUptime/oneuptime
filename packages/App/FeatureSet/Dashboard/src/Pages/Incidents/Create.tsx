@@ -1396,6 +1396,9 @@ const IncidentCreate: FunctionComponent<
                     type: IncidentSeverity,
                     labelField: "name",
                     valueField: "_id",
+                    sort: {
+                      order: SortOrder.Ascending,
+                    },
                   },
                   required: true,
                   placeholder: "Incident Severity",
@@ -1803,6 +1806,9 @@ const IncidentCreate: FunctionComponent<
                     type: MonitorStatus,
                     labelField: "name",
                     valueField: "_id",
+                    sort: {
+                      priority: SortOrder.Ascending,
+                    },
                   },
                   required: false,
                   placeholder: "Monitor Status",

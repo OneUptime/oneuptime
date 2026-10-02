@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { PROJECT_SWITCHED_CHANNELS, getRuleTypeIcon } from "./ComplianceView";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -409,6 +410,9 @@ export const getComplianceRuleFormFields: () => Array<
         type: IncidentSeverity,
         labelField: "name",
         valueField: "_id",
+        sort: {
+          order: SortOrder.Ascending,
+        },
       },
       placeholder: "All incident severities",
       required: false,
@@ -429,6 +433,9 @@ export const getComplianceRuleFormFields: () => Array<
         type: AlertSeverity,
         labelField: "name",
         valueField: "_id",
+        sort: {
+          order: SortOrder.Ascending,
+        },
       },
       placeholder: "All alert severities",
       required: false,
