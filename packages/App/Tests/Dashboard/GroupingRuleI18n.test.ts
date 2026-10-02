@@ -149,29 +149,20 @@ describe("the grouping rule pages draw their copy from the shared constants", ()
   test.each([
     ["Incidents", "IncidentGroupingRules.tsx", "GroupingRuleKind.Incident"],
     ["Alerts", "AlertGroupingRules.tsx", "GroupingRuleKind.Alert"],
-  ])(
-    "%s/Settings/%s",
-    (folder: string, file: string, kind: string) => {
-      const source: string = readSource("Pages", folder, "Settings", file);
+  ])("%s/Settings/%s", (folder: string, file: string, kind: string) => {
+    const source: string = readSource("Pages", folder, "Settings", file);
 
-      expect(source).toContain(`const KIND: GroupingRuleKind = ${kind};`);
-      expect(source).toContain(
-        "description: GROUPING_RULE_COPY.cardDescription[KIND],",
-      );
-      expect(source).toContain(
-        "title: GROUPING_RULE_COPY.groupingStepTitle,",
-      );
-      expect(source).toContain(
-        "title: GROUPING_RULE_COPY.whichStepTitle[KIND],",
-      );
-      expect(source).toContain(
-        "title: GROUPING_RULE_COPY.summaryColumnTitle,",
-      );
-      expect(source).toContain(
-        "placeholder: GROUPING_RULE_TEMPLATES[0]!.name[KIND],",
-      );
-    },
-  );
+    expect(source).toContain(`const KIND: GroupingRuleKind = ${kind};`);
+    expect(source).toContain(
+      "description: GROUPING_RULE_COPY.cardDescription[KIND],",
+    );
+    expect(source).toContain("title: GROUPING_RULE_COPY.groupingStepTitle,");
+    expect(source).toContain("title: GROUPING_RULE_COPY.whichStepTitle[KIND],");
+    expect(source).toContain("title: GROUPING_RULE_COPY.summaryColumnTitle,");
+    expect(source).toContain(
+      "placeholder: GROUPING_RULE_TEMPLATES[0]!.name[KIND],",
+    );
+  });
 
   test("the Group-by cards are translated before CardSelect draws them", () => {
     const source: string = readSource(
@@ -210,7 +201,9 @@ describe("the grouping rule pages draw their copy from the shared constants", ()
       "MinutesSettingField.tsx",
     );
 
-    expect(source).toContain("translateTemplateAround( props.sentence, \"minutes\", )");
+    expect(source).toContain(
+      'translateTemplateAround( props.sentence, "minutes", )',
+    );
     expect(source).toContain("title={translate(props.title)}");
     expect(source).toContain("description={translate(props.description)}");
     expect(source).toContain("ariaLabel={translate(props.minutesLabel)}");
@@ -227,5 +220,46 @@ describe("the grouping rule pages draw their copy from the shared constants", ()
       "const translate: GroupingRuleTranslateFunction = useGroupingRuleTranslate();",
     );
     expect(source).toContain("getGroupingRuleSummary({");
+  });
+});
+
+/*
+ * The tables' own chrome - the card title, the create button, the create and
+ * edit dialog titles - is built from the model's names. Those titles had
+ * been translated word by word ("Vorfall Grouping Regeln"), and the create
+ * and edit phrases had no entry, so the button read "Erstellen Vorfall
+ * Grouping Regel". Each is now a whole phrase in every language.
+ */
+describe("the grouping rule tables' titles and create and edit phrases", () => {
+  const PHRASES: Array<string> = [
+    "Incident Grouping Rules",
+    "Incident Grouping Rule",
+    "Create Incident Grouping Rule",
+    "Create New Incident Grouping Rule",
+    "Edit Incident Grouping Rule",
+    "Alert Grouping Rules",
+    "Alert Grouping Rule",
+    "Create Alert Grouping Rule",
+    "Create New Alert Grouping Rule",
+    "Edit Alert Grouping Rule",
+  ];
+
+  const en: Record<string, unknown> = readLocale("en");
+
+  test.each(PHRASES)("en.json maps %j to itself", (text: string) => {
+    expect(en[text]).toBe(text);
+  });
+
+  describe.each(OTHER_LOCALES)("%s", (locale: string) => {
+    const translations: Record<string, unknown> = readLocale(locale);
+
+    test.each(PHRASES)("translates %j whole", (text: string) => {
+      const value: unknown = translations[text];
+
+      expect(typeof value).toBe("string");
+      expect(value).not.toBe(text);
+      // No English word left behind in the middle of the phrase.
+      expect(value as string).not.toMatch(/Grouping|Rule/);
+    });
   });
 });
