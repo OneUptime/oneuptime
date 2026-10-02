@@ -30,6 +30,7 @@
  * esbuild-locales.d.ts.
  */
 
+const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
@@ -161,6 +162,10 @@ function parseLocaleText(text, filePath) {
   return parsed;
 }
 
+function digestOf(text) {
+  return crypto.createHash("sha1").update(text).digest("base64");
+}
+
 function assertNonEmptyString(value, name) {
   if (typeof value !== "string" || value.trim() === "") {
     throw new Error(`createRuntimeLocalesPlugin: "${name}" is required.`);
@@ -191,11 +196,11 @@ function createRuntimeLocalesPlugin(options) {
 
   /*
    * In watch mode esbuild calls onLoad again on every rebuild, and parsing
-   * seventeen 2 MB files is most of a rebuild. A result is kept with the
-   * texts it was made from and reused while they are unchanged.
+   * seventeen 2 MB files is most of a rebuild. A result is kept with digests
+   * of the texts it was made from and reused while they are unchanged.
    */
   const results = new Map();
-  const parsedFallback = { text: undefined, tree: undefined };
+  const parsedFallback = { digest: undefined, tree: undefined };
 
   return {
     name: RUNTIME_LOCALES_PLUGIN_NAME,
@@ -213,22 +218,19 @@ function createRuntimeLocalesPlugin(options) {
         const isFallback = language === fallbackLanguage;
         const text = fs.readFileSync(args.path, "utf8");
         const fallbackText = isFallback
-          ? undefined
+          ? ""
           : fs.readFileSync(fallbackPath, "utf8");
-
+        const fallbackDigest = isFallback ? "" : digestOf(fallbackText);
+        const inputs = `${digestOf(text)} ${fallbackDigest}`;
         const cached = results.get(args.path);
 
-        if (
-          cached &&
-          cached.text === text &&
-          cached.fallbackText === fallbackText
-        ) {
+        if (cached && cached.inputs === inputs) {
           return cached.result;
         }
 
-        if (!isFallback && parsedFallback.text !== fallbackText) {
+        if (!isFallback && parsedFallback.digest !== fallbackDigest) {
           parsedFallback.tree = parseLocaleText(fallbackText, fallbackPath);
-          parsedFallback.text = fallbackText;
+          parsedFallback.digest = fallbackDigest;
         }
 
         const result = {
@@ -245,11 +247,7 @@ function createRuntimeLocalesPlugin(options) {
           watchFiles: isFallback ? [] : [fallbackPath],
         };
 
-        results.set(args.path, {
-          text: text,
-          fallbackText: fallbackText,
-          result: result,
-        });
+        results.set(args.path, { inputs: inputs, result: result });
 
         return result;
       });
