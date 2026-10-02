@@ -39,7 +39,7 @@ Open **Dashboards** in the left navigation.
 | Page                     | What you do there                                                      |
 | ------------------------ | ---------------------------------------------------------------------- |
 | **Dashboards**           | Your list of dashboards. Create a new one, search, or filter by label. |
-| **Archived**             | Dashboards you archived. Unarchive them from here.                     |
+| **Advanced → Archived**  | Dashboards you archived. Unarchive them from here.                     |
 | **Dashboard → View**     | The canvas. Toggle between **Edit** and **View** in the header.        |
 | **Dashboard → Overview** | Description, owners, and labels.                                       |
 | **Dashboard → Settings** | Public sharing, password, IP allowlist, custom domain, branding.       |

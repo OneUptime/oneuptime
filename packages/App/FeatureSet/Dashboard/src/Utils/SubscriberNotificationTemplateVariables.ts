@@ -25,13 +25,15 @@ export const getSubscriberNotificationTemplateVariablesDocumentation: (
    * Every incident event also offers the incident's labels, the status pages
    * it is on, and its custom fields (see SubscriberNotificationTemplateVariables).
    * The custom fields are a family of variables, one per field, so they are
-   * one row here with the key left open; the template form lists the
-   * project's fields and their keys under this reference
-   * (IncidentCustomFieldTemplateVariables).
+   * one row here with the key left open, named after the incident as in a
+   * note template: {{incident.customFields.<key>}}. The template form lists
+   * the project's fields and their variables under this reference
+   * (IncidentCustomFieldTemplateVariables). Templates saved with the older
+   * {{customFields.<key>}} are still filled, but it is not shown here.
    */
   const incidentVariablesRows: string = `| \`{{incidentLabels}}\` | Labels of the incident, separated by commas |
-| \`{{affectedStatusPages}}\` | Names of every status page the incident is shown on, separated by commas. Internal: it names the status pages of every audience the incident reaches |
-| \`{{customFields.<key>}}\` | The value of an incident custom field, by the field's Template Variable key. Internal: any custom field can be placed, whether or not it is marked to be included in subscriber notifications |`;
+| \`{{affectedStatusPages}}\` | Names of every status page the incident is shown on, separated by commas |
+| \`{{incident.customFields.<key>}}\` | The value of an incident custom field. Each field's variable is listed below |`;
 
   /*
    * Messages about the subscription itself are not about any resource, so

@@ -596,7 +596,7 @@ describe("an incident template's page: the Custom Fields on Create card", () => 
     });
   }
 
-  test("is the settings card in template mode, for this template", async () => {
+  test("is the settings card, for this template", async () => {
     await renderViewPage();
 
     expect(recordedSettingsCards).not.toHaveLength(0);
@@ -604,8 +604,12 @@ describe("an incident template's page: the Custom Fields on Create card", () => 
     const card: Record<string, unknown> =
       recordedSettingsCards[recordedSettingsCards.length - 1]!;
 
-    expect(card["mode"]).toBe("template");
-    expect(card["modelType"]).toBe(IncidentTemplate);
+    /*
+     * Templates are the card's only use now that incident forms became
+     * Forms: there is no mode or model to hand it.
+     */
+    expect(card["mode"]).toBeUndefined();
+    expect(card["modelType"]).toBeUndefined();
     expect(String(card["modelId"])).toBe(TEMPLATE_ID);
     // Its own title and description: "Custom Fields on Create".
     expect(card["title"]).toBeUndefined();

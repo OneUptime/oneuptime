@@ -40,7 +40,7 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
  * orient a new user, by mounting the real components and reading them the
  * way a user would:
  *
- *  - the Products menu groups 41 products into small, named sections, with
+ *  - the Products menu groups 42 products into small, named sections, with
  *    the core products first and in the order a problem flows through them;
  *  - Home explains how the core products fit together;
  *  - Help links to the documentation.
@@ -382,7 +382,7 @@ describe("Products menu sections", () => {
     ]);
   });
 
-  test("regrouping lost no product: all 41 are still listed exactly once", () => {
+  test("regrouping lost no product: all 42 are still listed exactly once", () => {
     openProductsMenu();
 
     const titles: Array<string> = readMenuSections().flatMap(
@@ -390,10 +390,14 @@ describe("Products menu sections", () => {
         return section.items;
       },
     );
-    // 41, not 42: Code Repositories became a page of Tasks.
-    expect(titles).toHaveLength(41);
-    expect(new Set(titles).size).toBe(41);
+    /*
+     * 42: Code Repositories became a page of Tasks, and Forms (which
+     * replaced Incidents > Settings > Forms) became a product.
+     */
+    expect(titles).toHaveLength(42);
+    expect(new Set(titles).size).toBe(42);
     expect(titles).not.toContain("Code Repositories");
+    expect(titles).toContain("Forms");
   });
 });
 

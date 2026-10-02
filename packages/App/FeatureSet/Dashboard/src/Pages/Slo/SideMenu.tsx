@@ -22,19 +22,6 @@ const SloSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Gauge,
         },
-        /*
-         * Archived SLOs are filtered out of the list above, so without this
-         * entry the only way back to one would be its URL.
-         */
-        {
-          link: {
-            title: "Archived",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SLOS_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
-        },
       ],
     },
     /*
@@ -65,6 +52,25 @@ const SloSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Tag,
+        },
+      ],
+    },
+    /*
+     * The way back to archived SLOs, which the list leaves out. Few visits need
+     * it, so it waits in Advanced: folded away until opened, and open by itself
+     * on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLOS_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
         },
       ],
     },

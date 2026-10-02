@@ -1,5 +1,4 @@
 import IncidentCustomFieldsCopy from "./IncidentCustomFieldsCopy";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import {
   INCIDENT_NOTE_TEMPLATE_VARIABLES,
   IncidentNoteTemplateVariableInfo,
@@ -13,10 +12,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * never pass through the translation lookup, which would take their braces
  * for placeholders of its own.
  *
- * Below them, a warning: the same template fills public notes, which are
- * shown on status pages and emailed to their subscribers, and the custom
- * field, label and status page placeholders read the team's incident
- * records - every custom field, whether or not it is marked for subscribers.
+ * Just the list, with no warning under it: the yellow box titled Internal
+ * data that sat here was taken out as clutter, and App/Tests/Dashboard/
+ * InternalDataWarningRemoved keeps it out.
  */
 const IncidentNoteTemplatePlaceholders: FunctionComponent =
   (): ReactElement => {
@@ -43,16 +41,6 @@ const IncidentNoteTemplatePlaceholders: FunctionComponent =
             },
           )}
         </ul>
-        <div className="mt-3">
-          <Alert
-            type={AlertType.WARNING}
-            dataTestId="incident-note-template-internal-data-warning"
-            strongTitle={
-              IncidentCustomFieldsCopy.noteTemplateInternalDataWarningTitle
-            }
-            title={IncidentCustomFieldsCopy.noteTemplateInternalDataWarning}
-          />
-        </div>
       </div>
     );
   };

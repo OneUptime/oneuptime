@@ -2,9 +2,9 @@
 
 Declaring an incident is the moment OneUptime starts keeping score. A record is created, a number is stamped on it, on-call policies fire, and — unless you tell it otherwise — your status page subscribers hear about it. Everything else in the incident lifecycle hangs off that first write.
 
-There are five ways an incident gets into OneUptime, and they all end up in the same place: a row in the `Incident` table with a severity, a current state, and a list of affected resources. The difference is only who fills in the fields — you at 3am, a saved template, a monitor's criteria, your own code calling the API, or somebody outside your team filling in an incident form.
+There are five ways an incident gets into OneUptime, and they all end up in the same place: a row in the `Incident` table with a severity, a current state, and a list of affected resources. The difference is only who fills in the fields — you at 3am, a saved template, a monitor's criteria, your own code calling the API, or somebody outside your team filling in a form.
 
-This page walks through all five — the first four field by field, incident forms in brief — and then covers what the server fills in for you and what fires the moment the incident exists.
+This page walks through all five — the first four field by field, forms in brief — and then covers what the server fills in for you and what fires the moment the incident exists.
 
 ## Five ways an incident gets declared
 
@@ -14,7 +14,7 @@ This page walks through all five — the first four field by field, incident for
 | Open a recurring kind of incident with the fields pre-filled | **Create from Template**                                                    |
 | Open one automatically when a monitor's checks fail          | A monitor criteria filter with **When filters match, declare an incident.** |
 | Open one from your own code, a script, or another tool       | `POST /api/incident`                                                        |
-| Let people outside your team report a problem through a link | An [incident form](/docs/incidents/forms)                                   |
+| Let people outside your team report a problem through a link | A [form](/docs/forms/index)                                                 |
 
 All five write the same model, so an incident opened by a probe looks exactly like one a responder opened by hand — apart from a few bookkeeping columns the server sets on automatic ones.
 
@@ -84,7 +84,7 @@ This is the only place an on-call policy is attached to an incident directly. Se
 
 The **Should be visible on status page?** flag (`isVisibleOnStatusPage`) is not on the wizard; it defaults to true. Change it afterwards from **Settings** in the incident side menu, where it is labeled **Visible on Status Page**.
 
-**Declaring hidden and publishing later.** An incident that is hidden from status pages when it is created tells no subscriber, and its notification status reads **Skipped: hidden from status pages**. When you later turn **Visible on Status Page** on, the edit form offers **Notify subscribers that this incident was created**, so the routine of declaring hidden, working out who is affected and then publishing still tells them. It starts ticked while the incident is unresolved and unticked once it is resolved, so publishing an old incident for the record does not announce it as new. It is only offered when the incident was declared with **Notify Status Page Subscribers** on and is not private — so not for an incident reported through an [incident form](/docs/incidents/forms), which is declared hidden with it off. Through the API, send `"miscDataProps": {"notifySubscribersOfIncidentCreatedOnPublish": true}` with the update that sets `isVisibleOnStatusPage` to `true`, or set `subscriberNotificationStatusOnIncidentCreated` back to `Pending` yourself.
+**Declaring hidden and publishing later.** An incident that is hidden from status pages when it is created tells no subscriber, and its notification status reads **Skipped: hidden from status pages**. When you later turn **Visible on Status Page** on, the edit form offers **Notify subscribers that this incident was created**, so the routine of declaring hidden, working out who is affected and then publishing still tells them. It starts ticked while the incident is unresolved and unticked once it is resolved, so publishing an old incident for the record does not announce it as new. It is only offered when the incident was declared with **Notify Status Page Subscribers** on and is not private — so not for an incident reported through a [form](/docs/forms/on-submit), which is declared hidden with it off. Through the API, send `"miscDataProps": {"notifySubscribersOfIncidentCreatedOnPublish": true}` with the update that sets `isVisibleOnStatusPage` to `true`, or set `subscriberNotificationStatusOnIncidentCreated` back to `Pending` yourself.
 
 ## Declaring from a template
 
@@ -115,11 +115,11 @@ Templates are built with their own six-step wizard — **Template Info**, **Inci
 A few quick rules:
 
 - Templates are not editable from the templates list — you create one, then open it to change it.
-- A template only fills a field you left empty. On the create page the template is applied as a pre-fill you can overwrite; on the server — for a workflow or an incident form that declares from a template — a field is filled from the template only when the request left that field `undefined`. Whatever the caller supplied always wins.
+- A template only fills a field you left empty. On the create page the template is applied as a pre-fill you can overwrite; on the server — for a workflow or a form that declares from a template — a field is filled from the template only when the request left that field `undefined`. Whatever the caller supplied always wins.
 - The **Details** step follows the template's **Custom Fields on Create**, as [described above](#details-your-incident-custom-fields).
 - Custom field values merge one field at a time. A template's values fill in the custom fields the incident is declared without; a value set on the **Details** step, or sent in the request's `customFields`, always wins — `0`, `false` and `null` included. A field copied from a monitor custom field still takes the monitor's value.
 - An existing template's custom field values are on its **Custom Fields** card, next to its other cards.
-- The template's **Owner - Teams** and **Owner - Users** are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. Declaring from a template in the dashboard adds them without the "you were added" notification; an [incident form](/docs/incidents/forms) with a template notifies them, and holds the incident's **Incident created** notification until they are added, so it goes to them rather than to the project's owners.
+- The template's **Owner - Teams** and **Owner - Users** are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. Declaring from a template in the dashboard adds them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added, so it goes to them rather than to the project's owners.
 
 ## Declaring automatically from monitor criteria
 
@@ -164,15 +164,15 @@ Useful fields on the request body:
 - `statusPages` — the ids of the status pages to limit the incident to, all from the same project. Leave it out to reach every status page that lists the incident's monitors. `isScopedToStatusPages` is worked out from it, and a value you send for that is ignored. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - `customFields` — the incident's custom field values, keyed by each field's name. Each value you send must fit its field — a number for a **Number** field, one of the options for a **Dropdown (single select)** — or the request is refused with a `400` error naming the field. **Required on Create** is not checked here. See [Custom field values through the API](/docs/incidents/settings#custom-field-values-through-the-api).
 
-An API key cannot declare from a template: a request that sends `createdIncidentTemplateId` is refused. OneUptime sets that column itself, for a workflow's **Create One Incident** step and for incidents reported through an [incident form](/docs/incidents/forms). To declare from a template over the API, read the template from `/api/incident-templates` and send its values in the request.
+An API key cannot declare from a template: a request that sends `createdIncidentTemplateId` is refused. OneUptime sets that column itself, for a workflow's **Create One Incident** step and for incidents reported through a [form](/docs/forms/on-submit). To declare from a template over the API, read the template from `/api/incident-templates` and send its values in the request.
 
 Related endpoints are `/api/incident-state`, `/api/incident-severity` and `/api/incident-state-timeline`. The generated [API reference](/reference) has the exact request and response shapes for each, including how relation fields such as monitors are expressed.
 
-## Reporting through an incident form
+## Reporting through a form
 
-The fifth way in is for people outside your team. An incident form is a page you share as a link: anyone who has it can report a problem without a OneUptime account, and each submission declares an incident. You decide what the form asks — always a title, and a description and custom fields if you want them — and give it a severity and, if you like, an incident template to declare from.
+The fifth way in is for people outside your team. A form is a page you share as a link: anyone who has it can report a problem without a OneUptime account, and each submission declares an incident. You build what the form asks — a title, a description, a severity, monitors, custom fields, questions of your own — and decide how the answers become the incident: a default severity, an incident template to declare from, and monitors, labels, on-call policies and owners to always add.
 
-Incidents reported this way are declared hidden from status pages, with **Notify Status Page Subscribers** off, so a responder triages them before anything is public, and a private note records who reported them. Forms live at **Incidents → Settings → Forms**; see [Incident Forms](/docs/incidents/forms).
+Incidents reported this way are declared hidden from status pages, with **Notify Status Page Subscribers** off, so a responder triages them before anything is public, and a private note records who reported them. Forms are a product of their own, under **Forms** in the products menu, and can schedule maintenance events too; see [Forms](/docs/forms/index).
 
 ## Incident numbers and prefixes
 
@@ -187,7 +187,7 @@ The number appears as the first column of the incidents list, links to the incid
 The create call does more than write a row. In order:
 
 1. **The server fills the gaps.** `declaredAt` defaults to now, the current state defaults to the project's `isCreatedState` state, and the incident number and prefixed number are assigned from the project counter.
-2. **A template is applied**, when a workflow or an incident form declares the incident from one (`createdIncidentTemplateId`) without naming a state — filling only fields the caller left undefined. The dashboard applies a template in the form instead, before the request is sent.
+2. **A template is applied**, when a workflow or a form declares the incident from one (`createdIncidentTemplateId`) without naming a state — filling only fields the caller left undefined. The dashboard applies a template in the form instead, before the request is sent.
 3. **Privacy rules run**, marking the incident private when a matching rule says so. This is the first rule engine to run, so everything after it sees the right privacy setting.
 4. **Owner rules run**, adding the owner users and teams that matching rules name.
 5. **Label rules run**, adding labels that match the incident.
@@ -205,7 +205,7 @@ From there the incident is live: it counts toward the **Active Incidents** badge
 - [Incident States & Severities](/docs/incidents/states-and-severities) — what the state flags do and how to add your own.
 - [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — public notes, private notes, owners and the activity feed.
 - [Incident Settings & Automation](/docs/incidents/settings) — templates, custom fields, roles, rules and workflow triggers.
-- [Incident Forms](/docs/incidents/forms) — letting people outside your team report an incident through a link.
+- [Forms](/docs/forms/index) — letting people outside your team report an incident through a link.
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — who hears about the incident you just declared.
 - [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) — limiting an incident to some of the status pages that list its monitors.
 - [Incident & Alert Templating](/docs/monitor/incident-alert-templating) — the variables available to auto-declared incidents.

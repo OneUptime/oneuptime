@@ -13,7 +13,6 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
@@ -28,18 +27,20 @@ import React, {
 /*
  * Under a subscriber notification template's variable reference, for an
  * incident event: the project's incident custom fields, each with the
- * {{customFields.<key>}} variable that places its value, and whether it is
- * already in the default messages (Include in Subscriber Notifications).
+ * {{incident.customFields.<key>}} variable that places its value - the same
+ * name a note template uses - and whether it is already in the default
+ * messages (Include in Subscriber Notifications).
  *
  * The reference names the variable family with its key left open; only the
- * project knows its keys, so they are read here. Above them is a warning:
- * custom field values and {{affectedStatusPages}} are internal data that a
- * template author could send to people outside the team - and a line saying
+ * project knows its keys, so they are read here. Above them is a line saying
  * who may place custom fields and labels at all, which the save enforces.
+ * No warning box opens the panel: the yellow one titled Internal data was
+ * taken out as clutter, and App/Tests/Dashboard/InternalDataWarningRemoved
+ * keeps it out.
  *
  * Reading the fields needs a permission and a plan with custom fields; when
- * that fails the warning still shows, with a line saying the fields could
- * not be listed.
+ * that fails the permission line still shows, with a line saying the fields
+ * could not be listed.
  */
 
 export interface ComponentProps {
@@ -160,13 +161,6 @@ const IncidentCustomFieldTemplateVariables: FunctionComponent<
       className="space-y-3"
       data-testid="incident-custom-field-template-variables"
     >
-      <Alert
-        type={AlertType.WARNING}
-        dataTestId="incident-template-variables-internal-data-warning"
-        strongTitle={copy.internalDataWarningTitle}
-        title={copy.internalDataWarning}
-      />
-
       <p
         className="text-xs text-gray-600"
         data-testid="incident-template-variables-placement-permission"
