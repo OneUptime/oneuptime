@@ -51,6 +51,8 @@ import MetricExplorerUrl, {
   SerializedMetricQuery,
 } from "../../../Utils/Metrics/MetricExplorerUrl";
 import { describe, expect, test } from "@jest/globals";
+import { getMetadataArgsStorage } from "typeorm";
+import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 
 /*
  * The plain-language half of the three Measurements pages: what the form
@@ -113,6 +115,36 @@ describe.each(FORMS)("$label measurement form", (entry: FormCase) => {
     expect(model.hasColumn(MEASUREMENT_PRESET_FIELD_KEY)).toBe(false);
     expect(form.start.moment).toBe(MEASUREMENT_START_MOMENT_FIELD_KEY);
     expect(form.end.moment).toBe(MEASUREMENT_END_MOMENT_FIELD_KEY);
+  });
+
+  test("starts a new measurement with the defaults Postgres gives an API create that leaves them out", () => {
+    const columnDefault: (property: string) => unknown = (
+      property: string,
+    ): unknown => {
+      const column: ColumnMetadataArgs | undefined = getMetadataArgsStorage()
+        .columns.filter((candidate: ColumnMetadataArgs): boolean => {
+          return (
+            candidate.target === model.constructor &&
+            candidate.propertyName === property
+          );
+        })
+        .pop();
+
+      return column?.options.default;
+    };
+
+    expect(columnDefault("startStateOccurrence")).toBe(
+      DEFAULT_MEASUREMENT_OCCURRENCE,
+    );
+    expect(columnDefault("endStateOccurrence")).toBe(
+      DEFAULT_MEASUREMENT_OCCURRENCE,
+    );
+    expect(columnDefault("unit")).toBe(DEFAULT_MEASUREMENT_UNIT_VALUE);
+    expect(columnDefault("aggregationType")).toBe(
+      DEFAULT_MEASUREMENT_CHART_SUMMARY,
+    );
+    // A new measurement is on; the form has no switch for it on create.
+    expect(columnDefault("isEnabled")).toBe(true);
   });
 
   test("starts a new measurement with the defaults the server would use", () => {

@@ -631,7 +631,7 @@ const PRESETS_BY_DOMAIN: Record<MeasurementDomain, Array<MeasurementPreset>> = {
       name: "Maintenance duration",
       description:
         "How long maintenance really takes: from when it starts until it ends.",
-      icon: IconProp.Time,
+      icon: IconProp.Wrench,
       startMoment: roleMomentValue(ScheduledMaintenanceStateRole.Ongoing),
       endMoment: roleMomentValue(ScheduledMaintenanceStateRole.Ended),
     },
