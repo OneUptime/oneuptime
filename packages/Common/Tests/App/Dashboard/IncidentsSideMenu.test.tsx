@@ -354,11 +354,42 @@ describe("Incidents side menu", () => {
           title: "Measurements",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_MEASUREMENTS),
         },
+        // The linked alert switches, on a page of their own.
+        {
+          title: "Linked Alerts",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS),
+        },
         {
           title: "More Settings",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_MORE),
         },
       ]);
+    });
+
+    test("lists Linked Alerts at settings/linked-alerts", async () => {
+      await renderIncidentsMenu();
+
+      const linkedAlerts: Array<MenuLink> = linksIn("Settings").filter(
+        (link: MenuLink): boolean => {
+          return link.title === "Linked Alerts";
+        },
+      );
+
+      expect(linkedAlerts).toEqual([
+        {
+          title: "Linked Alerts",
+          href: `/dashboard/${PROJECT_ID}/incidents/settings/linked-alerts`,
+        },
+      ]);
+    });
+
+    // Settings is collapsed by default, so it must open itself on its pages.
+    test("opens itself on the Linked Alerts page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/linked-alerts`);
+      await renderIncidentsMenu();
+
+      expect(isExpanded("Settings")).toBe(true);
+      expect(isExpanded("Rules")).toBe(false);
     });
 
     test("does not hold the auto-remediation rules, which are a rule page", async () => {
@@ -484,6 +515,13 @@ describe("Incidents side menu", () => {
       await renderIncidentsMenu();
 
       expect(mobileSummaryText()).toContain("Settings / Incident Roles");
+    });
+
+    test("names the Settings section on the Linked Alerts page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/linked-alerts`);
+      await renderIncidentsMenu();
+
+      expect(mobileSummaryText()).toContain("Settings / Linked Alerts");
     });
 
     // Forms are configuration, like templates, not a rule.

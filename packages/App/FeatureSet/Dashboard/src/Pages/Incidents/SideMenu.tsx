@@ -313,6 +313,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Clock,
         },
+        /*
+         * Whether an incident's linked alerts follow it when it is
+         * acknowledged or resolved. Its own page so it is findable by name.
+         */
+        {
+          link: {
+            title: "Linked Alerts",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] as Route,
+            ),
+          },
+          icon: IconProp.Link,
+        },
         {
           link: {
             title: "More Settings",

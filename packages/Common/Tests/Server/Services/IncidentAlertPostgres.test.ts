@@ -404,7 +404,11 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
       ]);
     });
 
-    test("every existing project starts with both switches off", async () => {
+    /*
+     * AddIncidentAlert created both switches off; TurnOnLinkedAlertSwitches-
+     * ByDefault turned the default on without touching existing rows.
+     */
+    test("both switches are never null and default to on for new projects", async () => {
       const rows: Array<{ column_name: string; column_default: string }> =
         await database.query(
           `SELECT column_name, column_default FROM information_schema.columns
@@ -417,11 +421,30 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
       expect(rows).toEqual([
         {
           column_name: "acknowledgeLinkedAlertsWhenIncidentAcknowledged",
-          column_default: "false",
+          column_default: "true",
         },
         {
           column_name: "resolveLinkedAlertsWhenIncidentResolved",
-          column_default: "false",
+          column_default: "true",
+        },
+      ]);
+    });
+
+    test("a project inserted without naming the switches starts with both on", async () => {
+      // seedProject (beforeEach) names neither switch, as a project create does.
+      const rows: Array<{
+        acknowledgeLinkedAlertsWhenIncidentAcknowledged: boolean;
+        resolveLinkedAlertsWhenIncidentResolved: boolean;
+      }> = await database.query(
+        `SELECT "acknowledgeLinkedAlertsWhenIncidentAcknowledged", "resolveLinkedAlertsWhenIncidentResolved"
+           FROM "${schema}"."Project" WHERE "_id" = $1`,
+        [projectId.toString()],
+      );
+
+      expect(rows).toEqual([
+        {
+          acknowledgeLinkedAlertsWhenIncidentAcknowledged: true,
+          resolveLinkedAlertsWhenIncidentResolved: true,
         },
       ]);
     });
