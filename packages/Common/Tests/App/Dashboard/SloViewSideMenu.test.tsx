@@ -132,9 +132,20 @@ describe("SLO detail side menu", () => {
     ]);
   });
 
-  test.each(["Overview", "Activity", "Configuration", "Management"])(
-    "%s contains its intended destinations in order and starts expanded",
-    async (section: string) => {
+  /*
+   * Overview and Activity are what an SLO's page is opened for. Its
+   * configuration and management pages are set up once and visited rarely,
+   * so they fold down to their titles, like every rarely used section, and
+   * open by themselves on their own pages (below).
+   */
+  test.each([
+    ["Overview", true],
+    ["Activity", true],
+    ["Configuration", false],
+    ["Management", false],
+  ])(
+    "%s contains its intended destinations in order, and starts expanded: %s",
+    async (section: string, expanded: boolean) => {
       await renderSloMenu();
 
       const expectedLinks: Array<MenuLink> = DETAIL_PAGES.filter(
@@ -146,7 +157,7 @@ describe("SLO detail side menu", () => {
       });
 
       expect(linksIn(section)).toEqual(expectedLinks);
-      expect(isExpanded(section)).toBe(true);
+      expect(isExpanded(section)).toBe(expanded);
     },
   );
 

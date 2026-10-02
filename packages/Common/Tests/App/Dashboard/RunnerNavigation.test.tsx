@@ -88,6 +88,7 @@ import {
   routeFor,
   sectionBody,
   sectionTitlesInOrder,
+  sectionToggle,
   setViewportWidth,
 } from "./SideMenuHarness";
 
@@ -187,29 +188,49 @@ describe("the Runbooks side menu lists the Runner pages", () => {
     ]);
   });
 
-  test("Runners is open on the Runbooks landing page while Settings is folded", async () => {
+  test("Runners is folded down to its title on the Runbooks landing page, like Settings", async () => {
     /*
-     * A Bash, SSH or Kubernetes step cannot run without a Runner, and this is
-     * where people check whether theirs is connected — so unlike the rules
-     * under Settings, it is not tucked away.
+     * "Collapsing things in the side menu that are not used frequently"
+     * (the maintainer, for every side menu): a Runner is installed once and
+     * checked now and then, so its section shows only its title, between the
+     * runbooks and Settings, until it is opened.
      */
     await renderMenu(<RunbookSideMenu />);
 
-    expect(isExpanded("Runners")).toBe(true);
-    expect(sectionBody("Runners")).not.toHaveClass("max-h-0");
+    expect(isExpanded("Runbooks")).toBe(true);
+    expect(isExpanded("Runners")).toBe(false);
+    expect(sectionBody("Runners")).toHaveClass(
+      "max-h-0",
+      "opacity-0",
+      "invisible",
+    );
     expect(isExpanded("Settings")).toBe(false);
+  });
+
+  test("a click opens Runners to show both entries", async () => {
+    await renderMenu(<RunbookSideMenu />);
+
+    fireEvent.click(sectionToggle("Runners"));
+
+    expect(isExpanded("Runners")).toBe(true);
+    expect(sectionBody("Runners")).not.toHaveClass("invisible");
+    expect(linksIn("Runners")).toHaveLength(2);
   });
 
   test.each([
     ["the Runners list", RUNNERS_PATH],
     ["a Runner's page", RUNNER_VIEW_PATH],
     ["Runner Credentials", CREDENTIALS_PATH],
-  ])("Runners stays open on %s", async (_name: string, pagePath: string) => {
-    goTo(pagePath);
-    await renderMenu(<RunbookSideMenu />);
+  ])(
+    "Runners opens by itself on %s",
+    async (_name: string, pagePath: string) => {
+      goTo(pagePath);
+      await renderMenu(<RunbookSideMenu />);
 
-    expect(isExpanded("Runners")).toBe(true);
-  });
+      expect(isExpanded("Runners")).toBe(true);
+      expect(sectionBody("Runners")).not.toHaveClass("invisible");
+    },
+  );
 
   test.each([
     ["Runners", RUNNERS_PATH],
