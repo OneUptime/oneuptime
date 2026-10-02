@@ -7314,5 +7314,8 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value.": "添加应在下拉列表中显示的选项，并可为每个值选择颜色。",
   "Copying custom field values from a related resource": "从相关资源复制自定义字段的值",
   "When and how a field's value is copied, and what copying will never do.": "字段的值何时以及如何被复制，以及复制绝不会做的事。",
-  "A field whose value is copied from a monitor custom field instead of being typed in.": "其值从监视器的自定义字段复制而来、无需手动输入的字段。"
+  "A field whose value is copied from a monitor custom field instead of being typed in.": "其值从监视器的自定义字段复制而来、无需手动输入的字段。",
+  "Made from the name": "根据名称生成",
+  "Make it from the name": "改为根据名称生成",
+  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "请使用小写字母 (a-z)、数字和连字符，并以字母或数字开头，最多 50 个字符。"
 }

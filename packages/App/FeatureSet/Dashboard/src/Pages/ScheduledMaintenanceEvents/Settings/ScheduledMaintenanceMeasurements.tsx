@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { getGeneratedKeyFormField } from "Common/UI/Components/Forms/Fields/GeneratedKeyField";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -11,6 +12,10 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 import ScheduledMaintenanceMeasurementAnchorType from "Common/Types/ScheduledMaintenance/ScheduledMaintenanceMeasurementAnchorType";
 import ScheduledMaintenanceStateRole from "Common/Types/ScheduledMaintenance/ScheduledMaintenanceStateRole";
 import MeasurementAggregationType from "Common/Types/Measurement/MeasurementAggregationType";
+import {
+  getMeasurementKeyError,
+  getMeasurementKeyFromName,
+} from "Common/Types/Measurement/MeasurementKey";
 import MeasurementOccurrence from "Common/Types/Measurement/MeasurementOccurrence";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -74,7 +79,9 @@ Every maintenance event gets one of these outcomes per measurement. Only **Recor
 
 ### Key and Metric Name
 
-The **Key** is permanent. Every recorded point is written under \`oneuptime.scheduled-maintenance.measurement.<key>\`, so changing the key would orphan all the history behind it. To rename a measurement for humans, change the **Name** instead - that is what appears on charts and on the event page.
+Every recorded point is written under \`oneuptime.scheduled-maintenance.measurement.<key>\`. The **Key** is made from the name as you type it - "Start Delay" gets \`start-delay\` - so there is nothing to fill in. Choose **Edit** next to it before you create the measurement if you want a different one.
+
+Once the measurement exists its key never changes, because changing it would orphan all the history behind it. To rename a measurement for humans, change the **Name** - that is what appears on charts and on the event page.
 `;
 
 const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
@@ -209,18 +216,23 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
             description:
               "Human readable name. This is what appears on charts and on the maintenance event page.",
           },
-          {
+          /*
+           * Made from the name as it is typed, and by the server when the
+           * create leaves it out; never asked for.
+           */
+          getGeneratedKeyFormField<ScheduledMaintenanceMeasurement>({
             field: {
               key: true,
             },
+            nameField: "name",
             title: "Key",
             stepId: "basics",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            makeKey: getMeasurementKeyFromName,
+            validateKey: getMeasurementKeyError,
             placeholder: "start-delay",
             description:
-              "Permanent, machine readable identifier. It is used to build the metric name (oneuptime.scheduled-maintenance.measurement.<key>) that every recorded point is written under and that charts query, so it cannot be changed once created - changing it would orphan all the history. To rename a measurement, change the Name instead.",
-          },
+              "Part of the metric name, oneuptime.scheduled-maintenance.measurement.<key>, so it can't be changed once the measurement is created.",
+          }),
           {
             field: {
               description: true,

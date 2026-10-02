@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { getGeneratedKeyFormField } from "Common/UI/Components/Forms/Fields/GeneratedKeyField";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -11,6 +12,10 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentMeasurementAnchorType from "Common/Types/Incident/IncidentMeasurementAnchorType";
 import IncidentStateRole from "Common/Types/Incident/IncidentStateRole";
 import MeasurementAggregationType from "Common/Types/Measurement/MeasurementAggregationType";
+import {
+  getMeasurementKeyError,
+  getMeasurementKeyFromName,
+} from "Common/Types/Measurement/MeasurementKey";
 import MeasurementOccurrence from "Common/Types/Measurement/MeasurementOccurrence";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -84,7 +89,9 @@ There is no fixed list of built-in metrics to match. Set up the ones your team a
 
 ### Key and Metric Name
 
-The **Key** is permanent. Every recorded point is written under \`oneuptime.incident.measurement.<key>\`, so changing the key would orphan all the history behind it. To rename a measurement for humans, change the **Name** instead - that is what appears on charts and on the incident page.
+Every recorded point is written under \`oneuptime.incident.measurement.<key>\`. The **Key** is made from the name as you type it - "Time to Detect" gets \`time-to-detect\` - so there is nothing to fill in. Choose **Edit** next to it before you create the measurement if you want a different one.
+
+Once the measurement exists its key never changes, because changing it would orphan all the history behind it. To rename a measurement for humans, change the **Name** - that is what appears on charts and on the incident page.
 `;
 
 const IncidentMeasurementsPage: FunctionComponent<
@@ -217,18 +224,23 @@ const IncidentMeasurementsPage: FunctionComponent<
             description:
               "Human readable name. This is what appears on charts and on the incident page.",
           },
-          {
+          /*
+           * Made from the name as it is typed, and by the server when the
+           * create leaves it out; never asked for.
+           */
+          getGeneratedKeyFormField<IncidentMeasurement>({
             field: {
               key: true,
             },
+            nameField: "name",
             title: "Key",
             stepId: "basics",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            makeKey: getMeasurementKeyFromName,
+            validateKey: getMeasurementKeyError,
             placeholder: "time-to-detect",
             description:
-              "Permanent, machine readable identifier. It is used to build the metric name (oneuptime.incident.measurement.<key>) that every recorded point is written under and that charts query, so it cannot be changed once created - changing it would orphan all the history. To rename a measurement, change the Name instead.",
-          },
+              "Part of the metric name, oneuptime.incident.measurement.<key>, so it can't be changed once the measurement is created.",
+          }),
           {
             field: {
               description: true,
