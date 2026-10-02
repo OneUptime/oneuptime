@@ -24,6 +24,22 @@ export enum InputType {
   TIME = "time",
 }
 
+/*
+ * What tells each password manager to leave a field alone: 1Password (both of
+ * its spellings), LastPass, Bitwarden and Dashlane. Browsers' own password
+ * managers go by autocomplete instead - "new-password" keeps them from
+ * filling a saved login in.
+ */
+export const PASSWORD_MANAGER_IGNORE_ATTRIBUTES: Readonly<
+  Record<string, string>
+> = {
+  "data-1p-ignore": "true",
+  "data-op-ignore": "true",
+  "data-lpignore": "true",
+  "data-bwignore": "true",
+  "data-form-type": "other",
+};
+
 export interface ComponentProps {
   initialValue?: undefined | string | Date;
   id?: string | undefined;
@@ -70,6 +86,12 @@ export interface ComponentProps {
   disableSpellCheck?: boolean | undefined;
   showSecondsForDateTime?: boolean | undefined;
   autoComplete?: string | undefined;
+  /*
+   * A password field that holds the person's own password, on a page where
+   * they sign in, sign up or change it: password managers may fill and save
+   * it. Leave it unset everywhere else - see isStoredSecret below.
+   */
+  isOwnCredential?: boolean | undefined;
 }
 
 type GetDateDisplayValueFunction = (
@@ -146,6 +168,19 @@ const Input: FunctionComponent<ComponentProps> = (
 
   const isDateInput: boolean =
     props.type === InputType.DATE || props.type === InputType.DATETIME_LOCAL;
+
+  /*
+   * A password field that is not the person's own holds a secret the product
+   * stores for something else: an SMTP or SNMP password, an API token, the
+   * password an admin sets for a private status page user. To a password
+   * manager every password field reads as a sign-in form, so these were
+   * offered the person's OneUptime login, saved as new logins for the site,
+   * and 1Password put its "Sign in" prompt over Dashboard pages that sign
+   * nobody in. "new-password" keeps browsers from filling a saved login in,
+   * and the attributes send the password managers away.
+   */
+  const isStoredSecret: boolean =
+    props.type === InputType.PASSWORD && !props.isOwnCredential;
 
   /*
    * Seeded from the props on the first render, not by an effect after it.
@@ -263,7 +298,10 @@ const Input: FunctionComponent<ComponentProps> = (
           onClick={props.onClick}
           data-testid={props.dataTestId}
           spellCheck={!props.disableSpellCheck}
-          autoComplete={props.autoComplete}
+          autoComplete={
+            props.autoComplete || (isStoredSecret ? "new-password" : undefined)
+          }
+          {...(isStoredSecret ? PASSWORD_MANAGER_IGNORE_ATTRIBUTES : {})}
           aria-label={props.ariaLabel}
           aria-labelledby={props.ariaLabelledby}
           aria-haspopup={props.ariaHasPopup}

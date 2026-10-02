@@ -148,8 +148,17 @@ const FormField: <T extends GenericObject>(
     switch (fieldType) {
       case FormFieldSchemaType.Email:
         return "email";
+      /*
+       * Not "current-password", which every Password field used to get: it
+       * marks the field as the password the person signs in with, and turned
+       * any form with a password in it - an SMTP server, a private status
+       * page user - into a sign-in form to browsers and password managers. A
+       * field that really is one says so (Field.autoComplete and
+       * Field.isOwnCredential), as the sign-in pages do.
+       */
       case FormFieldSchemaType.Password:
-        return "current-password";
+      case FormFieldSchemaType.EncryptedText:
+        return "new-password";
       case FormFieldSchemaType.Phone:
         return "tel";
       case FormFieldSchemaType.Name:
@@ -1078,6 +1087,7 @@ const FormField: <T extends GenericObject>(
                   ? getAutoComplete(props.field.fieldType)
                   : undefined)
               }
+              isOwnCredential={props.field.isOwnCredential}
               onChange={(value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);

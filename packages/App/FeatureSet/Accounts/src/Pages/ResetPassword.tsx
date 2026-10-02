@@ -64,6 +64,9 @@ const ResetPasswordPage: () => JSX.Element = () => {
                     password: true,
                   },
                   fieldType: FormFieldSchemaType.Password,
+                  // The person's new password: password managers save it.
+                  autoComplete: "new-password",
+                  isOwnCredential: true,
                   validation: {
                     minLength: 6,
                   },
@@ -82,6 +85,8 @@ const ResetPasswordPage: () => JSX.Element = () => {
                     toMatchField: "password",
                   },
                   fieldType: FormFieldSchemaType.Password,
+                  autoComplete: "new-password",
+                  isOwnCredential: true,
                   placeholder: t("common.confirmPassword"),
                   title: t("common.confirmPassword"),
                   overrideFieldKey: "confirmPassword",
