@@ -7,6 +7,7 @@ import DashboardService from "../../../Server/Services/DashboardService";
 import StatusPageResourceService from "../../../Server/Services/StatusPageResourceService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import { ExpressRequest } from "../../../Server/Utils/Express";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
@@ -301,6 +302,10 @@ describe("an archived status page takes no new subscribers", () => {
 
   beforeEach(() => {
     // Not subscribed yet, and the page is not one that notifies.
+    jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: null,
+      isSubscriptionUnpaid: false,
+    });
     jest
       .spyOn(StatusPageSubscriberService, "findOneBy")
       .mockResolvedValue(null);

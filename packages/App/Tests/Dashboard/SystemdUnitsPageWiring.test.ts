@@ -305,7 +305,7 @@ describe("Systemd Units side-menu gating", () => {
      * widen that gap for no benefit.
      */
     const source: string = readCode("Pages", "Host", "View", "SideMenu.tsx");
-    expect(source.split("modelType: Host,").length - 1).toBe(1);
+    expect(source.split("ModelAPI.getItem({").length - 1).toBe(1);
   });
 });
 

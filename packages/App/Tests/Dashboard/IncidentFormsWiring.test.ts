@@ -172,7 +172,11 @@ describe.each(PAGES)("the $name", (c: FormsPageCase) => {
 
 describe("the Incidents side menu", () => {
   function settingsSection(): string {
-    return sectionBetween(dense(SIDE_MENU), 'title:"Settings",', "];return");
+    return sectionBetween(
+      dense(SIDE_MENU),
+      'title:"Settings",defaultCollapsed:true,items:[',
+      "],},];addDeveloperSideMenuSection",
+    );
   }
 
   test("links Forms from the Settings section, with the forms icon", () => {
