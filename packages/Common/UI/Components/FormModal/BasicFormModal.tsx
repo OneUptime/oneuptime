@@ -6,6 +6,7 @@ import BasicForm, {
   BaseComponentProps as BasicFormComponentProps,
 } from "../Forms/BasicForm";
 import FormAnalyticsName from "../Forms/Utils/FormAnalyticsName";
+import { getFormModalWidth } from "../Forms/Utils/FormModalWidth";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
@@ -77,9 +78,11 @@ const BasicFormModal: <T extends GenericObject>(
     <Modal
       {...props}
       submitButtonText={submitButtonText}
-      modalWidth={
-        props.modalWidth ?? (hasSteps ? ModalWidth.Medium : undefined)
-      }
+      // A form with a Markdown editor opens wide, its toolbar on one line.
+      modalWidth={getFormModalWidth({
+        fields: props.formProps.fields,
+        width: props.modalWidth ?? (hasSteps ? ModalWidth.Medium : undefined),
+      })}
       submitButtonType={ButtonType.Submit}
       isLoading={isLoading}
       onSubmit={() => {

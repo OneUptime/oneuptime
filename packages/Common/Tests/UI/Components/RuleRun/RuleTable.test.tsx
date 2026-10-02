@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, render, screen } from "@testing-library/react";
 import React from "react";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 /*
  * Contract under test - RuleTable, the table every runnable rule is listed in.
@@ -87,6 +88,7 @@ function baseProps(): Record<string, any> {
     actionButtons: [
       {
         title: "Existing",
+        icon: IconProp.Play,
         buttonStyleType: ButtonStyleType.NORMAL,
         onClick: jest.fn(),
       },

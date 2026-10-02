@@ -18,6 +18,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * with, the audience summary on the last step, and the template prefill.
  * The picker has no banner explaining an empty list ("No status pages to
  * pick from ... Ask a project admin."): the maintainer asked for it to go.
+ * Nor does 'Notify Status Page Subscribers' say "No status page subscribers
+ * will be notified: no monitors are attached" under it any more ("Can we
+ * please remove this warning banner as well?"): it says who will be
+ * notified, or that the status page scope keeps pages from being told, and
+ * otherwise nothing. Picking status pages without a monitor is caught under
+ * the picker instead.
  *
  * ModelForm is stubbed to capture the fields it is handed (as
  * IncidentCreateFromAlerts.test.tsx does); each field's footer and summary
@@ -128,7 +134,10 @@ import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
-import IncidentSubscriberAudience from "../../../Types/StatusPage/IncidentSubscriberAudience";
+import IncidentSubscriberAudience, {
+  IncidentSubscriberAudienceExclusionReason,
+  IncidentSubscriberAudienceResult,
+} from "../../../Types/StatusPage/IncidentSubscriberAudience";
 import Navigation from "../../../UI/Utils/Navigation";
 
 const TEMPLATE_ID: string = "66666666-6666-4666-8666-000000000001";
@@ -142,6 +151,55 @@ function page(id: string, name: string): StatusPage {
   statusPage._id = id;
   statusPage.name = name;
   return statusPage;
+}
+
+// The removed banner's words, and the two notices that only repeated a box.
+const REMOVED_AUDIENCE_TEXT: Array<RegExp> = [
+  /no monitors are attached/i,
+  /hear about an incident through the monitors/i,
+  /'Notify Status Page Subscribers' is off/,
+  /private incidents are hidden from all status pages/i,
+];
+
+function expectNoRemovedAudienceText(): void {
+  for (const text of REMOVED_AUDIENCE_TEXT) {
+    expect(screen.queryByText(text)).toBeNull();
+  }
+}
+
+function answer(
+  partial: Partial<IncidentSubscriberAudienceResult>,
+): HTTPResponse<JSONObject> {
+  return new HTTPResponse<JSONObject>(
+    200,
+    IncidentSubscriberAudience.toJSON({
+      hasMonitors: true,
+      isScoped: false,
+      isHiddenFromStatusPages: false,
+      statusPages: [],
+      hiddenStatusPageCount: 0,
+      excludedStatusPages: [],
+      selectedStatusPagesNotListingMonitors: [],
+      ...partial,
+    }),
+    {},
+  );
+}
+
+// The audience requests the page made, by their bodies.
+function audienceRequestBodies(): Array<JSONObject> {
+  return postMock.mock.calls.map((call: Array<unknown>): JSONObject => {
+    return (call[0] as { data: JSONObject }).data;
+  });
+}
+
+// Waits out the debounce, then lets every answer given land.
+async function settleAudience(): Promise<void> {
+  await act(async () => {
+    await new Promise((r: (value: unknown) => void) => {
+      setTimeout(r, SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 50);
+    });
+  });
 }
 
 function audienceResponse(): HTTPResponse<JSONObject> {
@@ -376,6 +434,108 @@ describe("the status page picker on the Create page", () => {
     );
   });
 
+  /*
+   * What the removed "no monitors are attached" banner caught that matters:
+   * status pages picked, but no monitor attached, so none of them will show
+   * the incident. It is caught here, where the pages are picked, right
+   * beside the monitors.
+   */
+  test("warns when status pages are picked but no monitor is attached", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        hasMonitors: false,
+        isScoped: true,
+        selectedStatusPagesNotListingMonitors: [
+          { statusPageId: SITE_03, name: "Site 03" },
+          { statusPageId: SITE_07, name: "Site 07" },
+        ],
+      }),
+    );
+
+    await renderCreate();
+    await renderElement(
+      fieldFor("statusPages").getFooterElement!({
+        statusPages: [SITE_03, SITE_07],
+      }),
+    );
+
+    expect(
+      await screen.findByTestId(
+        "status-pages-not-listing-monitors",
+        undefined,
+        {
+          timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000,
+        },
+      ),
+    ).toHaveTextContent(
+      formatScopeText(IncidentStatusPageScopeCopy.notListingMonitorsWarning, {
+        names: "Site 03, Site 07",
+      }),
+    );
+    expect(audienceRequestBodies()).toEqual([
+      { monitorIds: [], statusPageIds: [SITE_03, SITE_07] },
+    ]);
+    expectNoRemovedAudienceText();
+  });
+
+  test("with monitors and no status page picked, the picker warns about nothing and asks nothing", async () => {
+    await renderCreate();
+
+    const footer: HTMLElement = await renderAlone(
+      fieldFor("statusPages").getFooterElement!({
+        monitors: [{ _id: MONITOR_ID, name: "API" }],
+        statusPages: [],
+      }),
+    );
+
+    await settleAudience();
+
+    expect(footer).toBeEmptyDOMElement();
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
+  test("with neither monitors nor status pages, the picker warns about nothing and asks nothing", async () => {
+    await renderCreate();
+
+    const footer: HTMLElement = await renderAlone(
+      fieldFor("statusPages").getFooterElement!({}),
+    );
+
+    await settleAudience();
+
+    expect(footer).toBeEmptyDOMElement();
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
+  test("picked pages that all show the incident: no warning", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        isScoped: true,
+        statusPages: [
+          {
+            statusPageId: SITE_03,
+            name: "Site 03",
+            subscriberCounts: IncidentSubscriberAudience.getEmptyCounts(),
+          },
+        ],
+      }),
+    );
+
+    await renderCreate();
+
+    const footer: HTMLElement = await renderAlone(
+      fieldFor("statusPages").getFooterElement!({
+        monitors: [MONITOR_ID],
+        statusPages: [SITE_03],
+      }),
+    );
+
+    await settleAudience();
+
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(footer).toBeEmptyDOMElement();
+  });
+
   test("with pages picked, that warning is the only notice: no banner beside it", async () => {
     // What used to bring the banner up: no status page the person can read.
     countMock.mockRejectedValue(
@@ -503,26 +663,171 @@ describe("the audience on the last step", () => {
     });
   });
 
-  test("in the summary step too", async () => {
+  /*
+   * The maintainer's screenshot: the box ticked, no monitor attached, and
+   * under it "No status page subscribers will be notified: no monitors are
+   * attached. Subscribers hear about an incident through the monitors their
+   * status pages list." Now nothing is shown there, and nothing is asked.
+   */
+  test("no monitor and no status page: nothing under the box, and nothing asked", async () => {
     await renderCreate();
 
-    await renderElement(
-      fieldFor(NOTIFY_FIELD).getSummaryElement!({
-        monitors: [MONITOR_ID],
+    const footer: HTMLElement = await renderAlone(
+      fieldFor(NOTIFY_FIELD).getFooterElement!({
+        [NOTIFY_FIELD]: true,
+      }),
+    );
+
+    await settleAudience();
+
+    expect(footer).toBeEmptyDOMElement();
+    expect(postMock).not.toHaveBeenCalled();
+    expectNoRemovedAudienceText();
+  });
+
+  test("left ticked by default, with no monitor: still nothing", async () => {
+    await renderCreate();
+
+    const footer: HTMLElement = await renderAlone(
+      fieldFor(NOTIFY_FIELD).getFooterElement!({
+        monitors: [],
         statusPages: [],
+      }),
+    );
+
+    await settleAudience();
+
+    expect(footer).toBeEmptyDOMElement();
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
+  test("monitors that no status page lists: asks, and shows nothing", async () => {
+    postMock.mockResolvedValue(answer({}));
+
+    await renderCreate();
+
+    const footer: HTMLElement = await renderAlone(
+      fieldFor(NOTIFY_FIELD).getFooterElement!({
+        monitors: [{ _id: MONITOR_ID, name: "API" }],
+        [NOTIFY_FIELD]: true,
+      }),
+    );
+
+    await settleAudience();
+
+    expect(audienceRequestBodies()).toEqual([
+      { monitorIds: [MONITOR_ID], statusPageIds: [] },
+    ]);
+    expect(footer).toBeEmptyDOMElement();
+    expect(
+      screen.queryByText(IncidentStatusPageScopeCopy.audienceNoStatusPages),
+    ).toBeNull();
+  });
+
+  test("status pages with no subscribers yet: shows nothing", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        statusPages: [
+          {
+            statusPageId: SITE_03,
+            name: "Site 03",
+            subscriberCounts: IncidentSubscriberAudience.getEmptyCounts(),
+          },
+        ],
+      }),
+    );
+
+    await renderCreate();
+
+    const footer: HTMLElement = await renderAlone(
+      fieldFor(NOTIFY_FIELD).getFooterElement!({
+        monitors: [MONITOR_ID],
+        [NOTIFY_FIELD]: true,
+      }),
+    );
+
+    await settleAudience();
+
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(footer).toBeEmptyDOMElement();
+    expect(
+      screen.queryByText(IncidentStatusPageScopeCopy.audienceNoSubscribers),
+    ).toBeNull();
+  });
+
+  test("status pages picked but no monitor: names the pages that will not show it", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        hasMonitors: false,
+        isScoped: true,
+        selectedStatusPagesNotListingMonitors: [
+          { statusPageId: SITE_03, name: "Site 03" },
+        ],
+      }),
+    );
+
+    await renderCreate();
+    await renderElement(
+      fieldFor(NOTIFY_FIELD).getFooterElement!({
+        statusPages: [SITE_03],
         [NOTIFY_FIELD]: true,
       }),
     );
 
     expect(
-      screen.getByTestId("incident-create-subscriber-audience"),
+      await screen.findByText(
+        IncidentStatusPageScopeCopy.audienceNoStatusPages,
+        undefined,
+        { timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000 },
+      ),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText("Site 03 (lists none of these monitors)"),
+    ).toBeInTheDocument();
+    expect(audienceRequestBodies()).toEqual([
+      { monitorIds: [], statusPageIds: [SITE_03] },
+    ]);
+    expectNoRemovedAudienceText();
   });
 
-  test("with notifying off it says nobody will be told, and asks nothing", async () => {
+  test("a page that only shows incidents limited to it, and no scope: names it, and why", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        excludedStatusPages: [
+          {
+            statusPageId: SITE_07,
+            name: "Site 07",
+            reason:
+              IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents,
+          },
+        ],
+      }),
+    );
+
+    await renderCreate();
+    await renderElement(
+      fieldFor(NOTIFY_FIELD).getFooterElement!({
+        monitors: [MONITOR_ID],
+        [NOTIFY_FIELD]: true,
+      }),
+    );
+
+    expect(
+      await screen.findByText(
+        "Site 07 (only shows incidents limited to it)",
+        undefined,
+        { timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000 },
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("incident-create-subscriber-audience"),
+    ).toHaveAttribute("data-state", "warning");
+  });
+
+  test("with notifying off, nothing under the box, and nothing asked", async () => {
     await renderCreate();
 
-    await renderElement(
+    const footer: HTMLElement = await renderAlone(
       fieldFor(NOTIFY_FIELD).getFooterElement!({
         monitors: [MONITOR_ID],
         statusPages: [SITE_03],
@@ -530,21 +835,17 @@ describe("the audience on the last step", () => {
       }),
     );
 
-    expect(
-      screen.getByText(IncidentStatusPageScopeCopy.audienceNotifyOff),
-    ).toBeInTheDocument();
+    await settleAudience();
 
-    await new Promise((r: (value: unknown) => void) => {
-      setTimeout(r, SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 50);
-    });
-
+    expect(footer).toBeEmptyDOMElement();
     expect(postMock).not.toHaveBeenCalled();
+    expectNoRemovedAudienceText();
   });
 
-  test("a private incident says nothing will be sent", async () => {
+  test("a private incident: nothing under the box, and nothing asked", async () => {
     await renderCreate();
 
-    await renderElement(
+    const footer: HTMLElement = await renderAlone(
       fieldFor(NOTIFY_FIELD).getFooterElement!({
         monitors: [MONITOR_ID],
         statusPages: [SITE_03],
@@ -553,9 +854,170 @@ describe("the audience on the last step", () => {
       }),
     );
 
+    await settleAudience();
+
+    expect(footer).toBeEmptyDOMElement();
+    expect(postMock).not.toHaveBeenCalled();
+    expectNoRemovedAudienceText();
+  });
+
+  test("the box still says what ticking it means", async () => {
+    await renderCreate();
+
+    const field: CapturedField = fieldFor(NOTIFY_FIELD);
+
+    expect(field.title).toBe("Notify Status Page Subscribers");
+    expect(field.description).toBe(
+      "Should status page subscribers be notified when this incident is created?",
+    );
+    expect(field.stepId).toBe("more");
+  });
+});
+
+describe("the notify box on the summary step", () => {
+  const NOTIFY_FIELD: string =
+    "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated";
+
+  const VALUE_TEST_ID: string = "incident-create-notify-subscribers-value";
+  const PREVIEW_TEST_ID: string = "incident-create-preview-notification";
+
+  test("ticked, on a monitor: Yes, who it reaches, and the preview", async () => {
+    await renderCreate();
+
+    await renderElement(
+      fieldFor(NOTIFY_FIELD).getSummaryElement!({
+        monitors: [MONITOR_ID],
+        statusPages: [SITE_03],
+        [NOTIFY_FIELD]: true,
+      }),
+    );
+
+    expect(screen.getByTestId(VALUE_TEST_ID)).toHaveTextContent("Yes");
     expect(
-      screen.getByText(IncidentStatusPageScopeCopy.audiencePrivateIncident),
+      await screen.findByText("Site 03 (up to 41 email)", undefined, {
+        timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000,
+      }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("incident-create-subscriber-audience"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId(PREVIEW_TEST_ID)).toBeInTheDocument();
+  });
+
+  test("ticked by default: Yes", async () => {
+    await renderCreate();
+
+    await renderElement(
+      fieldFor(NOTIFY_FIELD).getSummaryElement!({
+        monitors: [MONITOR_ID],
+      }),
+    );
+
+    expect(screen.getByTestId(VALUE_TEST_ID)).toHaveTextContent("Yes");
+  });
+
+  test("ticked, on no monitor: just Yes - no warning, no preview, nothing asked", async () => {
+    await renderCreate();
+
+    await renderElement(
+      fieldFor(NOTIFY_FIELD).getSummaryElement!({
+        [NOTIFY_FIELD]: true,
+      }),
+    );
+
+    await settleAudience();
+
+    expect(screen.getByTestId(VALUE_TEST_ID)).toHaveTextContent("Yes");
+    expect(
+      screen.queryByTestId("incident-create-subscriber-audience"),
+    ).toBeNull();
+    expect(screen.queryByTestId(PREVIEW_TEST_ID)).toBeNull();
+    expect(postMock).not.toHaveBeenCalled();
+    expectNoRemovedAudienceText();
+  });
+
+  test("unticked: No - no notice, no preview, nothing asked", async () => {
+    await renderCreate();
+
+    await renderElement(
+      fieldFor(NOTIFY_FIELD).getSummaryElement!({
+        monitors: [MONITOR_ID],
+        statusPages: [SITE_03],
+        [NOTIFY_FIELD]: false,
+      }),
+    );
+
+    await settleAudience();
+
+    expect(screen.getByTestId(VALUE_TEST_ID)).toHaveTextContent("No");
+    expect(
+      screen.queryByTestId("incident-create-subscriber-audience"),
+    ).toBeNull();
+    expect(screen.queryByTestId(PREVIEW_TEST_ID)).toBeNull();
+    expect(postMock).not.toHaveBeenCalled();
+    expectNoRemovedAudienceText();
+  });
+
+  test("a private incident: the box reads Yes, nothing more - Private Incident says the rest", async () => {
+    await renderCreate();
+
+    await renderElement(
+      fieldFor(NOTIFY_FIELD).getSummaryElement!({
+        monitors: [MONITOR_ID],
+        statusPages: [SITE_03],
+        [NOTIFY_FIELD]: true,
+        isPrivate: true,
+      }),
+    );
+
+    await settleAudience();
+
+    expect(screen.getByTestId(VALUE_TEST_ID)).toHaveTextContent("Yes");
+    expect(
+      screen.queryByTestId("incident-create-subscriber-audience"),
+    ).toBeNull();
+    expect(screen.queryByTestId(PREVIEW_TEST_ID)).toBeNull();
+    expect(postMock).not.toHaveBeenCalled();
+    expectNoRemovedAudienceText();
+  });
+
+  test("status pages picked but no monitor: Yes, and the pages that will not show it - no preview", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        hasMonitors: false,
+        isScoped: true,
+        selectedStatusPagesNotListingMonitors: [
+          { statusPageId: SITE_03, name: "Site 03" },
+        ],
+      }),
+    );
+
+    await renderCreate();
+
+    await renderElement(
+      fieldFor(NOTIFY_FIELD).getSummaryElement!({
+        statusPages: [SITE_03],
+        [NOTIFY_FIELD]: true,
+      }),
+    );
+
+    expect(screen.getByTestId(VALUE_TEST_ID)).toHaveTextContent("Yes");
+    expect(
+      await screen.findByText(
+        "Site 03 (lists none of these monitors)",
+        undefined,
+        { timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000 },
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId(PREVIEW_TEST_ID)).toBeNull();
+  });
+
+  test("the Private Incident box still says it hides the incident from every status page", async () => {
+    await renderCreate();
+
+    expect(fieldFor("isPrivate").description).toContain(
+      "Private incidents are automatically hidden from all status pages.",
+    );
   });
 });
 

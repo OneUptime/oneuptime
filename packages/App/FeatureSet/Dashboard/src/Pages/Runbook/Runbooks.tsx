@@ -53,6 +53,7 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -72,6 +73,7 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="runbooks-table"
         userPreferencesKey="runbooks-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}

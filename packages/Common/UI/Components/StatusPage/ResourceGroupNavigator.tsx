@@ -463,7 +463,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
         <MoreMenuItem
           key="show-id"
           text="Show ID"
-          icon={IconProp.Info}
+          icon={IconProp.Identification}
           onClick={() => {
             props.onShowGroupId?.(row.statusPageGroup);
           }}

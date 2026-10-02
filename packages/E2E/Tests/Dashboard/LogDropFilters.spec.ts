@@ -160,7 +160,8 @@ test.describe("Log Drop Filters", () => {
     });
 
     await expect(createButton).toBeVisible({ timeout: 60000 });
-    await expect(page.getByText("No drop filters found.")).toBeVisible({
+    // The page's sentence heads the table's empty state, without its stop.
+    await expect(page.getByText("No drop filters found")).toBeVisible({
       timeout: 60000,
     });
   });

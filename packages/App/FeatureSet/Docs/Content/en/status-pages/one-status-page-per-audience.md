@@ -62,7 +62,7 @@ On **Incidents → All Incidents → Declare Incident**, the **Resources Affecte
 
 The form warns you:
 
-- when a picked page lists none of the incident's monitors. The incident will not show on that page or notify its subscribers;
+- when a picked page lists none of the incident's monitors, or no monitor is attached at all. The incident will not show on that page or notify its subscribers;
 - when you also set **Change Monitor Status to**. See [Monitor status is shared](#monitor-status-is-shared);
 - when you also tick **Private Incident** on the **More** step. Private incidents are hidden from all status pages, including the ones you picked.
 
@@ -79,9 +79,11 @@ Under **Notify Status Page Subscribers** on the **More** step, and again on the 
 > - Site 03 (up to 41 email)
 > - Site 07 (up to 18 email)
 
-Below that, under **Not notified:**, it lists the pages that list the monitors but will not be told, and why: not one of the pages the incident is limited to, a page that only shows incidents limited to it, or a page that does not show incidents. When nothing will be sent at all, it says why instead: no monitors, no status page that will show the incident, **Notify Status Page Subscribers** turned off, a private incident, or no subscribers yet.
+Below that, under **Not notified:**, it lists the pages that list the monitors but will not be told, and why: not one of the pages the incident is limited to, a page that only shows incidents limited to it, or a page that does not show incidents.
 
-The same summary appears under **Notify Status Page Subscribers** when you write a note on the incident's **Public Notes** page, for the incident as it stands.
+When nobody will be told, the summary shows nothing: the incident has no monitors, no status page lists them, the pages have no subscribers yet, **Notify Status Page Subscribers** is off, or the incident is private. It warns only when the status page scope is the reason, and names the pages it leaves out: the incident is not limited and the pages that list its monitors only show incidents limited to them, it is limited to other pages, or the pages it is limited to list none of its monitors. On the summary, **Notify Status Page Subscribers** reads **Yes** or **No** like every other box, and **Preview notification** is not offered while the box is off, the incident is private, or no monitor is attached.
+
+The same summary appears under **Notify Status Page Subscribers** when you write a note on the incident's **Public Notes** page, for the incident as it stands. There it also says when the incident is hidden from status pages, since nothing will be sent then.
 
 The counts are "up to". They count the confirmed subscribers of each page who have not unsubscribed, per channel, and a subscriber who picked only some resources or event types may not get this message. Pages you cannot read are not named. They are counted as "more status pages you do not have access to".
 
@@ -141,7 +143,7 @@ A page added later hears about what happens next: later public notes, state chan
 
 The same record makes **Retry** on a failed 'created' notification resume where it stopped: pages that were already told are skipped. A page counts as told only when every one of its subscribers was sent the message; a page where a message failed, or that the send stopped part-way through, is sent it again in full. The record is written as each page finishes, so this holds even for a send that was interrupted. It is kept per page, not per subscriber: the subscribers of a page the send stopped part-way through who were already sent the message get it a second time.
 
-To start over instead, for example after fixing a template or an SMTP setting, tick **Send it to every status page again, including the pages already reached** in the **Retry** confirmation: the button becomes **Resend to all pages**, the record is emptied, and every page the incident reaches now is sent it again. After a notification that went out in full, the **Subscriber Notification Status** on the incident's **Overview** offers **Resend**, which does the same. Both confirmations list the pages it would reach now; the plain **Retry** confirmation lists the pages already reached as not sent again, since it skips them. Neither is offered for a notification that was skipped, or that is still queued or being sent, nor to someone who may not edit the incident.
+To start over instead, for example after fixing a template or an SMTP setting, tick **Send it to every status page again, including the pages already reached** in the **Retry** confirmation: the button becomes **Resend to all pages**, the record is emptied, and every page the incident reaches now is sent it again. After a notification that went out in full, the **Subscriber Notification Status** on the incident's **Overview** offers **Resend**, which does the same. Both confirmations list the pages it would reach now, or say that it would reach nobody; the plain **Retry** confirmation lists the pages already reached as not sent again, since it skips them. Neither is offered for a notification that was skipped, or that is still queued or being sent, nor to someone who may not edit the incident.
 
 Through the API, send `"miscDataProps": {"notifyAddedStatusPagesOfIncidentCreated": true}` with the update that changes `statusPages`. Setting `subscriberNotificationStatusOnIncidentCreated` back to `Pending` yourself still resends the 'created' notification to every page the incident reaches, as it always did: the record is emptied with it. After a failure it resumes where the failed send stopped instead. To send it to every page after a failure too, add `"miscDataProps": {"resendIncidentCreatedToAllStatusPages": true}` to that update. That request is refused for a notification that was skipped, or that is queued or being sent.
 

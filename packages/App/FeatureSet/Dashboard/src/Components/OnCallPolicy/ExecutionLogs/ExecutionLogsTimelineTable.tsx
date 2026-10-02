@@ -71,6 +71,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
         actionButtons={[
           {
             title: "View Status Message",
+            icon: IconProp.Error,
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: async (
               item: OnCallDutyPolicyExecutionLogTimeline,

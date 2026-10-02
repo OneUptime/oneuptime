@@ -156,3 +156,51 @@ describe("Icon eye", () => {
     expect(path.match(/Z/g)).toHaveLength(2);
   });
 });
+
+/*
+ * Every item in a menu of the product has an icon, and an item names its
+ * icon with an IconProp - so an IconProp that Icon does not draw would put an
+ * empty slot back in the menu, the very gap that was closed. ClockIcon,
+ * CubeTransparent, TableCellsIcon and UserIcon used to draw nothing at all;
+ * they are older names for Clock, TransparentCube, TableCells and User.
+ */
+describe("Icon draws every IconProp", () => {
+  const getGlyph: (icon: IconProp) => string = (icon: IconProp): string => {
+    const { container } = render(<Icon icon={icon} />);
+    const svg: SVGElement | null = container.querySelector("svg");
+
+    if (!svg) {
+      return "";
+    }
+
+    return Array.from(svg.querySelectorAll("*"))
+      .map((shape: Element) => {
+        return `${shape.tagName}:${shape.getAttribute("d") || ""}`;
+      })
+      .join("|");
+  };
+
+  it("draws a glyph for every value", () => {
+    const blank: Array<string> = Object.values(IconProp).filter(
+      (icon: IconProp) => {
+        const { container } = render(<Icon icon={icon} />);
+        const svg: SVGElement | null = container.querySelector("svg");
+
+        return !svg || svg.querySelectorAll("*").length === 0;
+      },
+    );
+
+    expect(blank).toEqual([]);
+  });
+
+  it("draws each older name as the name it duplicates", () => {
+    expect(getGlyph(IconProp.ClockIcon)).toBe(getGlyph(IconProp.Clock));
+    expect(getGlyph(IconProp.CubeTransparent)).toBe(
+      getGlyph(IconProp.TransparentCube),
+    );
+    expect(getGlyph(IconProp.TableCellsIcon)).toBe(
+      getGlyph(IconProp.TableCells),
+    );
+    expect(getGlyph(IconProp.UserIcon)).toBe(getGlyph(IconProp.User));
+  });
+});
