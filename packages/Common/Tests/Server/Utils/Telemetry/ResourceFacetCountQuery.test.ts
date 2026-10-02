@@ -12,6 +12,7 @@ import LogDatabaseService from "../../../../Server/Services/LogService";
 import SpanService from "../../../../Server/Services/SpanService";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * The query builder behind per-resource facet counts (issue #3251).
@@ -214,10 +215,10 @@ describe("readResourceFacetCounts", () => {
  * as an exact 0 for every listed resource.
  */
 describe("resource facet count query settings", () => {
-  test.each([
+  test.each<[string, unknown, unknown]>([
     ["logs", LogAggregationService, LogDatabaseService],
     ["traces", TraceAggregationService, SpanService],
-  ] as const)(
+  ])(
     "%s count throws on timeout instead of truncating to zero",
     async (_name: string, service: unknown, database: unknown) => {
       jest
@@ -225,13 +226,14 @@ describe("resource facet count query settings", () => {
         .mockResolvedValue(
           new Map([["c1", { entityIds: ["c1"], entityKeys: [] }]]),
         );
-      const executeQuery: jest.SpiedFunction<() => Promise<unknown>> = jest
-        .spyOn(database as never, "executeQuery" as never)
-        .mockResolvedValue({
-          json: async () => {
-            return { data: [{ cnt_0: "7" }] };
-          },
-        } as never);
+      const executeQuery: SpyInstance<typeof LogDatabaseService.executeQuery> =
+        jest
+          .spyOn(database as typeof LogDatabaseService, "executeQuery")
+          .mockResolvedValue({
+            json: async () => {
+              return { data: [{ cnt_0: "7" }] };
+            },
+          } as never);
 
       const counts: Array<{ value: string; count: number }> = await (
         service as typeof LogAggregationService
@@ -243,9 +245,7 @@ describe("resource facet count query settings", () => {
         entityIds: ["c1"],
       });
 
-      const statement: Statement = executeQuery.mock.calls[0]![
-        0 as never
-      ] as Statement;
+      const statement: Statement = executeQuery.mock.calls[0]![0] as Statement;
       expect(statement.query).toContain("timeout_overflow_mode = 'throw'");
       expect(statement.query).not.toContain("'break'");
       expect(counts).toEqual([{ value: "c1", count: 7 }]);
