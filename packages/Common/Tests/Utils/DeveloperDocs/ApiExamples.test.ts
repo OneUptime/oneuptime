@@ -6,18 +6,13 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import {
-  CollectionApiExamples,
   getApiBaseUrl,
   getApiReferenceUrl,
-  getCollectionApiExamples,
   getCurlCommand,
-  getExampleCreateData,
-  getExampleSelect,
   getModelApiPath,
-  getResourceApiExamples,
-  ResourceApiExamples,
   shellQuote,
 } from "../../../Utils/DeveloperDocs/ApiExamples";
+import { isModelInPublicApi } from "../../../Utils/DeveloperDocs/TerraformSchema";
 import {
   getApiKeyExportCommand,
   toSentenceCaseName,
@@ -116,120 +111,18 @@ describe("urls", () => {
   });
 });
 
-describe("one resource", () => {
-  test("read, change and delete it by its id", () => {
-    const examples: ResourceApiExamples = getResourceApiExamples({
-      modelType: Workflow,
-      apiBaseUrl: API,
-      id: ID,
-      displayName: "Report",
-    });
-
-    expect(examples.read?.method).toBe("POST");
-    expect(examples.read?.url).toBe(`${API}/workflow/${ID}/get-item`);
-    expect(examples.read?.body).toEqual({
-      select: {
-        _id: true,
-        name: true,
-        description: true,
-        isArchived: true,
-        isEnabled: true,
-      },
-    });
-
-    expect(examples.update?.method).toBe("PUT");
-    expect(examples.update?.url).toBe(`${API}/workflow/${ID}`);
-    expect(examples.update?.body).toEqual({
-      data: { description: "Updated with the OneUptime API" },
-    });
-
-    expect(examples.delete?.method).toBe("DELETE");
-    expect(examples.delete?.url).toBe(`${API}/workflow/${ID}`);
-    expect(examples.delete?.body).toBeUndefined();
+describe("which models have a path", () => {
+  test("a documented model's path is its CRUD path", () => {
+    expect(getModelApiPath(Incident)).toBe("/incident");
+    expect(getModelApiPath(Monitor)).toBe("/monitor");
+    expect(isModelInPublicApi(AIInsight)).toBe(true);
   });
 
-  test("the read example asks for plain fields only: no secrets, no server state", () => {
-    const select: Record<string, unknown> = getExampleSelect(Monitor);
-
-    expect(select["_id"]).toBe(true);
-    expect(select["name"]).toBe(true);
-    expect(Object.keys(select)).not.toContain("currentMonitorStatusId");
-    expect(Object.keys(select)).not.toContain("monitorSteps");
-    expect(Object.keys(getExampleSelect(StatusPage))).not.toContain(
-      "masterPassword",
+  test("an undocumented one has a path, but no public API: the pages say so instead of showing it", () => {
+    expect(getModelApiPath(EmailVerificationToken)).toBe(
+      "/email-verification-token",
     );
-  });
-
-  test("a model the API cannot change has no change or delete example", () => {
-    const examples: ResourceApiExamples = getResourceApiExamples({
-      modelType: AIInsight,
-      apiBaseUrl: API,
-      id: ID,
-    });
-
-    expect(examples.read).not.toBeNull();
-    expect(examples.update).toBeNull();
-  });
-
-  test("a model outside the public API has no examples", () => {
-    expect(
-      getResourceApiExamples({
-        modelType: EmailVerificationToken,
-        apiBaseUrl: API,
-        id: ID,
-      }),
-    ).toEqual({ read: null, update: null, delete: null });
-  });
-});
-
-describe("a resource type", () => {
-  test("list, count and create", () => {
-    const examples: CollectionApiExamples = getCollectionApiExamples({
-      modelType: Incident,
-      apiBaseUrl: API,
-      singularName: "Incident",
-    });
-
-    expect(examples.list?.url).toBe(`${API}/incident/get-list?skip=0&limit=10`);
-    expect(examples.list?.body?.["sort"]).toEqual({ createdAt: "DESC" });
-    expect(examples.count?.url).toBe(`${API}/incident/count`);
-    expect(examples.create?.url).toBe(`${API}/incident`);
-    expect(examples.create?.body).toEqual({
-      data: {
-        title: "My incident",
-        description: "Created with the OneUptime API",
-        incidentSeverityId: "<incident severity id>",
-      },
-    });
-  });
-
-  test("the create example puts the name first and takes a page's own values", () => {
-    expect(
-      Object.keys(
-        getExampleCreateData({
-          modelType: Monitor,
-          singularName: "Monitor",
-          exampleValues: { monitorType: "Manual" },
-        }),
-      )[0],
-    ).toBe("name");
-    expect(
-      getExampleCreateData({
-        modelType: Monitor,
-        singularName: "Monitor",
-        exampleValues: { monitorType: "Manual" },
-      })["monitorType"],
-    ).toBe("Manual");
-  });
-
-  test("a model that cannot be created has no create example", () => {
-    expect(
-      getCollectionApiExamples({
-        modelType: AIInsight,
-        apiBaseUrl: API,
-        singularName: "AI Insight",
-      }).create,
-    ).toBeNull();
+    expect(isModelInPublicApi(EmailVerificationToken)).toBe(false);
   });
 });
 

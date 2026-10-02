@@ -333,6 +333,12 @@ const langDisplayNames: Record<string, string> = {
   md: "Markdown",
 };
 
+/*
+ * Makes every element inside a code block inherit the block's monospace
+ * font, instead of matching index.ejs's `* { font-family: Inter }`.
+ */
+export const CODE_BLOCK_FONT_CLASS_NAME: string = "[&_*]:[font-family:inherit]";
+
 // Code block with copy button and language label
 const CodeBlock: FunctionComponent<{
   language: string;
@@ -434,7 +440,15 @@ const CodeBlock: FunctionComponent<{
           {copied ? "Copied!" : "Copy"}
         </button>
       </div>
-      {/* Code content */}
+      {/*
+       * Code content. Every frontend's index.ejs sets `* { font-family:
+       * Inter }`, and a rule that matches an element beats what it inherits,
+       * so each highlighted token (a <span>) was drawn in Inter: the code was
+       * proportional and lined-up code (Terraform's `=`, YAML's indentation,
+       * table-like output) came out ragged. Every element inside takes its
+       * font from the <code> instead (CODE_BLOCK_FONT_CLASS_NAME); a class
+       * selector outranks `*`.
+       */}
       <SyntaxHighlighter
         {...rest}
         PreTag="pre"
@@ -444,7 +458,7 @@ const CodeBlock: FunctionComponent<{
         children={content}
         language={language}
         style={vscDarkPlus}
-        className="!rounded-none !mt-0 !mb-0 !bg-gray-900 !pt-3 !pb-3 !px-4 text-sm !border-0"
+        className={`!rounded-none !mt-0 !mb-0 !bg-gray-900 !pt-3 !pb-3 !px-4 text-sm !border-0 ${CODE_BLOCK_FONT_CLASS_NAME}`}
         codeTagProps={{ className: "font-mono" }}
       />
     </div>

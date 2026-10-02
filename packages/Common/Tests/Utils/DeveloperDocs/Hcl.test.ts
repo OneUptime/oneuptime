@@ -7,6 +7,7 @@ import {
   printHclExpression,
   quoteHclString,
   shouldUseHeredoc,
+  toHclTrailingComment,
 } from "../../../Utils/DeveloperDocs/Hcl";
 
 /*
@@ -354,5 +355,208 @@ describe("documents", () => {
     expect(printHclDocument([Hcl.block("data", ['a"b', "${x}"], [])])).toBe(
       'data "a\\"b" "$${x}" {}\n',
     );
+  });
+});
+
+/*
+ * Trailing comments name the record an id stands for (`= "6b1d..." #
+ * Critical Incident`). `terraform fmt` lines up the comments of
+ * consecutive lines that have one, one space after the longest of those
+ * lines, and a line without one ends the run; the printer must do the same,
+ * or a configuration copied from the page is reformatted by the first
+ * `terraform fmt`. (Every configuration the Developer pages generate was
+ * also checked with `terraform fmt -check` and `terraform validate` against
+ * the published provider while this was built.)
+ */
+describe("trailing comments", () => {
+  test("follow an attribute's value", () => {
+    expect(
+      printHclDocument([
+        Hcl.block(
+          "resource",
+          ["oneuptime_incident", "x"],
+          [
+            Hcl.attribute(
+              "incident_severity_id",
+              Hcl.string("6b1d"),
+              "Critical Incident",
+            ),
+          ],
+        ),
+      ]),
+    ).toBe(
+      [
+        'resource "oneuptime_incident" "x" {',
+        '  incident_severity_id = "6b1d" # Critical Incident',
+        "}",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  test("on consecutive lines start in one column, after the = are lined up", () => {
+    expect(
+      printHclDocument([
+        Hcl.block(
+          "resource",
+          ["oneuptime_incident", "x"],
+          [
+            Hcl.attribute("title", Hcl.string("Checkout")),
+            Hcl.attribute("severity_id", Hcl.string("a1"), "Critical"),
+            Hcl.attribute(
+              "monitors",
+              Hcl.tuple([Hcl.string("e1234")]),
+              "Checkout API",
+            ),
+            Hcl.attribute("status_id", Hcl.string("d2"), "Degraded"),
+          ],
+        ),
+      ]),
+    ).toBe(
+      [
+        'resource "oneuptime_incident" "x" {',
+        '  title       = "Checkout"',
+        '  severity_id = "a1"      # Critical',
+        '  monitors    = ["e1234"] # Checkout API',
+        '  status_id   = "d2"      # Degraded',
+        "}",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  test("a line without a comment ends the run, and the next run lines up on its own", () => {
+    expect(
+      printHclDocument([
+        Hcl.block(
+          "resource",
+          ["x", "y"],
+          [
+            Hcl.attribute("a", Hcl.string("long value here"), "first"),
+            Hcl.attribute("b", Hcl.string("v")),
+            Hcl.attribute("c", Hcl.string("short"), "second"),
+          ],
+        ),
+      ]),
+    ).toBe(
+      [
+        'resource "x" "y" {',
+        '  a = "long value here" # first',
+        '  b = "v"',
+        '  c = "short" # second',
+        "}",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  test("list items carry their own, lined up with each other", () => {
+    expect(
+      printHclExpression(
+        Hcl.tuple([
+          { value: Hcl.string("a-much-longer-id"), comment: "first" },
+          { value: Hcl.string("short"), comment: "second" },
+        ]),
+      ),
+    ).toBe(
+      [
+        "[",
+        '  "a-much-longer-id", # first',
+        '  "short",            # second',
+        "]",
+      ].join("\n"),
+    );
+  });
+
+  test("objects inside a value carry them too", () => {
+    expect(
+      printHclExpression(
+        Hcl.object([
+          {
+            key: "monitor_status_id",
+            value: Hcl.string("d3"),
+            comment: "Offline",
+          },
+          { key: "create_incidents", value: Hcl.bool(true) },
+        ]),
+      ),
+    ).toBe(
+      [
+        "{",
+        '  monitor_status_id = "d3" # Offline',
+        "  create_incidents  = true",
+        "}",
+      ].join("\n"),
+    );
+  });
+
+  test("a value written over several lines takes none: its items carry theirs", () => {
+    const printed: string = printHclDocument([
+      Hcl.attribute(
+        "labels",
+        Hcl.tuple([
+          { value: Hcl.string("l1"), comment: "production" },
+          { value: Hcl.string("l2"), comment: "eu" },
+        ]),
+        "ignored",
+      ),
+    ]);
+
+    expect(printed).not.toContain("ignored");
+    expect(printed).toBe(
+      ["labels = [", '  "l1", # production', '  "l2", # eu', "]", ""].join(
+        "\n",
+      ),
+    );
+  });
+
+  test("an empty comment writes nothing", () => {
+    expect(printHclDocument([Hcl.attribute("a", Hcl.string("b"), "   ")])).toBe(
+      'a = "b"\n',
+    );
+  });
+});
+
+describe("the text of a trailing comment", () => {
+  test("cannot break out of its line: a name with line breaks stays one comment", () => {
+    const comment: string = toHclTrailingComment(
+      'prod\nresource "x" "evil" {}\r\n\tdone',
+    );
+
+    expect(comment).toBe('prod resource "x" "evil" {} done');
+    expect(comment).not.toMatch(/[\r\n\t]/);
+
+    const printed: string = printHclDocument([
+      Hcl.attribute(
+        "team_id",
+        Hcl.string("t1"),
+        'Platform\nresource "oneuptime_team" "evil" {}',
+      ),
+    ]);
+
+    expect(printed.split("\n")).toHaveLength(2);
+    expect(printed).toBe(
+      'team_id = "t1" # Platform resource "oneuptime_team" "evil" {}\n',
+    );
+  });
+
+  test("control characters and runs of spaces collapse", () => {
+    expect(toHclTrailingComment("a\u0000b   c\u007Fd")).toBe("a b c d");
+  });
+
+  test("a long name is cut short", () => {
+    const comment: string = toHclTrailingComment("x".repeat(200));
+
+    expect(Array.from(comment)).toHaveLength(60);
+    expect(comment.endsWith("…")).toBe(true);
+  });
+
+  test("an accented value counts its characters, not its bytes, when lining up", () => {
+    expect(
+      printHclDocument([
+        Hcl.attribute("a", Hcl.string("é"), "one"),
+        Hcl.attribute("bb", Hcl.string("e"), "two"),
+      ]),
+    ).toBe(['a  = "é" # one', 'bb = "e" # two', ""].join("\n"));
   });
 });
