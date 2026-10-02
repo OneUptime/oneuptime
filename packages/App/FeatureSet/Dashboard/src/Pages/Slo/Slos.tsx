@@ -97,7 +97,7 @@ The SLO's **Metrics** page charts its SLI, error budget and burn rate over time,
 
 ### Archiving
 
-Archive an SLO you no longer need but want to keep: from its **Settings** page, or select SLOs in this list and choose **Archive**. Archived SLOs are hidden from this list and are not evaluated, and their open burn-rate alerts and incidents are resolved. Find them on the **Archived** page in the side menu, where you can unarchive them to resume measuring.
+Archive an SLO you no longer need but want to keep: from its **Settings** page, or select SLOs in this list and choose **Archive**. Archived SLOs are hidden from this list and are not evaluated, and their open burn-rate alerts and incidents are resolved. Find them on the **Archived** page, under **Advanced** in the side menu, where you can unarchive them to resume measuring.
 
 Archiving and disabling are separate: unarchiving an SLO that was disabled leaves it disabled.
 

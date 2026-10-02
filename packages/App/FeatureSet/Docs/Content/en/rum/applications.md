@@ -81,7 +81,7 @@ RUM is often the highest-volume telemetry in a project, because it scales with y
 
 ## Archiving and deleting
 
-**Archive** hides an application from the main list while it *keeps collecting telemetry*. Use it for an app you no longer actively watch but do not want to lose history for. Archived applications live under **RUM → Archived** and can be unarchived in bulk.
+**Archive** hides an application from the main list while it *keeps collecting telemetry*. Use it for an app you no longer actively watch but do not want to lose history for. Archived applications live under **RUM → Advanced → Archived** and can be unarchived in bulk. **Advanced** starts collapsed: click it to show **Archived**.
 
 **Delete** — _View Application → Delete Application_ — is permanent and removes the application. If the app is still emitting telemetry, auto-discovery will simply recreate it on the next batch, with none of its previous settings, so stop the instrumentation first.
 

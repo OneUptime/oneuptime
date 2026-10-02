@@ -118,7 +118,10 @@ export function getResolvedCredentials(
     const config: CLIConfig = load();
     const ctx: CLIContext | undefined = config.contexts[cliOptions.context];
     if (ctx) {
-      return applyCliOverrides({ apiKey: ctx.apiKey, apiUrl: ctx.apiUrl });
+      return applyCliOverrides({
+        apiKey: envApiKey || ctx.apiKey,
+        apiUrl: envUrl || ctx.apiUrl,
+      });
     }
     throw new Error(`Context "${cliOptions.context}" does not exist.`);
   }
@@ -127,17 +130,16 @@ export function getResolvedCredentials(
   const currentCtx: CLIContext | null = getCurrentContext();
   if (currentCtx) {
     return applyCliOverrides({
-      apiKey: currentCtx.apiKey,
-      apiUrl: currentCtx.apiUrl,
+      apiKey: envApiKey || currentCtx.apiKey,
+      apiUrl: envUrl || currentCtx.apiUrl,
     });
   }
 
-  // Partial env vars + partial context
+  // Partial env vars with no saved context to fill the other field
   if (envApiKey || envUrl) {
-    const ctx: CLIContext | null = getCurrentContext();
     return applyCliOverrides({
-      apiKey: envApiKey || ctx?.apiKey || "",
-      apiUrl: envUrl || ctx?.apiUrl || "",
+      apiKey: envApiKey || "",
+      apiUrl: envUrl || "",
     });
   }
 

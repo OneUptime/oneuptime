@@ -32,10 +32,11 @@ import {
 
 /*
  * The two maps of the Queues product: the product menu (the list, the
- * archive, the install guide and the two rule pages) and one queue's menu
- * (its tabs). Rendered for real against the real RouteMap, and every href
- * compared to the route the page is registered under, so a tab that is
- * dropped, duplicated or pointed at the wrong page shows up by name.
+ * install guide, the two rule pages and, under Advanced, the archive) and
+ * one queue's menu (its tabs). Rendered for real against the real RouteMap,
+ * and every href compared to the route the page is registered under, so a
+ * tab that is dropped, duplicated or pointed at the wrong page shows up by
+ * name.
  */
 
 const QUEUE_ID: ObjectID = new ObjectID("5d9e2c11-7a3b-4c1d-9e8f-00000000a0b1");
@@ -56,24 +57,48 @@ describe("the Queues product side menu", () => {
     cleanup();
   });
 
-  test("has a Queues section, a Settings section and Developer, in that order", async () => {
+  test("has a Queues section, a Settings section, Advanced and Developer, in that order", async () => {
     await renderMenu(<MessageQueueSideMenu />);
 
-    expect(sectionTitlesInOrder()).toEqual(["Queues", "Settings", "Developer"]);
+    expect(sectionTitlesInOrder()).toEqual([
+      "Queues",
+      "Settings",
+      "Advanced",
+      "Developer",
+    ]);
   });
 
-  test("the Queues section reaches the list, the archive and the install guide", async () => {
+  test("the Queues section reaches the list and the install guide", async () => {
     await renderMenu(<MessageQueueSideMenu />);
 
     expect(linksIn("Queues")).toEqual([
       { title: "All Queues", href: routeFor(PageMap.MESSAGE_QUEUES) },
-      { title: "Archived", href: routeFor(PageMap.MESSAGE_QUEUES_ARCHIVED) },
       {
         title: "Documentation",
         href: routeFor(PageMap.MESSAGE_QUEUES_DOCUMENTATION),
       },
     ]);
-    expect(iconCountIn("Queues")).toBe(3);
+    expect(iconCountIn("Queues")).toBe(2);
+  });
+
+  test("the archive waits in Advanced, which starts collapsed", async () => {
+    await renderMenu(<MessageQueueSideMenu />);
+
+    expect(linksIn("Advanced")).toEqual([
+      { title: "Archived", href: routeFor(PageMap.MESSAGE_QUEUES_ARCHIVED) },
+    ]);
+    expect(iconCountIn("Advanced")).toBe(1);
+    expect(isExpanded("Advanced")).toBe(false);
+    expect(sectionBody("Advanced").className).toContain("max-h-0");
+  });
+
+  test("Advanced opens by itself on the Archived page", async () => {
+    goTo(routeFor(PageMap.MESSAGE_QUEUES_ARCHIVED));
+
+    await renderMenu(<MessageQueueSideMenu />);
+
+    expect(isExpanded("Advanced")).toBe(true);
+    expect(sectionBody("Advanced").className).not.toContain("max-h-0");
   });
 
   test("the Settings section holds both rule pages and starts collapsed", async () => {
@@ -144,7 +169,7 @@ describe("the Queues product side menu", () => {
 
     await renderMenu(<MessageQueueSideMenu />);
 
-    expect(mobileSummaryText()).toContain("Queues / Archived");
+    expect(mobileSummaryText()).toContain("Advanced / Archived");
   });
 });
 

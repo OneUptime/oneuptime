@@ -93,6 +93,36 @@ const SLO_VIEW_TABS: Array<string> = [
   "Delete SLO",
 ];
 
+/*
+ * The side menu's Advanced section, by its heading's text (the heading is
+ * drawn in capitals by CSS). On the SLO list it holds Archived and starts
+ * folded away, as Advanced does in every menu: its rows are hidden, so
+ * getByRole does not find them until it is opened.
+ */
+type MenuLocatorFunction = (page: Page) => Locator;
+
+const sideMenuAdvancedToggle: MenuLocatorFunction = (page: Page): Locator => {
+  return page
+    .getByRole("navigation", { name: "Main navigation" })
+    .locator("xpath=.//h6[normalize-space(.)='Advanced']/ancestor::button[1]");
+};
+
+type OpenSideMenuAdvancedFunction = (page: Page) => Promise<void>;
+
+const openSideMenuAdvanced: OpenSideMenuAdvancedFunction = async (
+  page: Page,
+): Promise<void> => {
+  const toggle: Locator = sideMenuAdvancedToggle(page);
+
+  await expect(toggle).toBeVisible({ timeout: 30000 });
+
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+};
+
 type ProjectUrlFunction = (data: { projectId: string; path: string }) => string;
 
 const projectUrl: ProjectUrlFunction = (data: {
@@ -254,13 +284,23 @@ test.describe("SLOs", () => {
 
     /*
      * Archived SLOs are filtered out of the list, so the side menu's Archived
-     * entry is the only way back to one short of its URL.
+     * entry is the only way back to one short of its URL. It waits in the
+     * Advanced section, folded away until that is opened.
      */
-    await expect(
-      page
-        .getByRole("navigation", { name: "Main navigation" })
-        .getByRole("link", { name: "Archived", exact: true }),
-    ).toBeVisible({ timeout: 30000 });
+    const archivedLink: Locator = page
+      .getByRole("navigation", { name: "Main navigation" })
+      .getByRole("link", { name: "Archived", exact: true });
+    const advancedToggle: Locator = sideMenuAdvancedToggle(page);
+
+    await expect(advancedToggle).toHaveAttribute("aria-expanded", "false", {
+      timeout: 30000,
+    });
+    await expect(archivedLink).toBeHidden();
+
+    await advancedToggle.click();
+
+    await expect(advancedToggle).toHaveAttribute("aria-expanded", "true");
+    await expect(archivedLink).toBeVisible({ timeout: 30000 });
   });
 
   test("should create an SLO through the four-step wizard and land on its overview", async () => {
@@ -1135,7 +1175,11 @@ test.describe("SLOs", () => {
       "the server stamps archivedAt on archive",
     ).toBeTruthy();
 
-    // The Archived page, reached through the list's side menu, lists it.
+    /*
+     * The Archived page, reached through the list's side menu, lists it. Its
+     * entry waits in the menu's Advanced section, folded away until opened.
+     */
+    await openSideMenuAdvanced(page);
     await page
       .getByRole("navigation", { name: "Main navigation" })
       .getByRole("link", { name: "Archived", exact: true })
