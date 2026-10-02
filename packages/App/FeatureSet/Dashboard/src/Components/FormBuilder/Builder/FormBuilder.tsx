@@ -502,9 +502,9 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
             )}
 
             <div className="mb-4 rounded-lg border border-gray-200 border-t-4 border-t-indigo-500 bg-white p-4">
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
                 <h3
-                  className="text-lg font-semibold text-gray-900 [overflow-wrap:anywhere]"
+                  className="min-w-0 text-lg font-semibold text-gray-900 [overflow-wrap:anywhere]"
                   data-testid="form-builder-name"
                 >
                   {details.name}

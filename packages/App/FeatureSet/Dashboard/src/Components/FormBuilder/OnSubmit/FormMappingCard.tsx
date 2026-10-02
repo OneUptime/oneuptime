@@ -80,6 +80,12 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string>("");
+  /*
+   * What was last sent to be saved. The dialog's form is unmounted while it
+   * saves, so after a failed save it opens again on these values - with the
+   * error - instead of the stored ones, and nothing typed is lost.
+   */
+  const [unsavedValues, setUnsavedValues] = useState<JSONObject | null>(null);
 
   useAsyncEffect(async () => {
     setIsLoading(true);
@@ -130,6 +136,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
             onClick: () => {
               if (updateGate.isAllowed) {
                 setSaveError("");
+                setUnsavedValues(null);
                 setIsEditing(true);
               }
             },
@@ -142,6 +149,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
   ): Promise<void> => {
     setIsSaving(true);
     setSaveError("");
+    setUnsavedValues(values);
 
     try {
       await ModelAPI.updateById<Form>({
@@ -156,6 +164,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
       });
 
       setIsEditing(false);
+      setUnsavedValues(null);
       props.onSaved();
     } catch (err) {
       setSaveError(API.getFriendlyMessage(err));
@@ -173,7 +182,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
     switch (line.kind) {
       case FormMappingLineKind.Answer:
         return (
-          <p
+          <div
             key={index}
             className="flex items-start gap-1.5 text-sm text-gray-900"
             data-testid="form-mapping-answer"
@@ -186,7 +195,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
               {tx(FormsCopy.fromAnswer)}{" "}
               <span className="font-medium">&ldquo;{text}&rdquo;</span>
             </span>
-          </p>
+          </div>
         );
 
       case FormMappingLineKind.Fallback:
@@ -199,7 +208,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
 
       case FormMappingLineKind.Always:
         return (
-          <p
+          <div
             key={index}
             className="flex items-start gap-1.5 text-sm text-gray-900"
             data-testid="form-mapping-always"
@@ -212,19 +221,19 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
               {tx(FormsCopy.alwaysAdded)}{" "}
               <span className="font-medium">{text}</span>
             </span>
-          </p>
+          </div>
         );
 
       case FormMappingLineKind.Warning:
         return (
-          <p
+          <div
             key={index}
             className="flex items-start gap-1.5 text-sm font-medium text-amber-700"
             data-testid="form-mapping-warning"
           >
             <Icon icon={IconProp.Alert} className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{text}</span>
-          </p>
+          </div>
         );
 
       case FormMappingLineKind.CustomField:
@@ -315,8 +324,10 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
           modalWidth={ModalWidth.Large}
           isLoading={isSaving}
           submitButtonText={FormsCopy.saveChanges}
+          saveFromAnyStep={true}
           onClose={() => {
             setIsEditing(false);
+            setUnsavedValues(null);
           }}
           onSubmit={(values: JSONObject) => {
             void save(values);
@@ -329,11 +340,13 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
               targetType: props.targetType,
               reference: reference,
             }),
-            initialValues: getFormSettingsInitialValues({
-              targetType: props.targetType,
-              settings: props.targetSettings,
-              reference: reference,
-            }),
+            initialValues:
+              unsavedValues ||
+              getFormSettingsInitialValues({
+                targetType: props.targetType,
+                settings: props.targetSettings,
+                reference: reference,
+              }),
             error: saveError || undefined,
           }}
         />
