@@ -6498,7 +6498,6 @@
   "Optional. Leave empty to show this incident on, and notify the subscribers of, every status page that lists its monitors. When you pick pages, only the picked pages among those are used. Use the Labels tab to add every page with a label.": "可选。留空时，此事件会显示在列出其监视器的每个状态页面上，并通知这些页面的订阅者。选择页面后，只使用其中所选的页面。使用“标签”选项卡可添加带有某个标签的所有页面。",
   "Every status page that lists the monitors": "列出这些监视器的所有状态页面",
   "Optional. Incidents declared from this template are limited to these status pages: they show on, and notify the subscribers of, only these pages among the status pages that list their monitors.": "可选。基于此模板声明的事件将仅限于这些状态页面：在列出其监视器的状态页面中，只会显示在这些页面上，也只通知这些页面的订阅者。",
-  "No status pages to pick from. If this project has status pages, you need a role that can read them, such as Status Page Viewer (it can be limited to pages with certain labels). Ask a project admin.": "没有可选择的状态页面。如果此项目有状态页面，您需要一个可以读取它们的角色，例如 Status Page Viewer（可限定为带有特定标签的页面）。请联系项目管理员。",
   "Not limited: shown on, and notifies, every status page that lists its monitors.": "未限定：显示在列出其监视器的每个状态页面上，并通知这些页面的订阅者。",
   "A monitor's status is shared by every status page that lists it. Changing it here also changes it on status pages this incident is not limited to.": "监视器的状态由列出它的所有状态页面共享。在此更改后，此事件未限定的状态页面上也会随之更改。",
   "Private incidents are hidden from all status pages, including the ones this incident is limited to, and notify no subscribers.": "私密事件会在所有状态页面上隐藏（包括此事件限定的页面），也不会通知任何订阅者。",
