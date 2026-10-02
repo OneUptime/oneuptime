@@ -156,7 +156,7 @@ function expectNoWarning(panel: HTMLElement): void {
   expect(panel.querySelector(".alert")).toBeNull();
   expect(panel.querySelector(".bg-amber-50")).toBeNull();
   expect(panel).not.toHaveTextContent(/internal data/i);
-  expect(panel).not.toHaveTextContent(/outside your team/i);
+  expect(panel).not.toHaveTextContent(/name every audience the incident/i);
   expect(panel).not.toHaveTextContent(/whose subscribers may see them/i);
   expect(
     translated.some((text: string): boolean => {

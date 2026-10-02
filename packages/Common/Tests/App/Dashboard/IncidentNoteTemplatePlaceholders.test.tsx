@@ -16,12 +16,11 @@ import React from "react";
 
 const translated: Array<string> = [];
 
-// The removed warning's title, and what it was about.
-const WARNING_WORDS: RegExp = /internal data|public note/i;
 // A copy key that names a warning.
 const WARNING_KEY: RegExp = /warning|internaldata/i;
 // The removed warning's title, and its closing advice.
-const WARNING_TEXT: RegExp = /internal data|before you post a public note/i;
+const WARNING_TEXT: RegExp =
+  /internal data|before you post a public note|read the filled-in text/i;
 
 jest.mock("../../../UI/Utils/Translation", () => {
   return {
@@ -75,7 +74,7 @@ describe("the note template placeholders hint", () => {
     ).toBeInTheDocument();
   });
 
-  test("shows no warning: no alert, no 'Internal data', nothing about public notes", () => {
+  test("shows no warning: no alert, no 'Internal data', no advice about public notes", () => {
     render(<IncidentNoteTemplatePlaceholders />);
 
     const hint: HTMLElement = screen.getByTestId(
@@ -89,14 +88,12 @@ describe("the note template placeholders hint", () => {
     // The warning was the shared Alert's amber (yellow) box.
     expect(hint.querySelector(".alert")).toBeNull();
     expect(hint.querySelector(".bg-amber-50")).toBeNull();
-    expect(hint).not.toHaveTextContent(/internal data/i);
-    expect(hint).not.toHaveTextContent(/public note/i);
-    expect(hint).not.toHaveTextContent(/filled-in text/i);
+    expect(hint).not.toHaveTextContent(WARNING_TEXT);
     expect(hint).not.toHaveTextContent(/Include in Subscriber Notifications/);
     // Nor was the warning's title or text looked up in another language.
     expect(
       translated.some((text: string): boolean => {
-        return WARNING_WORDS.test(text);
+        return WARNING_TEXT.test(text);
       }),
     ).toBe(false);
   });

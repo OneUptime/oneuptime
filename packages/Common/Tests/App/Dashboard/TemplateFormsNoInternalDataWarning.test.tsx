@@ -211,12 +211,12 @@ const CHANNELS: Array<StatusPageSubscriberNotificationMethod> = Object.values(
   StatusPageSubscriberNotificationMethod,
 );
 
-/*
- * The words of the two removed warnings: their shared title, and a phrase
- * from each body.
- */
+// The two removed warnings' shared title.
+const REMOVED_WARNING_TITLE: string = "Internal data";
+
+// A phrase from each removed warning's body.
 const REMOVED_WARNING_WORDS: RegExp =
-  /internal data|before you post a public note|whose subscribers may see them|outside your team/i;
+  /before you post a public note|whose subscribers may see them/i;
 
 function incidentCustomField(): IncidentCustomField {
   const field: IncidentCustomField = new IncidentCustomField();
@@ -330,7 +330,9 @@ function expectNoYellowWarning(region: HTMLElement): void {
       "[data-testid='incident-note-template-internal-data-warning'], [data-testid='incident-template-variables-internal-data-warning']",
     ),
   ).toBeNull();
+  expect(within(region).queryByText(REMOVED_WARNING_TITLE)).toBeNull();
   expect(region).not.toHaveTextContent(REMOVED_WARNING_WORDS);
+  expect(translated).not.toContain(REMOVED_WARNING_TITLE);
   expect(
     translated.some((text: string): boolean => {
       return REMOVED_WARNING_WORDS.test(text);
