@@ -124,7 +124,7 @@ const incidentState: (
   n: number,
   name: string,
   order: number,
-  flags: Record<string, boolean> = {},
+  flags?: Record<string, boolean>,
 ) => FakeRow = (
   n: number,
   name: string,
@@ -175,7 +175,7 @@ const update: (
   fake: FakeService,
   rowId: string,
   data: Record<string, unknown>,
-  props: Record<string, unknown> = SIGNED_IN,
+  props?: Record<string, unknown>,
 ) => Promise<void> = (
   fake: FakeService,
   rowId: string,
@@ -199,7 +199,7 @@ const remove: (
   fake: FakeService,
   definition: StateListDefinition,
   query: Record<string, unknown>,
-  props: Record<string, unknown> = SIGNED_IN,
+  props?: Record<string, unknown>,
 ) => Promise<void> = (
   fake: FakeService,
   definition: StateListDefinition,

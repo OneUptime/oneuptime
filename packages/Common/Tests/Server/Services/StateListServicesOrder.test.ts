@@ -165,7 +165,7 @@ const state: (
   n: number,
   name: string,
   order: number,
-  flags: Record<string, boolean> = {},
+  flags?: Record<string, boolean>,
 ) => Record<string, unknown> = (
   n: number,
   name: string,
@@ -389,7 +389,7 @@ describe("MonitorStatusService", () => {
     n: number,
     name: string,
     priority: number,
-    flags: Record<string, boolean> = {},
+    flags?: Record<string, boolean>,
   ) => Record<string, unknown> = (
     n: number,
     name: string,

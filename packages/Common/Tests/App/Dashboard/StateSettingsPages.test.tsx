@@ -380,7 +380,8 @@ describe.each(PAGES)("$type settings page", (pageCase: PageCase) => {
   });
 
   test("every fetch drops the cached lists the pickers read", () => {
-    const invalidate: SpyInstance = jest.spyOn(ModelListCache, "invalidate");
+    const invalidate: SpyInstance<typeof ModelListCache.invalidate> =
+      jest.spyOn(ModelListCache, "invalidate");
 
     renderPage(pageCase);
 
