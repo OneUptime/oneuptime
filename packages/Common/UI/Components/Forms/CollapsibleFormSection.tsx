@@ -11,6 +11,14 @@ export interface ComponentProps {
   title: string;
   description?: string | undefined;
   isConfigured: boolean;
+  /*
+   * Whether being configured opens the section: when the form opens with a
+   * value in it, and when a default arrives after the fields have loaded.
+   * True when left out. An Advanced section passes false and stays folded,
+   * saying "Configured" on its header instead (see
+   * FormFieldCollapsibleSection.openWhenConfigured).
+   */
+  openWhenConfigured?: boolean | undefined;
   hasError: boolean;
   validationAttempt: number;
   className: string;
@@ -21,11 +29,14 @@ const CollapsibleFormSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(!props.isConfigured);
+  const openWhenConfigured: boolean = props.openWhenConfigured !== false;
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(
+    openWhenConfigured ? !props.isConfigured : true,
+  );
 
   useEffect(() => {
     // Field defaults can arrive after the form has loaded its field definitions.
-    if (props.isConfigured) {
+    if (openWhenConfigured && props.isConfigured) {
       setIsCollapsed(false);
     }
   }, [props.isConfigured]);

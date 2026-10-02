@@ -857,9 +857,9 @@ describe("the output sections", () => {
   test("values without templates keep optional sections collapsed, including auto-resolve defaults", () => {
     for (const field of BURN_RATE_RULE_FORM_FIELDS) {
       if (field.collapsibleSection) {
-        expect(field.collapsibleSection.isConfigured({})).toBe(false);
+        expect(field.collapsibleSection.isConfigured!({})).toBe(false);
         expect(
-          field.collapsibleSection.isConfigured({
+          field.collapsibleSection.isConfigured!({
             autoResolveAlert: true,
             autoResolveIncident: true,
           }),
@@ -880,7 +880,7 @@ describe("the output sections", () => {
 
     for (const field of BURN_RATE_RULE_FORM_FIELDS) {
       if (field.collapsibleSection) {
-        expect(field.collapsibleSection.isConfigured(defaults)).toBe(
+        expect(field.collapsibleSection.isConfigured!(defaults)).toBe(
           field.collapsibleSection.title === "Description",
         );
       }
@@ -912,10 +912,10 @@ describe("the output sections", () => {
       };
       const section: NonNullable<FieldOf["collapsibleSection"]> =
         fieldFor(column).collapsibleSection!;
-      expect(section.isConfigured(configuredValues)).toBe(true);
+      expect(section.isConfigured!(configuredValues)).toBe(true);
       for (const field of BURN_RATE_RULE_FORM_FIELDS) {
         if (field.collapsibleSection) {
-          expect(field.collapsibleSection.isConfigured(configuredValues)).toBe(
+          expect(field.collapsibleSection.isConfigured!(configuredValues)).toBe(
             field.collapsibleSection.id === section.id,
           );
         }
@@ -935,7 +935,7 @@ describe("the output sections", () => {
       "incidentOnCallDutyPolicies",
     ]) {
       expect(
-        fieldFor(column).collapsibleSection!.isConfigured({ [column]: [] }),
+        fieldFor(column).collapsibleSection!.isConfigured!({ [column]: [] }),
       ).toBe(false);
     }
   });
