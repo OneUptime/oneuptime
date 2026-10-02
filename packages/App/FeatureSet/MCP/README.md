@@ -270,7 +270,7 @@ log through them. The API key or access token is never logged.
 
 ## Self-hosting
 
-The MCP server ships as part of the App container and is served at `/mcp` behind Nginx — no separate deployment is needed. The OneUptime API URL it talks to is derived from the `HOST` and `HTTP_PROTOCOL` environment variables via `packages/Common/Server/EnvironmentConfig` (inherited from the App service's environment). API keys are never configured on the server; clients supply them per request.
+The MCP server ships as part of the App container and is served at `/mcp` behind Nginx — no separate deployment is needed. Its tools call the OneUptime API at the App's internal address - `SERVER_APP_HOSTNAME` and `APP_PORT`, the address Nginx proxies `/api` to (inherited from the App service's environment) - never through the public `HOST`, which the App container cannot always reach (with `HOST=localhost` it is the container itself). API keys are never configured on the server; clients supply them per request.
 
 OAuth sign-in needs nothing configured either, but it does depend on `HOST` and `HTTP_PROTOCOL` being the address people actually use: the issuer, the token audience and every endpoint in the discovery documents are built from them. A reverse proxy in front of OneUptime has to forward `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server` (and everything under them) to the App along with `/mcp`; the bundled Nginx does.
 
