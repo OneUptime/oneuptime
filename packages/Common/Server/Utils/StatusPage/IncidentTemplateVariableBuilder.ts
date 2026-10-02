@@ -14,7 +14,8 @@ import {
 } from "../../../Types/CustomField/CustomFieldValueFormat";
 import { isCustomFieldValueEmpty } from "../../../Types/CustomField/CustomFieldValueMapping";
 import {
-  getCustomFieldTemplateVariableName,
+  getCustomFieldTemplateVariableNames,
+  getCustomFieldVariableKeyFromTemplateVariableName,
   isValidCustomFieldVariableKey,
 } from "../../../Types/CustomField/CustomFieldVariableKey";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
@@ -53,10 +54,12 @@ import StatusPageResourceUtil from "../StatusPageResource";
  *     Markdown kept as it was written.
  *
  * On top of the values the jobs always had, every incident message offers
- * {{incidentLabels}}, {{affectedStatusPages}} and one {{customFields.<key>}}
- * per incident custom field of the project, by the field's Template Variable
- * key (SubscriberNotificationTemplateVariables). A field the incident holds
- * no value for is an empty string, never a placeholder left as written.
+ * {{incidentLabels}}, {{affectedStatusPages}} and one
+ * {{incident.customFields.<key>}} per incident custom field of the project,
+ * by the field's Template Variable key (SubscriberNotificationTemplateVariables).
+ * The older name of the same value, {{customFields.<key>}}, is filled too, so
+ * templates saved with it keep working. A field the incident holds no value
+ * for is an empty string, never a placeholder left as written.
  *
  * The default templates cannot name a project's fields, so they get the
  * fields marked "Include in Subscriber Notifications" as a list, in the
@@ -269,13 +272,14 @@ export class IncidentTemplateVariables {
       );
 
       if (field.variableKey) {
-        const variableName: string = getCustomFieldTemplateVariableName(
+        // The documented name and the older one, with the same value.
+        for (const variableName of getCustomFieldTemplateVariableNames(
           field.variableKey,
-        );
-
-        emailBody[variableName] = formatted.html || formatted.plainText;
-        plainText[variableName] = formatted.plainText;
-        markdown[variableName] = formatted.markdown;
+        )) {
+          emailBody[variableName] = formatted.html || formatted.plainText;
+          plainText[variableName] = formatted.plainText;
+          markdown[variableName] = formatted.markdown;
+        }
       }
 
       if (!field.isIncludedInSubscriberNotifications || !field.hasValue) {
@@ -347,7 +351,8 @@ export class IncidentTemplateVariables {
   /**
    * A message is about to go out through these custom templates - the ones
    * actually compiled into it. Awaited before the message is sent: it makes
-   * the images of the Rich text fields they place ({{customFields.<key>}})
+   * the images of the Rich text fields they place
+   * ({{incident.customFields.<key>}}, or the older {{customFields.<key>}})
    * public, each field once per send. Never throws.
    */
   public async recordFieldsUsedBy(
@@ -557,20 +562,23 @@ export class IncidentTemplateVariables {
   }
 
   /*
-   * The custom field keys these templates place, {{customFields.<key>}},
+   * The custom field keys these templates place, written either way -
+   * {{incident.customFields.<key>}} or the older {{customFields.<key>}} -
    * found the way the compiler finds the placeholders it fills.
    */
   private static getKeysUsedBy(
     templates: Array<string | null | undefined>,
   ): Set<string> {
     const keys: Set<string> = new Set<string>();
-    const prefix: string = getCustomFieldTemplateVariableName("");
 
     for (const name of SubscriberNotificationTemplateCompiler.getPlaceholderNames(
       templates,
     )) {
-      if (name.startsWith(prefix)) {
-        keys.add(name.slice(prefix.length));
+      const key: string | null =
+        getCustomFieldVariableKeyFromTemplateVariableName(name);
+
+      if (key !== null) {
+        keys.add(key);
       }
     }
 

@@ -482,7 +482,7 @@ describe("the subscriber notification template forms", () => {
         await waitFor(() => {
           expect(
             screen.getByTestId(
-              "incident-custom-field-template-variable-customFields.affected_location",
+              "incident-custom-field-template-variable-incident.customFields.affected_location",
             ),
           ).toBeInTheDocument();
         });
@@ -554,7 +554,7 @@ describe("the subscriber notification template forms", () => {
       await waitFor(() => {
         expect(
           screen.getByTestId(
-            "incident-custom-field-template-variable-customFields.affected_location",
+            "incident-custom-field-template-variable-incident.customFields.affected_location",
           ),
         ).toBeInTheDocument();
       });

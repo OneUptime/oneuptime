@@ -23,10 +23,11 @@ import { getDefaultSubscriberNotificationTemplate } from "../../FeatureSet/Dashb
  * flat list and is left out of the exact comparison.
  *
  * Some variables come in families listed by prefix rather than by name - an
- * incident's {{customFields.<key>}}, one per custom field of the project. The
- * reference documents a family as one row with its key left open
- * (`{{customFields.<key>}}`), and a starter may use any member of a family
- * the event offers.
+ * incident's {{incident.customFields.<key>}}, one per custom field of the
+ * project. The reference documents a family as one row with its key left
+ * open (`{{incident.customFields.<key>}}`), and a starter may use any member
+ * of a family the event offers. A family's older prefix (the custom fields'
+ * {{customFields.<key>}}) is still filled, but never documented.
  */
 
 const FLAT_EVENTS: Array<StatusPageSubscriberNotificationEventType> =
@@ -158,7 +159,9 @@ describe("subscriber template variables agree across the list, the reference and
       StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated,
       StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished,
     ]) {
-      expect(documentedFamilies(event)).toEqual(["customFields.<key>"]);
+      expect(documentedFamilies(event)).toEqual([
+        "incident.customFields.<key>",
+      ]);
       expect(documented(event)).toEqual(
         expect.arrayContaining(["incidentLabels", "affectedStatusPages"]),
       );
@@ -170,6 +173,42 @@ describe("subscriber template variables agree across the list, the reference and
       ),
     ).toEqual([]);
   });
+
+  /*
+   * "This custom fields.key template should be prefixed with incident." The
+   * reference shows the custom fields the way a note template writes them,
+   * and never the older name that templates saved before still hold.
+   */
+  test.each(FLAT_EVENTS)(
+    "the %s reference never shows the older {{customFields.<key>}}",
+    (event: StatusPageSubscriberNotificationEventType) => {
+      const markdown: string =
+        getSubscriberNotificationTemplateVariablesDocumentation(event);
+
+      expect(markdown).not.toMatch(/\{\{customFields\./);
+
+      for (const family of SubscriberNotificationTemplateVariables.getDynamicVariablesForEventType(
+        event,
+      )) {
+        for (const legacyPrefix of family.legacyPrefixes || []) {
+          expect(markdown).not.toContain(`{{${legacyPrefix}`);
+        }
+      }
+    },
+  );
+
+  /*
+   * The yellow Internal data box left the template forms; its one-line
+   * "Internal: ..." notes in this reference went with it.
+   */
+  test.each(FLAT_EVENTS)(
+    "the %s reference describes every variable plainly, with no Internal note",
+    (event: StatusPageSubscriberNotificationEventType) => {
+      expect(
+        getSubscriberNotificationTemplateVariablesDocumentation(event),
+      ).not.toMatch(/Internal:/);
+    },
+  );
 
   test("the parser finds variables, so the comparison cannot pass on empty input", () => {
     expect(

@@ -603,46 +603,56 @@ describe("the previewed email is the sent email", () => {
     expect(preview.html).toContain("<strong>standby</strong>");
   });
 
-  test("a custom template, sent through the page's own SMTP server", async () => {
-    emailTemplate = Object.assign(
-      new StatusPageSubscriberNotificationTemplate(),
-      {
-        templateName: "Acme branded",
-        templateBody:
-          '<div class="acme"><h1>{{incidentTitle}}</h1>{{incidentDescription}}<p>{{customFields.affected_location}}</p>{{customFields.impact_details}}<p>{{incidentLabels}}</p><a href="{{unsubscribeUrl}}">Unsubscribe</a></div>',
-        emailSubject: "{{statusPageName}}: {{incidentTitle}}",
-      },
-    );
+  /*
+   * The custom fields are written {{incident.customFields.<key>}}; a template
+   * saved with the older {{customFields.<key>}} is previewed and sent the
+   * same.
+   */
+  test.each([
+    ["{{incident.customFields.<key>}}", "incident.customFields."],
+    ["the older {{customFields.<key>}}", "customFields."],
+  ])(
+    "a custom template written with %s, sent through the page's own SMTP server",
+    async (_written: string, prefix: string) => {
+      emailTemplate = Object.assign(
+        new StatusPageSubscriberNotificationTemplate(),
+        {
+          templateName: "Acme branded",
+          templateBody: `<div class="acme"><h1>{{incidentTitle}}</h1>{{incidentDescription}}<p>{{${prefix}affected_location}}</p>{{${prefix}impact_details}}<p>{{incidentLabels}}</p><a href="{{unsubscribeUrl}}">Unsubscribe</a></div>`,
+          emailSubject: "{{statusPageName}}: {{incidentTitle}}",
+        },
+      );
 
-    const built: Awaited<ReturnType<typeof buildEmail>> = await buildEmail({
-      event: SubscriberIncidentEmailEvent.IncidentCreated,
-      withSmtp: true,
-    });
+      const built: Awaited<ReturnType<typeof buildEmail>> = await buildEmail({
+        event: SubscriberIncidentEmailEvent.IncidentCreated,
+        withSmtp: true,
+      });
 
-    expect(built.pageEmail.templateChoice.usesCustomTemplate).toBe(true);
+      expect(built.pageEmail.templateChoice.usesCustomTemplate).toBe(true);
 
-    const preview: { subject: string; html: string } = await previewed(built);
-    const delivered: CapturedMail = await sent({
-      email: built.email,
-      mailServer: PAGE_SMTP,
-    });
+      const preview: { subject: string; html: string } = await previewed(built);
+      const delivered: CapturedMail = await sent({
+        email: built.email,
+        mailServer: PAGE_SMTP,
+      });
 
-    expect(delivered.from).toBe("Acme Status <status@acme.test>");
-    expect(delivered.subject).toBe(preview.subject);
-    expect(delivered.html).toBe(preview.html);
+      expect(delivered.from).toBe("Acme Status <status@acme.test>");
+      expect(delivered.subject).toBe(preview.subject);
+      expect(delivered.html).toBe(preview.html);
 
-    expect(preview.subject).toBe(
-      'Acme <Status>: Checkout <b>failing</b> for "{{ .Values.region }}"',
-    );
-    expect(preview.html).toContain(
-      "<h1>Checkout &lt;b&gt;failing&lt;/b&gt; for &quot;{{ .Values.region }}&quot;</h1>",
-    );
-    expect(preview.html).toContain("<p>Frankfurt &amp; Paris</p>");
-    expect(preview.html).toContain("<p>Payments</p>");
-    expect(preview.html).toContain(
-      `<a href="${UNSUBSCRIBE_URL}">Unsubscribe</a>`,
-    );
-  });
+      expect(preview.subject).toBe(
+        'Acme <Status>: Checkout <b>failing</b> for "{{ .Values.region }}"',
+      );
+      expect(preview.html).toContain(
+        "<h1>Checkout &lt;b&gt;failing&lt;/b&gt; for &quot;{{ .Values.region }}&quot;</h1>",
+      );
+      expect(preview.html).toContain("<p>Frankfurt &amp; Paris</p>");
+      expect(preview.html).toContain("<p>Payments</p>");
+      expect(preview.html).toContain(
+        `<a href="${UNSUBSCRIBE_URL}">Unsubscribe</a>`,
+      );
+    },
+  );
 });
 
 describe("MailService.render", () => {

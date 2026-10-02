@@ -118,7 +118,7 @@ describe("placeholders", () => {
   test("a custom field placeholder gets a sample; one the event does not offer is listed and left as written", () => {
     const preview: SubscriberNotificationTemplatePreviewResult = render({
       method: StatusPageSubscriberNotificationMethod.SMS,
-      body: "{{customFields.impact_details}} {{incidentStat}} {{scheduledMaintenanceTitle}}",
+      body: "{{incident.customFields.impact_details}} {{incidentStat}} {{scheduledMaintenanceTitle}}",
     });
 
     expect(preview.body).toBe(
@@ -127,6 +127,47 @@ describe("placeholders", () => {
     expect(preview.unknownPlaceholders).toEqual([
       "incidentStat",
       "scheduledMaintenanceTitle",
+    ]);
+  });
+
+  /*
+   * A template saved with the older {{customFields.<key>}} is filled when it
+   * is sent, so the preview fills it too, and does not list it as a
+   * placeholder that goes out as written.
+   */
+  test("a custom field written the older way is previewed like the documented one", () => {
+    for (const method of Object.values(
+      StatusPageSubscriberNotificationMethod,
+    )) {
+      const older: SubscriberNotificationTemplatePreviewResult = render({
+        method: method,
+        body: "[{{customFields.impact_details}}]",
+      });
+      const documented: SubscriberNotificationTemplatePreviewResult = render({
+        method: method,
+        body: "[{{incident.customFields.impact_details}}]",
+      });
+
+      expect(older.body).toBe(documented.body);
+      expect(older.body).toContain("Sample impact_details");
+      expect(older.unknownPlaceholders).toEqual([]);
+    }
+  });
+
+  test("a custom field is not offered outside the incident events, under either name", () => {
+    const preview: SubscriberNotificationTemplatePreviewResult = render({
+      method: StatusPageSubscriberNotificationMethod.SMS,
+      body: "{{incident.customFields.impact}} {{customFields.impact}}",
+      eventType:
+        StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated,
+    });
+
+    expect(preview.body).toBe(
+      "{{incident.customFields.impact}} {{customFields.impact}}",
+    );
+    expect(preview.unknownPlaceholders).toEqual([
+      "customFields.impact",
+      "incident.customFields.impact",
     ]);
   });
 

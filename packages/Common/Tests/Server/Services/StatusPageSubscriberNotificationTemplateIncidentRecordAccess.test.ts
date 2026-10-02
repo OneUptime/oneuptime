@@ -29,8 +29,9 @@ import {
 
 /*
  * A custom subscriber notification template can place {{incidentLabels}}
- * and any {{customFields.<key>}}: values from the team's incident records
- * that the status page does not show. The status page roles may write
+ * and any {{incident.customFields.<key>}} (or the older
+ * {{customFields.<key>}}, which is filled the same): values from the team's
+ * incident records that the status page does not show. The status page roles may write
  * templates, and add a Slack, Teams or webhook subscriber pointing at an
  * address they own, but may not read incidents. So a template that places
  * incident records is refused unless whoever writes it may read them, for
@@ -49,7 +50,7 @@ const TEMPLATE_ID: ObjectID = new ObjectID(
 const LABEL_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 
 const LEAKING_SLACK_TEMPLATE: string =
-  "{{incidentTitle}} {{customFields.root_cause}} {{customFields.customer_account}}";
+  "{{incidentTitle}} {{incident.customFields.root_cause}} {{incident.customFields.customer_account}}";
 
 type OnBeforeCreateFunction = (
   createBy: CreateBy<Model>,
@@ -187,14 +188,14 @@ describe("creating a template that places incident records", () => {
         propsWith(STATUS_PAGE_MEMBER),
       ),
     ).rejects.toThrow(
-      /Placing \{\{customFields\.customer_account\}\}, \{\{customFields\.root_cause\}\} in a subscriber notification template needs permission to read incidents .*Project Member.*Incident Viewer/,
+      /Placing \{\{incident\.customFields\.customer_account\}\}, \{\{incident\.customFields\.root_cause\}\} in a subscriber notification template needs permission to read incidents .*Project Member.*Incident Viewer/,
     );
   });
 
   test.each([
     ["the labels", "Labels: {{incidentLabels}}"],
-    ["a guessed key", "{{customFields.password}}"],
-    ["spaces inside the braces", "{{ customFields.root_cause }}"],
+    ["a guessed key", "{{incident.customFields.password}}"],
+    ["spaces inside the braces", "{{ incident.customFields.root_cause }}"],
   ])("is refused for %s too", async (_what: string, templateBody: string) => {
     await expect(
       create({ templateBody: templateBody }, propsWith(STATUS_PAGE_MEMBER)),
@@ -207,7 +208,8 @@ describe("creating a template that places incident records", () => {
         {
           notificationMethod: StatusPageSubscriberNotificationMethod.Email,
           templateBody: "<p>{{incidentTitle}}</p>",
-          emailSubject: "[{{customFields.root_cause}}] {{incidentTitle}}",
+          emailSubject:
+            "[{{incident.customFields.root_cause}}] {{incidentTitle}}",
         },
         propsWith(STATUS_PAGE_MEMBER),
       ),
@@ -224,7 +226,7 @@ describe("creating a template that places incident records", () => {
         {
           eventType:
             StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated,
-          templateBody: "{{customFields.root_cause}}",
+          templateBody: "{{incident.customFields.root_cause}}",
         },
         propsWith(STATUS_PAGE_MEMBER),
       ),
@@ -357,7 +359,7 @@ describe("creating a template that places incident records", () => {
     ).resolves.toBeDefined();
     await expect(
       create(
-        { templateBody: "{{customFields.root_cause}}" },
+        { templateBody: "{{incident.customFields.root_cause}}" },
         propsWith(readsIncidentsOnly),
       ),
     ).rejects.toThrow(/read incident custom fields/);
@@ -394,11 +396,14 @@ describe("updating a template", () => {
 
     await expect(
       update(
-        { templateBody: "{{incidentTitle}} {{customFields.root_cause}}" },
+        {
+          templateBody:
+            "{{incidentTitle}} {{incident.customFields.root_cause}}",
+        },
         propsWith(STATUS_PAGE_MEMBER),
       ),
     ).rejects.toThrow(
-      /Placing \{\{customFields\.root_cause\}\} in a subscriber notification template/,
+      /Placing \{\{incident\.customFields\.root_cause\}\} in a subscriber notification template/,
     );
   });
 
@@ -407,7 +412,7 @@ describe("updating a template", () => {
 
     await expect(
       update(
-        { templateBody: "{{customFields.root_cause}}" },
+        { templateBody: "{{incident.customFields.root_cause}}" },
         propsWith(STATUS_PAGE_MEMBER),
       ),
     ).rejects.toThrow(NotAuthorizedException);
@@ -432,7 +437,7 @@ describe("updating a template", () => {
   test("but can edit a template that already places one: fix the text, move it, keep it", async () => {
     stored = [
       template({
-        templateBody: "Root cause: {{customFields.root_cause}}",
+        templateBody: "Root cause: {{incident.customFields.root_cause}}",
         emailSubject: "{{incidentLabels}}",
       }),
     ];
@@ -441,7 +446,7 @@ describe("updating a template", () => {
       update(
         {
           templateBody:
-            "Root cause (fixed typo): {{customFields.root_cause}} {{incidentLabels}}",
+            "Root cause (fixed typo): {{incident.customFields.root_cause}} {{incidentLabels}}",
           emailSubject: "{{incidentTitle}}",
         },
         propsWith(STATUS_PAGE_MEMBER),
@@ -450,7 +455,9 @@ describe("updating a template", () => {
   });
 
   test("or rename it, or change anything else, without the text being read", async () => {
-    stored = [template({ templateBody: "{{customFields.root_cause}}" })];
+    stored = [
+      template({ templateBody: "{{incident.customFields.root_cause}}" }),
+    ];
 
     await expect(
       update({ templateName: "Renamed" }, propsWith(STATUS_PAGE_MEMBER)),
@@ -468,13 +475,13 @@ describe("updating a template", () => {
 
   test("an update of several templates is refused if it adds one to any of them", async () => {
     stored = [
-      template({ templateBody: "{{customFields.root_cause}}" }),
+      template({ templateBody: "{{incident.customFields.root_cause}}" }),
       template({ templateBody: "{{incidentTitle}}" }),
     ];
 
     await expect(
       update(
-        { templateBody: "{{customFields.root_cause}}" },
+        { templateBody: "{{incident.customFields.root_cause}}" },
         propsWith(STATUS_PAGE_MEMBER),
       ),
     ).rejects.toThrow(NotAuthorizedException);
@@ -513,7 +520,8 @@ describe("pointing a template somewhere else", () => {
     stored = [
       template({
         notificationMethod: StatusPageSubscriberNotificationMethod.Email,
-        templateBody: "Root cause: {{customFields.internal_root_cause}}",
+        templateBody:
+          "Root cause: {{incident.customFields.internal_root_cause}}",
       }),
     ];
 
@@ -523,7 +531,7 @@ describe("pointing a template somewhere else", () => {
         propsWith(STATUS_PAGE_MEMBER),
       ),
     ).rejects.toThrow(
-      /Placing \{\{customFields\.internal_root_cause\}\} in a subscriber notification template/,
+      /Placing \{\{incident\.customFields\.internal_root_cause\}\} in a subscriber notification template/,
     );
   });
 
@@ -545,7 +553,8 @@ describe("pointing a template somewhere else", () => {
     stored = [
       template({
         notificationMethod: StatusPageSubscriberNotificationMethod.Email,
-        templateBody: "Root cause: {{customFields.internal_root_cause}}",
+        templateBody:
+          "Root cause: {{incident.customFields.internal_root_cause}}",
       }),
     ];
 
@@ -556,7 +565,7 @@ describe("pointing a template somewhere else", () => {
           eventType:
             StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
           templateBody:
-            "Root cause (typo fixed): {{customFields.internal_root_cause}}",
+            "Root cause (typo fixed): {{incident.customFields.internal_root_cause}}",
         },
         propsWith(STATUS_PAGE_MEMBER),
       ),
@@ -575,7 +584,9 @@ describe("pointing a template somewhere else", () => {
   });
 
   test("the new text is what counts when the same write replaces it", async () => {
-    stored = [template({ templateBody: "{{customFields.root_cause}}" })];
+    stored = [
+      template({ templateBody: "{{incident.customFields.root_cause}}" }),
+    ];
 
     await expect(
       update(
@@ -589,7 +600,9 @@ describe("pointing a template somewhere else", () => {
   });
 
   test("someone who may read incidents can switch it", async () => {
-    stored = [template({ templateBody: "{{customFields.root_cause}}" })];
+    stored = [
+      template({ templateBody: "{{incident.customFields.root_cause}}" }),
+    ];
 
     await expect(
       update(
@@ -668,11 +681,13 @@ describe("linking a template to a status page", () => {
 
   test("a Status Page Member cannot link a template that places incident records", async () => {
     stored = [
-      template({ templateBody: "{{customFields.internal_root_cause}}" }),
+      template({
+        templateBody: "{{incident.customFields.internal_root_cause}}",
+      }),
     ];
 
     await expect(createLink(propsWith(STATUS_PAGE_MEMBER))).rejects.toThrow(
-      /Placing \{\{customFields\.internal_root_cause\}\} in a subscriber notification template/,
+      /Placing \{\{incident\.customFields\.internal_root_cause\}\} in a subscriber notification template/,
     );
 
     // The template is read as root, by id, in the caller's project.
@@ -715,12 +730,151 @@ describe("linking a template to a status page", () => {
   });
 
   test("someone who may read incidents can link it, and root is not checked", async () => {
-    stored = [template({ templateBody: "{{customFields.root_cause}}" })];
+    stored = [
+      template({ templateBody: "{{incident.customFields.root_cause}}" }),
+    ];
 
     await expect(
       createLink(propsWith([row(Permission.ProjectMember)])),
     ).resolves.toBeDefined();
     await expect(createLink({ isRoot: true })).resolves.toBeDefined();
+  });
+});
+
+/*
+ * Custom fields used to be written {{customFields.<key>}}, and templates
+ * saved that way are still filled. So the older name is checked exactly as
+ * the documented one - it reads the same records - and rewriting a field the
+ * template already holds from one name to the other places nothing new.
+ */
+describe("the older {{customFields.<key>}}", () => {
+  test.each([
+    ["Status Page Member", [row(Permission.StatusPageMember)]],
+    ["Status Page Admin", [row(Permission.StatusPageAdmin)]],
+  ] as Array<[string, Array<UserPermission>]>)(
+    "is refused for a %s like the documented name",
+    async (_role: string, rows: Array<UserPermission>) => {
+      for (const templateBody of [
+        "{{customFields.root_cause}}",
+        "{{ customFields.root_cause }}",
+        "{{customFields.password}}",
+      ]) {
+        await expect(
+          create({ templateBody: templateBody }, propsWith(rows)),
+        ).rejects.toThrow(NotAuthorizedException);
+      }
+    },
+  );
+
+  test("the refusal names the placeholder as it was written", async () => {
+    await expect(
+      create(
+        { templateBody: "{{customFields.root_cause}}" },
+        propsWith(STATUS_PAGE_MEMBER),
+      ),
+    ).rejects.toThrow(
+      /Placing \{\{customFields\.root_cause\}\} in a subscriber notification template needs permission to read incidents/,
+    );
+  });
+
+  test("needs the custom field permissions, not the labels column", async () => {
+    const readsIncidentsOnly: Array<UserPermission> = [
+      row(Permission.StatusPageMember),
+      row(Permission.ReadProjectIncident),
+    ];
+
+    await expect(
+      create(
+        { templateBody: "{{customFields.root_cause}}" },
+        propsWith(readsIncidentsOnly),
+      ),
+    ).rejects.toThrow(/read incident custom fields/);
+  });
+
+  test("is allowed for someone who may read incidents", async () => {
+    await expect(
+      create(
+        { templateBody: "{{customFields.root_cause}}" },
+        propsWith([row(Permission.ProjectMember)]),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  test("a Status Page Member may rewrite a field the template holds into its documented name", async () => {
+    stored = [
+      template({
+        templateBody: "Root cause: {{customFields.root_cause}}",
+        emailSubject: "{{customFields.customer_account}}",
+      }),
+    ];
+
+    await expect(
+      update(
+        {
+          templateBody: "Root cause: {{incident.customFields.root_cause}}",
+          emailSubject: "{{ incident.customFields.customer_account }}",
+        },
+        propsWith(STATUS_PAGE_MEMBER),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  test("and back again: the same field either way is not an addition", async () => {
+    stored = [
+      template({ templateBody: "{{incident.customFields.root_cause}}" }),
+    ];
+
+    await expect(
+      update(
+        { templateBody: "{{customFields.root_cause}}" },
+        propsWith(STATUS_PAGE_MEMBER),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  test("but cannot add another field, under either name", async () => {
+    stored = [template({ templateBody: "{{customFields.root_cause}}" })];
+
+    for (const added of [
+      "{{incident.customFields.customer_account}}",
+      "{{customFields.customer_account}}",
+    ]) {
+      await expect(
+        update(
+          { templateBody: `{{customFields.root_cause}} ${added}` },
+          propsWith(STATUS_PAGE_MEMBER),
+        ),
+      ).rejects.toThrow(/customer_account/);
+    }
+  });
+
+  test("a held label does not cover a custom field of the same name", async () => {
+    stored = [template({ templateBody: "{{incidentLabels}}" })];
+
+    await expect(
+      update(
+        { templateBody: "{{incidentLabels}} {{customFields.incidentLabels}}" },
+        propsWith(STATUS_PAGE_MEMBER),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+
+  test("a template that holds it cannot be pointed at another channel by a Status Page Member", async () => {
+    stored = [
+      template({
+        notificationMethod: StatusPageSubscriberNotificationMethod.Email,
+        templateBody: "Root cause: {{customFields.internal_root_cause}}",
+      }),
+    ];
+
+    await expect(
+      update(
+        { notificationMethod: StatusPageSubscriberNotificationMethod.Slack },
+        propsWith(STATUS_PAGE_MEMBER),
+      ),
+    ).rejects.toThrow(
+      /Placing \{\{customFields\.internal_root_cause\}\} in a subscriber notification template/,
+    );
   });
 });
 
@@ -735,7 +889,7 @@ describe("SubscriberTemplateIncidentRecordAccess.getRequirements", () => {
 
   test("reads the permissions from the models, so they follow the models", () => {
     const [incidents, values, definitions] = permissionsFor([
-      "customFields.root_cause",
+      "incident.customFields.root_cause",
     ]);
 
     expect(incidents).toEqual(
@@ -763,8 +917,18 @@ describe("SubscriberTemplateIncidentRecordAccess.getRequirements", () => {
     }
   });
 
+  test("a custom field needs the same permissions whichever name it is written by", () => {
+    expect(permissionsFor(["customFields.root_cause"])).toEqual(
+      permissionsFor(["incident.customFields.root_cause"]),
+    );
+    expect(permissionsFor(["customFields.root_cause"])).toHaveLength(3);
+  });
+
   test("labels need incidents and the labels column only", () => {
     expect(permissionsFor(["incidentLabels"])).toHaveLength(2);
+    expect(
+      permissionsFor(["incident.customFields.a", "incidentLabels"]),
+    ).toHaveLength(4);
     expect(permissionsFor(["customFields.a", "incidentLabels"])).toHaveLength(
       4,
     );

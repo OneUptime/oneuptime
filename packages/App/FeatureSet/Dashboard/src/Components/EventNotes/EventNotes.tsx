@@ -144,7 +144,7 @@ export interface ComponentProps<TNote extends BaseModel> {
   templates?: EventNotesTemplatesConfig | undefined;
   /*
    * The values for the {{placeholders}} in a picked template
-   * ({{incident.title}}, {{customFields.impact}}...), read each time a
+   * ({{incident.title}}, {{incident.customFields.impact}}...), read each time a
    * template is picked so they are the event's values at that moment. A
    * placeholder with no value - or every one, when this is left out or the
    * values cannot be read - is put in the draft as written.

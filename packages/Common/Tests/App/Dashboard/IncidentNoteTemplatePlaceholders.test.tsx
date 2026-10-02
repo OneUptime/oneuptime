@@ -70,8 +70,36 @@ describe("the note template placeholders hint", () => {
 
     expect(within(hint).getByText("{{incident.title}}")).toBeInTheDocument();
     expect(
-      within(hint).getByText("{{customFields.<key>}}"),
+      within(hint).getByText("{{incident.customFields.<key>}}"),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * "This custom fields.key template should be prefixed with incident, so it
+   * should be incident.custom fields.key." The form shows the custom field
+   * placeholder named after the incident, like every other placeholder in
+   * the list, and never the older {{customFields.<key>}}.
+   */
+  test("names the custom field placeholder after the incident, like the rest", () => {
+    render(<IncidentNoteTemplatePlaceholders />);
+
+    const hint: HTMLElement = screen.getByTestId(
+      "incident-note-template-placeholders",
+    );
+    const shown: Array<string> = Array.from(hint.querySelectorAll("code")).map(
+      (code: Element): string => {
+        return code.textContent || "";
+      },
+    );
+
+    expect(shown).toContain("{{incident.customFields.<key>}}");
+    expect(shown).not.toContain("{{customFields.<key>}}");
+
+    for (const placeholder of shown) {
+      expect(placeholder.startsWith("{{incident.")).toBe(true);
+    }
+
+    expect(hint).not.toHaveTextContent(/\{\{customFields\./);
   });
 
   test("shows no warning: no alert, no 'Internal data', no advice about public notes", () => {

@@ -6,6 +6,10 @@ import {
   formatCustomFieldBoolean,
   formatCustomFieldCalendarDate,
 } from "../../Types/CustomField/CustomFieldValueFormat";
+import {
+  CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
+  getCustomFieldTemplateVariableNames,
+} from "../../Types/CustomField/CustomFieldVariableKey";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
 import SubscriberNotificationTemplateCompiler from "../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
@@ -46,8 +50,15 @@ export interface IncidentNoteTemplateVariableInfo {
   description: string;
 }
 
+/*
+ * An incident custom field is {{incident.customFields.<key>}}: the field is
+ * the incident's, so it starts with "incident." like the rest of the list.
+ * The same name, and the same key, as in a custom subscriber notification
+ * template (Types/CustomField/CustomFieldVariableKey). A note template saved
+ * with the older {{customFields.<key>}} is still filled in.
+ */
 export const INCIDENT_NOTE_CUSTOM_FIELD_VARIABLE_PREFIX: string =
-  "customFields.";
+  CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX;
 
 /*
  * The placeholders, in the order the note template settings list them. The
@@ -76,7 +87,10 @@ export const INCIDENT_NOTE_TEMPLATE_VARIABLES: ReadonlyArray<IncidentNoteTemplat
 // One incident custom field, as the note placeholders need it.
 export interface IncidentNoteTemplateCustomField {
   name: string;
-  // The key in {{customFields.<key>}}; fields without one are not offered.
+  /*
+   * The key in {{incident.customFields.<key>}}; fields without one are not
+   * offered.
+   */
   variableKey?: string | null | undefined;
   customFieldType?: CustomFieldType | null | undefined;
 }
@@ -245,6 +259,9 @@ export const buildIncidentNoteTemplateVariables: BuildIncidentNoteTemplateVariab
     /*
      * By the field's template key, which never changes when the field is
      * renamed; the value is read from the bag by the field's current name.
+     * Filled under {{incident.customFields.<key>}} and, for templates saved
+     * before the variables were named after the incident, under the older
+     * {{customFields.<key>}} too, with the same value.
      */
     if (source.customFieldDefinitions) {
       const bag: JSONObject =
@@ -256,23 +273,32 @@ export const buildIncidentNoteTemplateVariables: BuildIncidentNoteTemplateVariab
 
       for (const definition of source.customFieldDefinitions) {
         const variableKey: string = (definition.variableKey || "").trim();
-        const name: string = `${INCIDENT_NOTE_CUSTOM_FIELD_VARIABLE_PREFIX}${variableKey}`;
+        const names: Array<string> =
+          getCustomFieldTemplateVariableNames(variableKey);
 
         if (
           !variableKey ||
           !definition.name ||
-          !SubscriberNotificationTemplateCompiler.isPlaceholderName(name)
+          !names.every((name: string): boolean => {
+            return SubscriberNotificationTemplateCompiler.isPlaceholderName(
+              name,
+            );
+          })
         ) {
           continue;
         }
 
-        variables[name] = formatCustomFieldValueForNote({
+        const value: string = formatCustomFieldValueForNote({
           customFieldType: definition.customFieldType,
           value: Object.prototype.hasOwnProperty.call(bag, definition.name)
             ? bag[definition.name]
             : undefined,
           formatDateTime: formatDateTime,
         });
+
+        for (const name of names) {
+          variables[name] = value;
+        }
       }
     }
 

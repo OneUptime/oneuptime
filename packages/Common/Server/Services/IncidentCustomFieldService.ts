@@ -35,10 +35,10 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  * its settings:
  *
  *   - its template key (variableKey), made from the name on create and never
- *     changed afterwards, so templates that use {{customFields.<key>}} keep
- *     working whatever the field is renamed to - and taken off every
- *     incident form's questions when the field is deleted (see
- *     onDeleteSuccess);
+ *     changed afterwards, so templates that use
+ *     {{incident.customFields.<key>}} keep working whatever the field is
+ *     renamed to - and taken off every incident form's questions when the
+ *     field is deleted (see onDeleteSuccess);
  *   - its name, which is what incidents store its values under. Renaming a
  *     field moves those values, and the saved views that name it, to the new
  *     name (see onUpdateSuccess).
