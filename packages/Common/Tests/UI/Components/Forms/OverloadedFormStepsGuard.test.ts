@@ -411,35 +411,30 @@ describe("the project's stepped forms", () => {
       "ModelTable: Settings > Workspace Notification Rules",
       ["basic", "conditions", "destination"],
     ],
-    [
-      `${DASHBOARD}/Pages/Alerts/Settings/AlertGroupingRules.tsx`,
-      "ModelTable: Settings > Alert Grouping Rules",
-      [
-        "basic-info",
-        "match-criteria",
-        "group-by",
-        "time-settings",
-        "auto-resolve",
-        "episode-template",
-        "episode-settings",
-        "on-call-ownership",
-      ],
-    ],
-    [
-      `${DASHBOARD}/Pages/Incidents/Settings/IncidentGroupingRules.tsx`,
-      "ModelTable: Settings > Incident Grouping Rules",
-      [
-        "basic-info",
-        "match-criteria",
-        "group-by",
-        "time-settings",
-        "auto-resolve",
-        "episode-template",
-        "episode-settings",
-        "episode-roles",
-        "on-call-ownership",
-      ],
-    ],
+    /*
+     * Grouping rules ask two questions and then create: Grouping (how to
+     * group, how close together, name) and which incidents. Group By shows
+     * only for a custom mix of switches, and the last three only behind
+     * "Show advanced settings" (each switch-and-minutes setting is one
+     * control, so Episode Lifecycle holds three).
+     */
+    ...[
+      ["Alerts/Settings/AlertGroupingRules.tsx", "Alert"],
+      ["Incidents/Settings/IncidentGroupingRules.tsx", "Incident"],
+    ].map(([file, kind]: Array<string>): [string, string, Array<string>] => {
+      return [
+        `${DASHBOARD}/Pages/${file}`,
+        `ModelTable: Settings > ${kind} Grouping Rules`,
+        [
+          "grouping",
+          "group-by",
+          "match-criteria",
+          "episode-lifecycle",
+          "details",
+          "on-call-ownership",
+        ],
+      ];
+    }),
     ...[
       ["Alerts/Settings/AlertOwnerRules.tsx", "Alert"],
       ["Incidents/Settings/IncidentOwnerRules.tsx", "Incident"],

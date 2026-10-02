@@ -6,6 +6,10 @@ import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import {
+  getStateTimelineDurationColumn,
+  getStateTimelineEndsAtColumn,
+} from "Common/UI/Components/StateTimeline/StateTimelineColumns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -149,31 +153,8 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
             title: "Starts At",
             type: FieldType.DateTime,
           },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Ends At",
-            type: FieldType.DateTime,
-            noValueMessage: "Currently Active",
-          },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Duration",
-            type: FieldType.Text,
-            getElement: (item: AlertEpisodeStateTimeline): ReactElement => {
-              return (
-                <p>
-                  {OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
-                    item["startsAt"] as Date,
-                    (item["endsAt"] as Date) || OneUptimeDate.getCurrentDate(),
-                  )}
-                </p>
-              );
-            },
-          },
+          getStateTimelineEndsAtColumn<AlertEpisodeStateTimeline>(),
+          getStateTimelineDurationColumn<AlertEpisodeStateTimeline>(),
         ]}
       />
     </Fragment>
