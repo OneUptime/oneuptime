@@ -28,16 +28,16 @@
 # lockfile out of step with package.json (`npm ci`'s EUSAGE), a version that
 # does not exist (ETARGET, E404) or a tarball that fails its integrity check
 # (EINTEGRITY, which npm has already retried twice by then) fails the same way
-# every time, so it still fails on the first attempt, with npm's own error the
-# last thing in the log.
+# every time, so it still fails on the first attempt, with npm's own error and
+# exit status.
 #
 # How a failure is told apart: npm prefixes every line of its error report
 # with "npm error" ("npm ERR!" before npm 10) -- including the output of an
 # install script that failed, which is where a node-gyp header download or a
 # prebuilt-binary fetch reports its own dropped connection. Only those lines
 # are read, and only for the failures listed in NPM_NETWORK_ERRORS, so a
-# warning, or a real error that happens to follow one, cannot pass for a
-# network failure.
+# warning that mentions a dropped connection cannot make the real error after
+# it look like a network failure.
 #
 # npm's output streams to the log as it runs and is kept for that check. Each
 # retry leaves a warning annotation on the run, so a flaky registry stays

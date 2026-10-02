@@ -132,14 +132,18 @@ npm_calls() {
 }
 
 # What npm printed, line for line, when the failures these tests stand in for
-# happened. The 2026-10-01 one is from the compile-probe job's log; the rest
-# were captured from npm 11 against a local registry, with only hosts and
-# paths changed to CI's.
+# happened. The 2026-10-01 one is from the compile-probe job's log. The other
+# named ones were captured from npm 11 against a local registry, with hosts,
+# paths and package names changed to CI's; the few written inline below are
+# one- or two-line variations on them.
 
 # The error this helper exists for (job 110481076214), warnings and all.
 OCT_1_RESET="npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated domexception@4.0.0: Use your platform's native DOMException instead
+npm warn deprecated json2csv@5.0.7: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+npm warn deprecated abab@2.0.6: Use your platform's native atob() and btoa() methods instead
 npm warn deprecated react-beautiful-dnd@13.1.1: react-beautiful-dnd is now deprecated. Context and options: https://github.com/atlassian/react-beautiful-dnd/issues/2672
 npm error code ECONNRESET
 npm error network aborted
