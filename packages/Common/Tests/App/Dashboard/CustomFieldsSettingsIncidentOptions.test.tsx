@@ -84,6 +84,7 @@ interface RecordedField {
   required?: unknown;
   showIf?: (values: JSONObject) => boolean;
   dropdownOptions?: Array<{ label: string; value: string }>;
+  collapsibleSection?: { title: string };
 }
 
 interface RecordedColumn {
@@ -170,17 +171,34 @@ describe("incident custom field settings", () => {
     });
   });
 
-  test("puts the three settings after the field's type, options and mapping", () => {
+  /*
+   * "Options like 'Show on create' and stuff ... should be hidden in the
+   * advanced section of the page." After the field's type and options, and
+   * after where its value comes from (Edit only), followed only by the
+   * read-only template variable line - all in one Advanced section.
+   */
+  test("folds the three settings under Advanced, after the field's type, options and mapping", () => {
     renderSettingsPage(IncidentCustomField);
 
     const keys: Array<string> = formFields().map((field: RecordedField) => {
       return Object.keys(field.field || {})[0] || "";
     });
 
-    expect(keys.slice(-3)).toEqual(INCIDENT_SETTINGS);
-    expect(keys.indexOf("customFieldType")).toBeLessThan(
-      keys.indexOf("showOnCreate"),
-    );
+    expect(keys).toEqual([
+      "name",
+      "description",
+      "customFieldType",
+      "dropdownOptions",
+      "mapFromResourceType",
+      "mapFromCustomFieldName",
+      ...INCIDENT_SETTINGS,
+      // The template variable line, keyed by the column it is checked against.
+      "",
+    ]);
+
+    for (const key of INCIDENT_SETTINGS) {
+      expect(formField(key)?.collapsibleSection?.title).toBe("Advanced");
+    }
   });
 
   /*

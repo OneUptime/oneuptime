@@ -53,11 +53,36 @@ export interface CategoryCheckboxProps {
   options: Array<CategoryCheckboxOption>;
 }
 
+/*
+ * A folded group of fields inside a form (or inside one step of it): a
+ * header the user opens to reach them. Every field that should be in the
+ * group carries the same section (same id), and the fields must be next to
+ * each other in the list - BasicForm folds consecutive fields that share an
+ * id into one section. For the usual case, rarely needed options under
+ * "Advanced", use getAdvancedFormSection (Forms/Utils/AdvancedFormSection)
+ * rather than writing one.
+ *
+ * A folded section says "Configured" on its header while anything in it is
+ * set, and opens by itself when a field in it fails validation.
+ */
 export interface FormFieldCollapsibleSection<TEntity> {
   id: string;
   title: string;
   description?: string | undefined;
-  isConfigured: (values: FormValues<TEntity>) => boolean;
+  /*
+   * Whether anything in the section is set. Left out, the section works it
+   * out from its own fields: one of them holding a value other than empty
+   * or its default (isFormSectionConfigured).
+   */
+  isConfigured?: ((values: FormValues<TEntity>) => boolean) | undefined;
+  /*
+   * Whether the section starts open when it is configured as the form
+   * opens - an edit form, or a default that fills a field in. True when left
+   * out: a section of details someone wrote opens to show them. An Advanced
+   * section sets it to false: it always starts folded, and says
+   * "Configured" on its header instead.
+   */
+  openWhenConfigured?: boolean | undefined;
 }
 
 export default interface Field<TEntity> {

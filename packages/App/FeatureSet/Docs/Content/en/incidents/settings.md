@@ -147,17 +147,21 @@ You apply one from the incident, not from settings. Open an incident, choose **P
 
 Custom fields let you carry your own metadata on every incident — an internal service name, a change ticket reference, a customer tier — and ask the same questions every time an incident is declared, such as its impact and when it is expected to be resolved.
 
-Go to **Incidents → Settings → Custom Fields** (`/dashboard/{projectId}/incidents/settings/custom-fields`). The page is titled **Incident Custom Fields** and lists the fields in their **Order**, each by its **Field Name** and **Field Type** alone. **Edit** on a field's row opens the rest of its settings. Each definition has:
+Go to **Incidents → Settings → Custom Fields** (`/dashboard/{projectId}/incidents/settings/custom-fields`). The page is titled **Incident Custom Fields** and lists the fields in their **Order**, each by its **Field Name** and **Field Type** alone. **Edit** on a field's row opens the rest of its settings.
+
+Creating a field asks for its **Field Name**, **Field Description** and **Field Type** on one page — and, for a dropdown type, its options, right under the type. A new field's values are typed in. Everything else is under **Advanced**, which starts collapsed whether you create a field or edit one, and says **Configured** while something in it is set. To make a field that copies its value from a monitor custom field instead, open the **More** menu (**⋯**) next to **Create Incident Custom Field** and choose **Create Mapped Custom Field** — see [Fields copied from a monitor](#fields-copied-from-a-monitor).
+
+Each definition has:
 
 - **Field Name** — required, at least two characters. The placeholder suggests a slug-like name such as `internal-service`.
 - **Field Description** — optional.
 - **Field Type** — required. This chooses how data is entered; the types are listed below. Dropdown types also need their options listed.
 - **Dropdown Options** — the values that appear in the dropdown, each with an optional color.
 - **Order** — where the field appears among the incident's custom fields: on the incident's **Custom Fields** page, in the **Details** step and in subscriber messages. There is no number to type in: drag a field by the handle at the start of its row to move it up or down, and a new field is added to the end. Dragging is off while a filter or search narrows the list.
-- **Show on Create** — asks for the field in the **Details** step when an incident is declared from the dashboard (see [Declaring Incidents](/docs/incidents/declaring-incidents)). An incident template can give any field a starting value, shown on create or not, and can ask for a field or leave it out for the incidents declared from it — see [Custom fields on create](#custom-fields-on-create). [Forms](/docs/forms/building#custom-fields) do not follow it: a form asks only the fields added to it.
-- **Required on Create** — offered once **Show on Create** is on. The **Details** step does not let you declare the incident until the field is filled in, and a **Boolean** field must be switched on. The dashboard is the only place this is checked; see [Required on Create is checked by the dashboard only](#required-on-create-is-checked-by-the-dashboard-only).
-- **Include in Subscriber Notifications** — sends the field and its value to status page subscribers with the incident's messages: the default email, Slack and Microsoft Teams messages and webhooks, but not SMS. Subscribers are usually outside your team, so only turn it on for fields that are safe to share. See [Incident custom fields in notifications](/docs/status-pages/subscribers#incident-custom-fields-in-notifications).
-- **Template Variable** — the key a template reaches the field by, `{{incident.customFields.<key>}}`, in note templates and custom subscriber notification templates. It is made from the field's name when the field is created — lowercase letters, digits and underscores, so `Expected Resolution` becomes `expected_resolution`, with `_2`, `_3` and so on added when another field already has the key — and it does not change when the field is renamed. Nobody sets it by hand: the API ignores a value sent for it. Templates written with the older `{{customFields.<key>}}` keep working. You never need to look it up: the editors that place it — a note template's **Note** and a status page's custom subscriber notification templates for incident events — list every field's variable under **Template variables**, by the field's name.
+- **Show on Create** — under **Advanced**. Asks for the field in the **Details** step when an incident is declared from the dashboard (see [Declaring Incidents](/docs/incidents/declaring-incidents)). An incident template can give any field a starting value, shown on create or not, and can ask for a field or leave it out for the incidents declared from it — see [Custom fields on create](#custom-fields-on-create). [Forms](/docs/forms/building#custom-fields) do not follow it: a form asks only the fields added to it.
+- **Required on Create** — under **Advanced**, offered once **Show on Create** is on. The **Details** step does not let you declare the incident until the field is filled in, and a **Boolean** field must be switched on. The dashboard is the only place this is checked; see [Required on Create is checked by the dashboard only](#required-on-create-is-checked-by-the-dashboard-only).
+- **Include in Subscriber Notifications** — under **Advanced**. Sends the field and its value to status page subscribers with the incident's messages: the default email, Slack and Microsoft Teams messages and webhooks, but not SMS. Subscribers are usually outside your team, so only turn it on for fields that are safe to share. See [Incident custom fields in notifications](/docs/status-pages/subscribers#incident-custom-fields-in-notifications).
+- **Template Variable** — the key a template reaches the field by, `{{incident.customFields.<key>}}`, in note templates and custom subscriber notification templates. It is made from the field's name when the field is created — lowercase letters, digits and underscores, so `Expected Resolution` becomes `expected_resolution`, with `_2`, `_3` and so on added when another field already has the key — and it does not change when the field is renamed. Nobody sets it by hand: the API ignores a value sent for it. Templates written with the older `{{customFields.<key>}}` keep working. You never need to look it up: the editors that place it — a note template's **Note** and a status page's custom subscriber notification templates for incident events — list every field's variable under **Template variables**, by the field's name. A field's **Edit** form also shows it, read only, at the bottom of **Advanced**, with a button that copies it.
 
 **Order**, **Show on Create**, **Required on Create**, **Include in Subscriber Notifications** and **Template Variable** exist on incident custom fields only. The custom fields of monitors, alerts, scheduled maintenance events and the other resources do not have them.
 
@@ -186,6 +190,18 @@ Definitions live in their own model; the values live on the incident itself in t
 **Required on Create** holds back the **Declare Incident** form, and nothing else. Incidents that a monitor, the API, Slack, Microsoft Teams or AI opens cannot fill in a form, so they are created with the field empty. Once an incident exists, every field stays optional on its **Custom Fields** page, so a responder fixing one value mid-outage is never asked for all the others. Treat it as a prompt for the people declaring incidents, not as a promise that every incident has a value.
 
 A template's [custom fields on create](#custom-fields-on-create) are the same: they shape the **Declare Incident** form and nothing else. [Forms](/docs/forms/building#required-questions) are the exception, because the server checks a form's **Required** questions when the form is submitted.
+
+### Fields copied from a monitor
+
+A custom field can take its value from a custom field of the incident's monitors instead of having it typed in — a region or a customer tier your monitors already record, say. To make one, open the **More** menu (**⋯**) next to **Create Incident Custom Field** and choose **Create Mapped Custom Field**. It asks for three things:
+
+- **Monitor Field** — the monitor custom field to copy. Every one is offered, each with its type under its name. The new field gets that type, and a dropdown's options, so the two always match.
+- **Field Name** — starts as the monitor field's name, until you type another.
+- **Field Description** — optional.
+
+The value is filled in when an incident is created with a monitor, and kept up to date when the monitor's value changes. When an incident's monitors hold different values, a single-value field is left as it is and a multi-select field gets all of them. Copying never clears a value: an incident without a monitor keeps whatever is typed on it, and clearing the monitor's value leaves the copies alone. The **Details** step does not ask for a copied field once the incident has a monitor.
+
+To copy an existing field's value from a monitor, change which monitor field it copies, or go back to typing it in, open **Edit** on the field's row and use **Map Value From** under **Advanced**. Alert and scheduled maintenance custom fields can copy from their monitors the same way.
 
 ### Custom field values through the API
 
@@ -245,7 +261,7 @@ Leave `sort_order` out and a new field goes to the end of the list. Give it the 
 
 A measurement is a named duration between two points in an incident's life, computed for every incident automatically. "Time to Detect", "Time to Mitigate" and "Time to Resolve" are measurements. They are definitions you write once, not numbers somebody reads off a timeline.
 
-Go to **Incidents → Settings → Measurements** (`/dashboard/{projectId}/incidents/settings/measurements`). Each definition has a **name**, a permanent **key**, a **starting point** and an **ending point**.
+Go to **Incidents → Settings → Measurements** (`/dashboard/{projectId}/incidents/settings/measurements`). Each definition has a **name**, a **starting point** and an **ending point**. Its permanent **key** is made from the name as you type it — "Time to Detect" gets `time-to-detect` — so there is nothing to fill in. To pick a key of your own, choose **Edit** next to it before you create the measurement.
 
 Alerts and scheduled maintenance events have the same feature, at **Alerts → Settings → Measurements** and **Scheduled Maintenance → Settings → Measurements**. Everything below applies to all three, with each domain's own vocabulary.
 
@@ -299,6 +315,8 @@ Each enabled measurement writes a metric named `oneuptime.incident.measurement.<
 Definitions are ordinary API resources, so the Terraform provider manages them as `oneuptime_incident_measurement`, `oneuptime_alert_measurement` and `oneuptime_scheduled_maintenance_measurement`. Computed values are read-only and surface as data sources.
 
 The **key** is permanent because it is part of the metric name — changing it would orphan the series. Rename the measurement freely; the key stays.
+
+Over the API and in Terraform the key can be left out too: it is made from the name, with `-2`, `-3` and so on added when another measurement of the project already has it. A key you do send is kept as you wrote it. It must be lowercase letters, numbers and hyphens, starting with a letter or a number, at most 50 characters, and no other measurement of the project may have it.
 
 ### Migrating from another incident platform
 

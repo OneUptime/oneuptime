@@ -4,6 +4,8 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -27,6 +29,10 @@ import React, {
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+
+// Custom headers and per-type options, folded at the end of Authentication.
+const advancedSection: FormFieldCollapsibleSection<DataSource> =
+  getAdvancedFormSection<DataSource>();
 
 const DataSourcesPage: FunctionComponent<
   PageComponentProps
@@ -193,6 +199,11 @@ const DataSourcesPage: FunctionComponent<
             "No data sources yet. Connect one to chart its data on your dashboards."
           }
           viewPageRoute={Navigation.getCurrentRoute()}
+          /*
+           * Custom headers and per-type options are folded under Advanced at
+           * the end of the Authentication step - they used to be a step of
+           * their own that every new data source had to walk through.
+           */
           formSteps={[
             {
               title: "Basic Info",
@@ -205,10 +216,6 @@ const DataSourcesPage: FunctionComponent<
             {
               title: "Authentication",
               id: "auth",
-            },
-            {
-              title: "Advanced",
-              id: "advanced",
             },
           ]}
           formFields={[
@@ -371,7 +378,8 @@ const DataSourcesPage: FunctionComponent<
                 customHeaders: true,
               },
               title: "Custom HTTP Headers",
-              stepId: "advanced",
+              stepId: "auth",
+              collapsibleSection: advancedSection,
               showIf: (item: FormValues<DataSource>): boolean => {
                 return DataSourceTypeUtil.isHttpBasedType(
                   item.dataSourceType as DataSourceType,
@@ -387,7 +395,8 @@ const DataSourcesPage: FunctionComponent<
                 additionalOptions: true,
               },
               title: "Additional Options",
-              stepId: "advanced",
+              stepId: "auth",
+              collapsibleSection: advancedSection,
               fieldType: FormFieldSchemaType.JSON,
               required: false,
               description:
