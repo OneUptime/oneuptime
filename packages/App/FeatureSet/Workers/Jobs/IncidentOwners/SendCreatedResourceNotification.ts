@@ -16,6 +16,7 @@ import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import logger from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
@@ -51,9 +52,11 @@ RunCron(
         remediationNotes: true,
         currentIncidentState: {
           name: true,
+          color: true,
         } as Select<IncidentState>,
         incidentSeverity: {
           name: true,
+          color: true,
         },
         rootCause: true,
         createdByProbe: {
@@ -181,9 +184,17 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
             incidentNumber: incidentNumberStr,
             projectName: incident.project!.name!,
             currentState: incident.currentIncidentState!.name!,
+            ...EmailColorUtil.getTemplateVariables(
+              "currentState",
+              incident.currentIncidentState?.color,
+            ),
             incidentDescription: incidentDescriptionHtml,
             resourcesAffected: resourcesAffected,
             incidentSeverity: incident.incidentSeverity!.name!,
+            ...EmailColorUtil.getTemplateVariables(
+              "incidentSeverity",
+              incident.incidentSeverity?.color,
+            ),
             declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
               {
                 date: incidentIdentifiedDate,

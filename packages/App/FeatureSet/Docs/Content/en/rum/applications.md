@@ -46,19 +46,17 @@ _RUM → Settings → Label Rules_. A rule attaches labels to matching applicati
 
 | Field | Behaviour |
 | --- | --- |
-| **Match Labels** | Only applications that already carry at least one of these labels. Leave empty to skip this filter. |
-| **Name Regex Pattern** | Case-insensitive regex, matched against the name and the description. |
-| **Description Regex Pattern** | Case-insensitive regex, matched against the name and the description. |
+| **Conditions** | What the rule matches. **Application Labels** checks the labels an application already carries (has any of, all of or none of the ones you pick); **Application Name** and **Application Description** compare its name and description - contains, equals, starts with, ends with, or a case-insensitive regex or `*` wildcard pattern. With two or more conditions, choose **Match all** or **Match any**. |
 | **Labels to Add** | Every selected label is attached. Already-attached labels are not duplicated. |
 | **Enabled** | Turn the rule off without deleting it. |
 
 Rules run **when an application is created** — including auto-discovery. They are not retroactive: adding a rule today does not relabel applications discovered last week. Set those by hand, or archive and let them be rediscovered.
 
-Leaving every match field empty matches everything, which is a legitimate way to say "label every new RUM application".
+A rule with no conditions matches everything, which is a legitimate way to say "label every new RUM application".
 
 ## Owner rules and ownership
 
-_RUM → Settings → Owner Rules_. Same matching fields as label rules, but the outcome is **Owners**: the people and teams the rule adds as owners, picked from one list.
+_RUM → Settings → Owner Rules_. Same conditions as label rules, but the outcome is **Owners**: the people and teams the rule adds as owners, picked from one list.
 
 Owners are the people responsible for an application; they are who notifications about it reach. **Notify Owners** controls whether being added by the rule sends a notification — turn it off for a bulk backfill you do not want to page anyone about.
 

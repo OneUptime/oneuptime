@@ -8,6 +8,7 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateService from "./AlertStateService";
 import AlertMeasurementAnchorType from "../../Types/Alerts/AlertMeasurementAnchorType";
 import MeasurementDefinitionValidator from "../Utils/Measurement/MeasurementDefinitionValidator";
+import MeasurementKeyAssigner from "../Utils/Measurement/MeasurementKeyAssigner";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -50,7 +51,19 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    MeasurementDefinitionValidator.validateKey(createBy.data.key);
+    /*
+     * Made from the name when the create leaves the key out; a key that was
+     * sent must be valid and not another measurement's.
+     */
+    createBy.data.key = await MeasurementKeyAssigner.getKeyForCreate({
+      key: createBy.data.key,
+      name: createBy.data.name,
+      getKeysInProject: async (): Promise<Array<string>> => {
+        return await this.getKeysInProject(
+          createBy.data.projectId || createBy.props.tenantId,
+        );
+      },
+    });
 
     /*
      * Derived here rather than from the slug: DatabaseService generates the
@@ -193,6 +206,36 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { deleteBy, carryForward: null };
+  }
+
+  /*
+   * Every key the project's alert measurements hold, enabled or not, so a
+   * new one gets a key none of them has. Read as root: a key must not clash
+   * with one the creator is not allowed to see.
+   */
+  @CaptureSpan()
+  public async getKeysInProject(
+    projectId: ObjectID | undefined,
+  ): Promise<Array<string>> {
+    if (!projectId) {
+      return [];
+    }
+
+    const measurements: Array<Model> = await this.findBy({
+      query: { projectId: projectId },
+      select: { key: true },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return measurements
+      .map((measurement: Model) => {
+        return measurement.key;
+      })
+      .filter((key: string | undefined) => {
+        return Boolean(key);
+      }) as Array<string>;
   }
 
   /*

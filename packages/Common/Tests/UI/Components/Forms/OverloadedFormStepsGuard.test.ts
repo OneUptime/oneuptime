@@ -306,6 +306,32 @@ describe("the step size detector", () => {
     expect(counts(form)).toEqual({ one: 5, two: 1 });
   });
 
+  /*
+   * Options folded under Advanced (getAdvancedFormSection) are one header
+   * on the step until it is opened: the step is judged by what it shows.
+   */
+  test("counts a folded section on a step once", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        const advanced = getAdvancedFormSection();
+        const Page = () => <ModelTable name="Things" formSteps={${TWO_STEPS}} formFields={[${fieldsOn("one", 4)}, ${fieldsOn("one", 6, "collapsibleSection: advanced,").replace(/oneField/g, "foldedField")}, ${fieldsOn("two", 1)}]} />;`,
+    });
+
+    expect(counts(form)).toEqual({ one: 5, two: 1 });
+    expect(findOverloadedSteps([form])).toEqual([]);
+  });
+
+  test("names a folded field as folded when it finds a long step", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        const Page = () => <ModelTable name="Things" formSteps={${TWO_STEPS}} formFields={[${fieldsOn("one", 1)}, ${fieldsOn("two", 5)}, ${field("folded", 'stepId: "two", collapsibleSection: advanced,')}]} />;`,
+    });
+
+    expect(describeStepFieldCount(findOverloadedSteps([form])[0]!)).toBe(
+      'Page.tsx:2 ModelTable: Things - step "two" (Two) shows 6 fields: twoField1, twoField2, twoField3, twoField4, twoField5, folded (folded)',
+    );
+  });
+
   test("says nothing about a form without steps", () => {
     const form: FormFacts = only({
       "Page.tsx": `const Page = () => <ModelTable name="Things" formFields={[${fieldsOn("one", 9)}]} />;`,

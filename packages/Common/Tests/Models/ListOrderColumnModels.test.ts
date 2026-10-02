@@ -160,6 +160,41 @@ const EXPECTED: Record<string, ListOrderSettings> = {
     scopeColumns: ["incomingCallPolicyId"],
     sortOrder: SortOrder.Ascending,
   },
+  /*
+   * A project's states, severities and monitor statuses. Their order means
+   * something on top (Common/Utils/StateOrder): incidents only ever move
+   * down their states, the worst status wins, severities are ranked.
+   */
+  IncidentState: {
+    column: "order",
+    scopeColumns: ["projectId"],
+    sortOrder: SortOrder.Ascending,
+  },
+  AlertState: {
+    column: "order",
+    scopeColumns: ["projectId"],
+    sortOrder: SortOrder.Ascending,
+  },
+  ScheduledMaintenanceState: {
+    column: "order",
+    scopeColumns: ["projectId"],
+    sortOrder: SortOrder.Ascending,
+  },
+  MonitorStatus: {
+    column: "priority",
+    scopeColumns: ["projectId"],
+    sortOrder: SortOrder.Ascending,
+  },
+  IncidentSeverity: {
+    column: "order",
+    scopeColumns: ["projectId"],
+    sortOrder: SortOrder.Ascending,
+  },
+  AlertSeverity: {
+    column: "order",
+    scopeColumns: ["projectId"],
+    sortOrder: SortOrder.Ascending,
+  },
 };
 
 const listModels: Array<ModelType> = (
@@ -223,9 +258,16 @@ describe("drag-ordered lists (@ListOrderColumn)", () => {
       settings.column,
     );
 
+    /*
+     * A whole number of either size: the states and severities keep theirs
+     * in a smallint, and changing the column's type would change the type
+     * the API and the Terraform provider publish for it.
+     */
     test("its order column is a number", () => {
       expect(column).toBeDefined();
-      expect(column.type).toBe(TableColumnType.Number);
+      expect([TableColumnType.Number, TableColumnType.SmallNumber]).toContain(
+        column.type,
+      );
     });
 
     test("its order column is not required, so a new row can leave it out", () => {

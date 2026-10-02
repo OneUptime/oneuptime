@@ -162,11 +162,14 @@ const Table: TableFunction = <T extends GenericObject>(
   const { translateString } = useTranslateValue();
   const translator: Translator = useTranslator();
   /*
-   * The filter bar, the bulk-action bar and the pagination footer are handed
-   * the English labels: each puts them into whole translated sentences of its
-   * own ("Showing 1-10 of 240 monitors"), which needs the English noun to
-   * find the sentence and to know whether the noun is translated.
+   * The filter bar and the bulk-action bar are handed the English labels:
+   * each puts them into whole translated sentences of its own ("3 Monitors
+   * Selected"), which needs the English noun to find the sentence and to know
+   * whether the noun is translated. The pagination footer leaves the noun out
+   * of a translated sentence and takes the translated labels.
    */
+  const translatedSingularLabel: string =
+    translateString(props.singularLabel) ?? props.singularLabel;
   const translatedPluralLabel: string =
     translateString(props.pluralLabel) ?? props.pluralLabel;
   const isBulkActionsEnabled: boolean | undefined =
@@ -598,11 +601,16 @@ const Table: TableFunction = <T extends GenericObject>(
           </div>
         </div>
         {isEmptyResult && getNoItemsElement()}
-        <div className="bg-gray-50 text-right md:-mx-6 -mb-6 rounded-b-xl">
+        {/*
+         * The footer sits flush on the card's rounded bottom edge. Clipped to
+         * the same curve, so the pagination bar's square white corners do not
+         * paint over the card's corners and border.
+         */}
+        <div className="bg-gray-50 text-right md:-mx-6 -mb-6 rounded-b-xl overflow-hidden">
           {!props.disablePagination && (
             <Pagination
-              singularLabel={props.singularLabel}
-              pluralLabel={props.pluralLabel}
+              singularLabel={translatedSingularLabel}
+              pluralLabel={translatedPluralLabel}
               currentPageNumber={props.currentPageNumber}
               totalItemsCount={props.totalItemsCount}
               hasMore={props.hasMore}

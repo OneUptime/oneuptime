@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { pickSloFormFields } from "./SloFormFields";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
@@ -127,6 +128,9 @@ export const getSloDowntimeSettingsFormFields: GetSloSettingsFormFieldsFunction 
           type: MonitorStatus,
           labelField: "name",
           valueField: "_id",
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         },
         required: false,
         placeholder: "Every non-operational status",

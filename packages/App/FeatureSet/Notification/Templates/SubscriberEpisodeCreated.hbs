@@ -9,7 +9,7 @@
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Incident" plainText=episodeTitle }}
 {{#if episodeSeverity}}
-{{> DetailBoxField title="Severity" plainText=episodeSeverity  }}
+{{> DetailBoxField title="Severity" plainText=episodeSeverity color=episodeSeverityColor textColor=episodeSeverityTextColor }}
 {{/if}}
 {{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
 {{#if episodeDescription}}

@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -629,6 +630,9 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       type: AlertSeverity,
       labelField: "name",
       valueField: "_id",
+      sort: {
+        order: SortOrder.Ascending,
+      },
     },
     required: false,
     placeholder: "Select Alert Severity",
@@ -775,6 +779,9 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       type: IncidentSeverity,
       labelField: "name",
       valueField: "_id",
+      sort: {
+        order: SortOrder.Ascending,
+      },
     },
     required: false,
     placeholder: "Select Incident Severity",

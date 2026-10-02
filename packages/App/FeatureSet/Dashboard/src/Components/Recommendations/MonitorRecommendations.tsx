@@ -24,6 +24,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 
@@ -245,8 +246,11 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             name: true,
             isOperationalState: true,
             isOfflineState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const onlineStatus: MonitorStatus | undefined =
@@ -264,7 +268,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           query: {},
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          select: { name: true, order: true },
+          select: { name: true, order: true, color: true },
           sort: { order: SortOrder.Ascending },
         });
 
@@ -274,7 +278,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           query: {},
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          select: { name: true, order: true },
+          select: { name: true, order: true, color: true },
           sort: { order: SortOrder.Ascending },
         });
 
@@ -323,6 +327,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             id: new ObjectID(item._id!),
             name: item.name!,
             order: item.order,
+            color: DropdownUtil.toOptionColor(item.color),
           };
         }),
       );
@@ -332,6 +337,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             id: new ObjectID(item._id!),
             name: item.name!,
             order: item.order,
+            color: DropdownUtil.toOptionColor(item.color),
           };
         }),
       );

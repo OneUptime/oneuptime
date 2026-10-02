@@ -1,6 +1,6 @@
 # States & Severities
 
-Every incident carries two classifications: a **state** that says where it is in your response, and a **severity** that says how much it hurts. In the dashboard they look alike — both render as colored pills on the incidents list, both are project-scoped lists you can rename and recolor. They do very different jobs.
+Every incident carries two classifications: a **state** that says where it is in your response, and a **severity** that says how much it hurts. In the dashboard they look alike — both render as colored pills on the incidents list and as a colored dot before the name wherever you pick one, both are project-scoped lists you can rename and recolor. They do very different jobs.
 
 States drive behavior. Three boolean flags on the state rows decide which incidents count as active, which buttons appear on the incident header, when the SLA clock stops, and when the incident drops off your status page. Severities drive nothing by themselves — they are labels that describe impact, and that other rules can match on.
 
@@ -38,37 +38,49 @@ Note the name: the first state is **Identified**, even though several descriptio
 | `isAcknowledgedState` | Powers the **Acknowledge** button and the "<state name> in" stat tile on the incident **Overview**. On a state change into this state, the incident's SLA is marked as responded.                    |
 | `isResolvedState`     | Powers the **Resolve** button and the resolved stat tile, defines the **Active Incidents** list, and is what removes the incident from a status page's active section. Marks the SLA resolved.       |
 
-Only one state per project is expected to hold each flag — the lookups fetch a single row. The three flagged states can be renamed, recolored and reordered, but the settings page refuses to delete them and shows an error naming the created, acknowledged and resolved states.
+Only one state per project is expected to hold each flag — the lookups fetch the first one in the order. The three flagged states carry a **Built-in** tag on the settings page; hover it (or tab to it) to read what OneUptime does with the state. They can be renamed, recolored and dragged, but:
+
+- **They keep their order.** Created comes before acknowledged, and acknowledged before resolved. A drag that would break that — **Resolved** above **Acknowledged**, say — is refused, the rows go back, and the page says why.
+- **They cannot be deleted.** Their **Delete** stays in the row's menu, locked, with the reason. A bulk delete skips them and lists them as not deleted. The API refuses to delete a project's last created, acknowledged or resolved state too.
 
 Because the UI reads state names dynamically, renaming a state changes what you see everywhere — the stat tiles, the confirmation modal titles, and the pill on the incidents list all follow the name you gave the row.
 
 ## Adding your own states
 
-Go to **Incidents → Settings → Incident State**. The page is an ordered list sorted by `order` ascending, and new states are appended at the end. Drag a row to change its position.
+Go to **Incidents → Settings → Incident State**. The page lists your states in their order, one row each: a grip to drag it by, its color and name, what an incident in it **Counts as**, and its description. The sentence under the title says it plainly: incidents only ever move down this list.
+
+- **Create Incident State**, in the card's header, adds a state **just above the resolved state** — where most states belong, and never below it, where it would quietly count as resolved.
+- **Drag a row by its grip** to move it. The new order is saved as you drop it; there is no order number to type. From the keyboard, focus the grip, press Space, move with the arrow keys and press Space again.
+- **Edit** opens the same form as create. The state's ID is under **Show ID** in the row's menu.
 
 **Fields on a state:**
 
 - **Name** — required, at least two characters. The placeholder suggests something like "Investigating".
 - **Description** — optional free text explaining when an incident sits in this state.
-- **Color** — required. Picked from the color picker; stored as a hex value like `#fd625e`.
+- **Color** — required. Picked from the color picker; stored as a hex value like `#fd625e`. It colors the state's pill and the dot before its name in every state picker: the declare and template forms, the **Change State** bulk action, the header's state menu, and rule and filter conditions.
 
-You cannot set the three flags from this form — they belong to the seeded rows. A state you add is therefore an unflagged state, which has two consequences worth planning around:
+Every one of those pickers lists the states in the order this page puts them in.
 
-- **It counts as active.** **Active Incidents** is defined as "current state is not the resolved state", so anything you add other than the resolved state keeps the incident in the active list and in the sidebar count.
+You cannot set the three flags from this form — they belong to the seeded rows. A state you add is therefore an unflagged state, which has three consequences worth planning around:
+
+- **Where it sits decides what it counts as.** The **Counts as** column shows it, and changes as you drag: above the acknowledged state an incident in it is **Not acknowledged**; from the acknowledged state down it counts as **Acknowledged**, so on-call policies stop escalating it; from the resolved state down it counts as **Resolved**, so status pages stop showing it as active.
+- **It stays in Active Incidents.** **Active Incidents** is defined as "current state is not the resolved state", so anything you add other than the resolved state keeps the incident in the active list and in the sidebar count.
 - **Its transition button is generic.** Instead of **Acknowledge** or **Resolve**, the confirmation modal is titled **Mark Incident as `<state name>`** with a **Mark as `<state name>`** submit button.
 
-A common shape is to insert a triage or mitigation step between the acknowledged and resolved states — for example, drag a new "Mitigated" state so it sits after **Acknowledged** and before **Resolved**.
+A common shape is a mitigation step between the acknowledged and resolved states — create "Mitigated" and it lands just above **Resolved**, after **Acknowledged**, counting as acknowledged. For a triage step before anyone has acknowledged the incident, drag it above **Acknowledged**.
 
 ## Order is a real constraint, not a display preference
 
-The `order` column is enforced when a state change is written, not just when the list is drawn:
+The order is enforced when a state change is written, not just when the list is drawn:
 
 - **Backwards transitions are rejected.** Moving an incident to a state that sits earlier in the order than its current state fails with an error naming both states.
 - **Re-selecting the current state is rejected.** Setting an incident to the state it is already in fails with "Incident state cannot be same as previous state."
 - **A backdated row cannot duplicate its neighbor.** Inserting a timeline row whose state matches the row that follows it is refused too.
 - **The header buttons follow the flagged states' position in the order.** **Acknowledge** and **Resolve** are offered based on where the current state sits in the order-sorted list. A custom state placed *after* the resolved state will never show a **Resolve** button, because there is nothing left to move forward into.
 
-So when you add a state, put it where an incident would genuinely pass through it. Ordering it wrong does not just look odd — it makes transitions impossible.
+So when you add a state, put it where an incident would genuinely pass through it. Ordering it wrong does not just look odd — it makes transitions impossible. Moving a state later changes how the incidents already in it count, the moment you drop it.
+
+Through the API and Terraform the order is the `order` column: lower numbers come first. A state created without one goes just above the resolved state; one created or updated with a number takes that place, and the states in the way step down. Numbers nobody else holds are kept as written, so a Terraform-managed state reads back the number it was given.
 
 ## The seeded severities
 
@@ -82,14 +94,14 @@ Severity is required when you declare an incident, and it is required on each in
 
 ## Editing severities
 
-Go to **Incidents → Settings → Incident Severity**. Same shape as the state page — an ordered list sorted by `order`, drag to reorder, new severities appended at the end, with **Name**, **Description** and **Color** on the form.
+Go to **Incidents → Settings → Incident Severity**. Same shape as the state page — one row per severity, most severe first, drag a row to change its rank, **Create Incident Severity** adds one at the end (the least severe), with **Name**, **Description** and **Color** on the form.
+
+The rank matters wherever OneUptime compares severities: an episode takes the severity of its most severe incident, and a monitor recommendation's Critical and Warning map onto your first and second severity.
 
 Two differences from states:
 
 - **There is no delete guard.** Any severity can be deleted, including the three seeded ones.
-- **There are no flags to inherit.** A new severity behaves exactly like the seeded ones — it is a label with a color and a position.
-
-**A note on the placeholders.** The severity form reuses the state form's example text word for word, so the hints talk about incident states rather than severities. Ignore them and write your own severity names and descriptions.
+- **There are no flags to inherit, and no "Counts as".** A new severity behaves exactly like the seeded ones — it is a label with a color and a rank.
 
 Where severity does more than describe: on **Incidents → Rules → On-Call Rules**, a rule's **Incident Severities** field is a match criterion. Listing **Critical Incident** there is how "page the database team for anything critical" gets expressed — the on-call policy lives on the rule, not on the severity.
 

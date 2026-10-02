@@ -5,6 +5,10 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookRuleTriggerEntity from "Common/Types/Runbook/RunbookRuleTriggerEntity";
@@ -16,32 +20,81 @@ export interface ComponentProps {
   entityLabel: string; // "incident", "alert", "scheduled maintenance event"
 }
 
-const runbookRuleDocumentation: (entityLabel: string) => string = (
-  entityLabel: string,
-): string => {
+/*
+ * The word the conditions put before "Labels", "Title" and "Description",
+ * matching the other rules of the same product: "Incident Labels" on
+ * incident rules, "Alert Labels" on alert rules, "Event Labels" on scheduled
+ * maintenance rules.
+ */
+export function getRunbookRuleCriteriaSubject(
+  triggerEntityType: RunbookRuleTriggerEntity,
+): string {
+  switch (triggerEntityType) {
+    case RunbookRuleTriggerEntity.Alert:
+      return "Alert";
+    case RunbookRuleTriggerEntity.ScheduledMaintenance:
+      return "Event";
+    default:
+      return "Incident";
+  }
+}
+
+/*
+ * How a rule's monitors relate to what it matches: an incident or a scheduled
+ * maintenance event affects monitors, an alert is raised by one.
+ */
+function getMonitorsLine(data: {
+  triggerEntityType: RunbookRuleTriggerEntity;
+  entityLabel: string;
+}): string {
+  if (data.triggerEntityType === RunbookRuleTriggerEntity.Alert) {
+    return `the ${data.entityLabel} was raised by one of the selected monitors.`;
+  }
+
+  return `the ${data.entityLabel} affects one of the selected monitors.`;
+}
+
+export function getRunbookRuleDocumentation(data: {
+  triggerEntityType: RunbookRuleTriggerEntity;
+  entityLabel: string;
+}): string {
+  const subject: string = getRunbookRuleCriteriaSubject(data.triggerEntityType);
+  const entityLabel: string = data.entityLabel;
+  const severityLine: string =
+    data.triggerEntityType === RunbookRuleTriggerEntity.ScheduledMaintenance
+      ? ""
+      : `\n- **${subject} Severities** — the ${entityLabel}'s severity is one of the selected severities.`;
+
   return `
 ### How Runbook Rules Work
 
 Runbook rules attach runbooks to ${entityLabel}s automatically when they are created — no one has to remember to kick them off.
 
+### What Conditions Can Check
+
+- **Monitors** — ${getMonitorsLine(data)}${severityLine}
+- **${subject} Labels** — the ${entityLabel} carries one of the selected labels.
+- **Monitor Labels** — one of the ${entityLabel}'s monitors carries one of the selected labels. Label monitors \`production\` or \`staging\` to run a runbook for one environment only.
+- **${subject} Title**, **${subject} Description** — the text of the ${entityLabel}.
+- **Monitor Name**, **Monitor Description** — the name or description of one of the ${entityLabel}'s monitors. Monitor conditions are checked one monitor at a time: with Match all, a single monitor has to meet all of them.
+
 ### Match Criteria
 
-A rule matches when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Title Pattern** — case-insensitive regex matched against the ${entityLabel}'s title.
-- **Description Pattern** — case-insensitive regex matched against the ${entityLabel}'s description.
-
-Leave both empty to match every ${entityLabel}.
+Add conditions to choose which ${entityLabel}s start the runbooks. A rule with no conditions starts them for every ${entityLabel}.
 
 ### Action
 
 When a rule matches, every selected runbook starts its own execution attached to the ${entityLabel}. You'll find the runs on the ${entityLabel}'s page and under **Runbooks → Executions**. Multiple matching rules all fire — the union of their runbooks starts.
 `;
-};
+}
 
 const RunbookRulesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const criteriaSubject: string = getRunbookRuleCriteriaSubject(
+    props.triggerEntityType,
+  );
+
   return (
     <ModelTable<RunbookRule>
       modelType={RunbookRule}
@@ -64,7 +117,10 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
       helpContent={{
         title: "How Runbook Rules Work",
         description: `Match ${props.entityLabel}s and start runbooks automatically.`,
-        markdown: runbookRuleDocumentation(props.entityLabel),
+        markdown: getRunbookRuleDocumentation({
+          triggerEntityType: props.triggerEntityType,
+          entityLabel: props.entityLabel,
+        }),
       }}
       sortBy="name"
       sortOrder={SortOrder.Ascending}
@@ -103,6 +159,11 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
         { title: "Match Criteria", id: "match-criteria" },
         { title: "Runbooks", id: "runbooks" },
       ]}
+      /*
+       * The criteria the other rules of the same product offer, in the same
+       * order and words (Types/Runbook/RunbookRuleCriteria lists them per
+       * trigger): severities exist for incidents and alerts only.
+       */
       formFields={[
         {
           field: { name: true },
@@ -128,23 +189,115 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
           required: false,
         },
         {
-          field: { titlePattern: true },
-          title: "Title Pattern",
+          field: { monitors: true },
+          title: "Monitors",
           stepId: "match-criteria",
-          sectionTitle: "Match by Pattern",
-          sectionDescription:
-            "Case-insensitive regex. Leave both empty to match every event.",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: Monitor,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: false,
+          placeholder: "Select Monitors (optional)",
+        },
+        ...(props.triggerEntityType === RunbookRuleTriggerEntity.Incident
+          ? [
+              {
+                field: { incidentSeverities: true },
+                title: "Incident Severities",
+                stepId: "match-criteria",
+                fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                dropdownModal: {
+                  type: IncidentSeverity,
+                  labelField: "name",
+                  valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
+                },
+                required: false,
+                placeholder: "Select Severities (optional)",
+              },
+            ]
+          : []),
+        ...(props.triggerEntityType === RunbookRuleTriggerEntity.Alert
+          ? [
+              {
+                field: { alertSeverities: true },
+                title: "Alert Severities",
+                stepId: "match-criteria",
+                fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                dropdownModal: {
+                  type: AlertSeverity,
+                  labelField: "name",
+                  valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
+                },
+                required: false,
+                placeholder: "Select Severities (optional)",
+              },
+            ]
+          : []),
+        {
+          field: { labels: true },
+          title: `${criteriaSubject} Labels`,
+          stepId: "match-criteria",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: Label,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: false,
+          placeholder: "Select Labels (optional)",
+        },
+        {
+          field: { monitorLabels: true },
+          title: "Monitor Labels",
+          stepId: "match-criteria",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: Label,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: false,
+          placeholder: "Select Monitor Labels (optional)",
+        },
+        {
+          field: { titlePattern: true },
+          title: `${criteriaSubject} Title`,
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "database|postgres|db-",
         },
         {
           field: { descriptionPattern: true },
-          title: "Description Pattern",
+          title: `${criteriaSubject} Description`,
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "timeout|connection refused",
+        },
+        {
+          field: { monitorNamePattern: true },
+          title: "Monitor Name",
+          stepId: "match-criteria",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          placeholder: "prod-.*",
+        },
+        {
+          field: { monitorDescriptionPattern: true },
+          title: "Monitor Description",
+          stepId: "match-criteria",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          placeholder: "production|critical",
         },
         {
           field: { runbooks: true },

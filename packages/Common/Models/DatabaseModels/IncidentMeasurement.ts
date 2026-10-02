@@ -205,14 +205,19 @@ export default class IncidentMeasurement extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * Not required: a create without a key gets one made from the name
+   * (IncidentMeasurementService.onBeforeCreate, MeasurementKeyAssigner). The
+   * column itself is never empty.
+   */
   @Index()
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Key",
     description:
-      "Stable, machine readable identifier for this measurement, unique within the project. It is immutable once created because it is used to build the metric name that every recorded point is written under - changing it would orphan all the history. Pick it carefully; to rename a measurement, change the Name instead.",
+      "Stable, machine readable identifier for this measurement, unique within the project: lowercase letters, numbers and hyphens. Leave it out and it is made from the name - Time to Detect becomes time-to-detect, with -2, -3 and so on added when another measurement already has it. It cannot be changed once the measurement is created, because it is used to build the metric name that every recorded point is written under; to rename a measurement, change the Name instead.",
     example: "time-to-detect",
   })
   @Column({

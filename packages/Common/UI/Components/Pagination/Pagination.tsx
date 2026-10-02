@@ -1,16 +1,13 @@
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import Modal from "../Modal/Modal";
-import {
-  PluralTemplate,
-  TranslatableTerm,
-  translatableTerm,
-  translationKey,
-  Translator,
-} from "../../Utils/TranslateTemplate";
-import useTranslator from "../../Utils/UseTranslator";
+import useTranslateValue from "../../Utils/Translation";
+import { translateTemplate } from "../../Utils/TranslateTemplate";
+import PaginationCopy from "./PaginationCopy";
+import { getPaginationSummary } from "./PaginationSummary";
 import PaginationUtil, {
   DefaultItemsOnPageOptions,
+  DefaultMaxVisiblePages,
   ItemRange,
   PageWindowItem,
 } from "./PaginationUtil";
@@ -50,7 +47,7 @@ export interface ComponentProps {
   // Optional. Page sizes offered in the "rows per page" dropdown.
   itemsOnPageOptions?: Array<number> | undefined;
   /*
-   * Optional. Denser type and padding, for footers that sit under a
+   * Optional. Smaller controls and less padding, for footers that sit under a
    * compact data view (logs, traces) rather than under a full table.
    */
   isCompact?: boolean | undefined;
@@ -64,42 +61,122 @@ export interface ComponentProps {
 }
 
 /*
- * The summary under a list, as whole sentences in the reader's language. The
- * labels are the list's English nouns ("Monitor", "Monitors"); they are
- * translated with the sentence and written the way a noun is written in the
- * middle of one ("Showing 1-10 of 240 monitors"), and the total picks the
- * language's plural form.
+ * The control's two sizes. The footer is chrome, not content, so both are a
+ * single row of small, quiet controls in the table's caption type: borderless
+ * arrows and page numbers that only take a background on hover, and a tinted
+ * chip for the page the reader is on. Compact is a notch denser again, for
+ * the logs and traces views, whose own rows are denser than a table's.
  */
-export const PAGINATION_SUMMARY: PluralTemplate = {
-  one: "Showing {{range}} of {{total}} {{itemName}}",
-  other: "Showing {{range}} of {{total}} {{itemsName}}",
+export interface PaginationSize {
+  // The bar's padding. The default lines its text up with a table's cells.
+  barClassName: string;
+  // How tall every control on the bar is.
+  heightClassName: string;
+  // An arrow: a square of that height.
+  squareClassName: string;
+  /*
+   * A page number or a gap. A minimum width rather than padding alone, so a
+   * row of single-digit pages does not read as a row of narrower buttons than
+   * the two- and three-digit ones beside it.
+   */
+  pageClassName: string;
+  // The rows-per-page select, with room on the right for its chevron.
+  selectClassName: string;
+}
+
+export const DefaultPaginationSize: PaginationSize = {
+  barClassName: "px-4 py-2.5 sm:px-6",
+  heightClassName: "h-7",
+  squareClassName: "h-7 w-7",
+  pageClassName: "h-7 min-w-7 px-1.5",
+  selectClassName: "h-7 pl-2.5 pr-7",
 };
 
-export const PAGINATION_SUMMARY_WITHOUT_TOTAL: string = translationKey(
-  "Showing {{range}} {{itemsName}}",
-);
+export const CompactPaginationSize: PaginationSize = {
+  barClassName: "px-4 py-2",
+  heightClassName: "h-6",
+  squareClassName: "h-6 w-6",
+  pageClassName: "h-6 min-w-6 px-1",
+  selectClassName: "h-6 pl-2 pr-6",
+};
 
-export const PAGINATION_SUMMARY_WITH_MORE: string = translationKey(
-  "Showing {{range}}+ {{itemsName}}",
-);
+/*
+ * What every arrow, page number, gap and indicator shares. The focus ring is
+ * inset so a footer that clips its overflow cannot cut it off, and the hover
+ * colours fade in over a short transition that is dropped for a reader who
+ * asks for less motion.
+ */
+export const CONTROL_CLASS_NAME: string =
+  "inline-flex shrink-0 items-center justify-center rounded-md text-xs transition focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 motion-reduce:transition-none";
 
-export const PAGINATION_EMPTY: string = translationKey("No {{itemsName}}");
+/*
+ * The page the reader is on: a tinted chip, the only coloured thing on the
+ * bar. Every colour here, and below, is one the dark theme remaps
+ * (Common/UI/Styles/Theme.css).
+ */
+export const CURRENT_PAGE_CLASS_NAME: string =
+  "cursor-default bg-indigo-50 font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200";
 
-export const GO_TO_PAGE_DESCRIPTION: PluralTemplate = {
-  one: "This list has {{count}} page. Enter the one you want to see.",
-  other: "This list has {{count}} pages. Enter the one you want to see.",
+// Any other page: quiet until it is hovered.
+export const PAGE_CLASS_NAME: string =
+  "cursor-pointer font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900";
+
+export const ARROW_CLASS_NAME: string =
+  "cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-900";
+
+export const GAP_CLASS_NAME: string =
+  "cursor-pointer font-medium text-gray-400 hover:bg-gray-100 hover:text-gray-700";
+
+// "Page 12 of 24": plain text between the arrows.
+export const INDICATOR_CLASS_NAME: string =
+  "whitespace-nowrap px-2 text-xs font-medium text-gray-700";
+
+// The same words, when they also open the jump dialog.
+export const JUMPABLE_INDICATOR_CLASS_NAME: string =
+  "cursor-pointer font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900";
+
+/*
+ * A control that cannot be used right now keeps its colour and fades, rather
+ * than turning a paler grey: the dark theme maps text-gray-300 to a light
+ * slate, so a dead arrow drawn that way was brighter than a live one. Its
+ * hover classes are left off, not overridden - the dark theme's hover rules
+ * are !important and would light a disabled control up anyway.
+ */
+export const DISABLED_CONTROL_CLASS_NAME: string =
+  "cursor-not-allowed opacity-40";
+
+// The same control, dead: its resting colour, faded, with no hover.
+const disabledClassName: (enabledClassName: string) => string = (
+  enabledClassName: string,
+): string => {
+  const restingClassNames: Array<string> = enabledClassName
+    .split(" ")
+    .filter((className: string): boolean => {
+      return (
+        className.length > 0 &&
+        !className.includes(":") &&
+        !className.startsWith("cursor-")
+      );
+    });
+
+  return [...restingClassNames, DISABLED_CONTROL_CLASS_NAME].join(" ");
 };
 
 const Pagination: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-  const itemTerm: TranslatableTerm = translatableTerm(props.singularLabel, {
-    inSentence: true,
-  });
-  const itemsTerm: TranslatableTerm = translatableTerm(props.pluralLabel, {
-    inSentence: true,
-  });
+  const { translateString } = useTranslateValue();
+
+  type TranslateFunction = (text: string) => string;
+
+  const translate: TranslateFunction = (text: string): string => {
+    return translateString(text) || text;
+  };
+
+  const size: PaginationSize = props.isCompact
+    ? CompactPaginationSize
+    : DefaultPaginationSize;
+
   /*
    * Has-more mode: the count is a lower bound, so there is no last page to
    * link to and no "of N" to print. Prev/next and the page size are all the
@@ -152,6 +229,14 @@ const Pagination: FunctionComponent<ComponentProps> = (
     setGoToPageValue("");
   }, [currentPageNumber]);
 
+  /*
+   * Narrow screens have no page list, so no gaps either: there the page
+   * indicator opens the same dialog - for exactly the lists whose page list
+   * would collapse a gap on a wider screen.
+   */
+  const canJumpFromIndicator: boolean =
+    !isHasMoreMode && totalPageCount > DefaultMaxVisiblePages;
+
   const itemRange: ItemRange = PaginationUtil.getItemRange({
     currentPageNumber: currentPageNumber,
     itemsOnPage: props.itemsOnPage,
@@ -165,8 +250,6 @@ const Pagination: FunctionComponent<ComponentProps> = (
       props.itemsOnPageOptions || DefaultItemsOnPageOptions,
     );
 
-  const textSizeClassName: string = props.isCompact ? "text-xs" : "text-sm";
-
   type NavigateToPageFunction = (pageNumber: number) => void;
 
   const navigateToPage: NavigateToPageFunction = (pageNumber: number): void => {
@@ -175,6 +258,14 @@ const Pagination: FunctionComponent<ComponentProps> = (
     }
 
     props.onNavigateToPage(pageNumber, props.itemsOnPage);
+  };
+
+  type OpenGoToPageModalFunction = () => void;
+
+  const openGoToPageModal: OpenGoToPageModalFunction = (): void => {
+    if (!isDisabled) {
+      setIsGoToPageModalVisible(true);
+    }
   };
 
   type SubmitGoToPageFunction = () => void;
@@ -192,66 +283,13 @@ const Pagination: FunctionComponent<ComponentProps> = (
     );
   };
 
-  type GetSummaryFunction = () => string;
+  type GetArrowClassNameFunction = (isButtonDisabled: boolean) => string;
 
-  const getSummary: GetSummaryFunction = (): string => {
-    if (itemRange.isEmpty) {
-      return translator.translateTemplate(PAGINATION_EMPTY, {
-        itemsName: itemsTerm,
-      });
-    }
-
-    const rangeText: string =
-      itemRange.firstItemNumber === itemRange.lastItemNumber
-        ? translator.formatNumber(itemRange.firstItemNumber)
-        : `${translator.formatNumber(itemRange.firstItemNumber)}-${translator.formatNumber(itemRange.lastItemNumber)}`;
-
-    if (isHasMoreMode) {
-      /*
-       * The count cannot be printed here — it is a lower bound that also
-       * includes the probe row the payload dropped. The trailing "+" is all
-       * that can be said about what comes after this page.
-       */
-      return translator.translateTemplate(
-        props.hasMore
-          ? PAGINATION_SUMMARY_WITH_MORE
-          : PAGINATION_SUMMARY_WITHOUT_TOTAL,
-        { range: rangeText, itemsName: itemsTerm },
-      );
-    }
-
-    return translator.translatePlural(
-      PAGINATION_SUMMARY,
-      props.totalItemsCount,
-      {
-        range: rangeText,
-        total: translator.formatNumber(props.totalItemsCount),
-        itemName: itemTerm,
-        itemsName: itemsTerm,
-      },
-    );
-  };
-
-  /*
-   * A minimum width rather than padding alone, so a row of single-digit
-   * pages does not read as a row of narrower buttons than the two- and
-   * three-digit ones beside it.
-   */
-  const pageButtonBaseClassName: string = `relative inline-flex items-center justify-center border border-gray-300 font-medium transition-colors focus:z-20 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
-    props.isCompact
-      ? "min-w-8 px-2 py-1.5 text-xs"
-      : "min-w-9 px-2 py-2 text-sm"
-  }`;
-
-  type GetArrowButtonClassNameFunction = (isButtonDisabled: boolean) => string;
-
-  const getArrowButtonClassName: GetArrowButtonClassNameFunction = (
+  const getArrowClassName: GetArrowClassNameFunction = (
     isButtonDisabled: boolean,
   ): string => {
-    return `${pageButtonBaseClassName} ${
-      isButtonDisabled
-        ? "cursor-not-allowed bg-gray-50 text-gray-300"
-        : "cursor-pointer bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+    return `${CONTROL_CLASS_NAME} ${size.squareClassName} ${
+      isButtonDisabled ? disabledClassName(ARROW_CLASS_NAME) : ARROW_CLASS_NAME
     }`;
   };
 
@@ -262,14 +300,26 @@ const Pagination: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const isCurrentPage: boolean = pageNumber === currentPageNumber;
 
+    /*
+     * The current page keeps its chip while the bar is frozen, so the reader
+     * can still see where they are.
+     */
+    let stateClassName: string = PAGE_CLASS_NAME;
+
+    if (isCurrentPage) {
+      stateClassName = CURRENT_PAGE_CLASS_NAME;
+    } else if (isDisabled) {
+      stateClassName = disabledClassName(PAGE_CLASS_NAME);
+    }
+
     return (
       <li className="max-sm:hidden sm:flex" key={`page-${pageNumber}`}>
         <button
           type="button"
           data-testid={`pagination-page-${pageNumber}`}
-          aria-label={translator.translateTemplate(
-            isCurrentPage ? "Page {{page}}" : "Go to page {{page}}",
-            { page: translator.formatNumber(pageNumber) },
+          aria-label={translateTemplate(
+            isCurrentPage ? PaginationCopy.page : PaginationCopy.goToPageNumber,
+            { page: pageNumber.toLocaleString() },
           )}
           aria-current={isCurrentPage ? "page" : undefined}
           disabled={isDisabled}
@@ -278,17 +328,9 @@ const Pagination: FunctionComponent<ComponentProps> = (
               navigateToPage(pageNumber);
             }
           }}
-          className={`${pageButtonBaseClassName} ${
-            isCurrentPage
-              ? "z-10 border-indigo-500 bg-indigo-50 text-indigo-600"
-              : "bg-white text-gray-600 hover:bg-gray-50"
-          } ${
-            isDisabled && !isCurrentPage
-              ? "cursor-not-allowed text-gray-300"
-              : "cursor-pointer"
-          }`}
+          className={`${CONTROL_CLASS_NAME} ${size.pageClassName} tabular-nums ${stateClassName}`}
         >
-          {translator.formatNumber(pageNumber)}
+          {pageNumber.toLocaleString()}
         </button>
       </li>
     );
@@ -302,21 +344,13 @@ const Pagination: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           data-testid={`pagination-${key}`}
-          aria-label={
-            translator.translateText("Go to a page in between") ||
-            "Go to a page in between"
-          }
-          title={translator.translateText("Go to page") || "Go to page"}
+          aria-label={translate(PaginationCopy.pagesInBetween)}
+          aria-haspopup="dialog"
+          title={translate(PaginationCopy.goToPage)}
           disabled={isDisabled}
-          onClick={() => {
-            if (!isDisabled) {
-              setIsGoToPageModalVisible(true);
-            }
-          }}
-          className={`${pageButtonBaseClassName} bg-white text-gray-400 ${
-            isDisabled
-              ? "cursor-not-allowed"
-              : "cursor-pointer hover:bg-gray-50 hover:text-gray-600"
+          onClick={openGoToPageModal}
+          className={`${CONTROL_CLASS_NAME} ${size.pageClassName} ${
+            isDisabled ? disabledClassName(GAP_CLASS_NAME) : GAP_CLASS_NAME
           }`}
         >
           &hellip;
@@ -325,35 +359,92 @@ const Pagination: FunctionComponent<ComponentProps> = (
     );
   };
 
+  type GetCurrentPageIndicatorFunction = () => ReactElement;
+
+  /*
+   * Where the reader is, on a screen too narrow for the page list: "Page 12
+   * of 24" (or just "Page 12" when the total is unknown).
+   */
+  const getCurrentPageIndicator: GetCurrentPageIndicatorFunction =
+    (): ReactElement => {
+      const text: string = isHasMoreMode
+        ? translateTemplate(PaginationCopy.page, {
+            page: currentPageNumber.toLocaleString(),
+          })
+        : translateTemplate(PaginationCopy.pageOfPages, {
+            page: currentPageNumber.toLocaleString(),
+            total: totalPageCount.toLocaleString(),
+          });
+
+      if (!canJumpFromIndicator) {
+        return (
+          <span
+            data-testid="pagination-current-page-indicator"
+            className={INDICATOR_CLASS_NAME}
+          >
+            {text}
+          </span>
+        );
+      }
+
+      return (
+        <button
+          type="button"
+          data-testid="pagination-current-page-indicator"
+          aria-haspopup="dialog"
+          title={translate(PaginationCopy.goToPage)}
+          disabled={isDisabled}
+          onClick={openGoToPageModal}
+          className={`${CONTROL_CLASS_NAME} ${
+            size.heightClassName
+          } whitespace-nowrap px-2 ${
+            isDisabled
+              ? disabledClassName(JUMPABLE_INDICATOR_CLASS_NAME)
+              : JUMPABLE_INDICATOR_CLASS_NAME
+          }`}
+        >
+          {text}
+        </button>
+      );
+    };
+
   return (
     <>
       <nav
-        className={`flex flex-col gap-3 border-t border-gray-200 bg-white px-4 py-3 text-left sm:flex-row sm:items-center sm:justify-between ${
-          props.className || ""
-        }`}
+        className={`flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-gray-200 bg-white text-left ${
+          size.barClassName
+        } ${props.className || ""}`}
         data-testid={props.dataTestId}
-        aria-label={translator.translateTemplate(
-          "Pagination for {{itemsName}}",
-          { itemsName: translatableTerm(props.pluralLabel) },
-        )}
+        aria-label={translateTemplate(PaginationCopy.regionLabel, {
+          items: props.pluralLabel,
+        })}
       >
         <p
-          className={`${textSizeClassName} shrink-0 whitespace-nowrap text-gray-500`}
+          className="min-w-0 text-xs text-gray-500"
           data-testid="pagination-summary"
           aria-live="polite"
         >
           {props.isLoading
-            ? translator.translateText("Loading…") || "Loading…"
-            : getSummary()}
+            ? translate(PaginationCopy.loading)
+            : getPaginationSummary({
+                itemRange: itemRange,
+                totalItemsCount: props.totalItemsCount,
+                singularLabel: props.singularLabel,
+                pluralLabel: props.pluralLabel,
+                hasMore: props.hasMore,
+              })}
         </p>
 
-        <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-3 sm:justify-end">
+        <div
+          className="flex flex-wrap items-center gap-x-5 gap-y-2"
+          data-testid="pagination-controls"
+        >
           <div className="flex items-center gap-2">
             <label
               htmlFor={itemsOnPageSelectId}
-              className={`${textSizeClassName} whitespace-nowrap text-gray-500`}
+              className="whitespace-nowrap text-xs text-gray-500"
             >
-              {translator.translateText("Rows per page") || "Rows per page"}
+              {translate(PaginationCopy.rowsPerPage)}
             </label>
             <div className="relative">
               <select
@@ -375,7 +466,11 @@ const Pagination: FunctionComponent<ComponentProps> = (
                    */
                   props.onNavigateToPage(1, newItemsOnPage);
                 }}
-                className={`cursor-pointer appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-2.5 pr-8 font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 ${textSizeClassName}`}
+                className={`${
+                  size.selectClassName
+                } block cursor-pointer appearance-none rounded-md border border-gray-300 bg-white py-0 text-xs font-medium text-gray-700 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none ${
+                  isDisabled ? "" : "hover:border-gray-400"
+                }`}
               >
                 {itemsOnPageOptions.map((option: number) => {
                   return (
@@ -385,36 +480,28 @@ const Pagination: FunctionComponent<ComponentProps> = (
                   );
                 })}
               </select>
-              <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+              <span className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center">
                 <Icon
                   icon={IconProp.ChevronDown}
-                  className="h-4 w-4 text-gray-400"
+                  className="h-3.5 w-3.5 text-gray-400"
                 />
               </span>
             </div>
           </div>
 
-          <ul
-            className="isolate inline-flex -space-x-px rounded-md shadow-sm"
-            role="list"
-          >
+          <ul className="flex items-center gap-1" role="list">
             <li className="flex">
               <button
                 type="button"
                 data-testid="pagination-previous-button"
                 disabled={isPreviousDisabled}
-                aria-label={
-                  translator.translateText("Go to previous page") ||
-                  "Go to previous page"
-                }
+                aria-label={translate(PaginationCopy.previousPage)}
                 onClick={() => {
                   if (!isPreviousDisabled) {
                     navigateToPage(currentPageNumber - 1);
                   }
                 }}
-                className={`${getArrowButtonClassName(
-                  isPreviousDisabled,
-                )} rounded-l-md`}
+                className={getArrowClassName(isPreviousDisabled)}
               >
                 <Icon icon={IconProp.ChevronLeft} className="h-4 w-4" />
               </button>
@@ -425,34 +512,17 @@ const Pagination: FunctionComponent<ComponentProps> = (
              * single indicator instead so the control never wraps into a
              * second row of buttons.
              */}
-            <li className="flex sm:hidden">
-              <span
-                data-testid="pagination-current-page-indicator"
-                className={`${pageButtonBaseClassName} bg-white text-gray-600`}
-              >
-                {isHasMoreMode
-                  ? translator.translateTemplate("Page {{page}}", {
-                      page: translator.formatNumber(currentPageNumber),
-                    })
-                  : translator.translateTemplate(
-                      "Page {{page}} of {{pageCount}}",
-                      {
-                        page: translator.formatNumber(currentPageNumber),
-                        pageCount: translator.formatNumber(totalPageCount),
-                      },
-                    )}
-              </span>
-            </li>
+            <li className="flex sm:hidden">{getCurrentPageIndicator()}</li>
 
             {isHasMoreMode && (
               <li className="max-sm:hidden sm:flex">
                 <span
                   data-testid="pagination-current-page-indicator-desktop"
                   aria-current="page"
-                  className={`${pageButtonBaseClassName} z-10 border-indigo-500 bg-indigo-50 text-indigo-600`}
+                  className={INDICATOR_CLASS_NAME}
                 >
-                  {translator.translateTemplate("Page {{page}}", {
-                    page: translator.formatNumber(currentPageNumber),
+                  {translateTemplate(PaginationCopy.page, {
+                    page: currentPageNumber.toLocaleString(),
                   })}
                 </span>
               </li>
@@ -471,18 +541,13 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 type="button"
                 data-testid="pagination-next-button"
                 disabled={isNextDisabled}
-                aria-label={
-                  translator.translateText("Go to next page") ||
-                  "Go to next page"
-                }
+                aria-label={translate(PaginationCopy.nextPage)}
                 onClick={() => {
                   if (!isNextDisabled) {
                     navigateToPage(currentPageNumber + 1);
                   }
                 }}
-                className={`${getArrowButtonClassName(
-                  isNextDisabled,
-                )} rounded-r-md`}
+                className={getArrowClassName(isNextDisabled)}
               >
                 <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
               </button>
@@ -493,12 +558,11 @@ const Pagination: FunctionComponent<ComponentProps> = (
 
       {isGoToPageModalVisible && (
         <Modal
-          title="Go to page"
-          description={translator.translatePlural(
-            GO_TO_PAGE_DESCRIPTION,
-            totalPageCount,
-          )}
-          submitButtonText="Go"
+          title={PaginationCopy.goToPage}
+          description={translateTemplate(PaginationCopy.goToPageDescription, {
+            count: totalPageCount.toLocaleString(),
+          })}
+          submitButtonText={PaginationCopy.goToPage}
           closeButtonText="Cancel"
           disableSubmitButton={goToPageValue === ""}
           onSubmit={submitGoToPage}
@@ -512,7 +576,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
               htmlFor={goToPageInputId}
               className="block text-sm font-medium text-gray-700"
             >
-              {translator.translateText("Page number") || "Page number"}
+              {translate(PaginationCopy.pageNumber)}
             </label>
             <input
               id={goToPageInputId}

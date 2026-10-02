@@ -11,6 +11,8 @@ import { FormTargetSettingReferenceModel } from "Common/Types/Form/FormTargetSet
 import FormTargetType from "Common/Types/Form/FormTargetType";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import Color from "Common/Types/Color";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 
@@ -301,10 +303,21 @@ export type ToDropdownOptionsFunction = (
   records: Array<FormRecordOption> | undefined,
 ) => Array<DropdownOption>;
 
+/*
+ * A record with a colour - a severity, a label - keeps it: the Severity
+ * setting shows each severity's dot, as every other severity picker does.
+ */
 export const toDropdownOptions: ToDropdownOptionsFunction = (
   records: Array<FormRecordOption> | undefined,
 ): Array<DropdownOption> => {
   return (records || []).map((record: FormRecordOption): DropdownOption => {
-    return { value: record.id, label: record.name };
+    const option: DropdownOption = { value: record.id, label: record.name };
+    const color: Color | undefined = DropdownUtil.toOptionColor(record.color);
+
+    if (color) {
+      option.color = color;
+    }
+
+    return option;
   });
 };

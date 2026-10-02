@@ -10,9 +10,9 @@
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Incident Title:" plainText=incidentTitle }}
-{{> DetailBoxField title="Current State: " plainText=currentState  }}
+{{> DetailBoxField title="Current State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
 {{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " plainText=incidentSeverity  }}
+{{> DetailBoxField title="Severity: " plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
 {{> DetailBoxField title="Root Cause: " blockText=rootCause  }}
 {{> DetailBoxField title="Description: " blockText=incidentDescription  }}
 {{> DetailBoxEnd this }}

@@ -256,6 +256,9 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
                   type: IncidentSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: false,
                 placeholder: "Select Severities (optional)",
@@ -271,6 +274,9 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
                   type: AlertSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: false,
                 placeholder: "Select Severities (optional)",
@@ -306,7 +312,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         },
         {
           field: { titlePattern: true },
-          title: "Title Pattern",
+          title: `${isIncident ? "Incident" : "Alert"} Title`,
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription: "Case-insensitive regex. Leave empty to skip.",
@@ -316,7 +322,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         },
         {
           field: { descriptionPattern: true },
-          title: "Description Pattern",
+          title: `${isIncident ? "Incident" : "Alert"} Description`,
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

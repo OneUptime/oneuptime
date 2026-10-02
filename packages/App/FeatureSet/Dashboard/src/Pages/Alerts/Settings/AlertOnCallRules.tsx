@@ -53,11 +53,12 @@ All matching rules fire — there is no priority or short-circuit. The set of po
 const alertEpisodeOnCallDocumentation: string = `
 ### How Alert Episode On-Call Rules Work
 
-Match an alert episode on creation and execute on-call duty policies automatically. Empty criteria are skipped.
+Match an alert episode on creation and execute on-call duty policies automatically.
 
-- **Severities** — any-of
-- **Episode Labels** — any-of
-- **Title / Description Pattern** — case-insensitive regex
+### Match Criteria
+
+- **Alert Severities**, **Episode Labels** — any of the selected values
+- **Episode Title**, **Episode Description** — text, or a regular expression or \`*\` wildcard pattern
 
 All matching rules fire — the union of their on-call policies is executed (deduped).
 `;
@@ -185,6 +186,9 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
             type: AlertSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -217,7 +221,7 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { alertTitlePattern: true },
-          title: "Alert Title Pattern",
+          title: "Alert Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -228,7 +232,7 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { alertDescriptionPattern: true },
-          title: "Alert Description Pattern",
+          title: "Alert Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -236,7 +240,7 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { monitorNamePattern: true },
-          title: "Monitor Name Pattern",
+          title: "Monitor Name",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -244,7 +248,7 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { monitorDescriptionPattern: true },
-          title: "Monitor Description Pattern",
+          title: "Monitor Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -368,6 +372,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
             type: AlertSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -387,7 +394,7 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { episodeTitlePattern: true },
-          title: "Episode Title Pattern",
+          title: "Episode Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -398,7 +405,7 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
         },
         {
           field: { episodeDescriptionPattern: true },
-          title: "Episode Description Pattern",
+          title: "Episode Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

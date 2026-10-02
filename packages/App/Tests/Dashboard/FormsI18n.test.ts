@@ -771,7 +771,10 @@ describe("the dashboard renders the strings", () => {
       "Components/FormBuilder/FormShareLinkCard.tsx",
     );
 
-    expect(card).toContain("translateString(FormsCopy.copyLink)");
+    // CopyTextButton looks its label and title up itself.
+    expect(card).toContain("label={FormsCopy.copyLink}");
+    expect(card).toContain("title={FormsCopy.copyLink}");
+    expect(card).not.toContain("translateString(FormsCopy.copyLink)");
     expect(card).toContain("translateString(FormsCopy.openForm)");
 
     expect(readCode("Pages/Forms/View/Delete.tsx")).toContain(

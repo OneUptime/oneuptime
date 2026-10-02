@@ -312,6 +312,9 @@ const IncidentSlaRulesPage: FunctionComponent<
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Severities (optional)",
@@ -350,7 +353,7 @@ const IncidentSlaRulesPage: FunctionComponent<
             field: {
               incidentTitlePattern: true,
             },
-            title: "Incident Title Pattern",
+            title: "Incident Title",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
@@ -363,7 +366,7 @@ const IncidentSlaRulesPage: FunctionComponent<
             field: {
               incidentDescriptionPattern: true,
             },
-            title: "Incident Description Pattern",
+            title: "Incident Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,

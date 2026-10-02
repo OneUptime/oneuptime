@@ -37,6 +37,14 @@ interface ActionButtonSchema<T extends GenericObject> {
    */
   disabled?: boolean | undefined;
   tooltip?: string | undefined;
+  /*
+   * An action that is locked for some rows only - Delete on a built-in state
+   * that can be renamed but never deleted, say: why it is locked for this
+   * row, or undefined when it is not. The row keeps the action, locked, with
+   * the reason as its tooltip. A lock from `disabled` (the viewer's
+   * permissions) comes first.
+   */
+  getDisabledReason?: ((item: T) => string | undefined) | undefined;
   placement?: ActionButtonPlacement | undefined;
   onClick: (
     item: T,

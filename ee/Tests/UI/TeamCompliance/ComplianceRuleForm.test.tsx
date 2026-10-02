@@ -71,6 +71,7 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
@@ -392,7 +393,11 @@ describe("the rule form's fields", () => {
     expect(description).toContain("Leave empty to accept any channel.");
   });
 
-  test("severities are picked from the project's own severity lists", () => {
+  /*
+   * In the order the severities are ranked on their settings pages, most
+   * severe first - not in the order they happened to be created.
+   */
+  test("severities are picked from the project's own severity lists, most severe first", () => {
     const incident: ModelField<TeamComplianceSetting> =
       fieldFor("incidentSeverities");
     const alert: ModelField<TeamComplianceSetting> =
@@ -403,6 +408,7 @@ describe("the rule form's fields", () => {
       type: IncidentSeverity,
       labelField: "name",
       valueField: "_id",
+      sort: { order: SortOrder.Ascending },
     });
     expect(incident.placeholder).toBe("All incident severities");
 
@@ -411,6 +417,7 @@ describe("the rule form's fields", () => {
       type: AlertSeverity,
       labelField: "name",
       valueField: "_id",
+      sort: { order: SortOrder.Ascending },
     });
     expect(alert.placeholder).toBe("All alert severities");
   });

@@ -67,6 +67,7 @@ import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import useAsyncEffect from "use-async-effect";
 import Select from "../../../Types/BaseDatabase/Select";
+import Sort from "../../../Types/BaseDatabase/Sort";
 
 /*
  * Whether a dropdown's list request was refused because the person may not
@@ -619,10 +620,10 @@ const ModelForm: <TBaseModel extends BaseModel>(
   ) => Promise<Fields<TBaseModel>>;
 
   /*
-   * What a dropdown's options depend on, and nothing else: the model, and the
-   * two columns read off it. The request below takes no query and no closure
-   * state, so two fields with the same three always get the same list back -
-   * which is what makes caching them safe.
+   * What a dropdown's options depend on, and nothing else: the model, the
+   * two columns read off it, and the order it is listed in. The request below
+   * takes no query and no closure state, so two fields with the same four
+   * always get the same list back - which is what makes caching them safe.
    */
   type GetCachedDropdownOptionsFunction = (
     dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
@@ -638,7 +639,13 @@ const ModelForm: <TBaseModel extends BaseModel>(
   ) => string = (
     dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
   ): string => {
-    return `${dropdownModal.labelField}|${dropdownModal.valueField}`;
+    const sortKey: string = Object.entries(dropdownModal.sort || {})
+      .map((entry: [string, string]): string => {
+        return `${entry[0]}:${entry[1]}`;
+      })
+      .join(",");
+
+    return `${dropdownModal.labelField}|${dropdownModal.valueField}|${sortKey}`;
   };
 
   const getCachedDropdownOptions: GetCachedDropdownOptionsFunction = (
@@ -743,6 +750,17 @@ const ModelForm: <TBaseModel extends BaseModel>(
             shouldSelectColorColumn = true;
           }
 
+          /*
+           * A sorted column is selected too: with the labels relation below
+           * the list goes down TypeORM's paginated path, which orders by a
+           * column only if it was selected - leaving it out fails the request.
+           */
+          for (const sortColumnName of Object.keys(
+            field.dropdownModal.sort || {},
+          )) {
+            select[sortColumnName] = true;
+          }
+
           const accessControlColumnName: string | null =
             tempModel.getAccessControlColumn();
 
@@ -762,7 +780,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
               limit: LIMIT_PER_PROJECT,
               skip: 0,
               select: select,
-              sort: {},
+              sort: (field.dropdownModal.sort || {}) as Sort<BaseModel>,
             });
 
           if (listResult.data && listResult.data.length > 0) {

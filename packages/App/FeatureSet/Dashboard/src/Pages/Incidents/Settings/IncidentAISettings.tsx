@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageComponentProps from "../../PageComponentProps";
 import {
   ProjectColumnsEditGate,
@@ -90,6 +91,9 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             placeholder: "Every severity",
           },

@@ -480,6 +480,9 @@ const AlertGroupingRulesPage: FunctionComponent<
               type: AlertSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Severities (optional)",
@@ -518,7 +521,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             field: {
               alertTitlePattern: true,
             },
-            title: "Alert Title Pattern",
+            title: "Alert Title",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
@@ -531,7 +534,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             field: {
               alertDescriptionPattern: true,
             },
-            title: "Alert Description Pattern",
+            title: "Alert Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -541,7 +544,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             field: {
               monitorNamePattern: true,
             },
-            title: "Monitor Name Pattern",
+            title: "Monitor Name",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -551,7 +554,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             field: {
               monitorDescriptionPattern: true,
             },
-            title: "Monitor Description Pattern",
+            title: "Monitor Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,

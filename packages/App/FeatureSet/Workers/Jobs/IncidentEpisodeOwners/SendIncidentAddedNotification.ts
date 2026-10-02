@@ -30,6 +30,7 @@ import IncidentEpisodeFeedService from "Common/Server/Services/IncidentEpisodeFe
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 
 /*
  * Cap the number of incidents we list inline in the email body. Anything
@@ -142,9 +143,11 @@ RunCron(
             } as Select<Project>,
             currentIncidentState: {
               name: true,
+              color: true,
             } as Select<IncidentState>,
             incidentSeverity: {
               name: true,
+              color: true,
             },
             episodeNumber: true,
             episodeNumberWithPrefix: true,
@@ -184,6 +187,7 @@ RunCron(
           incidentNumberWithPrefix: true,
           incidentSeverity: {
             name: true,
+            color: true,
           },
         },
       });
@@ -291,6 +295,10 @@ RunCron(
                   incidentNumber: incidentNumberStr,
                   incidentSeverity:
                     incident.incidentSeverity?.name || "Not Set",
+                  ...EmailColorUtil.getTemplateVariables(
+                    "incidentSeverity",
+                    incident.incidentSeverity?.color,
+                  ),
                   addedAt:
                     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                       date:
@@ -309,7 +317,15 @@ RunCron(
             episodeNumber: episodeNumberStr,
             projectName: episode.project!.name!,
             currentState: episode.currentIncidentState?.name || "Not Set",
+            ...EmailColorUtil.getTemplateVariables(
+              "currentState",
+              episode.currentIncidentState?.color,
+            ),
             episodeSeverity: episode.incidentSeverity?.name || "Not Set",
+            ...EmailColorUtil.getTemplateVariables(
+              "episodeSeverity",
+              episode.incidentSeverity?.color,
+            ),
             incidentCount: incidentCountInBatch.toString(),
             incidentCountLabel:
               incidentCountInBatch === 1 ? "incident" : "incidents",

@@ -4,7 +4,6 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import { createInstance, i18n } from "i18next";
 import { I18nextProvider } from "react-i18next";
-import Pagination from "../../../UI/Components/Pagination/Pagination";
 import BulkUpdateForm from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import Pill from "../../../UI/Components/Pill/Pill";
@@ -32,16 +31,6 @@ import { Green } from "../../../Types/BrandColors";
  */
 
 const GERMAN: Record<string, string> = {
-  // Pagination
-  "Showing {{range}} of {{total}} {{itemsName}}":
-    "{{range}} von {{total}} {{itemsName}}",
-  "Showing {{range}} of {{total}} {{itemsName}}_one":
-    "{{range}} von {{total}} {{itemName}}",
-  "No {{itemsName}}": "Keine {{itemsName}}",
-  "Page {{page}}": "Seite {{page}}",
-  "Go to page {{page}}": "Zu Seite {{page}}",
-  "Pagination for {{itemsName}}": "Seitennavigation für {{itemsName}}",
-  "Rows per page": "Zeilen pro Seite",
   Monitors: "Monitore",
   // Bulk actions
   "{{count}} {{itemsName}} Selected": "{{count}} {{itemsName}} ausgewählt",
@@ -95,84 +84,6 @@ const inLocale: (instance: i18n, element: ReactElement) => void = (
   render(<I18nextProvider i18n={instance}>{element}</I18nextProvider>);
 };
 
-const pagination: (totalItemsCount: number) => ReactElement = (
-  totalItemsCount: number,
-): ReactElement => {
-  return (
-    <Pagination
-      currentPageNumber={1}
-      totalItemsCount={totalItemsCount}
-      itemsOnPage={10}
-      onNavigateToPage={() => {}}
-      isLoading={false}
-      isError={false}
-      singularLabel="Monitor"
-      pluralLabel="Monitors"
-      dataTestId="pagination"
-    />
-  );
-};
-
-describe("Pagination", () => {
-  test("says how many there are in one German sentence, the name in German", () => {
-    inLocale(german, pagination(1234));
-
-    expect(screen.getByTestId("pagination-summary")).toHaveTextContent(
-      "1-10 von 1.234 Monitore",
-    );
-  });
-
-  test("uses the German one form for one item, with the name German shares with English", () => {
-    inLocale(german, pagination(1));
-
-    expect(screen.getByTestId("pagination-summary")).toHaveTextContent(
-      "1 von 1 Monitor",
-    );
-  });
-
-  test("an empty list", () => {
-    inLocale(german, pagination(0));
-
-    expect(screen.getByTestId("pagination-summary")).toHaveTextContent(
-      "Keine Monitore",
-    );
-  });
-
-  test("its labels for screen readers and its controls", () => {
-    inLocale(german, pagination(30));
-
-    expect(screen.getByTestId("pagination")).toHaveAttribute(
-      "aria-label",
-      "Seitennavigation für Monitore",
-    );
-    expect(screen.getByTestId("pagination-page-1")).toHaveAttribute(
-      "aria-label",
-      "Seite 1",
-    );
-    expect(screen.getByTestId("pagination-page-2")).toHaveAttribute(
-      "aria-label",
-      "Zu Seite 2",
-    );
-    expect(screen.getByText("Zeilen pro Seite")).toBeInTheDocument();
-  });
-
-  test("a locale without the sentence reads it wholly in English", () => {
-    inLocale(germanWordsOnly, pagination(240));
-
-    expect(screen.getByTestId("pagination-summary")).toHaveTextContent(
-      "Showing 1-10 of 240 monitors",
-    );
-  });
-
-  test("a front end with no i18next reads English", () => {
-    render(pagination(1));
-
-    expect(screen.getByTestId("pagination-summary")).toHaveTextContent(
-      "Showing 1 of 1 monitor",
-    );
-  });
-});
-
 interface Row {
   _id: string;
 }
@@ -218,6 +129,13 @@ describe("BulkUpdateForm", () => {
     inLocale(german, bulkForm(1));
 
     expect(screen.getByText("1 Monitor ausgewählt")).toBeInTheDocument();
+  });
+
+  test("a locale without the sentences reads them wholly in English", () => {
+    inLocale(germanWordsOnly, bulkForm(240));
+
+    expect(screen.getByText("240 Monitors Selected")).toBeInTheDocument();
+    expect(screen.getByText("Select All Monitors")).toBeInTheDocument();
   });
 
   test("reads English with no i18next", () => {

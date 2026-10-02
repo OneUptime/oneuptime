@@ -22,7 +22,6 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FetchLabels from "../../Components/Label/FetchLabels";
@@ -32,8 +31,6 @@ import FetchAlertState from "../../Components/AlertState/FetchAlertState";
 import FetchAlertSeverity from "../../Components/AlertSeverity/FetchAlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Color from "Common/Types/Color";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 const EpisodeCreate: FunctionComponent<
@@ -148,6 +145,9 @@ const EpisodeCreate: FunctionComponent<
                     type: AlertSeverity,
                     labelField: "name",
                     valueField: "_id",
+                    sort: {
+                      order: SortOrder.Ascending,
+                    },
                   },
                   required: false,
                   placeholder: "Alert Severity",
@@ -178,51 +178,12 @@ const EpisodeCreate: FunctionComponent<
                     type: AlertState,
                     labelField: "name",
                     valueField: "_id",
+                    sort: {
+                      order: SortOrder.Ascending,
+                    },
                   },
                   required: false,
                   placeholder: "Select Initial State",
-                  fetchDropdownOptions: async () => {
-                    const projectId: ObjectID | null =
-                      ProjectUtil.getCurrentProjectId();
-                    if (!projectId) {
-                      return [];
-                    }
-
-                    try {
-                      const alertStates: ListResult<AlertState> =
-                        await ModelAPI.getList<AlertState>({
-                          modelType: AlertState,
-                          query: {
-                            projectId: projectId,
-                          },
-                          limit: LIMIT_PER_PROJECT,
-                          skip: 0,
-                          select: {
-                            _id: true,
-                            name: true,
-                            color: true,
-                          },
-                          sort: {
-                            order: SortOrder.Ascending,
-                          },
-                        });
-
-                      return alertStates.data.map(
-                        (state: AlertState): DropdownOption => {
-                          const option: DropdownOption = {
-                            label: state.name || "",
-                            value: state._id?.toString() || "",
-                            color: state.color as Color,
-                          };
-
-                          return option;
-                        },
-                      );
-                    } catch {
-                      // Silently fail and return empty array
-                      return [];
-                    }
-                  },
                   getSummaryElement: (item: FormValues<AlertEpisode>) => {
                     if (!item.currentAlertState) {
                       return <p>Will use first available state by priority</p>;

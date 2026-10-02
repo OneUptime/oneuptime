@@ -366,7 +366,23 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "runbookNamePattern",
     "runbookDescriptionPattern",
   ],
-  RunbookRule: ["titlePattern", "descriptionPattern"],
+  /*
+   * One table for incident, alert and scheduled maintenance runbook rules:
+   * the union of what the three match on. Each rule may only use its own
+   * trigger's share (Types/Runbook/RunbookRuleCriteria). titlePattern stays
+   * the first pattern field: it is the column the legacy shadow writes.
+   */
+  RunbookRule: [
+    "monitors",
+    "incidentSeverities",
+    "alertSeverities",
+    "labels",
+    "monitorLabels",
+    "titlePattern",
+    "descriptionPattern",
+    "monitorNamePattern",
+    "monitorDescriptionPattern",
+  ],
   ScheduledMaintenanceLabelRule: [
     "monitors",
     "scheduledMaintenanceLabels",
@@ -461,6 +477,35 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
 
 export type RegisteredRuleCriteriaModelName =
   keyof typeof RULE_CRITERIA_FIELDS_BY_MODEL;
+
+/**
+ * The rule kinds that match nothing until they have a condition, so their
+ * services refuse to save one with an empty condition list. Every other rule
+ * kind reads "no conditions" as "match everything".
+ *
+ * The dashboard reads this to word the empty condition builder and the rule
+ * summary, and to ask for a condition before the form is sent; the contract
+ * test holds it to the services that refuse the empty list.
+ */
+export const RULE_CRITERIA_MODELS_REQUIRING_A_CONDITION: ReadonlyArray<RegisteredRuleCriteriaModelName> =
+  [
+    "NetworkDeviceAutoImportRule",
+    "NetworkSiteAssignmentRule",
+    "ServiceLevelObjectiveMonitorRule",
+    "StatusPageMonitorRule",
+  ];
+
+export function isRuleCriteriaConditionRequired(
+  modelName: string | null | undefined,
+): boolean {
+  if (!modelName) {
+    return false;
+  }
+
+  return (
+    RULE_CRITERIA_MODELS_REQUIRING_A_CONDITION as ReadonlyArray<string>
+  ).includes(modelName);
+}
 
 const RULE_CRITERIA_FIELD_LOOKUP: Readonly<
   Record<string, ReadonlyArray<string>>

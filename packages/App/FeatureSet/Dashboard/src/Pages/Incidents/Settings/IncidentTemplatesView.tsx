@@ -8,6 +8,7 @@ import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -151,6 +152,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Incident Severity",
@@ -164,10 +168,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             description:
               "Select the initial state for incidents created from this template (defaults to 'Created' state if not selected)",
             fieldType: FormFieldSchemaType.Dropdown,
+            // In the same order, with the same colours, as on create.
             dropdownModal: {
               type: IncidentState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Initial State",
@@ -449,6 +457,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: MonitorStatus,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Monitor Status",

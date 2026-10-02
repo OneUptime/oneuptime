@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -427,8 +428,11 @@ const MonitorCreate: FunctionComponent<
           skip: 0,
           select: {
             isOperationalState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const operationalStatus: MonitorStatus | undefined =
@@ -719,8 +723,11 @@ const MonitorCreate: FunctionComponent<
           select: {
             isOperationalState: true,
             isOfflineState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const operationalStatus: MonitorStatus | undefined =
@@ -798,8 +805,11 @@ const MonitorCreate: FunctionComponent<
           skip: 0,
           select: {
             isOperationalState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const operationalStatus: MonitorStatus | undefined =
@@ -860,8 +870,11 @@ const MonitorCreate: FunctionComponent<
           skip: 0,
           select: {
             isOperationalState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const operationalStatus: MonitorStatus | undefined =

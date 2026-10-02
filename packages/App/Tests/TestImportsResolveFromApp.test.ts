@@ -15,11 +15,12 @@ import ts from "typescript";
  *
  * App Test goes green. Nothing is wrong at runtime, and nothing ever will be.
  * But tsc does resolve it, and typeorm is Common's dependency, not App's - so
- * the same line fails `npm run compile` in packages/App, which is three
- * separate jobs: Compile (compile-app), Build (docker-build-app) and Push Test
- * Images (app-docker-image-build). The last two are Docker builds, so the
- * report is a failed image layer twenty-odd minutes after the push, and the
- * commit that caused it already merged on a green App Test.
+ * the same line fails `npm run compile` in packages/App, which three
+ * workflows run: Compile (compile-services), Build (docker-build-app, on pull
+ * requests) and Push Test Images (app-docker-image-build, on master). The last
+ * two are Docker builds, so the report is a failed image layer twenty-odd
+ * minutes after the push, and the commit that caused it already merged on a
+ * green App Test.
  *
  * That is exactly how master broke, and the shape of it is not obvious from
  * the failure: a passing test suite and three failing builds, all from one
@@ -176,8 +177,8 @@ function isCheckable(specifier: string): boolean {
  * exist under packages/App/node_modules with a package.json. Checked there and
  * not by walking up to the repo root, because the repo root is where this
  * hides - root package.json DOES depend on typeorm, so a walk-up finds it on a
- * developer machine that has run the root install, and CI's compile-app, which
- * installs Common and App only, still fails.
+ * developer machine that has run the root install, and CI's Compile App step,
+ * whose job installs no root dependencies, still fails.
  */
 function resolvesFromApp(specifier: string): boolean {
   return fs.existsSync(

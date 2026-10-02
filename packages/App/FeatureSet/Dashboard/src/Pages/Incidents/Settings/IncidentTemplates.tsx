@@ -39,7 +39,6 @@ import React, {
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import {
   buildCustomFieldModelFormFields,
@@ -369,6 +368,9 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Incident Severity",
@@ -382,49 +384,20 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             description:
               "Select the initial state for incidents created from this template",
             fieldType: FormFieldSchemaType.Dropdown,
+            /*
+             * Listed in the order an incident moves through its states, each
+             * with its colour - as the severity above shows its own.
+             */
             dropdownModal: {
               type: IncidentState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Initial State",
-            fetchDropdownOptions: async () => {
-              const projectId: ObjectID | null =
-                ProjectUtil.getCurrentProjectId();
-              if (!projectId) {
-                return [];
-              }
-
-              try {
-                const incidentStates: ListResult<IncidentState> =
-                  await ModelAPI.getList<IncidentState>({
-                    modelType: IncidentState,
-                    query: {
-                      projectId: projectId,
-                    },
-                    limit: LIMIT_PER_PROJECT,
-                    skip: 0,
-                    select: {
-                      _id: true,
-                      name: true,
-                    },
-                    sort: {
-                      order: SortOrder.Ascending,
-                    },
-                  });
-
-                return incidentStates.data.map((state: IncidentState) => {
-                  return {
-                    label: state.name || "",
-                    value: state._id?.toString() || "",
-                  };
-                });
-              } catch {
-                // Silently fail and return empty array
-                return [];
-              }
-            },
           },
           {
             field: {
@@ -587,6 +560,9 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               type: MonitorStatus,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Monitor Status",

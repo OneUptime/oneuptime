@@ -107,7 +107,7 @@ const RumApplicationLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { matchLabels: true },
-          title: "Match Labels",
+          title: "Application Labels",
           stepId: "match-criteria",
           sectionTitle: "Match by Attributes",
           sectionDescription:
@@ -123,7 +123,7 @@ const RumApplicationLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { nameRegexPattern: true },
-          title: "Name Regex Pattern",
+          title: "Application Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -134,7 +134,7 @@ const RumApplicationLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { descriptionRegexPattern: true },
-          title: "Description Regex Pattern",
+          title: "Application Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

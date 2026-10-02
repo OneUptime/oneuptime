@@ -777,7 +777,7 @@ describe("the real source roots", () => {
   });
 
   test("the shared components' own sentences are found where they are written", () => {
-    const pagination: string = fs.readFileSync(
+    const bulkUpdateForm: string = fs.readFileSync(
       path.join(
         __dirname,
         "..",
@@ -786,25 +786,34 @@ describe("the real source roots", () => {
         "Common",
         "UI",
         "Components",
-        "Pagination",
-        "Pagination.tsx",
+        "BulkUpdate",
+        "BulkUpdateForm.tsx",
       ),
       "utf8",
     );
     const result: SourceScanResult = scan(
-      pagination,
-      "packages/Common/UI/Components/Pagination/Pagination.tsx",
+      bulkUpdateForm,
+      "packages/Common/UI/Components/BulkUpdate/BulkUpdateForm.tsx",
     );
 
     expect(result.strings).toEqual(
       expect.arrayContaining([
+        // A count-dependent sentence kept in a constant.
         expect.objectContaining({
-          text: "Showing {{range}} of {{total}} {{itemsName}}",
-          pluralOne: "Showing {{range}} of {{total}} {{itemName}}",
+          text: "{{count}} {{itemsName}} Selected",
+          pluralOne: "{{count}} {{itemName}} Selected",
+          kind: "plural",
         }),
-        expect.objectContaining({ text: "Rows per page" }),
-        expect.objectContaining({ text: "Page {{page}} of {{pageCount}}" }),
-        expect.objectContaining({ text: "No {{itemsName}}" }),
+        // Both templates a translateTemplate() call can pick.
+        expect.objectContaining({
+          text: "Select All {{itemsName}}",
+          kind: "call",
+        }),
+        expect.objectContaining({
+          text: "Selecting All {{itemsName}}...",
+          kind: "call",
+        }),
+        expect.objectContaining({ text: "Clear Selection", kind: "call" }),
       ]),
     );
   });

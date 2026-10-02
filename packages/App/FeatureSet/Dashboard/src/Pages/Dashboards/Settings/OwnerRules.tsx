@@ -158,7 +158,7 @@ const DashboardOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { dashboardNamePattern: true },
-          title: "Dashboard Name Pattern",
+          title: "Dashboard Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -169,7 +169,7 @@ const DashboardOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { dashboardDescriptionPattern: true },
-          title: "Dashboard Description Pattern",
+          title: "Dashboard Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

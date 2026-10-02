@@ -205,13 +205,18 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * Not required: a create without a key gets one made from the name
+   * (ScheduledMaintenanceMeasurementService.onBeforeCreate,
+   * MeasurementKeyAssigner). The column itself is never empty.
+   */
   @Index()
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.ShortText,
     title: "Key",
     description:
-      "Stable machine-readable key for this measurement. It is part of the metric name, so it cannot be changed once the measurement is created.",
+      "Stable, machine readable identifier for this measurement, unique within the project: lowercase letters, numbers and hyphens. Leave it out and it is made from the name - Time to Start becomes time-to-start, with -2, -3 and so on added when another measurement already has it. It is part of the metric name, so it cannot be changed once the measurement is created; to rename a measurement, change the Name instead.",
     example: "time-to-start",
   })
   @Column({
