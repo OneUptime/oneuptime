@@ -6942,5 +6942,6 @@
   "Preview:": "Vorschau:",
   "Use 20 characters or fewer.": "Verwenden Sie höchstens 20 Zeichen.",
   "Use only letters, numbers and - _ . / : # (no spaces).": "Verwenden Sie nur Buchstaben, Ziffern und - _ . / : # (keine Leerzeichen).",
-  "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "Das Präfix muss auf einen Buchstaben oder ein Zeichen wie - enden. Eine Ziffer am Ende verschmilzt mit der Nummer: Aus SEV1 würde SEV142."
+  "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "Das Präfix muss auf einen Buchstaben oder ein Zeichen wie - enden. Eine Ziffer am Ende verschmilzt mit der Nummer: Aus SEV1 würde SEV142.",
+  "Archived Policies": "Archivierte Richtlinien"
 }

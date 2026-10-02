@@ -6942,5 +6942,6 @@
   "Preview:": "Aperçu :",
   "Use 20 characters or fewer.": "Utilisez 20 caractères au maximum.",
   "Use only letters, numbers and - _ . / : # (no spaces).": "Utilisez uniquement des lettres, des chiffres et - _ . / : # (sans espaces).",
-  "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "Terminez par une lettre ou un symbole comme -. Un chiffre final se colle au numéro : SEV1 donnerait SEV142."
+  "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "Terminez par une lettre ou un symbole comme -. Un chiffre final se colle au numéro : SEV1 donnerait SEV142.",
+  "Archived Policies": "Politiques archivées"
 }

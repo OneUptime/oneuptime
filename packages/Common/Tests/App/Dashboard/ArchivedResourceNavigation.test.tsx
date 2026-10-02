@@ -22,7 +22,11 @@ import {
  * and on-call policies, and back.
  *
  * Archived resources leave their lists, so each product's menu has an
- * Archived entry - without it, the only way back to one would be its URL.
+ * Archived entry - without it, the only way back to one would be its URL. It
+ * is rarely needed, so it waits in the menu's Advanced section, which starts
+ * collapsed and opens by itself on the Archived page. On-Call's names what it
+ * holds ("Archived Policies"): out of the Policies section, a bare "Archived"
+ * would not say which of that menu's things it lists.
  * Each Archived page has a route under the product (`/workflows/archived`,
  * ...) that must open the page rather than be read as a resource id by the
  * `:id` route next to it, and a breadcrumb trail. An on-call policy gained a
@@ -293,10 +297,14 @@ import {
   DESKTOP_WIDTH,
   MenuLink,
   PROJECT_ID,
+  activeLinkTitles,
   allLinks,
   goTo,
+  isExpanded,
+  linksIn,
   renderMenu,
   routeFor,
+  sectionBody,
   setViewportWidth,
 } from "./SideMenuHarness";
 
@@ -312,6 +320,10 @@ const PAGE_PROPS: PageComponentProps = {
 interface Product {
   name: string;
   renderMenu: () => ReactElement;
+  // The menu entry's title.
+  archivedTitle: string;
+  // A page of the product outside Advanced: its list.
+  listPage: PageMap;
   archivedPage: PageMap;
   archivedPath: string;
   // A resource's own page next to it, which must keep resolving.
@@ -331,6 +343,8 @@ const PRODUCTS: Array<Product> = [
     renderMenu: () => {
       return <WorkflowsSideMenu />;
     },
+    archivedTitle: "Archived",
+    listPage: PageMap.WORKFLOWS,
     archivedPage: PageMap.WORKFLOWS_ARCHIVED,
     archivedPath: `${BASE}/workflows/archived`,
     viewPage: PageMap.WORKFLOW_VIEW,
@@ -351,6 +365,8 @@ const PRODUCTS: Array<Product> = [
       project._id = PROJECT_ID;
       return <MonitorsSideMenu project={project} />;
     },
+    archivedTitle: "Archived",
+    listPage: PageMap.MONITORS,
     archivedPage: PageMap.MONITORS_ARCHIVED,
     archivedPath: `${BASE}/monitors/archived`,
     viewPage: PageMap.MONITOR_VIEW,
@@ -369,6 +385,8 @@ const PRODUCTS: Array<Product> = [
     renderMenu: () => {
       return <StatusPagesSideMenu />;
     },
+    archivedTitle: "Archived",
+    listPage: PageMap.STATUS_PAGES,
     archivedPage: PageMap.STATUS_PAGES_ARCHIVED,
     archivedPath: `${BASE}/status-pages/archived`,
     viewPage: PageMap.STATUS_PAGE_VIEW,
@@ -387,6 +405,8 @@ const PRODUCTS: Array<Product> = [
     renderMenu: () => {
       return <DashboardsSideMenu />;
     },
+    archivedTitle: "Archived",
+    listPage: PageMap.DASHBOARDS,
     archivedPage: PageMap.DASHBOARDS_ARCHIVED,
     archivedPath: `${BASE}/dashboards/archived`,
     viewPage: PageMap.DASHBOARD_VIEW,
@@ -405,6 +425,8 @@ const PRODUCTS: Array<Product> = [
     renderMenu: () => {
       return <OnCallDutySideMenu />;
     },
+    archivedTitle: "Archived Policies",
+    listPage: PageMap.ON_CALL_DUTY_POLICIES,
     archivedPage: PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED,
     archivedPath: `${BASE}/on-call-duty/policies/archived`,
     viewPage: PageMap.ON_CALL_DUTY_POLICY_VIEW,
@@ -478,13 +500,39 @@ describe.each(PRODUCTS)(
 
       const archived: Array<MenuLink> = allLinks().filter(
         (link: MenuLink): boolean => {
-          return link.title === "Archived";
+          return link.title === product.archivedTitle;
         },
       );
 
       expect(archived).toHaveLength(1);
       expect(archived[0]!.href).toBe(routeFor(product.archivedPage));
       expect(archived[0]!.href).toBe(product.archivedPath);
+      expect(
+        allLinks().filter((link: MenuLink): boolean => {
+          return link.href === product.archivedPath;
+        }),
+      ).toHaveLength(1);
+    });
+
+    test("the entry is in Advanced, which is folded away on the list", async () => {
+      goTo(routeFor(product.listPage));
+      await renderMenu(product.renderMenu());
+
+      expect(linksIn("Advanced")).toContainEqual({
+        title: product.archivedTitle,
+        href: product.archivedPath,
+      });
+      expect(isExpanded("Advanced")).toBe(false);
+      expect(sectionBody("Advanced")).toHaveClass("max-h-0", "invisible");
+    });
+
+    test("Advanced opens by itself on the Archived page, with the entry active", async () => {
+      goTo(product.archivedPath);
+      await renderMenu(product.renderMenu());
+
+      expect(isExpanded("Advanced")).toBe(true);
+      expect(sectionBody("Advanced")).not.toHaveClass("invisible");
+      expect(activeLinkTitles()).toEqual([product.archivedTitle]);
     });
 
     test("the Archived URL resolves to the Archived page, not to a resource called 'archived'", () => {
