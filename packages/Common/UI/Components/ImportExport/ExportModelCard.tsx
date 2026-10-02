@@ -7,6 +7,12 @@ import ModelImportExportUtil from "../../Utils/ModelImportExport";
 import { ButtonStyleType } from "../Button/Button";
 import Card from "../Card/Card";
 import ConfirmModal from "../Modal/ConfirmModal";
+import {
+  translatableTerm,
+  translateNamedAction,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -22,6 +28,7 @@ const ExportModelCard: <TBaseModel extends BaseModel>(
 ): ReactElement => {
   const model: TBaseModel = new props.modelType();
   const singularName: string = model.singularName || "Resource";
+  const translator: Translator = useTranslator();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -53,11 +60,22 @@ const ExportModelCard: <TBaseModel extends BaseModel>(
   return (
     <>
       <Card
-        title={`Export ${singularName} as JSON`}
-        description={`Download this ${singularName.toLowerCase()} as a JSON file. You can import it later to re-create this ${singularName.toLowerCase()}. Only this ${singularName.toLowerCase()}'s own settings are included - related resources (like owners, labels, or other linked resources) are not exported, and references to resources from this project may need to be re-selected after importing into another project.`}
+        title={translateNamedAction(translator, {
+          template: "Export {{itemName}} as JSON",
+          itemName: singularName,
+        })}
+        description={translator.translateTemplate(
+          "Download this {{itemName}} as a JSON file. You can import it later to re-create this {{itemName}}. Only this {{itemName}}'s own settings are included - related resources (like owners, labels, or other linked resources) are not exported, and references to resources from this project may need to be re-selected after importing into another project.",
+          {
+            itemName: translatableTerm(singularName, { inSentence: true }),
+          },
+        )}
         buttons={[
           {
-            title: `Export ${singularName}`,
+            title: translateNamedAction(translator, {
+              template: "Export {{itemName}}",
+              itemName: singularName,
+            }),
             buttonStyle: ButtonStyleType.NORMAL,
             onClick: () => {
               exportItem().catch((err: Error) => {

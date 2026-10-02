@@ -1,4 +1,5 @@
 import IconProp from "../../../Types/Icon/IconProp";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import { CardButtonSchema } from "../Card/Card";
 import {
   EmptyMessageParts,
@@ -36,19 +37,24 @@ export {
   EMPTY_TABLE_CLEAR_FILTERS_TEST_ID,
 };
 
-export const VIEW_DOCUMENTATION: string = "View Documentation";
+export const VIEW_DOCUMENTATION: string =
+  translationKey("View Documentation");
 
 /*
  * Under a create button the viewer may not use. The button's own tooltip
  * names the permissions; a tooltip cannot be read on a phone, and a locked
  * button with no word of why looks broken.
  */
-export const CREATE_NOT_ALLOWED_NOTE: string =
-  "You don't have permission to create these. Ask a project admin for access.";
+export const CREATE_NOT_ALLOWED_NOTE: string = translationKey(
+  "You don't have permission to create these. Ask a project admin for access.",
+);
 
-export const NO_ACCESS_TITLE: string = "You don't have access to this list";
-export const NO_ACCESS_DESCRIPTION: string =
-  "Ask a project admin for one of these permissions:";
+export const NO_ACCESS_TITLE: string = translationKey(
+  "You don't have access to this list",
+);
+export const NO_ACCESS_DESCRIPTION: string = translationKey(
+  "Ask a project admin for one of these permissions:",
+);
 
 export const EMPTY_TABLE_CREATE_BUTTON_TEST_ID: string =
   "empty-table-create-button";
@@ -82,6 +88,8 @@ export interface ModelTableEmptyStateInput {
   // The table's documentation link.
   onDocumentationClick?: (() => void) | undefined;
   translate: TranslateFunction;
+  // The reader's translator, for sentences with the table's noun in them.
+  translator?: Translator | undefined;
 }
 
 export interface ModelTableEmptyState {
@@ -195,6 +203,7 @@ export const buildModelTableEmptyState: (
           pluralLabel: input.pluralLabel,
           isFiltered: true,
           translate: input.translate,
+          translator: input.translator,
         }),
         onClear: clearAction?.onClear,
         clearTitle: clearAction?.title,
@@ -212,6 +221,7 @@ export const buildModelTableEmptyState: (
     pluralLabel: input.pluralLabel,
     noItemsMessage: input.noItemsMessage,
     translate: input.translate,
+    translator: input.translator,
   });
 
   /*

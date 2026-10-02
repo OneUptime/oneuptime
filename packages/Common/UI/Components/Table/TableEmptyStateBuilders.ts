@@ -1,4 +1,5 @@
 import IconProp from "../../../Types/Icon/IconProp";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import {
   TranslateFunction,
   getEmptyMessageParts,
@@ -19,10 +20,12 @@ import {
  * button, the filters - and passes them in whole.
  */
 
-export const TRY_AGAIN: string = "Try again";
-export const CLEAR_SEARCH: string = "Clear Search";
-export const CLEAR_FILTERS: string = "Clear Filters";
-export const CLEAR_SEARCH_AND_FILTERS: string = "Clear Search and Filters";
+export const TRY_AGAIN: string = translationKey("Try again");
+export const CLEAR_SEARCH: string = translationKey("Clear Search");
+export const CLEAR_FILTERS: string = translationKey("Clear Filters");
+export const CLEAR_SEARCH_AND_FILTERS: string = translationKey(
+  "Clear Search and Filters",
+);
 
 // The retry keeps the hook every table's Refresh link had.
 export const TABLE_RETRY_BUTTON_TEST_ID: string = "refresh-button";
@@ -111,6 +114,7 @@ export interface LoadErrorStateOptions {
   error: string;
   onRetry?: (() => void) | undefined;
   translate: TranslateFunction;
+  translator?: Translator | undefined;
 }
 
 /*
@@ -138,6 +142,7 @@ export const getLoadErrorStateProps: (
     title: getLoadErrorTitle({
       pluralLabel: options.pluralLabel,
       translate: options.translate,
+      translator: options.translator,
     }),
     description: options.error,
     actions: actions,
@@ -149,6 +154,7 @@ export interface MessageEmptyStateOptions {
   // The page's own sentence(s), in English. Blank means the table's own.
   noItemsMessage?: string | undefined;
   translate: TranslateFunction;
+  translator?: Translator | undefined;
 }
 
 /*
@@ -165,6 +171,7 @@ export const getMessageEmptyStateParts: (
     pluralLabel: options.pluralLabel,
     isFiltered: false,
     translate: options.translate,
+    translator: options.translator,
   });
 
   const message: string = options.noItemsMessage?.trim() || "";

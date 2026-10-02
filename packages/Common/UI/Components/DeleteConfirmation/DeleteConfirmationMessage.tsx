@@ -1,5 +1,11 @@
 import NamedSentence from "./NamedSentence";
-import { translateTemplate } from "../../Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+  Translator,
+} from "../../Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -29,6 +35,11 @@ export const DELETE_STATEMENT_TEMPLATE: string = "Permanently delete {{name}}.";
 export const DELETE_IRREVERSIBLE_SENTENCE: string =
   "This action cannot be undone.";
 
+// The question about a record with no name, about its kind instead.
+export const DELETE_THIS_QUESTION_TEMPLATE: string = translationKey(
+  "Are you sure you want to delete this {{itemName}}?",
+);
+
 export type DeleteConfirmationKind = "question" | "statement";
 
 /*
@@ -55,6 +66,37 @@ export const getUnnamedDeleteSentence: (data: {
   const typeLabel: string = data.typeLabel.trim().toLowerCase() || "item";
 
   return `Are you sure you want to delete this ${typeLabel}?`;
+};
+
+/*
+ * getUnnamedDeleteSentence in the reader's language: the whole sentence for
+ * the kind if a locale words it specially ("Are you sure you want to delete
+ * this form?"), else the template with the kind's name translated into it.
+ */
+export const translateUnnamedDeleteSentence: (data: {
+  typeLabel: string;
+  kind: DeleteConfirmationKind;
+}) => string = (data: {
+  typeLabel: string;
+  kind: DeleteConfirmationKind;
+}): string => {
+  const sentence: string = getUnnamedDeleteSentence(data);
+
+  if (!sentence) {
+    return "";
+  }
+
+  const translator: Translator = getGlobalTranslator();
+
+  if (translator.hasTranslation(sentence)) {
+    return translator.translateText(sentence) || sentence;
+  }
+
+  return translator.translateTemplate(DELETE_THIS_QUESTION_TEMPLATE, {
+    itemName: translatableTerm(data.typeLabel.trim() || "item", {
+      inSentence: true,
+    }),
+  });
 };
 
 export interface DeleteConfirmationTextOptions {
@@ -107,9 +149,10 @@ export const getDeleteConfirmationText: (
           : DELETE_QUESTION_TEMPLATE,
         { name: name },
       )
-    : translateTemplate(
-        getUnnamedDeleteSentence({ typeLabel: options.typeLabel, kind: kind }),
-      );
+    : translateUnnamedDeleteSentence({
+        typeLabel: options.typeLabel,
+        kind: kind,
+      });
 
   return [firstSentence, ...getTrailingSentences(options)]
     .filter((sentence: string) => {
@@ -142,9 +185,7 @@ const DeleteConfirmationMessage: FunctionComponent<ComponentProps> = (
       title={fullName && fullName !== name ? fullName : undefined}
     />
   ) : (
-    translateTemplate(
-      getUnnamedDeleteSentence({ typeLabel: props.typeLabel, kind: kind }),
-    )
+    translateUnnamedDeleteSentence({ typeLabel: props.typeLabel, kind: kind })
   );
 
   const trailingSentences: Array<string> = getTrailingSentences({

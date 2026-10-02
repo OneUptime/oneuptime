@@ -25,6 +25,8 @@ import { ListDetailProps } from "./ListRow";
 import { DRAG_HANDLE_USAGE_INSTRUCTIONS } from "../Table/Table";
 import GenericObject from "../../../Types/GenericObject";
 import useTranslateValue from "../../Utils/Translation";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 
@@ -93,6 +95,7 @@ const List: ListFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   /*
    * A refetch with cards already on screen (pagination, sort, refresh - the
    * parent never clears `data` while fetching) keeps those cards visible and
@@ -138,6 +141,7 @@ const List: ListFunction = <T extends GenericObject>(
           ? props.noItemsMessage
           : undefined,
       translate: translate,
+      translator: translator,
     });
 
     // See Table: its own filter form hid every card.
@@ -157,6 +161,7 @@ const List: ListFunction = <T extends GenericObject>(
                     pluralLabel: props.pluralLabel,
                     isFiltered: true,
                     translate: translate,
+                    translator: translator,
                   }),
             onClear: props.onFilterChanged
               ? (): void => {
@@ -201,6 +206,7 @@ const List: ListFunction = <T extends GenericObject>(
               error: props.error,
               onRetry: props.onRefreshClick,
               translate: translate,
+              translator: translator,
             })}
           />
         </div>

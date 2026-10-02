@@ -45,7 +45,7 @@ describe("MarkdownEditor", () => {
     expect(screen.getByTitle("Numbered List")).toBeInTheDocument();
     expect(screen.getByTitle("Task List")).toBeInTheDocument();
     expect(screen.getByTitle("Link")).toBeInTheDocument();
-    expect(screen.getByTitle("Image")).toBeInTheDocument();
+    expect(screen.getByTitle("Upload Image")).toBeInTheDocument();
     expect(screen.getByTitle("Table")).toBeInTheDocument();
     expect(screen.getByTitle("Code")).toBeInTheDocument();
     expect(screen.getByTitle("Quote")).toBeInTheDocument();
@@ -2618,7 +2618,7 @@ describe("MarkdownEditor without image upload", () => {
   test("shows the Image button, file picker and upload tip by default", () => {
     render(<MarkdownEditor initialValue="" />);
 
-    expect(screen.getByTitle("Image")).toBeInTheDocument();
+    expect(screen.getByTitle("Upload Image")).toBeInTheDocument();
     expect(document.querySelector('input[type="file"]')).not.toBeNull();
     expect(screen.getByText(/upload screenshots inline/)).toBeInTheDocument();
   });
@@ -2626,7 +2626,7 @@ describe("MarkdownEditor without image upload", () => {
   test("hides the Image button, file picker and upload tip when turned off", () => {
     render(<MarkdownEditor initialValue="" allowImageUpload={false} />);
 
-    expect(screen.queryByTitle("Image")).toBeNull();
+    expect(screen.queryByTitle("Upload Image")).toBeNull();
     expect(document.querySelector('input[type="file"]')).toBeNull();
     expect(screen.queryByText(/upload screenshots inline/)).toBeNull();
     // The rest of the toolbar is still there.

@@ -10,6 +10,7 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import useTranslateValue from "../../Utils/Translation";
 
 export enum SideOverSize {
   Small = "Small",
@@ -83,6 +84,7 @@ const getPortalTarget: PortalTargetFunction = (): HTMLElement | null => {
 const SideOver: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   let widthClass: string = "max-w-2xl";
 
   if (props.size === SideOverSize.Small) {
@@ -192,14 +194,14 @@ const SideOver: FunctionComponent<ComponentProps> = (
                     id={titleId}
                     data-testid="side-over-title"
                   >
-                    {props.title}
+                    {translateString(props.title) ?? props.title}
                   </h2>
                   <p
                     className="text-sm text-gray-500"
                     id={descriptionId}
                     data-testid="side-over-description"
                   >
-                    {props.description}
+                    {translateString(props.description) ?? props.description}
                   </p>
                 </div>
                 <div className="flex h-7 items-center">

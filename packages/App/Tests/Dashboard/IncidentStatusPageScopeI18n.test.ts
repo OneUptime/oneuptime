@@ -136,12 +136,17 @@ describe("the dashboard renders the shared strings", () => {
       "IncidentStatusPageScopeCopy.privateIncidentWarning",
     );
 
-    // The audience on the last step, with the reasons nothing would be sent.
+    /*
+     * The audience on the More step and the last step. It no longer says
+     * that nothing will be sent because the box is off or the incident will
+     * be private: the boxes right there show it (see
+     * NoMonitorsSubscriberWarning.test.ts).
+     */
     expect(source).toContain("<SubscriberAudienceSummary");
-    expect(source).toContain(
-      "IncidentStatusPageScopeCopy.audiencePrivateIncident",
-    );
-    expect(source).toContain("IncidentStatusPageScopeCopy.audienceNotifyOff");
+    expect(source).not.toContain("audiencePrivateIncident");
+    expect(source).not.toContain("audienceNotifyOff");
+    expect(source).not.toContain("audienceNoMonitors");
+    expect(source).not.toContain("quietReason");
   });
 
   test("the Create page prefills the scope from a template", () => {

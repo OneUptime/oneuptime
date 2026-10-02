@@ -1,3 +1,10 @@
+import {
+  translatableTerm,
+  toSentenceTerm,
+  translationKey,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+
 /*
  * The words an empty table shows when its page has not written its own.
  *
@@ -5,12 +12,26 @@
  * sentence built that way cannot be translated a word at a time: "No" is also
  * the answer to a question, so German read "Nein monitors yet.", and word
  * order and plural forms differ between languages anyway. So the whole
- * sentence is looked up first; a locale without it gets a sentence that needs
- * no noun ("Nothing here yet."); and only a locale that has neither - English,
- * where both look up to themselves - builds the sentence from the noun.
+ * sentence is looked up first; then the sentence as a template with the noun
+ * in it ("No {{itemsName}} yet."), filled with the locale's word for the
+ * noun; a locale with neither gets a sentence that needs no noun ("Nothing
+ * here yet."); and only a locale that has none of them - English, where all
+ * look up to themselves - builds the sentence from the noun.
  */
 
 export type TranslateFunction = (value: string) => string;
+
+export const NO_ITEMS_YET_TEMPLATE: string = translationKey(
+  "No {{itemsName}} yet.",
+);
+
+export const NO_ITEMS_MATCH_TEMPLATE: string = translationKey(
+  "No {{itemsName}} match your search or filters.",
+);
+
+export const COULD_NOT_LOAD_TEMPLATE: string = translationKey(
+  "Couldn't load {{itemsName}}.",
+);
 
 export const NOTHING_HERE_YET: string = "Nothing here yet.";
 
@@ -18,42 +39,39 @@ export const NOTHING_MATCHES_SEARCH_OR_FILTERS: string =
   "Nothing matches your search or filters.";
 
 // What a failed load says when its locale has no sentence for the noun.
-export const COULD_NOT_LOAD_THIS_LIST: string = "Couldn't load this list.";
-
-// Two capitals in a row: "SLOs", "API". Such a word is kept as written.
-const ACRONYM_PATTERN: RegExp = new RegExp("[A-Z]{2,}");
+export const COULD_NOT_LOAD_THIS_LIST: string = translationKey(
+  "Couldn't load this list.",
+);
 
 /*
  * "Monitors" -> "monitors", "On-Call Duty Policies" -> "on-call duty
  * policies", but "SLOs" and "API Keys" keep their acronyms ("SLOs", "API
  * keys") - lower-casing every letter, as the tables used to, gave "slos".
+ * This is the English casing; toSentenceTerm knows other languages'.
  */
 export const toSentenceNoun: (pluralLabel: string) => string = (
   pluralLabel: string,
 ): string => {
-  const words: Array<string> = pluralLabel.trim().split(" ");
-
-  return words
-    .filter((word: string): boolean => {
-      return word.length > 0;
-    })
-    .map((word: string): string => {
-      return ACRONYM_PATTERN.test(word) ? word : word.toLocaleLowerCase();
-    })
-    .join(" ");
+  return toSentenceTerm(pluralLabel, "en");
 };
 
 interface NounSentence {
   // The sentence with the noun in it, in English: "No monitors yet."
   sentence: string;
+  // The same sentence as a template: "No {{itemsName}} yet."
+  template: string;
+  // The table's plural noun, in English, for the template.
+  pluralLabel: string;
   // The same thing said without a noun: "Nothing here yet."
   nounFreeSentence: string;
   translate: TranslateFunction;
+  translator?: Translator | undefined;
 }
 
 /*
  * The whole sentence in the reader's language if the locale has it, else the
- * noun-free one if the locale has that, else (English) the sentence itself.
+ * template filled with the locale's word for the noun, else the noun-free
+ * sentence if the locale has that, else (English) the sentence itself.
  */
 const lookUpNounSentence: (options: NounSentence) => string = (
   options: NounSentence,
@@ -62,6 +80,17 @@ const lookUpNounSentence: (options: NounSentence) => string = (
 
   if (translatedSentence && translatedSentence !== options.sentence) {
     return translatedSentence;
+  }
+
+  if (
+    options.translator &&
+    options.translator.hasTranslation(options.template)
+  ) {
+    return options.translator.translateTemplate(options.template, {
+      itemsName: translatableTerm(options.pluralLabel.trim() || "Items", {
+        inSentence: true,
+      }),
+    });
   }
 
   const translatedNounFreeSentence: string = options.translate(
@@ -84,6 +113,11 @@ export interface EmptyTableMessageOptions {
   // A search or filter emptied the table, not a project with nothing in it.
   isFiltered: boolean;
   translate: TranslateFunction;
+  /*
+   * The reader's translator, for the template with the noun in it. Without
+   * one that step is skipped.
+   */
+  translator?: Translator | undefined;
 }
 
 export const getEmptyTableMessage: (
@@ -95,10 +129,15 @@ export const getEmptyTableMessage: (
     sentence: options.isFiltered
       ? `No ${noun} match your search or filters.`
       : `No ${noun} yet.`,
+    template: options.isFiltered
+      ? NO_ITEMS_MATCH_TEMPLATE
+      : NO_ITEMS_YET_TEMPLATE,
+    pluralLabel: options.pluralLabel,
     nounFreeSentence: options.isFiltered
       ? NOTHING_MATCHES_SEARCH_OR_FILTERS
       : NOTHING_HERE_YET,
     translate: options.translate,
+    translator: options.translator,
   });
 };
 
@@ -138,6 +177,7 @@ export const getEmptyTableTitle: (
 export interface LoadErrorTitleOptions {
   pluralLabel: string;
   translate: TranslateFunction;
+  translator?: Translator | undefined;
 }
 
 // "Couldn't load monitors" - what a table whose load failed is headed with.
@@ -149,8 +189,11 @@ export const getLoadErrorTitle: (options: LoadErrorTitleOptions) => string = (
   return toHeadline(
     lookUpNounSentence({
       sentence: `Couldn't load ${noun}.`,
+      template: COULD_NOT_LOAD_TEMPLATE,
+      pluralLabel: options.pluralLabel,
       nounFreeSentence: COULD_NOT_LOAD_THIS_LIST,
       translate: options.translate,
+      translator: options.translator,
     }),
   );
 };

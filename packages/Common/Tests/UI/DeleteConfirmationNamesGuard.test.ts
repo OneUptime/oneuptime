@@ -60,6 +60,12 @@ const TRANSLATION_FUNCTIONS: ReadonlySet<string> = new Set<string>([
   "translateValue",
 ]);
 
+// Calls whose first argument is a whole sentence with {{placeholders}}.
+const TEMPLATE_FUNCTIONS: ReadonlySet<string> = new Set<string>([
+  "translateTemplate",
+  "translatePlural",
+]);
+
 type DialogRule = "says-this" | "names-nothing";
 
 interface AllowedDialog {
@@ -143,6 +149,51 @@ function readWritten(
     value.arguments.length > 0
   ) {
     return readWritten(value.arguments[0]);
+  }
+
+  /*
+   * A whole translated sentence: translator.translateTemplate("Delete
+   * {{itemName}}", ...), or translateNamedAction(translator, { template:
+   * "Delete {{itemName}}" }). A {{placeholder}} is a value filled in, like
+   * a template literal's substitution.
+   */
+  const calleeName: string | undefined = ts.isCallExpression(value)
+    ? ts.isIdentifier(value.expression)
+      ? value.expression.text
+      : ts.isPropertyAccessExpression(value.expression)
+        ? value.expression.name.text
+        : undefined
+    : undefined;
+
+  if (ts.isCallExpression(value) && calleeName) {
+    let template: WrittenValue | null = null;
+
+    if (TEMPLATE_FUNCTIONS.has(calleeName) && value.arguments.length > 0) {
+      template = readWritten(value.arguments[0]);
+    }
+
+    if (calleeName === "translateNamedAction" && value.arguments[1]) {
+      const options: ts.Expression = unwrap(value.arguments[1]);
+
+      if (ts.isObjectLiteralExpression(options)) {
+        for (const property of options.properties) {
+          if (
+            ts.isPropertyAssignment(property) &&
+            ts.isIdentifier(property.name) &&
+            property.name.text === "template"
+          ) {
+            template = readWritten(property.initializer);
+          }
+        }
+      }
+    }
+
+    if (template) {
+      return {
+        text: template.text.replace(/\{\{\s*[\w.]+\s*\}\}/g, "${…}"),
+        isFixed: template.isFixed && !template.text.includes("{{"),
+      };
+    }
   }
 
   return null;

@@ -660,6 +660,74 @@ describe("One Status Page per Audience docs", () => {
       );
     });
 
+    /*
+     * "No status page subscribers will be notified: no monitors are
+     * attached" is gone from under Notify Status Page Subscribers. The
+     * summary shows nothing when nobody will be told, and warns only when
+     * the status page scope is why; picking pages with no monitor is warned
+     * about under the picker. The guides must not promise the old notices.
+     */
+    it("says the summary shows nothing when nobody will be told, and warns only about the status page scope", () => {
+      const english: string = readPage(GUIDE_PAGE);
+
+      expect(english).toContain(
+        "When nobody will be told, the summary shows nothing: the incident has no monitors, no status page lists them, the pages have no subscribers yet, **Notify Status Page Subscribers** is off, or the incident is private.",
+      );
+      expect(english).toContain(
+        "It warns only when the status page scope is the reason, and names the pages it leaves out",
+      );
+      expect(english).toContain(
+        "- when a picked page lists none of the incident's monitors, or no monitor is attached at all.",
+      );
+      expect(english).toContain(
+        "**Notify Status Page Subscribers** reads **Yes** or **No** like every other box",
+      );
+      expect(english).toContain(
+        "Both confirmations list the pages it would reach now, or say that it would reach nobody;",
+      );
+      expect(english).not.toContain(
+        "When nothing will be sent at all, it says why instead",
+      );
+
+      const persian: string = readPage(GUIDE_PAGE, "fa");
+
+      expect(persian).toContain(
+        "وقتی کسی خبردار نخواهد شد، خلاصه چیزی نشان نمی‌دهد",
+      );
+      expect(persian).toContain("یا اصلاً هیچ مانیتوری پیوست نشده باشد");
+      expect(persian).toContain("یا می‌گویند که به هیچ‌کس نمی‌رسد");
+      expect(persian).not.toContain(
+        "وقتی اصلاً چیزی فرستاده نخواهد شد، به‌جایش دلیل را می‌گوید",
+      );
+
+      for (const language of ALL_LANGUAGES) {
+        for (const page of [
+          GUIDE_PAGE,
+          "incidents/declaring-incidents",
+          "incidents/notes-owners-and-feed",
+        ]) {
+          expect(readPage(page, language)).not.toMatch(
+            /no monitors are attached/i,
+          );
+        }
+      }
+    });
+
+    it("says the same on the declaring and notes pages, in every language", () => {
+      expect(readPage("incidents/declaring-incidents")).toContain(
+        "When nobody will be told (no monitor is attached, no status page lists the monitors, or the pages have no subscribers yet) it shows nothing, and it warns only when the incident's status page scope is the reason.",
+      );
+      expect(readPage("incidents/declaring-incidents", "fa")).toContain(
+        "وقتی کسی خبردار نخواهد شد (هیچ مانیتوری پیوست نشده",
+      );
+      expect(readPage("incidents/notes-owners-and-feed")).toContain(
+        "When nobody will be told it shows nothing, unless the incident is hidden from status pages or its status page scope is the reason.",
+      );
+      expect(readPage("incidents/notes-owners-and-feed", "fa")).toContain(
+        "وقتی کسی خبردار نخواهد شد چیزی نشان نمی‌دهد",
+      );
+    });
+
     it("puts the picker on the declare form's Resources Affected step, and the summary on its More step", () => {
       const source: string = readDashboardSource("Pages/Incidents/Create.tsx");
 
