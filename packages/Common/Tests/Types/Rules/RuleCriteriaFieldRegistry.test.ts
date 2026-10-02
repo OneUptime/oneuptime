@@ -197,7 +197,13 @@ describe("RULE_CRITERIA_FIELDS_BY_MODEL", () => {
     }
   });
 
-  test("AutoRemediationRule is the one rule that can match both incident and alert severities", () => {
+  /*
+   * The two tables that serve incident and alert rules alike, told apart by
+   * their triggerEntityType. Each rule still uses only its own trigger's
+   * severities (the auto-remediation and runbook rule forms offer one or
+   * the other, and RunbookRuleService refuses the other).
+   */
+  test("only the trigger-entity rules can match both incident and alert severities", () => {
     const both: Array<string> = MODEL_NAMES.filter((modelName: string) => {
       const fields: ReadonlyArray<string> =
         RULE_CRITERIA_FIELDS_BY_MODEL[modelName]!;
@@ -207,7 +213,7 @@ describe("RULE_CRITERIA_FIELDS_BY_MODEL", () => {
       );
     });
 
-    expect(both).toEqual(["AutoRemediationRule"]);
+    expect(both).toEqual(["AutoRemediationRule", "RunbookRule"]);
   });
 
   test("pins a few representative contracts exactly", () => {
@@ -222,9 +228,17 @@ describe("RULE_CRITERIA_FIELDS_BY_MODEL", () => {
       "subnetCidr",
       "hostnamePattern",
     ]);
+    // What incident, alert and scheduled maintenance rules match on, together.
     expect(RULE_CRITERIA_FIELDS_BY_MODEL["RunbookRule"]).toEqual([
+      "monitors",
+      "incidentSeverities",
+      "alertSeverities",
+      "labels",
+      "monitorLabels",
       "titlePattern",
       "descriptionPattern",
+      "monitorNamePattern",
+      "monitorDescriptionPattern",
     ]);
     // IncidentSlaRule deliberately carries no monitor name/description patterns.
     expect(RULE_CRITERIA_FIELDS_BY_MODEL["IncidentSlaRule"]).not.toContain(

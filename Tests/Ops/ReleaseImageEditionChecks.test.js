@@ -348,17 +348,59 @@ describe.each(ENTERPRISE_E2E_JOBS)("$workflow $job", ({ workflow, job }) => {
     expect(run).toContain("exit 1");
   });
 
+  /*
+   * Phase A needs the trial, and a brand-new install does not have it yet when
+   * the stack first answers: its first license read can come before the
+   * AddDefaultGlobalConfig data migration has created the GlobalConfig row the
+   * trial is stamped on, so it reports "missing" - and serves that from the
+   * 60s license-inputs cache - until a later read stamps the row
+   * (ee/Server/License/LicenseStore.ts). This used to be covered only by
+   * accident: the e2e image was built or pulled between the boot and phase A,
+   * which took longer than that.
+   */
+  test("waits for the app to report a usable license before starting the licensed phase", () => {
+    const start = indexOfStep(steps, isStartStep, "start");
+    const licensed = indexOfRun(steps, LICENSED_PHASE, "phase A (licensed)");
+    const poll = requireStep(
+      steps,
+      (step, index) => {
+        const run = runOf(step);
+
+        return (
+          index > start &&
+          index < licensed &&
+          run.includes(LICENSE_ENDPOINT) &&
+          run.includes("while")
+        );
+      },
+      `the trial poll: no step between the boot and phase A loops on ${LICENSE_ENDPOINT}, so the licensed phase can start before a fresh install's trial has`,
+    );
+    const run = runOf(steps[poll]);
+
+    // Usable: the trial ("grace") or an installed license ("valid").
+    expect(run).toContain('"grace"');
+    expect(run).toContain('"valid"');
+    expect(run).toContain("licenseValid");
+    // Bounded, and loud when the bound is reached.
+    expect(run).toMatch(/date \+%s\) \+ \d+ \)\)/);
+    expect(run).toContain("::error::");
+  });
+
   test("waits for the app to report the lapse before starting the lapsed phase", () => {
     const expiry = indexOfRun(steps, TRIAL_COLUMN, "the trial-expiry step");
     const lapsed = indexOfRun(steps, LAPSED_PHASE, "phase B (lapsed)");
     const poll = requireStep(
       steps,
-      (step) => {
+      (step, index) => {
         const run = runOf(step);
 
-        return run.includes(LICENSE_ENDPOINT) && run.includes("while");
+        return (
+          index > expiry &&
+          run.includes(LICENSE_ENDPOINT) &&
+          run.includes("while")
+        );
       },
-      `the license poll: no step in this job loops on ${LICENSE_ENDPOINT}, so the lapsed phase would start inside the 60s license-inputs cache`,
+      `the license poll: no step after the trial is expired loops on ${LICENSE_ENDPOINT}, so the lapsed phase would start inside the 60s license-inputs cache`,
     );
     const run = runOf(steps[poll]);
 

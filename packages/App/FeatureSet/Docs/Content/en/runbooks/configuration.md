@@ -46,7 +46,7 @@ When a manual step is ticked off via the API, the execution is re-enqueued to co
 
 - `Runbook` — template (name, slug, description, isEnabled, steps JSON).
 - `RunbookExecution` — one row per run, with nullable `incidentId`, `alertId`, and `scheduledMaintenanceId` foreign keys and a JSON `stepExecutions` array snapshotting the steps and per-step state.
-- `RunbookRule` — auto-trigger rules with a `triggerEntityType` discriminator (Incident, Alert, ScheduledMaintenance) and a many-to-many relationship to runbooks to start.
+- `RunbookRule` — auto-trigger rules with a `triggerEntityType` discriminator (Incident, Alert, ScheduledMaintenance), a many-to-many relationship to runbooks to start, and what they match on: a JSON `criteria` column (the conditions) plus many-to-many links to monitors, incident severities, alert severities, labels and monitor labels, and title, description, monitor name and monitor description patterns.
 - `Runner` — one row per installed agent: name, secret key, `lastAlive`, `connectionStatus`, host info.
 - `RunnerJob` — one row per dispatched Bash or JavaScript step: `targetAgentId` (the agent the step author picked), step type, script, status (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim deadline, lease, output, exit code.
 
