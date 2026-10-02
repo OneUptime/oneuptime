@@ -483,9 +483,7 @@ describe.each(RECORDING_RULE_PAGES)("$label", (entry: RecordingRulePage) => {
     await waitFor(() => {
       expect(within(form()).queryByTestId("generated-key-field")).toBeNull();
     });
-    expect(
-      within(form()).queryByRole("textbox", { name: /^Name/ }),
-    ).toBeNull();
+    expect(within(form()).queryByRole("textbox", { name: /^Name/ })).toBeNull();
   });
 
   test("Edit keeps the output metric name an ordinary field, holding its name", async () => {

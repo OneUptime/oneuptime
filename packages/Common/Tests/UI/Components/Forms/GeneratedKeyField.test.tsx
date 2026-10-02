@@ -139,9 +139,7 @@ describe("a key made from the name, on a form", () => {
     expect(screen.queryByText(KEY_DESCRIPTION)).toBeNull();
     // Nothing to fill in, so nothing to call optional either.
     expect(
-      within(screen.getByTestId("generated-key-field")).queryByText(
-        /Optional/,
-      ),
+      within(screen.getByTestId("generated-key-field")).queryByText(/Optional/),
     ).toBeNull();
   });
 
@@ -150,9 +148,9 @@ describe("a key made from the name, on a form", () => {
 
     await nameInput();
 
-    expect(
-      screen.getByTestId("generated-key-field-pending"),
-    ).toHaveTextContent(GeneratedKeyFieldText.pendingName);
+    expect(screen.getByTestId("generated-key-field-pending")).toHaveTextContent(
+      GeneratedKeyFieldText.pendingName,
+    );
     expect(screen.queryByTestId("generated-key-field-value")).toBeNull();
   });
 
@@ -197,7 +195,9 @@ describe("a key made from the name, on a form", () => {
     });
     expect(screen.getByText(KEY_DESCRIPTION)).toBeVisible();
     // Nothing typed yet: no way back to offer.
-    expect(screen.queryByTestId("generated-key-field-make-from-name")).toBeNull();
+    expect(
+      screen.queryByTestId("generated-key-field-make-from-name"),
+    ).toBeNull();
   });
 
   test("a key someone types is the form's value, and stays when the name changes", async () => {
@@ -244,7 +244,9 @@ describe("a key made from the name, on a form", () => {
     await user.type(await nameInput(), "Time to Detect");
     await user.click(editButton());
     await user.type(keyBox(), "-x");
-    expect(screen.getByTestId("generated-key-field-make-from-name")).toBeVisible();
+    expect(
+      screen.getByTestId("generated-key-field-make-from-name"),
+    ).toBeVisible();
 
     await user.type(keyBox(), "{Backspace}{Backspace}");
     expect(keyBox()).toHaveValue("time-to-detect");

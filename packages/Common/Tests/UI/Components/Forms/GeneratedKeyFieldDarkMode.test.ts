@@ -69,6 +69,9 @@ const SHARED_ERROR_COLOR: string = "text-red-400";
 
 const IDENTIFIER_CHAR: RegExp = /[\w-]/;
 
+// A colour class put together at run time, which no scan can check.
+const TEMPLATE_COLOR_TOKEN: RegExp = /(bg|text|border|ring)-\$\{/;
+
 const SUBSTRING_VARIANTS: Array<string> = Array.from(
   THEME_CSS.matchAll(/\[class\*="([^"]+)"\]/g),
   (match: RegExpMatchArray): string => {
@@ -141,7 +144,7 @@ describe("GeneratedKeyField in the dark theme", () => {
 
   test("draws with no dark: variants and builds no colour class from a template", () => {
     expect(CODE.includes("dark:")).toBe(false);
-    expect(/(bg|text|border|ring)-\$\{/.test(CODE)).toBe(false);
+    expect(TEMPLATE_COLOR_TOKEN.test(CODE)).toBe(false);
   });
 
   test("every colour class it draws with is remapped for dark mode", () => {

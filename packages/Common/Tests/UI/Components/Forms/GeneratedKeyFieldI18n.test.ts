@@ -73,6 +73,9 @@ const readLocale: ReadLocaleFunction = (
 
 const ENGLISH: Record<string, string> = readLocale("en");
 
+// Fifty, written with Western or with Persian digits.
+const FIFTY: RegExp = /50|۵۰/;
+
 const STRINGS: Array<string> = [
   ...Object.values(GeneratedKeyFieldText),
   MEASUREMENT_KEY_INVALID_MESSAGE,
@@ -143,9 +146,8 @@ describe("a key made from the name, in every dashboard language", () => {
 
   test("the message keeps its a-z and its fifty in every language", () => {
     for (const locale of OTHER_LOCALES) {
-      const translated: string = readLocale(locale)[
-        MEASUREMENT_KEY_INVALID_MESSAGE
-      ]!;
+      const translated: string =
+        readLocale(locale)[MEASUREMENT_KEY_INVALID_MESSAGE]!;
 
       expect({ locale, az: translated.includes("a-z") }).toEqual({
         locale,
@@ -153,7 +155,7 @@ describe("a key made from the name, in every dashboard language", () => {
       });
       expect({
         locale,
-        fifty: /50|۵۰/.test(translated),
+        fifty: FIFTY.test(translated),
       }).toEqual({ locale, fifty: true });
     }
   });

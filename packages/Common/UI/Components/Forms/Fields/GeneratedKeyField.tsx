@@ -5,12 +5,7 @@ import FormValues from "../Types/FormValues";
 import Input from "../../Input/Input";
 import useTranslateValue from "../../../Utils/Translation";
 import SelectFormFields from "../../../Types/SelectEntityField";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useId,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 
 /*
  * A key made from the name, on a form: one short line under the Name field,

@@ -185,10 +185,13 @@ describe("makeKeyFromName", () => {
     "検出までの時間",
     "Время обнаружения",
     "زمان تشخیص",
-  ])("a name with nothing usable in it, %p, gets the fallback", (name: string) => {
-    expect(makeKeyFromName(name, HYPHEN)).toBe("thing");
-    expect(makeKeyFromName(name, UNDERSCORE)).toBe("field");
-  });
+  ])(
+    "a name with nothing usable in it, %p, gets the fallback",
+    (name: string) => {
+      expect(makeKeyFromName(name, HYPHEN)).toBe("thing");
+      expect(makeKeyFromName(name, UNDERSCORE)).toBe("field");
+    },
+  );
 
   test("a name that is not a string gets the fallback rather than throwing", () => {
     expect(makeKeyFromName(undefined as unknown as string, HYPHEN)).toBe(
@@ -321,9 +324,9 @@ describe("makeUniqueKey", () => {
     // Cut to 48 the key ends "...b-" - the dash is dropped before "-2".
     const key: string = `${"b".repeat(47)}-cc`;
 
-    expect(
-      makeUniqueKey({ key, existingKeys: [key], format: HYPHEN }),
-    ).toBe(`${"b".repeat(47)}-2`);
+    expect(makeUniqueKey({ key, existingKeys: [key], format: HYPHEN })).toBe(
+      `${"b".repeat(47)}-2`,
+    );
   });
 
   test("always finds a free key, however many are taken", () => {

@@ -51,9 +51,7 @@ export class Service extends DatabaseService<Model> {
      * Undefined is a column the update leaves alone - a model instance
      * carries every column that way.
      */
-    const name: unknown = (data as Record<string, unknown>)[
-      "outputMetricName"
-    ];
+    const name: unknown = (data as Record<string, unknown>)["outputMetricName"];
 
     if (name === undefined) {
       return;

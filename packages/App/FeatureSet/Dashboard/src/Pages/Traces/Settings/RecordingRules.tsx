@@ -208,18 +208,10 @@ const TraceRecordingRules: FunctionComponent<
           placeholder: "e.g. HTTP error rate (from spans)",
           validation: { minLength: 2 },
         },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          description: "What this rule computes and why.",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "What this rule computes and why.",
-        },
         /*
          * On Create, made from the rule's name as it is typed (and by the
-         * server when the create leaves it out); never asked for.
+         * server when the create leaves it out); never asked for. Right
+         * under the name it is made from.
          */
         getGeneratedKeyFormField<TraceRecordingRule>({
           field: { outputMetricName: true },
@@ -242,6 +234,15 @@ const TraceRecordingRules: FunctionComponent<
           required: true,
           placeholder: "e.g. http.server.error_rate",
           doNotShowWhenCreating: true,
+        },
+        {
+          field: { description: true },
+          title: "Description",
+          stepId: "basic-info",
+          description: "What this rule computes and why.",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          placeholder: "What this rule computes and why.",
         },
         {
           field: { isEnabled: true },

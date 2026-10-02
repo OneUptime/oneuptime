@@ -268,8 +268,10 @@ describe.each(KINDS)("$label", (kind: MeasurementKind) => {
 
       expect(findBy).toHaveBeenCalledTimes(1);
 
-      const query: Record<string, unknown> = findBy.mock
-        .calls[0]![0] as Record<string, unknown>;
+      const query: Record<string, unknown> = findBy.mock.calls[0]![0] as Record<
+        string,
+        unknown
+      >;
 
       expect(query["query"]).toEqual({ projectId: PROJECT_ID });
       expect(query["select"]).toEqual({ key: true });
@@ -284,8 +286,10 @@ describe.each(KINDS)("$label", (kind: MeasurementKind) => {
 
       await hooks.onBeforeCreate(create);
 
-      const query: Record<string, unknown> = findBy.mock
-        .calls[0]![0] as Record<string, unknown>;
+      const query: Record<string, unknown> = findBy.mock.calls[0]![0] as Record<
+        string,
+        unknown
+      >;
 
       expect(query["query"]).toEqual({ projectId: TENANT_ID });
     });
@@ -373,7 +377,11 @@ describe.each(KINDS)("$label", (kind: MeasurementKind) => {
 
       await expect(
         hooks.onBeforeCreate(
-          createBy({ name: "Time to Detect", key: "ttd", projectId: PROJECT_ID }),
+          createBy({
+            name: "Time to Detect",
+            key: "ttd",
+            projectId: PROJECT_ID,
+          }),
         ),
       ).rejects.toThrow(
         'Another measurement in this project already has the key "ttd". Pick a different key, or leave the key out and one is made from the name.',
@@ -400,9 +408,10 @@ describe.each(KINDS)("$label", (kind: MeasurementKind) => {
     test("lists the keys the project's measurements hold, skipping empty ones", async () => {
       answerKeys(["time-to-detect", undefined, "ttd", ""]);
 
-      await expect(kind.service.getKeysInProject(PROJECT_ID)).resolves.toEqual(
-        ["time-to-detect", "ttd"],
-      );
+      await expect(kind.service.getKeysInProject(PROJECT_ID)).resolves.toEqual([
+        "time-to-detect",
+        "ttd",
+      ]);
     });
 
     test("reads nothing without a project", async () => {

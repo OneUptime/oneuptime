@@ -75,6 +75,12 @@ interface FoundCall {
   nameField: string | null;
   makeKey: string | null;
   makeKeyIsIdentifier: boolean;
+  /*
+   * The column of the field written just before it in the form's list, or
+   * null: the key's line reads as part of the field above it, so that has
+   * to be the name it is made from.
+   */
+  previousFieldColumn: string | null;
 }
 
 function propertyNamed(
@@ -85,8 +91,7 @@ function propertyNamed(
     (property: ts.ObjectLiteralElementLike): boolean => {
       return (
         ts.isPropertyAssignment(property) &&
-        (ts.isIdentifier(property.name) ||
-          ts.isStringLiteral(property.name)) &&
+        (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) &&
         property.name.text === name
       );
     },
@@ -124,10 +129,7 @@ function selectedColumn(literal: ts.ObjectLiteralExpression): string | null {
   return only.name.text;
 }
 
-function isTrue(
-  literal: ts.ObjectLiteralExpression,
-  name: string,
-): boolean {
+function isTrue(literal: ts.ObjectLiteralExpression, name: string): boolean {
   const property: ts.PropertyAssignment | undefined = propertyNamed(
     literal,
     name,
@@ -202,6 +204,18 @@ function scan(): ScanResult {
           "makeKey",
         );
 
+        let previousFieldColumn: string | null = null;
+
+        if (ts.isArrayLiteralExpression(node.parent)) {
+          const index: number = node.parent.elements.indexOf(node);
+          const previous: ts.Expression | undefined =
+            index > 0 ? node.parent.elements[index - 1] : undefined;
+
+          if (previous && ts.isObjectLiteralExpression(previous)) {
+            previousFieldColumn = selectedColumn(previous);
+          }
+        }
+
         result.calls.push({
           file: relative,
           line: lineOf(node),
@@ -214,6 +228,7 @@ function scan(): ScanResult {
           makeKeyIsIdentifier: Boolean(
             makeKey && ts.isIdentifier(makeKey.initializer),
           ),
+          previousFieldColumn,
         });
       }
 
@@ -339,6 +354,23 @@ describe("keys made from the name", () => {
         ),
       ).sort(),
     ).toEqual(["getMeasurementKeyFromName", "getOutputMetricNameFromRuleName"]);
+  });
+
+  /*
+   * The key is one line drawn up under the field before it, so that field
+   * has to be the name it follows - under a Description it reads as part of
+   * the description (the recording rule forms had it there at first).
+   */
+  test("every key comes right after the name it is made from", () => {
+    for (const call of found.calls) {
+      expect({
+        at: `${call.file}:${call.line}`,
+        fieldBefore: call.previousFieldColumn,
+      }).toEqual({
+        at: `${call.file}:${call.line}`,
+        fieldBefore: call.nameField,
+      });
+    }
   });
 
   test("every allowed exception still exists and says why", () => {

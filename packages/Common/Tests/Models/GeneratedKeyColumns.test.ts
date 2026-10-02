@@ -84,9 +84,11 @@ const labelOf: (entry: GeneratedColumn) => string = (
   return `${entry.model.name}.${entry.column}`;
 };
 
-describe.each(GENERATED_COLUMNS.map((entry: GeneratedColumn) => {
-  return { ...entry, label: labelOf(entry) };
-}))("$label", (entry: GeneratedColumn & { label: string }) => {
+describe.each(
+  GENERATED_COLUMNS.map((entry: GeneratedColumn) => {
+    return { ...entry, label: labelOf(entry) };
+  }),
+)("$label", (entry: GeneratedColumn & { label: string }) => {
   const model: BaseModel = new entry.model();
 
   test("is not required to create a record", () => {
@@ -127,9 +129,8 @@ describe.each(GENERATED_COLUMNS.map((entry: GeneratedColumn) => {
       ? "can be changed after create"
       : "can never be changed after create",
     () => {
-      const access: ColumnAccessControl | null = model.getColumnAccessControlFor(
-        entry.column,
-      );
+      const access: ColumnAccessControl | null =
+        model.getColumnAccessControlFor(entry.column);
 
       expect(access).not.toBeNull();
       expect((access!.create || []).length).toBeGreaterThan(0);
