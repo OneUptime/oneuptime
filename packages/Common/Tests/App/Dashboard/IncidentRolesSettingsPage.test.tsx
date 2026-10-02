@@ -257,13 +257,17 @@ const openCreate: () => Promise<void> = async (): Promise<void> => {
 const openEdit: (row: RoleRow) => Promise<void> = async (
   row: RoleRow,
 ): Promise<void> => {
-  fireEvent.click(within(rowOf(row.name)).getByRole("button", { name: "Edit" }));
+  fireEvent.click(
+    within(rowOf(row.name)).getByRole("button", { name: "Edit" }),
+  );
 
   await waitFor(() => {
     expect(
-      (within(dialog()).getByPlaceholderText(
-        IncidentRoleSettingsCopy.namePlaceholder,
-      ) as HTMLInputElement).value,
+      (
+        within(dialog()).getByPlaceholderText(
+          IncidentRoleSettingsCopy.namePlaceholder,
+        ) as HTMLInputElement
+      ).value,
     ).toBe(row.name);
   });
 
@@ -380,9 +384,11 @@ describe("the Incident Roles page", () => {
 
     expect(headers).toContain("Name");
     expect(headers).toContain("Description");
+    const mentionsMultiple: RegExp = /multiple/i;
+
     expect(
       headers.filter((header: string) => {
-        return /multiple/i.test(header);
+        return mentionsMultiple.test(header);
       }),
     ).toEqual([]);
     expect(screen.queryByText("Multiple Users")).toBeNull();
@@ -583,9 +589,11 @@ describe("editing a role", () => {
 
     // Its name and description are still there to change.
     expect(
-      (within(dialog()).getByPlaceholderText(
-        IncidentRoleSettingsCopy.descriptionPlaceholder,
-      ) as HTMLTextAreaElement).value,
+      (
+        within(dialog()).getByPlaceholderText(
+          IncidentRoleSettingsCopy.descriptionPlaceholder,
+        ) as HTMLTextAreaElement
+      ).value,
     ).toBe(COMMANDER.description);
   });
 

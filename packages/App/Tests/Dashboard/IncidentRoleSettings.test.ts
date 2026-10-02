@@ -44,7 +44,13 @@ const DASHBOARD_DIR: string = path.join(
 const LOCALES_DIR: string = path.join(DASHBOARD_DIR, "Locales");
 
 const PAGE_SOURCE: string = fs.readFileSync(
-  path.join(DASHBOARD_DIR, "Pages", "Incidents", "Settings", "IncidentRoles.tsx"),
+  path.join(
+    DASHBOARD_DIR,
+    "Pages",
+    "Incidents",
+    "Settings",
+    "IncidentRoles.tsx",
+  ),
   "utf8",
 );
 

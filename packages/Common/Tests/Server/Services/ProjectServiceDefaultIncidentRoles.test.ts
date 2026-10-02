@@ -348,7 +348,9 @@ describe("the server rules Incident Commander lives by", () => {
 
     await expect(
       (IncidentRoleService as any).onBeforeUpdate(updateBy),
-    ).rejects.toThrow("Primary roles cannot allow multiple users to be assigned.");
+    ).rejects.toThrow(
+      "Primary roles cannot allow multiple users to be assigned.",
+    );
   });
 
   test("deleting it is refused, in words that name it", async () => {
