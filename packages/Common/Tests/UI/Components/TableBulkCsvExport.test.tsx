@@ -9,6 +9,7 @@ import Columns from "../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
+import IconProp from "../../../Types/Icon/IconProp";
 
 /*
  * react-i18next is not initialized in the test environment. Mock the hook so
@@ -84,6 +85,7 @@ const customBulkActions: BulkActionProps<Row> = {
   buttons: [
     {
       title: "Archive",
+      icon: IconProp.Archive,
       buttonStyleType: ButtonStyleType.NORMAL,
       onClick: (): Promise<void> => {
         return Promise.resolve();

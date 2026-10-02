@@ -12,6 +12,7 @@ import Columns from "../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
+import IconProp from "../../../Types/Icon/IconProp";
 
 /*
  * Rows the table refuses to let you tick, and rows that finally say who they
@@ -65,6 +66,7 @@ const bulkActions: BulkActionProps<Row> = {
   buttons: [
     {
       title: "Archive",
+      icon: IconProp.Archive,
       buttonStyleType: ButtonStyleType.NORMAL,
       onClick: (): Promise<void> => {
         return Promise.resolve();
