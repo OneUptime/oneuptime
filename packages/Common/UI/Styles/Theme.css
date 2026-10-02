@@ -1446,8 +1446,16 @@ html.dark svg :is([fill="#94a3b8"], [fill="#6b7280"]) {
   fill: var(--ou-chart-tick) !important;
 }
 
+/*
+ * A fullscreen view and its backdrop take the page colour instead of the
+ * browser's black. Only the fullscreen backdrop: modal dialogs and popovers in
+ * the top layer have one too, and extensions show their in-page UI as
+ * popovers (1Password's "Sign in" prompt is one). A bare ::backdrop painted
+ * theirs opaque, and the whole app disappeared behind the prompt. See the
+ * matching rule in Dashboard/views/index.ejs.
+ */
 html.dark :fullscreen,
-html.dark ::backdrop {
+html.dark :fullscreen::backdrop {
   background-color: var(--ou-background-primary);
 }
 
