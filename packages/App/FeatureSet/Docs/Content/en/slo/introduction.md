@@ -178,7 +178,7 @@ When an SLO is archived:
 - Its open burn rate alerts and incidents are **resolved**.
 - Its settings, history, burn rate rules, monitor rules and owners are kept. Monitor rules keep the monitor list current while it is archived, so it resumes with the right monitors.
 
-Archived SLOs are listed on the **Archived** page in the SLO list's side menu, with their target, window, last evaluation, labels, when they were archived and by whom. Select SLOs there and choose **Unarchive** to bring them back.
+Archived SLOs are listed on the **Archived** page, under **Advanced** in the SLO list's side menu, with their target, window, last evaluation, labels, when they were archived and by whom. Select SLOs there and choose **Unarchive** to bring them back.
 
 An unarchived SLO reappears in the SLO list and is evaluated again on the next run, with its SLI and error budget recomputed from its monitors' history.
 

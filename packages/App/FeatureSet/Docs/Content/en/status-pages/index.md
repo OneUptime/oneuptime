@@ -67,7 +67,7 @@ Two naming quirks worth knowing before you go looking:
 - The **Resources** item is only labeled **Resources** when the project has monitor groups enabled. Otherwise it reads **Monitors**. It is the same screen either way.
 - There is no separate Groups page. Groups and resources were merged, and the old `/groups` route now redirects to the resources screen.
 
-Outside an individual page, the **Status Pages** section itself lists **All Status Pages** and **Archived** (status pages you took offline — see [Archiving a status page](#archiving-a-status-page)), has a **More** section with **Announcements**, and a collapsed **Settings** section holding **Announcement Templates**, **Subscriber Templates**, **Custom Fields**, **Owner Rules** and **Label Rules** — these are project-wide, shared across every status page.
+Outside an individual page, the **Status Pages** section itself lists **All Status Pages**, and a **More** section holds **Announcements**. A collapsed **Settings** section holds **Announcement Templates**, **Subscriber Templates**, **Custom Fields**, **Owner Rules** and **Label Rules**, which are project-wide and shared across every status page. A collapsed **Advanced** section holds **Archived**: the status pages you took offline (see [Archiving a status page](#archiving-a-status-page)).
 
 ## What visitors see
 
@@ -184,10 +184,10 @@ Archive a status page to take it offline without deleting it. An archived status
 
 - **Is offline.** Its URL, its custom domains, its embedded badge, its public API and its MCP server all answer as if the page did not exist ("Status Page not found"), so a visitor cannot tell an archived page from one that was never there. The dashboard preview link stops working too.
 - **Sends nothing to its subscribers.** No incident, episode, maintenance or announcement notifications, no reports, and no subscription confirmations. Nobody can subscribe to it.
-- **Leaves the Status Pages list.** Find it under **Status Pages → Archived**.
+- **Leaves the Status Pages list.** Find it under **Status Pages → Advanced → Archived**.
 - **Keeps everything.** Its resources, groups, branding, domains, private users and subscribers are kept, so unarchiving puts the page back online exactly as it was.
 
-To archive one status page, open it and go to **Advanced → Advanced Settings → Archive status page**. To archive several, select them in the **Status Pages** list and choose **Archive**. To bring one back, open **Status Pages → Archived**, select it and choose **Unarchive**, or open it and click **Unarchive** on the banner at the top of its pages.
+To archive one status page, open it and go to **Advanced → Advanced Settings → Archive status page**. To archive several, select them in the **Status Pages** list and choose **Archive**. To bring one back, open **Status Pages → Advanced → Archived**, select it and choose **Unarchive**, or open it and click **Unarchive** on the banner at the top of its pages.
 
 ## Where to read next
 
