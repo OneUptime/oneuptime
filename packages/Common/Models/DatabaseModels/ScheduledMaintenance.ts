@@ -1386,7 +1386,7 @@ export default class ScheduledMaintenance extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "changeMonitorStatusToId",
     type: TableColumnType.Entity,
-    modelType: ScheduledMaintenanceState,
+    modelType: MonitorStatus,
     title: "Change Monitor Status To",
     description:
       "Relation to Monitor Status Object. All monitors connected to this event will be changed to this status when the event is ongoing.",

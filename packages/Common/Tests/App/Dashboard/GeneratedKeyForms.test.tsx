@@ -261,8 +261,8 @@ interface MeasurementPage {
   existing: () => BaseModel;
   name: string;
   key: string;
-  startAnchor: string;
-  endAnchor: string;
+  // Where it ends, as "Ends when" lists it; it starts where most do.
+  endMoment: string;
 }
 
 const MEASUREMENT_PAGES: Array<MeasurementPage> = [
@@ -274,8 +274,7 @@ const MEASUREMENT_PAGES: Array<MeasurementPage> = [
     },
     name: "Time to Detect",
     key: "time-to-detect",
-    startAnchor: "Impact Started At",
-    endAnchor: "Declared At",
+    endMoment: "The incident is acknowledged",
   },
   {
     label: "Alert measurements",
@@ -285,8 +284,7 @@ const MEASUREMENT_PAGES: Array<MeasurementPage> = [
     },
     name: "Time to Acknowledge",
     key: "time-to-acknowledge",
-    startAnchor: "Impact Started At",
-    endAnchor: "Created At",
+    endMoment: "The alert is acknowledged",
   },
   {
     label: "Scheduled maintenance measurements",
@@ -296,27 +294,19 @@ const MEASUREMENT_PAGES: Array<MeasurementPage> = [
     },
     name: "Start Delay",
     key: "start-delay",
-    startAnchor: "Scheduled Starts At",
-    endAnchor: "Scheduled Ends At",
+    endMoment: "The maintenance starts",
   },
 ];
 
 describe.each(MEASUREMENT_PAGES)("$label", (entry: MeasurementPage) => {
-  // Walks the steps after Basics, picking the two ends, and creates.
+  // Goes on to Start and End, picks where it ends, and creates.
   async function finishCreate(user: UserEvent): Promise<void> {
     await clickNext(user);
     await pickOption(
       user,
-      await within(form()).findByRole("combobox", { name: "Start Anchor" }),
-      entry.startAnchor,
+      await within(form()).findByRole("combobox", { name: "Ends when" }),
+      entry.endMoment,
     );
-    await clickNext(user);
-    await pickOption(
-      user,
-      await within(form()).findByRole("combobox", { name: "End Anchor" }),
-      entry.endAnchor,
-    );
-    await clickNext(user);
     await user.click(
       await within(form()).findByRole("button", { name: "Create" }),
     );
@@ -404,7 +394,7 @@ describe.each(MEASUREMENT_PAGES)("$label", (entry: MeasurementPage) => {
     // Still on the first step.
     expect(within(form()).getByRole("textbox", { name: "Key" })).toBeVisible();
     expect(
-      within(form()).queryByRole("combobox", { name: "Start Anchor" }),
+      within(form()).queryByRole("combobox", { name: "Starts when" }),
     ).toBeNull();
   });
 

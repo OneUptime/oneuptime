@@ -207,7 +207,7 @@ resource "oneuptime_team" "sre" {
 
 resource "oneuptime_team_member" "alice" {
   team_id = oneuptime_team.sre.id
-  user_id = "5f8a1b2c3d4e5f6a7b8c9d0e" # user's id — visible in the dashboard URL on their profile
+  user_id = "5f8a1b2c-3d4e-4f6a-8b9c-0d1e2f3a4b5c" # user's id — visible in the dashboard URL on their profile
 }
 ```
 

@@ -13,15 +13,15 @@ import {
   SetupGuideTopic,
   codeBlock,
 } from "../SetupGuide/SetupGuide";
+import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "Common/Types/JSON";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
   ApiExample,
-  CollectionApiExamples,
   getApiBaseUrl,
   getApiReferenceUrl,
-  getCollectionApiExamples,
-  getResourceApiExamples,
-  ResourceApiExamples,
+  getCurlCommand,
+  getModelApiPath,
 } from "Common/Utils/DeveloperDocs/ApiExamples";
 import {
   getAssistantPrompts,
@@ -33,33 +33,67 @@ import {
   McpToolNames,
 } from "Common/Utils/DeveloperDocs/AiAssistantExamples";
 import {
+  DeveloperDocsApiBody,
+  DeveloperDocsApiFilter,
+  DeveloperDocsApiTask,
+  DeveloperDocsExampleContext,
+  DeveloperDocsFieldRow,
+  DeveloperDocsTerraformExample,
+  DeveloperDocsTerraformRecipe,
+  getApiCreateExample,
+  getApiFilters,
+  getApiReadSelect,
+  getApiTasks,
+  getApiUpdateExample,
+  getCreateTitle,
+  getTerraformCreateExample,
+  getTerraformRecipes,
+} from "Common/Utils/DeveloperDocs/ExampleBuilder";
+import {
   getApiKeyExportCommand,
   ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE,
   toSentenceCaseName,
+  withIndefiniteArticle,
 } from "Common/Utils/DeveloperDocs/ExampleValues";
 import {
-  jsonToHcl,
-  TerraformSecretVariable,
-} from "Common/Utils/DeveloperDocs/TerraformValues";
+  DeveloperDocsLiveData,
+  getEmptyDeveloperDocsLiveData,
+} from "Common/Utils/DeveloperDocs/LiveData";
+import {
+  DeveloperDocsProfile,
+  getDeveloperDocsProfile,
+} from "Common/Utils/DeveloperDocs/ResourceProfiles";
+import { TerraformSecretVariable } from "Common/Utils/DeveloperDocs/TerraformValues";
 import {
   getTerraformDataSourceByNameHcl,
   getTerraformImportBlocksHcl,
   getTerraformProviderHcl,
   getTerraformResourceConfig,
   getTerraformShortTypeName,
-  getTerraformStarterHcl,
   TerraformImportTarget,
   TerraformOmittedAttribute,
   TerraformResourceConfig,
 } from "Common/Utils/DeveloperDocs/TerraformConfig";
-import { getTerraformTypeName } from "Common/Utils/DeveloperDocs/TerraformSchema";
-import { HclExpression } from "Common/Utils/DeveloperDocs/Hcl";
+import {
+  getTerraformModelOperations,
+  getTerraformTypeName,
+  isModelInPublicApi,
+  TerraformModelOperations,
+} from "Common/Utils/DeveloperDocs/TerraformSchema";
 
 /*
  * What each Developer page says, as data: numbered steps (in the same layout
- * as the product's setup guides), folded extras, links. Pure on purpose: a
- * record's JSON and the installation's address in, text out, so every page
- * for every resource can be tested without rendering it.
+ * as the product's setup guides), sections of ready-made recipes, folded
+ * extras, links. Pure on purpose: a record's JSON, what the page found out
+ * about the project, and the installation's address in, text out, so every
+ * page for every resource can be tested without rendering it.
+ *
+ * What makes a page specific to its resource comes from the resource's
+ * profile (Common/Utils/DeveloperDocs/ResourceProfiles) and the project's own
+ * records (LiveData): an incident is declared with one of the project's
+ * severities and acknowledged with its own acknowledged state, a monitor is
+ * created with the criteria a new monitor gets in the dashboard, and every id
+ * on a page names its record in a comment.
  *
  * The steps' text is English, like the other in-app setup guides; the card's
  * title and description are translated by the page.
@@ -69,10 +103,22 @@ export interface DeveloperDocsStep {
   title: string;
   description?: string | undefined;
   markdown?: string | undefined;
-  // Tabs, one per way of doing the step (one per AI client).
+  // Tabs, one per way of doing the step (one per AI client, one per filter).
   variants?: Array<SetupGuideStepVariant> | undefined;
   // Prompts, each shown with a copy button.
   prompts?: Array<string> | undefined;
+}
+
+/*
+ * A section after the steps: ready-made recipes for the resource, or a
+ * reference. Not numbered: nothing here has to be done in order.
+ */
+export interface DeveloperDocsSection {
+  title: string;
+  description?: string | undefined;
+  markdown?: string | undefined;
+  // One tab per recipe.
+  variants?: Array<SetupGuideStepVariant> | undefined;
 }
 
 export interface DeveloperDocsGuide {
@@ -81,6 +127,7 @@ export interface DeveloperDocsGuide {
   // Shown above the steps, e.g. that the MCP server cannot do this yet.
   notice?: string | undefined;
   steps: Array<DeveloperDocsStep>;
+  sections: Array<DeveloperDocsSection>;
   // Folded under "More".
   topics: Array<SetupGuideTopic>;
   links: Array<SetupGuideLink>;
@@ -91,6 +138,12 @@ export interface DeveloperDocsRecord {
   displayName: string | null;
   // The record's API JSON (BaseModel.toJSON), with the fields the viewer may read.
   json: JSONObject;
+}
+
+// The first records of a type as the list request returns them.
+export interface DeveloperDocsSample {
+  records: Array<JSONObject>;
+  count: number;
 }
 
 export interface DeveloperDocsGuideContext {
@@ -107,6 +160,10 @@ export interface DeveloperDocsGuideContext {
   // On a list page: the records to import, and how many there are in all.
   importTargets?: Array<TerraformImportTarget> | undefined;
   totalCount?: number | undefined;
+  // What the page found out about the project (its severities, monitors, ...).
+  live?: DeveloperDocsLiveData | undefined;
+  // On the API list page: the first record, as the list request returns it.
+  sample?: DeveloperDocsSample | undefined;
 }
 
 export const DEVELOPER_DOCS_IMPORT_LIMIT: number = 100;
@@ -118,6 +175,12 @@ export const DEVELOPER_DOCS_NOT_FOUND_MESSAGE: string =
 
 const TERRAFORM_REGISTRY_DOCS_URL: string =
   "https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs";
+
+// How many records the list example asks for.
+export const DEVELOPER_DOCS_LIST_LIMIT: number = 10;
+
+const PLACEHOLDER_NOTE: string =
+  "Replace the values in angle brackets with your own.";
 
 export interface DeveloperDocsGuideCopy {
   title: string;
@@ -143,7 +206,7 @@ export const DEVELOPER_DOCS_GUIDE_COPY: Readonly<
     [DeveloperDocsScope.List]: {
       title: "Terraform",
       description:
-        "Manage these resources as code with the OneUptime Terraform provider: create new ones, or bring in the ones you already have.",
+        "Manage these resources as code with the OneUptime Terraform provider. The examples below are filled in from this project: create new ones, or bring in the ones you already have.",
     },
   },
   [DeveloperDocsPageType.Api]: {
@@ -155,7 +218,7 @@ export const DEVELOPER_DOCS_GUIDE_COPY: Readonly<
     [DeveloperDocsScope.List]: {
       title: "API",
       description:
-        "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.",
+        "List, filter and create these resources with the OneUptime REST API. Every command below runs against this OneUptime and is filled in from this project.",
     },
   },
   [DeveloperDocsPageType.AiAssistants]: {
@@ -205,46 +268,112 @@ function nouns(context: DeveloperDocsGuideContext): {
   };
 }
 
-function apiKeyStep(
+function getModelType(
   context: DeveloperDocsGuideContext,
-  reader: "Terraform" | "the API" | "your assistant",
+): DatabaseBaseModelType {
+  return context.resource.modelType;
+}
+
+function getLive(context: DeveloperDocsGuideContext): DeveloperDocsLiveData {
+  return context.live || getEmptyDeveloperDocsLiveData(new Date());
+}
+
+/*
+ * What the example builders need: the project, and on a view page the
+ * record (and, once its configuration is on the page, its address).
+ */
+function exampleContext(
+  context: DeveloperDocsGuideContext,
+  terraformAddress?: string | undefined,
+): DeveloperDocsExampleContext {
+  return {
+    live: getLive(context),
+    record: context.record
+      ? {
+          id: context.record.id,
+          displayName: context.record.displayName,
+          json: context.record.json,
+          terraformAddress,
+        }
+      : undefined,
+  };
+}
+
+// Text for one line of a list: no line breaks.
+function oneLine(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+/*
+ * What each field of an example is for. Required fields say so; the rest
+ * can be left out. A list rather than a table, so it reads as well on a
+ * phone as on a wide screen.
+ */
+function fieldsList(rows: Array<DeveloperDocsFieldRow>): string {
+  if (rows.length === 0) {
+    return "";
+  }
+
+  return joinParts([
+    "What each field is for:",
+    rows
+      .map((row: DeveloperDocsFieldRow): string => {
+        return `- \`${row.name}\`${row.required ? " (required)" : ""}: ${oneLine(row.about)}`;
+      })
+      .join("\n"),
+  ]);
+}
+
+function joinParts(parts: Array<string | undefined | null | false>): string {
+  return parts
+    .filter((part: string | undefined | null | false): part is string => {
+      return Boolean(part && part.trim());
+    })
+    .join("\n\n");
+}
+
+function withPlaceholderNote(
+  description: string,
+  isPlaceholder: boolean,
+): string {
+  return isPlaceholder ? `${description} ${PLACEHOLDER_NOTE}` : description;
+}
+
+/*
+ * Terraform.
+ */
+
+function connectTerraformStep(
+  context: DeveloperDocsGuideContext,
 ): DeveloperDocsStep {
   const { plural } = nouns(context);
 
   return {
-    title: "Create an API key",
+    title: "Connect Terraform to OneUptime",
     description:
-      reader === "your assistant"
-        ? "Your assistant reads the key from the environment, so it never appears in the chat."
-        : `${reader === "Terraform" ? "Terraform signs" : "Requests sign"} in to OneUptime with a project API key.`,
-    markdown: [
-      `Create one in [Project Settings → API Keys](${context.apiKeysUrl}) with permission to manage ${plural}, then make it available in your shell:`,
-      "",
+      "Terraform signs in with a project API key, and the provider points it at this OneUptime.",
+    markdown: joinParts([
+      `Create a key in [Project Settings → API Keys](${context.apiKeysUrl}) with permission to manage ${plural}, and make it available in your shell:`,
       codeBlock("bash", getApiKeyExportCommand()),
-    ].join("\n"),
-  };
-}
-
-function providerStep(context: DeveloperDocsGuideContext): DeveloperDocsStep {
-  return {
-    title: "Add the OneUptime provider",
-    description:
-      "Put this in a .tf file in your Terraform project. It points the provider at this OneUptime.",
-    markdown: codeBlock(
-      "hcl",
-      getTerraformProviderHcl({
-        oneuptimeUrl: context.oneuptimeUrl.startsWith("http")
-          ? context.oneuptimeUrl
-          : null,
-        platformVersion: context.platformVersion,
-      }),
-    ),
+      "Then put the provider in a `.tf` file in your Terraform project:",
+      codeBlock(
+        "hcl",
+        getTerraformProviderHcl({
+          oneuptimeUrl: context.oneuptimeUrl.startsWith("http")
+            ? context.oneuptimeUrl
+            : null,
+          platformVersion: context.platformVersion,
+        }),
+      ),
+    ]),
   };
 }
 
 function secretsMarkdown(data: {
   variables: Array<TerraformSecretVariable>;
-  omitted: Array<TerraformOmittedAttribute>;
+  omitted?: Array<TerraformOmittedAttribute> | undefined;
+  // Attributes Terraform cannot set, because their name is one of its own.
+  reserved?: Array<TerraformOmittedAttribute> | undefined;
 }): string {
   const lines: Array<string> = [];
 
@@ -263,17 +392,37 @@ function secretsMarkdown(data: {
     );
   }
 
-  if (data.omitted.length > 0) {
+  const omitted: Array<TerraformOmittedAttribute> = data.omitted || [];
+
+  if (omitted.length > 0) {
     if (lines.length > 0) {
       lines.push("");
     }
 
     lines.push(
-      `Left out because they are secret: ${data.omitted
-        .map((omitted: TerraformOmittedAttribute): string => {
-          return `\`${omitted.attributeName}\``;
+      `Left out because they are secret: ${omitted
+        .map((item: TerraformOmittedAttribute): string => {
+          return `\`${item.attributeName}\``;
         })
         .join(", ")}. Terraform leaves them as they are in OneUptime.`,
+    );
+  }
+
+  const reserved: Array<TerraformOmittedAttribute> = data.reserved || [];
+
+  if (reserved.length > 0) {
+    if (lines.length > 0) {
+      lines.push("");
+    }
+
+    lines.push(
+      `Left out because Terraform reserves the name for its own use: ${reserved
+        .map((item: TerraformOmittedAttribute): string => {
+          return `\`${item.attributeName}\``;
+        })
+        .join(
+          ", ",
+        )}. Change it in OneUptime instead; Terraform leaves it as it is.`,
     );
   }
 
@@ -291,6 +440,13 @@ function terraformLinks(
       url: docsUrl(context, "terraform/importing-resources"),
     },
   ];
+
+  if (typeName === "oneuptime_monitor") {
+    links.push({
+      title: "Monitor steps",
+      url: docsUrl(context, "terraform/monitor-steps"),
+    });
+  }
 
   if (typeName) {
     links.push({
@@ -312,6 +468,51 @@ const OPEN_TOFU_TOPIC: SetupGuideTopic = {
   ].join("\n"),
 };
 
+/*
+ * Recipes as one tab each: what it sets up, then the configuration. A
+ * recipe on a resource's own page refers to that resource by its address,
+ * so it goes in the same configuration.
+ */
+function recipesSection(data: {
+  title: string;
+  description: string;
+  recipes: Array<DeveloperDocsTerraformRecipe>;
+}): Array<DeveloperDocsSection> {
+  if (data.recipes.length === 0) {
+    return [];
+  }
+
+  return [
+    {
+      title: data.title,
+      description: data.description,
+      variants: data.recipes.map(
+        (recipe: DeveloperDocsTerraformRecipe): SetupGuideStepVariant => {
+          return {
+            label: recipe.title,
+            markdown: joinParts([
+              withPlaceholderNote(recipe.description, recipe.isPlaceholder),
+              codeBlock("hcl", recipe.hcl),
+              secretsMarkdown({ variables: recipe.variables }),
+            ]),
+          };
+        },
+      ),
+    },
+  ];
+}
+
+// Names for the ids in a record's configuration: "# Critical Incident".
+function describeIdFor(
+  context: DeveloperDocsGuideContext,
+): (id: string) => string | undefined {
+  const names: Record<string, string> = getLive(context).namesById;
+
+  return (id: string): string | undefined => {
+    return names[id];
+  };
+}
+
 function getTerraformResourceGuide(
   context: DeveloperDocsGuideContext,
   record: DeveloperDocsRecord,
@@ -321,37 +522,40 @@ function getTerraformResourceGuide(
     DeveloperDocsPageType.Terraform,
     context,
   );
-  const typeName: string | null = getTerraformTypeName(
-    context.resource.modelType,
-  );
+  const modelType: DatabaseBaseModelType = getModelType(context);
+  const typeName: string | null = getTerraformTypeName(modelType);
   const config: TerraformResourceConfig | null = getTerraformResourceConfig({
-    modelType: context.resource.modelType,
+    modelType,
     json: record.json,
     displayName: record.displayName,
+    describeId: describeIdFor(context),
   });
 
   if (!config) {
     return getTerraformUnsupportedGuide(context, typeName);
   }
 
-  const secrets: string = secretsMarkdown({
-    variables: config.variables,
-    omitted: config.omittedSecrets,
+  const recipes: Array<DeveloperDocsTerraformRecipe> = getTerraformRecipes({
+    modelType,
+    scope: "view",
+    context: exampleContext(context, config.address),
   });
 
   return {
     ...copy,
     steps: [
-      apiKeyStep(context, "Terraform"),
-      providerStep(context),
+      connectTerraformStep(context),
       {
         title: `Add ${theRecord}`,
-        description: `Its settings as a resource, and an import block: it tells Terraform the ${singular} already exists, so Terraform adopts it instead of creating a copy.`,
-        markdown: [codeBlock("hcl", config.hcl), secrets]
-          .filter((part: string): boolean => {
-            return part.length > 0;
-          })
-          .join("\n\n"),
+        description: `Its settings as they are now, and an import block: it tells Terraform the ${singular} already exists, so Terraform adopts it instead of creating a copy. Comments name the records its IDs point at.`,
+        markdown: joinParts([
+          codeBlock("hcl", config.hcl),
+          secretsMarkdown({
+            variables: config.variables,
+            omitted: config.omittedSecrets,
+            reserved: config.omittedReserved,
+          }),
+        ]),
       },
       {
         title: "Import it",
@@ -362,6 +566,11 @@ function getTerraformResourceGuide(
         ),
       },
     ],
+    sections: recipesSection({
+      title: "Build on it",
+      description: `What people often set up next to ${theRecord}. Each one refers to it by its address in the configuration above, so put it in the same file.`,
+      recipes,
+    }),
     topics: [
       {
         title: "Import it from the command line instead",
@@ -404,26 +613,57 @@ function getTerraformUnsupportedGuide(
         ? ` You can still read them with the \`${typeName}\` data source.`
         : ""
     }`,
-    steps: [apiKeyStep(context, "Terraform"), providerStep(context)],
+    steps: [connectTerraformStep(context)],
+    sections: [],
     topics: [],
     links: terraformLinks(context, null),
   };
 }
 
-function hclExampleValues(
-  resource: DeveloperDocsResource,
-): Record<string, HclExpression> | undefined {
-  if (!resource.exampleValues) {
-    return undefined;
+// Looking one up with a data source: by name where the provider can, else by id.
+function lookupTopic(
+  context: DeveloperDocsGuideContext,
+): SetupGuideTopic | null {
+  const modelType: DatabaseBaseModelType = getModelType(context);
+  const typeName: string | null = getTerraformTypeName(modelType);
+  const { singular } = nouns(context);
+  const first: TerraformImportTarget | undefined = context.importTargets?.[0];
+
+  if (!typeName) {
+    return null;
   }
 
-  const values: Record<string, HclExpression> = {};
+  const byName: string | null = getTerraformDataSourceByNameHcl({
+    modelType,
+    exampleName: first?.displayName || `My ${singular}`,
+  });
 
-  for (const key of Object.keys(resource.exampleValues)) {
-    values[key] = jsonToHcl(resource.exampleValues[key]);
+  if (byName) {
+    return {
+      title: "Look one up by name",
+      summary: "A data source",
+      markdown: [
+        `To use ${withIndefiniteArticle(singular)} that stays managed in OneUptime, read it with a data source. The name must match exactly one:`,
+        "",
+        codeBlock("hcl", byName),
+      ].join("\n"),
+    };
   }
 
-  return values;
+  const localName: string = getTerraformShortTypeName(typeName);
+
+  return {
+    title: "Look one up by ID",
+    summary: "A data source",
+    markdown: [
+      `To use ${withIndefiniteArticle(singular)} that stays managed in OneUptime, read it with a data source, by its ID:`,
+      "",
+      codeBlock(
+        "hcl",
+        `data "${typeName}" "${localName}" {\n  id = "${first?.id || `<${singular} id>`}"\n}\n`,
+      ),
+    ].join("\n"),
+  };
 }
 
 function getTerraformCollectionGuide(
@@ -434,110 +674,146 @@ function getTerraformCollectionGuide(
     DeveloperDocsPageType.Terraform,
     context,
   );
-  const typeName: string | null = getTerraformTypeName(
-    context.resource.modelType,
-  );
-  const starter: string | null = getTerraformStarterHcl({
-    modelType: context.resource.modelType,
-    singularName: getDeveloperDocsSingularName(context.resource),
-    exampleValues: hclExampleValues(context.resource),
+  const modelType: DatabaseBaseModelType = getModelType(context);
+  const profile: DeveloperDocsProfile = getDeveloperDocsProfile(modelType);
+  const typeName: string | null = getTerraformTypeName(modelType);
+  const examples: DeveloperDocsExampleContext = exampleContext(context);
+  const example: DeveloperDocsTerraformExample | null =
+    getTerraformCreateExample({ modelType, context: examples });
+  const importHcl: string | null = getTerraformImportBlocksHcl({
+    modelType,
+    targets: context.importTargets || [],
   });
 
-  if (!starter) {
+  if (!example && !profile.terraformCannotCreate) {
     return getTerraformUnsupportedGuide(context, typeName);
   }
 
   const targets: Array<TerraformImportTarget> = context.importTargets || [];
   const totalCount: number = context.totalCount ?? targets.length;
-  const imports: string | null = getTerraformImportBlocksHcl({
-    modelType: context.resource.modelType,
-    targets,
-  });
   const fileName: string = `${getTerraformShortTypeName(typeName || singular)}s.tf`;
+  const createTitle: string = getCreateTitle({
+    modelType,
+    singularName: getDeveloperDocsSingularName(context.resource),
+  });
+
+  const createStep: DeveloperDocsStep = example
+    ? {
+        title: createTitle,
+        description: withPlaceholderNote(
+          example.usesProjectData
+            ? `The fields most ${plural} set, filled in from this project.`
+            : `The fields most ${plural} set.`,
+          example.isPlaceholder,
+        ),
+        markdown: joinParts([
+          profile.createNote,
+          codeBlock("hcl", example.hcl),
+          secretsMarkdown({ variables: example.variables }),
+          codeBlock("bash", "terraform init\nterraform apply"),
+          fieldsList(example.rows),
+        ]),
+      }
+    : {
+        title: createTitle,
+        markdown: profile.terraformCannotCreate,
+      };
 
   let importMarkdown: string;
 
-  if (!imports) {
+  if (!importHcl) {
     importMarkdown = `There are no ${plural} in this project yet.`;
   } else {
-    importMarkdown = [
+    importMarkdown = joinParts([
       totalCount > targets.length
         ? `Import blocks for the first ${targets.length} of your ${totalCount} ${plural}:`
         : `An import block for each of your ${plural}:`,
-      "",
-      codeBlock("hcl", imports),
-      "",
-      `Then let Terraform write their configuration, review it, and apply:`,
-      "",
+      codeBlock("hcl", importHcl),
+      "Then let Terraform write their configuration, review it, and apply:",
       codeBlock(
         "bash",
         `terraform plan -generate-config-out=${fileName}\nterraform apply`,
       ),
-    ].join("\n");
+    ]);
   }
 
-  const placeholders: boolean = starter.includes("<");
+  const lookup: SetupGuideTopic | null = lookupTopic(context);
 
   return {
     ...copy,
     steps: [
-      apiKeyStep(context, "Terraform"),
-      providerStep(context),
-      {
-        title: `Create a ${singular}`,
-        description: placeholders
-          ? "Replace the values in angle brackets with your own."
-          : `The settings a new ${singular} needs. Add any others from the reference.`,
-        markdown: [
-          codeBlock("hcl", starter),
-          "",
-          codeBlock("bash", "terraform init\nterraform apply"),
-        ].join("\n"),
-      },
+      connectTerraformStep(context),
+      createStep,
       {
         title: `Bring in the ${plural} you already have`,
-        description: `Terraform adopts them as they are, without creating copies.`,
+        description:
+          "Terraform adopts them as they are, without creating copies.",
         markdown: importMarkdown,
       },
     ],
-    topics: [
-      {
-        title: "Look one up by name",
-        summary: "A data source",
-        markdown: [
-          `To use a ${singular} that stays managed in OneUptime, read it with a data source:`,
-          "",
-          codeBlock(
-            "hcl",
-            getTerraformDataSourceByNameHcl({
-              modelType: context.resource.modelType,
-              exampleName: targets[0]?.displayName || `My ${singular}`,
-            }) || "",
-          ),
-        ].join("\n"),
-      },
-      OPEN_TOFU_TOPIC,
-    ],
+    sections: recipesSection({
+      title: "Common setups",
+      description: `Ready-made configurations for ${plural}, filled in from this project.`,
+      recipes: getTerraformRecipes({
+        modelType,
+        scope: "list",
+        context: examples,
+      }),
+    }),
+    topics: [...(lookup ? [lookup] : []), OPEN_TOFU_TOPIC],
     links: terraformLinks(context, typeName),
   };
 }
 
-function curlStep(data: {
-  title: string;
-  description: string;
-  example: ApiExample | null;
-}): Array<DeveloperDocsStep> {
-  if (!data.example) {
-    return [];
+/*
+ * API.
+ */
+
+function apiKeyStep(context: DeveloperDocsGuideContext): DeveloperDocsStep {
+  const { plural } = nouns(context);
+
+  return {
+    title: "Create an API key",
+    description:
+      "Requests sign in with a project API key, sent in the ApiKey header. The project comes from the key.",
+    markdown: [
+      `Create one in [Project Settings → API Keys](${context.apiKeysUrl}) with permission to manage ${plural}, then make it available in your shell:`,
+      "",
+      codeBlock("bash", getApiKeyExportCommand()),
+    ].join("\n"),
+  };
+}
+
+function apiUrl(context: DeveloperDocsGuideContext, path: string): string {
+  return `${getApiBaseUrl(context.oneuptimeUrl)}${path}`;
+}
+
+function curl(data: {
+  method: ApiExample["method"];
+  url: string;
+  body?: JSONObject | undefined;
+}): string {
+  return codeBlock("bash", getCurlCommand(data));
+}
+
+function responseBlock(json: unknown): string {
+  return joinParts([
+    "It answers with:",
+    codeBlock("json", JSON.stringify(json, null, 2)),
+  ]);
+}
+
+// Only the fields a request asked for, as the response carries them.
+function pickFields(json: JSONObject, select: JSONObject): JSONObject {
+  const picked: JSONObject = {};
+
+  for (const key of Object.keys(select)) {
+    if (json[key] !== undefined) {
+      picked[key] = json[key] as JSONObject;
+    }
   }
 
-  return [
-    {
-      title: data.title,
-      description: data.description,
-      markdown: codeBlock("bash", data.example.curl),
-    },
-  ];
+  return picked;
 }
 
 function apiLinks(context: DeveloperDocsGuideContext): Array<SetupGuideLink> {
@@ -545,7 +821,7 @@ function apiLinks(context: DeveloperDocsGuideContext): Array<SetupGuideLink> {
     {
       title: `${getDeveloperDocsSingularName(context.resource)} API reference`,
       url: getApiReferenceUrl({
-        modelType: context.resource.modelType,
+        modelType: getModelType(context),
         oneuptimeUrl: context.oneuptimeUrl,
       }),
     },
@@ -556,113 +832,359 @@ function apiLinks(context: DeveloperDocsGuideContext): Array<SetupGuideLink> {
   ];
 }
 
+/*
+ * Every request the API has for the resource, as a table: the quickest
+ * answer to "what can I do with these over the API, and where?".
+ */
+function endpointsSection(
+  context: DeveloperDocsGuideContext,
+): Array<DeveloperDocsSection> {
+  const modelType: DatabaseBaseModelType = getModelType(context);
+  const path: string | null = getModelApiPath(modelType);
+
+  if (!path || !isModelInPublicApi(modelType)) {
+    return [];
+  }
+
+  const operations: TerraformModelOperations =
+    getTerraformModelOperations(modelType);
+  const id: string = context.record?.id || "{id}";
+  const { singular, plural } = nouns(context);
+  const rows: Array<[boolean, string, string]> = [
+    [operations.canRead, `List ${plural}`, `POST ${path}/get-list`],
+    [operations.canRead, `Count ${plural}`, `POST ${path}/count`],
+    [operations.canRead, `Read one`, `POST ${path}/${id}/get-item`],
+    [
+      operations.canCreate,
+      `Create ${withIndefiniteArticle(singular)}`,
+      `POST ${path}`,
+    ],
+    [operations.canUpdate, `Change one`, `PUT ${path}/${id}`],
+    [operations.canDelete, `Delete one`, `DELETE ${path}/${id}`],
+  ];
+
+  return [
+    {
+      title: "Endpoints",
+      description: `Every request below goes to ${getApiBaseUrl(context.oneuptimeUrl)}, with the ApiKey header.`,
+      markdown: rows
+        .filter((row: [boolean, string, string]): boolean => {
+          return row[0];
+        })
+        .map((row: [boolean, string, string]): string => {
+          return `- ${row[1]}: \`${row[2]}\``;
+        })
+        .join("\n"),
+    },
+  ];
+}
+
 const QUERY_TOPIC: SetupGuideTopic = {
   title: "Filter, sort and choose fields",
   summary: "query, select and sort",
   markdown: [
-    "List and count requests take a `query`: a field and a value to match, or an operator such as `GreaterThan` or `Search`. `select` picks the fields to return, `sort` orders them (`ASC` or `DESC`), and `skip` and `limit` in the URL page through the results.",
+    "List and count requests take a `query`. A field and a value matches that value; an object with a `_type` is an operator:",
     "",
-    codeBlock(
-      "json",
-      JSON.stringify(
-        {
-          query: {
-            createdAt: {
-              _type: "GreaterThan",
-              value: "2026-01-01T00:00:00.000Z",
-            },
-          },
-          select: { _id: true, createdAt: true },
-          sort: { createdAt: "DESC" },
-        },
-        null,
-        2,
-      ),
-    ),
+    '- `{"_type": "Search", "value": "api"}`: text that contains the value.',
+    '- `{"_type": "NotEqual", "value": "..."}`: anything but the value.',
+    '- `{"_type": "GreaterThan", "value": "2026-01-01T00:00:00.000Z"}`: later dates or larger numbers. `LessThan`, `GreaterThanOrEqual` and `LessThanOrEqual` work the same way.',
+    '- `{"_type": "InBetween", "startValue": "...", "endValue": "..."}`: dates or numbers in a range.',
+    '- `{"_type": "Includes", "value": ["...", "..."]}`: any of the values.',
+    '- A plain list on a list relation, such as `"labels": ["..."]`: records with any of those labels (or monitors, teams, ...).',
+    '- `{"_type": "IsNull"}` and `{"_type": "NotNull"}`: empty, or set.',
+    "",
+    '`select` picks the fields to return (`_id` always comes back), and `sort` orders them, `ASC` or `DESC`. Dates and ids come back wrapped, as `{"_type": "DateTime", "value": "..."}` and `{"_type": "ObjectID", "value": "..."}`.',
   ].join("\n"),
 };
+
+function paginationTopic(context: DeveloperDocsGuideContext): SetupGuideTopic {
+  const { plural } = nouns(context);
+
+  return {
+    title: "Page through all of them",
+    summary: "skip and limit",
+    markdown: [
+      `\`limit\` (up to ${LIMIT_PER_PROJECT}) says how many ${plural} come back, and \`skip\` how many to pass over first. The response's \`count\` is how many match the query in all, so keep asking with a larger \`skip\` until you have them all: \`skip=0\`, then \`skip=${DEVELOPER_DOCS_LIST_LIMIT}\`, \`skip=${DEVELOPER_DOCS_LIST_LIMIT * 2}\` and so on.`,
+    ].join("\n"),
+  };
+}
 
 function getApiResourceGuide(
   context: DeveloperDocsGuideContext,
   record: DeveloperDocsRecord,
 ): DeveloperDocsGuide {
   const { singular } = nouns(context);
-  const examples: ResourceApiExamples = getResourceApiExamples({
-    modelType: context.resource.modelType,
-    apiBaseUrl: getApiBaseUrl(context.oneuptimeUrl),
-    id: record.id,
-    displayName: record.displayName,
+  const modelType: DatabaseBaseModelType = getModelType(context);
+  const path: string | null = getModelApiPath(modelType);
+  const operations: TerraformModelOperations =
+    getTerraformModelOperations(modelType);
+  const examples: DeveloperDocsExampleContext = exampleContext(context);
+
+  if (!path || !isModelInPublicApi(modelType)) {
+    return {
+      ...guideCopy(DeveloperDocsPageType.Api, context),
+      notice: `The REST API does not cover ${nouns(context).plural}.`,
+      steps: [],
+      sections: [],
+      topics: [],
+      links: apiLinks(context),
+    };
+  }
+
+  const itemUrl: string = apiUrl(context, `${path}/${record.id}`);
+  const select: JSONObject = getApiReadSelect(modelType);
+  const readJson: JSONObject = pickFields(record.json, select);
+  const update: { data: JSONObject; description: string } | null =
+    operations.canUpdate
+      ? getApiUpdateExample({ modelType, context: examples })
+      : null;
+  const steps: Array<DeveloperDocsStep> = [apiKeyStep(context)];
+
+  if (operations.canRead) {
+    steps.push({
+      title: "Read it",
+      description: `Ask for the fields you need in select. This ${singular}'s ID is ${record.id}.`,
+      markdown: joinParts([
+        curl({ method: "POST", url: `${itemUrl}/get-item`, body: { select } }),
+        Object.keys(readJson).length > 1 ? responseBlock(readJson) : "",
+      ]),
+    });
+  }
+
+  if (update) {
+    steps.push({
+      title: "Change it",
+      description: update.description,
+      markdown: curl({
+        method: "PUT",
+        url: itemUrl,
+        body: { data: update.data },
+      }),
+    });
+  }
+
+  if (operations.canDelete) {
+    steps.push({
+      title: "Delete it",
+      description: `This deletes the ${singular} for good.`,
+      markdown: curl({ method: "DELETE", url: itemUrl }),
+    });
+  }
+
+  const tasks: Array<DeveloperDocsApiTask> = getApiTasks({
+    modelType,
+    scope: "view",
+    context: examples,
   });
 
   return {
     ...guideCopy(DeveloperDocsPageType.Api, context),
-    steps: [
-      apiKeyStep(context, "the API"),
-      ...curlStep({
-        title: "Read it",
-        description: `Ask for the fields you need in select. This ${singular}'s ID is ${record.id}.`,
-        example: examples.read,
-      }),
-      ...curlStep({
-        title: "Change it",
-        description:
-          "Send only the fields you want to change. Everything else stays as it is.",
-        example: examples.update,
-      }),
-      ...curlStep({
-        title: "Delete it",
-        description: `This deletes the ${singular} for good.`,
-        example: examples.delete,
-      }),
-    ],
+    steps,
+    sections: [...tasksSection(context, tasks), ...endpointsSection(context)],
     topics: [QUERY_TOPIC],
     links: apiLinks(context),
   };
 }
 
+function tasksSection(
+  context: DeveloperDocsGuideContext,
+  tasks: Array<DeveloperDocsApiTask>,
+): Array<DeveloperDocsSection> {
+  const variants: Array<SetupGuideStepVariant> = tasks
+    .map((task: DeveloperDocsApiTask): SetupGuideStepVariant | null => {
+      const path: string | null = getModelApiPath(task.modelType);
+
+      if (!path) {
+        return null;
+      }
+
+      return {
+        label: task.title,
+        markdown: joinParts([
+          withPlaceholderNote(task.description, task.isPlaceholder),
+          curl(
+            task.operation === "create"
+              ? { method: "POST", url: apiUrl(context, path), body: task.body }
+              : {
+                  method: "POST",
+                  url: apiUrl(
+                    context,
+                    `${path}/get-list?skip=0&limit=${DEVELOPER_DOCS_LIST_LIMIT}`,
+                  ),
+                  body: task.body,
+                },
+          ),
+        ]),
+      };
+    })
+    .filter(
+      (
+        variant: SetupGuideStepVariant | null,
+      ): variant is SetupGuideStepVariant => {
+        return variant !== null;
+      },
+    );
+
+  if (variants.length === 0) {
+    return [];
+  }
+
+  return [
+    {
+      title: "Common tasks",
+      description: `What people do most with ${nouns(context).theRecord} over the API, filled in with this project's own records.`,
+      variants,
+    },
+  ];
+}
+
 function getApiCollectionGuide(
   context: DeveloperDocsGuideContext,
 ): DeveloperDocsGuide {
-  const { singular, plural } = nouns(context);
-  const examples: CollectionApiExamples = getCollectionApiExamples({
-    modelType: context.resource.modelType,
-    apiBaseUrl: getApiBaseUrl(context.oneuptimeUrl),
-    singularName: getDeveloperDocsSingularName(context.resource),
-    exampleValues: context.resource.exampleValues,
-  });
+  const { plural } = nouns(context);
+  const modelType: DatabaseBaseModelType = getModelType(context);
+  const path: string | null = getModelApiPath(modelType);
+  const operations: TerraformModelOperations =
+    getTerraformModelOperations(modelType);
+  const examples: DeveloperDocsExampleContext = exampleContext(context);
 
-  const topics: Array<SetupGuideTopic> = [QUERY_TOPIC];
+  if (!path || !isModelInPublicApi(modelType)) {
+    return {
+      ...guideCopy(DeveloperDocsPageType.Api, context),
+      notice: `The REST API does not cover ${plural}.`,
+      steps: [],
+      sections: [],
+      topics: [],
+      links: apiLinks(context),
+    };
+  }
 
-  if (examples.count) {
+  const collectionUrl: string = apiUrl(context, path);
+  const select: JSONObject = getApiReadSelect(modelType);
+  const steps: Array<DeveloperDocsStep> = [apiKeyStep(context)];
+  const topics: Array<SetupGuideTopic> = [];
+
+  if (operations.canRead) {
+    const sample: DeveloperDocsSample | undefined = context.sample;
+
+    steps.push({
+      title: `List your ${plural}`,
+      description: `Newest first, ${DEVELOPER_DOCS_LIST_LIMIT} at a time.`,
+      markdown: joinParts([
+        curl({
+          method: "POST",
+          url: `${collectionUrl}/get-list?skip=0&limit=${DEVELOPER_DOCS_LIST_LIMIT}`,
+          body: { select, sort: { createdAt: "DESC" } },
+        }),
+        sample
+          ? responseBlock({
+              data: sample.records
+                .slice(0, 1)
+                .map((record: JSONObject): JSONObject => {
+                  return pickFields(record, select);
+                }),
+              count: sample.count,
+              skip: 0,
+              limit: DEVELOPER_DOCS_LIST_LIMIT,
+            })
+          : "",
+        sample && sample.count > 1
+          ? `Shown with the first of your ${sample.count} ${plural}; \`count\` is how many there are in all.`
+          : "",
+      ]),
+    });
+
+    const filters: Array<DeveloperDocsApiFilter> = getApiFilters({
+      modelType,
+      context: examples,
+    });
+
+    if (filters.length > 0) {
+      steps.push({
+        title: "Find the ones you need",
+        description:
+          "Add a query to the same request. Each of these is filled in from this project.",
+        variants: filters.map(
+          (filter: DeveloperDocsApiFilter): SetupGuideStepVariant => {
+            return {
+              label: filter.title,
+              markdown: joinParts([
+                filter.description,
+                curl({
+                  method: "POST",
+                  url: `${collectionUrl}/get-list?skip=0&limit=${DEVELOPER_DOCS_LIST_LIMIT}`,
+                  body: filter.body,
+                }),
+              ]),
+            };
+          },
+        ),
+      });
+    }
+
+    topics.push(paginationTopic(context));
+    topics.push(QUERY_TOPIC);
     topics.push({
       title: `Count your ${plural}`,
       summary: "count",
-      markdown: codeBlock("bash", examples.count.curl),
+      markdown: joinParts([
+        "Takes the same query as a list, and answers with how many match.",
+        curl({
+          method: "POST",
+          url: `${collectionUrl}/count`,
+          body: { query: {} },
+        }),
+        sample ? responseBlock({ count: sample.count }) : "",
+      ]),
     });
+  }
+
+  if (operations.canCreate) {
+    const create: DeveloperDocsApiBody = getApiCreateExample({
+      modelType,
+      context: examples,
+    });
+    const profile: DeveloperDocsProfile = getDeveloperDocsProfile(modelType);
+
+    if (Object.keys(create.body).length > 0) {
+      steps.push({
+        title: getCreateTitle({
+          modelType,
+          singularName: getDeveloperDocsSingularName(context.resource),
+        }),
+        description: withPlaceholderNote(
+          `${
+            create.usesProjectData
+              ? `The fields most ${plural} set, filled in from this project.`
+              : `The fields most ${plural} set.`
+          } It answers with the new one, and its _id.`,
+          create.isPlaceholder,
+        ),
+        markdown: joinParts([
+          profile.createNote,
+          curl({
+            method: "POST",
+            url: collectionUrl,
+            body: { data: create.body },
+          }),
+          fieldsList(create.rows),
+        ]),
+      });
+    }
   }
 
   return {
     ...guideCopy(DeveloperDocsPageType.Api, context),
-    steps: [
-      apiKeyStep(context, "the API"),
-      ...curlStep({
-        title: `List your ${plural}`,
-        description: "Newest first, ten at a time.",
-        example: examples.list,
-      }),
-      ...curlStep({
-        title: `Create a ${singular}`,
-        description:
-          examples.create && JSON.stringify(examples.create.body).includes("<")
-            ? "Replace the values in angle brackets with your own."
-            : `The fields a new ${singular} needs. Add any others from the reference.`,
-        example: examples.create,
-      }),
-    ],
+    steps,
+    sections: endpointsSection(context),
     topics,
     links: apiLinks(context),
   };
 }
+
+/*
+ * AI Assistants.
+ */
 
 function mcpToolsTopic(
   tools: McpToolNames,
@@ -678,9 +1200,9 @@ function mcpToolsTopic(
       `| \`${tools.get}\` | Reads one ${singular} |`,
       `| \`${tools.list}\` | Lists and searches ${plural} |`,
       `| \`${tools.count}\` | Counts ${plural} |`,
-      `| \`${tools.create}\` | Creates a ${singular} |`,
-      `| \`${tools.update}\` | Changes a ${singular} |`,
-      `| \`${tools.delete}\` | Deletes a ${singular} (your assistant asks first) |`,
+      `| \`${tools.create}\` | Creates ${withIndefiniteArticle(singular)} |`,
+      `| \`${tools.update}\` | Changes ${withIndefiniteArticle(singular)} |`,
+      `| \`${tools.delete}\` | Deletes ${withIndefiniteArticle(singular)} (your assistant asks first) |`,
       "",
       "A client you authorize as read only can use the first three.",
     ].join("\n"),
@@ -690,17 +1212,15 @@ function mcpToolsTopic(
 function getAiGuide(context: DeveloperDocsGuideContext): DeveloperDocsGuide {
   const { singular, plural, theRecord } = nouns(context);
   const mcpUrl: string = getMcpServerUrl(context.oneuptimeUrl);
-  const tools: McpToolNames | null = getMcpToolNames(
-    context.resource.modelType,
-  );
+  const tools: McpToolNames | null = getMcpToolNames(getModelType(context));
   const prompts: Array<string> = getAssistantPrompts({
-    modelType: context.resource.modelType,
+    modelType: getModelType(context),
     singularName: getDeveloperDocsSingularName(context.resource),
     pluralName: getDeveloperDocsPluralName(context.resource),
     displayName: context.record?.displayName,
     id: context.record?.id,
     apiReferenceUrl: getApiReferenceUrl({
-      modelType: context.resource.modelType,
+      modelType: getModelType(context),
       oneuptimeUrl: context.oneuptimeUrl,
     }),
   });
@@ -734,6 +1254,7 @@ function getAiGuide(context: DeveloperDocsGuideContext): DeveloperDocsGuide {
           prompts,
         },
       ],
+      sections: [],
       topics: [
         mcpToolsTopic(tools, plural, singular),
         {
@@ -752,13 +1273,18 @@ function getAiGuide(context: DeveloperDocsGuideContext): DeveloperDocsGuide {
       context.record ? `this ${singular}` : `your ${plural}`
     } through the REST API.`,
     steps: [
-      apiKeyStep(context, "your assistant"),
+      {
+        ...apiKeyStep(context),
+        description:
+          "Your assistant reads the key from the environment, so it never appears in the chat.",
+      },
       {
         title: askTitle,
         description: `Start your assistant in the same shell, so it can use the key in ${ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE}, then try one of these.`,
         prompts,
       },
     ],
+    sections: [],
     topics: [
       {
         title: "Connect the MCP server for the rest of your project",
