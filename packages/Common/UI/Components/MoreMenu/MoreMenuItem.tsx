@@ -33,6 +33,12 @@ export interface ComponentProps {
    * colour the way the state dropdowns do. An icon, when given, wins.
    */
   color?: Color | string | undefined;
+  /*
+   * A mark in the icon's place, coloured like an icon, for an item whose
+   * button draws one that is not an icon: the H1 of a text editor's Heading
+   * 1. An icon, when given, wins.
+   */
+  iconElement?: ReactElement | undefined;
 }
 
 const MoreMenuItem: FunctionComponent<ComponentProps> = (
@@ -106,7 +112,20 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           } ${props.iconClassName || ""}`}
         />
       )}
-      {!props.icon && dotColor && (
+      {!props.icon && props.iconElement && (
+        <span
+          className={`mr-2.5 flex h-4 w-4 shrink-0 items-center justify-center transition-colors duration-100 ${
+            isDestructive
+              ? `text-red-500 ${isDisabled ? "" : "group-hover:text-red-600"}`
+              : `text-gray-400 ${isDisabled ? "" : "group-hover:text-indigo-500"}`
+          }`}
+          aria-hidden="true"
+          data-testid="more-menu-item-mark"
+        >
+          {props.iconElement}
+        </span>
+      )}
+      {!props.icon && !props.iconElement && dotColor && (
         <span
           className="mr-2.5 flex h-4 w-4 shrink-0 items-center justify-center"
           aria-hidden="true"
@@ -118,9 +137,12 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           ></span>
         </span>
       )}
-      {!props.icon && !dotColor && props.isIconSpaceReserved && (
-        <span className="mr-2.5 h-4 w-4 shrink-0" aria-hidden="true"></span>
-      )}
+      {!props.icon &&
+        !props.iconElement &&
+        !dotColor &&
+        props.isIconSpaceReserved && (
+          <span className="mr-2.5 h-4 w-4 shrink-0" aria-hidden="true"></span>
+        )}
       <div className="flex w-full justify-between items-center">
         <div className="font-medium">{props.text}</div>
         <div>{props.rightElement}</div>
