@@ -1,15 +1,15 @@
 # Authoring a Workflow
 
-To create a workflow, open **Workflows** and click **Create Workflow**. A wizard called **Create a workflow** walks you through it: first **Start from**, then **Name**, and finally a **Configure** step, which only appears when the template you picked asks for settings of its own.
+To create a workflow, open **Workflows** and click **Create Workflow**. The **Create a workflow** dialog asks how you want to start, then for a name. A template that needs settings of its own, such as a Slack webhook URL, asks for them in one more step.
 
-On **Start from**, choose how to begin:
+Choose how to begin:
 
-- **Start from scratch**, beside the search box, gives you an empty canvas.
-- A template gives you a working workflow to change. The step opens on a few **Recommended** templates. The rest are under their categories, such as **Incidents**, **Monitors** and **Jira**, each with how many templates it holds, and **All templates** lists every one. A search looks through all of them: every word you type has to match, and each category shows how many of its templates did.
+- **Start from scratch**, at the top of the dialog, gives you an empty canvas. Most workflows start here.
+- **Or start from a template** lists a few **Recommended** templates. For the others, choose a category beside the search box, such as **Incidents**, **Monitors** or **Jira**, or **All templates**, or type into **Search templates…**. Every word you type has to match.
 
-Click a template to see what it does before you choose it: its trigger, the steps it is made of, and the settings it will ask for. **Use this template** takes it on to **Name**, and so do **Enter** and a double-click. The arrow keys move through the list, and `/` goes back to the search box.
+Click a template to see what it does: its trigger, the blocks it is made of, and the settings it will ask for. Then click **Use this template**, or double-click the template. In the search box, the arrow keys pick a template and **Enter** uses it. `/` takes you back to the search box.
 
-Once it's created, open **Builder** in the left menu. That's the canvas where you design the workflow.
+Workflows are created switched off, so nothing runs until you turn them on. A new workflow opens in the **Builder**, the canvas where you design it.
 
 ## The canvas
 
