@@ -17,6 +17,7 @@ import Route from "../../../../Types/API/Route";
 import URL from "../../../../Types/API/URL";
 import MimeType from "../../../../Types/File/MimeType";
 import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
+import type { PeoplePickerFieldConfig } from "../../PeoplePicker/PeoplePickerTypes";
 import { ReactElement, ReactNode } from "react";
 
 export enum FormFieldStyleType {
@@ -170,6 +171,16 @@ export default interface Field<TEntity> {
    */
   customElementDrawsOwnLabel?: boolean | undefined;
   categoryCheckboxProps?: CategoryCheckboxProps | undefined; // props for the category checkbox component. If fieldType is CategoryCheckbox, this prop is required.
+  /*
+   * For a PeoplePicker field: the kinds of record it offers (people, teams),
+   * in the order its search list shows them, and the form value each kind's
+   * picks are kept in. One picker can so stand in for an "owner users" and an
+   * "owner teams" dropdown and save exactly what they saved: ModelForm saves
+   * a value that is a column of its model as that column, and sends any
+   * other as misc data. The field's own key names it in the form only (use
+   * formOnly). OwnersFormField.ts builds the owners one.
+   */
+  peoplePicker?: PeoplePickerFieldConfig | undefined;
   dataTestId?: string | undefined;
   autoComplete?: string | undefined;
   ariaDescribedby?: string | undefined;

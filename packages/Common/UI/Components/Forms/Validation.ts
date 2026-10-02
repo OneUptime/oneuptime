@@ -24,6 +24,10 @@ import {
   describeYamlSyntaxError,
 } from "../../../Types/Code/YamlSyntax";
 import { Logger } from "../../Utils/Logger";
+import {
+  getPeoplePickerValueKeys,
+  toPeoplePickerIds,
+} from "../PeoplePicker/PeoplePickerTypes";
 import Port from "../../../Types/Port";
 import Typeof from "../../../Types/Typeof";
 import i18next from "i18next";
@@ -432,6 +436,44 @@ export default class Validation {
         if (!isVisible) {
           continue;
         }
+      }
+
+      /*
+       * A people picker holds nothing under its own name: its picks are in
+       * a form value per kind (ownerUsers, ownerTeams). It has an answer when
+       * any kind has a pick.
+       */
+      if (
+        field.fieldType === FormFieldSchemaType.PeoplePicker &&
+        field.peoplePicker
+      ) {
+        const picks: Array<string> = getPeoplePickerValueKeys(
+          field.peoplePicker,
+        ).flatMap((valueKey: string): Array<string> => {
+          return toPeoplePickerIds((entries as JSONObject)[valueKey]);
+        });
+
+        const resultRequired: string | null = this.validateRequired(
+          args.values,
+          picks.length > 0 ? picks.join(",") : undefined,
+          field,
+        );
+
+        if (resultRequired) {
+          errors[name] = resultRequired;
+        }
+
+        if (field.customValidation) {
+          const resultCustomValidation: string | null = field.customValidation({
+            ...args.values,
+          });
+
+          if (resultCustomValidation) {
+            errors[name] = resultCustomValidation;
+          }
+        }
+
+        continue;
       }
 
       if (name in entries) {

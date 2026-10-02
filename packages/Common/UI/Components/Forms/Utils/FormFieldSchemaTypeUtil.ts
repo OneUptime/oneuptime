@@ -80,6 +80,8 @@ export default class FormFieldSchemaTypeUtil {
         return FieldType.Boolean;
       case FormFieldSchemaType.Icon:
         return FieldType.Icon;
+      case FormFieldSchemaType.PeoplePicker:
+        return FieldType.Element;
 
       default:
         return FieldType.Text;
