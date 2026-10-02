@@ -1,98 +1,54 @@
 import PageComponentProps from "../../PageComponentProps";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { getGeneratedKeyFormField } from "Common/UI/Components/Forms/Fields/GeneratedKeyField";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
-import FieldType from "Common/UI/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
+import {
+  getMeasurementChartActionButton,
+  getMeasurementChartSummaryFormField,
+  getMeasurementColumnFormFields,
+  getMeasurementMomentFormField,
+  getMeasurementOccurrenceFormField,
+  getMeasurementPresetFormField,
+  getMeasurementStateFormField,
+  getMeasurementUnitFormField,
+} from "../../../Components/Measurement/MeasurementFormFields";
+import MeasurementSummaryElement from "../../../Components/Measurement/MeasurementSummaryElement";
+import { getMeasurementsHelpMarkdown } from "../../../Utils/Measurement/MeasurementHelp";
+import {
+  INCIDENT_MEASUREMENT_FORM,
+  MEASUREMENT_FORM_COPY,
+  MEASUREMENT_KEY_PLACEHOLDER,
+  MEASUREMENT_PAGE_COPY,
+  MeasurementEnd,
+  MeasurementPageCopy,
+  MeasurementValues,
+  getMeasurementSummaryText,
+} from "../../../Utils/Measurement/MeasurementSetup";
 import IncidentMeasurement from "Common/Models/DatabaseModels/IncidentMeasurement";
-import IncidentState from "Common/Models/DatabaseModels/IncidentState";
-import IncidentMeasurementAnchorType from "Common/Types/Incident/IncidentMeasurementAnchorType";
-import IncidentStateRole from "Common/Types/Incident/IncidentStateRole";
-import MeasurementAggregationType from "Common/Types/Measurement/MeasurementAggregationType";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { Green, Red } from "Common/Types/BrandColors";
 import {
   getMeasurementKeyError,
   getMeasurementKeyFromName,
 } from "Common/Types/Measurement/MeasurementKey";
-import MeasurementOccurrence from "Common/Types/Measurement/MeasurementOccurrence";
+import { getGeneratedKeyFormField } from "Common/UI/Components/Forms/Fields/GeneratedKeyField";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { MeasurementDomain } from "Common/Utils/Measurement/MeasurementMoments";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import { Green, Red } from "Common/Types/BrandColors";
 
-const documentationMarkdown: string = `
-### What a Measurement Is
+const COPY: MeasurementPageCopy =
+  MEASUREMENT_PAGE_COPY[MeasurementDomain.Incident];
 
-A measurement is a named duration between two points in an incident's life - "Time to Detect", "Time to Acknowledge", anything your team argues about in a review. You define the two ends; OneUptime computes the duration for every incident and records it as a metric you can chart.
-
-Nothing here is guessed. If one end of a measurement never happened for an incident, no number is written for that incident at all, so a skipped milestone cannot quietly pull an average towards zero.
-
-\`\`\`mermaid
-flowchart TD
-    A[Measurement Definition<br/>start anchor + end anchor] --> B[Incident State Timeline<br/>and timestamp fields]
-    B --> C{Both anchors resolved?}
-    C -->|Yes, end after start| D[Computed Duration<br/>status: Recorded]
-    C -->|Not yet, still possible| E[status: Pending<br/>no point written]
-    C -->|Can never resolve| F[status: Not Applicable<br/>no point written]
-    C -->|End before start| G[status: Invalid<br/>no point written]
-    D --> H[Metric point written under<br/>oneuptime.incident.measurement.KEY]
-    H --> I[Charts and dashboards]
-\`\`\`
-
----
-
-### Anchor Types
-
-An anchor is where one end of the measurement sits in time. Anchors are deliberately wider than "a state" - "started" is not a state and never will be, which is what makes Time to Detect expressible at all.
-
-| Anchor Type | Resolves To |
-|-------------|-------------|
-| **Impact Started At** | When customer impact actually began. Recorded by a human on the incident; never inferred. |
-| **Declared At** | When the incident was declared. Defaults to the time it was created. |
-| **Created At** | When the incident record was created in OneUptime. |
-| **Timeline Start** | The first entry on the incident's state timeline, falling back to Declared At and then Created At. This is the origin the built-in incident metrics use, so a definition using it reproduces today's numbers exactly. |
-| **State Entered** | The moment a specific incident state was entered, pinned by id. Pick the state below. |
-| **State Role Entered** | The moment whichever state carries a role - Created, Acknowledged or Resolved - was entered. Resolves by flag rather than by id, so it keeps working when you rename or replace that state. |
-| **Postmortem Posted At** | When the postmortem was posted. |
-
-For the two state-based anchors you also choose an **occurrence**. \`First\` matches the behaviour of the built-in metrics; \`Last\` is the opt-in for teams who want a reopened incident's measurement to move to the final resolution rather than pinning to the first one.
-
----
-
-### Statuses
-
-Every incident gets one of these outcomes per measurement. Only **Recorded** writes a metric point.
-
-| Status | What It Means |
-|--------|---------------|
-| **Recorded** | Both anchors resolved and the duration is meaningful. This is the only status that produces a number. |
-| **Pending** | An anchor has not happened yet but still can - the incident is mid-flight. The only status that changes on its own. |
-| **Not Applicable** | An anchor can never resolve for this incident: the state was skipped, the timestamp was never filled in, or the referenced state has been deleted. No point is written, so a skipped milestone does not drag the average down. |
-| **Invalid** | Both anchors resolved but the end precedes the start. Someone's recorded timestamps disagree with each other. Surfaced rather than clamped to zero. |
-
----
-
-### Coming From FireHydrant or Rootly
-
-There is no fixed list of built-in metrics to match. Set up the ones your team actually reports on:
-
-| Their measurement | Set up in OneUptime as |
-|-------------------|------------------------|
-| Time to Detect | Impact Started At -> Declared At |
-| Time to Acknowledge | Impact Started At (or Timeline Start) -> the acknowledged state |
-| Time to Mitigate | Timeline Start -> a "Mitigated" state you add between Acknowledged and Resolved |
-| Time to Resolve | Timeline Start -> the resolved state |
-
-**About Impact Started At.** It is a new editable field on the incident. It is blank by default and is never guessed, because there is no honest way to infer when impact began. A measurement that depends on it reads **Not Applicable** until someone fills it in, deliberately - a fabricated zero would read as "we detect instantly", which is worse than no number.
-
----
-
-### Key and Metric Name
-
-Every recorded point is written under \`oneuptime.incident.measurement.<key>\`. The **Key** is made from the name as you type it - "Time to Detect" gets \`time-to-detect\` - so there is nothing to fill in. Choose **Edit** next to it before you create the measurement if you want a different one.
-
-Once the measurement exists its key never changes, because changing it would orphan all the history behind it. To rename a measurement for humans, change the **Name** - that is what appears on charts and on the incident page.
-`;
+/*
+ * What most measurements never change, folded at the end of the Start and
+ * End step. Built once: every field in it carries this same section.
+ */
+const advancedSection: FormFieldCollapsibleSection<IncidentMeasurement> =
+  getAdvancedFormSection<IncidentMeasurement>({
+    description: MEASUREMENT_FORM_COPY.advancedDescription,
+  });
 
 const IncidentMeasurementsPage: FunctionComponent<
   PageComponentProps
@@ -112,15 +68,13 @@ const IncidentMeasurementsPage: FunctionComponent<
         isCreateable={true}
         isViewable={false}
         cardProps={{
-          title: "Incident Measurements",
-          description:
-            "Define named durations between two points in an incident's life - Time to Detect, Time to Acknowledge, and anything else your team reports on. Each one is computed automatically and charted as its own metric.",
+          title: COPY.cardTitle,
+          description: COPY.cardDescription,
         }}
         helpContent={{
-          title: "How Incident Measurements Work",
-          description:
-            "Understanding anchors, statuses, and how a measurement becomes a chart",
-          markdown: documentationMarkdown,
+          title: COPY.helpTitle,
+          description: COPY.helpDescription,
+          markdown: getMeasurementsHelpMarkdown(MeasurementDomain.Incident),
         }}
         sortBy="order"
         sortOrder={SortOrder.Ascending}
@@ -132,27 +86,34 @@ const IncidentMeasurementsPage: FunctionComponent<
         dragDropIndexField="order"
         selectMoreFields={{
           isEnabled: true,
+          metricName: true,
+          aggregationType: true,
+          endAnchorType: true,
+          startIncidentStateRole: true,
+          endIncidentStateRole: true,
+          startStateOccurrence: true,
+          endStateOccurrence: true,
+          startIncidentState: {
+            name: true,
+          },
+          endIncidentState: {
+            name: true,
+          },
         }}
+        actionButtons={[getMeasurementChartActionButton<IncidentMeasurement>()]}
         filters={[
           {
             field: {
               name: true,
             },
-            title: "Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              key: true,
-            },
-            title: "Key",
+            title: MEASUREMENT_FORM_COPY.nameColumn,
             type: FieldType.Text,
           },
           {
             field: {
               isEnabled: true,
             },
-            title: "Enabled",
+            title: MEASUREMENT_FORM_COPY.enabledFilter,
             type: FieldType.Boolean,
           },
         ]}
@@ -161,68 +122,87 @@ const IncidentMeasurementsPage: FunctionComponent<
             field: {
               name: true,
             },
-            title: "Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              key: true,
-            },
-            title: "Key",
+            title: MEASUREMENT_FORM_COPY.nameColumn,
             type: FieldType.Text,
           },
           {
             field: {
               startAnchorType: true,
             },
-            title: "Starts At",
-            type: FieldType.Text,
+            id: "measures",
+            title: MEASUREMENT_FORM_COPY.measuresColumn,
+            type: FieldType.Element,
+            disableSort: true,
+            getElement: (item: IncidentMeasurement): ReactElement => {
+              return (
+                <MeasurementSummaryElement
+                  form={INCIDENT_MEASUREMENT_FORM}
+                  measurement={item as unknown as MeasurementValues}
+                />
+              );
+            },
+            getExportValue: (item: IncidentMeasurement): string => {
+              return getMeasurementSummaryText({
+                form: INCIDENT_MEASUREMENT_FORM,
+                measurement: item as unknown as MeasurementValues,
+              });
+            },
           },
           {
+            // Part of the metric name; there for whoever charts it by hand.
             field: {
-              endAnchorType: true,
+              key: true,
             },
-            title: "Ends At",
+            title: MEASUREMENT_FORM_COPY.keyTitle,
             type: FieldType.Text,
+            isHiddenByDefault: true,
           },
           {
             field: {
               isEnabled: true,
             },
-            title: "Status",
+            title: MEASUREMENT_FORM_COPY.statusColumn,
             type: FieldType.Boolean,
             getElement: (item: IncidentMeasurement): ReactElement => {
               if (item.isEnabled) {
-                return <Pill color={Green} text="Enabled" />;
+                return (
+                  <Pill
+                    color={Green}
+                    text={MEASUREMENT_FORM_COPY.enabledPill}
+                  />
+                );
               }
-              return <Pill color={Red} text="Disabled" />;
+              return (
+                <Pill color={Red} text={MEASUREMENT_FORM_COPY.disabledPill} />
+              );
             },
           },
         ]}
         formSteps={[
-          { title: "Basics", id: "basics" },
-          { title: "Start Anchor", id: "start-anchor" },
-          { title: "End Anchor", id: "end-anchor" },
-          { title: "Reporting", id: "reporting" },
+          { title: MEASUREMENT_FORM_COPY.measurementStep, id: "basics" },
+          { title: MEASUREMENT_FORM_COPY.momentsStep, id: "moments" },
         ]}
         formFields={[
+          getMeasurementPresetFormField<IncidentMeasurement>({
+            form: INCIDENT_MEASUREMENT_FORM,
+            stepId: "basics",
+            title: MEASUREMENT_FORM_COPY.presetTitle,
+            description: COPY.presetDescription,
+            doNotShowWhenEditing: true,
+          }),
           {
             field: {
               name: true,
             },
-            title: "Name",
+            title: MEASUREMENT_FORM_COPY.nameTitle,
             stepId: "basics",
-            sectionTitle: "Basics",
-            sectionDescription:
-              "What this measurement is called and what it means to your team.",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Time to Detect",
+            placeholder: COPY.namePlaceholder,
             validation: {
               minLength: 2,
             },
-            description:
-              "Human readable name. This is what appears on charts and on the incident page.",
+            description: MEASUREMENT_FORM_COPY.nameDescription,
           },
           /*
            * Made from the name as it is typed, and by the server when the
@@ -233,235 +213,92 @@ const IncidentMeasurementsPage: FunctionComponent<
               key: true,
             },
             nameField: "name",
-            title: "Key",
+            title: MEASUREMENT_FORM_COPY.keyTitle,
             stepId: "basics",
             makeKey: getMeasurementKeyFromName,
             validateKey: getMeasurementKeyError,
-            placeholder: "time-to-detect",
-            description:
-              "Part of the metric name, oneuptime.incident.measurement.<key>, so it can't be changed once the measurement is created.",
+            placeholder:
+              MEASUREMENT_KEY_PLACEHOLDER[MeasurementDomain.Incident],
+            description: COPY.keyDescription,
           }),
           {
             field: {
               description: true,
             },
-            title: "Description",
+            title: MEASUREMENT_FORM_COPY.descriptionTitle,
             stepId: "basics",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder:
-              "How long it took from customer impact starting to us declaring the incident.",
+            placeholder: COPY.descriptionPlaceholder,
           },
           {
-            field: {
-              startAnchorType: true,
-            },
-            title: "Start Anchor",
-            stepId: "start-anchor",
-            sectionTitle: "Start Anchor",
-            sectionDescription:
-              "Where the measurement starts. Pick a timestamp on the incident, or the moment a state was entered.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              IncidentMeasurementAnchorType,
-            ),
-            required: true,
-            placeholder: "Impact Started At",
-          },
-          {
-            field: {
-              startIncidentState: true,
-            },
-            title: "Start Incident State",
-            stepId: "start-anchor",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: IncidentState,
-              labelField: "name",
-              valueField: "_id",
-              sort: {
-                order: SortOrder.Ascending,
-              },
-            },
-            required: false,
-            placeholder: "Select Incident State",
-            description:
-              "The measurement starts when the incident enters this state.",
-            showIf: (values: FormValues<IncidentMeasurement>): boolean => {
-              return (
-                values.startAnchorType ===
-                IncidentMeasurementAnchorType.StateEntered
-              );
-            },
-          },
-          {
-            field: {
-              startIncidentStateRole: true,
-            },
-            title: "Start Incident State Role",
-            stepId: "start-anchor",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(IncidentStateRole),
-            required: false,
-            placeholder: "Acknowledged",
-            description:
-              "The measurement starts when whichever state carries this role is entered. Keeps working if you rename or replace that state.",
-            showIf: (values: FormValues<IncidentMeasurement>): boolean => {
-              return (
-                values.startAnchorType ===
-                IncidentMeasurementAnchorType.StateRoleEntered
-              );
-            },
-          },
-          {
-            field: {
-              startStateOccurrence: true,
-            },
-            title: "Start State Occurrence",
-            stepId: "start-anchor",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              MeasurementOccurrence,
-            ),
-            required: false,
-            placeholder: "First",
-            description:
-              "Which entry to use when the state is entered more than once. First matches the built-in metrics; Last follows a reopened incident to its final entry.",
-            showIf: (values: FormValues<IncidentMeasurement>): boolean => {
-              return (
-                values.startAnchorType ===
-                  IncidentMeasurementAnchorType.StateEntered ||
-                values.startAnchorType ===
-                  IncidentMeasurementAnchorType.StateRoleEntered
-              );
-            },
-          },
-          {
-            field: {
-              endAnchorType: true,
-            },
-            title: "End Anchor",
-            stepId: "end-anchor",
-            sectionTitle: "End Anchor",
-            sectionDescription:
-              "Where the measurement ends. If the end never happens for an incident, the measurement reads Not Applicable and no number is recorded.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              IncidentMeasurementAnchorType,
-            ),
-            required: true,
-            placeholder: "Declared At",
-          },
-          {
-            field: {
-              endIncidentState: true,
-            },
-            title: "End Incident State",
-            stepId: "end-anchor",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: IncidentState,
-              labelField: "name",
-              valueField: "_id",
-              sort: {
-                order: SortOrder.Ascending,
-              },
-            },
-            required: false,
-            placeholder: "Select Incident State",
-            description:
-              "The measurement ends when the incident enters this state.",
-            showIf: (values: FormValues<IncidentMeasurement>): boolean => {
-              return (
-                values.endAnchorType ===
-                IncidentMeasurementAnchorType.StateEntered
-              );
-            },
-          },
-          {
-            field: {
-              endIncidentStateRole: true,
-            },
-            title: "End Incident State Role",
-            stepId: "end-anchor",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(IncidentStateRole),
-            required: false,
-            placeholder: "Resolved",
-            description:
-              "The measurement ends when whichever state carries this role is entered.",
-            showIf: (values: FormValues<IncidentMeasurement>): boolean => {
-              return (
-                values.endAnchorType ===
-                IncidentMeasurementAnchorType.StateRoleEntered
-              );
-            },
-          },
-          {
-            field: {
-              endStateOccurrence: true,
-            },
-            title: "End State Occurrence",
-            stepId: "end-anchor",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              MeasurementOccurrence,
-            ),
-            required: false,
-            placeholder: "First",
-            description:
-              "Which entry to use when the state is entered more than once.",
-            showIf: (values: FormValues<IncidentMeasurement>): boolean => {
-              return (
-                values.endAnchorType ===
-                  IncidentMeasurementAnchorType.StateEntered ||
-                values.endAnchorType ===
-                  IncidentMeasurementAnchorType.StateRoleEntered
-              );
-            },
-          },
-          {
-            field: {
-              unit: true,
-            },
-            title: "Unit",
-            stepId: "reporting",
-            sectionTitle: "Reporting",
-            sectionDescription:
-              "How the computed duration is stored and charted.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "seconds",
-            description: "The unit durations are recorded in. Default: seconds",
-          },
-          {
-            field: {
-              aggregationType: true,
-            },
-            title: "Aggregation Type",
-            stepId: "reporting",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              MeasurementAggregationType,
-            ),
-            required: false,
-            placeholder: "Avg",
-            description:
-              "The aggregation this measurement's chart defaults to. Sum is deliberately absent - summing durations across incidents produces a number with no meaning.",
-          },
-          {
+            // A new measurement is on; only an existing one can be paused.
             field: {
               isEnabled: true,
             },
-            title: "Enabled",
-            stepId: "reporting",
+            title: MEASUREMENT_FORM_COPY.enabledTitle,
+            stepId: "basics",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
-            description:
-              "Disable to stop computing and recording this measurement without deleting its history.",
+            doNotShowWhenCreating: true,
+            description: COPY.enabledDescription,
           },
+          ...getMeasurementColumnFormFields<IncidentMeasurement>(
+            INCIDENT_MEASUREMENT_FORM,
+          ),
+          getMeasurementMomentFormField<IncidentMeasurement>({
+            form: INCIDENT_MEASUREMENT_FORM,
+            end: MeasurementEnd.Start,
+            stepId: "moments",
+            title: MEASUREMENT_FORM_COPY.startTitle,
+            description: COPY.startDescription,
+          }),
+          getMeasurementStateFormField<IncidentMeasurement>({
+            form: INCIDENT_MEASUREMENT_FORM,
+            end: MeasurementEnd.Start,
+            stepId: "moments",
+            title: MEASUREMENT_FORM_COPY.startStateTitle,
+            description: COPY.startStateDescription,
+          }),
+          getMeasurementMomentFormField<IncidentMeasurement>({
+            form: INCIDENT_MEASUREMENT_FORM,
+            end: MeasurementEnd.End,
+            stepId: "moments",
+            title: MEASUREMENT_FORM_COPY.endTitle,
+            description: COPY.endDescription,
+          }),
+          getMeasurementStateFormField<IncidentMeasurement>({
+            form: INCIDENT_MEASUREMENT_FORM,
+            end: MeasurementEnd.End,
+            stepId: "moments",
+            title: MEASUREMENT_FORM_COPY.endStateTitle,
+            description: COPY.endStateDescription,
+          }),
+          getMeasurementOccurrenceFormField<IncidentMeasurement>({
+            form: INCIDENT_MEASUREMENT_FORM,
+            end: MeasurementEnd.Start,
+            stepId: "moments",
+            title: MEASUREMENT_FORM_COPY.startOccurrenceTitle,
+            description: COPY.startOccurrenceDescription,
+            collapsibleSection: advancedSection,
+          }),
+          getMeasurementOccurrenceFormField<IncidentMeasurement>({
+            form: INCIDENT_MEASUREMENT_FORM,
+            end: MeasurementEnd.End,
+            stepId: "moments",
+            title: MEASUREMENT_FORM_COPY.endOccurrenceTitle,
+            description: COPY.endOccurrenceDescription,
+            collapsibleSection: advancedSection,
+          }),
+          getMeasurementUnitFormField<IncidentMeasurement>({
+            stepId: "moments",
+            collapsibleSection: advancedSection,
+          }),
+          getMeasurementChartSummaryFormField<IncidentMeasurement>({
+            stepId: "moments",
+            description: COPY.chartSummaryDescription,
+            collapsibleSection: advancedSection,
+          }),
         ]}
         showRefreshButton={true}
       />

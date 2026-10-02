@@ -9,6 +9,8 @@ import AlertStateService from "./AlertStateService";
 import AlertMeasurementAnchorType from "../../Types/Alerts/AlertMeasurementAnchorType";
 import MeasurementDefinitionValidator from "../Utils/Measurement/MeasurementDefinitionValidator";
 import MeasurementKeyAssigner from "../Utils/Measurement/MeasurementKeyAssigner";
+import MeasurementStateReference from "../Utils/Measurement/MeasurementStateReference";
+import MeasurementDefinitionChange from "../Utils/Measurement/MeasurementDefinitionChange";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -77,8 +79,18 @@ export class Service extends DatabaseService<Model> {
       projectId: createBy.data.projectId!,
       startAnchorType: createBy.data.startAnchorType,
       endAnchorType: createBy.data.endAnchorType,
-      startStateId: createBy.data.startAlertStateId,
-      endStateId: createBy.data.endAlertStateId,
+      /*
+       * The dashboard's state picker sends the state as the relation,
+       * the API usually as the id: whichever the request has.
+       */
+      startStateId: MeasurementStateReference.getStateIdForCreate({
+        stateId: createBy.data.startAlertStateId,
+        state: createBy.data.startAlertState,
+      }),
+      endStateId: MeasurementStateReference.getStateIdForCreate({
+        stateId: createBy.data.endAlertStateId,
+        state: createBy.data.endAlertState,
+      }),
       startStateRole: createBy.data.startAlertStateRole,
       endStateRole: createBy.data.endAlertStateRole,
       startOccurrence: createBy.data.startStateOccurrence,
@@ -114,11 +126,19 @@ export class Service extends DatabaseService<Model> {
       "endAnchorType",
       "startAlertStateId",
       "endAlertStateId",
+      // The picked states, as the dashboard sends them.
+      "startAlertState",
+      "endAlertState",
       "startAlertStateRole",
       "endAlertStateRole",
       "startStateOccurrence",
       "endStateOccurrence",
       "isEnabled",
+      /*
+       * The unit is the number every chart point is written in
+       * (MeasurementMetricWriter), so changing it rewrites them all.
+       */
+      "unit",
     ];
 
     const touchesDefinition: boolean = definitionKeys.some((key: string) => {
@@ -141,11 +161,15 @@ export class Service extends DatabaseService<Model> {
         endAlertStateRole: true,
         startStateOccurrence: true,
         endStateOccurrence: true,
+        isEnabled: true,
+        unit: true,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
       props: { isRoot: true },
     });
+
+    let changesDefinition: boolean = false;
 
     for (const existing of existingItems) {
       const merged: Record<string, unknown> = {
@@ -159,13 +183,55 @@ export class Service extends DatabaseService<Model> {
           "startAnchorType"
         ] as AlertMeasurementAnchorType,
         endAnchorType: merged["endAnchorType"] as AlertMeasurementAnchorType,
-        startStateId: merged["startAlertStateId"] as ObjectID,
-        endStateId: merged["endAlertStateId"] as ObjectID,
+        startStateId: MeasurementStateReference.getStateIdForUpdate({
+          update: data,
+          stateIdKey: "startAlertStateId",
+          stateKey: "startAlertState",
+          storedStateId: existing.startAlertStateId,
+        }),
+        endStateId: MeasurementStateReference.getStateIdForUpdate({
+          update: data,
+          stateIdKey: "endAlertStateId",
+          stateKey: "endAlertState",
+          storedStateId: existing.endAlertStateId,
+        }),
         startStateRole: merged["startAlertStateRole"] as string,
         endStateRole: merged["endAlertStateRole"] as string,
         startOccurrence: merged["startStateOccurrence"] as string,
         endOccurrence: merged["endStateOccurrence"] as string,
       });
+
+      if (
+        MeasurementDefinitionChange.isChanged({
+          update: data,
+          stored: existing as unknown as Record<string, unknown>,
+          columns: [
+            "startAnchorType",
+            "endAnchorType",
+            "startAlertStateRole",
+            "endAlertStateRole",
+            "startStateOccurrence",
+            "endStateOccurrence",
+            "isEnabled",
+            "unit",
+          ],
+          pickedStates: [
+            { stateIdKey: "startAlertStateId", stateKey: "startAlertState" },
+            { stateIdKey: "endAlertStateId", stateKey: "endAlertState" },
+          ],
+        })
+      ) {
+        changesDefinition = true;
+      }
+    }
+
+    /*
+     * The dashboard's edit form sends every column on every save, a
+     * rename included. Only a value that differs from the stored one
+     * changes what the measurement means.
+     */
+    if (!changesDefinition) {
+      return { updateBy, carryForward: null };
     }
 
     /*
@@ -271,8 +337,8 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     startAnchorType?: AlertMeasurementAnchorType | undefined;
     endAnchorType?: AlertMeasurementAnchorType | undefined;
-    startStateId?: ObjectID | undefined;
-    endStateId?: ObjectID | undefined;
+    startStateId?: string | undefined;
+    endStateId?: string | undefined;
     startStateRole?: string | undefined;
     endStateRole?: string | undefined;
     startOccurrence?: string | undefined;
@@ -284,8 +350,8 @@ export class Service extends DatabaseService<Model> {
       endAnchorType: data.endAnchorType,
       stateEnteredAnchor: AlertMeasurementAnchorType.StateEntered,
       stateRoleEnteredAnchor: AlertMeasurementAnchorType.StateRoleEntered,
-      startStateId: data.startStateId?.toString(),
-      endStateId: data.endStateId?.toString(),
+      startStateId: data.startStateId,
+      endStateId: data.endStateId,
       startStateRole: data.startStateRole,
       endStateRole: data.endStateRole,
       startOccurrence: data.startOccurrence,
@@ -311,13 +377,13 @@ export class Service extends DatabaseService<Model> {
 
     const startState: AlertState | undefined = states.find(
       (state: AlertState) => {
-        return state._id?.toString() === data.startStateId!.toString();
+        return state._id?.toString() === data.startStateId;
       },
     );
 
     const endState: AlertState | undefined = states.find(
       (state: AlertState) => {
-        return state._id?.toString() === data.endStateId!.toString();
+        return state._id?.toString() === data.endStateId;
       },
     );
 

@@ -468,30 +468,39 @@ describe("AlertMeasurementService", () => {
     });
 
     test("restarts the backfill for every column that changes what the number means", async () => {
-      const definitionKeys: Array<string> = [
-        "startAnchorType",
-        "endAnchorType",
-        "startAlertStateId",
-        "endAlertStateId",
-        "startAlertStateRole",
-        "endAlertStateRole",
-        "startStateOccurrence",
-        "endStateOccurrence",
-        "isEnabled",
+      /*
+       * A new value for any of these - the stored measurement starts at
+       * Created At and ends when the alert is acknowledged, in seconds.
+       */
+      const changes: Array<[string, unknown]> = [
+        ["startAnchorType", AlertMeasurementAnchorType.ImpactStartedAt],
+        ["endAnchorType", AlertMeasurementAnchorType.ImpactStartedAt],
+        ["startAlertStateId", CREATED_STATE_ID],
+        ["endAlertStateId", RESOLVED_STATE_ID],
+        ["startAlertStateRole", AlertStateRole.Resolved],
+        ["endAlertStateRole", AlertStateRole.Resolved],
+        ["startStateOccurrence", "Last"],
+        ["endStateOccurrence", "Last"],
+        ["isEnabled", false],
+        // The number every chart point is written in.
+        ["unit", "minutes"],
       ];
 
-      for (const key of definitionKeys) {
+      for (const [key, value] of changes) {
         jest
           .spyOn(AlertMeasurementService, "findBy")
-          .mockResolvedValue([] as Array<AlertMeasurement> as never);
+          .mockResolvedValue([buildExistingMeasurement({})] as never);
 
         const updateBy: UpdateBy<AlertMeasurement> = buildUpdateBy({
-          [key]: undefined,
+          [key]: value,
         });
 
         await hooks.onBeforeUpdate(updateBy);
 
-        expect(dataOf(updateBy)["backfillRequestedAt"]).toBeInstanceOf(Date);
+        expect({
+          key,
+          restarted: dataOf(updateBy)["backfillRequestedAt"] instanceof Date,
+        }).toEqual({ key, restarted: true });
       }
     });
 
@@ -541,11 +550,11 @@ describe("AlertMeasurementService", () => {
     });
 
     test("leaves the backfill alone for the presentation-only columns", async () => {
+      // The unit is not one of them: it is the number the points are in.
       for (const key of [
         "description",
         "showOnAlertView",
         "order",
-        "unit",
         "aggregationType",
       ]) {
         const updateBy: UpdateBy<AlertMeasurement> = buildUpdateBy({
