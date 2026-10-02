@@ -253,19 +253,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Template,
         },
-        /*
-         * Right after templates: a form declares its incidents much as a
-         * template does, but for people outside the team, through a link.
-         */
-        {
-          link: {
-            title: "Forms",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_FORMS] as Route,
-            ),
-          },
-          icon: IconProp.ClipboardDocumentList,
-        },
         {
           link: {
             title: "Note Templates",

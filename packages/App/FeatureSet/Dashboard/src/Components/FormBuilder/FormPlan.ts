@@ -1,4 +1,4 @@
-import IncidentForm from "Common/Models/DatabaseModels/IncidentForm";
+import Form from "Common/Models/DatabaseModels/Form";
 import ColumnBillingAccessControl from "Common/Types/BaseDatabase/ColumnBillingAccessControl";
 import SubscriptionPlan, {
   PlanType,
@@ -8,14 +8,14 @@ import ProjectUtil from "Common/UI/Utils/Project";
 
 /*
  * The plan a form's IP allowlist needs before it can be changed. Read off the
- * column's own billing rule (IncidentForm.ipWhitelist) rather than written
+ * column's own billing rule (Form.ipWhitelist) rather than written
  * out here, so the note on the form's page can never disagree with what the
  * server enforces - the same rule as a public dashboard's IP allowlist.
  */
-export const getIncidentFormIpAllowlistPlan: () => PlanType | null =
+export const getFormIpAllowlistPlan: () => PlanType | null =
   (): PlanType | null => {
     const billingAccessControl: ColumnBillingAccessControl | undefined =
-      new IncidentForm().getColumnBillingAccessControl("ipWhitelist");
+      new Form().getColumnBillingAccessControl("ipWhitelist");
 
     return billingAccessControl?.update || null;
   };
@@ -27,9 +27,9 @@ export const getIncidentFormIpAllowlistPlan: () => PlanType | null =
  * server - which refuses the change below the plan anyway - has the last
  * word. A note that guessed wrong would put people off a setting they have.
  */
-export const isIncidentFormIpAllowlistEditableOnCurrentPlan: () => boolean =
+export const isFormIpAllowlistEditableOnCurrentPlan: () => boolean =
   (): boolean => {
-    const requiredPlan: PlanType | null = getIncidentFormIpAllowlistPlan();
+    const requiredPlan: PlanType | null = getFormIpAllowlistPlan();
     const currentPlan: PlanType | null = ProjectUtil.getCurrentPlan();
 
     if (!requiredPlan || !currentPlan) {

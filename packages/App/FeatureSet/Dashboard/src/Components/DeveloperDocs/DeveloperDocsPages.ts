@@ -214,6 +214,17 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
       scope: DeveloperDocsScope.View,
       tableName: "Runbook",
     },
+    // Forms
+    {
+      pageKey: PageMap.FORMS,
+      scope: DeveloperDocsScope.List,
+      tableName: "Form",
+    },
+    {
+      pageKey: PageMap.FORM_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "Form",
+    },
     // SLOs
     {
       pageKey: PageMap.SLOS,

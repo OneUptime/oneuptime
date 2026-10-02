@@ -1,53 +1,37 @@
 import {
-  buildIncidentFormSubmissionRequest,
-  formatIncidentFormRetryAfter,
-  getIncidentFormFailure,
-  getIncidentFormFailureMessage,
-  INCIDENT_FORM_MULTI_LINE_CUSTOM_FIELD_TYPES,
-  INCIDENT_FORM_TEXT_CUSTOM_FIELD_TYPES,
-  IncidentFormFailure,
-  IncidentFormFailureKind,
-  IncidentFormStage,
-  isBlankIncidentFormAnswer,
-  isIncidentFormReporterEmail,
-  loadPublicIncidentForm,
-  normalizeIncidentFormShareKey,
-  submitPublicIncidentForm,
-  toCustomFieldFormDefinitions,
-} from "../Utils/IncidentForm";
-import { isKnownIncidentFormMessage } from "../Utils/IncidentFormMessage";
-import Color from "Common/Types/Color";
+  buildFormSubmissionRequest,
+  formatFormRetryAfter,
+  FormFailure,
+  FormFailureKind,
+  FormStage,
+  getFormFailure,
+  getFormFailureMessage,
+  loadPublicForm,
+  normalizeFormShareKey,
+  submitPublicForm,
+} from "../Utils/Form";
+import { isKnownFormMessage } from "../Utils/FormMessage";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
-  INCIDENT_FORM_CUSTOM_FIELD_TEXT_MAX_LENGTH,
-  INCIDENT_FORM_DESCRIPTION_MAX_LENGTH,
-  INCIDENT_FORM_REPORTER_EMAIL_MAX_LENGTH,
-  INCIDENT_FORM_REPORTER_NAME_MAX_LENGTH,
-  INCIDENT_FORM_TITLE_MAX_LENGTH,
-  IncidentFormFieldSetting,
-  PublicIncidentForm,
-  PublicIncidentFormField,
-  PublicIncidentFormSeverity,
-  PublicIncidentFormSubmissionResult,
-} from "Common/Types/Incident/IncidentFormPublic";
+  PublicForm,
+  PublicFormSubmissionResult,
+} from "Common/Types/Form/FormPublic";
 import { JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Captcha from "Common/UI/Components/Captcha/Captcha";
-import { buildCustomFieldFormFields } from "Common/UI/Components/CustomFields/CustomFieldFormFields";
-import { getCustomFieldFormKey } from "Common/UI/Components/CustomFields/CustomFieldModelFormFields";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
-import Field, {
-  CustomElementProps,
-} from "Common/UI/Components/Forms/Types/Field";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { translateValidationMessage } from "Common/UI/Components/Forms/Validation";
 import Icon from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import {
+  buildPublicFormFields,
+  getPublicFormInitialValues,
+} from "Common/UI/Components/PublicForm/PublicFormFields";
 import { CAPTCHA_ENABLED, CAPTCHA_SITE_KEY } from "Common/UI/Config";
 import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
 import React, {
@@ -64,26 +48,22 @@ import { useTranslation } from "react-i18next";
 import { Params, useParams } from "react-router-dom";
 
 /*
- * The page anybody with an incident form's link opens to report a problem,
- * with or without a OneUptime account: /accounts/incident-form/:shareKey.
+ * The page anybody with a form's link opens to fill it in, with or without a
+ * OneUptime account: /accounts/form/:shareKey (and the incident form links
+ * shared before Forms replaced them, /accounts/incident-form/:shareKey,
+ * which App sends here).
  *
- * It reads the form's questions, asks them, and declares an incident from
- * the answers - all through IncidentFormAPI, the one client that never
- * refreshes, signs out or navigates on a refusal. Every failure is shown on
- * this page, next to the form, so a reporter never loses what they typed
- * and a visitor who is also signed in to OneUptime keeps their session.
+ * It reads the form's questions, asks them, and sends the answers - all
+ * through FormAPI, the one client that never refreshes, signs out or
+ * navigates on a refusal. Every failure is shown on this page, next to the
+ * form, so a submitter never loses what they typed and a visitor who is also
+ * signed in to OneUptime keeps their session.
  *
- * Nothing here needs, reads or changes a session, which is why it works the
- * same for somebody signed in to the dashboard on this host and for somebody
- * who has never heard of OneUptime.
+ * The questions are drawn by buildPublicFormFields, the builder the
+ * dashboard's form preview draws them with, so what an admin previews is
+ * what a submitter sees.
  */
 
-// The form keys of the built-in questions. Custom fields live elsewhere.
-const TITLE_KEY: string = "title";
-const DESCRIPTION_KEY: string = "description";
-const SEVERITY_KEY: string = "incidentSeverityId";
-const REPORTER_NAME_KEY: string = "reporterName";
-const REPORTER_EMAIL_KEY: string = "reporterEmail";
 const CAPTCHA_TOKEN_KEY: string = "captchaToken";
 
 // A locale file's whole-sentence keys contain dots and colons of their own.
@@ -92,44 +72,10 @@ const FLAT_KEY_OPTIONS: { keySeparator: false; nsSeparator: false } = {
   nsSeparator: false,
 };
 
-type RequireTextFunction = (
-  fieldKey: string,
-  label: string,
-  isMultiLine: boolean,
-) => (values: FormValues<JSONObject>) => string | null;
-
-/*
- * The form's own required check passes an answer of nothing but spaces,
- * which the server then refuses: every text answer is cleaned and trimmed
- * there (isBlankIncidentFormAnswer). Asking again here keeps that refusal in
- * the browser, in the reporter's language - for every required text
- * question, the custom ones included.
- */
-const requireText: RequireTextFunction = (
-  fieldKey: string,
-  label: string,
-  isMultiLine: boolean,
-): ((values: FormValues<JSONObject>) => string | null) => {
-  return (values: FormValues<JSONObject>): string | null => {
-    const value: unknown = (values as JSONObject)[fieldKey];
-
-    if (
-      typeof value === "string" &&
-      isBlankIncidentFormAnswer(value, isMultiLine)
-    ) {
-      return translateValidationMessage("{{field}} is required.", {
-        field: label,
-      });
-    }
-
-    return null;
-  };
-};
-
 interface PageShellProps {
   // The form's name. Left out on a screen that has no form to name.
   heading?: string | undefined;
-  // For the page to move focus to the heading; see IncidentFormPage.
+  // For the page to move focus to the heading; see FormPage.
   headingRef?: React.RefObject<HTMLHeadingElement> | undefined;
   // A card holding one short message rather than a form.
   isNarrow?: boolean | undefined;
@@ -172,18 +118,14 @@ const PageShell: FunctionComponent<PageShellProps> = (
   );
 };
 
-const IncidentFormPage: () => JSX.Element = () => {
+const FormPage: () => JSX.Element = () => {
   const { t, i18n } = useTranslation();
   const params: Readonly<Params<string>> = useParams();
 
-  const shareKey: string | null = normalizeIncidentFormShareKey(
-    params["shareKey"],
-  );
+  const shareKey: string | null = normalizeFormShareKey(params["shareKey"]);
 
-  const [form, setForm] = useState<PublicIncidentForm | null>(null);
-  const [loadFailure, setLoadFailure] = useState<IncidentFormFailure | null>(
-    null,
-  );
+  const [form, setForm] = useState<PublicForm | null>(null);
+  const [loadFailure, setLoadFailure] = useState<FormFailure | null>(null);
 
   // Bumped by "Try again" on a form that could not be loaded.
   const [loadAttempt, setLoadAttempt] = useState<number>(0);
@@ -192,23 +134,23 @@ const IncidentFormPage: () => JSX.Element = () => {
   const isSubmittingRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
-  const [submitFailure, setSubmitFailure] =
-    useState<IncidentFormFailure | null>(null);
+  const [submitFailure, setSubmitFailure] = useState<FormFailure | null>(null);
 
-  const [result, setResult] =
-    useState<PublicIncidentFormSubmissionResult | null>(null);
+  const [result, setResult] = useState<PublicFormSubmissionResult | null>(
+    null,
+  );
 
-  // Bumped by "Submit another report": a new key is a fresh, empty form.
+  // Bumped by "Submit another response": a new key is a fresh, empty form.
   const [formInstance, setFormInstance] = useState<number>(0);
 
   const [captchaResetSignal, setCaptchaResetSignal] = useState<number>(0);
 
   /*
    * Where focus goes when the page swaps one view for another. The button
-   * that had it - Submit, "Submit another report", "Try again" - leaves with
-   * the view it was in, and focus would fall to <body>: a screen reader user
-   * would hear nothing of what replaced it - not even that the report went
-   * through, or its incident number.
+   * that had it - Submit, "Submit another response", "Try again" - leaves
+   * with the view it was in, and focus would fall to <body>: a screen reader
+   * user would hear nothing of what replaced it - not even that the
+   * submission went through, or its reference number.
    */
   const successHeadingRef: React.RefObject<HTMLHeadingElement> =
     useRef<HTMLHeadingElement>(null);
@@ -217,7 +159,7 @@ const IncidentFormPage: () => JSX.Element = () => {
   // Set by "Try again": the view that loads next takes focus on its heading.
   const focusHeadingOnLoadRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
-  const incidentNumberId: string = useId();
+  const referenceId: string = useId();
 
   useEffect(() => {
     if (result) {
@@ -237,7 +179,7 @@ const IncidentFormPage: () => JSX.Element = () => {
   /*
    * hCaptcha only where the server asks for it AND this install has a site
    * key to draw it with. A server that wants a captcha the page cannot show
-   * refuses the report with its own message, which is shown as it is.
+   * refuses the submission with its own message, which is shown as it is.
    */
   const isCaptchaShown: boolean = Boolean(
     form && form.isCaptchaRequired && CAPTCHA_ENABLED && CAPTCHA_SITE_KEY,
@@ -246,12 +188,12 @@ const IncidentFormPage: () => JSX.Element = () => {
   useEffect(() => {
     /*
      * Not a key at all: say what the server would say about it, without
-     * asking - see normalizeIncidentFormShareKey for why it must not be.
+     * asking - see normalizeFormShareKey for why it must not be.
      */
     if (!shareKey) {
       setForm(null);
       setLoadFailure({
-        kind: IncidentFormFailureKind.NotAvailable,
+        kind: FormFailureKind.NotAvailable,
         retryAfterSeconds: 0,
       });
       return;
@@ -263,15 +205,15 @@ const IncidentFormPage: () => JSX.Element = () => {
     setForm(null);
     setLoadFailure(null);
 
-    loadPublicIncidentForm(shareKey)
-      .then((loadedForm: PublicIncidentForm) => {
+    loadPublicForm(shareKey)
+      .then((loadedForm: PublicForm) => {
         if (isCurrent) {
           setForm(loadedForm);
         }
       })
       .catch((error: unknown) => {
         if (isCurrent) {
-          setLoadFailure(getIncidentFormFailure(error));
+          setLoadFailure(getFormFailure(error));
         }
       });
 
@@ -301,11 +243,11 @@ const IncidentFormPage: () => JSX.Element = () => {
 
   type TranslateMessageFunction = (message: string) => string;
 
-  // Only the sentences a locale file has are looked up; see IncidentFormMessage.
+  // Only the sentences a locale file has are looked up; see FormMessage.
   const translateMessage: TranslateMessageFunction = (
     message: string,
   ): string => {
-    if (!isKnownIncidentFormMessage(message)) {
+    if (!isKnownFormMessage(message)) {
       return message;
     }
 
@@ -313,26 +255,26 @@ const IncidentFormPage: () => JSX.Element = () => {
   };
 
   type DescribeFailureFunction = (data: {
-    failure: IncidentFormFailure;
-    stage: IncidentFormStage;
+    failure: FormFailure;
+    stage: FormStage;
   }) => { message: string; retryAfter: string | null };
 
-  // What to tell the reporter, in their language, and when to come back.
+  // What to tell the submitter, in their language, and when to come back.
   const describeFailure: DescribeFailureFunction = (data: {
-    failure: IncidentFormFailure;
-    stage: IncidentFormStage;
+    failure: FormFailure;
+    stage: FormStage;
   }): { message: string; retryAfter: string | null } => {
     const when: string | null =
-      data.failure.kind === IncidentFormFailureKind.RateLimited
-        ? formatIncidentFormRetryAfter(
+      data.failure.kind === FormFailureKind.RateLimited
+        ? formatFormRetryAfter(
             data.failure.retryAfterSeconds,
             i18n.resolvedLanguage || i18n.language,
           )
         : null;
 
     return {
-      message: translateMessage(getIncidentFormFailureMessage(data)),
-      retryAfter: when ? t("incidentForm.retryAfter", { when: when }) : null,
+      message: translateMessage(getFormFailureMessage(data)),
+      retryAfter: when ? t("form.retryAfter", { when: when }) : null,
     };
   };
 
@@ -341,181 +283,7 @@ const IncidentFormPage: () => JSX.Element = () => {
       return [];
     }
 
-    const titleLabel: string = t("incidentForm.title");
-    const descriptionLabel: string = t("incidentForm.description");
-    const reporterNameLabel: string = t("incidentForm.reporterName");
-
-    const formFields: Fields<JSONObject> = [
-      {
-        field: { [TITLE_KEY]: true },
-        title: titleLabel,
-        description: t("incidentForm.titleDescription"),
-        fieldType: FormFieldSchemaType.Text,
-        required: true,
-        validation: { maxLength: INCIDENT_FORM_TITLE_MAX_LENGTH },
-        customValidation: requireText(TITLE_KEY, titleLabel, false),
-        dataTestId: "incident-form-title",
-        spanFullRow: true,
-      },
-    ];
-
-    if (form.descriptionSetting !== IncidentFormFieldSetting.Hidden) {
-      const isRequired: boolean =
-        form.descriptionSetting === IncidentFormFieldSetting.Required;
-
-      const descriptionField: Field<JSONObject> = {
-        field: { [DESCRIPTION_KEY]: true },
-        title: descriptionLabel,
-        fieldType: FormFieldSchemaType.Markdown,
-        required: isRequired,
-        validation: { maxLength: INCIDENT_FORM_DESCRIPTION_MAX_LENGTH },
-        /*
-         * Uploading an image needs a signed-in user; a reporter may be none.
-         * No placeholder: the editor looks up its own, in the page's
-         * language, for each of its two modes.
-         */
-        allowImageUpload: false,
-        dataTestId: "incident-form-description",
-        spanFullRow: true,
-      };
-
-      if (isRequired) {
-        descriptionField.customValidation = requireText(
-          DESCRIPTION_KEY,
-          descriptionLabel,
-          true,
-        );
-      }
-
-      formFields.push(descriptionField);
-    }
-
-    // Only when the form lets the reporter choose; the server says so by listing them.
-    if (form.severities && form.severities.length > 0) {
-      formFields.push({
-        field: { [SEVERITY_KEY]: true },
-        title: t("incidentForm.severity"),
-        fieldType: FormFieldSchemaType.Dropdown,
-        dropdownOptions: form.severities.map(
-          (severity: PublicIncidentFormSeverity): DropdownOption => {
-            const option: DropdownOption = {
-              label: severity.name,
-              value: severity._id,
-            };
-
-            if (severity.color) {
-              option.color = new Color(severity.color);
-            }
-
-            return option;
-          },
-        ),
-        // Left empty, the form's own severity applies.
-        required: false,
-        dataTestId: "incident-form-severity",
-        spanFullRow: true,
-      });
-    }
-
-    /*
-     * The custom fields the form asks, built exactly as the dashboard builds
-     * them - required where the FORM requires them. Each is held under its
-     * own form key (getCustomFieldFormKey), never under its bare name: a
-     * field called "title" must not become the title's answer.
-     */
-    const customFields: Fields<JSONObject> = buildCustomFieldFormFields({
-      definitions: toCustomFieldFormDefinitions(form.customFields),
-      enforceRequiredOnCreate: true,
-      getFormKey: getCustomFieldFormKey,
-    }).map(
-      (builtField: Field<JSONObject>, index: number): Field<JSONObject> => {
-        const definition: PublicIncidentFormField | undefined =
-          form.customFields[index];
-
-        const customField: Field<JSONObject> = {
-          ...builtField,
-          spanFullRow: true,
-        };
-
-        // As for the description, and with the editor's own placeholders.
-        if (customField.fieldType === FormFieldSchemaType.Markdown) {
-          customField.allowImageUpload = false;
-        }
-
-        if (
-          definition &&
-          INCIDENT_FORM_TEXT_CUSTOM_FIELD_TYPES.includes(
-            definition.customFieldType,
-          )
-        ) {
-          customField.validation = {
-            maxLength: INCIDENT_FORM_CUSTOM_FIELD_TEXT_MAX_LENGTH,
-          };
-
-          // As for the title: spaces alone are no answer to a required field.
-          if (definition.isRequired) {
-            customField.customValidation = requireText(
-              getCustomFieldFormKey(definition.name),
-              definition.name,
-              INCIDENT_FORM_MULTI_LINE_CUSTOM_FIELD_TYPES.includes(
-                definition.customFieldType,
-              ),
-            );
-          }
-        }
-
-        return customField;
-      },
-    );
-
-    formFields.push(...customFields);
-
-    // Side by side on a wide screen: the two halves of "who is reporting".
-    const reporterNameField: Field<JSONObject> = {
-      field: { [REPORTER_NAME_KEY]: true },
-      title: reporterNameLabel,
-      fieldType: FormFieldSchemaType.Name,
-      required: form.isReporterDetailsRequired,
-      validation: { maxLength: INCIDENT_FORM_REPORTER_NAME_MAX_LENGTH },
-      dataTestId: "incident-form-reporter-name",
-    };
-
-    if (form.isReporterDetailsRequired) {
-      reporterNameField.customValidation = requireText(
-        REPORTER_NAME_KEY,
-        reporterNameLabel,
-        false,
-      );
-    }
-
-    formFields.push(reporterNameField, {
-      field: { [REPORTER_EMAIL_KEY]: true },
-      title: t("incidentForm.reporterEmail"),
-      fieldType: FormFieldSchemaType.Email,
-      required: form.isReporterDetailsRequired,
-      validation: { maxLength: INCIDENT_FORM_REPORTER_EMAIL_MAX_LENGTH },
-      /*
-       * The form's own email check finds an address anywhere in the text;
-       * the server wants the whole answer to be one. Asked here as the
-       * server asks it, so "Ada <ada@example.com>" is refused in the browser.
-       */
-      customValidation: (values: FormValues<JSONObject>): string | null => {
-        const value: unknown = (values as JSONObject)[REPORTER_EMAIL_KEY];
-
-        // No answer at all is the required check's to judge.
-        if (
-          typeof value !== "string" ||
-          value.trim().length === 0 ||
-          isIncidentFormReporterEmail(value)
-        ) {
-          return null;
-        }
-
-        return translateValidationMessage("Email is not valid.");
-      },
-      dataTestId: "incident-form-reporter-email",
-      disableSpellCheck: true,
-    });
+    const formFields: Fields<JSONObject> = buildPublicFormFields(form);
 
     if (isCaptchaShown) {
       formFields.push({
@@ -547,13 +315,9 @@ const IncidentFormPage: () => JSX.Element = () => {
     return formFields;
   }, [form, t, isCaptchaShown, captchaResetSignal]);
 
-  // The form's own severity, preselected when it is one of those offered.
+  // The option a question chooses to begin with (the form's own severity).
   const initialValues: JSONObject = useMemo((): JSONObject => {
-    if (form && form.defaultIncidentSeverityId) {
-      return { [SEVERITY_KEY]: form.defaultIncidentSeverityId };
-    }
-
-    return {};
+    return form ? getPublicFormInitialValues(form) : {};
   }, [form]);
 
   type SubmitFunction = (values: JSONObject) => Promise<void>;
@@ -568,29 +332,28 @@ const IncidentFormPage: () => JSX.Element = () => {
     setSubmitFailure(null);
 
     try {
-      const submitted: PublicIncidentFormSubmissionResult =
-        await submitPublicIncidentForm(
-          shareKey,
-          buildIncidentFormSubmissionRequest({
-            form: form,
-            values: values,
-            captchaToken:
-              isCaptchaShown && typeof values[CAPTCHA_TOKEN_KEY] === "string"
-                ? (values[CAPTCHA_TOKEN_KEY] as string)
-                : undefined,
-          }),
-        );
+      const submitted: PublicFormSubmissionResult = await submitPublicForm(
+        shareKey,
+        buildFormSubmissionRequest({
+          form: form,
+          values: values,
+          captchaToken:
+            isCaptchaShown && typeof values[CAPTCHA_TOKEN_KEY] === "string"
+              ? (values[CAPTCHA_TOKEN_KEY] as string)
+              : undefined,
+        }),
+      );
 
       setResult(submitted);
 
       // The thank-you card is far shorter than the form it replaces.
       window.scrollTo(0, 0);
     } catch (error: unknown) {
-      setSubmitFailure(getIncidentFormFailure(error));
+      setSubmitFailure(getFormFailure(error));
 
       /*
        * A captcha answer is good for one request, and the server checks it
-       * before it reads the answers - so even a report refused for its
+       * before it reads the answers - so even a submission refused for its
        * answers has spent it. A fresh challenge, every time.
        */
       if (isCaptchaShown) {
@@ -604,7 +367,7 @@ const IncidentFormPage: () => JSX.Element = () => {
     }
   };
 
-  const startAnotherReport: () => void = (): void => {
+  const startAnotherResponse: () => void = (): void => {
     setResult(null);
     setSubmitFailure(null);
     setFormInstance((instance: number): number => {
@@ -616,27 +379,27 @@ const IncidentFormPage: () => JSX.Element = () => {
     const failure: { message: string; retryAfter: string | null } =
       describeFailure({
         failure: loadFailure,
-        stage: IncidentFormStage.Load,
+        stage: FormStage.Load,
       });
 
     // Worth another go: a limit that lapses, a server that comes back.
     const canTryAgain: boolean =
-      loadFailure.kind === IncidentFormFailureKind.RateLimited ||
-      loadFailure.kind === IncidentFormFailureKind.Unavailable;
+      loadFailure.kind === FormFailureKind.RateLimited ||
+      loadFailure.kind === FormFailureKind.Unavailable;
 
     let icon: IconProp = IconProp.Alert;
 
-    if (loadFailure.kind === IncidentFormFailureKind.NotAvailable) {
+    if (loadFailure.kind === FormFailureKind.NotAvailable) {
       icon = IconProp.ClipboardDocumentList;
-    } else if (loadFailure.kind === IncidentFormFailureKind.NetworkNotAllowed) {
+    } else if (loadFailure.kind === FormFailureKind.NetworkNotAllowed) {
       icon = IconProp.Lock;
-    } else if (loadFailure.kind === IncidentFormFailureKind.RateLimited) {
+    } else if (loadFailure.kind === FormFailureKind.RateLimited) {
       icon = IconProp.Clock;
     }
 
     return (
       <PageShell isNarrow={true}>
-        <div className="text-center" data-testid="incident-form-load-failure">
+        <div className="text-center" data-testid="form-load-failure">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
             <Icon icon={icon} className="h-6 w-6 text-gray-500" />
           </div>
@@ -655,11 +418,11 @@ const IncidentFormPage: () => JSX.Element = () => {
           {canTryAgain ? (
             <div className="mt-6 flex justify-center">
               <Button
-                title={t("incidentForm.tryAgain")}
+                title={t("form.tryAgain")}
                 buttonStyle={ButtonStyleType.NORMAL}
                 icon={IconProp.Refresh}
                 className="md:!ml-0"
-                dataTestId="incident-form-try-again"
+                dataTestId="form-try-again"
                 onClick={() => {
                   focusHeadingOnLoadRef.current = true;
                   setLoadAttempt((attempt: number): number => {
@@ -683,32 +446,30 @@ const IncidentFormPage: () => JSX.Element = () => {
   if (result) {
     return (
       <PageShell heading={form.name}>
-        <div className="text-center" data-testid="incident-form-success">
+        <div className="text-center" data-testid="form-success">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
             <Icon
               icon={IconProp.CheckCircle}
               className="h-7 w-7 text-emerald-600"
             />
           </div>
-          {/* Read out with the incident number, when there is one. */}
+          {/* Read out with the reference number, when there is one. */}
           <h2
             ref={successHeadingRef}
             tabIndex={-1}
-            aria-describedby={
-              result.incidentNumber ? incidentNumberId : undefined
-            }
+            aria-describedby={result.reference ? referenceId : undefined}
             className="mt-4 text-lg font-semibold text-gray-900 focus:outline-none"
           >
-            {t("incidentForm.successTitle")}
+            {t("form.successTitle")}
           </h2>
-          {result.incidentNumber ? (
+          {result.reference ? (
             <p
-              id={incidentNumberId}
+              id={referenceId}
               className="mt-2 text-sm text-gray-600"
-              data-testid="incident-form-incident-number"
+              data-testid="form-reference"
             >
-              {t("incidentForm.incidentNumber", {
-                incidentNumber: result.incidentNumber,
+              {t("form.reference", {
+                reference: result.reference,
               })}
             </p>
           ) : (
@@ -718,7 +479,7 @@ const IncidentFormPage: () => JSX.Element = () => {
         {result.successMessage ? (
           <div
             className="mt-6 border-t border-gray-100 pt-6 text-sm text-gray-700"
-            data-testid="incident-form-success-message"
+            data-testid="form-success-message"
           >
             <MarkdownViewer text={result.successMessage} />
           </div>
@@ -727,11 +488,11 @@ const IncidentFormPage: () => JSX.Element = () => {
         )}
         <div className="mt-8 flex justify-center">
           <Button
-            title={t("incidentForm.submitAnother")}
+            title={t("form.submitAnother")}
             buttonStyle={ButtonStyleType.NORMAL}
             className="md:!ml-0"
-            dataTestId="incident-form-submit-another"
-            onClick={startAnotherReport}
+            dataTestId="form-submit-another"
+            onClick={startAnotherResponse}
           />
         </div>
       </PageShell>
@@ -742,7 +503,7 @@ const IncidentFormPage: () => JSX.Element = () => {
     submitFailure
       ? describeFailure({
           failure: submitFailure,
-          stage: IncidentFormStage.Submit,
+          stage: FormStage.Submit,
         })
       : null;
 
@@ -751,7 +512,7 @@ const IncidentFormPage: () => JSX.Element = () => {
       {form.description ? (
         <div
           className="mb-6 border-b border-gray-100 pb-6 text-sm text-gray-700"
-          data-testid="incident-form-about"
+          data-testid="form-about"
         >
           <MarkdownViewer text={form.description} />
         </div>
@@ -760,14 +521,14 @@ const IncidentFormPage: () => JSX.Element = () => {
       )}
       <BasicForm
         key={formInstance}
-        id="incident-form"
+        id="public-form"
         fields={fields}
         initialValues={initialValues}
-        showAsColumns={2}
+        showAsColumns={1}
         maxPrimaryButtonWidth={true}
         /*
-         * Not on arrival - the reporter reads what the form is for first -
-         * but the fresh form "Submit another report" opens starts at its
+         * Not on arrival - the submitter reads what the form is for first -
+         * but the fresh form "Submit another response" opens starts at its
          * first question.
          */
         disableAutofocus={formInstance === 0}
@@ -781,12 +542,13 @@ const IncidentFormPage: () => JSX.Element = () => {
             <div className="mt-4">
               <Alert
                 type={AlertType.DANGER}
-                dataTestId="incident-form-submit-error"
+                dataTestId="form-submit-error"
                 title={
                   /*
                    * An element, not a string: Alert would look a string up in
                    * the locale files, and the server's words can quote a
-                   * field's name. translateMessage already did the looking up.
+                   * question's label. translateMessage already did the
+                   * looking up.
                    */
                   <span>
                     {submitError.message}
@@ -810,4 +572,4 @@ const IncidentFormPage: () => JSX.Element = () => {
   );
 };
 
-export default IncidentFormPage;
+export default FormPage;

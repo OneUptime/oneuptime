@@ -1,6 +1,6 @@
-import IncidentFormCopy from "./IncidentFormCopy";
-import { getIncidentFormShareLink } from "./IncidentFormShareLink";
-import IncidentForm from "Common/Models/DatabaseModels/IncidentForm";
+import FormsCopy from "./FormsCopy";
+import { getFormShareLink } from "./FormShareLink";
+import Form from "Common/Models/DatabaseModels/Form";
 import URL from "Common/Types/API/URL";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -26,9 +26,9 @@ import React, {
 import useAsyncEffect from "use-async-effect";
 
 /*
- * An incident form's link, on the form's page: the link itself, copying it,
- * opening the form the way a reporter sees it, and Reset Link, which gives
- * the form a new key so the old link stops working.
+ * A form's link, on its Share page: the link itself, copying it, opening the
+ * form the way the people it is shared with see it, and Reset Link, which
+ * gives the form a new key so the old link stops working.
  *
  * The card is ResetObjectID's own, since resetting is an update of the
  * form's shareKey column like any other key reset: a viewer who may not
@@ -56,7 +56,7 @@ interface LoadedLink {
   isEnabled: boolean;
 }
 
-const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
+const FormShareLinkCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
@@ -84,8 +84,8 @@ const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
     let nextError: string = "";
 
     try {
-      const form: IncidentForm | null = await ModelAPI.getItem<IncidentForm>({
-        modelType: IncidentForm,
+      const form: Form | null = await ModelAPI.getItem<Form>({
+        modelType: Form,
         id: props.modelId,
         select: {
           shareKey: true,
@@ -101,7 +101,7 @@ const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
           isEnabled: form.isEnabled !== false,
         };
       } else {
-        nextError = IncidentFormCopy.shareLinkNotFound;
+        nextError = FormsCopy.shareLinkNotFound;
       }
     } catch (err) {
       nextError = API.getFriendlyMessage(err);
@@ -135,34 +135,34 @@ const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
   if (!shown) {
     return (
       <Card
-        title={IncidentFormCopy.shareLinkTitle}
-        description={IncidentFormCopy.shareLinkDescription}
+        title={FormsCopy.shareLinkTitle}
+        description={FormsCopy.shareLinkDescription}
       >
         {isLoading ? (
           <ComponentLoader />
         ) : (
-          <ErrorMessage message={error || IncidentFormCopy.shareLinkNotFound} />
+          <ErrorMessage message={error || FormsCopy.shareLinkNotFound} />
         )}
       </Card>
     );
   }
 
-  const link: URL = getIncidentFormShareLink(shown.shareKey);
+  const link: URL = getFormShareLink(shown.shareKey);
   const linkText: string = link.toString();
 
   return (
-    <ResetObjectID<IncidentForm>
-      modelType={IncidentForm}
+    <ResetObjectID<Form>
+      modelType={Form}
       fieldName="shareKey"
       modelId={props.modelId}
-      title={IncidentFormCopy.shareLinkTitle}
-      description={IncidentFormCopy.shareLinkDescription}
-      buttonTitle={IncidentFormCopy.resetLink}
-      confirmTitle={IncidentFormCopy.resetLink}
-      confirmDescription={IncidentFormCopy.resetLinkConfirmation}
-      confirmButtonText={IncidentFormCopy.resetLink}
-      resultTitle={IncidentFormCopy.newLinkTitle}
-      resultDescription={IncidentFormCopy.newLinkDescription}
+      title={FormsCopy.shareLinkTitle}
+      description={FormsCopy.shareLinkDescription}
+      buttonTitle={FormsCopy.resetLink}
+      confirmTitle={FormsCopy.resetLink}
+      confirmDescription={FormsCopy.resetLinkConfirmation}
+      confirmButtonText={FormsCopy.resetLink}
+      resultTitle={FormsCopy.newLinkTitle}
+      resultDescription={FormsCopy.newLinkDescription}
       onUpdateComplete={(newShareKey: ObjectID) => {
         // The server stores the key exactly as sent: no need to read it back.
         setLoaded({
@@ -171,11 +171,11 @@ const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
         });
       }}
     >
-      <div className="space-y-4" data-testid="incident-form-share-link-card">
+      <div className="space-y-4" data-testid="form-share-link-card">
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <code
             className="block min-w-0 flex-1 select-all break-all rounded-md border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-sm text-gray-900"
-            data-testid="incident-form-share-link"
+            data-testid="form-share-link"
           >
             {linkText}
           </code>
@@ -183,13 +183,13 @@ const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
             <CopyTextButton
               textToBeCopied={linkText}
               label={
-                translateString(IncidentFormCopy.copyLink) ||
-                IncidentFormCopy.copyLink
+                translateString(FormsCopy.copyLink) ||
+                FormsCopy.copyLink
               }
               copiedLabel={translateString("Copied!") || "Copied!"}
               title={
-                translateString(IncidentFormCopy.copyLink) ||
-                IncidentFormCopy.copyLink
+                translateString(FormsCopy.copyLink) ||
+                FormsCopy.copyLink
               }
               size="md"
               variant="soft"
@@ -198,12 +198,12 @@ const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
               to={link}
               openInNewTab={true}
               className={LINK_ACTION_CLASS_NAME}
-              id="incident-form-open-form"
+              id="form-open-form"
             >
               <Icon icon={IconProp.ExternalLink} className="h-4 w-4" />
               <span>
-                {translateString(IncidentFormCopy.openForm) ||
-                  IncidentFormCopy.openForm}
+                {translateString(FormsCopy.openForm) ||
+                  FormsCopy.openForm}
               </span>
             </Link>
           </div>
@@ -214,8 +214,8 @@ const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
         ) : (
           <Alert
             type={AlertType.WARNING}
-            title={IncidentFormCopy.formTurnedOff}
-            dataTestId="incident-form-share-link-turned-off"
+            title={FormsCopy.formTurnedOff}
+            dataTestId="form-share-link-turned-off"
           />
         )}
       </div>
@@ -223,4 +223,4 @@ const IncidentFormShareLinkCard: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default IncidentFormShareLinkCard;
+export default FormShareLinkCard;

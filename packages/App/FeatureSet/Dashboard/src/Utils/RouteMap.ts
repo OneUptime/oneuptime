@@ -638,6 +638,19 @@ export const RunbookRoutePath: Dictionary<string> = {
   [PageMap.RUNBOOKS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
 };
 
+/*
+ * The Forms product, under /forms: the list is the mount itself, a form's
+ * builder is its bare id, and its other pages hang off that.
+ */
+export const FormsRoutePath: Dictionary<string> = {
+  [PageMap.FORMS_SUBMISSIONS]: "submissions",
+  [PageMap.FORM_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.FORM_VIEW_ON_SUBMIT]: `${RouteParams.ModelID}/on-submit`,
+  [PageMap.FORM_VIEW_SHARE]: `${RouteParams.ModelID}/share`,
+  [PageMap.FORM_VIEW_SUBMISSIONS]: `${RouteParams.ModelID}/submissions`,
+  [PageMap.FORM_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+};
+
 export const AIAgentTasksRoutePath: Dictionary<string> = {
   [PageMap.AI_AGENT_TASK_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.AI_AGENT_TASK_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -877,8 +890,6 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_SEVERITY]: "settings/severity",
   [PageMap.INCIDENTS_SETTINGS_TEMPLATES]: "settings/templates",
   [PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW]: `settings/templates/${RouteParams.ModelID}`,
-  [PageMap.INCIDENTS_SETTINGS_FORMS]: "settings/forms",
-  [PageMap.INCIDENTS_SETTINGS_FORMS_VIEW]: `settings/forms/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES]: "settings/note-templates",
   [PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES_VIEW]: `settings/note-templates/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES]:
@@ -2112,18 +2123,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW]
-    }`,
-  ),
-
-  [PageMap.INCIDENTS_SETTINGS_FORMS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS]
-    }`,
-  ),
-
-  [PageMap.INCIDENTS_SETTINGS_FORMS_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS_VIEW]
     }`,
   ),
 
@@ -6842,6 +6841,40 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.WORKFLOWS_SETTINGS_LABEL_RULE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/workflows/${
       WorkflowRoutePath[PageMap.WORKFLOWS_SETTINGS_LABEL_RULE_VIEW]
+    }`,
+  ),
+
+  // forms.
+  [PageMap.FORMS_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/forms/*`),
+  [PageMap.FORMS]: new Route(`/dashboard/${RouteParams.ProjectID}/forms`),
+  [PageMap.FORMS_SUBMISSIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORMS_SUBMISSIONS]
+    }`,
+  ),
+  [PageMap.FORM_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_ON_SUBMIT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_ON_SUBMIT]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_SHARE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_SHARE]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_SUBMISSIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_SUBMISSIONS]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_DELETE]
     }`,
   ),
 

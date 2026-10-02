@@ -1,5 +1,7 @@
 import React, { ReactElement, lazy, Suspense } from "react";
 import {
+  Navigate,
+  Params,
   Route,
   Routes,
   useLocation,
@@ -44,16 +46,29 @@ const ResetPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
 const VerifyEmail: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/VerifyEmail");
 });
-const IncidentFormPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
-  () => {
-    return import("./Pages/IncidentForm");
-  },
-);
+const FormPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+  return import("./Pages/Form");
+});
 const McpAuthorizePage: React.LazyExoticComponent<() => JSX.Element> = lazy(
   () => {
     return import("./Pages/McpAuthorize");
   },
 );
+
+/*
+ * Incident forms became forms (the Forms product), and kept their link keys,
+ * so a link shared before - /accounts/incident-form/<key> - is sent on to
+ * the same form's page. Replaced, not pushed: Back leaves the form rather
+ * than bouncing through the old address.
+ */
+export function LegacyIncidentFormRedirect(): ReactElement {
+  const params: Readonly<Params<string>> = useParams();
+  const shareKey: string = params["shareKey"] || "";
+
+  return (
+    <Navigate replace={true} to={`/accounts/form/${encodeURIComponent(shareKey)}`} />
+  );
+}
 
 function App(): ReactElement {
   Navigation.setNavigateHook(useNavigate());
@@ -100,16 +115,17 @@ function App(): ReactElement {
               element={<VerifyEmail />}
             />
             {/*
-             * A public incident form, for anybody holding its link - signed in
-             * or not, and nothing on the page redirects either. One form only:
-             * the share key is a link identifier, not a single-use secret, so
-             * the SensitiveUrlToken bootstrap leaves it in the path (it is
-             * not one of its TOKEN_ROUTES) and there is no token-free form to
+             * A public form, for anybody holding its link - signed in or not,
+             * and nothing on the page redirects either. One form only: the
+             * share key is a link identifier, not a single-use secret, so the
+             * SensitiveUrlToken bootstrap leaves it in the path (it is not
+             * one of its TOKEN_ROUTES) and there is no token-free form to
              * land on.
              */}
+            <Route path="/accounts/form/:shareKey" element={<FormPage />} />
             <Route
               path="/accounts/incident-form/:shareKey"
-              element={<IncidentFormPage />}
+              element={<LegacyIncidentFormRedirect />}
             />
             {/*
              * The consent screen an MCP client sends its user to when it

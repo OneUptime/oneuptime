@@ -4,15 +4,15 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import APIException from "Common/Types/Exception/ApiException";
 import {
-  INCIDENT_FORM_PAGE_HEADER,
-  INCIDENT_FORM_PAGE_HEADER_VALUE,
-} from "Common/Types/Incident/IncidentFormPublic";
+  FORM_PAGE_HEADER,
+  FORM_PAGE_HEADER_VALUE,
+} from "Common/Types/Form/FormPublic";
 import BaseAPI from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 
 /*
- * The client the public incident form page talks to the API with, and the
- * only one it uses.
+ * The client the public form page talks to the API with, and the only one
+ * it uses.
  *
  * The page is open to anybody holding a form's link, with or without a
  * OneUptime account, and it is served from the same host as the dashboard.
@@ -23,7 +23,7 @@ import Navigation from "Common/UI/Utils/Navigation";
  * them to /accounts/forbidden. None of that may happen here. The form routes
  * never read who is asking; a refresh would spend - and could rotate away -
  * the visitor's real session; signing them out would end it; and navigating
- * away would throw away the report they were typing. So:
+ * away would throw away the answers they were typing. So:
  *
  *  - no session is ever refreshed (getRefreshSessionUrl is null);
  *  - nobody is ever signed out (logoutUser does nothing);
@@ -34,17 +34,17 @@ import Navigation from "Common/UI/Utils/Navigation";
  *  - tenantid is sent empty, as the public dashboard and status page clients
  *    send it: a form belongs to its own project, and naming one is never the
  *    caller's business;
- *  - every request carries the form page's own header
- *    (INCIDENT_FORM_PAGE_HEADER). The server reads a form only for a request
- *    that has it: another site can have a visitor's browser send that GET -
- *    an <img> is enough - but cannot add a header to it.
+ *  - every request carries the form page's own header (FORM_PAGE_HEADER).
+ *    The server reads a form only for a request that has it: another site
+ *    can have a visitor's browser send that GET - an <img> is enough - but
+ *    cannot add a header to it.
  */
-export default class IncidentFormAPI extends BaseAPI {
+export default class FormAPI extends BaseAPI {
   public static override getDefaultHeaders(): Headers {
     return {
       ...super.getDefaultHeaders(),
       tenantid: "",
-      [INCIDENT_FORM_PAGE_HEADER]: INCIDENT_FORM_PAGE_HEADER_VALUE,
+      [FORM_PAGE_HEADER]: FORM_PAGE_HEADER_VALUE,
     };
   }
 
