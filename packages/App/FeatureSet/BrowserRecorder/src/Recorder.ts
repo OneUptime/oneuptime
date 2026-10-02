@@ -2,6 +2,7 @@ import { record } from "rrweb";
 import {
   SESSION_REPLAY_CHECKOUT_INTERVAL_MS,
   SESSION_REPLAY_FLUSH_INTERVAL_MS,
+  SESSION_REPLAY_IDLE_PAUSE_MS,
   SESSION_REPLAY_IDLE_ROLLOVER_MS,
   SESSION_REPLAY_INPUT_SAMPLING,
   SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
@@ -33,9 +34,12 @@ import {
   SessionReplayCustomEventTag,
   SessionReplayCustomPayload,
   SessionReplayIdentifyPayload,
+  SessionReplayIdlePausedPayload,
+  SessionReplayIdleResumedPayload,
   SessionReplaySessionRotatedPayload,
   SessionReplayTagsPayload,
   SessionReplayVisibilityPayload,
+  SessionReplayVisibilityState,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import CommonMasking from "Common/Utils/Rum/Masking";
@@ -111,7 +115,51 @@ const EVENT_TYPE_META: number = 4;
 
 /* rrweb IncrementalSource values referenced here. */
 const SOURCE_MUTATION: number = 0;
+const SOURCE_MOUSE_MOVE: number = 1;
+const SOURCE_MOUSE_INTERACTION: number = 2;
 const SOURCE_INPUT: number = 5;
+const SOURCE_TOUCH_MOVE: number = 6;
+const SOURCE_DRAG: number = 12;
+
+/*
+ * The rrweb sources that only a person produces: the pointer moving, a
+ * button or a finger going down and up, a finger moving, a drag (which
+ * fires no mousemove while it lasts).
+ *
+ * Every OTHER source used to count as well, and most of them a page
+ * produces on its own: a carousel scrolls itself, a framework writes an
+ * input's value, CSS-in-JS inserts rules, an animation sets style
+ * properties, a canvas redraws, a video loops. On such a page the idle
+ * clocks never ran, so neither the idle pause nor the 30-minute rollover
+ * ever came. What a person does through those channels - scrolling,
+ * typing - starts with a key, the wheel or a touch, and USER_INPUT_EVENTS
+ * hears those directly.
+ */
+const USER_INPUT_SOURCES: ReadonlySet<number> = new Set<number>([
+  SOURCE_MOUSE_MOVE,
+  SOURCE_MOUSE_INTERACTION,
+  SOURCE_TOUCH_MOVE,
+  SOURCE_DRAG,
+]);
+
+/*
+ * DOM events that mean a person is at the page, listened for on the
+ * document itself (capture phase, passive, never cancelled).
+ *
+ * rrweb records none of keydown and wheel, so a user writing in a
+ * rich-text editor - whose keystrokes reach the recording only as DOM
+ * mutations - or zooming a map with the wheel looked exactly like nobody
+ * at all. And while the recorder is paused rrweb is not running, so these
+ * are also how the recorder hears the user come back.
+ */
+const USER_INPUT_EVENTS: ReadonlyArray<string> = [
+  "keydown",
+  "mousedown",
+  "mousemove",
+  "wheel",
+  "touchstart",
+  "touchmove",
+];
 
 export const BFCACHE_CUSTOM_EVENT_TAG: string =
   SessionReplayCustomEventTag.BfcacheRestore;
@@ -240,6 +288,11 @@ export type RecorderState =
   | "not-started"
   | "recording"
   | "uploading"
+  /*
+   * Nobody has touched the page for SESSION_REPLAY_IDLE_PAUSE_MS: nothing is
+   * captured until the next input, which resumes the same session.
+   */
+  | "paused"
   | "not-sampled"
   | "stopped";
 
@@ -533,6 +586,44 @@ export default class Recorder {
   private wakeFromIdleScheduled: boolean = false;
 
   /*
+   * Nobody has touched the page for SESSION_REPLAY_IDLE_PAUSE_MS, so the
+   * recorder has stopped capturing: rrweb is not running, nothing is
+   * recorded or uploaded, no session id goes on the page's requests, and
+   * the console, network, error and route recorders neither record nor
+   * spend their caps. The session itself is still open. The next input
+   * resumes it on a fresh snapshot (resumeFromIdlePause) - unless the idle
+   * window ran out meanwhile, and then the session ended and that input
+   * starts the next one (sealedForIdle, which a paused tab reaches without
+   * ever capturing again).
+   *
+   * It exists because a tab left alone used to go on recording everything
+   * its page did by itself for the whole half hour before the rollover,
+   * with a full snapshot every minute, and the session's duration ran on
+   * through all of it (#4208).
+   */
+  private pausedForIdle: boolean = false;
+  private resumeFromIdlePauseScheduled: boolean = false;
+  private idlePausedAtUnixMs: number = 0;
+
+  /*
+   * The pause put its marker in an uploading stream, so the resume owes
+   * that stream the matching idle-resumed marker. A pause the recording
+   * never contained (a recorder holding its pre-roll in memory, a sealed
+   * tab) is not answered: a resume marker pointing back at a pause no
+   * chunk holds would draw a stretch the player cannot place.
+   */
+  private idlePauseMarkerSent: boolean = false;
+
+  /*
+   * The visibility state the stream last reported. Visibility changes
+   * while paused are not recorded, so a tab hidden before the pause and
+   * shown again during it would otherwise read as hidden for the rest of
+   * the recording - the player draws a background-tab stretch from a
+   * hidden marker to the next visible one, or to the end.
+   */
+  private lastRecordedVisibility: SessionReplayVisibilityState | null = null;
+
+  /*
    * Scrubbed URL this recorder started on. Set once in start() so the
    * envelope's meta.entryUrl stays the ENTRY url even on the final chunk,
    * which is also built from meta.
@@ -646,6 +737,9 @@ export default class Recorder {
       onCapReached: (): void => {
         this.onSignalCapReached();
       },
+      isSuspended: (): boolean => {
+        return this.pausedForIdle;
+      },
       onError: (
         atUnixMs: number,
         _error: RecordedError,
@@ -684,6 +778,9 @@ export default class Recorder {
       },
       onCapReached: (): void => {
         this.onSignalCapReached();
+      },
+      isSuspended: (): boolean => {
+        return this.pausedForIdle;
       },
       onRequestComplete: (
         atUnixMs: number,
@@ -735,13 +832,15 @@ export default class Recorder {
        * an orphan on every backend span and a stable identifier sent for
        * nothing. Nor once the idle rollover sealed the session: a
        * background poll on an abandoned tab is no part of a recording that
-       * ended at the user's last activity. The visitor id is never
-       * propagated.
+       * ended at the user's last activity - nor while it is paused for
+       * idle, when nothing of the recording describes the moment such a
+       * request is made. The visitor id is never propagated.
        */
       getSessionIdForPropagation: (): string | null => {
         return !this.stopped &&
           this.uploading &&
           !this.sealedForIdle &&
+          !this.pausedForIdle &&
           this.consent.isUploadAllowed()
           ? this.identity.sessionId
           : null;
@@ -781,6 +880,9 @@ export default class Recorder {
       onCapReached: (): void => {
         this.onSignalCapReached();
       },
+      isSuspended: (): boolean => {
+        return this.pausedForIdle;
+      },
       onConsole: (_atUnixMs: number, _entry: RecordedConsoleEntry): void => {
         /*
          * Deliberately not a trigger. console.error is used for expected,
@@ -799,6 +901,9 @@ export default class Recorder {
       },
       onCapReached: (): void => {
         this.onSignalCapReached();
+      },
+      isSuspended: (): boolean => {
+        return this.pausedForIdle;
       },
       onRouteChange: (atUnixMs: number, route: RecordedRoute): void => {
         this.chunker.countSignal("routeCount");
@@ -845,6 +950,10 @@ export default class Recorder {
       },
     });
 
+    this.userInputListener = (): void => {
+      this.noteUserActivity(Date.now());
+    };
+
     this.visibilityListener = (): void => {
       const hidden: boolean = this.documentRef.visibilityState === "hidden";
 
@@ -860,7 +969,7 @@ export default class Recorder {
         atUnixMs: Date.now(),
       };
 
-      this.emitCustomEvent(SessionReplayCustomEventTag.Visibility, visibility);
+      this.emitVisibility(visibility);
 
       if (hidden) {
         this.onHidden();
@@ -944,6 +1053,7 @@ export default class Recorder {
   }
 
   private readonly visibilityListener: () => void;
+  private readonly userInputListener: () => void;
   private readonly pageHideListener: (event: PageTransitionEvent) => void;
   private readonly pageShowListener: (event: PageTransitionEvent) => void;
   private readonly focusInListener: (event: Event) => void;
@@ -1106,6 +1216,19 @@ export default class Recorder {
       capture: true,
       passive: true,
     });
+
+    /*
+     * Passive and capture-phase: the recorder only notes THAT the user did
+     * something, never what, and must never be the listener that delays a
+     * scroll or a keystroke on the customer's page.
+     */
+    for (const type of USER_INPUT_EVENTS) {
+      this.documentRef.addEventListener(type, this.userInputListener, {
+        capture: true,
+        passive: true,
+      });
+    }
+
     this.windowRef.addEventListener("online", this.onlineListener);
     this.windowRef.addEventListener("offline", this.offlineListener);
 
@@ -1699,17 +1822,24 @@ export default class Recorder {
     }
 
     /*
-     * Every incremental source EXCEPT mutation is the end user doing
-     * something: moving the mouse, clicking, scrolling, typing, touching,
-     * using a media control. Mutation is excluded deliberately - a page with
-     * a carousel or a polling widget mutates forever with nobody at the
-     * keyboard, and counting that as activity is what would re-create the
-     * "idle rollover never fires" bug in a subtler form.
+     * Only the sources a person produces (USER_INPUT_SOURCES). Mutation is
+     * the clearest case of the rest - a page with a carousel or a polling
+     * widget mutates forever with nobody at the keyboard - but a scroll,
+     * an input value, a style change or a canvas frame can all come from
+     * the page alone too, and counting them kept the idle clocks from ever
+     * running. Keys, the wheel and touches reach noteUserActivity through
+     * USER_INPUT_EVENTS instead.
      */
-    if (event.data["source"] !== SOURCE_MUTATION) {
+    const source: unknown = event.data["source"];
+
+    if (typeof source === "number" && USER_INPUT_SOURCES.has(source)) {
       this.noteUserActivity(
         typeof event.timestamp === "number" ? event.timestamp : Date.now(),
       );
+      return;
+    }
+
+    if (source !== SOURCE_MUTATION) {
       return;
     }
 
@@ -1759,7 +1889,192 @@ export default class Recorder {
 
     if (this.sealedForIdle) {
       this.scheduleWakeFromIdle();
+    } else if (this.pausedForIdle) {
+      this.scheduleResumeFromIdlePause();
     }
+  }
+
+  /*
+   * Deferred a tick, like the wake from an idle seal: resuming takes a full
+   * snapshot, and the input that asked for it is still being dispatched -
+   * the page's own handlers run first, so the snapshot shows what that
+   * input did. Coalesced: the mouse coming back is dozens of events.
+   */
+  private scheduleResumeFromIdlePause(): void {
+    if (this.resumeFromIdlePauseScheduled) {
+      return;
+    }
+
+    this.resumeFromIdlePauseScheduled = true;
+
+    setTimeout((): void => {
+      this.resumeFromIdlePauseScheduled = false;
+      this.resumeFromIdlePause();
+    }, 0);
+  }
+
+  /*
+   * Stop capturing: nobody has touched the page for the pause window.
+   *
+   * In this order. The page's web vitals as a hidden tab would report them,
+   * then the idle-paused marker - both while rrweb can still put them in
+   * the stream - then the open chunk goes out through the ordinary path
+   * (the page is alive), and only then does rrweb stop. So the last thing
+   * the recording holds before the stretch nobody recorded says so, and
+   * the session ends there if the user never comes back: every seal dates
+   * itself no later than the footage (getRecordingEndUnixMs).
+   *
+   * A recorder holding its pre-roll in memory has nothing to mark and
+   * nothing to send; its buffer is dropped instead, because a trigger once
+   * the user is back must not upload minutes-old footage in front of a
+   * snapshot taken after an unrecorded gap.
+   */
+  private maybePauseForIdle(nowUnixMs: number): void {
+    if (this.pausedForIdle || this.stopped || !this.started) {
+      return;
+    }
+
+    if (
+      this.lastUserActivityUnixMs <= 0 ||
+      nowUnixMs - this.lastUserActivityUnixMs < SESSION_REPLAY_IDLE_PAUSE_MS
+    ) {
+      return;
+    }
+
+    const idleSinceUnixMs: number = this.lastUserActivityUnixMs;
+    const canMark: boolean =
+      this.uploading && !this.hasSentFinalChunk && !this.sealedForIdle;
+
+    if (canMark) {
+      this.performanceRecorder.finaliseVitalsNow();
+
+      const paused: SessionReplayIdlePausedPayload = {
+        idleSinceUnixMs: idleSinceUnixMs,
+        pausedAtUnixMs: nowUnixMs,
+      };
+
+      this.emitCustomEvent(SessionReplayCustomEventTag.IdlePaused, paused);
+      this.chunker.close(false);
+    }
+
+    this.pausedForIdle = true;
+    this.idlePausedAtUnixMs = nowUnixMs;
+    this.idlePauseMarkerSent = canMark;
+    this.buffer.clear();
+    this.pendingCustomEvents = [];
+    this.stopObservingPage();
+
+    debugLog(
+      "recording-paused-idle",
+      "Nobody has touched the page for 5 minutes, so recording paused. Nothing is captured or uploaded until the next key, click, scroll or touch.",
+      {
+        sessionId: this.identity.sessionId,
+        idleForMs: Math.max(0, nowUnixMs - idleSinceUnixMs),
+      },
+    );
+  }
+
+  /*
+   * The user is back inside the idle window: the same session, the same
+   * tab, the next chunk index, opening on a fresh snapshot - rrweb starting
+   * takes one - with the idle-resumed marker straight behind it, so the
+   * player can tell the stretch it skips from footage in which nothing
+   * happened.
+   *
+   * Not on a tab sealed for idle: there the session ended, and the wake
+   * (wakeFromIdle) starts the next one, through switchSession, which
+   * resumes capture itself.
+   */
+  private resumeFromIdlePause(): void {
+    if (!this.pausedForIdle || this.stopped || !this.started) {
+      return;
+    }
+
+    if (this.sealedForIdle) {
+      return;
+    }
+
+    const nowUnixMs: number = Date.now();
+    const pausedAtUnixMs: number = this.idlePausedAtUnixMs;
+    const owesResumeMarker: boolean = this.idlePauseMarkerSent;
+
+    this.resumeObservingPage();
+
+    if (owesResumeMarker && this.uploading && !this.hasSentFinalChunk) {
+      const resumed: SessionReplayIdleResumedPayload = {
+        pausedAtUnixMs: pausedAtUnixMs,
+        resumedAtUnixMs: Math.max(pausedAtUnixMs, nowUnixMs),
+      };
+
+      this.emitCustomEvent(SessionReplayCustomEventTag.IdleResumed, resumed);
+
+      /*
+       * Input only reaches a visible page, so a stream that last said
+       * "hidden" is told otherwise here rather than at the next tab switch.
+       */
+      if (this.lastRecordedVisibility === "hidden" && !this.isHidden) {
+        this.emitVisibility({ state: "visible", atUnixMs: nowUnixMs });
+      }
+    }
+
+    debugLog("recording-resumed", "The user is back; recording resumed.", {
+      sessionId: this.identity.sessionId,
+      pausedForMs: Math.max(0, nowUnixMs - pausedAtUnixMs),
+    });
+  }
+
+  /*
+   * rrweb off and on. Stopping it is the point of the pause - an
+   * unattended tab whose page mutates on its own otherwise pays for every
+   * mutation and for a full serialisation every minute, for nothing - and
+   * starting it again takes the full snapshot the next footage opens on.
+   */
+  private stopObservingPage(): void {
+    if (!this.stopRrweb) {
+      return;
+    }
+
+    try {
+      this.stopRrweb();
+    } catch {
+      /* rrweb's teardown must not throw into the host page. */
+    }
+
+    this.stopRrweb = null;
+  }
+
+  /*
+   * Returns true when it started rrweb - and so already took the snapshot
+   * a caller opening a new recording would otherwise ask for.
+   */
+  private resumeObservingPage(): boolean {
+    if (!this.pausedForIdle) {
+      return false;
+    }
+
+    this.pausedForIdle = false;
+    this.idlePauseMarkerSent = false;
+
+    if (this.stopRrweb) {
+      return false;
+    }
+
+    this.startRrweb();
+
+    return this.stopRrweb !== null;
+  }
+
+  /*
+   * Every visibility marker goes through here, so the resume knows what the
+   * stream last said.
+   */
+  private emitVisibility(visibility: SessionReplayVisibilityPayload): void {
+    if (this.pausedForIdle || this.stopped) {
+      return;
+    }
+
+    this.lastRecordedVisibility = visibility.state;
+    this.emitCustomEvent(SessionReplayCustomEventTag.Visibility, visibility);
   }
 
   /*
@@ -1844,6 +2159,17 @@ export default class Recorder {
    */
   public trigger(reason: SessionReplayTriggerReason): void {
     if (this.stopped) {
+      return;
+    }
+
+    /*
+     * Nobody is at the page. A background poll's 5xx or a long task on an
+     * unattended tab says nothing about what the user went through, and
+     * labelling the session with it - or starting an upload of footage
+     * that ended minutes before it - would. A person asking (Manual) still
+     * counts; captureSession() resumes capture before it gets here.
+     */
+    if (this.pausedForIdle && reason !== SessionReplayTriggerReason.Manual) {
       return;
     }
 
@@ -1954,11 +2280,23 @@ export default class Recorder {
        * Rotation already sealed the outgoing session with a final chunk and
        * opened a new one. Closing again here would emit an empty chunk into
        * a session that is one event old.
+       *
+       * Or it sealed the session as idle, and the tab waits for the user -
+       * which it must do without observing the page: a tab whose timers
+       * were frozen (a laptop asleep) reaches the idle seal without having
+       * paused first.
        */
+      this.maybePauseForIdle(now);
       return;
     }
 
-    if (!this.uploading) {
+    /*
+     * Closes the open chunk itself when it pauses, so what follows has
+     * nothing left to flush.
+     */
+    this.maybePauseForIdle(now);
+
+    if (!this.uploading || this.pausedForIdle) {
       return;
     }
 
@@ -2083,6 +2421,18 @@ export default class Recorder {
       storedSessionId !== null &&
       storedSessionId !== this.identity.sessionId
     ) {
+      /*
+       * A sibling moved the session on while nobody is at THIS tab. Its
+       * part of the old session ends - where its footage ended - and it
+       * waits, as an idle-sealed tab does: adopting now would start
+       * recording the new session on a page nobody is looking at. The
+       * user's return here adopts it (wakeFromIdle).
+       */
+      if (this.pausedForIdle && !isUserBack) {
+        this.sealForIdle(this.getRecordingEndUnixMs(nowUnixMs));
+        return true;
+      }
+
       this.sealCurrentSession();
 
       const adopted: SessionIdentityState | null = SessionId.syncWithStorage(
@@ -2117,6 +2467,16 @@ export default class Recorder {
       !SessionId.isActivityAfterIdleExpiry(this.lastUserActivityUnixMs)
     ) {
       this.sealForIdle(this.lastUserActivityUnixMs);
+      return true;
+    }
+
+    /*
+     * Any other rollover - the duration cap, a store that lost the
+     * session - on a tab paused for idle: the same as above. The session
+     * ends at its footage and the next one waits for someone to be in it.
+     */
+    if (this.pausedForIdle && !isUserBack) {
+      this.sealForIdle(this.getRecordingEndUnixMs(nowUnixMs));
       return true;
     }
 
@@ -2270,13 +2630,21 @@ export default class Recorder {
    * hour longer than anything the player could show (#4207). Between the
    * two (someone reading without touching anything) the page was in front
    * of them, so the seal stays at now.
+   *
+   * And while paused for idle, at the last activity too, whenever the seal
+   * comes - the tab closed, stop() called, the window running out: nothing
+   * was recorded after the pause, so nothing after it may be counted. The
+   * chunker never dates a seal before the chunk ahead of it, so in practice
+   * that is the idle-paused marker, where the footage ends.
    */
   private getRecordingEndUnixMs(nowUnixMs: number): number {
     if (
       this.lastUserActivityUnixMs > 0 &&
-      nowUnixMs - this.lastUserActivityUnixMs >= SESSION_REPLAY_IDLE_ROLLOVER_MS
+      (this.pausedForIdle ||
+        nowUnixMs - this.lastUserActivityUnixMs >=
+          SESSION_REPLAY_IDLE_ROLLOVER_MS)
     ) {
-      return this.lastUserActivityUnixMs;
+      return Math.min(this.lastUserActivityUnixMs, nowUnixMs);
     }
 
     return nowUnixMs;
@@ -2368,8 +2736,14 @@ export default class Recorder {
      * drains it, and it is only a seek anchor if the snapshot leads. The
      * old order (marker, trigger, snapshot) shipped a one-event chunk 0 with
      * no DOM in it for every rotated session.
+     *
+     * A tab paused for idle starts observing the page again here - this
+     * runs because the user is back - and rrweb starting takes that
+     * snapshot itself.
      */
-    this.takeFullSnapshot();
+    if (!this.resumeObservingPage()) {
+      this.takeFullSnapshot();
+    }
 
     const rotated: SessionReplaySessionRotatedPayload = {
       previousSessionId: previousSessionId,
@@ -2491,13 +2865,19 @@ export default class Recorder {
     let split: SplitCloseResult = { emptiedSealEvents: 0, emptiedSealBytes: 0 };
 
     try {
+      /*
+       * Now, unless the recorder is paused for idle: then the seal is dated
+       * at the footage, not at the moment the page finally went away.
+       */
+      const endedAtUnixMs: number = this.getRecordingEndUnixMs(Date.now());
+
       if (this.transport.isOffline()) {
         /*
          * Offline mode: nothing is posted, the transport stores it, so there
          * is no keepalive request to fit and no reason to drop the oldest
          * events. The open chunk is closed whole.
          */
-        this.chunker.close(isFinal);
+        this.chunker.close(isFinal, endedAtUnixMs);
       } else {
         /*
          * Per PIECE and in TOTAL: the browser counts the keepalive quota
@@ -2514,6 +2894,7 @@ export default class Recorder {
           KEEPALIVE_PAYLOAD_BUDGET_BYTES,
           KEEPALIVE_PAYLOAD_BUDGET_BYTES,
           KEEPALIVE_FRAME_OVERHEAD_BYTES,
+          endedAtUnixMs,
         );
       }
     } finally {
@@ -2601,7 +2982,11 @@ export default class Recorder {
     /* Returning is activity; written through on the next tick. */
     this.lastUserActivityUnixMs = nowUnixMs;
 
-    this.takeFullSnapshot();
+    /* Paused for idle until now: rrweb starting takes the snapshot. */
+    if (!this.resumeObservingPage()) {
+      this.takeFullSnapshot();
+    }
+
     this.notifySessionChange();
   }
 
@@ -3017,6 +3402,16 @@ export default class Recorder {
     }
 
     /*
+     * Dropped, not queued: nothing is recorded while paused for idle, and
+     * a marker held until the resume would be stamped then - a request or
+     * a tab switch from twenty minutes earlier, drawn after the user came
+     * back.
+     */
+    if (this.pausedForIdle) {
+      return;
+    }
+
+    /*
      * rrweb refuses custom events until its first snapshot, which on a page
      * still parsing is deferred to the load event. Everything raised before
      * then - a startup crash, the first route, the first requests - is held
@@ -3395,6 +3790,13 @@ export default class Recorder {
 
     /* No session is left to have ended idle; a grant starts a fresh one. */
     this.sealedForIdle = false;
+
+    /*
+     * Nor one that owes the matching resume marker: the stream that held
+     * the pause marker was just withdrawn. Still paused, if it was - the
+     * next input resumes capture into the ring buffer, as ever.
+     */
+    this.idlePauseMarkerSent = false;
   }
 
   /*
@@ -3448,6 +3850,15 @@ export default class Recorder {
       return;
     }
 
+    /*
+     * Nothing is recorded while paused for idle, and that includes a
+     * business event the page raises in the background: counted here it
+     * would be a number on the session with no row behind it.
+     */
+    if (this.pausedForIdle) {
+      return;
+    }
+
     if (
       this.customEventsInChunk >= SESSION_REPLAY_MAX_CUSTOM_EVENTS_PER_CHUNK
     ) {
@@ -3491,6 +3902,14 @@ export default class Recorder {
      */
     if (this.sealedForIdle) {
       this.wakeFromIdle();
+    } else if (this.pausedForIdle) {
+      /*
+       * Likewise on a tab paused for idle: the page asked for this moment
+       * to be recorded, so capture resumes - on a snapshot of what is on
+       * screen now - and the marker lands in it. Not user activity, so the
+       * next tick pauses again unless someone is actually there.
+       */
+      this.resumeFromIdlePause();
     }
 
     if (typeof reason === "string" && reason.trim()) {
@@ -3619,7 +4038,15 @@ export default class Recorder {
       return "not-started";
     }
 
+    if (this.pausedForIdle) {
+      return "paused";
+    }
+
     return this.uploading ? "uploading" : "recording";
+  }
+
+  public isPausedForIdle(): boolean {
+    return this.pausedForIdle;
   }
 
   /*
@@ -3679,7 +4106,7 @@ export default class Recorder {
     if (seal && this.uploading && !this.hasSentFinalChunk) {
       try {
         this.clickRecorder.stop(this.documentRef);
-        this.chunker.close(true);
+        this.chunker.close(true, this.getRecordingEndUnixMs(Date.now()));
       } catch {
         /* Sealing is best effort; the teardown below must still run. */
       } finally {
@@ -3741,6 +4168,11 @@ export default class Recorder {
       this.pageShowListener as EventListener,
     );
     this.documentRef.removeEventListener("focusin", this.focusInListener, true);
+
+    for (const type of USER_INPUT_EVENTS) {
+      this.documentRef.removeEventListener(type, this.userInputListener, true);
+    }
+
     this.windowRef.removeEventListener("online", this.onlineListener);
     this.windowRef.removeEventListener("offline", this.offlineListener);
 

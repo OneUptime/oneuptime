@@ -497,6 +497,22 @@ export default class PerformanceRecorder {
   }
 
   /*
+   * The recorder is about to pause because nobody is at the page. Reported
+   * exactly as a hidden tab reports them, while the stream can still take
+   * them: LCP, FCP, TTFB and CLS once, and the current view's INP, which
+   * stays open and is reported again only if it changes after the user
+   * comes back. Without this, a page whose first hide came while paused -
+   * the tab closed by someone who walked away first - lost its vitals.
+   */
+  public finaliseVitalsNow(): void {
+    if (!this.started || !this.captureWebVitals) {
+      return;
+    }
+
+    this.finaliseVitals();
+  }
+
+  /*
    * A single-page-app route change: the current view is closed and a new
    * one opened. Both URLs arrive already scrubbed. The closed view is
    * reported once INP_VIEW_SETTLE_MS has passed, which gives the

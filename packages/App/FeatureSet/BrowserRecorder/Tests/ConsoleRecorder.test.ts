@@ -271,6 +271,75 @@ describe("ConsoleRecorder", (): void => {
     expect(entries[entries.length - 1]?.isCapMarker).toBeUndefined();
   });
 
+  /*
+   * #4208: while the recorder is paused because nobody is at the page, a
+   * page logging on its own must neither be recorded nor spend the cap -
+   * a hundred background warnings used to leave the user's own session,
+   * once they came back, with no Console tab at all.
+   */
+  describe("while suspended", (): void => {
+    let suspended: boolean = false;
+
+    beforeEach((): void => {
+      suspended = false;
+      recorder.stop(fakeConsole);
+      recorder = new ConsoleRecorder({
+        emitCustomEvent: (tag: string, payload: unknown): void => {
+          customEvents.push({ tag: tag, payload: payload });
+        },
+        maskArgument: (value: string): string => {
+          return value;
+        },
+        onConsole: (_atUnixMs: number, entry: RecordedConsoleEntry): void => {
+          entries.push(entry);
+        },
+        isSuspended: (): boolean => {
+          return suspended;
+        },
+      });
+      recorder.start(fakeConsole);
+    });
+
+    it("records nothing and spends none of the cap", (): void => {
+      suspended = true;
+
+      for (let i: number = 0; i < MAX_CONSOLE_RECORDED + 50; i++) {
+        fakeConsole.warn(`background ${i}`);
+      }
+
+      expect(entries).toHaveLength(0);
+      expect(customEvents).toHaveLength(0);
+      expect(recorder.getRecordedCount()).toBe(0);
+      expect(recorder.hasReachedCap()).toBe(false);
+    });
+
+    it("still writes to the real console", (): void => {
+      suspended = true;
+
+      fakeConsole.warn("background");
+
+      expect(written).toEqual([["background"]]);
+    });
+
+    it("records again, with the whole cap, once it is not", (): void => {
+      suspended = true;
+
+      for (let i: number = 0; i < MAX_CONSOLE_RECORDED; i++) {
+        fakeConsole.error("background");
+      }
+
+      suspended = false;
+      fakeConsole.error("the user is back");
+
+      expect(
+        entries.map((entry: RecordedConsoleEntry): string => {
+          return entry.message;
+        }),
+      ).toEqual(["the user is back"]);
+      expect(recorder.getRecordedCount()).toBe(1);
+    });
+  });
+
   it("restores the original methods on stop", (): void => {
     const patched: unknown = fakeConsole.error;
 

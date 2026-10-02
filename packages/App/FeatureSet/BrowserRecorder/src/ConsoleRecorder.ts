@@ -72,6 +72,16 @@ export interface ConsoleRecorderOptions {
    * wiring can land independently of this module.
    */
   onCapReached?: (cap: number) => void;
+
+  /*
+   * True while the recorder is paused because nobody is at the page (see
+   * SESSION_REPLAY_IDLE_PAUSE_MS). Nothing is recorded then, and nothing
+   * is counted against the per-session cap either: a page polling or
+   * logging on its own for twenty minutes must not spend the budget the
+   * user's own session needs once they come back. Optional, so the module
+   * still works on its own.
+   */
+  isSuspended?: () => boolean;
 }
 
 type ConsoleMethod = (...args: Array<unknown>) => void;
@@ -178,6 +188,10 @@ export default class ConsoleRecorder {
      * on them. Skipped before the cap is consulted, so they cost nothing.
      */
     if (ConsoleRecorder.isOwnDiagnostic(args)) {
+      return;
+    }
+
+    if (this.options.isSuspended && this.options.isSuspended()) {
       return;
     }
 
