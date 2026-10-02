@@ -12,6 +12,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
@@ -195,6 +196,13 @@ export interface UseResourceOwnersResult<TResource extends BaseModel> {
   ) => void;
   /** Clear every chip — what the bar's own "Clear all" button does. */
   clearAllFacets: () => void;
+  /**
+   * Pass to ModelTable's `emptyState`. The chips filter the rows outside
+   * the table's own search and filters, so without it a chip that matched
+   * nothing left the table saying "No monitors yet" and offering to create
+   * one; with it the table says nothing matches and offers to clear them.
+   */
+  emptyState: EmptyStateOptions;
   /**
    * Serializable snapshot of all facet selections (owner, labels, extras).
    * Pass to ModelTable's `currentFacetState` so saved views capture it.
@@ -1883,6 +1891,13 @@ const useResourceOwners: <TResource extends BaseModel>(
     return fromGetter ? ownersByResourceId[fromGetter] : undefined;
   };
 
+  const emptyState: EmptyStateOptions = useMemo((): EmptyStateOptions => {
+    return {
+      isFiltered: hasActiveFilters,
+      onClearFilters: clearAllFacets,
+    };
+  }, [hasActiveFilters, clearAllFacets]);
+
   return {
     ownersByResourceId,
     getOwnersForResource,
@@ -1895,6 +1910,7 @@ const useResourceOwners: <TResource extends BaseModel>(
     facetOperators,
     setFacetSelection,
     clearAllFacets,
+    emptyState,
     facetSaveState,
     restoreFacetState,
   };

@@ -79,6 +79,7 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -126,6 +127,7 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="podman-hosts-table"
         userPreferencesKey="podman-hosts-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}

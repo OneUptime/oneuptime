@@ -2791,9 +2791,15 @@ describe("On-call readiness page", () => {
 
       filterToUnreachable();
 
+      // The page's sentence heads the table's filtered empty state.
       expect(
-        screen.getByText("No responders match these filters."),
+        screen.getByText("No responders match these filters"),
       ).toBeInTheDocument();
+      expect(
+        screen
+          .getByText("No responders match these filters")
+          .closest("[data-empty-state-kind]"),
+      ).toHaveAttribute("data-empty-state-kind", "filtered");
     });
 
     /*

@@ -15,6 +15,7 @@ const NotOperationalMonitors: FunctionComponent<
         },
       }}
       noItemsMessage="No monitors are reporting a problem."
+      emptyState={{ isAllClear: true }}
       title="Not Operational Monitors"
       description="Monitors whose current status is not operational, such as Degraded or Offline. View a monitor to see what changed."
     />

@@ -17,6 +17,13 @@ import { loadLocaleResource, LocaleResource } from "./I18nLocaleLoader";
  * other locale is code-split into its own chunk and fetched on demand by the
  * lazy backend below — keeping ~11MB of unused translations out of the entry
  * bundle.
+ *
+ * What this import bundles is not the whole file: the build drops the keys
+ * that map to themselves ("Save": "Save"), since every lookup passes the
+ * English as its default, and keeps the nested keys and plural "_one" forms
+ * (Common/UI/esbuild-locales.js). The lazy chunks likewise ship without the
+ * strings English reads the same, which is why English must stay both the
+ * fallback and in this bundle.
  */
 import en from "../Locales/en.json";
 

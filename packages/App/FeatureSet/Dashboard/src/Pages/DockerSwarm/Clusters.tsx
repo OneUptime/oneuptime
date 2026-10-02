@@ -89,6 +89,7 @@ const DockerSwarmClusters: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -168,6 +169,7 @@ const DockerSwarmClusters: FunctionComponent<
         id="docker-swarm-clusters-table"
         userPreferencesKey="docker-swarm-clusters-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}

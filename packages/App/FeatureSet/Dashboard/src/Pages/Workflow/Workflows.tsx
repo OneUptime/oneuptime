@@ -93,6 +93,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -132,6 +133,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           id="workflows-table"
           userPreferencesKey="workflow-table"
           topContent={filterBar}
+          emptyState={facetEmptyState}
           currentFacetState={facetSaveState}
           onFacetStateRestored={restoreFacetState}
           query={mergeFiltersIntoQuery({ isArchived: false })}
