@@ -121,6 +121,28 @@ function sideMenu(page: Page): Locator {
   return page.locator("aside[role='navigation'][aria-label='Main navigation']");
 }
 
+/*
+ * A side-menu section's toggle, by its heading's text. Rarely used sections
+ * (here Manage, which holds Settings) start folded down to their titles:
+ * their rows are hidden until the section is opened, or until one of its
+ * pages is the one open.
+ */
+function sideMenuSectionToggle(page: Page, section: string): Locator {
+  return sideMenu(page).locator(
+    `xpath=.//h6[normalize-space(.)='${section}']/ancestor::button[1]`,
+  );
+}
+
+async function openSideMenuSection(page: Page, section: string): Promise<void> {
+  const toggle: Locator = sideMenuSectionToggle(page, section);
+
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+}
+
 function card(page: Page, heading: string): Locator {
   return page
     .getByTestId("card")
@@ -344,7 +366,18 @@ test.describe("navigation", () => {
   }) => {
     await open(page, "");
 
+    // Manage, which holds Settings, starts folded away on the Overview.
+    await expect(sideMenuSectionToggle(page, "Manage")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await expect(
+      sideMenu(page).locator(`a[href='${BASE}/settings']`),
+    ).toBeHidden();
+
     for (const detailPage of DETAIL_PAGES) {
+      await openSideMenuSection(page, detailPage.section);
+
       const link: Locator = sideMenu(page).getByRole("link", {
         name: detailPage.title,
         exact: true,

@@ -121,7 +121,7 @@ Open **Incidents** in the left navigation. Its side menu is organized into secti
 | **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Auto Remediation Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**. |
 | **Settings**  | **AI**, **Incident State**, **Incident Severity**, **Incident Templates**, **Forms**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Number Prefix**. |
 
-**Rules** and **Settings** are collapsed by default — expand them to find the pages the rest of these docs refer to. Incident configuration is not under Project Settings; it all lives here.
+**Overview** and **Episodes** are open; **Workspace**, **Rules**, **Settings** and **Developer** are collapsed by default, so the menu opens on the lists you use every day. Click a section's title to expand it and find the pages the rest of these docs refer to; a section also opens by itself whenever you are on one of its pages. Incident configuration is not under Project Settings; it all lives here.
 
 The incidents list itself shows **Incident Number**, **Title**, **State**, **Severity**, **Resources Affected**, **Declared**, **Duration**, **Labels** and **Owners**, with a **Change State** bulk action for closing several at once.
 
@@ -137,7 +137,7 @@ Open an incident and you get a left side menu, grouped like this:
 - **Postmortem** — the write-up, which you can optionally publish to the status page.
 - **Linked Alerts** — the alerts linked to this incident, with each alert's current state, and who linked it and when. Alerts have a matching **Linked Incidents** page. See [Linked Alerts](/docs/incidents/linked-alerts).
 - **Roles**, **On-Call Executions**, **Owners** — who is on it, which policies fired, and who gets notified.
-- **Notification Logs**, **AI Logs**, **Audit Logs** — what was sent and what changed.
+- **Notification Logs**, **AI Logs**, **Audit Logs** — what was sent and what changed. The first two are under **Notifications**, which starts collapsed: click **Notifications** to show them. **Audit Logs** is under **Advanced**.
 - **Private Notes** and **Public Notes** — under the **Notes** section of the side menu.
 - **Custom Fields**, **Settings**, **Delete Incident** — under **Advanced**, which starts collapsed: click **Advanced** to show them. The **Settings** page holds **Visible on Status Page**, **Private Incident** and the **Reminders** card.
 
