@@ -39,6 +39,18 @@ a language, and the rules the guard test enforces.
   whose nouns keep their capital. Acronyms and brand names keep their casing.
 - **Numbers** in a plural `{{count}}` are written the reader's way (`1.234` in
   German). Pass your own `count` value to override.
+- **What ships.** The files here keep every key, so the tooling can track
+  what is left to translate. The bundle carries only what a reader can tell
+  apart (`Common/UI/esbuild-locales.js`, wired in the Dashboard's
+  `esbuild.config.js`). `en.json` ships without the entries that map to
+  themselves: the lookup passes the English as its default, so a missing one
+  reads the same. Its nested keys and `_one` forms ship. Every other locale
+  ships without the strings that equal `en.json`'s, its English placeholders
+  and its same-as-English strings: i18next falls back to English, which the
+  entry chunk always holds. So `en.json` adds about 10 KB to the entry chunk
+  instead of 1.8 MB, and a locale's chunk holds its translations only. Read
+  strings through the lookups above only. `i18n.exists()` or
+  `getResourceBundle()` would see the shipped copy, not these files.
 
 Everything above lives in `Common/UI/Utils/TranslateTemplate.ts`, which has a
 `Translator` with `translateText`, `translateTemplate`, `translatePlural`,
@@ -230,9 +242,22 @@ fails when any of these breaks:
   refuses to record a higher one without `--force`.
 - The same-as-English lists are sorted, have no repeats, and name only English
   that `en.json` has.
+- Every nested key a `t("a.b")` call reads in the Dashboard's code or
+  `Common/UI` is in `en.json`. i18next shows a missing nested key as the key
+  itself. Give the call its English (`t("a.b", "English")`) and run
+  `npm run i18n:extract`.
 
 `Scripts/I18n/ValidateLocales.js` (the repository-wide validator) checks the
 same key parity and placeholders.
+
+What ships is tested apart from the files.
+`packages/Common/Tests/UI/EsbuildLocales.test.ts` builds the real locale files
+with the Dashboard's `esbuild.config.js`. It checks that each language ships
+exactly what the plugin keeps, that only English is in the entry chunk, and
+that `en.json`'s share of it stays under 32 KB.
+`packages/Common/Tests/App/Dashboard/DashboardRuntimeLocales.test.tsx` checks
+that every string in all seventeen languages reads the same from the shipped
+copies as from these files.
 
 ## Merging and conflicts
 
@@ -271,6 +296,7 @@ translated the same locale. Take either side, then run
 | `scripts/i18n/LocaleFiles.ts` | Reads, orders, aligns and merges locale files. |
 | `scripts/i18n/LocaleStatus.ts` | What counts as untranslated, problems, and baselines. |
 | `scripts/i18n/I18n.ts` | The `npm run i18n:*` commands. |
+| `Common/UI/esbuild-locales.js` | The build plugin that ships each locale without what the English fallback already shows. |
 
 ## Not covered yet
 
@@ -278,7 +304,3 @@ translated the same locale. Take either side, then run
 - The `Common/Types` catalogs are not scanned: permissions, monitor-type and
   workflow-component descriptions.
 - `ee/Dashboard` and documentation markdown are not scanned.
-- `EventItem` reads nested keys (`eventItem.*`) that `en.json` lacks.
-  `i18n:extract` reports them.
-- `en.json` is bundled into the entry chunk, so every key adds to it.
-  Stripping the identity entries at build time would undo that.
