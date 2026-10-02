@@ -5,6 +5,7 @@ import TinyFormDocumentation from "../TinyFormDocumentation/TinyFormDocumentatio
 import { FILE_URL } from "../../Config";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
+import { translationKey } from "../../Utils/TranslateTemplate";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import CommonURL from "../../../Types/API/URL";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -2133,10 +2134,12 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   };
 
   const moreFormattingLabel: string = tx("More formatting");
-  const modeToggleTitle: string =
+  // In English: MoreMenuItem looks its own words up.
+  const modeToggleAction: string =
     mode === "wysiwyg"
-      ? tx("Switch to markdown source")
-      : tx("Switch to visual editor");
+      ? translationKey("Switch to markdown source")
+      : translationKey("Switch to visual editor");
+  const modeToggleTitle: string = tx(modeToggleAction);
 
   /*
    * How much of the toolbar is on its line (MarkdownToolbarLayout). Starts
@@ -2312,7 +2315,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     moreMenuItems.push(
       <MoreMenuItem
         key={action.label}
-        text={tx(action.label)}
+        text={action.label}
         icon={action.icon}
         iconElement={
           action.icon ? undefined : (
@@ -2353,7 +2356,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     moreMenuItems.push(
       <MoreMenuItem
         key="mode"
-        text={modeToggleTitle}
+        text={modeToggleAction}
         icon={mode === "wysiwyg" ? IconProp.Code : IconProp.Eye}
         onClick={toggleMode}
       />,
