@@ -179,6 +179,7 @@ import WorkflowStatus from "../../../Types/Workflow/WorkflowStatus";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
+import { toHeadline } from "../../../UI/Components/Table/EmptyTableMessage";
 
 const WORKFLOW_ID: string = "0193c0de-7777-4aaa-8bbb-000000000007";
 const WORKFLOWS_PATH: string = `/dashboard/${PROJECT_ID}/workflows`;
@@ -335,7 +336,10 @@ describe.each(RUN_PAGES)("$name", (page: RunPage) => {
     runsForTest = [];
     await renderRunPage(page);
 
-    expect(await screen.findByText(page.emptySentence)).toBeInTheDocument();
+    // The page's sentence heads the table's empty state, without its stop.
+    expect(
+      await screen.findByText(toHeadline(page.emptySentence)),
+    ).toBeInTheDocument();
   });
 
   test("View Logs on a run still opens that run", async () => {

@@ -53,6 +53,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -70,6 +71,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <div>
       <ModelTable<StatusPage>
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}

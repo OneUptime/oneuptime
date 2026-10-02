@@ -56,7 +56,12 @@ interface CapturedTableProps {
   topContent: ReactElement;
   currentFacetState: JSONObject;
   onFacetStateRestored: (state: JSONObject | null) => void;
-  noItemsMessage: string | ReactElement;
+  noItemsMessage?: string | ReactElement | undefined;
+  emptyState: {
+    isFiltered?: boolean | undefined;
+    onClearFilters?: (() => void) | undefined;
+    title?: string | undefined;
+  };
   id: string;
 }
 
@@ -374,9 +379,9 @@ describe("inventory Type and Status facet controls", () => {
     expect(getTable().currentFacetState["facetSelections"]).toEqual({
       inventoryType: [EntityType.KubernetesPod],
     });
-    expect(getTable().noItemsMessage).toBe(
-      "No inventory item matches the facets above.",
-    );
+    // The chips reach the table's empty state: "nothing matches", not "nothing here".
+    expect(getTable().emptyState.isFiltered).toBe(true);
+    expect(typeof getTable().emptyState.onClearFilters).toBe("function");
   });
 
   test("keeps multiple selected types and can deselect one without clearing the other", () => {
@@ -574,7 +579,9 @@ describe("inventory Type and Status facet controls", () => {
       null,
     );
     expect(screen.queryByRole("button", { name: "Clear all" })).toBeNull();
-    expect(typeof getTable().noItemsMessage).not.toBe("string");
+    // With no chip on, the table is back to the empty inventory's own state.
+    expect(getTable().emptyState.isFiltered).toBe(false);
+    expect(getTable().emptyState.title).toBe("Nothing here yet.");
   });
 });
 

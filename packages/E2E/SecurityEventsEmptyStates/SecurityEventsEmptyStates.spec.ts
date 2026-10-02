@@ -1233,7 +1233,7 @@ async function eventsHitAt(locator: Locator): Promise<string> {
  * These tests hold where it sits, what it says and what it no longer has.
  */
 test.describe("connections empty state", () => {
-  test("sits inside the table card, above its Refresh? and pagination", async ({
+  test("sits inside the table card, with no Refresh? link or footer under it", async ({
     page,
   }: {
     page: Page;
@@ -1253,10 +1253,14 @@ test.describe("connections empty state", () => {
         .locator(`#${CONNECTIONS_ID}`),
     ).toHaveCount(1);
     await expect(tableCard.locator(`td #${CONNECTIONS_ID}`)).toHaveCount(0);
-    const refresh: Locator = tableCard.getByTestId("refresh-button");
-    await expect(refresh).toHaveText("Refresh?");
-    const summary: Locator = tableCard.getByTestId("pagination-summary");
-    await expect(summary).toHaveText("No security event connections");
+    /*
+     * Every table's empty state lost its "Refresh?" link (a reload of an
+     * empty list shows the same nothing) and, on an empty first page, the
+     * footer that said "No security event connections" a second time.
+     */
+    await expect(tableCard.getByTestId("refresh-button")).toHaveCount(0);
+    await expect(tableCard.getByText("Refresh?")).toHaveCount(0);
+    await expect(tableCard.getByTestId("pagination-summary")).toHaveCount(0);
 
     await expectAbove(
       tableCard.getByTestId("card-details-heading"),
@@ -1268,12 +1272,6 @@ test.describe("connections empty state", () => {
       connectionsEmptyState(page),
       "card's Add connection above the empty state",
     );
-    await expectAbove(
-      connectionsEmptyState(page),
-      refresh,
-      "empty state above Refresh?",
-    );
-    await expectAbove(refresh, summary, "Refresh? above the pagination");
     await expectInside(
       connectionsEmptyState(page),
       tableCard,
@@ -1319,7 +1317,6 @@ test.describe("connections empty state", () => {
       ["heading", root.getByRole("heading", { level: 3 })],
       ["description", page.getByTestId(`${CONNECTIONS_ID}-description`)],
       ["Add connection", heroAddConnection(page)],
-      ["Refresh?", connectionsCard(page).getByTestId("refresh-button")],
       ["table card", connectionsCard(page)],
     ];
     for (const [label, locator] of centred) {
@@ -1574,8 +1571,6 @@ test.describe("connections empty state accessibility", () => {
     for (const item of PROVIDERS) {
       expected.push(`tile:${item.value}`, `link:${docsUrl(item)}`);
     }
-    // After the last guide the table's own Refresh? comes next.
-    expected.push("button:Refresh?");
 
     const visited: Array<string> = [];
     for (let stop: number = 0; stop < expected.length; stop++) {

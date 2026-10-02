@@ -68,9 +68,6 @@ const RunbookSecrets: FunctionComponent<
           description:
             "Runbook secrets are used to store sensitive information like API keys, passwords, etc. that can be shared with runbook agents.",
         }}
-        noItemsMessage={
-          'No runbook secret found. Click on the "Create" button to add a new runbook secret.'
-        }
         viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={[
           { title: "Secret", id: "secret" },
