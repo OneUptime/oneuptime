@@ -1,5 +1,6 @@
 import API from "../../Utils/API/API";
 import UiAnalytics from "../../Utils/Analytics";
+import DropdownUtil from "../../Utils/Dropdown";
 import useTranslateValue from "../../Utils/Translation";
 import Alert, { AlertType } from "../Alerts/Alert";
 import Button, { ButtonStyleType } from "../Button/Button";
@@ -15,12 +16,13 @@ import CollapsibleFormSection from "./CollapsibleFormSection";
 import FormField from "./Fields/FormField";
 import FormSummary from "./FormSummary";
 import Steps from "./Steps/Steps";
-import Field from "./Types/Field";
+import Field, { FormFieldCollapsibleSection } from "./Types/Field";
 import Fields from "./Types/Fields";
 import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import { FormStep } from "./Types/FormStep";
 import FormValues from "./Types/FormValues";
 import Validation from "./Validation";
+import { isFormSectionConfigured } from "./Utils/AdvancedFormSection";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
 import {
   getPeoplePickerValueKeys,
@@ -350,7 +352,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           try {
             const options: Array<DropdownOption | DropdownOptionGroup> =
               await item.fetchDropdownOptions(refCurrentValue.current);
-            item.dropdownOptions = options;
+            /*
+             * The field's own list replaces the one the form fetched for its
+             * dropdown model, but never the colours that list carried: a
+             * state picked from a re-sorted list still shows its colour.
+             */
+            item.dropdownOptions = DropdownUtil.keepKnownOptionColors(
+              options,
+              item.dropdownOptions,
+            );
           } catch (err) {
             setFormError(API.getFriendlyMessage(err));
           }
@@ -967,16 +977,27 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                             return fields[0]!;
                           }
 
+                          const section: FormFieldCollapsibleSection<T> =
+                            firstField.collapsibleSection;
+
                           return (
                             <CollapsibleFormSection
-                              key={`${firstField.collapsibleSection.id}-${getFieldName(firstField)}`}
-                              title={firstField.collapsibleSection.title}
-                              description={
-                                firstField.collapsibleSection.description
+                              key={`${section.id}-${getFieldName(firstField)}`}
+                              title={section.title}
+                              description={section.description}
+                              /*
+                               * The section's own answer, or - without one -
+                               * whether a field in it that is on screen holds
+                               * a value other than empty or its default.
+                               */
+                              isConfigured={isFormSectionConfigured({
+                                section: section,
+                                fields: group,
+                                values: refCurrentValue.current,
+                              })}
+                              openWhenConfigured={
+                                section.openWhenConfigured !== false
                               }
-                              isConfigured={firstField.collapsibleSection.isConfigured(
-                                refCurrentValue.current,
-                              )}
                               hasError={group.some(
                                 (field: Field<T>): boolean => {
                                   const fieldName: string = getFieldName(field);

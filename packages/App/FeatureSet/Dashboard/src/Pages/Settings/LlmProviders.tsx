@@ -7,6 +7,8 @@ import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -30,6 +32,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/UI/Components/Link/Link";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
+
+// Set as Default and Additional Parameters, folded at the end of Provider Settings.
+const advancedSection: FormFieldCollapsibleSection<LlmProvider> =
+  getAdvancedFormSection<LlmProvider>();
 
 const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showTestModal, setShowTestModal] = useState<boolean>(false);
@@ -284,6 +290,12 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "No LLM Providers configured. Add an LLM Provider to enable AI features for your project."
           }
           viewPageRoute={Navigation.getCurrentRoute()}
+          /*
+           * Two steps: what the provider is, then how to reach it. Whether
+           * it is the default and any extra model parameters are folded
+           * under Advanced at the end of the second - they used to be a
+           * step of their own that every new provider had to walk through.
+           */
           formSteps={[
             {
               title: "Basic Info",
@@ -292,10 +304,6 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             {
               title: "Provider Settings",
               id: "provider-settings",
-            },
-            {
-              title: "Advanced",
-              id: "advanced",
             },
           ]}
           formFields={[
@@ -371,23 +379,13 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
-                additionalParams: true,
-              },
-              title: "Additional Parameters",
-              stepId: "advanced",
-              fieldType: FormFieldSchemaType.JSON,
-              required: false,
-              description:
-                'Optional JSON object with extra parameters sent directly to the provider API. These override any defaults. Leave empty unless you need model-specific parameters. Presets — OpenAI / Azure OpenAI (gpt-5 family): {"max_completion_tokens": 2048} | OpenAI o1/o3 reasoning models: {"reasoning_effort": "high", "max_completion_tokens": 10000} | Override temperature: {"temperature": 0.2} | Top-p sampling: {"top_p": 0.9}',
-            },
-            {
-              field: {
                 isDefault: true,
               },
               title: "Set as Default",
               stepId: "provider-settings",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
+              collapsibleSection: advancedSection,
               /*
                * Defaults to on: an untouched toggle submits false, which
                * silently leaves the new provider unused (AI features only
@@ -396,6 +394,18 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               defaultValue: true,
               description:
                 "Use this provider for AI features in this project. Only the default provider is used — if you turn this off (and no other provider is the default), this provider will not be used by AI features.",
+            },
+            {
+              field: {
+                additionalParams: true,
+              },
+              title: "Additional Parameters",
+              stepId: "provider-settings",
+              fieldType: FormFieldSchemaType.JSON,
+              required: false,
+              collapsibleSection: advancedSection,
+              description:
+                'Optional JSON object with extra parameters sent directly to the provider API. These override any defaults. Leave empty unless you need model-specific parameters. Presets — OpenAI / Azure OpenAI (gpt-5 family): {"max_completion_tokens": 2048} | OpenAI o1/o3 reasoning models: {"reasoning_effort": "high", "max_completion_tokens": 10000} | Override temperature: {"temperature": 0.2} | Top-p sampling: {"top_p": 0.9}',
             },
           ]}
           showRefreshButton={true}

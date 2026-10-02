@@ -28,7 +28,7 @@ A few terms recur across the rest of the runbook docs. Get these straight first:
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**      | The template. A named, reusable procedure with an ordered list of steps and an `isEnabled` flag.                                                                                                                    |
 | **Step**         | One item in a runbook. Has a type (Manual / JavaScript / HTTP / Bash / AI), a title, a description, and type-specific config.                                                                                       |
-| **Runbook Rule** | A pattern that auto-attaches one or more runbooks to incidents, alerts, or scheduled maintenance events when their title or description matches a regex.                                                            |
+| **Runbook Rule** | A rule that auto-attaches one or more runbooks to incidents, alerts, or scheduled maintenance events that match its conditions: their monitors, severity, labels, monitor labels, title or description.             |
 | **Execution**    | One run of a runbook. Created when a rule fires, when someone clicks "Run Runbook" on an event, or when someone clicks "Run Now" on the runbook itself. Holds a snapshot of the steps and per-step status / output. |
 | **Snapshot**     | The frozen copy of the runbook's steps that lives on each execution. Lets you edit the template later without rewriting history.                                                                                    |
 
