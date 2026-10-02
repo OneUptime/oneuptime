@@ -47,6 +47,15 @@ const DragHandle: FunctionComponent<ComponentProps> = (
   return (
     <div
       {...(props.dragHandleProps || {})}
+      /*
+       * Focusable whether or not dragging is on. react-beautiful-dnd hands a
+       * disabled row no handle props at all, so a grip that relied on its
+       * tabIndex lost keyboard focus the moment a row dropped from the
+       * keyboard was being saved - and the person's place on the page with
+       * it. Disabled, it can still be reached, and says why.
+       */
+      tabIndex={0}
+      role="button"
       data-testid={DRAG_HANDLE_TEST_ID}
       aria-label={label}
       aria-disabled={props.isDisabled ? true : undefined}

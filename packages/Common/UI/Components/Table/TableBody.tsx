@@ -17,6 +17,8 @@ export interface ComponentProps<T extends GenericObject> {
   dragDropIndexField?: keyof T | undefined;
   isDragDisabled?: boolean | undefined;
   dragDisabledReason?: string | undefined;
+  // The header's cell widths while a row is dragged (see Table).
+  dragColumnWidths?: Array<number> | null | undefined;
 
   // bulk actions
   isBulkActionsEnabled?: undefined | boolean;
@@ -72,11 +74,13 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
     dragIndex: number;
     isDragDisabled: boolean | undefined;
     dragDisabledReason: string | undefined;
+    dragColumnWidths: Array<number> | null | undefined;
   } = (index: number) => {
     return {
       dragIndex: index,
       isDragDisabled: props.isDragDisabled,
       dragDisabledReason: props.dragDisabledReason,
+      dragColumnWidths: props.dragColumnWidths,
     };
   };
 

@@ -46,6 +46,11 @@ export interface ComponentProps<T extends GenericObject> {
   isDragDisabled?: boolean | undefined;
   // Why, in the caller's words - shown on the grip.
   dragDisabledReason?: string | undefined;
+  /*
+   * The header's cell widths, taken as a drag starts: the lifted row keeps
+   * them so it still lines up with its columns (see Table).
+   */
+  dragColumnWidths?: Array<number> | null | undefined;
 
   // bulk actions
   isBulkActionsEnabled?: undefined | boolean;
@@ -214,15 +219,20 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
             ref={provided?.innerRef}
             className={`p-4 bg-white border-b border-gray-200 ${draggingClassName} ${props.rowProps?.className || ""}`}
           >
+            {/*
+             * The card's controls - its grip and its select box - share one
+             * line above its fields rather than stacking a line each.
+             */}
             {props.enableDragAndDrop ? (
-              <div className="mb-3 -ml-1 flex items-center">
+              <div className="mb-3 -ml-1 flex items-center gap-2">
                 {getDragHandle(provided)}
+                {props.isBulkActionsEnabled ? getBulkSelectCheckbox() : <></>}
               </div>
             ) : (
               <></>
             )}
 
-            {props.isBulkActionsEnabled ? (
+            {props.isBulkActionsEnabled && !props.enableDragAndDrop ? (
               <div className="mb-3">{getBulkSelectCheckbox()}</div>
             ) : (
               <></>
@@ -363,12 +373,43 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
       );
     }
 
+    /*
+     * While lifted, the row is laid out on its own: as a fixed-layout table
+     * whose cells keep the widths of the header cells above them.
+     */
+    const lockedWidths: Array<number> | null =
+      snapshot?.isDragging && props.dragColumnWidths
+        ? props.dragColumnWidths
+        : null;
+
+    let cellIndex: number = 0;
+
+    const getLockedCellStyle: () => React.CSSProperties | undefined =
+      (): React.CSSProperties | undefined => {
+        const width: number | undefined = lockedWidths
+          ? lockedWidths[cellIndex]
+          : undefined;
+
+        cellIndex++;
+
+        return width ? { width: width, minWidth: width, maxWidth: width } : undefined;
+      };
+
+    const rowStyle: React.CSSProperties | undefined = lockedWidths
+      ? {
+          ...(provided?.draggableProps.style || {}),
+          display: "table",
+          tableLayout: "fixed",
+        }
+      : provided?.draggableProps.style;
+
     // Desktop view: render as table row
     return (
       <>
         <tr
           {...props.rowProps}
           {...provided?.draggableProps}
+          style={rowStyle}
           ref={provided?.innerRef}
           className={
             `${props.rowProps?.className || ""} ${
@@ -377,12 +418,15 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
           }
         >
           {props.enableDragAndDrop && (
-            <td className="w-10 py-3 pl-4 pr-0 align-top">
+            <td
+              className="w-10 py-3 pl-4 pr-0 align-top"
+              style={getLockedCellStyle()}
+            >
               {getDragHandle(provided)}
             </td>
           )}
           {props.isBulkActionsEnabled && (
-            <td className="w-10 py-3.5  align-top">
+            <td className="w-10 py-3.5  align-top" style={getLockedCellStyle()}>
               <div className="ml-5">{getBulkSelectCheckbox()}</div>
             </td>
           )}
@@ -489,6 +533,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                   style={{
                     textAlign:
                       column.type === FieldType.Actions ? "right" : "left",
+                    ...(getLockedCellStyle() || {}),
                   }}
                   onClick={() => {
                     if (column.tooltipText) {

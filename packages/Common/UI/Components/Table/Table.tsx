@@ -20,7 +20,7 @@ import Columns from "./Types/Columns";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
-import React, { ReactElement, useEffect, useState } from "react";
+import React, { ReactElement, useEffect, useRef, useState } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 
 export interface BulkActionProps<T extends GenericObject> {
@@ -194,6 +194,17 @@ const Table: TableFunction = <T extends GenericObject>(
       : props.bulkActions?.buttons || [];
 
   const [isAllItemsSelected, setIsAllItemsSelected] = useState<boolean>(false);
+
+  /*
+   * A row being dragged is lifted out of the table (position: fixed), and
+   * its cells then shrink to their content - the lifted row no longer lines
+   * up with the columns it came from. So the header's cell widths are taken
+   * just before a drag starts, and the lifted row keeps them.
+   */
+  const tableElementRef: React.RefObject<HTMLTableElement> =
+    useRef<HTMLTableElement>(null);
+  const [dragColumnWidths, setDragColumnWidths] =
+    useState<Array<number> | null>(null);
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<T>>([]);
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
@@ -344,6 +355,7 @@ const Table: TableFunction = <T extends GenericObject>(
         dragDropIndexField={props.dragDropIndexField}
         isDragDisabled={props.isDragDisabled}
         dragDisabledReason={props.dragDisabledReason}
+        dragColumnWidths={dragColumnWidths}
         isBulkActionsEnabled={isBulkActionsEnabled}
         onItemSelected={(item: T) => {
           // set bulk selected items.
@@ -477,7 +489,22 @@ const Table: TableFunction = <T extends GenericObject>(
           translateString(DRAG_HANDLE_USAGE_INSTRUCTIONS) ||
           DRAG_HANDLE_USAGE_INSTRUCTIONS
         }
+        onBeforeCapture={() => {
+          const headerCells: Array<Element> = Array.from(
+            tableElementRef.current?.querySelectorAll("thead tr th") || [],
+          );
+
+          setDragColumnWidths(
+            headerCells.length > 0
+              ? headerCells.map((cell: Element) => {
+                  return cell.getBoundingClientRect().width;
+                })
+              : null,
+          );
+        }}
         onDragEnd={(result: DropResult) => {
+          setDragColumnWidths(null);
+
           /*
            * The top of the list is index 0 - which the old truthiness check
            * here threw away, so a row could never be dragged to the top.
@@ -528,7 +555,10 @@ const Table: TableFunction = <T extends GenericObject>(
                   </div>
                 ) : (
                   // Desktop view: render as table
-                  <table className="min-w-full divide-y divide-gray-200">
+                  <table
+                    ref={tableElementRef}
+                    className="min-w-full divide-y divide-gray-200"
+                  >
                     <TableHeader
                       id={`${props.id}-header`}
                       columns={props.columns}
