@@ -314,6 +314,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         stepId: "subscriber-info",
         required: false,
         doNotShowWhenEditing: true,
+        /*
+         * Off on purpose, though the column defaults to on: someone an admin
+         * adds is sent a "you have subscribed" message only when the admin
+         * asks for one (CreateFormDefaultsGuard lists why).
+         */
+        defaultValue: false,
       },
       {
         field: {
