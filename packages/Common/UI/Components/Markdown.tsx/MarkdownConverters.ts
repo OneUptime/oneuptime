@@ -71,6 +71,8 @@ const RE_TASK_PREFIX: RegExp = /^\[[ xX]\]\s+/;
 const RE_TASK_ITEM: RegExp = /^\[([ xX])\]\s+(.*)$/;
 const RE_WHITESPACE_CHAR: RegExp = /\s/;
 const RE_LIST_START: RegExp = /^\s*\d+\s*$/;
+// A template variable, "{{incident.title}}", on one line and with no braces inside.
+const RE_TEMPLATE_VARIABLE: RegExp = /\{\{[^{}\n]*\}\}/g;
 
 // A tab advances to the next multiple of four columns, as in CommonMark.
 const TAB_WIDTH: number = 4;
@@ -152,6 +154,22 @@ const renderInline: (raw: string, tokens?: Array<InlineToken>) => string = (
       );
     },
   );
+
+  /*
+   * A template's {{variables}} are text, never formatting. An incident custom
+   * field's key joins its words with underscores, and the italic pass below
+   * read "{{incident.customFields.on_call_lead}}" as "on" + italic "call" +
+   * "lead": the visual editor showed it slanted, and the next keystroke
+   * saved it back as "{{incident.customFields.on*call*lead}}", a variable
+   * nothing fills in. The same went for the text between two variables
+   * with an underscore each. Kept as typed, as the viewer (CommonMark, where
+   * an underscore inside a word is not emphasis) already shows them. Done
+   * after links and images, whose addresses may hold a variable, and their
+   * labels are rendered through here too.
+   */
+  s = s.replace(RE_TEMPLATE_VARIABLE, (variable: string): string => {
+    return stash(escapeText(variable));
+  });
 
   /*
    * Bold and italic at once. "***a***" is what the serializer writes for

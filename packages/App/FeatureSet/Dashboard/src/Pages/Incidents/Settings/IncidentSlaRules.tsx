@@ -11,6 +11,8 @@ import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
+import { INCIDENT_SLA_NOTE_TEMPLATE_VARIABLE_GROUPS } from "Common/Utils/Incident/IncidentSlaNoteTemplateVariables";
+import IncidentSlaNoteReminderCopy from "../../../Components/Incident/IncidentSlaNoteReminderCopy";
 
 const documentationMarkdown: string = `
 ### How Incident SLA Rules Work
@@ -391,8 +393,11 @@ const IncidentSlaRulesPage: FunctionComponent<
             required: false,
             placeholder:
               "**SLA Reminder**: This incident has been open for {{elapsedTime}}...",
-            description:
-              "Markdown. Variables: {{incidentTitle}}, {{elapsedTime}}, {{responseDeadline}}, {{resolutionDeadline}}, {{slaStatus}}.",
+            description: IncidentSlaNoteReminderCopy.templateFieldDescription,
+            // Every variable the reminder is filled with, under the editor.
+            templateVariables: INCIDENT_SLA_NOTE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              IncidentSlaNoteReminderCopy.templateVariablesDescription,
           },
           {
             field: {
@@ -417,8 +422,11 @@ const IncidentSlaRulesPage: FunctionComponent<
             required: false,
             placeholder:
               "**Status Update**: Our team continues to work on resolving this incident...",
-            description:
-              "Markdown. Variables: {{incidentTitle}}, {{elapsedTime}}, {{responseDeadline}}, {{resolutionDeadline}}, {{slaStatus}}.",
+            description: IncidentSlaNoteReminderCopy.templateFieldDescription,
+            // Every variable the reminder is filled with, under the editor.
+            templateVariables: INCIDENT_SLA_NOTE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              IncidentSlaNoteReminderCopy.templateVariablesDescription,
           },
         ]}
         showRefreshButton={true}

@@ -77,10 +77,15 @@ export const INCIDENT_NOTE_TEMPLATE_VARIABLES: ReadonlyArray<IncidentNoteTemplat
       name: "incident.affectedStatusPages",
       description: "Affected Status Pages",
     },
+    /*
+     * The family: one variable per field, by its key. The note template form
+     * lists the project's own fields in its place, by name; this row is for
+     * the docs and for what the family is called.
+     */
     {
       name: `${INCIDENT_NOTE_CUSTOM_FIELD_VARIABLE_PREFIX}<key>`,
       description:
-        "An incident custom field, by the Template Variable shown in the incident custom field settings",
+        "The value of an incident custom field. Each field has a variable of its own.",
     },
   ];
 

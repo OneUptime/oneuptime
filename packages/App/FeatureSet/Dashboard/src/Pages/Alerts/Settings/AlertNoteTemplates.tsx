@@ -6,6 +6,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
+import NoteTemplateFormCopy from "../../../Components/NoteTemplate/NoteTemplateFormCopy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
@@ -77,7 +78,8 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
             field: {
               note: true,
             },
-            title: "Public or Private note template.",
+            title: NoteTemplateFormCopy.noteFieldTitle,
+            description: NoteTemplateFormCopy.noteFieldDescription,
             fieldType: FormFieldSchemaType.Markdown,
             stepId: "note-details",
             required: true,
