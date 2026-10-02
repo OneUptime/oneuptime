@@ -6405,8 +6405,6 @@
   "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.": "Заранее сообщайте о плановых работах, чтобы клиенты и подписчики страницы статуса не были застигнуты врасплох.",
   "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.": "Страницы статуса показывают клиентам, что работает, а что нет, — текущее состояние мониторов, инциденты и плановое обслуживание на странице, которую можно сделать публичной или закрытой.",
   "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.": "Политики дежурств определяют, кого уведомить при открытии инцидента или оповещения и кто следующий, если никто не подтвердил получение.",
-  "Filter & Sort": "Фильтр и сортировка",
-  "Filter and sort feed": "Фильтр и сортировка ленты",
   "Sort by time": "Сортировка по времени",
   "Newest first": "Сначала новые",
   "Oldest first": "Сначала старые",
@@ -6418,9 +6416,6 @@
   "No event types match \"{{search}}\".": "Нет типов событий, соответствующих «{{search}}».",
   "This feed has no event types to filter by.": "В этой ленте нет типов событий для фильтрации.",
   "Reset to default": "Сбросить к настройкам по умолчанию",
-  "{{sortOrder}}, all event types": "{{sortOrder}}, все типы событий",
-  "{{sortOrder}}, {{selected}} of {{total}} event types": "{{sortOrder}}, типы событий: {{selected}} из {{total}}",
-  "{{sortOrder}}, {{selected}} of {{total}} event type": "{{sortOrder}}, тип событий: {{selected}} из {{total}}",
   "No events in this feed match the selected event types.": "В этой ленте нет событий выбранных типов.",
   "Added to Episode": "Добавление в эпизод",
   "Alert Added": "Оповещение добавлено",
@@ -20067,5 +20062,7 @@
   "Outdent": "Уменьшить отступ",
   "Upload Image": "Загрузить изображение",
   "Workflows are created switched off, so nothing runs until you turn them on.": "Рабочие процессы создаются выключенными, поэтому ничего не запустится, пока вы их не включите.",
-  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "Шаблону «{{templateName}}» нужно несколько значений, прежде чем он сможет работать. Они сохраняются как переменные рабочего процесса, поэтому их можно изменить позже, не редактируя сам рабочий процесс."
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "Шаблону «{{templateName}}» нужно несколько значений, прежде чем он сможет работать. Они сохраняются как переменные рабочего процесса, поэтому их можно изменить позже, не редактируя сам рабочий процесс.",
+  "Filter by event type": "Фильтр по типу события",
+  "Showing {{selected}} of {{total}} event types": "Показаны типы событий: {{selected}} из {{total}}"
 }

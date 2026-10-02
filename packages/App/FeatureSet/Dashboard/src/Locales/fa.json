@@ -6405,8 +6405,6 @@
   "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.": "کارهای برنامه‌ریزی‌شده را از قبل اعلام کنید تا مشتریان و مشترکان صفحهٔ وضعیت شما غافلگیر نشوند.",
   "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.": "صفحات وضعیت به مشتریان شما نشان می‌دهند چه چیزی کار می‌کند و چه چیزی نه — وضعیت زندهٔ مانیتورها، حوادث و تعمیرات برنامه‌ریزی‌شده، در صفحه‌ای که می‌توانید عمومی یا خصوصی کنید.",
   "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.": "سیاست‌های آنکال تعیین می‌کنند وقتی یک حادثه یا هشدار باز می‌شود چه کسی باخبر شود، و اگر کسی آن را تأیید نکرد نفر بعدی کیست.",
-  "Filter & Sort": "فیلتر و مرتب‌سازی",
-  "Filter and sort feed": "فیلتر و مرتب‌سازی فید",
   "Sort by time": "مرتب‌سازی بر اساس زمان",
   "Newest first": "تازه‌ترین اول",
   "Oldest first": "قدیمی‌ترین اول",
@@ -6418,9 +6416,6 @@
   "No event types match \"{{search}}\".": "هیچ نوع رویدادی با «{{search}}» مطابقت ندارد.",
   "This feed has no event types to filter by.": "این فید هیچ نوع رویدادی برای فیلتر کردن ندارد.",
   "Reset to default": "بازنشانی به پیش‌فرض",
-  "{{sortOrder}}, all event types": "{{sortOrder}}، همه نوع رویدادها",
-  "{{sortOrder}}, {{selected}} of {{total}} event types": "{{sortOrder}}، {{selected}} از {{total}} نوع رویداد",
-  "{{sortOrder}}, {{selected}} of {{total}} event type": "{{sortOrder}}، {{selected}} از {{total}} نوع رویداد",
   "No events in this feed match the selected event types.": "هیچ رویدادی در این فید با نوع رویدادهای انتخاب‌شده مطابقت ندارد.",
   "Added to Episode": "به اپیزود افزوده شد",
   "Alert Added": "هشدار افزوده شد",
@@ -20067,5 +20062,7 @@
   "Outdent": "کاهش تورفتگی",
   "Upload Image": "بارگذاری تصویر",
   "Workflows are created switched off, so nothing runs until you turn them on.": "گردش‌های کاری خاموش ساخته می‌شوند، پس تا وقتی آن‌ها را روشن نکنید هیچ چیزی اجرا نمی‌شود.",
-  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} پیش از اجرا به چند مقدار نیاز دارد. این مقادیر به‌عنوان متغیرهای گردش کاری ذخیره می‌شوند، پس می‌توانید بعداً بدون ویرایش خودِ گردش کاری آن‌ها را تغییر دهید."
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} پیش از اجرا به چند مقدار نیاز دارد. این مقادیر به‌عنوان متغیرهای گردش کاری ذخیره می‌شوند، پس می‌توانید بعداً بدون ویرایش خودِ گردش کاری آن‌ها را تغییر دهید.",
+  "Filter by event type": "فیلتر بر اساس نوع رویداد",
+  "Showing {{selected}} of {{total}} event types": "نمایش {{selected}} از {{total}} نوع رویداد"
 }

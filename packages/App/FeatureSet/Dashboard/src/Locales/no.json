@@ -6405,8 +6405,6 @@
   "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.": "Varsle om planlagt arbeid i god tid, slik at kundene dine og abonnentene på statussiden ikke blir overrasket.",
   "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.": "Statussider viser kundene dine hva som fungerer og hva som ikke gjør det — sanntidsstatus for overvåkere, hendelser og planlagt vedlikehold, på en side du kan gjøre offentlig eller privat.",
   "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.": "Vaktpolicyer bestemmer hvem som får beskjed når en hendelse eller et varsel åpnes, og hvem som er neste hvis ingen bekrefter det.",
-  "Filter & Sort": "Filtrer og sorter",
-  "Filter and sort feed": "Filtrer og sorter feed",
   "Sort by time": "Sorter etter tid",
   "Newest first": "Nyeste først",
   "Oldest first": "Eldste først",
@@ -6418,9 +6416,6 @@
   "No event types match \"{{search}}\".": "Ingen hendelsestyper samsvarer med «{{search}}».",
   "This feed has no event types to filter by.": "Denne feeden har ingen hendelsestyper å filtrere etter.",
   "Reset to default": "Tilbakestill til standard",
-  "{{sortOrder}}, all event types": "{{sortOrder}}, alle hendelsestyper",
-  "{{sortOrder}}, {{selected}} of {{total}} event types": "{{sortOrder}}, {{selected}} av {{total}} hendelsestyper",
-  "{{sortOrder}}, {{selected}} of {{total}} event type": "{{sortOrder}}, {{selected}} av {{total}} hendelsestype",
   "No events in this feed match the selected event types.": "Ingen hendelser i denne feeden samsvarer med de valgte hendelsestypene.",
   "Added to Episode": "Lagt til i episode",
   "Alert Added": "Varsel lagt til",
@@ -20067,5 +20062,7 @@
   "Outdent": "Reduser innrykk",
   "Upload Image": "Last opp bilde",
   "Workflows are created switched off, so nothing runs until you turn them on.": "Arbeidsflyter opprettes avslått, så ingenting kjører før du slår dem på.",
-  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} trenger noen få opplysninger før den kan kjøre. De lagres som arbeidsflytvariabler, så du kan endre dem senere uten å redigere selve arbeidsflyten."
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} trenger noen få opplysninger før den kan kjøre. De lagres som arbeidsflytvariabler, så du kan endre dem senere uten å redigere selve arbeidsflyten.",
+  "Filter by event type": "Filtrer etter hendelsestype",
+  "Showing {{selected}} of {{total}} event types": "Viser {{selected}} av {{total}} hendelsestyper"
 }

@@ -6405,8 +6405,6 @@
   "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.": "Kündigen Sie geplante Arbeiten rechtzeitig an, damit Ihre Kunden und die Abonnenten Ihrer Statusseite nicht überrascht werden.",
   "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.": "Statusseiten zeigen Ihren Kunden, was funktioniert und was nicht — Live-Status der Monitore, Vorfälle und geplante Wartungen, auf einer Seite, die Sie öffentlich oder privat machen können.",
   "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.": "Bereitschaftsrichtlinien legen fest, wer benachrichtigt wird, wenn ein Vorfall oder eine Warnung eröffnet wird, und wer als Nächstes dran ist, wenn niemand ihn bestätigt.",
-  "Filter & Sort": "Filtern & Sortieren",
-  "Filter and sort feed": "Feed filtern und sortieren",
   "Sort by time": "Nach Zeit sortieren",
   "Newest first": "Neueste zuerst",
   "Oldest first": "Älteste zuerst",
@@ -6418,9 +6416,6 @@
   "No event types match \"{{search}}\".": "Keine Ereignistypen entsprechen „{{search}}“.",
   "This feed has no event types to filter by.": "Dieser Feed hat keine Ereignistypen, nach denen gefiltert werden kann.",
   "Reset to default": "Auf Standard zurücksetzen",
-  "{{sortOrder}}, all event types": "{{sortOrder}}, alle Ereignistypen",
-  "{{sortOrder}}, {{selected}} of {{total}} event types": "{{sortOrder}}, {{selected}} von {{total}} Ereignistypen",
-  "{{sortOrder}}, {{selected}} of {{total}} event type": "{{sortOrder}}, {{selected}} von {{total}} Ereignistyp",
   "No events in this feed match the selected event types.": "Keine Ereignisse in diesem Feed entsprechen den ausgewählten Ereignistypen.",
   "Added to Episode": "Zur Episode hinzugefügt",
   "Alert Added": "Warnung hinzugefügt",
@@ -20067,5 +20062,7 @@
   "Outdent": "Einzug verkleinern",
   "Upload Image": "Bild hochladen",
   "Workflows are created switched off, so nothing runs until you turn them on.": "Workflows werden ausgeschaltet angelegt, sodass nichts ausgeführt wird, bis Sie sie einschalten.",
-  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} braucht noch ein paar Angaben, bevor es ausgeführt werden kann. Sie werden als Workflow-Variablen gespeichert, sodass Sie sie später ändern können, ohne den Workflow selbst zu bearbeiten."
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} braucht noch ein paar Angaben, bevor es ausgeführt werden kann. Sie werden als Workflow-Variablen gespeichert, sodass Sie sie später ändern können, ohne den Workflow selbst zu bearbeiten.",
+  "Filter by event type": "Nach Ereignistyp filtern",
+  "Showing {{selected}} of {{total}} event types": "{{selected}} von {{total}} Ereignistypen werden angezeigt"
 }

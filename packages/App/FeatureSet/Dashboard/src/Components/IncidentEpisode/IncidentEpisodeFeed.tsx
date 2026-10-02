@@ -1,6 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "Common/UI/Components/Card/Card";
 import Feed from "Common/UI/Components/Feed/Feed";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -12,7 +11,6 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -27,7 +25,7 @@ import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
-import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import FeedCard from "Common/UI/Components/Feed/FeedCard";
 import {
   getFeedEventTypeQuery,
   getFeedNoItemsMessage,
@@ -55,7 +53,7 @@ export interface ComponentProps {
 }
 
 /*
- * The event type checklist behind the Filter & Sort button hands over plain
+ * The event type filter's checklist (the feed's ⋯ menu) hands over plain
  * strings. This reads them from the same per-event-type table the feed items
  * use, so the two always match.
  */
@@ -175,18 +173,14 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
   });
 
   return (
-    <Card
+    <FeedCard
       title={"Episode Feed"}
       description={
         "This is the timeline and feed for this episode. You can see all the updates and information about this episode here."
       }
-      buttons={[
-        <FeedOptionsButton
-          key="incident-episode-feed-options"
-          value={feedOptions.options}
-          eventTypeOptions={feedOptions.eventTypeOptions}
-          onChange={feedOptions.setOptions}
-        />,
+      feedOptions={feedOptions}
+      onRefresh={refresh}
+      actions={
         <MoreMenu
           key="incident-episode-feed-actions-menu"
           elementToBeShownInsteadOfButton={
@@ -224,16 +218,8 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
               setShowPrivateNoteModal(true);
             }}
           />
-        </MoreMenu>,
-        {
-          title: "Refresh",
-          buttonStyle: ButtonStyleType.ICON,
-          icon: IconProp.Refresh,
-          onClick: async () => {
-            await refresh();
-          },
-        },
-      ]}
+        </MoreMenu>
+      }
     >
       <div>
         {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
@@ -445,7 +431,7 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
           />
         )}
       </div>
-    </Card>
+    </FeedCard>
   );
 };
 

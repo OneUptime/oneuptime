@@ -6405,8 +6405,6 @@
   "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.": "Annoncer planlagt arbejde i god tid, så dine kunder og abonnenter på statussiden ikke bliver overraskede.",
   "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.": "Statussider viser dine kunder, hvad der virker, og hvad der ikke gør — live status for overvågninger, hændelser og planlagt vedligeholdelse på en side, du kan gøre offentlig eller privat.",
   "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.": "Vagtpolitikker bestemmer, hvem der får besked, når en hændelse eller advarsel åbnes, og hvem der er den næste, hvis ingen kvitterer.",
-  "Filter & Sort": "Filtrér og sortér",
-  "Filter and sort feed": "Filtrér og sortér feed",
   "Sort by time": "Sortér efter tid",
   "Newest first": "Nyeste først",
   "Oldest first": "Ældste først",
@@ -6418,9 +6416,6 @@
   "No event types match \"{{search}}\".": "Ingen begivenhedstyper matcher \"{{search}}\".",
   "This feed has no event types to filter by.": "Dette feed har ingen begivenhedstyper at filtrere efter.",
   "Reset to default": "Nulstil til standard",
-  "{{sortOrder}}, all event types": "{{sortOrder}}, alle begivenhedstyper",
-  "{{sortOrder}}, {{selected}} of {{total}} event types": "{{sortOrder}}, {{selected}} af {{total}} begivenhedstyper",
-  "{{sortOrder}}, {{selected}} of {{total}} event type": "{{sortOrder}}, {{selected}} af {{total}} begivenhedstype",
   "No events in this feed match the selected event types.": "Ingen begivenheder i dette feed matcher de valgte begivenhedstyper.",
   "Added to Episode": "Tilføjet til episode",
   "Alert Added": "Advarsel tilføjet",
@@ -20067,5 +20062,7 @@
   "Outdent": "Formindsk indrykning",
   "Upload Image": "Upload billede",
   "Workflows are created switched off, so nothing runs until you turn them on.": "Arbejdsgange oprettes slået fra, så intet kører, før du slår dem til.",
-  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} skal bruge nogle få oplysninger, før den kan køre. De gemmes som arbejdsgangsvariabler, så du senere kan ændre dem uden at redigere selve arbejdsgangen."
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} skal bruge nogle få oplysninger, før den kan køre. De gemmes som arbejdsgangsvariabler, så du senere kan ændre dem uden at redigere selve arbejdsgangen.",
+  "Filter by event type": "Filtrér efter begivenhedstype",
+  "Showing {{selected}} of {{total}} event types": "Viser {{selected}} af {{total}} begivenhedstyper"
 }

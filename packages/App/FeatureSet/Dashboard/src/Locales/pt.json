@@ -6405,8 +6405,6 @@
   "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.": "Anuncie trabalhos planejados com antecedência, para que seus clientes e os assinantes da página de status não sejam pegos de surpresa.",
   "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.": "As páginas de status mostram aos seus clientes o que está funcionando e o que não está — status dos monitores em tempo real, incidentes e manutenção programada, em uma página que você pode tornar pública ou privada.",
   "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.": "As políticas de plantão definem quem é notificado quando um incidente ou alerta é aberto, e quem é o próximo se ninguém confirmar.",
-  "Filter & Sort": "Filtrar e ordenar",
-  "Filter and sort feed": "Filtrar e ordenar o feed",
   "Sort by time": "Ordenar por data",
   "Newest first": "Mais recentes primeiro",
   "Oldest first": "Mais antigos primeiro",
@@ -6418,9 +6416,6 @@
   "No event types match \"{{search}}\".": "Nenhum tipo de evento corresponde a \"{{search}}\".",
   "This feed has no event types to filter by.": "Este feed não tem tipos de evento para filtrar.",
   "Reset to default": "Redefinir para o padrão",
-  "{{sortOrder}}, all event types": "{{sortOrder}}, todos os tipos de evento",
-  "{{sortOrder}}, {{selected}} of {{total}} event types": "{{sortOrder}}, {{selected}} de {{total}} tipos de evento",
-  "{{sortOrder}}, {{selected}} of {{total}} event type": "{{sortOrder}}, {{selected}} de {{total}} tipo de evento",
   "No events in this feed match the selected event types.": "Nenhum evento deste feed corresponde aos tipos de evento selecionados.",
   "Added to Episode": "Adicionado ao episódio",
   "Alert Added": "Alerta adicionado",
@@ -20067,5 +20062,7 @@
   "Outdent": "Diminuir recuo",
   "Upload Image": "Enviar imagem",
   "Workflows are created switched off, so nothing runs until you turn them on.": "Os fluxos de trabalho são criados desativados, então nada é executado até que você os ative.",
-  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} precisa de algumas informações antes de poder ser executado. Elas são salvas como variáveis do fluxo, para que você possa alterá-las depois sem editar o próprio fluxo de trabalho."
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} precisa de algumas informações antes de poder ser executado. Elas são salvas como variáveis do fluxo, para que você possa alterá-las depois sem editar o próprio fluxo de trabalho.",
+  "Filter by event type": "Filtrar por tipo de evento",
+  "Showing {{selected}} of {{total}} event types": "Mostrando {{selected}} de {{total}} tipos de evento"
 }

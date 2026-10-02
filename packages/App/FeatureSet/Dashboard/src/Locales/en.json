@@ -6405,8 +6405,6 @@
   "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.": "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.",
   "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.": "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.",
   "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.": "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.",
-  "Filter & Sort": "Filter & Sort",
-  "Filter and sort feed": "Filter and sort feed",
   "Sort by time": "Sort by time",
   "Newest first": "Newest first",
   "Oldest first": "Oldest first",
@@ -6418,9 +6416,6 @@
   "No event types match \"{{search}}\".": "No event types match \"{{search}}\".",
   "This feed has no event types to filter by.": "This feed has no event types to filter by.",
   "Reset to default": "Reset to default",
-  "{{sortOrder}}, all event types": "{{sortOrder}}, all event types",
-  "{{sortOrder}}, {{selected}} of {{total}} event types": "{{sortOrder}}, {{selected}} of {{total}} event types",
-  "{{sortOrder}}, {{selected}} of {{total}} event type": "{{sortOrder}}, {{selected}} of {{total}} event type",
   "No events in this feed match the selected event types.": "No events in this feed match the selected event types.",
   "Added to Episode": "Added to Episode",
   "Alert Added": "Alert Added",
@@ -20067,5 +20062,7 @@
   "Outdent": "Outdent",
   "Upload Image": "Upload Image",
   "Workflows are created switched off, so nothing runs until you turn them on.": "Workflows are created switched off, so nothing runs until you turn them on.",
-  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself."
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.",
+  "Filter by event type": "Filter by event type",
+  "Showing {{selected}} of {{total}} event types": "Showing {{selected}} of {{total}} event types"
 }

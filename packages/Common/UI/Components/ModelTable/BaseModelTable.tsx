@@ -42,7 +42,7 @@ import {
 } from "../BulkUpdate/BulkUpdateForm";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
-import MoreMenu from "../MoreMenu/MoreMenu";
+import CardMoreMenu from "../Card/CardMoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import Card, {
   CardButtonSchema,
@@ -4724,15 +4724,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       },
     );
 
-    return (
-      <MoreMenu
-        key="model-table-more-menu"
-        menuIcon={IconProp.EllipsisHorizontal}
-        text=""
-      >
-        {children}
-      </MoreMenu>
-    );
+    // The same ⋯ every card header has: a feed's, too.
+    return <CardMoreMenu key="model-table-more-menu">{children}</CardMoreMenu>;
   };
 
   /*

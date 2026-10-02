@@ -256,7 +256,7 @@ This holds even when both are private, because a private alert and a private inc
 
 **Declaring an incident from alerts writes one entry, not one per alert.** The links made as the incident is declared write no **Alert Linked** entries of their own. Instead, once the incident's **Incident Created** entry is out — and the incident's own Slack and Microsoft Teams channels, if you use them, have been created — the incident gets a single **Alert Linked** entry: "Declared from 3 alerts:", followed by one line per alert with its number and title (a private alert without its title). That is the one message posted to Slack and Microsoft Teams. Each alert still gets its own **Linked to Incident** entry.
 
-Both feeds' **Filter & Sort** menus list these event types, so you can show or hide link activity like any other kind of entry. More on the incident feed in [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed).
+Both feeds' **Filter by event type** dialogs, in the **⋯** menu of each feed, list these event types, so you can show or hide link activity like any other kind of entry. More on the incident feed in [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed).
 
 ## Keeping alert states in step with the incident
 
