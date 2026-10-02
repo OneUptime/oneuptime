@@ -185,6 +185,9 @@ const WorkflowRoutes: LazyRoutes = lazy(() => {
 const RunbookRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/RunbookRoutes");
 });
+const FormsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/FormsRoutes");
+});
 const StatusPagesRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/StatusPagesRoutes");
 });
@@ -679,6 +682,12 @@ const App: () => JSX.Element = () => {
             <PageRoute
               path={RouteMap[PageMap.RUNBOOKS_ROOT]?.toString() || ""}
               element={<RunbookRoutes {...commonPageProps} />}
+            />
+
+            {/* Forms */}
+            <PageRoute
+              path={RouteMap[PageMap.FORMS_ROOT]?.toString() || ""}
+              element={<FormsRoutes {...commonPageProps} />}
             />
 
             {/* Status Pages */}

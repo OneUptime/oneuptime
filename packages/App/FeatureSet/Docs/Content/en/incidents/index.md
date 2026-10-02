@@ -11,11 +11,11 @@ You can declare an incident by hand at 3am, or let a monitor declare it for you 
 - **Top-level feature** — **Incidents** in the dashboard's left navigation, at `/dashboard/{projectId}/incidents`.
 - **Three seeded states** — **Identified**, **Acknowledged** and **Resolved** are created for every new project. You can add your own; the three seeded ones can be renamed and recolored but never deleted.
 - **Three seeded severities** — **Critical Incident**, **Major Incident** and **Minor Incident**. Severity is a label with a color and an order — it carries no behavior of its own.
-- **Five ways in** — the **Declare Incident** wizard, **Create from Template**, a monitor criteria rule, `POST /api/incident`, or an [incident form](/docs/incidents/forms) that anyone with its link can fill in.
+- **Five ways in** — the **Declare Incident** wizard, **Create from Template**, a monitor criteria rule, `POST /api/incident`, or a [form](/docs/forms/index) that anyone with its link can fill in.
 - **Numbered per project** — every incident gets an incident number, rendered as `#42` by default or with your own prefix, like `INC-42`.
 - **Two kinds of notes** — private notes (internal notes) for your team, public notes for status page subscribers.
 - **Alerts link to incidents** — link the alerts that are part of an incident, or declare an incident straight from alerts — from an alerts list or from an alert's own page — and acknowledge them as you do. See [Linked Alerts](/docs/incidents/linked-alerts).
-- **Settings live under Incidents, not Project Settings** — states, severities, templates, forms, custom fields and the rule engines are all at **Incidents → Settings** and **Incidents → Rules**.
+- **Settings live under Incidents, not Project Settings** — states, severities, templates, custom fields and the rule engines are all at **Incidents → Settings** and **Incidents → Rules**.
 
 ## Key terms
 
@@ -87,7 +87,7 @@ Five routes lead to the same object:
 - **From a template** — click **Create from Template** and pick a saved **Incident Template**. Templates prefill title, description, severity, initial state, resources, on-call policies, owners and labels.
 - **From a monitor** — a monitor criteria rule with the "declare an incident" toggle enabled creates the incident automatically the moment its filters match. Titles and descriptions there support `{{variable}}` templating.
 - **Over the API** — `POST /api/incident` with an API key. The server fills in `declaredAt`, the created state, and the incident number for you.
-- **Through an incident form** — somebody outside your team fills in a form you shared as a link, without a OneUptime account. The incident is declared hidden from status pages, from the form's incident template if it has one. See [Incident Forms](/docs/incidents/forms).
+- **Through a form** — somebody outside your team fills in a form you shared as a link, without a OneUptime account. The incident is declared hidden from status pages, from the form's incident template if it has one. See [Forms](/docs/forms/index).
 
 See [Declaring an Incident](/docs/incidents/declaring-incidents) for the field-by-field walkthrough.
 
@@ -119,7 +119,7 @@ Open **Incidents** in the left navigation. Its side menu is organized into secti
 | **Episodes**  | Incident episodes, a separate grouping feature with its own pages.                                                                                                         |
 | **Workspace** | **Slack** and **Microsoft Teams** connections for incidents.                                                                                                               |
 | **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Auto Remediation Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**. |
-| **Settings**  | **AI**, **Incident State**, **Incident Severity**, **Incident Templates**, **Forms**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Number Prefix**. |
+| **Settings**  | **AI**, **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Number Prefix**. |
 
 **Rules** and **Settings** are collapsed by default — expand them to find the pages the rest of these docs refer to. Incident configuration is not under Project Settings; it all lives here.
 
@@ -159,6 +159,6 @@ Open an incident and you get a left side menu, grouped like this:
 - [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — public and private notes, owners, and the activity feed.
 - [Linked Alerts](/docs/incidents/linked-alerts) — linking alerts to incidents, declaring incidents from alerts, and keeping alert states in step.
 - [Incident Settings & Automation](/docs/incidents/settings) — templates, custom fields, number prefixes and the rule engines.
-- [Incident Forms](/docs/incidents/forms) — a link anyone can use to report an incident, and what it declares.
+- [Forms](/docs/forms/index) — a link anyone can use to report an incident, and what it declares.
 - [Status Pages Overview](/docs/status-pages/index) — how incidents reach your customers.
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — who gets notified when an incident moves.
