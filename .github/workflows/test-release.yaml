@@ -1436,6 +1436,7 @@ jobs:
           docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml up --remove-orphans -d
           npm run status-check
       - name: Wait for server to start
+        id: stack
         run: bash ./Tests/Scripts/status-check.sh http://localhost
       # docker-compose.base.yml hands E2E_SHARD to the e2e container; see the
       # same step in test-e2e-test-saas.
@@ -1452,6 +1453,25 @@ jobs:
             bash ./Tests/Scripts/dump-container-logs.sh docker-compose.yml
             exit 1
           fi
+      # The live label rule import/export suite (packages/E2E/LabelRules). It
+      # needs a real stack with billing off, which is this one, but it has a
+      # Playwright config of its own, outside the ./Tests tree the shards
+      # divide, so no shard would pick it up. It runs once per run, in shard 1,
+      # against the stack that shard booted - whether or not the shard's own
+      # tests passed, since the two share nothing but the stack. It signs up
+      # its own user and creates, then deletes, its own projects.
+      #
+      # `run --rm` overrides the e2e image's CMD (the whole default suite), as
+      # the enterprise job does. The suite's config writes its failure traces
+      # to test-results/label-rule-transfer, inside the directory
+      # docker-compose.e2e.yml mounts, so the failure upload below carries them.
+      - name: Run the live label rule import/export suite
+        if: ${{ !cancelled() && matrix.shard == 1 && steps.stack.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
+          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml run --rm e2e npm run test-label-rule-transfer || (bash ./Tests/Scripts/dump-container-logs.sh docker-compose.yml; exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure
