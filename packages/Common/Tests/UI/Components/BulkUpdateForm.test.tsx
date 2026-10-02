@@ -8,6 +8,7 @@ import BulkUpdateForm, {
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import IconProp from "../../../Types/Icon/IconProp";
 
 /*
  * react-i18next is not initialized in the test environment. Mock the hook so
@@ -45,6 +46,7 @@ const makeRows: MakeRowsFunction = (count: number): Array<Row> => {
 const BUTTONS: Array<BulkActionButtonSchema<Row>> = [
   {
     title: "Archive",
+    icon: IconProp.Archive,
     buttonStyleType: ButtonStyleType.NORMAL,
     onClick: (): Promise<void> => {
       return Promise.resolve();

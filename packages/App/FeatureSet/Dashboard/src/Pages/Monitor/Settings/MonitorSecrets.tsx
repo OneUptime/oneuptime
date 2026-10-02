@@ -14,6 +14,7 @@ import MonitorSecretAccess, {
   MonitorSecretAccessUtil,
 } from "Common/Types/Monitor/MonitorSecretAccess";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -64,6 +65,7 @@ const MonitorSecrets: FunctionComponent<
         actionButtons={[
           {
             title: "Update Secret Value",
+            icon: IconProp.Key,
             buttonStyleType: ButtonStyleType.OUTLINE,
             onClick: async (
               item: MonitorSecret,

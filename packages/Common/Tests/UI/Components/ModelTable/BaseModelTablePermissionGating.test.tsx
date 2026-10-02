@@ -104,6 +104,7 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import Permission from "../../../../Types/Permission";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 type Row = {
   _id: string;
@@ -591,6 +592,7 @@ describe("BaseModelTable permission gating", () => {
   describe("the bulk Delete action", () => {
     const ARCHIVE_ACTION: unknown = {
       title: "Archive",
+      icon: IconProp.Archive,
       buttonStyleType: ButtonStyleType.NORMAL,
       onClick: async (): Promise<void> => {
         return Promise.resolve();

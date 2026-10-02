@@ -24,6 +24,7 @@ import Columns from "../../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 /*
  * Reordering a table by dragging its rows - the shared Table every
@@ -221,6 +222,7 @@ describe("the grip", () => {
         buttons: [
           {
             title: "Delete",
+            icon: IconProp.Trash,
             buttonStyleType: ButtonStyleType.DANGER,
             onClick: (): Promise<void> => {
               return Promise.resolve();
@@ -545,6 +547,7 @@ describe("on a phone", () => {
         buttons: [
           {
             title: "Delete",
+            icon: IconProp.Trash,
             buttonStyleType: ButtonStyleType.DANGER,
             onClick: (): Promise<void> => {
               return Promise.resolve();
