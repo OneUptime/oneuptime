@@ -28,6 +28,7 @@ import UserType from "../../../Types/UserType";
 import { getFeedEventTypeLabel } from "../../../UI/Components/Feed/FeedOptions";
 import { describe, expect, test } from "@jest/globals";
 import { getMetadataArgsStorage } from "typeorm";
+import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import type { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
 import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 
@@ -481,11 +482,29 @@ describe("IncidentAlert uniqueness and scope", () => {
 });
 
 describe("the project switches for linked alerts", () => {
-  test.each([
+  const SWITCHES: Array<string> = [
     "acknowledgeLinkedAlertsWhenIncidentAcknowledged",
     "resolveLinkedAlertsWhenIncidentResolved",
-  ])(
-    "%s is an off-by-default boolean only owners and admins may change",
+  ];
+
+  // The @Column a switch is stored with: what the database itself defaults to.
+  function storedColumn(column: string): ColumnMetadataArgs | undefined {
+    return getMetadataArgsStorage().columns.find(
+      (candidate: ColumnMetadataArgs) => {
+        return (
+          candidate.target === Project && candidate.propertyName === column
+        );
+      },
+    );
+  }
+
+  /*
+   * On by default: a new project's linked alerts follow their incident. The
+   * API reference, the Terraform provider and the database all read this
+   * default, so the model's two declarations must agree.
+   */
+  test.each(SWITCHES)(
+    "%s is an on-by-default boolean only owners and admins may change",
     (column: string) => {
       const project: Project = new Project();
       const metadata: TableColumnMetadata =
@@ -495,7 +514,7 @@ describe("the project switches for linked alerts", () => {
 
       expect(metadata.type).toBe(TableColumnType.Boolean);
       expect(metadata.required).toBe(true);
-      expect(metadata.defaultValue).toBe(false);
+      expect(metadata.defaultValue).toBe(true);
       expect(project.isDefaultValueColumn(column)).toBe(true);
       expect(access!.create).toEqual([]);
       expect(access!.update).toEqual([
@@ -503,6 +522,58 @@ describe("the project switches for linked alerts", () => {
         Permission.ProjectAdmin,
       ]);
       expect(access!.read).toContain(Permission.ProjectMember);
+    },
+  );
+
+  test.each(SWITCHES)(
+    "%s defaults to true in the database too, and is never null",
+    (column: string) => {
+      const stored: ColumnMetadataArgs | undefined = storedColumn(column);
+
+      expect(stored).toBeDefined();
+      expect(stored!.options.default).toBe(true);
+      expect(stored!.options.nullable).toBe(false);
+      expect(stored!.options.default).toBe(
+        new Project().getTableColumnMetadata(column).defaultValue,
+      );
+    },
+  );
+
+  /*
+   * Nobody may set a switch on create (create: []), and a new model leaves
+   * both unset, so every project - from the dashboard, the API or a test
+   * fixture - starts from the database default rather than an explicit
+   * false some create path happened to send.
+   */
+  test.each(SWITCHES)(
+    "%s is never written on create, so a new project gets the default",
+    (column: string) => {
+      const project: Project = new Project();
+
+      expect((project as unknown as Record<string, unknown>)[column]).toBe(
+        undefined,
+      );
+      expect(project.getColumnAccessControlFor(column)!.create).toEqual([]);
+    },
+  );
+
+  /*
+   * The description is published in the API reference and the Terraform
+   * docs, where "default: true" alone would suggest an upgrade switches
+   * every project on. It does not: the migration only changes the column
+   * default.
+   */
+  test.each(SWITCHES)(
+    "%s tells API readers existing projects keep their setting",
+    (column: string) => {
+      const description: string =
+        new Project().getTableColumnMetadata(column).description || "";
+
+      expect(description).toContain(
+        "On for new projects created in OneUptime; projects that existed before keep their setting.",
+      );
+      expect(description).not.toMatch(/off by default/i);
+      expect(description).not.toMatch(/opt[- ]in/i);
     },
   );
 
@@ -519,7 +590,7 @@ describe("the project switches for linked alerts", () => {
       ).description || "";
 
     expect(description).toBe(
-      "When enabled, acknowledging an incident also acknowledges every alert linked to it. This stops those alerts' on-call escalations, and their reminders only when the alert reminder rule is set to stop on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
+      "When enabled, acknowledging an incident also acknowledges every alert linked to it. This stops those alerts' on-call escalations, and their reminders only when the alert reminder rule is set to stop on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked. On for new projects created in OneUptime; projects that existed before keep their setting.",
     );
     expect(description).not.toContain("escalations and reminders");
 

@@ -1665,13 +1665,19 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Acknowledge Linked Alerts When Incident Is Acknowledged",
     description:
-      "When enabled, acknowledging an incident also acknowledges every alert linked to it. This stops those alerts' on-call escalations, and their reminders only when the alert reminder rule is set to stop on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
-    defaultValue: false,
+      "When enabled, acknowledging an incident also acknowledges every alert linked to it. This stops those alerts' on-call escalations, and their reminders only when the alert reminder rule is set to stop on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked. On for new projects created in OneUptime; projects that existed before keep their setting.",
+    defaultValue: true,
     example: true,
   })
+  /*
+   * On by default (1797300000000-TurnOnLinkedAlertSwitchesByDefault): a new
+   * project's alerts follow their incident. The migration only changes the
+   * column default, so projects that existed before keep what they had - an
+   * untouched switch and a deliberate "off" look the same in the table.
+   */
   @Column({
     nullable: false,
-    default: false,
+    default: true,
     type: ColumnType.Boolean,
   })
   public acknowledgeLinkedAlertsWhenIncidentAcknowledged?: boolean = undefined;
@@ -1695,13 +1701,14 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Resolve Linked Alerts When Incident Is Resolved",
     description:
-      "When enabled, resolving an incident also resolves every alert linked to it, except alerts that are still linked to another incident that is not resolved yet. Alerts linked to an incident that is already resolved are resolved as they are linked.",
-    defaultValue: false,
+      "When enabled, resolving an incident also resolves every alert linked to it, except alerts that are still linked to another incident that is not resolved yet. Alerts linked to an incident that is already resolved are resolved as they are linked. On for new projects created in OneUptime; projects that existed before keep their setting.",
+    defaultValue: true,
     example: true,
   })
+  // On by default, like the acknowledge switch above.
   @Column({
     nullable: false,
-    default: false,
+    default: true,
     type: ColumnType.Boolean,
   })
   public resolveLinkedAlertsWhenIncidentResolved?: boolean = undefined;

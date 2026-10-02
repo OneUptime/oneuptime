@@ -489,8 +489,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
 
     /*
      * Carry the incident's new state over to its linked alerts, when the
-     * project has opted in (acknowledge and/or resolve them with the
-     * incident). Only for the incident's current state - a back-dated row has
+     * project's linked alert switches say so (acknowledge and/or resolve them
+     * with the incident; both are on for new projects). Only for the incident's current state - a back-dated row has
      * an endsAt - and after the mutex is released, since it writes alert
      * timelines. Fire-and-forget: it never fails or delays the state change.
      */
