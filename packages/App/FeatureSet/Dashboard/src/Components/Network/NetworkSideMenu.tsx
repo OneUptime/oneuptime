@@ -248,9 +248,9 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     /*
-     * The way back to archived devices, which the device lists leave out.
-     * Few visits need it, so it waits in Advanced: folded away until
-     * opened, and open by itself on the Archived Devices page.
+     * The way back to archived devices, which the device lists leave out. Few
+     * visits need it, so it waits in Advanced: folded away until opened, and
+     * open by itself on the Archived Devices page.
      */
     {
       title: "Advanced",

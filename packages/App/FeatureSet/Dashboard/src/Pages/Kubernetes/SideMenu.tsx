@@ -69,8 +69,8 @@ const KubernetesSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     /*
-     * The way back to archived Kubernetes clusters, which the list leaves out. Few
-     * visits need it, so it waits in Advanced: folded away until opened,
+     * The way back to archived Kubernetes clusters, which the list leaves out.
+     * Few visits need it, so it waits in Advanced: folded away until opened,
      * and open by itself on the Archived page.
      */
     {
