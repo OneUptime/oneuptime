@@ -226,6 +226,8 @@ interface ScopeShape {
   notifyOnCreate?: boolean | undefined;
   isVisible?: boolean | undefined;
   isPrivate?: boolean | undefined;
+  // Its monitors' ids; one monitor when left out.
+  monitorIds?: Array<string> | undefined;
 }
 
 // An incident on one monitor, limited to Site 03 and Site 07, told on Site 03.
@@ -247,9 +249,13 @@ function buildIncident(shape: ScopeShape = {}): Incident {
   incident.isVisibleOnStatusPage = shape.isVisible ?? true;
   incident.isPrivate = shape.isPrivate ?? false;
 
-  const monitor: Monitor = new Monitor();
-  monitor._id = MONITOR_ID;
-  incident.monitors = [monitor];
+  incident.monitors = (shape.monitorIds ?? [MONITOR_ID]).map(
+    (monitorId: string): Monitor => {
+      const monitor: Monitor = new Monitor();
+      monitor._id = monitorId;
+      return monitor;
+    },
+  );
 
   return incident;
 }
@@ -776,6 +782,76 @@ describe("the picker's warnings", () => {
       monitorIds: [MONITOR_ID],
       statusPageIds: [SITE_03, SITE_05],
     });
+  });
+
+  /*
+   * Under 'Notify Status Page Subscribers', the dashboard used to say "No
+   * status page subscribers will be notified: no monitors are attached" on
+   * every incident without one. That is gone; what still matters - pages
+   * picked for an incident on no monitor, which none of them will show - is
+   * said here, under the picker.
+   */
+  test("an incident on no monitor: every picked page is named, as the server says", async () => {
+    postMock.mockResolvedValue(
+      new HTTPResponse<JSONObject>(
+        200,
+        IncidentSubscriberAudience.toJSON({
+          hasMonitors: false,
+          isScoped: true,
+          isHiddenFromStatusPages: false,
+          statusPages: [],
+          hiddenStatusPageCount: 0,
+          excludedStatusPages: [],
+          selectedStatusPagesNotListingMonitors: [
+            { statusPageId: SITE_03, name: "Site 03" },
+            { statusPageId: SITE_05, name: "Site 05" },
+          ],
+        }),
+        {},
+      ) as never,
+    );
+
+    await renderSettings();
+    await loadIncident({ monitorIds: [] });
+
+    await renderFooter([SITE_03, SITE_05]);
+
+    expect(
+      await screen.findByTestId("status-pages-not-listing-monitors"),
+    ).toHaveTextContent(
+      formatScopeText(IncidentStatusPageScopeCopy.notListingMonitorsWarning, {
+        names: "Site 03, Site 05",
+      }),
+    );
+
+    const body: JSONObject = (
+      postMock.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+    expect(body).toEqual({
+      monitorIds: [],
+      statusPageIds: [SITE_03, SITE_05],
+    });
+  });
+
+  /*
+   * Until the card has loaded the incident, its monitors are unknown, not
+   * none: asking then would name every picked page as one that lists none
+   * of them.
+   */
+  test("before the incident loads, the picker checks nothing against the monitors", async () => {
+    postMock.mockResolvedValue(
+      audienceResponse([{ statusPageId: SITE_03, name: "Site 03" }]) as never,
+    );
+
+    await renderSettings();
+
+    const footer: HTMLElement = await renderFooter([SITE_03]);
+    await new Promise((r: (value: unknown) => void) => {
+      setTimeout(r, 450);
+    });
+
+    expect(postMock).not.toHaveBeenCalled();
+    expect(footer).toBeEmptyDOMElement();
   });
 
   test("no page picked: nothing to check against the monitors", async () => {

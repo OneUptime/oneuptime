@@ -70,12 +70,16 @@ export const IncidentStatusPageScopeCopy: {
   audienceHidesIncidents: string;
   audienceAlreadyNotified: string;
   audienceNotListingMonitors: string;
-  audienceNoMonitors: string;
+  /*
+   * Why no one will be notified. Under a "notify subscribers" checkbox these
+   * show only when the incident's status page scope is the reason; in the
+   * confirmation before sending a notification again, always (see
+   * SubscriberAudienceText). Nothing says "no monitors are attached", "the
+   * box is off" or "the incident will be private": the form shows those.
+   */
   audienceNoStatusPages: string;
   audienceNoSubscribers: string;
   audienceHiddenIncident: string;
-  audienceNotifyOff: string;
-  audiencePrivateIncident: string;
 } = {
   pickerTitle: "Limit to these status pages",
   pickerDescription:
@@ -142,18 +146,12 @@ export const IncidentStatusPageScopeCopy: {
   audienceHidesIncidents: "{{name}} (does not show incidents)",
   audienceAlreadyNotified: "{{name}} (already sent this notification in full)",
   audienceNotListingMonitors: "{{name}} (lists none of these monitors)",
-  audienceNoMonitors:
-    "No status page subscribers will be notified: no monitors are attached. Subscribers hear about an incident through the monitors their status pages list.",
   audienceNoStatusPages:
     "No status page subscribers will be notified: no status page that lists these monitors will show this incident.",
   audienceNoSubscribers:
     "No one will be notified: these status pages have no subscribers yet.",
   audienceHiddenIncident:
     "Nothing will be sent: this incident is hidden from status pages.",
-  audienceNotifyOff:
-    "Status page subscribers will not be notified: 'Notify Status Page Subscribers' is off.",
-  audiencePrivateIncident:
-    "Nothing will be sent: private incidents are hidden from all status pages.",
 };
 
 // Fills {{placeholders}} in a looked-up string.
