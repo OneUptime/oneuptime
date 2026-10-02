@@ -5,7 +5,7 @@ import {
   clearBrowserStorage,
   setPageUrl,
 } from "../StatusPage/BrowserSessionHarness";
-import IncidentFormAPI from "../../FeatureSet/Accounts/src/Utils/IncidentFormAPI";
+import FormAPI from "../../FeatureSet/Accounts/src/Utils/FormAPI";
 import FakeAxiosServer, {
   FakeTransport,
   SentRequest,
@@ -18,9 +18,9 @@ import Headers from "Common/Types/API/Headers";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import {
-  INCIDENT_FORM_PAGE_HEADER,
-  INCIDENT_FORM_PAGE_HEADER_VALUE,
-} from "Common/Types/Incident/IncidentFormPublic";
+  FORM_PAGE_HEADER,
+  FORM_PAGE_HEADER_VALUE,
+} from "Common/Types/Form/FormPublic";
 import { JSONObject } from "Common/Types/JSON";
 import BaseAPI from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -41,7 +41,7 @@ jest.mock("Common/node_modules/axios", () => {
 });
 
 /*
- * THE PUBLIC INCIDENT FORM'S CLIENT NEVER TOUCHES A SESSION.
+ * THE PUBLIC FORM'S CLIENT NEVER TOUCHES A SESSION.
  *
  * The form page is served from the OneUptime host itself, so a visitor who
  * is signed in to the dashboard carries its session cookies to the form's
@@ -49,10 +49,10 @@ jest.mock("Common/node_modules/axios", () => {
  * dashboard's client (BaseAPI) a 401 from those routes would try to refresh
  * that session, then sign the visitor out and force the page over to
  * /accounts/login; a 403 would send them to /accounts/forbidden. Either way
- * the report they were typing is gone, and a signed-in visitor has lost a
+ * the answers they were typing are gone, and a signed-in visitor has lost a
  * session that had nothing to do with the form.
  *
- * These run the real IncidentFormAPI through the real BaseAPI and
+ * These run the real FormAPI through the real BaseAPI and
  * Common/Utils/API, with a scripted server where axios would reach the
  * network. The server answers nothing but the requests each test expects, so
  * a refresh or a logout request fails the test by name. The last test runs
@@ -64,9 +64,9 @@ const mockedAxios: FakeTransport = axios as unknown as FakeTransport;
 
 const SHARE_KEY: string = "8a4f2c1e-3b5d-4c6e-9f70-1a2b3c4d5e6f";
 
-const PAGE_PATH: string = `/accounts/incident-form/${SHARE_KEY}`;
+const PAGE_PATH: string = `/accounts/form/${SHARE_KEY}`;
 
-const FORM_URL: string = `${ONEUPTIME_ORIGIN}/api/incident-form/public/${SHARE_KEY}`;
+const FORM_URL: string = `${ONEUPTIME_ORIGIN}/api/form/public/${SHARE_KEY}`;
 
 const SUBMIT_URL: string = `${FORM_URL}/submit`;
 
@@ -93,7 +93,7 @@ type ReadFormFunction = () => Promise<
 const readForm: ReadFormFunction = async (): Promise<
   HTTPResponse<JSONObject> | HTTPErrorResponse
 > => {
-  return await IncidentFormAPI.get<JSONObject>({
+  return await FormAPI.get<JSONObject>({
     url: URL.fromString(FORM_URL),
   });
 };
@@ -101,7 +101,7 @@ const readForm: ReadFormFunction = async (): Promise<
 const submitForm: ReadFormFunction = async (): Promise<
   HTTPResponse<JSONObject> | HTTPErrorResponse
 > => {
-  return await IncidentFormAPI.post<JSONObject>({
+  return await FormAPI.post<JSONObject>({
     url: URL.fromString(SUBMIT_URL),
     data: { data: { title: "Checkout is down" } },
   });
@@ -207,7 +207,7 @@ describe("a refusal from the form's routes is the page's to show", () => {
   });
 
   test("refreshSession() reports false without a request", async () => {
-    await expect(IncidentFormAPI.refreshSession()).resolves.toBe(false);
+    await expect(FormAPI.refreshSession()).resolves.toBe(false);
 
     expect(server.sent).toHaveLength(0);
     expect(localStorage.getItem("session-refreshed-at:dashboard")).toBeNull();
@@ -228,7 +228,7 @@ describe("what the page's client sends", () => {
   });
 
   test("its default headers name no tenant and carry no key", () => {
-    const headers: Headers = IncidentFormAPI.getDefaultHeaders();
+    const headers: Headers = FormAPI.getDefaultHeaders();
 
     expect(headers["tenantid"]).toBe("");
     expect(Object.keys(headers)).not.toContain("apikey");
@@ -251,21 +251,21 @@ describe("what the page's client sends", () => {
     expect(sentRequests()).toEqual([`GET ${FORM_URL}`, `POST ${SUBMIT_URL}`]);
 
     for (const request of server.sent) {
-      expect(request.headers[INCIDENT_FORM_PAGE_HEADER]).toBe(
-        INCIDENT_FORM_PAGE_HEADER_VALUE,
+      expect(request.headers[FORM_PAGE_HEADER]).toBe(
+        FORM_PAGE_HEADER_VALUE,
       );
     }
 
-    expect(IncidentFormAPI.getDefaultHeaders()[INCIDENT_FORM_PAGE_HEADER]).toBe(
-      INCIDENT_FORM_PAGE_HEADER_VALUE,
+    expect(FormAPI.getDefaultHeaders()[FORM_PAGE_HEADER]).toBe(
+      FORM_PAGE_HEADER_VALUE,
     );
-    expect(INCIDENT_FORM_PAGE_HEADER).toBe("x-oneuptime-incident-form");
+    expect(FORM_PAGE_HEADER).toBe("x-oneuptime-form");
   });
 
   // The dashboard's client sends no such header: it is the form page's alone.
   test("the dashboard's own client does not send it", () => {
     expect(Object.keys(BaseAPI.getDefaultHeaders())).not.toContain(
-      INCIDENT_FORM_PAGE_HEADER,
+      FORM_PAGE_HEADER,
     );
   });
 });
@@ -276,12 +276,12 @@ describe("where it would send a visitor, were it ever asked", () => {
 
     jest.spyOn(Navigation, "getCurrentRoute").mockReturnValue(currentRoute);
 
-    expect(IncidentFormAPI.getLoginRoute().toString()).toBe(PAGE_PATH);
-    expect(IncidentFormAPI.getForbiddenRoute().toString()).toBe(PAGE_PATH);
+    expect(FormAPI.getLoginRoute().toString()).toBe(PAGE_PATH);
+    expect(FormAPI.getForbiddenRoute().toString()).toBe(PAGE_PATH);
   });
 
   test("signing out is a no-op that leaves the visitor's storage alone", () => {
-    IncidentFormAPI.logoutUser();
+    FormAPI.logoutUser();
 
     expect(localStorage.getItem("user_email")).toBe("grace@example.com");
     expect(logoutSpy).not.toHaveBeenCalled();
@@ -294,7 +294,7 @@ describe("where it would send a visitor, were it ever asked", () => {
       {},
     );
 
-    expect(IncidentFormAPI.handleError(error)).toBe(error);
+    expect(FormAPI.handleError(error)).toBe(error);
     expect(navigateSpy).not.toHaveBeenCalled();
     expect(logoutSpy).not.toHaveBeenCalled();
   });

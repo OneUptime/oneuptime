@@ -118,10 +118,16 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
  */
 export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
   {
-    file: "packages/App/FeatureSet/Accounts/src/Pages/IncidentForm.tsx",
-    form: "BasicForm: incident-form",
+    file: "packages/App/FeatureSet/Accounts/src/Pages/Form.tsx",
+    form: "BasicForm: public-form",
     reason:
-      "A public incident report form whose questions are the customer's own Incident Form design (title, description, severity, their custom fields, the reporter's details, a CAPTCHA). Someone reporting an outage fills it in one go, in two columns on a wide screen; a Next before the reporter's details and the CAPTCHA would only slow that down.",
+      "A public form whose questions are the customer's own design in Forms (an incident report or a maintenance request: title, description, their custom fields, the submitter's details, a CAPTCHA). Someone reporting an outage fills it in one go, in two columns on a wide screen; a Next before the submitter's details and the CAPTCHA would only slow that down.",
+  },
+  {
+    file: `${DASHBOARD}/Components/FormBuilder/Builder/FormPreviewModal.tsx`,
+    form: "BasicForm: form-preview-form",
+    reason:
+      "The form builder's preview of the public form above: the same questions drawn the way the public page draws them, in one page, so what the builder shows is what a submitter will see.",
   },
   {
     file: `${DASHBOARD}/Components/Dashboard/Canvas/ArgumentsForm.tsx`,
