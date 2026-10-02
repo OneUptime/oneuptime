@@ -1457,13 +1457,15 @@ jobs:
           node-version: 26
           registry-url: 'https://registry.npmjs.org'
       - name: Update npm for OIDC support
-        # Pin to the stable npm 11.x line instead of `@latest`. OIDC trusted
-        # publishing is supported since npm 11.5.1, and 11.x correctly bundles
-        # its `sigstore` dependency. `@latest` currently resolves to a broken
-        # npm 12 build whose bundled `sigstore` fails to resolve, causing
-        # `npm publish` to abort with "Cannot find module 'sigstore'" while
-        # generating provenance (auto-enabled under OIDC). See npm/cli#9722.
-        run: npm install -g npm@11
+        uses: ./.github/actions/npm-install
+        with:
+          # Pin to the stable npm 11.x line instead of `@latest`. OIDC trusted
+          # publishing is supported since npm 11.5.1, and 11.x correctly bundles
+          # its `sigstore` dependency. `@latest` currently resolves to a broken
+          # npm 12 build whose bundled `sigstore` fails to resolve, causing
+          # `npm publish` to abort with "Cannot find module 'sigstore'" while
+          # generating provenance (auto-enabled under OIDC). See npm/cli#9722.
+          args: -g npm@11
       # The pinned, cached gomplate, so prerun's configure.sh does not download
       # it from GitHub's release CDN (see .github/actions/setup-gomplate).
       - name: Set up gomplate
@@ -1524,11 +1526,20 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing Terraform provider version: $VERSION"
 
-      - name: Install dependencies
-        run: |
-          npm install
-          if [ -d "packages/Common" ]; then cd packages/Common && npm install && cd ../..; fi
-          if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
+      # Generation runs Scripts/TerraformProvider through the root's ts-node,
+      # against Common's sources: it needs all three.
+      - name: Install root dependencies
+        uses: ./.github/actions/npm-install
+
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      - name: Install Script dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Scripts
 
       # Defense in depth: generate and check the provider here too, so a broken
       # generation fails this job before the publish script pushes anything.
@@ -2661,7 +2672,9 @@ jobs:
           node-version: 26
 
       - name: Install dependencies
-        run: cd packages/MobileApp && npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/MobileApp
 
       - name: Generate native Android project
         run: cd packages/MobileApp && npx expo prebuild --platform android --no-install
@@ -2711,7 +2724,9 @@ jobs:
           node-version: 26
 
       - name: Install dependencies
-        run: cd packages/MobileApp && npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/MobileApp
 
       - name: Generate native iOS project
         run: cd packages/MobileApp && npx expo prebuild --platform ios --no-install
@@ -2938,7 +2953,9 @@ jobs:
           node-version: 26
 
       - name: Install dependencies
-        run: cd packages/MobileApp && npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/MobileApp
 
       - name: Generate native Android project
         run: cd packages/MobileApp && npx expo prebuild --platform android --no-install
@@ -3000,7 +3017,9 @@ jobs:
           node-version: 26
 
       - name: Install dependencies
-        run: cd packages/MobileApp && npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/MobileApp
 
       - name: Generate native iOS project
         run: cd packages/MobileApp && npx expo prebuild --platform ios --no-install

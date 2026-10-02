@@ -25,7 +25,10 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd packages/MobileApp && npm install
+      - name: Install MobileApp dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/MobileApp
       - name: Run Expo Doctor
         run: cd packages/MobileApp && npx expo-doctor@latest
 
@@ -42,7 +45,10 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd packages/MobileApp && npm install
+      - name: Install MobileApp dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/MobileApp
       - name: Run Jest Tests
         run: cd packages/MobileApp && npm test
 
@@ -59,7 +65,10 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd packages/MobileApp && npm install
+      - name: Install MobileApp dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/MobileApp
       - name: Install browser for responsive UI tests
         run: cd packages/MobileApp && npx playwright install --with-deps chromium
       - name: Verify responsive screens and project switching

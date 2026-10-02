@@ -76,7 +76,10 @@ jobs:
       # against a vulnerable npm from the registry, and inside
       # node:26-alpine3.24 through the real .dockerignore, the way every Node
       # image runs it. It needs the npm registry and docker.
-      - run: cd Tests/Ops && npm install
+      - name: Install Ops test dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Tests/Ops
       # Both real-Docker tests above build FROM
       # public.ecr.aws/docker/library/node:26-alpine3.24, and public.ecr.aws
       # serves anonymous pullers from a shared data quota that a busy CI window

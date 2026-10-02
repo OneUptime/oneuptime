@@ -43,11 +43,13 @@ jobs:
         working-directory: packages/Common
         run: bash test-setup.sh
       - name: Install Common
-        working-directory: packages/Common
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
       - name: Install App
-        working-directory: packages/App
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App
       # App's two Enterprise boundary guards, with ee/ in the checkout. Their
       # ee-direction checks (what ee/ imports, the ee UI plugins' module-load
       # reads, the ee UI tsconfigs) skip when ee/ is absent, and the App Test
@@ -63,8 +65,11 @@ jobs:
         working-directory: packages/Common
         run: node node_modules/.bin/jest Tests/UI/ForeignHiddenRuleGuard.test.ts --forceExit
       - name: Install ee
-        working-directory: ee
-        run: npm ci --ignore-scripts
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: ee
+          command: ci
+          args: --ignore-scripts
       - name: Run the ee tests
         working-directory: ee
         run: npm test
