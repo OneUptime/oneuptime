@@ -5,6 +5,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ErrorFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -47,6 +48,7 @@ const RunbookSecrets: FunctionComponent<
         actionButtons={[
           {
             title: "Update Secret Value",
+            icon: IconProp.Key,
             buttonStyleType: ButtonStyleType.OUTLINE,
             onClick: async (
               item: RunbookSecret,

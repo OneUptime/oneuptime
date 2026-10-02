@@ -282,6 +282,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 actionButtons={[
                   {
                     title: "View SCIM URLs",
+                    icon: IconProp.Link,
                     buttonStyleType: ButtonStyleType.NORMAL,
                     onClick: async (
                       item: ProjectSCIM,

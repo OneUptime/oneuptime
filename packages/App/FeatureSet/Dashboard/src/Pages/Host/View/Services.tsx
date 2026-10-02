@@ -414,6 +414,7 @@ const HostServices: FunctionComponent<
   const actionButtons: Array<ActionButtonSchema<ServiceRow>> = [
     {
       title: "View",
+      icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       isVisible: (row: ServiceRow): boolean => {
         return serviceViewRouteFor(row) !== null;
