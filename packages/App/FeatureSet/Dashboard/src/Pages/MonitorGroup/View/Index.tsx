@@ -33,10 +33,13 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const MonitorGroupView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [currentGroupStatus, setCurrentGroupStatus] =
@@ -80,7 +83,9 @@ const MonitorGroupView: FunctionComponent<
           color: currentGroupStatus?.color?.toString() || Green.toString(),
         }}
       >
-        {uptimePercent}% uptime
+        {translator.translateTemplate("{{percent}}% uptime", {
+          percent: uptimePercent,
+        })}
       </div>
     );
   };

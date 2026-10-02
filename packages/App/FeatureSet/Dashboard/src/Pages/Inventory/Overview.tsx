@@ -180,7 +180,7 @@ const InventoryOverview: FunctionComponent<
                       )}
                       className="truncate text-sm font-medium text-gray-900 hover:text-indigo-700"
                     >
-                      {item.displayName || translator.translateText("Unnamed")}
+                      {item.displayName || translator.translateTerm("Unnamed")}
                     </AppLink>
                   </div>
                   <InventoryTypeBadge entityType={item.entityType} />

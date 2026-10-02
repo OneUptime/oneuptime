@@ -98,6 +98,8 @@ import {
   shouldDropDefaultMonitoringInterval,
   withDefaultMonitoringInterval,
 } from "../../Utils/Form/Monitor/MonitoringIntervalDefault";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Candidate rolling windows for "create monitor from this explorer view" —
@@ -241,6 +243,7 @@ function buildThresholdCriteriaInstance(input: {
 const MonitorCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const monitorTemplateId: string | null =
     Navigation.getQueryStringByName("monitorTemplateId");
 
@@ -761,10 +764,19 @@ const MonitorCreate: FunctionComponent<
     }
 
     setInitialValues({
-      name: deviceName ? `${deviceName} Monitor` : "Network Device Monitor",
+      name: deviceName
+        ? translator.translateTemplate("{{deviceName}} Monitor", {
+            deviceName: deviceName,
+          })
+        : translator.translateTemplate("Network Device Monitor"),
       description: deviceName
-        ? `Alerts on the ${deviceName} network device.`
-        : "Alerts on a registered network device.",
+        ? translator.translateTemplate(
+            "Alerts on the {{deviceName}} network device.",
+            { deviceName: deviceName },
+          )
+        : translator.translateTemplate(
+            "Alerts on a registered network device.",
+          ),
       monitorType: MonitorType.NetworkDevice,
       monitorSteps: monitorSteps.toJSON(),
     });

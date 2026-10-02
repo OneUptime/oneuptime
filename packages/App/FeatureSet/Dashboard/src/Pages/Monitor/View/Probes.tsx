@@ -34,10 +34,13 @@ import useAsyncEffect from "use-async-effect";
 import SummaryInfo from "../../../Components/Monitor/SummaryView/SummaryInfo";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const MonitorProbes: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<Array<ProbeMonitorResponse>>([]);
@@ -103,9 +106,9 @@ const MonitorProbes: FunctionComponent<
           title={"No Monitoring Probes for Manual Monitors"}
           description={
             <>
-              This is a manual monitor. It does not monitor anything and so, it
-              cannot have monitoring probes set. You can have monitoring probes
-              on other monitor types.{" "}
+              {translator.translateText(
+                "This is a manual monitor. It does not monitor anything and so, it cannot have monitoring probes set. You can have monitoring probes on other monitor types.",
+              )}
             </>
           }
         />

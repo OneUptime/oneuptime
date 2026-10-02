@@ -32,6 +32,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Device Overview — the "is it OK, and what is it?" page. Health hero on
@@ -42,6 +44,7 @@ import React, {
 const NetworkDeviceView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [monitors, setMonitors] = useState<Array<Monitor>>([]);
@@ -234,7 +237,9 @@ const NetworkDeviceView: FunctionComponent<
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.site?.name) {
                   return (
-                    <span className="text-gray-400">No site assigned</span>
+                    <span className="text-gray-400">
+                      {translator.translateText("No site assigned")}
+                    </span>
                   );
                 }
                 return <span>{item.site.name}</span>;

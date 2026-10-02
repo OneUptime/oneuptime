@@ -18,6 +18,8 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Site Overview — health hero on top (rollup status, 30-day uptime,
@@ -28,6 +30,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const NetworkSiteView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const openInNetworkMap: VoidFunction = (): void => {
@@ -209,7 +212,11 @@ const NetworkSiteView: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.networkSiteType?.name) {
-                  return <span className="text-gray-400">Not set</span>;
+                  return (
+                    <span className="text-gray-400">
+                      {translator.translateText("Not set")}
+                    </span>
+                  );
                 }
                 return <span>{item.networkSiteType.name}</span>;
               },
@@ -224,7 +231,11 @@ const NetworkSiteView: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.parentSite?.name) {
-                  return <span className="text-gray-400">Root site</span>;
+                  return (
+                    <span className="text-gray-400">
+                      {translator.translateText("Root site")}
+                    </span>
+                  );
                 }
                 return <span>{item.parentSite.name}</span>;
               },
@@ -240,7 +251,11 @@ const NetworkSiteView: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.currentMonitorStatus) {
-                  return <span className="text-gray-400">No Data</span>;
+                  return (
+                    <span className="text-gray-400">
+                      {translator.translateText("No Data")}
+                    </span>
+                  );
                 }
                 return (
                   <MonitorStatusElement
@@ -274,7 +289,9 @@ const NetworkSiteView: FunctionComponent<
                   item.longitude === null
                 ) {
                   return (
-                    <span className="text-gray-400">Not pinned on the map</span>
+                    <span className="text-gray-400">
+                      {translator.translateText("Not pinned on the map")}
+                    </span>
                   );
                 }
                 return (

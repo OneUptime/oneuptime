@@ -4,6 +4,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * Traffic page for one device: NetFlow top talkers (sources,
@@ -13,6 +16,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const NetworkDeviceTraffic: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
@@ -24,17 +28,15 @@ const NetworkDeviceTraffic: FunctionComponent<
       >
         <div className="space-y-3 text-sm text-gray-600">
           <p>
-            Traffic analysis is powered by <strong>NetFlow v5</strong>. Your
-            probe listens for flow records on UDP port 2055 — point this
-            device&apos;s flow export at the probe&apos;s IP address and traffic
-            will appear here within a few minutes.
+            <TranslatedSentence
+              template="Traffic analysis is powered by {{protocol}}. Your probe listens for flow records on UDP port 2055 — point this device's flow export at the probe's IP address and traffic will appear here within a few minutes."
+              slots={{ protocol: <strong>NetFlow v5</strong> }}
+            />
           </p>
           <p className="text-gray-500">
-            On most routers and L3 switches this is two steps: enable flow
-            accounting on the interfaces you care about, then add a flow export
-            destination pointing at the probe. Records are matched to this
-            device by the exporter IP address, which must equal this
-            device&apos;s hostname/IP as registered here.
+            {translator.translateText(
+              "On most routers and L3 switches this is two steps: enable flow accounting on the interfaces you care about, then add a flow export destination pointing at the probe. Records are matched to this device by the exporter IP address, which must equal this device's hostname/IP as registered here.",
+            )}
           </p>
         </div>
       </Card>

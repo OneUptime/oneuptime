@@ -91,7 +91,7 @@ const InventoryDocumentation: FunctionComponent<
                     )}
                     className="font-medium text-indigo-600 hover:text-indigo-800"
                   >
-                    {translator.translateText("Explore the full topology")}
+                    {translator.translateTemplate("Explore the full topology")}
                   </AppLink>
                 ),
               }}
@@ -256,7 +256,7 @@ const InventoryDocumentation: FunctionComponent<
               )}
               className="font-medium text-indigo-600 hover:text-indigo-800"
             >
-              {translator.translateText(
+              {translator.translateTemplate(
                 "Send OpenTelemetry traces, logs and metrics",
               )}
             </AppLink>
@@ -273,7 +273,7 @@ const InventoryDocumentation: FunctionComponent<
               )}
               className="font-medium text-indigo-600 hover:text-indigo-800"
             >
-              {translator.translateText("Register network devices")}
+              {translator.translateTemplate("Register network devices")}
             </AppLink>
           </li>
           <li className="flex items-center gap-x-2">
@@ -288,7 +288,7 @@ const InventoryDocumentation: FunctionComponent<
               )}
               className="font-medium text-indigo-600 hover:text-indigo-800"
             >
-              {translator.translateText("Connect a cloud account")}
+              {translator.translateTemplate("Connect a cloud account")}
             </AppLink>
           </li>
           <li className="flex items-center gap-x-2">
@@ -303,7 +303,7 @@ const InventoryDocumentation: FunctionComponent<
               )}
               className="font-medium text-indigo-600 hover:text-indigo-800"
             >
-              {translator.translateText("Add something by hand")}
+              {translator.translateTemplate("Add something by hand")}
             </AppLink>
           </li>
         </ul>

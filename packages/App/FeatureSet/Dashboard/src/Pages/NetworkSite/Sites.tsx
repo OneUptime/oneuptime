@@ -63,6 +63,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Stable object identity, because ModelTable decides whether to refetch by
@@ -77,6 +79,7 @@ const FACET_PICKER_PAGE_SIZE: number = 50;
 const NetworkSites: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Bumped when sites change — a create from the table, or a CSV import — so
    * the table, the summary cards and the hierarchy tree all refetch without a
@@ -652,7 +655,11 @@ const NetworkSites: FunctionComponent<
             type: FieldType.Entity,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.networkSiteType?.name) {
-                return <span className="text-sm text-gray-400">Not set</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Not set")}
+                  </span>
+                );
               }
               return (
                 <span className="text-sm text-gray-900">
@@ -672,7 +679,11 @@ const NetworkSites: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.parentSite?.name) {
-                return <span className="text-sm text-gray-400">Root</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Root")}
+                  </span>
+                );
               }
               return (
                 <span className="text-sm text-gray-900">
@@ -693,7 +704,11 @@ const NetworkSites: FunctionComponent<
             type: FieldType.Entity,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.currentMonitorStatus) {
-                return <span className="text-sm text-gray-400">No Data</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("No Data")}
+                  </span>
+                );
               }
               return (
                 <MonitorStatusElement
@@ -718,7 +733,9 @@ const NetworkSites: FunctionComponent<
                 item.longitude === null
               ) {
                 return (
-                  <span className="text-sm text-gray-400">Not pinned</span>
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Not pinned")}
+                  </span>
                 );
               }
               return (

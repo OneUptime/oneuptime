@@ -34,6 +34,8 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Every device assigned to this site — same status language as the main
@@ -45,6 +47,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const NetworkSiteDevices: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
@@ -292,7 +295,9 @@ const NetworkSiteDevices: FunctionComponent<
                 return (
                   <span
                     className="text-sm text-gray-400"
-                    title="Interface inventory comes from an SNMP walk, which does not run on a monitor-backed device."
+                    title={translator.translateText(
+                      "Interface inventory comes from an SNMP walk, which does not run on a monitor-backed device.",
+                    )}
                   >
                     —
                   </span>
@@ -314,7 +319,9 @@ const NetworkSiteDevices: FunctionComponent<
                 return (
                   <span
                     className="text-sm text-gray-400"
-                    title="Interfaces are collected by the first successful SNMP walk. This device has not been polled yet."
+                    title={translator.translateText(
+                      "Interfaces are collected by the first successful SNMP walk. This device has not been polled yet.",
+                    )}
                   >
                     —
                   </span>
@@ -342,7 +349,11 @@ const NetworkSiteDevices: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: NetworkDevice): ReactElement => {
               if (!item.lastSeenAt) {
-                return <span className="text-sm text-gray-400">Never</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Never")}
+                  </span>
+                );
               }
 
               const lastSeen: Date = OneUptimeDate.fromString(item.lastSeenAt);
