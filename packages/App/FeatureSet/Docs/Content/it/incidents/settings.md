@@ -20,7 +20,7 @@ Aprite **Incidenti** nella navigazione a sinistra, poi espandete **Impostazioni*
 | **Modelli post-mortem** | Strutture post-mortem riutilizzabili.                                                                                  |
 | **Campi personalizzati**        | Definite campi aggiuntivi che compaiono su ogni incidente.                                                           |
 | **Ruoli incidente**       | Definite i ruoli a cui assegnate chi risponde, per esempio Incident Commander.                       |
-| **Altre impostazioni**        | I prefissi dei numeri di incidente e di episodio.                                           |
+| **Prefisso del numero**        | I prefissi dei numeri di incidente e di episodio.                                           |
 
 **Stato incidente** e **Gravità incidente** sono trattati a fondo in [Stati e gravità degli incidenti](/docs/incidents/states-and-severities) — il resto di questa pagina riparte dai **Modelli di incidenti**.
 
@@ -105,12 +105,14 @@ I ruoli sono solo definizioni. Le persone le assegnate incidente per incidente �
 
 Ogni incidente riceve un numero. Per impostazione predefinita viene reso come `#42`. Se il vostro team dice "INC-42" a voce, fatelo dire anche al prodotto.
 
-Andate su **Incidenti → Impostazioni → Altre impostazioni** (`/dashboard/{projectId}/incidents/settings/more`). La scheda è **Prefisso del numero** e contiene due campi del progetto:
+Andate su **Incidenti → Impostazioni → Prefisso del numero** (`/dashboard/{projectId}/incidents/settings/number-prefix`). La scheda **Prefisso del numero** mostra, per gli incidenti e per gli episodi di incidente, il prefisso e un esempio del numero che produce: `INC-` con **Esempio:** `INC-42`; senza prefisso mostra **Nessun prefisso** e `#42`. **Aggiorna** apre **Modifica prefisso del numero** con due campi:
 
-- **Prefisso del numero dell'incidente** — fino a 20 caratteri, segnaposto `INC-`. Impostatelo e l'incidente `#42` compare come `INC-42`.
-- **Prefisso del numero dell'episodio dell'incidente** — la stessa idea per i numeri degli episodi, segnaposto `IE-`.
+- **Prefisso del numero dell'incidente** — segnaposto `INC-`.
+- **Prefisso del numero dell'episodio dell'incidente** — segnaposto `IE-`.
 
-Lasciate vuoto uno dei due per mantenere il prefisso predefinito `#`; il campo non impostato mostra `# (default)`. Salvate con **Aggiorna**. Il valore con prefisso viene memorizzato sull'incidente come `incidentNumberWithPrefix`, ed è quello che l'elenco degli incidenti e l'intestazione dell'incidente mostrano.
+Sotto ogni campo, **Anteprima:** mostra il numero mentre scrivete. Lasciate un campo vuoto per tornare a `#`. Un prefisso ha al massimo 20 caratteri, usa lettere, cifre e `-` `_` `.` `/` `:` `#` (niente spazi) e non termina con una cifra, che si attaccherebbe al numero: `SEV1` darebbe `SEV142`. La finestra dice cosa non va prima del salvataggio, e l'API rifiuta gli stessi prefissi.
+
+Un nuovo prefisso vale solo per gli incidenti e gli episodi creati dopo. Quelli esistenti mantengono il loro numero e il contatore prosegue. Il valore con prefisso viene memorizzato sull'incidente come `incidentNumberWithPrefix`, ed è quello che l'elenco degli incidenti e l'intestazione dell'incidente mostrano. Avvisi e manutenzione programmata hanno la stessa pagina: **Avvisi → Impostazioni → Prefisso del numero** e **Manutenzione programmata → Impostazioni → Prefisso del numero**. Il vecchio indirizzo di **Altre impostazioni** (`…/settings/more`) porta ancora lì.
 
 ## Le regole che scattano alla creazione di un incidente
 

@@ -20,7 +20,7 @@ Den här sidan är referensen för den konfigurationen — vad varje sida inneh�
 | **Postmortem-mallar**    | Återanvändbara strukturer för efteranalyser.                                                                |
 | **Anpassade fält**       | Definiera extrafält som visas på varje incident.                                                            |
 | **Incidentroller**       | Definiera de roller du tilldelar svarspersoner, till exempel Incident Commander.                            |
-| **Fler inställningar**   | Nummerprefixen för incidenter och incidentepisoder.                                                         |
+| **Nummerprefix**   | Nummerprefixen för incidenter och incidentepisoder.                                                         |
 
 **Incidentstatus** och **Incidentallvar** behandlas på djupet i [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities) — resten av den här sidan tar vid från **Incidentmallar**.
 
@@ -105,12 +105,14 @@ Rollerna är bara definitioner. Du tilldelar personer till dem per incident — 
 
 Varje incident får ett nummer. Som standard renderas det som `#42`. Säger ert team "INC-42" högt är det värt att få produkten att säga det också.
 
-Gå till **Incidenter → Inställningar → Fler inställningar** (`/dashboard/{projectId}/incidents/settings/more`). Kortet heter **Nummerprefix** och rymmer två fält på projektet:
+Gå till **Incidenter → Inställningar → Nummerprefix** (`/dashboard/{projectId}/incidents/settings/number-prefix`). Kortet **Nummerprefix** visar för incidenter och för incidentepisoder prefixet och ett exempel på numret det ger: `INC-` med **Exempel:** `INC-42`; utan prefix står det **Inget prefix** och `#42`. **Uppdatera** öppnar **Redigera nummerprefix** med två fält:
 
-- **Prefix för incidentnummer** — upp till 20 tecken, platshållare `INC-`. Sätt det så visas incident `#42` som `INC-42`.
-- **Nummerprefix för incidentepisoder** — samma sak för nummer på incidentepisoder, platshållare `IE-`.
+- **Prefix för incidentnummer** — platshållare `INC-`.
+- **Nummerprefix för incidentepisoder** — platshållare `IE-`.
 
-Lämna endera tomt för att behålla standardprefixet `#`; det osatta fältet visas som `# (default)`. Spara med **Uppdatera**. Det prefixade värdet lagras på incidenten som `incidentNumberWithPrefix`, och det är det som incidentlistan och incidentens rubrik renderar.
+Under varje fält visar **Förhandsvisning:** numret medan du skriver. Lämna ett fält tomt för att gå tillbaka till `#`. Ett prefix har högst 20 tecken, består av bokstäver, siffror och `-` `_` `.` `/` `:` `#` (inga mellanslag) och slutar inte på en siffra, som annars flyter ihop med numret: `SEV1` skulle ge `SEV142`. Dialogen säger vad som är fel innan du sparar, och API:et nekar samma prefix.
+
+Ett nytt prefix gäller bara incidenter och episoder som skapas efteråt. Befintliga behåller sina nummer, och räknaren fortsätter. Det prefixade värdet lagras på incidenten som `incidentNumberWithPrefix`, och det är det som incidentlistan och incidentens rubrik renderar. Varningar och schemalagt underhåll har samma sida: **Varningar → Inställningar → Nummerprefix** och **Schemalagt underhåll → Inställningar → Nummerprefix**. Den gamla adressen till **Fler inställningar** (`…/settings/more`) leder fortfarande dit.
 
 ## Regler som körs när en incident skapas
 

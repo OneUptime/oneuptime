@@ -116,7 +116,7 @@ Etterpå kan du skrive en etteranalyse og eventuelt publisere den på statusside
 | **Episoder**      | Hendelsesepisoder, en egen grupperingsfunksjon med sine egne sider.                                                                                                        |
 | **Arbeidsområde** | **Slack**- og **Microsoft Teams**-tilkoblinger for hendelser.                                                                                                              |
 | **Regler**        | Regelmotorene: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Regler for automatisk utbedring**, **Personvernregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
-| **Innstillinger** | **KI**, **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Egendefinerte felt**, **Hendelsesroller**, **Flere innstillinger**. |
+| **Innstillinger** | **KI**, **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Egendefinerte felt**, **Hendelsesroller**, **Nummerprefiks**. |
 
 **Regler** og **Innstillinger** er sammenslått som standard — utvid dem for å finne sidene resten av denne dokumentasjonen viser til. Hendelseskonfigurasjon ligger ikke under Prosjektinnstillinger; alt sammen bor her.
 

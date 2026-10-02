@@ -136,7 +136,7 @@ Verwante endpoints zijn `/api/incident-state`, `/api/incident-severity` en `/api
 
 Elk incident krijgt een oplopend nummer uit een teller per project, dat de server bij het aanmaken toekent. Twee kolommen houden het vast: `incidentNumber` (het kale getal) en `incidentNumberWithPrefix` (wat je daadwerkelijk ziet). Zonder ingesteld voorvoegsel is de weergavewaarde `#42`.
 
-Om dat te wijzigen ga je naar **Incidenten → Instellingen → Meer instellingen**. De kaart **Nummervoorvoegsel** heeft een veld **Voorvoegsel incidentnummer** (maximaal 20 tekens, placeholder `INC-`) — stel het in en hetzelfde incident verschijnt als `INC-42`. Laat het leeg om de standaard `#` te houden. Op dezelfde kaart staat ook **Nummervoorvoegsel voor incident-episode** voor de nummering van episoden.
+Om dat te wijzigen ga je naar **Incidenten → Instellingen → Nummervoorvoegsel** en klik je op **Bijwerken**. Het veld **Voorvoegsel incidentnummer** toont het nummer terwijl je typt: met `INC-` wordt het `INC-42`. Laat het leeg om de standaard `#` te houden. Een nieuw voorvoegsel geldt voor incidenten die na het opslaan worden gemeld; bestaande incidenten houden hun nummer. Hetzelfde dialoogvenster bevat ook **Nummervoorvoegsel voor incident-episode** voor de nummering van episoden.
 
 Het nummer staat in de eerste kolom van de incidentenlijst, linkt naar het incident, en verschijnt als **Incidentnummer** op het **Overzicht** van het incident.
 

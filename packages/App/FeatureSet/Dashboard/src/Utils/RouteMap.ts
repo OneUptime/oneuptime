@@ -904,7 +904,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
-  [PageMap.INCIDENTS_SETTINGS_MORE]: "settings/more",
+  [PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]: "settings/number-prefix",
   [PageMap.INCIDENTS_SETTINGS_AI]: "settings/ai",
 
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
@@ -973,7 +973,7 @@ export const AlertsRoutePath: Dictionary<string> = {
     "settings/auto-remediation-rules",
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.ALERTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
-  [PageMap.ALERTS_SETTINGS_MORE]: "settings/more",
+  [PageMap.ALERTS_SETTINGS_NUMBER_PREFIX]: "settings/number-prefix",
   [PageMap.ALERTS_SETTINGS_AI]: "settings/ai",
 
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
@@ -1025,7 +1025,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
     "settings/reminder-rules",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS]:
     "settings/measurements",
-  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE]: "settings/more",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX]:
+    "settings/number-prefix",
 
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -1696,9 +1697,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.ALERTS_SETTINGS_MORE]: new Route(
+  [PageMap.ALERTS_SETTINGS_NUMBER_PREFIX]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
-      AlertsRoutePath[PageMap.ALERTS_SETTINGS_MORE]
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_NUMBER_PREFIX]
     }`,
   ),
 
@@ -2266,9 +2267,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.INCIDENTS_SETTINGS_MORE]: new Route(
+  [PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_MORE]
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]
     }`,
   ),
 
@@ -2528,10 +2529,10 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE]: new Route(
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX]: new Route(
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
-        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX
       ]
     }`,
   ),

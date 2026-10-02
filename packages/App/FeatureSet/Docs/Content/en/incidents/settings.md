@@ -23,7 +23,7 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 | **Incident Roles**       | Define the roles you assign responders to, such as Incident Commander.                       |
 | **Measurements**         | Define named durations — time to detect, time to mitigate — computed for every incident.     |
 | **Linked Alerts**        | Choose whether the alerts linked to an incident are acknowledged and resolved along with it. Both are on for new projects. |
-| **More Settings**        | The incident and incident episode number prefixes.                                           |
+| **Number Prefix**        | The text in front of incident and episode numbers, such as `INC-` in `INC-42`.               |
 
 **Incident State** and **Incident Severity** are covered in depth on [Incident States & Severities](/docs/incidents/states-and-severities) — the rest of this page picks up from **Incident Templates**. **Forms** have a page of their own: [Incident Forms](/docs/incidents/forms).
 
@@ -316,14 +316,28 @@ Roles are definitions only. You assign people to them per incident — the decla
 
 ## Number prefixes
 
-Every incident gets a number. By default it renders as `#42`. If your team says "INC-42" out loud, make the product say it too.
+Every incident gets a number from a per-project counter. Without a prefix it shows as `#42`; with one it shows as `INC-42`. If your team says "INC-42" out loud, make the product say it too. New projects start with `INC-` for incidents and `IE-` for incident episodes.
 
-Go to **Incidents → Settings → More Settings** (`/dashboard/{projectId}/incidents/settings/more`). The card is **Number Prefix** and holds two fields on the project:
+Go to **Incidents → Settings → Number Prefix** (`/dashboard/{projectId}/incidents/settings/number-prefix`). The **Number Prefix** card has a row for **Incidents** and one for **Incident Episodes**. Each shows its prefix and an example of the number it makes: `INC-`, then **Example:** `INC-42`. A project without a prefix shows **No prefix** and `#42`.
 
-- **Incident Number Prefix** — up to 20 characters, placeholder `INC-`. Set it and incident `#42` displays as `INC-42`.
-- **Incident Episode Number Prefix** — the same idea for incident episode numbers, placeholder `IE-`.
+**Update** opens **Edit Number Prefix**, with two fields:
 
-Leave either empty to keep the default `#` prefix; the unset field displays `# (default)`. Save with **Update**. The prefixed value is stored on the incident as `incidentNumberWithPrefix`, which is what the incidents list and the incident header render.
+- **Incident Number Prefix** — placeholder `INC-`.
+- **Incident Episode Number Prefix** — placeholder `IE-`.
+
+Under each field, **Preview:** shows the number as you type, so you see `OPS-42` before you save `OPS-`. Leave a field empty to go back to `#`. A prefix:
+
+- has up to 20 characters;
+- uses letters (of any alphabet), digits and `-` `_` `.` `/` `:` `#` — no spaces, and nothing Markdown, Slack or HTML would read as formatting;
+- does not end with a digit, which would run into the number: `SEV1` would make incident 42 `SEV142`.
+
+The dialog says what is wrong before you save, and the API refuses the same prefixes. Spaces around a prefix are trimmed off.
+
+**What a new prefix changes.** Only incidents and episodes created after you save get the new prefix. Each existing one keeps the number it was given: the prefixed value is stored on the incident as `incidentNumberWithPrefix`, which is what the incidents list, the incident header, notifications and the incident's Slack and Microsoft Teams channel names use. The counter carries on: if the last incident was `INC-41` and you switch to `OPS-`, the next one is `OPS-42`.
+
+Project Owners, Project Admins and anyone with **Edit Project** can change the prefixes. Everyone else sees them with the **Update** button locked.
+
+Alerts and scheduled maintenance events have the same page: **Alerts → Settings → Number Prefix** for alert and alert episode numbers (`ALT-` and `AE-` for new projects), and **Scheduled Maintenance → Settings → Number Prefix** for event numbers (`SM-`). In all three, the old **More Settings** address (`…/settings/more`) still works and opens **Number Prefix**.
 
 ## Linked alert switches
 

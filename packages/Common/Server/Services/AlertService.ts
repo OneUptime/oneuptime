@@ -1,5 +1,6 @@
 import DatabaseConfig from "../DatabaseConfig";
 import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
+import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import AlertMeasurementService from "./AlertMeasurementService";
 import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
@@ -803,9 +804,10 @@ export class Service extends DatabaseService<Model> {
     } = await ProjectService.incrementAndGetAlertCounter(projectId);
 
     createBy.data.alertNumber = alertCounterResult.counter;
-    createBy.data.alertNumberWithPrefix = alertCounterResult.prefix
-      ? `${alertCounterResult.prefix}${alertCounterResult.counter}`
-      : `#${alertCounterResult.counter}`;
+    createBy.data.alertNumberWithPrefix = NumberPrefixUtil.formatNumber(
+      alertCounterResult.prefix,
+      alertCounterResult.counter,
+    );
 
     if (
       (createBy.data.createdByUserId ||
