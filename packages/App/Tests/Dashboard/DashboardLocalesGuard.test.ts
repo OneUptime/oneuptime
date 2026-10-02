@@ -1,8 +1,16 @@
 import {
+  listSourceFiles,
+  SOURCE_ROOTS,
+  SourceRoot,
+  toRepositoryPath,
+} from "../../FeatureSet/Dashboard/scripts/i18n/ExtractStrings";
+import {
   ENGLISH,
   getLocalePath,
+  getValueAt,
   LocaleTree,
   parseLocaleText,
+  REPOSITORY_ROOT,
   TRACKING_DIRECTORY,
   TRANSLATED_LOCALES,
 } from "../../FeatureSet/Dashboard/scripts/i18n/LocaleFiles";
@@ -198,6 +206,71 @@ describe("Dashboard locales", () => {
       }).toEqual({ locale: code, lostTranslations: 0 });
     },
   );
+});
+
+/*
+ * A nested key read with t("eventItem.view") has to be in en.json: i18next
+ * answers a nested key it cannot find with the key itself, so the reader sees
+ * "eventItem.view". npm run i18n:extract reports such a key ("Undefined
+ * nested key"); this keeps one from reaching master, as EventItem's did.
+ *
+ * It reads the files the extractor reads for the Dashboard's UI, but by text
+ * rather than by syntax tree, which takes seconds instead of most of a
+ * minute: a t( call whose first argument is a dotted path literal.
+ */
+describe("the nested keys the Dashboard's code reads", () => {
+  const NESTED_KEY_CALL: RegExp =
+    /\bt\(\s*(["'`])([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)\1/g;
+
+  interface NestedKeyRead {
+    file: string;
+    key: string;
+  }
+
+  const reads: Array<NestedKeyRead> = SOURCE_ROOTS.filter(
+    (root: SourceRoot): boolean => {
+      return root.kind === "ui";
+    },
+  ).flatMap((root: SourceRoot): Array<NestedKeyRead> => {
+    return listSourceFiles(path.join(REPOSITORY_ROOT, root.directory)).flatMap(
+      (file: string): Array<NestedKeyRead> => {
+        return Array.from(
+          fs.readFileSync(file, "utf8").matchAll(NESTED_KEY_CALL),
+        ).map((match: RegExpMatchArray): NestedKeyRead => {
+          return { file: toRepositoryPath(file), key: match[2] as string };
+        });
+      },
+    );
+  });
+
+  test("the scan finds the nested keys components read", () => {
+    const keys: Set<string> = new Set<string>(
+      reads.map((read: NestedKeyRead): string => {
+        return read.key;
+      }),
+    );
+
+    expect(keys.size).toBeGreaterThan(100);
+    expect(Array.from(keys)).toEqual(
+      expect.arrayContaining([
+        "navbar.items.formsTitle",
+        "eventItem.affectedResources",
+        "eventItem.view",
+      ]),
+    );
+  });
+
+  test("every one is a string in en.json", () => {
+    expect(
+      reads
+        .filter((read: NestedKeyRead): boolean => {
+          return typeof getValueAt(english, read.key.split(".")) !== "string";
+        })
+        .map((read: NestedKeyRead): string => {
+          return `${read.file}: ${read.key}`;
+        }),
+    ).toEqual([]);
+  });
 });
 
 describe("the same-as-English lists", () => {
