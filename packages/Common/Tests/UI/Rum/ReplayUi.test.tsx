@@ -4,6 +4,10 @@ import * as React from "react";
 import { describe, expect, it, jest } from "@jest/globals";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
+  TOGGLE_TRACK_OFF_CLASS,
+  TOGGLE_TRACK_ON_CLASS,
+} from "../../../UI/Components/Toggle/Toggle";
+import {
   REPLAY_CONTROL_HEIGHT_CLASS,
   ReplayButtonGroup,
   ReplayClock,
@@ -686,6 +690,98 @@ describe("ReplaySwitch", () => {
     expect(screen.getByTestId("skip-idle").className).toContain(
       REPLAY_CONTROL_HEIGHT_CLASS,
     );
+  });
+
+  /*
+   * The one switch in the product that Common/UI's Toggle does not draw, so
+   * it is held to the Toggle's own classes rather than to a colour: whatever
+   * the product's switch looks like, this one looks like it at its scale -
+   * the Toggle's off and on fills, and the same white knob sliding across.
+   */
+  it("is drawn the way the product's Toggle is, at the chrome's scale", () => {
+    const { rerender } = render(
+      <ReplaySwitch
+        dataTestId="skip-idle"
+        label="Skip idle"
+        isChecked={false}
+        onChange={noop}
+      />,
+    );
+
+    const track: () => HTMLElement = (): HTMLElement => {
+      return screen
+        .getByTestId("skip-idle")
+        .querySelector("[data-ou-toggle-track]") as HTMLElement;
+    };
+    const knob: () => HTMLElement = (): HTMLElement => {
+      return track().querySelector("[data-ou-toggle-knob]") as HTMLElement;
+    };
+
+    expect(track()).toHaveAttribute("aria-hidden", "true");
+    expect(track()).toHaveClass(TOGGLE_TRACK_OFF_CLASS, "rounded-full");
+    expect(track()).not.toHaveClass(TOGGLE_TRACK_ON_CLASS);
+    expect(knob()).toHaveClass(
+      "bg-white",
+      "shadow",
+      "rounded-full",
+      "translate-x-0.5",
+    );
+
+    rerender(
+      <ReplaySwitch
+        dataTestId="skip-idle"
+        label="Skip idle"
+        isChecked={true}
+        onChange={noop}
+      />,
+    );
+
+    expect(track()).toHaveClass(TOGGLE_TRACK_ON_CLASS);
+    expect(track()).not.toHaveClass(TOGGLE_TRACK_OFF_CLASS);
+    expect(knob()).toHaveClass("bg-white", "shadow", "translate-x-3.5");
+    expect(knob()).not.toHaveClass("translate-x-0.5");
+
+    // Nothing of the outlined design: no outline, no dark dot.
+    expect(track().className).not.toContain("border-");
+    expect(knob()).not.toHaveClass("bg-gray-500");
+  });
+
+  /*
+   * A 28 x 16 track and a 12px knob: 2px in from the left when off, and
+   * 28 - 12 - 2 = 14px across when on, 2px in from the right.
+   */
+  it("slides its knob from one end of the track to the other", () => {
+    render(
+      <ReplaySwitch
+        dataTestId="skip-idle"
+        label="Skip idle"
+        isChecked={false}
+        onChange={noop}
+      />,
+    );
+
+    const PX: Record<string, number> = {
+      "w-7": 28,
+      "h-4": 16,
+      "w-3": 12,
+      "h-3": 12,
+      "translate-x-0.5": 2,
+      "translate-x-3.5": 14,
+    };
+    const track: HTMLElement = screen
+      .getByTestId("skip-idle")
+      .querySelector("[data-ou-toggle-track]") as HTMLElement;
+    const knob: HTMLElement = track.querySelector(
+      "[data-ou-toggle-knob]",
+    ) as HTMLElement;
+
+    expect(track).toHaveClass("w-7", "h-4", "items-center");
+    expect(knob).toHaveClass("w-3", "h-3");
+
+    const inset: number = PX["translate-x-0.5"]!;
+
+    expect(PX["translate-x-3.5"]! + PX["w-3"]! + inset).toBe(PX["w-7"]);
+    expect(PX["h-4"]! - PX["h-3"]!).toBe(2 * inset);
   });
 });
 

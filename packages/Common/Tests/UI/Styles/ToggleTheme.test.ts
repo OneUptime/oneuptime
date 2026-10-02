@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
-  TOGGLE_CHECK_CLASS,
+  TOGGLE_KNOB_BASE_CLASS,
   TOGGLE_KNOB_OFF_CLASS,
   TOGGLE_KNOB_ON_CLASS,
   TOGGLE_TRACK_BASE_CLASS,
@@ -16,19 +16,30 @@ import {
 import { declaredValue, THEME_RULES, StyleRule } from "./ThemeStylesheet";
 
 /*
- * The switch, held to WCAG 1.4.11 in both themes.
+ * The switch's colours, in both themes.
  *
- * What the maintainer reported: "a small, very pale grey switch in the off
- * state that barely shows against the white background". It was a gray-200
- * track (1.2:1 on white) with a white knob (1.2:1 on the track). Non-text
- * contrast asks 3:1 for what identifies a control and its state: here the
- * track's edge against the page, and the knob against the track.
+ * The maintainer, looking at the outlined switch (a white pill inside a
+ * gray-500 outline with a dark dot for a knob): "make it just like how the
+ * rest of oneuptime looks like". It is the classic filled switch again: a
+ * grey track and a white knob when off, the brand indigo when on.
+ *
+ * A light grey track cannot reach WCAG 1.4.11's 3:1 against a white form -
+ * only an outline or a dark fill can, and those are what was turned down.
+ * So each theme carries the state with what does reach it:
+ *
+ *   Light - the track's fill. On is indigo-600, 3:1 and more against the
+ *           page, the knob and the off grey: on and off differ in
+ *           lightness, never by hue alone. Off is gray-300, the grey of
+ *           every input's edge, a step darker than the gray-200 pill that
+ *           disappeared on a white modal.
+ *   Dark  - the knob's side. The near-white knob is 3:1 and more against
+ *           both tracks, as is the on track against the card.
  *
  * The light colours are Tailwind's palette, looked up from the classes the
- * component exports; the dark ones are read from the [data-ou-toggle-*] rules
- * in Theme.css. A class added to the switch without an entry in either table
- * fails here first, which is the point: someone has to say what it is on a
- * dark card before it ships.
+ * component exports; the dark ones are read from the [data-ou-toggle-*]
+ * rules in Theme.css. A class added to the switch without an entry in either
+ * table fails here first, which is the point: someone has to say what it is
+ * on a dark card before it ships.
  */
 
 // Tailwind v3's palette, for the classes the switch is drawn with.
@@ -36,8 +47,10 @@ const LIGHT_PALETTE: Record<string, string> = {
   white: "#ffffff",
   "gray-50": "#f9fafb",
   "gray-200": "#e5e7eb",
+  "gray-300": "#d1d5db",
+  "gray-400": "#9ca3af",
   "gray-500": "#6b7280",
-  "gray-700": "#374151",
+  "indigo-500": "#6366f1",
   "indigo-600": "#4f46e5",
   "indigo-700": "#4338ca",
 };
@@ -56,6 +69,13 @@ function themeVariable(name: string): string {
   }
 
   return value;
+}
+
+// A dark value as a colour: var(--ou-border-default) -> #475569.
+function resolveDark(value: string): string {
+  const variable: RegExpMatchArray | null = value.match(/^var\((--[\w-]+)\)$/);
+
+  return variable ? themeVariable(variable[1]!) : value;
 }
 
 const DARK_SURFACES: Record<string, string> = {
@@ -126,17 +146,17 @@ function compareSpecificity(
   return 0;
 }
 
+// Any border class, plain or on hover.
+const BORDER_CLASS: RegExp = /^(?:hover:)?border-/;
+
 function tokens(classList: string): Array<string> {
   return classList.split(/\s+/).filter((token: string): boolean => {
     return token.length > 0;
   });
 }
 
-/*
- * The colour a class list gives one property, from the light palette:
- * ("border-gray-500 bg-white", "border") -> #6b7280.
- */
-function lightColour(classList: string, utility: string): string {
+// The one plain (no variant) class of a utility: ("bg-gray-300", "bg").
+function lightToken(classList: string, utility: string): string {
   const prefix: string = `${utility}-`;
   const token: string | undefined = tokens(classList).find(
     (candidate: string): boolean => {
@@ -148,12 +168,44 @@ function lightColour(classList: string, utility: string): string {
     throw new Error(`No ${utility}- colour in "${classList}"`);
   }
 
-  const colour: string | undefined = LIGHT_PALETTE[token.slice(prefix.length)];
+  return token;
+}
+
+/*
+ * The colour a class list gives one property, from the light palette:
+ * ("bg-gray-300", "bg") -> #d1d5db.
+ */
+function lightColour(classList: string, utility: string): string {
+  const token: string = lightToken(classList, utility);
+  const colour: string | undefined =
+    LIGHT_PALETTE[token.slice(utility.length + 1)];
 
   if (!colour) {
     throw new Error(
       `${token} has no entry in this suite's palette: add it, with its hex, and check it against the surfaces below`,
     );
+  }
+
+  return colour;
+}
+
+// The colour a hover class gives: "hover:bg-indigo-700" -> #4338ca.
+function lightHoverColour(hoverClass: string): string {
+  const token: string | undefined = tokens(hoverClass).find(
+    (candidate: string): boolean => {
+      return candidate.startsWith("hover:bg-");
+    },
+  );
+
+  if (!token) {
+    throw new Error(`No hover:bg- colour in "${hoverClass}"`);
+  }
+
+  const colour: string | undefined =
+    LIGHT_PALETTE[token.slice("hover:bg-".length)];
+
+  if (!colour) {
+    throw new Error(`${token} has no entry in this suite's palette`);
   }
 
   return colour;
@@ -167,130 +219,205 @@ function darkDeclaration(selector: string, property: string): string {
     throw new Error(`Theme.css has no "${property}" for ${selector}`);
   }
 
-  return value.replace(/\s*!important$/, "");
+  return resolveDark(value.replace(/\s*!important$/, ""));
 }
 
+/*
+ * The dark rules are looked up by the classes the component exports, so a
+ * class changed in Toggle.tsx without its rule in Theme.css fails here.
+ */
+const OFF_TRACK_SELECTOR: string = `html.dark [data-ou-toggle-track].${lightToken(
+  TOGGLE_TRACK_OFF_CLASS,
+  "bg",
+)}`;
+const OFF_HOVER_SELECTOR: string = `html.dark [data-ou-toggle-track][class~="${TOGGLE_TRACK_OFF_HOVER_CLASS}"]:hover`;
+const ON_TRACK_SELECTOR: string = `html.dark [data-ou-toggle-track].${lightToken(
+  TOGGLE_TRACK_ON_CLASS,
+  "bg",
+)}`;
+const ON_HOVER_SELECTOR: string = `html.dark [data-ou-toggle-track][class~="${TOGGLE_TRACK_ON_HOVER_CLASS}"]:hover`;
+const KNOB_SELECTOR: string = `html.dark [data-ou-toggle-knob].${lightToken(
+  TOGGLE_KNOB_BASE_CLASS,
+  "bg",
+)}`;
+
 interface DarkSwitchColours {
-  offOutline: string;
-  offKnob: string;
+  offTrack: string;
+  offTrackHover: string;
   onTrack: string;
-  onTrackBorder: string;
-  onKnob: string;
-  check: string;
+  onTrackHover: string;
+  knob: string;
 }
 
 const DARK: DarkSwitchColours = {
-  offOutline: darkDeclaration(
-    "html.dark [data-ou-toggle-track].border-gray-500",
-    "border-color",
-  ),
-  offKnob: darkDeclaration(
-    "html.dark [data-ou-toggle-knob].bg-gray-500",
-    "background-color",
-  ),
-  onTrack: darkDeclaration(
-    "html.dark [data-ou-toggle-track].bg-indigo-600",
-    "background-color",
-  ),
-  onTrackBorder: darkDeclaration(
-    "html.dark [data-ou-toggle-track].bg-indigo-600",
-    "border-color",
-  ),
-  onKnob: darkDeclaration(
-    "html.dark [data-ou-toggle-knob].bg-white",
-    "background-color",
-  ),
-  check: darkDeclaration(
-    "html.dark [data-ou-toggle-knob] .text-indigo-600",
-    "color",
-  ),
+  offTrack: darkDeclaration(OFF_TRACK_SELECTOR, "background-color"),
+  offTrackHover: darkDeclaration(OFF_HOVER_SELECTOR, "background-color"),
+  onTrack: darkDeclaration(ON_TRACK_SELECTOR, "background-color"),
+  onTrackHover: darkDeclaration(ON_HOVER_SELECTOR, "background-color"),
+  knob: darkDeclaration(KNOB_SELECTOR, "background-color"),
 };
 
+/*
+ * The theme's general rule for a class, the one the switch's rule overrides:
+ * "html.dark .bg-white", or an "html.dark :is(.bg-gray-300, ...)" list, which
+ * ThemeStylesheet splits on its commas.
+ */
+function generalRuleFor(className: string): StyleRule {
+  const rule: StyleRule | undefined = THEME_RULES.find(
+    (candidate: StyleRule): boolean => {
+      const first: string = candidate.selectors[0]!;
+
+      if (first === `html.dark ${className}`) {
+        return true;
+      }
+
+      return (
+        first.startsWith("html.dark :is(") &&
+        candidate.selectors.some((selector: string): boolean => {
+          return (
+            selector.replace(/^html\.dark :is\(/, "").replace(/\)$/, "") ===
+            className
+          );
+        })
+      );
+    },
+  );
+
+  if (!rule) {
+    throw new Error(`Theme.css has no general html.dark rule for ${className}`);
+  }
+
+  return rule;
+}
+
+/*
+ * The one selector of that rule that reaches the class, put back together
+ * when it is an :is() list the parser split: "html.dark :is(.bg-gray-300,
+ * .bg-slate-300)", not the rule's other selectors as well.
+ */
+function generalSelectorFor(className: string): string {
+  const selectors: Array<string> = generalRuleFor(className).selectors;
+
+  if (selectors[0] === `html.dark ${className}`) {
+    return selectors[0];
+  }
+
+  const closing: number = selectors.findIndex((selector: string): boolean => {
+    return selector.endsWith(")");
+  });
+
+  return selectors.slice(0, closing + 1).join(", ");
+}
+
 describe("the switch in the light theme", () => {
-  test("the old off state is what failed: a gray-200 pill and a white knob", () => {
-    const oldTrack: string = LIGHT_PALETTE["gray-200"]!;
-
-    expect(contrast(oldTrack, LIGHT_PALETTE["white"]!)).toBeLessThan(1.5);
-    expect(contrast(LIGHT_PALETTE["white"]!, oldTrack)).toBeLessThan(1.5);
-  });
+  const offTrack: string = lightColour(TOGGLE_TRACK_OFF_CLASS, "bg");
+  const onTrack: string = lightColour(TOGGLE_TRACK_ON_CLASS, "bg");
+  const knob: string = lightColour(TOGGLE_KNOB_BASE_CLASS, "bg");
 
   test.each(Object.entries(LIGHT_SURFACES))(
-    "off: the outline stands out on %s",
+    "on: the indigo track stands out on %s",
     (_name: string, surface: string) => {
-      expect(
-        contrast(lightColour(TOGGLE_TRACK_OFF_CLASS, "border"), surface),
-      ).toBeGreaterThanOrEqual(3);
+      expect(contrast(onTrack, surface)).toBeGreaterThanOrEqual(3);
     },
   );
 
-  test("off: the knob stands out on its track", () => {
-    expect(
-      contrast(
-        lightColour(TOGGLE_KNOB_OFF_CLASS, "bg"),
-        lightColour(TOGGLE_TRACK_OFF_CLASS, "bg"),
-      ),
-    ).toBeGreaterThanOrEqual(3);
+  test("on: the white knob stands out on the indigo track", () => {
+    expect(contrast(knob, onTrack)).toBeGreaterThanOrEqual(3);
   });
 
+  // So the state never rests on telling indigo from grey.
+  test("on and off differ in lightness, not by hue alone", () => {
+    expect(contrast(onTrack, offTrack)).toBeGreaterThanOrEqual(3);
+    expect(luminance(onTrack)).toBeLessThan(luminance(offTrack));
+  });
+
+  /*
+   * The first design's gray-200 pill and white knob were 1.2:1 on a white
+   * form, and the maintainer's screenshot of it showed a switch that all but
+   * disappeared. Off is a step darker, the gray-300 of an input's edge.
+   */
   test.each(Object.entries(LIGHT_SURFACES))(
-    "on: the filled track stands out on %s",
+    "off: the grey track shows on %s more than the old gray-200 pill did",
     (_name: string, surface: string) => {
-      expect(
-        contrast(lightColour(TOGGLE_TRACK_ON_CLASS, "bg"), surface),
-      ).toBeGreaterThanOrEqual(3);
+      const oldTrack: string = LIGHT_PALETTE["gray-200"]!;
+
+      expect(contrast(oldTrack, surface)).toBeLessThan(1.25);
+      expect(contrast(offTrack, surface)).toBeGreaterThan(
+        contrast(oldTrack, surface),
+      );
+      expect(contrast(offTrack, surface)).toBeGreaterThanOrEqual(
+        contrast(LIGHT_PALETTE["gray-300"]!, surface),
+      );
     },
   );
 
-  test("on: the knob stands out on the track, and the tick on the knob", () => {
-    const track: string = lightColour(TOGGLE_TRACK_ON_CLASS, "bg");
-    const knob: string = lightColour(TOGGLE_KNOB_ON_CLASS, "bg");
-
-    expect(contrast(knob, track)).toBeGreaterThanOrEqual(3);
-    expect(
-      contrast(lightColour(TOGGLE_CHECK_CLASS, "text"), knob),
-    ).toBeGreaterThanOrEqual(3);
-  });
-
-  test("on: the outline is the fill, so the track is one solid shape", () => {
-    expect(lightColour(TOGGLE_TRACK_ON_CLASS, "border")).toBe(
-      lightColour(TOGGLE_TRACK_ON_CLASS, "bg"),
+  test("the knob is white in both states, with a shadow to set it off the grey", () => {
+    expect(tokens(TOGGLE_KNOB_BASE_CLASS)).toEqual(
+      expect.arrayContaining(["bg-white", "shadow", "rounded-full"]),
     );
+    expect(knob).toBe(LIGHT_PALETTE["white"]);
+
+    // Only the side changes with the state, never the colour.
+    for (const sideClass of [TOGGLE_KNOB_OFF_CLASS, TOGGLE_KNOB_ON_CLASS]) {
+      expect(
+        tokens(sideClass).filter((token: string): boolean => {
+          return !token.startsWith("translate-x-");
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("the track has no outline: its border is clear, the fill is the colour", () => {
+    expect(tokens(TOGGLE_TRACK_BASE_CLASS)).toEqual(
+      expect.arrayContaining(["border-2", "border-transparent"]),
+    );
+
+    for (const classList of [
+      TOGGLE_TRACK_OFF_CLASS,
+      TOGGLE_TRACK_ON_CLASS,
+      TOGGLE_TRACK_OFF_HOVER_CLASS,
+      TOGGLE_TRACK_ON_HOVER_CLASS,
+    ]) {
+      expect({
+        classList,
+        borderColours: tokens(classList).filter((token: string): boolean => {
+          return BORDER_CLASS.test(token);
+        }),
+      }).toEqual({ classList, borderColours: [] });
+    }
   });
 
   test("hover deepens each state rather than fading it", () => {
-    const offHover: string =
-      LIGHT_PALETTE[
-        tokens(TOGGLE_TRACK_OFF_HOVER_CLASS)[0]!.replace("hover:border-", "")
-      ]!;
-    const onHover: string =
-      LIGHT_PALETTE[
-        tokens(TOGGLE_TRACK_ON_HOVER_CLASS)
-          .find((token: string): boolean => {
-            return token.startsWith("hover:bg-");
-          })!
-          .replace("hover:bg-", "")
-      ]!;
+    const white: string = LIGHT_PALETTE["white"]!;
 
-    expect(contrast(offHover, LIGHT_PALETTE["white"]!)).toBeGreaterThan(
-      contrast(lightColour(TOGGLE_TRACK_OFF_CLASS, "border"), "#ffffff"),
-    );
-    expect(contrast(onHover, LIGHT_PALETTE["white"]!)).toBeGreaterThan(
-      contrast(lightColour(TOGGLE_TRACK_ON_CLASS, "bg"), "#ffffff"),
-    );
-  });
-
-  test("the keyboard focus ring is the brand indigo, offset from the track", () => {
-    expect(tokens(TOGGLE_TRACK_BASE_CLASS)).toEqual(
-      expect.arrayContaining([
-        "focus-visible:ring-2",
-        "focus-visible:ring-indigo-600",
-        "focus-visible:ring-offset-2",
-      ]),
-    );
     expect(
-      contrast(LIGHT_PALETTE["indigo-600"]!, LIGHT_PALETTE["white"]!),
+      contrast(lightHoverColour(TOGGLE_TRACK_OFF_HOVER_CLASS), white),
+    ).toBeGreaterThan(contrast(offTrack, white));
+    expect(
+      contrast(lightHoverColour(TOGGLE_TRACK_ON_HOVER_CLASS), white),
+    ).toBeGreaterThan(contrast(onTrack, white));
+    // The knob still stands out on the deeper indigo.
+    expect(
+      contrast(knob, lightHoverColour(TOGGLE_TRACK_ON_HOVER_CLASS)),
     ).toBeGreaterThanOrEqual(3);
   });
+
+  test.each(Object.entries(LIGHT_SURFACES))(
+    "the keyboard focus ring is the buttons' indigo-500, offset from the track, and shows on %s",
+    (_name: string, surface: string) => {
+      expect(tokens(TOGGLE_TRACK_BASE_CLASS)).toEqual(
+        expect.arrayContaining([
+          "focus:outline-none",
+          "focus-visible:ring-2",
+          "focus-visible:ring-indigo-500",
+          "focus-visible:ring-offset-2",
+        ]),
+      );
+      expect(
+        contrast(LIGHT_PALETTE["indigo-500"]!, surface),
+      ).toBeGreaterThanOrEqual(3);
+    },
+  );
 
   test("disabled is dimmed and refuses the pointer; enabled invites it", () => {
     expect(tokens(TOGGLE_TRACK_DISABLED_CLASS)).toEqual(
@@ -302,107 +429,115 @@ describe("the switch in the light theme", () => {
 
 describe("the switch in the dark theme", () => {
   test.each(Object.entries(DARK_SURFACES))(
-    "off: the outline stands out on %s",
-    (_name: string, surface: string) => {
-      expect(contrast(DARK.offOutline, surface)).toBeGreaterThanOrEqual(3);
-    },
-  );
-
-  // The off track is .bg-white, which the dark theme makes the card itself.
-  test.each(Object.entries(DARK_SURFACES))(
-    "off: the knob stands out on the track, drawn on %s",
-    (_name: string, surface: string) => {
-      expect(contrast(DARK.offKnob, surface)).toBeGreaterThanOrEqual(3);
-    },
-  );
-
-  test.each(Object.entries(DARK_SURFACES))(
-    "on: the filled track stands out on %s",
+    "on: the indigo track stands out on %s",
     (_name: string, surface: string) => {
       expect(contrast(DARK.onTrack, surface)).toBeGreaterThanOrEqual(3);
     },
   );
 
-  test("on: the knob stands out on the track, and the tick on the knob", () => {
-    expect(contrast(DARK.onKnob, DARK.onTrack)).toBeGreaterThanOrEqual(3);
-    expect(contrast(DARK.check, DARK.onKnob)).toBeGreaterThanOrEqual(3);
+  test("the knob stands out on both tracks, so its side reads in either state", () => {
+    expect(contrast(DARK.knob, DARK.onTrack)).toBeGreaterThanOrEqual(3);
+    expect(contrast(DARK.knob, DARK.offTrack)).toBeGreaterThanOrEqual(3);
   });
 
-  test("on: the outline is the fill here too", () => {
-    expect(DARK.onTrackBorder).toBe(DARK.onTrack);
+  test.each(Object.entries(DARK_SURFACES))(
+    "off: the track is a visible step lighter than %s",
+    (_name: string, surface: string) => {
+      expect(luminance(DARK.offTrack)).toBeGreaterThan(luminance(surface));
+      expect(contrast(DARK.offTrack, surface)).toBeGreaterThanOrEqual(1.5);
+    },
+  );
+
+  test("on is the lit state here too: lighter than off", () => {
+    expect(luminance(DARK.onTrack)).toBeGreaterThan(luminance(DARK.offTrack));
+    expect(contrast(DARK.onTrack, DARK.offTrack)).toBeGreaterThanOrEqual(1.5);
+  });
+
+  /*
+   * Without the switch's own off rule, the theme's general .bg-gray-300 rule
+   * would draw the track slate-500: as light as the indigo-500 on track, so
+   * the two states would differ by hue alone.
+   */
+  test("the theme's general grey would have made off as light as on", () => {
+    const offClass: string = `.${lightToken(TOGGLE_TRACK_OFF_CLASS, "bg")}`;
+    const general: StyleRule = generalRuleFor(offClass);
+    const generalColour: string = resolveDark(
+      general.declarations["background-color"]!,
+    );
+
+    expect(generalColour).not.toBe(DARK.offTrack);
+    expect(contrast(generalColour, DARK.onTrack)).toBeLessThan(1.2);
+    expect(
+      compareSpecificity(
+        specificity(OFF_TRACK_SELECTOR),
+        specificity(generalSelectorFor(offClass)),
+      ),
+    ).toBe(1);
   });
 
   /*
    * Without these the light classes would carry into the dark theme: the
-   * brand indigo-600 is 2.6:1 on a dark card, and gray-500 only 3.0:1 on a
-   * dark panel.
+   * brand indigo-600 is 2.6:1 on a dark card, and a light grey track would
+   * hide the near-white knob on it.
    */
   test("the light colours would not have been enough", () => {
     expect(
       contrast(LIGHT_PALETTE["indigo-600"]!, DARK_SURFACES["a dark card"]!),
     ).toBeLessThan(3);
     expect(
-      contrast(LIGHT_PALETTE["gray-500"]!, DARK_SURFACES["a dark panel"]!),
-    ).toBeLessThan(3.1);
-    expect(
-      contrast(DARK.offOutline, DARK_SURFACES["a dark panel"]!),
-    ).toBeGreaterThan(
-      contrast(LIGHT_PALETTE["gray-500"]!, DARK_SURFACES["a dark panel"]!),
-    );
+      contrast(DARK.knob, lightColour(TOGGLE_TRACK_OFF_CLASS, "bg")),
+    ).toBeLessThan(3);
   });
 
-  test("each hover has a dark colour of its own", () => {
+  test("each hover has a dark colour of its own, lighter than the state it is on", () => {
+    expect(luminance(DARK.offTrackHover)).toBeGreaterThan(
+      luminance(DARK.offTrack),
+    );
+    expect(luminance(DARK.onTrackHover)).toBeGreaterThan(
+      luminance(DARK.onTrack),
+    );
+    // A hover rule outranks the resting rule it sits on.
     expect(
-      darkDeclaration(
-        'html.dark [data-ou-toggle-track][class~="hover:border-gray-700"]:hover',
-        "border-color",
+      compareSpecificity(
+        specificity(OFF_HOVER_SELECTOR),
+        specificity(OFF_TRACK_SELECTOR),
       ),
-    ).toBeDefined();
+    ).toBe(1);
     expect(
-      darkDeclaration(
-        'html.dark [data-ou-toggle-track][class~="hover:bg-indigo-700"]:hover',
-        "background-color",
+      compareSpecificity(
+        specificity(ON_HOVER_SELECTOR),
+        specificity(ON_TRACK_SELECTOR),
       ),
-    ).toBeDefined();
+    ).toBe(1);
   });
 
   /*
-   * The tick's rule must beat the theme's general light-indigo text rule,
-   * which would put a pale tick on a pale knob: more specific, so it wins
-   * whatever the order of the two in the sheet.
+   * The knob keeps a near-white of its own: the theme's general .bg-white
+   * rule makes white the card's colour, which would leave a hole where the
+   * knob is.
    */
-  test("the tick's colour wins over the dark theme's general indigo text", () => {
-    // ThemeStylesheet splits a prelude on every comma, :is() lists included.
-    const general: StyleRule | undefined = THEME_RULES.find(
-      (rule: StyleRule): boolean => {
-        return (
-          rule.selectors[0]!.startsWith("html.dark :is(") &&
-          rule.selectors.includes(".text-indigo-600")
-        );
-      },
+  test("the knob stays near-white instead of turning into the card", () => {
+    expect(luminance(DARK.knob)).toBeGreaterThan(0.9);
+    // Both are !important, so the more specific one decides.
+    expect(declaredValue(KNOB_SELECTOR, "background-color")).toContain(
+      "!important",
     );
-
-    expect(general).toBeDefined();
-    expect(general!.declarations["color"]).not.toBe(DARK.check);
-    expect(contrast(general!.declarations["color"]!, DARK.onKnob)).toBeLessThan(
-      3,
-    );
-
-    const generalSpecificity: [number, number, number] = specificity(
-      general!.selectors.join(", "),
-    );
-    const tickSpecificity: [number, number, number] = specificity(
-      "html.dark [data-ou-toggle-knob] .text-indigo-600",
-    );
-
-    expect(compareSpecificity(tickSpecificity, generalSpecificity)).toBe(1);
+    expect(
+      generalRuleFor(".bg-white").declarations["background-color"],
+    ).toContain("!important");
+    expect(
+      compareSpecificity(
+        specificity(KNOB_SELECTOR),
+        specificity(generalSelectorFor(".bg-white")),
+      ),
+    ).toBe(1);
   });
 
   /*
    * The older thumb rule (a white span straight under a switch button stays
-   * near-white) also matched the session replay switch's off TRACK, a white
-   * span under its button too, and lit the whole track up on a dark card.
-   * Every rule that keeps a switch's white span light must leave tracks out.
+   * near-white) also matched the session replay switch's off TRACK when that
+   * track was white, and lit the whole track up on a dark card. Every rule
+   * that keeps a switch's white span light must leave tracks out.
    */
   test("no rule keeping a switch's knob light lights up an off track", () => {
     const thumbSelectors: Array<string> = THEME_RULES.filter(
@@ -442,16 +577,22 @@ describe("the switch in the dark theme", () => {
       "utf8",
     );
 
-    for (const attribute of [
-      "data-ou-toggle-track",
-      "data-ou-toggle-knob",
-      "data-ou-toggle-check",
-    ]) {
+    for (const attribute of ["data-ou-toggle-track", "data-ou-toggle-knob"]) {
       expect({
         attribute,
         rendered: toggleSource.includes(`${attribute}=""`),
       }).toEqual({ attribute, rendered: true });
     }
+
+    // The outlined design's tick is gone, and so is its rule.
+    expect(toggleSource).not.toContain("data-ou-toggle-check");
+    expect(
+      THEME_RULES.some((rule: StyleRule): boolean => {
+        return rule.selectors.some((selector: string): boolean => {
+          return selector.includes("data-ou-toggle-check");
+        });
+      }),
+    ).toBe(false);
   });
 });
 
@@ -638,18 +779,21 @@ describe("the switch's colour classes in the dark theme", () => {
   });
 
   test("the replay's switch is drawn with the Toggle's colours", () => {
-    expect(colourTokens(REPLAY_UI_FILE)).toEqual(
+    const replayTokens: Array<string> = colourTokens(REPLAY_UI_FILE);
+
+    expect(replayTokens).toEqual(
       expect.arrayContaining([
-        "border-gray-500",
-        "bg-white",
-        "bg-gray-500",
-        "border-indigo-600",
-        "bg-indigo-600",
+        lightToken(TOGGLE_TRACK_OFF_CLASS, "bg"),
+        lightToken(TOGGLE_TRACK_ON_CLASS, "bg"),
+        lightToken(TOGGLE_KNOB_BASE_CLASS, "bg"),
       ]),
     );
     expect(switchCode(REPLAY_UI_FILE)).toContain("data-ou-toggle-track");
     expect(switchCode(REPLAY_UI_FILE)).toContain("data-ou-toggle-knob");
-    expect(colourTokens(REPLAY_UI_FILE)).not.toContain("bg-gray-300");
+    // Nothing left of the outlined design.
+    expect(replayTokens).not.toContain("border-gray-500");
+    expect(replayTokens).not.toContain("bg-gray-500");
+    expect(replayTokens).not.toContain("border-indigo-600");
   });
 
   test("every colour class the switch uses is re-coloured for the dark theme", () => {
@@ -658,16 +802,12 @@ describe("the switch's colour classes in the dark theme", () => {
     // The scan found the switch's colours, so a pass is not vacuous.
     expect(toggleTokens).toEqual(
       expect.arrayContaining([
-        "border-gray-500",
-        "bg-white",
-        "bg-gray-500",
-        "hover:border-gray-700",
+        "bg-gray-300",
+        "hover:bg-gray-400",
         "bg-indigo-600",
-        "border-indigo-600",
         "hover:bg-indigo-700",
-        "hover:border-indigo-700",
-        "text-indigo-600",
-        "focus-visible:ring-indigo-600",
+        "bg-white",
+        "focus-visible:ring-indigo-500",
         "text-gray-900",
         "text-gray-500",
         "text-gray-400",
@@ -681,5 +821,58 @@ describe("the switch's colour classes in the dark theme", () => {
     );
 
     expect(unmapped).toEqual([]);
+  });
+
+  /*
+   * The other way round: every rule Theme.css keeps for the switch styles a
+   * class one of the two switches still draws. A rule left behind by an
+   * older design (the outline's border-gray-500, say) styles nothing - until
+   * the class comes back on some other part of the switch and picks up a
+   * colour nobody chose for it.
+   */
+  test("every switch rule in Theme.css styles a class a switch still draws", () => {
+    const drawn: Set<string> = new Set(FILES.flatMap(colourTokens));
+    const selectors: Array<string> = THEME_RULES.flatMap(
+      (rule: StyleRule): Array<string> => {
+        return rule.selectors;
+      },
+    ).filter((selector: string): boolean => {
+      return (
+        selector.includes("[data-ou-toggle-") ||
+        selector.includes('button[role="switch"]')
+      );
+    });
+
+    expect(selectors.length).toBeGreaterThanOrEqual(5);
+
+    const stale: Array<string> = selectors.filter(
+      (selector: string): boolean => {
+        const classes: Array<string> = [
+          ...Array.from(
+            selector.matchAll(/\.([A-Za-z][\w-]*)/g),
+            (match: RegExpMatchArray): string => {
+              return match[1]!;
+            },
+          ).filter((className: string): boolean => {
+            return className !== "dark";
+          }),
+          ...Array.from(
+            selector.matchAll(/\[class~="([^"]+)"\]/g),
+            (match: RegExpMatchArray): string => {
+              return match[1]!;
+            },
+          ),
+        ];
+
+        return (
+          classes.length === 0 ||
+          classes.some((className: string): boolean => {
+            return !drawn.has(className);
+          })
+        );
+      },
+    );
+
+    expect(stale).toEqual([]);
   });
 });
