@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import AffectedResourcesPicker, {
@@ -394,6 +395,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: MonitorStatus,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Monitor Status",

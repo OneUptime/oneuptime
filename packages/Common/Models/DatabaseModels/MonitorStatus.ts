@@ -19,6 +19,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
@@ -34,6 +35,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @EnableDocumentation()
 @EnableMCP()
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "priority", scopeColumns: ["projectId"] })
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -554,8 +556,9 @@ export default class MonitorStatus extends BaseModel {
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     title: "Order",
+    required: false,
     description:
-      "Order / Priority of this status. Behaves like an insertion slot: creating a status with priority P shifts every existing status with priority >= P up by one, and priority cannot be changed after creation (delete and recreate instead). When managing statuses declaratively, use high, gapped values (e.g. 101, 102, 103) created in ascending order so existing statuses are never shifted.",
+      "Where this status sits in the project's list of monitor statuses, from the healthiest (the lowest number) down to the worst: where monitors are shown together, as on a status page or in a monitor group, the status furthest down the list wins. A new status without a number goes just above the offline status. Setting a number moves the status to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.Number,

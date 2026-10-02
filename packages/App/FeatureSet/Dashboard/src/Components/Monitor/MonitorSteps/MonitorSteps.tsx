@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import MonitorStepElement from "./MonitorStep";
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
@@ -79,8 +80,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             name: true,
             color: true,
             isOperationalState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       if (monitorStatusList.data) {
@@ -101,8 +105,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           select: {
             name: true,
             color: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         });
 
       const alertSeverityList: ListResult<AlertSeverity> =
@@ -114,8 +121,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           select: {
             name: true,
             color: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         });
 
       const onCallPolicyList: ListResult<OnCallDutyPolicy> =

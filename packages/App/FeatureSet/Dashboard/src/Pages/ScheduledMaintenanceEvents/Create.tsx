@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -557,6 +558,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     type: MonitorStatus,
                     labelField: "name",
                     valueField: "_id",
+                    sort: {
+                      priority: SortOrder.Ascending,
+                    },
                   },
                   required: false,
                   placeholder: "Monitor Status",

@@ -46,6 +46,12 @@ export interface ComponentProps {
   // Force single-column (1 item per row). Default: responsive 1/2/3 grid.
   singleColumn?: boolean | undefined;
   /*
+   * At most this many cards side by side; three when left out. A short
+   * choice inside a dialog reads better as two wide columns than as three
+   * narrow ones whose titles wrap.
+   */
+  maxColumns?: 2 | 3 | undefined;
+  /*
    * Opt in to the search box. Off by default so a picker with a handful of
    * cards is not given a search box it does not need, and so existing callers
    * keep the exact markup they had.
@@ -414,7 +420,9 @@ const CardSelect: FunctionComponent<ComponentProps> = (
 
   const gridClassName: string = props.singleColumn
     ? "grid grid-cols-1 gap-4"
-    : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3";
+    : props.maxColumns === 2
+      ? "grid grid-cols-1 gap-4 sm:grid-cols-2"
+      : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3";
 
   /*
    * The cards on screen, in the order they are rendered. A search reorders

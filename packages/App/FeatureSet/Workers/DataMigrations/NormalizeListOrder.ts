@@ -2,22 +2,28 @@ import DataMigrationBase from "./DataMigrationBase";
 import AlertGroupingRuleService from "Common/Server/Services/AlertGroupingRuleService";
 import AlertMeasurementService from "Common/Server/Services/AlertMeasurementService";
 import AlertReminderRuleService from "Common/Server/Services/AlertReminderRuleService";
+import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
+import AlertStateService from "Common/Server/Services/AlertStateService";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import IncidentCustomFieldService from "Common/Server/Services/IncidentCustomFieldService";
 import IncidentGroupingRuleService from "Common/Server/Services/IncidentGroupingRuleService";
 import IncidentMeasurementService from "Common/Server/Services/IncidentMeasurementService";
 import IncidentReminderRuleService from "Common/Server/Services/IncidentReminderRuleService";
+import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
 import IncidentSlaRuleService from "Common/Server/Services/IncidentSlaRuleService";
+import IncidentStateService from "Common/Server/Services/IncidentStateService";
 import IncomingCallPolicyEscalationRuleService from "Common/Server/Services/IncomingCallPolicyEscalationRuleService";
 import LogDropFilterService from "Common/Server/Services/LogDropFilterService";
 import LogPipelineProcessorService from "Common/Server/Services/LogPipelineProcessorService";
 import LogPipelineService from "Common/Server/Services/LogPipelineService";
 import LogScrubRuleService from "Common/Server/Services/LogScrubRuleService";
 import MetricPipelineRuleService from "Common/Server/Services/MetricPipelineRuleService";
+import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import NetworkDeviceRoleService from "Common/Server/Services/NetworkDeviceRoleService";
 import NetworkSiteAssignmentRuleService from "Common/Server/Services/NetworkSiteAssignmentRuleService";
 import ScheduledMaintenanceMeasurementService from "Common/Server/Services/ScheduledMaintenanceMeasurementService";
 import ScheduledMaintenanceReminderRuleService from "Common/Server/Services/ScheduledMaintenanceReminderRuleService";
+import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMaintenanceStateService";
 import StatusPageFooterLinkService from "Common/Server/Services/StatusPageFooterLinkService";
 import StatusPageHeaderLinkService from "Common/Server/Services/StatusPageHeaderLinkService";
 import StatusPageHistoryChartBarColorRuleService from "Common/Server/Services/StatusPageHistoryChartBarColorRuleService";
@@ -84,6 +90,17 @@ export default class NormalizeListOrder extends DataMigrationBase {
       StatusPageFooterLinkService,
       StatusPageHistoryChartBarColorRuleService,
       IncomingCallPolicyEscalationRuleService,
+      /*
+       * A project's states, severities and monitor statuses. Their numbers
+       * were kept unique per project before they were dragged, so this only
+       * ever heals a list two concurrent creates left with a shared number.
+       */
+      IncidentStateService,
+      AlertStateService,
+      ScheduledMaintenanceStateService,
+      MonitorStatusService,
+      IncidentSeverityService,
+      AlertSeverityService,
     ] as Array<DatabaseService<any>>;
   }
 

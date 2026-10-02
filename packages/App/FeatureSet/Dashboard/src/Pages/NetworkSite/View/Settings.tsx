@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageComponentProps from "../../PageComponentProps";
 import {
   fetchAllNetworkSiteTypeOptions,
@@ -330,6 +331,9 @@ const NetworkSiteSettings: FunctionComponent<
               type: AlertSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Alert Severity (optional)",

@@ -6,14 +6,14 @@ Import works for **every OneUptime resource type that has a read endpoint**, whi
 
 ## Finding a resource's ID
 
-The import ID is the resource's ObjectID — a 24-character hex string. Two places to find it:
+The import ID is the resource's ID, a UUID. Two places to find it:
 
-- **Dashboard URL.** Open the resource; the ID is the last path segment, e.g. `https://oneuptime.com/dashboard/<project-id>/monitors/68a1b2c3d4e5f6a7b8c9d0e1` → the monitor ID is `68a1b2c3d4e5f6a7b8c9d0e1`.
+- **Dashboard URL.** Open the resource; the ID is the last path segment, e.g. `https://oneuptime.com/dashboard/<project-id>/monitors/68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01` → the monitor ID is `68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01`.
 - **API.** List resources with your project API key; every item carries `_id`.
 
 ## Let the dashboard write it
 
-Open the resource in the dashboard, expand **Developer** in its side menu and choose **Terraform**. The page writes the `resource` block from the resource's current settings, and the `import` block with its ID, so the first plan already shows the import and nothing to change. Secrets are never shown: the ones the configuration needs come from `sensitive` Terraform variables, and the rest are left out.
+Open the resource in the dashboard, expand **Developer** in its side menu and choose **Terraform**. The page writes the `resource` block from the resource's current settings, and the `import` block with its ID, so the first plan already shows the import and nothing to change. A comment after each ID names the record it points at, so you can tell which severity, monitor or label it is. Secrets are never shown: the ones the configuration needs come from `sensitive` Terraform variables, and the rest are left out.
 
 To adopt many resources of one type, open the **Terraform** page from the list instead (for example **Monitors → Developer → Terraform**). It writes an `import` block for each of them (the first 100), for use with `-generate-config-out` as described below.
 
@@ -30,7 +30,7 @@ resource "oneuptime_monitor" "homepage" {
 
 import {
   to = oneuptime_monitor.homepage
-  id = "68a1b2c3d4e5f6a7b8c9d0e1"
+  id = "68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01"
 }
 ```
 
@@ -63,15 +63,15 @@ Write only the `import` block (no `resource` block), run the command, then revie
 The classic one-liner, available on all Terraform versions. The `resource` block must already exist in configuration:
 
 ```bash
-terraform import oneuptime_monitor.homepage 68a1b2c3d4e5f6a7b8c9d0e1
+terraform import oneuptime_monitor.homepage 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01
 ```
 
 The same pattern works for every resource type:
 
 ```bash
-terraform import oneuptime_status_page.public 68a1b2c3d4e5f6a7b8c9d0e2
-terraform import oneuptime_label.critical 68a1b2c3d4e5f6a7b8c9d0e3
-terraform import oneuptime_team.sre 68a1b2c3d4e5f6a7b8c9d0e4
+terraform import oneuptime_status_page.public 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b02
+terraform import oneuptime_label.critical 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b03
+terraform import oneuptime_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b04
 ```
 
 After each import, run `terraform plan` and reconcile the configuration until the plan is clean.
@@ -86,17 +86,17 @@ To adopt everything in an existing project:
 ```hcl
 import {
   to = oneuptime_label.critical
-  id = "68a1b2c3d4e5f6a7b8c9d0e3"
+  id = "68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b03"
 }
 
 import {
   to = oneuptime_monitor.homepage
-  id = "68a1b2c3d4e5f6a7b8c9d0e1"
+  id = "68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01"
 }
 
 import {
   to = oneuptime_monitor.checkout_api
-  id = "68a1b2c3d4e5f6a7b8c9d0e5"
+  id = "68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b05"
 }
 ```
 

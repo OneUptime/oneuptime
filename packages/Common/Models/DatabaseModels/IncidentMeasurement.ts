@@ -176,7 +176,7 @@ export default class IncidentMeasurement extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description:
-      "Human readable name of this measurement. This is what appears on charts and on the incident page.",
+      "Human readable name of this measurement, such as Time to Acknowledge. This is what charts call it.",
     example: "Time to Detect",
   })
   @Column({
@@ -715,7 +715,7 @@ export default class IncidentMeasurement extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Unit",
     description:
-      "The unit this measurement's values are displayed in. Values are always stored in seconds; this only changes how they are rendered.",
+      "The unit this measurement's charts are in: seconds (the default), minutes, hours or days. Every value is worked out in seconds and stored that way on the incident; each chart point is written in this unit, so a chart in hours reads 1.5 for an hour and a half. With seconds, charts show seconds, minutes, hours or days as the numbers grow. Changing it rewrites the measurement's chart points in the new unit. A value that is not a time unit charts in seconds.",
     defaultValue: "seconds",
     isDefaultValueColumn: true,
     example: "seconds",
@@ -755,7 +755,7 @@ export default class IncidentMeasurement extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Aggregation Type",
     description:
-      "The aggregation this measurement's charts default to - Avg, Max, Min, P50, P90, P95 or P99. Sum is deliberately absent because summing durations across incidents produces a number with no meaning.",
+      "How this measurement's chart sums up many incidents by default - Avg (the default), P50, P90, P95, P99, Max or Min. View Chart in the dashboard opens the chart this way. Sum is deliberately absent: adding durations up across incidents produces a number with no meaning.",
     defaultValue: "Avg",
     isDefaultValueColumn: true,
     example: "Avg",
