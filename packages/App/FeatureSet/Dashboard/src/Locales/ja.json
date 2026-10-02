@@ -7484,5 +7484,17 @@
   "Set up notifications": "通知を設定",
   "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "インシデントの際にメンバーが担うロールです（例: Incident Commander）。チームに必要であれば、ほかのロールを追加してください。",
   "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "どのインシデントにも指揮を執る人が必要なため、このロールは名前を変更できますが、削除はできません。",
-  "Does the hands-on work to resolve the incident.": "インシデントを解決するための実作業を担当します。"
+  "Does the hands-on work to resolve the incident.": "インシデントを解決するための実作業を担当します。",
+  "Couldn't load this list.": "このリストを読み込めませんでした。",
+  "Clear Search": "検索をクリア",
+  "Clear Search and Filters": "検索とフィルターをクリア",
+  "You don't have permission to create these. Ask a project admin for access.": "これらを作成する権限がありません。プロジェクト管理者にアクセス権を依頼してください。",
+  "You don't have access to this list": "このリストにアクセスする権限がありません",
+  "Ask a project admin for one of these permissions:": "プロジェクト管理者に次のいずれかの権限を依頼してください:",
+  "No active incidents": "アクティブなインシデントはありません",
+  "Nice work! Every incident is resolved.": "お疲れ様です。すべてのインシデントが解決済みです。",
+  "No active alerts": "アクティブなアラートはありません",
+  "Nice work! Every alert is resolved.": "お疲れ様です。すべてのアラートが解決済みです。",
+  "No items found.": "項目が見つかりません。",
+  "No items match your search": "検索に一致する項目はありません"
 }

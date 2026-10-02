@@ -7484,5 +7484,17 @@
   "Set up notifications": "알림 설정",
   "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "인시던트 중에 사람들이 맡는 역할입니다(예: Incident Commander). 팀에 필요하면 역할을 더 추가하세요.",
   "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "모든 인시던트에는 책임자가 필요하므로 이 역할은 이름을 바꿀 수 있지만 삭제할 수는 없습니다.",
-  "Does the hands-on work to resolve the incident.": "인시던트를 해결하기 위한 실무 작업을 수행합니다."
+  "Does the hands-on work to resolve the incident.": "인시던트를 해결하기 위한 실무 작업을 수행합니다.",
+  "Couldn't load this list.": "이 목록을 불러올 수 없습니다.",
+  "Clear Search": "검색 지우기",
+  "Clear Search and Filters": "검색 및 필터 지우기",
+  "You don't have permission to create these. Ask a project admin for access.": "이 항목을 만들 권한이 없습니다. 프로젝트 관리자에게 액세스 권한을 요청하세요.",
+  "You don't have access to this list": "이 목록에 액세스할 권한이 없습니다",
+  "Ask a project admin for one of these permissions:": "프로젝트 관리자에게 다음 권한 중 하나를 요청하세요:",
+  "No active incidents": "활성 인시던트가 없습니다",
+  "Nice work! Every incident is resolved.": "잘하셨습니다! 모든 인시던트가 해결되었습니다.",
+  "No active alerts": "활성 경고가 없습니다",
+  "Nice work! Every alert is resolved.": "잘하셨습니다! 모든 경고가 해결되었습니다.",
+  "No items found.": "항목을 찾을 수 없습니다.",
+  "No items match your search": "검색과 일치하는 항목이 없습니다"
 }

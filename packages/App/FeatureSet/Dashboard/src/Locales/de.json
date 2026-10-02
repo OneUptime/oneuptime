@@ -7484,5 +7484,17 @@
   "Set up notifications": "Benachrichtigungen einrichten",
   "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "Die Rollen, die Personen während eines Vorfalls übernehmen, etwa Incident Commander. Fügen Sie weitere hinzu, wenn Ihr Team sie braucht.",
   "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "Jeder Vorfall braucht jemanden, der die Leitung hat. Diese Rolle kann daher umbenannt, aber nicht gelöscht werden.",
-  "Does the hands-on work to resolve the incident.": "Erledigt die praktische Arbeit, um den Vorfall zu beheben."
+  "Does the hands-on work to resolve the incident.": "Erledigt die praktische Arbeit, um den Vorfall zu beheben.",
+  "Couldn't load this list.": "Diese Liste konnte nicht geladen werden.",
+  "Clear Search": "Suche löschen",
+  "Clear Search and Filters": "Suche und Filter löschen",
+  "You don't have permission to create these. Ask a project admin for access.": "Sie haben keine Berechtigung, diese zu erstellen. Bitten Sie einen Projektadministrator um Zugriff.",
+  "You don't have access to this list": "Sie haben keinen Zugriff auf diese Liste",
+  "Ask a project admin for one of these permissions:": "Bitten Sie einen Projektadministrator um eine dieser Berechtigungen:",
+  "No active incidents": "Keine aktiven Vorfälle",
+  "Nice work! Every incident is resolved.": "Gut gemacht! Alle Vorfälle sind behoben.",
+  "No active alerts": "Keine aktiven Warnungen",
+  "Nice work! Every alert is resolved.": "Gut gemacht! Alle Warnungen sind behoben.",
+  "No items found.": "Keine Einträge gefunden.",
+  "No items match your search": "Keine Einträge entsprechen Ihrer Suche"
 }

@@ -7484,5 +7484,17 @@
   "Set up notifications": "Set up notifications",
   "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.",
   "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "Every incident needs someone in charge, so this role can be renamed, but not deleted.",
-  "Does the hands-on work to resolve the incident.": "Does the hands-on work to resolve the incident."
+  "Does the hands-on work to resolve the incident.": "Does the hands-on work to resolve the incident.",
+  "Couldn't load this list.": "Couldn't load this list.",
+  "Clear Search": "Clear Search",
+  "Clear Search and Filters": "Clear Search and Filters",
+  "You don't have permission to create these. Ask a project admin for access.": "You don't have permission to create these. Ask a project admin for access.",
+  "You don't have access to this list": "You don't have access to this list",
+  "Ask a project admin for one of these permissions:": "Ask a project admin for one of these permissions:",
+  "No active incidents": "No active incidents",
+  "Nice work! Every incident is resolved.": "Nice work! Every incident is resolved.",
+  "No active alerts": "No active alerts",
+  "Nice work! Every alert is resolved.": "Nice work! Every alert is resolved.",
+  "No items found.": "No items found.",
+  "No items match your search": "No items match your search"
 }

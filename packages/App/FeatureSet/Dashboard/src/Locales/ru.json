@@ -7484,5 +7484,17 @@
   "Set up notifications": "Настроить уведомления",
   "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "Роли, которые люди берут на себя во время инцидента, например Incident Commander. Добавьте другие, если они нужны вашей команде.",
   "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "У каждого инцидента должен быть ответственный, поэтому эту роль можно переименовать, но нельзя удалить.",
-  "Does the hands-on work to resolve the incident.": "Выполняет практическую работу по устранению инцидента."
+  "Does the hands-on work to resolve the incident.": "Выполняет практическую работу по устранению инцидента.",
+  "Couldn't load this list.": "Не удалось загрузить этот список.",
+  "Clear Search": "Очистить поиск",
+  "Clear Search and Filters": "Очистить поиск и фильтры",
+  "You don't have permission to create these. Ask a project admin for access.": "У вас нет прав на их создание. Попросите доступ у администратора проекта.",
+  "You don't have access to this list": "У вас нет доступа к этому списку",
+  "Ask a project admin for one of these permissions:": "Попросите администратора проекта выдать одно из этих разрешений:",
+  "No active incidents": "Нет активных инцидентов",
+  "Nice work! Every incident is resolved.": "Отличная работа! Все инциденты устранены.",
+  "No active alerts": "Нет активных оповещений",
+  "Nice work! Every alert is resolved.": "Отличная работа! Все оповещения устранены.",
+  "No items found.": "Записи не найдены.",
+  "No items match your search": "Нет записей, соответствующих вашему поиску"
 }

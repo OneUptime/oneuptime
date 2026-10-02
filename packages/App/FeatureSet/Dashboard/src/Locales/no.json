@@ -7484,5 +7484,17 @@
   "Set up notifications": "Konfigurer varsler",
   "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "Rollene folk tar på seg under en hendelse, for eksempel Incident Commander. Legg til flere hvis teamet ditt trenger dem.",
   "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "Hver hendelse trenger noen som har ansvaret, så denne rollen kan gis nytt navn, men ikke slettes.",
-  "Does the hands-on work to resolve the incident.": "Gjør det praktiske arbeidet for å løse hendelsen."
+  "Does the hands-on work to resolve the incident.": "Gjør det praktiske arbeidet for å løse hendelsen.",
+  "Couldn't load this list.": "Kunne ikke laste inn denne listen.",
+  "Clear Search": "Tøm søk",
+  "Clear Search and Filters": "Tøm søk og filtre",
+  "You don't have permission to create these. Ask a project admin for access.": "Du har ikke tillatelse til å opprette disse. Be en prosjektadministrator om tilgang.",
+  "You don't have access to this list": "Du har ikke tilgang til denne listen",
+  "Ask a project admin for one of these permissions:": "Be en prosjektadministrator om én av disse tillatelsene:",
+  "No active incidents": "Ingen aktive hendelser",
+  "Nice work! Every incident is resolved.": "Godt jobbet! Alle hendelser er løst.",
+  "No active alerts": "Ingen aktive varsler",
+  "Nice work! Every alert is resolved.": "Godt jobbet! Alle varsler er løst.",
+  "No items found.": "Ingen elementer funnet.",
+  "No items match your search": "Ingen elementer samsvarer med søket ditt"
 }

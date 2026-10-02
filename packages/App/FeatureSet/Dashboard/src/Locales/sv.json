@@ -7484,5 +7484,17 @@
   "Set up notifications": "Konfigurera aviseringar",
   "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "Rollerna som personer tar på sig under en incident, till exempel Incident Commander. Lägg till fler om ditt team behöver dem.",
   "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "Varje incident behöver någon som leder arbetet, så den här rollen kan byta namn, men inte tas bort.",
-  "Does the hands-on work to resolve the incident.": "Gör det praktiska arbetet för att lösa incidenten."
+  "Does the hands-on work to resolve the incident.": "Gör det praktiska arbetet för att lösa incidenten.",
+  "Couldn't load this list.": "Det gick inte att läsa in listan.",
+  "Clear Search": "Rensa sökning",
+  "Clear Search and Filters": "Rensa sökning och filter",
+  "You don't have permission to create these. Ask a project admin for access.": "Du har inte behörighet att skapa dessa. Be en projektadministratör om åtkomst.",
+  "You don't have access to this list": "Du har inte åtkomst till den här listan",
+  "Ask a project admin for one of these permissions:": "Be en projektadministratör om en av dessa behörigheter:",
+  "No active incidents": "Inga aktiva incidenter",
+  "Nice work! Every incident is resolved.": "Bra jobbat! Alla incidenter är lösta.",
+  "No active alerts": "Inga aktiva larm",
+  "Nice work! Every alert is resolved.": "Bra jobbat! Alla larm är lösta.",
+  "No items found.": "Inga objekt hittades.",
+  "No items match your search": "Inga objekt matchar din sökning"
 }

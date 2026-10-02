@@ -7484,5 +7484,17 @@
   "Set up notifications": "सूचनाएं सेट अप करें",
   "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "किसी घटना के दौरान लोग जो भूमिकाएँ निभाते हैं, जैसे Incident Commander। अगर आपकी टीम को ज़रूरत हो, तो और भूमिकाएँ जोड़ें।",
   "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "हर घटना के लिए किसी प्रभारी की ज़रूरत होती है, इसलिए इस भूमिका का नाम बदला जा सकता है, पर इसे हटाया नहीं जा सकता।",
-  "Does the hands-on work to resolve the incident.": "घटना को सुलझाने का व्यावहारिक काम करता है।"
+  "Does the hands-on work to resolve the incident.": "घटना को सुलझाने का व्यावहारिक काम करता है।",
+  "Couldn't load this list.": "यह सूची लोड नहीं हो सकी।",
+  "Clear Search": "खोज साफ़ करें",
+  "Clear Search and Filters": "खोज और फ़िल्टर साफ़ करें",
+  "You don't have permission to create these. Ask a project admin for access.": "आपके पास इन्हें बनाने की अनुमति नहीं है। पहुंच के लिए किसी प्रोजेक्ट एडमिन से कहें।",
+  "You don't have access to this list": "आपके पास इस सूची की पहुंच नहीं है",
+  "Ask a project admin for one of these permissions:": "किसी प्रोजेक्ट एडमिन से इनमें से कोई एक अनुमति मांगें:",
+  "No active incidents": "कोई सक्रिय घटना नहीं",
+  "Nice work! Every incident is resolved.": "बढ़िया काम! सभी घटनाएं सुलझा ली गई हैं।",
+  "No active alerts": "कोई सक्रिय अलर्ट नहीं",
+  "Nice work! Every alert is resolved.": "बढ़िया काम! सभी अलर्ट सुलझा लिए गए हैं।",
+  "No items found.": "कोई आइटम नहीं मिला।",
+  "No items match your search": "आपकी खोज से कोई आइटम मेल नहीं खाता"
 }

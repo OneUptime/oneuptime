@@ -7484,5 +7484,17 @@
   "Set up notifications": "Opsæt notifikationer",
   "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "De roller, folk påtager sig under en hændelse, såsom Incident Commander. Tilføj flere, hvis dit team har brug for dem.",
   "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "Enhver hændelse har brug for en, der har ansvaret, så denne rolle kan omdøbes, men ikke slettes.",
-  "Does the hands-on work to resolve the incident.": "Udfører det praktiske arbejde med at løse hændelsen."
+  "Does the hands-on work to resolve the incident.": "Udfører det praktiske arbejde med at løse hændelsen.",
+  "Couldn't load this list.": "Listen kunne ikke indlæses.",
+  "Clear Search": "Ryd søgning",
+  "Clear Search and Filters": "Ryd søgning og filtre",
+  "You don't have permission to create these. Ask a project admin for access.": "Du har ikke tilladelse til at oprette disse. Bed en projektadministrator om adgang.",
+  "You don't have access to this list": "Du har ikke adgang til denne liste",
+  "Ask a project admin for one of these permissions:": "Bed en projektadministrator om en af disse tilladelser:",
+  "No active incidents": "Ingen aktive hændelser",
+  "Nice work! Every incident is resolved.": "Godt arbejde! Alle hændelser er løst.",
+  "No active alerts": "Ingen aktive advarsler",
+  "Nice work! Every alert is resolved.": "Godt arbejde! Alle advarsler er løst.",
+  "No items found.": "Ingen elementer fundet.",
+  "No items match your search": "Ingen elementer matcher din søgning"
 }

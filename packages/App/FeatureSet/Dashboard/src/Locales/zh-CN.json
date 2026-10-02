@@ -7484,5 +7484,17 @@
   "Set up notifications": "设置通知",
   "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "事件期间人员承担的角色，例如 Incident Commander。如果团队需要，可以添加更多角色。",
   "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "每个事件都需要有人负责，因此此角色可以重命名，但不能删除。",
-  "Does the hands-on work to resolve the incident.": "负责解决事件的实际工作。"
+  "Does the hands-on work to resolve the incident.": "负责解决事件的实际工作。",
+  "Couldn't load this list.": "无法加载此列表。",
+  "Clear Search": "清除搜索",
+  "Clear Search and Filters": "清除搜索和过滤器",
+  "You don't have permission to create these. Ask a project admin for access.": "您无权创建这些内容。请向项目管理员申请访问权限。",
+  "You don't have access to this list": "您无权访问此列表",
+  "Ask a project admin for one of these permissions:": "请向项目管理员申请以下任一权限：",
+  "No active incidents": "没有活动事件",
+  "Nice work! Every incident is resolved.": "干得好！所有事件均已解决。",
+  "No active alerts": "没有活动警报",
+  "Nice work! Every alert is resolved.": "干得好！所有警报均已解决。",
+  "No items found.": "未找到任何项目。",
+  "No items match your search": "没有与您的搜索匹配的项目"
 }

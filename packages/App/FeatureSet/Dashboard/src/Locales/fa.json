@@ -7484,5 +7484,17 @@
   "Set up notifications": "تنظیم اعلان‌ها",
   "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "نقش‌هایی که افراد در طول یک حادثه بر عهده می‌گیرند، مانند Incident Commander. اگر تیمتان نیاز دارد، نقش‌های بیشتری اضافه کنید.",
   "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "هر حادثه به کسی نیاز دارد که مسئولیتش را بر عهده بگیرد، پس نام این نقش را می‌توان تغییر داد، اما نمی‌توان آن را حذف کرد.",
-  "Does the hands-on work to resolve the incident.": "کار عملی برای رفع حادثه را انجام می‌دهد."
+  "Does the hands-on work to resolve the incident.": "کار عملی برای رفع حادثه را انجام می‌دهد.",
+  "Couldn't load this list.": "این فهرست بارگیری نشد.",
+  "Clear Search": "پاک کردن جستجو",
+  "Clear Search and Filters": "پاک کردن جستجو و فیلترها",
+  "You don't have permission to create these. Ask a project admin for access.": "اجازه ایجاد این موارد را ندارید. از یک مدیر پروژه دسترسی بخواهید.",
+  "You don't have access to this list": "به این فهرست دسترسی ندارید",
+  "Ask a project admin for one of these permissions:": "از یک مدیر پروژه یکی از این دسترسی‌ها را بخواهید:",
+  "No active incidents": "هیچ حادثه فعالی نیست",
+  "Nice work! Every incident is resolved.": "آفرین! همه حادثه‌ها برطرف شده‌اند.",
+  "No active alerts": "هیچ هشدار فعالی نیست",
+  "Nice work! Every alert is resolved.": "آفرین! همه هشدارها برطرف شده‌اند.",
+  "No items found.": "موردی پیدا نشد.",
+  "No items match your search": "هیچ موردی با جستجوی شما مطابقت ندارد"
 }

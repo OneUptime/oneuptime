@@ -7484,5 +7484,17 @@
   "Set up notifications": "Meldingen instellen",
   "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "De rollen die mensen tijdens een incident op zich nemen, zoals Incident Commander. Voeg er meer toe als uw team ze nodig heeft.",
   "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "Elk incident heeft iemand nodig die de leiding heeft, dus deze rol kan worden hernoemd, maar niet verwijderd.",
-  "Does the hands-on work to resolve the incident.": "Doet het praktische werk om het incident op te lossen."
+  "Does the hands-on work to resolve the incident.": "Doet het praktische werk om het incident op te lossen.",
+  "Couldn't load this list.": "Deze lijst kon niet worden geladen.",
+  "Clear Search": "Zoekopdracht wissen",
+  "Clear Search and Filters": "Zoekopdracht en filters wissen",
+  "You don't have permission to create these. Ask a project admin for access.": "U hebt geen toestemming om deze te maken. Vraag een projectbeheerder om toegang.",
+  "You don't have access to this list": "U hebt geen toegang tot deze lijst",
+  "Ask a project admin for one of these permissions:": "Vraag een projectbeheerder om een van deze machtigingen:",
+  "No active incidents": "Geen actieve incidenten",
+  "Nice work! Every incident is resolved.": "Goed werk! Alle incidenten zijn opgelost.",
+  "No active alerts": "Geen actieve waarschuwingen",
+  "Nice work! Every alert is resolved.": "Goed werk! Alle waarschuwingen zijn opgelost.",
+  "No items found.": "Geen items gevonden.",
+  "No items match your search": "Geen items komen overeen met je zoekopdracht"
 }
