@@ -299,7 +299,10 @@ describe("changing it", () => {
     const other: HTMLElement = option(FormTargetType.ScheduledMaintenance);
 
     expect(other).toBeDisabled();
-    expect(other).toHaveAttribute("title", "You need the Edit Form permission.");
+    expect(other).toHaveAttribute(
+      "title",
+      "You need the Edit Form permission.",
+    );
     // The form's own stays readable.
     expect(option(FormTargetType.Incident)).not.toBeDisabled();
 

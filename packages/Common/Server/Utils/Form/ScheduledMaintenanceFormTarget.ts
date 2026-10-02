@@ -143,11 +143,12 @@ export default class ScheduledMaintenanceFormTarget
     projectId: ObjectID;
     settings: JSONObject;
   }): Promise<void> {
-    const read: ScheduledMaintenanceFormTargetSettings =
-      readFormTargetSettings({
+    const read: ScheduledMaintenanceFormTargetSettings = readFormTargetSettings(
+      {
         targetType: FormTargetType.ScheduledMaintenance,
         value: data.settings,
-      }) as ScheduledMaintenanceFormTargetSettings;
+      },
+    ) as ScheduledMaintenanceFormTargetSettings;
 
     await FormTargetHelpers.validateSettingReferences({
       projectId: data.projectId,
@@ -181,7 +182,8 @@ export default class ScheduledMaintenanceFormTarget
 
     const startsAtLabel: string =
       answers.targetFieldLabels["startsAt"] || "Starts At";
-    const endsAtLabel: string = answers.targetFieldLabels["endsAt"] || "Ends At";
+    const endsAtLabel: string =
+      answers.targetFieldLabels["endsAt"] || "Ends At";
 
     /*
      * Every form of this target asks both, and requires them

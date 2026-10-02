@@ -136,9 +136,7 @@ const FormPage: () => JSX.Element = () => {
 
   const [submitFailure, setSubmitFailure] = useState<FormFailure | null>(null);
 
-  const [result, setResult] = useState<PublicFormSubmissionResult | null>(
-    null,
-  );
+  const [result, setResult] = useState<PublicFormSubmissionResult | null>(null);
 
   // Bumped by "Submit another response": a new key is a fresh, empty form.
   const [formInstance, setFormInstance] = useState<number>(0);

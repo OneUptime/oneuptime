@@ -595,7 +595,7 @@ describe("Form: who may build, read and change a form", () => {
   test.each([
     Permission.ReadFormSubmission,
     Permission.CreateIncidentTemplate,
-    Permission.ReadStatusPage,
+    Permission.ReadStatusPageOwnerTeam,
   ])("%s may not read forms", (permission: Permission) => {
     expect(() => {
       TablePermission.checkTableLevelPermissions(
@@ -784,7 +784,8 @@ describe("Form columns", () => {
   });
 
   test("the questions are a nullable JSON list the server fills in for a new form", () => {
-    const metadata: TableColumnMetadata = model.getTableColumnMetadata("fields");
+    const metadata: TableColumnMetadata =
+      model.getTableColumnMetadata("fields");
 
     expect(metadata.type).toBe(TableColumnType.JSON);
     expect(metadata.required).toBeFalsy();
@@ -806,7 +807,9 @@ describe("Form columns", () => {
         targetType: FormTargetType.Incident,
       }),
     ).toBeNull();
-    expect(readFormFields(example)).toHaveLength((example as Array<unknown>).length);
+    expect(readFormFields(example)).toHaveLength(
+      (example as Array<unknown>).length,
+    );
   });
 
   test("the On Submit settings are a nullable JSON object whose example the server accepts", () => {
@@ -952,7 +955,12 @@ describe("Form in the published API", () => {
   });
 
   test("what it creates and whether it accepts submissions are optional to send, with their defaults published", () => {
-    for (const column of ["isEnabled", "targetType", "fields", "targetSettings"]) {
+    for (const column of [
+      "isEnabled",
+      "targetType",
+      "fields",
+      "targetSettings",
+    ]) {
       expect(requiredOf(create)).not.toContain(column);
     }
 

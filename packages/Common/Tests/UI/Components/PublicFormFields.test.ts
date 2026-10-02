@@ -164,8 +164,9 @@ describe("buildPublicFormFields: one input per question", () => {
 
   test("a test id prefix of the caller's choosing, as the builder's preview uses", () => {
     expect(
-      buildPublicFormFields(FORM, { dataTestIdPrefix: "form-preview-field" })[0]!
-        .dataTestId,
+      buildPublicFormFields(FORM, {
+        dataTestIdPrefix: "form-preview-field",
+      })[0]!.dataTestId,
     ).toBe("form-preview-field-title");
   });
 
@@ -173,9 +174,11 @@ describe("buildPublicFormFields: one input per question", () => {
     const options: Array<{ label: string; value: unknown; color?: unknown }> =
       fieldOf("severity").dropdownOptions as never;
 
-    expect(options.map((option: { label: string; value: unknown }) => {
-      return [option.label, option.value];
-    })).toEqual([
+    expect(
+      options.map((option: { label: string; value: unknown }) => {
+        return [option.label, option.value];
+      }),
+    ).toEqual([
       ["Critical", SEVERITY_ID],
       ["Minor", "minor"],
     ]);
@@ -183,7 +186,8 @@ describe("buildPublicFormFields: one input per question", () => {
     expect(options[1]!.color).toBeUndefined();
     // An option with no label shows its value.
     expect(
-      (fieldOf("offices").dropdownOptions as Array<{ label: string }>)[1]!.label,
+      (fieldOf("offices").dropdownOptions as Array<{ label: string }>)[1]!
+        .label,
     ).toBe("London");
   });
 

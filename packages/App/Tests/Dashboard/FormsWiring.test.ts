@@ -43,7 +43,8 @@ const INCIDENTS_MENU: string = "Pages/Incidents/SideMenu.tsx";
 const NAVIGATION_ITEMS: string = "Utils/NavigationItems.tsx";
 const REDIRECT: string = "Components/FormBuilder/MovedFormPageRedirect.tsx";
 const SHARE_LINK: string = "Components/FormBuilder/FormShareLink.ts";
-const DEVELOPER_PAGES: string = "Components/DeveloperDocs/DeveloperDocsPages.ts";
+const DEVELOPER_PAGES: string =
+  "Components/DeveloperDocs/DeveloperDocsPages.ts";
 
 function readRaw(relativePath: string): string {
   return fs.readFileSync(path.join(DASHBOARD_SRC, relativePath), "utf8");
@@ -169,8 +170,11 @@ const PAGES: Array<FormsPageCase> = [
 
 describe("the product's mount", () => {
   test("FORMS_ROOT is declared, routed to /forms/* and mounted lazily in App.tsx", () => {
-    expect(readCode("Utils/PageMap.ts")).toContain('FORMS_ROOT = "FORMS_ROOT",');
-    expect(denseRaw("Utils/RouteMap.ts")).toContain(
+    expect(readCode("Utils/PageMap.ts")).toContain(
+      'FORMS_ROOT = "FORMS_ROOT",',
+    );
+    // Prettier may wrap the call, with a trailing comma: either is the same route.
+    expect(denseRaw("Utils/RouteMap.ts").replace(/,\)/g, ")")).toContain(
       "[PageMap.FORMS_ROOT]:newRoute(`/dashboard/${RouteParams.ProjectID}/forms/*`),",
     );
 
@@ -348,9 +352,9 @@ describe("the menus", () => {
       );
     }
 
-    expect(
-      sectionBetween(code, 'title:"DeleteForm"', "/>"),
-    ).toContain('className="danger-on-hover"');
+    expect(sectionBetween(code, 'title:"DeleteForm"', "/>")).toContain(
+      'className="danger-on-hover"',
+    );
   });
 
   test("both scopes have Developer pages, for the Form table", () => {
@@ -399,7 +403,11 @@ describe("the product menu", () => {
   test("someone looking for the old incident forms finds it", () => {
     const item: string = formsItem();
 
-    for (const keyword of ['"incidentform"', '"formbuilder"', '"submissions"']) {
+    for (const keyword of [
+      '"incidentform"',
+      '"formbuilder"',
+      '"submissions"',
+    ]) {
       expect(item).toContain(keyword);
     }
   });
@@ -409,7 +417,9 @@ describe("the product menu", () => {
     const runbooks: number = code.indexOf(
       'description:t("navbar.items.runbooksDescription"),',
     );
-    const forms: number = code.indexOf('title:t("navbar.items.formsTitle","Forms"),');
+    const forms: number = code.indexOf(
+      'title:t("navbar.items.formsTitle","Forms"),',
+    );
 
     expect(runbooks).toBeGreaterThan(-1);
     expect(forms).toBeGreaterThan(runbooks);
@@ -427,8 +437,12 @@ describe("Incident Forms is gone", () => {
   });
 
   test("no page key, route, breadcrumb or page of it is left", () => {
-    expect(readCode("Utils/PageMap.ts")).not.toContain("INCIDENTS_SETTINGS_FORMS");
-    expect(readCode("Utils/RouteMap.ts")).not.toContain("INCIDENTS_SETTINGS_FORMS");
+    expect(readCode("Utils/PageMap.ts")).not.toContain(
+      "INCIDENTS_SETTINGS_FORMS",
+    );
+    expect(readCode("Utils/RouteMap.ts")).not.toContain(
+      "INCIDENTS_SETTINGS_FORMS",
+    );
     expect(readCode(INCIDENT_BREADCRUMBS)).not.toContain(
       "INCIDENTS_SETTINGS_FORMS",
     );

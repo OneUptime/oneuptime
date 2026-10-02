@@ -82,22 +82,24 @@ type ToDropdownOptionsFunction = (
 const toDropdownOptions: ToDropdownOptionsFunction = (
   options: Array<PublicFormFieldOption> | undefined,
 ): Array<DropdownOption> => {
-  return (options || []).map((option: PublicFormFieldOption): DropdownOption => {
-    const dropdownOption: DropdownOption = {
-      label: option.label || option.value,
-      value: option.value,
-    };
+  return (options || []).map(
+    (option: PublicFormFieldOption): DropdownOption => {
+      const dropdownOption: DropdownOption = {
+        label: option.label || option.value,
+        value: option.value,
+      };
 
-    if (option.color) {
-      try {
-        dropdownOption.color = new Color(option.color);
-      } catch {
-        // A color this page cannot draw is simply not drawn.
+      if (option.color) {
+        try {
+          dropdownOption.color = new Color(option.color);
+        } catch {
+          // A color this page cannot draw is simply not drawn.
+        }
       }
-    }
 
-    return dropdownOption;
-  });
+      return dropdownOption;
+    },
+  );
 };
 
 export interface BuildPublicFormFieldsOptions {

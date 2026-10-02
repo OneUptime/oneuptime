@@ -144,7 +144,9 @@ describe("getFormSubmissionAnswers: what a submission keeps", () => {
   });
 
   test("an answer is read as the answers object's own, never its prototype's", () => {
-    const answers: Record<string, unknown> = Object.create({ title: "inherited" });
+    const answers: Record<string, unknown> = Object.create({
+      title: "inherited",
+    });
 
     expect(
       getFormSubmissionAnswers({
@@ -179,7 +181,7 @@ describe("readFormSubmissionAnswers: what is stored, as the page reads it", () =
         ["row"],
         "row",
       ]),
-    ).toEqual<Array<FormSubmissionAnswer>>([
+    ).toEqual([
       {
         fieldId: "title",
         label: "What is wrong?",

@@ -1,4 +1,6 @@
-import Markdown, { MarkdownContentType } from "../../../../Server/Types/Markdown";
+import Markdown, {
+  MarkdownContentType,
+} from "../../../../Server/Types/Markdown";
 import {
   FormNoteAnswerFormat,
   getFormSubmissionNote,
@@ -92,7 +94,9 @@ describe("getFormSubmissionNote: who sent it", () => {
         formName: "Form",
         submitterEmail: "Jane <jane@example.com>",
       }),
-    ).toBe("Submitted through the form **Form** by Jane \\<jane@example.com\\>.");
+    ).toBe(
+      "Submitted through the form **Form** by Jane \\<jane@example.com\\>.",
+    );
   });
 
   test("getFormSubmitterEmailText: an autolink, an explicit link, an escape or nothing", () => {
@@ -191,11 +195,21 @@ describe("getFormSubmissionNote: the answers", () => {
       getFormSubmissionNote({
         formName: "F",
         answers: [
-          { label: "Empty", displayValue: "  ", format: FormNoteAnswerFormat.SingleLine },
-          { label: "", displayValue: "42", format: FormNoteAnswerFormat.SingleLine },
+          {
+            label: "Empty",
+            displayValue: "  ",
+            format: FormNoteAnswerFormat.SingleLine,
+          },
+          {
+            label: "",
+            displayValue: "42",
+            format: FormNoteAnswerFormat.SingleLine,
+          },
         ],
       }),
-    ).toBe("Submitted anonymously through the form **F**.\n\n**Question**  \n42");
+    ).toBe(
+      "Submitted anonymously through the form **F**.\n\n**Question**  \n42",
+    );
   });
 });
 
@@ -246,33 +260,36 @@ describe("getFormSubmissionNote: links the submitter's whole address", () => {
       .replace(/&amp;/g, "&");
   }
 
-  test.each(ADDRESSES)("in the owners' email and in Slack: %s", async (address: string) => {
-    const note: string = getFormSubmissionNote({
-      formName: "Report a Problem",
-      submitterName: "Jane Doe",
-      submitterEmail: address,
-    });
+  test.each(ADDRESSES)(
+    "in the owners' email and in Slack: %s",
+    async (address: string) => {
+      const note: string = getFormSubmissionNote({
+        formName: "Report a Problem",
+        submitterName: "Jane Doe",
+        submitterEmail: address,
+      });
 
-    const html: string = await Markdown.convertToHTML(
-      note,
-      MarkdownContentType.Email,
-    );
+      const html: string = await Markdown.convertToHTML(
+        note,
+        MarkdownContentType.Email,
+      );
 
-    expect(hrefs(html)).toEqual([`mailto:${address.replace(/'/g, "&#39;")}`]);
+      expect(hrefs(html)).toEqual([`mailto:${address.replace(/'/g, "&#39;")}`]);
 
-    const sections: string = JSON.stringify(
-      SlackUtil.getMarkdownBlocks({
-        payloadMarkdownBlock: {
-          _type: "WorkspacePayloadMarkdown",
-          text: note,
-        },
-      }),
-    );
+      const sections: string = JSON.stringify(
+        SlackUtil.getMarkdownBlocks({
+          payloadMarkdownBlock: {
+            _type: "WorkspacePayloadMarkdown",
+            text: note,
+          },
+        }),
+      );
 
-    expect(sections).toContain(
-      JSON.stringify(`<mailto:${address}|${address}>`).slice(1, -1),
-    );
-  });
+      expect(sections).toContain(
+        JSON.stringify(`<mailto:${address}|${address}>`).slice(1, -1),
+      );
+    },
+  );
 
   test.each([
     ["!bang@example.com"],

@@ -175,9 +175,12 @@ const FormSubmissionsTable: FunctionComponent<ComponentProps> = (
         return (
           <Link
             className="font-medium text-indigo-600 hover:text-indigo-500"
-            to={RouteUtil.populateRouteParams(RouteMap[created.pageMap] as Route, {
-              modelId: created.id,
-            })}
+            to={RouteUtil.populateRouteParams(
+              RouteMap[created.pageMap] as Route,
+              {
+                modelId: created.id,
+              },
+            )}
           >
             {tx(created.kindTitle)} {created.reference}
           </Link>
@@ -196,7 +199,9 @@ const FormSubmissionsTable: FunctionComponent<ComponentProps> = (
     <>
       <ModelTable<FormSubmission>
         modelType={FormSubmission}
-        id={isAllForms ? "all-form-submissions-table" : "form-submissions-table"}
+        id={
+          isAllForms ? "all-form-submissions-table" : "form-submissions-table"
+        }
         userPreferencesKey={
           isAllForms ? "all-form-submissions-table" : "form-submissions-table"
         }

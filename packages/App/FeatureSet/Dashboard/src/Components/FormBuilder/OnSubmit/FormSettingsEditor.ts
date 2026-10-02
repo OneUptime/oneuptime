@@ -374,7 +374,13 @@ export const packFormSettingsValues: PackFormSettingsValuesFunction = (data: {
 
   const listKeys: Array<string> =
     data.targetType === FormTargetType.ScheduledMaintenance
-      ? ["monitorIds", "statusPageIds", "labelIds", "ownerUserIds", "ownerTeamIds"]
+      ? [
+          "monitorIds",
+          "statusPageIds",
+          "labelIds",
+          "ownerUserIds",
+          "ownerTeamIds",
+        ]
       : [
           "monitorIds",
           "labelIds",

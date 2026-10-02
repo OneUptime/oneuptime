@@ -59,22 +59,25 @@ describe("FormTargetType", () => {
     expect(DEFAULT_FORM_TARGET_TYPE).toBe(FormTargetType.Incident);
   });
 
-  test.each(FORM_TARGET_TYPES.map((target: FormTargetType) => {
-    return [target];
-  }))("%s has a title, a noun, a noun with its article and a description", (
-    target: FormTargetType,
-  ) => {
-    const text: (typeof FORM_TARGET_TYPE_TEXT)[FormTargetType] =
-      FORM_TARGET_TYPE_TEXT[target];
+  test.each(
+    FORM_TARGET_TYPES.map((target: FormTargetType) => {
+      return [target];
+    }),
+  )(
+    "%s has a title, a noun, a noun with its article and a description",
+    (target: FormTargetType) => {
+      const text: (typeof FORM_TARGET_TYPE_TEXT)[FormTargetType] =
+        FORM_TARGET_TYPE_TEXT[target];
 
-    expect(text.title.trim()).not.toBe("");
-    expect(text.noun).toBe(text.noun.toLowerCase());
-    expect(text.nounWithArticle.endsWith(text.noun)).toBe(true);
-    expect(text.nounWithArticle).toMatch(/^(a|an) /);
-    // A whole sentence, so the dashboard can translate it on its own.
-    expect(text.description).toMatch(/^[A-Z].*\.$/);
-    expect(text.description).not.toContain("{{");
-  });
+      expect(text.title.trim()).not.toBe("");
+      expect(text.noun).toBe(text.noun.toLowerCase());
+      expect(text.nounWithArticle.endsWith(text.noun)).toBe(true);
+      expect(text.nounWithArticle).toMatch(/^(a|an) /);
+      // A whole sentence, so the dashboard can translate it on its own.
+      expect(text.description).toMatch(/^[A-Z].*\.$/);
+      expect(text.description).not.toContain("{{");
+    },
+  );
 
   test("the words are the ones the dashboard and the docs use", () => {
     expect(FORM_TARGET_TYPE_TEXT[FormTargetType.Incident]).toEqual({
@@ -84,15 +87,13 @@ describe("FormTargetType", () => {
       description:
         "Each submission declares an incident, so your on-call team is told straight away. Use it for problem reports.",
     });
-    expect(FORM_TARGET_TYPE_TEXT[FormTargetType.ScheduledMaintenance]).toEqual(
-      {
-        title: "Scheduled Maintenance",
-        noun: "scheduled maintenance event",
-        nounWithArticle: "a scheduled maintenance event",
-        description:
-          "Each submission schedules a maintenance event. Use it for change and maintenance requests.",
-      },
-    );
+    expect(FORM_TARGET_TYPE_TEXT[FormTargetType.ScheduledMaintenance]).toEqual({
+      title: "Scheduled Maintenance",
+      noun: "scheduled maintenance event",
+      nounWithArticle: "a scheduled maintenance event",
+      description:
+        "Each submission schedules a maintenance event. Use it for change and maintenance requests.",
+    });
   });
 
   test.each([
@@ -276,7 +277,10 @@ describe("the scheduled maintenance fields", () => {
       ),
     ).toBeUndefined();
     expect(
-      getFormTargetField(FormTargetType.ScheduledMaintenance, "impactStartedAt"),
+      getFormTargetField(
+        FormTargetType.ScheduledMaintenance,
+        "impactStartedAt",
+      ),
     ).toBeUndefined();
   });
 });

@@ -86,12 +86,8 @@ describe("each sentence the page knows is the server's, byte for byte", () => {
       "utf8",
     );
 
-    expect(captchaSource).toContain(
-      JSON.stringify(FormMessage.CaptchaMissing),
-    );
-    expect(captchaSource).toContain(
-      JSON.stringify(FormMessage.CaptchaFailed),
-    );
+    expect(captchaSource).toContain(JSON.stringify(FormMessage.CaptchaMissing));
+    expect(captchaSource).toContain(JSON.stringify(FormMessage.CaptchaFailed));
   });
 
   test("every sentence is accounted for: the server's, or the page's own", () => {

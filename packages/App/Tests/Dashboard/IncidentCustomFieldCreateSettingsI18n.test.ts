@@ -299,10 +299,16 @@ describe("the card, the wizard and the pages render the shared strings and wirin
       "IncidentTemplatesView.tsx",
     );
 
-    expect(view).toContain("<IncidentCustomFieldSettingsCard modelId={modelId} />");
+    expect(view).toContain(
+      "<IncidentCustomFieldSettingsCard modelId={modelId} />",
+    );
     // The card has one job now: no mode to choose.
     expect(
-      readSource("Components", "Incident", "IncidentCustomFieldSettingsCard.tsx"),
+      readSource(
+        "Components",
+        "Incident",
+        "IncidentCustomFieldSettingsCard.tsx",
+      ),
     ).not.toContain('mode="form"');
   });
 

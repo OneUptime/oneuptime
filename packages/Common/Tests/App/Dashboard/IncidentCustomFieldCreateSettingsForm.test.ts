@@ -26,7 +26,6 @@ import {
   CustomFieldCreateSetting,
   CustomFieldCreateSettings,
 } from "../../../Types/CustomField/CustomFieldCreateSettings";
-import CustomFieldMappingSourceResource from "../../../Types/CustomField/CustomFieldMappingSourceResource";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import { JSONObject } from "../../../Types/JSON";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";

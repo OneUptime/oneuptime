@@ -216,7 +216,9 @@ describe("the old Incident Forms page", () => {
   });
 
   it("does not redirect an unsupported language to a page that does not exist", async () => {
-    const response: Response = await fetchManual("/docs/invalid/incidents/forms");
+    const response: Response = await fetchManual(
+      "/docs/invalid/incidents/forms",
+    );
 
     expect(response.headers.get("location") || "").not.toContain(
       "/docs/invalid/forms",

@@ -66,22 +66,23 @@ const CF_REGION: string = "0e0e0e0e-0000-4000-8000-000000000001";
 const CF_IMPACT: string = "0e0e0e0e-0000-4000-8000-000000000002";
 const CF_UNTYPED: string = "0e0e0e0e-0000-4000-8000-000000000003";
 
-const RECORDS: Partial<Record<FormTargetOptionsSource, Array<FormRecordOption>>> =
-  {
-    [FormTargetOptionsSource.IncidentSeverity]: [
-      { id: SEVERITY_HIGH, name: "High", color: "#ff0000" },
-      { id: SEVERITY_LOW, name: "Low" },
-    ],
-    [FormTargetOptionsSource.Monitor]: [
-      { id: MONITOR_API, name: "API" },
-      { id: MONITOR_WEB, name: "Website" },
-      { id: MONITOR_DB, name: "Database" },
-    ],
-    [FormTargetOptionsSource.Label]: [
-      { id: LABEL_EU, name: "eu", color: new Color("#00ff00") as never },
-    ],
-    [FormTargetOptionsSource.StatusPage]: [{ id: PAGE_MAIN, name: "Main" }],
-  };
+const RECORDS: Partial<
+  Record<FormTargetOptionsSource, Array<FormRecordOption>>
+> = {
+  [FormTargetOptionsSource.IncidentSeverity]: [
+    { id: SEVERITY_HIGH, name: "High", color: "#ff0000" },
+    { id: SEVERITY_LOW, name: "Low" },
+  ],
+  [FormTargetOptionsSource.Monitor]: [
+    { id: MONITOR_API, name: "API" },
+    { id: MONITOR_WEB, name: "Website" },
+    { id: MONITOR_DB, name: "Database" },
+  ],
+  [FormTargetOptionsSource.Label]: [
+    { id: LABEL_EU, name: "eu", color: new Color("#00ff00") as never },
+  ],
+  [FormTargetOptionsSource.StatusPage]: [{ id: PAGE_MAIN, name: "Main" }],
+};
 
 const CUSTOM_FIELDS: Array<FormCustomFieldDefinition> = [
   {
@@ -177,22 +178,24 @@ const FIELDS: Array<FormField> = [
   }),
 ];
 
-type BuildFunction = (
-  overrides?: Partial<{
-    fields: unknown;
-    targetType: FormTargetType;
-    customFields: Array<FormCustomFieldDefinition>;
-    recordOptions: Partial<
-      Record<FormTargetOptionsSource, Array<FormRecordOption>>
-    >;
-    defaultOptionValues: Partial<Record<string, string>>;
-    isCaptchaRequired: boolean;
-    name: unknown;
-    description: unknown;
-  }>,
-) => BuiltPublicForm;
+type BuildOverrides = Partial<{
+  fields: unknown;
+  targetType: FormTargetType;
+  customFields: Array<FormCustomFieldDefinition>;
+  recordOptions: Partial<
+    Record<FormTargetOptionsSource, Array<FormRecordOption>>
+  >;
+  defaultOptionValues: Partial<Record<string, string>>;
+  isCaptchaRequired: boolean;
+  name: unknown;
+  description: unknown;
+}>;
 
-const build: BuildFunction = (overrides = {}): BuiltPublicForm => {
+type BuildFunction = (overrides?: BuildOverrides) => BuiltPublicForm;
+
+const build: BuildFunction = (
+  overrides: BuildOverrides = {},
+): BuiltPublicForm => {
   return buildPublicForm({
     form: {
       name: ("name" in overrides ? overrides.name : "Report a Problem") as
@@ -626,8 +629,14 @@ describe("buildPublicForm: what the page is told about the form", () => {
           },
         ),
       ).toEqual([
-        { fieldId: "region", reason: FormSkippedFieldReason.CustomFieldDeleted },
-        { fieldId: "impact", reason: FormSkippedFieldReason.CustomFieldDeleted },
+        {
+          fieldId: "region",
+          reason: FormSkippedFieldReason.CustomFieldDeleted,
+        },
+        {
+          fieldId: "impact",
+          reason: FormSkippedFieldReason.CustomFieldDeleted,
+        },
       ]);
     });
 
@@ -703,7 +712,11 @@ describe("buildPublicForm: what the page is told about the form", () => {
     });
 
     test.each([
-      [CustomFieldType.Text, PublicFormFieldType.Text, FORM_TEXT_ANSWER_MAX_LENGTH],
+      [
+        CustomFieldType.Text,
+        PublicFormFieldType.Text,
+        FORM_TEXT_ANSWER_MAX_LENGTH,
+      ],
       [
         CustomFieldType.LongText,
         PublicFormFieldType.LongText,
@@ -825,7 +838,9 @@ describe("validateFormSubmission: the shape of the request", () => {
     (data: unknown) => {
       expect(validateFormSubmission({ fields: PUBLIC_FIELDS, data })).toEqual({
         isValid: false,
-        errors: ["The submission must be an object holding the form's answers."],
+        errors: [
+          "The submission must be an object holding the form's answers.",
+        ],
       });
     },
   );
@@ -902,9 +917,9 @@ describe("validateFormSubmission: the shape of the request", () => {
   });
 
   test("formatFormSubmissionErrors makes one message of them", () => {
-    expect(formatFormSubmissionErrors(["A is required.", "B is required."])).toBe(
-      "A is required. B is required.",
-    );
+    expect(
+      formatFormSubmissionErrors(["A is required.", "B is required."]),
+    ).toBe("A is required. B is required.");
     expect(formatFormSubmissionErrors([])).toBe("");
   });
 });
@@ -937,9 +952,9 @@ describe("validateFormSubmission: text", () => {
   });
 
   test("an optional answer left blank is not stored", () => {
-    expect("description" in answersOf({ ...REQUIRED_ANSWERS, description: "  \n " })).toBe(
-      false,
-    );
+    expect(
+      "description" in answersOf({ ...REQUIRED_ANSWERS, description: "  \n " }),
+    ).toBe(false);
   });
 
   test("text is capped at its question's length, exactly", () => {
@@ -1022,7 +1037,7 @@ describe("validateFormSubmission: checkboxes", () => {
     ]);
   });
 
-  test("\"true\" and \"false\" are read as yes and no", () => {
+  test('"true" and "false" are read as yes and no', () => {
     expect(answersOf({ ...REQUIRED_ANSWERS, checked: "true" })["checked"]).toBe(
       true,
     );
@@ -1073,9 +1088,7 @@ describe("validateFormSubmission: choices", () => {
   });
 
   test("a record the question does not offer is refused", () => {
-    expect(
-      errorsOf({ ...REQUIRED_ANSWERS, monitors: [MONITOR_DB] }),
-    ).toEqual([
+    expect(errorsOf({ ...REQUIRED_ANSWERS, monitors: [MONITOR_DB] })).toEqual([
       "Affected Monitors must be chosen from the options the form lists.",
     ]);
   });
@@ -1113,7 +1126,9 @@ describe("validateFormSubmission: choices", () => {
     ]);
     expect(
       errorsOf({ ...REQUIRED_ANSWERS, monitors: { 0: MONITOR_API } }),
-    ).toEqual(["Affected Monitors takes a list of its options, not an object."]);
+    ).toEqual([
+      "Affected Monitors takes a list of its options, not an object.",
+    ]);
   });
 
   test("lists and objects inside a multi-select's answer are refused, unread", () => {
@@ -1132,7 +1147,11 @@ describe("validateFormSubmission: choices", () => {
   test("at most 100 choices, or as many options as the question has", () => {
     const tooMany: Array<string> = [];
 
-    for (let index: number = 0; index <= FORM_MULTI_SELECT_MAX_CHOICES; index++) {
+    for (
+      let index: number = 0;
+      index <= FORM_MULTI_SELECT_MAX_CHOICES;
+      index++
+    ) {
       tooMany.push(MONITOR_API);
     }
 
@@ -1218,13 +1237,13 @@ describe("validateFormSubmission never throws", () => {
 
     const started: number = Date.now();
 
-    expect(errorsOf({ ...REQUIRED_ANSWERS, region: wide, monitors: huge })).toEqual(
-      [
-        // In the form's order: the monitors are asked before the region.
-        "Affected Monitors cannot have more than 100 choices.",
-        "Region takes one answer, not an object.",
-      ],
-    );
+    expect(
+      errorsOf({ ...REQUIRED_ANSWERS, region: wide, monitors: huge }),
+    ).toEqual([
+      // In the form's order: the monitors are asked before the region.
+      "Affected Monitors cannot have more than 100 choices.",
+      "Region takes one answer, not an object.",
+    ]);
     expect(Date.now() - started).toBeLessThan(2000);
   });
 

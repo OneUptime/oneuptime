@@ -81,9 +81,11 @@ describe("getFormPaletteState: what the palette still offers", () => {
     });
 
     expect(
-      state.targetFields.map((entry: { definition: { key: string }; isAdded: boolean }) => {
-        return `${entry.definition.key}:${entry.isAdded}`;
-      }),
+      state.targetFields.map(
+        (entry: { definition: { key: string }; isAdded: boolean }) => {
+          return `${entry.definition.key}:${entry.isAdded}`;
+        },
+      ),
     ).toEqual([
       "title:true",
       "description:true",
@@ -94,9 +96,11 @@ describe("getFormPaletteState: what the palette still offers", () => {
     ]);
     expect(state.customFields[0]!.isAdded).toBe(true);
     expect(
-      state.submitterFields.map((entry: { submitterField: string; isAdded: boolean }) => {
-        return `${entry.submitterField}:${entry.isAdded}`;
-      }),
+      state.submitterFields.map(
+        (entry: { submitterField: string; isAdded: boolean }) => {
+          return `${entry.submitterField}:${entry.isAdded}`;
+        },
+      ),
     ).toEqual(["Name:true", "Email:true"]);
     expect(state.isFull).toBe(false);
   });
@@ -139,7 +143,11 @@ describe("getFormPaletteState: what the palette still offers", () => {
 });
 
 describe("insertFormField: where an added question goes", () => {
-  const FIELDS: Array<FormField> = [question("a"), question("b"), question("c")];
+  const FIELDS: Array<FormField> = [
+    question("a"),
+    question("b"),
+    question("c"),
+  ];
 
   test("right after the selected question, and selected", () => {
     const change: FormFieldsChange = insertFormField({
@@ -158,8 +166,11 @@ describe("insertFormField: where an added question goes", () => {
     ).toEqual(["a", "b", "c", "new"]);
     expect(
       ids(
-        insertFormField({ fields: FIELDS, field: question("new"), afterId: "x" })
-          .fields,
+        insertFormField({
+          fields: FIELDS,
+          field: question("new"),
+          afterId: "x",
+        }).fields,
       ),
     ).toEqual(["a", "b", "c", "new"]);
   });
@@ -217,7 +228,10 @@ describe("createPaletteField: the question a palette entry adds", () => {
       label: "Affected Monitors",
     });
     expect(
-      createPaletteField({ kind: "customField", definition: CUSTOM_FIELDS[0]! }),
+      createPaletteField({
+        kind: "customField",
+        definition: CUSTOM_FIELDS[0]!,
+      }),
     ).toMatchObject({
       source: FormFieldSource.TargetCustomField,
       customFieldId: REGION_ID,
@@ -238,15 +252,19 @@ describe("createPaletteField: the question a palette entry adds", () => {
 });
 
 describe("moving questions", () => {
-  const FIELDS: Array<FormField> = [question("a"), question("b"), question("c")];
+  const FIELDS: Array<FormField> = [
+    question("a"),
+    question("b"),
+    question("c"),
+  ];
 
   test("a drag moves one question from one place to another", () => {
-    expect(ids(moveFormField({ fields: FIELDS, fromIndex: 0, toIndex: 2 }))).toEqual(
-      ["b", "c", "a"],
-    );
-    expect(ids(moveFormField({ fields: FIELDS, fromIndex: 2, toIndex: 0 }))).toEqual(
-      ["c", "a", "b"],
-    );
+    expect(
+      ids(moveFormField({ fields: FIELDS, fromIndex: 0, toIndex: 2 })),
+    ).toEqual(["b", "c", "a"]);
+    expect(
+      ids(moveFormField({ fields: FIELDS, fromIndex: 2, toIndex: 0 })),
+    ).toEqual(["c", "a", "b"]);
   });
 
   test.each([
@@ -254,40 +272,31 @@ describe("moving questions", () => {
     [0, 3],
     [3, 0],
     [1, 1],
-  ])("a drag from %p to %p changes nothing", (fromIndex: number, toIndex: number) => {
-    expect(ids(moveFormField({ fields: FIELDS, fromIndex, toIndex }))).toEqual([
-      "a",
-      "b",
-      "c",
-    ]);
-  });
+  ])(
+    "a drag from %p to %p changes nothing",
+    (fromIndex: number, toIndex: number) => {
+      expect(
+        ids(moveFormField({ fields: FIELDS, fromIndex, toIndex })),
+      ).toEqual(["a", "b", "c"]);
+    },
+  );
 
   test("Move Up and Move Down move one place, and stop at the ends", () => {
-    expect(ids(moveFormFieldBy({ fields: FIELDS, id: "b", offset: -1 }))).toEqual([
-      "b",
-      "a",
-      "c",
-    ]);
-    expect(ids(moveFormFieldBy({ fields: FIELDS, id: "b", offset: 1 }))).toEqual([
-      "a",
-      "c",
-      "b",
-    ]);
-    expect(ids(moveFormFieldBy({ fields: FIELDS, id: "a", offset: -1 }))).toEqual([
-      "a",
-      "b",
-      "c",
-    ]);
-    expect(ids(moveFormFieldBy({ fields: FIELDS, id: "c", offset: 1 }))).toEqual([
-      "a",
-      "b",
-      "c",
-    ]);
-    expect(ids(moveFormFieldBy({ fields: FIELDS, id: "zz", offset: 1 }))).toEqual([
-      "a",
-      "b",
-      "c",
-    ]);
+    expect(
+      ids(moveFormFieldBy({ fields: FIELDS, id: "b", offset: -1 })),
+    ).toEqual(["b", "a", "c"]);
+    expect(
+      ids(moveFormFieldBy({ fields: FIELDS, id: "b", offset: 1 })),
+    ).toEqual(["a", "c", "b"]);
+    expect(
+      ids(moveFormFieldBy({ fields: FIELDS, id: "a", offset: -1 })),
+    ).toEqual(["a", "b", "c"]);
+    expect(
+      ids(moveFormFieldBy({ fields: FIELDS, id: "c", offset: 1 })),
+    ).toEqual(["a", "b", "c"]);
+    expect(
+      ids(moveFormFieldBy({ fields: FIELDS, id: "zz", offset: 1 })),
+    ).toEqual(["a", "b", "c"]);
   });
 });
 
@@ -385,9 +394,13 @@ describe("what may be deleted or duplicated", () => {
         targetType: FormTargetType.ScheduledMaintenance,
       });
 
-      expect({ field: field.targetField || field.submitterField, locked }).toEqual({
+      expect({
         field: field.targetField || field.submitterField,
-        locked: field.targetField === "startsAt" || field.targetField === "endsAt",
+        locked,
+      }).toEqual({
+        field: field.targetField || field.submitterField,
+        locked:
+          field.targetField === "startsAt" || field.targetField === "endsAt",
       });
     }
 
@@ -456,7 +469,11 @@ describe("what a card warns about", () => {
     field: FormField,
     targetType: FormTargetType = FormTargetType.Incident,
   ): Array<FormFieldIssue> => {
-    return getFormFieldIssues({ field, targetType, customFields: CUSTOM_FIELDS });
+    return getFormFieldIssues({
+      field,
+      targetType,
+      customFields: CUSTOM_FIELDS,
+    });
   };
 
   test("a question with no label", () => {
@@ -526,10 +543,15 @@ describe("what a card warns about", () => {
         dropdownOptions: "",
       }),
     ).toEqual([FormFieldIssue.NoOptions]);
-    expect(getQuestionOptions(createQuestionField({ type: CustomFieldType.Dropdown, label: "x", id: "d" }))).toEqual([
-      "Option 1",
-      "Option 2",
-    ]);
+    expect(
+      getQuestionOptions(
+        createQuestionField({
+          type: CustomFieldType.Dropdown,
+          label: "x",
+          id: "d",
+        }),
+      ),
+    ).toEqual(["Option 1", "Option 2"]);
   });
 });
 
@@ -584,20 +606,25 @@ describe("answer types and lookups", () => {
   });
 
   test("a custom field is found by id in any case", () => {
-    expect(findCustomFieldDefinition(CUSTOM_FIELDS, REGION_ID.toUpperCase())).toBe(
-      CUSTOM_FIELDS[0],
-    );
+    expect(
+      findCustomFieldDefinition(CUSTOM_FIELDS, REGION_ID.toUpperCase()),
+    ).toBe(CUSTOM_FIELDS[0]);
     expect(findCustomFieldDefinition(CUSTOM_FIELDS, undefined)).toBeUndefined();
   });
 
   test("two lists of questions are equal when every question is", () => {
-    const fields: Array<FormField> = getDefaultFormFields(FormTargetType.Incident);
+    const fields: Array<FormField> = getDefaultFormFields(
+      FormTargetType.Incident,
+    );
 
     expect(areFormFieldsEqual(fields, JSON.parse(JSON.stringify(fields)))).toBe(
       true,
     );
     expect(
-      areFormFieldsEqual(fields, [{ ...fields[0]!, label: "Changed" }, ...fields.slice(1)]),
+      areFormFieldsEqual(fields, [
+        { ...fields[0]!, label: "Changed" },
+        ...fields.slice(1),
+      ]),
     ).toBe(false);
   });
 });

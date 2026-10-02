@@ -170,7 +170,8 @@ export const FORM_SUBMITTER_FIELD_DEFINITIONS: Readonly<
   },
 };
 
-const FORM_FIELD_SOURCES: ReadonlyArray<string> = Object.values(FormFieldSource);
+const FORM_FIELD_SOURCES: ReadonlyArray<string> =
+  Object.values(FormFieldSource);
 
 type IsPlainObjectFunction = (
   value: unknown,
@@ -486,7 +487,9 @@ const checkQuestion: CheckFieldFunction = (data: {
   });
 
   if (options.length === 0) {
-    data.problems.push(`${data.name} needs at least one option to choose from.`);
+    data.problems.push(
+      `${data.name} needs at least one option to choose from.`,
+    );
     return;
   }
 
@@ -520,8 +523,10 @@ const checkTargetField: CheckFieldFunction = (data: {
   targetType: FormTargetType;
   problems: Array<string>;
 }): void => {
-  const definition: FormTargetFieldDefinition | undefined =
-    getFormTargetField(data.targetType, data.entry["targetField"]);
+  const definition: FormTargetFieldDefinition | undefined = getFormTargetField(
+    data.targetType,
+    data.entry["targetField"],
+  );
 
   if (!definition) {
     data.problems.push(
@@ -721,7 +726,9 @@ export const validateFormFields: ValidateFormFieldsFunction = (data: {
       const key: string = String(entry["targetField"] || "");
 
       if (key && targetFields.has(key)) {
-        problems.push(`${name} asks for a field another question already asks.`);
+        problems.push(
+          `${name} asks for a field another question already asks.`,
+        );
       }
 
       targetFields.add(key);
@@ -782,9 +789,7 @@ export const validateFormFields: ValidateFormFieldsFunction = (data: {
   const more: number = problems.length - MAX_LISTED_PROBLEMS;
 
   return `${problems.slice(0, MAX_LISTED_PROBLEMS).join(" ")}${
-    more > 0
-      ? ` And ${more} more ${more === 1 ? "problem" : "problems"}.`
-      : ""
+    more > 0 ? ` And ${more} more ${more === 1 ? "problem" : "problems"}.` : ""
   }`;
 };
 
@@ -822,8 +827,7 @@ export const createQuestionField: CreateQuestionFieldFunction = (data: {
   };
 
   if (FORM_CHOICE_QUESTION_TYPES.includes(data.type)) {
-    field.dropdownOptions =
-      data.dropdownOptions || getDefaultQuestionOptions();
+    field.dropdownOptions = data.dropdownOptions || getDefaultQuestionOptions();
   }
 
   return field;

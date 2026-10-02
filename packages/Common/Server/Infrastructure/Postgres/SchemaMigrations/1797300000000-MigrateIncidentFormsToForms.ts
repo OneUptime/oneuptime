@@ -152,15 +152,13 @@ export class MigrateIncidentFormsToForms1797300000000
           return String(field.projectId) === String(form.projectId);
         });
 
-      const converted: ConvertedLegacyIncidentForm = convertLegacyIncidentForm(
-        {
-          form: form,
-          customFields: projectCustomFields,
-          generateId: (): string => {
-            return ObjectID.generate().toString();
-          },
+      const converted: ConvertedLegacyIncidentForm = convertLegacyIncidentForm({
+        form: form,
+        customFields: projectCustomFields,
+        generateId: (): string => {
+          return ObjectID.generate().toString();
         },
-      );
+      });
 
       await queryRunner.query(
         `INSERT INTO "Form" ("_id", "createdAt", "updatedAt", "version", "projectId", "name", "description", "isEnabled", "shareKey", "targetType", "fields", "targetSettings", "successMessage", "ipWhitelist", "createdByUserId") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13, $14, $15)`,

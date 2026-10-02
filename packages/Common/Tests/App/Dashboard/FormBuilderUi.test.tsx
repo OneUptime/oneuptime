@@ -121,7 +121,9 @@ jest.mock("../../../UI/Utils/Project", () => {
         const ObjectIDClass: any = jest.requireActual(
           "../../../Types/ObjectID",
         ) as any;
-        return new ObjectIDClass.default("11111111-1111-4111-8111-111111111111");
+        return new ObjectIDClass.default(
+          "11111111-1111-4111-8111-111111111111",
+        );
       },
     },
   };
@@ -237,7 +239,9 @@ beforeEach(() => {
     const form: Form = new Form();
     form._id = FORM_ID;
     form.name = stored.name;
-    form.description = stored.description;
+    if (stored.description !== undefined) {
+      form.description = stored.description;
+    }
     form.targetType = stored.targetType;
     form.fields = JSON.parse(JSON.stringify(stored.fields));
     form.targetSettings = (stored.targetSettings || {}) as never;
@@ -392,7 +396,9 @@ describe("loading", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("The form could not be read.")).toBeInTheDocument();
+      expect(
+        screen.getByText("The form could not be read."),
+      ).toBeInTheDocument();
     });
     expect(screen.queryByTestId("form-canvas")).not.toBeInTheDocument();
   });
@@ -444,9 +450,9 @@ describe("the palette", () => {
       "data-selected",
       "true",
     );
-    expect(
-      screen.getByTestId(`form-question-label-${added}`),
-    ).toHaveValue(FormsCopy.newQuestionLabel);
+    expect(screen.getByTestId(`form-question-label-${added}`)).toHaveValue(
+      FormsCopy.newQuestionLabel,
+    );
     expect(status()).toHaveTextContent(FormsCopy.unsavedChanges);
     expect(updateByIdMock).not.toHaveBeenCalled();
   });
@@ -461,7 +467,9 @@ describe("the palette", () => {
 
     expect(ids[ids.indexOf("severity") + 1]).not.toBe("office");
     expect(
-      screen.getByTestId(`form-question-badge-${ids[ids.indexOf("severity") + 1]!}`),
+      screen.getByTestId(
+        `form-question-badge-${ids[ids.indexOf("severity") + 1]!}`,
+      ),
     ).toHaveTextContent("Region");
     // And now Region shows as added.
     expect(
@@ -654,13 +662,11 @@ describe("a maintenance form's start and end", () => {
       screen.getByTestId(`form-question-delete-${startsAt.id}`),
     ).toBeDisabled();
     expect(
-      within(screen.getByTestId(`form-question-editor-${startsAt.id}`)).getByRole(
-        "switch",
-      ),
+      within(
+        screen.getByTestId(`form-question-editor-${startsAt.id}`),
+      ).getByRole("switch"),
     ).toHaveAttribute("aria-checked", "true");
-    expect(
-      screen.getByText(FormsCopy.requiredLocked),
-    ).toBeInTheDocument();
+    expect(screen.getByText(FormsCopy.requiredLocked)).toBeInTheDocument();
   });
 });
 
@@ -810,7 +816,9 @@ describe("someone who may not edit the form", () => {
     expect(screen.getByTestId("form-builder-read-only")).toHaveTextContent(
       "You need the Edit Form permission.",
     );
-    expect(screen.queryByTestId("form-builder-palette")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("form-builder-palette"),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("form-builder-edit-details"),
     ).not.toBeInTheDocument();

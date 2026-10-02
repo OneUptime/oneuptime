@@ -6845,7 +6845,9 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   // forms.
-  [PageMap.FORMS_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/forms/*`),
+  [PageMap.FORMS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/*`,
+  ),
   [PageMap.FORMS]: new Route(`/dashboard/${RouteParams.ProjectID}/forms`),
   [PageMap.FORMS_SUBMISSIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/forms/${

@@ -138,7 +138,9 @@ type ReadFieldFunction = (value: unknown) => PublicFormField | null;
  * id and a label, a type this page does not know is asked as text, and a
  * choice with nothing to choose from is not asked at all.
  */
-const readField: ReadFieldFunction = (value: unknown): PublicFormField | null => {
+const readField: ReadFieldFunction = (
+  value: unknown,
+): PublicFormField | null => {
   if (!isPlainObject(value) || !isFormFieldId(value["id"])) {
     return null;
   }

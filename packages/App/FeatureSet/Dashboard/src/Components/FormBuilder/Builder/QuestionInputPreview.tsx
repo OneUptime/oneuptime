@@ -105,8 +105,9 @@ const QuestionInputPreview: FunctionComponent<ComponentProps> = (
           </div>
           {options.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {options.slice(0, MAX_SHOWN_OPTIONS).map(
-                (option: string, index: number): ReactElement => {
+              {options
+                .slice(0, MAX_SHOWN_OPTIONS)
+                .map((option: string, index: number): ReactElement => {
                   return (
                     <span
                       key={`${index}-${option}`}
@@ -115,8 +116,7 @@ const QuestionInputPreview: FunctionComponent<ComponentProps> = (
                       {option}
                     </span>
                   );
-                },
-              )}
+                })}
               {options.length > MAX_SHOWN_OPTIONS ? (
                 <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
                   +{options.length - MAX_SHOWN_OPTIONS}

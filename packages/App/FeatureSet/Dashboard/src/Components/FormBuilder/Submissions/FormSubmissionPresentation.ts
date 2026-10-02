@@ -20,7 +20,9 @@ export const getFormSubmissionSubmitter: GetFormSubmissionSubmitterFunction = (
 ): { name: string; email: string } => {
   return {
     name: (submission.submitterName || "").trim(),
-    email: submission.submitterEmail ? submission.submitterEmail.toString() : "",
+    email: submission.submitterEmail
+      ? submission.submitterEmail.toString()
+      : "",
   };
 };
 
@@ -62,7 +64,9 @@ export const getFormSubmissionCreatedLink: GetFormSubmissionCreatedLinkFunction 
   (submission: FormSubmission): FormSubmissionCreatedLink | null => {
     const isMaintenance: boolean =
       submission.targetType === FormTargetType.ScheduledMaintenance ||
-      Boolean(submission.scheduledMaintenanceId || submission.scheduledMaintenance);
+      Boolean(
+        submission.scheduledMaintenanceId || submission.scheduledMaintenance,
+      );
 
     if (isMaintenance) {
       const id: string | undefined =

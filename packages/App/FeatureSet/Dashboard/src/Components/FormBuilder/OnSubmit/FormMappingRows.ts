@@ -118,7 +118,11 @@ const titleRow: TitleRowFunction = (data: {
 }): FormMappingRow => {
   const fallback: FormMappingLine = data.defaultTitle
     ? { kind: FormMappingLineKind.Value, text: data.defaultTitle }
-    : { kind: FormMappingLineKind.Value, text: FormsCopy.formNameAsTitle, isCopy: true };
+    : {
+        kind: FormMappingLineKind.Value,
+        text: FormsCopy.formNameAsTitle,
+        isCopy: true,
+      };
 
   const asked: Array<FormMappingLine> | null = answerLines({
     fields: data.fields,
@@ -313,9 +317,7 @@ export type GetFormMappingRowsFunction = (data: {
   targetType: FormTargetType;
   fields: Array<FormField>;
   // Read with readFormTargetSettings for the target.
-  settings:
-    | IncidentFormTargetSettings
-    | ScheduledMaintenanceFormTargetSettings;
+  settings: IncidentFormTargetSettings | ScheduledMaintenanceFormTargetSettings;
   reference: FormReferenceData;
   customFields: Array<FormCustomFieldDefinition>;
 }) => Array<FormMappingRow>;
@@ -341,7 +343,11 @@ export const getFormMappingRows: GetFormMappingRowsFunction = (data: {
         key: "description",
         title: "Description",
       }),
-      askedOrNotRow({ fields: data.fields, key: "startsAt", title: "Starts At" }),
+      askedOrNotRow({
+        fields: data.fields,
+        key: "startsAt",
+        title: "Starts At",
+      }),
       askedOrNotRow({ fields: data.fields, key: "endsAt", title: "Ends At" }),
       recordsRow({
         fields: data.fields,

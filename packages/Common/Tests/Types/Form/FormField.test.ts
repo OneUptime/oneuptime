@@ -67,7 +67,7 @@ type DeepFreezeFunction = <T>(value: T) => T;
 
 const deepFreeze: DeepFreezeFunction = <T>(value: T): T => {
   if (value && typeof value === "object") {
-    for (const key of Object.keys(value as object)) {
+    for (const key of Object.keys(value as Record<string, unknown>)) {
       deepFreeze((value as Record<string, unknown>)[key]);
     }
     Object.freeze(value);
@@ -75,10 +75,9 @@ const deepFreeze: DeepFreezeFunction = <T>(value: T): T => {
   return value;
 };
 
-type QuestionFunction = (overrides?: Record<string, unknown>) => Record<
-  string,
-  unknown
->;
+type QuestionFunction = (
+  overrides?: Record<string, unknown>,
+) => Record<string, unknown>;
 
 const question: QuestionFunction = (
   overrides: Record<string, unknown> = {},
@@ -225,12 +224,13 @@ describe("validateFormFields: what can be stored", () => {
     expect(validate([])).toBeNull();
   });
 
-  test.each([["a string", "fields"], ["an object", {}], ["a number", 3]])(
-    "%s is refused",
-    (_label: string, value: unknown) => {
-      expect(validate(value)).toBe("Fields must be a list of questions.");
-    },
-  );
+  test.each([
+    ["a string", "fields"],
+    ["an object", {}],
+    ["a number", 3],
+  ])("%s is refused", (_label: string, value: unknown) => {
+    expect(validate(value)).toBe("Fields must be a list of questions.");
+  });
 
   test("more questions than a form can have are refused before anything else", () => {
     const fields: Array<Record<string, unknown>> = [];
@@ -337,9 +337,11 @@ describe("validateFormFields: what can be stored", () => {
   });
 
   describe("a question of the form's own", () => {
-    test.each(FORM_QUESTION_TYPES.map((type: CustomFieldType) => {
-      return [type];
-    }))("can be a %s", (type: CustomFieldType) => {
+    test.each(
+      FORM_QUESTION_TYPES.map((type: CustomFieldType) => {
+        return [type];
+      }),
+    )("can be a %s", (type: CustomFieldType) => {
       expect(
         validate([
           question({
@@ -352,7 +354,7 @@ describe("validateFormFields: what can be stored", () => {
       ).toBeNull();
     });
 
-    test.each([[undefined], ["Banana"], [CustomFieldType.URL], [3]])(
+    test.each([[undefined], ["Banana"], ["Email"], [3]])(
       "not of another type (%p)",
       (type: unknown) => {
         expect(validate([question({ type })])).toBe(
@@ -381,7 +383,9 @@ describe("validateFormFields: what can be stored", () => {
             dropdownOptions: ["Berlin"],
           }),
         ]),
-      ).toBe('Question 1 ("Which office are you in?"): its options must be text.');
+      ).toBe(
+        'Question 1 ("Which office are you in?"): its options must be text.',
+      );
     });
 
     test("options in the colored JSON format are read like the custom fields' own", () => {
@@ -434,7 +438,9 @@ describe("validateFormFields: what can be stored", () => {
             dropdownOptions: "Berlin\nLondon\nBerlin",
           }),
         ]),
-      ).toBe('Question 1 ("Which office are you in?") lists the same option twice.');
+      ).toBe(
+        'Question 1 ("Which office are you in?") lists the same option twice.',
+      );
     });
 
     test("options on a question that is not a choice are ignored", () => {
@@ -471,7 +477,10 @@ describe("validateFormFields: what can be stored", () => {
         'Question 1 ("Linked") is linked to a field an incident does not have. Fields it can be linked to: title, description, incidentSeverityId, monitors, labels, impactStartedAt.',
       );
       expect(
-        validate([linked("incidentSeverityId")], FormTargetType.ScheduledMaintenance),
+        validate(
+          [linked("incidentSeverityId")],
+          FormTargetType.ScheduledMaintenance,
+        ),
       ).toContain(
         "is linked to a field a scheduled maintenance event does not have. Fields it can be linked to: title, description, startsAt, endsAt, monitors, statusPages, labels.",
       );
@@ -479,7 +488,9 @@ describe("validateFormFields: what can be stored", () => {
 
     test("a field typed in takes no allowed options", () => {
       expect(validate([linked("title", { allowedOptionIds: [] })])).toBeNull();
-      expect(validate([linked("title", { allowedOptionIds: null })])).toBeNull();
+      expect(
+        validate([linked("title", { allowedOptionIds: null })]),
+      ).toBeNull();
       expect(
         validate([linked("title", { allowedOptionIds: [SEVERITY_ID] })]),
       ).toBe(
@@ -523,9 +534,9 @@ describe("validateFormFields: what can be stored", () => {
         );
       }
 
-      expect(
-        validate([linked("monitors", { allowedOptionIds: ids })]),
-      ).toBe('Question 1 ("Linked") cannot offer more than 100 options.');
+      expect(validate([linked("monitors", { allowedOptionIds: ids })])).toBe(
+        'Question 1 ("Linked") cannot offer more than 100 options.',
+      );
       expect(
         validate([
           linked("monitors", {
@@ -544,10 +555,7 @@ describe("validateFormFields: what can be stored", () => {
       );
       // (A maintenance form must also ask when it starts and ends.)
       expect(
-        validate(
-          [linked("statusPages")],
-          FormTargetType.ScheduledMaintenance,
-        ),
+        validate([linked("statusPages")], FormTargetType.ScheduledMaintenance),
       ).toContain(
         'Question 1 ("Linked"): choose which status pages the form offers. A public form only lists the ones you choose.',
       );
@@ -566,7 +574,9 @@ describe("validateFormFields: what can be stored", () => {
           linked("title"),
           { ...linked("title"), id: "linked-2", label: "Again" },
         ]),
-      ).toBe('Question 2 ("Again") asks for a field another question already asks.');
+      ).toBe(
+        'Question 2 ("Again") asks for a field another question already asks.',
+      );
     });
   });
 
@@ -623,7 +633,9 @@ describe("validateFormFields: what can be stored", () => {
             submitterField: "Phone",
           },
         ]),
-      ).toBe('Question 1 ("Who are you?") must ask for the submitter\'s name or email.');
+      ).toBe(
+        'Question 1 ("Who are you?") must ask for the submitter\'s name or email.',
+      );
     });
 
     test("each once", () => {
@@ -732,12 +744,12 @@ describe("readFormFields: what is stored, as the builder and the page read it", 
   });
 
   test("Required is true only when it is exactly true", () => {
-    expect(readFormFields([question({ isRequired: "true" })])[0]!.isRequired).toBe(
-      false,
-    );
-    expect(readFormFields([question({ isRequired: true })])[0]!.isRequired).toBe(
-      true,
-    );
+    expect(
+      readFormFields([question({ isRequired: "true" })])[0]!.isRequired,
+    ).toBe(false);
+    expect(
+      readFormFields([question({ isRequired: true })])[0]!.isRequired,
+    ).toBe(true);
   });
 
   test("drops what cannot be a question, and a second question with an id already read", () => {
@@ -908,9 +920,11 @@ describe("creating questions", () => {
     ).toEqual(["Option 1", "Option 2"]);
   });
 
-  test.each(FORM_QUESTION_TYPES.map((type: CustomFieldType) => {
-    return [type];
-  }))("a new %s question of the form's own", (type: CustomFieldType) => {
+  test.each(
+    FORM_QUESTION_TYPES.map((type: CustomFieldType) => {
+      return [type];
+    }),
+  )("a new %s question of the form's own", (type: CustomFieldType) => {
     const field: FormField = createQuestionField({
       type,
       label: "Untitled question",
@@ -1022,7 +1036,10 @@ describe("creating questions", () => {
 
   test("the submitter's questions are optional unless asked otherwise", () => {
     expect(
-      createSubmitterField({ submitterField: FormSubmitterField.Name, id: "n" }),
+      createSubmitterField({
+        submitterField: FormSubmitterField.Name,
+        id: "n",
+      }),
     ).toEqual({
       id: "n",
       source: FormFieldSource.Submitter,
@@ -1381,9 +1398,7 @@ describe("convertFormFieldsForTarget: when a form starts creating something else
         return `${field.targetField}:${field.isRequired}`;
       }),
     ).toEqual(["startsAt:true", "endsAt:true"]);
-    expect(
-      validate(converted, FormTargetType.ScheduledMaintenance),
-    ).toBeNull();
+    expect(validate(converted, FormTargetType.ScheduledMaintenance)).toBeNull();
   });
 
   test("a question already asking for the start keeps its place and becomes required", () => {
@@ -1491,9 +1506,9 @@ describe("finding a question", () => {
   });
 
   test("by its custom field, whatever the id's case", () => {
-    expect(findCustomFieldField(fields, CUSTOM_FIELD_ID.toUpperCase())!.id).toBe(
-      "cf",
-    );
+    expect(
+      findCustomFieldField(fields, CUSTOM_FIELD_ID.toUpperCase())!.id,
+    ).toBe("cf");
     expect(
       findCustomFieldField(fields, "44444444-4444-4444-8444-444444444444"),
     ).toBeUndefined();

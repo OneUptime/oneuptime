@@ -70,20 +70,30 @@ jest.mock("../../../UI/Components/ModelDelete/ModelDelete", () => {
 
 type RecorderFunction = (
   name: string,
-) => (props: Record<string, unknown>) => ReactElement;
+) => React.FunctionComponent<Record<string, unknown>>;
 
 const mockRecorder: RecorderFunction = (name: string) => {
-  return (props: Record<string, unknown>): ReactElement => {
+  const Recorder: React.FunctionComponent<Record<string, unknown>> = (
+    props: Record<string, unknown>,
+  ): ReactElement => {
     (
-      (globalThis as unknown as { __formsPagesRecorded: Record<string, Array<unknown>> })
-        .__formsPagesRecorded[name] as Array<unknown>
+      (
+        globalThis as unknown as {
+          __formsPagesRecorded: Record<string, Array<unknown>>;
+        }
+      ).__formsPagesRecorded[name] as Array<unknown>
     ).push(props);
     return React.createElement("div", { "data-testid": `stub-${name}` });
   };
+
+  Recorder.displayName = `Recorded(${name})`;
+
+  return Recorder;
 };
 
-(globalThis as unknown as { __formsPagesRecorded: unknown }).__formsPagesRecorded =
-  recorded;
+(
+  globalThis as unknown as { __formsPagesRecorded: unknown }
+).__formsPagesRecorded = recorded;
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Builder/FormBuilder",
@@ -177,10 +187,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import Form from "../../../Models/DatabaseModels/Form";
 import Route_ from "../../../Types/API/Route";
-import {
-  FormField,
-  FormFieldSource,
-} from "../../../Types/Form/FormField";
+import { FormField, FormFieldSource } from "../../../Types/Form/FormField";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
 import Field from "../../../UI/Components/Forms/Types/Field";
@@ -194,10 +201,11 @@ import FormDelete from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/Vie
 import FormOnSubmit from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/OnSubmit";
 import FormShare from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Share";
 import FormViewSubmissions from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Submissions";
+import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
 const FORM_ID: string = "a1b2c3d4-0000-4000-8000-0000000000f1";
 
-const PAGE_PROPS: Record<string, unknown> = {} as never;
+const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
 async function renderAt(
   element: ReactElement,
@@ -220,6 +228,13 @@ async function renderAt(
       setTimeout(resolve, 0);
     });
   });
+}
+
+function lastRecorded(name: string): Record<string, unknown> {
+  const calls: Array<Record<string, unknown>> = recorded[name]!;
+
+  expect(calls.length).toBeGreaterThan(0);
+  return calls[calls.length - 1]!;
 }
 
 function lastTable(): Record<string, unknown> {
@@ -251,7 +266,7 @@ afterEach(() => {
 
 describe("the list of forms", () => {
   test("is the project's forms, in a table of its own", async () => {
-    await renderAt(<Forms {...(PAGE_PROPS as never)} />, "/dashboard/p/forms");
+    await renderAt(<Forms {...PAGE_PROPS} />, "/dashboard/p/forms");
 
     const table: Record<string, unknown> = lastTable();
 
@@ -265,7 +280,7 @@ describe("the list of forms", () => {
   });
 
   test("creates and opens forms; editing and deleting happen on a form's own pages", async () => {
-    await renderAt(<Forms {...(PAGE_PROPS as never)} />, "/dashboard/p/forms");
+    await renderAt(<Forms {...PAGE_PROPS} />, "/dashboard/p/forms");
 
     const table: Record<string, unknown> = lastTable();
 
@@ -276,7 +291,7 @@ describe("the list of forms", () => {
   });
 
   test("is the Forms card, with what forms are for, and the forms documentation", async () => {
-    await renderAt(<Forms {...(PAGE_PROPS as never)} />, "/dashboard/p/forms");
+    await renderAt(<Forms {...PAGE_PROPS} />, "/dashboard/p/forms");
 
     const table: Record<string, unknown> = lastTable();
 
@@ -291,7 +306,7 @@ describe("the list of forms", () => {
   });
 
   test("creating one asks a name, what it creates and a description - nothing more", async () => {
-    await renderAt(<Forms {...(PAGE_PROPS as never)} />, "/dashboard/p/forms");
+    await renderAt(<Forms {...PAGE_PROPS} />, "/dashboard/p/forms");
 
     const fields: Array<Field<Form>> = fieldsOf(lastTable());
 
@@ -318,7 +333,10 @@ describe("the list of forms", () => {
           return `${option.value}:${option.title}`;
         },
       ),
-    ).toEqual(["Incident:Incident", "ScheduledMaintenance:Scheduled Maintenance"]);
+    ).toEqual([
+      "Incident:Incident",
+      "ScheduledMaintenance:Scheduled Maintenance",
+    ]);
     expect(fields[2]).toMatchObject({
       title: "Description",
       required: false,
@@ -329,7 +347,7 @@ describe("the list of forms", () => {
   });
 
   test("a new form starts with its target's questions, in the dashboard's language", async () => {
-    await renderAt(<Forms {...(PAGE_PROPS as never)} />, "/dashboard/p/forms");
+    await renderAt(<Forms {...PAGE_PROPS} />, "/dashboard/p/forms");
 
     const onBeforeCreate: (item: Form) => Promise<Form> = lastTable()[
       "onBeforeCreate"
@@ -341,9 +359,11 @@ describe("the list of forms", () => {
     const created: Form = await onBeforeCreate(form);
 
     expect(
-      (created.fields as unknown as Array<FormField>).map((field: FormField) => {
-        return field.targetField || field.submitterField;
-      }),
+      (created.fields as unknown as Array<FormField>).map(
+        (field: FormField) => {
+          return field.targetField || field.submitterField;
+        },
+      ),
     ).toEqual(["title", "description", "startsAt", "endsAt", "Name", "Email"]);
   });
 
@@ -352,7 +372,7 @@ describe("the list of forms", () => {
       .spyOn(Navigation, "navigate")
       .mockImplementation((): void => {});
 
-    await renderAt(<Forms {...(PAGE_PROPS as never)} />, "/dashboard/p/forms");
+    await renderAt(<Forms {...PAGE_PROPS} />, "/dashboard/p/forms");
 
     const onCreateSuccess: (item: Form) => Promise<Form> = lastTable()[
       "onCreateSuccess"
@@ -368,7 +388,7 @@ describe("the list of forms", () => {
   });
 
   test("lists name, what it creates and whether it is accepting submissions", async () => {
-    await renderAt(<Forms {...(PAGE_PROPS as never)} />, "/dashboard/p/forms");
+    await renderAt(<Forms {...PAGE_PROPS} />, "/dashboard/p/forms");
 
     const columns: Array<{ field: Record<string, boolean>; title: string }> =
       lastTable()["columns"] as never;
@@ -383,10 +403,7 @@ describe("the list of forms", () => {
 
 describe("every submission", () => {
   test("is the submissions table, for every form", async () => {
-    await renderAt(
-      <FormsSubmissions {...(PAGE_PROPS as never)} />,
-      "/dashboard/p/forms",
-    );
+    await renderAt(<FormsSubmissions {...PAGE_PROPS} />, "/dashboard/p/forms");
 
     expect(recorded["submissions"]).toHaveLength(1);
     expect(recorded["submissions"]![0]!["formId"]).toBeUndefined();
@@ -395,13 +412,13 @@ describe("every submission", () => {
 
 describe("a form's pages", () => {
   test("Build is the builder, for this form", async () => {
-    await renderAt(<FormBuild {...(PAGE_PROPS as never)} />);
+    await renderAt(<FormBuild {...PAGE_PROPS} />);
 
     expect(String(recorded["builder"]![0]!["formId"])).toBe(FORM_ID);
   });
 
   test("Submissions is the submissions table, for this form", async () => {
-    await renderAt(<FormViewSubmissions {...(PAGE_PROPS as never)} />);
+    await renderAt(<FormViewSubmissions {...PAGE_PROPS} />);
 
     expect(String(recorded["submissions"]![0]!["formId"])).toBe(FORM_ID);
   });
@@ -424,7 +441,7 @@ describe("a form's pages", () => {
       targetSettings: { showOnStatusPages: true },
     };
 
-    await renderAt(<FormOnSubmit {...(PAGE_PROPS as never)} />);
+    await renderAt(<FormOnSubmit {...PAGE_PROPS} />);
 
     expect(recorded["target"]![0]).toMatchObject({
       targetType: FormTargetType.ScheduledMaintenance,
@@ -441,7 +458,7 @@ describe("a form's pages", () => {
   test("On Submit says so when the form cannot be found", async () => {
     mockStoredForm = null;
 
-    await renderAt(<FormOnSubmit {...(PAGE_PROPS as never)} />);
+    await renderAt(<FormOnSubmit {...PAGE_PROPS} />);
 
     expect(screen.getByText(FormsCopy.formNotFound)).toBeInTheDocument();
     expect(recorded["target"]).toHaveLength(0);
@@ -449,7 +466,7 @@ describe("a form's pages", () => {
 
   describe("Share", () => {
     test("has the status, the link, the thank-you message and the access, in that order", async () => {
-      await renderAt(<FormShare {...(PAGE_PROPS as never)} />);
+      await renderAt(<FormShare {...PAGE_PROPS} />);
 
       expect(String(recorded["status"]![0]!["formId"])).toBe(FORM_ID);
       expect(String(recorded["shareLink"]![0]!["modelId"])).toBe(FORM_ID);
@@ -461,19 +478,19 @@ describe("a form's pages", () => {
     });
 
     test("turning the form on or off asks the link card to read it again", async () => {
-      await renderAt(<FormShare {...(PAGE_PROPS as never)} />);
+      await renderAt(<FormShare {...PAGE_PROPS} />);
 
-      const before: unknown = recorded["shareLink"]!.at(-1)!["refresher"];
+      const before: unknown = lastRecorded("shareLink")["refresher"];
 
       await act(async () => {
         (recorded["status"]![0]!["onChange"] as () => void)();
       });
 
-      expect(recorded["shareLink"]!.at(-1)!["refresher"]).toBe(!before);
+      expect(lastRecorded("shareLink")["refresher"]).toBe(!before);
     });
 
     test("the thank-you message is Markdown that cannot upload images", async () => {
-      await renderAt(<FormShare {...(PAGE_PROPS as never)} />);
+      await renderAt(<FormShare {...PAGE_PROPS} />);
 
       const card: Record<string, unknown> = recordedDetailCards[0]!;
       const field: Field<Form> = (card["formFields"] as Array<Field<Form>>)[0]!;
@@ -486,7 +503,7 @@ describe("a form's pages", () => {
     });
 
     test("says nothing about the plan when it allows the IP allowlist", async () => {
-      await renderAt(<FormShare {...(PAGE_PROPS as never)} />);
+      await renderAt(<FormShare {...PAGE_PROPS} />);
 
       expect(
         (recordedDetailCards[1]!["cardProps"] as { description: unknown })
@@ -497,27 +514,25 @@ describe("a form's pages", () => {
     test("says, on the card and in the edit form, that the IP allowlist needs the Scale plan", async () => {
       mockIpAllowlistEditable = false;
 
-      await renderAt(<FormShare {...(PAGE_PROPS as never)} />);
+      await renderAt(<FormShare {...PAGE_PROPS} />);
 
       const card: Record<string, unknown> = recordedDetailCards[1]!;
 
-      render(
-        (card["cardProps"] as { description: ReactElement }).description,
-      );
+      render((card["cardProps"] as { description: ReactElement }).description);
 
-      expect(screen.getByTestId("form-ip-allowlist-plan-note")).toHaveTextContent(
-        FormsCopy.accessPlanNote,
-      );
+      expect(
+        screen.getByTestId("form-ip-allowlist-plan-note"),
+      ).toHaveTextContent(FormsCopy.accessPlanNote);
     });
 
     test("shows each allowlisted address on its own line, or that any network may open it", async () => {
-      await renderAt(<FormShare {...(PAGE_PROPS as never)} />);
+      await renderAt(<FormShare {...PAGE_PROPS} />);
 
       const getElement: (item: Form) => ReactElement = (
-        (recordedDetailCards[1]!["modelDetailProps"] as {
+        recordedDetailCards[1]!["modelDetailProps"] as {
           fields: Array<{ getElement: (item: Form) => ReactElement }>;
-        }).fields[0]!.getElement
-      );
+        }
+      ).fields[0]!.getElement;
 
       const listed: Form = new Form();
       listed.ipWhitelist = "10.0.0.0/8\n203.0.113.7";
@@ -541,7 +556,7 @@ describe("a form's pages", () => {
       .spyOn(Navigation, "navigate")
       .mockImplementation((): void => {});
 
-    await renderAt(<FormDelete {...(PAGE_PROPS as never)} />);
+    await renderAt(<FormDelete {...PAGE_PROPS} />);
 
     const deletion: Record<string, unknown> = recordedDeletes[0]!;
 

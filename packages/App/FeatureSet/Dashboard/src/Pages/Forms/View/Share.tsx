@@ -51,7 +51,8 @@ const FormShare: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <>
         {translateString(text) || text}{" "}
         <span data-testid="form-ip-allowlist-plan-note">
-          {translateString(FormsCopy.accessPlanNote) || FormsCopy.accessPlanNote}
+          {translateString(FormsCopy.accessPlanNote) ||
+            FormsCopy.accessPlanNote}
         </span>
       </>
     );

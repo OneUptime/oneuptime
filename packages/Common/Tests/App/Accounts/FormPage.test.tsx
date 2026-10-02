@@ -119,7 +119,11 @@ const MockCaptcha: (props: MockCaptchaProps) => React.ReactElement = (
   }, [signal]);
 
   return (
-    <div data-testid="captcha" data-reset-signal={String(signal)}>
+    <div
+      data-testid="captcha"
+      data-site-key={props.siteKey}
+      data-reset-signal={String(signal)}
+    >
       <button
         type="button"
         onClick={() => {
@@ -375,7 +379,9 @@ describe("the questions are the form's", () => {
     expect(screen.getByText("How bad is it?")).toBeInTheDocument();
     // The form's own choice is picked to begin with.
     expect(screen.getByText("Minor")).toBeInTheDocument();
-    expect(screen.getByText("I have checked the status page")).toBeInTheDocument();
+    expect(
+      screen.getByText("I have checked the status page"),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("form-field-email")).toBeInTheDocument();
   });
 
@@ -529,7 +535,9 @@ describe("after the response is sent", () => {
     await submit();
 
     expect(screen.queryByTestId("form-reference")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("form-success-message")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("form-success-message"),
+    ).not.toBeInTheDocument();
   });
 
   test("another response starts from an empty form, without reading it again", async () => {
@@ -545,9 +553,7 @@ describe("after the response is sent", () => {
     await flush();
 
     expect(screen.getByTestId("form-field-title")).toHaveValue("");
-    expect(
-      server.requestsTo(HTTPMethod.GET, FORM_URL),
-    ).toHaveLength(1);
+    expect(server.requestsTo(HTTPMethod.GET, FORM_URL)).toHaveLength(1);
   });
 });
 
@@ -570,7 +576,9 @@ describe("a form that cannot be opened says why", () => {
 
       await renderPage();
 
-      expect(screen.getByTestId("form-load-failure")).toHaveTextContent(message);
+      expect(screen.getByTestId("form-load-failure")).toHaveTextContent(
+        message,
+      );
       expect(Boolean(screen.queryByTestId("form-try-again"))).toBe(canTryAgain);
       expect(navigateSpy).not.toHaveBeenCalled();
       expect(logoutSpy).not.toHaveBeenCalled();
@@ -612,20 +620,42 @@ describe("a form that cannot be opened says why", () => {
 
 describe("a submission that is refused says why, next to the form", () => {
   test.each([
-    ["the server's own words for a 400", 400, { error: "Region is required." }, "Region is required."],
-    ["a network over its limit", 429, { message: TOO_MANY_SUBMISSIONS }, TOO_MANY_SUBMISSIONS],
-    ["submissions paused", 503, { message: SUBMISSIONS_UNAVAILABLE }, SUBMISSIONS_UNAVAILABLE],
+    [
+      "the server's own words for a 400",
+      400,
+      { error: "Region is required." },
+      "Region is required.",
+    ],
+    [
+      "a network over its limit",
+      429,
+      { message: TOO_MANY_SUBMISSIONS },
+      TOO_MANY_SUBMISSIONS,
+    ],
+    [
+      "submissions paused",
+      503,
+      { message: SUBMISSIONS_UNAVAILABLE },
+      SUBMISSIONS_UNAVAILABLE,
+    ],
     ["any other failure", 500, { error: "Server Error" }, SUBMIT_FAILED],
   ])(
     "%s",
-    async (_label: string, status: number, data: JSONObject, message: string) => {
+    async (
+      _label: string,
+      status: number,
+      data: JSONObject,
+      message: string,
+    ) => {
       await renderForm();
       serveSubmit({ status, data });
 
       fillRequired();
       await submit();
 
-      expect(screen.getByTestId("form-submit-error")).toHaveTextContent(message);
+      expect(screen.getByTestId("form-submit-error")).toHaveTextContent(
+        message,
+      );
       // The answers are still there to send again.
       expect(screen.getByTestId("form-field-title")).toHaveValue(
         "Checkout is down",

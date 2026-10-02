@@ -655,9 +655,11 @@ export class Service extends DatabaseService<Model> {
     const fields: Array<FormField> = readFormFields(form.fields);
     const projectId: ObjectID = form.projectId!;
 
-    const asksCustomField: boolean = fields.some((field: FormField): boolean => {
-      return field.source === FormFieldSource.TargetCustomField;
-    });
+    const asksCustomField: boolean = fields.some(
+      (field: FormField): boolean => {
+        return field.source === FormFieldSource.TargetCustomField;
+      },
+    );
 
     const customFields: Array<FormCustomFieldDefinition> = asksCustomField
       ? await handler.getCustomFieldDefinitions(projectId)
@@ -981,9 +983,7 @@ export class Service extends DatabaseService<Model> {
     checkFields: boolean;
     checkSettings: boolean;
   }): Promise<void> {
-    const handler: AnyFormTargetHandler = getFormTargetHandler(
-      data.targetType,
-    );
+    const handler: AnyFormTargetHandler = getFormTargetHandler(data.targetType);
 
     if (data.checkSettings && data.settings) {
       await handler.validateReferences({

@@ -105,7 +105,10 @@ const MONITORS_QUESTION: FormField = {
   allowedOptionIds: [MONITOR_ID],
 };
 
-function create(data: Form, props: DatabaseCommonInteractionProps = ADMIN_PROPS): Promise<OnCreate<Form>> {
+function create(
+  data: Form,
+  props: DatabaseCommonInteractionProps = ADMIN_PROPS,
+): Promise<OnCreate<Form>> {
   return (
     FormService as unknown as { onBeforeCreate: OnBeforeCreate }
   ).onBeforeCreate({ data, props });
@@ -121,7 +124,7 @@ function update(
     query: { _id: FORM_ID },
     data: data as never,
     props,
-  });
+  } as never);
 }
 
 function newForm(data: Partial<Form> = {}): Form {
@@ -266,14 +269,18 @@ describe("FormService.onBeforeCreate: what the form creates and asks", () => {
     ).createBy.data;
 
     expect(
-      (incident.fields as Array<FormField>).map((field: FormField) => {
-        return field.targetField || field.submitterField;
-      }),
+      (incident.fields as unknown as Array<FormField>).map(
+        (field: FormField) => {
+          return field.targetField || field.submitterField;
+        },
+      ),
     ).toEqual(["title", "description", "Name", "Email"]);
     expect(
-      (maintenance.fields as Array<FormField>).map((field: FormField) => {
-        return field.targetField || field.submitterField;
-      }),
+      (maintenance.fields as unknown as Array<FormField>).map(
+        (field: FormField) => {
+          return field.targetField || field.submitterField;
+        },
+      ),
     ).toEqual(["title", "description", "startsAt", "endsAt", "Name", "Email"]);
   });
 
@@ -370,12 +377,16 @@ describe("FormService.onBeforeCreate: the records it names are its project's", (
 
     expect(calls).toHaveLength(2);
     expect(calls[0]!.projectId).toEqual(PROJECT_ID);
-    expect(calls[0]!.references.map((reference: ProjectScopedReference) => {
-      return [reference.modelName, reference.id];
-    })).toEqual([["Severity", SEVERITY_ID]]);
-    expect(calls[1]!.references.map((reference: ProjectScopedReference) => {
-      return [reference.modelName, reference.id];
-    })).toEqual([["Monitors", MONITOR_ID]]);
+    expect(
+      calls[0]!.references.map((reference: ProjectScopedReference) => {
+        return [reference.modelName, reference.id];
+      }),
+    ).toEqual([["Severity", SEVERITY_ID]]);
+    expect(
+      calls[1]!.references.map((reference: ProjectScopedReference) => {
+        return [reference.modelName, reference.id];
+      }),
+    ).toEqual([["Monitors", MONITOR_ID]]);
   });
 
   test("a record of another project is refused", async () => {
@@ -470,23 +481,27 @@ describe("FormService.onBeforeUpdate", () => {
   });
 
   test("an IP allowlist is checked when it changes", async () => {
-    expect(await refusal(update({ ipWhitelist: "2001:db8::/32" }))).toBeInstanceOf(
-      BadDataException,
-    );
+    expect(
+      await refusal(update({ ipWhitelist: "2001:db8::/32" })),
+    ).toBeInstanceOf(BadDataException);
     await expect(update({ ipWhitelist: "10.0.0.0/8" })).resolves.toBeDefined();
   });
 
   test.each([[null], [""], ["not-a-key"], [7]])(
     "a replaced link key must be a UUID (%p)",
     async (shareKey: unknown) => {
-      const error: Error | undefined = await refusal(update({ shareKey }));
+      const error: Error | undefined = await refusal(
+        update({ shareKey } as unknown as JSONObject),
+      );
 
       expect(error?.message).toBe(FORM_SHARE_KEY_MESSAGE);
     },
   );
 
   test("a link key the dashboard's Reset Link generates is accepted", async () => {
-    await expect(update({ shareKey: ObjectID.generate() })).resolves.toBeDefined();
+    await expect(
+      update({ shareKey: ObjectID.generate() }),
+    ).resolves.toBeDefined();
     await expect(
       update({ shareKey: ObjectID.generate().toString() }),
     ).resolves.toBeDefined();
@@ -499,12 +514,19 @@ describe("FormService.onBeforeUpdate", () => {
   });
 
   test("new questions are checked against the form's stored target", async () => {
-    storedForms = [storedForm({ targetType: FormTargetType.ScheduledMaintenance, fields: getDefaultFormFields(FormTargetType.ScheduledMaintenance) as unknown as JSONArray })];
+    storedForms = [
+      storedForm({
+        targetType: FormTargetType.ScheduledMaintenance,
+        fields: getDefaultFormFields(
+          FormTargetType.ScheduledMaintenance,
+        ) as unknown as JSONArray,
+      }),
+    ];
 
     // A maintenance form must keep asking when it starts and ends.
     const error: Error | undefined = await refusal(
       update({
-        fields: getDefaultFormFields(FormTargetType.Incident),
+        fields: getDefaultFormFields(FormTargetType.Incident) as never,
       }),
     );
 
@@ -553,7 +575,9 @@ describe("FormService.onBeforeUpdate", () => {
     await expect(
       update({
         targetType: FormTargetType.ScheduledMaintenance,
-        fields: getDefaultFormFields(FormTargetType.ScheduledMaintenance),
+        fields: getDefaultFormFields(
+          FormTargetType.ScheduledMaintenance,
+        ) as never,
         targetSettings: {},
       }),
     ).resolves.toBeDefined();
@@ -580,9 +604,14 @@ describe("FormService.onBeforeUpdate", () => {
 
   test("new settings are checked against the form's stored target, and their records against its project", async () => {
     expect(
-      (await refusal(update({ targetSettings: { statusPageIds: [MONITOR_ID] } })))
-        ?.message,
-    ).toContain('"statusPageIds" is not a setting of forms that create an incident.');
+      (
+        await refusal(
+          update({ targetSettings: { statusPageIds: [MONITOR_ID] } }),
+        )
+      )?.message,
+    ).toContain(
+      '"statusPageIds" is not a setting of forms that create an incident.',
+    );
 
     await update({ targetSettings: { monitorIds: [MONITOR_ID] } });
 
@@ -599,7 +628,11 @@ describe("FormService.onBeforeUpdate", () => {
 
     // Fine for the incident form, not for the maintenance one.
     expect(
-      await refusal(update({ fields: getDefaultFormFields(FormTargetType.Incident) })),
+      await refusal(
+        update({
+          fields: getDefaultFormFields(FormTargetType.Incident) as never,
+        }),
+      ),
     ).toBeInstanceOf(BadDataException);
     expect(
       (formFindBy.mock.calls[0]![0] as { props: JSONObject }).props,

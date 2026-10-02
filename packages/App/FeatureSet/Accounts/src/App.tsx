@@ -66,7 +66,10 @@ export function LegacyIncidentFormRedirect(): ReactElement {
   const shareKey: string = params["shareKey"] || "";
 
   return (
-    <Navigate replace={true} to={`/accounts/form/${encodeURIComponent(shareKey)}`} />
+    <Navigate
+      replace={true}
+      to={`/accounts/form/${encodeURIComponent(shareKey)}`}
+    />
   );
 }
 

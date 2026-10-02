@@ -44,7 +44,6 @@ import path from "path";
  * its modes.
  */
 
-
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
 
 const CONTENT_DIR: string = path.join(REPO_ROOT, "App/FeatureSet/Docs/Content");
@@ -108,8 +107,6 @@ const NOTES_PAGE: string = "incidents/notes-owners-and-feed";
 
 const STATUS_PAGE_SCOPE_PAGE: string =
   "status-pages/one-status-page-per-audience";
-
-const FORMS_TITLE: string = "Incident Forms";
 
 // `fa` is the only translated corpus; every other language falls back to English.
 const LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
@@ -713,7 +710,6 @@ const cardCopy: CardCopyFunction = (key: string): string | undefined => {
 };
 
 describe("Incident docs", () => {
-
   describe("an incident's title in the feed and chat messages", () => {
     it("says which characters of a title are escaped, and that an address and emphasis in it still work, as escapeMarkdownValue escapes them, in every language", () => {
       const escaped: Array<string> = Array.from(ASCII_PUNCTUATION).filter(
@@ -848,7 +844,6 @@ describe("Incident docs", () => {
       for (const character of ["*", "_", "`"]) {
         expect(escapeMarkdownInline(character)).toBe(`\\${character}`);
       }
-
     });
   });
 

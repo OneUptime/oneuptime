@@ -258,18 +258,19 @@ export default class IncidentFormTarget
 
     const incidentTemplateId: ObjectID | undefined = templateIds[0];
 
-    const incidentSeverityId: ObjectID | undefined =
-      await this.getSeverityId({
-        projectId,
-        answered: FormTargetHelpers.readIds(
-          answers.targetFields["incidentSeverityId"],
-        )[0],
-        fromSettings: settings.incidentSeverityId,
-        incidentTemplateId,
-      });
+    const incidentSeverityId: ObjectID | undefined = await this.getSeverityId({
+      projectId,
+      answered: FormTargetHelpers.readIds(
+        answers.targetFields["incidentSeverityId"],
+      )[0],
+      fromSettings: settings.incidentSeverityId,
+      incidentTemplateId,
+    });
 
-    const templateOwners: { userIds: Array<ObjectID>; teamIds: Array<ObjectID> } =
-      await this.getTemplateOwners({ form, incidentTemplateId });
+    const templateOwners: {
+      userIds: Array<ObjectID>;
+      teamIds: Array<ObjectID>;
+    } = await this.getTemplateOwners({ form, incidentTemplateId });
 
     const prepared: PreparedIncident = {
       monitorIds: FormTargetHelpers.mergeIds(

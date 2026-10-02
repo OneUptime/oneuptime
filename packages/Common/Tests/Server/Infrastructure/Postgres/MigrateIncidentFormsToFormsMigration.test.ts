@@ -17,7 +17,11 @@ import Permission from "../../../../Types/Permission";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { DefaultNamingStrategy, QueryRunner, getMetadataArgsStorage } from "typeorm";
+import {
+  DefaultNamingStrategy,
+  QueryRunner,
+  getMetadataArgsStorage,
+} from "typeorm";
 import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 
 /*
@@ -272,9 +276,11 @@ describe("MigrateIncidentFormsToForms migration - up(): the schema", () => {
       expect(create).toBeDefined();
 
       for (const column of persistedColumns(modelType)) {
-        expect({ table, column, created: create!.includes(`"${column}"`) }).toEqual(
-          { table, column, created: true },
-        );
+        expect({
+          table,
+          column,
+          created: create!.includes(`"${column}"`),
+        }).toEqual({ table, column, created: true });
       }
     }
   });
@@ -294,7 +300,9 @@ describe("MigrateIncidentFormsToForms migration - up(): the schema", () => {
     expect(create).toContain(
       `CONSTRAINT "${naming.primaryKeyName("Form", ["_id"])}" PRIMARY KEY ("_id")`,
     );
-    expect(create).toContain(`"targetType" character varying(100) NOT NULL DEFAULT 'Incident'`);
+    expect(create).toContain(
+      `"targetType" character varying(100) NOT NULL DEFAULT 'Incident'`,
+    );
     expect(create).toContain('"isEnabled" boolean NOT NULL DEFAULT true');
     expect(create).toContain('"fields" jsonb');
     expect(create).toContain('"targetSettings" jsonb');
@@ -307,10 +315,20 @@ describe("MigrateIncidentFormsToForms migration - up(): the schema", () => {
     ["FormSubmission", "projectId", "Project", "CASCADE"],
     ["FormSubmission", "formId", "Form", "CASCADE"],
     ["FormSubmission", "incidentId", "Incident", "SET NULL"],
-    ["FormSubmission", "scheduledMaintenanceId", "ScheduledMaintenance", "SET NULL"],
+    [
+      "FormSubmission",
+      "scheduledMaintenanceId",
+      "ScheduledMaintenance",
+      "SET NULL",
+    ],
   ])(
     "%s.%s points at %s, %s on delete, under TypeORM's own name",
-    async (table: string, column: string, referenced: string, onDelete: string) => {
+    async (
+      table: string,
+      column: string,
+      referenced: string,
+      onDelete: string,
+    ) => {
       const name: string = new DefaultNamingStrategy().foreignKeyName(table, [
         column,
       ]);
@@ -411,7 +429,10 @@ describe("MigrateIncidentFormsToForms migration - up(): the data", () => {
     expect(
       fields.map((field: FormField): string => {
         const what: string =
-          field.targetField || field.submitterField || field.customFieldId || "";
+          field.targetField ||
+          field.submitterField ||
+          field.customFieldId ||
+          "";
         return `${field.source}:${what}:${field.isRequired}`;
       }),
     ).toEqual([
@@ -423,7 +444,10 @@ describe("MigrateIncidentFormsToForms migration - up(): the data", () => {
       "Submitter:Email:false",
     ]);
     expect(
-      validateFormFields({ value: fields, targetType: FormTargetType.Incident }),
+      validateFormFields({
+        value: fields,
+        targetType: FormTargetType.Incident,
+      }),
     ).toBeNull();
 
     // The second form hid its description, and required who reported.
@@ -506,7 +530,9 @@ describe("MigrateIncidentFormsToForms migration - up(): the data", () => {
 
   test("renames to permissions that exist, from ones that no longer do", () => {
     for (const [from, to] of LEGACY_PERMISSION_RENAMES) {
-      expect((Permission as unknown as Record<string, unknown>)[from]).toBeUndefined();
+      expect(
+        (Permission as unknown as Record<string, unknown>)[from],
+      ).toBeUndefined();
       expect((Permission as unknown as Record<string, unknown>)[to]).toBe(to);
     }
 
@@ -580,7 +606,9 @@ describe("MigrateIncidentFormsToForms migration - down()", () => {
     const recorded: Array<Recorded> = await recordQueries("down");
     const statements: Array<string> = statementsOf(recorded);
 
-    expect(indexOf(recorded, 'CREATE TABLE "IncidentForm" (')).toBeGreaterThan(-1);
+    expect(indexOf(recorded, 'CREATE TABLE "IncidentForm" (')).toBeGreaterThan(
+      -1,
+    );
     expect(
       indexOf(recorded, 'CREATE TABLE "IncidentFormSubmission" ('),
     ).toBeGreaterThan(-1);
@@ -608,12 +636,12 @@ describe("MigrateIncidentFormsToForms migration - down()", () => {
     );
     expect(renames[0]).toEqual(LEGACY_PERMISSION_RENAMES[0]);
     expect(
-      (await recordQueries("down"))
-        .filter((entry: Recorded): boolean => {
-          return entry.statement.startsWith("UPDATE ");
-        })[0]!
-        .statement,
-    ).toBe('UPDATE "TeamPermission" SET "permission" = $1 WHERE "permission" = $2');
+      (await recordQueries("down")).filter((entry: Recorded): boolean => {
+        return entry.statement.startsWith("UPDATE ");
+      })[0]!.statement,
+    ).toBe(
+      'UPDATE "TeamPermission" SET "permission" = $1 WHERE "permission" = $2',
+    );
   });
 
   test("drops every constraint and index up() created", async () => {
@@ -646,9 +674,11 @@ describe("MigrateIncidentFormsToForms migration - down()", () => {
     expect(createdIndexes).toHaveLength(5);
 
     for (const name of createdConstraints) {
-      expect(down.some((statement: string): boolean => {
-        return statement.includes(`DROP CONSTRAINT "${name}"`);
-      })).toBe(true);
+      expect(
+        down.some((statement: string): boolean => {
+          return statement.includes(`DROP CONSTRAINT "${name}"`);
+        }),
+      ).toBe(true);
     }
 
     for (const name of createdIndexes) {

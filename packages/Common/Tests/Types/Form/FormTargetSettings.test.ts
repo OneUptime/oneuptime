@@ -74,18 +74,18 @@ describe("the settings each target has", () => {
   });
 
   test("a maintenance form: a default title, records to attach, owners and publishing", () => {
-    expect(getFormTargetSettingKeys(FormTargetType.ScheduledMaintenance)).toEqual(
-      [
-        "defaultTitle",
-        "monitorIds",
-        "statusPageIds",
-        "labelIds",
-        "ownerUserIds",
-        "ownerTeamIds",
-        "showOnStatusPages",
-        "notifySubscribers",
-      ],
-    );
+    expect(
+      getFormTargetSettingKeys(FormTargetType.ScheduledMaintenance),
+    ).toEqual([
+      "defaultTitle",
+      "monitorIds",
+      "statusPageIds",
+      "labelIds",
+      "ownerUserIds",
+      "ownerTeamIds",
+      "showOnStatusPages",
+      "notifySubscribers",
+    ]);
   });
 
   test("an unknown target has none", () => {
@@ -105,12 +105,13 @@ describe("validateFormTargetSettings: what the API accepts", () => {
     }
   });
 
-  test.each([["a list", []], ["text", "settings"], ["a number", 1]])(
-    "%s is refused",
-    (_label: string, value: unknown) => {
-      expect(validate(value)).toBe("Target settings must be an object.");
-    },
-  );
+  test.each([
+    ["a list", []],
+    ["text", "settings"],
+    ["a number", 1],
+  ])("%s is refused", (_label: string, value: unknown) => {
+    expect(validate(value)).toBe("Target settings must be an object.");
+  });
 
   test("a full incident form's settings are accepted", () => {
     expect(
@@ -207,7 +208,11 @@ describe("validateFormTargetSettings: what the API accepts", () => {
     ).toBeNull();
   });
 
-  test.each([["severity", 7], ["severity", "critical"], ["severity", [A]]])(
+  test.each([
+    ["severity", 7],
+    ["severity", "critical"],
+    ["severity", [A]],
+  ])(
     "a single record is named by its id (%s %p)",
     (_label: string, value: unknown) => {
       expect(validate({ incidentSeverityId: value })).toBe(
@@ -217,9 +222,7 @@ describe("validateFormTargetSettings: what the API accepts", () => {
   );
 
   test("a list setting is a list of ids, of at most 100", () => {
-    expect(validate({ monitorIds: A })).toBe(
-      "Monitors must be a list of ids.",
-    );
+    expect(validate({ monitorIds: A })).toBe("Monitors must be a list of ids.");
     expect(validate({ labelIds: [A, "nope"] })).toBe(
       "Labels must be a list of ids.",
     );

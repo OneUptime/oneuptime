@@ -121,7 +121,8 @@ const INCIDENT_FIELDS: Array<FormTargetFieldDefinition> = [
   {
     key: "monitors",
     title: "Monitors",
-    description: "The submitter picks the affected monitors from a list you choose.",
+    description:
+      "The submitter picks the affected monitors from a list you choose.",
     defaultLabel: "Affected Monitors",
     inputType: CustomFieldType.MultiSelectDropdown,
     optionsSource: FormTargetOptionsSource.Monitor,
@@ -197,7 +198,8 @@ const SCHEDULED_MAINTENANCE_FIELDS: Array<FormTargetFieldDefinition> = [
   {
     key: "monitors",
     title: "Monitors",
-    description: "The submitter picks the affected monitors from a list you choose.",
+    description:
+      "The submitter picks the affected monitors from a list you choose.",
     defaultLabel: "Affected Monitors",
     inputType: CustomFieldType.MultiSelectDropdown,
     optionsSource: FormTargetOptionsSource.Monitor,

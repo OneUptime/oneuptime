@@ -259,9 +259,7 @@ const MAINTENANCE_FIELDS: Array<FormField> = [
     (field: FormField, index: number): FormField => {
       return {
         ...field,
-        id: ["title", "description", "starts", "ends", "name", "email"][
-          index
-        ]!,
+        id: ["title", "description", "starts", "ends", "name", "email"][index]!,
       };
     },
   ),
@@ -427,16 +425,14 @@ beforeEach(() => {
     stubProjectLookup(service);
   }
 
-  jest
-    .spyOn(FormService, "findOneBy")
-    .mockImplementation((async (findBy: {
-      query: { shareKey?: ObjectID };
-    }): Promise<Form | null> => {
-      return storedForm &&
-        findBy.query.shareKey?.toString() === storedForm.shareKey?.toString()
-        ? storedForm
-        : null;
-    }) as never);
+  jest.spyOn(FormService, "findOneBy").mockImplementation((async (findBy: {
+    query: { shareKey?: ObjectID };
+  }): Promise<Form | null> => {
+    return storedForm &&
+      findBy.query.shareKey?.toString() === storedForm.shareKey?.toString()
+      ? storedForm
+      : null;
+  }) as never);
 
   jest.spyOn(FormService, "isProjectOnPlan").mockResolvedValue(true as never);
 
@@ -451,10 +447,12 @@ beforeEach(() => {
       name: "Critical",
     }),
   ] as never);
-  jest.spyOn(MonitorService, "findBy").mockResolvedValue([
-    Object.assign(new Monitor(), { _id: API_MONITOR_ID, name: "API" }),
-    Object.assign(new Monitor(), { _id: WEB_MONITOR_ID, name: "Website" }),
-  ] as never);
+  jest
+    .spyOn(MonitorService, "findBy")
+    .mockResolvedValue([
+      Object.assign(new Monitor(), { _id: API_MONITOR_ID, name: "API" }),
+      Object.assign(new Monitor(), { _id: WEB_MONITOR_ID, name: "Website" }),
+    ] as never);
   jest.spyOn(StatusPageService, "findBy").mockResolvedValue([
     Object.assign(new StatusPage(), { _id: STATUS_PAGE_ID, name: "Main" }),
     Object.assign(new StatusPage(), {
@@ -462,9 +460,11 @@ beforeEach(() => {
       name: "Partners",
     }),
   ] as never);
-  jest.spyOn(LabelService, "findBy").mockResolvedValue([
-    Object.assign(new Label(), { _id: LABEL_ID, name: "customer-report" }),
-  ] as never);
+  jest
+    .spyOn(LabelService, "findBy")
+    .mockResolvedValue([
+      Object.assign(new Label(), { _id: LABEL_ID, name: "customer-report" }),
+    ] as never);
 
   jest
     .spyOn(IncidentCustomFieldService, "findBy")
@@ -478,13 +478,15 @@ beforeEach(() => {
       incidentCustomField(NOTES_FIELD_ID, "Notes", CustomFieldType.Markdown),
     ] as never);
 
-  jest.spyOn(ScheduledMaintenanceCustomFieldService, "findBy").mockResolvedValue([
-    Object.assign(new ScheduledMaintenanceCustomField(), {
-      _id: TICKET_FIELD_ID,
-      name: "Change Ticket",
-      customFieldType: CustomFieldType.Text,
-    }),
-  ] as never);
+  jest
+    .spyOn(ScheduledMaintenanceCustomFieldService, "findBy")
+    .mockResolvedValue([
+      Object.assign(new ScheduledMaintenanceCustomField(), {
+        _id: TICKET_FIELD_ID,
+        name: "Change Ticket",
+        customFieldType: CustomFieldType.Text,
+      }),
+    ] as never);
 
   jest
     .spyOn(TeamMemberService, "getProjectMemberUserIds")
@@ -505,7 +507,9 @@ beforeEach(() => {
 
   jest
     .spyOn(IncidentTemplateOwnerUserService, "findBy")
-    .mockImplementation((async (): Promise<Array<IncidentTemplateOwnerUser>> => {
+    .mockImplementation((async (): Promise<
+      Array<IncidentTemplateOwnerUser>
+    > => {
       return templateOwnerUserIds.map((id: string) => {
         return Object.assign(new IncidentTemplateOwnerUser(), {
           userId: new ObjectID(id),
@@ -514,7 +518,9 @@ beforeEach(() => {
     }) as never);
   jest
     .spyOn(IncidentTemplateOwnerTeamService, "findBy")
-    .mockImplementation((async (): Promise<Array<IncidentTemplateOwnerTeam>> => {
+    .mockImplementation((async (): Promise<
+      Array<IncidentTemplateOwnerTeam>
+    > => {
       return templateOwnerTeamIds.map((id: string) => {
         return Object.assign(new IncidentTemplateOwnerTeam(), {
           teamId: new ObjectID(id),
@@ -618,8 +624,7 @@ function incidentCreateBy(): {
 
 function createdEvent(): ScheduledMaintenance {
   expect(eventCreate).toHaveBeenCalledTimes(1);
-  return (eventCreate.mock.calls[0]![0] as { data: ScheduledMaintenance })
-    .data;
+  return (eventCreate.mock.calls[0]![0] as { data: ScheduledMaintenance }).data;
 }
 
 function idsOf(records: Array<{ _id?: string }> | undefined): Array<string> {
@@ -752,9 +757,9 @@ describe("submitPublicForm - the incident a form declares", () => {
   });
 
   test("a failure reading the template's owners is logged, and the incident is declared with the form's own", async () => {
-    (IncidentTemplateOwnerUserService.findBy as unknown as MockedFn).mockRejectedValue(
-      new Error("connection reset"),
-    );
+    (
+      IncidentTemplateOwnerUserService.findBy as unknown as MockedFn
+    ).mockRejectedValue(new Error("connection reset"));
 
     await submit(INCIDENT_ANSWERS);
 
@@ -930,7 +935,8 @@ describe("submitPublicForm - nothing the submitter wrote acts on its own", () =>
   test("ordinary text is stored exactly as typed", async () => {
     await submit({
       ...INCIDENT_ANSWERS,
-      description: "Orders fail with **500** - see [the log](https://logs.example/1).",
+      description:
+        "Orders fail with **500** - see [the log](https://logs.example/1).",
     });
 
     expect(createdIncident().description).toBe(
@@ -941,9 +947,18 @@ describe("submitPublicForm - nothing the submitter wrote acts on its own", () =>
 
 describe("neutralizeFormAnswers", () => {
   const BUILT: BuiltPublicForm = buildPublicForm({
-    form: { name: "F", fields: INCIDENT_FIELDS, targetType: FormTargetType.Incident },
+    form: {
+      name: "F",
+      fields: INCIDENT_FIELDS,
+      targetType: FormTargetType.Incident,
+    },
     customFields: [
-      { id: REGION_FIELD_ID, name: "Region", customFieldType: "Dropdown", dropdownOptions: "EU" },
+      {
+        id: REGION_FIELD_ID,
+        name: "Region",
+        customFieldType: "Dropdown",
+        dropdownOptions: "EU",
+      },
       { id: NOTES_FIELD_ID, name: "Notes", customFieldType: "Markdown" },
     ],
     recordOptions: {},
@@ -952,7 +967,11 @@ describe("neutralizeFormAnswers", () => {
 
   test("leaves the submitter's name and address, and choices, alone", () => {
     const neutralized: JSONObject = neutralizeFormAnswers({
-      answers: { name: "<!channel> Jane", email: "jane@example.com", region: "EU" },
+      answers: {
+        name: "<!channel> Jane",
+        email: "jane@example.com",
+        region: "EU",
+      },
       fields: BUILT.form.fields,
       bindings: BUILT.bindings,
     });
@@ -1024,8 +1043,8 @@ describe("submitPublicForm - the submission record and the private note", () => 
   test("keeps every answer, with the words to show for it", async () => {
     await submit(INCIDENT_ANSWERS);
 
-    const answers: Array<FormSubmissionAnswer> =
-      recordedSubmission().answers as unknown as Array<FormSubmissionAnswer>;
+    const answers: Array<FormSubmissionAnswer> = recordedSubmission()
+      .answers as unknown as Array<FormSubmissionAnswer>;
 
     const byField: Record<string, FormSubmissionAnswer> = {};
 
@@ -1064,7 +1083,9 @@ describe("submitPublicForm - the submission record and the private note", () => 
       "Submitted through the form **Report a Problem** by Jane Doe (<jane@example.com>).",
     );
     expect(note.note).toContain("**Which office?**  \nBerlin");
-    expect(note.note).toContain("**Steps to reproduce**  \n1. Add to cart  \n2. Pay");
+    expect(note.note).toContain(
+      "**Steps to reproduce**  \n1. Add to cart  \n2. Pay",
+    );
     // The answers already on the incident are not repeated.
     expect(note.note).not.toContain("What is wrong?");
     expect(note.note).not.toContain("Region");
@@ -1106,7 +1127,9 @@ describe("submitPublicForm - when the record cannot be created", () => {
       new Error("insert violates foreign key constraint FK_secret"),
     );
 
-    const error: Exception | undefined = await refusal(submit(INCIDENT_ANSWERS));
+    const error: Exception | undefined = await refusal(
+      submit(INCIDENT_ANSWERS),
+    );
 
     expect(error).toBeInstanceOf(ServerException);
     expect(error?.message).toBe(FORM_SUBMIT_FAILED_MESSAGE);
@@ -1206,7 +1229,9 @@ describe("submitPublicForm - the checks before anything is created", () => {
 
     const error: Exception | undefined = await refusal(submit({}));
 
-    expect(error?.message).toBe("Captcha verification failed. Please try again.");
+    expect(error?.message).toBe(
+      "Captcha verification failed. Please try again.",
+    );
     nothingCreated();
   });
 
@@ -1238,7 +1263,9 @@ describe("submitPublicForm - the checks before anything is created", () => {
       }),
     );
 
-    expect(error?.message).toBe("What is wrong? is required. Region is required.");
+    expect(error?.message).toBe(
+      "What is wrong? is required. Region is required.",
+    );
   });
 });
 
@@ -1265,7 +1292,9 @@ describe("submitPublicForm - the form's hourly ceiling", () => {
   test("once the hour's allowance is used, nothing is created and the refusal says when to come back", async () => {
     reserveCeiling.mockRejectedValue(new FormCeilingException(1200));
 
-    const error: Exception | undefined = await refusal(submit(INCIDENT_ANSWERS));
+    const error: Exception | undefined = await refusal(
+      submit(INCIDENT_ANSWERS),
+    );
 
     expect(error).toBeInstanceOf(FormCeilingException);
     expect((error as FormCeilingException).retryAfterSeconds).toBe(1200);
@@ -1399,7 +1428,8 @@ describe("submitPublicForm - the scheduled maintenance event a form schedules", 
   });
 
   test("records the submission against the event, and leaves its note on the event", async () => {
-    const result: PublicFormSubmissionResult = await submit(MAINTENANCE_ANSWERS);
+    const result: PublicFormSubmissionResult =
+      await submit(MAINTENANCE_ANSWERS);
 
     expect(result).toEqual({
       reference: "#7",

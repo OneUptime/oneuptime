@@ -41,42 +41,43 @@ interface TemplateData {
 
 type LoadTemplatesFunction = () => Promise<TemplateData>;
 
-const loadTemplates: LoadTemplatesFunction = async (): Promise<TemplateData> => {
-  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+const loadTemplates: LoadTemplatesFunction =
+  async (): Promise<TemplateData> => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-  if (!projectId) {
-    return { options: [], idsWithSeverity: [] };
-  }
-
-  const result: ListResult<IncidentTemplate> =
-    await ModelAPI.getList<IncidentTemplate>({
-      modelType: IncidentTemplate,
-      query: { projectId: projectId },
-      select: { _id: true, templateName: true, incidentSeverityId: true },
-      sort: { templateName: SortOrder.Ascending },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
-
-  const options: Array<FormRecordOption> = [];
-  const idsWithSeverity: Array<string> = [];
-
-  for (const template of result.data) {
-    if (!template._id) {
-      continue;
+    if (!projectId) {
+      return { options: [], idsWithSeverity: [] };
     }
 
-    const id: string = template._id.toString().toLowerCase();
+    const result: ListResult<IncidentTemplate> =
+      await ModelAPI.getList<IncidentTemplate>({
+        modelType: IncidentTemplate,
+        query: { projectId: projectId },
+        select: { _id: true, templateName: true, incidentSeverityId: true },
+        sort: { templateName: SortOrder.Ascending },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
 
-    options.push({ id: id, name: template.templateName || "" });
+    const options: Array<FormRecordOption> = [];
+    const idsWithSeverity: Array<string> = [];
 
-    if (template.incidentSeverityId) {
-      idsWithSeverity.push(id);
+    for (const template of result.data) {
+      if (!template._id) {
+        continue;
+      }
+
+      const id: string = template._id.toString().toLowerCase();
+
+      options.push({ id: id, name: template.templateName || "" });
+
+      if (template.incidentSeverityId) {
+        idsWithSeverity.push(id);
+      }
     }
-  }
 
-  return { options, idsWithSeverity };
-};
+    return { options, idsWithSeverity };
+  };
 
 type LoadListFunction = () => Promise<Array<FormRecordOption>>;
 

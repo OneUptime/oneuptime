@@ -557,9 +557,9 @@ describePostgres("Forms against a migrated Postgres", () => {
     test("two forms of one project cannot share a name; another project's can", async () => {
       await createForm({ name: "Report a Problem" });
 
-      await expect(createForm({ name: "Report a Problem" })).rejects.toBeInstanceOf(
-        BadDataException,
-      );
+      await expect(
+        createForm({ name: "Report a Problem" }),
+      ).rejects.toBeInstanceOf(BadDataException);
       await expect(
         createForm({ name: "Report a Problem", projectId: otherProjectId }),
       ).resolves.toBeDefined();
@@ -629,20 +629,31 @@ describePostgres("Forms against a migrated Postgres", () => {
         submitterName: "Jane",
         submitterEmail: new Email("Jane@Example.com"),
         answers: [
-          { fieldId: "title", label: "Title", value: "Down", displayValue: "Down" },
+          {
+            fieldId: "title",
+            label: "Title",
+            value: "Down",
+            displayValue: "Down",
+          },
         ],
       });
 
-      const read: FormSubmission | null = await FormSubmissionService.findOneById({
-        id: submission.id!,
-        select: { submitterEmail: true, answers: true },
-        props: { isRoot: true },
-      });
+      const read: FormSubmission | null =
+        await FormSubmissionService.findOneById({
+          id: submission.id!,
+          select: { submitterEmail: true, answers: true },
+          props: { isRoot: true },
+        });
 
       expect(read?.submitterEmail).toBeInstanceOf(Email);
       expect(read?.submitterEmail?.toString()).toBe("jane@example.com");
       expect(read?.answers).toEqual([
-        { fieldId: "title", label: "Title", value: "Down", displayValue: "Down" },
+        {
+          fieldId: "title",
+          label: "Title",
+          value: "Down",
+          displayValue: "Down",
+        },
       ]);
     });
 
@@ -654,9 +665,10 @@ describePostgres("Forms against a migrated Postgres", () => {
         targetType: FormTargetType.Incident,
       });
 
-      await database.query(`DELETE FROM "${schema}"."Incident" WHERE "_id" = $1`, [
-        incidentId.toString(),
-      ]);
+      await database.query(
+        `DELETE FROM "${schema}"."Incident" WHERE "_id" = $1`,
+        [incidentId.toString()],
+      );
 
       expect(await submissionRows()).toEqual([
         expect.objectContaining({ incidentId: null }),

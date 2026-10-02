@@ -44,7 +44,7 @@ jest.mock(
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/OnSubmit/FormOnSubmitData",
-    );
+    ) as Record<string, unknown>;
 
     return {
       ...actual,
@@ -159,7 +159,8 @@ async function renderCard(data?: {
   fields?: Array<FormField>;
   targetSettings?: JSONObject;
 }): Promise<void> {
-  const targetType: FormTargetType = data?.targetType || FormTargetType.Incident;
+  const targetType: FormTargetType =
+    data?.targetType || FormTargetType.Incident;
 
   await act(async (): Promise<void> => {
     render(
@@ -321,7 +322,9 @@ describe("the rows", () => {
       ],
     });
 
-    const row: HTMLElement = screen.getByTestId("form-mapping-row-customFields");
+    const row: HTMLElement = screen.getByTestId(
+      "form-mapping-row-customFields",
+    );
 
     expect(row).toHaveTextContent("Region");
     expect(row).toHaveTextContent("Where?");
@@ -440,7 +443,10 @@ describe("Edit Settings", () => {
     });
 
     await renderCard({
-      targetSettings: { defaultTitle: "Stored", incidentSeverityId: SEVERITY_ID },
+      targetSettings: {
+        defaultTitle: "Stored",
+        incidentSeverityId: SEVERITY_ID,
+      },
     });
     await openSettings();
 

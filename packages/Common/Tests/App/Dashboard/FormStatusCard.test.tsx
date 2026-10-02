@@ -145,7 +145,9 @@ describe("reading the form", () => {
     await loaded();
 
     expect(screen.getByText(FormsCopy.statusCardTitle)).toBeInTheDocument();
-    expect(screen.getByText(FormsCopy.acceptingSubmissions)).toBeInTheDocument();
+    expect(
+      screen.getByText(FormsCopy.acceptingSubmissions),
+    ).toBeInTheDocument();
   });
 
   test.each([
@@ -318,7 +320,8 @@ describe("flipping the switch", () => {
 
 describe("who may flip it", () => {
   test("the gate is asked about updating a form", async () => {
-    const checkSpy: ReturnType<typeof getJestSpyOn> = PermissionGate.check as never;
+    const checkSpy: ReturnType<typeof getJestSpyOn> =
+      PermissionGate.check as never;
 
     await renderCard();
     await loaded();

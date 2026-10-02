@@ -141,9 +141,9 @@ describe("convertLegacyIncidentForm", () => {
   });
 
   test("a Required description stays required, a Hidden one is not asked", () => {
-    expect(
-      shape(convert({ descriptionSetting: "Required" }).fields)[1],
-    ).toBe("TargetField:description:required");
+    expect(shape(convert({ descriptionSetting: "Required" }).fields)[1]).toBe(
+      "TargetField:description:required",
+    );
     expect(
       shape(convert({ descriptionSetting: "Hidden" }).fields).some(
         (entry: string): boolean => {
@@ -227,7 +227,13 @@ describe("convertLegacyIncidentForm", () => {
       }),
     ).toBe(true);
 
-    for (const customFieldSettings of ["{not json", "[]", 7, null, ["region"]]) {
+    for (const customFieldSettings of [
+      "{not json",
+      "[]",
+      7,
+      null,
+      ["region"],
+    ]) {
       expect(
         convert({ customFieldSettings }).fields.some((field: FormField) => {
           return field.source === FormFieldSource.TargetCustomField;

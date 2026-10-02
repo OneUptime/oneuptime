@@ -1,4 +1,7 @@
-import { loadFormCustomFields, loadFormRecordOptions } from "../FormBuilderData";
+import {
+  loadFormCustomFields,
+  loadFormRecordOptions,
+} from "../FormBuilderData";
 import {
   areFormFieldsEqual,
   createPaletteField,
@@ -379,7 +382,10 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
 
   if (isLoading) {
     return (
-      <Card title={FormsCopy.builderTitle} description={FormsCopy.builderDescription}>
+      <Card
+        title={FormsCopy.builderTitle}
+        description={FormsCopy.builderDescription}
+      >
         <ComponentLoader />
       </Card>
     );
@@ -387,7 +393,10 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
 
   if (loadError || !form) {
     return (
-      <Card title={FormsCopy.builderTitle} description={FormsCopy.builderDescription}>
+      <Card
+        title={FormsCopy.builderTitle}
+        description={FormsCopy.builderDescription}
+      >
         <ErrorMessage message={loadError || FormsCopy.formNotFound} />
       </Card>
     );

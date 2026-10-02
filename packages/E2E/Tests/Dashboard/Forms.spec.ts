@@ -860,7 +860,10 @@ test.describe("Forms", () => {
       return team["name"] === "Admin";
     });
 
-    expect(adminTeams, 'every project should start with one "Admin" team').toHaveLength(1);
+    expect(
+      adminTeams,
+      'every project should start with one "Admin" team',
+    ).toHaveLength(1);
     ctx.teamId = toId(adminTeams[0]!["_id"]);
 
     const template: JSONish = await createItem({
@@ -1019,21 +1022,24 @@ test.describe("Forms", () => {
     );
 
     // A form whose questions break a rule is refused, and names the problem.
-    const refused: APIResponse = await page.request.post(buildUrl("/api/form"), {
-      headers: {
-        "content-type": "application/json",
-        tenantid: ctx.projectId,
-        projectid: ctx.projectId,
-      },
-      data: {
+    const refused: APIResponse = await page.request.post(
+      buildUrl("/api/form"),
+      {
+        headers: {
+          "content-type": "application/json",
+          tenantid: ctx.projectId,
+          projectid: ctx.projectId,
+        },
         data: {
-          projectId: ctx.projectId,
-          name: `Two titles ${ctx.unique}`,
-          targetType: "Incident",
-          fields: [fields[0], { ...fields[0], id: "again" }],
+          data: {
+            projectId: ctx.projectId,
+            name: `Two titles ${ctx.unique}`,
+            targetType: "Incident",
+            fields: [fields[0], { ...fields[0], id: "again" }],
+          },
         },
       },
-    });
+    );
     expect(refused.status()).toBe(400);
   });
 
@@ -1147,10 +1153,12 @@ test.describe("Forms", () => {
         LABELS.name,
         LABELS.email,
       ]);
-    await expect(submitter.getByText(INTERNAL_REFERENCE_FIELD_NAME)).toHaveCount(
-      0,
+    await expect(
+      submitter.getByText(INTERNAL_REFERENCE_FIELD_NAME),
+    ).toHaveCount(0);
+    expect(await submitter.content()).not.toContain(
+      TEMPLATE_INTERNAL_REFERENCE,
     );
-    expect(await submitter.content()).not.toContain(TEMPLATE_INTERNAL_REFERENCE);
     await expect(form).toContainText("What you were doing, and what happened.");
 
     /*
@@ -1186,7 +1194,9 @@ test.describe("Forms", () => {
       await expect(form.getByText(`${label} is required.`)).toBeVisible();
     }
     // Optional questions do not complain.
-    await expect(form.getByText(`${LABELS.region} is required.`)).toHaveCount(0);
+    await expect(form.getByText(`${LABELS.region} is required.`)).toHaveCount(
+      0,
+    );
     expect(submitRequests, "an invalid submission must not be sent").toEqual(
       [],
     );
@@ -1217,9 +1227,10 @@ test.describe("Forms", () => {
 
     // Now a real submission.
     await title.fill(ctx.submittedTitle);
-    await descriptionEditor.getByRole("textbox").first().fill(
-      ctx.submittedDescription,
-    );
+    await descriptionEditor
+      .getByRole("textbox")
+      .first()
+      .fill(ctx.submittedDescription);
 
     await chooseOption({
       page: submitter,
@@ -1385,7 +1396,9 @@ test.describe("Forms", () => {
      * Straight to the API, around the page, from the submitter's context -
      * still no session. Everything the form requires is answered.
      */
-    const submitUrl: string = buildUrl(`/api/form/public/${ctx.shareKey}/submit`);
+    const submitUrl: string = buildUrl(
+      `/api/form/public/${ctx.shareKey}/submit`,
+    );
     const headers: Record<string, string> = {
       "content-type": "application/json",
       tenantid: "",
@@ -1541,7 +1554,10 @@ test.describe("Forms", () => {
     );
 
     // Forms > Submissions: every form's submissions, with the form's name.
-    await page.getByRole("link", { name: "Submissions", exact: true }).first().click();
+    await page
+      .getByRole("link", { name: "Submissions", exact: true })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/forms\/submissions$/, { timeout: 60000 });
     const everySubmission: Locator = page
       .getByRole("row")
@@ -1607,14 +1623,18 @@ test.describe("Forms", () => {
 
     // A short answer from the palette: added and opened for editing.
     await page.getByTestId("form-palette-question-Text").click();
-    const editor: Locator = page.locator('[data-testid^="form-question-editor-"]');
+    const editor: Locator = page.locator(
+      '[data-testid^="form-question-editor-"]',
+    );
     await expect(editor).toHaveCount(1, { timeout: 30000 });
     const newId: string = (
       (await editor.getAttribute("data-testid")) || ""
     ).replace("form-question-editor-", "");
     expect(newId).not.toBe("");
 
-    await page.getByTestId(`form-question-label-${newId}`).fill("Ticket number");
+    await page
+      .getByTestId(`form-question-label-${newId}`)
+      .fill("Ticket number");
     await expect(page.getByTestId("form-builder-status")).toContainText(
       "Unsaved changes",
     );
@@ -1632,7 +1652,10 @@ test.describe("Forms", () => {
       (await readForm(ctx.formId))["fields"],
     );
     const at: number = saved.indexOf("Ticket number");
-    expect(at, `the new question should be saved: ${saved.join(", ")}`).toBeGreaterThan(0);
+    expect(
+      at,
+      `the new question should be saved: ${saved.join(", ")}`,
+    ).toBeGreaterThan(0);
 
     // One place up, and saved again.
     await page.getByTestId(`form-question-move-up-${newId}`).click();
@@ -1653,7 +1676,9 @@ test.describe("Forms", () => {
     expect(moved.indexOf("Ticket number")).toBe(at - 1);
 
     // The preview draws the same questions, and submits nothing.
-    await questions.getByRole("button", { name: "Preview", exact: true }).click();
+    await questions
+      .getByRole("button", { name: "Preview", exact: true })
+      .click();
     const preview: Locator = page.locator("#form-preview-form");
     await expect(preview).toBeVisible({ timeout: 60000 });
     const expectedLabels: Array<string> = moved.map((label: string): string => {
@@ -1676,7 +1701,9 @@ test.describe("Forms", () => {
       .toEqual(expectedLabels);
     // Its checks are the public page's: an empty required answer is refused.
     await page.locator("#form-preview-form-submit-button").click();
-    await expect(preview.getByText(`${LABELS.title} is required.`)).toBeVisible();
+    await expect(
+      preview.getByText(`${LABELS.title} is required.`),
+    ).toBeVisible();
     await expect(page.getByTestId("form-preview-submitted")).toHaveCount(0);
 
     // Filled in, it says so - and sends nothing anywhere.
@@ -1758,13 +1785,17 @@ test.describe("Forms", () => {
       LABELS.title,
     );
     // An optional severity question, and what applies when it is left empty.
-    const severityRow: Locator = mapping.getByTestId("form-mapping-row-severity");
+    const severityRow: Locator = mapping.getByTestId(
+      "form-mapping-row-severity",
+    );
     await expect(severityRow).toContainText(LABELS.severity);
     await expect(severityRow).toContainText(ctx.formSeverityName);
     await expect(mapping.getByTestId("form-mapping-row-labels")).toBeVisible();
 
     // Edit Settings: the Default Title, then Save Changes from that first step.
-    await mapping.getByRole("button", { name: "Edit Settings", exact: true }).click();
+    await mapping
+      .getByRole("button", { name: "Edit Settings", exact: true })
+      .click();
     const modal: Locator = page.getByTestId("modal");
     const defaultTitle: string = `Reported through the form ${ctx.unique}`;
     await modal
@@ -1817,7 +1848,9 @@ test.describe("Forms", () => {
 
     await page.getByRole("button", { name: "Reset Link", exact: true }).click();
     const confirm: Locator = page.getByTestId("modal");
-    await expect(confirm).toContainText("the current one stops working at once");
+    await expect(confirm).toContainText(
+      "the current one stops working at once",
+    );
     await confirm.getByTestId("modal-footer-submit-button").click();
 
     // The result says what happened; closing it shows the new link.
@@ -1892,9 +1925,12 @@ test.describe("Forms", () => {
     await expect(accepting).toHaveAttribute("aria-checked", "true", {
       timeout: 30000,
     });
-    await expect(page.getByTestId("form-share-link-turned-off")).toHaveCount(0, {
-      timeout: 60000,
-    });
+    await expect(page.getByTestId("form-share-link-turned-off")).toHaveCount(
+      0,
+      {
+        timeout: 60000,
+      },
+    );
 
     await openSubmitterPage(shareLinkFor(ctx.shareKey));
     await expectFormShown();
@@ -1951,7 +1987,9 @@ test.describe("Forms", () => {
       await modal.getByTestId("modal-footer-close-button").click();
       await expect(page.getByTestId("modal")).toHaveCount(0);
       // The card says why.
-      await expect(access.getByTestId("form-ip-allowlist-plan-note")).toBeVisible();
+      await expect(
+        access.getByTestId("form-ip-allowlist-plan-note"),
+      ).toBeVisible();
       test.skip(true, "Editing the IP allowlist needs the Scale plan here.");
       return;
     }
@@ -1969,7 +2007,9 @@ test.describe("Forms", () => {
       buildUrl(`/api/form/public/${ctx.shareKey}/submit`),
       {
         headers: { "content-type": "application/json", tenantid: "" },
-        data: { data: { answers: { [QUESTION_IDS.title]: "Around the page" } } },
+        data: {
+          data: { answers: { [QUESTION_IDS.title]: "Around the page" } },
+        },
       },
     );
     expect(refused.status()).toBe(403);
@@ -1998,7 +2038,9 @@ test.describe("Forms", () => {
     });
     await createButton.click();
     const modal: Locator = page.getByTestId("modal");
-    await modal.getByRole("textbox", { name: /^Name/ }).fill(maintenanceFormName);
+    await modal
+      .getByRole("textbox", { name: /^Name/ })
+      .fill(maintenanceFormName);
     await modal.getByTestId("card-select-option-ScheduledMaintenance").click();
     await expect(
       modal.getByTestId("card-select-option-ScheduledMaintenance"),
@@ -2015,9 +2057,12 @@ test.describe("Forms", () => {
     );
     const maintenanceFormId: string =
       page.url().split("/forms/")[1]?.split(/[?#/]/)[0] || "";
-    await expect(page.getByTestId("form-questions")).toContainText("Starts At", {
-      timeout: 60000,
-    });
+    await expect(page.getByTestId("form-questions")).toContainText(
+      "Starts At",
+      {
+        timeout: 60000,
+      },
+    );
     await expect(page.getByTestId("form-questions")).toContainText("Ends At");
 
     const stored: JSONish = await readForm(maintenanceFormId);
@@ -2155,7 +2200,9 @@ test.describe("Forms", () => {
         targetSettings: { incidentSeverityId: ctx.formSeverityId },
       },
     });
-    const limitedShareKey: string = await readShareKey(toId(limitedForm["_id"]));
+    const limitedShareKey: string = await readShareKey(
+      toId(limitedForm["_id"]),
+    );
     expect(limitedShareKey).toMatch(UUID_PATTERN);
 
     await openSubmitterPage(shareLinkFor(limitedShareKey));

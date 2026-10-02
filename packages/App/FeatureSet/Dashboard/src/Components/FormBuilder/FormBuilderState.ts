@@ -511,11 +511,9 @@ export const findCustomFieldDefinition: FindCustomFieldDefinitionFunction = (
 ): FormCustomFieldDefinition | undefined => {
   const id: string = (customFieldId || "").toLowerCase();
 
-  return customFields.find(
-    (definition: FormCustomFieldDefinition): boolean => {
-      return definition.id.toLowerCase() === id;
-    },
-  );
+  return customFields.find((definition: FormCustomFieldDefinition): boolean => {
+    return definition.id.toLowerCase() === id;
+  });
 };
 
 export type GetFormFieldAnswerTypeFunction = (data: {

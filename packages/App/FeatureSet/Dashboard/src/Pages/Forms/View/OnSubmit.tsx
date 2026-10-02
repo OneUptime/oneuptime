@@ -27,7 +27,9 @@ import useAsyncEffect from "use-async-effect";
  * incident" step. Both cards read the form as it is now, and read it again
  * after either changes it.
  */
-const FormOnSubmit: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const FormOnSubmit: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const { id } = useParams();
   const formId: ObjectID = new ObjectID(id || "");
 

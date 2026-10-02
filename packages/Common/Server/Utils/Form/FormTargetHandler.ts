@@ -3,7 +3,10 @@ import TeamMemberService from "../../Services/TeamMemberService";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import logger, { LogAttributes } from "../Logger";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import { FormFieldSource, FormSubmitterField } from "../../../Types/Form/FormField";
+import {
+  FormFieldSource,
+  FormSubmitterField,
+} from "../../../Types/Form/FormField";
 import {
   FormCustomFieldDefinition,
   FormFieldBinding,

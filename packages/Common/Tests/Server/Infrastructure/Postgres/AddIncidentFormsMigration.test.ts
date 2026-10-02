@@ -270,9 +270,7 @@ describe("AddIncidentForms migration - up()", () => {
     ['"incidentSeverityId" uuid,'],
     ['"allowReporterToChooseSeverity" boolean NOT NULL DEFAULT false'],
     ['"incidentTemplateId" uuid,'],
-    [
-      `"descriptionSetting" character varying(100) NOT NULL DEFAULT 'Optional'`,
-    ],
+    [`"descriptionSetting" character varying(100) NOT NULL DEFAULT 'Optional'`],
     ['"customFieldSettings" jsonb,'],
     ['"isReporterDetailsRequired" boolean NOT NULL DEFAULT true'],
     ['"successMessage" text,'],

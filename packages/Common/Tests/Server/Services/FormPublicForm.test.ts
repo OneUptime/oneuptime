@@ -294,7 +294,9 @@ beforeEach(() => {
   // The monitors the form offers - the database only returns those asked.
   monitorFindBy = jest
     .spyOn(MonitorService, "findBy")
-    .mockResolvedValue([monitor(WEB_MONITOR_ID, "Website")] as never) as unknown as MockedFn;
+    .mockResolvedValue([
+      monitor(WEB_MONITOR_ID, "Website"),
+    ] as never) as unknown as MockedFn;
 
   jest.spyOn(CaptchaUtil, "isCaptchaEnabled").mockReturnValue(false);
 });
@@ -400,9 +402,8 @@ describe("FormService.getPublicForm - what a visitor is told", () => {
   });
 
   test("severities are listed in the project's order, starting on the form's own", async () => {
-    const severityQuestion: PublicFormField = (
-      await getPublicForm()
-    ).fields[1]!;
+    const severityQuestion: PublicFormField = (await getPublicForm())
+      .fields[1]!;
 
     expect(severityQuestion).toEqual({
       id: "severity",
@@ -477,7 +478,9 @@ describe("FormService.getPublicForm - what a visitor is told", () => {
 
   test("reads no custom fields, severities or monitors for a form that asks none", async () => {
     storedForm = buildForm({
-      fields: getDefaultFormFields(FormTargetType.Incident) as unknown as JSONArray,
+      fields: getDefaultFormFields(
+        FormTargetType.Incident,
+      ) as unknown as JSONArray,
     });
 
     await getPublicForm();
@@ -562,18 +565,18 @@ describe("FormService.getPublicForm - forms a visitor may not use", () => {
     ["a junk link", "not-a-key"],
     ["an empty link", ""],
     ["no link", undefined],
-  ])("refuses %s as not available, without reading anything", async (
-    _label: string,
-    shareKey: string | undefined,
-  ) => {
-    const error: Exception | undefined = await refusal(
-      getPublicForm({ shareKey }),
-    );
+  ])(
+    "refuses %s as not available, without reading anything",
+    async (_label: string, shareKey: string | undefined) => {
+      const error: Exception | undefined = await refusal(
+        getPublicForm({ shareKey }),
+      );
 
-    expect(error).toBeInstanceOf(NotFoundException);
-    expect(error?.message).toBe(FORM_NOT_AVAILABLE_MESSAGE);
-    expect(formFindOneBy).not.toHaveBeenCalled();
-  });
+      expect(error).toBeInstanceOf(NotFoundException);
+      expect(error?.message).toBe(FORM_NOT_AVAILABLE_MESSAGE);
+      expect(formFindOneBy).not.toHaveBeenCalled();
+    },
+  );
 
   test("refuses a key no form holds as not available", async () => {
     const error: Exception | undefined = await refusal(
@@ -631,9 +634,13 @@ describe("FormService.getPublicForm - forms a visitor may not use", () => {
       return [error?.constructor, error?.code, error?.message];
     });
 
-    expect(new Set(answers.map((answer: unknown) => {
-      return JSON.stringify(answer);
-    })).size).toBe(1);
+    expect(
+      new Set(
+        answers.map((answer: unknown) => {
+          return JSON.stringify(answer);
+        }),
+      ).size,
+    ).toBe(1);
   });
 
   test("reads nothing else about a form it refuses", async () => {
@@ -694,7 +701,12 @@ describe("FormService.isClientIpAllowed", () => {
     ["a list of blank lines", "\n \r\n\t\n", CLIENT_IP, true],
     ["an exact address", CLIENT_IP, CLIENT_IP, true],
     ["a range holding the address", "203.0.113.0/24", CLIENT_IP, true],
-    ["Windows line endings", `198.51.100.1\r\n${CLIENT_IP}\r\n`, CLIENT_IP, true],
+    [
+      "Windows line endings",
+      `198.51.100.1\r\n${CLIENT_IP}\r\n`,
+      CLIENT_IP,
+      true,
+    ],
     ["padding around an entry", `   ${CLIENT_IP}   `, CLIENT_IP, true],
     ["an IPv6 address listed exactly", "2001:db8::1", "2001:db8::1", true],
     ["an IPv6 address listed in capitals", "2001:DB8::1", "2001:db8::1", true],
@@ -705,9 +717,24 @@ describe("FormService.isClientIpAllowed", () => {
       true,
     ],
     ["another IPv6 address", "2001:db8::2", "2001:db8::1", false],
-    ["a client in the IPv4-mapped spelling", CLIENT_IP, `::ffff:${CLIENT_IP}`, true],
-    ["a client in the IPv4-mapped spelling, in hex", CLIENT_IP, "::ffff:cb00:7107", true],
-    ["another address's IPv4-mapped spelling", CLIENT_IP, "::ffff:198.51.100.1", false],
+    [
+      "a client in the IPv4-mapped spelling",
+      CLIENT_IP,
+      `::ffff:${CLIENT_IP}`,
+      true,
+    ],
+    [
+      "a client in the IPv4-mapped spelling, in hex",
+      CLIENT_IP,
+      "::ffff:cb00:7107",
+      true,
+    ],
+    [
+      "another address's IPv4-mapped spelling",
+      CLIENT_IP,
+      "::ffff:198.51.100.1",
+      false,
+    ],
     ["an IPv4-translated address", CLIENT_IP, `::ffff:0:${CLIENT_IP}`, false],
     ["another address", "198.51.100.1", CLIENT_IP, false],
     ["a range not holding the address", "198.51.100.0/24", CLIENT_IP, false],
@@ -716,7 +743,12 @@ describe("FormService.isClientIpAllowed", () => {
     ["an address that is not one", CLIENT_IP, "not-an-address", false],
     ["only a malformed entry", "not-a-network", CLIENT_IP, false],
     ["a malformed range", "203.0.113.0/99", CLIENT_IP, false],
-    ["a whole forwarded-for chain", CLIENT_IP, `${CLIENT_IP}, 192.0.2.1`, false],
+    [
+      "a whole forwarded-for chain",
+      CLIENT_IP,
+      `${CLIENT_IP}, 192.0.2.1`,
+      false,
+    ],
   ])(
     "with %s it answers correctly",
     (
@@ -816,7 +848,10 @@ describe("FormService.isProjectOnPlan", () => {
 
   test("no plan at all is off plan (fails closed)", async () => {
     setBillingEnabled(true);
-    getCurrentPlan.mockResolvedValue({ plan: null, isSubscriptionUnpaid: false });
+    getCurrentPlan.mockResolvedValue({
+      plan: null,
+      isSubscriptionUnpaid: false,
+    });
 
     expect(await FormService.isProjectOnPlan(PROJECT_ID)).toBe(false);
     expect(planCheck).not.toHaveBeenCalled();

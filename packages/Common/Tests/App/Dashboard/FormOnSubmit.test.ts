@@ -60,14 +60,23 @@ function records(...entries: Array<[string, string]>): Array<FormRecordOption> {
 
 const REFERENCE: FormReferenceData = {
   lists: {
-    [FormTargetSettingReferenceModel.IncidentSeverity]: records([SEVERITY_ID, "Major"]),
+    [FormTargetSettingReferenceModel.IncidentSeverity]: records([
+      SEVERITY_ID,
+      "Major",
+    ]),
     [FormTargetSettingReferenceModel.IncidentTemplate]: records(
       [TEMPLATE_ID, "Customer Report"],
       [BARE_TEMPLATE_ID, "Bare"],
     ),
     [FormTargetSettingReferenceModel.Monitor]: records([MONITOR_ID, "API"]),
-    [FormTargetSettingReferenceModel.Label]: records([LABEL_ID, "customer-report"]),
-    [FormTargetSettingReferenceModel.OnCallDutyPolicy]: records([POLICY_ID, "Primary"]),
+    [FormTargetSettingReferenceModel.Label]: records([
+      LABEL_ID,
+      "customer-report",
+    ]),
+    [FormTargetSettingReferenceModel.OnCallDutyPolicy]: records([
+      POLICY_ID,
+      "Primary",
+    ]),
     [FormTargetSettingReferenceModel.User]: records([USER_ID, "Ada"]),
     [FormTargetSettingReferenceModel.Team]: records([TEAM_ID, "SRE"]),
     [FormTargetSettingReferenceModel.StatusPage]: records([PAGE_ID, "Main"]),
@@ -75,11 +84,33 @@ const REFERENCE: FormReferenceData = {
   templateIdsWithSeverity: [TEMPLATE_ID],
 };
 
+// The rows the On Submit card can have, by key.
+type RowKey =
+  | "title"
+  | "description"
+  | "severity"
+  | "monitors"
+  | "labels"
+  | "impactStartedAt"
+  | "incidentTemplate"
+  | "onCallPolicies"
+  | "ownerUsers"
+  | "ownerTeams"
+  | "customFields"
+  | "statusPages"
+  | "otherAnswers"
+  | "startsAt"
+  | "endsAt"
+  | "showOnStatusPages"
+  | "notifySubscribers";
+
+type Rows = Partial<Record<RowKey, FormMappingRow>>;
+
 function rowsOf(data: {
   targetType?: FormTargetType;
   fields?: Array<FormField>;
   settings?: JSONObject;
-}): Record<string, FormMappingRow> {
+}): Rows {
   const rows: Array<FormMappingRow> = getFormMappingRows({
     targetType: data.targetType || FormTargetType.Incident,
     fields: data.fields || getDefaultFormFields(FormTargetType.Incident),
@@ -95,10 +126,10 @@ function rowsOf(data: {
     ],
   });
 
-  const byKey: Record<string, FormMappingRow> = {};
+  const byKey: Rows = {};
 
   for (const row of rows) {
-    byKey[row.key] = row;
+    byKey[row.key as RowKey] = row;
   }
 
   return byKey;
@@ -143,7 +174,9 @@ describe("getFormMappingRows: how a submission becomes an incident", () => {
     const optional: Array<FormField> = getDefaultFormFields(
       FormTargetType.Incident,
     ).map((field: FormField): FormField => {
-      return field.targetField === "title" ? { ...field, isRequired: false } : field;
+      return field.targetField === "title"
+        ? { ...field, isRequired: false }
+        : field;
     });
 
     expect(linesOf(rowsOf({ fields: optional }).title)).toEqual([
@@ -152,8 +185,10 @@ describe("getFormMappingRows: how a submission becomes an incident", () => {
     ]);
     expect(
       linesOf(
-        rowsOf({ fields: optional, settings: { defaultTitle: "Customer report" } })
-          .title,
+        rowsOf({
+          fields: optional,
+          settings: { defaultTitle: "Customer report" },
+        }).title,
       ),
     ).toEqual(["Answer:Title", "Fallback:Customer report"]);
     expect(linesOf(rowsOf({ fields: [] }).title)).toEqual([
@@ -169,18 +204,24 @@ describe("getFormMappingRows: how a submission becomes an incident", () => {
 
   test("the severity: the settings' one, or the template's, or a warning", () => {
     expect(
-      linesOf(rowsOf({ settings: { incidentSeverityId: SEVERITY_ID } }).severity),
+      linesOf(
+        rowsOf({ settings: { incidentSeverityId: SEVERITY_ID } }).severity,
+      ),
     ).toEqual(["Value:Major"]);
     expect(
-      linesOf(rowsOf({ settings: { incidentTemplateId: TEMPLATE_ID } }).severity),
+      linesOf(
+        rowsOf({ settings: { incidentTemplateId: TEMPLATE_ID } }).severity,
+      ),
     ).toEqual([`Value:${FormsCopy.severityFromTemplate}`]);
     expect(
-      linesOf(rowsOf({ settings: { incidentTemplateId: BARE_TEMPLATE_ID } }).severity),
+      linesOf(
+        rowsOf({ settings: { incidentTemplateId: BARE_TEMPLATE_ID } }).severity,
+      ),
     ).toEqual([`Warning:${FormsCopy.noSeverityWarning}`]);
     // A severity the settings name that was deleted since.
-    expect(linesOf(rowsOf({ settings: { incidentSeverityId: GONE_ID } }).severity)).toEqual(
-      [`Warning:${FormsCopy.noSeverityWarning}`],
-    );
+    expect(
+      linesOf(rowsOf({ settings: { incidentSeverityId: GONE_ID } }).severity),
+    ).toEqual([`Warning:${FormsCopy.noSeverityWarning}`]);
   });
 
   test("an asked severity: the answer, then what applies when it is left empty", () => {
@@ -191,7 +232,8 @@ describe("getFormMappingRows: how a submission becomes an incident", () => {
 
     expect(
       linesOf(
-        rowsOf({ fields, settings: { incidentSeverityId: SEVERITY_ID } }).severity,
+        rowsOf({ fields, settings: { incidentSeverityId: SEVERITY_ID } })
+          .severity,
       ),
     ).toEqual(["Answer:How bad?", "Fallback:Major"]);
     expect(linesOf(rowsOf({ fields }).severity)).toEqual([
@@ -231,14 +273,14 @@ describe("getFormMappingRows: how a submission becomes an incident", () => {
         }).monitors,
       ),
     ).toEqual(["Answer:Affected", `Always:API, ${FormsCopy.deletedRecord}`]);
-    expect(linesOf(rowsOf({ settings: { labelIds: [LABEL_ID] } }).labels)).toEqual([
-      "Always:customer-report",
-    ]);
+    expect(
+      linesOf(rowsOf({ settings: { labelIds: [LABEL_ID] } }).labels),
+    ).toEqual(["Always:customer-report"]);
     expect(linesOf(rowsOf({}).labels)).toEqual([`Value:${FormsCopy.notSet}`]);
   });
 
   test("the template, on-call policies and owners, by name, or not set", () => {
-    const rows: Record<string, FormMappingRow> = rowsOf({
+    const rows: Rows = rowsOf({
       settings: {
         incidentTemplateId: TEMPLATE_ID,
         onCallDutyPolicyIds: [POLICY_ID],
@@ -254,11 +296,13 @@ describe("getFormMappingRows: how a submission becomes an incident", () => {
     expect(linesOf(rowsOf({}).incidentTemplate)).toEqual([
       `Value:${FormsCopy.noTemplate}`,
     ]);
-    expect(linesOf(rowsOf({}).onCallPolicies)).toEqual([`Value:${FormsCopy.notSet}`]);
+    expect(linesOf(rowsOf({}).onCallPolicies)).toEqual([
+      `Value:${FormsCopy.notSet}`,
+    ]);
   });
 
   test("custom fields: each one a question fills, a deleted one left out", () => {
-    const rows: Record<string, FormMappingRow> = rowsOf({
+    const rows: Rows = rowsOf({
       fields: [
         {
           id: "region",
@@ -284,11 +328,13 @@ describe("getFormMappingRows: how a submission becomes an incident", () => {
         customFieldName: "Region",
       },
     ]);
-    expect(linesOf(rowsOf({}).customFields)).toEqual([`Value:${FormsCopy.notAsked}`]);
+    expect(linesOf(rowsOf({}).customFields)).toEqual([
+      `Value:${FormsCopy.notAsked}`,
+    ]);
   });
 
   test("an incident is never put on a status page, and the other answers go on its note", () => {
-    const rows: Record<string, FormMappingRow> = rowsOf({});
+    const rows: Rows = rowsOf({});
 
     expect(linesOf(rows.statusPages)).toEqual([
       `Value:${FormsCopy.statusPagesIncident}`,
@@ -299,7 +345,7 @@ describe("getFormMappingRows: how a submission becomes an incident", () => {
   });
 
   test("copy lines are marked for translation; names are not", () => {
-    const rows: Record<string, FormMappingRow> = rowsOf({
+    const rows: Rows = rowsOf({
       settings: { incidentSeverityId: SEVERITY_ID },
     });
 
@@ -316,7 +362,10 @@ describe("getFormMappingRows: how a submission becomes a maintenance event", () 
   test("lists every field of the event, in order", () => {
     expect(
       Object.keys(
-        rowsOf({ targetType: FormTargetType.ScheduledMaintenance, fields: MAINTENANCE }),
+        rowsOf({
+          targetType: FormTargetType.ScheduledMaintenance,
+          fields: MAINTENANCE,
+        }),
       ),
     ).toEqual([
       "title",
@@ -336,7 +385,7 @@ describe("getFormMappingRows: how a submission becomes a maintenance event", () 
   });
 
   test("the window is the answers; publishing is No unless the settings say Yes", () => {
-    const rows: Record<string, FormMappingRow> = rowsOf({
+    const rows: Rows = rowsOf({
       targetType: FormTargetType.ScheduledMaintenance,
       fields: MAINTENANCE,
       settings: { statusPageIds: [PAGE_ID], notifySubscribers: true },
@@ -361,8 +410,14 @@ describe("the On Submit settings dialog", () => {
           return step.title;
         },
       ),
-    ).toEqual([FormsCopy.stepDefaults, FormsCopy.stepAlwaysAttach, FormsCopy.stepOwners]);
-    expect(getFormSettingsSteps(FormTargetType.ScheduledMaintenance)).toHaveLength(4);
+    ).toEqual([
+      FormsCopy.stepDefaults,
+      FormsCopy.stepAlwaysAttach,
+      FormsCopy.stepOwners,
+    ]);
+    expect(
+      getFormSettingsSteps(FormTargetType.ScheduledMaintenance),
+    ).toHaveLength(4);
   });
 
   test("an incident form's fields, each on its step, offering the project's records", () => {
@@ -385,7 +440,9 @@ describe("the On Submit settings dialog", () => {
       "owners:ownerUserIds",
       "owners:ownerTeamIds",
     ]);
-    expect(fields[1]!.dropdownOptions).toEqual([{ value: SEVERITY_ID, label: "Major" }]);
+    expect(fields[1]!.dropdownOptions).toEqual([
+      { value: SEVERITY_ID, label: "Major" },
+    ]);
     expect(fields[3]!.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
 
     for (const field of fields) {
@@ -462,7 +519,10 @@ describe("the On Submit settings dialog", () => {
       targetType: FormTargetType.Incident,
       values: {
         defaultTitle: "  Report  ",
-        incidentSeverityId: { value: SEVERITY_ID.toUpperCase(), label: "Major" } as never,
+        incidentSeverityId: {
+          value: SEVERITY_ID.toUpperCase(),
+          label: "Major",
+        } as never,
         incidentTemplateId: "",
         monitorIds: [{ value: MONITOR_ID, label: "API" }, MONITOR_ID] as never,
         labelIds: [],
@@ -479,7 +539,10 @@ describe("the On Submit settings dialog", () => {
       onCallDutyPolicyIds: [POLICY_ID],
     });
     expect(
-      validateFormTargetSettings({ targetType: FormTargetType.Incident, value: packed }),
+      validateFormTargetSettings({
+        targetType: FormTargetType.Incident,
+        value: packed,
+      }),
     ).toBeNull();
   });
 
@@ -494,7 +557,10 @@ describe("the On Submit settings dialog", () => {
       },
     });
 
-    expect(packed).toEqual({ statusPageIds: [PAGE_ID], showOnStatusPages: true });
+    expect(packed).toEqual({
+      statusPageIds: [PAGE_ID],
+      showOnStatusPages: true,
+    });
     expect(
       validateFormTargetSettings({
         targetType: FormTargetType.ScheduledMaintenance,

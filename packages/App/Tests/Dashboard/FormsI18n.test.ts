@@ -78,18 +78,24 @@ const OTHER_LOCALES: Array<string> = [
   "fa",
 ];
 
+// A TypeScript source file.
+const SOURCE_FILE: RegExp = /\.tsx?$/;
+
 // Every file of the product: its pages and its components.
 function listFeatureFiles(relativeDirectory: string): Array<string> {
   const files: Array<string> = [];
 
-  for (const entry of fs.readdirSync(path.join(DASHBOARD_SRC, relativeDirectory), {
-    withFileTypes: true,
-  })) {
+  for (const entry of fs.readdirSync(
+    path.join(DASHBOARD_SRC, relativeDirectory),
+    {
+      withFileTypes: true,
+    },
+  )) {
     const relativePath: string = `${relativeDirectory}/${entry.name}`;
 
     if (entry.isDirectory()) {
       files.push(...listFeatureFiles(relativePath));
-    } else if (/\.tsx?$/.test(entry.name)) {
+    } else if (SOURCE_FILE.test(entry.name)) {
       files.push(relativePath);
     }
   }
@@ -368,7 +374,11 @@ describe("the glossary's words", () => {
    */
   test("the IP allowlist's help says ranges must be IPv4, as the save-time check does", () => {
     const text: string = FormsCopy.ipAllowlistDescription;
-    const examples: Array<string> = ["203.0.113.7", "2001:db8::1", "10.0.0.0/8"];
+    const examples: Array<string> = [
+      "203.0.113.7",
+      "2001:db8::1",
+      "10.0.0.0/8",
+    ];
 
     expect(text).toBe(
       "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.",
@@ -591,9 +601,9 @@ describe("Forms strings in every Dashboard locale", () => {
       )["items"] as Record<string, unknown>;
       const itemKeys: Array<string> = Object.keys(items);
 
-      expect(itemKeys.slice(itemKeys.indexOf("runbooksDescription") + 1)).toEqual(
-        expect.arrayContaining(["formsTitle", "formsDescription"]),
-      );
+      expect(
+        itemKeys.slice(itemKeys.indexOf("runbooksDescription") + 1),
+      ).toEqual(expect.arrayContaining(["formsTitle", "formsDescription"]));
       expect(itemKeys[itemKeys.indexOf("runbooksDescription") + 1]).toBe(
         "formsTitle",
       );
@@ -638,7 +648,9 @@ describe("the dashboard renders the strings", () => {
       readCode("Pages/Forms/SideMenu.tsx"),
       readCode("Pages/Forms/View/SideMenu.tsx"),
     ].join(" ");
-    const breadcrumbs: string = readCode("Utils/Breadcrumbs/FormsBreadcrumbs.ts");
+    const breadcrumbs: string = readCode(
+      "Utils/Breadcrumbs/FormsBreadcrumbs.ts",
+    );
 
     for (const title of ["Forms", "Submissions"]) {
       expect(menus).toContain(`title: "${title}"`);
@@ -646,7 +658,9 @@ describe("the dashboard renders the strings", () => {
 
     for (const title of ["Build", "On Submit", "Share", "Delete Form"]) {
       expect(menus).toContain(`title: "${title}"`);
-      expect(breadcrumbs).toContain(`"${title === "Build" ? "View Form" : title}"`);
+      expect(breadcrumbs).toContain(
+        `"${title === "Build" ? "View Form" : title}"`,
+      );
     }
 
     expect(menus).toContain('title="Form"');
@@ -712,7 +726,9 @@ describe("the dashboard renders the strings", () => {
    * they look it up themselves.
    */
   test("the pages and components look up what the shared components do not", () => {
-    const card: string = readCode("Components/FormBuilder/FormShareLinkCard.tsx");
+    const card: string = readCode(
+      "Components/FormBuilder/FormShareLinkCard.tsx",
+    );
 
     expect(card).toContain("translateString(FormsCopy.copyLink)");
     expect(card).toContain("translateString(FormsCopy.openForm)");

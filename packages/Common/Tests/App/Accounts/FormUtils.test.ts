@@ -6,7 +6,6 @@ import APIException from "../../../Types/Exception/ApiException";
 import {
   PublicForm,
   PublicFormFieldType,
-  PublicFormSubmissionRequest,
 } from "../../../Types/Form/FormPublic";
 import { JSONObject } from "../../../Types/JSON";
 import { FORM_PUBLIC_API_URL } from "../../../../App/FeatureSet/Accounts/src/Utils/ApiPaths";
@@ -220,7 +219,9 @@ describe("readPublicForm: what the page believes about the form", () => {
       ],
     });
 
-    expect(form.fields[0]!.options).toEqual([{ value: "Berlin", label: "Berlin" }]);
+    expect(form.fields[0]!.options).toEqual([
+      { value: "Berlin", label: "Berlin" },
+    ]);
     expect(form.fields[0]!.defaultValue).toBeUndefined();
   });
 
@@ -259,7 +260,12 @@ describe("buildFormSubmissionRequest", () => {
   const FORM: PublicForm = {
     name: "F",
     fields: [
-      { id: "title", label: "Title", type: PublicFormFieldType.Text, isRequired: true },
+      {
+        id: "title",
+        label: "Title",
+        type: PublicFormFieldType.Text,
+        isRequired: true,
+      },
       {
         id: "severity",
         label: "Severity",
@@ -282,7 +288,7 @@ describe("buildFormSubmissionRequest", () => {
         },
         captchaToken: " token ",
       }),
-    ).toEqual<PublicFormSubmissionRequest>({
+    ).toEqual({
       data: { answers: { title: "Down", severity: CRITICAL_ID } },
       captchaToken: "token",
     });
@@ -313,11 +319,13 @@ describe("getFormFailure", () => {
   });
 
   test("404 is not available, whatever came with it", () => {
-    expect(getFormFailure(httpError(404, { error: "Something else" }))).toEqual({
-      kind: FormFailureKind.NotAvailable,
-      serverMessage: "Something else",
-      retryAfterSeconds: 0,
-    });
+    expect(getFormFailure(httpError(404, { error: "Something else" }))).toEqual(
+      {
+        kind: FormFailureKind.NotAvailable,
+        serverMessage: "Something else",
+        retryAfterSeconds: 0,
+      },
+    );
   });
 
   test("403 is a network that is not allowed", () => {
@@ -378,8 +386,9 @@ describe("getFormFailure", () => {
         .serverMessage,
     ).toBe("From a limiter");
     expect(
-      getFormFailure(httpError(400, { message: "   ", error: "The error then" }))
-        .serverMessage,
+      getFormFailure(
+        httpError(400, { message: "   ", error: "The error then" }),
+      ).serverMessage,
     ).toBe("The error then");
 
     const html: FormFailure = getFormFailure(
@@ -416,13 +425,19 @@ describe("getFormFailureMessage", () => {
     (stage: FormStage) => {
       expect(
         message(
-          { kind: FormFailureKind.NotAvailable, serverMessage: "Route not found" },
+          {
+            kind: FormFailureKind.NotAvailable,
+            serverMessage: "Route not found",
+          },
           stage,
         ),
       ).toBe(FormMessage.NotAvailable);
       expect(
         message(
-          { kind: FormFailureKind.NetworkNotAllowed, serverMessage: "Forbidden" },
+          {
+            kind: FormFailureKind.NetworkNotAllowed,
+            serverMessage: "Forbidden",
+          },
           stage,
         ),
       ).toBe(FormMessage.NetworkNotAllowed);
@@ -435,7 +450,10 @@ describe("getFormFailureMessage", () => {
     FormMessage.TooManyRequests,
   ])("a limit repeats the limiter's words: %s", (serverMessage: string) => {
     expect(
-      message({ kind: FormFailureKind.RateLimited, serverMessage }, FormStage.Submit),
+      message(
+        { kind: FormFailureKind.RateLimited, serverMessage },
+        FormStage.Submit,
+      ),
     ).toBe(serverMessage);
   });
 
@@ -514,9 +532,12 @@ describe("formatFormRetryAfter", () => {
     [3599, "in 60 minutes"],
     [3600, "in 1 hour"],
     [5400, "in 2 hours"],
-  ])("%s seconds is %j - rounded up, never early", (seconds: number, text: string) => {
-    expect(formatFormRetryAfter(seconds, "en")).toBe(text);
-  });
+  ])(
+    "%s seconds is %j - rounded up, never early",
+    (seconds: number, text: string) => {
+      expect(formatFormRetryAfter(seconds, "en")).toBe(text);
+    },
+  );
 
   test.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
     "%s is no wait at all",

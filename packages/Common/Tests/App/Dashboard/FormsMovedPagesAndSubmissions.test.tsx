@@ -39,7 +39,9 @@ jest.mock("../../../UI/Utils/Project", () => {
         const ObjectIDClass: any = jest.requireActual(
           "../../../Types/ObjectID",
         ) as any;
-        return new ObjectIDClass.default("11111111-1111-4111-8111-111111111111");
+        return new ObjectIDClass.default(
+          "11111111-1111-4111-8111-111111111111",
+        );
       },
     },
   };
@@ -117,7 +119,9 @@ describe("the old Incident Forms pages", () => {
 
   test("a form's page forwards to the same form, which kept its id", async () => {
     expect(
-      await visit(`/dashboard/${PROJECT_ID}/incidents/settings/forms/${FORM_ID}`),
+      await visit(
+        `/dashboard/${PROJECT_ID}/incidents/settings/forms/${FORM_ID}`,
+      ),
     ).toBe(`/dashboard/${PROJECT_ID}/forms/${FORM_ID}`);
   });
 
