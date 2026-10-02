@@ -1,19 +1,20 @@
 import Entities from "../../../Models/DatabaseModels/Index";
-import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
-import IncidentFormSubmission from "../../../Models/DatabaseModels/IncidentFormSubmission";
+import Form from "../../../Models/DatabaseModels/Form";
+import FormSubmission from "../../../Models/DatabaseModels/FormSubmission";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
+import FormService from "../../../Server/Services/FormService";
+import FormSubmissionService from "../../../Server/Services/FormSubmissionService";
 import IncidentCustomFieldService from "../../../Server/Services/IncidentCustomFieldService";
-import IncidentFormService from "../../../Server/Services/IncidentFormService";
-import IncidentFormSubmissionService from "../../../Server/Services/IncidentFormSubmissionService";
-import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Email from "../../../Types/Email";
-import { IncidentFormFieldSetting } from "../../../Types/Incident/IncidentFormPublic";
+import {
+  FormField,
+  FormFieldSource,
+  getDefaultFormFields,
+} from "../../../Types/Form/FormField";
+import FormTargetType from "../../../Types/Form/FormTargetType";
+import { JSONArray } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, {
-  UserTenantAccessPermission,
-} from "../../../Types/Permission";
-import UserType from "../../../Types/UserType";
 import {
   afterAll,
   beforeAll,
@@ -26,6 +27,8 @@ import {
 import { DataSource } from "typeorm";
 
 /*
+ * Forms (which replaced incident forms) against a migrated Postgres.
+ *
  * Opt in with RUN_POSTGRES_INCIDENT_FORM_TESTS=true against a database the
  * registered migrations have been applied to, e.g.
  *
@@ -36,26 +39,24 @@ import { DataSource } from "typeorm";
  *
  * CI runs it in .github/workflows/postgres-schema-drift.yaml ("Test incident
  * forms on migrated Postgres"), right after that job has applied every
- * registered migration to an empty database. The Common test job's Postgres
+ * registered migration to an empty database - which is why the file and the
+ * variables keep their incident-form names. The Common test job's Postgres
  * is not migrated, so the suite is skipped there.
  *
  * Two halves:
  *
  * - the migrated public tables are inspected as they are: every foreign
- *   key's ON DELETE rule, the link key's unique constraint, and the columns
- *   a fake QueryRunner cannot prove are what Postgres ended up with;
+ *   key's ON DELETE rule, the link key's unique constraint, the columns'
+ *   defaults, and that the incident form tables are gone;
  * - behaviour runs in a uniquely named schema holding structure-only clones
  *   of the tables involved. The clones carry the migrated indexes and
- *   constraints (LIKE ... INCLUDING ALL), and the two new tables' foreign
+ *   constraints (LIKE ... INCLUDING ALL), and the two form tables' foreign
  *   keys are copied from the migrated definitions, so a cascade observed
  *   here is the cascade the migration declared. No row is ever written
  *   outside that schema, and the schema is dropped afterwards.
  *
- * The production IncidentFormService and IncidentFormSubmissionService run
- * against the clones; only realtime and workflow triggers are stubbed.
- * Privacy clauses reference the owner and team tables, which are not
- * cloned: they resolve to the migrated public tables through the search
- * path, where a member with a freshly generated id owns nothing.
+ * The production FormService and FormSubmissionService run against the
+ * clones; only realtime and workflow triggers are stubbed.
  */
 // describe.skip's type is the one both branches share.
 const describePostgres: typeof describe.skip =
@@ -66,15 +67,14 @@ const describePostgres: typeof describe.skip =
 const TABLES: Array<string> = [
   "Project",
   "User",
-  "IncidentSeverity",
-  "IncidentTemplate",
   "Incident",
+  "ScheduledMaintenance",
   "IncidentCustomField",
-  "IncidentForm",
-  "IncidentFormSubmission",
+  "Form",
+  "FormSubmission",
 ];
 
-const NEW_TABLES: Array<string> = ["IncidentForm", "IncidentFormSubmission"];
+const NEW_TABLES: Array<string> = ["Form", "FormSubmission"];
 
 interface ForeignKeyRow {
   table: string;
@@ -85,8 +85,8 @@ interface ForeignKeyRow {
   definition: string;
 }
 
-describePostgres("Incident forms against a migrated Postgres", () => {
-  const schema: string = `incident_form_${ObjectID.generate()
+describePostgres("Forms against a migrated Postgres", () => {
+  const schema: string = `form_${ObjectID.generate()
     .toString()
     .replace(/-/g, "")}`;
 
@@ -161,8 +161,8 @@ describePostgres("Incident forms against a migrated Postgres", () => {
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
 
     for (const service of [
-      IncidentFormService,
-      IncidentFormSubmissionService,
+      FormService,
+      FormSubmissionService,
       IncidentCustomFieldService,
     ] as Array<{
       onTriggerRealtime: unknown;
@@ -200,65 +200,69 @@ describePostgres("Incident forms against a migrated Postgres", () => {
   async function seedProject(id: ObjectID): Promise<void> {
     await database.query(
       `INSERT INTO "${schema}"."Project" ("_id", "name", "slug", "version")
-       VALUES ($1, 'Incident form test', $2, 1)`,
-      [id.toString(), `incident-form-${id.toString()}`],
+       VALUES ($1, 'Form test', $2, 1)`,
+      [id.toString(), `form-${id.toString()}`],
     );
   }
 
-  async function seedSeverity(
-    project: ObjectID = projectId,
-  ): Promise<ObjectID> {
-    const id: ObjectID = ObjectID.generate();
-    await database.query(
-      `INSERT INTO "${schema}"."IncidentSeverity" ("_id", "projectId", "name", "slug", "color", "order", "version")
-       VALUES ($1, $2, 'High', $3, '#ff0000', 1, 1)`,
-      [id.toString(), project.toString(), `severity-${id.toString()}`],
-    );
-    return id;
-  }
-
-  async function seedTemplate(
-    project: ObjectID = projectId,
-  ): Promise<ObjectID> {
-    const id: ObjectID = ObjectID.generate();
-    await database.query(
-      `INSERT INTO "${schema}"."IncidentTemplate" ("_id", "projectId", "title", "templateName", "templateDescription", "slug", "version")
-       VALUES ($1, $2, 'Possible data breach', 'Data breach', 'For security reports', $3, 1)`,
-      [id.toString(), project.toString(), `template-${id.toString()}`],
-    );
-    return id;
-  }
-
-  async function seedIncident(
-    options: { isPrivate?: boolean } = {},
-  ): Promise<ObjectID> {
+  async function seedIncident(): Promise<ObjectID> {
     const id: ObjectID = ObjectID.generate();
     await database.query(
       `INSERT INTO "${schema}"."Incident"
-       ("_id", "projectId", "title", "slug", "currentIncidentStateId", "incidentSeverityId", "isPrivate", "version")
-       VALUES ($1, $2, 'Checkout is failing', $3, $4, $5, $6, 1)`,
+       ("_id", "projectId", "title", "slug", "currentIncidentStateId", "incidentSeverityId", "version")
+       VALUES ($1, $2, 'Checkout is failing', $3, $4, $5, 1)`,
       [
         id.toString(),
         projectId.toString(),
         `incident-${id.toString()}`,
         ObjectID.generate().toString(),
         ObjectID.generate().toString(),
-        Boolean(options.isPrivate),
       ],
     );
     return id;
   }
 
-  async function createForm(
-    data: Partial<IncidentForm> = {},
-  ): Promise<IncidentForm> {
-    const form: IncidentForm = new IncidentForm();
+  async function seedEvent(): Promise<ObjectID> {
+    const id: ObjectID = ObjectID.generate();
+    await database.query(
+      `INSERT INTO "${schema}"."ScheduledMaintenance"
+       ("_id", "projectId", "title", "slug", "currentScheduledMaintenanceStateId", "startsAt", "endsAt", "version")
+       VALUES ($1, $2, 'Database upgrade', $3, $4, now(), now() + interval '1 hour', 1)`,
+      [
+        id.toString(),
+        projectId.toString(),
+        `event-${id.toString()}`,
+        ObjectID.generate().toString(),
+      ],
+    );
+    return id;
+  }
+
+  async function seedCustomField(
+    project: ObjectID = projectId,
+  ): Promise<ObjectID> {
+    const id: ObjectID = ObjectID.generate();
+    await database.query(
+      `INSERT INTO "${schema}"."IncidentCustomField"
+       ("_id", "projectId", "name", "customFieldType", "variableKey", "sortOrder", "version")
+       VALUES ($1, $2, $3, 'Text', $4, 1, 1)`,
+      [
+        id.toString(),
+        project.toString(),
+        `Impact ${id.toString().slice(0, 8)}`,
+        `impact_${id.toString().replace(/-/g, "").slice(0, 8)}`,
+      ],
+    );
+    return id;
+  }
+
+  async function createForm(data: Partial<Form> = {}): Promise<Form> {
+    const form: Form = new Form();
     form.projectId = projectId;
     form.name = `Report ${ObjectID.generate().toString()}`;
-    form.incidentSeverityId = await seedSeverity();
     Object.assign(form, data);
 
-    return IncidentFormService.create({
+    return FormService.create({
       data: form,
       props: { isRoot: true },
     });
@@ -266,7 +270,7 @@ describePostgres("Incident forms against a migrated Postgres", () => {
 
   async function storedForm(id: ObjectID): Promise<Record<string, unknown>> {
     const rows: Array<Record<string, unknown>> = await database.query(
-      `SELECT * FROM "${schema}"."IncidentForm" WHERE "_id" = $1`,
+      `SELECT * FROM "${schema}"."Form" WHERE "_id" = $1`,
       [id.toString()],
     );
 
@@ -277,24 +281,29 @@ describePostgres("Incident forms against a migrated Postgres", () => {
 
   async function createSubmission(
     formId: ObjectID,
-    data: Partial<IncidentFormSubmission> = {},
-  ): Promise<IncidentFormSubmission> {
-    const submission: IncidentFormSubmission = new IncidentFormSubmission();
+    data: Partial<FormSubmission> = {},
+  ): Promise<FormSubmission> {
+    const submission: FormSubmission = new FormSubmission();
     submission.projectId = projectId;
-    submission.incidentFormId = formId;
+    submission.formId = formId;
     Object.assign(submission, data);
 
-    return IncidentFormSubmissionService.create({
+    return FormSubmissionService.create({
       data: submission,
       props: { isRoot: true },
     });
   }
 
   async function submissionRows(): Promise<
-    Array<{ _id: string; incidentId: string | null }>
+    Array<{
+      _id: string;
+      formId: string;
+      incidentId: string | null;
+      scheduledMaintenanceId: string | null;
+    }>
   > {
     return database.query(
-      `SELECT "_id", "incidentId" FROM "${schema}"."IncidentFormSubmission" ORDER BY "createdAt"`,
+      `SELECT "_id", "formId", "incidentId", "scheduledMaintenanceId" FROM "${schema}"."FormSubmission" ORDER BY "createdAt"`,
     );
   }
 
@@ -310,42 +319,12 @@ describePostgres("Incident forms against a migrated Postgres", () => {
     return "no error";
   }
 
-  // A member of the test project with one role, who owns nothing.
-  function memberProps(permission: Permission): DatabaseCommonInteractionProps {
-    const tenantPermission: UserTenantAccessPermission = {
-      projectId: projectId,
-      _type: "UserTenantAccessPermission",
-      permissions: [
-        {
-          _type: "UserPermission",
-          permission: permission,
-          labelIds: [],
-          isBlockPermission: false,
-        },
-      ],
-    };
-
-    return {
-      tenantId: projectId,
-      userId: ObjectID.generate(),
-      userType: UserType.User,
-      userTenantAccessPermission: {
-        [projectId.toString()]: tenantPermission,
-      },
-    };
-  }
-
-  // An incident viewer of the test project, who owns nothing.
-  function viewerProps(): DatabaseCommonInteractionProps {
-    return memberProps(Permission.IncidentViewer);
-  }
-
   describe("the migrated tables", () => {
-    test("a form goes with its project and outlives its severity, template and users", () => {
+    test("a form goes with its project and outlives its users", () => {
       expect(
         migratedForeignKeys
           .filter((foreignKey: ForeignKeyRow): boolean => {
-            return foreignKey.table === "IncidentForm";
+            return foreignKey.table === "Form";
           })
           .map((foreignKey: ForeignKeyRow): Array<string> => {
             return [
@@ -358,17 +337,15 @@ describePostgres("Incident forms against a migrated Postgres", () => {
         // confdeltype: c = CASCADE, n = SET NULL
         ["createdByUserId", "User", "n"],
         ["deletedByUserId", "User", "n"],
-        ["incidentSeverityId", "IncidentSeverity", "n"],
-        ["incidentTemplateId", "IncidentTemplate", "n"],
         ["projectId", "Project", "c"],
       ]);
     });
 
-    test("a submission goes with its project and its form, and outlives its incident", () => {
+    test("a submission goes with its project and its form, and outlives what it created", () => {
       expect(
         migratedForeignKeys
           .filter((foreignKey: ForeignKeyRow): boolean => {
-            return foreignKey.table === "IncidentFormSubmission";
+            return foreignKey.table === "FormSubmission";
           })
           .map((foreignKey: ForeignKeyRow): Array<string> => {
             return [
@@ -378,9 +355,10 @@ describePostgres("Incident forms against a migrated Postgres", () => {
             ];
           }),
       ).toEqual([
-        ["incidentFormId", "IncidentForm", "c"],
+        ["formId", "Form", "c"],
         ["incidentId", "Incident", "n"],
         ["projectId", "Project", "c"],
+        ["scheduledMaintenanceId", "ScheduledMaintenance", "n"],
       ]);
     });
 
@@ -390,7 +368,7 @@ describePostgres("Incident forms against a migrated Postgres", () => {
            FROM pg_constraint c
            JOIN pg_class t ON t.oid = c.conrelid
            JOIN pg_namespace n ON n.oid = t.relnamespace
-          WHERE n.nspname = 'public' AND t.relname = 'IncidentForm' AND c.contype = 'u'`,
+          WHERE n.nspname = 'public' AND t.relname = 'Form' AND c.contype = 'u'`,
       );
 
       expect(constraints).toEqual([{ definition: 'UNIQUE ("shareKey")' }]);
@@ -398,113 +376,91 @@ describePostgres("Incident forms against a migrated Postgres", () => {
       const columns: Array<{ is_nullable: string; data_type: string }> =
         await database.query(
           `SELECT is_nullable, data_type FROM information_schema.columns
-            WHERE table_schema = 'public' AND table_name = 'IncidentForm' AND column_name = 'shareKey'`,
+            WHERE table_schema = 'public' AND table_name = 'Form' AND column_name = 'shareKey'`,
         );
 
       expect(columns).toEqual([{ is_nullable: "NO", data_type: "uuid" }]);
     });
 
-    test("the columns start where the models say they do", async () => {
+    test("the columns start where the model says they do", async () => {
       const rows: Array<{
         column_name: string;
         is_nullable: string;
         column_default: string | null;
+        data_type: string;
       }> = await database.query(
-        `SELECT column_name, is_nullable, column_default FROM information_schema.columns
-          WHERE table_schema = 'public' AND table_name = 'IncidentForm'
-            AND column_name IN ('isEnabled', 'allowReporterToChooseSeverity', 'isReporterDetailsRequired', 'descriptionSetting', 'incidentSeverityId', 'incidentTemplateId', 'customFieldSettings')
+        `SELECT column_name, is_nullable, column_default, data_type FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'Form'
+            AND column_name IN ('isEnabled', 'targetType', 'fields', 'targetSettings')
           ORDER BY column_name`,
       );
 
       expect(rows).toEqual([
         {
-          column_name: "allowReporterToChooseSeverity",
-          is_nullable: "NO",
-          column_default: "false",
-        },
-        {
-          column_name: "customFieldSettings",
+          column_name: "fields",
           is_nullable: "YES",
           column_default: null,
-        },
-        {
-          column_name: "descriptionSetting",
-          is_nullable: "NO",
-          column_default: "'Optional'::character varying",
-        },
-        {
-          column_name: "incidentSeverityId",
-          is_nullable: "YES",
-          column_default: null,
-        },
-        {
-          column_name: "incidentTemplateId",
-          is_nullable: "YES",
-          column_default: null,
+          data_type: "jsonb",
         },
         {
           column_name: "isEnabled",
           is_nullable: "NO",
           column_default: "true",
+          data_type: "boolean",
         },
         {
-          column_name: "isReporterDetailsRequired",
+          column_name: "targetSettings",
+          is_nullable: "YES",
+          column_default: null,
+          data_type: "jsonb",
+        },
+        {
+          column_name: "targetType",
           is_nullable: "NO",
-          column_default: "true",
+          column_default: "'Incident'::character varying",
+          data_type: "character varying",
         },
       ]);
     });
 
-    test("every existing template gets a nullable settings column with no default", async () => {
-      const rows: Array<{
-        data_type: string;
-        is_nullable: string;
-        column_default: string | null;
-      }> = await database.query(
-        `SELECT data_type, is_nullable, column_default FROM information_schema.columns
+    test("the incident form tables are gone; the templates keep their custom field settings", async () => {
+      const tables: Array<{ table_name: string }> = await database.query(
+        `SELECT table_name FROM information_schema.tables
+          WHERE table_schema = 'public' AND table_name IN ('IncidentForm', 'IncidentFormSubmission')`,
+      );
+
+      expect(tables).toEqual([]);
+
+      const settings: Array<{ data_type: string }> = await database.query(
+        `SELECT data_type FROM information_schema.columns
           WHERE table_schema = 'public' AND table_name = 'IncidentTemplate' AND column_name = 'customFieldSettings'`,
       );
 
-      expect(rows).toEqual([
-        { data_type: "jsonb", is_nullable: "YES", column_default: null },
-      ]);
+      expect(settings).toEqual([{ data_type: "jsonb" }]);
     });
   });
 
   describe("forms", () => {
-    test("a form is given its own link key, keeps its questions exactly as sent and starts with the column defaults", async () => {
+    test("a new form gets its own link key, creates incidents and asks its target's questions", async () => {
       const clientKey: ObjectID = ObjectID.generate();
-      const templateId: ObjectID = await seedTemplate();
 
-      const created: IncidentForm = await createForm({
-        shareKey: clientKey,
-        incidentTemplateId: templateId,
-        customFieldSettings: {
-          impact: "Required",
-          affected_location: "Optional",
-          customer: "Default",
-        },
-      });
-
+      const created: Form = await createForm({ shareKey: clientKey });
       const row: Record<string, unknown> = await storedForm(created.id!);
 
       expect(ObjectID.isValidUUID(String(row["shareKey"]))).toBe(true);
       expect(row["shareKey"]).not.toBe(clientKey.toString());
-      expect(row["customFieldSettings"]).toEqual({
-        impact: "Required",
-        affected_location: "Optional",
-        customer: "Default",
-      });
-      expect(row["incidentTemplateId"]).toBe(templateId.toString());
       expect(row["isEnabled"]).toBe(true);
-      expect(row["allowReporterToChooseSeverity"]).toBe(false);
-      expect(row["isReporterDetailsRequired"]).toBe(true);
-      expect(row["descriptionSetting"]).toBe(IncidentFormFieldSetting.Optional);
+      expect(row["targetType"]).toBe(FormTargetType.Incident);
+      expect(
+        (row["fields"] as Array<FormField>).map((field: FormField) => {
+          return field.targetField || field.submitterField;
+        }),
+      ).toEqual(["title", "description", "Name", "Email"]);
 
       // Read back through the model, the key is an ObjectID again.
-      const read: IncidentForm | null = await IncidentFormService.findOneById({
+      const read: Form | null = await FormService.findOneById({
         id: created.id!,
-        select: { shareKey: true, customFieldSettings: true },
+        select: { shareKey: true, fields: true },
         props: { isRoot: true },
       });
 
@@ -512,9 +468,27 @@ describePostgres("Incident forms against a migrated Postgres", () => {
       expect(read?.shareKey?.toString()).toBe(row["shareKey"]);
     });
 
+    test("keeps the questions and settings exactly as sent", async () => {
+      const fields: Array<FormField> = getDefaultFormFields(
+        FormTargetType.ScheduledMaintenance,
+      );
+
+      const created: Form = await createForm({
+        targetType: FormTargetType.ScheduledMaintenance,
+        fields: fields as unknown as JSONArray,
+        targetSettings: { showOnStatusPages: true },
+      });
+
+      const row: Record<string, unknown> = await storedForm(created.id!);
+
+      expect(row["fields"]).toEqual(JSON.parse(JSON.stringify(fields)));
+      expect(row["targetSettings"]).toEqual({ showOnStatusPages: true });
+      expect(row["targetType"]).toBe(FormTargetType.ScheduledMaintenance);
+    });
+
     test("no two forms share a key, and a key another form holds cannot be taken", async () => {
-      const first: IncidentForm = await createForm();
-      const second: IncidentForm = await createForm();
+      const first: Form = await createForm();
+      const second: Form = await createForm();
 
       const firstKey: string = String(
         (await storedForm(first.id!))["shareKey"],
@@ -526,7 +500,7 @@ describePostgres("Incident forms against a migrated Postgres", () => {
       expect(firstKey).not.toBe(secondKey);
 
       await expect(
-        IncidentFormService.updateOneById({
+        FormService.updateOneById({
           id: second.id!,
           data: { shareKey: new ObjectID(firstKey) },
           props: { isRoot: true },
@@ -539,7 +513,7 @@ describePostgres("Incident forms against a migrated Postgres", () => {
       expect(
         await sqlState(() => {
           return database.query(
-            `UPDATE "${schema}"."IncidentForm" SET "shareKey" = $1 WHERE "_id" = $2`,
+            `UPDATE "${schema}"."Form" SET "shareKey" = $1 WHERE "_id" = $2`,
             [firstKey, second.id!.toString()],
           );
         }),
@@ -547,11 +521,11 @@ describePostgres("Incident forms against a migrated Postgres", () => {
     });
 
     test("resetting the link stores the new key, and the old one no longer finds the form", async () => {
-      const form: IncidentForm = await createForm();
+      const form: Form = await createForm();
       const oldKey: string = String((await storedForm(form.id!))["shareKey"]);
       const newKey: ObjectID = ObjectID.generate();
 
-      await IncidentFormService.updateOneById({
+      await FormService.updateOneById({
         id: form.id!,
         data: { shareKey: newKey },
         props: { isRoot: true },
@@ -559,235 +533,137 @@ describePostgres("Incident forms against a migrated Postgres", () => {
 
       expect((await storedForm(form.id!))["shareKey"]).toBe(newKey.toString());
       expect(
-        await IncidentFormService.findOneBy({
+        await FormService.findOneBy({
           query: { shareKey: new ObjectID(oldKey) },
           select: { _id: true },
           props: { isRoot: true },
         }),
       ).toBeNull();
-      expect(
-        (
-          await IncidentFormService.findOneBy({
-            query: { shareKey: newKey },
-            select: { _id: true },
-            props: { isRoot: true },
-          })
-        )?.id?.toString(),
-      ).toBe(form.id!.toString());
     });
 
     test("a null key is refused by the database too", async () => {
-      const form: IncidentForm = await createForm();
+      const form: Form = await createForm();
 
       expect(
         await sqlState(() => {
           return database.query(
-            `UPDATE "${schema}"."IncidentForm" SET "shareKey" = NULL WHERE "_id" = $1`,
+            `UPDATE "${schema}"."Form" SET "shareKey" = NULL WHERE "_id" = $1`,
             [form.id!.toString()],
           );
         }),
       ).toBe("23502");
     });
 
-    test("a severity or template from another project is refused", async () => {
-      const foreignSeverityId: ObjectID = await seedSeverity(otherProjectId);
-      const foreignTemplateId: ObjectID = await seedTemplate(otherProjectId);
+    test("two forms of one project cannot share a name; another project's can", async () => {
+      await createForm({ name: "Report a Problem" });
 
       await expect(
-        createForm({ incidentSeverityId: foreignSeverityId }),
+        createForm({ name: "Report a Problem" }),
       ).rejects.toBeInstanceOf(BadDataException);
       await expect(
-        createForm({ incidentTemplateId: foreignTemplateId }),
+        createForm({ name: "Report a Problem", projectId: otherProjectId }),
+      ).resolves.toBeDefined();
+    });
+
+    test("a question linked to another project's custom field is refused, and nothing is stored", async () => {
+      const foreignFieldId: ObjectID = await seedCustomField(otherProjectId);
+
+      await expect(
+        createForm({
+          fields: [
+            {
+              id: "impact",
+              source: FormFieldSource.TargetCustomField,
+              customFieldId: foreignFieldId.toString(),
+              label: "Impact",
+              isRequired: false,
+            },
+          ] as unknown as JSONArray,
+        }),
       ).rejects.toBeInstanceOf(BadDataException);
 
       const rows: Array<{ count: string }> = await database.query(
-        `SELECT count(*)::text AS "count" FROM "${schema}"."IncidentForm"`,
+        `SELECT count(*)::text AS "count" FROM "${schema}"."Form"`,
       );
       expect(rows[0]!.count).toBe("0");
     });
 
-    test("deleting its severity clears it, and the form stays", async () => {
-      const form: IncidentForm = await createForm();
-      const severityId: string = String(
-        (await storedForm(form.id!))["incidentSeverityId"],
-      );
+    /*
+     * Forms name a custom field by its id. Deleting the field leaves the
+     * question where it is - the builder shows it as one to delete, and the
+     * public page leaves it out - so the forms are not touched at all.
+     */
+    test("deleting a custom field leaves the forms that ask it untouched", async () => {
+      const fieldId: ObjectID = await seedCustomField();
 
-      await database.query(
-        `DELETE FROM "${schema}"."IncidentSeverity" WHERE "_id" = $1`,
-        [severityId],
-      );
-
-      expect((await storedForm(form.id!))["incidentSeverityId"]).toBeNull();
-    });
-
-    test("deleting its template clears it, and the form stays", async () => {
-      const templateId: ObjectID = await seedTemplate();
-      const form: IncidentForm = await createForm({
-        incidentTemplateId: templateId,
+      const form: Form = await createForm({
+        fields: [
+          {
+            id: "impact",
+            source: FormFieldSource.TargetCustomField,
+            customFieldId: fieldId.toString(),
+            label: "Impact",
+            isRequired: true,
+          },
+        ] as unknown as JSONArray,
       });
 
-      await database.query(
-        `DELETE FROM "${schema}"."IncidentTemplate" WHERE "_id" = $1`,
-        [templateId.toString()],
-      );
-
-      expect((await storedForm(form.id!))["incidentTemplateId"]).toBeNull();
-    });
-  });
-
-  /*
-   * A form asks custom fields by template key, and a field created again
-   * gets its old key back. Deleting a field must take it off the forms, or
-   * the new field would appear on every public form that asked the old one.
-   */
-  describe("deleting a custom field", () => {
-    async function seedField(data: {
-      name: string;
-      variableKey: string;
-      customFieldType?: string;
-      dropdownOptions?: string;
-    }): Promise<ObjectID> {
-      const id: ObjectID = ObjectID.generate();
-      await database.query(
-        `INSERT INTO "${schema}"."IncidentCustomField"
-         ("_id", "projectId", "name", "customFieldType", "dropdownOptions", "variableKey", "sortOrder", "version")
-         VALUES ($1, $2, $3, $4, $5, $6, 1, 1)`,
-        [
-          id.toString(),
-          projectId.toString(),
-          data.name,
-          data.customFieldType || "Text",
-          data.dropdownOptions || null,
-          data.variableKey,
-        ],
-      );
-      return id;
-    }
-
-    async function storedSettings(
-      table: string,
-      id: ObjectID,
-    ): Promise<{
-      customFieldSettings: unknown;
-      version: number;
-      updatedAt: Date;
-    }> {
-      const rows: Array<{
-        customFieldSettings: unknown;
-        version: number;
-        updatedAt: Date;
-      }> = await database.query(
-        `SELECT "customFieldSettings", "version", "updatedAt" FROM "${schema}"."${table}" WHERE "_id" = $1`,
-        [id.toString()],
-      );
-
-      return rows[0]!;
-    }
-
-    test("takes the field off every form of its project - not another project's, and no template - without touching the forms' version", async () => {
-      const customerId: ObjectID = await seedField({
-        name: "Customer",
-        variableKey: "customer",
-      });
-      await seedField({ name: "Impact", variableKey: "impact" });
-
-      const form: IncidentForm = await createForm({
-        customFieldSettings: { customer: "Optional", impact: "Required" },
-      });
-      const otherProjectsForm: IncidentForm = await createForm({
-        projectId: otherProjectId,
-        incidentSeverityId: await seedSeverity(otherProjectId),
-        customFieldSettings: { customer: "Required" },
-      });
-      const templateId: ObjectID = await seedTemplate();
-      await database.query(
-        `UPDATE "${schema}"."IncidentTemplate" SET "customFieldSettings" = $1::jsonb WHERE "_id" = $2`,
-        [JSON.stringify({ customer: "Required" }), templateId.toString()],
-      );
-
-      const before: { version: number; updatedAt: Date } = await storedSettings(
-        "IncidentForm",
-        form.id!,
-      );
-
-      const formWorkflow: ReturnType<typeof jest.fn> = jest.spyOn(
-        IncidentFormService,
-        "onTriggerWorkflow",
-      ) as unknown as ReturnType<typeof jest.fn>;
-      formWorkflow.mockClear();
+      const before: Record<string, unknown> = await storedForm(form.id!);
 
       await IncidentCustomFieldService.deleteOneById({
-        id: customerId,
+        id: fieldId,
         props: { isRoot: true },
       });
 
-      const after: {
-        customFieldSettings: unknown;
-        version: number;
-        updatedAt: Date;
-      } = await storedSettings("IncidentForm", form.id!);
+      const after: Record<string, unknown> = await storedForm(form.id!);
 
-      expect(after.customFieldSettings).toEqual({ impact: "Required" });
-      expect(after.version).toBe(before.version);
-      expect(new Date(after.updatedAt).getTime()).toBe(
-        new Date(before.updatedAt).getTime(),
-      );
-      expect(formWorkflow).not.toHaveBeenCalled();
-
-      expect(
-        (await storedSettings("IncidentForm", otherProjectsForm.id!))
-          .customFieldSettings,
-      ).toEqual({ customer: "Required" });
-      expect(
-        (await storedSettings("IncidentTemplate", templateId))
-          .customFieldSettings,
-      ).toEqual({ customer: "Required" });
-
-      /*
-       * Created again, as a dropdown with options nobody meant to publish:
-       * it gets the old key back, and the form still does not ask it.
-       */
-      await seedField({
-        name: "Customer",
-        variableKey: "customer",
-        customFieldType: "Dropdown",
-        dropdownOptions: "Acme Corp (key account)\nGlobex (churn risk)",
-      });
-
-      expect(
-        (await storedSettings("IncidentForm", form.id!)).customFieldSettings,
-      ).toEqual({ impact: "Required" });
+      expect(after["fields"]).toEqual(before["fields"]);
+      expect(after["version"]).toBe(before["version"]);
     });
   });
 
   describe("submissions", () => {
-    test("the reporter's email is stored lowercased and read back as an Email", async () => {
-      const form: IncidentForm = await createForm();
-
-      const created: IncidentFormSubmission = await createSubmission(form.id!, {
-        reporterName: "Jane Doe",
-        reporterEmail: new Email("Jane.Doe@Example.COM"),
+    test("the submitter's email is stored lowercased and read back as an Email", async () => {
+      const form: Form = await createForm();
+      const submission: FormSubmission = await createSubmission(form.id!, {
+        submitterName: "Jane",
+        submitterEmail: new Email("Jane@Example.com"),
+        answers: [
+          {
+            fieldId: "title",
+            label: "Title",
+            value: "Down",
+            displayValue: "Down",
+          },
+        ],
       });
 
-      const read: IncidentFormSubmission | null =
-        await IncidentFormSubmissionService.findOneById({
-          id: created.id!,
-          select: { reporterName: true, reporterEmail: true },
+      const read: FormSubmission | null =
+        await FormSubmissionService.findOneById({
+          id: submission.id!,
+          select: { submitterEmail: true, answers: true },
           props: { isRoot: true },
         });
 
-      expect(read?.reporterName).toBe("Jane Doe");
-      expect(read?.reporterEmail).toBeInstanceOf(Email);
-      expect(read?.reporterEmail?.toString()).toBe("jane.doe@example.com");
+      expect(read?.submitterEmail).toBeInstanceOf(Email);
+      expect(read?.submitterEmail?.toString()).toBe("jane@example.com");
+      expect(read?.answers).toEqual([
+        {
+          fieldId: "title",
+          label: "Title",
+          value: "Down",
+          displayValue: "Down",
+        },
+      ]);
     });
 
     test("deleting the incident keeps the submission, with no incident", async () => {
-      const form: IncidentForm = await createForm();
+      const form: Form = await createForm();
       const incidentId: ObjectID = await seedIncident();
-      const submission: IncidentFormSubmission = await createSubmission(
-        form.id!,
-        { incidentId: incidentId },
-      );
+      await createSubmission(form.id!, {
+        incidentId,
+        targetType: FormTargetType.Incident,
+      });
 
       await database.query(
         `DELETE FROM "${schema}"."Incident" WHERE "_id" = $1`,
@@ -795,164 +671,44 @@ describePostgres("Incident forms against a migrated Postgres", () => {
       );
 
       expect(await submissionRows()).toEqual([
-        { _id: submission.id!.toString(), incidentId: null },
+        expect.objectContaining({ incidentId: null }),
+      ]);
+    });
+
+    test("deleting the scheduled maintenance event keeps the submission, with no event", async () => {
+      const form: Form = await createForm();
+      const eventId: ObjectID = await seedEvent();
+      await createSubmission(form.id!, {
+        scheduledMaintenanceId: eventId,
+        targetType: FormTargetType.ScheduledMaintenance,
+      });
+
+      await database.query(
+        `DELETE FROM "${schema}"."ScheduledMaintenance" WHERE "_id" = $1`,
+        [eventId.toString()],
+      );
+
+      expect(await submissionRows()).toEqual([
+        expect.objectContaining({ scheduledMaintenanceId: null }),
       ]);
     });
 
     test("deleting the form deletes its submissions, and only its own", async () => {
-      const form: IncidentForm = await createForm();
-      const otherForm: IncidentForm = await createForm();
+      const form: Form = await createForm();
+      const other: Form = await createForm();
       await createSubmission(form.id!);
       await createSubmission(form.id!);
-      const kept: IncidentFormSubmission = await createSubmission(
-        otherForm.id!,
-      );
+      await createSubmission(other.id!);
 
-      await IncidentFormService.deleteOneById({
-        id: form.id!,
-        props: { isRoot: true },
-      });
-
-      expect(
-        (await submissionRows()).map((row: { _id: string }): string => {
-          return row._id;
-        }),
-      ).toEqual([kept.id!.toString()]);
-    });
-
-    test("a viewer sees the submissions of incidents they can see - never of a private incident, nor of one that is gone", async () => {
-      const form: IncidentForm = await createForm();
-      const publicIncidentId: ObjectID = await seedIncident();
-      const privateIncidentId: ObjectID = await seedIncident({
-        isPrivate: true,
-      });
-
-      const ofPublic: IncidentFormSubmission = await createSubmission(
-        form.id!,
-        { incidentId: publicIncidentId },
-      );
-      await createSubmission(form.id!, { incidentId: privateIncidentId });
-      await createSubmission(form.id!);
-
-      const viewer: DatabaseCommonInteractionProps = viewerProps();
-
-      const visible: Array<IncidentFormSubmission> =
-        await IncidentFormSubmissionService.findBy({
-          query: { incidentFormId: form.id! },
-          select: { _id: true },
-          limit: 10,
-          skip: 0,
-          props: viewer,
-        });
-
-      expect(
-        visible.map((row: IncidentFormSubmission): string => {
-          return row._id!.toString();
-        }),
-      ).toEqual([ofPublic.id!.toString()]);
-
-      expect(
-        (
-          await IncidentFormSubmissionService.countBy({
-            query: { incidentFormId: form.id! },
-            props: viewer,
-          })
-        ).toNumber(),
-      ).toBe(1);
-
-      // Root, which bypasses privacy, sees all three.
-      expect(
-        await IncidentFormSubmissionService.findBy({
-          query: { incidentFormId: form.id! },
-          select: { _id: true },
-          limit: 10,
-          skip: 0,
-          props: { isRoot: true },
-        }),
-      ).toHaveLength(3);
-    });
-
-    /*
-     * Deleting an incident clears the submission's link (ON DELETE SET
-     * NULL), and nothing then records that the incident was private. The
-     * reporter of a private report must not become visible to the whole
-     * project at that moment: a submission with no incident is listed only
-     * for those who see every incident.
-     */
-    test("a deleted private incident's submission stays hidden from readers who could not see it", async () => {
-      const form: IncidentForm = await createForm();
-      const privateIncidentId: ObjectID = await seedIncident({
-        isPrivate: true,
-      });
-
-      const submission: IncidentFormSubmission = await createSubmission(
-        form.id!,
-        {
-          incidentId: privateIncidentId,
-          reporterName: "Alice",
-          reporterEmail: new Email("alice@corp.example"),
-        },
-      );
-
-      const readers: Array<DatabaseCommonInteractionProps> = [
-        memberProps(Permission.Viewer),
-        memberProps(Permission.ProjectMember),
-        memberProps(Permission.IncidentViewer),
-        memberProps(Permission.IncidentMember),
-        memberProps(Permission.IncidentAdmin),
-        memberProps(Permission.ReadIncidentFormSubmission),
-      ];
-
-      const listedFor: (
-        props: DatabaseCommonInteractionProps,
-      ) => Promise<Array<string>> = async (
-        props: DatabaseCommonInteractionProps,
-      ): Promise<Array<string>> => {
-        return (
-          await IncidentFormSubmissionService.findBy({
-            query: { incidentFormId: form.id! },
-            select: { _id: true, reporterName: true, reporterEmail: true },
-            limit: 10,
-            skip: 0,
-            props: props,
-          })
-        ).map((row: IncidentFormSubmission): string => {
-          return row._id!.toString();
-        });
-      };
-
-      for (const reader of readers) {
-        expect(await listedFor(reader)).toEqual([]);
-      }
-
-      await database.query(
-        `DELETE FROM "${schema}"."Incident" WHERE "_id" = $1`,
-        [privateIncidentId.toString()],
-      );
-
-      expect(await submissionRows()).toEqual([
-        { _id: submission.id!.toString(), incidentId: null },
+      await database.query(`DELETE FROM "${schema}"."Form" WHERE "_id" = $1`, [
+        form.id!.toString(),
       ]);
 
-      for (const reader of readers) {
-        expect(await listedFor(reader)).toEqual([]);
-        expect(
-          (
-            await IncidentFormSubmissionService.countBy({
-              query: { incidentFormId: form.id! },
-              props: reader,
-            })
-          ).toNumber(),
-        ).toBe(0);
-      }
-
-      // Those who see every incident still see it.
-      expect(await listedFor(memberProps(Permission.ProjectAdmin))).toEqual([
-        submission.id!.toString(),
-      ]);
-      expect(await listedFor({ isRoot: true })).toEqual([
-        submission.id!.toString(),
-      ]);
+      expect(
+        (await submissionRows()).map((row: { formId: string }) => {
+          return row.formId;
+        }),
+      ).toEqual([other.id!.toString()]);
     });
   });
 });

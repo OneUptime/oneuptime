@@ -7,12 +7,14 @@ import fs from "fs";
 import path from "path";
 
 /*
- * Which incident custom fields are asked for when an incident is created
- * (issue #4114): an incident template's "Custom Fields on Create" card and
- * wizard step, and an incident form's "Questions" card - all
- * IncidentCustomFieldSettingsCard and its dropdowns. Their text reaches the
- * screen by looking its English text up in the Dashboard locale files, and a
- * string with no entry silently stays English, so this pins:
+ * Which incident custom fields are asked for when an incident is declared
+ * from a template (issue #4114): an incident template's "Custom Fields on
+ * Create" card and wizard step - IncidentCustomFieldSettingsCard and its
+ * dropdowns. (Incident forms, which once used the same card for their
+ * questions, became the Forms product, whose builder asks custom fields its
+ * own way.) Their text reaches the screen by looking its English text up in
+ * the Dashboard locale files, and a string with no entry silently stays
+ * English, so this pins:
  *
  *   - the glossary's words, exactly - the docs quote them;
  *   - en.json maps every string to itself, and all sixteen other locales
@@ -58,11 +60,10 @@ const OTHER_LOCALES: Array<string> = [
 
 /*
  * The same word in that language, not a copy somebody forgot to translate:
- * German says "Optional", French "Questions".
+ * German says "Optional".
  */
 const SAME_WORD: Record<string, Array<string>> = {
   de: ["Optional"],
-  fr: ["Questions"],
 };
 
 const SENTENCE_ENDINGS: Array<string> = [".", "。", "।"];
@@ -141,20 +142,14 @@ describe("the glossary's words", () => {
     ]);
   });
 
-  test("an incident form's Questions card", () => {
-    expect(IncidentCustomFieldCreateSettingsCopy.formTitle).toBe("Questions");
-    // The server does not ask such a field while the template attaches monitors.
-    expect(IncidentCustomFieldCreateSettingsCopy.formCopiedFromMonitor).toBe(
-      "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.",
-    );
-    expect([
-      IncidentCustomFieldCreateSettingsCopy.formNotAsked,
-      IncidentCustomFieldCreateSettingsCopy.optional,
-      IncidentCustomFieldCreateSettingsCopy.required,
-    ]).toEqual(["Not Asked", "Optional", "Required"]);
+  test("no longer has an incident form's words: forms ask custom fields in their builder", () => {
     expect(
-      IncidentCustomFieldCreateSettingsCopy.formNoFieldsDescription,
-    ).toContain("Incidents > Settings > Custom Fields");
+      Object.keys(IncidentCustomFieldCreateSettingsCopy).filter(
+        (key: string): boolean => {
+          return key.startsWith("form");
+        },
+      ),
+    ).toEqual([]);
   });
 
   test("the wizard step has an id of its own", () => {
@@ -164,9 +159,9 @@ describe("the glossary's words", () => {
   });
 });
 
-describe("Custom Fields on Create and Questions strings in every Dashboard locale", () => {
+describe("Custom Fields on Create strings in every Dashboard locale", () => {
   test("there are strings to check", () => {
-    expect(STRINGS.length).toBe(22);
+    expect(STRINGS.length).toBe(13);
   });
 
   test.each(STRINGS)("%j holds no placeholder braces", (text: string) => {
@@ -239,13 +234,6 @@ describe("the card, the wizard and the pages render the shared strings and wirin
       "templateTitle",
       "templateDescription",
       "templateEditButton",
-      "formTitle",
-      "formDescription",
-      "formEditButton",
-      "formNoFieldsTitle",
-      "formNoFieldsDescription",
-      "formNoFieldsLink",
-      "formNotFound",
       "templateNotFound",
     ]) {
       expect(card).toContain(`IncidentCustomFieldCreateSettingsCopy.${key}`);
@@ -298,14 +286,12 @@ describe("the card, the wizard and the pages render the shared strings and wirin
       "templateHidden",
       "required",
       "optional",
-      "formNotAsked",
-      "formCopiedFromMonitor",
     ]) {
       expect(form).toContain(`IncidentCustomFieldCreateSettingsCopy.${key}`);
     }
   });
 
-  test("a template's page shows the card in template mode", () => {
+  test("a template's page shows the card", () => {
     const view: string = readSource(
       "Pages",
       "Incidents",
@@ -314,8 +300,16 @@ describe("the card, the wizard and the pages render the shared strings and wirin
     );
 
     expect(view).toContain(
-      '<IncidentCustomFieldSettingsCard mode="template" modelType={IncidentTemplate} modelId={modelId} />',
+      "<IncidentCustomFieldSettingsCard modelId={modelId} />",
     );
+    // The card has one job now: no mode to choose.
+    expect(
+      readSource(
+        "Components",
+        "Incident",
+        "IncidentCustomFieldSettingsCard.tsx",
+      ),
+    ).not.toContain('mode="form"');
   });
 
   test("a new template's wizard has the step, packs it and keeps it out of the misc data", () => {

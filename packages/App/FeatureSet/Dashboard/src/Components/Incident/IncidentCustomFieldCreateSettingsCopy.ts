@@ -1,10 +1,9 @@
 /*
  * The text the dashboard shows where it decides which incident custom fields
- * are asked for when an incident is created (issue #4114): an incident
- * template's "Custom Fields on Create" card and wizard step, and an incident
- * form's "Questions" card. Both are IncidentCustomFieldSettingsCard, in its
- * template and form modes; the values behind the labels are
- * Common/Types/CustomField/CustomFieldCreateSettings.
+ * are asked for when an incident is declared from a template (issue #4114):
+ * an incident template's "Custom Fields on Create" card
+ * (IncidentCustomFieldSettingsCard) and wizard step; the values behind the
+ * labels are Common/Types/CustomField/CustomFieldCreateSettings.
  *
  * Kept in one module free of React and of the dashboard's UI code, so the
  * card, the wizard and App/Tests/Dashboard/IncidentCustomFieldCreateSettingsI18n
@@ -50,21 +49,8 @@ export const IncidentCustomFieldCreateSettingsCopy: {
   templateHidden: string;
   templateNotFound: string;
 
-  // Both modes.
   required: string;
   optional: string;
-
-  // An incident form: the Questions card on its page.
-  formTitle: string;
-  formDescription: string;
-  formEditButton: string;
-  formNotAsked: string;
-  formNoFieldsTitle: string;
-  formNoFieldsDescription: string;
-  formNoFieldsLink: string;
-  formNotFound: string;
-  // Beside a field whose value is copied from a monitor custom field.
-  formCopiedFromMonitor: string;
 } = {
   templateTitle: INCIDENT_TEMPLATE_CUSTOM_FIELD_SETTINGS_STEP_TITLE,
   templateDescription:
@@ -82,20 +68,6 @@ export const IncidentCustomFieldCreateSettingsCopy: {
 
   required: "Required",
   optional: "Optional",
-
-  formTitle: "Questions",
-  formDescription:
-    "Choose which incident custom fields this form asks, and which of them must be answered. A field is not asked until you add it here: anyone with the form's link sees the name, description and options of every field it asks.",
-  formEditButton: "Edit Questions",
-  formNotAsked: "Not Asked",
-  formNoFieldsTitle: "No incident custom fields yet",
-  formNoFieldsDescription:
-    "This form can ask for incident custom fields once your project has some. Create them in Incidents > Settings > Custom Fields, then add them to the form here.",
-  formNoFieldsLink: "Go to Custom Fields",
-  formNotFound:
-    "This form's questions could not be loaded. The form may have been deleted.",
-  formCopiedFromMonitor:
-    "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.",
 };
 
 export default IncidentCustomFieldCreateSettingsCopy;

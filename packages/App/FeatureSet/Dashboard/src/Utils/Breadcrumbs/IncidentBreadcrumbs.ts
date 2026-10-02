@@ -302,19 +302,6 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Incident Templates",
       "View Template",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_FORMS, [
-      "Project",
-      "Incidents",
-      "Settings",
-      "Forms",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_FORMS_VIEW, [
-      "Project",
-      "Incidents",
-      "Settings",
-      "Forms",
-      "View Form",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES, [
       "Project",
       "Incidents",

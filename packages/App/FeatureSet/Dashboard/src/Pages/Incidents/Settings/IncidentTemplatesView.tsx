@@ -630,11 +630,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
        * Create"). Also nothing when the project has no incident custom
        * fields.
        */}
-      <IncidentCustomFieldSettingsCard
-        mode="template"
-        modelType={IncidentTemplate}
-        modelId={modelId}
-      />
+      <IncidentCustomFieldSettingsCard modelId={modelId} />
 
       <ModelTable<IncidentTemplateOwnerTeam>
         modelType={IncidentTemplateOwnerTeam}
