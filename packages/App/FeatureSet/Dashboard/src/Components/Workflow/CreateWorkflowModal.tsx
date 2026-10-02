@@ -84,7 +84,7 @@ enum WizardStep {
 const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateTemplate } = useTranslateValue();
+  const { translateString, translateTemplate } = useTranslateValue();
   const [step, setStep] = useState<WizardStep>(WizardStep.PickTemplate);
   /*
    * null is a real choice here — it means "start from scratch" — so a separate
@@ -366,7 +366,8 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
             autoFocus={true}
             placeholder="What should this workflow be called?"
             dataTestId="workflow-name-input"
-            error={nameError}
+            // Kept in English, as its key, and looked up as it is shown.
+            error={translateString(nameError)}
             onChange={(value: string) => {
               setName(value);
 
