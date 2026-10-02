@@ -24,7 +24,7 @@ Each condition compares one thing about the incident, alert or scheduled mainten
 
 | Criterion                                                                | What it checks                                                                                                        |
 | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| **Monitors**                                                             | The monitors the incident or alert came from, or the monitors the scheduled maintenance event affects.                |
+| **Monitors**                                                             | The monitors the incident or the scheduled maintenance event affects, or the monitor that raised the alert.           |
 | **Incident Severities** / **Alert Severities**                           | The incident's or the alert's severity. Scheduled maintenance events have no severity, so their rules don't offer it. |
 | **Incident Labels** / **Alert Labels** / **Event Labels**                | The labels on the incident, alert or event itself, including the ones label rules attached when it was created.       |
 | **Monitor Labels**                                                       | The labels on its monitors. Label your monitors `production` or `staging` to run a runbook for one environment only.  |

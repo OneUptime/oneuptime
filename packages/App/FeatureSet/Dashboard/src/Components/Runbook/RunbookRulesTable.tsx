@@ -40,24 +40,18 @@ export function getRunbookRuleCriteriaSubject(
 }
 
 /*
- * How a rule's monitors relate to what it matches: an incident or an alert
- * comes from a monitor, a scheduled maintenance event affects them.
+ * How a rule's monitors relate to what it matches: an incident or a scheduled
+ * maintenance event affects monitors, an alert is raised by one.
  */
 function getMonitorsLine(data: {
   triggerEntityType: RunbookRuleTriggerEntity;
   entityLabel: string;
 }): string {
-  if (
-    data.triggerEntityType === RunbookRuleTriggerEntity.ScheduledMaintenance
-  ) {
-    return `the ${data.entityLabel} affects one of the selected monitors.`;
-  }
-
   if (data.triggerEntityType === RunbookRuleTriggerEntity.Alert) {
     return `the ${data.entityLabel} was raised by one of the selected monitors.`;
   }
 
-  return `the ${data.entityLabel} was created by one of the selected monitors.`;
+  return `the ${data.entityLabel} affects one of the selected monitors.`;
 }
 
 export function getRunbookRuleDocumentation(data: {

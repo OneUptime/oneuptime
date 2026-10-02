@@ -338,7 +338,7 @@ export default class RunbookRule extends RuleBaseModel {
     modelType: Monitor,
     title: "Monitors",
     description:
-      "Only match incidents, alerts or scheduled maintenance events of at least one of these monitors. Leave empty to match any monitor.",
+      "Only match incidents and scheduled maintenance events that affect, and alerts raised by, at least one of these monitors. Leave empty to match any monitor.",
   })
   @ManyToMany(
     () => {
