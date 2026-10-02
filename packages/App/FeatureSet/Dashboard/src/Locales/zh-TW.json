@@ -6945,5 +6945,6 @@
   "Preview:": "預覽：",
   "Use 20 characters or fewer.": "最多 20 個字元。",
   "Use only letters, numbers and - _ . / : # (no spaces).": "只能使用字母、數字以及 - _ . / : #（不可有空格）。",
-  "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "請以字母或 - 等符號結尾。結尾是數字會和編號連在一起：SEV1 會變成 SEV142。"
+  "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "請以字母或 - 等符號結尾。結尾是數字會和編號連在一起：SEV1 會變成 SEV142。",
+  "Currently Active": "目前進行中"
 }

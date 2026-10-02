@@ -6945,5 +6945,6 @@
   "Preview:": "Forhåndsvisning:",
   "Use 20 characters or fewer.": "Brug højst 20 tegn.",
   "Use only letters, numbers and - _ . / : # (no spaces).": "Brug kun bogstaver, tal og - _ . / : # (ingen mellemrum).",
-  "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "Slut med et bogstav eller et tegn som -. Et ciffer til sidst løber sammen med nummeret: SEV1 ville give SEV142."
+  "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "Slut med et bogstav eller et tegn som -. Et ciffer til sidst løber sammen med nummeret: SEV1 ville give SEV142.",
+  "Currently Active": "Aktiv nu"
 }
