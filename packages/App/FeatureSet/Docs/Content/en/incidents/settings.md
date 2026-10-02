@@ -47,7 +47,7 @@ A few quick rules:
 
 - The template list shows only **Name** and **Description**. Rows are not editable or deletable from the list — open a template (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) to change it.
 - Templates support JSON import and export, so you can move one between projects.
-- The empty state reads "No incident templates found."
+- With no templates, the list says **No incident templates found** with **Create Incident Template** right under it.
 
 ### How a template gets applied
 
