@@ -133,6 +133,13 @@ import {
   INCIDENT_DETAILS_STEP_TITLE,
   isAskedOnIncidentForm,
 } from "../../Components/Incident/IncidentCustomFieldDefinitions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translateTemplate,
+  translateTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * The fetched models, reduced to the plain shapes the prefill rules work on.
@@ -283,11 +290,17 @@ const getAlreadyLinkedNote: GetAlreadyLinkedNoteFunction = (
 
   if (isEveryAlertLinked) {
     return alerts.length === 1
-      ? "This alert is already linked to an incident. If it is the same problem, update that incident instead of declaring another one."
-      : "These alerts are already linked to incidents. If it is the same problem, update that incident instead of declaring another one.";
+      ? translateTemplate(
+          "This alert is already linked to an incident. If it is the same problem, update that incident instead of declaring another one.",
+        )
+      : translateTemplate(
+          "These alerts are already linked to incidents. If it is the same problem, update that incident instead of declaring another one.",
+        );
   }
 
-  return "Some of these alerts are already linked to an incident. If it is the same problem, link the other alerts to that incident from the alerts list instead of declaring another one.";
+  return translateTemplate(
+    "Some of these alerts are already linked to an incident. If it is the same problem, link the other alerts to that incident from the alerts list instead of declaring another one.",
+  );
 };
 
 type GetIncidentReferenceFunction = (incident: Incident) => string;
@@ -297,14 +310,18 @@ const getIncidentReference: GetIncidentReferenceFunction = (
   incident: Incident,
 ): string => {
   if (incident.incidentNumberWithPrefix) {
-    return `Incident ${incident.incidentNumberWithPrefix}`;
+    return translateTemplate("Incident {{number}}", {
+      number: incident.incidentNumberWithPrefix,
+    });
   }
 
   if (typeof incident.incidentNumber === "number") {
-    return `Incident #${incident.incidentNumber}`;
+    return translateTemplate("Incident #{{number}}", {
+      number: incident.incidentNumber,
+    });
   }
 
-  return "Incident";
+  return translateTerm("Incident");
 };
 
 /*
@@ -319,6 +336,7 @@ interface TemplateOwners {
 const IncidentCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   // Declaring from a template whose status pages have all been deleted.
   const [
@@ -1106,9 +1124,9 @@ const IncidentCreate: FunctionComponent<
               title={
                 <div>
                   <p>
-                    These alerts are linked to the incident when you declare it.
-                    The form below is prefilled from them - review and change
-                    anything before you declare.
+                    {translator.translateText(
+                      "These alerts are linked to the incident when you declare it. The form below is prefilled from them - review and change anything before you declare.",
+                    )}
                   </p>
                   <ul className="mt-2 list-disc space-y-1 pl-5">
                     {alertsToLink.map((alert: Alert): ReactElement => {
@@ -1131,36 +1149,41 @@ const IncidentCreate: FunctionComponent<
                               className="ml-1"
                               data-testid="incident-create-alert-already-linked"
                             >
-                              (already linked to{" "}
-                              {linkedIncidents.map(
-                                (
-                                  incident: Incident,
-                                  index: number,
-                                ): ReactElement => {
-                                  return (
-                                    <Fragment key={incident._id?.toString()}>
-                                      {index > 0 ? ", " : ""}
-                                      <Link
-                                        className="font-medium underline"
-                                        openInNewTab={true}
-                                        to={RouteUtil.populateRouteParams(
-                                          RouteMap[
-                                            PageMap.INCIDENT_VIEW
-                                          ] as Route,
-                                          {
-                                            modelId: new ObjectID(
-                                              incident._id!.toString(),
-                                            ),
-                                          },
-                                        )}
-                                      >
-                                        {getIncidentReference(incident)}
-                                      </Link>
-                                    </Fragment>
-                                  );
-                                },
-                              )}
-                              )
+                              <TranslatedSentence
+                                template="(already linked to {{incidents}})"
+                                slots={{
+                                  incidents: linkedIncidents.map(
+                                    (
+                                      incident: Incident,
+                                      index: number,
+                                    ): ReactElement => {
+                                      return (
+                                        <Fragment
+                                          key={incident._id?.toString()}
+                                        >
+                                          {index > 0 ? ", " : ""}
+                                          <Link
+                                            className="font-medium underline"
+                                            openInNewTab={true}
+                                            to={RouteUtil.populateRouteParams(
+                                              RouteMap[
+                                                PageMap.INCIDENT_VIEW
+                                              ] as Route,
+                                              {
+                                                modelId: new ObjectID(
+                                                  incident._id!.toString(),
+                                                ),
+                                              },
+                                            )}
+                                          >
+                                            {getIncidentReference(incident)}
+                                          </Link>
+                                        </Fragment>
+                                      );
+                                    },
+                                  ),
+                                }}
+                              />
                             </span>
                           )}
                         </li>
@@ -1191,25 +1214,24 @@ const IncidentCreate: FunctionComponent<
                       className="mt-2"
                       data-testid="incident-create-private-from-alerts"
                     >
-                      At least one of these alerts is private, so Private
-                      Incident starts switched on. While it stays on, only the
-                      incident&apos;s owners, project owners and project admins
-                      can see it, and the owners of these alerts are added as
-                      its owners once it is declared.
+                      {translator.translateText(
+                        "At least one of these alerts is private, so Private Incident starts switched on. While it stays on, only the incident's owners, project owners and project admins can see it, and the owners of these alerts are added as its owners once it is declared.",
+                      )}
                     </p>
                   )}
                   {wereAlertIdsTruncated && (
                     <p className="mt-2">
-                      Only the first {MAX_ALERTS_PER_INCIDENT_LINK_ACTION}{" "}
-                      alerts are linked. Link the rest from the incident&apos;s
-                      Linked Alerts page after you declare it.
+                      {translator.translateTemplate(
+                        "Only the first {{max}} alerts are linked. Link the rest from the incident's Linked Alerts page after you declare it.",
+                        { max: MAX_ALERTS_PER_INCIDENT_LINK_ACTION },
+                      )}
                     </p>
                   )}
                   {missingAlertCount > 0 && (
                     <p className="mt-2">
-                      Some alerts could not be found, so they are not linked.
-                      They may have been deleted, or you may not have access to
-                      them.
+                      {translator.translateText(
+                        "Some alerts could not be found, so they are not linked. They may have been deleted, or you may not have access to them.",
+                      )}
                     </p>
                   )}
                   {isAcknowledgeOffered && alertsToAcknowledge && (
@@ -1394,7 +1416,13 @@ const IncidentCreate: FunctionComponent<
                   placeholder: "Incident Severity",
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (!item.incidentSeverity) {
-                      return <p>No incident severity selected.</p>;
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "No incident severity selected.",
+                          )}
+                        </p>
+                      );
                     }
 
                     return (
@@ -1427,7 +1455,13 @@ const IncidentCreate: FunctionComponent<
                   placeholder: "Select Initial State",
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (!item.currentIncidentState) {
-                      return <p>Will use first available state by priority</p>;
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "Will use first available state by priority",
+                          )}
+                        </p>
+                      );
                     }
 
                     return (
@@ -1519,7 +1553,13 @@ const IncidentCreate: FunctionComponent<
                       return Array.isArray(resources) && resources.length > 0;
                     });
                     if (!hasResources) {
-                      return <p>No resources affected by this incident.</p>;
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "No resources affected by this incident.",
+                          )}
+                        </p>
+                      );
                     }
                     return (
                       <AffectedResourcesPicker
@@ -1706,7 +1746,13 @@ const IncidentCreate: FunctionComponent<
                   },
                   getSummaryElement: (_item: FormValues<Incident>) => {
                     if (roleAssignmentsRef.current.length === 0) {
-                      return <p>No incident roles assigned.</p>;
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "No incident roles assigned.",
+                          )}
+                        </p>
+                      );
                     }
                     return (
                       <FetchIncidentRoleAssignments
@@ -1739,10 +1785,13 @@ const IncidentCreate: FunctionComponent<
                     ) {
                       return (
                         <p>
-                          No on-call policies will be executed when this
-                          incident is created.
+                          {translator.translateText(
+                            "No on-call policies will be executed when this incident is created.",
+                          )}
                           {willAcknowledgeAlerts
-                            ? ` ${ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE}`
+                            ? ` ${translator.translateText(
+                                ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE,
+                              )}`
                             : ""}
                         </p>
                       );
@@ -1824,8 +1873,9 @@ const IncidentCreate: FunctionComponent<
                     if (!item.changeMonitorStatusTo) {
                       return (
                         <p>
-                          Status of the monitors will not be changed when this
-                          incident is created.
+                          {translator.translateText(
+                            "Status of the monitors will not be changed when this incident is created.",
+                          )}
                         </p>
                       );
                     }
@@ -1859,7 +1909,9 @@ const IncidentCreate: FunctionComponent<
                   placeholder: "Labels",
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (!item.labels || !Array.isArray(item.labels)) {
-                      return <p>No labels assigned.</p>;
+                      return (
+                        <p>{translator.translateText("No labels assigned.")}</p>
+                      );
                     }
 
                     const labelIds: Array<ObjectID> = [];

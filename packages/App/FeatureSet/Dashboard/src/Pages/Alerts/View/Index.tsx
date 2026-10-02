@@ -821,7 +821,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description={
             durationEndDate
               ? translator.translateTemplate("Ended {{date}}", {
-                  date: formatDate(durationEndDate),
+                  date: formatDate(durationEndDate) || "",
                 })
               : undefined
           }

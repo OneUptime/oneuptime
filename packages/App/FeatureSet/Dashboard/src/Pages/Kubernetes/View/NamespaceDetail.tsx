@@ -36,10 +36,13 @@ import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab"
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const KubernetesClusterNamespaceDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const namespaceName: string = Navigation.getLastParamAsString();
 
@@ -132,7 +135,10 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "namespace_cpu",
       title: "Pod CPU Utilization",
-      description: `CPU utilization for pods in namespace ${namespaceName}`,
+      description: translator.translateTemplate(
+        "CPU utilization for pods in namespace {{namespaceName}}",
+        { namespaceName: namespaceName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -160,7 +166,10 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "namespace_memory",
       title: "Pod Memory Usage",
-      description: `Memory usage for pods in namespace ${namespaceName}`,
+      description: translator.translateTemplate(
+        "Memory usage for pods in namespace {{namespaceName}}",
+        { namespaceName: namespaceName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -244,7 +253,10 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Namespace Metrics: ${namespaceName}`}
+          title={translator.translateTemplate(
+            "Namespace Metrics: {{namespaceName}}",
+            { namespaceName: namespaceName },
+          )}
           description="CPU and memory usage for pods in this namespace over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />

@@ -35,6 +35,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The Inventory landing page: how big the estate is, what it is made of, and
@@ -50,6 +52,7 @@ import React, {
 const InventoryOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [counts, setCounts] = useState<InventorySummaryCounts | null>(null);
   const [breakdown, setBreakdown] = useState<Array<InventoryCategoryBreakdown>>(
     [],
@@ -177,7 +180,7 @@ const InventoryOverview: FunctionComponent<
                       )}
                       className="truncate text-sm font-medium text-gray-900 hover:text-indigo-700"
                     >
-                      {item.displayName || "Unnamed"}
+                      {item.displayName || translator.translateText("Unnamed")}
                     </AppLink>
                   </div>
                   <InventoryTypeBadge entityType={item.entityType} />

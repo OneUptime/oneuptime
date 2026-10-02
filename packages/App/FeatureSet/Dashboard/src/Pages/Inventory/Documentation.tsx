@@ -24,6 +24,9 @@ import {
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * What Inventory is and where its rows come from.
@@ -36,6 +39,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const InventoryDocumentation: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Fragment>
       <Card
@@ -44,17 +48,19 @@ const InventoryDocumentation: FunctionComponent<
       >
         <div className="space-y-3 text-sm text-gray-600">
           <p>
-            Inventory is the catalog behind every other product here. When a
-            trace mentions a pod, when a monitor watches a switch, when you
-            register a vendor API by hand — they all end up as one item in this
-            list, with a stable identity OneUptime can join telemetry against.
+            {translator.translateText(
+              "Inventory is the catalog behind every other product here. When a trace mentions a pod, when a monitor watches a switch, when you register a vendor API by hand — they all end up as one item in this list, with a stable identity OneUptime can join telemetry against.",
+            )}
           </p>
           <p>
-            That identity is the <strong>identity key</strong>: a hash of the
-            handful of attributes that make the thing what it is (its name, its
-            cluster, its container id). Everything else about an item —
-            versions, image tags, IP addresses — can change freely without
-            changing what it is.
+            <TranslatedSentence
+              template="That identity is the {{identityKey}}: a hash of the handful of attributes that make the thing what it is (its name, its cluster, its container id). Everything else about an item — versions, image tags, IP addresses — can change freely without changing what it is."
+              slots={{
+                identityKey: (
+                  <strong>{translator.translateText("identity key")}</strong>
+                ),
+              }}
+            />
           </p>
         </div>
       </Card>
@@ -65,26 +71,31 @@ const InventoryDocumentation: FunctionComponent<
       >
         <ul className="space-y-3 text-sm text-gray-600">
           <li>
-            Use search for a name or identity key, then narrow the list with the
-            Type, Source, Last Seen and custom-field facets. Facets stay in the
-            URL, so a filtered view can be bookmarked or shared.
+            {translator.translateText(
+              "Use search for a name or identity key, then narrow the list with the Type, Source, Last Seen and custom-field facets. Facets stay in the URL, so a filtered view can be bookmarked or shared.",
+            )}
           </li>
           <li>
-            Open an item to see its connections and each telemetry signal on its
-            own page. Editing, archiving and deletion also live inside the item
-            instead of in the table row menu.
+            {translator.translateText(
+              "Open an item to see its connections and each telemetry signal on its own page. Editing, archiving and deletion also live inside the item instead of in the table row menu.",
+            )}
           </li>
           <li>
-            <AppLink
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.TOPOLOGY] as Route,
-              )}
-              className="font-medium text-indigo-600 hover:text-indigo-800"
-            >
-              Explore the full topology
-            </AppLink>{" "}
-            to see service dependencies, infrastructure containment and network
-            links together.
+            <TranslatedSentence
+              template="{{link}} to see service dependencies, infrastructure containment and network links together."
+              slots={{
+                link: (
+                  <AppLink
+                    to={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.TOPOLOGY] as Route,
+                    )}
+                    className="font-medium text-indigo-600 hover:text-indigo-800"
+                  >
+                    {translator.translateText("Explore the full topology")}
+                  </AppLink>
+                ),
+              }}
+            />
           </li>
         </ul>
       </Card>
@@ -111,16 +122,18 @@ const InventoryDocumentation: FunctionComponent<
                   <span
                     className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${descriptor.pillClassName}`}
                   >
-                    {descriptor.label}
+                    {translator.translateText(descriptor.label)}
                   </span>
                 </div>
                 <p className="mt-2 text-sm text-gray-600">
-                  {descriptor.description}
+                  {translator.translateText(descriptor.description)}
                 </p>
                 <p className="mt-2 text-sm text-gray-500">
                   {descriptor.isDeletePermanent
-                    ? "Deleting one of these removes it for good."
-                    : descriptor.deleteCaveat}
+                    ? translator.translateText(
+                        "Deleting one of these removes it for good.",
+                      )
+                    : translator.translateText(descriptor.deleteCaveat)}
                 </p>
               </div>
             );
@@ -134,20 +147,37 @@ const InventoryDocumentation: FunctionComponent<
       >
         <div className="space-y-3 text-sm text-gray-600">
           <p>
-            Discovered items carry a heartbeat: every time telemetry arrives for
-            one, its last-seen time moves forward. An item seen in the last{" "}
-            <strong>{INVENTORY_LIVE_WINDOW_MINUTES} minutes</strong> is shown as{" "}
-            <strong>Live</strong>; one seen within the last day is{" "}
-            <strong>Recent</strong>; past{" "}
-            <strong>
-              {Math.round(INVENTORY_STALE_AFTER_MINUTES / 60)} hours
-            </strong>{" "}
-            it is flagged as <strong>Gone Quiet</strong>.
+            <TranslatedSentence
+              template="Discovered items carry a heartbeat: every time telemetry arrives for one, its last-seen time moves forward. An item seen in the last {{liveWindow}} is shown as {{live}}; one seen within the last day is {{recent}}; past {{staleAfter}} it is flagged as {{goneQuiet}}."
+              slots={{
+                liveWindow: (
+                  <strong>
+                    {translator.translatePlural(
+                      { one: "{{count}} minute", other: "{{count}} minutes" },
+                      INVENTORY_LIVE_WINDOW_MINUTES,
+                    )}
+                  </strong>
+                ),
+                live: <strong>{translator.translateText("Live")}</strong>,
+                recent: <strong>{translator.translateText("Recent")}</strong>,
+                staleAfter: (
+                  <strong>
+                    {translator.translatePlural(
+                      { one: "{{count}} hour", other: "{{count}} hours" },
+                      Math.round(INVENTORY_STALE_AFTER_MINUTES / 60),
+                    )}
+                  </strong>
+                ),
+                goneQuiet: (
+                  <strong>{translator.translateText("Gone Quiet")}</strong>
+                ),
+              }}
+            />
           </p>
           <p>
-            Mirrored and hand-added items have no heartbeat — nothing was ever
-            going to bump their last-seen time — so they are never flagged.
-            Their status column is deliberately blank rather than alarming.
+            {translator.translateText(
+              "Mirrored and hand-added items have no heartbeat — nothing was ever going to bump their last-seen time — so they are never flagged. Their status column is deliberately blank rather than alarming.",
+            )}
           </p>
         </div>
       </Card>
@@ -165,7 +195,7 @@ const InventoryDocumentation: FunctionComponent<
                   className="rounded-lg border border-gray-200 p-4"
                 >
                   <h3 className="text-sm font-semibold text-gray-900">
-                    {category}
+                    {translator.translateText(category)}
                   </h3>
                   <ul className="mt-3 space-y-2">
                     {getEntityTypesInCategory(category).map(
@@ -189,10 +219,12 @@ const InventoryDocumentation: FunctionComponent<
                             />
                             <span>
                               <span className="font-medium text-gray-900">
-                                {descriptor.label}
+                                {translator.translateText(descriptor.label)}
                               </span>
                               <span className="block text-xs text-gray-500">
-                                {descriptor.description}
+                                {translator.translateText(
+                                  descriptor.description,
+                                )}
                               </span>
                             </span>
                           </li>
@@ -224,7 +256,9 @@ const InventoryDocumentation: FunctionComponent<
               )}
               className="font-medium text-indigo-600 hover:text-indigo-800"
             >
-              Send OpenTelemetry traces, logs and metrics
+              {translator.translateText(
+                "Send OpenTelemetry traces, logs and metrics",
+              )}
             </AppLink>
           </li>
           <li className="flex items-center gap-x-2">
@@ -239,7 +273,7 @@ const InventoryDocumentation: FunctionComponent<
               )}
               className="font-medium text-indigo-600 hover:text-indigo-800"
             >
-              Register network devices
+              {translator.translateText("Register network devices")}
             </AppLink>
           </li>
           <li className="flex items-center gap-x-2">
@@ -254,7 +288,7 @@ const InventoryDocumentation: FunctionComponent<
               )}
               className="font-medium text-indigo-600 hover:text-indigo-800"
             >
-              Connect a cloud account
+              {translator.translateText("Connect a cloud account")}
             </AppLink>
           </li>
           <li className="flex items-center gap-x-2">
@@ -269,7 +303,7 @@ const InventoryDocumentation: FunctionComponent<
               )}
               className="font-medium text-indigo-600 hover:text-indigo-800"
             >
-              Add something by hand
+              {translator.translateText("Add something by hand")}
             </AppLink>
           </li>
         </ul>

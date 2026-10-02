@@ -36,6 +36,8 @@ import IoTDocumentationCard from "../../Components/IoT/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { IOT_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/IoTMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WI-18: while the project has no fleets yet, re-count on this cadence
@@ -45,6 +47,7 @@ import { IOT_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/IoT
 const FIRST_DATA_POLL_INTERVAL_MS: number = 10 * 1000;
 
 const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [fleetCount, setFleetCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -282,7 +285,9 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       isConnected ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected
+                      ? translator.translateText("Connected")
+                      : translator.translateText("Disconnected")}
                   </span>
                 </div>
               );
@@ -314,7 +319,10 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     allOnline ? "text-gray-900" : "text-red-700"
                   }`}
                 >
-                  {online}/{total} online
+                  {translator.translateTemplate("{{online}}/{{total}} online", {
+                    online: online,
+                    total: total,
+                  })}
                 </span>
               );
             },

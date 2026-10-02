@@ -15,6 +15,10 @@ import {
   isKubernetesAgentRunnerPosture,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import { KUBERNETES_AGENT_HELM_NAMESPACE } from "./DocumentationMarkdown";
+import {
+  translatableTerm,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What the cluster's AI agent page (Pages/Kubernetes/View/AI/Agent.tsx) and
@@ -235,7 +239,12 @@ export function getAiAgentStatusPill(
       };
     case "advanced_runner":
       return {
-        text: `Connected through Runner ${status.runner?.name || "(unnamed)"} (advanced)`,
+        text: translateTemplate(
+          "Connected through Runner {{name}} (advanced)",
+          {
+            name: status.runner?.name || translatableTerm("(unnamed)"),
+          },
+        ),
         tone: "success",
       };
     case "offline":
