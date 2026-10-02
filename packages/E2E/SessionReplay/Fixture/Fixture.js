@@ -49,6 +49,19 @@ const mobileRecording = params.get("recorder") === "mobile";
 // through a shop arrives as a wall of "tabs" the viewer has to tell apart.
 const multipleTabs = params.get("tabs") === "multiple";
 const manyTabs = params.get("tabs") === "many";
+/*
+ * ?pause=idle: the recorder paused because nobody touched the page. Chunk 0
+ * ends on an oneuptime.idle-paused marker, and chunk 1 - the next index, no
+ * hole - starts IDLE_PAUSE_MS later on the session clock, on a fresh
+ * snapshot followed by oneuptime.idle-resumed. Nothing at all is stored in
+ * between, so the player must jump the stretch rather than play it out.
+ */
+const idlePause = params.get("pause") === "idle";
+const IDLE_PAUSE_MS = 20 * 60 * 1000;
+const IDLE_PAUSED_AT_OFFSET_MS = 29500;
+/* Where chunk N sits on the session clock: N * 30s, plus the pause after 0. */
+const chunkOffsetMs = (chunkIndex) =>
+  chunkIndex * 30000 + (idlePause && chunkIndex > 0 ? IDLE_PAUSE_MS : 0);
 // ?neighbour=newer: the same person has a LATER recording, so the ended
 // card can offer "Next session by this user". That recording exists on its
 // own too - opening its player URL directly has to find it - so the flag is
@@ -553,8 +566,8 @@ function makeChunk(ownerTabId, chunkIndex, url, signals = {}) {
   return {
     chunkIndex,
     tabId: ownerTabId,
-    chunkStartOffsetMs: chunkIndex * 30000,
-    chunkEndOffsetMs: (chunkIndex + 1) * 30000,
+    chunkStartOffsetMs: chunkOffsetMs(chunkIndex),
+    chunkEndOffsetMs: chunkOffsetMs(chunkIndex) + 30000,
     eventCount: 22,
     hasFullSnapshot: true,
     payloadBytes: 22000,
@@ -655,7 +668,7 @@ API.post = async ({ url, data }) => {
         viewId: "40000000-0000-4000-8000-000000000001",
         header: {
           ...row,
-          durationMs: 90000,
+          durationMs: 90000 + (idlePause ? IDLE_PAUSE_MS : 0),
           /*
            * ?tabs=many is a recording in progress: a finalized session, or
            * one the server has already declared ended, closes every tab by
@@ -1262,7 +1275,7 @@ function snapshot() {
   };
 }
 function chunkEvents(index, startTime) {
-  const offset = index * 30000;
+  const offset = chunkOffsetMs(index);
   const timestamp = startTime + offset;
   const events = [
     {
@@ -1492,6 +1505,34 @@ function chunkEvents(index, startTime) {
     from: mobileRecording ? "/on-call" : "https://shop.example.com/cart",
     to: mobileRecording ? "/alerts" : "https://shop.example.com/checkout",
   });
+  if (idlePause && index === 0) {
+    /* The last thing before the pause, as the recorder writes it. */
+    events.push({
+      type: 5,
+      timestamp: startTime + IDLE_PAUSED_AT_OFFSET_MS,
+      data: {
+        tag: "oneuptime.idle-paused",
+        payload: {
+          idleSinceUnixMs: startTime + IDLE_PAUSED_AT_OFFSET_MS - 300000,
+          pausedAtUnixMs: startTime + IDLE_PAUSED_AT_OFFSET_MS,
+        },
+      },
+    });
+  }
+  if (idlePause && index === 1) {
+    /* Straight behind the snapshot that resumed capture. */
+    events.push({
+      type: 5,
+      timestamp: timestamp + 2,
+      data: {
+        tag: "oneuptime.idle-resumed",
+        payload: {
+          pausedAtUnixMs: startTime + IDLE_PAUSED_AT_OFFSET_MS,
+          resumedAtUnixMs: timestamp + 2,
+        },
+      },
+    });
+  }
   return events.sort((a, b) => a.timestamp - b.timestamp);
 }
 const nativeFetch = window.fetch.bind(window);
