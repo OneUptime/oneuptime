@@ -501,27 +501,22 @@ export const ReplaySwitch: FunctionComponent<ReplaySwitchProps> = (
        * line box, so the translate pushed it clean out of the track and
        * over the label beside it.
        *
-       * Drawn the way Common/UI's Toggle is, at this scale: off is an
-       * outline with a small dark dot, on is filled indigo with a white
-       * knob. The gray-300 track it replaces was 1.5:1 on the chip, too
-       * faint to see which way it was set. The data attributes give it the
-       * Toggle's dark-theme colours (Common/UI/Styles/Theme.css).
+       * Drawn the way Common/UI's Toggle is, at this scale: a gray-300
+       * track when off and the brand indigo when on, with the same white
+       * knob sliding across it, 2px in from either end. The data attributes
+       * give it the Toggle's dark-theme colours (Common/UI/Styles/Theme.css).
        */}
       <span
         aria-hidden="true"
         data-ou-toggle-track=""
-        className={`inline-flex h-4 w-7 shrink-0 items-center rounded-full border transition-colors duration-150 motion-reduce:transition-none ${
-          props.isChecked
-            ? "border-indigo-600 bg-indigo-600"
-            : "border-gray-500 bg-white"
+        className={`inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-150 motion-reduce:transition-none ${
+          props.isChecked ? "bg-indigo-600" : "bg-gray-300"
         }`}
       >
         <span
           data-ou-toggle-knob=""
-          className={`rounded-full transition-all duration-150 motion-reduce:transition-none ${
-            props.isChecked
-              ? "h-3 w-3 translate-x-[13px] bg-white shadow"
-              : "h-2 w-2 translate-x-[3px] bg-gray-500"
+          className={`h-3 w-3 rounded-full bg-white shadow transition-transform duration-150 motion-reduce:transition-none ${
+            props.isChecked ? "translate-x-3.5" : "translate-x-0.5"
           }`}
         />
       </span>
