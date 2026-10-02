@@ -1199,7 +1199,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     showSidebar && currentViewMode !== "analytics";
 
   const toolbarProps: LogsViewerToolbarProps = {
-    resultCount: totalItems,
+    /*
+     * Without a total, what the list has shown so far, marked as a lower
+     * bound — never the endpoint's `skip + rows + 1` read as a total.
+     */
+    resultCount:
+      pagingTotal === undefined
+        ? logsBeforePage + props.logs.length
+        : totalItems,
+    isResultCountLowerBound: pagingTotal === undefined,
     resultTotal: props.resultTotal,
     rowsThroughPage: logsBeforePage + props.logs.length,
     currentPage,

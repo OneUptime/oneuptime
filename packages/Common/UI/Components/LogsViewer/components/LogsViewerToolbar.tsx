@@ -21,6 +21,8 @@ import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 
 export interface LogsViewerToolbarProps {
   resultCount: number;
+  // `resultCount` is only how many logs are known so far: "100+ results".
+  isResultCountLowerBound?: boolean | undefined;
   /*
    * The size of the result set when the list cannot say (see
    * UseResultTotal): shown instead of `resultCount` — "1,234,567 logs",
@@ -79,7 +81,10 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
 ): ReactElement => {
   const { currentPage, totalPages } = props;
   const hasPaginationSummary: boolean = Boolean(
-    currentPage && ((totalPages && totalPages > 0) || props.resultTotal),
+    currentPage &&
+      ((totalPages && totalPages > 0) ||
+        props.resultTotal ||
+        props.isResultCountLowerBound),
   );
   const hasPageCount: boolean = Boolean(totalPages && totalPages > 0);
 
@@ -227,8 +232,11 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
             />
           ) : (
             <span className="font-medium text-gray-700">
-              {props.resultCount.toLocaleString()} result
-              {props.resultCount === 1 ? "" : "s"}
+              {props.isResultCountLowerBound
+                ? `${props.resultCount.toLocaleString()}+ results`
+                : `${props.resultCount.toLocaleString()} result${
+                    props.resultCount === 1 ? "" : "s"
+                  }`}
             </span>
           )}
           {hasPaginationSummary && (
