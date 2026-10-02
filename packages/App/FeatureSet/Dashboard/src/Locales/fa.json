@@ -7171,5 +7171,15 @@
   "Application Description": "توضیحات برنامه",
   "Function Labels": "برچسب‌های تابع",
   "Function Name": "نام تابع",
-  "Function Description": "توضیحات تابع"
+  "Function Description": "توضیحات تابع",
+  "Ceph Cluster Labels": "برچسب‌های خوشه Ceph",
+  "Database Labels": "برچسب‌های پایگاه داده",
+  "Docker Swarm Cluster Labels": "برچسب‌های خوشه Docker Swarm",
+  "IoT Fleet Labels": "برچسب‌های ناوگان IoT",
+  "Network Device Labels": "برچسب‌های دستگاه شبکه",
+  "Podman Host Labels": "برچسب‌های میزبان Podman",
+  "Proxmox Cluster Labels": "برچسب‌های خوشه Proxmox",
+  "Queue Labels": "برچسب‌های صف",
+  "vCenter Labels": "برچسب‌های vCenter",
+  "Choose what this rule applies to.": "انتخاب کنید این قانون روی چه چیزی اعمال شود."
 }

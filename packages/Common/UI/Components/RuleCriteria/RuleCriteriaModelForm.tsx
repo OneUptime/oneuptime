@@ -19,6 +19,7 @@ import {
   getAvailableRuleCriteriaFields,
   getRuleCriteriaFieldName,
   getRuleCriteriaFormProblem,
+  RuleCriteriaCopy,
   RuleCriteriaMessage,
 } from "./RuleCriteriaFields";
 
@@ -175,6 +176,11 @@ export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
       [RULE_CRITERIA_FIELD_NAME]: true,
     } as SelectFormFields<TEntity>,
     title: "Conditions",
+    /*
+     * Said here so the form does not fall back to the criteria column's own
+     * description, which is written for the API.
+     */
+    description: RuleCriteriaCopy.fieldDescription,
     stepId: MATCH_CRITERIA_STEP_ID,
     fieldType: FormFieldSchemaType.CustomComponent,
     required: requiresCondition

@@ -250,7 +250,7 @@ describe("ModelForm rule criteria integration", () => {
     ).toBe("Rule criteria schemaVersion must be 1.");
   });
 
-  test("names the field Conditions, on the match-criteria step, with no stale help", () => {
+  test("names the field Conditions, on the match-criteria step, in plain words", () => {
     const criteriaField: Field<any> | undefined =
       replaceLegacyRuleCriteriaFields(new RuleBaseModel(), ruleFields()).find(
         (field: Field<any>): boolean => {
@@ -259,7 +259,10 @@ describe("ModelForm rule criteria integration", () => {
       );
 
     expect(criteriaField?.title).toBe("Conditions");
-    expect(criteriaField?.description).toBeUndefined();
+    // Its own words: without them the form falls back to the API column's.
+    expect(criteriaField?.description).toBe(
+      "Choose what this rule applies to.",
+    );
     expect(criteriaField?.required).toBe(false);
   });
 
@@ -274,7 +277,10 @@ describe("ModelForm rule criteria integration", () => {
 
   test.each([
     ["StatusPageMonitorRule", new StatusPageMonitorRule()],
-    ["ServiceLevelObjectiveMonitorRule", new ServiceLevelObjectiveMonitorRule()],
+    [
+      "ServiceLevelObjectiveMonitorRule",
+      new ServiceLevelObjectiveMonitorRule(),
+    ],
     ["NetworkSiteAssignmentRule", new NetworkSiteAssignmentRule()],
     ["NetworkDeviceAutoImportRule", new NetworkDeviceAutoImportRule()],
   ])(
@@ -323,8 +329,8 @@ describe("ModelForm rule criteria integration", () => {
         }),
       ).toBeNull();
 
-      const element: ReactElement | undefined =
-        criteriaField!.getCustomElement!({}, { onChange: jest.fn() });
+      const element: ReactElement | undefined = criteriaField!
+        .getCustomElement!({}, { onChange: jest.fn() });
       expect(
         (element!.props as { requiresCondition?: boolean }).requiresCondition,
       ).toBe(true);

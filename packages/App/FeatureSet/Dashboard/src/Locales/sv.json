@@ -7171,5 +7171,15 @@
   "Application Description": "Applikationsbeskrivning",
   "Function Labels": "Funktionsetiketter",
   "Function Name": "Funktionsnamn",
-  "Function Description": "Funktionsbeskrivning"
+  "Function Description": "Funktionsbeskrivning",
+  "Ceph Cluster Labels": "Etiketter för Ceph-kluster",
+  "Database Labels": "Databasetiketter",
+  "Docker Swarm Cluster Labels": "Etiketter för Docker Swarm-kluster",
+  "IoT Fleet Labels": "IoT-flottans etiketter",
+  "Network Device Labels": "Etiketter för nätverksenhet",
+  "Podman Host Labels": "Etiketter för Podman-värd",
+  "Proxmox Cluster Labels": "Etiketter för Proxmox-kluster",
+  "Queue Labels": "Köetiketter",
+  "vCenter Labels": "vCenter-etiketter",
+  "Choose what this rule applies to.": "Välj vad den här regeln gäller för."
 }

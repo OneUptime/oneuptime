@@ -7171,5 +7171,15 @@
   "Application Description": "Application Description",
   "Function Labels": "Function Labels",
   "Function Name": "Function Name",
-  "Function Description": "Function Description"
+  "Function Description": "Function Description",
+  "Ceph Cluster Labels": "Ceph Cluster Labels",
+  "Database Labels": "Database Labels",
+  "Docker Swarm Cluster Labels": "Docker Swarm Cluster Labels",
+  "IoT Fleet Labels": "IoT Fleet Labels",
+  "Network Device Labels": "Network Device Labels",
+  "Podman Host Labels": "Podman Host Labels",
+  "Proxmox Cluster Labels": "Proxmox Cluster Labels",
+  "Queue Labels": "Queue Labels",
+  "vCenter Labels": "vCenter Labels",
+  "Choose what this rule applies to.": "Choose what this rule applies to."
 }

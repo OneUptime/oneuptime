@@ -684,7 +684,9 @@ describe("RuleCriteriaBuilder", () => {
       );
 
       await user.click(
-        screen.getByRole("button", { name: "Criteria for condition 1: Labels" }),
+        screen.getByRole("button", {
+          name: "Criteria for condition 1: Labels",
+        }),
       );
 
       expect(latestCriteria(onChange).filters[0]).toEqual(
@@ -831,7 +833,10 @@ describe("RuleCriteriaBuilder", () => {
 
       const input: HTMLElement = screen.getByTestId("rule-criteria-value-0");
       expect(input).toHaveAttribute("type", "number");
-      expect(input).toHaveAttribute("placeholder", RuleCriteriaCopy.enterANumber);
+      expect(input).toHaveAttribute(
+        "placeholder",
+        RuleCriteriaCopy.enterANumber,
+      );
 
       await user.clear(input);
       await user.type(input, "443");
@@ -959,9 +964,9 @@ describe("RuleCriteriaBuilder", () => {
       expect(
         within(screen.getByTestId("rule-criteria-row-0")).getByRole("alert"),
       ).toHaveTextContent("Enter a value.");
-      expect(
-        capturedEntityDropdowns["rule-criteria-value-1"]?.error,
-      ).toBe("Choose at least one value.");
+      expect(capturedEntityDropdowns["rule-criteria-value-1"]?.error).toBe(
+        "Choose at least one value.",
+      );
       expect(capturedDropdowns["rule-criteria-value-2"]?.error).toBeUndefined();
       // Said once, at the row: not again under the builder.
       expect(screen.queryByTestId("rule-criteria-error")).toBeNull();
@@ -973,7 +978,11 @@ describe("RuleCriteriaBuilder", () => {
           onChange={jest.fn()}
           error="Condition 1: invalid"
           initialValue={criteriaOf([
-            filterOf("namePattern", RuleCriteriaOperator.MatchesPattern, "api-(01"),
+            filterOf(
+              "namePattern",
+              RuleCriteriaOperator.MatchesPattern,
+              "api-(01",
+            ),
           ])}
         />,
       );
@@ -1017,9 +1026,7 @@ describe("RuleCriteriaBuilder", () => {
       expect(capturedDropdowns["rule-criteria-operator-0"]?.disabled).toBe(
         true,
       );
-      expect(
-        capturedDropdowns["rule-criteria-field-0"]?.value,
-      ).toBeUndefined();
+      expect(capturedDropdowns["rule-criteria-field-0"]?.value).toBeUndefined();
     });
   });
 
@@ -1066,7 +1073,11 @@ describe("RuleCriteriaBuilder", () => {
     unmount();
 
     const stored: RuleCriteria = criteriaOf([
-      filterOf("namePattern", RuleCriteriaOperator.DoesNotMatchPattern, "staging-*"),
+      filterOf(
+        "namePattern",
+        RuleCriteriaOperator.DoesNotMatchPattern,
+        "staging-*",
+      ),
     ]);
     const storedOnChange: ReturnType<typeof jest.fn> = jest.fn();
 

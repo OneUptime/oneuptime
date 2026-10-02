@@ -7171,5 +7171,15 @@
   "Application Description": "應用程式描述",
   "Function Labels": "函式標籤",
   "Function Name": "函式名稱",
-  "Function Description": "函式描述"
+  "Function Description": "函式描述",
+  "Ceph Cluster Labels": "Ceph 叢集標籤",
+  "Database Labels": "資料庫標籤",
+  "Docker Swarm Cluster Labels": "Docker Swarm 叢集標籤",
+  "IoT Fleet Labels": "IoT 裝置群標籤",
+  "Network Device Labels": "網路裝置標籤",
+  "Podman Host Labels": "Podman 主機標籤",
+  "Proxmox Cluster Labels": "Proxmox 叢集標籤",
+  "Queue Labels": "佇列標籤",
+  "vCenter Labels": "vCenter 標籤",
+  "Choose what this rule applies to.": "選擇此規則適用的對象。"
 }

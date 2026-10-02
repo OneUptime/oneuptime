@@ -261,7 +261,10 @@ describe("operators", () => {
     for (const field of [IP_ADDRESS, SUBNET]) {
       expect(isRuleCriteriaAddressRangeField(field)).toBe(true);
       expect(
-        getRuleCriteriaOperatorLabel(field, RuleCriteriaOperator.MatchesPattern),
+        getRuleCriteriaOperatorLabel(
+          field,
+          RuleCriteriaOperator.MatchesPattern,
+        ),
       ).toBe("Is in");
       expect(
         getRuleCriteriaOperatorLabel(
@@ -373,7 +376,9 @@ describe("what a new condition starts as", () => {
     expect(
       getEmptyRuleCriteriaValue(INCIDENT_TITLE, RuleCriteriaOperator.Equals),
     ).toBe("");
-    expect(getEmptyRuleCriteriaValue(PORT, RuleCriteriaOperator.Equals)).toBe(0);
+    expect(getEmptyRuleCriteriaValue(PORT, RuleCriteriaOperator.Equals)).toBe(
+      0,
+    );
     expect(
       getEmptyRuleCriteriaValue(ENABLED, RuleCriteriaOperator.NotEquals),
     ).toBe(true);
@@ -416,7 +421,11 @@ describe("rules saved before conditions existed", () => {
     ).toEqual(
       criteria([
         filter("monitors", RuleCriteriaOperator.HasAnyOf, ["m-1", "m-2"]),
-        filter("incidentTitlePattern", RuleCriteriaOperator.MatchesPattern, "^db-"),
+        filter(
+          "incidentTitlePattern",
+          RuleCriteriaOperator.MatchesPattern,
+          "^db-",
+        ),
       ]),
     );
   });
@@ -430,16 +439,27 @@ describe("rules saved before conditions existed", () => {
   test("values normalise to ids for lists and to scalars otherwise", () => {
     expect(
       normalizeRuleCriteriaValue(
-        [{ _id: { toString: (): string => "a" } }, "b", { id: 3 }, null],
+        [
+          {
+            _id: {
+              toString: (): string => {
+                return "a";
+              },
+            },
+          },
+          "b",
+          { id: 3 },
+          null,
+        ],
         RuleCriteriaOperator.HasAllOf,
       ),
     ).toEqual(["a", "b", "3"]);
     expect(
       normalizeRuleCriteriaValue({ value: "x" }, RuleCriteriaOperator.Equals),
     ).toBe("x");
-    expect(
-      normalizeRuleCriteriaValue(null, RuleCriteriaOperator.Equals),
-    ).toBe("");
+    expect(normalizeRuleCriteriaValue(null, RuleCriteriaOperator.Equals)).toBe(
+      "",
+    );
     expect(normalizeRuleCriteriaValue(7, RuleCriteriaOperator.Equals)).toBe(7);
   });
 });
@@ -486,7 +506,10 @@ describe("value placeholders", () => {
 
   test("a page's own prompt is kept where it still fits", () => {
     expect(
-      getRuleCriteriaValuePlaceholder(MONITOR_TYPE, RuleCriteriaOperator.Equals),
+      getRuleCriteriaValuePlaceholder(
+        MONITOR_TYPE,
+        RuleCriteriaOperator.Equals,
+      ),
     ).toBe("Select Monitor Type");
     expect(
       getRuleCriteriaValuePlaceholder(ENABLED, RuleCriteriaOperator.Equals),
@@ -516,7 +539,10 @@ describe("value placeholders", () => {
       ),
     ).toBe(RuleCriteriaCopy.enterAPattern);
     expect(
-      getRuleCriteriaValuePlaceholder(IP_ADDRESS, RuleCriteriaOperator.MatchesPattern),
+      getRuleCriteriaValuePlaceholder(
+        IP_ADDRESS,
+        RuleCriteriaOperator.MatchesPattern,
+      ),
     ).toBe("192.168.1.0/24 or 10.16-22.0-255.51-66");
   });
 
@@ -531,19 +557,29 @@ describe("changing a condition's field", () => {
   test("keeps the operator and the text when the new field takes them", () => {
     expect(
       changeRuleCriteriaFilterField({
-        filter: filter("incidentTitlePattern", RuleCriteriaOperator.StartsWith, "db"),
+        filter: filter(
+          "incidentTitlePattern",
+          RuleCriteriaOperator.StartsWith,
+          "db",
+        ),
         fromField: INCIDENT_TITLE,
         toField: INCIDENT_DESCRIPTION,
       }),
     ).toEqual(
-      filter("incidentDescriptionPattern", RuleCriteriaOperator.StartsWith, "db"),
+      filter(
+        "incidentDescriptionPattern",
+        RuleCriteriaOperator.StartsWith,
+        "db",
+      ),
     );
   });
 
   test("keeps picked labels between two label fields", () => {
     expect(
       changeRuleCriteriaFilterField({
-        filter: filter("incidentLabels", RuleCriteriaOperator.HasNoneOf, ["l-1"]),
+        filter: filter("incidentLabels", RuleCriteriaOperator.HasNoneOf, [
+          "l-1",
+        ]),
         fromField: INCIDENT_LABELS,
         toField: MONITOR_LABELS,
       }),
@@ -567,10 +603,16 @@ describe("changing a condition's field", () => {
         fromField: MONITORS,
         toField: INCIDENT_TITLE,
       }),
-    ).toEqual(filter("incidentTitlePattern", RuleCriteriaOperator.Contains, ""));
+    ).toEqual(
+      filter("incidentTitlePattern", RuleCriteriaOperator.Contains, ""),
+    );
     expect(
       changeRuleCriteriaFilterField({
-        filter: filter("incidentTitlePattern", RuleCriteriaOperator.Contains, "db"),
+        filter: filter(
+          "incidentTitlePattern",
+          RuleCriteriaOperator.Contains,
+          "db",
+        ),
         fromField: INCIDENT_TITLE,
         toField: MONITORS,
       }),
@@ -580,7 +622,11 @@ describe("changing a condition's field", () => {
   test("does not carry text into a choice, or a name into an address range", () => {
     expect(
       changeRuleCriteriaFilterField({
-        filter: filter("incidentTitlePattern", RuleCriteriaOperator.Equals, "API"),
+        filter: filter(
+          "incidentTitlePattern",
+          RuleCriteriaOperator.Equals,
+          "API",
+        ),
         fromField: INCIDENT_TITLE,
         toField: MONITOR_TYPE,
       }),
@@ -608,7 +654,9 @@ describe("changing a condition's field", () => {
         fromField: undefined,
         toField: INCIDENT_TITLE,
       }),
-    ).toEqual(filter("incidentTitlePattern", RuleCriteriaOperator.Contains, ""));
+    ).toEqual(
+      filter("incidentTitlePattern", RuleCriteriaOperator.Contains, ""),
+    );
   });
 });
 
@@ -616,7 +664,11 @@ describe("changing a condition's operator", () => {
   test("keeps the text between text operators", () => {
     expect(
       changeRuleCriteriaFilterOperator({
-        filter: filter("incidentTitlePattern", RuleCriteriaOperator.Contains, "db"),
+        filter: filter(
+          "incidentTitlePattern",
+          RuleCriteriaOperator.Contains,
+          "db",
+        ),
         field: INCIDENT_TITLE,
         operator: RuleCriteriaOperator.MatchesPattern,
       }),
@@ -638,11 +690,17 @@ describe("changing a condition's operator", () => {
   test("starts the value over between one value and a list", () => {
     expect(
       changeRuleCriteriaFilterOperator({
-        filter: filter("incidentTitlePattern", RuleCriteriaOperator.Contains, "db"),
+        filter: filter(
+          "incidentTitlePattern",
+          RuleCriteriaOperator.Contains,
+          "db",
+        ),
         field: INCIDENT_TITLE,
         operator: RuleCriteriaOperator.HasAnyOf,
       }),
-    ).toEqual(filter("incidentTitlePattern", RuleCriteriaOperator.HasAnyOf, []));
+    ).toEqual(
+      filter("incidentTitlePattern", RuleCriteriaOperator.HasAnyOf, []),
+    );
   });
 });
 
@@ -713,7 +771,9 @@ describe("what a person is told about a condition", () => {
 
   test("a good condition has nothing to say", () => {
     expect(problem("db", INCIDENT_TITLE)).toBeNull();
-    expect(problem(["m-1"], MONITORS, RuleCriteriaOperator.HasAnyOf)).toBeNull();
+    expect(
+      problem(["m-1"], MONITORS, RuleCriteriaOperator.HasAnyOf),
+    ).toBeNull();
     expect(problem(true, ENABLED, RuleCriteriaOperator.Equals)).toBeNull();
     expect(problem(8080, PORT, RuleCriteriaOperator.Equals)).toBeNull();
   });
@@ -755,7 +815,11 @@ describe("what the form says about all the conditions", () => {
         criteria([
           filter("incidentTitlePattern", RuleCriteriaOperator.Contains, "db"),
           filter("monitors", RuleCriteriaOperator.HasAnyOf, []),
-          filter("incidentDescriptionPattern", RuleCriteriaOperator.Contains, ""),
+          filter(
+            "incidentDescriptionPattern",
+            RuleCriteriaOperator.Contains,
+            "",
+          ),
         ]),
       ),
     ).toBe("Condition 2: Choose at least one value.");
@@ -765,7 +829,11 @@ describe("what the form says about all the conditions", () => {
     const filters: Array<RuleCriteriaFilter> = Array.from(
       { length: RULE_CRITERIA_MAX_FILTERS + 1 },
       (): RuleCriteriaFilter => {
-        return filter("incidentTitlePattern", RuleCriteriaOperator.Contains, "");
+        return filter(
+          "incidentTitlePattern",
+          RuleCriteriaOperator.Contains,
+          "",
+        );
       },
     );
 
@@ -784,7 +852,9 @@ describe("what the form says about all the conditions", () => {
         filterCondition: "Sometimes",
       }),
     ).toBe("Rule criteria filterCondition must be All or Any.");
-    expect(formProblem("not an object")).toBe("Rule criteria must be an object.");
+    expect(formProblem("not an object")).toBe(
+      "Rule criteria must be an object.",
+    );
     expect(
       formProblem(
         criteria([

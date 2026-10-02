@@ -7171,5 +7171,15 @@
   "Application Description": "应用描述",
   "Function Labels": "函数标签",
   "Function Name": "函数名称",
-  "Function Description": "函数描述"
+  "Function Description": "函数描述",
+  "Ceph Cluster Labels": "Ceph 集群标签",
+  "Database Labels": "数据库标签",
+  "Docker Swarm Cluster Labels": "Docker Swarm 集群标签",
+  "IoT Fleet Labels": "IoT 设备群标签",
+  "Network Device Labels": "网络设备标签",
+  "Podman Host Labels": "Podman 主机标签",
+  "Proxmox Cluster Labels": "Proxmox 集群标签",
+  "Queue Labels": "队列标签",
+  "vCenter Labels": "vCenter 标签",
+  "Choose what this rule applies to.": "选择此规则适用的对象。"
 }

@@ -7171,5 +7171,15 @@
   "Application Description": "एप्लिकेशन विवरण",
   "Function Labels": "फ़ंक्शन लेबल",
   "Function Name": "फ़ंक्शन नाम",
-  "Function Description": "फ़ंक्शन विवरण"
+  "Function Description": "फ़ंक्शन विवरण",
+  "Ceph Cluster Labels": "Ceph क्लस्टर लेबल",
+  "Database Labels": "डेटाबेस लेबल",
+  "Docker Swarm Cluster Labels": "Docker Swarm क्लस्टर लेबल",
+  "IoT Fleet Labels": "IoT फ़्लीट लेबल",
+  "Network Device Labels": "नेटवर्क डिवाइस लेबल",
+  "Podman Host Labels": "Podman होस्ट लेबल",
+  "Proxmox Cluster Labels": "Proxmox क्लस्टर लेबल",
+  "Queue Labels": "क्यू लेबल",
+  "vCenter Labels": "vCenter लेबल",
+  "Choose what this rule applies to.": "चुनें कि यह नियम किस पर लागू होता है।"
 }

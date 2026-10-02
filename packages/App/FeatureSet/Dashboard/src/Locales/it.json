@@ -7171,5 +7171,15 @@
   "Application Description": "Descrizione dell'applicazione",
   "Function Labels": "Etichette della funzione",
   "Function Name": "Nome della funzione",
-  "Function Description": "Descrizione della funzione"
+  "Function Description": "Descrizione della funzione",
+  "Ceph Cluster Labels": "Etichette del cluster Ceph",
+  "Database Labels": "Etichette del database",
+  "Docker Swarm Cluster Labels": "Etichette del cluster Docker Swarm",
+  "IoT Fleet Labels": "Etichette della flotta IoT",
+  "Network Device Labels": "Etichette del dispositivo di rete",
+  "Podman Host Labels": "Etichette dell'host Podman",
+  "Proxmox Cluster Labels": "Etichette del cluster Proxmox",
+  "Queue Labels": "Etichette della coda",
+  "vCenter Labels": "Etichette del vCenter",
+  "Choose what this rule applies to.": "Scegli a cosa si applica questa regola."
 }

@@ -108,6 +108,7 @@ export const RULE_CRITERIA_ADDRESS_RANGE_OPERATOR_LABELS: Partial<
  * "{{number}}" are filled in after the lookup.
  */
 export const RuleCriteriaCopy: {
+  readonly fieldDescription: string;
   readonly ifConnector: string;
   readonly andConnector: string;
   readonly orConnector: string;
@@ -141,6 +142,7 @@ export const RuleCriteriaCopy: {
   readonly tooManyConditionsProblem: string;
   readonly conditionProblem: string;
 } = {
+  fieldDescription: "Choose what this rule applies to.",
   ifConnector: "If",
   andConnector: "And",
   orConnector: "Or",

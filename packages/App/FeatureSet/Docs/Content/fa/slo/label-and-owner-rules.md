@@ -35,10 +35,10 @@
 | فیلد                        | مقایسه با            |
 | --------------------------- | -------------------- |
 | **SLO Labels**              | برچسب‌های SLO.       |
-| **SLO Name Pattern**        | نام SLO.             |
-| **SLO Description Pattern** | توضیحات SLO.         |
+| **SLO Name**                | نام SLO.             |
+| **SLO Description**         | توضیحات SLO.         |
 
-عملگرهای در دسترس به فیلد بستگی دارند. می‌توانند شامل برابری (**Equals**، **Does not equal**)، تطبیق متن (**Contains**، **Does not contain**، **Starts with**، **Ends with**)، تطبیق الگو (**Matches pattern**، **Does not match pattern**) و، برای برچسب‌ها، **Has any of**، **Has all of** و **Has none of** باشند.
+عملگرهای در دسترس به فیلد بستگی دارند. می‌توانند شامل تطبیق متن (**Contains**، **Does not contain**، **Starts with**، **Ends with**)، برابری (**Equals**، **Does not equal**)، تطبیق الگو (**Matches pattern**، **Does not match pattern**) و، برای برچسب‌ها، **Has any of**، **Has all of** و **Has none of** باشند. شرط تازه‌ای روی نام یا توضیحات با **Contains** آغاز می‌شود.
 
 الگوها یک عبارت باقاعده (`^checkout-.*`) یا یک wildcard با `*` (`*checkout*`) می‌پذیرند. الگویی که هیچ‌کدام نباشد — `checkout-(01` — هنگام ذخیره رد می‌شود، به‌جای آنکه بی‌صدا با هیچ چیز مطابقت نکند.
 
@@ -48,9 +48,9 @@
 
 | آنچه می‌خواهید                               | شرط‌ها                                                                                                                  |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| هر SLO سرویس checkout                        | **SLO Name Pattern** با الگوی `*checkout*` مطابقت کند                                                                  |
+| هر SLO سرویس checkout                        | **SLO Name** شامل `checkout` باشد                                                                                      |
 | هر SLO تولیدی                                | **SLO Labels** هر یک از _Production_ را داشته باشد                                                                     |
-| ‏SLOهای checkout، اما نه آن‌هایی که برای staging‌اند | **Match all (AND)**: **SLO Name Pattern** با الگوی `*checkout*` مطابقت کند، و **SLO Labels** هیچ‌یک از _Staging_ را نداشته باشد |
+| ‏SLOهای checkout، اما نه آن‌هایی که برای staging‌اند | **Match all (AND)**: **SLO Name** شامل `checkout` باشد، و **SLO Labels** هیچ‌یک از _Staging_ را نداشته باشد |
 
 ## قواعد کی اجرا می‌شوند
 

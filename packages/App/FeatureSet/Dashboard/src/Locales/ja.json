@@ -7171,5 +7171,15 @@
   "Application Description": "アプリケーションの説明",
   "Function Labels": "関数のラベル",
   "Function Name": "関数名",
-  "Function Description": "関数の説明"
+  "Function Description": "関数の説明",
+  "Ceph Cluster Labels": "Ceph クラスターのラベル",
+  "Database Labels": "データベースのラベル",
+  "Docker Swarm Cluster Labels": "Docker Swarm クラスターのラベル",
+  "IoT Fleet Labels": "IoT フリートのラベル",
+  "Network Device Labels": "ネットワークデバイスのラベル",
+  "Podman Host Labels": "Podman ホストのラベル",
+  "Proxmox Cluster Labels": "Proxmox クラスターのラベル",
+  "Queue Labels": "キューのラベル",
+  "vCenter Labels": "vCenter のラベル",
+  "Choose what this rule applies to.": "このルールの適用対象を選択します。"
 }

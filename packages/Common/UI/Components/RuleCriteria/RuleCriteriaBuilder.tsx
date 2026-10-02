@@ -98,8 +98,10 @@ const RuleCriteriaBuilder: <TEntity>(
   };
   const radioGroupName: string = `rule-criteria-filter-condition-${useId()}`;
 
-  const availableFields: Array<Field<TEntity>> =
-    getAvailableRuleCriteriaFields(props.fields, props.legacyValues);
+  const availableFields: Array<Field<TEntity>> = getAvailableRuleCriteriaFields(
+    props.fields,
+    props.legacyValues,
+  );
 
   const legacyCriteria: RuleCriteria = convertLegacyValuesToRuleCriteria({
     fields: availableFields,
@@ -229,8 +231,10 @@ const RuleCriteriaBuilder: <TEntity>(
     problem: string | null,
   ): ReactElement => {
     const isMultiSelect: boolean = isRuleCriteriaArrayOperator(filter.operator);
-    const placeholder: string = tx(
-      getRuleCriteriaValuePlaceholder(field, filter.operator),
+    // Dropdown and Input translate their own placeholder; EntityDropdown does not.
+    const placeholder: string = getRuleCriteriaValuePlaceholder(
+      field,
+      filter.operator,
     );
     const commonProps: {
       id: string;
@@ -255,7 +259,7 @@ const RuleCriteriaBuilder: <TEntity>(
           valueField={field.dropdownModal.valueField}
           isMultiSelect={isMultiSelect}
           value={filter.value}
-          placeholder={placeholder}
+          placeholder={tx(placeholder)}
           error={error}
           onChange={(
             value: DropdownValue | Array<DropdownValue> | null,
@@ -355,132 +359,134 @@ const RuleCriteriaBuilder: <TEntity>(
     );
   };
 
-  const renderRow: (filter: RuleCriteriaFilter, index: number) => ReactElement =
-    (filter: RuleCriteriaFilter, index: number): ReactElement => {
-      const field: Field<TEntity> | undefined = findRuleCriteriaField(
-        availableFields,
-        filter.field,
-      );
-      const operatorOptions: Array<DropdownOption> = (
-        field
-          ? getRuleCriteriaOperatorsForField(field)
-          : [...RULE_CRITERIA_SCALAR_OPERATORS]
-      ).map((operator: RuleCriteriaOperator): DropdownOption => {
-        return {
-          value: operator,
-          label: getRuleCriteriaOperatorLabel(field, operator),
-        };
-      });
-      const problem: string | null = rowProblems[index] || null;
+  const renderRow: (
+    filter: RuleCriteriaFilter,
+    index: number,
+  ) => ReactElement = (
+    filter: RuleCriteriaFilter,
+    index: number,
+  ): ReactElement => {
+    const field: Field<TEntity> | undefined = findRuleCriteriaField(
+      availableFields,
+      filter.field,
+    );
+    const operatorOptions: Array<DropdownOption> = (
+      field
+        ? getRuleCriteriaOperatorsForField(field)
+        : [...RULE_CRITERIA_SCALAR_OPERATORS]
+    ).map((operator: RuleCriteriaOperator): DropdownOption => {
+      return {
+        value: operator,
+        label: getRuleCriteriaOperatorLabel(field, operator),
+      };
+    });
+    const problem: string | null = rowProblems[index] || null;
 
-      return (
-        <li
-          key={`${filter.field}-${index}`}
-          className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-start gap-x-2 gap-y-2 lg:grid-cols-[3.5rem_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.4fr)_auto]"
-          data-testid={`rule-criteria-row-${index}`}
-        >
-          <div className="flex h-10 items-center">{renderConnector(index)}</div>
+    return (
+      <li
+        key={`${filter.field}-${index}`}
+        className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-start gap-x-2 gap-y-2 lg:grid-cols-[3.5rem_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.4fr)_auto]"
+        data-testid={`rule-criteria-row-${index}`}
+      >
+        <div className="flex h-10 items-center">{renderConnector(index)}</div>
 
-          <div className="min-w-0">
-            <Dropdown
-              id={`rule-criteria-field-${index}`}
-              ariaLabel={`Criteria for condition ${index + 1}`}
-              dataTestId={`rule-criteria-field-${index}`}
-              className="relative w-full"
-              isClearable={false}
-              disabled={props.disabled}
-              options={fieldOptions}
-              value={fieldOptions.find((option: DropdownOption): boolean => {
-                return option.value === filter.field;
-              })}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ): void => {
-                const nextField: Field<TEntity> | undefined =
-                  findRuleCriteriaField(
-                    availableFields,
-                    value?.toString() || "",
-                  );
+        <div className="min-w-0">
+          <Dropdown
+            id={`rule-criteria-field-${index}`}
+            ariaLabel={`Criteria for condition ${index + 1}`}
+            dataTestId={`rule-criteria-field-${index}`}
+            className="relative w-full"
+            isClearable={false}
+            disabled={props.disabled}
+            options={fieldOptions}
+            value={fieldOptions.find((option: DropdownOption): boolean => {
+              return option.value === filter.field;
+            })}
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              const nextField: Field<TEntity> | undefined =
+                findRuleCriteriaField(availableFields, value?.toString() || "");
 
-                if (!nextField || value?.toString() === filter.field) {
-                  return;
-                }
+              if (!nextField || value?.toString() === filter.field) {
+                return;
+              }
 
-                changeFilter(
-                  index,
-                  changeRuleCriteriaFilterField({
-                    filter: filter,
-                    fromField: field,
-                    toField: nextField,
-                  }),
-                );
-              }}
-            />
-          </div>
+              changeFilter(
+                index,
+                changeRuleCriteriaFilterField({
+                  filter: filter,
+                  fromField: field,
+                  toField: nextField,
+                }),
+              );
+            }}
+          />
+        </div>
 
-          <div className="min-w-0 max-lg:col-start-2 max-lg:row-start-2">
-            <Dropdown
-              id={`rule-criteria-operator-${index}`}
-              ariaLabel={`Operator for condition ${index + 1}`}
-              dataTestId={`rule-criteria-operator-${index}`}
-              className="relative w-full"
-              isClearable={false}
-              disabled={props.disabled || !field}
-              options={operatorOptions}
-              value={operatorOptions.find((option: DropdownOption): boolean => {
-                return option.value === filter.operator;
-              })}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ): void => {
-                if (!field || !value || value.toString() === filter.operator) {
-                  return;
-                }
+        <div className="min-w-0 max-lg:col-start-2 max-lg:row-start-2">
+          <Dropdown
+            id={`rule-criteria-operator-${index}`}
+            ariaLabel={`Operator for condition ${index + 1}`}
+            dataTestId={`rule-criteria-operator-${index}`}
+            className="relative w-full"
+            isClearable={false}
+            disabled={props.disabled || !field}
+            options={operatorOptions}
+            value={operatorOptions.find((option: DropdownOption): boolean => {
+              return option.value === filter.operator;
+            })}
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              if (!field || !value || value.toString() === filter.operator) {
+                return;
+              }
 
-                changeFilter(
-                  index,
-                  changeRuleCriteriaFilterOperator({
-                    filter: filter,
-                    field: field,
-                    operator: value.toString() as RuleCriteriaOperator,
-                  }),
-                );
-              }}
-            />
-          </div>
+              changeFilter(
+                index,
+                changeRuleCriteriaFilterOperator({
+                  filter: filter,
+                  field: field,
+                  operator: value.toString() as RuleCriteriaOperator,
+                }),
+              );
+            }}
+          />
+        </div>
 
-          <div className="min-w-0 max-lg:col-start-2 max-lg:row-start-3">
-            {field ? (
-              renderValue(filter, field, index, problem)
-            ) : (
-              <p
-                className="pt-2 text-sm text-red-600"
-                role="alert"
-                data-testid={`rule-criteria-unavailable-${index}`}
-              >
-                {tx(RuleCriteriaCopy.fieldUnavailable)}
-              </p>
-            )}
-          </div>
+        <div className="min-w-0 max-lg:col-start-2 max-lg:row-start-3">
+          {field ? (
+            renderValue(filter, field, index, problem)
+          ) : (
+            <p
+              className="pt-2 text-sm text-red-600"
+              role="alert"
+              data-testid={`rule-criteria-unavailable-${index}`}
+            >
+              {tx(RuleCriteriaCopy.fieldUnavailable)}
+            </p>
+          )}
+        </div>
 
-          <div className="flex h-10 items-center max-lg:col-start-3 max-lg:row-start-1">
-            <Button
-              title={RuleCriteriaCopy.removeCondition}
-              tooltip={RuleCriteriaCopy.removeCondition}
-              ariaLabel={`Remove condition ${index + 1}`}
-              dataTestId={`rule-criteria-delete-${index}`}
-              icon={IconProp.Trash}
-              buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.ICON}
-              disabled={props.disabled}
-              onClick={(): void => {
-                removeCondition(index);
-              }}
-            />
-          </div>
-        </li>
-      );
-    };
+        <div className="flex h-10 items-center max-lg:col-start-3 max-lg:row-start-1">
+          <Button
+            title={RuleCriteriaCopy.removeCondition}
+            tooltip={RuleCriteriaCopy.removeCondition}
+            ariaLabel={`Remove condition ${index + 1}`}
+            dataTestId={`rule-criteria-delete-${index}`}
+            icon={IconProp.Trash}
+            buttonSize={ButtonSize.Small}
+            buttonStyle={ButtonStyleType.ICON}
+            disabled={props.disabled}
+            onClick={(): void => {
+              removeCondition(index);
+            }}
+          />
+        </div>
+      </li>
+    );
+  };
 
   return (
     <div data-testid="rule-criteria-builder" className="space-y-3">

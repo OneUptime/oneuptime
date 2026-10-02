@@ -374,16 +374,16 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 The create form has three steps:
 
 - **Basic Info** — **Name** (the placeholder suggests something like paging the database team for any DB incident), **Description**, and an **Enabled** toggle. The list renders a green **Enabled** or red **Disabled** pill per rule.
-- **Match Criteria** — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels**, plus case-insensitive regular expression fields for the incident title, incident description, monitor name and monitor description.
+- **Match Criteria** — the rule's **Conditions**. Each condition picks a criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels**, **Incident Title**, **Incident Description**, **Monitor Name** or **Monitor Description** — an operator and a value, and reads like a sentence: "If **Incident Title** contains `database`", "And **Monitor Labels** has any of _Production_".
 - **On-Call Policies** — the policies this rule executes.
 
 ### How matching resolves
 
 The rules the page ships with itself are worth internalizing:
 
-- A rule matches only when **all** of the criteria you filled in pass. Criteria you left empty are skipped, not failed.
-- Within a single list criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels** — matching is any-of.
-- The pattern fields are case-insensitive regular expressions.
+- With two or more conditions you choose **Match all** (every condition must be true) or **Match any** (one is enough). A rule with no conditions matches every incident.
+- A list criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels** — uses **Has any of**, **Has all of** or **Has none of** the values you pick.
+- A text criterion — the incident's title and description, its monitors' names and descriptions — uses **Contains**, **Does not contain**, **Equals**, **Does not equal**, **Starts with** or **Ends with**, ignoring case, or **Matches pattern** / **Does not match pattern** for a case-insensitive regular expression or a `*` wildcard. A new text condition starts on **Contains**.
 - **All matching rules fire.** There is no priority and no short-circuit.
 - The set of policies that actually executes is the union of every matching rule's policies plus any policies attached to the incident manually or by a template, deduplicated so each policy runs at most once.
 

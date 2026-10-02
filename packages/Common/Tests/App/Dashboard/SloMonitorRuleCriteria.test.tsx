@@ -391,9 +391,9 @@ describe("SLO monitor rule criteria in the create and edit forms", () => {
 
     // Said at the row it is about, in plain words.
     const row: HTMLElement = screen.getByTestId("rule-criteria-row-0");
-    expect(
-      (await within(row).findByRole("alert")).textContent,
-    ).toContain("Choose a value.");
+    expect((await within(row).findByRole("alert")).textContent).toContain(
+      "Choose a value.",
+    );
     expect(screen.queryByTestId("rule-criteria-error")).toBeNull();
     expect(submittedRule).toBeNull();
   });
@@ -414,9 +414,9 @@ describe("SLO monitor rule criteria in the create and edit forms", () => {
       screen.getByRole("button", { name: "Save SLO Monitor Rule" }),
     );
 
-    expect(
-      (await screen.findByTestId("rule-criteria-error")).textContent,
-    ).toBe("Add at least one condition.");
+    expect((await screen.findByTestId("rule-criteria-error")).textContent).toBe(
+      "Add at least one condition.",
+    );
     expect(submittedRule).toBeNull();
 
     await addCondition("Monitor Name");

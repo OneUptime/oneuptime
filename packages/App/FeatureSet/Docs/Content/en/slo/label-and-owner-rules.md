@@ -32,13 +32,13 @@ Add one or more conditions, then choose how they combine:
 
 Each condition compares one field of the SLO:
 
-| Field                       | Compared with          |
-| --------------------------- | ---------------------- |
-| **SLO Labels**              | The SLO's labels.      |
-| **SLO Name Pattern**        | The SLO's name.        |
-| **SLO Description Pattern** | The SLO's description. |
+| Field               | Compared with          |
+| ------------------- | ---------------------- |
+| **SLO Labels**      | The SLO's labels.      |
+| **SLO Name**        | The SLO's name.        |
+| **SLO Description** | The SLO's description. |
 
-The operators on offer depend on the field. They can include equality (**Equals**, **Does not equal**), text matching (**Contains**, **Does not contain**, **Starts with**, **Ends with**), pattern matching (**Matches pattern**, **Does not match pattern**) and, for labels, **Has any of**, **Has all of** and **Has none of**.
+The operators on offer depend on the field. They can include text matching (**Contains**, **Does not contain**, **Starts with**, **Ends with**), equality (**Equals**, **Does not equal**), pattern matching (**Matches pattern**, **Does not match pattern**) and, for labels, **Has any of**, **Has all of** and **Has none of**. A new name or description condition starts on **Contains**.
 
 Patterns accept a regular expression (`^checkout-.*`) or a `*` wildcard (`*checkout*`). A pattern that is neither — `checkout-(01` — is rejected when you save, rather than silently matching nothing.
 
@@ -46,11 +46,11 @@ A rule with no conditions matches every SLO.
 
 Some examples:
 
-| You want                                     | Conditions                                                                                                         |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Every SLO for the checkout service           | **SLO Name Pattern** matches pattern `*checkout*`                                                                  |
-| Every production SLO                         | **SLO Labels** has any of _Production_                                                                             |
-| Checkout SLOs, but not the ones for staging  | **Match all (AND)**: **SLO Name Pattern** matches pattern `*checkout*`, and **SLO Labels** has none of _Staging_   |
+| You want                                     | Conditions                                                                                              |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Every SLO for the checkout service           | **SLO Name** contains `checkout`                                                                        |
+| Every production SLO                         | **SLO Labels** has any of _Production_                                                                  |
+| Checkout SLOs, but not the ones for staging  | **Match all (AND)**: **SLO Name** contains `checkout`, and **SLO Labels** has none of _Staging_          |
 
 ## When rules run
 

@@ -7171,5 +7171,15 @@
   "Application Description": "애플리케이션 설명",
   "Function Labels": "함수 레이블",
   "Function Name": "함수 이름",
-  "Function Description": "함수 설명"
+  "Function Description": "함수 설명",
+  "Ceph Cluster Labels": "Ceph 클러스터 레이블",
+  "Database Labels": "데이터베이스 레이블",
+  "Docker Swarm Cluster Labels": "Docker Swarm 클러스터 레이블",
+  "IoT Fleet Labels": "IoT 플릿 레이블",
+  "Network Device Labels": "네트워크 장치 레이블",
+  "Podman Host Labels": "Podman 호스트 레이블",
+  "Proxmox Cluster Labels": "Proxmox 클러스터 레이블",
+  "Queue Labels": "큐 레이블",
+  "vCenter Labels": "vCenter 레이블",
+  "Choose what this rule applies to.": "이 규칙이 적용될 대상을 선택하세요."
 }

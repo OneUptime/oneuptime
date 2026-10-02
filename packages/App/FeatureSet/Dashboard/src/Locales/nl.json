@@ -7171,5 +7171,15 @@
   "Application Description": "Applicatiebeschrijving",
   "Function Labels": "Functielabels",
   "Function Name": "Functienaam",
-  "Function Description": "Functiebeschrijving"
+  "Function Description": "Functiebeschrijving",
+  "Ceph Cluster Labels": "Ceph-clusterlabels",
+  "Database Labels": "Databaselabels",
+  "Docker Swarm Cluster Labels": "Docker Swarm-clusterlabels",
+  "IoT Fleet Labels": "IoT-vlootlabels",
+  "Network Device Labels": "Labels van netwerkapparaat",
+  "Podman Host Labels": "Podman-hostlabels",
+  "Proxmox Cluster Labels": "Proxmox-clusterlabels",
+  "Queue Labels": "Wachtrijlabels",
+  "vCenter Labels": "vCenter-labels",
+  "Choose what this rule applies to.": "Kies waarop deze regel van toepassing is."
 }

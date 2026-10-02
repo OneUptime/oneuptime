@@ -7171,5 +7171,15 @@
   "Application Description": "Описание приложения",
   "Function Labels": "Метки функции",
   "Function Name": "Имя функции",
-  "Function Description": "Описание функции"
+  "Function Description": "Описание функции",
+  "Ceph Cluster Labels": "Метки кластера Ceph",
+  "Database Labels": "Метки базы данных",
+  "Docker Swarm Cluster Labels": "Метки кластера Docker Swarm",
+  "IoT Fleet Labels": "Метки парка IoT",
+  "Network Device Labels": "Метки сетевого устройства",
+  "Podman Host Labels": "Метки хоста Podman",
+  "Proxmox Cluster Labels": "Метки кластера Proxmox",
+  "Queue Labels": "Метки очереди",
+  "vCenter Labels": "Метки vCenter",
+  "Choose what this rule applies to.": "Выберите, к чему применяется это правило."
 }
