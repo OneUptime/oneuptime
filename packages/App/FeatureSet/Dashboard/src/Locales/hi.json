@@ -2175,7 +2175,6 @@
   "Define how source values map to new span names.": "परिभाषित करें कि स्रोत मान नए स्पैन नामों से कैसे मैप होते हैं।",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.": "यह पहचानने के लिए मिलान मानदंड (मॉनिटर, गंभीरता, लेबल, शीर्षक पैटर्न) परिभाषित करें कि कौन से अलर्ट एक साथ समूहित किए जाने चाहिए।",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which incidents should be grouped together.": "यह पहचानने के लिए मिलान मानदंड (मॉनिटर, गंभीरता, लेबल, शीर्षक पैटर्न) परिभाषित करें कि कौन सी घटनाएं एक साथ समूहित की जानी चाहिए।",
-  "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).": "ऐसी भूमिकाएं परिभाषित करें जो घटना प्रतिक्रिया के दौरान उपयोगकर्ताओं को सौंपी जा सकती हैं (उदा: घटना कमांडर, उत्तरदाता)।",
   "Define rules to automatically execute on-call duty policies when matching alerts are created.": "मिलान करने वाले अलर्ट बनने पर ऑन-कॉल ड्यूटी नीतियों को स्वचालित रूप से निष्पादित करने हेतु नियम परिभाषित करें।",
   "Define rules to automatically execute on-call duty policies when matching incidents are created.": "मिलान करने वाली घटनाएं बनने पर ऑन-कॉल ड्यूटी नीतियों को स्वचालित रूप से निष्पादित करने हेतु नियम परिभाषित करें।",
   "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.": "वह क्रम परिभाषित करें जिसमें ऑन-कॉल उपयोगकर्ताओं, टीमों, या अनुसूचियों से संपर्क किया जाता है। यदि कोई उत्तर नहीं देता, तो कॉल अगले नियम पर चली जाती है।",
@@ -3535,7 +3534,6 @@
   "Mounts": "Mounts",
   "MSI installer, registered as a Windows service.": "MSI इंस्टॉलर, Windows सेवा के रूप में पंजीकृत।",
   "mTLS Certificates Issued": "mTLS प्रमाणपत्र जारी किए गए",
-  "Multiple Users": "एकाधिक उपयोगकर्ता",
   "My Backend API": "My Backend API",
   "My Custom Template": "My Custom Template",
   "My internal alerts": "मेरे आंतरिक अलर्ट",
@@ -4169,7 +4167,6 @@
   "Pressure": "दबाव",
   "Preview of the logs that match the filter of this monitor.": "इस मॉनिटर के फ़िल्टर से मेल खाने वाले लॉग्स का पूर्वावलोकन।",
   "Preview of the metrics that match this monitor criteria": "इस मॉनिटर मानदंड से मेल खाने वाले मेट्रिक्स का पूर्वावलोकन",
-  "Primary decision maker during an incident.": "किसी घटना के दौरान प्राथमिक निर्णयकर्ता।",
   "Primary On-Call": "प्राथमिक ऑन-कॉल",
   "Primary Twilio Phone Number": "प्राथमिक Twilio फ़ोन नंबर",
   "Priority": "प्राथमिकता",
@@ -7484,5 +7481,8 @@
   "95th percentile": "95वाँ पर्सेंटाइल",
   "99th percentile": "99वाँ पर्सेंटाइल",
   "Longest": "सबसे लंबी",
-  "Shortest": "सबसे छोटी"
+  "Shortest": "सबसे छोटी",
+  "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "किसी घटना के दौरान लोग जो भूमिकाएँ निभाते हैं, जैसे Incident Commander। अगर आपकी टीम को ज़रूरत हो, तो और भूमिकाएँ जोड़ें।",
+  "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "हर घटना के लिए किसी प्रभारी की ज़रूरत होती है, इसलिए इस भूमिका का नाम बदला जा सकता है, पर इसे हटाया नहीं जा सकता।",
+  "Does the hands-on work to resolve the incident.": "घटना को सुलझाने का व्यावहारिक काम करता है।"
 }

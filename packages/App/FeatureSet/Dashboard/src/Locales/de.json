@@ -2175,7 +2175,6 @@
   "Define how source values map to new span names.": "Definieren Sie, wie Quellwerte neuen Span-Namen zugeordnet werden.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.": "Definieren Sie Übereinstimmungskriterien (Monitore, Schweregrad, Beschriftungen, Titelmuster), um zu bestimmen, welche Warnungen gruppiert werden sollen.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which incidents should be grouped together.": "Definieren Sie Übereinstimmungskriterien (Monitore, Schweregrad, Beschriftungen, Titelmuster), um zu bestimmen, welche Vorfälle gruppiert werden sollen.",
-  "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).": "Definieren Sie Rollen, die Benutzern während der Vorfallreaktion zugewiesen werden können (z. B. Incident Commander, Responder).",
   "Define rules to automatically execute on-call duty policies when matching alerts are created.": "Definieren Sie Regeln, um Bereitschaftsdienst-Richtlinien automatisch auszuführen, wenn passende Warnungen erstellt werden.",
   "Define rules to automatically execute on-call duty policies when matching incidents are created.": "Definieren Sie Regeln, um Bereitschaftsdienst-Richtlinien automatisch auszuführen, wenn passende Vorfälle erstellt werden.",
   "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.": "Definieren Sie die Reihenfolge, in der Bereitschaftsbenutzer, Teams oder Zeitpläne kontaktiert werden. Wenn einer nicht antwortet, geht der Anruf zur nächsten Regel über.",
@@ -3535,7 +3534,6 @@
   "Mounts": "Mounts",
   "MSI installer, registered as a Windows service.": "MSI-Installationsprogramm, registriert als Windows-Dienst.",
   "mTLS Certificates Issued": "Ausgestellte mTLS-Zertifikate",
-  "Multiple Users": "Mehrere Benutzer",
   "My Backend API": "Meine Backend-API",
   "My Custom Template": "Meine benutzerdefinierte Vorlage",
   "My internal alerts": "Meine internen Warnungen",
@@ -4169,7 +4167,6 @@
   "Pressure": "Druck",
   "Preview of the logs that match the filter of this monitor.": "Vorschau der Protokolle, die dem Filter dieser Überwachung entsprechen.",
   "Preview of the metrics that match this monitor criteria": "Vorschau der Metriken, die den Kriterien dieser Überwachung entsprechen",
-  "Primary decision maker during an incident.": "Primärer Entscheidungsträger während eines Vorfalls.",
   "Primary On-Call": "Primärer Bereitschaftsdienst",
   "Primary Twilio Phone Number": "Primäre Twilio-Telefonnummer",
   "Priority": "Priorität",
@@ -7484,5 +7481,8 @@
   "95th percentile": "95. Perzentil",
   "99th percentile": "99. Perzentil",
   "Longest": "Längste",
-  "Shortest": "Kürzeste"
+  "Shortest": "Kürzeste",
+  "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "Die Rollen, die Personen während eines Vorfalls übernehmen, etwa Incident Commander. Fügen Sie weitere hinzu, wenn Ihr Team sie braucht.",
+  "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "Jeder Vorfall braucht jemanden, der die Leitung hat. Diese Rolle kann daher umbenannt, aber nicht gelöscht werden.",
+  "Does the hands-on work to resolve the incident.": "Erledigt die praktische Arbeit, um den Vorfall zu beheben."
 }

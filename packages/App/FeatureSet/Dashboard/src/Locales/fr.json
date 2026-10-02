@@ -2175,7 +2175,6 @@
   "Define how source values map to new span names.": "Définissez comment les valeurs source correspondent aux nouveaux noms de spans.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.": "Définissez des critères de correspondance (moniteurs, gravité, étiquettes, modèles de titre) pour identifier les alertes à regrouper.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which incidents should be grouped together.": "Définissez des critères de correspondance (moniteurs, gravité, étiquettes, modèles de titre) pour identifier les incidents à regrouper.",
-  "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).": "Définissez les rôles pouvant être attribués aux utilisateurs lors de la réponse aux incidents (par ex. : Commandant d'incident, Intervenant).",
   "Define rules to automatically execute on-call duty policies when matching alerts are created.": "Définissez des règles pour exécuter automatiquement les politiques d'astreinte lorsque des alertes correspondantes sont créées.",
   "Define rules to automatically execute on-call duty policies when matching incidents are created.": "Définissez des règles pour exécuter automatiquement les politiques d'astreinte lorsque des incidents correspondants sont créés.",
   "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.": "Définissez l'ordre dans lequel les utilisateurs, équipes ou planifications d'astreinte sont contactés. Si l'un ne répond pas, l'appel passe à la règle suivante.",
@@ -3535,7 +3534,6 @@
   "Mounts": "Montages",
   "MSI installer, registered as a Windows service.": "Programme d'installation MSI, enregistré en tant que service Windows.",
   "mTLS Certificates Issued": "Certificats mTLS émis",
-  "Multiple Users": "Plusieurs utilisateurs",
   "My Backend API": "Mon API backend",
   "My Custom Template": "Mon modèle personnalisé",
   "My internal alerts": "Mes alertes internes",
@@ -4169,7 +4167,6 @@
   "Pressure": "Pression",
   "Preview of the logs that match the filter of this monitor.": "Aperçu des journaux qui correspondent au filtre de ce moniteur.",
   "Preview of the metrics that match this monitor criteria": "Aperçu des métriques qui correspondent aux critères de ce moniteur",
-  "Primary decision maker during an incident.": "Principal décideur durant un incident.",
   "Primary On-Call": "Astreinte principale",
   "Primary Twilio Phone Number": "Numéro de téléphone Twilio principal",
   "Priority": "Priorité",
@@ -7484,5 +7481,8 @@
   "95th percentile": "95e centile",
   "99th percentile": "99e centile",
   "Longest": "La plus longue",
-  "Shortest": "La plus courte"
+  "Shortest": "La plus courte",
+  "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "Les rôles que les personnes assument pendant un incident, comme Incident Commander. Ajoutez-en d'autres si votre équipe en a besoin.",
+  "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "Chaque incident a besoin d'un responsable : ce rôle peut donc être renommé, mais pas supprimé.",
+  "Does the hands-on work to resolve the incident.": "Effectue le travail concret pour résoudre l'incident."
 }
