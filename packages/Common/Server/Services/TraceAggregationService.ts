@@ -570,12 +570,10 @@ export class TraceAggregationService {
    *      bounded by max_execution_time.
    *
    * primaryEntityId is intentionally NOT disambiguated by primaryEntityType
-   * here. Resource IDs are globally unique, so a single primaryEntityId ->
-   * count map correctly serves the service facet and every resource facet
-   * once merged against each Postgres source-of-truth list (a host id
-   * never collides with a service id, so an unrelated entry is simply never
-   * looked up). Omitting the primaryEntityType predicate keeps the query
-   * projection-eligible.
+   * here: this query now only feeds the statusCode facet (resource facets
+   * count through getResourceFacetValueCounts). Keeping primaryEntityId in
+   * the GROUP BY and omitting a primaryEntityType predicate preserves the
+   * existing projection shape.
    */
   @CaptureSpan()
   public static async getResourceFacetCounts(

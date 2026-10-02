@@ -14,7 +14,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, jest, test } from "@jest/globals";
 
 /*
- * The projection behind per-resource facet counts (issue #3251).
+ * The query builder behind per-resource facet counts (issue #3251).
  *
  * Selection matches a resource by `primaryEntityId IN (...) OR
  * hasAny(entityKeys, [...]) OR attributes['resource.x'] IN (...)`, so the

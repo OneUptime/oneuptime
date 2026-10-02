@@ -1260,9 +1260,9 @@ router.post(
         : undefined;
 
       /*
-       * Shared window + active filters for both facet-counting paths below:
-       * the exact projection-backed GROUP BY (resource facets + statusCode)
-       * and the recent-N sample (kind + attribute facets, which have no cheap
+       * Shared window + active filters for the facet-counting paths below:
+       * the exact per-resource counts, the projection-backed statusCode
+       * GROUP BY and the recent-N sample (kind + attribute facets, which have no cheap
        * exact path).
        */
       const multiRequest: TraceMultiFacetRequest = {
@@ -1276,8 +1276,9 @@ router.post(
 
       /*
        * Resource facets (primaryEntityId and every ResourceFacetCatalog key)
-       * and statusCode are counted with an exact, projection-backed GROUP BY
-       * in getResourceFacetCounts(). The recent-N sample below saturates with
+       * are counted exactly from their listed Postgres rows using their
+       * resolved resource scopes. statusCode keeps the projection-backed
+       * GROUP BY in getResourceFacetCounts(). The recent-N sample below saturates with
        * whichever service is chattiest right now and reports 0 for every other
        * service regardless of its true volume over the window — the "top 1000"
        * symptom. Facets with no projection (kind, attribute keys) have no cheap
