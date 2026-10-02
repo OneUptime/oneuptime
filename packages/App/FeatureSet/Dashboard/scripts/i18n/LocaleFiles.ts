@@ -13,16 +13,19 @@ import path from "path";
  * en.json is the source of truth. Most of its keys are the English text
  * itself ("Create Incident": "Create Incident"), looked up by
  * useTranslateValue(); a few are nested ("navbar": { "items": ... }) and read
- * with t("navbar.items.x"). Every other locale has exactly en.json's keys, in
- * en.json's order, plus the extra plural forms its language needs. A key a
- * locale has not translated yet holds the English text as a placeholder.
+ * with t("navbar.items.x"). A count-dependent sentence is its English "other"
+ * form plus a "_one" sibling. Every other locale has exactly en.json's keys,
+ * in en.json's order; a key a locale has not translated yet holds the English
+ * text as a placeholder.
  *
- * Ordering is deterministic so that branches merge cleanly: existing keys keep
- * their place, and a new key goes in right after the existing key that sorts
- * immediately before it. Every locale mirrors en.json's order, so a feature's
- * keys land at the same spot in all seventeen files. When a merge still
- * conflicts, `npm run i18n:extract` reads both sides and writes the union
- * (resolveConflictedLocaleText below).
+ * Ordering is deterministic: existing keys never move (features keep their
+ * keys together, and their tests rely on it), and the keys an extraction adds
+ * go at the end of the file in sorted order. The output depends only on the
+ * files and the set of new keys. Two branches that both add keys meet at the
+ * end of the file; `npm run i18n:extract` reads both sides of that conflict
+ * and writes the union, the two runs of new keys merged in sorted order
+ * (resolveConflictedLocaleText below). Every locale mirrors en.json's order,
+ * so the same lines change in all seventeen files.
  */
 
 export type LocaleNode = string | LocaleTree;
@@ -98,29 +101,19 @@ export const PLURAL_CATEGORIES: Record<string, Array<PluralCategory>> = {
   "zh-TW": ["other"],
 };
 
-// Suffixes a locale may add beyond en.json's "_one", in CLDR order.
-const EXTRA_PLURAL_CATEGORIES: Array<PluralCategory> = [
-  "zero",
-  "two",
-  "few",
-  "many",
-];
-
+/*
+ * Locale files hold two forms of a count-dependent sentence: the general
+ * ("other") form under the key and the "_one" form. A language with more
+ * forms (Russian has "few" and "many") words its general form so it reads
+ * right for any of those counts ("Результатов: {{count}}") - the translator
+ * falls back from "_few" to the general form - which keeps every locale
+ * key-for-key with en.json. A "_one" form in a language without "one"
+ * (Japanese, Korean, Chinese) is never read.
+ */
 export const getPluralCategories: (code: string) => Array<PluralCategory> = (
   code: string,
 ): Array<PluralCategory> => {
   return PLURAL_CATEGORIES[code] || ["one", "other"];
-};
-
-// The plural forms `code` needs beyond the general form and "_one".
-export const getExtraPluralCategories: (
-  code: string,
-) => Array<PluralCategory> = (code: string): Array<PluralCategory> => {
-  const categories: Array<PluralCategory> = getPluralCategories(code);
-
-  return EXTRA_PLURAL_CATEGORIES.filter((category: PluralCategory): boolean => {
-    return categories.includes(category);
-  });
 };
 
 export const getLocalePath: (code: string) => string = (
@@ -266,11 +259,10 @@ export const compareKeys: (a: string, b: string) => number = (
 };
 
 /*
- * Adds flat keys to en.json without moving any existing key. A new key goes
- * right after the existing flat key that sorts immediately before it (keys
- * sharing that neighbour go in sorted order), or before the first flat key
- * if nothing sorts before it. The result depends only on the existing file
- * and the set of additions, never on the order they were found in.
+ * Adds flat keys to en.json without moving any existing key: the new ones go
+ * at the end of the file, in sorted order. The result depends only on the
+ * existing file and the set of additions, never on the order they were found
+ * in.
  */
 export const insertEnglishKeys: (
   english: LocaleTree,
@@ -279,8 +271,6 @@ export const insertEnglishKeys: (
   english: LocaleTree,
   additions: Record<string, string>,
 ): { tree: LocaleTree; added: Array<string> } => {
-  const existingKeys: Array<string> = Object.keys(english);
-
   const newKeys: Array<string> = Object.keys(additions)
     .filter((key: string): boolean => {
       return !Object.prototype.hasOwnProperty.call(english, key);
@@ -291,65 +281,10 @@ export const insertEnglishKeys: (
     return { tree: english, added: [] };
   }
 
-  const existingFlatKeys: Array<string> = existingKeys
-    .filter((key: string): boolean => {
-      return typeof english[key] === "string";
-    })
-    .sort(compareKeys);
-
-  // New keys grouped by the existing key they follow ("" = before them all).
-  const followers: Map<string, Array<string>> = new Map<
-    string,
-    Array<string>
-  >();
-
-  let anchorIndex: number = -1;
+  const tree: LocaleTree = { ...english };
 
   for (const key of newKeys) {
-    while (
-      anchorIndex + 1 < existingFlatKeys.length &&
-      compareKeys(existingFlatKeys[anchorIndex + 1] as string, key) < 0
-    ) {
-      anchorIndex++;
-    }
-
-    const anchor: string =
-      anchorIndex >= 0 ? (existingFlatKeys[anchorIndex] as string) : "";
-    const group: Array<string> = followers.get(anchor) || [];
-
-    group.push(key);
-    followers.set(anchor, group);
-  }
-
-  const firstFlatKey: string | undefined = existingKeys.find(
-    (key: string): boolean => {
-      return typeof english[key] === "string";
-    },
-  );
-
-  const tree: LocaleTree = {};
-
-  const addGroup: (anchor: string) => void = (anchor: string): void => {
-    for (const key of followers.get(anchor) || []) {
-      tree[key] = additions[key] as string;
-    }
-  };
-
-  for (const key of existingKeys) {
-    if (key === firstFlatKey) {
-      addGroup("");
-    }
-
-    tree[key] = english[key] as LocaleNode;
-
-    if (typeof english[key] === "string") {
-      addGroup(key);
-    }
-  }
-
-  // A file with no flat keys at all: the additions go at the end.
-  if (firstFlatKey === undefined) {
-    addGroup("");
+    tree[key] = additions[key] as string;
   }
 
   return { tree: tree, added: newKeys };
@@ -548,92 +483,52 @@ export interface AlignedLocale {
 /*
  * A locale rewritten to mirror en.json: en.json's keys in en.json's order,
  * each holding the locale's value or, where it has none, the English text.
- * After a count-dependent key's "_one" form come the extra forms the
- * language needs ("_few", "_many" for Russian), also English until they are
- * translated. Entries en.json does not have are dropped.
+ * Entries en.json does not have are dropped.
  */
 export const alignLocale: (
   english: LocaleTree,
   locale: LocaleTree,
-  code: string,
 ) => AlignedLocale = (
   english: LocaleTree,
   locale: LocaleTree,
-  code: string,
 ): AlignedLocale => {
   const placeholdersAdded: Array<string> = [];
   const removed: Array<string> = [];
-  const pluralBases: Set<string> = new Set<string>(getPluralBases(english));
-  const extraCategories: Array<PluralCategory> = getExtraPluralCategories(code);
 
   const align: (
     englishNode: LocaleTree,
     localeNode: LocaleTree | undefined,
     prefix: Array<string>,
-    isTopLevel: boolean,
   ) => LocaleTree = (
     englishNode: LocaleTree,
     localeNode: LocaleTree | undefined,
     prefix: Array<string>,
-    isTopLevel: boolean,
   ): LocaleTree => {
     const result: LocaleTree = {};
-    const expected: Set<string> = new Set<string>();
-
-    const take: (key: string, englishValue: string) => void = (
-      key: string,
-      englishValue: string,
-    ): void => {
-      expected.add(key);
-
-      const value: LocaleNode | undefined = localeNode
-        ? localeNode[key]
-        : undefined;
-
-      if (typeof value === "string") {
-        result[key] = value;
-      } else {
-        result[key] = englishValue;
-        placeholdersAdded.push(getLeafId([...prefix, key]));
-      }
-    };
 
     for (const key of Object.keys(englishNode)) {
       const englishValue: LocaleNode = englishNode[key] as LocaleNode;
+      const localeValue: LocaleNode | undefined = localeNode
+        ? localeNode[key]
+        : undefined;
 
       if (isLocaleTree(englishValue)) {
-        expected.add(key);
-
-        const localeValue: LocaleNode | undefined = localeNode
-          ? localeNode[key]
-          : undefined;
-
         result[key] = align(
           englishValue,
           isLocaleTree(localeValue) ? localeValue : undefined,
           [...prefix, key],
-          false,
         );
-        continue;
-      }
-
-      take(key, englishValue);
-
-      // The extra plural forms follow the "_one" form.
-      if (isTopLevel && key.endsWith(PLURAL_ONE_SUFFIX)) {
-        const base: string = key.slice(0, -PLURAL_ONE_SUFFIX.length);
-
-        if (pluralBases.has(base)) {
-          for (const category of extraCategories) {
-            take(`${base}_${category}`, englishNode[base] as string);
-          }
-        }
+      } else if (typeof localeValue === "string") {
+        result[key] = localeValue;
+      } else {
+        result[key] = englishValue;
+        placeholdersAdded.push(getLeafId([...prefix, key]));
       }
     }
 
     if (localeNode) {
       for (const key of Object.keys(localeNode)) {
-        if (!expected.has(key)) {
+        if (!Object.prototype.hasOwnProperty.call(englishNode, key)) {
           removed.push(getLeafId([...prefix, key]));
         }
       }
@@ -643,7 +538,7 @@ export const alignLocale: (
   };
 
   return {
-    tree: align(english, locale, [], true),
+    tree: align(english, locale, []),
     placeholdersAdded: placeholdersAdded,
     removed: removed,
   };

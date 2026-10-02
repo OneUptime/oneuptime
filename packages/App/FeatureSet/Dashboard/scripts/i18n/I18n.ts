@@ -207,7 +207,7 @@ export const runExtract: (
       resolvedConflicts.push(`${code}.json`);
     }
 
-    const aligned: AlignedLocale = alignLocale(english, localeFile.tree, code);
+    const aligned: AlignedLocale = alignLocale(english, localeFile.tree);
 
     placeholdersAdded[code] = aligned.placeholdersAdded.length;
     removedKeys[code] = aligned.removed;
@@ -690,7 +690,7 @@ export const runApply: (
 
   writeLocaleFile(
     options.locale,
-    alignLocale(english, locale, options.locale).tree,
+    alignLocale(english, locale).tree,
     context.localesDirectory,
   );
 

@@ -30,8 +30,9 @@ import path from "path";
 
 /*
  * The npm run i18n:* commands, end to end, against a throwaway repository:
- * a few source files, an en.json, two locales (German and Russian, which has
- * more plural forms) and their tracking files.
+ * a few source files, an en.json, two locales (German, and Russian, which has
+ * more plural forms than English yet holds the same keys) and their tracking
+ * files.
  */
 
 let repository: string = "";
@@ -153,13 +154,14 @@ describe("i18n:extract", () => {
       "{{count}} monitors": "{{count}} monitors",
       "{{count}} monitors_one": "{{count}} monitor",
     });
+    // New keys go at the end, sorted; a new nested object after the others.
     expect(Object.keys(english)).toEqual([
       "common",
       "commandPalette",
+      "Monitors",
       "Every monitor in the project.",
       "Monitor",
       "Monitor Type",
-      "Monitors",
       "No monitors yet.",
       "Refresh",
       "Refresh now",
@@ -176,13 +178,10 @@ describe("i18n:extract", () => {
     expect(german["Monitors"]).toBe("Monitore");
     expect(german["Refresh now"]).toBe("Refresh now");
 
-    // Russian also gets its few and many forms.
-    expect(Object.keys(readJson("Locales/ru.json")).slice(-4)).toEqual([
-      "{{count}} monitors",
-      "{{count}} monitors_one",
-      "{{count}} monitors_few",
-      "{{count}} monitors_many",
-    ]);
+    // Russian holds the same keys: no few or many forms of its own.
+    expect(Object.keys(readJson("Locales/ru.json"))).toEqual(
+      Object.keys(english),
+    );
     expect(printed()).toContain("en.json: 8 new keys, 1 new nested keys");
   });
 
@@ -281,10 +280,9 @@ describe("i18n:check", () => {
         ];
       }),
     ).toEqual([
-      // 11 keys in en.json; German translated two of them.
+      // 11 keys in en.json; each locale translated two of them.
       ["de", 11, 9, undefined],
-      // The same 11, and a few and a many form of the plural.
-      ["ru", 13, 11, undefined],
+      ["ru", 11, 9, undefined],
     ]);
 
     expect(runCheck(context())).toBe(0);

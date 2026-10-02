@@ -57,34 +57,33 @@ const problemsOf: (status: LocaleStatus) => Array<string> = (
 };
 
 describe("the keys a locale must have", () => {
-  test("are en.json's leaves plus the language's extra plural forms", () => {
-    expect(
-      getExpectedEntries(ENGLISH, "ru").map((entry: { key: string }) => {
-        return entry.key;
-      }),
-    ).toEqual([
-      "navbar › items › kubernetesTitle",
-      "navbar › items › formsTitle",
-      "Save",
-      "Create {{itemName}}",
-      "{{count}} rows",
-      "{{count}} rows_one",
-      "{{count}} rows_few",
-      "{{count}} rows_many",
-      "1-10",
-      "Status",
-    ]);
-  });
-
-  test("an extra form is compared with the English general form", () => {
-    const few: { english: string } | undefined = getExpectedEntries(
-      ENGLISH,
-      "ru",
-    ).find((entry: { key: string }) => {
-      return entry.key === "{{count}} rows_few";
-    });
-
-    expect(few?.english).toBe("{{count}} rows");
+  /*
+   * Every locale has exactly en.json's keys, in any language: a sentence that
+   * depends on a count has a general form and a "_one" form, and a language
+   * with more forms (Russian) words its general form so it reads right for
+   * any count.
+   */
+  test("are exactly en.json's leaves, whatever the language", () => {
+    for (const code of ["de", "ru", "ja"]) {
+      expect([
+        code,
+        getExpectedEntries(ENGLISH, code).map((entry: { key: string }) => {
+          return entry.key;
+        }),
+      ]).toEqual([
+        code,
+        [
+          "navbar › items › kubernetesTitle",
+          "navbar › items › formsTitle",
+          "Save",
+          "Create {{itemName}}",
+          "{{count}} rows",
+          "{{count}} rows_one",
+          "1-10",
+          "Status",
+        ],
+      ]);
+    }
   });
 
   test("a one form is unused in a language without one", () => {
@@ -106,7 +105,7 @@ describe("the keys a locale must have", () => {
 
 describe("untranslated", () => {
   test("a fresh locale of English placeholders is untranslated, except what cannot be", () => {
-    const locale: LocaleTree = alignLocale(ENGLISH, {}, "de").tree;
+    const locale: LocaleTree = alignLocale(ENGLISH, {}).tree;
     const status: LocaleStatus = getLocaleStatus({
       code: "de",
       english: ENGLISH,
@@ -130,17 +129,13 @@ describe("untranslated", () => {
   });
 
   test("a translation is translated, and the lists excuse what reads the same", () => {
-    const locale: LocaleTree = alignLocale(
-      ENGLISH,
-      {
-        navbar: { items: { formsTitle: "Formulare" } },
-        Save: "Speichern",
-        "Create {{itemName}}": "{{itemName}} erstellen",
-        "{{count}} rows": "{{count}} Zeilen",
-        "{{count}} rows_one": "{{count}} Zeile",
-      },
-      "de",
-    ).tree;
+    const locale: LocaleTree = alignLocale(ENGLISH, {
+      navbar: { items: { formsTitle: "Formulare" } },
+      Save: "Speichern",
+      "Create {{itemName}}": "{{itemName}} erstellen",
+      "{{count}} rows": "{{count}} Zeilen",
+      "{{count}} rows_one": "{{count}} Zeile",
+    }).tree;
 
     const status: LocaleStatus = getLocaleStatus({
       code: "de",
@@ -155,36 +150,29 @@ describe("untranslated", () => {
   });
 
   test("Japanese never has to translate the one form it does not use", () => {
-    const locale: LocaleTree = alignLocale(
-      ENGLISH,
-      {
-        "{{count}} rows": "{{count}} 行",
-      },
-      "ja",
-    ).tree;
+    const locale: LocaleTree = alignLocale(ENGLISH, {
+      "{{count}} rows": "{{count}} 行",
+    }).tree;
 
     expect(
       keysOf(getLocaleStatus({ code: "ja", english: ENGLISH, locale })),
     ).not.toContain("{{count}} rows_one");
   });
 
-  test("Russian has to translate its few and many forms", () => {
-    const locale: LocaleTree = alignLocale(
-      ENGLISH,
-      {
-        "{{count}} rows": "{{count}} строки",
-        "{{count}} rows_one": "{{count}} строка",
-        "{{count}} rows_few": "{{count}} строки",
-      },
-      "ru",
-    ).tree;
+  test("Russian translates the general form and the one form, nothing more", () => {
+    const locale: LocaleTree = alignLocale(ENGLISH, {
+      "{{count}} rows": "Строк: {{count}}",
+      "{{count}} rows_one": "{{count}} строка",
+    }).tree;
+    const status: LocaleStatus = getLocaleStatus({
+      code: "ru",
+      english: ENGLISH,
+      locale,
+    });
 
-    expect(
-      keysOf(getLocaleStatus({ code: "ru", english: ENGLISH, locale })),
-    ).toContain("{{count}} rows_many");
-    expect(
-      keysOf(getLocaleStatus({ code: "ru", english: ENGLISH, locale })),
-    ).not.toContain("{{count}} rows_few");
+    expect(keysOf(status)).not.toContain("{{count}} rows");
+    expect(keysOf(status)).not.toContain("{{count}} rows_one");
+    expect(status.problems).toEqual([]);
   });
 });
 
@@ -240,23 +228,26 @@ describe("problems", () => {
     ]);
   });
 
-  test("a plural form only a language with it may have", () => {
-    expect(
-      problemsOf(
-        getLocaleStatus({
-          code: "de",
-          english: ENGLISH,
-          locale: {
-            ...alignLocale(ENGLISH, {}, "de").tree,
-            "{{count}} rows_few": "nicht deutsch",
-          },
-        }),
-      ),
-    ).toEqual(["extra {{count}} rows_few"]);
+  test("a plural form en.json does not have is extra, in any language", () => {
+    for (const code of ["de", "ru"]) {
+      expect([
+        code,
+        problemsOf(
+          getLocaleStatus({
+            code: code,
+            english: ENGLISH,
+            locale: {
+              ...alignLocale(ENGLISH, {}).tree,
+              "{{count}} rows_few": "{{count}} строки",
+            },
+          }),
+        ),
+      ]).toEqual([code, ["extra {{count}} rows_few"]]);
+    }
   });
 
   test("keys out of en.json's order make the file not canonical", () => {
-    const locale: LocaleTree = alignLocale(ENGLISH, {}, "de").tree;
+    const locale: LocaleTree = alignLocale(ENGLISH, {}).tree;
     const reordered: LocaleTree = { Status: "Status" };
 
     for (const key of Object.keys(locale)) {
@@ -374,7 +365,7 @@ describe("the baseline", () => {
    */
   test("strings added on one branch and translations on another merge without a regression", () => {
     const english: LocaleTree = { A: "A", B: "B", C: "C" };
-    const base: LocaleTree = alignLocale(english, {}, "de").tree;
+    const base: LocaleTree = alignLocale(english, {}).tree;
     const baseline: { keys: number; untranslated: number } = {
       keys: 3,
       untranslated: 3,
@@ -385,7 +376,7 @@ describe("the baseline", () => {
       D: "D",
       E: "E",
     }).tree;
-    const added: LocaleTree = alignLocale(englishWithMore, base, "de").tree;
+    const added: LocaleTree = alignLocale(englishWithMore, base).tree;
 
     // Branch 2 translates A and B and lowers its baseline.
     const translated: LocaleTree = { ...base, A: "Ä", B: "Bé" };
@@ -397,7 +388,6 @@ describe("the baseline", () => {
     const merged: LocaleTree = alignLocale(
       englishWithMore,
       mergeLocaleTrees({ ours: added, theirs: translated, base: base }),
-      "de",
     ).tree;
     const status: LocaleStatus = getLocaleStatus({
       code: "de",

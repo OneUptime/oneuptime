@@ -1,7 +1,6 @@
 import {
   alignLocale,
   ENGLISH,
-  getExtraPluralCategories,
   getLeafId,
   getLeaves,
   getPlaceholders,
@@ -23,8 +22,8 @@ import path from "path";
  * How far each locale's translation has got, and whether its file is sound.
  *
  * What "untranslated" means, precisely: a key the locale must have (every
- * en.json key, plus the extra plural forms its language uses) whose value is
- * missing, or is exactly the English text, unless that is right for it:
+ * en.json key - no more, no fewer) whose value is missing, or is exactly the
+ * English text, unless that is right for it:
  *
  *   - the English has no letters ("{{count}}", "—", "1-10");
  *   - the English is on the global list of strings that read the same in
@@ -179,7 +178,7 @@ export const writeLocaleProgress: (
 export type LocaleProblemKind =
   // A key the locale must have is absent.
   | "missing"
-  // A key en.json does not have (and that is no plural form of one).
+  // A key en.json does not have, a plural form of its own included.
   | "extra"
   // An object where a string belongs, or the other way round.
   | "not-a-string"
@@ -227,7 +226,7 @@ const hasNoLetters: (text: string) => boolean = (text: string): boolean => {
   return !LETTER.test(text.replace(/\{\{[^{}]*\}\}/g, ""));
 };
 
-// Every key `code` must have, with the English it is compared against.
+// Every key `code` must have - en.json's - with the English it is compared against.
 export const getExpectedEntries: (
   english: LocaleTree,
   code: string,
@@ -237,38 +236,21 @@ export const getExpectedEntries: (
 ): Array<ExpectedEntry> => {
   const pluralBases: Set<string> = new Set<string>(getPluralBases(english));
   const categories: Array<PluralCategory> = getPluralCategories(code);
-  const extraCategories: Array<PluralCategory> = getExtraPluralCategories(code);
-  const entries: Array<ExpectedEntry> = [];
 
-  for (const leaf of getLeaves(english)) {
+  return getLeaves(english).map((leaf: LocaleLeaf): ExpectedEntry => {
     const key: string = getLeafId(leaf.path);
     const isPluralOne: boolean =
       leaf.path.length === 1 &&
       key.endsWith(PLURAL_ONE_SUFFIX) &&
       pluralBases.has(key.slice(0, -PLURAL_ONE_SUFFIX.length));
 
-    entries.push({
+    return {
       key: key,
       path: leaf.path,
       english: leaf.value,
       isUnusedForm: isPluralOne && !categories.includes("one"),
-    });
-
-    if (isPluralOne) {
-      const base: string = key.slice(0, -PLURAL_ONE_SUFFIX.length);
-
-      for (const category of extraCategories) {
-        entries.push({
-          key: `${base}_${category}`,
-          path: [`${base}_${category}`],
-          english: english[base] as string,
-          isUnusedForm: false,
-        });
-      }
-    }
-  }
-
-  return entries;
+    };
+  });
 };
 
 const samePlaceholders: (a: string, b: string) => boolean = (
@@ -364,9 +346,8 @@ export const getLocaleStatus: (input: LocaleStatusInput) => LocaleStatus = (
   if (
     input.localeText !== undefined &&
     problems.length === 0 &&
-    serializeLocale(
-      alignLocale(input.english, input.locale, input.code).tree,
-    ) !== input.localeText
+    serializeLocale(alignLocale(input.english, input.locale).tree) !==
+      input.localeText
   ) {
     problems.push({
       kind: "not-canonical",

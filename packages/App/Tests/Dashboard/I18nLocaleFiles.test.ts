@@ -2,7 +2,6 @@ import {
   AlignedLocale,
   alignLocale,
   compareKeys,
-  getExtraPluralCategories,
   getLeafId,
   getLeaves,
   getPlaceholders,
@@ -75,12 +74,8 @@ describe("plural categories", () => {
     },
   );
 
-  test("the extra forms are those beyond one and other", () => {
-    expect(getExtraPluralCategories("en")).toEqual([]);
-    expect(getExtraPluralCategories("ja")).toEqual([]);
-    expect(getExtraPluralCategories("ru")).toEqual(["few", "many"]);
-    expect(getExtraPluralCategories("fr")).toEqual(["many"]);
-    expect(getExtraPluralCategories("xx")).toEqual([]);
+  test("an unknown code has English's two forms", () => {
+    expect(getPluralCategories("xx")).toEqual(["one", "other"]);
   });
 
   test("every language but English is translated", () => {
@@ -179,54 +174,30 @@ describe("adding keys to en.json", () => {
     ).toEqual(Object.keys(ENGLISH));
   });
 
-  test("puts a key after the existing key that sorts right before it", () => {
+  /*
+   * Features keep their keys together in en.json, and their tests pin those
+   * blocks, so a new key never lands inside one: it goes at the end.
+   */
+  test("puts new keys at the end of the file, in sorted order", () => {
     const { tree, added } = insertEnglishKeys(ENGLISH, {
       Deploy: "Deploy",
       "Monitors list": "Monitors list",
-    });
-
-    expect(Object.keys(tree)).toEqual([
-      "common",
-      "Monitors",
-      "Monitors list",
-      "Delete",
-      "Deploy",
-      "Incidents",
-    ]);
-    expect(added).toEqual(["Deploy", "Monitors list"]);
-  });
-
-  test("keys sharing a neighbour go in sorted order", () => {
-    const { tree } = insertEnglishKeys(ENGLISH, {
-      "Delete all": "Delete all",
-      Deletes: "Deletes",
-      "Delete one": "Delete one",
+      "A first": "A first",
     });
 
     expect(Object.keys(tree)).toEqual([
       "common",
       "Monitors",
       "Delete",
-      "Delete all",
-      "Delete one",
-      "Deletes",
       "Incidents",
-    ]);
-  });
-
-  test("a key that sorts before every flat key goes before the first one", () => {
-    const { tree } = insertEnglishKeys(ENGLISH, { "A first": "A first" });
-
-    expect(Object.keys(tree)).toEqual([
-      "common",
       "A first",
-      "Monitors",
-      "Delete",
-      "Incidents",
+      "Deploy",
+      "Monitors list",
     ]);
+    expect(added).toEqual(["A first", "Deploy", "Monitors list"]);
   });
 
-  test("a file with no flat keys takes them at the end", () => {
+  test("a file with no flat keys takes them after its objects", () => {
     const { tree } = insertEnglishKeys(
       { common: { save: "Save" } },
       { Zebra: "Zebra", Apple: "Apple" },
@@ -286,28 +257,39 @@ describe("adding keys to en.json", () => {
   });
 
   /*
-   * Two branches that each add keys next to different neighbours change
-   * different lines, so git merges them; a third run over both gives the
-   * same file as merging did.
+   * Two branches that both add keys meet at the end of the file, which git
+   * reports as a conflict; merging the two sides gives the same file one
+   * extraction over both branches would have written.
    */
-  test("keys added on two branches land where a run over both puts them", () => {
+  test("keys added on two branches merge into what a run over both writes", () => {
     const ours: LocaleTree = insertEnglishKeys(ENGLISH, {
       "Monitors view": "Monitors view",
+      Zone: "Zone",
     }).tree;
     const theirs: LocaleTree = insertEnglishKeys(ENGLISH, {
       Disable: "Disable",
+      Alpha: "Alpha",
     }).tree;
-    const merged: LocaleTree = mergeLocaleTrees({
-      ours: ours,
-      theirs: theirs,
-      base: ENGLISH,
-    });
-    const both: LocaleTree = insertEnglishKeys(ENGLISH, {
-      "Monitors view": "Monitors view",
-      Disable: "Disable",
-    }).tree;
+    const both: string = serializeLocale(
+      insertEnglishKeys(ENGLISH, {
+        "Monitors view": "Monitors view",
+        Zone: "Zone",
+        Disable: "Disable",
+        Alpha: "Alpha",
+      }).tree,
+    );
 
-    expect(serializeLocale(merged)).toBe(serializeLocale(both));
+    expect(
+      serializeLocale(
+        mergeLocaleTrees({ ours: ours, theirs: theirs, base: ENGLISH }),
+      ),
+    ).toBe(both);
+    // Whichever branch is merged into which.
+    expect(
+      serializeLocale(
+        mergeLocaleTrees({ ours: theirs, theirs: ours, base: ENGLISH }),
+      ),
+    ).toBe(both);
   });
 });
 
@@ -401,17 +383,13 @@ describe("lining a locale up with en.json", () => {
   };
 
   test("mirrors en.json's order, keeps translations and adds English placeholders", () => {
-    const aligned: AlignedLocale = alignLocale(
-      ENGLISH,
-      {
-        Delete: "Löschen",
-        navbar: {
-          items: { runbooksTitle: "Runbooks", formsTitle: "Formulare" },
-        },
-        Save: "Speichern",
+    const aligned: AlignedLocale = alignLocale(ENGLISH, {
+      Delete: "Löschen",
+      navbar: {
+        items: { runbooksTitle: "Runbooks", formsTitle: "Formulare" },
       },
-      "de",
-    );
+      Save: "Speichern",
+    });
 
     expect(serializeLocale(aligned.tree)).toBe(
       serializeLocale({
@@ -431,44 +409,25 @@ describe("lining a locale up with en.json", () => {
     expect(aligned.removed).toEqual([]);
   });
 
-  test("adds the extra plural forms a language needs right after the one form", () => {
-    const aligned: AlignedLocale = alignLocale(ENGLISH, {}, "ru");
-
-    expect(Object.keys(aligned.tree)).toEqual([
-      "navbar",
-      "Save",
-      "{{count}} rows",
-      "{{count}} rows_one",
-      "{{count}} rows_few",
-      "{{count}} rows_many",
-      "Delete",
-    ]);
-    expect(aligned.tree["{{count}} rows_many"]).toBe("{{count}} rows");
-  });
-
-  test("keeps a translated extra form and adds none for a language without them", () => {
+  /*
+   * A locale holds exactly en.json's keys: the general form and the "_one"
+   * form of a count-dependent sentence, whatever forms its language has.
+   */
+  test("adds no plural forms beyond en.json's", () => {
     expect(
-      alignLocale(ENGLISH, { "{{count}} rows_few": "{{count}} строки" }, "ru")
-        .tree["{{count}} rows_few"],
-    ).toBe("{{count}} строки");
-    expect(
-      Object.keys(alignLocale(ENGLISH, {}, "ja").tree).filter((key: string) => {
+      Object.keys(alignLocale(ENGLISH, {}).tree).filter((key: string) => {
         return key.includes("rows");
       }),
     ).toEqual(["{{count}} rows", "{{count}} rows_one"]);
   });
 
-  test("drops what en.json no longer has, and says so", () => {
-    const aligned: AlignedLocale = alignLocale(
-      ENGLISH,
-      {
-        Save: "Speichern",
-        Gone: "Weg",
-        navbar: { items: { oldTitle: "Alt" } },
-        "{{count}} rows_few": "not German",
-      },
-      "de",
-    );
+  test("drops what en.json does not have, and says so", () => {
+    const aligned: AlignedLocale = alignLocale(ENGLISH, {
+      Save: "Speichern",
+      Gone: "Weg",
+      navbar: { items: { oldTitle: "Alt" } },
+      "{{count}} rows_few": "строки",
+    });
 
     expect(aligned.removed).toEqual([
       "navbar › items › oldTitle",
@@ -476,17 +435,25 @@ describe("lining a locale up with en.json", () => {
       "{{count}} rows_few",
     ]);
     expect(getValueAt(aligned.tree, ["Gone"])).toBeUndefined();
+    expect(getValueAt(aligned.tree, ["{{count}} rows_few"])).toBeUndefined();
   });
 
   test("an object where en.json has a string becomes the English placeholder", () => {
-    const aligned: AlignedLocale = alignLocale(
-      ENGLISH,
-      { Save: { nested: "?" } } as unknown as LocaleTree,
-      "de",
-    );
+    const aligned: AlignedLocale = alignLocale(ENGLISH, {
+      Save: { nested: "?" },
+    } as unknown as LocaleTree);
 
     expect(aligned.tree["Save"]).toBe("Save");
     expect(aligned.placeholdersAdded).toContain("Save");
+  });
+
+  test("lining up twice changes nothing the second time", () => {
+    const once: LocaleTree = alignLocale(ENGLISH, { Save: "Speichern" }).tree;
+
+    expect(serializeLocale(alignLocale(ENGLISH, once).tree)).toBe(
+      serializeLocale(once),
+    );
+    expect(alignLocale(ENGLISH, once).placeholdersAdded).toEqual([]);
   });
 });
 
