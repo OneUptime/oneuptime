@@ -272,9 +272,13 @@ describe("product menus list only the connected workspaces", () => {
         cleanup();
       }
 
-      expect(new Set(orders.map((order: Array<string>): string => {
-        return order.join(" / ");
-      })).size).toBe(1);
+      expect(
+        new Set(
+          orders.map((order: Array<string>): string => {
+            return order.join(" / ");
+          }),
+        ).size,
+      ).toBe(1);
       expect(orders[0]).toContain("Workspace");
     },
   );

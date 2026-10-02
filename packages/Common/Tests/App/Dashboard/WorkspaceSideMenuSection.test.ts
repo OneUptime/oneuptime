@@ -82,11 +82,7 @@ describe("which entries a product menu lists (it has a connect page)", () => {
       known([WorkspaceType.Slack], false),
       [Slack],
     ],
-    [
-      "nothing remembered as connected",
-      known([], false),
-      [Connect],
-    ],
+    ["nothing remembered as connected", known([], false), [Connect]],
     ["the first answer still on its way", LOADING, [Connect]],
     ["asking failed with nothing known", FAILED, [Slack, MicrosoftTeams]],
     [
@@ -418,7 +414,11 @@ describe("the section", () => {
   });
 
   test("names, icons and order are one table, with an entry for each kind", () => {
-    expect(WORKSPACE_MENU_ENTRY_ORDER).toEqual([Slack, MicrosoftTeams, Connect]);
+    expect(WORKSPACE_MENU_ENTRY_ORDER).toEqual([
+      Slack,
+      MicrosoftTeams,
+      Connect,
+    ]);
     expect(WORKSPACE_MENU_ENTRY_TITLES).toEqual({
       [Slack]: "Slack",
       [MicrosoftTeams]: "Microsoft Teams",

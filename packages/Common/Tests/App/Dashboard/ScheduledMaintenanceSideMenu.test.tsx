@@ -163,7 +163,9 @@ describe("Scheduled maintenance side menu", () => {
       expect(linksIn("Workspace")).toEqual([
         {
           title: "Connect Slack or Teams",
-          href: routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS),
+          href: routeFor(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS,
+          ),
         },
       ]);
     });

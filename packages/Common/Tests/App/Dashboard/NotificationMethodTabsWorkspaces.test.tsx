@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import type { Mock } from "jest-mock";
 import React, { ReactElement } from "react";
 
@@ -20,9 +26,11 @@ import React, { ReactElement } from "react";
  */
 
 function stub(testId: string): () => ReactElement {
-  return (): ReactElement => {
+  const MethodTableStub: () => ReactElement = (): ReactElement => {
     return <div data-testid={testId} />;
   };
+
+  return MethodTableStub;
 }
 
 jest.mock(

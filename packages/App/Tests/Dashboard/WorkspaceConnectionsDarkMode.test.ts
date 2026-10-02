@@ -124,9 +124,10 @@ function tokensIn(code: string): Array<string> {
 describe("the Workspace pages in the dark theme", () => {
   test("no source uses dark: variants", () => {
     for (const fileName of SOURCE_FILES) {
-      expect({ fileName, dark: readCode(fileName).includes("dark:") }).toEqual(
-        { fileName, dark: false },
-      );
+      expect({ fileName, dark: readCode(fileName).includes("dark:") }).toEqual({
+        fileName,
+        dark: false,
+      });
     }
   });
 

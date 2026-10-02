@@ -72,15 +72,24 @@ function stripComments(code: string): string {
 }
 
 // The PageMap keys of every page that is about one chat workspace.
+const PRODUCT_WORKSPACE_PAGE: RegExp =
+  /_WORKSPACE_CONNECTION_(SLACK|MICROSOFT_TEAMS)$/;
+const PRODUCT_CONNECT_PAGE: RegExp = /_WORKSPACE_CONNECTIONS$/;
+const SETTINGS_WORKSPACE_PAGE: RegExp = /_(SLACK|MICROSOFT_TEAMS)_INTEGRATION$/;
+
 const WORKSPACE_PAGE_KEYS: Array<string> = Object.keys(PageMap).filter(
   (key: string): boolean => {
     return (
-      /_WORKSPACE_CONNECTION_(SLACK|MICROSOFT_TEAMS)$/.test(key) ||
-      /_WORKSPACE_CONNECTIONS$/.test(key) ||
-      /_(SLACK|MICROSOFT_TEAMS)_INTEGRATION$/.test(key)
+      PRODUCT_WORKSPACE_PAGE.test(key) ||
+      PRODUCT_CONNECT_PAGE.test(key) ||
+      SETTINGS_WORKSPACE_PAGE.test(key)
     );
   },
 );
+
+const READS_CONNECTION_ROW: RegExp = /modelType:\s*WorkspaceProjectAuthToken\b/;
+const PRODUCT_WORKSPACE_PAGE_FILE: RegExp =
+  /Pages\/[^/]+\/WorkspaceConnection(Slack|MicrosoftTeams)\.tsx$/;
 
 const HOOK_CALL: RegExp = /useWorkspaceSideMenuSection\(\{[\s\S]*?\}\)/g;
 
@@ -217,9 +226,7 @@ describe("1. menus list only the connected workspaces", () => {
   });
 
   test("every menu exception says why", () => {
-    for (const [name, reason] of Object.entries(
-      HAND_WRITTEN_WORKSPACE_MENUS,
-    )) {
+    for (const [name, reason] of Object.entries(HAND_WRITTEN_WORKSPACE_MENUS)) {
       expect(fs.existsSync(path.join(DASHBOARD_SRC, name))).toBe(true);
       expect(reason.length).toBeGreaterThan(30);
     }
@@ -247,7 +254,7 @@ describe("2. whether a workspace is connected is asked in one place", () => {
 
   test("only the files that need the connection rows read them", () => {
     const readers: Array<string> = SOURCES.filter((file: string): boolean => {
-      return /modelType:\s*WorkspaceProjectAuthToken\b/.test(
+      return READS_CONNECTION_ROW.test(
         stripComments(fs.readFileSync(file, "utf8")),
       );
     })
@@ -274,9 +281,7 @@ describe("2. whether a workspace is connected is asked in one place", () => {
 
   test("the product Slack and Microsoft Teams pages all go through the gate", () => {
     const pages: Array<string> = SOURCES.filter((file: string): boolean => {
-      return /Pages\/[^/]+\/WorkspaceConnection(Slack|MicrosoftTeams)\.tsx$/.test(
-        relative(file),
-      );
+      return PRODUCT_WORKSPACE_PAGE_FILE.test(relative(file));
     });
 
     expect(pages).toHaveLength(10);
@@ -352,9 +357,11 @@ describe("3. every new sentence is in every locale, translated", () => {
     ).toEqual([]);
   });
 
-  test.each(LOCALE_FILES.filter((file: string): boolean => {
-    return file !== "en.json";
-  }))("%s translates every sentence", (file: string) => {
+  test.each(
+    LOCALE_FILES.filter((file: string): boolean => {
+      return file !== "en.json";
+    }),
+  )("%s translates every sentence", (file: string) => {
     const locale: Record<string, string> = JSON.parse(
       fs.readFileSync(path.join(LOCALES_DIR, file), "utf8"),
     );

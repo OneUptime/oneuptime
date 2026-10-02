@@ -310,9 +310,10 @@ describe("the Workspace page: which is connected, and the next step for each", (
     expect(
       screen.getByTestId("workspace-connection-status-MicrosoftTeams"),
     ).toHaveClass("bg-emerald-50", "text-emerald-700");
-    expect(
-      screen.getByTestId("workspace-connection-status-Slack"),
-    ).toHaveClass("bg-gray-100", "text-gray-600");
+    expect(screen.getByTestId("workspace-connection-status-Slack")).toHaveClass(
+      "bg-gray-100",
+      "text-gray-600",
+    );
   });
 
   test("waits for this page load's answer, not the remembered one", async () => {
@@ -336,9 +337,7 @@ describe("the Workspace page: which is connected, and the next step for each", (
     fetcher.mockRejectedValueOnce(new Error("Could not reach the server."));
     await renderOverview();
 
-    expect(
-      screen.getByText("Could not reach the server."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Could not reach the server.")).toBeInTheDocument();
     expect(fetcher).toHaveBeenCalledTimes(1);
 
     fetcher.mockResolvedValueOnce([WorkspaceType.Slack]);
@@ -348,9 +347,10 @@ describe("the Workspace page: which is connected, and the next step for each", (
     });
 
     expect(fetcher).toHaveBeenCalledTimes(2);
-    expect(
-      screen.getByTestId("workspace-connection-Slack"),
-    ).toHaveAttribute("data-connected", "true");
+    expect(screen.getByTestId("workspace-connection-Slack")).toHaveAttribute(
+      "data-connected",
+      "true",
+    );
   });
 });
 
@@ -471,7 +471,9 @@ describe("a product's Slack or Microsoft Teams page", () => {
       const copy: (typeof WORKSPACE_CONNECTION_COPY)[WorkspaceType] =
         WORKSPACE_CONNECTION_COPY[page.workspaceType];
 
-      expect(screen.queryByTestId("notification-rules")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("notification-rules"),
+      ).not.toBeInTheDocument();
       expect(screen.getByText(copy.notConnectedTitle)).toBeInTheDocument();
       expect(
         screen.getByText(copy.notConnectedDescription),
@@ -493,7 +495,9 @@ describe("a product's Slack or Microsoft Teams page", () => {
           WORKSPACE_CONNECTION_COPY[page.workspaceType].notConnectedTitle,
         ),
       ).not.toBeInTheDocument();
-      expect(screen.queryByTestId("notification-rules")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("notification-rules"),
+      ).not.toBeInTheDocument();
     },
   );
 

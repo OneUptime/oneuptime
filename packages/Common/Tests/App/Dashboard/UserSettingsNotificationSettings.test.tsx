@@ -8,7 +8,9 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
-import NotificationSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/NotificationSettings";
+import NotificationSettings, {
+  getShownChannelKeys,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/NotificationSettings";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import Route from "../../../Types/API/Route";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -22,7 +24,6 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
 import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
-import { getShownChannelKeys } from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/NotificationSettings";
 
 /*
  * User Settings > Notification Settings: the per-event, per-channel matrix,
@@ -56,11 +57,9 @@ describe("user settings > notification settings", () => {
      */
     window.localStorage.clear();
     ConnectedWorkspaces.reset();
-    ConnectedWorkspaces.setFetcher(
-      async (): Promise<Array<WorkspaceType>> => {
-        return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams];
-      },
-    );
+    ConnectedWorkspaces.setFetcher(async (): Promise<Array<WorkspaceType>> => {
+      return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams];
+    });
 
     rows = Object.values(NotificationSettingEventType).map(
       (
@@ -444,11 +443,9 @@ describe("user settings > notification settings", () => {
     });
 
     test("on a first visit the matrix keeps its loader until it knows, rather than dropping columns under the reader", async () => {
-      ConnectedWorkspaces.setFetcher(
-        (): Promise<Array<WorkspaceType>> => {
-          return new Promise<Array<WorkspaceType>>((): void => {});
-        },
-      );
+      ConnectedWorkspaces.setFetcher((): Promise<Array<WorkspaceType>> => {
+        return new Promise<Array<WorkspaceType>>((): void => {});
+      });
 
       renderPage();
 

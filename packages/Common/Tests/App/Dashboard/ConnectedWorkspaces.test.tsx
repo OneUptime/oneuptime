@@ -8,7 +8,8 @@ import {
   test,
 } from "@jest/globals";
 import { act, cleanup, render, screen } from "@testing-library/react";
-import type { Mock, SpyInstance } from "jest-mock";
+import type { Mock } from "jest-mock";
+import { MockFunction } from "../../MockType";
 import React, { FunctionComponent, ReactElement } from "react";
 import ConnectedWorkspaces, {
   ConnectedWorkspacesFetcher,
@@ -114,10 +115,7 @@ describe("reading the answer", () => {
       [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams],
     ],
     [["Discord", null, 42, undefined, "slack"], []],
-    [
-      ["Discord", WorkspaceType.MicrosoftTeams],
-      [WorkspaceType.MicrosoftTeams],
-    ],
+    [["Discord", WorkspaceType.MicrosoftTeams], [WorkspaceType.MicrosoftTeams]],
   ])(
     "toConnectedWorkspaces(%j) keeps the known types, once each, in order: %j",
     (values: Array<unknown>, expected: Array<WorkspaceType>) => {
@@ -204,9 +202,9 @@ describe("reading the answer", () => {
       ConnectedWorkspaces.getConnections(PROJECT_ID);
 
     expect(ConnectedWorkspaces.getConnections(PROJECT_ID)).toBe(first);
-    expect(
-      ConnectedWorkspaces.getConnections(new ObjectID(PROJECT_ID)),
-    ).toBe(first);
+    expect(ConnectedWorkspaces.getConnections(new ObjectID(PROJECT_ID))).toBe(
+      first,
+    );
 
     fetcher.mockResolvedValue([WorkspaceType.Slack]);
     await ConnectedWorkspaces.load(PROJECT_ID);
@@ -404,21 +402,28 @@ describe("remembering the last answer", () => {
         ConnectedWorkspaces.getConnections(PROJECT_ID);
 
       expect(connections.isFresh).toBe(false);
-      expect(connections.connected === null || connections.connected.length === 0).toBe(true);
+      expect(
+        connections.connected === null || connections.connected.length === 0,
+      ).toBe(true);
     },
   );
 
   test("storage that throws is treated as nothing remembered, and answers still arrive", async () => {
-    jest
-      .spyOn(Storage.prototype, "getItem")
-      .mockImplementation((): string | null => {
-        throw new Error("SecurityError");
-      });
-    jest
-      .spyOn(Storage.prototype, "setItem")
-      .mockImplementation((): void => {
-        throw new Error("QuotaExceededError");
-      });
+    // Storage's index signature hides its methods from spyOn's types.
+    const storage: {
+      getItem: (key: string) => string | null;
+      setItem: (key: string, value: string) => void;
+    } = Storage.prototype as unknown as {
+      getItem: (key: string) => string | null;
+      setItem: (key: string, value: string) => void;
+    };
+
+    jest.spyOn(storage, "getItem").mockImplementation((): string | null => {
+      throw new Error("SecurityError");
+    });
+    jest.spyOn(storage, "setItem").mockImplementation((): void => {
+      throw new Error("QuotaExceededError");
+    });
     fetcher.mockResolvedValue([WorkspaceType.MicrosoftTeams]);
 
     expect(ConnectedWorkspaces.getConnections(PROJECT_ID).connected).toBeNull();
@@ -657,9 +662,7 @@ describe("telling the screen", () => {
   test("switching projects asks about the new project", async () => {
     fetcher.mockImplementation(
       async (projectId: ObjectID): Promise<Array<WorkspaceType>> => {
-        return projectId.toString() === PROJECT_ID
-          ? [WorkspaceType.Slack]
-          : [];
+        return projectId.toString() === PROJECT_ID ? [WorkspaceType.Slack] : [];
       },
     );
 
@@ -708,7 +711,7 @@ function tokenList(types: Array<WorkspaceType>): never {
 
 describe("the server's answer", () => {
   test("is the project's WorkspaceProjectAuthToken rows, asked for by type only", async () => {
-    const getList: SpyInstance<typeof ModelAPI.getList> = jest
+    const getList: MockFunction = jest
       .spyOn(ModelAPI, "getList")
       .mockResolvedValue(
         tokenList([
@@ -716,7 +719,7 @@ describe("the server's answer", () => {
           WorkspaceType.Slack,
           WorkspaceType.Slack,
         ]),
-      );
+      ) as unknown as MockFunction;
 
     const connected: Array<WorkspaceType> = await fetchConnectedWorkspaces(
       new ObjectID(PROJECT_ID),
@@ -752,9 +755,11 @@ describe("the server's answer", () => {
 
   test("the store asks through it by default", async () => {
     ConnectedWorkspaces.setFetcher(null);
-    const getList: SpyInstance<typeof ModelAPI.getList> = jest
+    const getList: MockFunction = jest
       .spyOn(ModelAPI, "getList")
-      .mockResolvedValue(tokenList([WorkspaceType.Slack]));
+      .mockResolvedValue(
+        tokenList([WorkspaceType.Slack]),
+      ) as unknown as MockFunction;
 
     await ConnectedWorkspaces.load(PROJECT_ID);
 
