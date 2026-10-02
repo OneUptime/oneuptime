@@ -11,7 +11,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  * list down, and the list is put in order by dragging. The model's
  * @ListOrderColumn keeps their `order` for every caller (DatabaseService): a
  * new rule goes to the end, a moved one takes the place of the rule it was
- * dropped on, and deleting one leaves no gap.
+ * dropped on, and the others keep their order when one is deleted.
  */
 export class Service extends DatabaseService<Model> {
   public constructor() {

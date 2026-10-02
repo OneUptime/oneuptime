@@ -90,7 +90,7 @@ const ROWS: Array<Row> = [
 
 type DropCall = [string, number, number];
 
-let onDragDrop: jest.Mock<(...args: Array<unknown>) => void>;
+let onDragDrop: ReturnType<typeof jest.fn>;
 
 const setViewportWidth: (width: number) => void = (width: number): void => {
   Object.defineProperty(window, "innerWidth", {
@@ -234,9 +234,9 @@ describe("the grip", () => {
     const cells: Array<HTMLElement> = within(firstRow).getAllByRole("cell");
 
     expect(within(cells[0]!).getByTestId("drag-handle")).toBeInTheDocument();
-    expect(
-      cells[1]!.hasAttribute("data-rbd-drag-handle-draggable-id"),
-    ).toBe(false);
+    expect(cells[1]!.hasAttribute("data-rbd-drag-handle-draggable-id")).toBe(
+      false,
+    );
     expect(
       cells[1]!.querySelector("[data-rbd-drag-handle-draggable-id]"),
     ).toBeNull();
@@ -316,7 +316,8 @@ describe("while reordering is off", () => {
   test("the grips stay, greyed out, focusable, and say why", () => {
     renderTable({
       isDragDisabled: true,
-      dragDisabledReason: "Drag to reorder is off while a filter or search is on.",
+      dragDisabledReason:
+        "Drag to reorder is off while a filter or search is on.",
     });
 
     for (const grip of grips()) {

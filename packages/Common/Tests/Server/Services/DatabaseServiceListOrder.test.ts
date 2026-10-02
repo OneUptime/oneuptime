@@ -127,15 +127,17 @@ const stubService: (target: any) => void = (target: any): void => {
     undefined as never,
   );
 
-  findAllBy = getJestSpyOn(target, "findAllBy").mockImplementation((async (
-    args: { query: Record<string, unknown> },
-  ): Promise<Array<unknown>> => {
-    const scope: string | undefined = args.query["statusPageId"]?.toString();
+  findAllBy = getJestSpyOn(target, "findAllBy").mockImplementation(
+    (async (args: {
+      query: Record<string, unknown>;
+    }): Promise<Array<unknown>> => {
+      const scope: string | undefined = args.query["statusPageId"]?.toString();
 
-    return siblings.filter((row: StatusPageHeaderLink) => {
-      return !scope || row.statusPageId?.toString() === scope;
-    });
-  }) as never);
+      return siblings.filter((row: StatusPageHeaderLink) => {
+        return !scope || row.statusPageId?.toString() === scope;
+      });
+    }) as never,
+  );
 
   getJestSpyOn(target, "updateColumnsByIdWithoutHooks").mockImplementation(
     (async (input: {
@@ -543,14 +545,15 @@ describe("a list that counts down (site assignment rules: the highest number win
     getJestSpyOn(ruleService, "findAllBy").mockImplementation((async () => {
       return rules;
     }) as never);
-    getJestSpyOn(ruleService, "updateColumnsByIdWithoutHooks").mockImplementation(
-      (async (input: {
-        id: ObjectID;
-        data: Record<string, unknown>;
-      }): Promise<void> => {
-        written.push({ id: input.id.toString(), data: input.data });
-      }) as never,
-    );
+    getJestSpyOn(
+      ruleService,
+      "updateColumnsByIdWithoutHooks",
+    ).mockImplementation((async (input: {
+      id: ObjectID;
+      data: Record<string, unknown>;
+    }): Promise<void> => {
+      written.push({ id: input.id.toString(), data: input.data });
+    }) as never);
   });
 
   test("is a list ordered within its project, highest number first", () => {

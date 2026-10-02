@@ -157,8 +157,7 @@ const StaticModelList: <TBaseModel extends BaseModel>(
                    */
                   index={i}
                   key={
-                    (model as any)[props.dragDropIdField || ""]?.toString() ||
-                    i
+                    (model as any)[props.dragDropIdField || ""]?.toString() || i
                   }
                 >
                   {(provided: DraggableProvided) => {

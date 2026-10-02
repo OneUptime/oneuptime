@@ -205,9 +205,7 @@ describe("compareListOrderItems and sortListOrderItems", () => {
     const b: Row = row("b", 1, "2026-01-01T00:00:00.000Z");
 
     expect(compareListOrderItems(a, b, SortOrder.Ascending)).toBeLessThan(0);
-    expect(compareListOrderItems(b, a, SortOrder.Ascending)).toBeGreaterThan(
-      0,
-    );
+    expect(compareListOrderItems(b, a, SortOrder.Ascending)).toBeGreaterThan(0);
     expect(compareListOrderItems(a, a, SortOrder.Ascending)).toBe(0);
   });
 
@@ -454,17 +452,15 @@ describe("getListOrderCollisionChanges in a list numbered 1..n", () => {
       requestedValue: 1,
       sortOrder: SortOrder.Ascending,
     });
-    const withoutMoved: Array<ListOrderChange> = getListOrderCollisionChanges(
-      {
-        siblings: list().filter((item: Row) => {
-          return item.id !== "E";
-        }),
-        itemId: "E",
-        previousValue: 5,
-        requestedValue: 1,
-        sortOrder: SortOrder.Ascending,
-      },
-    );
+    const withoutMoved: Array<ListOrderChange> = getListOrderCollisionChanges({
+      siblings: list().filter((item: Row) => {
+        return item.id !== "E";
+      }),
+      itemId: "E",
+      previousValue: 5,
+      requestedValue: 1,
+      sortOrder: SortOrder.Ascending,
+    });
 
     expect(withMoved).toEqual(withoutMoved);
     expect(
@@ -713,15 +709,13 @@ describe("every drop in a 1..n list lands where it was dropped", () => {
 
           expect(requested).not.toBeNull();
 
-          const changes: Array<ListOrderChange> = getListOrderCollisionChanges(
-            {
-              siblings: rows,
-              itemId: moved.id,
-              previousValue: moved.value,
-              requestedValue: requested,
-              sortOrder: sortOrder,
-            },
-          );
+          const changes: Array<ListOrderChange> = getListOrderCollisionChanges({
+            siblings: rows,
+            itemId: moved.id,
+            previousValue: moved.value,
+            requestedValue: requested,
+            sortOrder: sortOrder,
+          });
 
           const expected: Array<string> = moveListItem(rows, from, to).map(
             (item: Row) => {

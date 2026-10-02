@@ -2513,17 +2513,17 @@ test.describe("Incident forms", () => {
 });
 
 /*
- * Its own group, with its own project: it needs six fields with no sort
- * order, which would change the questions every test in the serial group
- * above asks, and a failure there would skip - and, retried, repeat - every
- * test after it.
+ * Its own group, with its own project: it needs six fields made without a
+ * sort order, which would change the questions every test in the serial
+ * group above asks, and a failure there would skip - and, retried, repeat -
+ * every test after it.
  */
 test.describe("Incident form question order", () => {
   test.skip(({ browserName }: { browserName: string }) => {
     return browserName !== "chromium";
   }, "server behaviour and one set of pages, one engine is enough");
 
-  test("G. fields without a sort order are asked in the order the form's Questions card lists them", async ({
+  test("G. fields made without a sort order go to the end, and are asked in the order they were made", async ({
     page,
     browser,
   }: {
@@ -2555,10 +2555,11 @@ test.describe("Incident form question order", () => {
     });
 
     /*
-     * Sort Order is optional in the dashboard, so fields without one are the
-     * common case. Six of them, made one after the other: the dashboard lists
-     * such fields by id, which has nothing to do with when they were made, so
-     * six of them are all but certain to come out in an order of their own.
+     * The dashboard no longer asks for a sort order - fields are dragged into
+     * order - so a field made without one is the common case, and the server
+     * puts it at the end of the list. Six of them, made one after the other,
+     * are numbered 1 to 6 in the order they were made: before, they had no
+     * number and came out in an order of their own.
      */
     const names: Array<string> = [
       "Reported From",
@@ -2584,11 +2585,17 @@ test.describe("Incident form question order", () => {
       select: { _id: true, name: true, variableKey: true, sortOrder: true },
     });
     const nameByKey: Record<string, string> = {};
+    const sortOrderByName: Record<string, number> = {};
     for (const row of rows) {
-      expect(row["sortOrder"] ?? null).toBeNull();
       nameByKey[String(row["variableKey"])] = String(row["name"]);
+      sortOrderByName[String(row["name"])] = Number(row["sortOrder"]);
     }
     expect(Object.values(nameByKey).sort()).toEqual([...names].sort());
+    expect(
+      names.map((name: string): number => {
+        return sortOrderByName[name]!;
+      }),
+    ).toEqual([1, 2, 3, 4, 5, 6]);
 
     // A form that asks all six.
     const customFieldSettings: Record<string, string> = {};
@@ -2676,13 +2683,13 @@ test.describe("Incident form question order", () => {
     /*
      * The reporter is asked the questions in the order the admin set them
      * up in - the order of the form's Questions card, which is also the
-     * Declare Incident page's. For fields without a sort order that order
-     * is only the database's tie-break: the dashboard reads them by
-     * sortOrder (IncidentCustomFieldDefinitions.ts
-     * fetchIncidentCustomFieldDefinitions, ties broken by id), and so must
+     * Declare Incident page's: by sortOrder (IncidentCustomFieldDefinitions.ts
+     * fetchIncidentCustomFieldDefinitions), and so must
      * IncidentFormService.getAskedCustomFields - with no sort it read them
-     * newest first, which is the bug this test first caught.
+     * newest first, which is the bug this test first caught. Made without
+     * a sort order, that is the order they were made in.
      */
     expect(askedOrder).toEqual(cardOrder);
+    expect(cardOrder).toEqual(names);
   });
 });

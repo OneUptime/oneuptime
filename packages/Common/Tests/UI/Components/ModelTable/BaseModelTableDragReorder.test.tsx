@@ -234,7 +234,11 @@ const makeCallbacks: () => BaseTableCallbacks<BaseModel> =
             continue;
           }
 
-          if (requested < previous && row.order >= requested && row.order < previous) {
+          if (
+            requested < previous &&
+            row.order >= requested &&
+            row.order < previous
+          ) {
             row.order += 1;
           } else if (
             requested > previous &&
@@ -257,9 +261,9 @@ const ID: (n: number) => string = (n: number): string => {
   return `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 };
 
-const renderTable: (
+const renderTable: (extra?: Partial<BaseModelTableProps<BaseModel>>) => void = (
   extra?: Partial<BaseModelTableProps<BaseModel>>,
-) => void = (extra?: Partial<BaseModelTableProps<BaseModel>>): void => {
+): void => {
   render(
     <BaseModelTable<BaseModel>
       {...({
@@ -557,7 +561,9 @@ describe("dropping a row", () => {
     await moveUp(2, 2);
 
     await act(async () => {
-      pending.reject(new Error("You do not have permission to edit this rule."));
+      pending.reject(
+        new Error("You do not have permission to edit this rule."),
+      );
     });
 
     await waitFor(() => {

@@ -76,7 +76,8 @@ export class Service extends DatabaseService<IncomingCallPolicyEscalationRule> {
     }
 
     /*
-     * The rules after it close the gap through the model's @ListOrderColumn.
+     * The other rules keep their numbers: the escalation stays in the same
+     * order without this one (the model's @ListOrderColumn).
      */
     return {
       deleteBy,

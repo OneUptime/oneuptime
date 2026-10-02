@@ -10,7 +10,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  * A status page's footer links are a list its owners put in order by
  * dragging. The model's @ListOrderColumn keeps their `order` for every caller
  * (DatabaseService): a new link goes to the end, a moved one takes the place
- * of the link it was dropped on, and deleting one leaves no gap.
+ * of the link it was dropped on, and the others keep their order when one
+ * is deleted.
  */
 export class Service extends DatabaseService<Model> {
   public constructor() {

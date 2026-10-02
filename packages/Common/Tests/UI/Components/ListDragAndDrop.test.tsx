@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import React from "react";
 import List, { ComponentProps } from "../../../UI/Components/List/List";
 import { DRAG_HANDLE_USAGE_INSTRUCTIONS } from "../../../UI/Components/Table/Table";
@@ -52,7 +58,7 @@ const ARROW_UP: { keyCode: number; key: string } = {
   key: "ArrowUp",
 };
 
-let onDragDrop: jest.Mock<(...args: Array<unknown>) => void>;
+let onDragDrop: ReturnType<typeof jest.fn>;
 
 const renderList: (props?: Partial<ComponentProps<Rule>>) => void = (
   props?: Partial<ComponentProps<Rule>>,
@@ -61,9 +67,7 @@ const renderList: (props?: Partial<ComponentProps<Rule>>) => void = (
     <List<Rule>
       data={RULES}
       id="escalation-rules"
-      fields={[
-        { title: "Name", key: "name", fieldType: FieldType.Text },
-      ]}
+      fields={[{ title: "Name", key: "name", fieldType: FieldType.Text }]}
       onNavigateToPage={() => {}}
       currentPageNumber={1}
       totalItemsCount={RULES.length}

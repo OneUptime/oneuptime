@@ -281,13 +281,11 @@ export default class ListOrderMaintainer {
       return null;
     }
 
-    const siblings: Array<ListOrderItem> = await ListOrderMaintainer.loadList(
-      {
-        service: data.service,
-        settings: data.settings,
-        scope: scope,
-      },
-    );
+    const siblings: Array<ListOrderItem> = await ListOrderMaintainer.loadList({
+      service: data.service,
+      settings: data.settings,
+      scope: scope,
+    });
 
     const requested: number | null = toListOrderNumber(
       record[data.settings.column],

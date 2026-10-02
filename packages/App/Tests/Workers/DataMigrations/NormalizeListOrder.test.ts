@@ -62,21 +62,27 @@ describe("NormalizeListOrder", () => {
     for (const service of NormalizeListOrder.getServices()) {
       jest
         .spyOn(service, "normalizeListOrders")
-        .mockImplementation((async (): Promise<{
-          lists: number;
-          rowsChanged: number;
-        }> => {
-          const table: string = service.getModel().tableName || "";
-          calls.push(table);
-
-          if (failing.has(table)) {
-            throw new Error(`${table} is locked`);
-          }
-
-          return { lists: 1, rowsChanged: 2 };
-        }) as never);
+        .mockImplementation(renumberAs(service) as never);
     }
   });
+
+  // What a service's renumbering does in these tests: record it, or fail.
+  const renumberAs: (
+    service: DatabaseService<any>,
+  ) => () => Promise<{ lists: number; rowsChanged: number }> = (
+    service: DatabaseService<any>,
+  ): (() => Promise<{ lists: number; rowsChanged: number }>) => {
+    return async (): Promise<{ lists: number; rowsChanged: number }> => {
+      const table: string = service.getModel().tableName || "";
+      calls.push(table);
+
+      if (failing.has(table)) {
+        throw new Error(`${table} is locked`);
+      }
+
+      return { lists: 1, rowsChanged: 2 };
+    };
+  };
 
   afterEach(() => {
     jest.restoreAllMocks();

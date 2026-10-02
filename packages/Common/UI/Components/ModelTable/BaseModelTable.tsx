@@ -3374,9 +3374,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    *
    * A drop moves the row on screen at once and saves it in the background:
    * the row is given the number of the row it was dropped on, and the server
-   * moves it there and shifts the rows in between (@ListOrderColumn). The
-   * list is then refreshed quietly to pick up the renumbering. If the save
-   * fails, the rows go back where they were and say why.
+   * gives it that place and moves the rows in the way one place along
+   * (@ListOrderColumn). The list is then refreshed quietly to pick up their
+   * new numbers. If the save fails, the rows go back where they were and say
+   * why.
    *
    * While a filter or search narrows the list, dragging is off - the rows in
    * between are not on screen, so "drop it above this one" would mean
@@ -3503,10 +3504,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       );
     };
 
-  const getTable: GetReactElementFunction = (): ReactElement => {
+  // A reorderable list with its messages - saving, failed, paused - above it.
+  const withReorderMessages: (element: ReactElement) => ReactElement = (
+    element: ReactElement,
+  ): ReactElement => {
     return (
       <>
-      {getReorderMessages()}
+        {getReorderMessages()}
+        {element}
+      </>
+    );
+  };
+
+  const getTable: GetReactElementFunction = (): ReactElement => {
+    return withReorderMessages(
       <Table
         onFilterChanged={(filterData: FilterData<TBaseModel>) => {
           onFilterChanged(filterData);
@@ -3788,8 +3799,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           await fetchItems();
         }}
         actionButtons={actionButtonSchema}
-      />
-      </>
+      />,
     );
   };
 
@@ -3863,9 +3873,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   };
 
   const getList: GetReactElementFunction = (): ReactElement => {
-    return (
-      <>
-      {getReorderMessages()}
+    return withReorderMessages(
       <List
         onFilterChanged={(filterData: FilterData<TBaseModel>) => {
           onFilterChanged(filterData);
@@ -3926,8 +3934,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           await fetchItems();
         }}
         actionButtons={actionButtonSchema}
-      />
-      </>
+      />,
     );
   };
 

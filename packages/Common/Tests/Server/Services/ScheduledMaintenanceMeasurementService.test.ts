@@ -260,7 +260,9 @@ describe("ScheduledMaintenanceMeasurementService", () => {
         "findOneBy",
       ) as unknown as jest.SpyInstance;
 
-      const createBy: CreateBy<ScheduledMaintenanceMeasurement> = buildCreateBy({});
+      const createBy: CreateBy<ScheduledMaintenanceMeasurement> = buildCreateBy(
+        {},
+      );
 
       await hooks.onBeforeCreate(createBy);
 

@@ -179,10 +179,13 @@ describe("the Dashboard's drag-ordered lists", () => {
     tables.map((table: Element) => {
       return [`${table.file} (${table.model})`, table] as [string, Element];
     }),
-  )("%s can be dragged, by the column the model keeps", (_name: string, table: Element) => {
-    expect(table.source).toContain("enableDragAndDrop={true}");
-    expect(table.source).toContain(`dragDropIndexField="${table.column}"`);
-  });
+  )(
+    "%s can be dragged, by the column the model keeps",
+    (_name: string, table: Element) => {
+      expect(table.source).toContain("enableDragAndDrop={true}");
+      expect(table.source).toContain(`dragDropIndexField="${table.column}"`);
+    },
+  );
 
   test.each(
     elements.map((element: Element) => {
@@ -191,16 +194,19 @@ describe("the Dashboard's drag-ordered lists", () => {
         element,
       ] as [string, Element];
     }),
-  )("%s neither shows nor asks for the order number", (_name: string, element: Element) => {
-    /*
-     * A field, column, filter or selected field naming the order column.
-     * sortBy and dragDropIndexField name it as a string, which is how the
-     * list is kept in order - that is the only way it may appear.
-     */
-    expect(element.source).not.toMatch(
-      new RegExp(`\\b${element.column}\\s*:\\s*true`),
-    );
-  });
+  )(
+    "%s neither shows nor asks for the order number",
+    (_name: string, element: Element) => {
+      /*
+       * A field, column, filter or selected field naming the order column.
+       * sortBy and dragDropIndexField name it as a string, which is how the
+       * list is kept in order - that is the only way it may appear.
+       */
+      expect(element.source).not.toMatch(
+        new RegExp(`\\b${element.column}\\s*:\\s*true`),
+      );
+    },
+  );
 
   test.each(
     elements.map((element: Element) => {
@@ -209,9 +215,12 @@ describe("the Dashboard's drag-ordered lists", () => {
         element,
       ] as [string, Element];
     }),
-  )("%s leaves the number of a new row to the server", (_name: string, element: Element) => {
-    expect(element.source).not.toMatch(
-      new RegExp(`\\.${element.column}\\s*=(?!=)`),
-    );
-  });
+  )(
+    "%s leaves the number of a new row to the server",
+    (_name: string, element: Element) => {
+      expect(element.source).not.toMatch(
+        new RegExp(`\\.${element.column}\\s*=(?!=)`),
+      );
+    },
+  );
 });

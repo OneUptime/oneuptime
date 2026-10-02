@@ -384,16 +384,19 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
 
     let cellIndex: number = 0;
 
-    const getLockedCellStyle: () => React.CSSProperties | undefined =
-      (): React.CSSProperties | undefined => {
-        const width: number | undefined = lockedWidths
-          ? lockedWidths[cellIndex]
-          : undefined;
+    const getLockedCellStyle: () => React.CSSProperties | undefined = ():
+      | React.CSSProperties
+      | undefined => {
+      const width: number | undefined = lockedWidths
+        ? lockedWidths[cellIndex]
+        : undefined;
 
-        cellIndex++;
+      cellIndex++;
 
-        return width ? { width: width, minWidth: width, maxWidth: width } : undefined;
-      };
+      return width
+        ? { width: width, minWidth: width, maxWidth: width }
+        : undefined;
+    };
 
     const rowStyle: React.CSSProperties | undefined = lockedWidths
       ? {
