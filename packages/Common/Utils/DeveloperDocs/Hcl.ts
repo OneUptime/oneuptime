@@ -64,6 +64,11 @@ export interface HclTupleExpression {
 export interface HclObjectAttribute {
   key: string;
   value: HclExpression;
+  /*
+   * A `# comment` at the end of the line, e.g. the name of the record an id
+   * stands for. Only written after a value that fits on one line.
+   */
+  comment?: string | undefined;
 }
 
 export interface HclObjectExpression {
@@ -87,6 +92,8 @@ export interface HclAttributeItem {
   kind: "attribute";
   name: string;
   value: HclExpression;
+  // A `# comment` at the end of the line; see HclObjectAttribute.
+  comment?: string | undefined;
 }
 
 export interface HclBlockItem {
@@ -113,9 +120,45 @@ export interface HclBlankItem {
 interface PrintedLine {
   text: string;
   raw?: boolean | undefined;
+  /*
+   * A comment written after the text. Kept apart until the very end, when
+   * the comments of consecutive lines are lined up (see renderLines).
+   */
+  comment?: string | undefined;
 }
 
 const INDENT: string = "  ";
+
+// Longest comment written after a value: a record's name, cut down.
+const MAX_TRAILING_COMMENT_LENGTH: number = 60;
+
+const WHITESPACE: RegExp = /\s/;
+
+/*
+ * Text for a `# comment` at the end of a line. Comments here carry names
+ * people typed (a label called "prod", a monitor called "API"), and a line
+ * break in one would end the comment and turn the rest of the name into
+ * configuration, so every run of whitespace or control characters becomes
+ * one space. Long names are cut short.
+ */
+export function toHclTrailingComment(text: string): string {
+  const flattened: string = Array.from(text)
+    .map((character: string): string => {
+      const code: number = character.charCodeAt(0);
+      return code < 0x20 || code === 0x7f || WHITESPACE.test(character)
+        ? " "
+        : character;
+    })
+    .join("")
+    .replace(/ +/g, " ")
+    .trim();
+
+  if (flattened.length <= MAX_TRAILING_COMMENT_LENGTH) {
+    return flattened;
+  }
+
+  return `${flattened.slice(0, MAX_TRAILING_COMMENT_LENGTH - 1).trimEnd()}…`;
+}
 
 // Lists of plain values longer than this are written one item per line.
 const MAX_INLINE_TUPLE_LENGTH: number = 80;
@@ -159,7 +202,11 @@ export const Hcl: {
   tuple: (items: Array<HclExpression | HclTupleItem>) => HclTupleExpression;
   object: (attributes: Array<HclObjectAttribute>) => HclObjectExpression;
   call: (name: string, args: Array<HclExpression>) => HclCallExpression;
-  attribute: (name: string, value: HclExpression) => HclAttributeItem;
+  attribute: (
+    name: string,
+    value: HclExpression,
+    comment?: string | undefined,
+  ) => HclAttributeItem;
   block: (
     type: string,
     labels: Array<string>,
@@ -197,8 +244,14 @@ export const Hcl: {
   call: (name: string, args: Array<HclExpression>): HclCallExpression => {
     return { kind: "call", name, args };
   },
-  attribute: (name: string, value: HclExpression): HclAttributeItem => {
-    return { kind: "attribute", name, value };
+  attribute: (
+    name: string,
+    value: HclExpression,
+    comment?: string | undefined,
+  ): HclAttributeItem => {
+    return comment
+      ? { kind: "attribute", name, value, comment }
+      : { kind: "attribute", name, value };
   },
   block: (
     type: string,
@@ -357,8 +410,24 @@ function indentLines(
       return line;
     }
 
-    return { text: `${prefix}${line.text}` };
+    return { ...line, text: `${prefix}${line.text}` };
   });
+}
+
+// A comment put after the last printed line (a list item's name).
+function withTrailingComment(
+  lines: Array<PrintedLine>,
+  comment: string | undefined,
+): Array<PrintedLine> {
+  const text: string = comment ? toHclTrailingComment(comment) : "";
+  const last: PrintedLine | undefined = lines[lines.length - 1];
+
+  // Nothing may follow a heredoc's closing marker on its line.
+  if (!text || !last || last.raw) {
+    return lines;
+  }
+
+  return [...lines.slice(0, -1), { ...last, comment: text }];
 }
 
 function isSingleLine(lines: Array<PrintedLine>): boolean {
@@ -451,14 +520,10 @@ function printTuple(tuple: HclTupleExpression): Array<PrintedLine> {
   const lines: Array<PrintedLine> = [{ text: "[" }];
 
   for (const item of tuple.items) {
-    let itemLines: Array<PrintedLine> = appendToLastLine(
-      printExpression(item.value),
-      ",",
+    const itemLines: Array<PrintedLine> = withTrailingComment(
+      appendToLastLine(printExpression(item.value), ","),
+      item.comment,
     );
-
-    if (item.comment) {
-      itemLines = appendToLastLine(itemLines, ` # ${item.comment}`);
-    }
 
     lines.push(...indentLines(itemLines, 1));
   }
@@ -479,14 +544,23 @@ interface PrintedAssignment {
   lines: Array<PrintedLine>;
 }
 
-function printAssignments(
-  assignments: Array<{ name: string; value: HclExpression }>,
-): Array<PrintedLine> {
+interface Assignment {
+  name: string;
+  value: HclExpression;
+  comment?: string | undefined;
+}
+
+function printAssignments(assignments: Array<Assignment>): Array<PrintedLine> {
   const printed: Array<PrintedAssignment> = assignments.map(
-    (assignment: { name: string; value: HclExpression }): PrintedAssignment => {
+    (assignment: Assignment): PrintedAssignment => {
+      const lines: Array<PrintedLine> = printExpression(assignment.value);
+
       return {
         name: assignment.name,
-        lines: printExpression(assignment.value),
+        // A comment only follows a value written on one line.
+        lines: isSingleLine(lines)
+          ? withTrailingComment(lines, assignment.comment)
+          : lines,
       };
     },
   );
@@ -523,6 +597,7 @@ function printAssignments(
 
     for (const item of run) {
       output.push({
+        ...item.lines[0],
         text: `${item.name.padEnd(width)} = ${item.lines[0]?.text || ""}`,
       });
     }
@@ -542,16 +617,13 @@ function printObject(object: HclObjectExpression): Array<PrintedLine> {
     { text: "{" },
     ...indentLines(
       printAssignments(
-        object.attributes.map(
-          (
-            attribute: HclObjectAttribute,
-          ): { name: string; value: HclExpression } => {
-            return {
-              name: formatHclObjectKey(attribute.key),
-              value: attribute.value,
-            };
-          },
-        ),
+        object.attributes.map((attribute: HclObjectAttribute): Assignment => {
+          return {
+            name: formatHclObjectKey(attribute.key),
+            value: attribute.value,
+            comment: attribute.comment,
+          };
+        }),
       ),
       1,
     ),
@@ -622,7 +694,7 @@ function printExpression(expression: HclExpression): Array<PrintedLine> {
 
 function printBody(items: Array<HclBodyItem>): Array<PrintedLine> {
   const output: Array<PrintedLine> = [];
-  let pendingAssignments: Array<{ name: string; value: HclExpression }> = [];
+  let pendingAssignments: Array<Assignment> = [];
 
   const flushAssignments: () => void = (): void => {
     if (pendingAssignments.length > 0) {
@@ -633,7 +705,11 @@ function printBody(items: Array<HclBodyItem>): Array<PrintedLine> {
 
   for (const item of items) {
     if (item.kind === "attribute") {
-      pendingAssignments.push({ name: item.name, value: item.value });
+      pendingAssignments.push({
+        name: item.name,
+        value: item.value,
+        comment: item.comment,
+      });
       continue;
     }
 
@@ -674,12 +750,56 @@ function printBlock(block: HclBlockItem): Array<PrintedLine> {
   ];
 }
 
+/*
+ * The lines as text, with their trailing comments lined up the way
+ * `terraform fmt` lines them up: across each run of consecutive lines that
+ * have one, every comment starts one space after the longest of those lines.
+ * A line without a comment (a blank line, a comment line, a `[`) ends the
+ * run.
+ */
+function renderLines(lines: Array<PrintedLine>): Array<string> {
+  const rendered: Array<string> = [];
+  let index: number = 0;
+
+  while (index < lines.length) {
+    const line: PrintedLine = lines[index] as PrintedLine;
+
+    if (!line.comment) {
+      rendered.push(line.text);
+      index++;
+      continue;
+    }
+
+    let runEnd: number = index;
+
+    while (runEnd < lines.length && lines[runEnd]?.comment) {
+      runEnd++;
+    }
+
+    const run: Array<PrintedLine> = lines.slice(index, runEnd);
+    // Characters, not UTF-16 units: an accented name takes one column.
+    const columns: (text: string) => number = (text: string): number => {
+      return Array.from(text).length;
+    };
+    const width: number = Math.max(
+      ...run.map((item: PrintedLine): number => {
+        return columns(item.text);
+      }),
+    );
+
+    for (const item of run) {
+      const padding: string = " ".repeat(width - columns(item.text));
+      rendered.push(`${item.text}${padding} # ${item.comment}`);
+    }
+
+    index = runEnd;
+  }
+
+  return rendered;
+}
+
 function joinLines(lines: Array<PrintedLine>): string {
-  return lines
-    .map((line: PrintedLine): string => {
-      return line.text;
-    })
-    .join("\n");
+  return renderLines(lines).join("\n");
 }
 
 // One expression as HCL source, as it would appear on the right of an `=`.

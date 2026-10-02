@@ -152,7 +152,7 @@ Or look up by `id`:
 
 ```hcl
 data "oneuptime_status_page" "main" {
-  id = "5f8a1b2c3d4e5f6a7b8c9d0e"
+  id = "5f8a1b2c-3d4e-4f6a-8b9c-0d1e2f3a4b5c"
 }
 ```
 

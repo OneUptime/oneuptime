@@ -4,6 +4,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import {
@@ -210,6 +211,19 @@ describe("prompts", () => {
       `Update the description of the workflow "Send weekly report" (ID ${ID}) so it explains what it is for. Use the OneUptime REST API (reference: https://oneuptime.com/reference/workflow) with the API key in the ONEUPTIME_API_KEY environment variable.`,
       `Write Terraform for the workflow "Send weekly report" (ID ${ID}) with the oneuptime/oneuptime provider (resource oneuptime_workflow), with an import block so Terraform adopts the existing one.`,
     ]);
+  });
+
+  test("a create prompt reads right whatever the resource is called: an SLO, not a SLO", () => {
+    const prompts: Array<string> = getAssistantPrompts({
+      modelType: ServiceLevelObjective,
+      singularName: "SLO",
+      pluralName: "SLOs",
+      apiReferenceUrl:
+        "https://oneuptime.com/reference/service-level-objective",
+    });
+
+    expect(prompts[1]).toMatch(/^Create an SLO called "Example SLO"/);
+    expect(prompts.join("\n")).not.toMatch(/\ba SLO\b/);
   });
 
   test("no prompt ever carries a key", () => {
