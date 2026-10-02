@@ -20,18 +20,21 @@ The suite covers:
 - Stack Trace: the crash point open with its source-mapped snippet, smart / app-only /
   all views, oldest-first order, expand all, the raw tab with line wrapping, unmapped
   frames and the raw-only fallback
-- Occurrences: the Traces explorer scoped to the exception — the span list, histogram and
-  facets requests all carry `exceptionScope` — and the per-occurrence details table
+- Occurrences: the Traces explorer scoped to the exception — the span list, its total
+  ("24 spans", an exact count), histogram and facets requests all carry `exceptionScope` —
+  and the per-occurrence details table
 - Context: the latest occurrence, breadcrumbs (filters, relative / clock time, attribute
   details) and the empty state
-- Logs: the Logs explorer on the latest trace, the service scope, and the no-trace and
-  no-occurrence cases
+- Logs: the Logs explorer on the latest trace, the service scope (each with its own
+  total), and the no-trace and no-occurrence cases
 - AI Assistance: starting a task through the confirmation, the setup checklist, per-type
   task states, a refused start and the paused state
 - Settings: who resolved and archived it, changing both, and deleting the exception
 
 `Fixture/Fixture.js` records every read and write on `window.__exceptionFixture`, so
-the assertions check what the page asked for as well as what it drew.
+the assertions check what the page asked for as well as what it drew. An analytics count
+(`analyticsCountRequests`, with `exact`) is answered the way the server answers the
+explorers' exact count: with the number of rows a list with the same query returns.
 
 ## Run it
 

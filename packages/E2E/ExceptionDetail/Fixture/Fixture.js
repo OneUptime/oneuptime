@@ -227,6 +227,7 @@ const ORIGINAL_LOCATIONS = {
 const fixture = {
   getItemRequests: [],
   analyticsListRequests: [],
+  analyticsCountRequests: [],
   apiRequests: [],
   updates: [],
   deletes: [],
@@ -737,6 +738,29 @@ ModelAPI.deleteItem = async (options) => {
   }
 };
 
+/*
+ * Every row of an analytics table that `query` matches. A list pages through
+ * these rows and a count counts them, so the explorers' totals ("24 spans")
+ * always describe the very rows their lists hold.
+ */
+function analyticsRows(modelType, query) {
+  if (modelType === ExceptionInstance) {
+    return occurrences.filter((record) =>
+      matchesOccurrenceQuery(record, query),
+    );
+  }
+  if (modelType === Span) {
+    if (query && query.exceptionScope) {
+      return makeExceptionSpans();
+    }
+    return occurrenceMode === "trace" ? makeSpans() : [];
+  }
+  if (modelType === Log) {
+    return makeLogs(query);
+  }
+  return [];
+}
+
 AnalyticsModelAPI.getList = async (options) => {
   const modelName = new options.modelType().tableName;
   const skip = Number(options.skip || 0);
@@ -750,20 +774,7 @@ AnalyticsModelAPI.getList = async (options) => {
     limit,
   });
 
-  let items = [];
-  if (options.modelType === ExceptionInstance) {
-    items = occurrences.filter((record) =>
-      matchesOccurrenceQuery(record, options.query),
-    );
-  } else if (options.modelType === Span) {
-    if (options.query && options.query.exceptionScope) {
-      items = makeExceptionSpans();
-    } else {
-      items = occurrenceMode === "trace" ? makeSpans() : [];
-    }
-  } else if (options.modelType === Log) {
-    items = makeLogs(options.query);
-  }
+  const items = analyticsRows(options.modelType, options.query);
 
   return {
     data: items.slice(skip, skip + limit),
@@ -773,13 +784,24 @@ AnalyticsModelAPI.getList = async (options) => {
   };
 };
 
-AnalyticsModelAPI.count = async (options) => {
-  if (options.modelType === ExceptionInstance) {
-    return occurrences.filter((record) =>
-      matchesOccurrenceQuery(record, options.query),
-    ).length;
-  }
-  return 0;
+/*
+ * POST <model>/count, which BaseAnalyticsAPI answers with `{ count }`: how
+ * many rows the query matches. The explorers print it as their total and ask
+ * for it exact (CountBy.exact): the very rows a list with the same query
+ * pages through. That is the only count the fixture gives.
+ */
+AnalyticsModelAPI.count = async (
+  modelType,
+  query,
+  _requestOptions,
+  countOptions,
+) => {
+  fixture.analyticsCountRequests.push({
+    modelName: new modelType().tableName,
+    query: serialize(query),
+    exact: Boolean(countOptions?.exact),
+  });
+  return analyticsRows(modelType, query).length;
 };
 
 function ok(data) {
