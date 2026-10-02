@@ -6624,7 +6624,6 @@
   "Show this field and its value in the messages status page subscribers get about an incident: email, Slack, Microsoft Teams and webhooks. The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.": "این فیلد و مقدار آن در پیام‌هایی که مشترکان صفحه وضعیت درباره یک حادثه دریافت می‌کنند (ایمیل، Slack، Microsoft Teams و وب‌هوک) نمایش داده شود. پیامک پیش‌فرض کوتاه نگه داشته می‌شود و آن را نمی‌آورد. مشترکان معمولاً افرادی خارج از تیم شما هستند، پس این گزینه را فقط برای فیلدهایی روشن کنید که اشتراک‌گذاری آن‌ها با آنان امن است.",
   "In Subscriber Notifications": "در اعلان‌های مشترکان",
   "Template Variable": "متغیر قالب",
-  "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "از این در قالب سفارشی اعلان مشترکان استفاده کنید تا مقدار فیلد نمایش داده شود. این هنگام ایجاد فیلد از نام آن ساخته می‌شود و با تغییر نام فیلد تغییر نمی‌کند.",
   "{{field}} must be checked.": "{{field}} باید علامت بخورد.",
   "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "مقادیر فیلدهای سفارشی که حادثه‌ای که از این قالب اعلام می‌شود با آن‌ها شروع می‌شود. فیلدهایی که در مرحله جزئیات پرسیده می‌شوند هنگام اعلام حادثه همچنان قابل تغییر هستند.",
   "Affected Status Pages": "صفحات وضعیت تحت تأثیر",

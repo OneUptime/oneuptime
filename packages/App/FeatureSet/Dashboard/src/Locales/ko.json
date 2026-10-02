@@ -6624,7 +6624,6 @@
   "Show this field and its value in the messages status page subscribers get about an incident: email, Slack, Microsoft Teams and webhooks. The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.": "상태 페이지 구독자가 인시던트에 대해 받는 메시지(이메일, Slack, Microsoft Teams, 웹훅)에 이 필드와 값을 표시합니다. 기본 SMS는 짧게 유지하기 위해 이를 넣지 않습니다. 구독자는 보통 팀 외부 사람이므로 공유해도 안전한 필드에만 켜세요.",
   "In Subscriber Notifications": "구독자 알림 포함 여부",
   "Template Variable": "템플릿 변수",
-  "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "사용자 지정 구독자 알림 템플릿에서 이것을 사용하면 필드 값을 표시할 수 있습니다. 필드를 만들 때 필드 이름으로 만들어지며, 필드 이름을 바꿔도 변경되지 않습니다.",
   "{{field}} must be checked.": "{{field}}을(를) 선택해야 합니다.",
   "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "이 템플릿에서 선언된 인시던트가 처음에 갖는 사용자 정의 필드 값입니다. 세부 정보 단계에서 묻는 필드는 인시던트를 선언할 때 여전히 변경할 수 있습니다.",
   "Affected Status Pages": "영향을 받는 상태 페이지",

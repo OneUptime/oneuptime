@@ -6624,7 +6624,6 @@
   "Show this field and its value in the messages status page subscribers get about an incident: email, Slack, Microsoft Teams and webhooks. The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.": "स्थिति पृष्ठ के सब्सक्राइबर को किसी घटना के बारे में मिलने वाले संदेशों (ईमेल, Slack, Microsoft Teams और वेबहुक) में यह फ़ील्ड और इसका मान दिखाएँ। डिफ़ॉल्ट SMS छोटा रखा जाता है और इसे छोड़ देता है। सब्सक्राइबर आमतौर पर आपकी टीम के बाहर के लोग होते हैं, इसलिए इसे केवल उन फ़ील्ड के लिए चालू करें जिन्हें उनके साथ साझा करना सुरक्षित है।",
   "In Subscriber Notifications": "सब्सक्राइबर सूचनाओं में",
   "Template Variable": "टेम्पलेट वेरिएबल",
-  "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "फ़ील्ड का मान दिखाने के लिए इसे कस्टम सब्सक्राइबर सूचना टेम्पलेट में उपयोग करें। यह फ़ील्ड बनाते समय उसके नाम से बनता है और फ़ील्ड का नाम बदलने पर नहीं बदलता।",
   "{{field}} must be checked.": "{{field}} पर टिक करना आवश्यक है।",
   "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "इस टेम्पलेट से घोषित घटना जिन कस्टम फ़ील्ड मानों के साथ शुरू होती है। विवरण चरण में पूछे जाने वाले फ़ील्ड घटना घोषित करते समय अभी भी बदले जा सकते हैं।",
   "Affected Status Pages": "प्रभावित स्थिति पृष्ठ",

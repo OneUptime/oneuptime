@@ -6624,7 +6624,6 @@
   "Show this field and its value in the messages status page subscribers get about an incident: email, Slack, Microsoft Teams and webhooks. The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.": "Visa det här fältet och dess värde i meddelandena som statussidans prenumeranter får om en incident: e-post, Slack, Microsoft Teams och webhooks. Standard-sms:et hålls kort och utelämnar det. Prenumeranter är oftast personer utanför ditt team, så aktivera detta bara för fält som är säkra att dela med dem.",
   "In Subscriber Notifications": "I aviseringar till prenumeranter",
   "Template Variable": "Mallvariabel",
-  "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "Använd den i en anpassad mall för prenumerantaviseringar för att visa fältets värde. Den skapas från fältets namn när fältet skapas och ändras inte när fältet byter namn.",
   "{{field}} must be checked.": "{{field}} måste vara markerad.",
   "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "Värdena i anpassade fält som en incident som deklareras från den här mallen börjar med. Fält som efterfrågas i Detaljer-steget kan fortfarande ändras när incidenten deklareras.",
   "Affected Status Pages": "Berörda statussidor",

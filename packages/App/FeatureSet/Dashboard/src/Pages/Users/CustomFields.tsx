@@ -1,5 +1,9 @@
 import PageComponentProps from "../PageComponentProps";
 import {
+  getCustomFieldDefinitionColumns,
+  getCustomFieldDefinitionFilters,
+} from "../../Components/CustomFields/CustomFieldDefinitionTable";
+import {
   CustomFieldTypeOption,
   getCustomFieldTypeOptions,
 } from "../../Components/CustomFields/CustomFieldSettingsCopy";
@@ -9,7 +13,6 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -141,53 +144,9 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
           },
         ]}
         showRefreshButton={true}
-        filters={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Field Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Field Description",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              customFieldType: true,
-            },
-            title: "Field Type",
-            type: FieldType.Text,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Field Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            noValueMessage: "-",
-            title: "Field Description",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              customFieldType: true,
-            },
-            title: "Field Type",
-            type: FieldType.Text,
-          },
-        ]}
+        // The same two columns as every other custom field settings table.
+        filters={getCustomFieldDefinitionFilters()}
+        columns={getCustomFieldDefinitionColumns()}
       />
     </Fragment>
   );

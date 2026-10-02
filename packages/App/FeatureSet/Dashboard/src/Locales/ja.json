@@ -6624,7 +6624,6 @@
   "Show this field and its value in the messages status page subscribers get about an incident: email, Slack, Microsoft Teams and webhooks. The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.": "ステータスページの購読者がインシデントについて受け取るメッセージ（メール、Slack、Microsoft Teams、Webhook）に、このフィールドとその値を表示します。既定の SMS は短く保つため含めません。購読者は通常チーム外の人なので、共有しても問題のないフィールドにのみ有効にしてください。",
   "In Subscriber Notifications": "購読者への通知",
   "Template Variable": "テンプレート変数",
-  "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "カスタムの購読者通知テンプレートでこれを使うと、フィールドの値を表示できます。フィールド作成時にその名前から作られ、フィールド名を変更しても変わりません。",
   "{{field}} must be checked.": "{{field}} をオンにする必要があります。",
   "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "このテンプレートから宣言されたインシデントが最初に持つカスタムフィールドの値です。詳細ステップで入力を求めるフィールドは、インシデントの宣言時にまだ変更できます。",
   "Affected Status Pages": "影響を受けるステータスページ",
