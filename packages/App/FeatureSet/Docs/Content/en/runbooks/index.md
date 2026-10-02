@@ -92,8 +92,8 @@ Suppose you want every incident with "db-primary" in the title to kick off a fiv
 **2. Add a rule.** Under **Incidents → Rules → Runbook Rules**, create:
 
 ```
-Title Pattern:  ^db-primary
-Runbooks:       [DB primary failover]
+Conditions:  Incident Title starts with db-primary
+Runbooks:    [DB primary failover]
 ```
 
 **3. Trigger.** A monitor alert opens incident `INC-4821 · db-primary connection timeout`. The rule matches, an execution is created, and:

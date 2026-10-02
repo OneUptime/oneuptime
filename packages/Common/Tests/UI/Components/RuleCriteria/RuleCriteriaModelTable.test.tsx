@@ -1,5 +1,7 @@
 import Label from "../../../../Models/DatabaseModels/Label";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import NetworkSiteAssignmentRule from "../../../../Models/DatabaseModels/NetworkSiteAssignmentRule";
+import StatusPageMonitorRule from "../../../../Models/DatabaseModels/StatusPageMonitorRule";
 import RuleBaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/RuleBaseModel";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import { RuleCriteriaOperator } from "../../../../Types/Rules/RuleCriteria";
@@ -8,13 +10,18 @@ import type { ModelField } from "../../../../UI/Components/Forms/ModelForm";
 import type Filter from "../../../../UI/Components/ModelFilter/Filter";
 import type Column from "../../../../UI/Components/ModelTable/Column";
 import {
+  getRuleCriteriaHelpSectionBody,
   getRuleCriteriaTableConfiguration,
   replaceRuleCriteriaHelpMarkdown,
   RULE_CRITERIA_HELP_SECTION_BODY,
   type RuleCriteriaTableConfiguration,
   type RuleCriteriaTableHelpContent,
 } from "../../../../UI/Components/RuleCriteria/RuleCriteriaModelTable";
-import { getRuleCriteriaSummaryText } from "../../../../UI/Components/RuleCriteria/RuleCriteriaSummary";
+import {
+  getRuleCriteriaSummaryText,
+  RULE_CRITERIA_SUMMARY_MATCHES_EVERYTHING,
+  RULE_CRITERIA_SUMMARY_MATCHES_NOTHING,
+} from "../../../../UI/Components/RuleCriteria/RuleCriteriaSummary";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -42,7 +49,7 @@ const FORM_FIELDS: Array<ModelField<ExampleRule>> = [
   },
   {
     field: { monitorNamePattern: true },
-    title: "Monitor Name Pattern",
+    title: "Monitor Name",
     stepId: "match-criteria",
     fieldType: FormFieldSchemaType.Text,
   },
@@ -176,7 +183,7 @@ describe("rule criteria table integration", () => {
     expect(
       getRuleCriteriaSummaryText({ fields: FORM_FIELDS, item: rule }),
     ).toBe(
-      "Match any: Monitor Labels has any of 2 selected values; Monitor Name Pattern contains “api”",
+      "Match any: Monitor Labels has any of 2 selected values; Monitor Name contains “api”",
     );
 
     rule.criteria.filterCondition = FilterCondition.All;
@@ -191,14 +198,17 @@ describe("rule criteria table integration", () => {
 
     expect(
       getRuleCriteriaSummaryText({ fields: FORM_FIELDS, item: legacyRule }),
-    ).toBe("Match all: Monitor Name Pattern matches pattern “^api”");
+    ).toBe("Match all: Monitor Name matches pattern “^api”");
 
     expect(
       getRuleCriteriaSummaryText({
         fields: FORM_FIELDS,
         item: new ExampleRule(),
       }),
-    ).toBe("Matches all resources");
+    ).toBe(RULE_CRITERIA_SUMMARY_MATCHES_EVERYTHING);
+    expect(RULE_CRITERIA_SUMMARY_MATCHES_EVERYTHING).toBe(
+      "Matches everything (no conditions)",
+    );
 
     const malformedRule: ExampleRule = new ExampleRule();
     malformedRule.criteria = { broken: true } as never;
@@ -259,7 +269,13 @@ The action stays here.
     expect(configuration.helpContent).toEqual({
       title: helpContent.title,
       description: helpContent.description,
-      markdown: expect.stringContaining(RULE_CRITERIA_HELP_SECTION_BODY),
+      markdown: expect.stringContaining(
+        getRuleCriteriaHelpSectionBody({
+          fields: FORM_FIELDS.filter((field: ModelField<ExampleRule>) => {
+            return field.stepId === "match-criteria";
+          }),
+        }),
+      ),
     });
     expect(configuration.helpContent?.markdown).toContain(
       "The overview stays here.",
@@ -334,7 +350,8 @@ More details stay here.
 
     expect(staticRuleFormFiles).toHaveLength(68);
     expect(helpFormFiles).toHaveLength(61);
-    expect(helpMarkdown).toHaveLength(67);
+    // 67, and the five episode rule help texts that now have the heading too.
+    expect(helpMarkdown).toHaveLength(72);
 
     for (const markdown of helpMarkdown) {
       const transformed: string = replaceRuleCriteriaHelpMarkdown(markdown);
@@ -346,5 +363,162 @@ More details stay here.
       expect(transformed).toContain("Has none of");
       expect(transformed).toContain("Does not match pattern");
     }
+  });
+});
+
+describe("the help panel's Match Criteria section", () => {
+  const LABELS_FIELD: ModelField<ExampleRule> = FORM_FIELDS[1]!;
+  const NAME_FIELD: ModelField<ExampleRule> = FORM_FIELDS[2]!;
+  const ADDRESS_FIELD: ModelField<ExampleRule> = {
+    field: { subnetCidr: true } as never,
+    title: "IP Address",
+    stepId: "match-criteria",
+    fieldType: FormFieldSchemaType.Text,
+  };
+
+  test("lists every kind of operator when it does not know the fields", () => {
+    const body: string = getRuleCriteriaHelpSectionBody({});
+
+    expect(body).toBe(RULE_CRITERIA_HELP_SECTION_BODY);
+    for (const line of [
+      "**Match all (AND)** — every condition must be true.",
+      "**Match any (OR)** — at least one condition must be true.",
+      "**Equality** — Equals or Does not equal.",
+      "**Text** — Contains, Does not contain, Starts with or Ends with.",
+      "**Patterns** — Matches pattern or Does not match pattern.",
+      "**Address ranges** — Is in or Is not in",
+      "**Lists** — Has any of, Has all of or Has none of the selected values.",
+      "A rule with no conditions applies to everything.",
+    ]) {
+      expect(body).toContain(line);
+    }
+  });
+
+  test("only names the operators the page's fields offer", () => {
+    const listsOnly: string = getRuleCriteriaHelpSectionBody({
+      fields: [LABELS_FIELD],
+    });
+    expect(listsOnly).toContain("**Lists**");
+    expect(listsOnly).not.toContain("**Text**");
+    expect(listsOnly).not.toContain("**Patterns**");
+    expect(listsOnly).not.toContain("**Equality**");
+    expect(listsOnly).not.toContain("**Address ranges**");
+
+    const textAndLists: string = getRuleCriteriaHelpSectionBody({
+      fields: [LABELS_FIELD, NAME_FIELD],
+    });
+    expect(textAndLists).toContain("**Text**");
+    expect(textAndLists).toContain("**Patterns**");
+    expect(textAndLists).toContain("**Equality**");
+    expect(textAndLists).not.toContain("**Address ranges**");
+
+    const addressOnly: string = getRuleCriteriaHelpSectionBody({
+      fields: [ADDRESS_FIELD],
+    });
+    expect(addressOnly).toContain("**Address ranges**");
+    expect(addressOnly).not.toContain("**Patterns**");
+    expect(addressOnly).not.toContain("**Text**");
+  });
+
+  test("says a rule needs a condition when its kind matches nothing without one", () => {
+    const body: string = getRuleCriteriaHelpSectionBody({
+      fields: [NAME_FIELD],
+      requiresCondition: true,
+    });
+
+    expect(body).toContain("needs at least one condition");
+    expect(body).not.toContain("applies to everything");
+  });
+
+  test("the table writes the section for its own model and fields", () => {
+    const configuration: RuleCriteriaTableConfiguration<StatusPageMonitorRule> =
+      getRuleCriteriaTableConfiguration({
+        model: new StatusPageMonitorRule(),
+        formFields: FORM_FIELDS as never,
+        columns: COLUMNS as never,
+        filters: FILTERS as never,
+        helpContent: {
+          title: "Monitor rules",
+          markdown: "### Match Criteria\n\nOld text.\n\n### After\n\nKept.",
+        },
+      });
+
+    expect(configuration.helpContent?.markdown).toContain(
+      "needs at least one condition",
+    );
+    expect(configuration.helpContent?.markdown).not.toContain("Old text.");
+    expect(configuration.helpContent?.markdown).toContain("### After\n\nKept.");
+  });
+});
+
+describe("the rule summary", () => {
+  test("says a rule that needs a condition matches nothing without one", () => {
+    expect(
+      getRuleCriteriaSummaryText({
+        fields: FORM_FIELDS as never,
+        item: new StatusPageMonitorRule(),
+      }),
+    ).toBe(RULE_CRITERIA_SUMMARY_MATCHES_NOTHING);
+  });
+
+  test("names an address range condition with Is in", () => {
+    const rule: NetworkSiteAssignmentRule = new NetworkSiteAssignmentRule();
+    rule.criteria = {
+      schemaVersion: 1,
+      filterCondition: FilterCondition.All,
+      filters: [
+        {
+          field: "subnetCidr",
+          operator: RuleCriteriaOperator.MatchesPattern,
+          value: "10.42.7.0/24",
+        },
+        {
+          field: "hostnamePattern",
+          operator: RuleCriteriaOperator.StartsWith,
+          value: "unit-1042",
+        },
+      ],
+    };
+
+    expect(
+      getRuleCriteriaSummaryText({
+        fields: [
+          {
+            field: { subnetCidr: true },
+            title: "IP Address",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.Text,
+          },
+          {
+            field: { hostnamePattern: true },
+            title: "Hostname",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.Text,
+          },
+        ],
+        item: rule,
+      }),
+    ).toBe(
+      "Match all: IP Address is in “10.42.7.0/24”; Hostname starts with “unit-1042”",
+    );
+  });
+
+  test("names a criterion without a title by its column, less Pattern", () => {
+    const rule: ExampleRule = new ExampleRule();
+    rule.criteria = {
+      schemaVersion: 1,
+      filterCondition: FilterCondition.All,
+      filters: [
+        {
+          field: "monitorNamePattern",
+          operator: RuleCriteriaOperator.Contains,
+          value: "api",
+        },
+      ],
+    };
+
+    expect(getRuleCriteriaSummaryText({ fields: [], item: rule })).toBe(
+      "Match all: Monitor Name contains “api”",
+    );
   });
 });
