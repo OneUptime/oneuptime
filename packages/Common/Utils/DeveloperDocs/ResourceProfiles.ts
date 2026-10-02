@@ -1152,7 +1152,6 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
           {
             id: "resource",
             modelType: StatusPageResource,
-            localName: "website",
             fields: [
               field("statusPageId", ref("page")),
               field("statusPageGroupId", ref("group")),
@@ -1183,7 +1182,6 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
           {
             id: "resource",
             modelType: StatusPageResource,
-            localName: "website",
             fields: [
               field("statusPageId", THIS),
               field("statusPageGroupId", ref("group")),
