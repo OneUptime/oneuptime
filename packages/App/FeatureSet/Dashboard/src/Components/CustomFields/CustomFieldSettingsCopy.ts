@@ -3,8 +3,9 @@ import { CUSTOM_FIELD_MUST_BE_CHECKED_MESSAGE } from "Common/UI/Components/Custo
 
 /*
  * Text the custom field settings pages show: the name of each field type in
- * the "Field Type" picker, and the incident-only settings (order, show and
- * require on create, include in subscriber notifications, template key).
+ * the "Field Type" picker, the incident-only settings (show and require on
+ * create, include in subscriber notifications, template key), and the card's
+ * description.
  *
  * Kept in one React-free module so the pages render these exact strings, and
  * App/Tests/Dashboard/CustomFieldSettingsI18n checks that each has an entry
@@ -51,12 +52,29 @@ export const getCustomFieldTypeOptions: () => Array<CustomFieldTypeOption> =
     );
   };
 
-// A number reads the same in every language, so it is not in the copy below.
-export const SORT_ORDER_PLACEHOLDER: string = "1";
+/*
+ * What the custom fields card says about itself. A definition whose order
+ * means something (incident custom fields: the order the incident page, the
+ * Details step and subscriber messages list them in) is reordered by
+ * dragging its rows - there is no order to type in - and its card says so.
+ */
+export const CustomFieldsPageCopy: {
+  description: string;
+  reorderDescription: string;
+} = {
+  description:
+    "Custom fields help you add new fields to your resources in OneUptime.",
+  reorderDescription:
+    "Custom fields help you add new fields to your resources in OneUptime. Drag a field to change where it appears.",
+};
+
+export const CUSTOM_FIELDS_DESCRIPTION: string =
+  CustomFieldsPageCopy.description;
+
+export const CUSTOM_FIELDS_REORDER_DESCRIPTION: string =
+  CustomFieldsPageCopy.reorderDescription;
 
 export const IncidentCustomFieldSettingsCopy: {
-  sortOrderTitle: string;
-  sortOrderDescription: string;
   showOnCreateTitle: string;
   showOnCreateDescription: string;
   isRequiredOnCreateTitle: string;
@@ -68,9 +86,6 @@ export const IncidentCustomFieldSettingsCopy: {
   variableKeyColumnDescription: string;
   requiredBooleanMustBeChecked: string;
 } = {
-  sortOrderTitle: "Order",
-  sortOrderDescription:
-    "Where this field appears among the incident's custom fields and in the Details step when an incident is declared. Lowest first; fields without an order come after the ones that have one.",
   showOnCreateTitle: "Show on Create",
   showOnCreateDescription:
     "Ask for this field in a Details step when an incident is declared from the dashboard. Incident templates can fill it in.",

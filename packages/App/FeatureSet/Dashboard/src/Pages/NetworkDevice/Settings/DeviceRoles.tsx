@@ -13,7 +13,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const networkDeviceRoleDocumentation: string = `
 ### How Device Roles Work
 
-A device role is what a device DOES on your network — Router, Switch, Firewall, Wireless AP and so on. The defaults are a starting point: rename them, reorder them, delete the ones you don't use, or add your own (\`PoS Terminal\`, \`SD-WAN Edge\`, \`Kiosk\`) to match the estate you actually run.
+A device role is what a device DOES on your network — Router, Switch, Firewall, Wireless AP and so on. The defaults are a starting point: rename them, drag them into the order you want them listed in, delete the ones you don't use, or add your own (\`PoS Terminal\`, \`SD-WAN Edge\`, \`Kiosk\`) to match the estate you actually run.
 
 ### Where a device's role comes from
 
@@ -87,6 +87,12 @@ const NetworkDeviceRolesPage: FunctionComponent<
         noItemsMessage="No device roles yet. Add one to start describing what your devices do."
         sortBy="order"
         sortOrder={SortOrder.Ascending}
+        /*
+         * The order of the role picker and the map legend: drag the rows.
+         * A new role goes to the end.
+         */
+        enableDragAndDrop={true}
+        dragDropIndexField="order"
         searchableFields={["name", "description", "key"]}
         selectMoreFields={{ isCoreLayer: true, isSnmpWalkable: true }}
         filters={[
@@ -123,12 +129,6 @@ const NetworkDeviceRolesPage: FunctionComponent<
             field: { topologyShape: true },
             title: "Shape",
             type: FieldType.Text,
-            hideOnMobile: true,
-          },
-          {
-            field: { order: true },
-            title: "Order",
-            type: FieldType.Number,
             hideOnMobile: true,
           },
           {
@@ -181,16 +181,6 @@ const NetworkDeviceRolesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Moves traffic between networks.",
-          },
-          {
-            field: { order: true },
-            title: "Order",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "1",
-            description:
-              "Where this role appears in the role picker and the map legend. Lower numbers come first.",
           },
           {
             field: { topologyShape: true },

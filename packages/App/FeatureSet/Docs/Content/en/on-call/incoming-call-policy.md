@@ -161,12 +161,13 @@ Escalation rules determine how calls are routed:
 2. Go to the **Escalation Rules** tab
 3. Click **Add Escalation Rule**
 4. Configure the rule:
-   - **Order**: The priority order (lower numbers are tried first)
    - **Escalate After (seconds)**: How long to wait before escalating
    - **On-Call Schedule**: Select a schedule to route to whoever is on-call
    - **Teams**: Select specific teams
    - **Users**: Select specific users
 5. Add additional escalation rules as needed
+
+Rules are called from the top of the list down, and a new rule is added to the end. To change the order, drag a rule by the handle at its top left; from the keyboard, focus the handle, press Space, move it with the arrow keys and press Space again.
 
 ### Escalation Rule Example
 
@@ -179,11 +180,11 @@ flowchart TD
     end
 ```
 
-| Order | Escalate After | Target                     |
-| ----- | -------------- | -------------------------- |
-| 1     | 30 seconds     | Primary On-Call Schedule   |
-| 2     | 30 seconds     | Secondary On-Call Schedule |
-| 3     | 30 seconds     | Engineering Team Lead      |
+| Position in the list | Escalate After | Target                     |
+| -------------------- | -------------- | -------------------------- |
+| 1st                  | 30 seconds     | Primary On-Call Schedule   |
+| 2nd                  | 30 seconds     | Secondary On-Call Schedule |
+| 3rd                  | 30 seconds     | Engineering Team Lead      |
 
 ## Step 7: Configure Voice Messages (Optional)
 
@@ -212,7 +213,7 @@ Customize the messages callers hear:
 
 | Setting                | Description                                      |
 | ---------------------- | ------------------------------------------------ |
-| Order                  | Priority order (1 = highest priority)            |
+| Order                  | Where the rule sits in the list: rules are called from the top down. Set by dragging the rules; through the API, a new rule without one goes to the end |
 | Escalate After Seconds | Wait time before trying next rule (default: 30s) |
 | On-Call Schedule       | Route to whoever is currently on-call            |
 | Teams                  | Route to all members of selected teams           |

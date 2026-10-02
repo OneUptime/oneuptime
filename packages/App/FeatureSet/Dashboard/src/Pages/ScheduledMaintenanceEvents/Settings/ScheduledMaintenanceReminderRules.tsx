@@ -16,7 +16,7 @@ import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 const documentationMarkdown: string = `
 ### How Scheduled Maintenance Reminder Rules Work
 
-Reminder rules periodically re-notify scheduled maintenance event owners while an event has not yet finished. When an event is created, the first matching rule (by order) is applied, and reminders are sent to the event's owners at the configured interval until the event reaches the stop state.
+Reminder rules periodically re-notify scheduled maintenance event owners while an event has not yet finished. When an event is created, the first matching rule, from the top of the list down, is applied, and reminders are sent to the event's owners at the configured interval until the event reaches the stop state.
 
 \`\`\`mermaid
 flowchart TD
@@ -38,7 +38,7 @@ flowchart TD
 |----------|-------------|
 | **Labels** | Only events with these labels. Leave empty to match all events. |
 
-Rules are evaluated in order - the first matching rule wins.
+Rules are evaluated from the top of the list down - the first matching rule wins. Drag a rule by its handle to change its place; a new rule is added to the end.
 
 ---
 
@@ -85,8 +85,13 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
         }}
         sortBy="order"
         sortOrder={SortOrder.Ascending}
+        /*
+         * The first rule that matches wins, so where a rule sits matters:
+         * drag it up or down. A new rule goes to the end.
+         */
+        enableDragAndDrop={true}
+        dragDropIndexField="order"
         selectMoreFields={{
-          order: true,
           isEnabled: true,
         }}
         filters={[
@@ -112,13 +117,6 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              order: true,
-            },
-            title: "Order",
-            type: FieldType.Number,
           },
           {
             field: {

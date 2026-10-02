@@ -15,6 +15,10 @@ export interface ComponentProps<T extends GenericObject> {
   dragAndDropScope?: string | undefined;
   dragDropIdField?: keyof T | undefined;
   dragDropIndexField?: keyof T | undefined;
+  isDragDisabled?: boolean | undefined;
+  dragDisabledReason?: string | undefined;
+  // The header's cell widths while a row is dragged (see Table).
+  dragColumnWidths?: Array<number> | null | undefined;
 
   // bulk actions
   isBulkActionsEnabled?: undefined | boolean;
@@ -44,6 +48,41 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   type GetBodyFunction = (provided?: DroppableProvided) => ReactElement;
+
+  /*
+   * A row's React key: its id when the list can be dragged. Rows that move
+   * must keep their identity - keyed by position, React would hand a moved
+   * row's state (an open menu, a focused grip) to whichever row lands in
+   * its old place.
+   */
+  const getRowKey: (item: T, index: number) => string | number = (
+    item: T,
+    index: number,
+  ): string | number => {
+    if (props.enableDragAndDrop && props.dragDropIdField) {
+      const id: string | undefined = item[props.dragDropIdField]?.toString();
+
+      if (id) {
+        return id;
+      }
+    }
+
+    return index;
+  };
+
+  const getDragProps: (index: number) => {
+    dragIndex: number;
+    isDragDisabled: boolean | undefined;
+    dragDisabledReason: string | undefined;
+    dragColumnWidths: Array<number> | null | undefined;
+  } = (index: number) => {
+    return {
+      dragIndex: index,
+      isDragDisabled: props.isDragDisabled,
+      dragDisabledReason: props.dragDisabledReason,
+      dragColumnWidths: props.dragColumnWidths,
+    };
+  };
 
   /*
    * Everything about ONE row's checkbox, computed once and spread into both the
@@ -115,7 +154,8 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                   {...getSelectionProps(item)}
                   dragAndDropScope={props.dragAndDropScope}
                   enableDragAndDrop={props.enableDragAndDrop}
-                  key={i}
+                  key={getRowKey(item, i)}
+                  {...getDragProps(i)}
                   item={item}
                   rowProps={props.getRowProps?.(item)}
                   columns={props.columns}
@@ -149,7 +189,8 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                 {...getSelectionProps(item)}
                 dragAndDropScope={props.dragAndDropScope}
                 enableDragAndDrop={props.enableDragAndDrop}
-                key={i}
+                key={getRowKey(item, i)}
+                {...getDragProps(i)}
                 item={item}
                 rowProps={props.getRowProps?.(item)}
                 columns={props.columns}

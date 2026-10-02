@@ -146,7 +146,7 @@ Go to **Incidents → Settings → Custom Fields** (`/dashboard/{projectId}/inci
 - **Field Description** — optional.
 - **Field Type** — required. This chooses how data is entered; the types are listed below. Dropdown types also need their options listed.
 - **Dropdown Options** — the values that appear in the dropdown, each with an optional color.
-- **Order** — where the field appears among the incident's custom fields, lowest first: on the incident's **Custom Fields** page, in the **Details** step and in subscriber messages. Fields without an order come after the ones that have one.
+- **Order** — where the field appears among the incident's custom fields: on the incident's **Custom Fields** page, in the **Details** step and in subscriber messages. There is no number to type in: drag a field by the handle at the start of its row to move it up or down, and a new field is added to the end. Dragging is off while a filter or search narrows the list.
 - **Show on Create** — asks for the field in the **Details** step when an incident is declared from the dashboard (see [Declaring Incidents](/docs/incidents/declaring-incidents)). An incident template can give any field a starting value, shown on create or not, and can ask for a field or leave it out for the incidents declared from it — see [Custom fields on create](#custom-fields-on-create). [Incident forms](/docs/incidents/forms) do not follow it: a form asks only the fields added to it.
 - **Required on Create** — offered once **Show on Create** is on. The **Details** step does not let you declare the incident until the field is filled in, and a **Boolean** field must be switched on. The dashboard is the only place this is checked; see [Required on Create is checked by the dashboard only](#required-on-create-is-checked-by-the-dashboard-only).
 - **Include in Subscriber Notifications** — sends the field and its value to status page subscribers with the incident's messages: the default email, Slack and Microsoft Teams messages and webhooks, but not SMS. Subscribers are usually outside your team, so only turn it on for fields that are safe to share. See [Incident custom fields in notifications](/docs/status-pages/subscribers#incident-custom-fields-in-notifications).
@@ -231,6 +231,8 @@ Deleting a field also takes it off the questions of every [incident form](/docs/
 ### Terraform
 
 The settings are on the `oneuptime_incident_custom_field` resource as `sort_order`, `show_on_create`, `is_required_on_create` and `include_in_subscriber_notifications`. `variable_key` is read-only: the key OneUptime made when the field was created.
+
+Leave `sort_order` out and a new field goes to the end of the list. Give it the number another field already has and it takes that place, while the fields in the way move one place along. A number no other field has is kept as you wrote it.
 
 ## Measurements
 
@@ -350,17 +352,17 @@ Both are on for new projects; a project created before they were on by default k
 
 **Incidents → Rules** holds nine rule engines. They all do the same job — look at an incident the moment it is created, and act if it matches — but they differ in what they do and in how multiple matching rules resolve.
 
-- **Grouping Rules** — group related incidents into episodes. Rules are evaluated in priority order; lower priority numbers go first.
+- **Grouping Rules** — group related incidents into episodes. Rules are evaluated from the top of the list down; drag a rule to change its place.
 - **On-Call Rules** — execute on-call duty policies for matching incidents. Covered in detail below.
 - **Owner Rules** — assign owners automatically.
 - **Runbook Rules** — start a [runbook](/docs/runbooks/index) when an incident matches.
 - **Auto Remediation Rules** — propose or start remediation runbooks when an incident matches. If an AI investigation is queued for the incident, they run once it finishes, with its analysis in hand. See [AI SRE](/docs/ai/ai-sre).
 - **Privacy Rules** — decide whether a matching incident is private.
 - **Label Rules** — apply labels automatically.
-- **SLA Rules** — track response and resolution times. Rules are evaluated in order; lower order numbers go first.
-- **Reminder Rules** — periodically remind incident owners while an incident is still open. Rules are evaluated in order and the first matching rule wins.
+- **SLA Rules** — track response and resolution times. Rules are evaluated from the top of the list down; drag a rule to change its place.
+- **Reminder Rules** — periodically remind incident owners while an incident is still open. Rules are evaluated from the top of the list down and the first matching rule wins; drag a rule to change its place.
 
-**Order semantics are not uniform.** Grouping Rules, SLA Rules and Reminder Rules are order-evaluated. On-Call Rules are not — every matching rule fires. Do not assume one model applies to all nine.
+**Order semantics are not uniform.** Grouping Rules, SLA Rules and Reminder Rules are order-evaluated, and their lists are put in order by dragging: a new rule is added to the end. On-Call Rules are not — every matching rule fires. Do not assume one model applies to all nine.
 
 The **On-Call Rules**, **Owner Rules**, **Label Rules** and **Privacy Rules** pages are tabbed — an **Incident Rules** tab and an **Episode Rules** tab, each with its own table. Configure the **Incident Rules** tab unless you specifically mean episodes. **Grouping Rules**, **Runbook Rules**, **Auto Remediation Rules**, **SLA Rules** and **Reminder Rules** are single tables.
 

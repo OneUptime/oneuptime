@@ -86,9 +86,7 @@ const TraceDropFilters: FunctionComponent<
         action: TraceDropFilterAction.Drop,
       }}
       onBeforeCreate={async (item: TraceDropFilter) => {
-        if (!item.sortOrder) {
-          item.sortOrder = 1;
-        }
+        // No sortOrder: the server puts a new filter at the end of the list.
         if (!item.action) {
           item.action = TraceDropFilterAction.Drop;
         }

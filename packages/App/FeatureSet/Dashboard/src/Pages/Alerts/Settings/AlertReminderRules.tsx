@@ -18,7 +18,7 @@ import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 const documentationMarkdown: string = `
 ### How Alert Reminder Rules Work
 
-Reminder rules periodically re-notify alert owners while an alert is still open. When an alert is created, the first matching rule (by order) is applied, and reminders are sent to alert owners at the configured interval until the alert reaches the stop state.
+Reminder rules periodically re-notify alert owners while an alert is still open. When an alert is created, the first matching rule, from the top of the list down, is applied, and reminders are sent to alert owners at the configured interval until the alert reaches the stop state.
 
 \`\`\`mermaid
 flowchart TD
@@ -40,7 +40,7 @@ flowchart TD
 |----------|-------------|
 | **Severities** | Only alerts with these severity levels. Leave empty to match all severities. |
 
-Rules are evaluated in order - the first matching rule wins.
+Rules are evaluated from the top of the list down - the first matching rule wins. Drag a rule by its handle to change its place; a new rule is added to the end.
 
 ---
 
@@ -81,8 +81,13 @@ const AlertReminderRulesPage: FunctionComponent<
         }}
         sortBy="order"
         sortOrder={SortOrder.Ascending}
+        /*
+         * The first rule that matches wins, so where a rule sits matters:
+         * drag it up or down. A new rule goes to the end.
+         */
+        enableDragAndDrop={true}
+        dragDropIndexField="order"
         selectMoreFields={{
-          order: true,
           isEnabled: true,
           labels: {
             name: true,
@@ -112,13 +117,6 @@ const AlertReminderRulesPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              order: true,
-            },
-            title: "Order",
-            type: FieldType.Number,
           },
           {
             field: {
