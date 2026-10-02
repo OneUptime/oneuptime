@@ -182,7 +182,7 @@ Owner users and owner teams are separate records — adding a team makes every m
 
 There are four routes onto the owners list:
 
-- **From an incident template** — templates carry **Owner - Teams** and **Owner - Users** fields, described as the teams and users who own the incident and will be notified when it is created or updated. Creating an incident from the template prefills them, and they are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. The dashboard adds them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added. See [Declaring an Incident](/docs/incidents/declaring-incidents).
+- **From an incident template** — templates carry an **Owners** field: the people and teams who own the incident and will be notified when it is created or updated, picked from the same list as **Add owner**. Creating an incident from the template prefills them, and they are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. The dashboard adds them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added. See [Declaring an Incident](/docs/incidents/declaring-incidents).
 - **From Incident Owner Rules** — matching rules add owners automatically at creation time.
 - **At creation through the API** — owner users and teams passed with the create call are added the same way, once the channels exist, and without the "you were added" notification.
 - **By hand** — the **Add owner** control on the **Owners** page, at any point during the incident.
@@ -195,7 +195,7 @@ Adding the same person twice is safe; owners already assigned are not duplicated
 
 The rule form has four steps — **Basic Info**, **Match Criteria**, **Owners** and **Inherit Owners**:
 
-- **Owners** — pick **Owner Teams** and **Owner Users**. When the rule matches, every selected user and team is added as an owner, and already-assigned owners are not duplicated.
+- **Owners** — **Add owner** opens one list of people and teams; click each one to add it, and remove a pick with the **×** on its chip. When the rule matches, every person and team picked is added as an owner, and already-assigned owners are not duplicated.
 - **Inherit Owners** — assign owners from related entities instead of naming them. **Inherit Owners From Monitors** makes every owner of the incident's monitors an owner of the incident, and **Inherit Owners From Hosts**, **… From Kubernetes Clusters**, **… From Docker Hosts**, **… From Podman Hosts** and **… From Services** do the same for those resources.
 
 A **Notify Owners** toggle controls whether people find out. Leave it on for real routing; turn it off to add owners silently — useful when a rule is a bookkeeping convenience rather than a page.

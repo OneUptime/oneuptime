@@ -106,8 +106,7 @@ Templates are built with their own six-step wizard — **Template Info**, **Inci
 | **Limit to these status pages** | Status pages the incident is limited to.               |
 | **Change Monitor Status to**    | Monitor status to apply to the attached monitors.      |
 | **On-Call Policy**              | Policies to execute when the incident is created.      |
-| **Owner - Teams**               | Teams that own incidents created from this template.   |
-| **Owner - Users**               | Users that own incidents created from this template.   |
+| **Owners**                      | People and teams that own incidents created from this template, picked from one list. |
 | **Labels**                      | Labels applied to the incident.                        |
 | **Custom Fields**               | Values for the incident's custom fields.               |
 | **Custom Fields on Create**     | Which custom fields the **Details** step asks for, and which must be filled in. |
@@ -119,7 +118,7 @@ A few quick rules:
 - The **Details** step follows the template's **Custom Fields on Create**, as [described above](#details-your-incident-custom-fields).
 - Custom field values merge one field at a time. A template's values fill in the custom fields the incident is declared without; a value set on the **Details** step, or sent in the request's `customFields`, always wins — `0`, `false` and `null` included. A field copied from a monitor custom field still takes the monitor's value.
 - An existing template's custom field values are on its **Custom Fields** card, next to its other cards.
-- The template's **Owner - Teams** and **Owner - Users** are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. Declaring from a template in the dashboard adds them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added, so it goes to them rather than to the project's owners.
+- The template's **Owners** are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. Declaring from a template in the dashboard adds them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added, so it goes to them rather than to the project's owners.
 
 ## Declaring automatically from monitor criteria
 
@@ -132,7 +131,7 @@ Each entry has:
 - **Incident Description** — also templated.
 - **On-Call → On-Call Policies** — policies executed when this incident is created.
 - **Incident Roles** — pre-assign team members to roles.
-- **Ownership & Labels → Owner Teams**, **Owner Users**, **Labels**.
+- **Ownership & Labels → Owners** (people and teams, picked from one list), **Labels**.
 - **Advanced Options → Auto Resolve Incident** (resolves the incident automatically when the criteria stop matching), **Show Incident on Status Page**, **Private Incident** and **Remediation Notes**.
 
 For the full list of `{{variable}}` placeholders you can use in the title, description and remediation notes, see [Incident & Alert Templating](/docs/monitor/incident-alert-templating).
