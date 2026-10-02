@@ -1,7 +1,6 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
-import SelectEntityField from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
 
@@ -61,7 +60,6 @@ import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import Icon from "../Icon/Icon";
 import Filter from "../ModelFilter/Filter";
 import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
-import OrderedStatesList from "../OrderedStatesList/OrderedStatesList";
 import Pill from "../Pill/Pill";
 import Table from "../Table/Table";
 import { getEmptyTableMessage } from "../Table/EmptyTableMessage";
@@ -167,7 +165,6 @@ export const REORDER_FAILED: string = "The new order could not be saved.";
 export enum ShowAs {
   Table,
   List,
-  OrderedStatesList,
 }
 
 /*
@@ -327,6 +324,16 @@ export interface BaseTableProps<
   onBeforeEdit?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
   onBeforeDelete?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
   /*
+   * Rows that can never be deleted - a project's built-in states, say - and
+   * why: the reason, or undefined for a row that can be deleted. Such a row
+   * keeps Delete in its menu, locked, with the reason as its tooltip, and a
+   * bulk Delete that includes it skips it and lists it, with the reason,
+   * among the rows it could not delete.
+   */
+  getDeleteDisabledReason?:
+    | ((item: TBaseModel) => string | undefined)
+    | undefined;
+  /*
    * Supplies the per-row Delete confirmation's wording for the row that was
    * clicked. Runs after onBeforeDelete and before the dialog opens, so it may
    * fetch; if it throws, the dialog does not open and the row shows the error.
@@ -340,13 +347,6 @@ export interface BaseTableProps<
   dragDropIdField?: keyof TBaseModel | undefined;
   dragDropIndexField?: keyof TBaseModel | undefined;
   createEditModalWidth?: ModalWidth | undefined;
-  orderedStatesListProps?: {
-    titleField: keyof TBaseModel;
-    descriptionField?: keyof TBaseModel | undefined;
-    orderField: keyof TBaseModel;
-    shouldAddItemInTheEnd?: boolean;
-    shouldAddItemInTheBeginning?: boolean;
-  };
   onViewComplete?: ((item: TBaseModel) => void) | undefined;
   createEditFromRef?:
     | undefined
@@ -684,9 +684,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     });
 
   const isColumnCustomizationEnabled: boolean = Boolean(
-    !props.disableColumnCustomization &&
-      props.userPreferencesKey &&
-      showAs !== ShowAs.OrderedStatesList,
+    !props.disableColumnCustomization && props.userPreferencesKey,
   );
 
   type ReadStoredColumnPreferenceFunction = () => ColumnPreference | null;
@@ -962,9 +960,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   useEffect(() => {
     return TableFilterUrlState.claimKey(urlStateKey);
   }, [urlStateKey]);
-
-  const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] =
-    useState<number | null>(null);
 
   const [onBeforeFetchData, setOnBeforeFetchData] = useState<
     TBaseModel | undefined
@@ -2527,16 +2522,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const showFilterButton: boolean = props.filters.length > 0;
 
     /*
-     * because ordered list add button is inside the table and not on the card
-     * header. Without create permission the button is shown locked rather than
+     * Without create permission the button is shown locked rather than
      * removed, so the user can see the action exists and read why it is not
      * available to them.
      */
-    if (
-      props.isCreateable &&
-      createGate.show &&
-      showAs !== ShowAs.OrderedStatesList
-    ) {
+    if (props.isCreateable && createGate.show) {
       headerbuttons.push({
         title: getCreateButtonTitle(),
         buttonStyle: ButtonStyleType.NORMAL,
@@ -3025,6 +3015,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
           disabled: deleteGate.disabled,
           tooltip: deleteGate.tooltip,
+          getDisabledReason: props.getDeleteDisabledReason,
           onClick: async (
             item: TBaseModel,
             onCompleteAction: VoidFunction,
@@ -3191,7 +3182,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             // remove items from inProgressItems
             inProgressItems.splice(inProgressItems.indexOf(item), 1);
 
+            /*
+             * A row the table says can never be deleted is not sent to the
+             * server at all: it is listed with the reason, like a row the
+             * server refused.
+             */
+            const deleteDisabledReason: string | undefined =
+              props.getDeleteDisabledReason
+                ? props.getDeleteDisabledReason(item)
+                : undefined;
+
             try {
+              if (deleteDisabledReason) {
+                throw new BadDataException(deleteDisabledReason);
+              }
+
               await props.callbacks.deleteItem(item);
               successItems.push(item);
             } catch (err) {
@@ -3800,75 +3805,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }}
         actionButtons={actionButtonSchema}
       />,
-    );
-  };
-
-  const getOrderedStatesList: GetReactElementFunction = (): ReactElement => {
-    if (!props.orderedStatesListProps) {
-      throw new BadDataException(
-        "props.orderedStatesListProps required when showAs === ShowAs.OrderedStatesList",
-      );
-    }
-
-    let getTitleElement:
-      | ((
-          item: TBaseModel,
-          onBeforeFetchData?: TBaseModel | undefined,
-        ) => ReactElement)
-      | undefined = undefined;
-
-    let getDescriptionElement:
-      | ((item: TBaseModel) => ReactElement)
-      | undefined = undefined;
-
-    for (const column of props.columns) {
-      const key: string | undefined = Object.keys(
-        column.field as SelectEntityField<TBaseModel>,
-      )[0];
-
-      if (key === props.orderedStatesListProps.titleField) {
-        getTitleElement = column.getElement;
-      }
-
-      if (key === props.orderedStatesListProps.descriptionField) {
-        getDescriptionElement = column.getElement;
-      }
-    }
-
-    return (
-      <OrderedStatesList<TBaseModel>
-        error={error}
-        isLoading={isLoading}
-        data={data}
-        id={props.id}
-        titleField={props.orderedStatesListProps?.titleField}
-        descriptionField={props.orderedStatesListProps?.descriptionField}
-        orderField={props.orderedStatesListProps?.orderField}
-        shouldAddItemInTheBeginning={
-          props.orderedStatesListProps.shouldAddItemInTheBeginning
-        }
-        shouldAddItemInTheEnd={
-          props.orderedStatesListProps.shouldAddItemInTheEnd
-        }
-        noItemsMessage={getNoItemsMessage()}
-        onRefreshClick={async () => {
-          await fetchItems();
-        }}
-        onCreateNewItem={
-          props.isCreateable && getActionGate(ModelAction.Create).show
-            ? (order: number) => {
-                setOrderedStatesListNewItemOrder(order);
-                setModalType(ModalType.Create);
-                setShowModal(true);
-              }
-            : undefined
-        }
-        createDisabledReason={getActionGate(ModelAction.Create).tooltip}
-        singularLabel={props.singularName || model.singularName || "Item"}
-        actionButtons={actionButtonSchema}
-        getTitleElement={getTitleElement}
-        getDescriptionElement={getDescriptionElement}
-      />
     );
   };
 
@@ -5015,21 +4951,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       );
     }
 
-    return (
-      <div>
-        {props.cardProps && (
-          <Card
-            {...props.cardProps}
-            buttons={headerButtons}
-            title={getCardTitle(props.cardProps.title || "")}
-          >
-            {getOrderedStatesList()}
-          </Card>
-        )}
-
-        {!props.cardProps && getOrderedStatesList()}
-      </div>
-    );
+    return <></>;
   };
 
   return (
@@ -5047,17 +4969,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             miscDataProps: JSONObject,
             formValues: JSONObject,
           ) => {
-            if (
-              showAs === ShowAs.OrderedStatesList &&
-              props.orderedStatesListProps?.orderField &&
-              orderedStatesListNewItemOrder
-            ) {
-              item.setColumnValue(
-                props.orderedStatesListProps.orderField as string,
-                orderedStatesListNewItemOrder,
-              );
-            }
-
             if (props.onBeforeCreate) {
               item = await props.onBeforeCreate(
                 item,
