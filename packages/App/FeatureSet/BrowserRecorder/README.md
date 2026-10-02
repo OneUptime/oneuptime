@@ -605,6 +605,43 @@ nobody, so a page from an older recorder cannot undo it either.
   `SessionReplayFidelityNotice` enum, so the player renders it as an unknown
   code rather than with dedicated copy.
 
+## Idle pause
+
+A tab nobody is using records nothing after `SESSION_REPLAY_IDLE_PAUSE_MS`
+(five minutes). Until then it records as usual: nobody can know the user has
+gone sooner.
+
+- **Activity is a person.** It is `keydown`, `mousedown`, `mousemove`, `wheel`,
+  `touchstart` and `touchmove`, heard directly on the document (capture phase,
+  passive), plus rrweb's pointer, touch and drag sources. Mutations, scrolls,
+  input values, style rules, canvas frames and media events are not activity:
+  a page produces all of them on its own, and counting them kept the idle
+  clocks from ever running on such pages. keydown is heard because rrweb
+  records none: someone writing in a rich-text editor reaches the recording
+  only as mutations.
+- **Pausing** happens on the flush tick (`maybePauseForIdle`). It reports the
+  page's vitals as a hidden tab would, puts an `oneuptime.idle-paused` marker
+  at the end of the footage, closes the open chunk through the ordinary path,
+  drops the in-memory pre-roll and stops rrweb.
+- **While paused**, `emitCustomEvent` drops rather than queues. The console,
+  network, error and route recorders are `isSuspended`, so they neither
+  record nor spend their caps. Triggers other than `Manual` are ignored,
+  `track()` is dropped, and no session id goes on the page's requests. Every
+  seal (`getRecordingEndUnixMs`) is dated at the last activity, and the
+  chunker clamps that to the end of the footage (the pause marker).
+- **Resuming** happens on the next input (`resumeFromIdlePause`, deferred a
+  tick). rrweb starts again, which takes the snapshot, followed by an
+  `oneuptime.idle-resumed` marker and, if the stream last said `hidden`, a
+  `visible` one. It is the same session, the same tab and the next chunk
+  index. `captureSession()` resumes too, without counting as input.
+- **Rollovers while paused** do not start a session on an empty room. A
+  duration cap, a lost store or a sibling's rotation seals this tab's part and
+  waits, as an idle seal does (`sealedForIdle`). The user's return starts or
+  adopts the next session through `switchSession`, which resumes capture.
+
+The player draws the stretch between the two markers as a "paused" band and
+always skips it (`ReplayPlaybackIntent.shouldAutoSkipBand`).
+
 ## Offline mode
 
 Recording never depends on the network. When the visitor loses their

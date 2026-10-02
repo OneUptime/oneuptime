@@ -1212,6 +1212,53 @@ describe("Recorder idle pause (#4208)", (): void => {
       );
     });
 
+    /*
+     * #4206 ends a session when identify() names a different user, and
+     * starts the new user's at once. Arriving while paused - a background
+     * re-authentication, a shared device - the session that ends is still
+     * dated where its footage ended, not when the call came, and the new
+     * user's session opens on a snapshot of its own rather than inheriting
+     * the stretch nobody recorded.
+     */
+    it("ends a paused session at its footage when identify() names a different user", async (): Promise<void> => {
+      const instance: Recorder = startRecorder({ captureUserIdentity: true });
+
+      instance.identify("alice@example.com");
+
+      const aliceSessionId: string = instance.getSessionId();
+
+      await drainMicrotasks();
+      await waitForPause();
+      await advance(9 * 60 * 1000);
+
+      instance.identify("bob@example.com");
+      await advance(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+
+      const bobSessionId: string = instance.getSessionId();
+
+      expect(bobSessionId).not.toBe(aliceSessionId);
+
+      const sealed: Array<CapturedFrame> = seals(framesFor(aliceSessionId));
+
+      expect(sealed).toHaveLength(1);
+      expect(sealed[0]?.envelope.chunkEndOffsetMs).toBe(
+        SESSION_REPLAY_IDLE_PAUSE_MS,
+      );
+
+      const chunkZero: CapturedFrame = framesFor(
+        bobSessionId,
+      )[0] as CapturedFrame;
+
+      expect(chunkZero.envelope.chunkIndex).toBe(0);
+      expect(chunkZero.envelope.hasFullSnapshot).toBe(true);
+      expect(JSON.stringify(chunkZero.events)).toContain(
+        '"rotationReason":"identity-change"',
+      );
+
+      /* The new session owes nobody a resume marker. */
+      expect(resumedMarkers(framesFor(bobSessionId))).toHaveLength(0);
+    });
+
     it("lets a sibling tab move the session on without starting to record this one, until the user is back here", async (): Promise<void> => {
       const instance: Recorder = startRecorder();
       const firstSessionId: string = instance.getSessionId();
