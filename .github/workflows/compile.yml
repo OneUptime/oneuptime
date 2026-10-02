@@ -347,7 +347,6 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: sudo apt-get update
       - name: Install Common dependencies
         uses: ./.github/actions/npm-install
         with:
