@@ -77,13 +77,15 @@ export const MIXED_RETENTION_TELEMETRY_TABLES: Array<string> = [
  * all at once, and cheaply: a pinned partition is nearly all expired, and
  * one merge keeps only the rest.
  *
- * From then on rows go as they expire, which is not free either.
- * `retentionDate` is stamped per row at ingest, so a day's rows expire over
- * a whole day, and while they do the partition is rewritten each time the
- * timeout allows - six or seven rewrites per retention it holds, each
- * smaller than the last, roughly three times the partition's size in all.
- * That is the price of retention that can differ by service, severity and
- * monitor; keeping the setting cost a disk.
+ * From then on rows go as they expire, which was not free either under
+ * `TTL retentionDate DELETE`. `retentionDate` is stamped per row at ingest,
+ * so a day's rows expire over a whole day, and while they do the partition
+ * is rewritten each time the timeout allows - six or seven rewrites per
+ * retention it holds, each smaller than the last, roughly three times the
+ * partition's size in all. RoundTtlToDayOnMixedRetentionTables, later in
+ * the chain, rounds the TTL up to the day so that a day's rows of one
+ * retention expire together: one merge per retention, and a part drop for
+ * the last one.
  */
 export default class DropTtlOnlyDropPartsFromMixedRetentionTables extends DataMigrationBase {
   public constructor() {

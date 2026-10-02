@@ -63,7 +63,7 @@ export const ROLLUP_ELIGIBLE_ON_CALL_ADMIN_EVENT_TYPES: ReadonlySet<Notification
   ]);
 
 /*
- * Everything else - the other 42 members. Derived from the enum by exclusion
+ * Everything else - the other 43 members. Derived from the enum by exclusion
  * rather than listed by hand, so the two sets are a partition by construction
  * and cannot drift: there is no edit that adds a member to both, and no edit
  * that drops one from both.

@@ -2886,10 +2886,29 @@ function stubClickhouse(data: {
   return { inserted, statements };
 }
 
+/*
+ * A header as buildProvisionalHeaderStatement returns it: every column
+ * under its own name, except the identity and the tags, which come back
+ * under the latest* aliases of the "newest version that has them" read.
+ */
 function headerRowOf(
   overrides?: Partial<ProvisionalSessionHeader>,
 ): JSONObject {
-  return makeProvisionalHeader(overrides) as unknown as JSONObject;
+  const {
+    identifiedUserKey,
+    identifiedUserLabel,
+    identifiedUserTraits,
+    tags,
+    ...rest
+  }: ProvisionalSessionHeader = makeProvisionalHeader(overrides);
+
+  return {
+    ...rest,
+    latestIdentifiedUserKey: identifiedUserKey,
+    latestIdentifiedUserLabel: identifiedUserLabel,
+    latestIdentifiedUserTraits: identifiedUserTraits,
+    latestTags: tags,
+  } as unknown as JSONObject;
 }
 
 describe("Rum:FinalizeSessions project index reconcile cursor", () => {

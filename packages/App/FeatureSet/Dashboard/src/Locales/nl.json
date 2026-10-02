@@ -6931,5 +6931,8 @@
   "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "Lees, wijzig en verwijder deze resource met de REST-API van OneUptime. Alle opdrachten hieronder draaien tegen deze OneUptime.",
   "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "Toon en maak deze resources met de REST-API van OneUptime. Alle opdrachten hieronder draaien tegen deze OneUptime.",
   "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Werk met deze resource vanuit een AI-assistent zoals Claude, GitHub Copilot of Cursor.",
-  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Werk met deze resources vanuit een AI-assistent zoals Claude, GitHub Copilot of Cursor."
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Werk met deze resources vanuit een AI-assistent zoals Claude, GitHub Copilot of Cursor.",
+  "Missed call": "Gemiste oproep",
+  "A call to an incoming call policy you own ends without reaching anyone.": "Een gesprek naar een beleid voor inkomende gesprekken waarvan u eigenaar bent, eindigt zonder dat iemand is bereikt.",
+  "Notify me about calls to incoming call policies I own.": "Breng mij op de hoogte van gesprekken naar beleid voor inkomende gesprekken waarvan ik eigenaar ben."
 }

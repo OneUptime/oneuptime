@@ -55,6 +55,7 @@ sequenceDiagram
         OneUptime->>Twilio: TwiML: Play no-answer message
         Twilio->>Caller: "No one is available..."
         Twilio->>Caller: Hangup
+        OneUptime->>OneUptime: Notify policy owners of the missed call
     end
 ```
 
@@ -228,10 +229,45 @@ To view incoming call history:
 The logs show:
 
 - Caller phone number
-- Call status (Completed, No Answer, Failed, etc.)
+- Call status (Completed, No Answer, Caller Hung Up, Failed, etc.)
 - Who answered the call
 - Call duration
 - Timestamp
+
+Click **View Timeline** on a call to see every person who was rung and how each attempt ended.
+
+## Missed Calls
+
+A call is missed when it ends without reaching anyone:
+
+| Call status    | What happened                                                                                                                                                                      |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No Answer      | Every escalation rule was tried and nobody answered. The caller heard your **No Answer Message**.                                                                                  |
+| Caller Hung Up | The caller hung up while an engineer's phone was ringing.                                                                                                                          |
+| Failed         | Nobody could be rung: no escalation rule had an on-call user with a verified incoming call number (the caller heard your **No One Available Message**), or the policy is disabled. |
+
+### Who Is Notified
+
+When a call is missed, OneUptime notifies the policy's owners: the users and the members of the teams added on the policy's **Owners** page. If the policy has no owners, the project owners are notified instead.
+
+The notification says who called, which number they dialled, why nobody answered, and who was rung and how each attempt ended. It links to the call in the call log.
+
+Owners are emailed by default. Each person can choose other channels (SMS, call, push and more) or switch it off in **User Settings** > **Notification Settings**, under **On-Call** > **Incoming Call Policies** > **Missed call**.
+
+### React to Missed Calls in a Workflow
+
+Incoming call logs are available as workflow triggers:
+
+- **On Create Incoming Call Log** runs when a call comes in.
+- **On Update Incoming Call Log** runs as the call progresses. The update that sets **Ended At** is the end of the call.
+
+To act on missed calls only, for example to post them to Slack or Microsoft Teams or to open a ticket:
+
+1. Add the **On Update Incoming Call Log** trigger. Set **Listen on** to **Ended At**, and select the fields you want to use, such as **Status**, **Caller Phone Number** and **Routing Phone Number**.
+2. Add an **If / Else** step. Check the trigger's **Status**, with the comparison **is not equal to** and `Completed`.
+3. Connect your steps to the **Yes** port.
+
+A workflow can read call logs with **Find One** and **Find Many**, but it cannot create or change them.
 
 ## User Phone Number Configuration
 

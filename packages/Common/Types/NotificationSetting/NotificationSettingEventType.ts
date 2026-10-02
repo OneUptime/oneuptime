@@ -62,6 +62,9 @@ enum NotificationSettingEventType {
   SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION = "Send SLO status change notification when I am the owner of the SLO",
   SEND_SLO_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the SLO",
 
+  // Incoming Call Policies
+  SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION = "Send missed call notification when I am the owner of the incoming call policy",
+
   // On Call Notifications
   SEND_WHEN_USER_IS_ON_CALL_ROSTER = "When user is on-call roster",
   SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER = "When user is next on-call roster",

@@ -80,16 +80,22 @@ for (const baseModelService of Services) {
 
   const modelId: string = `${Text.pascalCaseToDashes(model.tableName!)}`;
 
+  // Mirrors BaseModelComponent.getComponents: see EnableWorkflowOn.writeSteps.
+  const offersWriteSteps: boolean = model.enableWorkflowOn.writeSteps !== false;
+
   if (model.enableWorkflowOn.create) {
     Components[`${modelId}-on-create`] = new OnCreateBaseModel(
       baseModelService as any,
     );
-    Components[`${modelId}-create-one`] = new CreateOneBaseModel(
-      baseModelService as any,
-    );
-    Components[`${modelId}-create-many`] = new CreateManyBaseModel(
-      baseModelService as any,
-    );
+
+    if (offersWriteSteps) {
+      Components[`${modelId}-create-one`] = new CreateOneBaseModel(
+        baseModelService as any,
+      );
+      Components[`${modelId}-create-many`] = new CreateManyBaseModel(
+        baseModelService as any,
+      );
+    }
   }
 
   if (model.enableWorkflowOn.read) {
@@ -105,24 +111,30 @@ for (const baseModelService of Services) {
     Components[`${modelId}-on-update`] = new OnUpdateBaseModel(
       baseModelService as any,
     );
-    Components[`${modelId}-update-one`] = new UpdateOneBaseModel(
-      baseModelService as any,
-    );
-    Components[`${modelId}-update-many`] = new UpdateManyBaseModel(
-      baseModelService as any,
-    );
+
+    if (offersWriteSteps) {
+      Components[`${modelId}-update-one`] = new UpdateOneBaseModel(
+        baseModelService as any,
+      );
+      Components[`${modelId}-update-many`] = new UpdateManyBaseModel(
+        baseModelService as any,
+      );
+    }
   }
 
   if (model.enableWorkflowOn.delete) {
     Components[`${modelId}-on-delete`] = new OnDeleteBaseModel(
       baseModelService as any,
     );
-    Components[`${modelId}-delete-one`] = new DeleteOneBaseModel(
-      baseModelService as any,
-    );
-    Components[`${modelId}-delete-many`] = new DeleteManyBaseModel(
-      baseModelService as any,
-    );
+
+    if (offersWriteSteps) {
+      Components[`${modelId}-delete-one`] = new DeleteOneBaseModel(
+        baseModelService as any,
+      );
+      Components[`${modelId}-delete-many`] = new DeleteManyBaseModel(
+        baseModelService as any,
+      );
+    }
   }
 }
 

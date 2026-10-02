@@ -1,5 +1,6 @@
 import { SESSION_REPLAY_MAX_OFFLINE_DELAY_MS } from "../../../Types/Rum/SessionReplay";
 import SessionIdentity, {
+  SessionIdentifyDecision,
   SessionRotationReason,
   StoredSessionState,
 } from "../../../Utils/Rum/SessionIdentity";
@@ -22,6 +23,53 @@ const makeState: (
 };
 
 describe("SessionIdentity", () => {
+  /*
+   * #4206: what identify() does to the session it is called in. The
+   * comparison must agree with how the server keys a reference (trimmed,
+   * case kept), or one person could split a session or two could share one.
+   */
+  describe("isSameUserRef", () => {
+    test("compares trimmed, as the server keys a reference", () => {
+      expect(SessionIdentity.isSameUserRef("user-42", "user-42")).toBe(true);
+      expect(SessionIdentity.isSameUserRef(" user-42 ", "user-42")).toBe(true);
+      expect(SessionIdentity.isSameUserRef("user-42", "user-7")).toBe(false);
+    });
+
+    test("never folds case: U-1000 and u-1000 may be two customers", () => {
+      expect(SessionIdentity.isSameUserRef("U-1000", "u-1000")).toBe(false);
+    });
+  });
+
+  describe("decideIdentify", () => {
+    test("an anonymous session is attached to the user", () => {
+      expect(SessionIdentity.decideIdentify(null, "user-42")).toBe(
+        SessionIdentifyDecision.Attach,
+      );
+      expect(SessionIdentity.decideIdentify("   ", "user-42")).toBe(
+        SessionIdentifyDecision.Attach,
+      );
+    });
+
+    test("the same user changes nothing", () => {
+      expect(SessionIdentity.decideIdentify("user-42", " user-42")).toBe(
+        SessionIdentifyDecision.Same,
+      );
+    });
+
+    test("a different user starts a session of their own", () => {
+      expect(SessionIdentity.decideIdentify("user-42", "user-7")).toBe(
+        SessionIdentifyDecision.SwitchUser,
+      );
+      expect(SessionIdentity.decideIdentify("U-1000", "u-1000")).toBe(
+        SessionIdentifyDecision.SwitchUser,
+      );
+    });
+
+    test("the rotation it causes has a reason of its own", () => {
+      expect(SessionRotationReason.IdentityChange).toBe("identity-change");
+    });
+  });
+
   describe("shouldRotateSession", () => {
     it("rotates when there is no stored session", () => {
       const decision: ReturnType<typeof SessionIdentity.shouldRotateSession> =

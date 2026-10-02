@@ -37,16 +37,22 @@ jobs:
           cache: true
 
       - name: Install Common dependencies
-        run: cd packages/Common && npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
 
       - name: Install root dependencies
-        run: npm install
+        uses: ./.github/actions/npm-install
 
       - name: Install Script dependencies
-        run: cd Scripts && npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Scripts
 
       - name: Install generator test dependencies
-        run: cd Scripts/TerraformProvider && npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Scripts/TerraformProvider
 
       - name: Run generator unit tests
         run: cd Scripts/TerraformProvider && npm test

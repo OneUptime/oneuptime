@@ -1,0 +1,45 @@
+name: npm install, retried on network errors
+description: >-
+  Runs `npm install` (or `npm ci`) in a directory, and runs it again with
+  backoff when npm failed on a network error -- a connection the registry
+  dropped mid-download, a DNS failure, a 5xx. Any other failure (a peer
+  dependency conflict, a lockfile out of step with package.json) fails on
+  the first attempt. Needs the repository checked out and Node set up; keep
+  actions/setup-node's `cache: npm`, which this does not replace.
+
+# Every workflow installs npm dependencies through this, so that one dropped
+# connection to the registry cannot fail a job (it did, twice, on
+# 2026-10-01). The retry and the test for "network error" live in
+# Scripts/GHA/npm_install.sh, which explains both and has tests in
+# Scripts/GHA/Tests. A `run:` block that installs partway through other
+# commands calls that script directly instead.
+
+inputs:
+  working-directory:
+    description: The directory to install in, relative to the repository root.
+    required: false
+    default: .
+  command:
+    description: The npm command, `install` or `ci`.
+    required: false
+    default: install
+  args:
+    description: >-
+      More arguments for npm, separated by whitespace, such as
+      `--ignore-scripts` or `-g depcheck`. They are split on whitespace and
+      never globbed; quoting is not supported.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: npm ${{ inputs.command }} ${{ inputs.args }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        NPM_INSTALL_COMMAND: ${{ inputs.command }}
+        NPM_INSTALL_ARGS: ${{ inputs.args }}
+      run: |
+        read -ra args <<<"$NPM_INSTALL_ARGS"
+        bash "${GITHUB_WORKSPACE}/Scripts/GHA/npm_install.sh" "$NPM_INSTALL_COMMAND" "${args[@]}"

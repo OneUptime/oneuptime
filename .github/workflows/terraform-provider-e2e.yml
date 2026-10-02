@@ -292,13 +292,22 @@ jobs:
       # OneUptime services stack starts: generation loads the whole codebase
       # through ts-node and shells out to the Go toolchain, and overlapping
       # that memory peak with the running services kills the CI runner.
-      - name: Install dependencies
-        run: |
-          # Clean node_modules to avoid permission issues with npm cache in CI
-          rm -rf packages/Common/node_modules Scripts/node_modules || true
-          npm install
-          cd packages/Common && npm install && cd ../..
-          cd Scripts && npm install && cd ..
+      - name: Clean node_modules
+        # Avoids permission issues with npm cache in CI.
+        run: rm -rf packages/Common/node_modules Scripts/node_modules || true
+
+      - name: Install root dependencies
+        uses: ./.github/actions/npm-install
+
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      - name: Install Script dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Scripts
 
       - name: Generate Terraform provider
         run: npm run generate-terraform-provider

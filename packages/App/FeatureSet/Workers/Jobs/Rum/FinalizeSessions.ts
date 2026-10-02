@@ -567,11 +567,13 @@ export interface ProvisionalSessionHeader {
   identifiedUserKey: string;
   identifiedUserLabel: string;
   /*
-   * From the NEWEST header version, which is the last meta-bearing chunk
-   * the ingest processed: a tag set after chunk 0 and traits from a late
-   * identify() both reach the finalized row this way. The ingest already
-   * gated traits on captureUserIdentity; the finalizer carries what it
-   * stored and never re-derives them.
+   * The identity (key, label, traits) and the tags come from the NEWEST
+   * header version that has them, not simply the newest one (#4206): a
+   * tag set after chunk 0 and traits from a late identify() reach the
+   * finalized row this way, and a later version from a page that named
+   * nobody cannot blank them. The ingest already gated them on
+   * captureUserIdentity; the finalizer carries what it stored and never
+   * re-derives them.
    */
   identifiedUserTraits: Record<string, string>;
   /*
@@ -1075,11 +1077,34 @@ export function buildProvisionalHeaderStatement(data: {
       recorderVersion AS recorderVersion,
       rrwebVersion AS rrwebVersion,
       countryCode AS countryCode,
-      identifiedUserKey AS identifiedUserKey,
-      identifiedUserLabel AS identifiedUserLabel,
-      identifiedUserTraits AS identifiedUserTraits,
+      /*
+       * Who the session belongs to, and its tags, from the newest version
+       * that HAS them rather than the newest version (#4206).
+       *
+       * Every page load and every tab writes header versions of its own,
+       * and one from a page that never called identify() - the login page,
+       * a link opened in a new tab - names nobody. The ingest's carry keeps
+       * such a version from publishing a blank, but the carry is one Redis
+       * value read and rewritten per upload: two uploads of one session
+       * processed at the same moment can each write a version from what
+       * they alone knew. Read this way, the finalized row still names the
+       * person the session was identified as - as long as a merge has not
+       * already collapsed the older versions into the newest one, which is
+       * why this is the backstop and the carry is the fix.
+       *
+       * Window aggregates over the WHERE's rows (every version of this one
+       * session), evaluated before the ORDER BY ... LIMIT 1 below. The
+       * aliases differ from the columns on purpose: ClickHouse resolves an
+       * identifier to a same-named alias, which would turn the condition
+       * into a reference to the window result itself. key, label and
+       * traits share one condition and one ordering, so they come from the
+       * same version.
+       */
+      argMaxIf(identifiedUserKey, version, identifiedUserKey != '') OVER () AS latestIdentifiedUserKey,
+      argMaxIf(identifiedUserLabel, version, identifiedUserKey != '') OVER () AS latestIdentifiedUserLabel,
+      argMaxIf(identifiedUserTraits, version, identifiedUserKey != '') OVER () AS latestIdentifiedUserTraits,
       visitorId AS visitorId,
-      tags AS tags,
+      argMaxIf(tags, version, notEmpty(mapKeys(tags))) OVER () AS latestTags,
       traceIds AS traceIds,
       exceptionFingerprints AS exceptionFingerprints,
       fidelityNotices AS fidelityNotices,
@@ -1341,11 +1366,12 @@ export function parseProvisionalHeaderRow(
     recorderVersion: toTextValue(row["recorderVersion"]),
     rrwebVersion: toTextValue(row["rrwebVersion"]),
     countryCode: toTextValue(row["countryCode"]),
-    identifiedUserKey: toTextValue(row["identifiedUserKey"]),
-    identifiedUserLabel: toTextValue(row["identifiedUserLabel"]),
-    identifiedUserTraits: toStringMapValue(row["identifiedUserTraits"]),
+    /* See buildProvisionalHeaderStatement: the newest version that has them. */
+    identifiedUserKey: toTextValue(row["latestIdentifiedUserKey"]),
+    identifiedUserLabel: toTextValue(row["latestIdentifiedUserLabel"]),
+    identifiedUserTraits: toStringMapValue(row["latestIdentifiedUserTraits"]),
     visitorId: toTextValue(row["visitorId"]),
-    tags: toStringMapValue(row["tags"]),
+    tags: toStringMapValue(row["latestTags"]),
     traceIds: toTextArrayValue(row["traceIds"]),
     exceptionFingerprints: toTextArrayValue(row["exceptionFingerprints"]),
     fidelityNotices: toTextArrayValue(row["fidelityNotices"]),

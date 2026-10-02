@@ -62,6 +62,10 @@ import MetricItemAggMV1m from "Common/Models/AnalyticsModels/MetricItemAggMV1m";
 import { MigrationExecuteOptions } from "Common/Server/Services/AnalyticsDatabaseService";
 import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
+import {
+  RETENTION_TTL_ROUNDED_UP_TO_DAY,
+  RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY,
+} from "Common/Types/AnalyticsDatabase/RetentionTtl";
 import AddTtlOnlyDropPartsToTelemetryV3 from "../../../FeatureSet/Workers/DataMigrations/AddTtlOnlyDropPartsToTelemetryV3";
 import ClickHouseMigrationUtil from "../../../FeatureSet/Workers/DataMigrations/ClickHouseMigrationUtil";
 import DataMigrationBase from "../../../FeatureSet/Workers/DataMigrations/DataMigrationBase";
@@ -238,8 +242,15 @@ describe("DropTtlOnlyDropPartsFromMixedRetentionTables", () => {
 
         expect(model.tableSettings).not.toContain("ttl_only_drop_parts");
 
-        // The rows still expire - one at a time now, not a whole part at once.
-        expect(model.ttlExpression).toBe("retentionDate DELETE");
+        /*
+         * The rows still expire by retentionDate - one at a time now, not a
+         * whole part at once, rounded up to the day since
+         * RoundTtlToDayOnMixedRetentionTables.
+         */
+        expect([
+          RETENTION_TTL_ROUNDED_UP_TO_DAY,
+          RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY,
+        ]).toContain(model.ttlExpression);
       },
     );
   });
