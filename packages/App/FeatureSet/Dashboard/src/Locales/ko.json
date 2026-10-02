@@ -6931,5 +6931,8 @@
   "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "OneUptime REST API로 이 리소스를 읽고, 변경하고, 삭제하세요. 아래 명령은 모두 이 OneUptime에서 실행됩니다.",
   "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "OneUptime REST API로 이 리소스들을 조회하고 만드세요. 아래 명령은 모두 이 OneUptime에서 실행됩니다.",
   "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Claude, GitHub Copilot, Cursor 같은 AI 어시스턴트에서 이 리소스를 다루세요.",
-  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Claude, GitHub Copilot, Cursor 같은 AI 어시스턴트에서 이 리소스들을 다루세요."
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Claude, GitHub Copilot, Cursor 같은 AI 어시스턴트에서 이 리소스들을 다루세요.",
+  "Missed call": "부재중 전화",
+  "A call to an incoming call policy you own ends without reaching anyone.": "귀하가 소유한 수신 통화 정책으로 걸려온 전화가 아무와도 연결되지 않은 채 종료됩니다.",
+  "Notify me about calls to incoming call policies I own.": "내가 소유한 수신 통화 정책으로 걸려온 전화에 대해 알림을 받습니다."
 }

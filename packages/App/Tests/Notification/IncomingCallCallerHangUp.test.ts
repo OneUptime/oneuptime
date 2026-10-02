@@ -10,11 +10,19 @@ import User from "Common/Models/DatabaseModels/User";
 import UserIncomingCallNumber from "Common/Models/DatabaseModels/UserIncomingCallNumber";
 import IncomingCallLogItemService from "Common/Server/Services/IncomingCallLogItemService";
 import IncomingCallLogService from "Common/Server/Services/IncomingCallLogService";
+import IncomingCallMissedCallNotificationService from "Common/Server/Services/IncomingCallMissedCallNotificationService";
 import IncomingCallPolicyEscalationRuleService from "Common/Server/Services/IncomingCallPolicyEscalationRuleService";
 import IncomingCallPolicyPhoneNumberService from "Common/Server/Services/IncomingCallPolicyPhoneNumberService";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
 import UserIncomingCallNumberService from "Common/Server/Services/UserIncomingCallNumberService";
 import UserService from "Common/Server/Services/UserService";
+import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import DatabaseConfig from "Common/Server/DatabaseConfig";
+import ProjectService from "Common/Server/Services/ProjectService";
+import Project from "Common/Models/DatabaseModels/Project";
+import CommonURL from "Common/Types/API/URL";
+import Name from "Common/Types/Name";
+import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import {
   createExpressApp,
   ExpressApplication,
@@ -82,7 +90,11 @@ jest.mock("Common/Server/Utils/Logger", () => {
 jest.mock("Common/Server/Services/IncomingCallPolicyService", () => {
   return {
     __esModule: true,
-    default: { findOneBy: jest.fn(), findOneById: jest.fn() },
+    default: {
+      findOneBy: jest.fn(),
+      findOneById: jest.fn(),
+      findOwners: jest.fn(),
+    },
   };
 });
 
@@ -113,6 +125,7 @@ jest.mock("Common/Server/Services/IncomingCallLogItemService", () => {
     __esModule: true,
     default: {
       create: jest.fn(),
+      findBy: jest.fn(),
       findOneById: jest.fn(),
       updateOneById: jest.fn(),
     },
@@ -164,6 +177,9 @@ const CONFIG_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
 
+const POLICY_NAME: string = "Support Hotline";
+const PROJECT_NAME: string = "Acme";
+const DASHBOARD_URL: string = "https://oneuptime.example/dashboard";
 const POLICY_NUMBER: string = "+14155550102";
 const CALLER_NUMBER: string = "+14155550999";
 const NO_ANSWER_MESSAGE: string = "Nobody could take your call.";
@@ -223,11 +239,15 @@ interface Store {
 
 let store: Store;
 
-const policyService: { findOneBy: JestMock; findOneById: JestMock } =
-  IncomingCallPolicyService as unknown as {
-    findOneBy: JestMock;
-    findOneById: JestMock;
-  };
+const policyService: {
+  findOneBy: JestMock;
+  findOneById: JestMock;
+  findOwners: JestMock;
+} = IncomingCallPolicyService as unknown as {
+  findOneBy: JestMock;
+  findOneById: JestMock;
+  findOwners: JestMock;
+};
 const numberService: { findOneBy: JestMock } =
   IncomingCallPolicyPhoneNumberService as unknown as { findOneBy: JestMock };
 const ruleService: { findOneBy: JestMock } =
@@ -245,10 +265,12 @@ const logService: {
 };
 const attemptService: {
   create: JestMock;
+  findBy: JestMock;
   findOneById: JestMock;
   updateOneById: JestMock;
 } = IncomingCallLogItemService as unknown as {
   create: JestMock;
+  findBy: JestMock;
   findOneById: JestMock;
   updateOneById: JestMock;
 };
@@ -319,6 +341,7 @@ function givenPolicy(data: {
 }): void {
   const policy: IncomingCallPolicy = new IncomingCallPolicy();
   policy.id = POLICY_ID;
+  policy.name = POLICY_NAME;
   policy.projectId = PROJECT_ID;
   policy.projectCallSMSConfigId = CONFIG_ID;
   policy.routingPhoneNumber = new Phone(POLICY_NUMBER);
@@ -420,7 +443,22 @@ function wireDatabase(): void {
         return sameId(row.id, args.id);
       },
     );
-    return Promise.resolve(log ? selectColumns(log, args.select) : null);
+    if (!log) {
+      return Promise.resolve(null);
+    }
+    const row: IncomingCallLog = selectColumns(log, args.select);
+    // The relations the missed call notification selects.
+    if (args.select.incomingCallPolicy) {
+      const policy: IncomingCallPolicy = new IncomingCallPolicy();
+      policy.name = store.policy.name!;
+      row.incomingCallPolicy = policy;
+    }
+    if (args.select.project) {
+      const project: Project = new Project();
+      project.name = PROJECT_NAME;
+      row.project = project;
+    }
+    return Promise.resolve(row);
   });
   logService.updateOneById.mockImplementation((args: any) => {
     const log: IncomingCallLog | undefined = store.logs.find(
@@ -440,6 +478,40 @@ function wireDatabase(): void {
     store.attempts.push(Object.assign(new IncomingCallLogItem(), attempt));
     return Promise.resolve(attempt);
   });
+  attemptService.findBy.mockImplementation((args: any) => {
+    const rows: Array<IncomingCallLogItem> = store.attempts
+      .filter((attempt: IncomingCallLogItem) => {
+        return sameId(attempt.incomingCallLogId, args.query.incomingCallLogId);
+      })
+      .sort((a: IncomingCallLogItem, b: IncomingCallLogItem) => {
+        return a.startedAt!.getTime() - b.startedAt!.getTime();
+      })
+      .map((attempt: IncomingCallLogItem): IncomingCallLogItem => {
+        const row: IncomingCallLogItem = selectColumns(attempt, args.select);
+        const engineer: Engineer | undefined = ENGINEERS.find((e: Engineer) => {
+          return sameId(e.userId, attempt.userId);
+        });
+        if (engineer) {
+          const user: User = new User();
+          user.id = engineer.userId;
+          user.name = new Name(engineer.name);
+          row.user = user;
+        }
+        const rule: IncomingCallPolicyEscalationRule | undefined =
+          store.rules.find((candidate: IncomingCallPolicyEscalationRule) => {
+            return sameId(
+              candidate.id,
+              attempt.incomingCallPolicyEscalationRuleId,
+            );
+          });
+        if (rule) {
+          row.incomingCallPolicyEscalationRule = rule;
+        }
+        return row;
+      });
+    return Promise.resolve(rows);
+  });
+
   attemptService.findOneById.mockImplementation((args: any) => {
     const attempt: IncomingCallLogItem | undefined = store.attempts.find(
       (row: IncomingCallLogItem) => {
@@ -705,6 +777,104 @@ function expectEveryCallClosed(): void {
   }
 }
 
+/*
+ * ------------------------------------------------------------------------
+ * The missed call notification (#4159)
+ * ------------------------------------------------------------------------
+ *
+ * The real notifier runs: it reads the call back from the store above, finds
+ * the policy's owners and builds every channel's message. Only the last hop is
+ * captured - what each owner would be sent - plus the dashboard address, which
+ * would otherwise come from the database.
+ */
+
+const OWNER_DANA: User = makeOwner(
+  "99999999-9999-4999-8999-999999999991",
+  "Dana",
+);
+const OWNER_EVE: User = makeOwner(
+  "99999999-9999-4999-8999-999999999992",
+  "Eve",
+);
+
+function makeOwner(id: string, name: string): User {
+  const owner: User = new User();
+  owner.id = new ObjectID(id);
+  owner.name = new Name(name);
+  return owner;
+}
+
+// Taken before any test spies on it, so the spy can call the real thing.
+const realNotifyOwnersOfMissedCall: typeof IncomingCallMissedCallNotificationService.notifyOwnersOfMissedCall =
+  IncomingCallMissedCallNotificationService.notifyOwnersOfMissedCall.bind(
+    IncomingCallMissedCallNotificationService,
+  );
+
+let pendingNotifications: Array<Promise<void>> = [];
+let sentNotifications: JestMock;
+let seededSettings: JestMock;
+
+function wireMissedCallNotifications(): void {
+  pendingNotifications = [];
+
+  policyService.findOwners.mockResolvedValue([OWNER_DANA, OWNER_EVE]);
+
+  jest
+    .spyOn(DatabaseConfig, "getDashboardUrl")
+    .mockResolvedValue(CommonURL.fromString(DASHBOARD_URL));
+
+  seededSettings = jest
+    .spyOn(UserNotificationSettingService, "ensureSettingExistsForUser")
+    .mockResolvedValue(undefined) as unknown as JestMock;
+
+  sentNotifications = jest
+    .spyOn(UserNotificationSettingService, "sendUserNotification")
+    .mockResolvedValue(undefined) as unknown as JestMock;
+
+  // The webhook does not wait for it, so the test has to.
+  jest
+    .spyOn(
+      IncomingCallMissedCallNotificationService,
+      "notifyOwnersOfMissedCall",
+    )
+    .mockImplementation((data: { incomingCallLogId: ObjectID }) => {
+      const sending: Promise<void> = realNotifyOwnersOfMissedCall(data);
+      pendingNotifications.push(sending);
+      return sending;
+    });
+}
+
+async function missedCallNotificationsSettled(): Promise<void> {
+  while (pendingNotifications.length > 0) {
+    const pending: Array<Promise<void>> = pendingNotifications;
+    pendingNotifications = [];
+    await Promise.all(pending);
+  }
+}
+
+interface SentNotification {
+  to: string;
+  eventType: NotificationSettingEventType;
+  subject: string;
+  vars: Record<string, unknown>;
+  sms: string;
+}
+
+async function notificationsSent(): Promise<Array<SentNotification>> {
+  await missedCallNotificationsSettled();
+  return sentNotifications.mock.calls.map(
+    (call: Array<any>): SentNotification => {
+      return {
+        to: call[0].userId.toString(),
+        eventType: call[0].eventType,
+        subject: call[0].emailEnvelope.subject,
+        vars: call[0].emailEnvelope.vars,
+        sms: call[0].smsMessage.message,
+      };
+    },
+  );
+}
+
 beforeAll(async () => {
   const app: ExpressApplication = createExpressApp();
   app.use(ExpressUrlEncoded({ extended: true }));
@@ -751,9 +921,11 @@ beforeEach(() => {
     ],
   });
   wireDatabase();
+  wireMissedCallNotifications();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await missedCallNotificationsSettled();
   jest.useRealTimers();
 });
 
@@ -1134,4 +1306,286 @@ describe("calls the hang-up fix must leave as they were (#4219's comparisons)", 
       ]);
     },
   );
+});
+
+/*
+ * Issue #4159: a call that ends without reaching anyone is told to the
+ * policy's owners - once per call, after the call log says how it ended, and
+ * never for a call somebody answered.
+ */
+describe("the policy's owners hear about every missed call (#4159)", () => {
+  const DAVE: Engineer = {
+    name: "Dave",
+    userId: new ObjectID("88888888-8888-4888-8888-888888888884"),
+    phone: "+14155551004",
+  };
+
+  function owners(): Array<string> {
+    return [OWNER_DANA.id!.toString(), OWNER_EVE.id!.toString()];
+  }
+
+  function callLogLink(): string {
+    return `${DASHBOARD_URL}/${PROJECT_ID.toString()}/on-call-duty/incoming-call-policies/${POLICY_ID.toString()}/logs/${onlyCallLog().id!.toString()}`;
+  }
+
+  test("the issue's hang-up: each owner is told once, with who was rung and for how long", async () => {
+    givenPolicy({ rules: [makeRule(1, ALICE, 30)], repeatTimes: 1 });
+    const call: InboundCall = new InboundCall();
+
+    clockAt(0);
+    const greeting: TwimlReply = await call.arrive();
+    clockAt(11);
+    await call.dialEnds(greeting.dial, {
+      dialCallStatus: "no-answer",
+      caller: "hung up",
+    });
+
+    const sent: Array<SentNotification> = await notificationsSent();
+
+    expect(
+      sent.map((notification: SentNotification) => {
+        return notification.to;
+      }),
+    ).toEqual(owners());
+
+    for (const notification of sent) {
+      expect(notification.eventType).toBe(
+        NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION,
+      );
+      expect(notification.subject).toBe(
+        `Missed call from ${CALLER_NUMBER} to ${POLICY_NAME}`,
+      );
+      expect(notification.vars).toMatchObject({
+        policyName: POLICY_NAME,
+        projectName: PROJECT_NAME,
+        callerPhoneNumber: CALLER_NUMBER,
+        routingPhoneNumber: POLICY_NUMBER,
+        result: "Caller hung up before anyone answered",
+        explanation:
+          "The caller hung up after waiting 11 seconds, before anyone answered.",
+        incomingCallLogViewLink: callLogLink(),
+        isOwner: "true",
+        hasAttempts: "true",
+      });
+      expect(notification.vars["attempts"]).toEqual([
+        {
+          position: "1",
+          userName: "Alice",
+          details: `Rule 1 · ${ALICE.phone} · Caller hung up while ringing after 11 seconds`,
+        },
+      ]);
+      expect(notification.sms).toContain(
+        `${CALLER_NUMBER} called ${POLICY_NAME}. Caller hung up before anyone answered.`,
+      );
+    }
+
+    expect(seededSettings).toHaveBeenCalledTimes(2);
+  });
+
+  test("nobody answers: nothing while the hunt goes on, then one message listing every attempt", async () => {
+    givenPolicy({ rules: [makeRule(1, ALICE, 20), makeRule(2, BOB, 20)] });
+    const call: InboundCall = new InboundCall();
+
+    clockAt(0);
+    const greeting: TwimlReply = await call.arrive();
+    clockAt(24);
+    const toBob: TwimlReply = await call.dialEnds(greeting.dial, {
+      dialCallStatus: "no-answer",
+      caller: "on the line",
+    });
+
+    // Still ringing Bob: not missed yet.
+    expect(await notificationsSent()).toEqual([]);
+
+    clockAt(48);
+    const goodbye: TwimlReply = await call.dialEnds(toBob.dial, {
+      dialCallStatus: "no-answer",
+      caller: "on the line",
+    });
+    expect(goodbye.says).toEqual([NO_ANSWER_MESSAGE]);
+
+    const sent: Array<SentNotification> = await notificationsSent();
+
+    expect(sent).toHaveLength(2);
+    expect(sent[0]!.vars).toMatchObject({
+      result: "Nobody answered",
+      incomingCallLogViewLink: callLogLink(),
+    });
+    expect(sent[0]!.vars["attempts"]).toEqual([
+      {
+        position: "1",
+        userName: "Alice",
+        details: `Rule 1 · ${ALICE.phone} · No answer after 24 seconds`,
+      },
+      {
+        position: "2",
+        userName: "Bob",
+        details: `Rule 2 · ${BOB.phone} · No answer after 24 seconds`,
+      },
+    ]);
+  });
+
+  test("an answered call tells nobody", async () => {
+    givenPolicy({ rules: [makeRule(1, ALICE, 30)], repeatTimes: 1 });
+    const call: InboundCall = new InboundCall();
+
+    clockAt(0);
+    const greeting: TwimlReply = await call.arrive();
+    clockAt(125);
+    await call.dialEnds(greeting.dial, {
+      dialCallStatus: "completed",
+      dialCallDuration: 118,
+      caller: "hung up",
+    });
+
+    expect(onlyCallLog().status).toBe(IncomingCallStatus.Completed);
+    expect(onlyCallLog().answeredByUserId?.toString()).toBe(
+      ALICE.userId.toString(),
+    );
+    expect(await notificationsSent()).toEqual([]);
+    expect(
+      IncomingCallMissedCallNotificationService.notifyOwnersOfMissedCall,
+    ).not.toHaveBeenCalled();
+  });
+
+  test("Twilio repeating the callback after the call ended tells nobody twice", async () => {
+    givenPolicy({ rules: [makeRule(1, ALICE, 30)], repeatTimes: 1 });
+    const call: InboundCall = new InboundCall();
+
+    clockAt(0);
+    const greeting: TwimlReply = await call.arrive();
+    clockAt(11);
+    await call.dialEnds(greeting.dial, {
+      dialCallStatus: "no-answer",
+      caller: "hung up",
+    });
+    expect(await notificationsSent()).toHaveLength(2);
+
+    clockAt(13);
+    const repeated: TwimlReply = await call.dialEnds(greeting.dial, {
+      dialCallStatus: "no-answer",
+      caller: "hung up",
+    });
+
+    expect(repeated.status).toBe(200);
+    expect(repeated.dial).toBeNull();
+    expect(onlyCallLog().endedAt).toEqual(at(11));
+    expect(store.attempts).toHaveLength(1);
+    expect(await notificationsSent()).toHaveLength(2);
+  });
+
+  test("a disabled policy: the call is logged, ended and told about, and nobody was rung", async () => {
+    givenPolicy({ rules: [makeRule(1, ALICE, 30)] });
+    store.policy.isEnabled = false;
+    const call: InboundCall = new InboundCall();
+
+    clockAt(0);
+    const reply: TwimlReply = await call.arrive();
+
+    expect(reply.says).toEqual(["Sorry, this service is currently disabled."]);
+    expect(reply.dial).toBeNull();
+
+    const log: IncomingCallLog = onlyCallLog();
+    expect(log.status).toBe(IncomingCallStatus.Failed);
+    expect(log.statusMessage).toBe("Policy is disabled");
+    expect(log.endedAt).toEqual(at(0));
+    expect(store.attempts).toEqual([]);
+
+    const sent: Array<SentNotification> = await notificationsSent();
+    expect(sent).toHaveLength(2);
+    expect(sent[0]!.vars).toMatchObject({
+      result: "Policy is disabled",
+      hasAttempts: "false",
+    });
+  });
+
+  test("nobody available: the caller hears so, and the owners are told why", async () => {
+    // Dave has no verified incoming call number, so his rule resolves to nobody.
+    givenPolicy({ rules: [makeRule(1, DAVE, 30)] });
+    const call: InboundCall = new InboundCall();
+
+    clockAt(0);
+    const reply: TwimlReply = await call.arrive();
+
+    expect(reply.says).toEqual(["Nobody is on call."]);
+    expect(onlyCallLog().status).toBe(IncomingCallStatus.Failed);
+    expect(onlyCallLog().statusMessage).toBe(
+      "No on-call user available in any escalation rule",
+    );
+
+    const sent: Array<SentNotification> = await notificationsSent();
+    expect(sent).toHaveLength(2);
+    expect(sent[0]!.vars).toMatchObject({
+      result: "Nobody was available",
+      hasAttempts: "false",
+    });
+    expectEveryCallClosed();
+  });
+
+  test("a policy without owners tells the project owners instead", async () => {
+    const projectOwner: User = makeOwner(
+      "99999999-9999-4999-8999-999999999993",
+      "Pat",
+    );
+    policyService.findOwners.mockResolvedValue([]);
+    const getProjectOwners: JestMock = jest
+      .spyOn(ProjectService, "getOwners")
+      .mockResolvedValue([projectOwner]) as unknown as JestMock;
+
+    givenPolicy({ rules: [makeRule(1, ALICE, 30)], repeatTimes: 1 });
+    const call: InboundCall = new InboundCall();
+
+    clockAt(0);
+    const greeting: TwimlReply = await call.arrive();
+    clockAt(11);
+    await call.dialEnds(greeting.dial, {
+      dialCallStatus: "no-answer",
+      caller: "hung up",
+    });
+
+    const sent: Array<SentNotification> = await notificationsSent();
+
+    expect(getProjectOwners).toHaveBeenCalledWith(PROJECT_ID);
+    expect(
+      sent.map((notification: SentNotification) => {
+        return notification.to;
+      }),
+    ).toEqual([projectOwner.id!.toString()]);
+    expect(sent[0]!.vars).not.toHaveProperty("isOwner");
+
+    getProjectOwners.mockRestore();
+  });
+
+  test("every missed call in a three-engineer hunt is told about exactly once", async () => {
+    for (const hangUpOnAttempt of [1, 2, 3]) {
+      givenPolicy({
+        rules: [
+          makeRule(1, ALICE, 20),
+          makeRule(2, BOB, 20),
+          makeRule(3, CAROL, 20),
+        ],
+      });
+      sentNotifications.mockClear();
+      const call: InboundCall = new InboundCall();
+
+      clockAt(0);
+      let reply: TwimlReply = await call.arrive();
+      for (let attempt: number = 1; attempt < hangUpOnAttempt; attempt++) {
+        clockAt(attempt * 24);
+        reply = await call.dialEnds(reply.dial, {
+          dialCallStatus: "no-answer",
+          caller: "on the line",
+        });
+      }
+      clockAt(hangUpOnAttempt * 24 - 10);
+      await call.dialEnds(reply.dial, {
+        dialCallStatus: "no-answer",
+        caller: "hung up",
+      });
+
+      const sent: Array<SentNotification> = await notificationsSent();
+      expect(sent).toHaveLength(2);
+      expect(sent[0]!.vars["attempts"]).toHaveLength(hangUpOnAttempt);
+    }
+  });
 });

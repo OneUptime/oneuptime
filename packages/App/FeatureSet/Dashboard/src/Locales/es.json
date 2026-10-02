@@ -6931,5 +6931,8 @@
   "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "Lee, cambia y elimina este recurso con la API REST de OneUptime. Todos los comandos de abajo se ejecutan contra esta instancia de OneUptime.",
   "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "Lista y crea estos recursos con la API REST de OneUptime. Todos los comandos de abajo se ejecutan contra esta instancia de OneUptime.",
   "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Trabaja con este recurso desde un asistente de IA como Claude, GitHub Copilot o Cursor.",
-  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Trabaja con estos recursos desde un asistente de IA como Claude, GitHub Copilot o Cursor."
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Trabaja con estos recursos desde un asistente de IA como Claude, GitHub Copilot o Cursor.",
+  "Missed call": "Llamada perdida",
+  "A call to an incoming call policy you own ends without reaching anyone.": "Una llamada a una política de llamadas entrantes de la que es propietario termina sin contactar con nadie.",
+  "Notify me about calls to incoming call policies I own.": "Notificarme sobre las llamadas a las políticas de llamadas entrantes de las que soy propietario."
 }

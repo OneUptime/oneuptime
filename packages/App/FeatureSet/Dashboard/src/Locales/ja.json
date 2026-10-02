@@ -6931,5 +6931,8 @@
   "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "OneUptime の REST API で、このリソースを読み取り、変更し、削除します。以下のコマンドはすべてこの OneUptime に対して実行されます。",
   "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "OneUptime の REST API で、これらのリソースを一覧表示し、作成します。以下のコマンドはすべてこの OneUptime に対して実行されます。",
   "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Claude、GitHub Copilot、Cursor などの AI アシスタントから、このリソースを操作します。",
-  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Claude、GitHub Copilot、Cursor などの AI アシスタントから、これらのリソースを操作します。"
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Claude、GitHub Copilot、Cursor などの AI アシスタントから、これらのリソースを操作します。",
+  "Missed call": "不在着信",
+  "A call to an incoming call policy you own ends without reaching anyone.": "あなたが所有する着信通話ポリシーへの通話が、誰にもつながらずに終了します。",
+  "Notify me about calls to incoming call policies I own.": "自分が所有する着信通話ポリシーへの通話について通知します。"
 }

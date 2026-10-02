@@ -222,6 +222,56 @@ describe("user settings > notification settings", () => {
     });
 
     /*
+     * Issue #4159: owners of an Incoming Call Policy are told about missed
+     * calls, and this row is where each of them picks the channels or turns
+     * it off. It sits on the On-Call tab, under its own card.
+     */
+    test("the On-Call tab has the missed call row for incoming call policy owners", async () => {
+      const updateById: jest.SpyInstance = jest
+        .spyOn(ModelAPI, "updateById")
+        .mockResolvedValue({} as any);
+
+      renderPage();
+      await findEventRow("Assigned to an incident");
+      fireEvent.click(screen.getByRole("tab", { name: "On-Call" }));
+
+      expect(await screen.findByText("Incoming Call Policies")).toBeVisible();
+      expect(
+        screen.getByText(
+          "Notify me about calls to incoming call policies I own.",
+        ),
+      ).toBeVisible();
+
+      const row: HTMLElement = await findEventRow("Missed call");
+      expect(
+        within(row).getByText(
+          "A call to an incoming call policy you own ends without reaching anyone.",
+        ),
+      ).toBeVisible();
+
+      const emailSwitch: HTMLElement = within(row).getByRole("switch", {
+        name: /^Email:/,
+      });
+      expect(emailSwitch).toHaveAttribute("aria-checked", "true");
+
+      fireEvent.click(emailSwitch);
+
+      await waitFor(() => {
+        expect(updateById).toHaveBeenCalledTimes(1);
+      });
+      const missedCallRow: UserNotificationSetting | undefined = rows.find(
+        (setting: UserNotificationSetting): boolean => {
+          return (
+            setting.eventType ===
+            NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION
+          );
+        },
+      );
+      expect(updateById.mock.calls[0][0].id).toEqual(missedCallRow!.id);
+      expect(updateById.mock.calls[0][0].data).toEqual({ alertByEmail: false });
+    });
+
+    /*
      * A single cell used to be blocked while the bulk preset ran, because
      * both lived on this page. That interlock is gone with the preset, so the
      * one thing left to prove is that an ordinary toggle still writes exactly

@@ -25,6 +25,17 @@ export enum DatabaseOperation {
   OnDelete = "on-delete",
 }
 
+// The steps that write rows, as opposed to reading them or reacting to a write.
+export const WRITE_DATABASE_OPERATIONS: ReadonlyArray<DatabaseOperation> =
+  Object.freeze([
+    DatabaseOperation.CreateOne,
+    DatabaseOperation.CreateMany,
+    DatabaseOperation.UpdateOne,
+    DatabaseOperation.UpdateMany,
+    DatabaseOperation.DeleteOne,
+    DatabaseOperation.DeleteMany,
+  ]);
+
 export type GetDatabaseOperationFunction = (data: {
   componentId: string;
   tableName: string;

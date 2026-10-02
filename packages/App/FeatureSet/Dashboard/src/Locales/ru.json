@@ -6931,5 +6931,8 @@
   "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "Читайте, изменяйте и удаляйте этот ресурс через REST API OneUptime. Все команды ниже выполняются на этом экземпляре OneUptime.",
   "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "Получайте список этих ресурсов и создавайте новые через REST API OneUptime. Все команды ниже выполняются на этом экземпляре OneUptime.",
   "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Работайте с этим ресурсом через ИИ-ассистента, например Claude, GitHub Copilot или Cursor.",
-  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Работайте с этими ресурсами через ИИ-ассистента, например Claude, GitHub Copilot или Cursor."
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Работайте с этими ресурсами через ИИ-ассистента, например Claude, GitHub Copilot или Cursor.",
+  "Missed call": "Пропущенный звонок",
+  "A call to an incoming call policy you own ends without reaching anyone.": "Звонок в политику входящих звонков, владельцем которой вы являетесь, завершается, не дозвонившись ни до кого.",
+  "Notify me about calls to incoming call policies I own.": "Уведомлять меня о звонках в политики входящих звонков, владельцем которых я являюсь."
 }
