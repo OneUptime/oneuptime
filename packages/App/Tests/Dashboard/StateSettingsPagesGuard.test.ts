@@ -150,6 +150,8 @@ describe("the guard reads the code it guards", () => {
   });
 });
 
+const ORDERED_STATES_LIST: RegExp = /OrderedStatesList|orderedStatesListProps/;
+
 describe("1. the ordered-states list is gone", () => {
   test("its component is deleted", () => {
     expect(
@@ -162,7 +164,7 @@ describe("1. the ordered-states list is gone", () => {
   test("nothing asks for it", () => {
     const users: Array<string> = SOURCES.filter(
       (entry: { source: string }): boolean => {
-        return /OrderedStatesList|orderedStatesListProps/.test(entry.source);
+        return ORDERED_STATES_LIST.test(entry.source);
       },
     ).map((entry: { file: string }): string => {
       return entry.file;

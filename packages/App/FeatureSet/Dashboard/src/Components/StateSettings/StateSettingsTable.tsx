@@ -100,6 +100,11 @@ export interface StateSettingsTextCellProps {
   text: string | null;
   // Translate the text: it is OneUptime's own words, not the project's.
   isOwnCopy?: boolean | undefined;
+  /*
+   * A short label ("Acknowledged") reads at the table's weight; prose (a
+   * description) is set lighter, so the names stay what the eye lands on.
+   */
+  isProse?: boolean | undefined;
   testId?: string | undefined;
 }
 
@@ -113,7 +118,14 @@ export const StateSettingsTextCell: FunctionComponent<
   }
 
   return (
-    <span className="text-sm text-gray-600" data-testid={props.testId}>
+    <span
+      className={
+        props.isProse
+          ? "text-sm font-normal text-gray-600"
+          : "text-sm font-medium text-gray-700"
+      }
+      data-testid={props.testId}
+    >
       {props.isOwnCopy ? translateString(props.text) || props.text : props.text}
     </span>
   );
@@ -207,6 +219,7 @@ export const getStateSettingsColumns: <T extends BaseModel>(data: {
               "description"
             ] as string) || null
           }
+          isProse={true}
           testId="state-settings-description"
         />
       );

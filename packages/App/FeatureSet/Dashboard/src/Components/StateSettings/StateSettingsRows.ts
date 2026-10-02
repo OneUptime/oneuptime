@@ -23,13 +23,13 @@ import {
 export const getStateSettingsCountsAs: (data: {
   definition: StateListDefinition;
   copy: StateSettingsPageCopy;
-  rows: Array<object>;
-  item: object;
+  rows: Array<unknown>;
+  item: unknown;
 }) => string | null = (data: {
   definition: StateListDefinition;
   copy: StateSettingsPageCopy;
-  rows: Array<object>;
-  item: object;
+  rows: Array<unknown>;
+  item: unknown;
 }): string | null => {
   if (!data.copy.countsAs) {
     return null;
@@ -41,7 +41,7 @@ export const getStateSettingsCountsAs: (data: {
     return null;
   }
 
-  const rows: Array<StateListRow> = data.rows.map((candidate: object) => {
+  const rows: Array<StateListRow> = data.rows.map((candidate: unknown) => {
     return toStateListRow(data.definition, candidate);
   });
 
@@ -77,11 +77,11 @@ export const getStateSettingsCountsAs: (data: {
 export const getStateSettingsBuiltInTooltip: (data: {
   definition: StateListDefinition;
   copy: StateSettingsPageCopy;
-  item: object;
+  item: unknown;
 }) => string | undefined = (data: {
   definition: StateListDefinition;
   copy: StateSettingsPageCopy;
-  item: object;
+  item: unknown;
 }): string | undefined => {
   const builtIn: StateListBuiltIn | null = getStateListBuiltIn(
     data.definition,
@@ -102,11 +102,11 @@ export const getStateSettingsBuiltInTooltip: (data: {
 export const getStateSettingsDeleteLockedReason: (data: {
   definition: StateListDefinition;
   copy: StateSettingsPageCopy;
-  item: object;
+  item: unknown;
 }) => string | undefined = (data: {
   definition: StateListDefinition;
   copy: StateSettingsPageCopy;
-  item: object;
+  item: unknown;
 }): string | undefined => {
   const builtIn: StateListBuiltIn | null = getStateListBuiltIn(
     data.definition,

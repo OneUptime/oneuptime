@@ -187,12 +187,15 @@ const toIdString: (value: unknown) => string = (value: unknown): string => {
  */
 export const toStateListRow: (
   definition: StateListDefinition,
-  record: object,
+  record: unknown,
 ) => StateListRow = (
   definition: StateListDefinition,
-  record: object,
+  record: unknown,
 ): StateListRow => {
-  const values: Record<string, unknown> = record as Record<string, unknown>;
+  const values: Record<string, unknown> =
+    record && typeof record === "object"
+      ? (record as Record<string, unknown>)
+      : {};
 
   const createdAt: unknown = values["createdAt"];
 

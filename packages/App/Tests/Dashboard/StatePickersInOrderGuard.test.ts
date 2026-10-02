@@ -180,6 +180,9 @@ function dropdownModals(): Array<Found> {
   return found;
 }
 
+// A list request: ModelAPI.getList, ModelListCache.getList and the like.
+const GET_LIST: RegExp = /getList\b/;
+
 // Every list request's options object for one of the models.
 function listRequests(): Array<Found> {
   const found: Array<Found> = [];
@@ -193,7 +196,7 @@ function listRequests(): Array<Found> {
       const open: number = file.source.lastIndexOf("{", match.index);
       const head: string = file.source.slice(Math.max(0, open - 120), open);
 
-      if (!/getList\b/.test(head)) {
+      if (!GET_LIST.test(head)) {
         continue;
       }
 

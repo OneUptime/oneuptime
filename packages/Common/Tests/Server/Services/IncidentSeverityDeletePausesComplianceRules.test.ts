@@ -172,7 +172,6 @@ describe.each(CASES)(
           events.push("pause rules");
           return Promise.resolve([SCOPED_RULE_ID]);
         });
-
     });
 
     test("before the delete, the severities it removes are read as root and the rules that reference them are looked up", async () => {
@@ -278,9 +277,7 @@ describe.each(CASES)(
       for (const props of [SIGNED_IN, { isRoot: true }]) {
         const onDelete: OnDelete<SeverityModel> =
           await internals.onBeforeDelete(deleteByFor(props));
-        await internals.onDeleteSuccess(onDelete, [
-          new ObjectID(SEVERITY_ID),
-        ]);
+        await internals.onDeleteSuccess(onDelete, [new ObjectID(SEVERITY_ID)]);
       }
 
       expect(updateOneBy).not.toHaveBeenCalled();
