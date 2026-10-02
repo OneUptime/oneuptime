@@ -20,6 +20,11 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       ["Project", "Alerts", "Microsoft Teams Connection"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_WORKSPACE_CONNECTIONS, [
+      "Project",
+      "Alerts",
+      "Workspace",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_VIEW, [
       "Project",
       "Alerts",

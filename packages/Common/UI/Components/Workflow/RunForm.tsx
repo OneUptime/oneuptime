@@ -64,9 +64,14 @@ const RunForm: FunctionComponent<ComponentProps> = (
     }
   }
 
+  /*
+   * Top margins only: RunModal's SideOver leaves room under its content at
+   * every width, so a bottom margin here as well would end the panel on more
+   * than the others.
+   */
   return (
-    <div className="mb-3 mt-3">
-      <div className="mt-5 mb-5">
+    <div className="mt-3">
+      <div className="mt-5">
         <h2 className="text-base font-medium text-gray-500">
           Run {component.metadata.title}
         </h2>

@@ -5,6 +5,8 @@ import React, {
   useState,
 } from "react";
 import { Logger } from "../../Utils/Logger";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export enum ProgressBarSize {
   Small = "small",
@@ -22,6 +24,7 @@ export interface ComponentProps {
 const ProgressBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [percent, setPercent] = useState<number>(0);
 
   useEffect(() => {
@@ -67,7 +70,11 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
           data-testid="progress-bar-count"
           className="text-sm font-medium text-gray-700"
         >
-          {props.count} of {props.totalCount} {props.suffix}
+          {translator.translateTemplate("{{count}} of {{total}} {{suffix}}", {
+            count: translator.formatNumber(props.count),
+            total: translator.formatNumber(props.totalCount),
+            suffix: translatableTerm(props.suffix),
+          })}
         </div>
         <div className="text-sm font-medium text-indigo-600">{percent}%</div>
       </div>
@@ -77,7 +84,15 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
         aria-valuenow={percent}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`Progress: ${props.count} of ${props.totalCount} ${props.suffix} (${percent}%)`}
+        aria-label={translator.translateTemplate(
+          "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)",
+          {
+            count: translator.formatNumber(props.count),
+            total: translator.formatNumber(props.totalCount),
+            suffix: translatableTerm(props.suffix),
+            percent: percent,
+          },
+        )}
       >
         <div
           data-testid="progress-bar"

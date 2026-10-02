@@ -21,6 +21,11 @@ import Select from "../../../Types/BaseDatabase/Select";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  translateNamedAction,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -74,6 +79,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const model: TBaseModel = new props.modelType();
   /*
    * The delete card used to be rendered for everybody: a viewer got a live
@@ -204,7 +210,10 @@ const ModelDelete: <TBaseModel extends BaseModel>(
   return (
     <>
       <Card
-        title={`Delete ${model.singularName}`}
+        title={translateNamedAction(translator, {
+          template: "Delete {{itemName}}",
+          itemName: model.singularName || "",
+        })}
         description={
           <DeleteConfirmationMessage
             dataTestId="model-delete-card-message"
@@ -216,7 +225,10 @@ const ModelDelete: <TBaseModel extends BaseModel>(
         }
         buttons={[
           {
-            title: `Delete ${model.singularName}`,
+            title: translateNamedAction(translator, {
+              template: "Delete {{itemName}}",
+              itemName: model.singularName || "",
+            }),
             buttonStyle: ButtonStyleType.DANGER,
             disabled: !deleteGate.isAllowed,
             tooltip: deleteGate.disabledReason,
@@ -244,7 +256,10 @@ const ModelDelete: <TBaseModel extends BaseModel>(
               typeLabel={typeLabel}
             />
           }
-          title={`Delete ${model.singularName}`}
+          title={translateNamedAction(translator, {
+            template: "Delete {{itemName}}",
+            itemName: model.singularName || "",
+          })}
           onSubmit={async () => {
             await confirm();
           }}
@@ -252,7 +267,10 @@ const ModelDelete: <TBaseModel extends BaseModel>(
             setShowModal(false);
             setTypedName("");
           }}
-          submitButtonText={`Delete ${model.singularName}`}
+          submitButtonText={translateNamedAction(translator, {
+            template: "Delete {{itemName}}",
+            itemName: model.singularName || "",
+          })}
           submitButtonType={ButtonStyleType.DANGER}
           disableSubmitButton={!isConfirmed}
         >

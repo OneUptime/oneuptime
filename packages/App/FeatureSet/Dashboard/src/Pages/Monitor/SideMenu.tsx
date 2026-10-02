@@ -11,6 +11,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
+import { useWorkspaceSideMenuSection } from "../../Components/Workspace/WorkspaceSideMenuSection";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -19,6 +20,17 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * Only the chat workspaces this project has connected, or one entry to
+   * connect one when it has none (WorkspaceSideMenuSection.ts).
+   */
+  const workspaceSection: SideMenuSectionProps | null =
+    useWorkspaceSideMenuSection({
+      slack: PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK,
+      microsoftTeams: PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      connect: PageMap.MONITORS_WORKSPACE_CONNECTIONS,
+    });
+
   const sections: SideMenuSectionProps[] = [
     {
       title: "Monitors",
@@ -118,31 +130,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
-    {
-      title: "Workspace",
-      items: [
-        {
-          link: {
-            title: "Slack",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] as Route,
-            ),
-          },
-          icon: IconProp.Slack,
-        },
-        {
-          link: {
-            title: "Microsoft Teams",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
-              ] as Route,
-            ),
-          },
-          icon: IconProp.MicrosoftTeams,
-        },
-      ],
-    },
+    ...(workspaceSection ? [workspaceSection] : []),
     {
       title: "Settings",
       defaultCollapsed: true,

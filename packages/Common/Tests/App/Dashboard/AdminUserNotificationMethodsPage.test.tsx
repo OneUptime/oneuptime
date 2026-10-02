@@ -224,6 +224,7 @@ import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../../Models/DatabaseModels/UserWhatsApp";
+import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -234,6 +235,8 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
+import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import UserUtil from "../../../UI/Utils/User";
 
 const PROJECT_ID: ObjectID = new ObjectID(PROJECT_ID_STRING);
@@ -757,6 +760,17 @@ beforeEach((): void => {
   mountedTableModels = [];
   pendingRequestCount = 0;
 
+  /*
+   * The self view offers Slack and Microsoft Teams only for the workspaces
+   * the project has connected. Both are, unless a test says otherwise.
+   */
+  window.localStorage.clear();
+  ConnectedWorkspaces.reset();
+  ConnectedWorkspaces.setConnected(PROJECT_ID_STRING, [
+    WorkspaceType.Slack,
+    WorkspaceType.MicrosoftTeams,
+  ]);
+
   getListMock.mockReset();
   getItemMock.mockReset();
   getCommonHeadersMock.mockReset();
@@ -808,6 +822,7 @@ beforeEach((): void => {
 
 afterEach(async (): Promise<void> => {
   cleanup();
+  ConnectedWorkspaces.reset();
 
   for (
     let attempt: number = 0;
@@ -1565,6 +1580,49 @@ describe("the self-serve view", () => {
     });
 
     expect(adminCalls).toHaveLength(0);
+  });
+
+  /*
+   * The Workspace Apps tab offers a table only for the workspaces the
+   * project has connected, and is not there when it has none: adding Slack
+   * or Microsoft Teams points at your own account in a workspace the project
+   * is connected to.
+   */
+  test("offers only the connected workspace's table", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID_STRING, [WorkspaceType.Slack]);
+
+    await renderSelfPage();
+    await openTab("Workspace Apps");
+
+    expect(mountedTableModels).toContain(UserSlack);
+    expect(mountedTableModels).not.toContain(UserMicrosoftTeams);
+  });
+
+  test("has no Workspace Apps tab in a project with no workspace connected", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID_STRING, []);
+
+    await renderSelfPage();
+
+    expect(screen.queryByTestId("tab-Workspace Apps")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tab-Direct Contact")).toBeInTheDocument();
+    expect(screen.getByTestId("tab-Push Notifications")).toBeInTheDocument();
+    expect(screen.getByTestId("tab-Webhooks")).toBeInTheDocument();
+    expect(mountedTableModels).not.toContain(UserSlack);
+    expect(mountedTableModels).not.toContain(UserMicrosoftTeams);
+  });
+
+  test("the admin's view of somebody else asks nothing about workspaces", async () => {
+    ConnectedWorkspaces.reset();
+
+    await renderPage();
+
+    const requestedModels: Array<unknown> = getListMock.mock.calls.map(
+      (call: Array<any>) => {
+        return call[0].modelType;
+      },
+    );
+
+    expect(requestedModels).not.toContain(WorkspaceProjectAuthToken);
   });
 
   test("says these are the same settings they already have", async () => {

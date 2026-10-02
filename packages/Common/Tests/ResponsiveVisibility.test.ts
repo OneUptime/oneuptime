@@ -12,6 +12,7 @@ import {
   isMediaQueryVariant,
   isVisibleAtWidth,
   isVisuallyCollapsed,
+  mediaPrecedenceOf,
   resolveDisplay,
   splitVariants,
 } from "./ResponsiveVisibility";
@@ -366,6 +367,70 @@ describe("isMediaQueryVariant", () => {
     ]) {
       expect([variant, isMediaQueryVariant(variant)]).toEqual([variant, false]);
     }
+  });
+});
+
+/*
+ * The screen order ResponsiveSpacing.ts resolves padding with. It has to be
+ * the order this file resolves display with, so it is this file's.
+ */
+describe("mediaPrecedenceOf", () => {
+  test("no variant at all sits first in the stylesheet", () => {
+    expect(mediaPrecedenceOf([], PHONE_WIDTH_IN_PX)).toBe(0);
+    expect(mediaPrecedenceOf([], LAPTOP_WIDTH_IN_PX)).toBe(0);
+  });
+
+  test("a screen applies from its breakpoint up, and after unprefixed utilities", () => {
+    expect(mediaPrecedenceOf(["sm"], 639)).toBeNull();
+    expect(mediaPrecedenceOf(["sm"], 640)).toBeGreaterThan(0);
+    expect(mediaPrecedenceOf(["max-sm"], 639)).toBeGreaterThan(0);
+    expect(mediaPrecedenceOf(["max-sm"], 640)).toBeNull();
+  });
+
+  test("max-* screens come widest first, then min-width screens narrowest first", () => {
+    const width: number = 700;
+    const order: Array<number | null> = [
+      mediaPrecedenceOf(["max-2xl"], width),
+      mediaPrecedenceOf(["max-xl"], width),
+      mediaPrecedenceOf(["max-lg"], width),
+      mediaPrecedenceOf(["max-md"], width),
+      mediaPrecedenceOf(["sm"], width),
+    ];
+
+    for (let index: number = 1; index < order.length; index++) {
+      expect(order[index]!).toBeGreaterThan(order[index - 1]!);
+    }
+
+    expect(mediaPrecedenceOf(["lg"], LAPTOP_WIDTH_IN_PX)!).toBeGreaterThan(
+      mediaPrecedenceOf(["sm"], LAPTOP_WIDTH_IN_PX)!,
+    );
+    expect(mediaPrecedenceOf(["min-[900px]"], 900)!).toBeGreaterThan(
+      mediaPrecedenceOf(["md"], 900)!,
+    );
+  });
+
+  test("state and pseudo variants never apply: they cannot answer a layout question", () => {
+    for (const variant of ["hover", "focus", "dark", "group-hover", "[&>*]"]) {
+      expect([
+        variant,
+        mediaPrecedenceOf([variant], LAPTOP_WIDTH_IN_PX),
+      ]).toEqual([variant, null]);
+    }
+  });
+
+  test("a media query that does not test the width holds only when asked for", () => {
+    expect(mediaPrecedenceOf(["print"], LAPTOP_WIDTH_IN_PX)).toBeNull();
+    expect(
+      mediaPrecedenceOf(["print"], LAPTOP_WIDTH_IN_PX, ["print"]),
+    ).toBeGreaterThan(0);
+  });
+
+  test("a stack of variants must all hold, and sorts by the latest", () => {
+    expect(mediaPrecedenceOf(["sm", "max-lg"], 700)).toBe(
+      mediaPrecedenceOf(["sm"], 700),
+    );
+    expect(mediaPrecedenceOf(["sm", "max-lg"], LAPTOP_WIDTH_IN_PX)).toBeNull();
+    expect(mediaPrecedenceOf(["sm", "hover"], LAPTOP_WIDTH_IN_PX)).toBeNull();
   });
 });
 

@@ -68,7 +68,7 @@ This step appears only when at least one incident custom field has **Show on Cre
 
 - **Assign Incident Roles** — assign team members to the roles your project defines. Some roles accept more than one user.
 
-Roles themselves are configured at **Incidents → Settings → Incident Roles**, where you define the roles that can be assigned during response — Incident Commander, Responder, and whatever else your process needs. If you skip this step, an Incident Commander is auto-assigned on the first state change if nobody holds the role yet.
+Roles themselves are configured at **Incidents → Settings → Incident Roles**. A new project has one, Incident Commander; add Responder, Communications Lead or whatever else your process needs there. If you pick nobody for Incident Commander, you become it when the incident is declared.
 
 ### Step 4 — On-Call
 

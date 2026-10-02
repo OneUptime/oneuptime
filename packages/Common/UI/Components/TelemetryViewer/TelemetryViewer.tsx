@@ -1,4 +1,5 @@
 import React, { ReactElement, ReactNode, useId, useState } from "react";
+import useTranslateValue from "../../Utils/Translation";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import {
   FacetData,
@@ -189,6 +190,7 @@ export const TELEMETRY_VIEWER_MAIN_AREA_TEST_ID: string =
 export const TELEMETRY_VIEWER_LIST_TEST_ID: string = "telemetry-viewer-list";
 
 function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
+  const { translateString } = useTranslateValue();
   const showFacets: boolean =
     (props.showFacetSidebar ?? true) &&
     props.facetConfigs !== undefined &&
@@ -453,10 +455,10 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                       className="h-8 w-8 text-gray-300"
                     />
                     <p className="text-sm font-medium text-gray-500">
-                      {props.emptyMessage || "No results"}
+                      {translateString(props.emptyMessage || "No results")}
                     </p>
                     <p className="text-xs text-gray-400">
-                      Try adjusting filters or time range.
+                      {translateString("Try adjusting filters or time range.")}
                     </p>
                   </div>
                 )
