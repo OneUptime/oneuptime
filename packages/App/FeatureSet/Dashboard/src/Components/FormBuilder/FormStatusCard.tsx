@@ -17,9 +17,11 @@ import useAsyncEffect from "use-async-effect";
 
 /*
  * Whether the form takes submissions, as one switch: flipping it saves at
- * once (there is nothing else to fill in), and the switch shows the new
- * state only once the server has it. While it is off the link shows a
- * not-available message - the form, its questions and its link are kept.
+ * once (there is nothing else to fill in). The switch moves at once and is
+ * locked while the change is saved; a change the server refuses moves it
+ * back, with the reason, so the switch never shows a state the form is not
+ * in. While it is off the link shows a not-available message - the form,
+ * its questions and its link are kept.
  *
  * Someone who may not edit the form sees the switch, locked, with the reason.
  */
@@ -74,6 +76,14 @@ const FormStatusCard: FunctionComponent<ComponentProps> = (
       return;
     }
 
+    const previous: boolean | null = isEnabled;
+
+    /*
+     * The switch has already moved (it keeps its own state, and follows
+     * `value` only when `value` changes): the card follows it, so that a
+     * refusal below - which puts `value` back - moves the switch back too.
+     */
+    setIsEnabled(value);
     setIsSaving(true);
     setError("");
 
@@ -84,9 +94,9 @@ const FormStatusCard: FunctionComponent<ComponentProps> = (
         data: { isEnabled: value },
       });
 
-      setIsEnabled(value);
       props.onChange?.(value);
     } catch (err) {
+      setIsEnabled(previous);
       setError(API.getFriendlyMessage(err));
     }
 
