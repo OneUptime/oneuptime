@@ -130,6 +130,12 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
       "A dashboard widget's settings, built from the widget's own argument list and already drawn as one small form per argument section in the side panel, not as one long dialog.",
   },
   {
+    file: `${DASHBOARD}/Components/NumberPrefix/NumberPrefixCard.tsx`,
+    form: "CardModelDetail #1",
+    reason:
+      "The Number Prefix pages' card builds one prefix field per kind of number from the page's rows (NumberPrefixSettings): two fields on the Incidents and Alerts pages, one on Scheduled Maintenance.",
+  },
+  {
     file: `${DASHBOARD}/Pages/Slo/View/Index.tsx`,
     form: "CardModelDetail: SLO Details",
     reason:

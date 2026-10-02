@@ -298,10 +298,19 @@ describe("where the page lives", () => {
     ).toBe("/dashboard/:projectId/incidents/settings/linked-alerts");
   });
 
-  test("is not the More Settings page any more", () => {
-    expect(
-      (RouteMap[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] as Route).toString(),
-    ).not.toBe((RouteMap[PageMap.INCIDENTS_SETTINGS_MORE] as Route).toString());
+  /*
+   * The switches used to sit on More Settings, next to the number prefixes.
+   * More Settings is gone: the prefixes have a Number Prefix page of their own.
+   */
+  test("is neither the old More Settings page nor the Number Prefix page", () => {
+    const route: string = (
+      RouteMap[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] as Route
+    ).toString();
+
+    expect(route).not.toBe("/dashboard/:projectId/incidents/settings/more");
+    expect(route).not.toBe(
+      (RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX] as Route).toString(),
+    );
   });
 
   test("has a breadcrumb trail naming Settings, then Linked Alerts", () => {
