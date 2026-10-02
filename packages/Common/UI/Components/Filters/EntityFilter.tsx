@@ -5,6 +5,9 @@ import FilterData from "./Types/FilterData";
 import FilterOperator from "./Types/FilterOperator";
 import OperatorSelector from "./OperatorSelector";
 import GenericObject from "../../../Types/GenericObject";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import { getFilterPlaceholder } from "./FilterPlaceholder";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
@@ -161,6 +164,7 @@ const buildSingleValue: BuildValueFunction = (state: EntityState): unknown => {
 const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const filter: Filter<T> = props.filter;
 
   if (
@@ -262,7 +266,7 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
             }}
             value={dropdownValues}
             isMultiSelect={isArray}
-            placeholder={`Filter by ${filter.title}`}
+            placeholder={getFilterPlaceholder(translator, filter.title)}
             className="relative rounded-md w-full overflow-visible"
           />
         </div>

@@ -1,6 +1,8 @@
 import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
 import IconProp from "../../../Types/Icon/IconProp";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
@@ -11,6 +13,7 @@ export interface ComponentProps {
 const HiddenText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showText, setShowText] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
 
@@ -38,7 +41,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
           className="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-500"
         />
         <span className="text-sm text-gray-500 group-hover:text-gray-600">
-          Click to reveal
+          {translator.translateText("Click to reveal")}
         </span>
         <Icon
           icon={IconProp.ChevronRight}

@@ -1,5 +1,7 @@
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -9,6 +11,8 @@ export interface ComponentProps {
 const CreateNewProjectButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <li
       className="relative select-none py-2.5 px-3 mx-2 mt-2 cursor-pointer bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors duration-150 border border-indigo-200"
@@ -24,7 +28,7 @@ const CreateNewProjectButton: FunctionComponent<ComponentProps> = (
           className="h-5 w-5 flex-shrink-0 text-indigo-500"
         />
         <span className="text-sm font-medium text-indigo-600">
-          Create New Project
+          {translator.translateText("Create New Project")}
         </span>
       </div>
     </li>

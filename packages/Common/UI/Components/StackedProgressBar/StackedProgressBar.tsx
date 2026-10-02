@@ -1,3 +1,5 @@
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface StackedProgressBarSegment {
@@ -18,6 +20,7 @@ export interface ComponentProps {
 const StackedProgressBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const total: number =
     props.totalValue ||
     props.segments.reduce((sum: number, seg: StackedProgressBarSegment) => {
@@ -32,7 +35,7 @@ const StackedProgressBar: FunctionComponent<ComponentProps> = (
       <div
         className={`flex ${heightClass} rounded-full overflow-hidden bg-gray-100`}
         role="progressbar"
-        aria-label="Stacked progress bar"
+        aria-label={translator.translateText("Stacked progress bar")}
       >
         {props.segments.map(
           (segment: StackedProgressBarSegment, index: number) => {

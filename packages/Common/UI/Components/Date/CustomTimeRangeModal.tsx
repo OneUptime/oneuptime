@@ -4,6 +4,7 @@ import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import { translationKey } from "../../Utils/TranslateTemplate";
 import Icon from "../Icon/Icon";
 import Input, { InputType } from "../Input/Input";
 import Modal, { ModalWidth } from "../Modal/Modal";
@@ -13,8 +14,9 @@ import Modal, { ModalWidth } from "../Modal/Modal";
  * locale key with the zone as a placeholder: glued onto the English text, the
  * zone made every rendered string unique, so it never matched a translation.
  */
-export const TIMEZONE_NOTE_TEMPLATE: string =
-  "Times are shown in {{abbreviation}}.";
+export const TIMEZONE_NOTE_TEMPLATE: string = translationKey(
+  "Times are shown in {{abbreviation}}.",
+);
 
 export interface ComponentProps {
   /*
@@ -59,15 +61,17 @@ export function getCustomTimeRangeError(
   endDate: Date | null,
 ): CustomTimeRangeValidationError {
   if (!startDate) {
-    return "Pick a start date and time.";
+    return translationKey("Pick a start date and time.");
   }
 
   if (!endDate) {
-    return "Pick an end date and time.";
+    return translationKey("Pick an end date and time.");
   }
 
   if (!OneUptimeDate.isAfter(endDate, startDate)) {
-    return "The end must be after the start. Adjust either end of the range.";
+    return translationKey(
+      "The end must be after the start. Adjust either end of the range.",
+    );
   }
 
   return "";
@@ -176,7 +180,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
       <div data-testid="custom-time-range-modal" className="space-y-5">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-            Quick fill
+            {translateString("Quick fill")}
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             {QUICK_FILL_OPTIONS.map((option: QuickFillOption) => {
@@ -196,7 +200,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
                       : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
                   }`}
                 >
-                  {option.label}
+                  {translateString(option.label)}
                 </button>
               );
             })}
@@ -213,7 +217,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Calendar}
                 className="h-4 w-4 text-gray-400"
               />
-              From
+              {translateString("From")}
             </label>
             <Input
               id={startFieldId}
@@ -237,7 +241,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Calendar}
                 className="h-4 w-4 text-gray-400"
               />
-              To
+              {translateString("To")}
             </label>
             <Input
               id={endFieldId}
@@ -259,13 +263,13 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
             className="rounded-lg border border-gray-200 bg-white p-3"
           >
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">From</span>
+              <span className="text-gray-500">{translateString("From")}</span>
               <span className="font-medium text-gray-900">
                 {formatDateTime(startDate!)}
               </span>
             </div>
             <div className="mt-2 flex items-center justify-between text-sm">
-              <span className="text-gray-500">To</span>
+              <span className="text-gray-500">{translateString("To")}</span>
               <span className="font-medium text-gray-900">
                 {formatDateTime(endDate!)}
               </span>
@@ -273,7 +277,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
             <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2 text-sm">
               <span className="flex items-center gap-1.5 text-gray-500">
                 <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
-                Duration
+                {translateString("Duration")}
               </span>
               <span className="font-medium text-gray-900">{durationText}</span>
             </div>
@@ -288,7 +292,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
               icon={IconProp.ErrorSolid}
               className="mt-0.5 h-4 w-4 shrink-0 text-red-500"
             />
-            <span>{error}</span>
+            <span>{translateString(error)}</span>
           </div>
         )}
 

@@ -2,6 +2,8 @@ import { ButtonStyleType } from "../Button/Button";
 import Card from "../Card/Card";
 import ConfirmModal from "../Modal/ConfirmModal";
 import IconProp from "../../../Types/Icon/IconProp";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useState } from "react";
 
 export interface ConfirmAction {
@@ -27,6 +29,7 @@ const DESTRUCTIVE_ACTION_STYLES: Array<ButtonStyleType> = [
 const ActionCard: (props: ComponentProps) => ReactElement = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [currentAction, setCurrentAction] = useState<ConfirmAction | undefined>(
     undefined,
   );
@@ -55,8 +58,17 @@ const ActionCard: (props: ComponentProps) => ReactElement = (
 
       {currentAction ? (
         <ConfirmModal
-          description={`Are you sure you want to ${currentAction.actionName}?`}
-          title={`Confirm ${currentAction.actionName}`}
+          description={translator.translateTemplate(
+            "Are you sure you want to {{action}}?",
+            {
+              action: translatableTerm(currentAction.actionName, {
+                inSentence: true,
+              }),
+            },
+          )}
+          title={translator.translateTemplate("Confirm {{action}}", {
+            action: translatableTerm(currentAction.actionName),
+          })}
           onSubmit={() => {
             currentAction.onConfirmAction();
             setCurrentAction(undefined);

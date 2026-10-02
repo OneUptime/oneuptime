@@ -1,6 +1,7 @@
 import ObjectID from "../../../Types/ObjectID";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
 import useTranslateValue from "../../Utils/Translation";
+import { createTranslator } from "../../Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -600,7 +601,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           {...removeProps}
           innerProps={{
             ...removeProps.innerProps,
-            "aria-label": `Remove ${optionLabel}`,
+            "aria-label": createTranslator(
+              translateStringRef.current,
+            ).translateTemplate("Remove {{option}}", { option: optionLabel }),
           }}
         />
       );
