@@ -38,7 +38,7 @@
               ></span>{{/if}}
               <span
                 class="st-ColorText"
-                style="display: inline-block; line-height: 16px; vertical-align: middle; color: {{#if previousStateTextColor}}{{previousStateTextColor}}{{else}}{{previousStateColor}}{{/if}};"
+                style="display: inline-block; line-height: 16px; vertical-align: middle;{{#if previousStateTextColor}} color: {{previousStateTextColor}};{{else if previousStateColor}} color: {{previousStateColor}};{{/if}}"
               >{{previousState}}</span>
             </span>
           </td>
@@ -61,7 +61,7 @@
             ></span>{{/if}}
             <span
               class="st-ColorText"
-              style="display: inline-block; line-height: 16px; vertical-align: middle; color: {{#if currentStateTextColor}}{{currentStateTextColor}}{{else}}{{currentStateColor}}{{/if}};"
+              style="display: inline-block; line-height: 16px; vertical-align: middle;{{#if currentStateTextColor}} color: {{currentStateTextColor}};{{else if currentStateColor}} color: {{currentStateColor}};{{/if}}"
             >{{currentState}}</span>
           </span>
         </td>

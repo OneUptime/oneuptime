@@ -38,7 +38,7 @@
               ></span>{{/if}}
               <span
                 class="st-ColorText"
-                style="display: inline-block; line-height: 16px; vertical-align: middle; color: {{#if previousStatusTextColor}}{{previousStatusTextColor}}{{else}}{{previousStatusColor}}{{/if}};"
+                style="display: inline-block; line-height: 16px; vertical-align: middle;{{#if previousStatusTextColor}} color: {{previousStatusTextColor}};{{else if previousStatusColor}} color: {{previousStatusColor}};{{/if}}"
               >{{previousStatus}}</span>
             </span>
           </td>
@@ -61,7 +61,7 @@
             ></span>{{/if}}
             <span
               class="st-ColorText"
-              style="display: inline-block; line-height: 16px; vertical-align: middle; color: {{#if currentStatusTextColor}}{{currentStatusTextColor}}{{else}}{{currentStatusColor}}{{/if}};"
+              style="display: inline-block; line-height: 16px; vertical-align: middle;{{#if currentStatusTextColor}} color: {{currentStatusTextColor}};{{else if currentStatusColor}} color: {{currentStatusColor}};{{/if}}"
             >{{currentStatus}}</span>
           </span>
         </td>
