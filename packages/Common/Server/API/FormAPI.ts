@@ -1,4 +1,6 @@
-import FormRateLimit, { FormRateLimitBucket } from "../Middleware/FormRateLimit";
+import FormRateLimit, {
+  FormRateLimitBucket,
+} from "../Middleware/FormRateLimit";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import FormService, {
   Service as FormServiceType,
@@ -131,9 +133,7 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
       req: ExpressRequest,
       res: ExpressResponse,
       next: NextFunction,
-    ) => Promise<void> = FormRateLimit.getMiddleware(
-      FormRateLimitBucket.Read,
-    );
+    ) => Promise<void> = FormRateLimit.getMiddleware(FormRateLimitBucket.Read);
 
     const submitRateLimit: (
       req: ExpressRequest,
@@ -157,11 +157,10 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
            */
           Response.setNoCacheHeaders(res);
 
-          const form: PublicForm =
-            await FormService.getPublicForm({
-              shareKey: req.params["shareKey"],
-              clientIp: resolveClientIp(req),
-            });
+          const form: PublicForm = await FormService.getPublicForm({
+            shareKey: req.params["shareKey"],
+            clientIp: resolveClientIp(req),
+          });
 
           return Response.sendJsonObjectResponse(
             req,

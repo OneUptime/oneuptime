@@ -264,9 +264,9 @@ describe("the link", () => {
     getFormShareLink(new ObjectID(NEW_SHARE_KEY));
 
     expect(ACCOUNTS_URL.toString()).toBe(before);
-    expect(
-      getFormShareLink(new ObjectID(NEW_SHARE_KEY)).toString(),
-    ).toBe(expectedLink(NEW_SHARE_KEY));
+    expect(getFormShareLink(new ObjectID(NEW_SHARE_KEY)).toString()).toBe(
+      expectedLink(NEW_SHARE_KEY),
+    );
   });
 
   test("Copy Link copies the whole link and says so", async () => {
@@ -324,9 +324,7 @@ describe("a form that is turned off", () => {
 
     await renderLoadedCard();
 
-    expect(
-      screen.getByTestId("form-share-link-turned-off"),
-    ).toHaveTextContent(
+    expect(screen.getByTestId("form-share-link-turned-off")).toHaveTextContent(
       "This form is turned off, so its link shows a 'not available' message.",
     );
     // The link is still there to copy, for when it is turned back on.
@@ -351,10 +349,7 @@ describe("a form that is turned off", () => {
     await act(async (): Promise<void> => {
       result.rerender(
         <MemoryRouter>
-          <FormShareLinkCard
-            modelId={new ObjectID(FORM_ID)}
-            refresher={true}
-          />
+          <FormShareLinkCard modelId={new ObjectID(FORM_ID)} refresher={true} />
         </MemoryRouter>,
       );
     });
@@ -500,12 +495,8 @@ describe("reading the form again", () => {
     await rerenderWith(result, FORM_ID, true);
     await answer(1, null);
 
-    expect(
-      screen.queryByTestId("form-share-link"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByText(FormsCopy.shareLinkNotFound),
-    ).toBeInTheDocument();
+    expect(screen.queryByTestId("form-share-link")).not.toBeInTheDocument();
+    expect(screen.getByText(FormsCopy.shareLinkNotFound)).toBeInTheDocument();
     expect(cardButtons()).toHaveLength(0);
   });
 
@@ -520,9 +511,7 @@ describe("reading the form again", () => {
     await answer(0, { shareKey: SHARE_KEY, isEnabled: true });
     await rerenderWith(result, OTHER_FORM_ID, false);
 
-    expect(
-      screen.queryByTestId("form-share-link"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("form-share-link")).not.toBeInTheDocument();
     expect(screen.getByTestId("component-loader")).toBeInTheDocument();
     expect(cardButtons()).toHaveLength(0);
 
@@ -694,8 +683,7 @@ describe("Reset Link", () => {
   test("a viewer who may not update the form can still copy and open the link, but Reset Link is locked and says why", async () => {
     gate = {
       isAllowed: false,
-      disabledReason:
-        "You do not have permission to update this Form.",
+      disabledReason: "You do not have permission to update this Form.",
     };
 
     await renderLoadedCard();
@@ -727,9 +715,7 @@ describe("Reset Link", () => {
 
     expect(
       permissionCheckSpy.mock.calls.some((call: Array<unknown>): boolean => {
-        return (
-          call[0] instanceof Form && call[1] === ModelAction.Update
-        );
+        return call[0] instanceof Form && call[1] === ModelAction.Update;
       }),
     ).toBe(true);
   });
@@ -748,9 +734,7 @@ describe("before there is a link", () => {
     await renderCard();
 
     expect(screen.getByTestId("component-loader")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("form-share-link"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("form-share-link")).not.toBeInTheDocument();
     expect(cardButtons()).toHaveLength(0);
     expect(screen.getByTestId("card-details-heading")).toHaveTextContent(
       "Share Link",
@@ -773,9 +757,7 @@ describe("before there is a link", () => {
     });
 
     expect(cardButtons()).toHaveLength(0);
-    expect(
-      screen.queryByTestId("form-share-link"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("form-share-link")).not.toBeInTheDocument();
   });
 
   test("a form that cannot be found says so, with no button", async () => {
@@ -800,9 +782,7 @@ describe("before there is a link", () => {
     await renderCard();
 
     await waitFor(() => {
-      expect(
-        screen.getByText(FormsCopy.shareLinkNotFound),
-      ).toBeInTheDocument();
+      expect(screen.getByText(FormsCopy.shareLinkNotFound)).toBeInTheDocument();
     });
 
     expect(cardButtons()).toHaveLength(0);
@@ -825,9 +805,9 @@ describe("translation", () => {
       screen.getByRole("button", { name: "[de] Copy Link" }),
     ).toHaveTextContent("[de] Copy Link");
     expect(screen.getByText("[de] Open Form")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("form-share-link-turned-off"),
-    ).toHaveTextContent(`[de] ${FormsCopy.formTurnedOff}`);
+    expect(screen.getByTestId("form-share-link-turned-off")).toHaveTextContent(
+      `[de] ${FormsCopy.formTurnedOff}`,
+    );
     expect(resetLinkButton()).toHaveTextContent("[de] Reset Link");
 
     // The link itself is never translated.

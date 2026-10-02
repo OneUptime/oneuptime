@@ -251,9 +251,7 @@ describe("what the page's client sends", () => {
     expect(sentRequests()).toEqual([`GET ${FORM_URL}`, `POST ${SUBMIT_URL}`]);
 
     for (const request of server.sent) {
-      expect(request.headers[FORM_PAGE_HEADER]).toBe(
-        FORM_PAGE_HEADER_VALUE,
-      );
+      expect(request.headers[FORM_PAGE_HEADER]).toBe(FORM_PAGE_HEADER_VALUE);
     }
 
     expect(FormAPI.getDefaultHeaders()[FORM_PAGE_HEADER]).toBe(
