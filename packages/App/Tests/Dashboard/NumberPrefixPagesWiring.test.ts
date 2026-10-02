@@ -151,15 +151,14 @@ describe.each(PRODUCTS)(
       const redirectAt: number = code.indexOf(redirect);
       const layoutAt: number = code.indexOf('<PageRoutepath="/"');
 
+      /*
+       * Ahead of the layout route, as its sibling rather than one of its
+       * children. NumberPrefixPageRedirects.test.tsx renders the route group
+       * and checks the layout never renders at the old address.
+       */
       expect(routesStart).toBeGreaterThan(-1);
       expect(redirectAt).toBeGreaterThan(routesStart);
       expect(layoutAt).toBeGreaterThan(redirectAt);
-      // Nothing but the redirect (and its comment) sits between <Routes> and the layout route.
-      expect(
-        code
-          .slice(routesStart + "<Routes>".length, layoutAt)
-          .replace(/\{\}/g, ""),
-      ).toBe(redirect);
     });
 
     test("has a trail of Project, the product, Settings and Number Prefix", () => {
