@@ -1,9 +1,18 @@
 import {
+  IDLE_PAUSED_CUSTOM_EVENT_TAG,
+  IDLE_RESUMED_CUSTOM_EVENT_TAG,
   RrwebEvent,
+  RrwebEventType,
   RrwebIncrementalSource,
   RrwebMouseInteractionType,
+  SessionReplayIdlePausedPayload,
+  SessionReplayIdleResumedPayload,
 } from "../src/Contract";
-import { createTouchEvent, sanitizeRecordedTouch } from "../src/Events";
+import {
+  createCustomEvent,
+  createTouchEvent,
+  sanitizeRecordedTouch,
+} from "../src/Events";
 
 describe("touch event projection", () => {
   test("maps start/end to rrweb mouse interactions", () => {
@@ -33,6 +42,32 @@ describe("touch event projection", () => {
     expect(event.data).toEqual({
       source: RrwebIncrementalSource.TouchMove,
       positions: [{ x: 0, y: -100_000, id: 5, timeOffset: 0 }],
+    });
+  });
+
+  test("writes the idle pause and resume markers as rrweb custom events", () => {
+    const paused: SessionReplayIdlePausedPayload = {
+      idleSinceUnixMs: 1_000,
+      pausedAtUnixMs: 301_000,
+    };
+    const resumed: SessionReplayIdleResumedPayload = {
+      pausedAtUnixMs: 301_000,
+      resumedAtUnixMs: 420_000,
+    };
+
+    expect(
+      createCustomEvent(IDLE_PAUSED_CUSTOM_EVENT_TAG, paused, 301_000),
+    ).toEqual({
+      type: RrwebEventType.Custom,
+      timestamp: 301_000,
+      data: { tag: "oneuptime.idle-paused", payload: paused },
+    });
+    expect(
+      createCustomEvent(IDLE_RESUMED_CUSTOM_EVENT_TAG, resumed, 420_000),
+    ).toEqual({
+      type: RrwebEventType.Custom,
+      timestamp: 420_000,
+      data: { tag: "oneuptime.idle-resumed", payload: resumed },
     });
   });
 

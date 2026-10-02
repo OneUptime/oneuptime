@@ -1,5 +1,6 @@
 import {
   SESSION_REPLAY_FLUSH_INTERVAL_MS,
+  SESSION_REPLAY_IDLE_PAUSE_MS,
   SESSION_REPLAY_IDLE_ROLLOVER_MS,
   SessionReplayChunkEnvelope,
   SessionReplayConfigResponse,
@@ -453,6 +454,47 @@ describe("same-origin propagation through the Recorder", (): void => {
       await window.fetch("/api/after-return");
 
       expect(sidOf(2)).toBe(secondSessionId);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  /*
+   * #4208: paused because nobody is at the page, the recorder records
+   * nothing - so a background poll made then is no part of the recording
+   * and carries no session id. The session is still open, though: the
+   * user's next input resumes it, and the requests carry the SAME id again.
+   */
+  it("sends no session id while paused for idle, and the same session once the user is back", async (): Promise<void> => {
+    jest.useFakeTimers();
+
+    try {
+      const instance: Recorder = startRecorder();
+      const sessionId: string = instance.getSessionId();
+
+      await window.fetch("/api/before-pause");
+
+      expect(sidOf(0)).toBe(sessionId);
+
+      jest.advanceTimersByTime(
+        SESSION_REPLAY_IDLE_PAUSE_MS + SESSION_REPLAY_FLUSH_INTERVAL_MS,
+      );
+
+      expect(instance.isPausedForIdle()).toBe(true);
+
+      await window.fetch("/api/background-poll");
+
+      expect(pageCalls()[1]?.[1]).toBeUndefined();
+
+      document.body.dispatchEvent(new Event("keydown", { bubbles: true }));
+      jest.advanceTimersByTime(0);
+
+      expect(instance.isPausedForIdle()).toBe(false);
+
+      await window.fetch("/api/after-return");
+
+      expect(instance.getSessionId()).toBe(sessionId);
+      expect(sidOf(2)).toBe(sessionId);
     } finally {
       jest.useRealTimers();
     }

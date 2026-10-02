@@ -14,16 +14,17 @@ import {
 /*
  * A timeline event lifted out of one decoded chunk: the recorder's type-5
  * custom events (console, network, route, error, frustration, performance,
- * click, visibility, custom, identify, tags), plus two rows derived from
- * rrweb's own stream for recordings that predate the click recorder
- * ("navigation" from Meta events on full loads, "click" from
- * MouseInteraction when a chunk carries no oneuptime.click).
+ * click, visibility, custom, identify, tags, and the two idle-pause
+ * markers), plus two rows derived from rrweb's own stream for recordings
+ * that predate the click recorder ("navigation" from Meta events on full
+ * loads, "click" from MouseInteraction when a chunk carries no
+ * oneuptime.click).
  *
  * ChunkLoader.extractTimelineEvents produces these; Rail/ReplaySignals.ts
  * turns them into ReplaySignal rows; the inactivity map reads the
- * visibility rows and activity intervals. Every per-kind field is
- * optional because one interface covers every kind, and readers branch on
- * `kind` before touching them.
+ * visibility rows, the idle-pause rows and the activity intervals. Every
+ * per-kind field is optional because one interface covers every kind, and
+ * readers branch on `kind` before touching them.
  */
 
 export type ReplayTimelineEventKind =
@@ -42,7 +43,15 @@ export type ReplayTimelineEventKind =
   | "navigation"
   /* Recorder cap notices: N clicks / custom events were not labelled. */
   | "click-dropped"
-  | "custom-dropped";
+  | "custom-dropped"
+  /*
+   * The recorder stopped capturing because nobody touched the page
+   * (oneuptime.idle-paused), or started again on the next input
+   * (oneuptime.idle-resumed). One kind for both edges, told apart by
+   * idlePauseEdge, because the rail reads them as one story and the
+   * inactivity map draws the stretch between them from the resumed row.
+   */
+  | "idle-pause";
 
 export const REPLAY_TIMELINE_EVENT_KINDS: ReadonlyArray<ReplayTimelineEventKind> =
   [
@@ -60,6 +69,7 @@ export const REPLAY_TIMELINE_EVENT_KINDS: ReadonlyArray<ReplayTimelineEventKind>
     "navigation",
     "click-dropped",
     "custom-dropped",
+    "idle-pause",
   ];
 
 export interface ReplayTimelineEvent {
@@ -163,6 +173,29 @@ export interface ReplayTimelineEvent {
 
   /* click-dropped + custom-dropped */
   droppedCount?: number;
+
+  /*
+   * idle-pause. Which marker the row is, and the recorder's wall clock
+   * for the pause, each field present only when the payload carried a
+   * valid one: the payload crossed a version boundary, and a malformed
+   * marker still gets its row, just without the numbers.
+   */
+  idlePauseEdge?: "paused" | "resumed";
+  /* Paused rows: the last input before the pause. */
+  idleSinceUnixMs?: number;
+  /* Both edges: when capture stopped. */
+  pausedAtUnixMs?: number;
+  /* Resumed rows: when capture started again, on a fresh snapshot. */
+  resumedAtUnixMs?: number;
+  /*
+   * Resumed rows only: where the pause began, on the session clock. The
+   * stretch from here to the row's own offsetMs was not recorded at all,
+   * and the inactivity map draws it as a "paused" band. Unlike offsetMs it
+   * is NOT clamped to the chunk's window - it lies before the chunk that
+   * carries the marker, by the length of the pause - only to >= 0 and to
+   * at most the row's offsetMs.
+   */
+  pausedAtOffsetMs?: number;
 }
 
 /*
@@ -200,6 +233,12 @@ export const REPLAY_TIMELINE_EXTRACTION_CAPS: Record<
   tags: 500,
   "click-dropped": 500,
   "custom-dropped": 500,
+  /*
+   * Two rows per pause, and a pause takes five minutes without input to
+   * happen, so a four-hour session holds at most ~96. The cap is a
+   * formality - but a band is drawn from the resumed rows the cap keeps.
+   */
+  "idle-pause": 500,
 };
 
 export interface ReplayTimelineExtractionStats {

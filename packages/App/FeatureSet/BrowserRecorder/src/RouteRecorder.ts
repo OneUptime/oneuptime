@@ -79,6 +79,16 @@ export interface RouteRecorderOptions {
    * wiring can land independently of this module.
    */
   onCapReached?: (cap: number) => void;
+
+  /*
+   * True while the recorder is paused because nobody is at the page (see
+   * SESSION_REPLAY_IDLE_PAUSE_MS). Nothing is recorded then, and nothing
+   * is counted against the per-session cap either: a page polling or
+   * logging on its own for twenty minutes must not spend the budget the
+   * user's own session needs once they come back. Optional, so the module
+   * still works on its own.
+   */
+  isSuspended?: () => boolean;
 }
 
 type HistoryMethod = (
@@ -226,6 +236,14 @@ export default class RouteRecorder {
      * form keeps a hash ROUTE, so `#/a` -> `#/b` does compare as a change.
      */
     if (from === to) {
+      return;
+    }
+
+    /*
+     * After currentUrl moved on, so the first route recorded once the user
+     * is back starts from the page they actually came back to.
+     */
+    if (this.options.isSuspended && this.options.isSuspended()) {
       return;
     }
 

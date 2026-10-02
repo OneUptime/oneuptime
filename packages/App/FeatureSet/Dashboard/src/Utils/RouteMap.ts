@@ -903,6 +903,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
+  [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
   [PageMap.INCIDENTS_SETTINGS_MORE]: "settings/more",
   [PageMap.INCIDENTS_SETTINGS_AI]: "settings/ai",
 
@@ -2256,6 +2257,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]
     }`,
   ),
 

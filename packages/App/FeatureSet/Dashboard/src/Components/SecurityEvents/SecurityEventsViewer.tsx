@@ -282,7 +282,13 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
   const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
 
   const [events, setEvents] = useState<Array<SecurityEvent>>([]);
+  /*
+   * The list endpoint's `count`: a lower bound, not a total (it skips
+   * COUNT(*)), so the footer pages on `hasMore` instead of numbering pages
+   * by it. The window's total is the volume chart's, in its header.
+   */
   const [totalCount, setTotalCount] = useState<number>(0);
+  const [hasMore, setHasMore] = useState<boolean | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -410,6 +416,7 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
 
         setEvents(result.data);
         setTotalCount(result.count);
+        setHasMore(result.hasMore);
         setError("");
       } catch (err) {
         if (requestId !== listRequestId.current) {
@@ -419,6 +426,7 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
         setError(API.getFriendlyMessage(err));
         setEvents([]);
         setTotalCount(0);
+        setHasMore(false);
       } finally {
         if (requestId === listRequestId.current) {
           setIsLoading(false);
@@ -1101,6 +1109,7 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
         page={page}
         pageSize={pageSize}
         totalCount={totalCount}
+        hasMore={hasMore}
         onPageChange={setPage}
         onPageSizeChange={(size: number) => {
           setPageSize(size);

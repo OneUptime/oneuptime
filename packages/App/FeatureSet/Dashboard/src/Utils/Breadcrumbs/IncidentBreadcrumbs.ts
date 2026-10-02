@@ -351,6 +351,12 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Measurements",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS, [
+      "Project",
+      "Incidents",
+      "Settings",
+      "Linked Alerts",
+    ]),
 
     /*
      * The trail names the side-menu section a page actually lives in —

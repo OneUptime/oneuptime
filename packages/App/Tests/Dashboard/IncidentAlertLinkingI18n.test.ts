@@ -53,7 +53,7 @@ const LINK_DIALOG: string =
   "Components/IncidentAlert/LinkIncidentAlertModal.tsx";
 const CREATE_PAGE: string = "Pages/Incidents/Create.tsx";
 const SETTINGS_PAGE: string =
-  "Pages/Incidents/Settings/IncidentMoreSettings.tsx";
+  "Pages/Incidents/Settings/IncidentLinkedAlertsSettings.tsx";
 
 interface SourceString {
   text: string;
@@ -149,9 +149,9 @@ const SOURCE_STRINGS: Array<SourceString> = [
     sources: [CREATE_PAGE],
   },
 
-  // Incidents > Settings > More Settings > Linked Alerts
+  // Incidents > Settings > Linked Alerts
   {
-    text: "Choose whether the alerts linked to an incident follow it when the incident is acknowledged or resolved. Both are off by default. Alerts are never moved back to an earlier state, and reopening an incident does not reopen its alerts.",
+    text: "Choose whether the alerts linked to an incident follow it when the incident is acknowledged or resolved. Both are on for new projects. Alerts are never moved back to an earlier state, and reopening an incident does not reopen its alerts.",
     sources: [SETTINGS_PAGE],
   },
   {
@@ -183,14 +183,17 @@ const ALREADY_LINKED_MESSAGE: string =
 /*
  * Keys the feature once added and no longer renders: the table's built-in
  * create form ("Link New Alert" / "Link New Incident" as its title) gave way
- * to the link dialog, and the acknowledge switch's description was reworded
+ * to the link dialog, the acknowledge switch's description was reworded
  * because alert reminders stop on acknowledge only when the reminder rule
- * says so. Left behind, they would be orphans no page looks up.
+ * says so, and the settings card stopped saying the switches are off by
+ * default when they became on for new projects. Left behind, they would be
+ * orphans no page looks up.
  */
 const RETIRED_KEYS: Array<string> = [
   "Link New Alert",
   "Link New Incident",
   "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations and reminders. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
+  "Choose whether the alerts linked to an incident follow it when the incident is acknowledged or resolved. Both are off by default. Alerts are never moved back to an earlier state, and reopening an incident does not reopen its alerts.",
 ];
 
 interface FeedLabel {

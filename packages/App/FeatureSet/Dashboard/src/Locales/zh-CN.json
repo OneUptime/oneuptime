@@ -3221,7 +3221,7 @@
   "Declaring this incident from alerts": "正在基于警报声明此事件",
   "The alerts could not be found": "找不到这些警报",
   "None of the alerts this incident was being declared from could be found, so none will be linked. They may have been deleted, or you may not have access to them.": "找不到声明此事件所依据的任何警报，因此不会关联任何警报。它们可能已被删除，或者您可能无权访问它们。",
-  "Choose whether the alerts linked to an incident follow it when the incident is acknowledged or resolved. Both are off by default. Alerts are never moved back to an earlier state, and reopening an incident does not reopen its alerts.": "选择在事件被确认或解决时，与其关联的警报是否随之变化。两者默认均为关闭。警报永远不会被移回之前的状态，重新打开事件也不会重新打开其警报。",
+  "Choose whether the alerts linked to an incident follow it when the incident is acknowledged or resolved. Both are on for new projects. Alerts are never moved back to an earlier state, and reopening an incident does not reopen its alerts.": "选择在事件被确认或解决时，与其关联的警报是否随之变化。新项目中两者均为开启。警报永远不会被移回之前的状态，重新打开事件也不会重新打开其警报。",
   "Acknowledge Linked Alerts When Incident Is Acknowledged": "事件确认时确认已关联的警报",
   "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations. It stops their reminders only when the alert reminder rule is set to stop reminders on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.": "事件被确认时，确认与其关联的每个警报。这会停止这些警报的值班升级。只有当警报提醒规则设置为在“已确认”时停止提醒，才会停止它们的提醒。关联到已确认事件的警报会在关联时被确认。",
   "Resolve Linked Alerts When Incident Is Resolved": "事件解决时解决已关联的警报",

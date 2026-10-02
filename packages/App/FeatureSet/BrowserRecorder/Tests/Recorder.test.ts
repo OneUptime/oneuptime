@@ -3655,12 +3655,15 @@ describe("Recorder", (): void => {
 
         /*
          * The page loaded, was snapshotted, and nobody touched it: the
-         * session is as long as that, and the seal says so. It used to sit
-         * at the full idle window - the "30m 00s" the list showed.
+         * session is as long as its footage, and the seal says so. It used
+         * to sit at the full idle window - the "30m 00s" the list showed.
+         * (Since #4208 the footage runs to the idle-paused marker five
+         * minutes in; rrweb here stamps events with the real clock, so
+         * RecorderIdlePause.test.ts, on one shared fake clock, pins that.)
          */
         expect(seal.envelope.chunkEndOffsetMs).toBe(footageEndMs);
         expect(seal.envelope.chunkEndOffsetMs).toBeLessThan(
-          SESSION_REPLAY_FLUSH_INTERVAL_MS,
+          SESSION_REPLAY_IDLE_ROLLOVER_MS,
         );
 
         /* Sealed through the ordinary path: the page is alive. */
@@ -4064,7 +4067,14 @@ describe("Recorder", (): void => {
         ).toContain("captureSession");
       });
 
-      it("joins the session a sibling tab started when the user came back there", async (): Promise<void> => {
+      /*
+       * The user came back in ANOTHER tab, which started the next session.
+       * This tab used to adopt it on the spot and start recording it - a
+       * snapshot, then everything the page did - with nobody looking at
+       * it. Since #4208 it stays paused and joins when the user is back
+       * here.
+       */
+      it("joins the session a sibling tab started once the user comes back to this tab too", async (): Promise<void> => {
         jest.useFakeTimers();
 
         const instance: Recorder = startRecorder({ samplePercentage: 100 });
@@ -4087,6 +4097,14 @@ describe("Recorder", (): void => {
           new StorageEvent("storage", { key: SESSION_KEY, newValue: "x" }),
         );
         await drainMicrotasks();
+
+        /* Nobody is here: nothing recorded, nothing adopted yet. */
+        expect(instance.getSessionId()).toBe(firstSessionId);
+        expect(instance.isPausedForIdle()).toBe(true);
+        expect(allFrames()).toHaveLength(0);
+
+        clickPage();
+        await runWake();
 
         expect(instance.getSessionId()).toBe(siblingSessionId);
 

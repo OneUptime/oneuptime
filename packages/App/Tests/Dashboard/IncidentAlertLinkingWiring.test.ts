@@ -19,8 +19,11 @@ import path from "path";
  *     gated on the link model (and incident read) and capped;
  *   - the create-incident page reads `?alertIds=` and hands the ids to the
  *     server through miscDataProps;
- *   - the lifecycle switches sit in a card of their own, because a
- *     CardModelDetail writes every field it holds on Update.
+ *   - the lifecycle switches have a Settings page of their own
+ *     (Incidents → Settings → Linked Alerts), reachable from the side menu,
+ *     holding one card that writes nothing else (a CardModelDetail writes
+ *     every field it holds on Update), with its Update button gated on the
+ *     switches' own permissions; no other dashboard page edits them.
  *
  * The behaviour behind these is covered by jsdom tests in Common
  * (IncidentAlertLinking*.test.tsx) and by IncidentFromAlerts.test.ts.
@@ -38,7 +41,7 @@ const LINK_DIALOG: string =
 const ALERTS_TABLE: string = "Components/Alert/AlertsTable.tsx";
 const CREATE_PAGE: string = "Pages/Incidents/Create.tsx";
 const SETTINGS_PAGE: string =
-  "Pages/Incidents/Settings/IncidentMoreSettings.tsx";
+  "Pages/Incidents/Settings/IncidentLinkedAlertsSettings.tsx";
 
 function readRaw(relativePath: string): string {
   return fs.readFileSync(path.join(DASHBOARD_SRC, relativePath), "utf8");
@@ -627,21 +630,21 @@ describe("the linked alerts lifecycle settings", () => {
     "resolveLinkedAlertsWhenIncidentResolved",
   ];
 
+  const PAGE_KEY: string = "INCIDENTS_SETTINGS_LINKED_ALERTS";
+
   function cards(): Array<string> {
     return dense(SETTINGS_PAGE).split("<CardModelDetail<Project>").slice(1);
   }
 
-  test("are a card of their own that edits exactly the two switches", () => {
-    const linkedAlertsCards: Array<string> = cards().filter(
-      (card: string): boolean => {
-        return card.startsWith('name="LinkedAlerts"');
-      },
-    );
+  test("are a page holding one card that edits exactly the two switches", () => {
+    const pageCards: Array<string> = cards();
 
-    expect(linkedAlertsCards).toHaveLength(1);
+    expect(pageCards).toHaveLength(1);
 
-    const card: string = linkedAlertsCards[0]!;
+    const card: string = pageCards[0]!;
 
+    expect(card.startsWith('name="LinkedAlerts"')).toBe(true);
+    expect(card).toContain('title:"LinkedAlerts"');
     expect(
       fieldNames(sectionBetween(card, "formFields={[", "modelDetailProps={{")),
     ).toEqual(LIFECYCLE_FIELDS);
@@ -649,23 +652,126 @@ describe("the linked alerts lifecycle settings", () => {
       fieldNames(sectionBetween(card, "modelDetailProps={{", "modelId:")),
     ).toEqual(LIFECYCLE_FIELDS);
     expect(card).toContain("fieldType:FormFieldSchemaType.Toggle");
-    expect(card).toContain("isEditable={true}");
+    expect(card).toContain("fieldType:FieldType.Boolean");
   });
 
-  test("are not edited by any other card on the page", () => {
-    const otherCards: Array<string> = cards().filter(
-      (card: string): boolean => {
-        return !card.startsWith('name="LinkedAlerts"');
-      },
+  /*
+   * Both switches take Project Owner or Project Admin, while the Project
+   * table's update list - which CardModelDetail gates its own button on -
+   * also lets Edit Project and Manage Billing in, whose save is refused.
+   */
+  test("gate the Update button on the switches' own permissions", () => {
+    const code: string = dense(SETTINGS_PAGE);
+
+    expect(code).toContain(
+      'getProjectColumnsEditGate({fields:LINKED_ALERTS_FIELDS,buttonTitle:"Update",})',
     );
+    expect(code).toContain("isEditable={editGate.isEditable}");
+    expect(code).toContain("buttons:editGate.lockedButtons");
+    expect(code).toContain('editButtonText={"Update"}');
+    expect(code).not.toContain("isEditable={true}");
+    expect(code).toContain(
+      `exportconstLINKED_ALERTS_FIELDS:Array<|"${LIFECYCLE_FIELDS[0]}"|"${LIFECYCLE_FIELDS[1]}">=["${LIFECYCLE_FIELDS[0]}","${LIFECYCLE_FIELDS[1]}",];`,
+    );
+  });
 
-    expect(otherCards.length).toBeGreaterThan(0);
+  test("say both are on for new projects, not that they are off by default", () => {
+    const code: string = readCode(SETTINGS_PAGE);
 
-    for (const card of otherCards) {
-      for (const field of LIFECYCLE_FIELDS) {
-        expect(card).not.toContain(field);
+    expect(code).toContain("Both are on for new projects.");
+    expect(code).not.toMatch(/off by default/i);
+  });
+
+  /*
+   * One place to change them. They used to sit on More Settings, next to
+   * the number prefixes; a copy left anywhere else would be a second,
+   * unnoticed way to change how alerts are paged.
+   */
+  test("are edited on no other dashboard page", () => {
+    const pages: Array<string> = [];
+
+    function walk(directory: string): void {
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const entryPath: string = path.join(directory, entry.name);
+
+        if (entry.isDirectory()) {
+          if (entry.name !== "node_modules" && entry.name !== "Locales") {
+            walk(entryPath);
+          }
+          continue;
+        }
+
+        if (!entry.name.endsWith(".ts") && !entry.name.endsWith(".tsx")) {
+          continue;
+        }
+
+        const source: string = fs.readFileSync(entryPath, "utf8");
+
+        if (
+          LIFECYCLE_FIELDS.some((field: string): boolean => {
+            return source.includes(field);
+          })
+        ) {
+          pages.push(path.relative(DASHBOARD_SRC, entryPath));
+        }
       }
     }
+
+    walk(DASHBOARD_SRC);
+
+    expect(pages).toEqual([SETTINGS_PAGE]);
+  });
+
+  test("the page is declared in PageMap", () => {
+    expect(readCode("Utils/PageMap.ts")).toContain(
+      `${PAGE_KEY} = "${PAGE_KEY}",`,
+    );
+  });
+
+  test("the page lives at incidents/settings/linked-alerts", () => {
+    const code: string = denseRaw("Utils/RouteMap.ts");
+    const routePaths: string = sectionBetween(
+      code,
+      "exportconstIncidentsRoutePath:Dictionary<string>={",
+      "};",
+    );
+
+    expect(routePaths).toContain(
+      `[PageMap.${PAGE_KEY}]:"settings/linked-alerts",`,
+    );
+    expect(code).toContain(
+      `[PageMap.${PAGE_KEY}]:newRoute(\`/dashboard/\${RouteParams.ProjectID}/incidents/\${IncidentsRoutePath[PageMap.${PAGE_KEY}]}\`,),`,
+    );
+  });
+
+  test("the page is mounted in the incidents routes", () => {
+    const code: string = denseRaw("Routes/IncidentsRoutes.tsx");
+
+    expect(code).toContain(
+      'importIncidentSettingsLinkedAlertsfrom"../Pages/Incidents/Settings/IncidentLinkedAlertsSettings";',
+    );
+    expect(code).toContain(
+      `<PageRoutepath={IncidentsRoutePath[PageMap.${PAGE_KEY}]||""}element={<IncidentSettingsLinkedAlerts{...props}pageRoute={RouteMap[PageMap.${PAGE_KEY}]asRoute}/>}/>`,
+    );
+  });
+
+  test("the page has a Settings breadcrumb trail", () => {
+    expect(dense("Utils/Breadcrumbs/IncidentBreadcrumbs.ts")).toContain(
+      `...BuildBreadcrumbLinksByTitles(PageMap.${PAGE_KEY},["Project","Incidents","Settings","LinkedAlerts",]),`,
+    );
+  });
+
+  test("the page is a Settings item of the Incidents side menu, named Linked Alerts", () => {
+    const menu: string = dense("Pages/Incidents/SideMenu.tsx");
+    const settings: string = sectionBetween(
+      menu,
+      'title:"Settings",',
+      "addDeveloperSideMenuSection(",
+    );
+
+    expect(settings).toContain(
+      `{link:{title:"LinkedAlerts",to:RouteUtil.populateRouteParams(RouteMap[PageMap.${PAGE_KEY}]asRoute,),},icon:IconProp.Link,},`,
+    );
   });
 });
 

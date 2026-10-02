@@ -20,6 +20,7 @@ import {
   ReplayNetworkSignalDetail,
   ReplaySpanSignalDetail,
   ReplayTraceWaterfallSpan,
+  fromTimelineEvent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignals";
 
 /*
@@ -930,6 +931,90 @@ describe("ReplayRailDetail recorder notices", () => {
 });
 
 /* ux-17: the detail spells out measures and ratings. */
+describe("ReplayRailDetail recording pauses", () => {
+  /*
+   * The two idle-pause rows (issue #4208) explain themselves: why the
+   * footage stops at the first, and at the second that nothing between
+   * the two was recorded and playback skips it.
+   */
+  it("explains where capture stopped and how long nobody had touched the page", () => {
+    renderDetail(
+      fromTimelineEvent(
+        {
+          id: "rec:4:9",
+          kind: "idle-pause",
+          chunkIndex: 4,
+          offsetMs: 330_000,
+          idlePauseEdge: "paused",
+          idleSinceUnixMs: START_UNIX_MS + 30_000,
+          pausedAtUnixMs: START_UNIX_MS + 330_000,
+        },
+        { startTimeUnixMs: START_UNIX_MS },
+      ),
+    );
+
+    const detail: HTMLElement = screen.getByTestId("rail-detail");
+
+    expect(detail).toHaveAttribute("data-signal-kind", "marker");
+    expect(detail).toHaveTextContent(
+      "Nobody touched the page for 5m, so the recorder stopped capturing here.",
+    );
+    expect(detail).toHaveTextContent(
+      "Nothing the page did on its own is recorded until the next input.",
+    );
+  });
+
+  it("explains that capture came back on a fresh snapshot and the pause is skipped", () => {
+    renderDetail(
+      fromTimelineEvent(
+        {
+          id: "rec:5:0",
+          kind: "idle-pause",
+          chunkIndex: 5,
+          offsetMs: 1_710_000,
+          idlePauseEdge: "resumed",
+          pausedAtUnixMs: START_UNIX_MS + 330_000,
+          resumedAtUnixMs: START_UNIX_MS + 1_710_000,
+          pausedAtOffsetMs: 330_000,
+        },
+        { startTimeUnixMs: START_UNIX_MS },
+      ),
+    );
+
+    const detail: HTMLElement = screen.getByTestId("rail-detail");
+
+    expect(detail).toHaveTextContent(
+      "Input came back after 23m and the recorder started again here, on a fresh snapshot of the page.",
+    );
+    expect(detail).toHaveTextContent(
+      "Nothing was recorded during the pause, so playback skips it.",
+    );
+  });
+
+  it("drops the length, not the explanation, when the stamps were missing", () => {
+    renderDetail(
+      fromTimelineEvent(
+        {
+          id: "rec:5:0",
+          kind: "idle-pause",
+          chunkIndex: 5,
+          offsetMs: 1_710_000,
+          idlePauseEdge: "resumed",
+        },
+        { startTimeUnixMs: START_UNIX_MS },
+      ),
+    );
+
+    const detail: HTMLElement = screen.getByTestId("rail-detail");
+
+    expect(detail).toHaveTextContent(
+      "Input came back and the recorder started again here",
+    );
+    expect(detail).not.toHaveTextContent("NaN");
+    expect(detail).not.toHaveTextContent("undefined");
+  });
+});
+
 describe("ReplayRailDetail performance wording", () => {
   function performanceSignal(detail: Record<string, unknown>): ReplaySignal {
     return {

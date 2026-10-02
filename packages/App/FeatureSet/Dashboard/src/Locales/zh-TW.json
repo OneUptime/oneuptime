@@ -3221,7 +3221,7 @@
   "Declaring this incident from alerts": "正在從警示宣告此事件",
   "The alerts could not be found": "找不到這些警示",
   "None of the alerts this incident was being declared from could be found, so none will be linked. They may have been deleted, or you may not have access to them.": "找不到宣告此事件所依據的任何警示，因此不會連結任何警示。它們可能已被刪除，或您可能沒有存取權限。",
-  "Choose whether the alerts linked to an incident follow it when the incident is acknowledged or resolved. Both are off by default. Alerts are never moved back to an earlier state, and reopening an incident does not reopen its alerts.": "選擇當事件被確認或解決時，與其連結的警示是否一併跟進。兩者預設皆為關閉。警示絕不會被移回先前的狀態，重新開啟事件也不會重新開啟其警示。",
+  "Choose whether the alerts linked to an incident follow it when the incident is acknowledged or resolved. Both are on for new projects. Alerts are never moved back to an earlier state, and reopening an incident does not reopen its alerts.": "選擇當事件被確認或解決時，與其連結的警示是否一併跟進。新專案中兩者皆為開啟。警示絕不會被移回先前的狀態，重新開啟事件也不會重新開啟其警示。",
   "Acknowledge Linked Alerts When Incident Is Acknowledged": "事件確認時確認已連結的警示",
   "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations. It stops their reminders only when the alert reminder rule is set to stop reminders on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.": "事件被確認時，確認與其連結的每個警示。這會停止這些警示的待命升級。只有當警示提醒規則設定為在「已確認」時停止提醒，才會停止它們的提醒。連結至已確認事件的警示會在連結時被確認。",
   "Resolve Linked Alerts When Incident Is Resolved": "事件解決時解決已連結的警示",
