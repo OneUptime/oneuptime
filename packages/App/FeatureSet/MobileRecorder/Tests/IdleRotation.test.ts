@@ -437,6 +437,84 @@ describe("MobileReplayRecorder idle sessions", () => {
       expect(rotationMarkers(allEvents(oldPosts))).toEqual([]);
       expectOpensOnSnapshotThenIdleMarker(chunkZero(test, newSessionId));
     });
+
+    test("a change of user while the app is away ends the old session where it was left", async () => {
+      const test: IdleHarness = harness({ captureUserIdentity: true });
+      const aliceSessionId: string = await start(test, { userRef: "alice" });
+      test.appState.emit("background");
+      await flush();
+      const backgroundedAtUnixMs: number = Date.now();
+
+      /* A background sign-in refresh, two hours later, as another account. */
+      await elapse(2 * HOUR_MS);
+      test.recorder.identify("bob");
+      await flush();
+
+      /* The session ended where it was left; nobody is back to start one. */
+      expect(test.recorder.getSessionId()).toBeNull();
+      expect(diagnostics(test, "session-ended-idle")).toHaveLength(1);
+      expect(diagnostics(test, "session-rotated")).toEqual([]);
+
+      test.appState.emit("active");
+      await flush();
+      const bobSessionId: string = test.recorder.getSessionId() as string;
+      expect(bobSessionId).toEqual(expect.any(String));
+      expect(bobSessionId).not.toBe(aliceSessionId);
+      await test.recorder.stop();
+
+      const alicePosts: Array<DecodedPost> = postsFor(test, aliceSessionId);
+      expect(lastChunkEndUnixMs(alicePosts)).toBe(backgroundedAtUnixMs);
+      expect(rotationMarkers(allEvents(alicePosts))).toEqual([]);
+      expect(JSON.stringify(alicePosts)).not.toContain('"bob"');
+
+      const opening: DecodedPost = chunkZero(test, bobSessionId);
+      expectOpensOnSnapshotThenIdleMarker(opening);
+      expect(opening.envelope["meta"]).toMatchObject({
+        identifiedUserRef: "bob",
+      });
+      expect(
+        diagnostics(test, "session-rotated").map(
+          (event: MobileReplayDiagnosticEvent): unknown => {
+            return event.details?.["reason"];
+          },
+        ),
+      ).toEqual(["idle"]);
+    });
+
+    test("stopping after the idle window adds nothing dated at the stop", async () => {
+      const test: IdleHarness = harness();
+      const sessionId: string = await start(test);
+      test.appState.emit("background");
+      await flush();
+      const backgroundedAtUnixMs: number = Date.now();
+
+      await elapse(2 * HOUR_MS);
+      await test.recorder.stop();
+
+      expect(sessionIds(test)).toEqual(new Set([sessionId]));
+      expect(lastChunkEndUnixMs(test.posted)).toBe(backgroundedAtUnixMs);
+      expect(JSON.stringify(allEvents(test.posted))).not.toContain(
+        '"state":"stopped"',
+      );
+    });
+
+    test("stopping inside the idle window still marks where the recording stopped", async () => {
+      const test: IdleHarness = harness();
+      await start(test);
+      test.appState.emit("background");
+      await flush();
+
+      await elapse(10 * MINUTE_MS);
+      const stoppedAtUnixMs: number = Date.now();
+      await test.recorder.stop();
+
+      const sealing: DecodedPost = test.posted[test.posted.length - 1]!;
+      expect(sealing.envelope["isFinal"]).toBe(true);
+      expect(chunkEndUnixMs(sealing)).toBe(stoppedAtUnixMs);
+      const lastEvent: RrwebEvent = sealing.events[sealing.events.length - 1]!;
+      expect(customTag(lastEvent)).toBe(VISIBILITY_CUSTOM_EVENT_TAG);
+      expect(customPayload(lastEvent)).toEqual({ state: "stopped" });
+    });
   });
 
   describe("rotations the user is active through are unchanged", () => {

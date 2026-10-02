@@ -657,12 +657,19 @@ export default class MobileReplayRecorder {
       return;
     }
 
-    this.appendCustom(
-      VISIBILITY_CUSTOM_EVENT_TAG,
-      { state: "stopped" },
-      undefined,
-      true,
-    );
+    /*
+     * Not on a session that has gone idle: it ended at its last activity,
+     * and a marker dated now would stretch it by the whole absence. Any
+     * footage it still buffers goes out below, dated by itself.
+     */
+    if (this.rotationReason(this.now()) !== "idle") {
+      this.appendCustom(
+        VISIBILITY_CUSTOM_EVENT_TAG,
+        { state: "stopped" },
+        undefined,
+        true,
+      );
+    }
     /* Quiesce first so no timer or AppState callback can append after final. */
     this.haltCapture();
     await this.closeCurrent(true);
@@ -1977,6 +1984,20 @@ export default class MobileReplayRecorder {
       }
       if (!this.running || identityEpoch !== this.identityCancellationEpoch) {
         return;
+      }
+
+      /*
+       * A session that went idle before anything noticed (the app sat in
+       * the background) ended at its last activity. It is sealed there:
+       * closed by the identity marker instead, it was dated now and
+       * stretched by the whole absence.
+       */
+      if (
+        !this.rotationPromise &&
+        !this.sealedForIdle &&
+        this.rotationReason(this.now()) === "idle"
+      ) {
+        await this.maybeRotateSession(this.now());
       }
 
       /*
