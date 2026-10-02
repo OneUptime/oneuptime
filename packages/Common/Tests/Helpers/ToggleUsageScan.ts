@@ -4,8 +4,10 @@ import ts from "typescript";
  * The detector behind the switch guard
  * (Tests/UI/Components/ToggleUsageGuard.test.ts).
  *
- * The maintainer's ask: "improve the UI for this component so it gets
- * reflected across the project." The look lives in one component,
+ * The maintainer's asks: "improve the UI for this component so it gets
+ * reflected across the project", and then "make it just like how the rest
+ * of oneuptime looks like". The look - the classic filled switch, a grey
+ * track and white knob off, the brand indigo on - lives in one component,
  * Common/UI/Components/Toggle, and it only reaches a page that uses it the
  * way it is meant to be used. Three things undo that without any test
  * noticing, and this reads every module for them:

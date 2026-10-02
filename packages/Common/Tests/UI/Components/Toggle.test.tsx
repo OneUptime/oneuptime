@@ -1,8 +1,9 @@
 import Toggle, {
   getToggleClassNames,
-  TOGGLE_CHECK_CLASS,
+  TOGGLE_KNOB_BASE_CLASS,
   TOGGLE_KNOB_OFF_CLASS,
   TOGGLE_KNOB_ON_CLASS,
+  TOGGLE_TRACK_BASE_CLASS,
   TOGGLE_TRACK_DISABLED_CLASS,
   TOGGLE_TRACK_OFF_CLASS,
   TOGGLE_TRACK_OFF_HOVER_CLASS,
@@ -33,6 +34,9 @@ type UserEventController = ReturnType<typeof userEvent.setup>;
 
 const SECRET_DESCRIPTION: string =
   "Keep this variable's content out of workflow run logs - every run replaces it with [REDACTED] before the log is saved.";
+
+// A border colour (border-gray-500, hover:border-indigo-700), not its width.
+const BORDER_COLOUR_CLASS: RegExp = /^(?:hover:)?border-(?!2$|transparent$)/;
 
 function classesOf(element: Element): Array<string> {
   return Array.from(element.classList);
@@ -289,10 +293,13 @@ describe("Toggle", () => {
     );
 
     expect(onMarkup).toContain('aria-checked="true"');
-    expect(onMarkup).toContain("translate-x-5");
-    expect(onMarkup).toContain("data-ou-toggle-check");
+    expect(onMarkup).toContain(TOGGLE_TRACK_ON_CLASS);
+    expect(onMarkup).toContain(TOGGLE_KNOB_ON_CLASS);
     // `value` is what the switch shows; initialValue is for when there is none.
     expect(offMarkup).toContain('aria-checked="false"');
+    expect(offMarkup).toContain(TOGGLE_TRACK_OFF_CLASS);
+    expect(offMarkup).toContain(TOGGLE_KNOB_OFF_CLASS);
+    expect(offMarkup).not.toContain(TOGGLE_TRACK_ON_CLASS);
     expect(
       renderToStaticMarkup(<Toggle onChange={() => {}} initialValue={true} />),
     ).toContain('aria-checked="true"');
@@ -389,56 +396,155 @@ describe("Toggle", () => {
 });
 
 /*
- * What the maintainer saw: a pale grey pill, gray-200 with a white knob, that
- * barely showed on a white form and gave no cue which way it was set. Off is
- * now an outline and a dark knob, on is filled indigo with a tick on a white
- * knob, disabled is dimmed.
+ * What the maintainer asked, looking at the outlined switch (a white pill with
+ * a gray-500 outline and a dark dot): "make it just like how the rest of
+ * oneuptime looks like". The rest of OneUptime draws filled controls with no
+ * outlines: so off is a gray-300 track with a white knob on the left, on is
+ * the primary buttons' indigo-600 with the same knob on the right, and
+ * disabled is dimmed.
  */
 describe("Toggle - how each state looks", () => {
-  test("off is an outlined track with a dark knob on the left and no tick", () => {
+  test("off is a grey track with the white knob on the left", () => {
     render(<Toggle onChange={() => {}} value={false} title="Secret" />);
 
     const toggle: HTMLElement = screen.getByRole("switch", { name: "Secret" });
 
     expectAllClasses(toggle, TOGGLE_TRACK_OFF_CLASS);
+    expect(toggle).toHaveClass("bg-gray-300");
     expectNoClasses(toggle, TOGGLE_TRACK_ON_CLASS);
     expectAllClasses(knobOf(toggle), TOGGLE_KNOB_OFF_CLASS);
-    expectNoClasses(knobOf(toggle), "bg-white translate-x-5");
-    expect(toggle.querySelector("[data-ou-toggle-check]")).toBeNull();
+    expect(knobOf(toggle)).toHaveClass("bg-white", "translate-x-0");
+    expect(knobOf(toggle)).not.toHaveClass("translate-x-5");
   });
 
-  test("on is a filled indigo track with a white knob on the right carrying a tick", () => {
+  test("on is the brand indigo with the same white knob on the right", () => {
     render(<Toggle onChange={() => {}} value={true} title="Secret" />);
 
     const toggle: HTMLElement = screen.getByRole("switch", { name: "Secret" });
-    const check: Element | null = toggle.querySelector(
-      "[data-ou-toggle-check]",
-    );
 
     expectAllClasses(toggle, TOGGLE_TRACK_ON_CLASS);
+    expect(toggle).toHaveClass("bg-indigo-600");
     expectNoClasses(toggle, TOGGLE_TRACK_OFF_CLASS);
     expectAllClasses(knobOf(toggle), TOGGLE_KNOB_ON_CLASS);
-    expectNoClasses(knobOf(toggle), "bg-gray-500");
-    expect(check).not.toBeNull();
-    expectAllClasses(check!, TOGGLE_CHECK_CLASS);
+    expect(knobOf(toggle)).toHaveClass("bg-white", "translate-x-5");
+    expect(knobOf(toggle)).not.toHaveClass("translate-x-0");
   });
 
-  test("the old pale off state is gone", () => {
+  /*
+   * The knob is one white disc with a small shadow in both states - the
+   * shadow is what sets it off the grey track. Only its side changes; it no
+   * longer grows from a dark dot into a disc.
+   */
+  test("the knob is the same 20px white disc with a shadow in both states", () => {
+    const { rerender } = render(<Toggle onChange={() => {}} value={false} />);
+    const offKnob: Array<string> = classesOf(
+      knobOf(screen.getByRole("switch")),
+    );
+
+    rerender(<Toggle onChange={() => {}} value={true} />);
+    const onKnob: Array<string> = classesOf(knobOf(screen.getByRole("switch")));
+
+    for (const knob of [offKnob, onKnob]) {
+      expect(knob).toEqual(
+        expect.arrayContaining([
+          "h-5",
+          "w-5",
+          "rounded-full",
+          "bg-white",
+          "shadow",
+        ]),
+      );
+    }
+
+    // Everything but the side it is on is the same.
+    const withoutSide: (classes: Array<string>) => Array<string> = (
+      classes: Array<string>,
+    ): Array<string> => {
+      return classes.filter((className: string): boolean => {
+        return !className.startsWith("translate-x-");
+      });
+    };
+
+    expect(withoutSide(offKnob)).toEqual(withoutSide(onKnob));
+  });
+
+  test("nothing is drawn on the knob: no tick, no dot", () => {
+    for (const value of [false, true]) {
+      render(<Toggle onChange={() => {}} value={value} />);
+
+      const toggle: HTMLElement = screen.getByRole("switch");
+
+      expect(knobOf(toggle).childNodes).toHaveLength(0);
+      expect(toggle.querySelector("svg")).toBeNull();
+      expect(toggle.querySelector("[data-ou-toggle-check]")).toBeNull();
+
+      cleanup();
+    }
+  });
+
+  /*
+   * The design the maintainer turned down: a white track inside a gray-500
+   * outline, a gray-500 dot that grew into a disc, and a tick on it.
+   */
+  test("the outlined look is gone: no outline, no white track, no dark dot", () => {
+    for (const value of [false, true]) {
+      render(<Toggle onChange={() => {}} value={value} />);
+
+      const toggle: HTMLElement = screen.getByRole("switch");
+      const knob: HTMLElement = knobOf(toggle);
+
+      expect(
+        classesOf(toggle).filter((className: string): boolean => {
+          return BORDER_COLOUR_CLASS.test(className);
+        }),
+      ).toEqual([]);
+      expect(toggle).toHaveClass("border-transparent");
+      expect(toggle).not.toHaveClass("bg-white");
+      expect(knob).not.toHaveClass("bg-gray-500");
+      expect(knob).not.toHaveClass("h-3.5");
+      expect(knob).not.toHaveClass("translate-x-[3px]");
+
+      cleanup();
+    }
+  });
+
+  /*
+   * Windows High Contrast (forced colours) paints every fill the page
+   * colour and drops shadows. A transparent border is what it draws
+   * instead, in the text colour: the track keeps its outline and the knob a
+   * ring, so which side the knob is on - the state - still shows. Without
+   * the knob's border, on and off looked the same in that mode.
+   */
+  test("the track and the knob keep an edge for Windows High Contrast", () => {
+    for (const value of [false, true]) {
+      for (const disabled of [false, true]) {
+        render(
+          <Toggle onChange={() => {}} value={value} disabled={disabled} />,
+        );
+
+        const toggle: HTMLElement = screen.getByRole("switch");
+
+        expect(toggle).toHaveClass("border-2", "border-transparent");
+        expect(knobOf(toggle)).toHaveClass("border", "border-transparent");
+
+        cleanup();
+      }
+    }
+  });
+
+  // The first design all but disappeared on a white form.
+  test("the pale gray-200 pill is not back either", () => {
     render(<Toggle onChange={() => {}} value={false} />);
 
-    const toggle: HTMLElement = screen.getByRole("switch");
-
-    expect(toggle).not.toHaveClass("bg-gray-200");
-    expect(toggle).not.toHaveClass("border-transparent");
+    expect(screen.getByRole("switch")).not.toHaveClass("bg-gray-200");
   });
 
-  test("the knob and the tick are decoration: hidden from assistive tech", () => {
+  test("the knob is decoration: hidden from assistive tech", () => {
     render(<Toggle onChange={() => {}} value={true} />);
 
     const knob: HTMLElement = knobOf(screen.getByRole("switch"));
 
     expect(knob).toHaveAttribute("aria-hidden", "true");
-    expect(knob.querySelector("svg")).not.toBeNull();
   });
 
   test("pressing it moves between the two looks", () => {
@@ -474,18 +580,24 @@ describe("Toggle - how each state looks", () => {
         toggle,
         value ? TOGGLE_TRACK_ON_CLASS : TOGGLE_TRACK_OFF_CLASS,
       );
+      expectAllClasses(
+        knobOf(toggle),
+        value ? TOGGLE_KNOB_ON_CLASS : TOGGLE_KNOB_OFF_CLASS,
+      );
     },
   );
 
-  test("an enabled switch darkens on hover, in the state it is in", () => {
+  test("an enabled switch deepens one shade on hover, in the state it is in", () => {
     const { rerender } = render(<Toggle onChange={() => {}} value={false} />);
 
     expectAllClasses(screen.getByRole("switch"), TOGGLE_TRACK_OFF_HOVER_CLASS);
+    expect(screen.getByRole("switch")).toHaveClass("hover:bg-gray-400");
     expectNoClasses(screen.getByRole("switch"), TOGGLE_TRACK_ON_HOVER_CLASS);
 
     rerender(<Toggle onChange={() => {}} value={true} />);
 
     expectAllClasses(screen.getByRole("switch"), TOGGLE_TRACK_ON_HOVER_CLASS);
+    expect(screen.getByRole("switch")).toHaveClass("hover:bg-indigo-700");
     expectNoClasses(screen.getByRole("switch"), TOGGLE_TRACK_OFF_HOVER_CLASS);
   });
 
@@ -493,14 +605,14 @@ describe("Toggle - how each state looks", () => {
    * The ring is drawn for keyboard focus only (focus-visible). A focus: ring
    * also painted itself around a switch someone had just clicked.
    */
-  test("keyboard focus draws a visible ring; a mouse click does not", () => {
+  test("keyboard focus draws the buttons' indigo ring; a mouse click does not", () => {
     render(<Toggle onChange={() => {}} value={false} />);
 
     const toggle: HTMLElement = screen.getByRole("switch");
 
     expectAllClasses(
       toggle,
-      "focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2",
+      "focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
     );
     expect(
       classesOf(toggle).filter((className: string): boolean => {
@@ -509,13 +621,55 @@ describe("Toggle - how each state looks", () => {
     ).toEqual([]);
   });
 
-  test("it does not animate for anyone who asked for less motion", () => {
+  test("it slides smoothly, and not at all for anyone who asked for less motion", () => {
     render(<Toggle onChange={() => {}} value={false} />);
 
     const toggle: HTMLElement = screen.getByRole("switch");
 
-    expect(toggle).toHaveClass("motion-reduce:transition-none");
-    expect(knobOf(toggle)).toHaveClass("motion-reduce:transition-none");
+    expect(toggle).toHaveClass(
+      "transition-colors",
+      "duration-200",
+      "ease-in-out",
+      "motion-reduce:transition-none",
+    );
+    expect(knobOf(toggle)).toHaveClass(
+      "transition",
+      "duration-200",
+      "ease-in-out",
+      "motion-reduce:transition-none",
+    );
+  });
+
+  /*
+   * 44 x 24, as it has always been, so none of the pages that place a
+   * switch, or line text up beside one (pl-14), move. The knob fills the
+   * height inside the 2px clear border, and slides exactly the width that is
+   * left: 44 - 2 x 2 - 20 = 20px, translate-x-5.
+   */
+  test("the knob fits the track and slides exactly across it", () => {
+    const PX: Record<string, number> = {
+      "w-11": 44,
+      "h-6": 24,
+      "w-5": 20,
+      "h-5": 20,
+      "border-2": 2,
+      "translate-x-0": 0,
+      "translate-x-5": 20,
+    };
+
+    const track: Array<string> = TOGGLE_TRACK_BASE_CLASS.split(" ");
+    const knob: Array<string> = TOGGLE_KNOB_BASE_CLASS.split(" ");
+
+    expect(track).toEqual(
+      expect.arrayContaining(["w-11", "h-6", "border-2", "rounded-full"]),
+    );
+    expect(knob).toEqual(expect.arrayContaining(["w-5", "h-5"]));
+
+    const inner: number = PX["w-11"]! - 2 * PX["border-2"]!;
+
+    expect(PX["h-6"]! - 2 * PX["border-2"]!).toBe(PX["h-5"]);
+    expect(PX[TOGGLE_KNOB_OFF_CLASS]).toBe(0);
+    expect(PX[TOGGLE_KNOB_ON_CLASS]).toBe(inner - PX["w-5"]!);
   });
 
   // The hooks the dark theme's rules in Theme.css hang on.
@@ -526,6 +680,7 @@ describe("Toggle - how each state looks", () => {
 
     expect(toggle).toHaveAttribute("data-ou-toggle-track");
     expect(knobOf(toggle)).not.toBeNull();
+    expect(knobOf(toggle).parentElement).toBe(toggle);
   });
 
   test("getToggleClassNames gives the same classes the component renders", () => {
