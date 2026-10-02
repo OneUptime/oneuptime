@@ -14,12 +14,18 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * SubscriberAudienceSummary: "Will notify: Site 03 (up to 41 email), Site 07
  * (up to 18 email)", shown before an incident is declared or a public note is
- * posted.
+ * posted, and in the confirmation before a notification is sent again.
  *
  * The raw call is stubbed and its request recorded, so these pin down what
  * it asks (the route, the tenant header, normalized ids), when it asks (once
- * per set of ids, a draft after the picking settles, never while notifying
- * is off), what it does with a late or failed answer, and what it says.
+ * per set of ids, a draft after the picking settles, never without a
+ * request), what it does with a late or failed answer, and what it says.
+ *
+ * Under a "notify subscribers" checkbox it says nothing until it has
+ * someone to name or a status page scope problem to point out: no
+ * working-it-out line, and no "No status page subscribers will be notified:
+ * no monitors are attached" - the warning the maintainer asked to remove. A
+ * confirmation (saysWhenNobodyIsNotified) always answers.
  */
 
 const postMock: MockFunction = getJestMockFunction();
@@ -156,6 +162,19 @@ function requestOf(call: number = 0): {
   };
 }
 
+/*
+ * Lets every answer already given land. Under a checkbox "still working it
+ * out" and "nothing to say" both render nothing, so a test that expects
+ * nothing must wait for the answer first, or it would pass while loading.
+ */
+async function settle(): Promise<void> {
+  await act(async () => {
+    await new Promise((r: (value: unknown) => void) => {
+      setTimeout(r, 20);
+    });
+  });
+}
+
 beforeEach(() => {
   postMock.mockReset();
   postMock.mockResolvedValue(ok(audience()));
@@ -197,7 +216,7 @@ describe("SubscriberAudienceSummary for an incident that exists", () => {
     expect(request.headers).toEqual({ tenantid: "project-1" });
   });
 
-  test("shows that it is working it out until the answer arrives", async () => {
+  test("in a confirmation, shows that it is working it out until the answer arrives", async () => {
     let resolve: (value: HTTPResponse<JSONObject>) => void = () => {};
     postMock.mockImplementation((() => {
       return new Promise((r: (value: HTTPResponse<JSONObject>) => void) => {
@@ -205,7 +224,12 @@ describe("SubscriberAudienceSummary for an incident that exists", () => {
       });
     }) as never);
 
-    render(<SubscriberAudienceSummary request={{ incidentId: INCIDENT_ID }} />);
+    render(
+      <SubscriberAudienceSummary
+        request={{ incidentId: INCIDENT_ID }}
+        saysWhenNobodyIsNotified={true}
+      />,
+    );
 
     expect(
       screen.getByText(IncidentStatusPageScopeCopy.audienceLoading),
@@ -220,6 +244,57 @@ describe("SubscriberAudienceSummary for an incident that exists", () => {
     });
 
     expect(screen.getByText("Will notify:")).toBeInTheDocument();
+  });
+
+  /*
+   * Most answers under a checkbox are "nobody", which shows nothing: a
+   * working-it-out line would flash up only to disappear.
+   */
+  test("under a checkbox, shows nothing while it works it out, then who will be notified", async () => {
+    let resolve: (value: HTTPResponse<JSONObject>) => void = () => {};
+    postMock.mockImplementation((() => {
+      return new Promise((r: (value: HTTPResponse<JSONObject>) => void) => {
+        resolve = r;
+      });
+    }) as never);
+
+    const { container } = render(
+      <SubscriberAudienceSummary request={{ incidentId: INCIDENT_ID }} />,
+    );
+
+    await waitFor(() => {
+      expect(postMock).toHaveBeenCalledTimes(1);
+    });
+    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.queryByText(IncidentStatusPageScopeCopy.audienceLoading),
+    ).toBeNull();
+
+    await act(async () => {
+      resolve(ok(audience()));
+    });
+
+    expect(screen.getByText("Will notify:")).toBeInTheDocument();
+    expect(screen.getByTestId("subscriber-audience-summary")).toHaveAttribute(
+      "data-state",
+      "info",
+    );
+  });
+
+  test("under a checkbox, an answer that never comes shows nothing", async () => {
+    postMock.mockImplementation((() => {
+      return new Promise(() => {});
+    }) as never);
+
+    const { container } = render(
+      <SubscriberAudienceSummary request={{ incidentId: INCIDENT_ID }} />,
+    );
+
+    await new Promise((r: (value: unknown) => void) => {
+      setTimeout(r, 50);
+    });
+
+    expect(container).toBeEmptyDOMElement();
   });
 
   test("a failed answer says so in a line, and never throws", async () => {
@@ -407,39 +482,310 @@ describe("SubscriberAudienceSummary for an incident being declared", () => {
     expect(screen.queryByText("Site 03 (up to 41 email)")).toBeNull();
   });
 
-  test("no monitors, as the server says: nobody is notified", async () => {
+  /*
+   * The maintainer's screenshot: 'Notify Status Page Subscribers' ticked on
+   * an incident with no monitor, and under it "No status page subscribers
+   * will be notified: no monitors are attached. Subscribers hear about an
+   * incident through the monitors their status pages list."
+   */
+  test("no monitors, as the server says: nothing at all under the checkbox", async () => {
+    postMock.mockResolvedValue(
+      ok(audience({ hasMonitors: false, statusPages: [] })),
+    );
+
+    const { container } = render(
+      <SubscriberAudienceSummary
+        request={{ monitorIds: [], statusPageIds: [] }}
+      />,
+    );
+
+    await waitFor(
+      () => {
+        expect(postMock).toHaveBeenCalledTimes(1);
+      },
+      { timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000 },
+    );
+    await settle();
+
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByText(/no monitors are attached/i)).toBeNull();
+    expect(screen.queryByText(/hear about an incident/i)).toBeNull();
+  });
+
+  test("monitors that no status page lists: nothing under the checkbox", async () => {
+    postMock.mockResolvedValue(ok(audience({ statusPages: [] })));
+
+    const { container } = render(
+      <SubscriberAudienceSummary
+        request={{ monitorIds: [MONITOR_A], statusPageIds: [] }}
+      />,
+    );
+
+    await waitFor(
+      () => {
+        expect(postMock).toHaveBeenCalledTimes(1);
+      },
+      { timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000 },
+    );
+    await settle();
+
+    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.queryByText(IncidentStatusPageScopeCopy.audienceNoStatusPages),
+    ).toBeNull();
+  });
+
+  test("pages picked but no monitor: names the pages, which will not show it", async () => {
+    postMock.mockResolvedValue(
+      ok(
+        audience({
+          hasMonitors: false,
+          statusPages: [],
+          selectedStatusPagesNotListingMonitors: [
+            { statusPageId: SITE_03, name: "Site 03" },
+          ],
+        }),
+      ),
+    );
+
+    render(
+      <SubscriberAudienceSummary
+        request={{ monitorIds: [], statusPageIds: [SITE_03] }}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        IncidentStatusPageScopeCopy.audienceNoStatusPages,
+        undefined,
+        { timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000 },
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Site 03 (lists none of these monitors)"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("subscriber-audience-summary")).toHaveAttribute(
+      "data-state",
+      "warning",
+    );
+  });
+});
+
+describe("SubscriberAudienceSummary under a checkbox, when no one will be notified", () => {
+  test("pages with no subscribers yet: nothing", async () => {
+    postMock.mockResolvedValue(
+      ok(
+        audience({
+          statusPages: [
+            {
+              statusPageId: SITE_03,
+              name: "Site 03",
+              subscriberCounts: counts({}),
+            },
+          ],
+        }),
+      ),
+    );
+
+    const { container } = render(
+      <SubscriberAudienceSummary request={{ incidentId: INCIDENT_ID }} />,
+    );
+
+    await waitFor(() => {
+      expect(postMock).toHaveBeenCalledTimes(1);
+    });
+    await settle();
+
+    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.queryByText(IncidentStatusPageScopeCopy.audienceNoSubscribers),
+    ).toBeNull();
+  });
+
+  test("only a page that does not show incidents is left out: nothing", async () => {
+    postMock.mockResolvedValue(
+      ok(
+        audience({
+          statusPages: [],
+          excludedStatusPages: [
+            {
+              statusPageId: "x",
+              name: "Internal",
+              reason: IncidentSubscriberAudienceExclusionReason.HidesIncidents,
+            },
+          ],
+        }),
+      ),
+    );
+
+    const { container } = render(
+      <SubscriberAudienceSummary request={{ incidentId: INCIDENT_ID }} />,
+    );
+
+    await waitFor(() => {
+      expect(postMock).toHaveBeenCalledTimes(1);
+    });
+    await settle();
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  test("a page that only shows incidents limited to it keeps it out: a warning, with the page and why", async () => {
+    postMock.mockResolvedValue(
+      ok(
+        audience({
+          isScoped: false,
+          statusPages: [],
+          excludedStatusPages: [
+            {
+              statusPageId: "x",
+              name: "Site 05",
+              reason:
+                IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents,
+            },
+          ],
+        }),
+      ),
+    );
+
+    render(<SubscriberAudienceSummary request={{ incidentId: INCIDENT_ID }} />);
+
+    expect(
+      await screen.findByText(
+        IncidentStatusPageScopeCopy.audienceNoStatusPages,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Not notified:")).toBeInTheDocument();
+    expect(
+      screen.getByText("Site 05 (only shows incidents limited to it)"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("subscriber-audience-summary")).toHaveAttribute(
+      "data-state",
+      "warning",
+    );
+  });
+
+  test("a failed answer is still said: it is not the same as nobody", async () => {
+    postMock.mockRejectedValue(new Error("Network down"));
+
+    render(
+      <SubscriberAudienceSummary
+        request={{ monitorIds: [MONITOR_A], statusPageIds: [] }}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        IncidentStatusPageScopeCopy.audienceError,
+        undefined,
+        {
+          timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000,
+        },
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("SubscriberAudienceSummary in a confirmation, when no one will be notified", () => {
+  test("no monitors: says no status page will show it", async () => {
     postMock.mockResolvedValue(
       ok(audience({ hasMonitors: false, statusPages: [] })),
     );
 
     render(
       <SubscriberAudienceSummary
-        request={{ monitorIds: [], statusPageIds: [] }}
+        request={{ incidentId: INCIDENT_ID }}
+        saysWhenNobodyIsNotified={true}
       />,
     );
 
     expect(
-      await screen.findByText(IncidentStatusPageScopeCopy.audienceNoMonitors),
+      await screen.findByText(
+        IncidentStatusPageScopeCopy.audienceNoStatusPages,
+      ),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/no monitors are attached/i)).toBeNull();
+  });
+
+  test("pages with no subscribers yet: says so, with the pages", async () => {
+    postMock.mockResolvedValue(
+      ok(
+        audience({
+          statusPages: [
+            {
+              statusPageId: SITE_03,
+              name: "Site 03",
+              subscriberCounts: counts({}),
+            },
+          ],
+        }),
+      ),
+    );
+
+    render(
+      <SubscriberAudienceSummary
+        request={{ incidentId: INCIDENT_ID }}
+        saysWhenNobodyIsNotified={true}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        IncidentStatusPageScopeCopy.audienceNoSubscribers,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Site 03 (no subscribers yet)"),
+    ).toBeInTheDocument();
+  });
+
+  test("a Retry that every page was sent in full: says so, and why", async () => {
+    postMock.mockResolvedValue(
+      ok(
+        audience({
+          statusPages: [],
+          excludedStatusPages: [
+            {
+              statusPageId: SITE_07,
+              name: "Site 07",
+              reason: IncidentSubscriberAudienceExclusionReason.AlreadyNotified,
+            },
+          ],
+        }),
+      ),
+    );
+
+    render(
+      <SubscriberAudienceSummary
+        request={{
+          incidentId: INCIDENT_ID,
+          excludeStatusPagesNotifiedOnCreation: true,
+        }}
+        saysWhenNobodyIsNotified={true}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        IncidentStatusPageScopeCopy.audienceNoStatusPages,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Site 07 (already sent this notification in full)"),
+    ).toBeInTheDocument();
+    expect(requestOf().data).toEqual({
+      incidentId: INCIDENT_ID,
+      excludeStatusPagesNotifiedOnCreation: true,
+    });
   });
 });
 
-describe("SubscriberAudienceSummary when nothing will be sent anyway", () => {
-  test("a quiet reason is shown instead of asking", async () => {
-    render(
-      <SubscriberAudienceSummary
-        request={{ monitorIds: [MONITOR_A], statusPageIds: [] }}
-        quietReason={IncidentStatusPageScopeCopy.audienceNotifyOff}
-      />,
-    );
+describe("SubscriberAudienceSummary without a request", () => {
+  test("no request renders nothing and asks nothing", async () => {
+    const { container } = render(<SubscriberAudienceSummary request={null} />);
 
-    expect(
-      screen.getByText(IncidentStatusPageScopeCopy.audienceNotifyOff),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("subscriber-audience-summary")).toHaveAttribute(
-      "data-state",
-      "quiet",
-    );
+    expect(container).toBeEmptyDOMElement();
 
     await new Promise((r: (value: unknown) => void) => {
       setTimeout(r, SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 50);
@@ -448,11 +794,30 @@ describe("SubscriberAudienceSummary when nothing will be sent anyway", () => {
     expect(postMock).not.toHaveBeenCalled();
   });
 
-  test("no request renders nothing and asks nothing", () => {
-    const { container } = render(<SubscriberAudienceSummary request={null} />);
+  test("nor in a confirmation", () => {
+    const { container } = render(
+      <SubscriberAudienceSummary
+        request={null}
+        saysWhenNobodyIsNotified={true}
+      />,
+    );
 
     expect(container).toBeEmptyDOMElement();
     expect(postMock).not.toHaveBeenCalled();
+  });
+
+  test("a request going away mid-flight takes the summary with it", async () => {
+    const { container, rerender } = render(
+      <SubscriberAudienceSummary request={{ incidentId: INCIDENT_ID }} />,
+    );
+
+    expect(await screen.findByText("Will notify:")).toBeInTheDocument();
+
+    // 'Notify Status Page Subscribers' is unticked: nothing is asked.
+    rerender(<SubscriberAudienceSummary request={null} />);
+
+    expect(container).toBeEmptyDOMElement();
+    expect(postMock).toHaveBeenCalledTimes(1);
   });
 });
 

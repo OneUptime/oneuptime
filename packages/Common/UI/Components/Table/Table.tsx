@@ -9,6 +9,8 @@ import BulkUpdateForm, {
 } from "../BulkUpdate/BulkUpdateForm";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import { getEmptyTableMessage } from "./EmptyTableMessage";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import FilterViewer from "../Filters/FilterViewer";
 import Filter from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
@@ -158,6 +160,14 @@ const Table: TableFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
+  /*
+   * The filter bar and the bulk-action bar are handed the English labels:
+   * each puts them into whole translated sentences of its own ("3 Monitors
+   * Selected"), which needs the English noun to find the sentence and to know
+   * whether the noun is translated. The pagination footer leaves the noun out
+   * of a translated sentence and takes the translated labels.
+   */
   const translatedSingularLabel: string =
     translateString(props.singularLabel) ?? props.singularLabel;
   const translatedPluralLabel: string =
@@ -296,6 +306,7 @@ const Table: TableFunction = <T extends GenericObject>(
               translate: (value: string): string => {
                 return translateString(value) ?? value;
               },
+              translator: translator,
             })
           }
           onRefreshClick={props.onRefreshClick}
@@ -442,8 +453,8 @@ const Table: TableFunction = <T extends GenericObject>(
         filters={props.filters || []}
         onFilterModalClose={props.onFilterModalClose}
         onFilterModalOpen={props.onFilterModalOpen}
-        singularLabel={translatedSingularLabel}
-        pluralLabel={translatedPluralLabel}
+        singularLabel={props.singularLabel}
+        pluralLabel={props.pluralLabel}
         filterData={props.filterData}
         onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
       />
@@ -468,8 +479,8 @@ const Table: TableFunction = <T extends GenericObject>(
             }
           }}
           selectedItems={bulkSelectedItems}
-          singularLabel={translatedSingularLabel}
-          pluralLabel={translatedPluralLabel}
+          singularLabel={props.singularLabel}
+          pluralLabel={props.pluralLabel}
           isAllItemsSelected={isAllItemsSelected}
           errorMessage={props.bulkSelectionError}
           isSelectingAllItems={props.isBulkSelectAllLoading}

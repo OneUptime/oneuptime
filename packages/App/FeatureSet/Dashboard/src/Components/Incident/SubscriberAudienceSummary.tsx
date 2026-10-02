@@ -17,12 +17,20 @@ import useSubscriberAudience, {
  * "Will notify: Site 03 (up to 41 email), Site 07 (up to 18 email)".
  *
  * Who the status page notifications of an incident would reach, shown before
- * anything is sent: on the last step of declaring an incident, and above a
- * public note while it is being written. The server works it out with the
- * same helper the subscriber jobs send through (see useSubscriberAudience),
- * so what this says is what will happen: the
+ * anything is sent: under 'Notify Status Page Subscribers' while declaring an
+ * incident and on the form's last step, under the public note composer's
+ * checkbox, and in the confirmation before a notification is sent again. The
+ * server works it out with the same helper the subscriber jobs send through
+ * (see useSubscriberAudience), so what this says is what will happen: the
  * pages the incident's scope lets through, with an "up to" count per channel,
  * and the pages that list its monitors but will not be told, with why.
+ *
+ * Under a checkbox it stays out of the way until it has something to say
+ * (see SubscriberAudienceText): nothing while it works it out, and nothing
+ * when no status page subscriber was going to hear about the incident
+ * anyway. It speaks up when someone will be notified, or when the incident's
+ * status page scope keeps a page from being told. A confirmation passes
+ * saysWhenNobodyIsNotified, and is always answered.
  *
  * It only ever shows counts. Status pages the viewer cannot see are not
  * named - they are summed up as "N more status pages you do not have access
@@ -33,14 +41,17 @@ import useSubscriberAudience, {
 export interface ComponentProps {
   /*
    * What to ask about: an incident that exists, or the monitors and status
-   * pages of one being declared. Null asks nothing.
+   * pages of one being declared. Null asks nothing and shows nothing - for
+   * when nothing will be sent whatever the audience (notifying is off, or
+   * the incident will be private), which the form beside it already shows.
    */
   request: SubscriberAudienceRequest | null;
   /*
-   * Set when nothing will be sent whatever the audience - notifying is
-   * switched off, or the incident will be private. Shown instead of asking.
+   * Answer even when no one will be notified, and say it is working it out
+   * until it knows. For the confirmation before sending a notification
+   * again, where who it reaches - no one included - is the question.
    */
-  quietReason?: string | undefined;
+  saysWhenNobodyIsNotified?: boolean | undefined;
   className?: string | undefined;
   dataTestId?: string | undefined;
 }
@@ -61,33 +72,25 @@ const SubscriberAudienceSummary: FunctionComponent<ComponentProps> = (
   const dataTestId: string = props.dataTestId || "subscriber-audience-summary";
 
   const { audience, isLoading, error }: SubscriberAudienceState =
-    useSubscriberAudience(props.quietReason ? null : props.request);
+    useSubscriberAudience(props.request);
 
   const containerClass: string = `mt-2 rounded-lg border px-3 py-2.5 text-sm ${
     props.className || ""
   }`;
-
-  if (props.quietReason) {
-    return (
-      <div
-        role="status"
-        data-testid={dataTestId}
-        data-state="quiet"
-        className={`${containerClass} ${TONE_CLASSES.warning}`}
-      >
-        <p className="flex items-start gap-2">
-          <Icon icon={IconProp.Info} className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{translate(props.quietReason)}</span>
-        </p>
-      </div>
-    );
-  }
 
   if (!props.request) {
     return <></>;
   }
 
   if (isLoading) {
+    /*
+     * Under a checkbox the answer is most often "nobody", which shows
+     * nothing: a working-it-out line would flash up only to disappear.
+     */
+    if (!props.saysWhenNobodyIsNotified) {
+      return <></>;
+    }
+
     return (
       <div
         role="status"
@@ -121,10 +124,15 @@ const SubscriberAudienceSummary: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const view: SubscriberAudienceView = buildSubscriberAudienceView({
+  const view: SubscriberAudienceView | null = buildSubscriberAudienceView({
     audience: audience,
     translate: translate,
+    saysWhenNobodyIsNotified: props.saysWhenNobodyIsNotified,
   });
+
+  if (!view) {
+    return <></>;
+  }
 
   return (
     <div

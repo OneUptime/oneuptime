@@ -12,6 +12,8 @@ import { ListDetailProps } from "./ListRow";
 import { DRAG_HANDLE_USAGE_INSTRUCTIONS } from "../Table/Table";
 import GenericObject from "../../../Types/GenericObject";
 import useTranslateValue from "../../Utils/Translation";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 
@@ -77,6 +79,7 @@ const List: ListFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   /*
    * A refetch with cards already on screen (pagination, sort, refresh - the
    * parent never clears `data` while fetching) keeps those cards visible and
@@ -118,7 +121,11 @@ const List: ListFunction = <T extends GenericObject>(
             message={
               props.noItemsMessage
                 ? props.noItemsMessage
-                : `No ${props.singularLabel.toLocaleLowerCase()}`
+                : translator.translateTemplate("No {{itemName}}", {
+                    itemName: translatableTerm(props.singularLabel, {
+                      inSentence: true,
+                    }),
+                  })
             }
             onRefreshClick={props.onRefreshClick}
           />

@@ -518,6 +518,40 @@ function applicableMediaPrecedence(
   return precedence;
 }
 
+/**
+ * Where a utility behind these variants lands in the emitted stylesheet at
+ * this width - 0 with no variant at all, and a later position wins - or null
+ * when it does not apply here: a screen that does not hold, a media query
+ * that is not in `mediaConditions` (default preferences: none), or a variant
+ * that is not a media query at all (hover:, focus:, dark:, group-*: ...),
+ * which cannot answer a layout question. A stack of media queries must all
+ * hold, and sorts by the latest. Exported so the other resolvers
+ * (ResponsiveSpacing.ts) order screens exactly as this file does.
+ */
+export function mediaPrecedenceOf(
+  variants: ReadonlyArray<string>,
+  viewportWidthInPx: number,
+  mediaConditions?: ReadonlyArray<string> | undefined,
+): number | null {
+  let precedence: number = UNPREFIXED_PRECEDENCE;
+
+  for (const variant of variants) {
+    const variantPrecedence: number | null = applicableMediaPrecedence(
+      variant,
+      viewportWidthInPx,
+      { mediaConditions: mediaConditions },
+    );
+
+    if (variantPrecedence === null) {
+      return null;
+    }
+
+    precedence = Math.max(precedence, variantPrecedence);
+  }
+
+  return precedence;
+}
+
 /*
  * The contender a class token puts into the cascade at this width, or null
  * when it does not apply (a query that does not hold, focus not held) or

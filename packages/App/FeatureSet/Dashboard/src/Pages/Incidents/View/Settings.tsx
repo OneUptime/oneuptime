@@ -238,10 +238,19 @@ const IncidentDelete: FunctionComponent<
 
           return (
             <>
-              <StatusPagesNotListingMonitorsWarning
-                monitorIds={scopeIncident?.monitors}
-                statusPageIds={formValue}
-              />
+              {/*
+               * Only once the incident is loaded: until then its monitors
+               * are unknown, not none, and every picked page would look
+               * like one that lists none of them.
+               */}
+              {scopeIncident ? (
+                <StatusPagesNotListingMonitorsWarning
+                  monitorIds={scopeIncident.monitors}
+                  statusPageIds={formValue}
+                />
+              ) : (
+                <></>
+              )}
               {removingNotified.length > 0 ? (
                 <TranslatedScopeNotice
                   text={

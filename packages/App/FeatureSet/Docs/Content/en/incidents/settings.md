@@ -363,7 +363,11 @@ Time to Mitigate needs a state that does not exist by default. Add it on **Incid
 
 ## Incident roles
 
-Incident roles are the named jobs you assign people to during a response. Define them at **Incidents → Settings → Incident Roles** (`/dashboard/{projectId}/incidents/settings/roles`); the card description gives Incident Commander and Responder as examples.
+Incident roles are the named jobs you assign people to during a response. Define them at **Incidents → Settings → Incident Roles** (`/dashboard/{projectId}/incidents/settings/roles`). The table lists each role's name and description.
+
+A new project starts with one role, **Incident Commander**, the person in charge of the response. OneUptime fills it for you: when you declare an incident from the dashboard without picking anyone for the role, you become its Incident Commander, and an incident that still has none gets the first person who changes its state, unless they already hold another role on it. Incident Commander can be renamed, but not deleted, and it is always held by one person. Its **Delete** is locked, and says why.
+
+Add the other roles your team uses, such as Responder, Communications Lead or Scribe, with **Create Incident Role**: a name and a description, then an icon and a colour. A role is held by one person per incident unless you turn on **Allow Multiple Users**, under **Advanced** on the first step. Projects created by earlier versions of OneUptime also started with Responder, Communications Lead and Observer. They keep them until you delete them.
 
 Roles are definitions only. You assign people to them per incident — the declare wizard has an **Incident Roles** step with an **Assign Incident Roles** field, and each incident has a **Roles** page in its side menu.
 

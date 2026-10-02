@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslateValue from "../../Utils/Translation";
 
 export type CategoryCheckboxValue = string | number | boolean;
 
@@ -38,6 +39,7 @@ export interface CategoryProps {
 const CheckboxElement: FunctionComponent<CategoryProps> = (
   props: CategoryProps,
 ): ReactElement => {
+  const { translateValue } = useTranslateValue();
   const checkboxId: string = React.useId();
   const descriptionId: string = `${checkboxId}-description`;
   const [value, setValue] = React.useState<boolean>(
@@ -96,11 +98,11 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
         </div>
         <div className="ml-3 text-sm leading-6">
           <label className="font-medium text-gray-900" htmlFor={checkboxId}>
-            {props.title}
+            {translateValue(props.title)}
           </label>
           {props.description && (
             <div id={descriptionId} className="text-gray-500">
-              {props.description}
+              {translateValue(props.description)}
             </div>
           )}
         </div>

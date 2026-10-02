@@ -1,6 +1,7 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
+import useTranslateValue from "../../Utils/Translation";
 
 export interface ComponentProps<TGenericObject extends GenericObject | string> {
   items: Array<TGenericObject>;
@@ -15,8 +16,10 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
 ) => ReactElement = <TGenericObject extends GenericObject>(
   props: ComponentProps<TGenericObject>,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+
   if (!props.items || props.items.length === 0) {
-    return <p>{props.noItemsMessage}</p>;
+    return <p>{translateString(props.noItemsMessage)}</p>;
   }
 
   const firstThreeItems: Array<TGenericObject> = [];

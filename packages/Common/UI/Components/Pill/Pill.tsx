@@ -11,6 +11,7 @@ import {
   getPillToneStyle,
   PillColors,
 } from "./PillColors";
+import useTranslateValue from "../../Utils/Translation";
 
 export enum PillSize {
   Small = "10px",
@@ -47,6 +48,8 @@ const Pill: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const colors: PillColors = getPillColors(props.color || Gray500);
+  const { translateString } = useTranslateValue();
+  const text: string = translateString(props.text) ?? props.text;
 
   const getPillElement: GetReactElementFunction = (): ReactElement => {
     return (
@@ -115,13 +118,13 @@ const Pill: FunctionComponent<ComponentProps> = (
               !props.tooltip &&
               textElement.scrollWidth > textElement.clientWidth
             ) {
-              textElement.title = props.text;
+              textElement.title = text;
             } else {
               textElement.removeAttribute("title");
             }
           }}
         >
-          {props.text}
+          {text}
         </span>
       </span>
     );
