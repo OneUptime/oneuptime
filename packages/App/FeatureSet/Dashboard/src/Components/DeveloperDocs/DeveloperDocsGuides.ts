@@ -268,7 +268,9 @@ function nouns(context: DeveloperDocsGuideContext): {
   };
 }
 
-function getModelType(context: DeveloperDocsGuideContext): DatabaseBaseModelType {
+function getModelType(
+  context: DeveloperDocsGuideContext,
+): DatabaseBaseModelType {
   return context.resource.modelType;
 }
 
@@ -330,7 +332,10 @@ function joinParts(parts: Array<string | undefined | null | false>): string {
     .join("\n\n");
 }
 
-function withPlaceholderNote(description: string, isPlaceholder: boolean): string {
+function withPlaceholderNote(
+  description: string,
+  isPlaceholder: boolean,
+): string {
   return isPlaceholder ? `${description} ${PLACEHOLDER_NOTE}` : description;
 }
 
@@ -367,6 +372,8 @@ function connectTerraformStep(
 function secretsMarkdown(data: {
   variables: Array<TerraformSecretVariable>;
   omitted?: Array<TerraformOmittedAttribute> | undefined;
+  // Attributes Terraform cannot set, because their name is one of its own.
+  reserved?: Array<TerraformOmittedAttribute> | undefined;
 }): string {
   const lines: Array<string> = [];
 
@@ -398,6 +405,24 @@ function secretsMarkdown(data: {
           return `\`${item.attributeName}\``;
         })
         .join(", ")}. Terraform leaves them as they are in OneUptime.`,
+    );
+  }
+
+  const reserved: Array<TerraformOmittedAttribute> = data.reserved || [];
+
+  if (reserved.length > 0) {
+    if (lines.length > 0) {
+      lines.push("");
+    }
+
+    lines.push(
+      `Left out because Terraform reserves the name for its own use: ${reserved
+        .map((item: TerraformOmittedAttribute): string => {
+          return `\`${item.attributeName}\``;
+        })
+        .join(
+          ", ",
+        )}. Change it in OneUptime instead; Terraform leaves it as it is.`,
     );
   }
 
@@ -528,6 +553,7 @@ function getTerraformResourceGuide(
           secretsMarkdown({
             variables: config.variables,
             omitted: config.omittedSecrets,
+            reserved: config.omittedReserved,
           }),
         ]),
       },
@@ -595,7 +621,9 @@ function getTerraformUnsupportedGuide(
 }
 
 // Looking one up with a data source: by name where the provider can, else by id.
-function lookupTopic(context: DeveloperDocsGuideContext): SetupGuideTopic | null {
+function lookupTopic(
+  context: DeveloperDocsGuideContext,
+): SetupGuideTopic | null {
   const modelType: DatabaseBaseModelType = getModelType(context);
   const typeName: string | null = getTerraformTypeName(modelType);
   const { singular } = nouns(context);
@@ -718,7 +746,8 @@ function getTerraformCollectionGuide(
       createStep,
       {
         title: `Bring in the ${plural} you already have`,
-        description: "Terraform adopts them as they are, without creating copies.",
+        description:
+          "Terraform adopts them as they are, without creating copies.",
         markdown: importMarkdown,
       },
     ],
@@ -860,10 +889,11 @@ const QUERY_TOPIC: SetupGuideTopic = {
     '- `{"_type": "NotEqual", "value": "..."}`: anything but the value.',
     '- `{"_type": "GreaterThan", "value": "2026-01-01T00:00:00.000Z"}`: later dates or larger numbers. `LessThan`, `GreaterThanOrEqual` and `LessThanOrEqual` work the same way.',
     '- `{"_type": "InBetween", "startValue": "...", "endValue": "..."}`: dates or numbers in a range.',
-    '- `{"_type": "Includes", "value": ["...", "..."]}`: any of the values, or records with any of these labels or monitors.',
+    '- `{"_type": "Includes", "value": ["...", "..."]}`: any of the values.',
+    '- A plain list on a list relation, such as `"labels": ["..."]`: records with any of those labels (or monitors, teams, ...).',
     '- `{"_type": "IsNull"}` and `{"_type": "NotNull"}`: empty, or set.',
     "",
-    "`select` picks the fields to return (`_id` always comes back), and `sort` orders them, `ASC` or `DESC`. Dates and ids come back wrapped, as `{\"_type\": \"DateTime\", \"value\": \"...\"}` and `{\"_type\": \"ObjectID\", \"value\": \"...\"}`.",
+    '`select` picks the fields to return (`_id` always comes back), and `sort` orders them, `ASC` or `DESC`. Dates and ids come back wrapped, as `{"_type": "DateTime", "value": "..."}` and `{"_type": "ObjectID", "value": "..."}`.',
   ].join("\n"),
 };
 
@@ -925,7 +955,11 @@ function getApiResourceGuide(
     steps.push({
       title: "Change it",
       description: update.description,
-      markdown: curl({ method: "PUT", url: itemUrl, body: { data: update.data } }),
+      markdown: curl({
+        method: "PUT",
+        url: itemUrl,
+        body: { data: update.data },
+      }),
     });
   }
 
@@ -946,10 +980,7 @@ function getApiResourceGuide(
   return {
     ...guideCopy(DeveloperDocsPageType.Api, context),
     steps,
-    sections: [
-      ...tasksSection(context, tasks),
-      ...endpointsSection(context),
-    ],
+    sections: [...tasksSection(context, tasks), ...endpointsSection(context)],
     topics: [QUERY_TOPIC],
     links: apiLinks(context),
   };
@@ -987,7 +1018,9 @@ function tasksSection(
       };
     })
     .filter(
-      (variant: SetupGuideStepVariant | null): variant is SetupGuideStepVariant => {
+      (
+        variant: SetupGuideStepVariant | null,
+      ): variant is SetupGuideStepVariant => {
         return variant !== null;
       },
     );
@@ -1096,7 +1129,11 @@ function getApiCollectionGuide(
       summary: "count",
       markdown: joinParts([
         "Takes the same query as a list, and answers with how many match.",
-        curl({ method: "POST", url: `${collectionUrl}/count`, body: { query: {} } }),
+        curl({
+          method: "POST",
+          url: `${collectionUrl}/count`,
+          body: { query: {} },
+        }),
         sample ? responseBlock({ count: sample.count }) : "",
       ]),
     });
@@ -1125,7 +1162,11 @@ function getApiCollectionGuide(
         ),
         markdown: joinParts([
           profile.createNote,
-          curl({ method: "POST", url: collectionUrl, body: { data: create.body } }),
+          curl({
+            method: "POST",
+            url: collectionUrl,
+            body: { data: create.body },
+          }),
           fieldsList(create.rows),
         ]),
       });

@@ -146,9 +146,8 @@ function canReadModelColumn(
     return true;
   }
 
-  const access: ColumnAccessControl | null = new modelType().getColumnAccessControlFor(
-    column,
-  );
+  const access: ColumnAccessControl | null =
+    new modelType().getColumnAccessControlFor(column);
 
   return PermissionHelper.doesPermissionsIntersect(
     getViewerPermissions(),
@@ -333,7 +332,9 @@ async function runLookups(
                 ([column, order]: [string, "ASC" | "DESC"]) => {
                   return [
                     column,
-                    order === "ASC" ? SortOrder.Ascending : SortOrder.Descending,
+                    order === "ASC"
+                      ? SortOrder.Ascending
+                      : SortOrder.Descending,
                   ];
                 },
               ),
@@ -598,7 +599,8 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
   const isView: boolean = props.scope === DeveloperDocsScope.View;
   const needsImports: boolean =
     !isView && props.page === DeveloperDocsPageType.Terraform;
-  const needsSample: boolean = !isView && props.page === DeveloperDocsPageType.Api;
+  const needsSample: boolean =
+    !isView && props.page === DeveloperDocsPageType.Api;
   const usesLiveData: boolean =
     props.page !== DeveloperDocsPageType.AiAssistants;
 
@@ -738,7 +740,9 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
             });
           })
           .filter(
-            (lookup: DeveloperDocsLookup | null): lookup is DeveloperDocsLookup => {
+            (
+              lookup: DeveloperDocsLookup | null,
+            ): lookup is DeveloperDocsLookup => {
               return lookup !== null;
             },
           );
