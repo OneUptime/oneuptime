@@ -387,6 +387,70 @@ describe("ConfigManager", () => {
       expect(creds.apiUrl).toBe("https://named.com");
     });
 
+    it("should use an env API key with the --context URL", () => {
+      process.env["ONEUPTIME_API_KEY"] = "env-key";
+      ConfigManager.addContext({
+        name: "current",
+        apiUrl: "https://current.com",
+        apiKey: "current-key",
+      });
+      ConfigManager.addContext({
+        name: "named",
+        apiUrl: "https://named.com",
+        apiKey: "named-key",
+      });
+
+      expect(
+        ConfigManager.getResolvedCredentials({ context: "named" }),
+      ).toEqual({
+        apiKey: "env-key",
+        apiUrl: "https://named.com",
+      });
+    });
+
+    it("should use an env URL with the --context API key", () => {
+      process.env["ONEUPTIME_URL"] = "https://env.com";
+      ConfigManager.addContext({
+        name: "named",
+        apiUrl: "https://named.com",
+        apiKey: "named-key",
+      });
+
+      expect(
+        ConfigManager.getResolvedCredentials({ context: "named" }),
+      ).toEqual({
+        apiKey: "named-key",
+        apiUrl: "https://env.com",
+      });
+    });
+
+    it("should prefer a CLI API key over env and --context", () => {
+      process.env["ONEUPTIME_API_KEY"] = "env-key";
+      ConfigManager.addContext({
+        name: "named",
+        apiUrl: "https://named.com",
+        apiKey: "named-key",
+      });
+
+      expect(
+        ConfigManager.getResolvedCredentials({
+          apiKey: "cli-key",
+          context: "named",
+        }),
+      ).toEqual({
+        apiKey: "cli-key",
+        apiUrl: "https://named.com",
+      });
+    });
+
+    it("should throw for a missing --context even with a partial env var", () => {
+      process.env["ONEUPTIME_API_KEY"] = "env-key";
+
+      expect(() => {
+        return ConfigManager.getResolvedCredentials({ context: "nope" });
+      }).toThrow('Context "nope" does not exist');
+    });
+
     it("should throw when --context flag references non-existent context", () => {
       expect(() => {
         return ConfigManager.getResolvedCredentials({ context: "nope" });

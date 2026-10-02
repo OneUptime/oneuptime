@@ -212,7 +212,7 @@ describe("ResourceCommands", () => {
       it("should use an env API key with the current context URL", async () => {
         ConfigManager.addContext({
           name: "saved",
-          apiUrl: "https://test.oneuptime.com",
+          apiUrl: "https://saved.oneuptime.com",
           apiKey: "saved-key",
         });
         process.env["ONEUPTIME_API_KEY"] = "env-key";
@@ -224,7 +224,7 @@ describe("ResourceCommands", () => {
         expect(mockExecuteApiRequest).toHaveBeenCalledWith(
           expect.objectContaining({
             apiKey: "env-key",
-            apiUrl: "https://test.oneuptime.com",
+            apiUrl: "https://saved.oneuptime.com",
           }),
         );
       });
