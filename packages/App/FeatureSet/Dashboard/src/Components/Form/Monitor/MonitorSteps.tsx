@@ -34,6 +34,7 @@ import MonitorCriteriaAlignmentUtil, {
   CriteriaSeedIds,
   MonitorStepsAlignmentResult,
 } from "../../../Utils/Form/Monitor/MonitorCriteriaAlignment";
+import MonitorRecommendationSeverityMapper from "Common/Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
 
 export interface ComponentProps extends CustomElementProps {
   error?: string | undefined;
@@ -347,6 +348,24 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         alertSeverityList.data[0]?.id || undefined;
 
       /*
+       * The "expires soon" alert a new SSL Certificate or Domain monitor
+       * starts with is a heads-up, so it takes the project's Warning alert
+       * severity - the second one, "Low" on a new project - rather than the
+       * most severe one every other default alert takes. The list is sorted
+       * by order, so its position is its rank.
+       */
+      const warningAlertSeverityId: ObjectID | undefined =
+        MonitorRecommendationSeverityMapper.getMappingFromRankedIds(
+          alertSeverityList.data
+            .map((alertSeverity: AlertSeverity) => {
+              return alertSeverity.id;
+            })
+            .filter((id: ObjectID | null): id is ObjectID => {
+              return Boolean(id);
+            }),
+        ).Warning || alertSeverityId;
+
+      /*
        * Remember what the out-of-the-box criteria for a monitor type would
        * be seeded with, so the alignment effect below can tell criteria the
        * user has edited from criteria that are still untouched defaults.
@@ -362,6 +381,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           offlineMonitorStatusId: offlineStatusId,
           defaultIncidentSeverityId: incidentSeverityId,
           defaultAlertSeverityId: alertSeverityId,
+          warningAlertSeverityId: warningAlertSeverityId,
         };
       }
 
@@ -377,6 +397,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             offlineMonitorStatusId: offlineStatusId!,
             defaultIncidentSeverityId: incidentSeverityId!,
             defaultAlertSeverityId: alertSeverityId!,
+            warningAlertSeverityId: warningAlertSeverityId,
           }),
         );
       }
