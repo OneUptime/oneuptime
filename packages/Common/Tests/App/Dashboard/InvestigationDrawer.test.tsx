@@ -16,6 +16,12 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { resolvePadding, resolveSpaceBelowInPx } from "../../ResponsiveSpacing";
+import {
+  LAPTOP_WIDTH_IN_PX,
+  PHONE_WIDTH_IN_PX,
+  TABLET_WIDTH_IN_PX,
+} from "../../ResponsiveVisibility";
 
 /*
  * The investigation drawer is the "what happened in this window?" panel:
@@ -275,5 +281,55 @@ describe("InvestigationDrawer", () => {
     fireEvent.click(screen.getByText("connection refused to 10.0.0.5"));
     expect(onClose).toHaveBeenCalledTimes(2);
     expect(navigateSpy).toHaveBeenCalledTimes(2);
+  });
+
+  /*
+   * SideOver leaves 24px under its content at every width now (it used to
+   * leave none from the sm breakpoint up). The drawer padded its own bottom
+   * to make up for that; on top of SideOver's it would end on twice the room
+   * of every other panel, so it pads only its top.
+   */
+  test("ends 24px above the footer, like every side panel, at every width", async () => {
+    render(
+      <InvestigationDrawer
+        title="host.name=web-01"
+        window={WINDOW}
+        metricViewData={buildViewData()}
+        onClose={() => {
+          // not exercised here
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("100")).toBeInTheDocument();
+    });
+
+    // The companion signal tabs are the last thing in the drawer.
+    const lastSection: HTMLElement = screen.getByTestId("companion-tabs");
+    const scrollContainer: HTMLElement =
+      screen.getByTestId("side-over-content");
+    const drawerContent: HTMLElement = lastSection.parentElement!;
+
+    for (const width of [
+      PHONE_WIDTH_IN_PX,
+      640,
+      TABLET_WIDTH_IN_PX,
+      LAPTOP_WIDTH_IN_PX,
+    ]) {
+      expect({
+        width,
+        spaceBelow: resolveSpaceBelowInPx(lastSection, scrollContainer, width),
+        drawerPadding: resolvePadding(
+          drawerContent.getAttribute("class"),
+          width,
+        ),
+      }).toEqual({
+        width,
+        spaceBelow: 24,
+        // Its own top padding is unchanged; the bottom is SideOver's.
+        drawerPadding: { top: 20, right: 0, bottom: 0, left: 0 },
+      });
+    }
   });
 });
