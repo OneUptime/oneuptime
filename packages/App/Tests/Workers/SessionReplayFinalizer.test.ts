@@ -440,6 +440,8 @@ function makeChunkRow(data: {
    */
   chunkStartUnixMs?: number;
   chunkEndUnixMs?: number;
+  /* "dom" for the browser recorder, "rn-view-tree" for React Native. */
+  recorderKind?: string;
 }): RawChunkRow {
   const chunkIndex: number = data.chunkIndex;
 
@@ -477,12 +479,29 @@ function makeChunkRow(data: {
     chunkStartOffsetMs: chunkIndex * CHUNK_DURATION_MS,
     chunkEndOffsetMs: (chunkIndex + 1) * CHUNK_DURATION_MS,
     schemaVersion: SESSION_REPLAY_SCHEMA_VERSION,
-    recorderKind: "dom",
+    recorderKind: data.recorderKind ?? "dom",
     rumApplicationId: data.rumApplicationId ?? "6600000000000000000000b2",
     primaryEntityId: data.rumApplicationId ?? "6600000000000000000000b2",
     primaryEntityType: "RealUserMonitor",
     retentionDate: "2026-08-05",
   };
+}
+
+/*
+ * The inner query's hasFootage: a chunk with something to play, which no
+ * seal has - neither an empty one nor the instant, snapshot-less final chunk
+ * an older React Native recorder closed an idle session with.
+ */
+function hasFootage(row: RawChunkRow): boolean {
+  return (
+    row.eventCount > 0 &&
+    !(
+      row.recorderKind === "rn-view-tree" &&
+      row.isFinal &&
+      !row.hasFullSnapshot &&
+      row.chunkStartUnixMs === row.chunkEndUnixMs
+    )
+  );
 }
 
 /*
@@ -779,30 +798,24 @@ function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
         }),
       ),
       /*
-       * toUnixTimestamp64Milli(maxIf(chunkEndTime, eventCount > 0)): the
-       * epoch (0) when no chunk held an event, guarded by the countIf.
+       * toUnixTimestamp64Milli(maxIf(chunkEndTime, hasFootage)): the epoch
+       * (0) when no chunk held footage, guarded by the countIf.
        */
       lastFootageEndUnixMs: String(
         tabRows
-          .filter((row: RawChunkRow): boolean => {
-            return row.eventCount > 0;
-          })
+          .filter(hasFootage)
           .reduce((latest: number, row: RawChunkRow): number => {
             return Math.max(latest, row.chunkEndUnixMs);
           }, 0),
       ),
-      footageChunkCount: String(
-        tabRows.filter((row: RawChunkRow): boolean => {
-          return row.eventCount > 0;
-        }).length,
-      ),
+      footageChunkCount: String(tabRows.filter(hasFootage).length),
       maxChunkEndOffsetMs: max((row: RawChunkRow): number => {
         return row.chunkEndOffsetMs;
       }),
       schemaVersion: max((row: RawChunkRow): number => {
         return row.schemaVersion;
       }),
-      recorderKind: "dom",
+      recorderKind: tabRows[0]!.recorderKind,
       rumApplicationId: tabRows[0]!.rumApplicationId,
       primaryEntityId: tabRows[0]!.primaryEntityId,
       primaryEntityType: "RealUserMonitor",
@@ -1218,6 +1231,186 @@ describe("Rum:FinalizeSessions recording end after an idle seal (#4207)", () => 
     expect(parseTabAggregateRow(row).lastChunkEndUnixMs).toBe(
       sessionStartUnixMs + 30 * MINUTE + 400,
     );
+  });
+
+  /*
+   * A React Native recorder before the mobile fix sealed an idle session
+   * when the app came back to the foreground - hours later, as like as not
+   * - with a final chunk holding only its rotation marker. One event, so
+   * not an empty seal, and the session was listed as long as the app had
+   * been away. Those recorders stay in customers' apps until the apps are
+   * updated, so the finalizer recognises their seal too.
+   */
+  describe("an older React Native recorder's late marker", () => {
+    const HOUR: number = 60 * MINUTE;
+
+    /* A React Native chunk with footage, ending `endMs` into the session. */
+    function appFootage(
+      chunkIndex: number,
+      endMs: number,
+      extra?: { startMs?: number },
+    ): RawChunkRow {
+      return makeChunkRow({
+        chunkIndex: chunkIndex,
+        tabId: "app-launch",
+        recorderKind: "rn-view-tree",
+        eventCount: 6,
+        hasFullSnapshot: chunkIndex === 0,
+        chunkStartUnixMs:
+          sessionStartUnixMs + (extra?.startMs ?? Math.max(0, endMs - 1000)),
+        chunkEndUnixMs: sessionStartUnixMs + endMs,
+      });
+    }
+
+    /*
+     * The marker chunk: final, no snapshot, one event, one instant long.
+     * The overrides are the near misses that must stay footage.
+     */
+    function appMarker(
+      chunkIndex: number,
+      atMs: number,
+      extra?: {
+        recorderKind?: string;
+        isFinal?: boolean;
+        hasFullSnapshot?: boolean;
+      },
+    ): RawChunkRow {
+      return makeChunkRow({
+        chunkIndex: chunkIndex,
+        tabId: "app-launch",
+        recorderKind: extra?.recorderKind ?? "rn-view-tree",
+        eventCount: 1,
+        isFinal: extra?.isFinal ?? true,
+        hasFullSnapshot: extra?.hasFullSnapshot ?? false,
+        chunkStartUnixMs: sessionStartUnixMs + atMs,
+        chunkEndUnixMs: sessionStartUnixMs + atMs,
+      });
+    }
+
+    test("the reporter's session: twenty seconds of use, the app away for two hours, lasts twenty seconds", () => {
+      const rows: Array<RawChunkRow> = [
+        appFootage(0, 20_000, { startMs: 0 }),
+        appMarker(1, 2 * HOUR + 20_000),
+      ];
+
+      expect(aggregateOf(rows).lastChunkEndUnixMs).toBe(
+        sessionStartUnixMs + 20_000,
+      );
+      expect(durationOf(rows)).toBe(20_000);
+    });
+
+    test("ends at the footage once the marker is a whole idle window late", () => {
+      const footageEnd: number = 5 * MINUTE;
+
+      expect(
+        durationOf([
+          appFootage(0, MINUTE, { startMs: 0 }),
+          appFootage(1, footageEnd),
+          appMarker(2, footageEnd + SESSION_REPLAY_IDLE_ROLLOVER_MS),
+        ]),
+      ).toBe(footageEnd);
+    });
+
+    test("keeps a marker inside the idle window: a rotation the user was active through ended there", () => {
+      /* The duration cap, or a change of user, fifteen seconds on. */
+      const markerAt: number = 10 * MINUTE + 15_000;
+
+      expect(
+        durationOf([
+          appFootage(0, 5 * MINUTE, { startMs: 0 }),
+          appFootage(1, 10 * MINUTE),
+          appMarker(2, markerAt),
+        ]),
+      ).toBe(markerAt);
+    });
+
+    test("keeps a marker one millisecond inside the idle window", () => {
+      const markerAt: number = MINUTE + SESSION_REPLAY_IDLE_ROLLOVER_MS - 1;
+
+      expect(
+        durationOf([
+          appFootage(0, MINUTE, { startMs: 0 }),
+          appMarker(1, markerAt),
+        ]),
+      ).toBe(markerAt);
+    });
+
+    test.each([
+      ["a browser recorder's", { recorderKind: "dom" }],
+      ["a non-final", { isFinal: false }],
+      ["a snapshot-bearing", { hasFullSnapshot: true }],
+    ])(
+      "treats %s instant chunk as footage, however late",
+      (
+        _label: string,
+        nearMiss: {
+          recorderKind?: string;
+          isFinal?: boolean;
+          hasFullSnapshot?: boolean;
+        },
+      ) => {
+        const lateAt: number = 2 * HOUR;
+
+        expect(
+          durationOf([
+            appFootage(0, MINUTE, { startMs: 0 }),
+            appMarker(1, lateAt, nearMiss),
+          ]),
+        ).toBe(lateAt);
+      },
+    );
+
+    test("a chunk that spans time is footage: its events date it", () => {
+      const rows: Array<RawChunkRow> = [
+        appFootage(0, MINUTE, { startMs: 0 }),
+        {
+          ...appMarker(1, 2 * HOUR),
+          chunkStartUnixMs: sessionStartUnixMs + 2 * HOUR - 5_000,
+          eventCount: 3,
+        },
+      ];
+
+      expect(durationOf(rows)).toBe(2 * HOUR);
+    });
+
+    test("a session that is only the marker keeps its end: there is no footage to move it to", () => {
+      expect(aggregateOf([appMarker(0, 2 * HOUR)]).lastChunkEndUnixMs).toBe(
+        sessionStartUnixMs + 2 * HOUR,
+      );
+    });
+
+    test("measures each app launch on its own: the session ends with the last launch's footage", () => {
+      /*
+       * The app was killed after a minute and opened again within the idle
+       * window, which resumes the session under a new tab id. That launch
+       * was used for ten minutes, put away, and sealed two hours later.
+       */
+      const rows: Array<RawChunkRow> = [
+        { ...appFootage(0, MINUTE, { startMs: 0 }), tabId: "first-launch" },
+        appFootage(0, 15 * MINUTE, { startMs: 5 * MINUTE }),
+        appMarker(1, 15 * MINUTE + 2 * HOUR),
+      ];
+
+      expect(durationOf(rows)).toBe(15 * MINUTE);
+    });
+
+    test("changes nothing about whether the tab has ended", () => {
+      const tab: ReturnType<typeof parseTabAggregateRow> = parseTabAggregateRow(
+        runGroupByOverChunkRows([
+          appFootage(0, 20_000, { startMs: 0 }),
+          appMarker(1, 2 * HOUR + 20_000),
+        ])[0] as JSONObject,
+      );
+
+      expect(tab.lastChunkEndUnixMs).toBe(sessionStartUnixMs + 20_000);
+      /* The marker is still the tab's final chunk, at its own time. */
+      expect(tab.hasFinalChunk).toBe(true);
+      expect(tab.finalChunkEndUnixMs).toBe(
+        sessionStartUnixMs + 2 * HOUR + 20_000,
+      );
+      expect(tab.recorderKind).toBe("rn-view-tree");
+      expect(tab.chunkCount).toBe(2);
+    });
   });
 });
 
@@ -1912,9 +2105,20 @@ describe("Rum:FinalizeSessions queries", () => {
      * in-test model reimplements both, so the text is pinned here too.
      */
     expect(query).toContain(
-      "toUnixTimestamp64Milli(maxIf(chunkEndTime, eventCount > 0)) AS lastFootageEndUnixMs",
+      "toUnixTimestamp64Milli(maxIf(chunkEndTime, hasFootage)) AS lastFootageEndUnixMs",
     );
-    expect(query).toContain("countIf(eventCount > 0) AS footageChunkCount");
+    expect(query).toContain("countIf(hasFootage) AS footageChunkCount");
+    /*
+     * And which chunks are footage - worked out in the INNER query, on the
+     * raw columns: the outer SELECT aliases recorderKind to any(), so an
+     * aggregate there would read the alias and nest one aggregate in
+     * another.
+     */
+    const flattened: string = query.replace(/\s+/g, " ");
+    expect(flattened).toMatch(
+      /eventCount > 0 AND NOT \( recorderKind = \{p\d+:String\} AND isFinal AND NOT hasFullSnapshot AND chunkStartTime = chunkEndTime \) AS hasFootage FROM /,
+    );
+    expect(Object.values(statement.query_params)).toContain("rn-view-tree");
 
     /* Sorted in SQL: the route union is a set, and must be deterministic. */
     expect(query).toContain(

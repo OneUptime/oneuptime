@@ -196,8 +196,8 @@ Pass `debug: true` at startup to mirror those codes to the development console.
 
 Use the current consented session ID to correlate the application's own traces
 and logs with replay. The listener fires immediately when a session exists,
-again on every rotation, and with `null` when capture stops or consent is
-withdrawn:
+again on every rotation, and with `null` when capture stops, consent is
+withdrawn, or the session ends idle:
 
 ```ts
 const unsubscribe = OneUptimeReplay.onSessionChange((sessionId) => {
@@ -220,6 +220,12 @@ bounded AsyncStorage outbox before POST and removed only after a terminal
 server response. AppState backgrounding records visibility, closes the current
 chunk, drains the outbox only when policy and consent permit uploading, and
 pauses sampling; foregrounding resumes with a fresh full snapshot.
+
+Thirty minutes with no touch and no SDK call ends the session at that last
+activity, so time in the background is never added to the end of a session.
+An app left open in the foreground stops sampling then rather than starting a
+session every half hour. The user's next touch, a return to the foreground,
+or `captureSession()` starts a new session on a fresh full snapshot.
 
 Policy is revalidated without HTTP-cache reuse before every foreground resume,
 after identity changes, and at five-minute intervals while the app remains

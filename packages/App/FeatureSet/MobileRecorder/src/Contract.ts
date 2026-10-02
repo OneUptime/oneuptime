@@ -265,3 +265,5 @@ export const IDENTIFY_CUSTOM_EVENT_TAG: string = "oneuptime.identify";
 export const TAGS_CUSTOM_EVENT_TAG: string = "oneuptime.tags";
 export const VISIBILITY_CUSTOM_EVENT_TAG: string = "oneuptime.visibility";
 export const TOUCH_CUSTOM_EVENT_TAG: string = "oneuptime.touch";
+export const SESSION_ROTATED_CUSTOM_EVENT_TAG: string =
+  "oneuptime.session-rotated";
