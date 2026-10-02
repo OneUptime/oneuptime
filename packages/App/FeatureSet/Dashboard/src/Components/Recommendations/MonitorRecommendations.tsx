@@ -246,8 +246,11 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             name: true,
             isOperationalState: true,
             isOfflineState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const onlineStatus: MonitorStatus | undefined =

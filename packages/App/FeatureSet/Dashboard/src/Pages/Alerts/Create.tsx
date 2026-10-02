@@ -142,6 +142,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   type: AlertSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: true,
                 placeholder: "Alert Severity",

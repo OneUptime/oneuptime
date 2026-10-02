@@ -250,6 +250,9 @@ const AlertMeasurementsPage: FunctionComponent<
               type: AlertState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Alert State",
@@ -332,6 +335,9 @@ const AlertMeasurementsPage: FunctionComponent<
               type: AlertState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Alert State",

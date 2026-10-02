@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
@@ -216,6 +217,9 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
           type: MonitorStatus,
           labelField: "name",
           valueField: "_id",
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         },
         required: false,
         placeholder: "Monitor Status",

@@ -104,6 +104,9 @@ const ScheduledMaintenanceViewStateTimeline: FunctionComponent<
               type: ScheduledMaintenanceState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
           },
           {

@@ -169,8 +169,11 @@ const IncidentEpisodeView: FunctionComponent<
             name: true,
             isAcknowledgedState: true,
             isResolvedState: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         }),
         ModelAPI.getItem({
           modelType: IncidentEpisode,
@@ -484,6 +487,9 @@ const IncidentEpisodeView: FunctionComponent<
                   type: IncidentSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: true,
                 placeholder: "Episode Severity",

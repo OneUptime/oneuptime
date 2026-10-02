@@ -256,6 +256,9 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
                   type: IncidentSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: false,
                 placeholder: "Select Severities (optional)",
@@ -271,6 +274,9 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
                   type: AlertSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: false,
                 placeholder: "Select Severities (optional)",

@@ -306,6 +306,9 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               type: AlertSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Default from indicator confidence",
@@ -337,6 +340,9 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Default from indicator confidence",
