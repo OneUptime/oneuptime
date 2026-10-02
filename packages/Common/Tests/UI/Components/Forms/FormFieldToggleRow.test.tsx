@@ -4,6 +4,13 @@ import Field from "../../../../UI/Components/Forms/Types/Field";
 import Fields from "../../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
+import {
+  TOGGLE_KNOB_OFF_CLASS,
+  TOGGLE_KNOB_ON_CLASS,
+  TOGGLE_TRACK_DISABLED_CLASS,
+  TOGGLE_TRACK_OFF_CLASS,
+  TOGGLE_TRACK_ON_CLASS,
+} from "../../../../UI/Components/Toggle/Toggle";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 import "@testing-library/jest-dom";
@@ -268,6 +275,75 @@ describe("FormField - a Toggle field is one row", () => {
 
     expect(fieldRoot.querySelector(".mt-2")).toBeNull();
     expect(fieldRoot.contains(toggle)).toBe(true);
+  });
+});
+
+/*
+ * Most switches in the product are form fields, so this is where the look
+ * the maintainer asked for - "just like how the rest of oneuptime looks" -
+ * reaches them: the shared Toggle's grey track and white knob when off, the
+ * brand indigo when on, never an outline.
+ */
+describe("FormField - a Toggle field draws the product's switch", () => {
+  function knobOf(toggle: HTMLElement): HTMLElement {
+    return toggle.querySelector("[data-ou-toggle-knob]") as HTMLElement;
+  }
+
+  test("off, it is the grey track with the white knob on the left", () => {
+    renderField();
+
+    const toggle: HTMLElement = screen.getByRole("switch", { name: "Secret" });
+
+    expect(toggle).toHaveClass(TOGGLE_TRACK_OFF_CLASS);
+    expect(toggle).not.toHaveClass(TOGGLE_TRACK_ON_CLASS);
+    expect(knobOf(toggle)).toHaveClass("bg-white", TOGGLE_KNOB_OFF_CLASS);
+  });
+
+  test("on, from the value the form holds, it is the indigo track with the knob on the right", () => {
+    renderField({ values: { isSecret: true } as FormValues<TestEntity> });
+
+    const toggle: HTMLElement = screen.getByRole("switch", { name: "Secret" });
+
+    expect(toggle).toHaveClass(TOGGLE_TRACK_ON_CLASS);
+    expect(toggle).not.toHaveClass(TOGGLE_TRACK_OFF_CLASS);
+    expect(knobOf(toggle)).toHaveClass("bg-white", TOGGLE_KNOB_ON_CLASS);
+  });
+
+  test("pressing it moves it from one look to the other", () => {
+    renderField();
+
+    const toggle: HTMLElement = screen.getByRole("switch", { name: "Secret" });
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveClass(TOGGLE_TRACK_ON_CLASS);
+    expect(knobOf(toggle)).toHaveClass(TOGGLE_KNOB_ON_CLASS);
+  });
+
+  test("a disabled field is the same switch, dimmed", () => {
+    renderField({
+      field: { disabled: true },
+      values: { isSecret: true } as FormValues<TestEntity>,
+    });
+
+    const toggle: HTMLElement = screen.getByRole("switch", { name: "Secret" });
+
+    expect(toggle).toHaveClass(
+      TOGGLE_TRACK_ON_CLASS,
+      ...TOGGLE_TRACK_DISABLED_CLASS.split(" "),
+    );
+    expect(knobOf(toggle)).toHaveClass(TOGGLE_KNOB_ON_CLASS);
+  });
+
+  test("there is no outline around it and nothing drawn on its knob", () => {
+    renderField();
+
+    const toggle: HTMLElement = screen.getByRole("switch", { name: "Secret" });
+
+    expect(toggle).toHaveClass("border-transparent");
+    expect(toggle).not.toHaveClass("border-gray-500");
+    expect(toggle).not.toHaveClass("bg-white");
+    expect(knobOf(toggle).childNodes).toHaveLength(0);
   });
 });
 
