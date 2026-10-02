@@ -11,12 +11,12 @@ import ts from "typescript";
  *
  * A table row shows one action as a button and puts the rest in a ⋯ menu,
  * and which actions go in the menu is only decided per row. "Show ID" went
- * in as a bare label above a red "Delete" with its bin - and so did thirty
- * actions pages added themselves, and "Add in Bulk" in the card header's ⋯
- * menu of six status page tables. Every item has an icon now, and this keeps
- * it that way. It reads the TypeScript of Common's UI, every feature set of
- * the App (Dashboard, Admin Dashboard, Status Page, Accounts, Public
- * Dashboard, ...) and the enterprise dashboards, and fails on:
+ * in as a bare label above a red "Delete" with its bin - and so did View,
+ * Edit, 32 actions pages added themselves, and "Add in Bulk" in the card
+ * header's ⋯ menu of six status page tables. Every item has an icon now, and
+ * this keeps it that way. It reads the TypeScript of Common's UI, every
+ * feature set of the App (Dashboard, Admin Dashboard, Status Page, Accounts,
+ * Public Dashboard, ...) and the enterprise dashboards, and fails on:
  *
  *   1. a row action or bulk action (an object with a `buttonStyleType`)
  *      without an `icon`, or with one that can be undefined;
