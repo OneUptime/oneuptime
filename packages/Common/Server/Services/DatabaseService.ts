@@ -2152,6 +2152,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         const requestedValue: unknown = dataRecord[settings.column];
 
+        if (
+          !isNewToList &&
+          toListOrderNumber(requestedValue) !== null &&
+          toListOrderNumber(requestedValue) === toListOrderNumber(previousValue)
+        ) {
+          // Saved where it already was - an edit form re-sending it, say.
+          continue;
+        }
+
         if (toListOrderNumber(requestedValue) === null) {
           /*
            * The number was cleared: the row goes to the end of its list, as

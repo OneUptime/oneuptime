@@ -352,7 +352,6 @@ const definition: DefinitionFunction = (
 describe("incident custom fields docs", () => {
   describe("the settings", () => {
     const SETTING_NAMES: ReadonlyArray<string> = [
-      IncidentCustomFieldSettingsCopy.sortOrderTitle,
       IncidentCustomFieldSettingsCopy.showOnCreateTitle,
       IncidentCustomFieldSettingsCopy.isRequiredOnCreateTitle,
       IncidentCustomFieldSettingsCopy.includeInSubscriberNotificationsTitle,
@@ -382,9 +381,6 @@ describe("incident custom fields docs", () => {
     test("the settings page shows the columns' own titles", () => {
       const model: IncidentCustomField = new IncidentCustomField();
 
-      expect(model.getTableColumnMetadata("sortOrder").title).toBe(
-        IncidentCustomFieldSettingsCopy.sortOrderTitle,
-      );
       expect(model.getTableColumnMetadata("showOnCreate").title).toBe(
         IncidentCustomFieldSettingsCopy.showOnCreateTitle,
       );
@@ -397,6 +393,54 @@ describe("incident custom fields docs", () => {
         IncidentCustomFieldSettingsCopy.includeInSubscriberNotificationsTitle,
       );
     });
+
+    /*
+     * The fields are put in order by dragging - there is no Order to type -
+     * so the docs have to say how to move one, and that a new one goes to
+     * the end, rather than describe a number.
+     */
+    test.each(LANGUAGES)(
+      "%s: says the fields are dragged into order and a new one goes to the end",
+      (language: string) => {
+        const section: string = sectionOf(
+          readPage(SETTINGS_PAGE, language),
+          CUSTOM_FIELDS_SECTION[language] as string,
+        );
+
+        const drag: Record<string, string> = {
+          en: "drag a field by the handle at the start of its row",
+          fa: "فیلد را با دستگیره ابتدای ردیفش بالا یا پایین بکشید",
+        };
+        const end: Record<string, string> = {
+          en: "a new field is added to the end",
+          fa: "فیلد تازه به انتهای فهرست افزوده می‌شود",
+        };
+
+        expect(section).toContain(drag[language] as string);
+        expect(section).toContain(end[language] as string);
+        // The old wording described a number to type, lowest first.
+        expect(section).not.toContain("lowest first");
+        expect(section).not.toContain("از کوچک‌ترین");
+      },
+    );
+
+    test.each(LANGUAGES)(
+      "%s: says what Terraform's sort_order does when it is left out or collides",
+      (language: string) => {
+        // sectionOf drops the right-to-left mark the Persian heading starts with.
+        const terraform: string = sectionOf(
+          readPage(SETTINGS_PAGE, language),
+          "Terraform",
+        );
+
+        expect(terraform).toContain("`sort_order`");
+        expect(terraform).toContain(
+          language === "en"
+            ? "Leave `sort_order` out and a new field goes to the end of the list."
+            : "اگر `sort_order` را ننویسید، فیلد تازه به انتهای فهرست می‌رود.",
+        );
+      },
+    );
 
     test.each(LANGUAGES)(
       "%s: lists every field type by its picker label on the incident settings page",

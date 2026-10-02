@@ -1,5 +1,6 @@
 import IncidentCustomFieldSettingsCopy, {
   CUSTOM_FIELD_TYPE_LABELS,
+  CustomFieldsPageCopy,
 } from "../../FeatureSet/Dashboard/src/Components/CustomFields/CustomFieldSettingsCopy";
 import { INCIDENT_CUSTOM_FIELD_TABLE_VIEW_IDS } from "Common/Types/CustomField/CustomFieldSavedViews";
 import { describe, expect, test } from "@jest/globals";
@@ -7,8 +8,9 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The custom field settings pages' text - the field type names, and the
- * incident-only settings (order, show and require on create, subscriber
+ * The custom field settings pages' text - the field type names, the card's
+ * description (and the one that says the fields can be dragged into order),
+ * and the incident-only settings (show and require on create, subscriber
  * notifications, template variable) - reaches the screen by looking its
  * English text up in the Dashboard locale files. A string with no entry
  * silently stays English, so this pins:
@@ -55,7 +57,7 @@ const OTHER_LOCALES: Array<string> = [
  * languages ("Text" in German), and one that is simply the same word
  * ("Date" in French).
  */
-const SHARED_WITH_OTHER_FEATURES: Array<string> = ["Text", "Number", "Order"];
+const SHARED_WITH_OTHER_FEATURES: Array<string> = ["Text", "Number"];
 const SAME_WORD: Record<string, Array<string>> = {
   fr: ["Date"],
 };
@@ -63,6 +65,7 @@ const SAME_WORD: Record<string, Array<string>> = {
 const STRINGS: Array<string> = Array.from(
   new Set([
     ...Object.values(CUSTOM_FIELD_TYPE_LABELS),
+    ...Object.values(CustomFieldsPageCopy),
     ...Object.values(IncidentCustomFieldSettingsCopy),
   ]),
 );
@@ -163,8 +166,6 @@ describe("the settings pages render the shared strings", () => {
     );
 
     for (const key of [
-      "sortOrderTitle",
-      "sortOrderDescription",
       "showOnCreateTitle",
       "showOnCreateDescription",
       "isRequiredOnCreateTitle",
@@ -177,6 +178,30 @@ describe("the settings pages render the shared strings", () => {
     ]) {
       expect(source).toContain(`IncidentCustomFieldSettingsCopy.${key}`);
     }
+  });
+
+  /*
+   * Where a field sits is set by dragging the rows, so the form has no Order
+   * to type in and the card says how to change it instead.
+   */
+  test("the card describes itself through the shared copy, and never asks for an order", () => {
+    const source: string = readSource(
+      "Pages",
+      "Settings",
+      "Base",
+      "CustomFieldsPageBase.tsx",
+    );
+
+    expect(source).toContain("CUSTOM_FIELDS_REORDER_DESCRIPTION");
+    expect(source).toContain("CUSTOM_FIELDS_DESCRIPTION");
+    expect(source).toContain("enableDragAndDrop: true");
+    expect(source).not.toContain("sortOrder: true");
+    expect(source).not.toContain("SORT_ORDER_PLACEHOLDER");
+    expect(
+      Object.keys(IncidentCustomFieldSettingsCopy).filter((key: string) => {
+        return key.toLowerCase().includes("order");
+      }),
+    ).toEqual([]);
   });
 });
 
