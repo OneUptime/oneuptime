@@ -8,6 +8,7 @@ import {
 } from "Common/Types/Call/CallProvider";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import IncomingCallStatus from "Common/Types/IncomingCall/IncomingCallStatus";
+import { IncomingCallStatusMessage } from "Common/Types/IncomingCall/MissedIncomingCall";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
@@ -16,6 +17,7 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IncomingCallLogService from "Common/Server/Services/IncomingCallLogService";
 import IncomingCallLogItemService from "Common/Server/Services/IncomingCallLogItemService";
+import IncomingCallMissedCallNotificationService from "Common/Server/Services/IncomingCallMissedCallNotificationService";
 import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPolicyScheduleService";
 import UserService from "Common/Server/Services/UserService";
 import UserIncomingCallNumberService from "Common/Server/Services/UserIncomingCallNumberService";
@@ -254,14 +256,26 @@ router.post(
       callLog.currentEscalationRuleOrder = 1;
       callLog.repeatCount = 0;
 
-      // Check if policy is enabled
-      if (!policy.isEnabled) {
-        callLog.status = IncomingCallStatus.Failed;
-        callLog.statusMessage = "Policy is disabled";
-        callLog.endedAt = new Date();
+      /*
+       * Every call is logged as Initiated when it arrives and is ended by an
+       * update that sets endedAt - even one turned away straight away - so a
+       * workflow can treat "On Create" as "a call came in" and the update
+       * that sets Ended At as "the call ended".
+       */
+      const createdCallLog: IncomingCallLog =
         await IncomingCallLogService.create({
           data: callLog,
-          props: { isRoot: true },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      // Check if policy is enabled
+      if (!policy.isEnabled) {
+        await endMissedCall({
+          callLogId: createdCallLog.id!,
+          status: IncomingCallStatus.Failed,
+          statusMessage: IncomingCallStatusMessage.PolicyDisabled,
         });
 
         const twiml: string = provider.generateHangupResponse(
@@ -270,15 +284,6 @@ router.post(
         res.type("text/xml");
         return res.send(twiml);
       }
-
-      // Save the call log now that initial checks passed
-      const createdCallLog: IncomingCallLog =
-        await IncomingCallLogService.create({
-          data: callLog,
-          props: {
-            isRoot: true,
-          },
-        });
 
       /*
        * Find the first escalation rule that currently has an available user.
@@ -295,14 +300,10 @@ router.post(
       );
 
       if (!firstResolved) {
-        await IncomingCallLogService.updateOneById({
-          id: createdCallLog.id!,
-          data: {
-            status: IncomingCallStatus.Failed,
-            statusMessage: "No on-call user available in any escalation rule",
-            endedAt: new Date(),
-          },
-          props: { isRoot: true },
+        await endMissedCall({
+          callLogId: createdCallLog.id!,
+          status: IncomingCallStatus.Failed,
+          statusMessage: IncomingCallStatusMessage.NoOneAvailable,
         });
 
         const twiml: string = provider.generateHangupResponse(
@@ -402,6 +403,7 @@ router.post(
             repeatCount: true,
             incomingCallPolicyId: true,
             routingPhoneNumber: true,
+            endedAt: true,
           },
           props: {
             isRoot: true,
@@ -521,6 +523,7 @@ router.post(
           select: {
             _id: true,
             incomingCallLogId: true,
+            userId: true,
           },
           props: {
             isRoot: true,
@@ -548,6 +551,21 @@ router.post(
         );
         res.status(400).send("Call log item does not belong to this call log");
         return;
+      }
+
+      /*
+       * The call already ended, so this is a repeat of a callback that was
+       * handled. Acting on it again would ring someone for a caller who is
+       * gone, and tell the owners about the same missed call twice.
+       */
+      if (callLog.endedAt) {
+        logger.debug(
+          `Dial status for call log ${callLogId} arrived after the call ended. Ignoring it.`,
+          getLogAttributesFromRequest(req as RequestLike),
+        );
+        const twiml: string = provider.generateHangupResponse();
+        res.type("text/xml");
+        return res.send(twiml);
       }
 
       const now: Date = new Date();
@@ -591,6 +609,9 @@ router.post(
           data: {
             status: IncomingCallStatus.Completed,
             endedAt: now,
+            ...(callLogItem.userId
+              ? { answeredByUserId: callLogItem.userId }
+              : {}),
           },
           props: {
             isRoot: true,
@@ -604,15 +625,10 @@ router.post(
       }
 
       if (callerHungUp) {
-        await IncomingCallLogService.updateOneById({
-          id: new ObjectID(callLogId),
-          data: {
-            status: IncomingCallStatus.CallerHungUp,
-            endedAt: now,
-          },
-          props: {
-            isRoot: true,
-          },
+        await endMissedCall({
+          callLogId: new ObjectID(callLogId),
+          status: IncomingCallStatus.CallerHungUp,
+          endedAt: now,
         });
 
         // The call is already over; the provider ignores this response.
@@ -702,15 +718,10 @@ router.post(
       }
 
       // No more options, end the call.
-      await IncomingCallLogService.updateOneById({
-        id: new ObjectID(callLogId),
-        data: {
-          status: IncomingCallStatus.NoAnswer,
-          endedAt: now,
-        },
-        props: {
-          isRoot: true,
-        },
+      await endMissedCall({
+        callLogId: new ObjectID(callLogId),
+        status: IncomingCallStatus.NoAnswer,
+        endedAt: now,
       });
 
       const twiml: string = provider.generateHangupResponse(
@@ -725,6 +736,36 @@ router.post(
     }
   },
 );
+
+/*
+ * Ends a call that reached nobody and tells the policy's owners. The
+ * notification is not awaited: the call provider (and usually the caller) is
+ * waiting for this webhook's reply, and the notification never throws.
+ */
+async function endMissedCall(data: {
+  callLogId: ObjectID;
+  status: IncomingCallStatus;
+  statusMessage?: IncomingCallStatusMessage | undefined;
+  endedAt?: Date | undefined;
+}): Promise<void> {
+  await IncomingCallLogService.updateOneById({
+    id: data.callLogId,
+    data: {
+      status: data.status,
+      ...(data.statusMessage ? { statusMessage: data.statusMessage } : {}),
+      endedAt: data.endedAt || new Date(),
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+
+  IncomingCallMissedCallNotificationService.notifyOwnersOfMissedCall({
+    incomingCallLogId: data.callLogId,
+  }).catch((err: Error) => {
+    logger.error(err);
+  });
+}
 
 // Interface for user with phone number to call
 interface UserToCall {

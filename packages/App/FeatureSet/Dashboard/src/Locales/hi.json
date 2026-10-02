@@ -6931,5 +6931,8 @@
   "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "OneUptime REST API से इस संसाधन को पढ़ें, बदलें और हटाएँ। नीचे दिए गए सभी कमांड इसी OneUptime पर चलते हैं।",
   "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "OneUptime REST API से इन संसाधनों की सूची देखें और नए बनाएँ। नीचे दिए गए सभी कमांड इसी OneUptime पर चलते हैं।",
   "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Claude, GitHub Copilot या Cursor जैसे AI सहायक से इस संसाधन पर काम करें।",
-  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Claude, GitHub Copilot या Cursor जैसे AI सहायक से इन संसाधनों पर काम करें।"
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "Claude, GitHub Copilot या Cursor जैसे AI सहायक से इन संसाधनों पर काम करें।",
+  "Missed call": "छूटी हुई कॉल",
+  "A call to an incoming call policy you own ends without reaching anyone.": "आपके स्वामित्व वाली इनकमिंग कॉल नीति पर आई कॉल किसी से जुड़े बिना समाप्त हो जाती है।",
+  "Notify me about calls to incoming call policies I own.": "मेरे स्वामित्व वाली इनकमिंग कॉल नीतियों पर आने वाली कॉल के बारे में मुझे सूचित करें।"
 }

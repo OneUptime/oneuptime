@@ -1,6 +1,7 @@
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import IncomingCallLogItemService from "Common/Server/Services/IncomingCallLogItemService";
 import IncomingCallLogService from "Common/Server/Services/IncomingCallLogService";
+import IncomingCallMissedCallNotificationService from "Common/Server/Services/IncomingCallMissedCallNotificationService";
 import IncomingCallPolicyEscalationRuleService from "Common/Server/Services/IncomingCallPolicyEscalationRuleService";
 import IncomingCallPolicyPhoneNumberService from "Common/Server/Services/IncomingCallPolicyPhoneNumberService";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
@@ -99,6 +100,20 @@ jest.mock("Common/Server/Services/IncomingCallLogItemService", () => {
     },
   };
 });
+
+/*
+ * The missed call notification has its own suite. Here it only matters
+ * whether - and for which call - the webhook asks for it.
+ */
+jest.mock(
+  "Common/Server/Services/IncomingCallMissedCallNotificationService",
+  () => {
+    return {
+      __esModule: true,
+      default: { notifyOwnersOfMissedCall: jest.fn() },
+    };
+  },
+);
 
 jest.mock("Common/Server/Services/OnCallDutyPolicyScheduleService", () => {
   return {
@@ -268,6 +283,10 @@ const logItemService: {
   findOneById: JestMock;
   updateOneById: JestMock;
 };
+const missedCallNotifier: { notifyOwnersOfMissedCall: JestMock } =
+  IncomingCallMissedCallNotificationService as unknown as {
+    notifyOwnersOfMissedCall: JestMock;
+  };
 const scheduleService: { getCurrentUserIdInSchedule: JestMock } =
   OnCallDutyPolicyScheduleService as unknown as {
     getCurrentUserIdInSchedule: JestMock;
@@ -540,6 +559,7 @@ function configureLogDefaults(): void {
     },
   );
   logItemService.updateOneById.mockResolvedValue(undefined);
+  missedCallNotifier.notifyOwnersOfMissedCall.mockResolvedValue(undefined);
 }
 
 describe("incoming call voice routing", () => {
@@ -727,11 +747,25 @@ describe("incoming call voice routing", () => {
 
     const result: Invocation = await invoke("/voice", { body: voiceBody() });
 
-    const failedLog: IncomingCallLog = logService.create.mock.calls[0]?.[0]
+    /*
+     * Logged as a call coming in, then ended - the same two steps as every
+     * other call, so a workflow's On Create and the update that sets Ended At
+     * mean the same thing for it.
+     */
+    const createdLog: IncomingCallLog = logService.create.mock.calls[0]?.[0]
       .data as IncomingCallLog;
-    expect(failedLog.status).toBe(IncomingCallStatus.Failed);
-    expect(failedLog.statusMessage).toBe("Policy is disabled");
-    expect(failedLog.routingPhoneNumber?.toString()).toBe(SECOND_NUMBER);
+    expect(createdLog.status).toBe(IncomingCallStatus.Initiated);
+    expect(createdLog.routingPhoneNumber?.toString()).toBe(SECOND_NUMBER);
+    expect(logService.updateOneById).toHaveBeenCalledTimes(1);
+    expect(logService.updateOneById).toHaveBeenCalledWith({
+      id: CALL_LOG_ID,
+      data: {
+        status: IncomingCallStatus.Failed,
+        statusMessage: "Policy is disabled",
+        endedAt: expect.any(Date),
+      },
+      props: { isRoot: true },
+    });
     expect(logItemService.create).not.toHaveBeenCalled();
     expect(provider.generateHangupResponse).toHaveBeenCalledWith(
       "Sorry, this service is currently disabled.",
@@ -850,6 +884,7 @@ describe("incoming call dial-status routing", () => {
         repeatCount: true,
         incomingCallPolicyId: true,
         routingPhoneNumber: true,
+        endedAt: true,
       },
       props: { isRoot: true },
     });
@@ -1344,5 +1379,348 @@ describe("incoming call dial-status after the caller hangs up", () => {
 
     expect(logItemService.updateOneById).not.toHaveBeenCalled();
     expect(logService.updateOneById).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Issue #4159: when a call ends without reaching anyone, the policy's owners
+ * are told. Each of the four ways a call can end unanswered asks for exactly
+ * one notification, for that call, once the call log says how it ended. A
+ * call someone answered, or one still hunting, asks for none.
+ */
+describe("incoming call missed call notifications", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    configureProviderDefaults();
+    configureUserAndRuleDefaults();
+    configureLogDefaults();
+    numberService.findOneBy.mockResolvedValue(makeAttachedNumber());
+    policyService.findOneById.mockResolvedValue(makePolicy());
+    policyService.findOneBy.mockResolvedValue(null);
+    logService.findOneById.mockResolvedValue(
+      makeCallLog({ routingPhone: SECOND_NUMBER, currentOrder: 1 }),
+    );
+    logItemService.findOneById.mockResolvedValue(makeCallLogItem());
+  });
+
+  async function invokeDialStatus(
+    body: Record<string, unknown> = dialBody(),
+  ): Promise<Invocation> {
+    return await invoke("/dial-status/:callLogId/:callLogItemId", {
+      body,
+      params: {
+        callLogId: CALL_LOG_ID.toString(),
+        callLogItemId: CALL_LOG_ITEM_ID.toString(),
+      },
+    });
+  }
+
+  function notifiedCallLogIds(): Array<string> {
+    return missedCallNotifier.notifyOwnersOfMissedCall.mock.calls.map(
+      (call: Array<any>): string => {
+        return call[0].incomingCallLogId.toString();
+      },
+    );
+  }
+
+  // The call log is ended before anyone is asked to read it.
+  function expectEndedBeforeNotifying(status: IncomingCallStatus): void {
+    const endedCall: number | undefined =
+      logService.updateOneById.mock.invocationCallOrder[
+        logService.updateOneById.mock.calls.findIndex(
+          (call: Array<any>): boolean => {
+            return call[0].data.status === status;
+          },
+        )
+      ];
+    const notified: number | undefined =
+      missedCallNotifier.notifyOwnersOfMissedCall.mock.invocationCallOrder[0];
+
+    expect(endedCall).toBeDefined();
+    expect(notified).toBeDefined();
+    expect(endedCall!).toBeLessThan(notified!);
+  }
+
+  test("a call to a disabled policy is a missed call", async () => {
+    policyService.findOneById.mockResolvedValue(makePolicy({ enabled: false }));
+
+    await invoke("/voice", { body: voiceBody() });
+
+    expect(notifiedCallLogIds()).toEqual([CALL_LOG_ID.toString()]);
+    expectEndedBeforeNotifying(IncomingCallStatus.Failed);
+  });
+
+  test("a call nobody is available for is a missed call", async () => {
+    ruleService.findOneBy.mockResolvedValue(null);
+
+    await invoke("/voice", { body: voiceBody() });
+
+    expect(notifiedCallLogIds()).toEqual([CALL_LOG_ID.toString()]);
+    expectEndedBeforeNotifying(IncomingCallStatus.Failed);
+  });
+
+  test("a call that rings someone is not missed yet", async () => {
+    await invoke("/voice", { body: voiceBody() });
+
+    expect(provider.generateEscalationResponse).toHaveBeenCalledTimes(1);
+    expect(missedCallNotifier.notifyOwnersOfMissedCall).not.toHaveBeenCalled();
+  });
+
+  test("a call whose hunt ran out is a missed call", async () => {
+    ruleService.findOneBy.mockResolvedValue(null);
+
+    await invokeDialStatus(dialBody("no-answer"));
+
+    expect(logService.updateOneById).toHaveBeenCalledWith({
+      id: CALL_LOG_ID,
+      data: { status: IncomingCallStatus.NoAnswer, endedAt: expect.any(Date) },
+      props: { isRoot: true },
+    });
+    expect(notifiedCallLogIds()).toEqual([CALL_LOG_ID.toString()]);
+    expectEndedBeforeNotifying(IncomingCallStatus.NoAnswer);
+  });
+
+  test("a caller who hung up while a phone rang is a missed call", async () => {
+    await invokeDialStatus(dialBody("no-answer", "completed"));
+
+    expect(notifiedCallLogIds()).toEqual([CALL_LOG_ID.toString()]);
+    expectEndedBeforeNotifying(IncomingCallStatus.CallerHungUp);
+  });
+
+  test("an answered call tells nobody", async () => {
+    await invokeDialStatus(dialBody("completed"));
+
+    expect(logService.updateOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: IncomingCallStatus.Completed,
+        }),
+      }),
+    );
+    expect(missedCallNotifier.notifyOwnersOfMissedCall).not.toHaveBeenCalled();
+  });
+
+  test("an answered call that the caller ends tells nobody either", async () => {
+    await invokeDialStatus(dialBody("completed", "completed"));
+
+    expect(missedCallNotifier.notifyOwnersOfMissedCall).not.toHaveBeenCalled();
+  });
+
+  test("escalating to the next engineer tells nobody", async () => {
+    ruleService.findOneBy.mockResolvedValue(
+      makeRule({ id: RULE_2_ID, order: 2, userId: USER_2 }),
+    );
+    incomingNumberService.findOneBy.mockResolvedValue(
+      makeVerifiedNumber(USER_2, USER_2_NUMBER),
+    );
+
+    await invokeDialStatus(dialBody("no-answer"));
+
+    expect(provider.generateEscalationResponse).toHaveBeenCalledTimes(1);
+    expect(missedCallNotifier.notifyOwnersOfMissedCall).not.toHaveBeenCalled();
+  });
+
+  test("repeating the policy tells nobody", async () => {
+    policyService.findOneById.mockResolvedValue(
+      makePolicy({ repeat: true, repeatTimes: 2 }),
+    );
+    ruleService.findOneBy.mockImplementation((args: any) => {
+      const afterOrder: unknown = Object.values(
+        args.query.order.objectLiteralParameters,
+      )[0];
+      return Promise.resolve(
+        afterOrder === 0 ? makeRule({ order: 1, userId: USER_1 }) : null,
+      );
+    });
+
+    await invokeDialStatus(dialBody("no-answer"));
+
+    expect(logService.updateOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ repeatCount: 1 }),
+      }),
+    );
+    expect(missedCallNotifier.notifyOwnersOfMissedCall).not.toHaveBeenCalled();
+  });
+
+  test("the reply to Twilio does not wait for the notification", async () => {
+    ruleService.findOneBy.mockResolvedValue(null);
+    missedCallNotifier.notifyOwnersOfMissedCall.mockReturnValue(
+      new Promise<void>(() => {
+        // Never settles: owners on a slow mail server.
+      }),
+    );
+
+    const result: Invocation = await invokeDialStatus(dialBody("no-answer"));
+
+    expect(missedCallNotifier.notifyOwnersOfMissedCall).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(result.send).toHaveBeenCalledWith("<Response><Hangup/></Response>");
+  });
+
+  test("a notification that fails is logged and the caller still gets the reply", async () => {
+    ruleService.findOneBy.mockResolvedValue(null);
+    const failure: Error = new Error("mail server down");
+    missedCallNotifier.notifyOwnersOfMissedCall.mockRejectedValue(failure);
+
+    const result: Invocation = await invokeDialStatus(dialBody("no-answer"));
+    // Let the rejected notification settle.
+    await new Promise<void>((resolve: () => void) => {
+      setImmediate(resolve);
+    });
+
+    expect(result.send).toHaveBeenCalledWith("<Response><Hangup/></Response>");
+    expect(result.next).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith(failure);
+  });
+
+  test("a failure ending the call is not reported as a missed call", async () => {
+    ruleService.findOneBy.mockResolvedValue(null);
+    const failure: Error = new Error("database is down");
+    logService.updateOneById.mockRejectedValue(failure);
+
+    const result: Invocation = await invokeDialStatus(dialBody("no-answer"));
+
+    expect(result.next).toHaveBeenCalledWith(failure);
+    expect(missedCallNotifier.notifyOwnersOfMissedCall).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A callback for a call that has already ended is a repeat of one that was
+ * handled. Acting on it would ring an engineer for a caller who is gone, and
+ * tell the owners about the same missed call twice.
+ */
+describe("incoming call dial-status after the call ended", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    configureProviderDefaults();
+    configureUserAndRuleDefaults();
+    configureLogDefaults();
+    const endedLog: IncomingCallLog = makeCallLog({
+      routingPhone: SECOND_NUMBER,
+      currentOrder: 1,
+    });
+    endedLog.endedAt = new Date("2026-10-01T22:01:00.000Z");
+    logService.findOneById.mockResolvedValue(endedLog);
+    policyService.findOneById.mockResolvedValue(makePolicy());
+    numberService.findOneBy.mockResolvedValue(makeAttachedNumber());
+    logItemService.findOneById.mockResolvedValue(makeCallLogItem());
+  });
+
+  async function invokeDialStatus(
+    body: Record<string, unknown>,
+  ): Promise<Invocation> {
+    return await invoke("/dial-status/:callLogId/:callLogItemId", {
+      body,
+      params: {
+        callLogId: CALL_LOG_ID.toString(),
+        callLogItemId: CALL_LOG_ITEM_ID.toString(),
+      },
+    });
+  }
+
+  test.each([
+    ["no-answer", "in-progress"],
+    ["no-answer", "completed"],
+    ["completed", "in-progress"],
+    ["busy", "in-progress"],
+  ])(
+    "a repeated %s callback (caller %s) changes nothing and tells nobody",
+    async (dialStatus: string, callStatus: string) => {
+      const result: Invocation = await invokeDialStatus(
+        dialBody(dialStatus, callStatus),
+      );
+
+      expect(logItemService.updateOneById).not.toHaveBeenCalled();
+      expect(logService.updateOneById).not.toHaveBeenCalled();
+      expect(logItemService.create).not.toHaveBeenCalled();
+      expect(ruleService.findOneBy).not.toHaveBeenCalled();
+      expect(provider.generateEscalationResponse).not.toHaveBeenCalled();
+      expect(
+        missedCallNotifier.notifyOwnersOfMissedCall,
+      ).not.toHaveBeenCalled();
+      expect(result.type).toHaveBeenCalledWith("text/xml");
+      expect(result.send).toHaveBeenCalledWith(
+        "<Response><Hangup/></Response>",
+      );
+    },
+  );
+
+  test("is only ignored after the signature and ownership checks", async () => {
+    provider.validateWebhookSignature.mockReturnValueOnce(false);
+    let result: Invocation = await invokeDialStatus(dialBody());
+    expect(result.status).toHaveBeenCalledWith(403);
+
+    logItemService.findOneById.mockResolvedValueOnce(
+      makeCallLogItem(OTHER_CALL_LOG_ID),
+    );
+    result = await invokeDialStatus(dialBody());
+    expect(result.status).toHaveBeenCalledWith(400);
+
+    expect(provider.generateHangupResponse).not.toHaveBeenCalled();
+  });
+});
+
+describe("incoming call answered by", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    configureProviderDefaults();
+    configureUserAndRuleDefaults();
+    configureLogDefaults();
+    logService.findOneById.mockResolvedValue(
+      makeCallLog({ routingPhone: SECOND_NUMBER, currentOrder: 1 }),
+    );
+    policyService.findOneById.mockResolvedValue(makePolicy());
+    numberService.findOneBy.mockResolvedValue(makeAttachedNumber());
+  });
+
+  async function invokeAnswered(): Promise<Invocation> {
+    return await invoke("/dial-status/:callLogId/:callLogItemId", {
+      body: dialBody("completed"),
+      params: {
+        callLogId: CALL_LOG_ID.toString(),
+        callLogItemId: CALL_LOG_ITEM_ID.toString(),
+      },
+    });
+  }
+
+  test("records who answered on the call log", async () => {
+    const item: IncomingCallLogItem = makeCallLogItem();
+    item.userId = USER_2;
+    logItemService.findOneById.mockResolvedValue(item);
+
+    await invokeAnswered();
+
+    expect(logItemService.findOneById.mock.calls[0]?.[0].select).toEqual({
+      _id: true,
+      incomingCallLogId: true,
+      userId: true,
+    });
+    expect(logService.updateOneById).toHaveBeenCalledWith({
+      id: CALL_LOG_ID,
+      data: {
+        status: IncomingCallStatus.Completed,
+        endedAt: expect.any(Date),
+        answeredByUserId: USER_2,
+      },
+      props: { isRoot: true },
+    });
+  });
+
+  test("an attempt with no user leaves Answered By empty rather than wrong", async () => {
+    logItemService.findOneById.mockResolvedValue(makeCallLogItem());
+
+    await invokeAnswered();
+
+    expect(logService.updateOneById).toHaveBeenCalledWith({
+      id: CALL_LOG_ID,
+      data: {
+        status: IncomingCallStatus.Completed,
+        endedAt: expect.any(Date),
+      },
+      props: { isRoot: true },
+    });
   });
 });

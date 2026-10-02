@@ -6931,5 +6931,8 @@
   "Read, change and delete this resource with the OneUptime REST API. Every command below runs against this OneUptime.": "使用 OneUptime REST API 讀取、修改和刪除此資源。下方所有指令都會在目前這個 OneUptime 上執行。",
   "List and create these resources with the OneUptime REST API. Every command below runs against this OneUptime.": "使用 OneUptime REST API 列出和建立這些資源。下方所有指令都會在目前這個 OneUptime 上執行。",
   "Work with this resource from an AI assistant such as Claude, GitHub Copilot or Cursor.": "透過 Claude、GitHub Copilot 或 Cursor 等 AI 助理處理此資源。",
-  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "透過 Claude、GitHub Copilot 或 Cursor 等 AI 助理處理這些資源。"
+  "Work with these resources from an AI assistant such as Claude, GitHub Copilot or Cursor.": "透過 Claude、GitHub Copilot 或 Cursor 等 AI 助理處理這些資源。",
+  "Missed call": "未接來電",
+  "A call to an incoming call policy you own ends without reaching anyone.": "撥打您所擁有之來電策略的來電在未接通任何人的情況下結束。",
+  "Notify me about calls to incoming call policies I own.": "當有來電撥打我所擁有的來電策略時通知我。"
 }

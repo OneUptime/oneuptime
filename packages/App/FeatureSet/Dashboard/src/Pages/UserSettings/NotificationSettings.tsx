@@ -306,6 +306,12 @@ const EVENT_LIBRARY: Record<
     description: "You are added as an owner of an AI agent.",
   },
 
+  [NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION]: {
+    label: "Missed call",
+    description:
+      "A call to an incoming call policy you own ends without reaching anyone.",
+  },
+
   [NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER]: {
     label: "You go on-call",
     description: "Your shift on an on-call roster begins.",
@@ -782,6 +788,11 @@ const onCall: Array<SectionDef> = [
       NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
       NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
     ],
+  ),
+  buildSection(
+    "Incoming Call Policies",
+    "Notify me about calls to incoming call policies I own.",
+    [NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION],
   ),
 ];
 

@@ -1,6 +1,11 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../Icon/IconProp";
 import Text from "../../Text";
+import {
+  DatabaseOperation,
+  getDatabaseOperation,
+  WRITE_DATABASE_OPERATIONS,
+} from "../DatabaseOperation";
 import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
@@ -695,6 +700,22 @@ export default class BaseModelComponent {
             id: "error",
           },
         ],
+      });
+    }
+
+    /*
+     * A table only OneUptime writes, such as a call log, keeps its triggers
+     * and its Find steps but offers no step that writes its rows. See
+     * EnableWorkflowOn.writeSteps.
+     */
+    if (model.enableWorkflowOn.writeSteps === false) {
+      return components.filter((component: ComponentMetadata): boolean => {
+        const operation: DatabaseOperation | null = getDatabaseOperation({
+          componentId: component.id,
+          tableName: model.tableName!,
+        });
+
+        return !operation || !WRITE_DATABASE_OPERATIONS.includes(operation);
       });
     }
 

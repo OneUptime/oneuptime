@@ -96,6 +96,8 @@ enum EmailTemplateType {
   UserOnCallShiftReminder = "UserOnCallShiftReminder.hbs",
   UserOnCallShiftReassigned = "UserOnCallShiftReassigned.hbs",
 
+  IncomingCallPolicyOwnerMissedCall = "IncomingCallPolicyOwnerMissedCall.hbs",
+
   ProjectSubscriptionOverdue = "ProjectSubscriptionOverdue.hbs",
   Invoice = "Invoice.hbs",
 
