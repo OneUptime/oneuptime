@@ -42,6 +42,7 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import TeamsAvailableModal from "./TeamsAvailableModal";
 import MicrosoftTeamsChatsCard from "./MicrosoftTeamsChatsCard";
 import MicrosoftTeamsChannelsCard from "./MicrosoftTeamsChannelsCard";
+import ConnectedWorkspaces from "../../Utils/Workspace/ConnectedWorkspaces";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -446,6 +447,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               setIsProjectAccountConnected(false);
               setIsAdminConsentCompleted(false); // Reset admin consent when project is disconnected
               setWorkspaceProjectAuthTokenId(null);
+
+              /*
+               * Every Workspace menu in the project lists only connected
+               * workspaces: ask again, so they stop listing this one.
+               */
+              ConnectedWorkspaces.refresh().catch(() => {
+                // A failed request leaves the menus as they were.
+              });
             } else {
               setError(
                 <div>
