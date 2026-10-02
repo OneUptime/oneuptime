@@ -48,7 +48,7 @@ const EVERY_BUTTON: Array<string> = [
   "Indent (Tab)",
   "Outdent (Shift+Tab)",
   "Link",
-  "Image",
+  "Upload Image",
   "Code",
   "Table",
   "Horizontal Rule",
@@ -364,7 +364,7 @@ describe("the Markdown editor's toolbar on a line too short for every button", (
     expect(menuItemTexts(menu)).toEqual([
       "Outdent",
       "Link",
-      "Image",
+      "Upload Image",
       "Code",
       "Table",
       "Horizontal Rule",
@@ -413,7 +413,7 @@ describe("the Markdown editor's toolbar on a line too short for every button", (
       "Outdent",
       "---",
       "Link",
-      "Image",
+      "Upload Image",
       "Code",
       "---",
       "Table",
@@ -531,8 +531,8 @@ describe("the Markdown editor's toolbar on a line too short for every button", (
 
     const menu: HTMLElement = openMoreMenu();
 
-    expect(menuItemTexts(menu)).not.toContain("Image");
-    expect(screen.queryByTitle("Image")).toBeNull();
+    expect(menuItemTexts(menu)).not.toContain("Upload Image");
+    expect(screen.queryByTitle("Upload Image")).toBeNull();
   });
 });
 

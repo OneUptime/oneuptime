@@ -2071,7 +2071,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     ...(allowImageUpload
       ? [
           {
-            label: "Image",
+            label: "Upload Image",
             group: "insert" as ToolbarGroup,
             icon: IconProp.Image,
             onClick: formatActions.image,
