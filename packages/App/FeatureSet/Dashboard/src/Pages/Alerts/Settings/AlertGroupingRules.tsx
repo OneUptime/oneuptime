@@ -1,4 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
+import { ALERT_EPISODE_TEMPLATE_VARIABLE_GROUPS } from "Common/Utils/Episode/EpisodeTemplateVariables";
+import EpisodeTemplateVariablesCopy from "../../../Components/IncidentGroupingRule/EpisodeTemplateVariablesCopy";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -579,6 +581,10 @@ const AlertGroupingRulesPage: FunctionComponent<
             field: {
               episodeTitleTemplate: true,
             },
+            // The variables, under the field and one "{{" away.
+            templateVariables: ALERT_EPISODE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              EpisodeTemplateVariablesCopy.alertVariablesDescription,
             title: "Episode Title Template",
             stepId: "episode-template",
             fieldType: FormFieldSchemaType.Text,
@@ -591,6 +597,10 @@ const AlertGroupingRulesPage: FunctionComponent<
             field: {
               episodeDescriptionTemplate: true,
             },
+            // The variables, under the field and one "{{" away.
+            templateVariables: ALERT_EPISODE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              EpisodeTemplateVariablesCopy.alertVariablesDescription,
             title: "Episode Description Template",
             stepId: "episode-template",
             fieldType: FormFieldSchemaType.LongText,
@@ -599,62 +609,6 @@ const AlertGroupingRulesPage: FunctionComponent<
               "Episode created from {{alertSeverity}} alert: {{alertTitle}} on monitor {{monitorName}}",
             description:
               "Template for auto-generated episode descriptions. Uses the first alert's data to generate the description.",
-            footerElement: (
-              <div className="mt-4 p-4 bg-gray-50 rounded-md border border-gray-200 text-sm">
-                <p className="font-medium mb-3">
-                  Supported Template Variables:
-                </p>
-                <div className="mb-3">
-                  <p className="text-xs font-medium text-gray-500 mb-1">
-                    Static Variables (from first alert):
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-gray-700">
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{alertTitle}}"}
-                      </code>{" "}
-                      - Title of the alert
-                    </li>
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{alertDescription}}"}
-                      </code>{" "}
-                      - Description of the alert
-                    </li>
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{alertSeverity}}"}
-                      </code>{" "}
-                      - Severity level (e.g., Critical, Warning)
-                    </li>
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{monitorName}}"}
-                      </code>{" "}
-                      - Name of the monitor that triggered the alert
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">
-                    Dynamic Variables (updated as alerts join):
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-gray-700">
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{alertCount}}"}
-                      </code>{" "}
-                      - Number of alerts in the episode
-                    </li>
-                  </ul>
-                </div>
-                <p className="mt-3 text-gray-500 text-xs">
-                  Static variables use data from the first alert. Dynamic
-                  variables update automatically when alerts are added or
-                  removed.
-                </p>
-              </div>
-            ),
           },
           // Episode Settings Fields
           {

@@ -135,12 +135,14 @@ describe("the incident custom field template variable strings in every Dashboard
   });
 });
 
-describe("the template pages show the incident custom fields panel", () => {
-  test.each([
-    ["SubscriberNotificationTemplates.tsx"],
-    ["SubscriberNotificationTemplateView.tsx"],
-  ])("%s renders it under the variable reference", (file: string) => {
-    const source: string = readSource("Pages", "StatusPages", "Settings", file);
+describe("the template pages show the incident custom fields", () => {
+  test("a template's page renders the panel under its variable reference card", () => {
+    const source: string = readSource(
+      "Pages",
+      "StatusPages",
+      "Settings",
+      "SubscriberNotificationTemplateView.tsx",
+    );
 
     expect(source).toContain(
       "<IncidentCustomFieldTemplateVariables eventType={eventType} />",
@@ -149,6 +151,24 @@ describe("the template pages show the incident custom fields panel", () => {
       source.indexOf(
         "getSubscriberNotificationTemplateVariablesDocumentation(",
       ),
-    ).toBeLessThan(source.indexOf("<IncidentCustomFieldTemplateVariables"));
+    ).toBeLessThan(
+      source.indexOf("<IncidentCustomFieldTemplateVariables eventType"),
+    );
+  });
+
+  /*
+   * In the template's forms the fields are variables like the rest: under
+   * the body, collapsed, each one a click (or a "{{") from going in - with
+   * the line on who may place them at the end of that list.
+   */
+  test.each([
+    ["SubscriberNotificationTemplates.tsx"],
+    ["SubscriberNotificationTemplateView.tsx"],
+  ])("%s offers them in the body's variables", (file: string) => {
+    const source: string = readSource("Pages", "StatusPages", "Settings", file);
+
+    expect(source).toContain("getSubscriberTemplateVariableGroups(");
+    expect(source).toContain("<SubscriberTemplateVariablesFooter");
+    expect(source).toContain("onCustomFieldsChange={setCustomFields}");
   });
 });

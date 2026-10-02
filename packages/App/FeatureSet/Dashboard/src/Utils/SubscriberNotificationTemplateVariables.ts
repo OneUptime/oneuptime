@@ -1,200 +1,382 @@
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import {
+  TemplateVariable,
+  TemplateVariableGroup,
+} from "Common/Types/Template/TemplateVariable";
 
-/**
- * Returns markdown documentation listing the template variables available for
- * the given event type. The actual default-template content is rendered
- * separately in the form (see SubscriberNotificationTemplateDefaults), so this
- * function focuses on the variable reference table only.
+/*
+ * The variables a custom subscriber notification template can use, for each
+ * event type - described once, here, and shown two ways:
+ *
+ *   - as the markdown reference table of a template's Template Variables
+ *     Reference card (getSubscriberNotificationTemplateVariablesDocumentation);
+ *   - as the template editor's Template variables, under the body and the
+ *     email subject, each a click (or a "{{") away from going in where the
+ *     cursor is (getSubscriberNotificationTemplateVariableGroups).
+ *
+ * The descriptions are English and are shown as they are: the reference is
+ * markdown, and the editor's list looks them up like any label, finding no
+ * translation.
  */
-export const getSubscriberNotificationTemplateVariablesDocumentation: (
-  eventType: StatusPageSubscriberNotificationEventType | undefined,
-  notificationMethod?: StatusPageSubscriberNotificationMethod | undefined,
-) => string = (
-  eventType: StatusPageSubscriberNotificationEventType | undefined,
-  _notificationMethod?: StatusPageSubscriberNotificationMethod | undefined,
-): string => {
-  const statusPageVariablesRows: string = `| \`{{statusPageName}}\` | Name of the status page |
-| \`{{statusPageUrl}}\` | URL of the status page |
-| \`{{unsubscribeUrl}}\` | URL for subscribers to unsubscribe from notifications |`;
 
-  const commonVariablesRows: string = `${statusPageVariablesRows}
-| \`{{resourcesAffected}}\` | List of affected resources/monitors |`;
+export interface SubscriberTemplateVariableRow {
+  name: string;
+  description: string;
+}
 
-  /*
-   * Every incident event also offers the incident's labels, the status pages
-   * it is on, and its custom fields (see SubscriberNotificationTemplateVariables).
-   * The custom fields are a family of variables, one per field, so they are
-   * one row here with the key left open, named after the incident as in a
-   * note template: {{incident.customFields.<key>}}. The template form lists
-   * the project's fields and their variables under this reference
-   * (IncidentCustomFieldTemplateVariables). Templates saved with the older
-   * {{customFields.<key>}} are still filled, but it is not shown here.
-   */
-  const incidentVariablesRows: string = `| \`{{incidentLabels}}\` | Labels of the incident, separated by commas |
-| \`{{affectedStatusPages}}\` | Names of every status page the incident is shown on, separated by commas |
-| \`{{incident.customFields.<key>}}\` | The value of an incident custom field. Each field's variable is listed below |`;
+const STATUS_PAGE_ROWS: Array<SubscriberTemplateVariableRow> = [
+  { name: "statusPageName", description: "Name of the status page" },
+  { name: "statusPageUrl", description: "URL of the status page" },
+  {
+    name: "unsubscribeUrl",
+    description: "URL for subscribers to unsubscribe from notifications",
+  },
+];
 
-  /*
-   * Messages about the subscription itself are not about any resource, so
-   * they do not offer {{resourcesAffected}} (see
-   * SubscriberNotificationTemplateVariables).
-   */
-  const isSubscriptionMessage: boolean =
-    eventType ===
-      StatusPageSubscriberNotificationEventType.SubscriberSubscriptionConfirmation ||
-    eventType ===
-      StatusPageSubscriberNotificationEventType.SubscriberSubscribed ||
-    eventType ===
-      StatusPageSubscriberNotificationEventType.SubscriberManageSubscription;
+const RESOURCES_AFFECTED_ROW: SubscriberTemplateVariableRow = {
+  name: "resourcesAffected",
+  description: "List of affected resources/monitors",
+};
 
-  if (!eventType) {
-    return `**Available Template Variables**
+/*
+ * Every incident event also offers the incident's labels, the status pages
+ * it is on, and its custom fields (see SubscriberNotificationTemplateVariables).
+ */
+const INCIDENT_ROWS: Array<SubscriberTemplateVariableRow> = [
+  {
+    name: "incidentLabels",
+    description: "Labels of the incident, separated by commas",
+  },
+  {
+    name: "affectedStatusPages",
+    description:
+      "Names of every status page the incident is shown on, separated by commas",
+  },
+];
 
-Please select an **Event Type** above to see all available variables for that event.
+/*
+ * The custom fields are a family of variables, one per field, so the
+ * reference documents them as one row with the key left open, named after
+ * the incident as in a note template: {{incident.customFields.<key>}}. The
+ * template form lists the project's fields and their variables themselves.
+ * Templates saved with the older {{customFields.<key>}} are still filled, but
+ * it is not shown here.
+ */
+const INCIDENT_CUSTOM_FIELDS_ROW_MARKDOWN: string =
+  "| `{{incident.customFields.<key>}}` | The value of an incident custom field. Each field's variable is listed below |";
 
-| Variable | Description |
-|----------|-------------|
-${commonVariablesRows}`;
-  }
+// The variables only one kind of event offers, in the order the reference lists them.
+const EVENT_ROWS: Record<
+  StatusPageSubscriberNotificationEventType,
+  Array<SubscriberTemplateVariableRow>
+> = {
+  [StatusPageSubscriberNotificationEventType.SubscriberSubscriptionConfirmation]:
+    [
+      {
+        name: "confirmationUrl",
+        description: "URL the subscriber clicks to confirm their subscription",
+      },
+    ],
+  [StatusPageSubscriberNotificationEventType.SubscriberSubscribed]: [
+    {
+      name: "statusPageUrl",
+      description:
+        "URL of the status page (also covered by the common variables above)",
+    },
+  ],
+  [StatusPageSubscriberNotificationEventType.SubscriberManageSubscription]: [
+    {
+      name: "manageSubscriptionUrl",
+      description:
+        "URL the subscriber uses to manage or unsubscribe from notifications",
+    },
+  ],
+  [StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated]: [
+    { name: "incidentTitle", description: "Title of the incident" },
+    { name: "incidentDescription", description: "Description of the incident" },
+    { name: "incidentSeverity", description: "Severity level of the incident" },
+    { name: "detailsUrl", description: "URL to view incident details" },
+  ],
+  [StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged]: [
+    { name: "incidentTitle", description: "Title of the incident" },
+    { name: "incidentDescription", description: "Description of the incident" },
+    { name: "incidentSeverity", description: "Severity level of the incident" },
+    {
+      name: "incidentState",
+      description:
+        "Current state of the incident (e.g., Investigating, Identified, Resolved)",
+    },
+    { name: "detailsUrl", description: "URL to view incident details" },
+  ],
+  [StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated]: [
+    { name: "incidentTitle", description: "Title of the incident" },
+    { name: "incidentSeverity", description: "Severity level of the incident" },
+    { name: "incidentState", description: "Current state of the incident" },
+    { name: "postedAt", description: "Date and time when the note was posted" },
+    { name: "note", description: "Content of the note" },
+    { name: "detailsUrl", description: "URL to view incident details" },
+  ],
+  [StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated]: [
+    { name: "incidentTitle", description: "Title of the incident" },
+    { name: "incidentSeverity", description: "Severity level of the incident" },
+    { name: "incidentState", description: "Current state of the incident" },
+    { name: "postedAt", description: "Date and time when the note was posted" },
+    { name: "note", description: "Content of the note" },
+    { name: "detailsUrl", description: "URL to view incident details" },
+  ],
+  [StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished]:
+    [
+      { name: "incidentTitle", description: "Title of the incident" },
+      {
+        name: "incidentSeverity",
+        description: "Severity level of the incident",
+      },
+      { name: "postmortemNote", description: "Postmortem summary content" },
+      { name: "detailsUrl", description: "URL to view the postmortem" },
+    ],
+  [StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated]: [
+    { name: "announcementTitle", description: "Title of the announcement" },
+    {
+      name: "announcementDescription",
+      description: "Description/content of the announcement",
+    },
+    { name: "detailsUrl", description: "URL to view announcement details" },
+  ],
+  [StatusPageSubscriberNotificationEventType.SubscriberAnnouncementUpdated]: [
+    { name: "announcementTitle", description: "Title of the announcement" },
+    {
+      name: "announcementDescription",
+      description: "Description/content of the announcement",
+    },
+    { name: "detailsUrl", description: "URL to view announcement details" },
+  ],
+  [StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated]:
+    [
+      {
+        name: "scheduledMaintenanceTitle",
+        description: "Title of the scheduled maintenance",
+      },
+      {
+        name: "scheduledMaintenanceDescription",
+        description: "Description of the scheduled maintenance",
+      },
+      {
+        name: "scheduledStartTime",
+        description: "When the maintenance is scheduled to start",
+      },
+      {
+        name: "scheduledEndTime",
+        description: "When the maintenance is scheduled to end",
+      },
+      {
+        name: "detailsUrl",
+        description: "URL to view scheduled maintenance details",
+      },
+    ],
+  [StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceStateChanged]:
+    [
+      {
+        name: "scheduledMaintenanceTitle",
+        description: "Title of the scheduled maintenance",
+      },
+      {
+        name: "scheduledMaintenanceDescription",
+        description: "Description of the scheduled maintenance",
+      },
+      {
+        name: "scheduledMaintenanceState",
+        description: "Current state (e.g., Scheduled, In Progress, Completed)",
+      },
+      {
+        name: "detailsUrl",
+        description: "URL to view scheduled maintenance details",
+      },
+    ],
+  [StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated]:
+    [
+      {
+        name: "scheduledMaintenanceTitle",
+        description: "Title of the scheduled maintenance",
+      },
+      {
+        name: "scheduledMaintenanceDescription",
+        description: "Description of the scheduled maintenance",
+      },
+      {
+        name: "scheduledMaintenanceState",
+        description: "Current state of the scheduled maintenance",
+      },
+      {
+        name: "postedAt",
+        description: "Date and time when the note was posted",
+      },
+      { name: "note", description: "Content of the note" },
+      {
+        name: "detailsUrl",
+        description: "URL to view scheduled maintenance details",
+      },
+    ],
+  [StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated]:
+    [
+      {
+        name: "scheduledMaintenanceTitle",
+        description: "Title of the scheduled maintenance",
+      },
+      {
+        name: "scheduledMaintenanceDescription",
+        description: "Description of the scheduled maintenance",
+      },
+      {
+        name: "scheduledMaintenanceState",
+        description: "Current state of the scheduled maintenance",
+      },
+      {
+        name: "postedAt",
+        description: "Date and time when the note was posted",
+      },
+      { name: "note", description: "Content of the note" },
+      {
+        name: "detailsUrl",
+        description: "URL to view scheduled maintenance details",
+      },
+    ],
+  [StatusPageSubscriberNotificationEventType.SubscriberEpisodeCreated]: [
+    { name: "episodeTitle", description: "Title of the incident" },
+    { name: "episodeDescription", description: "Description of the incident" },
+    { name: "episodeSeverity", description: "Severity level of the incident" },
+    { name: "detailsUrl", description: "URL to view incident details" },
+  ],
+  [StatusPageSubscriberNotificationEventType.SubscriberEpisodeStateChanged]: [
+    { name: "episodeTitle", description: "Title of the incident" },
+    { name: "episodeSeverity", description: "Severity level of the incident" },
+    {
+      name: "episodeState",
+      description:
+        "Current state of the incident (e.g., Investigating, Identified, Resolved)",
+    },
+    { name: "detailsUrl", description: "URL to view incident details" },
+  ],
+  [StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteCreated]: [
+    { name: "episodeTitle", description: "Title of the incident" },
+    { name: "episodeSeverity", description: "Severity level of the incident" },
+    { name: "note", description: "Content of the note" },
+    { name: "detailsUrl", description: "URL to view incident details" },
+  ],
+  [StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteUpdated]: [
+    { name: "episodeTitle", description: "Title of the incident" },
+    { name: "episodeSeverity", description: "Severity level of the incident" },
+    { name: "note", description: "Content of the note" },
+    { name: "detailsUrl", description: "URL to view incident details" },
+  ],
+  // The report's own reference, below, is richer than a flat list.
+  [StatusPageSubscriberNotificationEventType.SubscriberReport]: [],
+};
 
-  let eventSpecificRows: string = "";
+// The events about an incident, which also offer its labels, pages and fields.
+const INCIDENT_EVENTS: Array<StatusPageSubscriberNotificationEventType> = [
+  StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+  StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged,
+  StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
+  StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated,
+  StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished,
+];
 
-  switch (eventType) {
-    case StatusPageSubscriberNotificationEventType.SubscriberSubscriptionConfirmation:
-      eventSpecificRows = `| \`{{confirmationUrl}}\` | URL the subscriber clicks to confirm their subscription |`;
-      break;
+/*
+ * Messages about the subscription itself are not about any resource, so
+ * they do not offer {{resourcesAffected}} (see
+ * SubscriberNotificationTemplateVariables).
+ */
+const SUBSCRIPTION_EVENTS: Array<StatusPageSubscriberNotificationEventType> = [
+  StatusPageSubscriberNotificationEventType.SubscriberSubscriptionConfirmation,
+  StatusPageSubscriberNotificationEventType.SubscriberSubscribed,
+  StatusPageSubscriberNotificationEventType.SubscriberManageSubscription,
+];
 
-    case StatusPageSubscriberNotificationEventType.SubscriberSubscribed:
-      eventSpecificRows = `| \`{{statusPageUrl}}\` | URL of the status page (also covered by the common variables above) |`;
-      break;
+/*
+ * The report email is rendered through the full Handlebars engine, so it
+ * exposes a structured `report` object (not flat scalars) and supports
+ * loops, conditionals and partials. Its top-level variables are a table
+ * like any other event's; what is reached inside its loops is documented
+ * after them.
+ */
+const REPORT_ROWS: Array<SubscriberTemplateVariableRow> = [
+  { name: "statusPageName", description: "Name of the status page" },
+  { name: "statusPageUrl", description: "URL of the status page" },
+  { name: "detailsUrl", description: "URL to view the full status page" },
+  {
+    name: "unsubscribeUrl",
+    description: "URL for subscribers to unsubscribe from notifications",
+  },
+  {
+    name: "subscriberEmailNotificationFooterText",
+    description: "Custom footer text configured for the status page",
+  },
+  {
+    name: "report.reportDates",
+    description:
+      'The reporting period as a range (e.g. "30 days (Jun 29, 2026 - Jul 29, 2026)" for a rolling window, "Jul 1, 2026 - Jul 31, 2026" for a calendar one)',
+  },
+  {
+    name: "report.reportPeriodName",
+    description:
+      'How a sentence refers to the period — "the last 30 days", "July 2026", "the week of Jul 27, 2026"',
+  },
+  {
+    name: "report.reportStartDate",
+    description: 'First day of the period (e.g. "Jul 1, 2026")',
+  },
+  {
+    name: "report.reportEndDate",
+    description: 'Last day of the period (e.g. "Jul 31, 2026")',
+  },
+  {
+    name: "report.reportTimezone",
+    description:
+      'The timezone every date above was resolved in (e.g. "America/New_York")',
+  },
+  {
+    name: "report.averageUptimePercent",
+    description: 'Average uptime across all resources (e.g. "99.95%")',
+  },
+  {
+    name: "report.totalDowntimeInHoursAndMinutes",
+    description: "Total downtime in the period",
+  },
+  {
+    name: "report.totalIncidents",
+    description: "Total number of incidents in the period",
+  },
+  {
+    name: "report.totalResources",
+    description: "Number of resources on the status page",
+  },
+  {
+    name: "report.resources",
+    description: "Array of per-resource breakdown rows, flat (loop over this)",
+  },
+  {
+    name: "report.hasGroups",
+    description:
+      "`true` when the status page organises its resources into groups",
+  },
+  {
+    name: "report.rows",
+    description:
+      "The group hierarchy flattened into render order — group rows and resource rows interleaved (loop over this)",
+  },
+  {
+    name: "report.groups",
+    description: "The group hierarchy as a nested tree (top level groups)",
+  },
+  {
+    name: "report.ungroupedResources",
+    description: "Resources that are not in any group",
+  },
+];
 
-    case StatusPageSubscriberNotificationEventType.SubscriberManageSubscription:
-      eventSpecificRows = `| \`{{manageSubscriptionUrl}}\` | URL the subscriber uses to manage or unsubscribe from notifications |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated:
-      eventSpecificRows = `| \`{{incidentTitle}}\` | Title of the incident |
-| \`{{incidentDescription}}\` | Description of the incident |
-| \`{{incidentSeverity}}\` | Severity level of the incident |
-| \`{{detailsUrl}}\` | URL to view incident details |
-${incidentVariablesRows}`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged:
-      eventSpecificRows = `| \`{{incidentTitle}}\` | Title of the incident |
-| \`{{incidentDescription}}\` | Description of the incident |
-| \`{{incidentSeverity}}\` | Severity level of the incident |
-| \`{{incidentState}}\` | Current state of the incident (e.g., Investigating, Identified, Resolved) |
-| \`{{detailsUrl}}\` | URL to view incident details |
-${incidentVariablesRows}`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated:
-    case StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated:
-      eventSpecificRows = `| \`{{incidentTitle}}\` | Title of the incident |
-| \`{{incidentSeverity}}\` | Severity level of the incident |
-| \`{{incidentState}}\` | Current state of the incident |
-| \`{{postedAt}}\` | Date and time when the note was posted |
-| \`{{note}}\` | Content of the note |
-| \`{{detailsUrl}}\` | URL to view incident details |
-${incidentVariablesRows}`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished:
-      eventSpecificRows = `| \`{{incidentTitle}}\` | Title of the incident |
-| \`{{incidentSeverity}}\` | Severity level of the incident |
-| \`{{postmortemNote}}\` | Postmortem summary content |
-| \`{{detailsUrl}}\` | URL to view the postmortem |
-${incidentVariablesRows}`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated:
-    case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementUpdated:
-      eventSpecificRows = `| \`{{announcementTitle}}\` | Title of the announcement |
-| \`{{announcementDescription}}\` | Description/content of the announcement |
-| \`{{detailsUrl}}\` | URL to view announcement details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated:
-      eventSpecificRows = `| \`{{scheduledMaintenanceTitle}}\` | Title of the scheduled maintenance |
-| \`{{scheduledMaintenanceDescription}}\` | Description of the scheduled maintenance |
-| \`{{scheduledStartTime}}\` | When the maintenance is scheduled to start |
-| \`{{scheduledEndTime}}\` | When the maintenance is scheduled to end |
-| \`{{detailsUrl}}\` | URL to view scheduled maintenance details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceStateChanged:
-      eventSpecificRows = `| \`{{scheduledMaintenanceTitle}}\` | Title of the scheduled maintenance |
-| \`{{scheduledMaintenanceDescription}}\` | Description of the scheduled maintenance |
-| \`{{scheduledMaintenanceState}}\` | Current state (e.g., Scheduled, In Progress, Completed) |
-| \`{{detailsUrl}}\` | URL to view scheduled maintenance details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated:
-    case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated:
-      eventSpecificRows = `| \`{{scheduledMaintenanceTitle}}\` | Title of the scheduled maintenance |
-| \`{{scheduledMaintenanceDescription}}\` | Description of the scheduled maintenance |
-| \`{{scheduledMaintenanceState}}\` | Current state of the scheduled maintenance |
-| \`{{postedAt}}\` | Date and time when the note was posted |
-| \`{{note}}\` | Content of the note |
-| \`{{detailsUrl}}\` | URL to view scheduled maintenance details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberEpisodeCreated:
-      eventSpecificRows = `| \`{{episodeTitle}}\` | Title of the incident |
-| \`{{episodeDescription}}\` | Description of the incident |
-| \`{{episodeSeverity}}\` | Severity level of the incident |
-| \`{{detailsUrl}}\` | URL to view incident details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberEpisodeStateChanged:
-      eventSpecificRows = `| \`{{episodeTitle}}\` | Title of the incident |
-| \`{{episodeSeverity}}\` | Severity level of the incident |
-| \`{{episodeState}}\` | Current state of the incident (e.g., Investigating, Identified, Resolved) |
-| \`{{detailsUrl}}\` | URL to view incident details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteCreated:
-    case StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteUpdated:
-      eventSpecificRows = `| \`{{episodeTitle}}\` | Title of the incident |
-| \`{{episodeSeverity}}\` | Severity level of the incident |
-| \`{{note}}\` | Content of the note |
-| \`{{detailsUrl}}\` | URL to view incident details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberReport:
-      /*
-       * The report email is rendered through the full Handlebars engine, so it
-       * exposes a structured `report` object (not flat scalars) and supports
-       * loops, conditionals and partials. Return a dedicated doc rather than the
-       * common flat-variable table.
-       */
-      return `**Available Template Variables** - The report template is rendered with Handlebars, so you can use loops and conditionals in addition to \`{{variableName}}\` substitution.
-
-| Variable | Description |
-|----------|-------------|
-| \`{{statusPageName}}\` | Name of the status page |
-| \`{{statusPageUrl}}\` | URL of the status page |
-| \`{{detailsUrl}}\` | URL to view the full status page |
-| \`{{unsubscribeUrl}}\` | URL for subscribers to unsubscribe from notifications |
-| \`{{subscriberEmailNotificationFooterText}}\` | Custom footer text configured for the status page |
-| \`{{report.reportDates}}\` | The reporting period as a range (e.g. "30 days (Jun 29, 2026 - Jul 29, 2026)" for a rolling window, "Jul 1, 2026 - Jul 31, 2026" for a calendar one) |
-| \`{{report.reportPeriodName}}\` | How a sentence refers to the period — "the last 30 days", "July 2026", "the week of Jul 27, 2026" |
-| \`{{report.reportStartDate}}\` | First day of the period (e.g. "Jul 1, 2026") |
-| \`{{report.reportEndDate}}\` | Last day of the period (e.g. "Jul 31, 2026") |
-| \`{{report.reportTimezone}}\` | The timezone every date above was resolved in (e.g. "America/New_York") |
-| \`{{report.averageUptimePercent}}\` | Average uptime across all resources (e.g. "99.95%") |
-| \`{{report.totalDowntimeInHoursAndMinutes}}\` | Total downtime in the period |
-| \`{{report.totalIncidents}}\` | Total number of incidents in the period |
-| \`{{report.totalResources}}\` | Number of resources on the status page |
-| \`{{report.resources}}\` | Array of per-resource breakdown rows, flat (loop over this) |
-| \`{{report.hasGroups}}\` | \`true\` when the status page organises its resources into groups |
-| \`{{report.rows}}\` | The group hierarchy flattened into render order — group rows and resource rows interleaved (loop over this) |
-| \`{{report.groups}}\` | The group hierarchy as a nested tree (top level groups) |
-| \`{{report.ungroupedResources}}\` | Resources that are not in any group |
-
-**Per-resource fields** (available inside \`{{#each report.resources}}\`):
+// Inside the report's loops: the fields of each resource, row and group, and an example.
+export const SUBSCRIBER_REPORT_LOOP_DOCUMENTATION: string = `**Per-resource fields** (available inside \`{{#each report.resources}}\`):
 
 | Variable | Description |
 |----------|-------------|
@@ -238,16 +420,212 @@ ${incidentVariablesRows}`;
 
 You may also use OneUptime's email partials (e.g. \`{{> Start this}}\`, \`{{> Footer this}}\`, \`{{> End this}}\`) if you want the standard chrome.`;
 
-    default:
-      return `**Available Template Variables**
+type IsEventFunction = (
+  eventType: StatusPageSubscriberNotificationEventType | undefined,
+) => boolean;
+
+export const isIncidentSubscriberNotificationEvent: IsEventFunction = (
+  eventType: StatusPageSubscriberNotificationEventType | undefined,
+): boolean => {
+  return Boolean(eventType && INCIDENT_EVENTS.includes(eventType));
+};
+
+const isSubscriptionEvent: IsEventFunction = (
+  eventType: StatusPageSubscriberNotificationEventType | undefined,
+): boolean => {
+  return Boolean(eventType && SUBSCRIPTION_EVENTS.includes(eventType));
+};
+
+const isReportEvent: IsEventFunction = (
+  eventType: StatusPageSubscriberNotificationEventType | undefined,
+): boolean => {
+  return (
+    eventType === StatusPageSubscriberNotificationEventType.SubscriberReport
+  );
+};
+
+type RowsToMarkdownFunction = (
+  rows: Array<SubscriberTemplateVariableRow>,
+) => string;
+
+const rowsToMarkdown: RowsToMarkdownFunction = (
+  rows: Array<SubscriberTemplateVariableRow>,
+): string => {
+  return rows
+    .map((row: SubscriberTemplateVariableRow): string => {
+      return `| \`{{${row.name}}}\` | ${row.description} |`;
+    })
+    .join("\n");
+};
+
+// The variables every message about something offers: the status page's, and what it is about.
+const commonRows: (
+  eventType: StatusPageSubscriberNotificationEventType | undefined,
+) => Array<SubscriberTemplateVariableRow> = (
+  eventType: StatusPageSubscriberNotificationEventType | undefined,
+): Array<SubscriberTemplateVariableRow> => {
+  return isSubscriptionEvent(eventType)
+    ? STATUS_PAGE_ROWS
+    : [...STATUS_PAGE_ROWS, RESOURCES_AFFECTED_ROW];
+};
+
+/**
+ * Returns markdown documentation listing the template variables available for
+ * the given event type. The actual default-template content is rendered
+ * separately in the form (see SubscriberNotificationTemplateDefaults), so this
+ * function focuses on the variable reference table only.
+ */
+export const getSubscriberNotificationTemplateVariablesDocumentation: (
+  eventType: StatusPageSubscriberNotificationEventType | undefined,
+  notificationMethod?: StatusPageSubscriberNotificationMethod | undefined,
+) => string = (
+  eventType: StatusPageSubscriberNotificationEventType | undefined,
+  _notificationMethod?: StatusPageSubscriberNotificationMethod | undefined,
+): string => {
+  if (!eventType) {
+    return `**Available Template Variables**
+
+Please select an **Event Type** above to see all available variables for that event.
+
+| Variable | Description |
+|----------|-------------|
+${rowsToMarkdown(commonRows(undefined))}`;
+  }
+
+  if (isReportEvent(eventType)) {
+    return `**Available Template Variables** - The report template is rendered with Handlebars, so you can use loops and conditionals in addition to \`{{variableName}}\` substitution.
+
+| Variable | Description |
+|----------|-------------|
+${rowsToMarkdown(REPORT_ROWS)}
+
+${SUBSCRIBER_REPORT_LOOP_DOCUMENTATION}`;
+  }
+
+  const eventRows: Array<SubscriberTemplateVariableRow> | undefined =
+    EVENT_ROWS[eventType];
+
+  if (!eventRows) {
+    return `**Available Template Variables**
 
 Please select an event type to see available variables.`;
   }
+
+  const eventSpecificRows: string = isIncidentSubscriberNotificationEvent(
+    eventType,
+  )
+    ? `${rowsToMarkdown([...eventRows, ...INCIDENT_ROWS])}
+${INCIDENT_CUSTOM_FIELDS_ROW_MARKDOWN}`
+    : rowsToMarkdown(eventRows);
 
   return `**Available Template Variables** - Use these variables in your template with the \`{{variableName}}\` syntax.
 
 | Variable | Description |
 |----------|-------------|
-${isSubscriptionMessage ? statusPageVariablesRows : commonVariablesRows}
+${rowsToMarkdown(commonRows(eventType))}
 ${eventSpecificRows}`;
+};
+
+// Group titles in the template editor's list; each is looked up in the page's language.
+export const SUBSCRIBER_TEMPLATE_STATUS_PAGE_GROUP_TITLE: string =
+  "Status Page";
+
+type EventGroupTitleFunction = (
+  eventType: StatusPageSubscriberNotificationEventType,
+) => string | undefined;
+
+const eventGroupTitle: EventGroupTitleFunction = (
+  eventType: StatusPageSubscriberNotificationEventType,
+): string | undefined => {
+  if (isIncidentSubscriberNotificationEvent(eventType)) {
+    return "Incident";
+  }
+
+  if (eventType.includes("Episode")) {
+    return "Incident Episode";
+  }
+
+  if (eventType.includes("Scheduled Maintenance")) {
+    return "Scheduled Maintenance";
+  }
+
+  if (eventType.includes("Announcement")) {
+    return "Announcement";
+  }
+
+  return undefined;
+};
+
+type RowsToVariablesFunction = (
+  rows: Array<SubscriberTemplateVariableRow>,
+  taken: Set<string>,
+) => Array<TemplateVariable>;
+
+// The rows as variables to pick, each name once.
+const rowsToVariables: RowsToVariablesFunction = (
+  rows: Array<SubscriberTemplateVariableRow>,
+  taken: Set<string>,
+): Array<TemplateVariable> => {
+  const variables: Array<TemplateVariable> = [];
+
+  for (const row of rows) {
+    if (taken.has(row.name)) {
+      continue;
+    }
+
+    taken.add(row.name);
+    variables.push({
+      name: row.name,
+      // The table's markdown, as plain words.
+      description: row.description.replace(/`/g, ""),
+    });
+  }
+
+  return variables;
+};
+
+/**
+ * The variables a template for this event can use, grouped as the template
+ * editor lists them: the status page's, then the event's own. The incident
+ * custom fields are the project's, so the form adds them itself; the report's
+ * loop fields are not variables to pick, and are in
+ * SUBSCRIBER_REPORT_LOOP_DOCUMENTATION.
+ */
+export const getSubscriberNotificationTemplateVariableGroups: (
+  eventType: StatusPageSubscriberNotificationEventType | undefined,
+) => Array<TemplateVariableGroup> = (
+  eventType: StatusPageSubscriberNotificationEventType | undefined,
+): Array<TemplateVariableGroup> => {
+  const taken: Set<string> = new Set<string>();
+
+  if (isReportEvent(eventType)) {
+    return [{ variables: rowsToVariables(REPORT_ROWS, taken) }];
+  }
+
+  const groups: Array<TemplateVariableGroup> = [
+    {
+      title: SUBSCRIBER_TEMPLATE_STATUS_PAGE_GROUP_TITLE,
+      variables: rowsToVariables(commonRows(eventType), taken),
+    },
+  ];
+
+  if (!eventType) {
+    return groups;
+  }
+
+  const eventVariables: Array<TemplateVariable> = rowsToVariables(
+    isIncidentSubscriberNotificationEvent(eventType)
+      ? [...(EVENT_ROWS[eventType] || []), ...INCIDENT_ROWS]
+      : EVENT_ROWS[eventType] || [],
+    taken,
+  );
+
+  if (eventVariables.length > 0) {
+    groups.push({
+      title: eventGroupTitle(eventType),
+      variables: eventVariables,
+    });
+  }
+
+  return groups;
 };

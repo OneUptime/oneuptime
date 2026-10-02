@@ -173,14 +173,23 @@ describe("the pages render the shared strings and wiring", () => {
     );
   });
 
+  /*
+   * The note's variables are the Markdown editor's - collapsed under it,
+   * behind Insert variable and "{{" - not a list printed above it.
+   */
   test.each([["IncidentNoteTemplates.tsx"], ["IncidentNoteTemplateView.tsx"]])(
-    "the note template form in %s lists the placeholders it can use",
+    "the note template form in %s hands the editor the variables it can use",
     (file: string) => {
       const source: string = readSource("Pages", "Incidents", "Settings", file);
 
+      expect(source).toContain("useIncidentNoteTemplateVariables()");
       expect(source).toContain(
-        "description: <IncidentNoteTemplatePlaceholders />",
+        "templateVariables: noteTemplateVariables.groups",
       );
+      expect(source).toContain(
+        "templateVariablesDescription: noteTemplateVariables.description",
+      );
+      expect(source).not.toContain("<IncidentNoteTemplatePlaceholders />");
     },
   );
 

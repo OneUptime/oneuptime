@@ -103,13 +103,13 @@ Note templates give responders canned text for incident updates, so a status pag
 Go to **Incidents → Settings → Note Templates** (`/dashboard/{projectId}/incidents/settings/note-templates`). The card is titled **Public or Private Note Templates for Incidents** — one library serves both note types. The create form has two steps:
 
 - **Template Info** — **Template Name** and **Template Description**, both required.
-- **Note Details** — the note body itself, in Markdown, required.
+- **Note Details** — the **Note** itself, in Markdown, required: the text a note starts with when the template is picked.
 
 Like incident templates, rows are created and viewed rather than edited inline; open a template to change it.
 
-**Placeholders.** A note template can carry placeholders that are filled in with the incident's values when the template is picked, so the author sees — and can still change — the finished text before posting it:
+**Variables.** A note template can carry variables that are filled in with the incident's values when the template is picked, so the author sees — and can still change — the finished text before posting it:
 
-| Placeholder                         | Filled with                                                        |
+| Variable                            | Filled with                                                        |
 | ----------------------------------- | ------------------------------------------------------------------ |
 | `{{incident.title}}`                | The incident's title.                                              |
 | `{{incident.number}}`               | Its number, for example `INC-42` or `#42`.                         |
@@ -120,7 +120,15 @@ Like incident templates, rows are created and viewed rather than edited inline; 
 | `{{incident.affectedStatusPages}}`  | The status pages it shows on and notifies that the author can see. |
 | `{{incident.customFields.<key>}}`   | A custom field's value, by the **Template Variable** shown on the custom field settings page. |
 
-Custom fields used to be written `{{customFields.<key>}}`; templates that still use it are filled in the same way. A placeholder that has no value, or that is not on the list, stays exactly as written, for the author to fill in. Values are placed as text: an incident title cannot turn into an image, HTML or a link whose text hides where it goes in the posted note, although an address in it still shows as a link to that address. A **Rich text (Markdown)** custom field is placed as the Markdown it is. The form for writing a note template lists these placeholders under the note. The custom field, label and status page placeholders fill in your team's own records, every custom field whether or not it is marked **Include in Subscriber Notifications**, and one library serves public notes too, which are shown on the incident's status pages and emailed to their subscribers. Read the filled-in text before you post a public note.
+Custom fields used to be written `{{customFields.<key>}}`; templates that still use it are filled in the same way. A variable that has no value, or that is not on the list, stays exactly as written, for the author to fill in. Values are placed as text: an incident title cannot turn into an image, HTML or a link whose text hides where it goes in the posted note, although an address in it still shows as a link to that address. A **Rich text (Markdown)** custom field is placed as the Markdown it is. The custom field, label and status page variables fill in your team's own records, every custom field whether or not it is marked **Include in Subscriber Notifications**, and one library serves public notes too, which are shown on the incident's status pages and emailed to their subscribers. Read the filled-in text before you post a public note.
+
+**Putting a variable in.** You never need to type a variable's name. The **Note** editor offers the variables three ways, and each puts the variable where the cursor is:
+
+- **Template variables**, collapsed under the editor: open it to see every variable with what it is filled with — the project's incident custom fields by name — and click one.
+- **Insert variable**, at the end of the editor's toolbar: the same list, with a search box.
+- Typing `{{` in the note opens the list under the cursor. Keep typing to narrow it, choose with the arrow keys, and press Enter or Tab to put the variable in; Escape closes the list.
+
+The same list, button and `{{` come with the other templates that have variables: an SLA rule's note reminders, an incident or alert grouping rule's episode title and description, a monitor rule's incident and alert description and remediation notes, an SLO burn rate rule's templates and a status page's custom subscriber notification templates.
 
 Note templates surface where you actually need them: the **Acknowledge Incident** and **Resolve Incident** confirmation dialogs both offer **Select Note Template** next to the **Public Note** field. See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for how public and private notes differ.
 

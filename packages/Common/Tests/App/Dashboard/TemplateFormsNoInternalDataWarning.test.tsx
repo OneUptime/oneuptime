@@ -24,8 +24,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * What someone writing a template sees, page by page. The tables and cards
  * are stubbed and their props recorded; the help each form field carries
- * (its description and footer) and the Template Variables Reference are
- * rendered for real:
+ * (its description and footer), its template variables (the editor's
+ * collapsed Template variables list, and that list's footer) and the
+ * Template Variables Reference are rendered for real:
  *
  *   - the note field of the incident note template forms - a new template's
  *     Note Details step, and a template's Edit Note Template dialog - where
@@ -36,7 +37,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     fields.
  *
  * None of them shows a warning box any more, and what they are there for -
- * the placeholders, the fields with their template variables - still shows.
+ * the variables, the project's custom fields among them - still shows.
  */
 
 const recordedTables: Array<Record<string, unknown>> = [];
@@ -192,6 +193,13 @@ import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/St
 import SubscriberNotificationTemplateVariables from "../../../Types/StatusPage/SubscriberNotificationTemplateVariables";
 import Navigation from "../../../UI/Utils/Navigation";
 import { INCIDENT_NOTE_TEMPLATE_VARIABLES } from "../../../Utils/Incident/IncidentNoteTemplateVariables";
+import { isCustomFieldTemplateVariableName } from "../../../Types/CustomField/CustomFieldVariableKey";
+import {
+  TemplateVariable,
+  TemplateVariableGroup,
+  TemplateVariableGroups,
+} from "../../../Types/Template/TemplateVariable";
+import TemplateVariablesList from "../../../UI/Components/TemplateVariables/TemplateVariablesList";
 
 const TEMPLATE_ID: string = "a1b2c3d4-0000-4000-8000-0000000000bb";
 
@@ -340,12 +348,66 @@ function expectNoYellowWarning(region: HTMLElement): void {
   ).toBe(false);
 }
 
-function noteTemplateFormHelpIsClean(noteField: FormFieldProps): void {
-  const help: HTMLElement = renderHelp(helpOf(noteField, { note: "" }));
+// Every variable name the groups offer.
+function namesOf(groups: TemplateVariableGroups): Array<string> {
+  return groups.flatMap((group: TemplateVariableGroup): Array<string> => {
+    return group.variables.map((variable: TemplateVariable): string => {
+      return variable.name;
+    });
+  });
+}
 
-  // The placeholders the note can use are still there...
+// What a field's variables are, given the form's values.
+function variablesOf(
+  formField: FormFieldProps,
+  values: Record<string, unknown>,
+): TemplateVariableGroups {
+  const templateVariables: unknown = formField["templateVariables"];
+
+  if (typeof templateVariables === "function") {
+    return (
+      templateVariables as (
+        values: Record<string, unknown>,
+      ) => TemplateVariableGroups
+    )(values);
+  }
+
+  return (templateVariables as TemplateVariableGroups | undefined) || [];
+}
+
+/*
+ * The note field: its help above the editor says what the note is, and its
+ * variables - every one the note can use, the project's custom field among
+ * them - are the editor's, collapsed under it. Neither carries a warning.
+ */
+function noteTemplateFormIsClean(noteField: FormFieldProps): void {
+  const groups: TemplateVariableGroups = variablesOf(noteField, { note: "" });
+  const names: Array<string> = namesOf(groups);
+
+  // The variables the note can use are all still there...
   for (const variable of INCIDENT_NOTE_TEMPLATE_VARIABLES) {
-    expect(within(help).getByText(`{{${variable.name}}}`)).toBeInTheDocument();
+    if (isCustomFieldTemplateVariableName(variable.name)) {
+      continue;
+    }
+
+    expect(names).toContain(variable.name);
+  }
+
+  // ...the project's custom field by its own variable...
+  expect(names).toContain("incident.customFields.affected_location");
+
+  const help: HTMLElement = renderHelp([
+    ...helpOf(noteField, { note: "" }),
+    <TemplateVariablesList
+      key="variables"
+      groups={groups}
+      description={noteField["templateVariablesDescription"] as string}
+      onInsert={() => {}}
+    />,
+  ]);
+
+  for (const name of names) {
+    expect(within(help).getByText(`{{${name}}}`)).toBeInTheDocument();
   }
 
   // ...with no warning box, or any other alert, around them.
@@ -355,7 +417,7 @@ function noteTemplateFormHelpIsClean(noteField: FormFieldProps): void {
 }
 
 describe("the incident note template forms", () => {
-  test("a new template's Note Details step shows the placeholders and no warning", async () => {
+  test("a new template's Note Details step offers the variables and no warning", async () => {
     await act(async (): Promise<void> => {
       render(
         <MemoryRouter>
@@ -368,11 +430,12 @@ describe("the incident note template forms", () => {
       );
     });
 
-    const table: Record<string, unknown> | undefined = recordedTables.find(
-      (props: Record<string, unknown>): boolean => {
+    // The last render: the project's custom fields have been read.
+    const table: Record<string, unknown> | undefined = [...recordedTables]
+      .reverse()
+      .find((props: Record<string, unknown>): boolean => {
         return props["modelType"] === IncidentNoteTemplate;
-      },
-    );
+      });
 
     expect(table).toBeDefined();
 
@@ -385,10 +448,10 @@ describe("the incident note template forms", () => {
     expect(noteField).toBeDefined();
 
     cleanup();
-    noteTemplateFormHelpIsClean(noteField!);
+    noteTemplateFormIsClean(noteField!);
   });
 
-  test("Edit Note Template shows the placeholders and no warning", async () => {
+  test("Edit Note Template offers the variables and no warning", async () => {
     await act(async (): Promise<void> => {
       render(
         <MemoryRouter>
@@ -412,7 +475,7 @@ describe("the incident note template forms", () => {
     expect(noteFields.length).toBeGreaterThan(0);
 
     cleanup();
-    noteTemplateFormHelpIsClean(noteFields[noteFields.length - 1]!);
+    noteTemplateFormIsClean(noteFields[noteFields.length - 1]!);
   });
 });
 
@@ -436,11 +499,13 @@ describe("the subscriber notification template forms", () => {
     });
   }
 
+  // The channel's body field, as the page last rendered it.
   function templateBodyFieldFor(
     channel: StatusPageSubscriberNotificationMethod,
   ): FormFieldProps {
-    const table: Record<string, unknown> | undefined = recordedTables.find(
-      (props: Record<string, unknown>): boolean => {
+    const table: Record<string, unknown> | undefined = [...recordedTables]
+      .reverse()
+      .find((props: Record<string, unknown>): boolean => {
         const query: Record<string, unknown> | undefined = props["query"] as
           | Record<string, unknown>
           | undefined;
@@ -448,8 +513,7 @@ describe("the subscriber notification template forms", () => {
           props["modelType"] === StatusPageSubscriberNotificationTemplate &&
           query?.["notificationMethod"] === channel
         );
-      },
-    );
+      });
 
     expect(table).toBeDefined();
 
@@ -463,37 +527,80 @@ describe("the subscriber notification template forms", () => {
     return bodyField!;
   }
 
+  // The end of the body's variables list, for these values.
+  function renderVariablesFooter(
+    bodyField: FormFieldProps,
+    values: Record<string, unknown>,
+  ): HTMLElement {
+    const getFooter: (values: Record<string, unknown>) => ReactNode = bodyField[
+      "getTemplateVariablesFooter"
+    ] as (values: Record<string, unknown>) => ReactNode;
+
+    expect(typeof getFooter).toBe("function");
+
+    render(
+      <MemoryRouter>
+        <div data-testid="variables-footer">{getFooter(values)}</div>
+      </MemoryRouter>,
+    );
+
+    return screen.getByTestId("variables-footer");
+  }
+
   describe.each(CHANNELS)("a new %s template", (channel: string) => {
     test.each(INCIDENT_EVENT_TYPES)(
-      "for %s, lists the incident custom fields under the body with no warning",
+      "for %s, offers the incident custom fields as variables, with no warning",
       async (eventType: StatusPageSubscriberNotificationEventType) => {
         await renderTemplatesPage();
 
-        const bodyField: FormFieldProps = templateBodyFieldFor(
-          channel as StatusPageSubscriberNotificationMethod,
+        const values: Record<string, unknown> = {
+          eventType: eventType,
+          templateBody: "",
+        };
+
+        const footer: HTMLElement = renderVariablesFooter(
+          templateBodyFieldFor(
+            channel as StatusPageSubscriberNotificationMethod,
+          ),
+          values,
         );
 
-        cleanup();
-
-        const help: HTMLElement = renderHelp(
-          helpOf(bodyField, { eventType: eventType, templateBody: "" }),
-        );
-
+        // The project's field, offered by its variable once it is read.
         await waitFor(() => {
           expect(
-            screen.getByTestId(
-              "incident-custom-field-template-variable-incident.customFields.affected_location",
+            namesOf(
+              variablesOf(
+                templateBodyFieldFor(
+                  channel as StatusPageSubscriberNotificationMethod,
+                ),
+                values,
+              ),
             ),
-          ).toBeInTheDocument();
+          ).toContain("incident.customFields.affected_location");
         });
 
-        // Under the variable reference, as before - only the box is gone.
+        // Who may place it, which the save enforces - and no box around it.
         expect(
-          within(help).getByTestId("variables-reference-markdown"),
+          within(footer).getByTestId(
+            "subscriber-template-placement-permission",
+          ),
         ).toBeInTheDocument();
+        expectNoYellowWarning(footer);
+
+        // The help around the body: the preview and the default, no warning.
+        const help: HTMLElement = renderHelp(
+          helpOf(
+            templateBodyFieldFor(
+              channel as StatusPageSubscriberNotificationMethod,
+            ),
+            values,
+          ),
+        );
+
+        // The reference is no longer an open table under the body.
         expect(
-          within(help).getByTestId("incident-custom-field-template-variables"),
-        ).toBeInTheDocument();
+          within(help).queryByTestId("variables-reference-markdown"),
+        ).not.toBeInTheDocument();
         expectNoYellowWarning(help);
       },
     );
@@ -502,31 +609,36 @@ describe("the subscriber notification template forms", () => {
   test("a template for an event without incident fields shows no warning either", async () => {
     await renderTemplatesPage();
 
+    const values: Record<string, unknown> = {
+      eventType:
+        StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated,
+      templateBody: "",
+    };
+
     const bodyField: FormFieldProps = templateBodyFieldFor(
       StatusPageSubscriberNotificationMethod.Email,
     );
 
-    cleanup();
-
-    const help: HTMLElement = renderHelp(
-      helpOf(bodyField, {
-        eventType:
-          StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated,
-        templateBody: "",
-      }),
+    // The event's own variables are offered...
+    expect(namesOf(variablesOf(bodyField, values))).toEqual(
+      expect.arrayContaining(["announcementTitle", "statusPageName"]),
     );
 
-    // The variable reference is there, for the event the template is for.
-    expect(
-      within(help).getByTestId("variables-reference-markdown"),
-    ).toBeInTheDocument();
+    const footer: HTMLElement = renderVariablesFooter(bodyField, values);
+
+    // ...and nothing about the incident's custom fields is read or shown.
     expect(getListMock).not.toHaveBeenCalledWith(
       expect.objectContaining({ modelType: IncidentCustomField }),
     );
     expect(
-      within(help).queryByTestId("incident-custom-field-template-variables"),
+      within(footer).queryByTestId("subscriber-template-placement-permission"),
     ).not.toBeInTheDocument();
-    expectNoYellowWarning(help);
+    expect(
+      namesOf(variablesOf(bodyField, values)).some((name: string): boolean => {
+        return isCustomFieldTemplateVariableName(name);
+      }),
+    ).toBe(false);
+    expectNoYellowWarning(footer);
   });
 
   test.each(INCIDENT_EVENT_TYPES)(

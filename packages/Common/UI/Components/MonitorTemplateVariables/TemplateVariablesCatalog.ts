@@ -1,4 +1,9 @@
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import {
+  TemplateVariable as EditorTemplateVariable,
+  TemplateVariableGroup as EditorTemplateVariableGroup,
+  TemplateVariableGroups,
+} from "../../../Types/Template/TemplateVariable";
 
 export interface TemplateVariable {
   /** The placeholder users type, e.g. "monitorName" → renders as {{monitorName}}. */
@@ -67,6 +72,35 @@ export default class TemplateVariablesCatalog {
     }
 
     return groups;
+  }
+
+  /**
+   * The same variables as a template editor offers them (Markdown editor,
+   * text field): the monitor criteria's incident and alert descriptions and
+   * remediation notes list them under the editor and behind its Insert
+   * variable button. Same groups, same order, same examples.
+   */
+  public static getTemplateVariableGroups(input: {
+    monitorType: MonitorType;
+    seriesAttributeKeys?: Array<string> | undefined;
+  }): TemplateVariableGroups {
+    return TemplateVariablesCatalog.getVariables(input).map(
+      (group: TemplateVariableGroup): EditorTemplateVariableGroup => {
+        return {
+          title: group.title,
+          description: group.description,
+          variables: group.variables.map(
+            (variable: TemplateVariable): EditorTemplateVariable => {
+              return {
+                name: variable.key,
+                description: variable.description,
+                example: variable.example,
+              };
+            },
+          ),
+        };
+      },
+    );
   }
 
   private static monitorIdentityGroup(): TemplateVariableGroup {
