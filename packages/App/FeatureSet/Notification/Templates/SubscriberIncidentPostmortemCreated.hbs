@@ -8,7 +8,7 @@
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Incident" plainText=incidentTitle }}
-{{> DetailBoxField title="Severity" plainText=incidentSeverity  }}
+{{> DetailBoxField title="Severity" plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
 {{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
 {{> IncidentCustomFieldRows this }}
 {{#if postmortemNote}}

@@ -32,6 +32,7 @@ import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseMode
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -71,6 +72,7 @@ RunCron(
           scheduledMaintenanceStateId: true,
           scheduledMaintenanceState: {
             name: true,
+            color: true,
             isScheduledState: true,
           },
         },
@@ -653,6 +655,11 @@ RunCron(
                       eventState:
                         scheduledEventStateTimeline.scheduledMaintenanceState
                           ?.name || "",
+                      ...EmailColorUtil.getTemplateVariables(
+                        "eventState",
+                        scheduledEventStateTimeline.scheduledMaintenanceState
+                          ?.color,
+                      ),
                       scheduledAt: scheduledAtString,
                       eventTitle: event.title || "",
                       unsubscribeUrl: unsubscribeUrl,

@@ -19,6 +19,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
@@ -96,6 +97,7 @@ RunCron(
           alertNumberWithPrefix: true,
           alertSeverity: {
             name: true,
+            color: true,
           },
           /*
            * The series this alert was raised for. Without it this email said
@@ -282,9 +284,15 @@ RunCron(
           alertNumber: alertNumberStr,
           projectName: alertStateTimeline.project!.name!,
           currentState: alertState!.name!,
-          currentStateColor: alertState!.color?.toString() || "#000000",
+          ...EmailColorUtil.getTemplateVariables(
+            "currentState",
+            alertState!.color,
+          ),
           previousState: previousState?.name || "",
-          previousStateColor: previousState?.color?.toString() || "#6b7280",
+          ...EmailColorUtil.getTemplateVariables(
+            "previousState",
+            previousState?.color,
+          ),
           previousStateDurationText: previousStateDurationText,
           alertDescription: alertDescriptionHtml,
           resourcesAffected: resourcesAffected,
@@ -296,6 +304,10 @@ RunCron(
               timezones: user.timezone ? [user.timezone] : [],
             }),
           alertSeverity: alert.alertSeverity!.name!,
+          ...EmailColorUtil.getTemplateVariables(
+            "alertSeverity",
+            alert.alertSeverity?.color,
+          ),
           alertViewLink: (
             await AlertService.getAlertLinkInDashboard(
               alertStateTimeline.projectId!,
