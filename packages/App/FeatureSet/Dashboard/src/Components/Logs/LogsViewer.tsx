@@ -86,6 +86,10 @@ import Select from "Common/Types/BaseDatabase/Select";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import { ResultTotal } from "Common/UI/Utils/Telemetry/ResultTotal";
+import useResultTotal, {
+  ResultTotalListAnswer,
+} from "Common/UI/Utils/Telemetry/UseResultTotal";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
@@ -617,11 +621,30 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       initialUrlState?.facetFilters || new Map(),
     );
   });
+  // Render-time mirror, so a list answer can tell whether it is still current.
+  const filterOptionsRef: React.MutableRefObject<Query<Log>> =
+    useRef<Query<Log>>(filterOptions);
+  filterOptionsRef.current = filterOptions;
   const [page, setPage] = useState<number>(initialUrlState?.page || 1);
   const [pageSize, setPageSize] = useState<number>(
     initialUrlState?.pageSize || effectiveDefaultPageSize,
   );
+  /*
+   * The list endpoint's `count` — a lower bound, not a total (it skips
+   * COUNT(*)). The total is `resultTotal`; this seeds the footer meanwhile.
+   */
   const [totalCount, setTotalCount] = useState<number>(0);
+  // The newest page the list committed, for the result total (see fetchItems).
+  const [resultTotalListAnswer, setResultTotalListAnswer] =
+    useState<ResultTotalListAnswer<Query<Log>> | null>(null);
+  // Bumped when a live poll lands, so the moved window is counted again.
+  const [resultTotalRefreshKey, setResultTotalRefreshKey] = useState<number>(0);
+  /*
+   * The query that page was fetched with: a live poll's carries a fresher
+   * window than `filterOptions`, and the count has to match it.
+   */
+  const resultTotalListQueryRef: React.MutableRefObject<Query<Log> | null> =
+    useRef<Query<Log> | null>(null);
   const [sortField, setSortField] = useState<LogsSortField>("time");
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Descending);
   const [isLiveEnabled, setIsLiveEnabled] = useState<boolean>(false);
@@ -1064,11 +1087,17 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   type FetchOptions = {
     skipLoadingState?: boolean;
+    /*
+     * Count the result set again once this page lands: a live poll, whose
+     * window has moved. Realtime refreshes leave it be — on a busy project
+     * they arrive many times a second.
+     */
+    refreshResultTotal?: boolean;
   };
 
   const fetchItems: (options?: FetchOptions) => Promise<void> = useCallback(
     async (options: FetchOptions = {}): Promise<void> => {
-      const { skipLoadingState = false } = options;
+      const { skipLoadingState = false, refreshResultTotal = false } = options;
 
       setError("");
 
@@ -1122,6 +1151,30 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         setLogs(listResult.data);
         setTotalCount(listResult.count);
 
+        /*
+         * What the result total needs from this page. Keyed by the filter
+         * state it was fetched for, and dropped when that state has moved
+         * on: an older page landing late must not stand in for the newer
+         * filters' list.
+         */
+        if (filterOptionsRef.current === filterOptions) {
+          resultTotalListQueryRef.current = query;
+          setResultTotalListAnswer({
+            query: filterOptions,
+            page: {
+              rowCount: listResult.data.length,
+              skip: (page - 1) * pageSize,
+              hasMore: listResult.hasMore,
+            },
+          });
+
+          if (refreshResultTotal) {
+            setResultTotalRefreshKey((key: number): number => {
+              return key + 1;
+            });
+          }
+        }
+
         if (props.onCountChange) {
           props.onCountChange(listResult.count);
         }
@@ -1156,6 +1209,27 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       timeRange,
     ],
   );
+
+  /*
+   * How many logs the filters match (issue #4202). The list endpoint skips
+   * COUNT(*) and answers with a lower bound, which the toolbar used to print
+   * as the total — "51 results · Page 1 of 2". Counted with the list's own
+   * query (a live poll's fresher window included), exactly or not at all.
+   */
+  const resultTotal: ResultTotal = useResultTotal<Query<Log>>({
+    query: filterOptions,
+    listAnswer: resultTotalListAnswer,
+    countRows: (query: Query<Log>): Promise<number> => {
+      return AnalyticsModelAPI.count<Log>(
+        Log,
+        resultTotalListQueryRef.current || query,
+        undefined,
+        { exact: true },
+      );
+    },
+    // The toolbar shows the total over the analytics view as well.
+    refreshKey: resultTotalRefreshKey,
+  });
 
   /*
    * The slice of the list query the chart and the facet counts are built
@@ -1647,7 +1721,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       page === 1 && sortField === "time" && sortOrder === SortOrder.Descending,
     intervalInMs: LIVE_POLL_INTERVAL_MS,
     refreshLogs: () => {
-      void fetchItems({ skipLoadingState: true });
+      void fetchItems({ skipLoadingState: true, refreshResultTotal: true });
     },
     refreshHistogram: () => {
       void histogram.refresh({ silent: true });
@@ -2596,6 +2670,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           showFilters={props.showFilters}
           noLogsMessage={props.noLogsMessage}
           totalCount={totalCount}
+          hasMore={resultTotalListAnswer?.page.hasMore}
+          resultTotal={resultTotal}
           page={page}
           pageSize={pageSize}
           onPageChange={handlePageChange}

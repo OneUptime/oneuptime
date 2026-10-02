@@ -27,6 +27,15 @@ import Query from "../../../Types/BaseDatabase/Query";
 export type ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel> =
   BaseListResult<TAnalyticsBaseModel>;
 
+export interface AnalyticsCountOptions {
+  /*
+   * Count exactly the rows getList returns for the same query, or fail: no
+   * shortcut that rounds the window, and no count cut short by the server's
+   * time limit (which answers 408 instead). For a total shown beside a list.
+   */
+  exact?: boolean | undefined;
+}
+
 export default class ModelAPI {
   /**
    * The API client used for analytics model requests: the authenticated
@@ -349,6 +358,7 @@ export default class ModelAPI {
     modelType: { new (): TAnalyticsBaseModel },
     query: Query<TAnalyticsBaseModel>,
     requestOptions?: RequestOptions | undefined,
+    countOptions?: AnalyticsCountOptions | undefined,
   ): Promise<number> {
     const model: TAnalyticsBaseModel = new modelType();
     const apiPath: Route | undefined = model.crudApiPath;
@@ -380,6 +390,8 @@ export default class ModelAPI {
         url: apiUrl,
         data: {
           query: JSONFunctions.serialize(query as JSONObject),
+          // Sent only when asked for, so every other count is unchanged.
+          ...(countOptions?.exact ? { exact: true } : {}),
         },
         headers,
       });

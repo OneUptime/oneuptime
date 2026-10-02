@@ -74,6 +74,9 @@ import useViewerTimeRangeZoom, {
 import { hasLockedTelemetryScope } from "../TelemetryViewer/FacetVisibility";
 import { TimeRangeZoomProvider } from "../Charts/TimeRangeZoom/TimeRangeZoomContext";
 import useTelemetryEntityNames from "../../Utils/Telemetry/UseTelemetryEntityNames";
+import ResultTotalUtil, {
+  ResultTotal,
+} from "../../Utils/Telemetry/ResultTotal";
 import { TelemetryEntityNameMap } from "../../Utils/Telemetry/TelemetryEntityNames";
 import {
   collectLogsEntityIdsToResolve,
@@ -112,7 +115,20 @@ export interface ComponentProps {
       ) => Route | URL | undefined | Promise<Route | URL | undefined>)
     | undefined;
   projectId?: ObjectID | undefined;
+  /*
+   * How many logs the query matches — or the lower bound the logs list
+   * endpoint answers with when `hasMore` is set (it skips COUNT(*)). Unset,
+   * the viewer pages `logs` itself.
+   */
   totalCount?: number | undefined;
+  // Whether logs follow this page, from the list endpoint (see totalCount).
+  hasMore?: boolean | undefined;
+  /*
+   * The size of the whole result set, worked out apart from the list (see
+   * UseResultTotal): the toolbar shows it, and the footer numbers its pages
+   * by it once it is exact.
+   */
+  resultTotal?: ResultTotal | undefined;
   page?: number | undefined;
   pageSize?: number | undefined;
   onPageChange?: (page: number) => void;
@@ -391,7 +407,27 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const currentPage: number = props.page ?? internalPage;
   const pageSize: number = props.pageSize ?? internalPageSize;
 
-  const totalItems: number = props.totalCount ?? props.logs.length;
+  const logsBeforePage: number = (Math.max(currentPage, 1) - 1) * pageSize;
+
+  /*
+   * The total the toolbar and the footer may print as "of N" and number
+   * pages by. Undefined while the logs list endpoint has only said whether
+   * more logs follow: it skips COUNT(*), and its `count` is a lower bound
+   * that read as "51 results · Page 1 of 2" over millions of logs.
+   */
+  const pagingTotal: number | undefined =
+    props.totalCount === undefined
+      ? props.logs.length
+      : ResultTotalUtil.getPagingTotal({
+          resultTotal: props.resultTotal,
+          hasMore: props.hasMore,
+          totalCount: props.totalCount,
+          rowCount: props.logs.length,
+          skip: logsBeforePage,
+        });
+
+  const totalItems: number =
+    pagingTotal ?? props.totalCount ?? props.logs.length;
 
   const totalPages: number = Math.max(
     1,
@@ -1163,9 +1199,20 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     showSidebar && currentViewMode !== "analytics";
 
   const toolbarProps: LogsViewerToolbarProps = {
-    resultCount: totalItems,
+    /*
+     * Without a total, what the list has shown so far, marked as a lower
+     * bound — never the endpoint's `skip + rows + 1` read as a total.
+     */
+    resultCount:
+      pagingTotal === undefined
+        ? logsBeforePage + props.logs.length
+        : totalItems,
+    isResultCountLowerBound: pagingTotal === undefined,
+    resultTotal: props.resultTotal,
+    rowsThroughPage: logsBeforePage + props.logs.length,
     currentPage,
-    totalPages,
+    // No "of N" until there is an N.
+    totalPages: pagingTotal === undefined ? undefined : totalPages,
     viewMode: currentViewMode,
     onViewModeChange: handleViewModeChange,
     savedViews: props.savedViews,
@@ -1384,6 +1431,16 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               <LogsPagination
                 currentPage={currentPage}
                 totalItems={totalItems}
+                hasMore={
+                  pagingTotal === undefined
+                    ? props.hasMore ?? props.logs.length >= pageSize
+                    : undefined
+                }
+                itemsOnCurrentPage={
+                  props.resultTotal || props.hasMore !== undefined
+                    ? props.logs.length
+                    : undefined
+                }
                 pageSize={pageSize}
                 pageSizeOptions={PAGE_SIZE_OPTIONS}
                 onPageChange={handlePageChange}
