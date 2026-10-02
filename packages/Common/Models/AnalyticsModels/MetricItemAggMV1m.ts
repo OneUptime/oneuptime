@@ -1,6 +1,7 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
+import { RETENTION_TTL_ROUNDED_UP_TO_DAY } from "../../Types/AnalyticsDatabase/RetentionTtl";
 import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 
@@ -181,7 +182,15 @@ GROUP BY projectId, name, primaryEntityId, bucketTime`,
        * same, so the longer one holds the shorter one's rows there too.
        */
       tableSettings: "non_replicated_deduplication_window = 10000",
-      ttlExpression: "retentionDate DELETE",
+      /*
+       * Rounded up to the midnight after retentionDate (see RetentionTtl):
+       * a monthly partition loses one day of rows at a time, in one merge a
+       * day, instead of being rewritten every merge_with_ttl_timeout for the
+       * month its rows take to expire. Not lined up with the event's day
+       * like the raw table: there is no ingest time here, and a bucket's
+       * retentionDate is already the latest of its rows'.
+       */
+      ttlExpression: RETENTION_TTL_ROUNDED_UP_TO_DAY,
       includeBaseColumns: false,
       defaultSortColumn: "bucketTime",
     });

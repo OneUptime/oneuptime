@@ -180,7 +180,7 @@ export class MetricAggregationService {
 
     /*
      * Read-side retention filter: rows past their retention stay on disk
-     * until a TTL merge removes them.
+     * until the midnight after it (the TTL is rounded up to the day).
      */
     statement.append(" AND retentionDate >= now()");
 
@@ -318,7 +318,7 @@ export class MetricAggregationService {
 
     /*
      * Read-side retention filter: rows past their retention stay on disk
-     * until a TTL merge removes them.
+     * until the midnight after it (the TTL is rounded up to the day).
      */
     statement.append(" AND retentionDate >= now()");
 
