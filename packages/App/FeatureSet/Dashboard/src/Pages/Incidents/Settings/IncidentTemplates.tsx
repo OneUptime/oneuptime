@@ -24,10 +24,6 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
-import { StatusPagePickerAccessHint } from "../../../Components/Incident/IncidentStatusPageScopeNotices";
-import useStatusPagePickerAccess, {
-  StatusPagePickerAccess,
-} from "../../../Components/Incident/useStatusPagePickerAccess";
 import React, {
   Fragment,
   FunctionComponent,
@@ -74,10 +70,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
   const [createInitialValues, setCreateInitialValues] = useState<
     FormValues<IncidentTemplate>
   >({});
-
-  // Picking status pages needs status page read access (see the hint).
-  const statusPagePickerAccess: StatusPagePickerAccess =
-    useStatusPagePickerAccess();
 
   /*
    * The project's incident custom fields, so a new template can set the
@@ -470,9 +462,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             },
             required: false,
             placeholder: IncidentStatusPageScopeCopy.pickerPlaceholder,
-            footerElement: (
-              <StatusPagePickerAccessHint access={statusPagePickerAccess} />
-            ),
           },
           /*
            * Hidden registrations so ModelForm.getSelectFields includes
