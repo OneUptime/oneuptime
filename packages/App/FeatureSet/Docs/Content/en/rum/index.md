@@ -10,7 +10,7 @@ Session Replay — watching a recording of what the user saw — is a separate, 
 
 ## Where it lives
 
-In the dashboard, **Resources → Real User Monitoring**. Each application has its own Overview, Metrics, Logs, Traces, Clients, Session Replay, Replay Users, Health, Replay Policy and Replay Access Log tabs. Project-wide settings (owner rules, label rules, the session replay master switch) live under the RUM side menu's **Settings** section.
+In the dashboard, **Resources → Real User Monitoring**. Each application has its own Overview, Metrics, Logs, Traces, Clients, Session Replay, Replay Users, Health, Replay Policy and Replay Access Log tabs. Project-wide settings (owner rules, label rules, the session replay master switch) live under the RUM side menu's **Settings** section, which starts collapsed like the **Settings** section of every product: click **Settings** to show them.
 
 ## How OneUptime decides something is RUM
 

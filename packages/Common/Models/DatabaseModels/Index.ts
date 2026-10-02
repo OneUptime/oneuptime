@@ -127,8 +127,8 @@ import IncidentPublicNote from "./IncidentPublicNote";
 import IncidentSeverity from "./IncidentSeverity";
 import IncidentState from "./IncidentState";
 import IncidentStateTimeline from "./IncidentStateTimeline";
-import IncidentForm from "./IncidentForm";
-import IncidentFormSubmission from "./IncidentFormSubmission";
+import Form from "./Form";
+import FormSubmission from "./FormSubmission";
 import IncidentTemplate from "./IncidentTemplate";
 import IncidentTemplateOwnerTeam from "./IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "./IncidentTemplateOwnerUser";
@@ -582,8 +582,8 @@ const AllModelTypes: Array<{
   IncidentSeverity,
   IncidentNoteTemplate,
   IncidentPostmortemTemplate,
-  IncidentForm,
-  IncidentFormSubmission,
+  Form,
+  FormSubmission,
 
   AlertState,
   Alert,

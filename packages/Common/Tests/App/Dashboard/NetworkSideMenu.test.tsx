@@ -102,12 +102,6 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
         getBreadcrumbs: getNetworkDeviceBreadcrumbs,
         breadcrumbTitles: ["Project", "Network", "Discovery Scans"],
       },
-      {
-        title: "Archived Devices",
-        pageMapKey: PageMap.NETWORK_DEVICE_ARCHIVED,
-        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
-        breadcrumbTitles: ["Project", "Network", "Archived Devices"],
-      },
     ],
   },
   {
@@ -245,6 +239,25 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
     ],
   },
   /*
+   * The way back to archived devices, which the device lists leave out.
+   * Rarely needed, so it waits in Advanced, folded away like Rules and
+   * Settings. Advanced is a fold in the menu, not a place: the page's trail
+   * stays Project > Network > Archived Devices, as every product's Archived
+   * page hangs straight under its product.
+   */
+  {
+    title: "Advanced",
+    defaultCollapsed: true,
+    entries: [
+      {
+        title: "Archived Devices",
+        pageMapKey: PageMap.NETWORK_DEVICE_ARCHIVED,
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "Archived Devices"],
+      },
+    ],
+  },
+  /*
    * Managing network devices from code: their Terraform, API and AI
    * Assistants pages, folded away like Rules and Settings.
    */
@@ -354,7 +367,7 @@ describe("Network side menu", () => {
   });
 
   describe("taxonomy", () => {
-    test("renders Network, Topology, Rules, Settings and Developer in order", async () => {
+    test("renders Network, Topology, Rules, Settings, Advanced and Developer in order", async () => {
       await renderNetworkMenu();
 
       expect(sectionTitlesInOrder()).toEqual([
@@ -362,7 +375,24 @@ describe("Network side menu", () => {
         "Topology",
         "Rules",
         "Settings",
+        "Advanced",
         "Developer",
+      ]);
+    });
+
+    test("keeps Archived Devices out of the day-to-day Network section", async () => {
+      await renderNetworkMenu();
+
+      expect(
+        linksIn("Network").map((link: MenuLink): string => {
+          return link.title;
+        }),
+      ).not.toContain("Archived Devices");
+      expect(linksIn("Advanced")).toEqual([
+        {
+          title: "Archived Devices",
+          href: routeFor(PageMap.NETWORK_DEVICE_ARCHIVED),
+        },
       ]);
     });
 
@@ -414,6 +444,29 @@ describe("Network side menu", () => {
       fireEvent.click(sectionToggle("Settings"));
       expect(isExpanded("Settings")).toBe(false);
       expect(linksIn("Settings")).toEqual(expectedLinks(EXPECTED_SECTIONS[3]!));
+    });
+
+    test("Advanced expands and collapses without unmounting Archived Devices", async () => {
+      await renderNetworkMenu();
+
+      expect(isExpanded("Advanced")).toBe(false);
+      expect(sectionBody("Advanced")).toHaveClass(
+        "max-h-0",
+        "opacity-0",
+        "invisible",
+      );
+      expect(linksIn("Advanced")).toHaveLength(1);
+
+      fireEvent.click(sectionToggle("Advanced"));
+
+      expect(isExpanded("Advanced")).toBe(true);
+      expect(sectionBody("Advanced")).toHaveClass("opacity-100");
+      expect(sectionBody("Advanced")).not.toHaveClass("invisible");
+
+      fireEvent.click(sectionToggle("Advanced"));
+
+      expect(isExpanded("Advanced")).toBe(false);
+      expect(linksIn("Advanced")).toEqual(expectedLinks(EXPECTED_SECTIONS[4]!));
     });
   });
 
@@ -503,6 +556,18 @@ describe("Network side menu", () => {
       expectActiveLink("Site Types");
     });
 
+    test("the Archived Devices page expands Advanced and highlights its item", async () => {
+      goTo(routeFor(PageMap.NETWORK_DEVICE_ARCHIVED));
+
+      await renderNetworkMenu();
+
+      expect(isExpanded("Advanced")).toBe(true);
+      expect(sectionBody("Advanced")).toHaveClass("opacity-100");
+      expect(isExpanded("Rules")).toBe(false);
+      expect(isExpanded("Settings")).toBe(false);
+      expectActiveLink("Archived Devices");
+    });
+
     test("opens Rules when navigation moves to a Rules route", async () => {
       const rendered: RenderResult = await renderNetworkMenu();
 
@@ -580,6 +645,7 @@ describe("Network side menu", () => {
       [PageMap.NETWORK_DEVICE_TOPOLOGY, "Topology / Device Topology"],
       [PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES, "Rules / Owner Rules"],
       [PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES, "Settings / Site Types"],
+      [PageMap.NETWORK_DEVICE_ARCHIVED, "Advanced / Archived Devices"],
     ])(
       "%s reports its section and page",
       async (pageMapKey: string, expectedSummary: string): Promise<void> => {
@@ -628,6 +694,13 @@ describe("Network side menu", () => {
 
           if (section.title === "Network") {
             expect(trailTitles?.[1]).toBe(section.title);
+          } else if (section.title === "Advanced") {
+            // A fold in the menu, not a level in the trail.
+            expect(trailTitles).toEqual([
+              "Project",
+              "Network",
+              renderedLink?.title,
+            ]);
           } else if (section.title === "Developer") {
             // The Developer pages hang under the list they are about.
             expect(trailTitles?.[trailTitles.length - 2]).toBe("Devices");

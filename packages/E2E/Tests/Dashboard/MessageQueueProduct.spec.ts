@@ -1318,11 +1318,22 @@ test.describe.skip("Queues Product", () => {
       return stored ? stored["isArchived"] : null;
     };
 
+    /*
+     * The queue's Settings page sits in a Settings section that starts
+     * folded down to its title, like every rarely used section: its rows are
+     * hidden until the section is opened.
+     */
+    const settingsSectionToggle: Locator = page
+      .locator("aside[role='navigation'][aria-label='Main navigation']")
+      .locator(
+        "xpath=.//h6[normalize-space(.)='Settings']/ancestor::button[1]",
+      );
+
     await gotoProjectPage({
       page,
       projectId: ctx.projectId,
       url: urlFor(kafkaPath),
-      ready: settingsLink.first(),
+      ready: settingsSectionToggle,
     });
     await expect(
       page.getByRole("heading", { name: DESTINATION, exact: true }),
@@ -1335,6 +1346,12 @@ test.describe.skip("Queues Product", () => {
       page.getByRole("button", { name: "Archive", exact: true }),
     ).toHaveCount(0);
 
+    await expect(settingsSectionToggle).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await expect(settingsLink.first()).toBeHidden();
+    await settingsSectionToggle.click();
     await settingsLink.first().click();
     await expect(page).toHaveURL(settingsUrl);
     await expect(page.getByText("Queue Settings").first()).toBeVisible({
@@ -1368,8 +1385,32 @@ test.describe.skip("Queues Product", () => {
     await expect(serviceBusQueueLink).toBeVisible({ timeout: 30000 });
     await expect(kafkaQueueLink).toHaveCount(0);
 
-    // Archived lists it.
-    await page.getByRole("link", { name: "Archived", exact: true }).click();
+    /*
+     * Archived lists it. Its entry waits in the menu's Advanced section,
+     * which starts folded away on the list: its rows are hidden until it is
+     * opened.
+     */
+    const productAdvancedToggle: Locator = page
+      .locator("aside[role='navigation'][aria-label='Main navigation']")
+      .locator(
+        "xpath=.//h6[normalize-space(.)='Advanced']/ancestor::button[1]",
+      );
+    const archivedLink: Locator = page.getByRole("link", {
+      name: "Archived",
+      exact: true,
+    });
+
+    if (
+      (await productAdvancedToggle.getAttribute("aria-expanded")) !== "true"
+    ) {
+      await expect(archivedLink).toBeHidden();
+      await productAdvancedToggle.click();
+    }
+    await expect(productAdvancedToggle).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await archivedLink.click();
     await expect(page).toHaveURL(
       new RegExp(`/dashboard/${ctx.projectId}/queues/archived/?(?:\\?.*)?$`),
       { timeout: 30000 },

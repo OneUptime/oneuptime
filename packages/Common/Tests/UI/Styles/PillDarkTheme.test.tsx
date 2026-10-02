@@ -118,6 +118,28 @@ describe("the pill's dark theme rules", () => {
     );
   });
 
+  test("a pulsing pill's dot and the ring rippling out of it both get their dark colour", () => {
+    /*
+     * The Currently Active marker on the timelines. Its dot is two layers -
+     * the dot, and a copy of it that grows and fades - and a layer the dot
+     * rule missed would pulse in the light theme's colour on a dark card.
+     */
+    render(<Pill text="Currently Active" color={Green} isPulsing={true} />);
+
+    const layers: Array<HTMLElement> = Array.from(
+      screen.getByTestId("pill-dot").children,
+    ) as Array<HTMLElement>;
+
+    expect(layers).toHaveLength(2);
+
+    for (const layer of layers) {
+      expect(layer).toHaveAttribute("data-ou-pill-dot");
+      expect(customPropertiesWritten(layer)).toEqual(
+        expect.arrayContaining(customPropertiesRead(DOT_SELECTOR)),
+      );
+    }
+  });
+
   test("a minimal pill's dot still gets its dark colour", () => {
     /*
      * The minimal pill's ring and text are theme classes Theme.css already

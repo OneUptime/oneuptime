@@ -7,7 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent } from "@testing-library/react";
+import { cleanup, fireEvent, screen } from "@testing-library/react";
 import * as React from "react";
 
 /*
@@ -89,14 +89,58 @@ describe("Incidents side menu", () => {
       ]);
     });
 
+    /*
+     * The maintainer's picture of this menu: Overview and Episodes open, and
+     * Workspace, Rules and Settings folded down to their titles.
+     */
     test("the day-to-day sections are expanded and the configuration sections are collapsed", async () => {
       await renderIncidentsMenu();
 
       expect(isExpanded("Overview")).toBe(true);
       expect(isExpanded("Episodes")).toBe(true);
-      expect(isExpanded("Workspace")).toBe(true);
+      expect(isExpanded("Workspace")).toBe(false);
       expect(isExpanded("Rules")).toBe(false);
       expect(isExpanded("Settings")).toBe(false);
+      expect(isExpanded("Developer")).toBe(false);
+      expect(sectionBody("Workspace")).toHaveClass(
+        "max-h-0",
+        "opacity-0",
+        "invisible",
+      );
+    });
+
+    test.each([
+      ["Slack", PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK],
+      [
+        "Microsoft Teams",
+        PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      ],
+    ])(
+      "Workspace opens by itself on the %s page, and marks it",
+      async (title: string, pageMapKey: string) => {
+        goTo(routeFor(pageMapKey));
+        await renderIncidentsMenu();
+
+        expect(isExpanded("Workspace")).toBe(true);
+        expect(sectionBody("Workspace")).not.toHaveClass("invisible");
+        expect(isExpanded("Rules")).toBe(false);
+        expect(isExpanded("Settings")).toBe(false);
+        expect(activeLinkTitles()).toEqual([title]);
+      },
+    );
+
+    test("Workspace opens with a click, and folds away again", async () => {
+      await renderIncidentsMenu();
+
+      fireEvent.click(sectionToggle("Workspace"));
+
+      expect(isExpanded("Workspace")).toBe(true);
+      expect(sectionBody("Workspace")).toHaveClass("opacity-100");
+
+      fireEvent.click(sectionToggle("Workspace"));
+
+      expect(isExpanded("Workspace")).toBe(false);
+      expect(sectionBody("Workspace")).toHaveClass("max-h-0");
     });
 
     test("the overview, episode and workspace sections are unchanged by the move", async () => {
@@ -330,11 +374,6 @@ describe("Incidents side menu", () => {
           title: "Incident Templates",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_TEMPLATES),
         },
-        // Incident forms (issue #4114): right after the templates.
-        {
-          title: "Forms",
-          href: routeFor(PageMap.INCIDENTS_SETTINGS_FORMS),
-        },
         {
           title: "Note Templates",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES),
@@ -441,6 +480,25 @@ describe("Incidents side menu", () => {
       );
     });
 
+    /*
+     * Incident forms became the Forms product (/dashboard/:projectId/forms),
+     * with a menu of its own: the incidents menu links to no form page.
+     */
+    test("holds no Forms page, which is a product of its own now", async () => {
+      await renderIncidentsMenu();
+
+      expect(
+        hrefsInMenu().filter((href: string): boolean => {
+          return href.includes("/forms");
+        }),
+      ).toEqual([]);
+      expect(
+        linksIn("Settings").map((link: MenuLink): string => {
+          return link.title;
+        }),
+      ).not.toContain("Forms");
+    });
+
     test("no longer holds any rule page", async () => {
       await renderIncidentsMenu();
 
@@ -530,6 +588,34 @@ describe("Incidents side menu", () => {
       expect(mobileSummaryText()).toContain("Settings / AI");
     });
 
+    test("names the Workspace section on the Slack page", async () => {
+      goTo(routeFor(PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK));
+      await renderIncidentsMenu();
+
+      expect(mobileSummaryText()).toContain("Workspace / Slack");
+    });
+
+    /*
+     * The phone menu is a panel that closes when a page is picked; a tap on
+     * a folded section's header opens the section and leaves the panel open.
+     */
+    test("opens Workspace from the phone menu without closing it", async () => {
+      await renderIncidentsMenu();
+
+      fireEvent.click(screen.getByTestId("mobile-sidemenu-toggle"));
+
+      expect(isExpanded("Workspace")).toBe(false);
+
+      fireEvent.click(sectionToggle("Workspace"));
+
+      expect(screen.getByTestId("mobile-sidemenu-toggle")).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+      expect(isExpanded("Workspace")).toBe(true);
+      expect(sectionBody("Workspace")).not.toHaveClass("invisible");
+    });
+
     test("names the Rules section on the auto-remediation rules page", async () => {
       goTo(
         `/dashboard/${PROJECT_ID}/incidents/settings/auto-remediation-rules`,
@@ -565,14 +651,6 @@ describe("Incidents side menu", () => {
       await renderIncidentsMenu();
 
       expect(mobileSummaryText()).toContain("Settings / Linked Alerts");
-    });
-
-    // Forms are configuration, like templates, not a rule.
-    test("names the Settings section on the forms page", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/forms`);
-      await renderIncidentsMenu();
-
-      expect(mobileSummaryText()).toContain("Settings / Forms");
     });
   });
 });

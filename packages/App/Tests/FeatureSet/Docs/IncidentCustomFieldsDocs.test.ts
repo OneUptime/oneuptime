@@ -21,6 +21,7 @@ import {
   CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
   generateCustomFieldVariableKey,
   getCustomFieldVariableKeyBase,
+  LEGACY_CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
 } from "Common/Types/CustomField/CustomFieldVariableKey";
 import { JSONObject } from "Common/Types/JSON";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
@@ -106,6 +107,18 @@ const WHAT_A_TEMPLATE_NEEDS_SUBSECTION: Record<string, string> = {
   en: "What a custom template needs",
   fa: "قالب سفارشی به چه چیزی نیاز دارد",
 };
+
+/*
+ * How each language says a name is the older one: "older" or "used to", and
+ * the Persian "قدیمی‌تر" (older) or "پیش‌تر" (before).
+ */
+const SAYS_IT_IS_OLDER: Record<string, RegExp> = {
+  en: /\bolder\b|\bused to\b/,
+  fa: /قدیمی‌تر|پیش‌تر/,
+};
+
+// The older name of the custom field variables, as the docs write it.
+const OLDER_CUSTOM_FIELD_VARIABLE: string = `{{${LEGACY_CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX}<key>}}`;
 
 // The four workers that send an incident's subscriber messages.
 const INCIDENT_WORKERS: ReadonlyArray<string> = [
@@ -518,10 +531,12 @@ describe("incident custom fields docs", () => {
         expect(code.has("Expected Resolution")).toBe(true);
         expect(code.has("expected_resolution")).toBe(true);
         expect(code.has("_2")).toBe(true);
-        expect(code.has("{{customFields.<key>}}")).toBe(true);
+        expect(code.has("{{incident.customFields.<key>}}")).toBe(true);
       }
 
-      expect(CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX).toBe("customFields.");
+      expect(CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX).toBe(
+        "incident.customFields.",
+      );
     });
 
     test("says Required on Create is the dashboard's: the server's value check never asks for a value", () => {
@@ -833,6 +848,103 @@ describe("incident custom fields docs", () => {
               "{{incident.affectedStatusPages}}",
             ),
           ).toBe(true);
+        }
+      },
+    );
+  });
+
+  /*
+   * "This custom fields.key template should be prefixed with incident." The
+   * docs give {{incident.customFields.<key>}} wherever a custom field is
+   * placed. The older {{customFields.<key>}} is still filled, so the pages
+   * that document the variables say so - and only ever name it as the older
+   * one, never as the one to write.
+   */
+  describe("the custom field variable's name", () => {
+    test.each(LANGUAGES)(
+      "%s: every page names the custom field variable after the incident",
+      (language: string) => {
+        for (const page of [
+          SETTINGS_PAGE,
+          NOTES_PAGE,
+          SUBSCRIBERS_PAGE,
+          GUIDE_PAGE,
+        ]) {
+          const code: Array<string> = Array.from(
+            inlineCode(readPage(page, language)),
+          ).filter((span: string): boolean => {
+            return span.includes(CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX);
+          });
+
+          expect({ language, page, named: code.length > 0 }).toEqual({
+            language,
+            page,
+            named: true,
+          });
+        }
+      },
+    );
+
+    test.each(LANGUAGES)(
+      "%s: the note templates and the subscriber templates say the older name still works",
+      (language: string) => {
+        for (const section of [
+          sectionOf(
+            readPage(SETTINGS_PAGE, language),
+            NOTE_TEMPLATES_SECTION[language] as string,
+          ),
+          sectionOf(
+            readPage(SETTINGS_PAGE, language),
+            CUSTOM_FIELDS_SECTION[language] as string,
+          ),
+          sectionOf(
+            readPage(SUBSCRIBERS_PAGE, language),
+            INCIDENT_VARIABLES_SUBSECTION[language] as string,
+          ),
+        ]) {
+          expect(inlineCode(section).has(OLDER_CUSTOM_FIELD_VARIABLE)).toBe(
+            true,
+          );
+        }
+      },
+    );
+
+    test.each(LANGUAGES)(
+      "%s: the older name is only ever mentioned as the older one",
+      (language: string) => {
+        for (const page of PAGES) {
+          if (!pageExists(page, language)) {
+            continue;
+          }
+
+          const paragraphs: Array<string> = splitMarkdown(
+            readPage(page, language),
+          )
+            .prose.join("\n")
+            .split(/\n\s*\n/);
+
+          for (const paragraph of paragraphs) {
+            if (
+              !paragraph.includes(
+                `{{${LEGACY_CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX}`,
+              )
+            ) {
+              continue;
+            }
+
+            // Never in a table: a table lists what to write.
+            expect({
+              page,
+              inATable: paragraph.trim().startsWith("|"),
+            }).toEqual({ page, inATable: false });
+            expect({
+              page,
+              paragraph,
+              saysItIsOlder: (SAYS_IT_IS_OLDER[language] as RegExp).test(
+                paragraph,
+              ),
+            }).toEqual({ page, paragraph, saysItIsOlder: true });
+          }
         }
       },
     );

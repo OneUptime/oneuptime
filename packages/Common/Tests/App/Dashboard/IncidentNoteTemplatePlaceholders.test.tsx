@@ -8,9 +8,19 @@ import React from "react";
  * can use. They are shown as code and never go through the translation
  * lookup, which would read their braces as placeholders of its own and blank
  * them; the words around them do.
+ *
+ * Nothing else: a yellow "Internal data" warning used to sit under the list,
+ * and the maintainer asked for it to go ("Please remove this yellow warning.
+ * We don't need it.").
  */
 
 const translated: Array<string> = [];
+
+// A copy key that names a warning.
+const WARNING_KEY: RegExp = /warning|internaldata/i;
+// The removed warning's title, and its closing advice.
+const WARNING_TEXT: RegExp =
+  /internal data|before you post a public note|read the filled-in text/i;
 
 jest.mock("../../../UI/Utils/Translation", () => {
   return {
@@ -60,40 +70,99 @@ describe("the note template placeholders hint", () => {
 
     expect(within(hint).getByText("{{incident.title}}")).toBeInTheDocument();
     expect(
-      within(hint).getByText("{{customFields.<key>}}"),
+      within(hint).getByText("{{incident.customFields.<key>}}"),
     ).toBeInTheDocument();
   });
 
   /*
-   * The same template fills public notes, which reach status pages and
-   * their subscribers, and the placeholders fill every custom field - marked
-   * for subscribers or not - and the status pages' names.
+   * "This custom fields.key template should be prefixed with incident, so it
+   * should be incident.custom fields.key." The form shows the custom field
+   * placeholder named after the incident, like every other placeholder in
+   * the list, and never the older {{customFields.<key>}}.
    */
-  test("warns that the placeholders are internal data a public note sends out", () => {
+  test("names the custom field placeholder after the incident, like the rest", () => {
     render(<IncidentNoteTemplatePlaceholders />);
 
-    const warning: HTMLElement = screen.getByTestId(
-      "incident-note-template-internal-data-warning",
+    const hint: HTMLElement = screen.getByTestId(
+      "incident-note-template-placeholders",
+    );
+    const shown: Array<string> = Array.from(hint.querySelectorAll("code")).map(
+      (code: Element): string => {
+        return code.textContent || "";
+      },
     );
 
-    expect(warning).toHaveTextContent(
-      `[${IncidentCustomFieldsCopy.noteTemplateInternalDataWarningTitle}]`,
+    expect(shown).toContain("{{incident.customFields.<key>}}");
+    expect(shown).not.toContain("{{customFields.<key>}}");
+
+    for (const placeholder of shown) {
+      expect(placeholder.startsWith("{{incident.")).toBe(true);
+    }
+
+    expect(hint).not.toHaveTextContent(/\{\{customFields\./);
+  });
+
+  test("shows no warning: no alert, no 'Internal data', no advice about public notes", () => {
+    render(<IncidentNoteTemplatePlaceholders />);
+
+    const hint: HTMLElement = screen.getByTestId(
+      "incident-note-template-placeholders",
     );
-    expect(warning).toHaveTextContent(
-      IncidentCustomFieldsCopy.noteTemplateInternalDataWarning,
-    );
-    expect(IncidentCustomFieldsCopy.noteTemplateInternalDataWarning).toMatch(
-      /public note/,
-    );
-    expect(translated).toContain(
-      IncidentCustomFieldsCopy.noteTemplateInternalDataWarningTitle,
-    );
-    // Inside the hint, under the placeholders it is about.
+
+    expect(screen.queryAllByRole("alert")).toHaveLength(0);
     expect(
-      within(
-        screen.getByTestId("incident-note-template-placeholders"),
-      ).getByTestId("incident-note-template-internal-data-warning"),
-    ).toBe(warning);
+      screen.queryByTestId("incident-note-template-internal-data-warning"),
+    ).not.toBeInTheDocument();
+    // The warning was the shared Alert's amber (yellow) box.
+    expect(hint.querySelector(".alert")).toBeNull();
+    expect(hint.querySelector(".bg-amber-50")).toBeNull();
+    expect(hint).not.toHaveTextContent(WARNING_TEXT);
+    expect(hint).not.toHaveTextContent(/Include in Subscriber Notifications/);
+    // Nor was the warning's title or text looked up in another language.
+    expect(
+      translated.some((text: string): boolean => {
+        return WARNING_TEXT.test(text);
+      }),
+    ).toBe(false);
+  });
+
+  test("is just the intro and the placeholder list, with nothing after the list", () => {
+    render(<IncidentNoteTemplatePlaceholders />);
+
+    const hint: HTMLElement = screen.getByTestId(
+      "incident-note-template-placeholders",
+    );
+    const parts: Array<Element> = Array.from(hint.children);
+
+    expect(
+      parts.map((part: Element): string => {
+        return part.tagName;
+      }),
+    ).toEqual(["P", "UL"]);
+    expect(parts[0]).toHaveTextContent(
+      `[${IncidentCustomFieldsCopy.noteTemplatePlaceholdersIntro}]`,
+    );
+    expect(
+      within(parts[1] as HTMLElement).getAllByRole("listitem"),
+    ).toHaveLength(INCIDENT_NOTE_TEMPLATE_VARIABLES.length);
+    // The list is the hint's last word: no box, note or line after it.
+    expect(hint.lastElementChild).toBe(parts[1]);
+  });
+
+  test("the copy keeps the intro and carries no warning text", () => {
+    expect(IncidentCustomFieldsCopy.noteTemplatePlaceholdersIntro).toMatch(
+      /placeholders/,
+    );
+    expect(
+      Object.keys(IncidentCustomFieldsCopy).some((key: string): boolean => {
+        return WARNING_KEY.test(key);
+      }),
+    ).toBe(false);
+    expect(
+      Object.values(IncidentCustomFieldsCopy).some((text: string): boolean => {
+        return WARNING_TEXT.test(text);
+      }),
+    ).toBe(false);
   });
 
   test("translates the words, never the placeholders", () => {

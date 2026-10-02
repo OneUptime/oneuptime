@@ -2,8 +2,9 @@ import SubscriberNotificationTemplateCompiler from "../StatusPage/SubscriberNoti
 
 /*
  * The key an incident custom field is reached by in a template:
- * {{customFields.<key>}} in a status page's custom subscriber email, and in
- * anything else that fills placeholders the same way.
+ * {{incident.customFields.<key>}} in an incident note template and in a
+ * status page's custom subscriber notification template, and in anything
+ * else that fills placeholders the same way.
  *
  * Why a key at all, rather than the field's name: values are stored under
  * the display name ("Expected Resolution"), and a name can hold anything a
@@ -42,9 +43,34 @@ export const CUSTOM_FIELD_VARIABLE_KEY_MAX_LENGTH: number = 64;
 export const CUSTOM_FIELD_VARIABLE_KEY_FALLBACK: string = "field";
 
 /*
- * Where a key sits among the template variables: {{customFields.<key>}}.
+ * Where a key sits among the template variables:
+ * {{incident.customFields.<key>}}. The fields are the incident's, so their
+ * variables start with "incident." like every other incident value a note
+ * template offers ({{incident.title}}, {{incident.severity}}, ...). This is
+ * the one name shown, documented and offered everywhere: the custom field
+ * settings, the note template form, the subscriber template reference and
+ * the docs.
  */
-export const CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX: string = "customFields.";
+export const CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX: string =
+  "incident.customFields.";
+
+/*
+ * The prefix the variables had before they were named after the incident:
+ * {{customFields.<key>}}. Templates saved with it keep working - everything
+ * that fills the variables fills this name with the same value, and the
+ * subscriber template checks treat it as the same placeholder - but it is
+ * never shown or offered. Stored templates are not rewritten: a template is
+ * text its author (or Terraform, or an API client) owns, and rewriting it
+ * would show up as a change nobody made.
+ */
+export const LEGACY_CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX: string =
+  "customFields.";
+
+// Every prefix a template reaches a field by, the documented one first.
+export const CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIXES: ReadonlyArray<string> = [
+  CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
+  LEGACY_CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX,
+];
 
 const VARIABLE_KEY_PATTERN: RegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 
@@ -133,18 +159,26 @@ export type IsValidCustomFieldVariableKeyFunction = (key: unknown) => boolean;
 
 /**
  * Whether a key has the generator's shape and can be used as
- * {{customFields.<key>}} in a template the compiler fills.
+ * {{incident.customFields.<key>}} (or the older {{customFields.<key>}}) in a
+ * template the compiler fills.
  */
 export const isValidCustomFieldVariableKey: IsValidCustomFieldVariableKeyFunction =
   (key: unknown): boolean => {
-    return (
-      typeof key === "string" &&
-      key.length > 0 &&
-      key.length <= CUSTOM_FIELD_VARIABLE_KEY_MAX_LENGTH &&
-      VARIABLE_KEY_PATTERN.test(key) &&
-      SubscriberNotificationTemplateCompiler.isPlaceholderName(
-        `${CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX}${key}`,
-      )
+    if (
+      typeof key !== "string" ||
+      key.length === 0 ||
+      key.length > CUSTOM_FIELD_VARIABLE_KEY_MAX_LENGTH ||
+      !VARIABLE_KEY_PATTERN.test(key)
+    ) {
+      return false;
+    }
+
+    return CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIXES.every(
+      (prefix: string): boolean => {
+        return SubscriberNotificationTemplateCompiler.isPlaceholderName(
+          `${prefix}${key}`,
+        );
+      },
     );
   };
 
@@ -204,8 +238,84 @@ export type GetCustomFieldTemplateVariableNameFunction = (
   key: string,
 ) => string;
 
-/** "expected_resolution" -> "customFields.expected_resolution". */
+/**
+ * The name a template places the field by, as it is shown and documented:
+ * "expected_resolution" -> "incident.customFields.expected_resolution".
+ */
 export const getCustomFieldTemplateVariableName: GetCustomFieldTemplateVariableNameFunction =
   (key: string): string => {
     return `${CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX}${key}`;
+  };
+
+export type GetCustomFieldTemplateVariableNamesFunction = (
+  key: string,
+) => Array<string>;
+
+/**
+ * Every name a template reaches the field by: the documented one, then the
+ * older one templates saved before the rename may still hold. Whatever fills
+ * the variables gives each of them the same value.
+ */
+export const getCustomFieldTemplateVariableNames: GetCustomFieldTemplateVariableNamesFunction =
+  (key: string): Array<string> => {
+    return CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIXES.map(
+      (prefix: string): string => {
+        return `${prefix}${key}`;
+      },
+    );
+  };
+
+export type GetCustomFieldVariableKeyFromTemplateVariableNameFunction = (
+  name: string,
+) => string | null;
+
+/**
+ * The key a template variable reaches, written either way
+ * ("incident.customFields.impact" or "customFields.impact" -> "impact"), or
+ * null when the name is not a custom field variable at all. The key's shape
+ * is not checked: a mistyped or guessed key still names a custom field.
+ */
+export const getCustomFieldVariableKeyFromTemplateVariableName: GetCustomFieldVariableKeyFromTemplateVariableNameFunction =
+  (name: string): string | null => {
+    if (typeof name !== "string") {
+      return null;
+    }
+
+    for (const prefix of CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIXES) {
+      if (name.startsWith(prefix)) {
+        return name.slice(prefix.length);
+      }
+    }
+
+    return null;
+  };
+
+export type IsCustomFieldTemplateVariableNameFunction = (
+  name: string,
+) => boolean;
+
+/**
+ * Whether a placeholder reads an incident custom field, by either prefix -
+ * what the subscriber template checks must count, whatever the key.
+ */
+export const isCustomFieldTemplateVariableName: IsCustomFieldTemplateVariableNameFunction =
+  (name: string): boolean => {
+    return getCustomFieldVariableKeyFromTemplateVariableName(name) !== null;
+  };
+
+export type NormalizeCustomFieldTemplateVariableNameFunction = (
+  name: string,
+) => string;
+
+/**
+ * A custom field variable written the older way, in the documented form
+ * ("customFields.impact" -> "incident.customFields.impact"), so the two
+ * spellings of one field compare equal. Any other name is returned as it is.
+ */
+export const normalizeCustomFieldTemplateVariableName: NormalizeCustomFieldTemplateVariableNameFunction =
+  (name: string): string => {
+    const key: string | null =
+      getCustomFieldVariableKeyFromTemplateVariableName(name);
+
+    return key === null ? name : getCustomFieldTemplateVariableName(key);
   };

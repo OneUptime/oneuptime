@@ -570,7 +570,7 @@ for (const modelType of [
   ScheduledMaintenanceNoteTemplate,
   /*
    * An incident note template's placeholders ({{incident.title}},
-   * {{customFields.<key>}}) are filled in from the incident when it is
+   * {{incident.customFields.<key>}}) are filled in from the incident when it is
    * inserted, which reads the project's incident custom fields. This
    * workspace has none.
    */

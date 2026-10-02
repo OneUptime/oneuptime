@@ -206,6 +206,10 @@ describe("the live SLO list leaves archived SLOs out", () => {
     expect(source).toContain("### SLO Settings");
     expect(source).toContain("### Archiving");
     expect(source).toContain("**Archived** page");
+    // The side menu keeps Archived in its collapsed Advanced section.
+    expect(source).toContain(
+      "Find them on the **Archived** page, under **Advanced** in the side menu,",
+    );
     expect(source).toContain("| **Disabled** |");
   });
 });

@@ -7,6 +7,7 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import {
   DESKTOP_WIDTH,
   MOBILE_WIDTH,
+  activeLinkTitles,
   goTo,
   isExpanded,
   linksIn,
@@ -27,6 +28,10 @@ import {
  * naively would also hide Owner Rules and Label Rules while you are on them.
  *
  * These render the real menu against the real RouteMap and check both halves.
+ *
+ * Archived SLOs are reached from an Advanced section of their own, which
+ * starts collapsed like every Advanced section and opens by itself on the
+ * Archived page.
  */
 
 async function renderSloMenuAt(pageMapKey: string): Promise<void> {
@@ -43,16 +48,19 @@ describe("SLO list side menu", () => {
     cleanup();
   });
 
-  test("renders the SLO pages, then Settings, then Developer", async () => {
+  test("renders the SLO pages, then Settings, then Advanced, then Developer", async () => {
     await renderSloMenuAt(PageMap.SLOS);
 
     expect(sectionTitlesInOrder()).toEqual([
       "Service Level Objectives",
       "Settings",
+      "Advanced",
       "Developer",
     ]);
     expect(linksIn("Service Level Objectives")).toEqual([
       { title: "SLOs", href: routeFor(PageMap.SLOS) },
+    ]);
+    expect(linksIn("Advanced")).toEqual([
       { title: "Archived", href: routeFor(PageMap.SLOS_ARCHIVED) },
     ]);
     expect(linksIn("Settings")).toEqual([
@@ -90,6 +98,33 @@ describe("SLO list side menu", () => {
       expect(sectionBody("Settings")).not.toHaveClass("max-h-0");
     },
   );
+
+  test("on the SLO list, Advanced is collapsed with Archived folded away", async () => {
+    await renderSloMenuAt(PageMap.SLOS);
+
+    expect(isExpanded("Advanced")).toBe(false);
+    expect(sectionBody("Advanced")).toHaveClass(
+      "max-h-0",
+      "opacity-0",
+      "invisible",
+    );
+  });
+
+  test("on the Archived page, Advanced opens so the current page stays visible", async () => {
+    await renderSloMenuAt(PageMap.SLOS_ARCHIVED);
+
+    expect(isExpanded("Advanced")).toBe(true);
+    expect(sectionBody("Advanced")).not.toHaveClass("max-h-0");
+    expect(sectionBody("Advanced")).not.toHaveClass("invisible");
+    expect(activeLinkTitles()).toEqual(["Archived"]);
+  });
+
+  test("on a phone the menu summary names Advanced / Archived on the Archived page", async () => {
+    setViewportWidth(MOBILE_WIDTH);
+    await renderSloMenuAt(PageMap.SLOS_ARCHIVED);
+
+    expect(mobileSummaryText()).toContain("Advanced / Archived");
+  });
 
   test("the collapsed Settings section opens and closes from its heading", async () => {
     await renderSloMenuAt(PageMap.SLOS);

@@ -95,7 +95,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Subscribers">
+      {/*
+       * What the page shows (Basic, Resources) is what this menu is opened
+       * for. The sections after it look after its audience and setup:
+       * subscribers sign themselves up and are managed now and then, and
+       * notification logs, branding, security and AI are set up once or
+       * checked when something needs checking. So they fold down to their
+       * titles until opened, and each opens by itself on its own pages.
+       * Subscribers says so here; the others fold by their titles (see
+       * SideMenuSectionState.ts).
+       */}
+      <SideMenuSection title="Subscribers" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "Email Subscribers",

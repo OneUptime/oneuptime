@@ -93,6 +93,58 @@ const SLO_VIEW_TABS: Array<string> = [
   "Delete SLO",
 ];
 
+/*
+ * A side-menu section's toggle, by its heading's text (the heading is drawn
+ * in capitals by CSS). Rarely used sections start folded away in every menu:
+ * Advanced on the SLO list (it holds Archived), and Configuration and
+ * Management on an SLO's own page. Their rows are hidden, so getByRole does
+ * not find them until the section is opened.
+ */
+type SectionLocatorFunction = (page: Page, title: string) => Locator;
+
+const sideMenuSectionToggle: SectionLocatorFunction = (
+  page: Page,
+  title: string,
+): Locator => {
+  return page
+    .getByRole("navigation", { name: "Main navigation" })
+    .locator(`xpath=.//h6[normalize-space(.)='${title}']/ancestor::button[1]`);
+};
+
+type MenuLocatorFunction = (page: Page) => Locator;
+
+const sideMenuAdvancedToggle: MenuLocatorFunction = (page: Page): Locator => {
+  return sideMenuSectionToggle(page, "Advanced");
+};
+
+type OpenSideMenuSectionFunction = (page: Page, title: string) => Promise<void>;
+
+const openSideMenuSection: OpenSideMenuSectionFunction = async (
+  page: Page,
+  title: string,
+): Promise<void> => {
+  const toggle: Locator = sideMenuSectionToggle(page, title);
+
+  await expect(toggle).toBeVisible({ timeout: 30000 });
+
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+};
+
+type OpenSideMenuAdvancedFunction = (page: Page) => Promise<void>;
+
+const openSideMenuAdvanced: OpenSideMenuAdvancedFunction = async (
+  page: Page,
+): Promise<void> => {
+  await openSideMenuSection(page, "Advanced");
+};
+
+// The SLO view menu's sections that start folded on its overview.
+const SLO_VIEW_FOLDED_SECTIONS: Array<string> = ["Configuration", "Management"];
+
 type ProjectUrlFunction = (data: { projectId: string; path: string }) => string;
 
 const projectUrl: ProjectUrlFunction = (data: {
@@ -254,13 +306,23 @@ test.describe("SLOs", () => {
 
     /*
      * Archived SLOs are filtered out of the list, so the side menu's Archived
-     * entry is the only way back to one short of its URL.
+     * entry is the only way back to one short of its URL. It waits in the
+     * Advanced section, folded away until that is opened.
      */
-    await expect(
-      page
-        .getByRole("navigation", { name: "Main navigation" })
-        .getByRole("link", { name: "Archived", exact: true }),
-    ).toBeVisible({ timeout: 30000 });
+    const archivedLink: Locator = page
+      .getByRole("navigation", { name: "Main navigation" })
+      .getByRole("link", { name: "Archived", exact: true });
+    const advancedToggle: Locator = sideMenuAdvancedToggle(page);
+
+    await expect(advancedToggle).toHaveAttribute("aria-expanded", "false", {
+      timeout: 30000,
+    });
+    await expect(archivedLink).toBeHidden();
+
+    await advancedToggle.click();
+
+    await expect(advancedToggle).toHaveAttribute("aria-expanded", "true");
+    await expect(archivedLink).toBeVisible({ timeout: 30000 });
   });
 
   test("should create an SLO through the four-step wizard and land on its overview", async () => {
@@ -511,6 +573,29 @@ test.describe("SLOs", () => {
     const sideMenu: Locator = page.getByRole("navigation", {
       name: "Main navigation",
     });
+
+    /*
+     * Configuration and Management are folded down to their titles on the
+     * overview, like every rarely used section: their pages are hidden until
+     * the section is opened.
+     */
+    for (const section of SLO_VIEW_FOLDED_SECTIONS) {
+      await expect(sideMenuSectionToggle(page, section)).toHaveAttribute(
+        "aria-expanded",
+        "false",
+        { timeout: 30000 },
+      );
+    }
+    const burnRateRulesRow: Locator = sideMenu.locator(
+      "a[href$='/burn-rate-rules']",
+    );
+    await expect(burnRateRulesRow).toHaveCount(1);
+    await expect(burnRateRulesRow).toBeHidden();
+
+    for (const section of SLO_VIEW_FOLDED_SECTIONS) {
+      await openSideMenuSection(page, section);
+    }
+
     for (const tabName of SLO_VIEW_TABS) {
       await expect(sideMenu.getByRole("link", { name: tabName })).toBeVisible({
         timeout: 30000,
@@ -643,9 +728,16 @@ test.describe("SLOs", () => {
       page.getByRole("list", { name: "Monitors measured by this SLO" }),
     ).toHaveCount(0);
 
+    /*
+     * The monitors and settings live in the side menu instead, under
+     * Configuration and Management, which start folded on the overview.
+     */
     const sideMenu: Locator = page.getByRole("navigation", {
       name: "Main navigation",
     });
+    for (const section of SLO_VIEW_FOLDED_SECTIONS) {
+      await openSideMenuSection(page, section);
+    }
     for (const tabName of ["Monitors", "Settings"]) {
       await expect(sideMenu.getByRole("link", { name: tabName })).toBeVisible();
     }
@@ -1135,7 +1227,11 @@ test.describe("SLOs", () => {
       "the server stamps archivedAt on archive",
     ).toBeTruthy();
 
-    // The Archived page, reached through the list's side menu, lists it.
+    /*
+     * The Archived page, reached through the list's side menu, lists it. Its
+     * entry waits in the menu's Advanced section, folded away until opened.
+     */
+    await openSideMenuAdvanced(page);
     await page
       .getByRole("navigation", { name: "Main navigation" })
       .getByRole("link", { name: "Archived", exact: true })

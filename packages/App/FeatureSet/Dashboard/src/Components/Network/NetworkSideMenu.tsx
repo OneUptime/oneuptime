@@ -16,7 +16,8 @@ import { DeveloperDocsScope } from "../DeveloperDocs/DeveloperDocsPages";
  * and Network Sites sections render this same component, so wherever the
  * user lands they see the entire product as one coherent thing instead of
  * two disconnected page groups. Day-to-day inventory comes first, followed
- * by topology, then the collapsed rule and definition sections.
+ * by topology, then the collapsed rule and definition sections, and
+ * Advanced, which holds the archived devices.
  */
 const NetworkSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -67,15 +68,6 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Search,
-        },
-        {
-          link: {
-            title: "Archived Devices",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
         },
       ],
     },
@@ -252,6 +244,25 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Layers,
+        },
+      ],
+    },
+    /*
+     * The way back to archived devices, which the device lists leave out. Few
+     * visits need it, so it waits in Advanced: folded away until opened, and
+     * open by itself on the Archived Devices page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived Devices",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
         },
       ],
     },

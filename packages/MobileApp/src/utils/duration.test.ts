@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   formatDuration,
+  formatElapsed,
   formatShiftTime,
   formatShiftWindow,
   formatTimeUntil,
@@ -23,6 +24,68 @@ import {
 const MINUTE: number = 60 * 1000;
 const HOUR: number = 60 * MINUTE;
 const DAY: number = 24 * HOUR;
+
+/*
+ * How long a status has lasted. The status in effect counts up on screen
+ * every second, so - unlike a countdown - it has to show seconds, or it reads
+ * as frozen for a minute at a time.
+ */
+describe("formatElapsed", () => {
+  const SECOND: number = 1000;
+
+  test("shows seconds alone under a minute", () => {
+    expect(formatElapsed(SECOND)).toBe("1s");
+    expect(formatElapsed(54 * SECOND)).toBe("54s");
+    expect(formatElapsed(59 * SECOND)).toBe("59s");
+  });
+
+  test("shows minutes and seconds under an hour", () => {
+    expect(formatElapsed(MINUTE)).toBe("1m 0s");
+    expect(formatElapsed(2 * MINUTE + 54 * SECOND)).toBe("2m 54s");
+    expect(formatElapsed(59 * MINUTE + 59 * SECOND)).toBe("59m 59s");
+  });
+
+  test("shows hours, minutes and seconds under a day", () => {
+    expect(formatElapsed(HOUR)).toBe("1h 0m 0s");
+    expect(formatElapsed(2 * HOUR + 14 * MINUTE + 5 * SECOND)).toBe(
+      "2h 14m 5s",
+    );
+    expect(formatElapsed(DAY - SECOND)).toBe("23h 59m 59s");
+  });
+
+  test("drops the seconds from a day on, where they stop meaning anything", () => {
+    expect(formatElapsed(DAY)).toBe("1d 0h 0m");
+    expect(formatElapsed(2 * DAY + 4 * HOUR + 12 * MINUTE + 33 * SECOND)).toBe(
+      "2d 4h 12m",
+    );
+  });
+
+  test("moves on by exactly one second, second by second", () => {
+    const start: number = 2 * MINUTE + 58 * SECOND;
+
+    expect(
+      [0, 1, 2, 3].map((tick: number): string => {
+        return formatElapsed(start + tick * SECOND);
+      }),
+    ).toEqual(["2m 58s", "2m 59s", "3m 0s", "3m 1s"]);
+  });
+
+  test("never rounds a part second up", () => {
+    expect(formatElapsed(54 * SECOND + 999)).toBe("54s");
+  });
+
+  test("anything under a second, and a span that has not begun, is 0s", () => {
+    // A start a few seconds ahead of the handset's clock is skew, not a future.
+    expect(formatElapsed(0)).toBe("0s");
+    expect(formatElapsed(999)).toBe("0s");
+    expect(formatElapsed(-5 * SECOND)).toBe("0s");
+  });
+
+  test("a non-finite span does not leak NaN into the UI", () => {
+    expect(formatElapsed(Number.NaN)).toBe("0s");
+    expect(formatElapsed(Number.POSITIVE_INFINITY)).toBe("0s");
+  });
+});
 
 describe("formatDuration", () => {
   test("never shows more than two units", () => {
