@@ -87,9 +87,15 @@ export interface TerraformAttributeDescriptor {
    * server moves it on, so generated configuration leaves these out.
    */
   isServerManaged: boolean;
-  // The column's model, for sets of ids.
+  /*
+   * The model the column points at: for a set of ids (`labels`), the model
+   * of its records; for an id (`incidentSeverityId`), the model of the
+   * relation it is the key of (`incidentSeverity`).
+   */
   relatedModelType?: DatabaseBaseModelType | undefined;
   example?: JSONValue | undefined;
+  // What the model says the column is for (its API documentation).
+  description?: string | undefined;
   // The column's read permissions, to know whether the viewer may fetch it.
   readPermissions: Array<Permission>;
 }
@@ -477,6 +483,8 @@ export function getTerraformAttributes(
   const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
   const accessControlByColumn: Dictionary<ColumnAccessControl> =
     model.getColumnAccessControlForAllColumns();
+  const relatedModelByForeignKey: Dictionary<DatabaseBaseModelType> =
+    getRelatedModelsByForeignKey(columns);
 
   const attributes: Array<TerraformAttributeDescriptor> = [];
 
@@ -530,16 +538,72 @@ export function getTerraformAttributes(
 
     if (column.type === TableColumnType.EntityArray && column.modelType) {
       descriptor.relatedModelType = column.modelType;
+    } else if (relatedModelByForeignKey[columnName]) {
+      descriptor.relatedModelType = relatedModelByForeignKey[columnName];
     }
 
     if (column.example !== undefined) {
       descriptor.example = column.example as JSONValue;
     }
 
+    if (column.description) {
+      descriptor.description = column.description;
+    }
+
     attributes.push(descriptor);
   }
 
   return attributes;
+}
+
+/*
+ * The model behind each foreign key: `incidentSeverityId` is the key of the
+ * `incidentSeverity` relation, whose model is IncidentSeverity.
+ */
+function getRelatedModelsByForeignKey(
+  columns: Dictionary<TableColumnMetadata>,
+): Dictionary<DatabaseBaseModelType> {
+  const related: Dictionary<DatabaseBaseModelType> = {};
+
+  for (const columnName of Object.keys(columns)) {
+    const column: TableColumnMetadata | undefined = columns[columnName];
+
+    if (
+      column?.type === TableColumnType.Entity &&
+      column.manyToOneRelationColumn &&
+      column.modelType
+    ) {
+      related[column.manyToOneRelationColumn] =
+        column.modelType as DatabaseBaseModelType;
+    }
+  }
+
+  return related;
+}
+
+// One attribute of a model's resource, by column name.
+export function getTerraformAttribute(
+  modelType: DatabaseBaseModelType,
+  columnName: string,
+): TerraformAttributeDescriptor | undefined {
+  return getTerraformAttributes(modelType).find(
+    (descriptor: TerraformAttributeDescriptor): boolean => {
+      return descriptor.columnName === columnName;
+    },
+  );
+}
+
+/*
+ * Whether the model's data source can look a record up by `name`: the
+ * provider's lookup sends `{"query": {"name": ...}}`, so it works only for
+ * models with a `name` column. One named by another column (an incident's
+ * `title`) is looked up by id.
+ */
+export function canLookUpByName(modelType: DatabaseBaseModelType): boolean {
+  return (
+    Boolean(getTerraformTypeName(modelType)) &&
+    Boolean(getTableColumns(new modelType())["name"])
+  );
 }
 
 /*
