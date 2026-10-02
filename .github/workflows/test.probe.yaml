@@ -14,6 +14,14 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # The suite runs transpile-only: packages/Probe/jest.config.json sets
+    # ts-jest's isolatedModules, as App's and Common's do, so ts-jest no longer
+    # type-checks each test file together with everything it imports, one file
+    # after another (--detectOpenHandles keeps jest in band).
+    #
+    # Nothing goes unchecked: Probe's tsconfig.json includes ./**/*.ts, so the
+    # compile-probe job in the Compile workflow type-checks every test file as
+    # part of one tsc program. A type error in a test fails there.
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
