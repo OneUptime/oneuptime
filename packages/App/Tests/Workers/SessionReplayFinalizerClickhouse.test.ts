@@ -779,6 +779,211 @@ integration("Rum:FinalizeSessions against ClickHouse", () => {
     expect(Number(headers[0]!["chunkCount"])).toBe(2);
     expect(Number(headers[0]!["eventCount"])).toBe(2);
   });
+
+  /*
+   * #4206, against the real server. The session is identified (and tagged)
+   * by a page the user signed in on; a NEWER header version comes from a
+   * page that named nobody - the login page an app's sign-out redirects to,
+   * written by an upload that raced the identified one. The finalized row
+   * must still name the person, with their traits and the tags, while
+   * every other column (exitUrl here) still comes from the newest version.
+   *
+   * One insert per version, as the ingest writes them, with merges held
+   * off: ReplacingMergeTree collapses same-key rows inside one insert
+   * block (optimize_on_insert) and in a background merge, and either
+   * would leave only the newest version for the read to see. That is also
+   * the honest limit of this read - it can only find a version a merge
+   * has not removed yet; the ingest's carry is what keeps the newest
+   * version right in the first place.
+   */
+  test("the finalized row keeps the newest identity and tags even when a newer version names nobody", async () => {
+    const signedInSessionId: string = "3b2c4d5e6f708192a3b4c5d6e7f80912";
+    const userKey: string = "c".repeat(64);
+    const headerBase: JSONObject = {
+      ...provisionalHeaderRow(),
+      sessionId: signedInSessionId,
+    };
+    const baseVersion: number = sessionStart.getTime();
+
+    await RumSessionChunkService.insertJsonRows(
+      [
+        {
+          ...chunkRow({
+            tabId: "tab-app",
+            chunkIndex: 0,
+            version: 1000,
+            startOffsetMs: 0,
+            eventCount: 30,
+            errorCount: 0,
+            hasFullSnapshot: true,
+            url: "https://app.example.com/orders",
+          }),
+          sessionId: signedInSessionId,
+        },
+        {
+          ...chunkRow({
+            tabId: "tab-login",
+            chunkIndex: 0,
+            version: 1000,
+            startOffsetMs: 20000,
+            eventCount: 5,
+            errorCount: 0,
+            hasFullSnapshot: true,
+            isFinal: true,
+            url: "https://app.example.com/login",
+          }),
+          sessionId: signedInSessionId,
+        },
+      ],
+      { clickhouseSettings: { wait_for_async_insert: 1 } },
+    );
+
+    const versions: Array<JSONObject> = [
+      /* An older identified version that a newer identity replaced. */
+      {
+        ...headerBase,
+        _id: ObjectID.generateTimeOrdered().toString(),
+        version: String(baseVersion),
+        identifiedUserKey: "a".repeat(64),
+        identifiedUserLabel: "someone-before@example.com",
+        identifiedUserTraits: { role: "intern" },
+        tags: { build: "1.0.0" },
+      },
+      /* The newest version that names a person, and has tags. */
+      {
+        ...headerBase,
+        _id: ObjectID.generateTimeOrdered().toString(),
+        version: String(baseVersion + 1),
+        identifiedUserKey: userKey,
+        identifiedUserLabel: "jshoemaker@example.com",
+        identifiedUserTraits: { role: "manager" },
+        tags: { build: "1.2.3" },
+      },
+      /* The newest version of all: a page that named nobody. */
+      {
+        ...headerBase,
+        _id: ObjectID.generateTimeOrdered().toString(),
+        version: String(baseVersion + 2),
+        exitUrl: "https://app.example.com/login",
+      },
+    ];
+
+    const table: string = `${database}.${AnalyticsTableName.RumSession}`;
+
+    await client.command({ query: `SYSTEM STOP MERGES ${table}` });
+
+    try {
+      for (const version of versions) {
+        await RumSessionService.insertJsonRows([version], {
+          clickhouseSettings: { wait_for_async_insert: 1 },
+        });
+      }
+
+      /* All three versions are there for the read to choose from. */
+      expect(
+        await readRows(
+          SQL`
+            SELECT version
+            FROM ${database}.${AnalyticsTableName.RumSession}
+            WHERE sessionId = ${{ type: TableColumnType.Text, value: signedInSessionId }}`,
+        ),
+      ).toHaveLength(3);
+
+      const outcome: FinalizeSessionOutcome = await finalizeSession({
+        projectId: projectId,
+        sessionId: signedInSessionId,
+        databaseName: database,
+        correlation: { traceIds: [], exceptionFingerprints: [] },
+      });
+
+      expect(outcome).toBe("written");
+    } finally {
+      await client.command({ query: `SYSTEM START MERGES ${table}` });
+    }
+
+    const headers: Array<JSONObject> = await readRows(
+      SQL`
+        SELECT isFinalized, identifiedUserKey, identifiedUserLabel,
+          identifiedUserTraits, tags, exitUrl
+        FROM ${database}.${AnalyticsTableName.RumSession}
+        WHERE sessionId = ${{ type: TableColumnType.Text, value: signedInSessionId }}
+        ORDER BY version DESC
+        LIMIT 1`,
+    );
+
+    expect(headers).toHaveLength(1);
+
+    const header: JSONObject = headers[0]!;
+
+    expect(header["isFinalized"]).toBe(true);
+    expect(header["identifiedUserKey"]).toBe(userKey);
+    expect(header["identifiedUserLabel"]).toBe("jshoemaker@example.com");
+    expect(header["identifiedUserTraits"]).toEqual({ role: "manager" });
+    expect(header["tags"]).toEqual({ build: "1.2.3" });
+    expect(header["exitUrl"]).toBe("https://app.example.com/login");
+  });
+
+  test("a session nobody identified finalizes anonymous, with empty maps", async () => {
+    const anonymousSessionId: string = "4c3d5e6f708192a3b4c5d6e7f8091a2b";
+
+    await RumSessionChunkService.insertJsonRows(
+      [
+        {
+          ...chunkRow({
+            tabId: "tab-a",
+            chunkIndex: 0,
+            version: 1000,
+            startOffsetMs: 0,
+            eventCount: 10,
+            errorCount: 0,
+            hasFullSnapshot: true,
+            isFinal: true,
+            url: "https://app.example.com/login",
+          }),
+          sessionId: anonymousSessionId,
+        },
+      ],
+      { clickhouseSettings: { wait_for_async_insert: 1 } },
+    );
+
+    await RumSessionService.insertJsonRows(
+      [
+        { ...provisionalHeaderRow(), sessionId: anonymousSessionId },
+        {
+          ...provisionalHeaderRow(),
+          sessionId: anonymousSessionId,
+          version: String(sessionStart.getTime() + 1),
+        },
+      ],
+      { clickhouseSettings: { wait_for_async_insert: 1 } },
+    );
+
+    const outcome: FinalizeSessionOutcome = await finalizeSession({
+      projectId: projectId,
+      sessionId: anonymousSessionId,
+      databaseName: database,
+      correlation: { traceIds: [], exceptionFingerprints: [] },
+    });
+
+    expect(outcome).toBe("written");
+
+    const headers: Array<JSONObject> = await readRows(
+      SQL`
+        SELECT isFinalized, identifiedUserKey, identifiedUserLabel,
+          identifiedUserTraits, tags
+        FROM ${database}.${AnalyticsTableName.RumSession}
+        WHERE sessionId = ${{ type: TableColumnType.Text, value: anonymousSessionId }}
+        ORDER BY version DESC
+        LIMIT 1`,
+    );
+
+    expect(headers).toHaveLength(1);
+    expect(headers[0]!["isFinalized"]).toBe(true);
+    expect(headers[0]!["identifiedUserKey"]).toBe("");
+    expect(headers[0]!["identifiedUserLabel"]).toBe("");
+    expect(headers[0]!["identifiedUserTraits"]).toEqual({});
+    expect(headers[0]!["tags"]).toEqual({});
+  });
 });
 
 /*

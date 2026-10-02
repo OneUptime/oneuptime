@@ -2298,25 +2298,20 @@ export default class SessionReplayIngestService {
      * Who the session belongs to: the carried identity, so a header version
      * from a page that never named anyone cannot make an identified session
      * anonymous again (#4206) - see SessionHeaderCarry.identifiedUserKey.
-     * deriveChunkIdentity already applied the identity switch to what went
-     * INTO the carry; it is applied again to what comes out, because the
-     * carry outlives a policy change. An application that switched identity
-     * capture off mid-session stores nobody from then on, whatever an
-     * earlier chunk established.
+     *
+     * The identity switch was applied where the reference ARRIVED
+     * (deriveChunkIdentity): nothing a chunk names while capture is off
+     * ever enters the carry. It is deliberately not applied again here. An
+     * identity accepted while the switch was on belongs to its session the
+     * way it belongs to every session finalized before the switch moved,
+     * and the finalizer keeps it on the same terms (the newest header
+     * version that names a person), so the provisional row and the
+     * finalized one cannot disagree about who the session was.
      */
-    const isIdentityCaptured: boolean = data.policy.captureUserIdentity;
-
-    const identifiedUserKey: string = isIdentityCaptured
-      ? carry.identifiedUserKey
-      : "";
-
-    const identifiedUserLabel: string = isIdentityCaptured
-      ? carry.identifiedUserLabel
-      : "";
-
-    const identifiedUserTraits: Record<string, string> = isIdentityCaptured
-      ? carry.identifiedUserTraits
-      : {};
+    const identifiedUserKey: string = carry.identifiedUserKey;
+    const identifiedUserLabel: string = carry.identifiedUserLabel;
+    const identifiedUserTraits: Record<string, string> =
+      carry.identifiedUserTraits;
 
     /*
      * Tags describe the session, not the person: no identity switch. From
@@ -2444,7 +2439,7 @@ export default class SessionReplayIngestService {
        * The IP itself is never stored.
        */
       countryCode: data.policy.captureGeo ? data.jobData.countryCode : "",
-      /* From the carry, gated on the current policy; see above. */
+      /* From the carry; see above. */
       identifiedUserKey: identifiedUserKey,
       identifiedUserLabel: identifiedUserLabel,
       identifiedUserTraits: identifiedUserTraits,

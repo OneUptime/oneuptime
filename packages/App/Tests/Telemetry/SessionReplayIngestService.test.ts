@@ -4649,11 +4649,14 @@ describe("SessionReplayIngestService.processFromQueue - a signed-in session stay
   });
 
   /*
-   * The carry outlives a policy change. An application that turns identity
-   * capture off mid-session must stop storing the person from that moment
-   * on, even though an earlier chunk established them.
+   * The switch governs what is ACCEPTED. Turned off mid-session, it stops
+   * any reference - the same person's or a new one - from being taken
+   * from the wire, while the identity accepted before it moved stays with
+   * its session, exactly as it stays on every session finalized before.
+   * The finalizer keeps it on the same terms, so the provisional row and
+   * the finalized one agree.
    */
-  test("switching identity capture off mid-session stops publishing the carried identity", async () => {
+  test("switching identity capture off mid-session accepts no new reference and keeps the one accepted before", async () => {
     await ingest([
       {
         sessionId: SESSION_ID,
@@ -4671,11 +4674,27 @@ describe("SessionReplayIngestService.processFromQueue - a signed-in session stay
 
     const afterSwitch: Array<JSONObject> = await ingest([
       { sessionId: SESSION_ID, tabId: SECOND_TAB, chunkIndex: 0, meta: meta() },
+      {
+        sessionId: SESSION_ID,
+        tabId: SECOND_TAB,
+        chunkIndex: 1,
+        meta: meta({
+          identifiedUserRef: OTHER_USER_REF,
+          identifiedUserTraits: { plan: "enterprise" },
+        }),
+      },
     ]);
 
-    expect(afterSwitch[0]!["identifiedUserKey"]).toBe("");
-    expect(afterSwitch[0]!["identifiedUserLabel"]).toBe("");
-    expect(afterSwitch[0]!["identifiedUserTraits"]).toEqual({});
+    expect(afterSwitch).toHaveLength(2);
+
+    for (const header of afterSwitch) {
+      expect(header["identifiedUserLabel"]).toBe(USER_REF);
+      expect(header["identifiedUserTraits"]).toEqual({ plan: "pro" });
+    }
+
+    expect(JSON.stringify(afterSwitch)).not.toContain(OTHER_USER_REF);
+    expect(redisStrings.get(carryKey())).not.toContain(OTHER_USER_REF);
+    expect(redisStrings.get(carryKey())).not.toContain("enterprise");
   });
 
   test("a reference that arrives while capture is off is never carried into a later version", async () => {
