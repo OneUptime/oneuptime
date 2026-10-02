@@ -21,6 +21,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import { JSONArray } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { getDropTargetValue } from "../../../Utils/ListOrder";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import Select from "../../../Types/BaseDatabase/Select";
 
@@ -292,10 +293,32 @@ const ModelList: <TBaseModel extends BaseModel>(
             descriptionField={props.descriptionField}
             dragAndDropScope={`${props.id}-dnd`}
             customElement={props.customElement}
-            onDragDrop={async (id: string, newOrder: number) => {
+            onDragDrop={async (
+              id: string,
+              destinationIndex: number,
+              sourceIndex: number,
+            ) => {
               if (!props.dragDropIndexField) {
                 return;
               }
+
+              /*
+               * The dragged row takes the number of the row it was dropped
+               * on; the server moves it there and shifts the rest
+               * (@ListOrderColumn). Its place on screen when that row has
+               * no number yet.
+               */
+              const orderField: string = props.dragDropIndexField as string;
+
+              const value: number =
+                getDropTargetValue<TBaseModel>({
+                  items: searchedList,
+                  sourceIndex: sourceIndex,
+                  destinationIndex: destinationIndex,
+                  getValue: (item: TBaseModel): unknown => {
+                    return (item as any)[orderField];
+                  },
+                }) ?? destinationIndex + 1;
 
               setIsLoading(true);
 
@@ -303,7 +326,7 @@ const ModelList: <TBaseModel extends BaseModel>(
                 modelType: props.modelType,
                 id: new ObjectID(id),
                 data: {
-                  [props.dragDropIndexField]: newOrder,
+                  [orderField]: value,
                 },
               });
 

@@ -110,6 +110,9 @@ import URL from "../../../Types/API/URL";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { ListOrderSettings } from "../../../Types/Database/ListOrderColumn";
+import { getDropTargetValue, moveListItem } from "../../../Utils/ListOrder";
+import Alert, { AlertType } from "../Alerts/Alert";
 import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
@@ -144,6 +147,22 @@ import UserPreferences, {
 } from "../../../Utils/UserPreferences";
 import RequestOptions from "../../Utils/API/RequestOptions";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
+
+/*
+ * How many rows a drag-ordered table shows at once unless told otherwise.
+ * Rows can only be dragged within the page on screen, so it should hold the
+ * whole list - these are settings lists of a handful of rows to a few dozen.
+ */
+export const MANUALLY_ORDERED_ITEMS_ON_PAGE: number = 50;
+
+export const REORDER_OFF_WHILE_FILTERED: string =
+  "Drag to reorder is off while a filter or search is on.";
+
+export const REORDER_SAVING: string = "Saving the new order...";
+
+export const REORDER_SAVED: string = "The new order is saved.";
+
+export const REORDER_FAILED: string = "The new order could not be saved.";
 
 export enum ShowAs {
   Table,
@@ -844,6 +863,33 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
   }, [props.modelType]);
 
+  /*
+   * A list people put in order by dragging its rows (enableDragAndDrop with
+   * the column that holds the order). Such a list is always shown in that
+   * order - sorting it by another column would make "drag it above that
+   * one" meaningless - and its order is never typed in: the server puts a
+   * new row at the end and keeps the numbers (@ListOrderColumn).
+   */
+  const isManuallyOrdered: boolean = Boolean(
+    props.enableDragAndDrop && props.dragDropIndexField,
+  );
+
+  /*
+   * Which end of the numbers is the top: the model says so when it is a
+   * @ListOrderColumn list (site assignment rules count down), else the
+   * table's own sort order.
+   */
+  const getManualSortOrder: () => SortOrder = (): SortOrder => {
+    const listOrder: ListOrderSettings | null =
+      model instanceof BaseModel ? model.getListOrder() : null;
+
+    if (listOrder && listOrder.column === props.dragDropIndexField) {
+      return listOrder.sortOrder;
+    }
+
+    return props.sortOrder || SortOrder.Ascending;
+  };
+
   const getItemsOnPage: () => number = (): number => {
     if (props.userPreferencesKey) {
       const itemsOnPage: number | null =
@@ -856,7 +902,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       }
     }
 
-    return props.initialItemsOnPage || 10;
+    return (
+      props.initialItemsOnPage ||
+      (isManuallyOrdered ? MANUALLY_ORDERED_ITEMS_ON_PAGE : 10)
+    );
   };
 
   /*
@@ -942,6 +991,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const [error, setError] = useState<string>("");
   const [tableFilterError, setTableFilterError] = useState<string>("");
+
+  // A dropped row's new place is being saved.
+  const [isReordering, setIsReordering] = useState<boolean>(false);
+  // Why the last drop could not be saved - the rows went back.
+  const [reorderError, setReorderError] = useState<string>("");
+  // For screen readers: the last drop was saved.
+  const [isReorderSaved, setIsReorderSaved] = useState<boolean>(false);
 
   /*
    * Auto-detect label support from the existing filters array. We look for
@@ -2104,9 +2160,47 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     props.onQueryChange?.(buildEffectiveQuery());
   }, [effectiveQueryKey]);
 
-  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
+  type FetchItemsFunction = (options?: {
+    /*
+     * Refresh the rows without the loading state - after a drop, whose rows
+     * are already on screen in their new order. Dimming them and blocking
+     * clicks would make a finished move look like it was still going on.
+     */
+    quiet?: boolean | undefined;
+  }) => Promise<void>;
+
+  const getFetchSort: () => Sort<TBaseModel> = (): Sort<TBaseModel> => {
+    if (isManuallyOrdered) {
+      /*
+       * Always in the list's own order, ties broken the way the server
+       * breaks them (Common/Utils/ListOrder), so the row a drop lands on is
+       * the row the server moves it next to.
+       */
+      return {
+        [props.dragDropIndexField as string]: getManualSortOrder(),
+        createdAt: SortOrder.Ascending,
+      } as Sort<TBaseModel>;
+    }
+
+    return (
+      sortBy
+        ? {
+            [sortBy as any]: sortOrder,
+          }
+        : {}
+    ) as Sort<TBaseModel>;
+  };
+
+  const fetchItems: FetchItemsFunction = async (options?: {
+    quiet?: boolean | undefined;
+  }): Promise<void> => {
+    const isQuiet: boolean = Boolean(options?.quiet);
+
     setError("");
-    setIsLoading(true);
+
+    if (!isQuiet) {
+      setIsLoading(true);
+    }
 
     if (props.onFetchInit) {
       props.onFetchInit(currentPageNumber, itemsOnPage);
@@ -2132,11 +2226,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           ...getSelect(),
           ...getRelationSelect(),
         },
-        sort: sortBy
-          ? {
-              [sortBy as any]: sortOrder,
-            }
-          : {},
+        sort: getFetchSort(),
         requestOptions: props.fetchRequestOptions,
       });
 
@@ -2155,7 +2245,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setError(API.getFriendlyMessage(err));
     }
 
-    setIsLoading(false);
+    if (!isQuiet) {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -2544,6 +2636,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     columnName: keyof TBaseModel | null,
   ): boolean => {
     if (!columnName) {
+      return true;
+    }
+
+    // A drag-ordered list is always shown in its own order.
+    if (isManuallyOrdered) {
       return true;
     }
 
@@ -3272,8 +3369,144 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     );
   };
 
+  /*
+   * Drag-and-drop reordering, for both the table and the list layout.
+   *
+   * A drop moves the row on screen at once and saves it in the background:
+   * the row is given the number of the row it was dropped on, and the server
+   * moves it there and shifts the rows in between (@ListOrderColumn). The
+   * list is then refreshed quietly to pick up the renumbering. If the save
+   * fails, the rows go back where they were and say why.
+   *
+   * While a filter or search narrows the list, dragging is off - the rows in
+   * between are not on screen, so "drop it above this one" would mean
+   * something the person cannot see. The grips stay, greyed out, and a line
+   * above the list says why.
+   */
+  const isReorderBlockedByFilter: boolean =
+    isManuallyOrdered && (isSearchActive() || hasFilterApplied(filterData));
+
+  const isDragDisabled: boolean = isReorderBlockedByFilter || isReordering;
+
+  const dragDisabledReason: string | undefined = isReorderBlockedByFilter
+    ? REORDER_OFF_WHILE_FILTERED
+    : isReordering
+      ? REORDER_SAVING
+      : undefined;
+
+  type OnRowDroppedFunction = (
+    id: string,
+    destinationIndex: number,
+    sourceIndex: number,
+  ) => Promise<void>;
+
+  const onRowDropped: OnRowDroppedFunction = async (
+    id: string,
+    destinationIndex: number,
+    sourceIndex: number,
+  ): Promise<void> => {
+    const orderField: keyof TBaseModel | undefined = props.dragDropIndexField;
+
+    if (!orderField || isDragDisabled || destinationIndex === sourceIndex) {
+      return;
+    }
+
+    const rowsBeforeDrop: Array<TBaseModel> = data;
+
+    let value: number | null = getDropTargetValue<TBaseModel>({
+      items: rowsBeforeDrop,
+      sourceIndex: sourceIndex,
+      destinationIndex: destinationIndex,
+      getValue: (item: TBaseModel): unknown => {
+        return (item as unknown as Dictionary<unknown>)[orderField as string];
+      },
+    });
+
+    if (value === null) {
+      /*
+       * The row it landed on has no number yet - a list saved before the
+       * server kept them. Its place on screen is the best there is.
+       */
+      const position: number =
+        (currentPageNumber - 1) * itemsOnPage + destinationIndex + 1;
+
+      value =
+        getManualSortOrder() === SortOrder.Descending
+          ? Math.max(totalItemsCount - position + 1, 1)
+          : position;
+    }
+
+    setReorderError("");
+    setIsReorderSaved(false);
+    setData(moveListItem(rowsBeforeDrop, sourceIndex, destinationIndex));
+    setIsReordering(true);
+
+    try {
+      await props.callbacks.updateById({
+        id: new ObjectID(id),
+        data: {
+          [orderField]: value,
+        },
+      });
+    } catch (err) {
+      setData(rowsBeforeDrop);
+      setReorderError(API.getFriendlyMessage(err));
+      setIsReordering(false);
+      return;
+    }
+
+    setIsReordering(false);
+    setIsReorderSaved(true);
+
+    await fetchItems({ quiet: true });
+  };
+
+  type GetReorderMessagesFunction = () => ReactElement | null;
+
+  const getReorderMessages: GetReorderMessagesFunction =
+    (): ReactElement | null => {
+      if (!isManuallyOrdered) {
+        return null;
+      }
+
+      return (
+        <>
+          <span className="sr-only" role="status" aria-live="polite">
+            {isReordering
+              ? tx(REORDER_SAVING)
+              : isReorderSaved
+                ? tx(REORDER_SAVED)
+                : ""}
+          </span>
+          {reorderError ? (
+            <Alert
+              type={AlertType.DANGER}
+              strongTitle={REORDER_FAILED}
+              title={reorderError}
+              onClose={() => {
+                setReorderError("");
+              }}
+              className="mb-4"
+              dataTestId="reorder-error"
+            />
+          ) : null}
+          {isReorderBlockedByFilter && data.length > 1 ? (
+            <div
+              className="mb-3 flex items-center gap-1.5 text-xs text-gray-500"
+              data-testid="reorder-off-while-filtered"
+            >
+              <Icon icon={IconProp.GripVertical} className="h-4 w-4" />
+              <span>{tx(REORDER_OFF_WHILE_FILTERED)}</span>
+            </div>
+          ) : null}
+        </>
+      );
+    };
+
   const getTable: GetReactElementFunction = (): ReactElement => {
     return (
+      <>
+      {getReorderMessages()}
       <Table
         onFilterChanged={(filterData: FilterData<TBaseModel>) => {
           onFilterChanged(filterData);
@@ -3526,28 +3759,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         enableDragAndDrop={props.enableDragAndDrop}
         dragDropIdField={"_id"}
         dragDropIndexField={props.dragDropIndexField}
+        isDragDisabled={isDragDisabled}
+        dragDisabledReason={dragDisabledReason}
         totalItemsCount={totalItemsCount}
         hasMore={hasMore}
         data={data}
         id={props.id}
         columns={tableColumns}
         itemsOnPage={itemsOnPage}
-        onDragDrop={async (id: string, newOrder: number) => {
-          if (!props.dragDropIndexField) {
-            return;
-          }
-
-          setIsLoading(true);
-
-          await props.callbacks.updateById({
-            id: new ObjectID(id),
-            data: {
-              [props.dragDropIndexField]: newOrder,
-            },
-          });
-
-          await fetchItems();
-        }}
+        onDragDrop={onRowDropped}
         disablePagination={props.disablePagination || false}
         onNavigateToPage={async (
           pageNumber: number,
@@ -3569,6 +3789,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }}
         actionButtons={actionButtonSchema}
       />
+      </>
     );
   };
 
@@ -3643,6 +3864,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const getList: GetReactElementFunction = (): ReactElement => {
     return (
+      <>
+      {getReorderMessages()}
       <List
         onFilterChanged={(filterData: FilterData<TBaseModel>) => {
           onFilterChanged(filterData);
@@ -3668,21 +3891,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         currentPageNumber={currentPageNumber}
         listDetailOptions={props.listDetailOptions}
         enableDragAndDrop={props.enableDragAndDrop}
-        onDragDrop={async (id: string, newOrder: number) => {
-          if (!props.dragDropIndexField) {
-            return;
-          }
-
-          setIsLoading(true);
-
-          await props.callbacks.updateById({
-            id: new ObjectID(id),
-            data: {
-              [props.dragDropIndexField]: newOrder,
-            },
-          });
-
-          await fetchItems();
+        onDragDrop={onRowDropped}
+        isDragDisabled={isDragDisabled}
+        dragDisabledReason={dragDisabledReason}
+        itemToString={(item: TBaseModel): string => {
+          const label: string = props.singularName || item.singularName || "";
+          const name: string = getItemLabel(item);
+          return name && label ? `${label}: ${name}` : name || label;
         }}
         dragDropIdField={"_id"}
         dragDropIndexField={props.dragDropIndexField}
@@ -3712,6 +3927,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }}
         actionButtons={actionButtonSchema}
       />
+      </>
     );
   };
 

@@ -32,7 +32,10 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   dragAndDropScope?: string | undefined;
   dragDropIdField?: keyof TBaseModel | undefined;
   dragDropIndexField?: keyof TBaseModel | undefined;
-  onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
+  // Positions in `list`; never called for a drop that moved nothing.
+  onDragDrop?:
+    | ((id: string, destinationIndex: number, sourceIndex: number) => void)
+    | undefined;
 }
 
 const StaticModelList: <TBaseModel extends BaseModel>(
@@ -145,16 +148,17 @@ const StaticModelList: <TBaseModel extends BaseModel>(
               return (
                 <Draggable
                   draggableId={
-                    ((model as any)[props.dragDropIdField || ""] as string) ||
+                    (model as any)[props.dragDropIdField || ""]?.toString() ||
                     ""
                   }
-                  index={
-                    ((model as any)[props.dragDropIndexField || 0] as number) ||
-                    0
-                  }
+                  /*
+                   * The row's place on screen, not its stored order: the
+                   * Draggable index must run 0, 1, 2... with no gaps.
+                   */
+                  index={i}
                   key={
-                    ((model as any)[props.dragDropIndexField || 0] as number) ||
-                    0
+                    (model as any)[props.dragDropIdField || ""]?.toString() ||
+                    i
                   }
                 >
                   {(provided: DraggableProvided) => {
@@ -188,9 +192,20 @@ const StaticModelList: <TBaseModel extends BaseModel>(
   return (
     <DragDropContext
       onDragEnd={(result: DropResult) => {
-        if (result.destination?.index && props.onDragDrop) {
-          props.onDragDrop(result.draggableId, result.destination.index);
+        // Index 0 is the top of the list: a drop there is a real move.
+        if (
+          !props.onDragDrop ||
+          !result.destination ||
+          result.destination.index === result.source.index
+        ) {
+          return;
         }
+
+        props.onDragDrop(
+          result.draggableId,
+          result.destination.index,
+          result.source.index,
+        );
       }}
     >
       {getComponent()}

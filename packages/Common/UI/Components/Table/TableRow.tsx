@@ -18,8 +18,13 @@ import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import React, { ReactElement, useState, useEffect } from "react";
-import { Draggable, DraggableProvided } from "react-beautiful-dnd";
+import {
+  Draggable,
+  DraggableProvided,
+  DraggableStateSnapshot,
+} from "react-beautiful-dnd";
 import LongTextViewer from "../LongText/LongTextViewer";
+import DragHandle from "./DragHandle";
 
 export interface ComponentProps<T extends GenericObject> {
   item: T;
@@ -30,6 +35,17 @@ export interface ComponentProps<T extends GenericObject> {
   dragAndDropScope?: string | undefined;
   dragDropIdField?: keyof T | undefined;
   dragDropIndexField?: keyof T | undefined;
+  /*
+   * Where this row is in the list on screen - what react-beautiful-dnd needs
+   * as the Draggable's index (0, 1, 2... with no gaps). It used to be handed
+   * the row's stored order number instead, which broke the moment those
+   * numbers started at 1, skipped one or repeated.
+   */
+  dragIndex?: number | undefined;
+  // Reordering is off for now (a filter is on, or a move is being saved).
+  isDragDisabled?: boolean | undefined;
+  // Why, in the caller's words - shown on the grip.
+  dragDisabledReason?: string | undefined;
 
   // bulk actions
   isBulkActionsEnabled?: undefined | boolean;
@@ -158,11 +174,36 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     );
   };
 
-  type GetRowFunction = (provided?: DraggableProvided) => ReactElement;
+  type GetRowFunction = (
+    provided?: DraggableProvided,
+    snapshot?: DraggableStateSnapshot,
+  ) => ReactElement;
+
+  const getDragHandle: (provided?: DraggableProvided) => ReactElement = (
+    provided?: DraggableProvided,
+  ): ReactElement => {
+    return (
+      <DragHandle
+        dragHandleProps={provided?.dragHandleProps}
+        itemLabel={props.itemLabel}
+        isDisabled={props.isDragDisabled}
+        disabledReason={props.dragDisabledReason}
+      />
+    );
+  };
 
   const getRow: GetRowFunction = (
     provided?: DraggableProvided,
+    snapshot?: DraggableStateSnapshot,
   ): ReactElement => {
+    /*
+     * The row being dragged floats above the others, so it reads as picked
+     * up rather than as a row that lost its place.
+     */
+    const draggingClassName: string = snapshot?.isDragging
+      ? "shadow-lg ring-1 ring-gray-200"
+      : "";
+
     // Mobile view: render as a card
     if (props.isMobile) {
       return (
@@ -171,17 +212,11 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
             {...props.rowProps}
             {...provided?.draggableProps}
             ref={provided?.innerRef}
-            className={`p-4 bg-white border-b border-gray-200 ${props.rowProps?.className || ""}`}
+            className={`p-4 bg-white border-b border-gray-200 ${draggingClassName} ${props.rowProps?.className || ""}`}
           >
             {props.enableDragAndDrop ? (
-              <div
-                className="mb-3 flex justify-center"
-                {...provided?.dragHandleProps}
-              >
-                <Icon
-                  icon={IconProp.ArrowUpDown}
-                  className="h-4 w-4 text-gray-400"
-                />
+              <div className="mb-3 -ml-1 flex items-center">
+                {getDragHandle(provided)}
               </div>
             ) : (
               <></>
@@ -335,23 +370,19 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
           {...props.rowProps}
           {...provided?.draggableProps}
           ref={provided?.innerRef}
+          className={
+            `${props.rowProps?.className || ""} ${
+              snapshot?.isDragging ? `bg-white ${draggingClassName}` : ""
+            }`.trim() || undefined
+          }
         >
           {props.enableDragAndDrop && (
-            <td
-              className="ml-5 py-4 w-10 align-top"
-              {...provided?.dragHandleProps}
-            >
-              <Icon
-                icon={IconProp.ArrowUpDown}
-                className="ml-6 h-5 w-5 text-gray-500 hover:text-indigo-800 m-auto cursor-ns-resize"
-              />
+            <td className="w-10 py-3 pl-4 pr-0 align-top">
+              {getDragHandle(provided)}
             </td>
           )}
           {props.isBulkActionsEnabled && (
-            <td
-              className="w-10 py-3.5  align-top"
-              {...provided?.dragHandleProps}
-            >
+            <td className="w-10 py-3.5  align-top">
               <div className="ml-5">{getBulkSelectCheckbox()}</div>
             </td>
           )}
@@ -502,19 +533,15 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     );
   };
 
-  if (
-    props.enableDragAndDrop &&
-    props.dragDropIdField &&
-    props.dragDropIndexField
-  ) {
+  if (props.enableDragAndDrop && props.dragDropIdField) {
     return (
       <Draggable
-        draggableId={(props.item[props.dragDropIdField] as string) || ""}
-        index={(props.item[props.dragDropIndexField] as number) || 0}
-        key={(props.item[props.dragDropIndexField] as number) || 0}
+        draggableId={props.item[props.dragDropIdField]?.toString() || ""}
+        index={props.dragIndex || 0}
+        isDragDisabled={Boolean(props.isDragDisabled)}
       >
-        {(provided: DraggableProvided) => {
-          return getRow(provided);
+        {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => {
+          return getRow(provided, snapshot);
         }}
       </Draggable>
     );

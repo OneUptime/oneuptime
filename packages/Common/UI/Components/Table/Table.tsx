@@ -27,6 +27,13 @@ export interface BulkActionProps<T extends GenericObject> {
   buttons: Array<BulkActionButtonSchema<T>>;
 }
 
+/*
+ * What a screen reader reads out on a row's grip. react-beautiful-dnd's own
+ * is English whatever the page's language.
+ */
+export const DRAG_HANDLE_USAGE_INSTRUCTIONS: string =
+  "Press Space to pick up this row. Use the arrow keys to move it, Space to drop it, or Escape to put it back.";
+
 export interface ComponentProps<T extends GenericObject> {
   data: Array<T>;
   /** Optional row attributes and navigation, shared by desktop and mobile rows. */
@@ -85,7 +92,21 @@ export interface ComponentProps<T extends GenericObject> {
   enableDragAndDrop?: boolean | undefined;
   dragDropIndexField?: keyof T | undefined;
   dragDropIdField?: keyof T | undefined;
-  onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
+  /*
+   * A row was dropped somewhere else: its id, where it landed and where it
+   * came from - positions in `data`, the list as it is on screen. Not called
+   * for a drop outside the list or back where the row started.
+   */
+  onDragDrop?:
+    | ((id: string, destinationIndex: number, sourceIndex: number) => void)
+    | undefined;
+  /*
+   * Reordering is off for now - a filter or search narrows the list, or a
+   * move is still being saved. The rows keep their grips, greyed out, and
+   * each grip says why (dragDisabledReason).
+   */
+  isDragDisabled?: boolean | undefined;
+  dragDisabledReason?: string | undefined;
 
   // bulk actions
   bulkActions?: BulkActionProps<T> | undefined;
@@ -321,6 +342,8 @@ const Table: TableFunction = <T extends GenericObject>(
         dragAndDropScope={`${props.id}-dnd`}
         dragDropIdField={props.dragDropIdField}
         dragDropIndexField={props.dragDropIndexField}
+        isDragDisabled={props.isDragDisabled}
+        dragDisabledReason={props.dragDisabledReason}
         isBulkActionsEnabled={isBulkActionsEnabled}
         onItemSelected={(item: T) => {
           // set bulk selected items.
@@ -450,10 +473,28 @@ const Table: TableFunction = <T extends GenericObject>(
         />
       )}
       <DragDropContext
+        dragHandleUsageInstructions={
+          translateString(DRAG_HANDLE_USAGE_INSTRUCTIONS) ||
+          DRAG_HANDLE_USAGE_INSTRUCTIONS
+        }
         onDragEnd={(result: DropResult) => {
-          if (result.destination?.index && props.onDragDrop) {
-            props.onDragDrop(result.draggableId, result.destination.index);
+          /*
+           * The top of the list is index 0 - which the old truthiness check
+           * here threw away, so a row could never be dragged to the top.
+           */
+          if (
+            !props.onDragDrop ||
+            !result.destination ||
+            result.destination.index === result.source.index
+          ) {
+            return;
           }
+
+          props.onDragDrop(
+            result.draggableId,
+            result.destination.index,
+            result.source.index,
+          );
         }}
       >
         <div className="-my-2 overflow-x-auto md:-mx-6">
