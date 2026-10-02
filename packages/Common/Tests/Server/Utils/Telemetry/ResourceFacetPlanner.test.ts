@@ -581,13 +581,18 @@ describe("ResourceFacetPlanner.needsTraceResourceFacetCounts", () => {
     ).toBe(false);
   });
 
-  test("needed as soon as one requested resource facet listed a row", () => {
+  test("a listed resource row does not force the shared count query either", () => {
+    /*
+     * Issue #3251: traces count resource facets per listed resource (id OR
+     * entity key OR attribute), so the shared primaryEntityId projection is
+     * only still needed for statusCode.
+     */
     expect(
       ResourceFacetPlanner.needsTraceResourceFacetCounts({
         facetKeys: ["hostId", "iotFleetId"],
         listed: { hostId: [], iotFleetId: [entity("f1", "sensors")] },
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   test("a listed row for a facet that was NOT requested does not count", () => {

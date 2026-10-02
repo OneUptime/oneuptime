@@ -272,7 +272,13 @@ describe("the page talks to the server through its own client only", () => {
     expect(apiPathsSource).not.toContain("incident-form");
 
     const modelSource: string = readCode(
-      nodePath.join(PACKAGES_DIR, "Common", "Models", "DatabaseModels", "Form.ts"),
+      nodePath.join(
+        PACKAGES_DIR,
+        "Common",
+        "Models",
+        "DatabaseModels",
+        "Form.ts",
+      ),
     );
     const serverApiSource: string = readCode(
       nodePath.join(PACKAGES_DIR, "Common", "Server", "API", "FormAPI.ts"),
@@ -280,7 +286,9 @@ describe("the page talks to the server through its own client only", () => {
 
     expect(modelSource).toContain('@CrudApiEndpoint(new Route("/form"))');
     expect(serverApiSource).toContain("?.toString()}/public/:shareKey`,");
-    expect(serverApiSource).toContain("?.toString()}/public/:shareKey/submit`,");
+    expect(serverApiSource).toContain(
+      "?.toString()}/public/:shareKey/submit`,",
+    );
 
     expect(utilsSource).toContain("`/${encodeURIComponent(shareKey)}`");
     expect(utilsSource).toContain("`/${encodeURIComponent(shareKey)}/submit`");

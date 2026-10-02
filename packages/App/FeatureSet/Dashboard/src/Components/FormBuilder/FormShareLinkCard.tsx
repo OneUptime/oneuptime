@@ -182,15 +182,9 @@ const FormShareLinkCard: FunctionComponent<ComponentProps> = (
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <CopyTextButton
               textToBeCopied={linkText}
-              label={
-                translateString(FormsCopy.copyLink) ||
-                FormsCopy.copyLink
-              }
+              label={translateString(FormsCopy.copyLink) || FormsCopy.copyLink}
               copiedLabel={translateString("Copied!") || "Copied!"}
-              title={
-                translateString(FormsCopy.copyLink) ||
-                FormsCopy.copyLink
-              }
+              title={translateString(FormsCopy.copyLink) || FormsCopy.copyLink}
               size="md"
               variant="soft"
             />
@@ -202,8 +196,7 @@ const FormShareLinkCard: FunctionComponent<ComponentProps> = (
             >
               <Icon icon={IconProp.ExternalLink} className="h-4 w-4" />
               <span>
-                {translateString(FormsCopy.openForm) ||
-                  FormsCopy.openForm}
+                {translateString(FormsCopy.openForm) || FormsCopy.openForm}
               </span>
             </Link>
           </div>

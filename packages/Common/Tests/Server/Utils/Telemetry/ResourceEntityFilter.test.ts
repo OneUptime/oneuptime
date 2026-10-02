@@ -406,7 +406,7 @@ describe("ResourceEntityFilter", () => {
           RESOURCE_ID,
           OTHER_RESOURCE_ID,
         ]);
-        expect(call["select"]).toEqual({ name: true });
+        expect(call["select"]).toEqual({ _id: true, name: true });
         expect(call["props"]).toEqual({ isRoot: true });
         expect(call["limit"].toNumber()).toBe(2);
         expect(call["skip"].toNumber()).toBe(0);
@@ -507,7 +507,7 @@ describe("ResourceEntityFilter", () => {
       const call: Record<string, any> = serverlessFunctionFindBy.mock
         .calls[0]![0] as Record<string, any>;
       expect(call["query"]["projectId"]).toBe(PROJECT_ID);
-      expect(call["select"]).toEqual({ functionIdentifier: true });
+      expect(call["select"]).toEqual({ _id: true, functionIdentifier: true });
     });
 
     test("iotFleetId matches the id or resource.iot.fleet.name, with no entity key", async () => {
@@ -531,7 +531,7 @@ describe("ResourceEntityFilter", () => {
       const call: Record<string, any> = iotFleetFindBy.mock
         .calls[0]![0] as Record<string, any>;
       expect(call["query"]["projectId"]).toBe(PROJECT_ID);
-      expect(call["select"]).toEqual({ name: true });
+      expect(call["select"]).toEqual({ _id: true, name: true });
     });
 
     test("a blank function identifier leaves the id branch alone", async () => {
@@ -1447,6 +1447,46 @@ describe("ResourceEntityFilter", () => {
       expect(statement.query).toBe(
         "AND (hasAny(entityKeys, {p0:Array(String)}))",
       );
+    });
+  });
+
+  /*
+   * Filtering (resolveScopes) and counting (resolveCountScopes) must read
+   * the same per-facet definition: a type wired into one path and not the
+   * other would filter correctly but count zero (#3251).
+   */
+  describe("count scope matches filter scope for every catalog facet", () => {
+    test.each(
+      RESOURCE_FACET_CATALOG_KEYS.map((key: string) => {
+        return [key];
+      }),
+    )("%s", async (facetKey: string) => {
+      for (const findBy of ALL_FIND_BY_MOCKS) {
+        findBy.mockResolvedValue([
+          {
+            _id: RESOURCE_ID,
+            hostIdentifier: "ident",
+            clusterIdentifier: "ident",
+            functionIdentifier: "ident",
+            name: "ident",
+          },
+        ]);
+      }
+
+      const filterScopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { [facetKey]: [RESOURCE_ID] },
+        });
+      const countScopes: Map<string, ResourceEntityScope> =
+        await ResourceEntityFilter.resolveCountScopes({
+          projectId: PROJECT_ID,
+          facetKey,
+          ids: [RESOURCE_ID],
+        });
+
+      expect(filterScopes).toHaveLength(1);
+      expect(countScopes.get(RESOURCE_ID)).toEqual(filterScopes[0]);
     });
   });
 });

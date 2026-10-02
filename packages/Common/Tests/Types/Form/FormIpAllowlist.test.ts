@@ -127,9 +127,7 @@ describe("validateFormIpAllowlist - lists that could never match", () => {
   });
 
   test("quotes a long entry shortened", () => {
-    const message: string | null = validateFormIpAllowlist(
-      "x".repeat(500),
-    );
+    const message: string | null = validateFormIpAllowlist("x".repeat(500));
 
     expect(message).toContain(`("${"x".repeat(80)}...")`);
     expect(message!.length).toBeLessThan(300);

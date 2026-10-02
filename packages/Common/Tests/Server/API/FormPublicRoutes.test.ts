@@ -549,19 +549,17 @@ describe("the public form routes over HTTP", () => {
     getClientMock.mockReturnValue(client);
     isConnectedMock.mockReturnValue(true);
 
-    jest
-      .spyOn(FormService, "findOneBy")
-      .mockImplementation((async (findBy: {
-        query: { shareKey?: ObjectID };
-      }): Promise<Form | null> => {
-        return (
-          FORMS.find((form: Form) => {
-            return (
-              form.shareKey?.toString() === findBy.query.shareKey?.toString()
-            );
-          }) || null
-        );
-      }) as never);
+    jest.spyOn(FormService, "findOneBy").mockImplementation((async (findBy: {
+      query: { shareKey?: ObjectID };
+    }): Promise<Form | null> => {
+      return (
+        FORMS.find((form: Form) => {
+          return (
+            form.shareKey?.toString() === findBy.query.shareKey?.toString()
+          );
+        }) || null
+      );
+    }) as never);
 
     jest.spyOn(IncidentCustomFieldService, "findBy").mockResolvedValue([]);
     jest.spyOn(IncidentSeverityService, "findBy").mockResolvedValue([]);
@@ -736,9 +734,7 @@ describe("the public form routes over HTTP", () => {
       });
 
       expect(result.status).toBe(400);
-      expect(errorMessageOf(result)).toBe(
-        FORM_SUBMISSION_BODY_MESSAGE,
-      );
+      expect(errorMessageOf(result)).toBe(FORM_SUBMISSION_BODY_MESSAGE);
       expect(submitPublicForm).not.toHaveBeenCalled();
     });
 
@@ -799,9 +795,7 @@ describe("the public form routes over HTTP", () => {
       });
 
       expect(result.status).toBe(403);
-      expect(errorMessageOf(result)).toBe(
-        FORM_NETWORK_NOT_ALLOWED_MESSAGE,
-      );
+      expect(errorMessageOf(result)).toBe(FORM_NETWORK_NOT_ALLOWED_MESSAGE);
     });
 
     it("refuses a submission from a network it does not allow", async () => {
@@ -814,9 +808,7 @@ describe("the public form routes over HTTP", () => {
       });
 
       expect(result.status).toBe(403);
-      expect(errorMessageOf(result)).toBe(
-        FORM_NETWORK_NOT_ALLOWED_MESSAGE,
-      );
+      expect(errorMessageOf(result)).toBe(FORM_NETWORK_NOT_ALLOWED_MESSAGE);
       expect(incidentCreate).not.toHaveBeenCalled();
     });
 
@@ -1166,9 +1158,7 @@ describe("the public form routes over HTTP", () => {
           });
 
           expect(result.status).toBe(400);
-          expect(errorMessageOf(result)).toBe(
-            FORM_SUBMISSION_BODY_MESSAGE,
-          );
+          expect(errorMessageOf(result)).toBe(FORM_SUBMISSION_BODY_MESSAGE);
         }
 
         expect(submitPublicForm).not.toHaveBeenCalled();
@@ -1200,9 +1190,7 @@ describe("the public form routes over HTTP", () => {
 
         for (const result of [read, submitted]) {
           expect(result.status).toBe(404);
-          expect(errorMessageOf(result)).toBe(
-            FORM_NOT_AVAILABLE_MESSAGE,
-          );
+          expect(errorMessageOf(result)).toBe(FORM_NOT_AVAILABLE_MESSAGE);
         }
 
         expect(incidentCreate).not.toHaveBeenCalled();
@@ -1241,9 +1229,7 @@ describe("the public form routes over HTTP", () => {
       });
 
       expect(result.status).toBe(429);
-      expect(errorMessageOf(result)).toBe(
-        FORM_READ_RATE_LIMIT_MESSAGE,
-      );
+      expect(errorMessageOf(result)).toBe(FORM_READ_RATE_LIMIT_MESSAGE);
       expect(Number(result.headers["retry-after"])).toBeGreaterThan(0);
       expect(getPublicForm).not.toHaveBeenCalled();
     });
@@ -1270,9 +1256,7 @@ describe("the public form routes over HTTP", () => {
       });
 
       expect(result.status).toBe(429);
-      expect(errorMessageOf(result)).toBe(
-        FORM_SUBMIT_RATE_LIMIT_MESSAGE,
-      );
+      expect(errorMessageOf(result)).toBe(FORM_SUBMIT_RATE_LIMIT_MESSAGE);
       expect(Number(result.headers["retry-after"])).toBeGreaterThan(0);
       expect(incidentCreate).toHaveBeenCalledTimes(10);
     });
@@ -1418,9 +1402,7 @@ describe("the public form routes over HTTP", () => {
       });
 
       expect(refused.status).toBe(429);
-      expect(errorMessageOf(refused)).toBe(
-        FORM_TOTAL_RATE_LIMIT_MESSAGE,
-      );
+      expect(errorMessageOf(refused)).toBe(FORM_TOTAL_RATE_LIMIT_MESSAGE);
       expect(Number(refused.headers["retry-after"])).toBeGreaterThan(0);
       expect(Number(refused.headers["retry-after"])).toBeLessThanOrEqual(
         60 * 60,
@@ -1439,9 +1421,7 @@ describe("the public form routes over HTTP", () => {
       });
 
       expect(result.status).toBe(503);
-      expect(errorMessageOf(result)).toBe(
-        FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
-      );
+      expect(errorMessageOf(result)).toBe(FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE);
       expect(incidentCreate).not.toHaveBeenCalled();
     });
   });
@@ -1458,9 +1438,7 @@ describe("the public form routes over HTTP", () => {
       });
 
       expect(result.status).toBe(503);
-      expect(errorMessageOf(result)).toBe(
-        FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
-      );
+      expect(errorMessageOf(result)).toBe(FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE);
       expect(submitPublicForm).not.toHaveBeenCalled();
       expect(incidentCreate).not.toHaveBeenCalled();
     });
@@ -1609,10 +1587,7 @@ describe("the public form routes over HTTP", () => {
     it("still answers the signed-in CRUD routes beside them with a 401", async () => {
       for (const [method, path] of [
         ["POST", "/api/form/get-list"],
-        [
-          "POST",
-          `/api/form/${ObjectID.generate().toString()}/get-item`,
-        ],
+        ["POST", `/api/form/${ObjectID.generate().toString()}/get-item`],
       ] as Array<["GET" | "POST", string]>) {
         const result: HttpResult = await send({
           port,
@@ -1688,9 +1663,9 @@ describe("the public routes and the CRUD routes never collide", () => {
     expect(routesFor("GET", `/form/public/${shareKey}`)).toEqual([
       "GET /form/public/:shareKey",
     ]);
-    expect(
-      routesFor("POST", `/form/public/${shareKey}/submit`),
-    ).toEqual(["POST /form/public/:shareKey/submit"]);
+    expect(routesFor("POST", `/form/public/${shareKey}/submit`)).toEqual([
+      "POST /form/public/:shareKey/submit",
+    ]);
   });
 
   it.each([

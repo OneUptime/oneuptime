@@ -2350,6 +2350,58 @@ const ANALYTICS_LIST_TABLES = [
   tableName(Span),
 ];
 
+/*
+ * The rows an analytics read (getList or count) matches, or null when the
+ * fixture does not model the table.
+ */
+const analyticsRecords = (kind, modelType, rawQuery, sort) => {
+  const modelName = tableName(modelType);
+  if (!ANALYTICS_LIST_TABLES.includes(modelName)) {
+    fixture.unhandled.push({ kind, modelName });
+    return null;
+  }
+  const query = { ...(rawQuery || {}) };
+  /*
+   * Map-column filters (Log.attributes) are matched key by key: every
+   * requested attribute must be present with the same value.
+   */
+  const attributeFilter = query.attributes;
+  delete query.attributes;
+  /*
+   * Generated rows exist for any window, so a read of a generated table
+   * must name one on its time column (every explorer and page read does).
+   */
+  let candidates = table(modelType);
+  const generated = GENERATED_TABLES[modelName];
+  if (generated) {
+    const time = query[generated.column];
+    if (time instanceof InBetween) {
+      candidates = rowsBetween(
+        generated,
+        toTime(time.startValue),
+        toTime(time.endValue),
+      );
+    } else {
+      fixture.unhandled.push({
+        kind,
+        modelName,
+        missing: `an InBetween on ${generated.column}`,
+      });
+    }
+  }
+  return sortRecords(
+    candidates.filter((item) => {
+      if (!matches(item, query)) {
+        return false;
+      }
+      return Object.entries(attributeFilter || {}).every(([key, value]) => {
+        return String(item.attributes?.[key]) === attributeValue(value);
+      });
+    }),
+    sort,
+  );
+};
+
 AnalyticsModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
   const skip = Number(options.skip || 0);
@@ -2364,50 +2416,15 @@ AnalyticsModelAPI.getList = async (options) => {
     skip,
     limit,
   });
-  if (!ANALYTICS_LIST_TABLES.includes(modelName)) {
-    fixture.unhandled.push({ kind: "analytics.getList", modelName });
-    return { data: [], count: 0, skip, limit };
-  }
-  const query = { ...(options.query || {}) };
-  /*
-   * Map-column filters (Log.attributes) are matched key by key: every
-   * requested attribute must be present with the same value.
-   */
-  const attributeFilter = query.attributes;
-  delete query.attributes;
-  /*
-   * Generated rows exist for any window, so a read of a generated table
-   * must name one on its time column (every explorer and page read does).
-   */
-  let candidates = table(options.modelType);
-  const generated = GENERATED_TABLES[modelName];
-  if (generated) {
-    const time = query[generated.column];
-    if (time instanceof InBetween) {
-      candidates = rowsBetween(
-        generated,
-        toTime(time.startValue),
-        toTime(time.endValue),
-      );
-    } else {
-      fixture.unhandled.push({
-        kind: "analytics.getList",
-        modelName,
-        missing: `an InBetween on ${generated.column}`,
-      });
-    }
-  }
-  const records = sortRecords(
-    candidates.filter((item) => {
-      if (!matches(item, query)) {
-        return false;
-      }
-      return Object.entries(attributeFilter || {}).every(([key, value]) => {
-        return String(item.attributes?.[key]) === attributeValue(value);
-      });
-    }),
+  const records = analyticsRecords(
+    "analytics.getList",
+    options.modelType,
+    options.query,
     options.sort,
   );
+  if (!records) {
+    return { data: [], count: 0, skip, limit };
+  }
   return {
     data: records.slice(skip, skip + limit).map((item) => {
       return projectRecord(options.modelType, item, options.select);
@@ -2426,8 +2443,8 @@ AnalyticsModelAPI.count = async (modelType, query) => {
     query: serialize(query),
     window: windowOf(query),
   });
-  fixture.unhandled.push({ kind: "analytics.count", modelName });
-  return 0;
+  const records = analyticsRecords("analytics.count", modelType, query);
+  return records ? records.length : 0;
 };
 
 AnalyticsModelAPI.aggregate = async (options) => {

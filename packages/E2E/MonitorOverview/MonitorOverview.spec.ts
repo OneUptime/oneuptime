@@ -736,7 +736,10 @@ test.describe("probe checks", () => {
     ).toContainText("Offline");
     await expect(
       page.getByTestId("monitor-status-change-row").first(),
-    ).toContainText("ongoing, 12 minutes");
+    ).toContainText("Currently Active");
+    await expect(
+      page.getByTestId("monitor-status-change-row").first(),
+    ).toContainText("for 12 minutes");
     await screenshot(page, "monitor-overview-offline");
   });
 
