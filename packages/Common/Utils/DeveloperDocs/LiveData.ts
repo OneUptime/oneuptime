@@ -254,8 +254,7 @@ export function pickDeveloperDocsLiveRecord(
   tableName: string,
   pick?: DeveloperDocsLivePick | undefined,
 ): DeveloperDocsLiveRecord | null {
-  const records: Array<DeveloperDocsLiveRecord> =
-    live.records[tableName] || [];
+  const records: Array<DeveloperDocsLiveRecord> = live.records[tableName] || [];
 
   const candidates: Array<DeveloperDocsLiveRecord> = records.filter(
     (record: DeveloperDocsLiveRecord): boolean => {

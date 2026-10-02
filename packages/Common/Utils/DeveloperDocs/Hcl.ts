@@ -132,6 +132,8 @@ const INDENT: string = "  ";
 // Longest comment written after a value: a record's name, cut down.
 const MAX_TRAILING_COMMENT_LENGTH: number = 60;
 
+const WHITESPACE: RegExp = /\s/;
+
 /*
  * Text for a `# comment` at the end of a line. Comments here carry names
  * people typed (a label called "prod", a monitor called "API"), and a line
@@ -143,7 +145,7 @@ export function toHclTrailingComment(text: string): string {
   const flattened: string = Array.from(text)
     .map((character: string): string => {
       const code: number = character.charCodeAt(0);
-      return code < 0x20 || code === 0x7f || /\s/.test(character)
+      return code < 0x20 || code === 0x7f || WHITESPACE.test(character)
         ? " "
         : character;
     })
@@ -548,9 +550,7 @@ interface Assignment {
   comment?: string | undefined;
 }
 
-function printAssignments(
-  assignments: Array<Assignment>,
-): Array<PrintedLine> {
+function printAssignments(assignments: Array<Assignment>): Array<PrintedLine> {
   const printed: Array<PrintedAssignment> = assignments.map(
     (assignment: Assignment): PrintedAssignment => {
       const lines: Array<PrintedLine> = printExpression(assignment.value);

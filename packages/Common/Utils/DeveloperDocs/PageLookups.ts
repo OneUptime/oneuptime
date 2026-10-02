@@ -109,9 +109,7 @@ export function getDeveloperDocsLiveModels(data: {
   scope: DeveloperDocsScopeName;
   page: DeveloperDocsPageKind;
 }): Array<DatabaseBaseModelType> {
-  const profile: DeveloperDocsProfile = getDeveloperDocsProfile(
-    data.modelType,
-  );
+  const profile: DeveloperDocsProfile = getDeveloperDocsProfile(data.modelType);
   const models: Map<string, DatabaseBaseModelType> = new Map<
     string,
     DatabaseBaseModelType
@@ -281,8 +279,9 @@ function addId(
   id: string,
 ): void {
   const tableName: string = getTableName(modelType);
-  const entry: { modelType: DatabaseBaseModelType; ids: Set<string> } =
-    ids.get(tableName) || { modelType, ids: new Set<string>() };
+  const entry: { modelType: DatabaseBaseModelType; ids: Set<string> } = ids.get(
+    tableName,
+  ) || { modelType, ids: new Set<string>() };
 
   entry.ids.add(id);
   ids.set(tableName, entry);
@@ -297,8 +296,10 @@ export function getDeveloperDocsRecordLookups(data: {
   modelType: DatabaseBaseModelType;
   json: Dictionary<unknown>;
 }): Array<DeveloperDocsLookup> {
-  const ids: Map<string, { modelType: DatabaseBaseModelType; ids: Set<string> }> =
-    new Map<string, { modelType: DatabaseBaseModelType; ids: Set<string> }>();
+  const ids: Map<
+    string,
+    { modelType: DatabaseBaseModelType; ids: Set<string> }
+  > = new Map<string, { modelType: DatabaseBaseModelType; ids: Set<string> }>();
 
   for (const descriptor of getTerraformAttributes(data.modelType)) {
     const value: unknown = data.json[descriptor.columnName];
@@ -312,7 +313,12 @@ export function getDeveloperDocsRecordLookups(data: {
       continue;
     }
 
-    if (!descriptor.relatedModelType || descriptor.secretKind) {
+    // Only ids the configuration writes: never the project, the creator, a current state.
+    if (
+      !descriptor.relatedModelType ||
+      descriptor.secretKind ||
+      descriptor.isServerManaged
+    ) {
       continue;
     }
 

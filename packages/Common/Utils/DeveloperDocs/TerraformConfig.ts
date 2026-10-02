@@ -58,6 +58,8 @@ const MAX_LOCAL_NAME_LENGTH: number = 40;
 export enum TerraformOmissionReason {
   Secret = "secret",
   Hashed = "hashed",
+  // Named like a Terraform meta-argument (`provider`), so it cannot be written.
+  ReservedName = "reserved-name",
   ServerManaged = "server-managed",
   Unsupported = "unsupported",
   // Set only at creation, or only on update, and not configuration we can carry safely.
@@ -89,6 +91,8 @@ export interface TerraformResourceConfig {
   dataSourceHcl: string;
   variables: Array<TerraformSecretVariable>;
   omittedSecrets: Array<TerraformOmittedAttribute>;
+  // Attributes with a value that Terraform cannot set: see isReservedName.
+  omittedReserved: Array<TerraformOmittedAttribute>;
 }
 
 /*
@@ -543,6 +547,7 @@ export function getTerraformResourceConfig(data: {
     new TerraformVariableCollector();
   const body: Array<HclBodyItem> = [];
   const omittedSecrets: Array<TerraformOmittedAttribute> = [];
+  const omittedReserved: Array<TerraformOmittedAttribute> = [];
 
   for (const descriptor of orderAttributes(attributes, nameColumn)) {
     const value: unknown = data.json[descriptor.columnName];
@@ -583,6 +588,19 @@ export function getTerraformResourceConfig(data: {
     }
 
     if (!valuePresent) {
+      continue;
+    }
+
+    /*
+     * `provider = "EKS"` in a resource block is Terraform's provider
+     * meta-argument, and fails validation: the value stays in OneUptime.
+     */
+    if (descriptor.isReservedName) {
+      omittedReserved.push({
+        attributeName: descriptor.attributeName,
+        title: descriptor.title,
+        reason: TerraformOmissionReason.ReservedName,
+      });
       continue;
     }
 
@@ -630,6 +648,19 @@ export function getTerraformResourceConfig(data: {
         ),
       );
     }
+  }
+
+  if (omittedReserved.length > 0) {
+    body.push(Hcl.blank());
+    body.push(
+      Hcl.comment(
+        `Not set here, because Terraform reserves the name: ${omittedReserved
+          .map((omitted: TerraformOmittedAttribute): string => {
+            return omitted.attributeName;
+          })
+          .join(", ")}.\nIt stays as it is in OneUptime.`,
+      ),
+    );
   }
 
   if (omittedSecrets.length > 0) {
@@ -681,6 +712,7 @@ export function getTerraformResourceConfig(data: {
     ]),
     variables: variables.variables,
     omittedSecrets,
+    omittedReserved,
   };
 }
 

@@ -98,7 +98,27 @@ export interface TerraformAttributeDescriptor {
   description?: string | undefined;
   // The column's read permissions, to know whether the viewer may fetch it.
   readPermissions: Array<Permission>;
+  /*
+   * Named like one of Terraform's own meta-arguments (`provider`, `count`),
+   * which a resource block reads as the meta-argument: the attribute exists
+   * in the provider but cannot be set from a configuration.
+   */
+  isReservedName: boolean;
 }
+
+/*
+ * Terraform's meta-arguments: inside a resource block these names mean
+ * Terraform's own settings, never the resource's attribute.
+ */
+export const TERRAFORM_RESOURCE_META_ARGUMENTS: ReadonlyArray<string> = [
+  "count",
+  "for_each",
+  "depends_on",
+  "lifecycle",
+  "provider",
+  "provisioner",
+  "connection",
+];
 
 // Never part of a create or update schema (ModelSchema.getCreateModelSchema).
 const AUTO_GENERATED_COLUMNS: ReadonlyArray<string> = [
@@ -530,6 +550,9 @@ export function getTerraformAttributes(
       secretKind: getSecretKind(columnName, column),
       isServerManaged: isServerManagedColumn(tableName, columnName),
       readPermissions: accessControl?.read || [],
+      isReservedName: TERRAFORM_RESOURCE_META_ARGUMENTS.includes(
+        toTerraformSnakeCase(columnName),
+      ),
     };
 
     if (column.defaultValue !== undefined && column.defaultValue !== null) {

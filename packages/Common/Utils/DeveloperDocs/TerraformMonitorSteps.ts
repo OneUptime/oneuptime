@@ -155,7 +155,9 @@ class AttributeList {
   public readonly attributes: Array<HclObjectAttribute> = [];
 
   public constructor(
-    private readonly describeId?: ((id: string) => string | undefined) | undefined,
+    private readonly describeId?:
+      | ((id: string) => string | undefined)
+      | undefined,
   ) {}
 
   public add(

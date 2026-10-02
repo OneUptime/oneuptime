@@ -125,8 +125,10 @@ export function getPlaceholder(text: string): string {
   return `<${text}>`;
 }
 
+const PLACEHOLDER_TEXT: RegExp = /^<[^<>]+>$/;
+
 export function isPlaceholderText(value: unknown): boolean {
-  return typeof value === "string" && /^<[^<>]+>$/.test(value);
+  return typeof value === "string" && PLACEHOLDER_TEXT.test(value);
 }
 
 function containsPlaceholder(value: unknown): boolean {
@@ -139,7 +141,9 @@ function containsPlaceholder(value: unknown): boolean {
   }
 
   if (value && typeof value === "object") {
-    return Object.values(value as Dictionary<unknown>).some(containsPlaceholder);
+    return Object.values(value as Dictionary<unknown>).some(
+      containsPlaceholder,
+    );
   }
 
   return false;
@@ -296,18 +300,20 @@ function resolveMonitorSteps(
     pick: DeveloperDocsLivePick | undefined,
     placeholder: string,
   ) => {
-    const record: DeveloperDocsLiveRecord | null =
-      pickDeveloperDocsLiveRecord(context.live, tableName, pick);
+    const record: DeveloperDocsLiveRecord | null = pickDeveloperDocsLiveRecord(
+      context.live,
+      tableName,
+      pick,
+    );
 
     return { id: record ? record.id : getPlaceholder(placeholder), record };
   };
 
-  const online: { id: string; record: DeveloperDocsLiveRecord | null } =
-    pickId(
-      "MonitorStatus",
-      { flag: "isOperationalState" },
-      "operational monitor status id",
-    );
+  const online: { id: string; record: DeveloperDocsLiveRecord | null } = pickId(
+    "MonitorStatus",
+    { flag: "isOperationalState" },
+    "operational monitor status id",
+  );
   const offline: { id: string; record: DeveloperDocsLiveRecord | null } =
     pickId(
       "MonitorStatus",
@@ -598,14 +604,35 @@ export function getDeveloperDocsFieldAbout(data: {
     return COMMON_FIELD_ABOUT[data.field.column] as string;
   }
 
+  /*
+   * The first sentence of the model's description ("e.g." and "i.e." do not
+   * end one), with its full stop.
+   */
   const description: string = (
     getColumn(data.modelType, data.field.column).description || ""
-  ).trim();
-  const firstSentence: string =
-    description.match(/^[\s\S]*?[.!?](?=\s|$)/)?.[0] || description;
+  )
+    .trim()
+    .replace(ABBREVIATION_DOT, `$1${ABBREVIATION_MARK}`);
+  const firstSentence: string = (
+    description.match(FIRST_SENTENCE)?.[0] || description
+  )
+    .split(ABBREVIATION_MARK)
+    .join(".")
+    .trim();
 
-  return firstSentence || toSentenceCaseName(data.field.column);
+  if (!firstSentence) {
+    return toSentenceCaseName(data.field.column);
+  }
+
+  return SENTENCE_END.test(firstSentence) ? firstSentence : `${firstSentence}.`;
 }
+
+// The dot of "e.g." and "i.e.", which does not end a sentence.
+const ABBREVIATION_DOT: RegExp = /\b(e\.g|i\.e)\./g;
+// Stands in for that dot while the first sentence is found.
+const ABBREVIATION_MARK: string = "\u2024";
+const FIRST_SENTENCE: RegExp = /^[\s\S]*?[.!?](?=\s|$)/;
+const SENTENCE_END: RegExp = /[.!?]$/;
 
 // Turns `name`/`title` into a short label for a block: "Checkout API" -> checkout_api.
 function getLocalName(data: {
@@ -809,7 +836,8 @@ export function getDeveloperDocsTerraformBlock(data: {
     : undefined;
   const shortTypeName: string = typeName.replace(/^oneuptime_/, "");
   const localName: string = uniqueLocalName(
-    data.localName || getLocalName({ name: nameValue, fallback: shortTypeName }),
+    data.localName ||
+      getLocalName({ name: nameValue, fallback: shortTypeName }),
     data.usedLocalNames || new Set<string>(),
   );
   const isData: boolean = data.kind === "data";
@@ -898,6 +926,12 @@ export function getDeveloperDocsTerraformBlock(data: {
     if (!descriptor || !descriptor.inCreateSchema) {
       throw new DeveloperDocsExampleError(
         `${typeName} has no attribute it can be created with for ${tableName}.${field.column}.`,
+      );
+    }
+
+    if (descriptor.isReservedName) {
+      throw new DeveloperDocsExampleError(
+        `${typeName}.${descriptor.attributeName} is named like a Terraform meta-argument and cannot be set in a configuration.`,
       );
     }
 
@@ -1006,9 +1040,7 @@ export function getTerraformCreateExample(data: {
   modelType: DatabaseBaseModelType;
   context: DeveloperDocsExampleContext;
 }): DeveloperDocsTerraformExample | null {
-  const profile: DeveloperDocsProfile = getDeveloperDocsProfile(
-    data.modelType,
-  );
+  const profile: DeveloperDocsProfile = getDeveloperDocsProfile(data.modelType);
 
   if (
     !getTerraformTypeName(data.modelType) ||
@@ -1164,6 +1196,28 @@ export function getTerraformRecipes(data: {
  * API requests.
  */
 
+/*
+ * A value as a request body carries it. Records in a list relation
+ * (`labels`, `monitors`) go as `{"_id": ...}` objects, the shape the API
+ * documents and the Terraform provider sends.
+ */
+export function toApiValue(
+  modelType: DatabaseBaseModelType,
+  column: string,
+  value: JSONValue,
+): JSONValue {
+  if (
+    getColumns(modelType)[column]?.type === TableColumnType.EntityArray &&
+    Array.isArray(value)
+  ) {
+    return (value as Array<JSONValue>).map((item: JSONValue): JSONValue => {
+      return typeof item === "string" ? { _id: item } : item;
+    }) as JSONValue;
+  }
+
+  return value;
+}
+
 export interface DeveloperDocsApiBody {
   body: JSONObject;
   rows: Array<DeveloperDocsFieldRow>;
@@ -1256,7 +1310,7 @@ export function getApiCreateData(data: {
 
       isPlaceholder = isPlaceholder || resolved.isPlaceholder;
       usesProjectData = usesProjectData || Boolean(resolved.fromProject);
-      value = resolved.json;
+      value = toApiValue(data.modelType, field.column, resolved.json);
     }
 
     body[field.column] = value;
@@ -1294,9 +1348,7 @@ export function getApiUpdateExample(data: {
   modelType: DatabaseBaseModelType;
   context: DeveloperDocsExampleContext;
 }): { data: JSONObject; description: string } | null {
-  const profile: DeveloperDocsProfile = getDeveloperDocsProfile(
-    data.modelType,
-  );
+  const profile: DeveloperDocsProfile = getDeveloperDocsProfile(data.modelType);
   const updatable: Set<string> = new Set<string>(
     getTerraformAttributes(data.modelType)
       .filter((descriptor: TerraformAttributeDescriptor): boolean => {
@@ -1339,7 +1391,11 @@ export function getApiUpdateExample(data: {
         context: data.context,
       });
 
-      body[field.column] = resolved.json;
+      body[field.column] = toApiValue(
+        data.modelType,
+        field.column,
+        resolved.json,
+      );
       names.push(
         ...resolved.names.filter((name: string | null): name is string => {
           return Boolean(name);
@@ -1453,10 +1509,27 @@ export function getApiReadSelect(modelType: DatabaseBaseModelType): JSONObject {
   return select;
 }
 
-function toQueryValue(
-  operator: DeveloperDocsQueryPart["operator"],
-  value: JSONValue,
-): JSONValue {
+/*
+ * A query value, as the API's query schema documents it: a value matches
+ * itself, an operator is `{"_type": ..., "value": ...}`, and a list
+ * relation (`labels`, `monitors`) matches any of a plain list of ids.
+ */
+function toQueryValue(data: {
+  modelType: DatabaseBaseModelType;
+  column: string;
+  operator: DeveloperDocsQueryPart["operator"];
+  value: JSONValue;
+}): JSONValue {
+  const { operator, value } = data;
+
+  if (
+    operator === "includes" &&
+    getColumns(data.modelType)[data.column]?.type ===
+      TableColumnType.EntityArray
+  ) {
+    return (Array.isArray(value) ? value : [value]) as JSONValue;
+  }
+
   switch (operator) {
     case "equals":
       return value;
@@ -1503,7 +1576,12 @@ export function getApiQuery(data: {
       context: data.context,
     });
 
-    query[part.column] = toQueryValue(part.operator, resolved.json);
+    query[part.column] = toQueryValue({
+      modelType: data.modelType,
+      column: part.column,
+      operator: part.operator,
+      value: resolved.json,
+    });
     names.push(
       ...resolved.names.filter((name: string | null): name is string => {
         return Boolean(name);
@@ -1561,7 +1639,9 @@ export function getApiFilters(data: {
       };
     })
     .filter(
-      (filter: DeveloperDocsApiFilter | null): filter is DeveloperDocsApiFilter => {
+      (
+        filter: DeveloperDocsApiFilter | null,
+      ): filter is DeveloperDocsApiFilter => {
         return filter !== null;
       },
     );
@@ -1676,9 +1756,7 @@ export function getCreateTitle(data: {
   modelType: DatabaseBaseModelType;
   singularName: string;
 }): string {
-  const profile: DeveloperDocsProfile = getDeveloperDocsProfile(
-    data.modelType,
-  );
+  const profile: DeveloperDocsProfile = getDeveloperDocsProfile(data.modelType);
 
   return (
     profile.createTitle ||

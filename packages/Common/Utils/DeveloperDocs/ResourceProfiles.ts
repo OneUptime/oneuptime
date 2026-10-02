@@ -354,16 +354,12 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       {
         title: "With a label",
         description: "Monitors labelled {name}.",
-        query: [
-          { column: "labels", operator: "includes", value: liveList() },
-        ],
+        query: [{ column: "labels", operator: "includes", value: liveList() }],
       },
       {
         title: "Search",
         description: "Monitors whose name mentions “api”.",
-        query: [
-          { column: "name", operator: "search", value: literal("api") },
-        ],
+        query: [{ column: "name", operator: "search", value: literal("api") }],
       },
     ],
     recipes: [
@@ -462,10 +458,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
             id: "member",
             modelType: MonitorGroupResource,
             localName: "in_monitor_group",
-            fields: [
-              field("monitorGroupId", live()),
-              field("monitorId", THIS),
-            ],
+            fields: [field("monitorGroupId", live()), field("monitorId", THIS)],
           },
         ],
       },
@@ -501,9 +494,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
         scopes: ["view"],
         modelType: Incident,
         operation: "list",
-        query: [
-          { column: "monitors", operator: "includes", value: THIS_LIST },
-        ],
+        query: [{ column: "monitors", operator: "includes", value: THIS_LIST }],
         select: [
           "title",
           "incidentSeverityId",
@@ -544,9 +535,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
         scopes: ["view"],
         modelType: MonitorGroupResource,
         operation: "list",
-        query: [
-          { column: "monitorGroupId", operator: "equals", value: THIS },
-        ],
+        query: [{ column: "monitorGroupId", operator: "equals", value: THIS }],
         select: ["monitorId"],
       },
     ],
@@ -564,7 +553,9 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       ),
       field(
         "description",
-        literal("Customers see an error when they pay. We are looking into it."),
+        literal(
+          "Customers see an error when they pay. We are looking into it.",
+        ),
         "More detail, in Markdown. Status pages show it too.",
       ),
       field(
@@ -593,8 +584,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       "createdAt",
     ],
     update: {
-      description:
-        "Move it to {name}. Fields you leave out stay as they are.",
+      description: "Move it to {name}. Fields you leave out stay as they are.",
       fields: [field("incidentSeverityId", live())],
     },
     filters: [
@@ -768,7 +758,11 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
 
   IncidentEpisode: {
     fields: [
-      field("title", literal("Checkout outage")),
+      field(
+        "title",
+        literal("Checkout outage"),
+        "What the episode is about, in a few words.",
+      ),
       field(
         "description",
         literal("Several checkout incidents with one cause."),
@@ -777,8 +771,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       "labels",
     ],
     update: {
-      description:
-        "Move it to {name}. Fields you leave out stay as they are.",
+      description: "Move it to {name}. Fields you leave out stay as they are.",
       fields: [field("incidentSeverityId", live())],
     },
     tasks: [
@@ -828,8 +821,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       "createdAt",
     ],
     update: {
-      description:
-        "Move it to {name}. Fields you leave out stay as they are.",
+      description: "Move it to {name}. Fields you leave out stay as they are.",
       fields: [field("alertSeverityId", live())],
     },
     filters: [
@@ -860,9 +852,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       {
         title: "Search",
         description: "Alerts whose title mentions “cpu”.",
-        query: [
-          { column: "title", operator: "search", value: literal("cpu") },
-        ],
+        query: [{ column: "title", operator: "search", value: literal("cpu") }],
       },
     ],
     recipes: [
@@ -934,14 +924,17 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
 
   AlertEpisode: {
     fields: [
-      field("title", literal("Orders API errors")),
+      field(
+        "title",
+        literal("Orders API errors"),
+        "What the episode is about, in a few words.",
+      ),
       field("description", literal("Alerts from the orders API this morning.")),
       field("alertSeverityId", undefined, "How bad it is."),
       "labels",
     ],
     update: {
-      description:
-        "Move it to {name}. Fields you leave out stay as they are.",
+      description: "Move it to {name}. Fields you leave out stay as they are.",
       fields: [field("alertSeverityId", live())],
     },
     tasks: [
@@ -951,9 +944,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
         scopes: ["view"],
         modelType: Alert,
         operation: "list",
-        query: [
-          { column: "alertEpisodeId", operator: "equals", value: THIS },
-        ],
+        query: [{ column: "alertEpisodeId", operator: "equals", value: THIS }],
         select: ["title", "alertSeverityId", "createdAt"],
         sort: { column: "createdAt", order: "DESC" },
       },
@@ -980,11 +971,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
         { kind: "date", weekday: 6, hour: 2 },
         "When it starts, as an RFC 3339 time: next Saturday at 02:00 UTC here.",
       ),
-      field(
-        "endsAt",
-        { kind: "date", weekday: 6, hour: 4 },
-        "When it ends.",
-      ),
+      field("endsAt", { kind: "date", weekday: 6, hour: 4 }, "When it ends."),
       field("monitors", undefined, "The monitors it affects."),
       field("statusPages", undefined, "The status pages that announce it."),
       "labels",
@@ -1059,10 +1046,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
         operation: "create",
         fields: [
           field("scheduledMaintenanceId", THIS),
-          field(
-            "scheduledMaintenanceStateId",
-            live({ flag: "isEndedState" }),
-          ),
+          field("scheduledMaintenanceStateId", live({ flag: "isEndedState" })),
         ],
       },
       {
@@ -1139,9 +1123,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       {
         title: "Search",
         description: "Status pages whose name mentions “acme”.",
-        query: [
-          { column: "name", operator: "search", value: literal("acme") },
-        ],
+        query: [{ column: "name", operator: "search", value: literal("acme") }],
       },
     ],
     recipes: [
@@ -1283,11 +1265,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
         literal("Writes pause for up to ten minutes from 02:00 UTC."),
         "The message, in Markdown.",
       ),
-      field(
-        "statusPages",
-        undefined,
-        "The status pages it shows on.",
-      ),
+      field("statusPages", undefined, "The status pages it shows on."),
       field(
         "showAnnouncementAt",
         { kind: "date", days: 1, hour: 9 },
@@ -1656,7 +1634,10 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
   Dashboard: {
     fields: [
       field("name", literal("Checkout health")),
-      field("description", literal("Errors, latency and traffic for checkout.")),
+      field(
+        "description",
+        literal("Errors, latency and traffic for checkout."),
+      ),
       "labels",
     ],
   },
@@ -1718,10 +1699,18 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     fields: [
       field("name", literal("Checkout API")),
       field("description", literal("The checkout service's code.")),
-      field("repositoryHostedAt", literal("GitHub")),
-      field("organizationName", literal("acme")),
-      field("repositoryName", literal("checkout-api")),
-      field("mainBranchName", literal("main")),
+      field(
+        "repositoryHostedAt",
+        literal("GitHub"),
+        "Where it is hosted, such as GitHub.",
+      ),
+      field(
+        "organizationName",
+        literal("acme"),
+        "The organization or user that owns it.",
+      ),
+      field("repositoryName", literal("checkout-api"), "Its name on the host."),
+      field("mainBranchName", literal("main"), "Its main branch."),
       "labels",
     ],
   },
@@ -1731,8 +1720,11 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       "The OneUptime Kubernetes agent adds a cluster the first time it reports. Create one ahead of the agent only to set it up in advance, with the same cluster identifier as the agent's k8s.cluster.name.",
     fields: [
       field("name", literal("production-us-east")),
-      field("clusterIdentifier", literal("production-us-east")),
-      field("provider", literal("EKS")),
+      field(
+        "clusterIdentifier",
+        literal("production-us-east"),
+        "The cluster's k8s.cluster.name, as the agent reports it.",
+      ),
       field("description", literal("Production cluster in US East.")),
       "labels",
     ],
@@ -1743,7 +1735,11 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       "The OneUptime Docker agent adds a host the first time it reports. Create one ahead of it only to set it up in advance, with the host.name the agent reports as its host identifier.",
     fields: [
       field("name", literal("docker-prod-1")),
-      field("hostIdentifier", literal("docker-prod-1")),
+      field(
+        "hostIdentifier",
+        literal("docker-prod-1"),
+        "The host's host.name, as the agent reports it.",
+      ),
       field("description", literal("Production Docker host.")),
       "labels",
     ],
@@ -1764,7 +1760,11 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       "The OneUptime agent adds a Podman host the first time it reports. Create one ahead of it only to set it up in advance, with the host.name the agent reports as its host identifier.",
     fields: [
       field("name", literal("podman-prod-1")),
-      field("hostIdentifier", literal("podman-prod-1")),
+      field(
+        "hostIdentifier",
+        literal("podman-prod-1"),
+        "The host's host.name, as the agent reports it.",
+      ),
       field("description", literal("Production Podman host.")),
       "labels",
     ],
@@ -1805,7 +1805,11 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       "The OneUptime agent adds a host the first time it reports. Create one ahead of it only to set it up in advance, with the host.name the agent reports as its host identifier.",
     fields: [
       field("name", literal("web-1")),
-      field("hostIdentifier", literal("web-1")),
+      field(
+        "hostIdentifier",
+        literal("web-1"),
+        "The host's host.name, as the agent reports it.",
+      ),
       field("description", literal("Production web server.")),
       "labels",
     ],
@@ -1831,9 +1835,17 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
         literal("postgresql|orders-db.internal:5432"),
         "The engine and the endpoint, joined with | and :, as OneUptime keys it.",
       ),
-      field("dbSystem", literal("postgresql")),
-      field("serverAddress", literal("orders-db.internal")),
-      field("serverPort", literal(5432)),
+      field(
+        "dbSystem",
+        literal("postgresql"),
+        "The database engine, such as postgresql or mysql.",
+      ),
+      field(
+        "serverAddress",
+        literal("orders-db.internal"),
+        "The host name or IP address it answers on.",
+      ),
+      field("serverPort", literal(5432), "The port it answers on."),
       field("description", literal("The orders service's database.")),
       "labels",
     ],
@@ -1844,9 +1856,21 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       "Queues are added when OneUptime first sees them in your telemetry. Create one only for a queue nothing reports on yet.",
     fields: [
       field("name", literal("orders.created")),
-      field("queueIdentifier", literal("kafka||orders.created")),
-      field("messagingSystem", literal("kafka")),
-      field("destinationName", literal("orders.created")),
+      field(
+        "queueIdentifier",
+        literal("kafka||orders.created"),
+        "The broker, its scope and the destination, joined with |, as OneUptime keys it.",
+      ),
+      field(
+        "messagingSystem",
+        literal("kafka"),
+        "The broker it lives on, such as kafka or rabbitmq.",
+      ),
+      field(
+        "destinationName",
+        literal("orders.created"),
+        "The queue or topic name applications use.",
+      ),
       field("description", literal("Order events from checkout.")),
       "labels",
     ],
@@ -1857,7 +1881,11 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       "Functions are added when OneUptime first sees them in your telemetry. The function identifier is the faas.name they report.",
     fields: [
       field("name", literal("checkout-handler")),
-      field("functionIdentifier", literal("checkout-handler")),
+      field(
+        "functionIdentifier",
+        literal("checkout-handler"),
+        "The function's faas.name, as its telemetry reports it.",
+      ),
       field("description", literal("Handles checkout webhooks.")),
       "labels",
     ],
@@ -1868,7 +1896,11 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       "Cloud environments are added when OneUptime first sees them in your telemetry. Create one only to set it up in advance.",
     fields: [
       field("name", literal("AWS ECS · us-east-1")),
-      field("resourceIdentifier", literal("aws_ecs|123456789012|us-east-1")),
+      field(
+        "resourceIdentifier",
+        literal("aws_ecs|123456789012|us-east-1"),
+        "The platform, account and region, joined with |, as OneUptime keys it.",
+      ),
       field("description", literal("Production containers on ECS.")),
       "labels",
     ],
@@ -1885,7 +1917,11 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       field("description", literal("Core switch in the main office.")),
       field("probeId", undefined, "The probe that polls it."),
       field("siteId", undefined, "The network site it is in."),
-      field("snmpVersion", literal("V2c")),
+      field(
+        "snmpVersion",
+        literal("V2c"),
+        "The SNMP version to poll it with: V1, V2c or V3.",
+      ),
       field(
         "pollingIntervalInMinutes",
         literal(5),
@@ -1899,9 +1935,17 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     fields: [
       field("name", literal("Head office")),
       field("description", literal("The main office and its devices.")),
-      field("address", literal("1 Main Street, Springfield")),
-      field("latitude", literal(39.7817)),
-      field("longitude", literal(-89.6501)),
+      field(
+        "address",
+        literal("1 Main Street, Springfield"),
+        "Its street address, shown on maps.",
+      ),
+      field("latitude", literal(39.7817), "Where it is on maps: its latitude."),
+      field(
+        "longitude",
+        literal(-89.6501),
+        "Where it is on maps: its longitude.",
+      ),
     ],
   },
 
@@ -1910,7 +1954,11 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       "A RUM application is added the first time its browser SDK reports. Its app identifier is the service.name the SDK reports.",
     fields: [
       field("name", literal("storefront-web")),
-      field("appIdentifier", literal("storefront-web")),
+      field(
+        "appIdentifier",
+        literal("storefront-web"),
+        "The service.name its browser SDK reports.",
+      ),
       field("description", literal("The customer storefront.")),
       field(
         "isSessionReplayEnabled",
@@ -1932,7 +1980,11 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     terraformCannotCreate:
       "OneUptime works out an inventory item's key from its name when it is created, so add new ones in the dashboard or with the API. Terraform can still manage the ones you have: bring them in below.",
     fields: [
-      field("displayName", literal("Stripe payments API")),
+      field(
+        "displayName",
+        literal("Stripe payments API"),
+        "What it is called in the inventory.",
+      ),
       field(
         "entityType",
         literal("external.service"),
@@ -1956,9 +2008,11 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
 export function getDeveloperDocsProfile(
   modelType: DatabaseBaseModelType,
 ): DeveloperDocsProfile {
-  return DEVELOPER_DOCS_PROFILES[new modelType().tableName || ""] || {
-    fields: [],
-  };
+  return (
+    DEVELOPER_DOCS_PROFILES[new modelType().tableName || ""] || {
+      fields: [],
+    }
+  );
 }
 
 // A profile's fields, as fields.
