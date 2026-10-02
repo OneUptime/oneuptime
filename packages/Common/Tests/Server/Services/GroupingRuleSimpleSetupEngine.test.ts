@@ -264,9 +264,11 @@ describe("incident grouping keys", () => {
   });
 
   test.each(
-    GROUPING_RULE_TEMPLATES.map((template: GroupingRuleTemplate) => {
-      return [template.id, template];
-    }),
+    GROUPING_RULE_TEMPLATES.map(
+      (template: GroupingRuleTemplate): [string, GroupingRuleTemplate] => {
+        return [template.id, template];
+      },
+    ),
   )(
     "the %s template groups like the switch it names",
     async (_id: string, template: GroupingRuleTemplate) => {
@@ -381,9 +383,11 @@ describe("alert grouping keys", () => {
   });
 
   test.each(
-    GROUPING_RULE_TEMPLATES.map((template: GroupingRuleTemplate) => {
-      return [template.id, template];
-    }),
+    GROUPING_RULE_TEMPLATES.map(
+      (template: GroupingRuleTemplate): [string, GroupingRuleTemplate] => {
+        return [template.id, template];
+      },
+    ),
   )(
     "the %s template groups like the switch it names",
     async (_id: string, template: GroupingRuleTemplate) => {
@@ -467,9 +471,11 @@ describe("the time window an episode is looked for in", () => {
   }
 
   test.each(
-    GROUPING_RULE_TEMPLATES.map((template: GroupingRuleTemplate) => {
-      return [template.id, template];
-    }),
+    GROUPING_RULE_TEMPLATES.map(
+      (template: GroupingRuleTemplate): [string, GroupingRuleTemplate] => {
+        return [template.id, template];
+      },
+    ),
   )(
     "the %s template looks back exactly the time window its card promises",
     async (_id: string, template: GroupingRuleTemplate) => {

@@ -171,7 +171,7 @@ const PAGE_PROPS: PageComponentProps = {
 interface PageCase {
   kind: GroupingRuleKind;
   label: string;
-  page: (props: PageComponentProps) => ReactElement;
+  page: React.FunctionComponent<PageComponentProps>;
   modelType: unknown;
   cardTitle: string;
   ruleNoun: string;
@@ -253,7 +253,7 @@ const PAGES: Array<PageCase> = [
 
 function renderPage(pageCase: PageCase): void {
   capturedTables = [];
-  const Page: (props: PageComponentProps) => ReactElement = pageCase.page;
+  const Page: React.FunctionComponent<PageComponentProps> = pageCase.page;
   render(<Page {...PAGE_PROPS} />);
 }
 

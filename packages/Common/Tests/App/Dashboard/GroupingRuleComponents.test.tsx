@@ -575,9 +575,11 @@ describe("GroupingRuleTemplates", () => {
   });
 
   test.each(
-    GROUPING_RULE_TEMPLATES.map((template: GroupingRuleTemplate) => {
-      return [template.id, template];
-    }),
+    GROUPING_RULE_TEMPLATES.map(
+      (template: GroupingRuleTemplate): [string, GroupingRuleTemplate] => {
+        return [template.id, template];
+      },
+    ),
   )(
     "%s saves its own answer and time window",
     async (_id: string, template: GroupingRuleTemplate) => {
