@@ -458,9 +458,13 @@ function voiceBody(to: string = SECOND_NUMBER): Record<string, string> {
   };
 }
 
-function dialBody(status: string = "no-answer"): Record<string, string> {
+function dialBody(
+  status: string = "no-answer",
+  callStatus: string = "in-progress",
+): Record<string, string> {
   return {
     CallSid: "CA-incoming",
+    CallStatus: callStatus,
     DialCallStatus: status,
     DialCallDuration: status === "completed" ? "42" : "7",
   };
@@ -498,6 +502,7 @@ function configureProviderDefaults(): void {
         callId: String(request.body["CallSid"]),
         dialStatus: String(request.body["DialCallStatus"]),
         dialDurationSeconds: Number(request.body["DialCallDuration"] || 0),
+        callerHungUp: request.body["CallStatus"] === "completed",
       };
     },
   );
@@ -818,6 +823,7 @@ describe("incoming call dial-status routing", () => {
       callId: "CA-incoming",
       dialStatus: "no-answer",
       dialDurationSeconds: 7,
+      callerHungUp: false,
     });
   });
 
@@ -936,6 +942,7 @@ describe("incoming call dial-status routing", () => {
       callId: "CA-incoming",
       dialStatus: "completed",
       dialDurationSeconds: 42,
+      callerHungUp: false,
     });
 
     const result: Invocation = await invokeDialStatus(dialBody("completed"));
@@ -1083,5 +1090,259 @@ describe("incoming call dial-status routing", () => {
 
     expect(logItemService.findOneById).not.toHaveBeenCalled();
     expect(logItemService.updateOneById).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Twilio requests the <Dial> action URL when the caller hangs up while the
+ * engineer's phone is still ringing, too. The dial result then looks like an
+ * unanswered ring, and whatever the handler answers is thrown away because
+ * the call is already over. Every test here has another engineer available
+ * and the policy set to repeat, so a handler that mistook the hang-up for
+ * "no answer" would go on hunting.
+ */
+describe("incoming call dial-status after the caller hangs up", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    configureProviderDefaults();
+    configureUserAndRuleDefaults();
+    configureLogDefaults();
+    logService.findOneById.mockResolvedValue(
+      makeCallLog({ routingPhone: SECOND_NUMBER, currentOrder: 1 }),
+    );
+    policyService.findOneById.mockResolvedValue(
+      makePolicy({
+        configId: CONFIG_PRIMARY,
+        primaryPhone: PRIMARY_NUMBER,
+        repeat: true,
+        repeatTimes: 3,
+        noAnswerMessage: "Leave a support ticket",
+      }),
+    );
+    numberService.findOneBy.mockResolvedValue(
+      makeAttachedNumber({ phone: SECOND_NUMBER, configId: CONFIG_SECOND }),
+    );
+    logItemService.findOneById.mockResolvedValue(makeCallLogItem());
+    ruleService.findOneBy.mockResolvedValue(
+      makeRule({ id: RULE_2_ID, order: 2, userId: USER_2 }),
+    );
+    incomingNumberService.findOneBy.mockResolvedValue(
+      makeVerifiedNumber(USER_2, USER_2_NUMBER),
+    );
+    provider.parseDialStatusWebhook.mockReturnValue({
+      callId: "CA-incoming",
+      dialStatus: "no-answer",
+      dialDurationSeconds: 0,
+      callerHungUp: true,
+    });
+  });
+
+  async function invokeCallerHungUp(): Promise<Invocation> {
+    return await invoke("/dial-status/:callLogId/:callLogItemId", {
+      body: dialBody("no-answer", "completed"),
+      params: {
+        callLogId: CALL_LOG_ID.toString(),
+        callLogItemId: CALL_LOG_ITEM_ID.toString(),
+      },
+    });
+  }
+
+  function logUpdates(): Array<Record<string, unknown>> {
+    return logService.updateOneById.mock.calls.map(
+      (call: Array<any>): Record<string, unknown> => {
+        return call[0].data as Record<string, unknown>;
+      },
+    );
+  }
+
+  test("closes the attempt and the call as caller hung up", async () => {
+    const result: Invocation = await invokeCallerHungUp();
+
+    expect(logItemService.updateOneById).toHaveBeenCalledTimes(1);
+    expect(logItemService.updateOneById).toHaveBeenCalledWith({
+      id: CALL_LOG_ITEM_ID,
+      data: {
+        status: IncomingCallStatus.CallerHungUp,
+        dialDurationInSeconds: 0,
+        endedAt: expect.any(Date),
+        isAnswered: false,
+      },
+      props: { isRoot: true },
+    });
+    expect(logService.updateOneById).toHaveBeenCalledTimes(1);
+    expect(logService.updateOneById).toHaveBeenCalledWith({
+      id: CALL_LOG_ID,
+      data: {
+        status: IncomingCallStatus.CallerHungUp,
+        endedAt: expect.any(Date),
+      },
+      props: { isRoot: true },
+    });
+    expect(result.type).toHaveBeenCalledWith("text/xml");
+    expect(result.send).toHaveBeenCalledWith("<Response><Hangup/></Response>");
+    expect(result.status).not.toHaveBeenCalled();
+    expect(result.next).not.toHaveBeenCalled();
+  });
+
+  test("never looks up, logs or dials another engineer", async () => {
+    await invokeCallerHungUp();
+
+    expect(ruleService.findOneBy).not.toHaveBeenCalled();
+    expect(incomingNumberService.findOneBy).not.toHaveBeenCalled();
+    expect(logItemService.create).not.toHaveBeenCalled();
+    expect(provider.generateEscalationResponse).not.toHaveBeenCalled();
+    expect(provider.generateDialResponse).not.toHaveBeenCalled();
+    expect(logUpdates()).not.toContainEqual(
+      expect.objectContaining({ status: IncomingCallStatus.Escalated }),
+    );
+  });
+
+  test("does not spend the repeat budget on a caller who is gone", async () => {
+    /*
+     * Rule 1 is the only rule, so a no-answer here would restart the policy
+     * from it. Answer by query rather than queueing one-off answers: the
+     * handler under test never asks, and queued answers would outlive it.
+     */
+    ruleService.findOneBy.mockImplementation((args: any) => {
+      const afterOrder: unknown = Object.values(
+        args.query.order.objectLiteralParameters,
+      )[0];
+      return Promise.resolve(
+        afterOrder === 0 ? makeRule({ order: 1, userId: USER_1 }) : null,
+      );
+    });
+    incomingNumberService.findOneBy.mockResolvedValue(
+      makeVerifiedNumber(USER_1, USER_1_NUMBER),
+    );
+
+    await invokeCallerHungUp();
+
+    for (const update of logUpdates()) {
+      expect(update).not.toHaveProperty("repeatCount");
+      expect(update).not.toHaveProperty("currentEscalationRuleOrder");
+    }
+    expect(logItemService.create).not.toHaveBeenCalled();
+    expect(provider.generateEscalationResponse).not.toHaveBeenCalled();
+  });
+
+  test("records a hang-up on the last rule as caller hung up, not no answer", async () => {
+    policyService.findOneById.mockResolvedValue(
+      makePolicy({ repeat: false, noAnswerMessage: "Leave a support ticket" }),
+    );
+    ruleService.findOneBy.mockResolvedValue(null);
+
+    await invokeCallerHungUp();
+
+    expect(logUpdates()).toEqual([
+      { status: IncomingCallStatus.CallerHungUp, endedAt: expect.any(Date) },
+    ]);
+    // Nobody is left on the line to hear the no-answer message.
+    expect(provider.generateHangupResponse).toHaveBeenCalledTimes(1);
+    expect(provider.generateHangupResponse).toHaveBeenCalledWith();
+  });
+
+  test.each(["no-answer", "canceled", "busy", "failed"])(
+    "stops the hunt when the dial ended %s with the caller gone",
+    async (dialStatus: string) => {
+      provider.parseDialStatusWebhook.mockReturnValue({
+        callId: "CA-incoming",
+        dialStatus,
+        dialDurationSeconds: 0,
+        callerHungUp: true,
+      });
+
+      await invokeCallerHungUp();
+
+      expect(logItemService.updateOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: IncomingCallStatus.CallerHungUp,
+            isAnswered: false,
+          }),
+        }),
+      );
+      expect(logUpdates()).toEqual([
+        { status: IncomingCallStatus.CallerHungUp, endedAt: expect.any(Date) },
+      ]);
+      expect(logItemService.create).not.toHaveBeenCalled();
+    },
+  );
+
+  test("ends the attempt and the call at the same moment", async () => {
+    await invokeCallerHungUp();
+
+    const attemptEndedAt: Date = logItemService.updateOneById.mock.calls[0]?.[0]
+      .data.endedAt as Date;
+    const callEndedAt: Date = logService.updateOneById.mock.calls[0]?.[0].data
+      .endedAt as Date;
+    expect(attemptEndedAt).toBeInstanceOf(Date);
+    expect(callEndedAt.getTime()).toBe(attemptEndedAt.getTime());
+  });
+
+  test("still completes an answered call when the caller is the one who hangs up", async () => {
+    provider.parseDialStatusWebhook.mockReturnValue({
+      callId: "CA-incoming",
+      dialStatus: "completed",
+      dialDurationSeconds: 95,
+      callerHungUp: true,
+    });
+
+    await invokeCallerHungUp();
+
+    expect(logItemService.updateOneById).toHaveBeenCalledWith({
+      id: CALL_LOG_ITEM_ID,
+      data: {
+        status: IncomingCallStatus.Connected,
+        dialDurationInSeconds: 95,
+        endedAt: expect.any(Date),
+        isAnswered: true,
+      },
+      props: { isRoot: true },
+    });
+    expect(logUpdates()).toEqual([
+      { status: IncomingCallStatus.Completed, endedAt: expect.any(Date) },
+    ]);
+    expect(ruleService.findOneBy).not.toHaveBeenCalled();
+  });
+
+  test("keeps hunting on the same dial result while the caller is still on the line", async () => {
+    provider.parseDialStatusWebhook.mockReturnValue({
+      callId: "CA-incoming",
+      dialStatus: "no-answer",
+      dialDurationSeconds: 0,
+      callerHungUp: false,
+    });
+
+    const result: Invocation = await invokeCallerHungUp();
+
+    expect(logItemService.updateOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: IncomingCallStatus.NoAnswer }),
+      }),
+    );
+    expect(logItemService.create).toHaveBeenCalledTimes(1);
+    expect(logUpdates()).toEqual([
+      { currentEscalationRuleOrder: 2, status: IncomingCallStatus.Escalated },
+    ]);
+    expect(provider.generateEscalationResponse).toHaveBeenCalledWith(
+      "Connecting you to the next available engineer.",
+      expect.objectContaining({ toPhoneNumber: USER_2_NUMBER }),
+    );
+    expect(result.send).toHaveBeenCalledWith("<Response><Dial/></Response>");
+  });
+
+  test("acts on a hang-up only after the signature and ownership checks", async () => {
+    provider.validateWebhookSignature.mockReturnValueOnce(false);
+    let result: Invocation = await invokeCallerHungUp();
+    expect(result.status).toHaveBeenCalledWith(403);
+
+    logItemService.findOneById.mockResolvedValueOnce(
+      makeCallLogItem(OTHER_CALL_LOG_ID),
+    );
+    result = await invokeCallerHungUp();
+    expect(result.status).toHaveBeenCalledWith(400);
+
+    expect(logItemService.updateOneById).not.toHaveBeenCalled();
+    expect(logService.updateOneById).not.toHaveBeenCalled();
   });
 });

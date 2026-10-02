@@ -550,18 +550,34 @@ router.post(
         return;
       }
 
-      // Update call log item
       const now: Date = new Date();
+      const isAnswered: boolean = dialStatus.dialStatus === "completed";
+
+      /*
+       * The provider also reports a dial result when the caller hangs up
+       * while the engineer's phone is still ringing. It looks like an
+       * unanswered dial, but nobody is left to connect, so the hunt stops
+       * here. Escalating or repeating would log an attempt that never rings,
+       * with dial instructions the provider throws away, and leave the call
+       * log open for good.
+       */
+      const callerHungUp: boolean = !isAnswered && dialStatus.callerHungUp;
+
+      let attemptStatus: IncomingCallStatus = IncomingCallStatus.NoAnswer;
+      if (isAnswered) {
+        attemptStatus = IncomingCallStatus.Connected;
+      } else if (callerHungUp) {
+        attemptStatus = IncomingCallStatus.CallerHungUp;
+      }
+
+      // Update call log item
       await IncomingCallLogItemService.updateOneById({
         id: new ObjectID(callLogItemId),
         data: {
-          status:
-            dialStatus.dialStatus === "completed"
-              ? IncomingCallStatus.Connected
-              : IncomingCallStatus.NoAnswer,
+          status: attemptStatus,
           dialDurationInSeconds: dialStatus.dialDurationSeconds || 0,
           endedAt: now,
-          isAnswered: dialStatus.dialStatus === "completed",
+          isAnswered: isAnswered,
         },
         props: {
           isRoot: true,
@@ -569,7 +585,7 @@ router.post(
       });
 
       // If call was answered, mark as completed
-      if (dialStatus.dialStatus === "completed") {
+      if (isAnswered) {
         await IncomingCallLogService.updateOneById({
           id: new ObjectID(callLogId),
           data: {
@@ -582,6 +598,24 @@ router.post(
         });
 
         // Hang up - the call is complete
+        const twiml: string = provider.generateHangupResponse();
+        res.type("text/xml");
+        return res.send(twiml);
+      }
+
+      if (callerHungUp) {
+        await IncomingCallLogService.updateOneById({
+          id: new ObjectID(callLogId),
+          data: {
+            status: IncomingCallStatus.CallerHungUp,
+            endedAt: now,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        // The call is already over; the provider ignores this response.
         const twiml: string = provider.generateHangupResponse();
         res.type("text/xml");
         return res.send(twiml);
