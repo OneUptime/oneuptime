@@ -5,6 +5,12 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import {
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import SavedViewsSearchInput from "./SavedViewsSearchInput";
@@ -30,7 +36,7 @@ export interface SavedViewsFacetSectionProps {
   initialVisibleCount?: number | undefined;
 }
 
-const DEFAULT_TITLE: string = "Saved Views";
+const DEFAULT_TITLE: string = translationKey("Saved Views");
 
 /*
  * Issue 3319: the sidebar's saved views were a bare list with no search and no
@@ -42,6 +48,7 @@ const DEFAULT_TITLE: string = "Saved Views";
 const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
   props: SavedViewsFacetSectionProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [showAll, setShowAll] = useState<boolean>(false);
   const [searchText, setSearchText] = useState<string>("");
@@ -106,7 +113,7 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
       >
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-            {title}
+            {translator.translateText(title)}
           </span>
           {appliedCount > 0 && (
             <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-600">
@@ -126,7 +133,9 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
             <div className="mb-1 px-1">
               <SavedViewsSearchInput
                 value={searchText}
-                label={`Search ${title.toLowerCase()}...`}
+                label={translator.translateTemplate("Search {{name}}...", {
+                  name: translatableTerm(title, { inSentence: true }),
+                })}
                 onChange={(text: string) => {
                   setSearchText(text);
                 }}
@@ -155,7 +164,11 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
                    * reader should hear the word, not a stray badge.
                    */
                   aria-label={
-                    view.isDefault ? `${view.name} (default)` : view.name
+                    view.isDefault
+                      ? translator.translateTemplate("{{name}} (default)", {
+                          name: view.name,
+                        })
+                      : view.name
                   }
                   /*
                    * The row behaves like a checkbox: clicking the applied
@@ -163,11 +176,12 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
                    * what is already on.
                    */
                   aria-pressed={isSelected}
-                  title={
+                  title={translator.translateTemplate(
                     isSelected
-                      ? `Clear saved view: ${view.name}`
-                      : `Apply saved view: ${view.name}`
-                  }
+                      ? "Clear saved view: {{name}}"
+                      : "Apply saved view: {{name}}",
+                    { name: view.name },
+                  )}
                   onClick={() => {
                     if (isSelected && props.onClear) {
                       props.onClear();
@@ -206,7 +220,7 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
                     aria-hidden="true"
                     className="flex-none rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-700"
                   >
-                    Default
+                    {translator.translateText("Default")}
                   </span>
                 )}
               </div>
@@ -215,7 +229,11 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
 
           {visible.views.length === 0 && (
             <p className="px-1 py-2 text-[11px] text-gray-400">
-              {visible.isSearching ? "No matches found" : "No saved views yet."}
+              {translator.translateText(
+                visible.isSearching
+                  ? "No matches found"
+                  : "No saved views yet.",
+              )}
             </p>
           )}
 

@@ -5,6 +5,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import { FacetData, FacetValue, ActiveFilter, FacetConfig } from "../types";
 import TelemetryFacetSection from "./TelemetryFacetSection";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
@@ -56,6 +58,7 @@ export interface TelemetryFacetSidebarProps {
 const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
   props: TelemetryFacetSidebarProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const orderedConfigs: Array<FacetConfig> = useMemo(() => {
     const copy: Array<FacetConfig> = [...props.facetConfigs];
     copy.sort((a: FacetConfig, b: FacetConfig): number => {
@@ -171,7 +174,7 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
     >
       <div className="border-b border-gray-100 px-3 py-2.5">
         <h3 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
-          {props.headerLabel || "Filters"}
+          {translator.translateText(props.headerLabel || "Filters")}
         </h3>
       </div>
 

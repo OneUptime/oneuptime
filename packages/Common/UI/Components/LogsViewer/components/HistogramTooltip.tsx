@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import OneUptimeDate from "../../../../Types/Date";
 import { getSeverityColor } from "./severityColors";
 
@@ -54,6 +56,7 @@ function formatTooltipTime(label: string | undefined): string {
 const HistogramTooltip: FunctionComponent<HistogramTooltipProps> = (
   props: HistogramTooltipProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   if (!props.active || !props.payload || props.payload.length === 0) {
     return null;
   }
@@ -111,7 +114,9 @@ const HistogramTooltip: FunctionComponent<HistogramTooltipProps> = (
       </div>
       {entries.length > 1 && (
         <div className="mt-1.5 flex items-center justify-between border-t border-gray-100 pt-1.5">
-          <span className="text-xs text-gray-500">Total</span>
+          <span className="text-xs text-gray-500">
+            {translator.translateText("Total")}
+          </span>
           <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
             {total.toLocaleString()}
           </span>
