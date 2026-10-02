@@ -97,6 +97,15 @@ function fieldsOnStep(code: string, stepId: string): Array<string> {
     }
   }
 
+  // The owners people picker: one field for people and teams.
+  for (const match of code.matchAll(
+    /getOwnersFormField\(\{ stepId: "([a-z-]+)"/g,
+  )) {
+    if (match[1] === stepId) {
+      fields.push("owners");
+    }
+  }
+
   return fields;
 }
 
@@ -155,7 +164,7 @@ const PAGES: Array<PageCase> = [
     viewKey: "SLOS_SETTINGS_OWNER_RULE_VIEW",
     tableId: "slo-owner-rules-table",
     actionStep: "owners",
-    actionFields: ["ownerTeams", "ownerUsers"],
+    actionFields: ["owners"],
   },
 ];
 
@@ -249,13 +258,16 @@ describe("SLO Owner Rules page form", () => {
     );
   });
 
-  test("picks teams from the project and users from the project's members", () => {
-    expect(code).toMatch(
-      /field: \{ ownerTeams: true \},[\s\S]*?dropdownModal: \{ type: Team, labelField: "name", valueField: "_id", \}/,
+  test("picks people and teams in one owners picker, saying what a match does", () => {
+    expect(code).toContain(
+      'import getOwnersFormField, { OWNER_RULE_OWNERS_DESCRIPTION, } from "Common/UI/Components/PeoplePicker/OwnersFormField";',
     );
     expect(code).toContain(
-      "ProjectUser.fetchProjectUsersAsDropdownOptions( ProjectUtil.getCurrentProjectId()!, )",
+      'getOwnersFormField({ stepId: "owners", description: OWNER_RULE_OWNERS_DESCRIPTION, })',
     );
+    // No dropdown per kind any more.
+    expect(code).not.toContain("ownerTeams");
+    expect(code).not.toContain("ownerUsers");
   });
 });
 
