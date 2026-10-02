@@ -1,3 +1,7 @@
+import AlertSeverity from "./AlertSeverity";
+import IncidentSeverity from "./IncidentSeverity";
+import Label from "./Label";
+import Monitor from "./Monitor";
 import Project from "./Project";
 import Runbook from "./Runbook";
 import User from "./User";
@@ -296,6 +300,269 @@ export default class RunbookRule extends RuleBaseModel {
   })
   public triggerEntityType?: RunbookRuleTriggerEntity = undefined;
 
+  /*
+   * Match criteria. One rule table serves incidents, alerts and scheduled
+   * maintenance events (triggerEntityType), so the criteria are the union of
+   * what the three can be matched on; each rule only uses those of its own
+   * trigger entity (RunbookRuleCriteria in Types/Runbook says which, and the
+   * service refuses the others).
+   */
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Monitor,
+    title: "Monitors",
+    description:
+      "Only match incidents, alerts or scheduled maintenance events of at least one of these monitors. Leave empty to match any monitor.",
+  })
+  @ManyToMany(
+    () => {
+      return Monitor;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "RunbookRuleMonitor",
+    inverseJoinColumn: {
+      name: "monitorId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "runbookRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public monitors?: Array<Monitor> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: IncidentSeverity,
+    title: "Incident Severities",
+    description:
+      "Only match incidents with one of these severities. Incident rules only. Leave empty to match any severity.",
+  })
+  @ManyToMany(
+    () => {
+      return IncidentSeverity;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "RunbookRuleIncidentSeverity",
+    inverseJoinColumn: {
+      name: "incidentSeverityId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "runbookRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public incidentSeverities?: Array<IncidentSeverity> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: AlertSeverity,
+    title: "Alert Severities",
+    description:
+      "Only match alerts with one of these severities. Alert rules only. Leave empty to match any severity.",
+  })
+  @ManyToMany(
+    () => {
+      return AlertSeverity;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "RunbookRuleAlertSeverity",
+    inverseJoinColumn: {
+      name: "alertSeverityId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "runbookRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public alertSeverities?: Array<AlertSeverity> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Labels",
+    description:
+      "Only match incidents, alerts or scheduled maintenance events that carry at least one of these labels. Leave empty to match regardless of their labels.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "RunbookRuleLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "runbookRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public labels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Monitor Labels",
+    description:
+      "Only match when a monitor of the incident, alert or scheduled maintenance event carries at least one of these labels. Leave empty to match regardless of monitor labels.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "RunbookRuleMonitorLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "runbookRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public monitorLabels?: Array<Label> = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -371,6 +638,82 @@ export default class RunbookRule extends RuleBaseModel {
     length: ColumnLength.LongText,
   })
   public descriptionPattern?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Monitor Name Pattern",
+    description:
+      "Case-insensitive regex matched against the names of the monitors of the incident, alert or scheduled maintenance event. Leave empty to match any monitor name.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public monitorNamePattern?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbookRule,
+      Permission.RunbookAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Monitor Description Pattern",
+    description:
+      "Case-insensitive regex matched against the descriptions of the monitors of the incident, alert or scheduled maintenance event. Leave empty to match any monitor description.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public monitorDescriptionPattern?: string = undefined;
 
   @ColumnAccessControl({
     create: [
