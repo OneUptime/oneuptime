@@ -815,21 +815,37 @@ describe("Session Replay docs page", (): void => {
     );
 
     /* The reference is only ever put on the wire behind the switch. */
-    expect(recorder).toContain(
-      "if (this.config.captureUserIdentity && this.userRef) {",
-    );
+    const metaBlock: string =
+      recorder
+        .split("const sessionUserRef: string | null =")[1]
+        ?.split(";")[0] || "";
+
+    expect(metaBlock).toContain("this.config.captureUserIdentity");
+    expect(metaBlock).toContain(": null");
+
+    /* Nor remembered in the browser for a later page of the session. */
+    const rememberBlock: string =
+      recorder
+        .split("private rememberSessionUser(): void {")[1]
+        ?.split("SessionId.writeStoredUserRef")[0] || "";
+
+    expect(rememberBlock).toContain("!this.config.captureUserIdentity");
 
     const ingest: string = readRepo(
       "App/FeatureSet/Telemetry/Services/SessionReplayIngestService.ts",
     );
 
-    /* And the server re-checks the switch, storing "" for key and label. */
-    const keyBlock: string =
-      ingest.split("const hasUsableUserRef: boolean =")[1]?.split(";")[0] || "";
+    /*
+     * And the server re-checks the switch where a reference arrives,
+     * storing "" for key and label - nothing enters the session's carry.
+     */
+    const identityBlock: string =
+      ingest
+        .split("private static deriveChunkIdentity(")[1]
+        ?.split("private static deriveChunkTags(")[0] || "";
 
-    expect(keyBlock).toContain("data.policy.captureUserIdentity");
-    expect(ingest).toContain(
-      "const identifiedUserKey: string = hasUsableUserRef",
+    expect(identityBlock).toMatch(
+      /!data\.policy\.captureUserIdentity[\s\S]*?identifiedUserKey: "",\s*identifiedUserLabel: "",/,
     );
 
     const identify: string = section(readPage(), "## Identify your users");

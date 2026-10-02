@@ -83,7 +83,7 @@ Available on `window.OneUptimeReplay` once the artifact has loaded, and via
 | `grantConsent()`            | permits upload; required when the app's consent mode is `RequireExplicit`. After a `revokeConsent()` it starts a fresh session - consent platforms fire reject-then-accept inside one page life routinely |
 | `revokeConsent()`           | stops uploading, drops the buffer and the retry queue, and clears the stored session identity. Nothing recorded under the withdrawn consent survives; a later grant covers only what happens after it |
 | `captureSession(reason?)`   | uploads this session even though nothing went wrong; the reason lands on the timeline      |
-| `identify(userRef, traits?)`| attaches an opaque user reference (hashed server-side unless identity capture is enabled) and optional traits (plan, role, tenant), capped, stringified and masked before they leave the page |
+| `identify(userRef, traits?)`| attaches an opaque user reference (hashed server-side unless identity capture is enabled) and optional traits (plan, role, tenant), capped, stringified and masked before they leave the page. The reference identifies the SESSION - every page and tab of it, from its start - and a reference for a different user than the one the session belongs to ends it and starts a new session (see "Session user" under the privacy model) |
 | `track(name, properties?)`  | a business event ("checkout_failed") as an in-band marker the rail and timeline show        |
 | `setTags(tags)`             | replaces the session's tags, which are searchable from the session list as `tag:key=value`  |
 | `addTag(key, value)`        | adds or overwrites one tag, keeping the rest                                                |
@@ -267,6 +267,32 @@ It survives session rotation - that is its purpose - and is forgotten by
 is never re-linked to their earlier recordings; a later `grantConsent()`
 mints a new one. Under DNT / GPC the recorder never loads, so nothing is
 minted at all. `getVisitorId()` returns it.
+
+**Session user.** `identify()` lives in the page's memory, but a session is
+many pages: a multi-page app loads the recorder afresh on every navigation,
+and every tab of the origin shares the session id. A page that never called
+`identify()` - the login page a sign-in redirect lands on, a link opened in
+a new tab - used to send the session's header an anonymous version, and an
+identified session was listed as a visitor (#4206). So, **only while
+"Capture user identity" is on**, the recorder keeps
+`{ sessionId, userRef }` in `localStorage` under `oneuptime.replay.user` and
+every page of that session names the user on its meta. The record is bound
+to one session id and read as nobody for any other, so it never says who
+uses the browser: a new session (idle rollover, duration cap) starts
+anonymous unless the page that started it had identified the user itself.
+It is removed by `revokeConsent()` with the rest of the identity state, and
+never written while consent is withdrawn, under `RequireExplicit` before the
+grant (unlike the random ids, it is a person's), or after `stop()`.
+
+The decisions are `SessionIdentity.decideIdentify` in Common: an anonymous
+session is **attached** to the user from its start (the pages before the
+sign-in are the same visit); the same user changes nothing; a **different**
+user - one person signed out and another signed in, in this tab or another
+- ends the session (sealed under the previous user) and starts a new one
+with rotation reason `identity-change`. References are compared trimmed and
+case-sensitively, exactly as the server keys them. The server keeps the
+newest identity a session was given even when a later header version names
+nobody, so a page from an older recorder cannot undo it either.
 
 ### Known limits, stated plainly
 
