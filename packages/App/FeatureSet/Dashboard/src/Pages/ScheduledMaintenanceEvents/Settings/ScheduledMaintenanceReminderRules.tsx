@@ -185,10 +185,6 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
               id: "reminder-settings",
               title: "Reminder Settings",
             },
-            {
-              id: "status",
-              title: "Status",
-            },
           ] as Array<FormStep<ScheduledMaintenanceReminderRule>>
         }
         formFields={[
@@ -215,6 +211,21 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
             required: false,
             placeholder:
               "Remind owners of maintenance events every 30 minutes until completed",
+          },
+          /*
+           * A rule starts on, so the create form does not ask. Turning it
+           * off is an edit, with the rule's name - not a step of its own.
+           */
+          {
+            field: {
+              isEnabled: true,
+            },
+            title: "Enabled",
+            stepId: "rule-info",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            doNotShowWhenCreating: true,
+            description: "Enable or disable this reminder rule.",
           },
           {
             field: {
@@ -277,16 +288,6 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
             required: false,
             description:
               "Send reminders while the event is still scheduled (before it starts). When off, reminders only begin once the event has started.",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            stepId: "status",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this reminder rule.",
           },
         ]}
         showRefreshButton={true}
