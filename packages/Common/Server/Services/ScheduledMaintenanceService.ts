@@ -1,6 +1,7 @@
 import DatabaseConfig from "../DatabaseConfig";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
+import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import ScheduledMaintenanceMeasurementService from "./ScheduledMaintenanceMeasurementService";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -1315,9 +1316,10 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     createBy.data.scheduledMaintenanceNumber =
       scheduledMaintenanceCounterResult.counter;
     createBy.data.scheduledMaintenanceNumberWithPrefix =
-      scheduledMaintenanceCounterResult.prefix
-        ? `${scheduledMaintenanceCounterResult.prefix}${scheduledMaintenanceCounterResult.counter}`
-        : `#${scheduledMaintenanceCounterResult.counter}`;
+      NumberPrefixUtil.formatNumber(
+        scheduledMaintenanceCounterResult.prefix,
+        scheduledMaintenanceCounterResult.counter,
+      );
 
     // get next notification date.
 
