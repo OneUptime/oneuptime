@@ -40,6 +40,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import ScheduledMaintenanceSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import {
   DESKTOP_WIDTH,
   MOBILE_WIDTH,
@@ -71,10 +73,24 @@ describe("Scheduled maintenance side menu", () => {
   beforeEach(() => {
     setViewportWidth(DESKTOP_WIDTH);
     goTo(ROOT);
+
+    /*
+     * A project with Slack and Microsoft Teams both connected, so the
+     * Workspace section lists both. The other combinations, and what is
+     * listed while nothing is connected, are pinned in
+     * WorkspaceMenusConnected.test.tsx.
+     */
+    window.localStorage.clear();
+    ConnectedWorkspaces.reset();
+    ConnectedWorkspaces.setConnected(PROJECT_ID, [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+    ]);
   });
 
   afterEach(() => {
     cleanup();
+    ConnectedWorkspaces.reset();
   });
 
   describe("sections", () => {
@@ -139,6 +155,18 @@ describe("Scheduled maintenance side menu", () => {
         expect(activeLinkTitles()).toEqual([title]);
       },
     );
+
+    test("with nothing connected, Workspace holds one entry, to the Workspace page", async () => {
+      ConnectedWorkspaces.setConnected(PROJECT_ID, []);
+      await renderScheduledMaintenanceMenu();
+
+      expect(linksIn("Workspace")).toEqual([
+        {
+          title: "Connect Slack or Teams",
+          href: routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS),
+        },
+      ]);
+    });
 
     test("the overview and workspace sections are unchanged by the move", async () => {
       await renderScheduledMaintenanceMenu();

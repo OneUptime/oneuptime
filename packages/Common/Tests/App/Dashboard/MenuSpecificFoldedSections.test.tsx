@@ -61,6 +61,8 @@ import ProjectSettingsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pa
 import StatusPageSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SideMenu";
 import UserSettingsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -240,6 +242,24 @@ describe("project Settings: only Basic starts open", () => {
 });
 
 describe("User Settings: the checklist and how you are reached start open", () => {
+  /*
+   * The Workspace section lists the chat workspaces the project has
+   * connected, and is left out when it has none. Here both are connected;
+   * WorkspaceMenusConnected.test.tsx has the rest.
+   */
+  beforeEach(() => {
+    window.localStorage.clear();
+    ConnectedWorkspaces.reset();
+    ConnectedWorkspaces.setConnected(PROJECT_ID, [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+    ]);
+  });
+
+  afterEach(() => {
+    ConnectedWorkspaces.reset();
+  });
+
   async function renderUserSettingsMenuAt(page: string): Promise<void> {
     goTo(routeFor(page));
     await renderMenu(<UserSettingsSideMenu />);
@@ -256,9 +276,19 @@ describe("User Settings: the checklist and how you are reached start open", () =
       { title: "On-Call Logs", expanded: false },
       { title: "Incoming Call Policy", expanded: false },
       { title: "Calendar", expanded: false },
-      { title: "Workspace", expanded: false },
       { title: "Profile", expanded: false },
+      { title: "Workspace", expanded: false },
     ]);
+  });
+
+  test("in a project with no workspace connected, there is no Workspace section", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID, []);
+    await renderUserSettingsMenuAt(PageMap.USER_SETTINGS_SETUP);
+
+    expect(sectionTitlesInOrder()).not.toContain("Workspace");
+    expect(sectionTitlesInOrder()[sectionTitlesInOrder().length - 1]).toBe(
+      "Profile",
+    );
   });
 
   test.each([
