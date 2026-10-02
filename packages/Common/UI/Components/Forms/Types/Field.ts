@@ -172,6 +172,15 @@ export default interface Field<TEntity> {
   categoryCheckboxProps?: CategoryCheckboxProps | undefined; // props for the category checkbox component. If fieldType is CategoryCheckbox, this prop is required.
   dataTestId?: string | undefined;
   autoComplete?: string | undefined;
+  /*
+   * A Password field that holds the person's own password, on a page where
+   * they sign in, sign up or change it. Set it together with the matching
+   * autoComplete ("current-password" to sign in, "new-password" to set one)
+   * so password managers fill and save it. Every other Password and
+   * EncryptedText field holds a secret the product stores for something else,
+   * and is kept away from password managers (see Input).
+   */
+  isOwnCredential?: boolean | undefined;
   ariaDescribedby?: string | undefined;
 
   // set this to true if you want to show this field in the form even when the form is in edit mode.
