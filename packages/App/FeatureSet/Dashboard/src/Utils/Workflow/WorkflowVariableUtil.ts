@@ -154,7 +154,10 @@ export function getTokenRefreshDescription(
   }`;
 }
 
-// Rendered in the list's Type column, and on the variable's page.
+/*
+ * The Type field on the variable's own page. The variables list has no Type
+ * column; this page is where a variable's type is shown.
+ */
 export function getVariableTypeLabel(variable: WorkflowVariable): string {
   return isOAuth2WorkflowVariable(variable.variableType)
     ? "OAuth 2.0"

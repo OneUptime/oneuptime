@@ -11,6 +11,13 @@
  * a button of its own made the table hard to read and pushed the actions off
  * screen on an ordinary laptop.
  *
+ * A row shows the variable's Name and Description, and nothing else - no Type
+ * column. Nearly every variable is static, so that column read "Static" on
+ * row after row, and the list is easier to take in without it. Whether a
+ * variable is static or OAuth 2.0, and its grant type, is on the variable's
+ * own page, where it decides which cards the page shows. The list reads only
+ * the columns it shows.
+ *
  * Create makes a static variable - the kind almost everybody wants - and its
  * form never asks which kind. It walks two steps, Variable (name and
  * description) then Value (content and the secret switch), rather than one
@@ -29,10 +36,7 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import {
-  WorkflowVariableType,
-  isOAuth2WorkflowVariable,
-} from "Common/Types/Workflow/WorkflowVariableOAuth";
+import { WorkflowVariableType } from "Common/Types/Workflow/WorkflowVariableOAuth";
 import {
   ButtonSize,
   ButtonStyleType,
@@ -53,7 +57,6 @@ import {
   TokenRefreshOutcome,
   fetchTokenRefreshOutcome,
   getStaticVariableCreateFormFields,
-  getVariableTypeLabel,
   getWorkflowVariableViewRoute,
 } from "../../Utils/Workflow/WorkflowVariableUtil";
 
@@ -246,10 +249,6 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
           workflowId: props.workflowId ? props.workflowId : new IsNull(),
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
-        selectMoreFields={{
-          variableType: true,
-          oauthGrantType: true,
-        }}
         onBeforeCreate={(item: WorkflowVariable): Promise<WorkflowVariable> => {
           /*
            * The Create button's form makes static variables only. Stamped here
@@ -305,31 +304,6 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
             },
             title: "Name",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              variableType: true,
-            },
-            title: "Type",
-            type: FieldType.Element,
-            getElement: (item: WorkflowVariable): ReactElement => {
-              if (!isOAuth2WorkflowVariable(item.variableType)) {
-                return <span>{getVariableTypeLabel(item)}</span>;
-              }
-
-              return (
-                <div className="flex flex-col">
-                  <span>{getVariableTypeLabel(item)}</span>
-                  {item.oauthGrantType ? (
-                    <span className="text-xs text-gray-500">
-                      {item.oauthGrantType}
-                    </span>
-                  ) : (
-                    <></>
-                  )}
-                </div>
-              );
-            },
           },
           {
             field: {
