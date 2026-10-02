@@ -18,6 +18,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
@@ -89,6 +90,7 @@ RunCron(
           incidentNumberWithPrefix: true,
           incidentSeverity: {
             name: true,
+            color: true,
           },
         },
       });
@@ -218,9 +220,15 @@ RunCron(
           incidentNumber: incidentNumberStr,
           projectName: incidentStateTimeline.project!.name!,
           currentState: incidentState!.name!,
-          currentStateColor: incidentState!.color?.toString() || "#000000",
+          ...EmailColorUtil.getTemplateVariables(
+            "currentState",
+            incidentState!.color,
+          ),
           previousState: previousState?.name || "",
-          previousStateColor: previousState?.color?.toString() || "#6b7280",
+          ...EmailColorUtil.getTemplateVariables(
+            "previousState",
+            previousState?.color,
+          ),
           previousStateDurationText: previousStateDurationText,
           incidentDescription: incidentDescriptionHtml,
           resourcesAffected: resourcesAffected || "None",
@@ -230,6 +238,10 @@ RunCron(
               timezones: user.timezone ? [user.timezone] : [],
             }),
           incidentSeverity: incident.incidentSeverity!.name!,
+          ...EmailColorUtil.getTemplateVariables(
+            "incidentSeverity",
+            incident.incidentSeverity?.color,
+          ),
           incidentViewLink: (
             await IncidentService.getIncidentLinkInDashboard(
               incidentStateTimeline.projectId!,

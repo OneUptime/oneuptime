@@ -10,6 +10,7 @@ import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import Timezone from "Common/Types/Timezone";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 
 /*
  * Regression tests for the MonitorOwner:SendStatusChangeEmail cron's per-owner
@@ -366,8 +367,13 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
       projectName: "Acme Status",
       currentStatus: "Operational",
       currentStatusColor: Green.toString(),
+      // The readable shade of the status colour, for its name.
+      currentStatusTextColor: EmailColorUtil.getColorPair(Green)!.textColor,
+      /*
+       * No previous status, so no previous colour either: the template drops
+       * the whole previous column when previousStatus is empty.
+       */
       previousStatus: "",
-      previousStatusColor: "#94a3b8",
       previousStatusDurationText: "",
       monitorDescription: expectedDescriptionHtml,
       statusChangedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({

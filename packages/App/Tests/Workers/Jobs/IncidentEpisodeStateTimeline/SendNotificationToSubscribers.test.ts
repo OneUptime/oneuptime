@@ -866,6 +866,8 @@ describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers", () => {
     });
     expect(pendingQuery?.select["incidentState"]).toEqual({
       name: true,
+      // The default email paints the new state in its own colour.
+      color: true,
       isCreatedState: true,
     });
   });
@@ -1529,7 +1531,7 @@ describe("IncidentEpisodeStateTimeline custom template variable values", () => {
       }
     ).select;
     expect(select["title"]).toBe(true);
-    expect(select["incidentSeverity"]).toEqual({ name: true });
+    expect(select["incidentSeverity"]).toEqual({ name: true, color: true });
 
     const calls: Array<CompileCall> = compileCalls();
     expect(calls).toHaveLength(5);

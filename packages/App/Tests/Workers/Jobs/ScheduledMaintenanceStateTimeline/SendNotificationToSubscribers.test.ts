@@ -961,6 +961,8 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
     });
     expect(args.select["scheduledMaintenanceState"]).toEqual({
       name: true,
+      // The default email paints the event state in its own colour.
+      color: true,
       isScheduledState: true,
     });
   });

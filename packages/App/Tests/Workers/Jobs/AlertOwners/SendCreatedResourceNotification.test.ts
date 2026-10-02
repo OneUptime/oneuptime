@@ -439,6 +439,8 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
       monitorName: "",
       severityBadgeText: "Warning",
       severityColor: DEFAULT_SEVERITY_COLOR,
+      // The slate fallback already reads on white, so it is its own shade.
+      severityTextColor: DEFAULT_SEVERITY_COLOR,
       preheader: "A bad deploy saturated the queue \u00b7 API Monitor",
       isOwner: "true",
     };

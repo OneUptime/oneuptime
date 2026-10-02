@@ -241,8 +241,9 @@ describe.each(cases)(
         expect(entry.episodeService.findOneById).toHaveBeenCalledWith(
           expect.objectContaining({
             select: expect.objectContaining({
-              [entry.severityKey]: { name: true },
-              [entry.stateKey]: { name: true },
+              // The name, and the colour the email paints it in.
+              [entry.severityKey]: { name: true, color: true },
+              [entry.stateKey]: { name: true, color: true },
             }),
           }),
         );
