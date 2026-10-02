@@ -3,7 +3,6 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import Team from "Common/Models/DatabaseModels/Team";
 import {
   DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
@@ -13,6 +12,7 @@ import {
   SloBurnRateTemplateVariableDefinition,
 } from "Common/Utils/Slo/SloBurnRateTemplate";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import type { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
@@ -32,10 +32,9 @@ import type { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
  * App/Tests/FeatureSetImportsStayReactFree.test.ts is the guard for that,
  * and it is what caught this.
  *
- * The same constraint is why nothing here fetches anything: the owner-user
- * picker needs ProjectUser and ProjectUtil, which reach ModelAPI and read
- * `window` at module load, so the page injects that loader through
- * withOwnerUserDropdownOptions instead of this module importing it.
+ * The same constraint is why nothing here fetches anything. The owners
+ * pickers are plain data too (getOwnersFormField): the people picker the form
+ * draws them with does its own searching.
  *
  * BurnRateRules.tsx re-exports these names, so existing importers are
  * unchanged.
@@ -645,42 +644,20 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     collapsibleSection: alertDescriptionSection,
     stepId: "alert-details",
   },
-  {
-    field: {
-      alertOwnerTeams: true,
-    },
-    title: "Alert Owner Teams",
-    description:
-      "Teams added as owners of the alert. Owners are notified when the alert is created.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownModal: {
-      type: Team,
-      labelField: "name",
-      valueField: "_id",
-    },
-    required: false,
-    placeholder: "Select Teams (optional)",
-    collapsibleSection: alertOwnershipSection,
-    stepId: "alert-details",
-  },
   /*
-   * No dropdownModal: User is not a project-listable model, so its options
-   * come from the project's team members, which the page injects through
-   * withOwnerUserDropdownOptions (this module must not fetch).
+   * People and teams in one picker, saved to the rule's alertOwnerUsers and
+   * alertOwnerTeams columns.
    */
-  {
-    field: {
-      alertOwnerUsers: true,
-    },
-    title: "Alert Owner Users",
+  getOwnersFormField<ServiceLevelObjectiveBurnRateRule>({
+    fieldKey: "alertOwners",
+    usersKey: "alertOwnerUsers",
+    teamsKey: "alertOwnerTeams",
+    title: "Alert Owners",
     description:
-      "Users added as owners of the alert. Owners are notified when the alert is created.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    required: false,
-    placeholder: "Select Users (optional)",
+      "People and teams added as owners of the alert. Owners are notified when the alert is created.",
     collapsibleSection: alertOwnershipSection,
     stepId: "alert-details",
-  },
+  }),
   {
     field: {
       alertLabels: true,
@@ -806,37 +783,17 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     collapsibleSection: incidentDescriptionSection,
     stepId: "incident-details",
   },
-  {
-    field: {
-      incidentOwnerTeams: true,
-    },
-    title: "Incident Owner Teams",
+  // Saved to the rule's incidentOwnerUsers and incidentOwnerTeams columns.
+  getOwnersFormField<ServiceLevelObjectiveBurnRateRule>({
+    fieldKey: "incidentOwners",
+    usersKey: "incidentOwnerUsers",
+    teamsKey: "incidentOwnerTeams",
+    title: "Incident Owners",
     description:
-      "Teams added as owners of the incident. Owners are notified when the incident is declared.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownModal: {
-      type: Team,
-      labelField: "name",
-      valueField: "_id",
-    },
-    required: false,
-    placeholder: "Select Teams (optional)",
+      "People and teams added as owners of the incident. Owners are notified when the incident is declared.",
     collapsibleSection: incidentOwnershipSection,
     stepId: "incident-details",
-  },
-  {
-    field: {
-      incidentOwnerUsers: true,
-    },
-    title: "Incident Owner Users",
-    description:
-      "Users added as owners of the incident. Owners are notified when the incident is declared.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    required: false,
-    placeholder: "Select Users (optional)",
-    collapsibleSection: incidentOwnershipSection,
-    stepId: "incident-details",
-  },
+  }),
   {
     field: {
       incidentLabels: true,
@@ -915,54 +872,3 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
   },
 ];
 
-// The two fields whose options only the page can load.
-export const BURN_RATE_RULE_OWNER_USER_COLUMNS: ReadonlyArray<string> = [
-  "alertOwnerUsers",
-  "incidentOwnerUsers",
-];
-
-export type FetchBurnRateRuleOwnerUserOptionsFunction = NonNullable<
-  ModelField<ServiceLevelObjectiveBurnRateRule>["fetchDropdownOptions"]
->;
-
-export type WithOwnerUserDropdownOptionsFunction = (
-  fields: Array<ModelField<ServiceLevelObjectiveBurnRateRule>>,
-  fetchOptions: FetchBurnRateRuleOwnerUserOptionsFunction,
-) => Array<ModelField<ServiceLevelObjectiveBurnRateRule>>;
-
-/*
- * Hands the owner-user fields their option loader, and leaves every other
- * field - and the input array - untouched. A MultiSelectDropdown with neither
- * a dropdownModal nor a loader renders an empty list, which reads as "this
- * project has no users" rather than as a bug, so the page must not forget this.
- */
-export const withOwnerUserDropdownOptions: WithOwnerUserDropdownOptionsFunction =
-  (
-    fields: Array<ModelField<ServiceLevelObjectiveBurnRateRule>>,
-    fetchOptions: FetchBurnRateRuleOwnerUserOptionsFunction,
-  ): Array<ModelField<ServiceLevelObjectiveBurnRateRule>> => {
-    return fields.map(
-      (
-        field: ModelField<ServiceLevelObjectiveBurnRateRule>,
-      ): ModelField<ServiceLevelObjectiveBurnRateRule> => {
-        const columns: Array<string> = Object.keys(
-          (field.field || {}) as Record<string, unknown>,
-        );
-
-        const isOwnerUserField: boolean = columns.some(
-          (column: string): boolean => {
-            return BURN_RATE_RULE_OWNER_USER_COLUMNS.includes(column);
-          },
-        );
-
-        if (!isOwnerUserField) {
-          return field;
-        }
-
-        return {
-          ...field,
-          fetchDropdownOptions: fetchOptions,
-        };
-      },
-    );
-  };

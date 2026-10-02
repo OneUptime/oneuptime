@@ -1,4 +1,12 @@
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useId,
+  useState,
+} from "react";
+import OwnersPicker, {
+  OwnersPickerValue,
+} from "Common/UI/Components/PeoplePicker/OwnersPicker";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import Dropdown, {
   DropdownOption,
@@ -35,8 +43,6 @@ export interface ComponentProps {
   selectedRecommendations: Array<MonitorRecommendation>;
   resourceLabel: string;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
-  teamDropdownOptions: Array<DropdownOption>;
-  userDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
   incidentSeverityOptions: Array<MonitorRecommendationSeverityOption>;
   alertSeverityOptions: Array<MonitorRecommendationSeverityOption>;
@@ -138,6 +144,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
   const [ownerTeamIds, setOwnerTeamIds] = useState<Array<ObjectID>>([]);
   const [ownerUserIds, setOwnerUserIds] = useState<Array<ObjectID>>([]);
   const [labelIds, setLabelIds] = useState<Array<ObjectID>>([]);
+  const ownersLabelId: string = `${useId()}-owners-label`;
 
   /*
    * Severity mapping starts at the project's own defaults — most severe for
@@ -478,38 +485,21 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
           <div className="space-y-4 pt-2">
             <div>
               <FieldLabelElement
-                title="Owner Teams"
-                description="Teams that own these monitors."
+                id={ownersLabelId}
+                title="Owners"
+                description="People and teams who own these monitors."
               />
-              <Dropdown
-                value={selectedOptions(props.teamDropdownOptions, ownerTeamIds)}
-                options={props.teamDropdownOptions}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  setOwnerTeamIds(toObjectIDArray(value));
-                }}
-                isMultiSelect={true}
-                placeholder="Select Teams"
-              />
-            </div>
-
-            <div>
-              <FieldLabelElement
-                title="Owner Users"
-                description="Individual users who own these monitors."
-              />
-              <Dropdown
-                value={selectedOptions(props.userDropdownOptions, ownerUserIds)}
-                options={props.userDropdownOptions}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  setOwnerUserIds(toObjectIDArray(value));
-                }}
-                isMultiSelect={true}
-                placeholder="Select Users"
-              />
+              <div className="mt-2">
+                <OwnersPicker
+                  ariaLabelledby={ownersLabelId}
+                  userIds={ownerUserIds}
+                  teamIds={ownerTeamIds}
+                  onChange={(owners: OwnersPickerValue) => {
+                    setOwnerUserIds(owners.userIds);
+                    setOwnerTeamIds(owners.teamIds);
+                  }}
+                />
+              </div>
             </div>
 
             <div>

@@ -181,7 +181,6 @@ export interface ComponentProps {
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
-  teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   value?: undefined | MonitorStep;
@@ -2073,7 +2072,6 @@ return {
           alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
           onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
           labelDropdownOptions={props.labelDropdownOptions}
-          teamDropdownOptions={props.teamDropdownOptions}
           userDropdownOptions={props.userDropdownOptions}
           incidentRoleOptions={props.incidentRoleOptions}
           value={monitorStep?.data?.monitorCriteria}

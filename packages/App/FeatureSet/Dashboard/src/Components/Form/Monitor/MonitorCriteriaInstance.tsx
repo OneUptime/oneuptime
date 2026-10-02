@@ -50,7 +50,6 @@ export interface ComponentProps {
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
-  teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   monitorType: MonitorType;
@@ -544,8 +543,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 }
                 onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
                 labelDropdownOptions={props.labelDropdownOptions}
-                teamDropdownOptions={props.teamDropdownOptions}
-                userDropdownOptions={props.userDropdownOptions}
                 monitorType={props.monitorType}
                 seriesAttributeKeys={seriesAttributeKeys}
                 onChange={(value: Array<CriteriaAlert>) => {
@@ -605,7 +602,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 }
                 onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
                 labelDropdownOptions={props.labelDropdownOptions}
-                teamDropdownOptions={props.teamDropdownOptions}
                 userDropdownOptions={props.userDropdownOptions}
                 incidentRoleOptions={props.incidentRoleOptions}
                 monitorType={props.monitorType}

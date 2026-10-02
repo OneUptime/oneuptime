@@ -9,7 +9,11 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
-import { PeoplePickerKind, PeoplePickerOption } from "./PeoplePickerTypes";
+import {
+  PeoplePickerKind,
+  PeoplePickerOption,
+  toPeoplePickerIds,
+} from "./PeoplePickerTypes";
 
 /*
  * What the people picker knows about each kind of record it can offer: how
@@ -340,6 +344,25 @@ export const getPeoplePickerKindDefinition: (
   kind: PeoplePickerKind,
 ): PeoplePickerKindDefinition => {
   return PEOPLE_PICKER_KIND_DEFINITIONS[kind];
+};
+
+// The rows of a list that a set of picks names, in the list's order.
+export const pickModelsByIds: <TModel extends BaseModel>(
+  models: Array<TModel>,
+  ids: unknown,
+) => Array<TModel> = <TModel extends BaseModel>(
+  models: Array<TModel>,
+  ids: unknown,
+): Array<TModel> => {
+  const wanted: Set<string> = new Set<string>(
+    toPeoplePickerIds(ids).map((id: string): string => {
+      return id.toLowerCase();
+    }),
+  );
+
+  return models.filter((model: TModel): boolean => {
+    return wanted.has((model._id?.toString() || "").toLowerCase());
+  });
 };
 
 /*

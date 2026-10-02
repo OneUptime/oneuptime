@@ -1,5 +1,5 @@
-import SelectFormFields from "../../Types/SelectEntityField";
-import Field from "../Forms/Types/Field";
+import type SelectFormFields from "../../Types/SelectEntityField";
+import type Field from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import {
   PeoplePickerFieldConfig,
@@ -26,6 +26,10 @@ import {
 export const OWNERS_FORM_FIELD_KEY: string = "owners";
 
 export const OWNERS_ADD_BUTTON_TEXT: string = "Add owner";
+
+// The Owners field of every owner rule (the rules under Settings > Owner Rules).
+export const OWNER_RULE_OWNERS_DESCRIPTION: string =
+  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice.";
 
 export interface OwnersPeoplePickerKeys {
   // The form value the picked teams are kept in. Default: ownerTeams.
