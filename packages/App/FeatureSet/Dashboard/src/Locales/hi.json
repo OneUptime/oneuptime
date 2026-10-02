@@ -7314,5 +7314,8 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value.": "ड्रॉपडाउन में दिखने वाले विकल्प जोड़ें और चाहें तो हर मान के लिए एक रंग चुनें।",
   "Copying custom field values from a related resource": "किसी संबंधित संसाधन से कस्टम फ़ील्ड के मान कॉपी करना",
   "When and how a field's value is copied, and what copying will never do.": "किसी फ़ील्ड का मान कब और कैसे कॉपी होता है, और कॉपी करना कभी क्या नहीं करता।",
-  "A field whose value is copied from a monitor custom field instead of being typed in.": "ऐसा फ़ील्ड जिसका मान टाइप करने के बजाय मॉनिटर के कस्टम फ़ील्ड से कॉपी होता है।"
+  "A field whose value is copied from a monitor custom field instead of being typed in.": "ऐसा फ़ील्ड जिसका मान टाइप करने के बजाय मॉनिटर के कस्टम फ़ील्ड से कॉपी होता है।",
+  "Made from the name": "नाम से बनाया जाता है",
+  "Make it from the name": "नाम से बनाएँ",
+  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "छोटे अंग्रेज़ी अक्षर (a-z), अंक और हाइफ़न इस्तेमाल करें, शुरुआत किसी अक्षर या अंक से करें, अधिकतम 50 वर्ण।"
 }

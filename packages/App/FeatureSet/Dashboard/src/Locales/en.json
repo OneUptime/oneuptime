@@ -7314,5 +7314,8 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value.": "Add the options that should appear in the dropdown and optionally choose a color for each value.",
   "Copying custom field values from a related resource": "Copying custom field values from a related resource",
   "When and how a field's value is copied, and what copying will never do.": "When and how a field's value is copied, and what copying will never do.",
-  "A field whose value is copied from a monitor custom field instead of being typed in.": "A field whose value is copied from a monitor custom field instead of being typed in."
+  "A field whose value is copied from a monitor custom field instead of being typed in.": "A field whose value is copied from a monitor custom field instead of being typed in.",
+  "Made from the name": "Made from the name",
+  "Make it from the name": "Make it from the name",
+  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters."
 }

@@ -7314,5 +7314,8 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value.": "Fügen Sie die Optionen hinzu, die im Dropdown erscheinen sollen, und wählen Sie optional eine Farbe für jeden Wert.",
   "Copying custom field values from a related resource": "Werte benutzerdefinierter Felder aus einer verknüpften Ressource kopieren",
   "When and how a field's value is copied, and what copying will never do.": "Wann und wie der Wert eines Felds kopiert wird und was das Kopieren nie tut.",
-  "A field whose value is copied from a monitor custom field instead of being typed in.": "Ein Feld, dessen Wert aus einem benutzerdefinierten Feld des Monitors kopiert wird, statt eingetippt zu werden."
+  "A field whose value is copied from a monitor custom field instead of being typed in.": "Ein Feld, dessen Wert aus einem benutzerdefinierten Feld des Monitors kopiert wird, statt eingetippt zu werden.",
+  "Made from the name": "Wird aus dem Namen gebildet",
+  "Make it from the name": "Aus dem Namen bilden",
+  "Use lowercase letters (a-z), numbers and hyphens, starting with a letter or a number, at most 50 characters.": "Verwenden Sie Kleinbuchstaben (a-z), Ziffern und Bindestriche, beginnend mit einem Buchstaben oder einer Ziffer, höchstens 50 Zeichen."
 }
