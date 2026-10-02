@@ -46,10 +46,13 @@ import React, {
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [
     allowSubscribersToChooseResources,
@@ -546,8 +549,9 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
                   {bulkActionInProgress ? (
                     <div className="space-y-4">
                       <p className="text-sm text-gray-500">
-                        Please wait while subscribers are being added. This may
-                        take a moment.
+                        {translator.translateText(
+                          "Please wait while subscribers are being added. This may take a moment.",
+                        )}
                       </p>
                       <ProgressBar
                         count={bulkProgress.completed}
@@ -567,11 +571,14 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
                               color={Green}
                             />
                             <div className="ml-2 text-sm font-medium text-green-800">
-                              {bulkProgress.succeeded}{" "}
-                              {bulkProgress.succeeded === 1
-                                ? "subscriber"
-                                : "subscribers"}{" "}
-                              added successfully
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} subscriber added successfully",
+                                  other:
+                                    "{{count}} subscribers added successfully",
+                                },
+                                bulkProgress.succeeded,
+                              )}
                             </div>
                           </div>
                         )}
@@ -583,11 +590,13 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
                               color={Red}
                             />
                             <div className="ml-2 text-sm font-medium text-red-800">
-                              {bulkProgress.failed.length}{" "}
-                              {bulkProgress.failed.length === 1
-                                ? "subscriber"
-                                : "subscribers"}{" "}
-                              failed
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} subscriber failed",
+                                  other: "{{count}} subscribers failed",
+                                },
+                                bulkProgress.failed.length,
+                              )}
                             </div>
                           </div>
                         )}
