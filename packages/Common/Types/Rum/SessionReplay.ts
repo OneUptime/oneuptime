@@ -131,6 +131,31 @@ export const SESSION_REPLAY_IDLE_ROLLOVER_MS: number = 30 * 60 * 1000;
 export const SESSION_REPLAY_MAX_SESSION_MS: number = 4 * 60 * 60 * 1000;
 
 /*
+ * How long a recorder keeps capturing with nobody at the page.
+ *
+ * After this long with no input - no key, pointer, wheel or touch - the
+ * recorder stops capturing altogether: it closes the open chunk, puts an
+ * idle-paused marker in the stream and stops observing the page, so an
+ * unattended tab uploads nothing, stores nothing and costs its page no
+ * work. The next input resumes the SAME session on a fresh snapshot, with
+ * an idle-resumed marker, as long as it comes inside
+ * SESSION_REPLAY_IDLE_ROLLOVER_MS; after that the session has ended and the
+ * input starts the next one.
+ *
+ * Without it, everything a page did on its own while its user was away -
+ * a polling dashboard, a ticking clock, a carousel - was recorded for the
+ * whole half hour before the session ended, with a full snapshot every
+ * SESSION_REPLAY_CHECKOUT_INTERVAL_MS, and the session's duration ran on
+ * through all of it.
+ *
+ * Deliberately not a setting. Five minutes without input is long past the
+ * longest a person reads one screen without scrolling or moving the mouse,
+ * and what a page does after that, with nobody watching it, is not
+ * anything a replay is for.
+ */
+export const SESSION_REPLAY_IDLE_PAUSE_MS: number = 5 * 60 * 1000;
+
+/*
  * When a recording counts as over.
  *
  * A session is finalized - its aggregates counted and its "Recording now"
