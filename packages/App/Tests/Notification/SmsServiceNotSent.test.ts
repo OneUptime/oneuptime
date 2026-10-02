@@ -40,7 +40,9 @@ import Twilio from "twilio";
 jest.mock("twilio", () => {
   return {
     __esModule: true,
-    default: jest.fn(),
+    default: {
+      Twilio: jest.fn(),
+    },
   };
 });
 
@@ -149,7 +151,7 @@ describe("an SMS the Notification service does not send", () => {
       sid: "SM-1",
     } as never);
 
-    (Twilio as unknown as jest.Mock).mockImplementation(() => {
+    (Twilio.Twilio as unknown as jest.Mock).mockImplementation(() => {
       return { messages: { create: createMessage } };
     });
 
