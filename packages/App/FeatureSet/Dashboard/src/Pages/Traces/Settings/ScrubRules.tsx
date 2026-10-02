@@ -185,9 +185,7 @@ const TraceScrubRules: FunctionComponent<
         fieldsToScrub: "all",
       }}
       onBeforeCreate={async (item: TraceScrubRule) => {
-        if (!item.sortOrder) {
-          item.sortOrder = 1;
-        }
+        // No sortOrder: the server puts a new rule at the end of the list.
         if (!item.scrubAction) {
           item.scrubAction = "redact";
         }

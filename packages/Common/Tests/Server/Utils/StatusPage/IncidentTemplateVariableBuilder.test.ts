@@ -14,7 +14,9 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
  *     out;
  *   - only fields marked "Include in Subscriber Notifications" reach the
  *     default messages and webhooks, in the fields' order; every field is
- *     offered to custom templates as {{customFields.<key>}};
+ *     offered to custom templates as {{incident.customFields.<key>}}, and
+ *     under the older {{customFields.<key>}} with the same value, so
+ *     templates saved before the rename keep working;
  *   - Boolean, Date and Date and time values read as words, a day, and the
  *     status page's time zones.
  *
@@ -64,6 +66,7 @@ import IncidentTemplateVariableBuilder, {
   IncidentTemplateVariables,
 } from "../../../../Server/Utils/StatusPage/IncidentTemplateVariableBuilder";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
+import { isCustomFieldTemplateVariableName } from "../../../../Types/CustomField/CustomFieldVariableKey";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import SafeHtml from "../../../../Types/SafeHtml";
@@ -234,20 +237,26 @@ describe("IncidentTemplateVariableBuilder escaping", () => {
     const site: IncidentStatusPageTemplateVariables = forSite03(variables);
 
     // A plain string in the email body bag: the compile escapes it, once.
-    expect(site.emailBody["customFields.affected_location"]).toBe(SCRIPT_VALUE);
+    expect(site.emailBody["incident.customFields.affected_location"]).toBe(
+      SCRIPT_VALUE,
+    );
     expect(
       SubscriberNotificationTemplateCompiler.compileEmailBodyTemplate(
-        "<p>{{customFields.affected_location}}</p>",
+        "<p>{{incident.customFields.affected_location}}</p>",
         site.emailBody,
       ),
     ).toBe(`<p>${SCRIPT_VALUE_HTML}</p>`);
 
     // Text channels get it as written.
-    expect(site.plainText["customFields.affected_location"]).toBe(SCRIPT_VALUE);
-    expect(site.markdown["customFields.affected_location"]).toBe(SCRIPT_VALUE);
+    expect(site.plainText["incident.customFields.affected_location"]).toBe(
+      SCRIPT_VALUE,
+    );
+    expect(site.markdown["incident.customFields.affected_location"]).toBe(
+      SCRIPT_VALUE,
+    );
     expect(
       SubscriberNotificationTemplateCompiler.compileTemplate(
-        "SMS: {{customFields.affected_location}}",
+        "SMS: {{incident.customFields.affected_location}}",
         site.plainText,
       ),
     ).toBe(`SMS: ${SCRIPT_VALUE}`);
@@ -275,7 +284,7 @@ describe("IncidentTemplateVariableBuilder escaping", () => {
     });
 
     const site: IncidentStatusPageTemplateVariables = forSite03(variables);
-    const html: string = htmlOf(site.emailBody["customFields.impact"]);
+    const html: string = htmlOf(site.emailBody["incident.customFields.impact"]);
 
     expect(html).toContain("<strong>EU</strong>");
     expect(html).not.toContain("<script");
@@ -290,9 +299,11 @@ describe("IncidentTemplateVariableBuilder escaping", () => {
     ]);
 
     // Text channels: flattened for SMS and subjects, as written for chat.
-    expect(site.plainText["customFields.impact"]).not.toContain("**");
-    expect(site.plainText["customFields.impact"]).toContain("Impact: EU");
-    expect(site.markdown["customFields.impact"]).toBe(markdown);
+    expect(site.plainText["incident.customFields.impact"]).not.toContain("**");
+    expect(site.plainText["incident.customFields.impact"]).toContain(
+      "Impact: EU",
+    );
+    expect(site.markdown["incident.customFields.impact"]).toBe(markdown);
   });
 
   test("a Rich text value's HTML is not escaped a second time by the email body compile", async () => {
@@ -309,7 +320,7 @@ describe("IncidentTemplateVariableBuilder escaping", () => {
 
     const body: string =
       SubscriberNotificationTemplateCompiler.compileEmailBodyTemplate(
-        "<div>{{customFields.impact}}</div>",
+        "<div>{{incident.customFields.impact}}</div>",
         forSite03(variables).emailBody,
       );
 
@@ -334,7 +345,7 @@ describe("IncidentTemplateVariableBuilder escaping", () => {
 
     const site: IncidentStatusPageTemplateVariables = forSite03(variables);
 
-    expect(htmlOf(site.emailBody["customFields.affected_users"])).toBe(
+    expect(htmlOf(site.emailBody["incident.customFields.affected_users"])).toBe(
       "EU &lt;admins&gt;<br/>US &amp; CA<br/>APAC",
     );
     expect(site.customFieldRows).toEqual([
@@ -343,7 +354,7 @@ describe("IncidentTemplateVariableBuilder escaping", () => {
         renderedHtml: "EU &lt;admins&gt;<br/>US &amp; CA<br/>APAC",
       },
     ]);
-    expect(site.plainText["customFields.affected_users"]).toBe(
+    expect(site.plainText["incident.customFields.affected_users"]).toBe(
       "EU <admins>\r\nUS & CA\nAPAC",
     );
   });
@@ -375,12 +386,14 @@ describe("IncidentTemplateVariableBuilder escaping", () => {
       })
       .sort();
 
+    // The Rich text field under both of its names, and nothing else of it.
     expect(htmlNames).toEqual([
       "customFields.impact",
+      "incident.customFields.impact",
       "incidentDescription",
       "resourcesAffected",
     ]);
-    expect(site.emailBody["customFields.site"]).toBe("<b>03</b>");
+    expect(site.emailBody["incident.customFields.site"]).toBe("<b>03</b>");
     expect(site.emailBody["incidentLabels"]).toBe("<i>eu</i>");
     expect(site.emailBody["incidentState"]).toBe("<em>Resolved</em>");
   });
@@ -480,15 +493,104 @@ describe("IncidentTemplateVariableBuilder which fields reach subscribers", () =>
     });
   });
 
-  test("every field, included or not, is offered to custom templates as customFields.<key>", async () => {
+  test("every field, included or not, is offered to custom templates as incident.customFields.<key>", async () => {
     const site: IncidentStatusPageTemplateVariables = forSite03(
       await build({ definitions: DEFINITIONS, customFields: VALUES }),
     );
 
     for (const bag of [site.emailBody, site.plainText, site.markdown]) {
-      expect(bag["customFields.affected_location"]).toBe("Site 03");
-      expect(bag["customFields.internal_ticket"]).toBe("OPS-4411");
-      expect(bag["customFields.customer_impact"]).toBe("0");
+      expect(bag["incident.customFields.affected_location"]).toBe("Site 03");
+      expect(bag["incident.customFields.internal_ticket"]).toBe("OPS-4411");
+      expect(bag["incident.customFields.customer_impact"]).toBe("0");
+    }
+  });
+
+  /*
+   * Templates saved before the variables were named after the incident hold
+   * {{customFields.<key>}}. They keep working: every channel's bag carries
+   * the older name too, with exactly the same value.
+   */
+  test("every field is offered under the older customFields.<key> too, with the same value", async () => {
+    const site: IncidentStatusPageTemplateVariables = forSite03(
+      await build({ definitions: DEFINITIONS, customFields: VALUES }),
+    );
+
+    for (const bag of [site.emailBody, site.plainText, site.markdown]) {
+      for (const key of [
+        "affected_location",
+        "internal_ticket",
+        "customer_impact",
+      ]) {
+        expect(bag).toHaveProperty([`customFields.${key}`]);
+        expect(bag[`customFields.${key}`]).toBe(
+          bag[`incident.customFields.${key}`],
+        );
+      }
+    }
+  });
+
+  test("a template written either way sends the same message", async () => {
+    const site: IncidentStatusPageTemplateVariables = forSite03(
+      await build({ definitions: DEFINITIONS, customFields: VALUES }),
+    );
+
+    const older: string =
+      "{{customFields.affected_location}} / {{ customFields.internal_ticket }}";
+    const documented: string =
+      "{{incident.customFields.affected_location}} / {{ incident.customFields.internal_ticket }}";
+
+    expect(
+      SubscriberNotificationTemplateCompiler.compileTemplate(
+        older,
+        site.plainText,
+      ),
+    ).toBe("Site 03 / OPS-4411");
+    expect(
+      SubscriberNotificationTemplateCompiler.compileTemplate(
+        older,
+        site.markdown,
+      ),
+    ).toBe(
+      SubscriberNotificationTemplateCompiler.compileTemplate(
+        documented,
+        site.markdown,
+      ),
+    );
+    expect(
+      SubscriberNotificationTemplateCompiler.compileEmailBodyTemplate(
+        older,
+        site.emailBody,
+      ),
+    ).toBe(
+      SubscriberNotificationTemplateCompiler.compileEmailBodyTemplate(
+        documented,
+        site.emailBody,
+      ),
+    );
+  });
+
+  test("each bag holds every field under exactly its two names, and nothing else of them", async () => {
+    const site: IncidentStatusPageTemplateVariables = forSite03(
+      await build({ definitions: DEFINITIONS, customFields: VALUES }),
+    );
+
+    for (const bag of [site.emailBody, site.plainText, site.markdown]) {
+      expect(
+        Object.keys(bag)
+          .filter((name: string): boolean => {
+            return isCustomFieldTemplateVariableName(name);
+          })
+          .sort(),
+      ).toEqual(
+        DEFINITIONS.flatMap(
+          (definition: IncidentTemplateCustomFieldDefinition) => {
+            return [
+              `customFields.${definition.variableKey}`,
+              `incident.customFields.${definition.variableKey}`,
+            ];
+          },
+        ).sort(),
+      );
     }
   });
 
@@ -502,12 +604,12 @@ describe("IncidentTemplateVariableBuilder which fields reach subscribers", () =>
 
     expect(site.customFieldRows).toEqual([]);
     expect(site.customFieldsMarkdownLines).toEqual([]);
-    expect(site.plainText["customFields.affected_location"]).toBe("");
-    expect(site.plainText["customFields.internal_ticket"]).toBe("");
-    expect(site.emailBody["customFields.customer_impact"]).toBe("");
+    expect(site.plainText["incident.customFields.affected_location"]).toBe("");
+    expect(site.plainText["incident.customFields.internal_ticket"]).toBe("");
+    expect(site.emailBody["incident.customFields.customer_impact"]).toBe("");
     expect(
       SubscriberNotificationTemplateCompiler.compileTemplate(
-        "[{{customFields.internal_ticket}}]",
+        "[{{incident.customFields.internal_ticket}}]",
         site.plainText,
       ),
     ).toBe("[]");
@@ -553,7 +655,7 @@ describe("IncidentTemplateVariableBuilder which fields reach subscribers", () =>
 
     expect(site.customFieldRows).toEqual([]);
     expect(site.customFieldsMarkdownLines).toEqual([]);
-    expect(site.plainText["customFields.site"]).toBe("");
+    expect(site.plainText["incident.customFields.site"]).toBe("");
     expect(variables.getWebhookCustomFields()).toEqual({
       impact: { name: "Impact", type: CustomFieldType.Markdown, value: null },
       site: { name: "Site", type: CustomFieldType.Text, value: null },
@@ -574,9 +676,9 @@ describe("IncidentTemplateVariableBuilder which fields reach subscribers", () =>
 
     expect(forSite03(variables).plainText).toEqual(
       expect.objectContaining({
-        "customFields.affected_location": "",
-        "customFields.internal_ticket": "",
-        "customFields.customer_impact": "",
+        "incident.customFields.affected_location": "",
+        "incident.customFields.internal_ticket": "",
+        "incident.customFields.customer_impact": "",
       }),
     );
   });
@@ -601,9 +703,10 @@ describe("IncidentTemplateVariableBuilder which fields reach subscribers", () =>
     );
 
     expect(rowTitles(site.customFieldRows)).toEqual(["Legacy", "Odd"]);
+    // Under neither name.
     expect(
       Object.keys(site.plainText).filter((name: string): boolean => {
-        return name.startsWith("customFields.");
+        return isCustomFieldTemplateVariableName(name);
       }),
     ).toEqual([]);
   });
@@ -622,7 +725,7 @@ describe("IncidentTemplateVariableBuilder which fields reach subscribers", () =>
       }),
     );
 
-    expect(site.plainText["customFields.location"]).toBe("EU");
+    expect(site.plainText["incident.customFields.location"]).toBe("EU");
   });
 });
 
@@ -743,8 +846,8 @@ describe("IncidentTemplateVariableBuilder value formats", () => {
     expect(site.customFieldRows).toEqual([
       { title: "Acknowledged", plainText: text },
     ]);
-    expect(site.emailBody["customFields.acknowledged"]).toBe(text);
-    expect(site.plainText["customFields.acknowledged"]).toBe(text);
+    expect(site.emailBody["incident.customFields.acknowledged"]).toBe(text);
+    expect(site.plainText["incident.customFields.acknowledged"]).toBe(text);
   });
 
   test("a Date is the day that was picked, never shifted by a time zone", async () => {
@@ -765,7 +868,7 @@ describe("IncidentTemplateVariableBuilder value formats", () => {
     expect(site.customFieldRows).toEqual([
       { title: "Expected Resolution", plainText: "2026-09-27" },
     ]);
-    expect(site.markdown["customFields.expected_resolution"]).toBe(
+    expect(site.markdown["incident.customFields.expected_resolution"]).toBe(
       "2026-09-27",
     );
   });
@@ -801,13 +904,13 @@ describe("IncidentTemplateVariableBuilder value formats", () => {
       expect(site.customFieldsMarkdownLines).toEqual([
         "**Expected Resolution:** 2026-09-27",
       ]);
-      expect(site.emailBody["customFields.expected_resolution"]).toBe(
+      expect(site.emailBody["incident.customFields.expected_resolution"]).toBe(
         "2026-09-27",
       );
-      expect(site.plainText["customFields.expected_resolution"]).toBe(
+      expect(site.plainText["incident.customFields.expected_resolution"]).toBe(
         "2026-09-27",
       );
-      expect(site.markdown["customFields.expected_resolution"]).toBe(
+      expect(site.markdown["incident.customFields.expected_resolution"]).toBe(
         "2026-09-27",
       );
 
@@ -840,10 +943,10 @@ describe("IncidentTemplateVariableBuilder value formats", () => {
         renderedHtml: "Sep 27 2026, 02:05 PM UTC<br/>Sep 27 2026, 07:35 PM IST",
       },
     ]);
-    expect(site.plainText["customFields.started"]).toBe(
+    expect(site.plainText["incident.customFields.started"]).toBe(
       "Sep 27 2026, 02:05 PM UTC, Sep 27 2026, 07:35 PM IST",
     );
-    expect(htmlOf(site.emailBody["customFields.started"])).toBe(
+    expect(htmlOf(site.emailBody["incident.customFields.started"])).toBe(
       "Sep 27 2026, 02:05 PM UTC<br/>Sep 27 2026, 07:35 PM IST",
     );
   });
@@ -867,10 +970,10 @@ describe("IncidentTemplateVariableBuilder value formats", () => {
       resources: [],
     });
 
-    expect(site.plainText["customFields.started"]).toContain(
+    expect(site.plainText["incident.customFields.started"]).toContain(
       "Sep 27 2026, 02:05 PM UTC",
     );
-    expect(site.plainText["customFields.started"]).toContain("AEST");
+    expect(site.plainText["incident.customFields.started"]).toContain("AEST");
   });
 
   test("a Date and time that is not a date reads as stored", async () => {
@@ -1134,7 +1237,7 @@ describe("IncidentTemplateVariableBuilder inline images", () => {
       const record: () => Promise<void> = (): Promise<void> => {
         return how === "included"
           ? variables.recordIncludedFieldsSent()
-          : variables.recordFieldsUsedBy(["{{customFields.impact}}"]);
+          : variables.recordFieldsUsedBy(["{{incident.customFields.impact}}"]);
       };
 
       const done: Array<string> = [];
@@ -1183,11 +1286,37 @@ describe("IncidentTemplateVariableBuilder inline images", () => {
     });
 
     await variables.recordFieldsUsedBy([
-      "<div>{{ customFields.impact }}</div>",
+      "<div>{{ incident.customFields.impact }}</div>",
     ]);
-    await variables.recordFieldsUsedBy(["{{customFields.impact}}"]);
+    await variables.recordFieldsUsedBy(["{{incident.customFields.impact}}"]);
     // The same field again through a default message: already public.
     await variables.recordIncludedFieldsSent();
+
+    expect(publishedMarkdown()).toEqual([[RICH_TEXT_WITH_IMAGE, true]]);
+  });
+
+  test("a custom template that places the field the older way makes its images public too", async () => {
+    const variables: IncidentTemplateVariables = await build({
+      definitions: definitions(false),
+      customFields: { Impact: RICH_TEXT_WITH_IMAGE },
+    });
+
+    await variables.recordFieldsUsedBy([
+      "<div>{{ customFields.impact }}</div>",
+    ]);
+
+    expect(publishedMarkdown()).toEqual([[RICH_TEXT_WITH_IMAGE, true]]);
+  });
+
+  test("a template that places one field both ways makes its images public once", async () => {
+    const variables: IncidentTemplateVariables = await build({
+      definitions: definitions(false),
+      customFields: { Impact: RICH_TEXT_WITH_IMAGE },
+    });
+
+    await variables.recordFieldsUsedBy([
+      "{{customFields.impact}} {{incident.customFields.impact}}",
+    ]);
 
     expect(publishedMarkdown()).toEqual([[RICH_TEXT_WITH_IMAGE, true]]);
   });
@@ -1198,7 +1327,7 @@ describe("IncidentTemplateVariableBuilder inline images", () => {
       customFields: {},
     });
 
-    await variables.recordFieldsUsedBy(["{{customFields.impact}}"]);
+    await variables.recordFieldsUsedBy(["{{incident.customFields.impact}}"]);
 
     expect(syncIsPublicForMarkdownImages).not.toHaveBeenCalled();
   });
@@ -1216,7 +1345,7 @@ describe("IncidentTemplateVariableBuilder inline images", () => {
     });
 
     await variables.recordIncludedFieldsSent();
-    await variables.recordFieldsUsedBy(["{{customFields.link}}"]);
+    await variables.recordFieldsUsedBy(["{{incident.customFields.link}}"]);
 
     expect(syncIsPublicForMarkdownImages).not.toHaveBeenCalled();
   });
@@ -1313,7 +1442,7 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
     });
 
     await variables.recordFieldsUsedBy([
-      "Ticket {{customFields.internal_ticket}} at {{customFields.empty}} {{customFields.unknown}}",
+      "Ticket {{incident.customFields.internal_ticket}} at {{incident.customFields.empty}} {{incident.customFields.unknown}}",
       undefined,
     ]);
 
@@ -1326,14 +1455,62 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
     );
   });
 
+  test("a field placed the older way is recorded like one placed the documented way", async () => {
+    const older: IncidentTemplateVariables = await build({
+      definitions: DEFINITIONS,
+      customFields: VALUES,
+    });
+    const documented: IncidentTemplateVariables = await build({
+      definitions: DEFINITIONS,
+      customFields: VALUES,
+    });
+
+    await older.recordFieldsUsedBy([
+      "Ticket {{customFields.internal_ticket}} at {{customFields.empty}}",
+    ]);
+    await documented.recordFieldsUsedBy([
+      "Ticket {{incident.customFields.internal_ticket}} at {{incident.customFields.empty}}",
+    ]);
+
+    expect(older.getSentCustomFieldsMarkdown()).toBe(
+      [
+        "**Custom fields sent:**",
+        "",
+        "- **Internal \\[ticket\\]:** OPS\\-4411",
+      ].join("\n"),
+    );
+    expect(older.getSentCustomFieldsMarkdown()).toBe(
+      documented.getSentCustomFieldsMarkdown(),
+    );
+  });
+
+  test("a field placed both ways is listed once", async () => {
+    const variables: IncidentTemplateVariables = await build({
+      definitions: DEFINITIONS,
+      customFields: VALUES,
+    });
+
+    await variables.recordFieldsUsedBy([
+      "{{customFields.internal_ticket}} {{incident.customFields.internal_ticket}}",
+    ]);
+
+    expect(
+      variables.getSentCustomFieldsMarkdown().match(/Internal/g),
+    ).toHaveLength(1);
+  });
+
   test("both together list each field once, in the fields' order", async () => {
     const variables: IncidentTemplateVariables = await build({
       definitions: DEFINITIONS,
       customFields: VALUES,
     });
 
-    await variables.recordFieldsUsedBy(["{{customFields.internal_ticket}}"]);
-    await variables.recordFieldsUsedBy(["{{customFields.affected_location}}"]);
+    await variables.recordFieldsUsedBy([
+      "{{incident.customFields.internal_ticket}}",
+    ]);
+    await variables.recordFieldsUsedBy([
+      "{{incident.customFields.affected_location}}",
+    ]);
     await variables.recordIncludedFieldsSent();
     await variables.recordIncludedFieldsSent();
 

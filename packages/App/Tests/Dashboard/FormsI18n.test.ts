@@ -440,8 +440,12 @@ describe("the composed strings", () => {
       '`${props.createVerb || "Create"} ${ props.singularName || model.singularName }`',
     );
     // Each card's edit modal.
+    /*
+     * Each card's edit modal: "Edit <model>", unless the card names its
+     * dialog itself. The Forms cards do not.
+     */
     expect(readCommon("ModelDetail", "CardModelDetail.tsx")).toContain(
-      "title={`Edit ${model.singularName}`}",
+      "title={props.editModalTitle || `Edit ${model.singularName}`}",
     );
     // The delete card, its button and its confirmation.
     const modelDelete: string = readCommon("ModelDelete", "ModelDelete.tsx");

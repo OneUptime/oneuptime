@@ -116,7 +116,7 @@ Derefter kan du skrive en postmortem og eventuelt offentliggøre den på statuss
 | **Episoder**       | Hændelsesepisoder, en separat grupperingsfunktion med sine egne sider.                                                                                                  |
 | **Arbejdsområde**  | **Slack**- og **Microsoft Teams**-forbindelser til hændelser.                                                                                                           |
 | **Regler**         | Regelmotorerne: **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Regler for automatisk afhjælpning**, **Privatlivsregler**, **Etiketregler**, **SLA-regler**, **Reminder Rules**. |
-| **Indstillinger**  | **AI**, **Hændelsesstatus**, **Hændelsesalvor**, **Hændelsesskabeloner**, **Noteskabeloner**, **Postmortem-skabeloner**, **Brugerdefinerede felter**, **Hændelsesroller**, **Flere indstillinger**. |
+| **Indstillinger**  | **AI**, **Hændelsesstatus**, **Hændelsesalvor**, **Hændelsesskabeloner**, **Noteskabeloner**, **Postmortem-skabeloner**, **Brugerdefinerede felter**, **Hændelsesroller**, **Nummerpræfiks**. |
 
 **Regler** og **Indstillinger** er sammenklappet som standard — fold dem ud for at finde de sider, resten af denne dokumentation henviser til. Hændelseskonfiguration ligger ikke under Projektindstillinger; det hele bor her.
 

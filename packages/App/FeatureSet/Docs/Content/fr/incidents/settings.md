@@ -20,7 +20,7 @@ Ouvrez **Incidents** dans la navigation de gauche, puis dépliez **Paramètres**
 | **Modèles de post-mortem**   | Des structures de post-mortem réutilisables.                                                                         |
 | **Champs personnalisés**     | Définir des champs supplémentaires qui apparaissent sur chaque incident.                                             |
 | **Rôles d'incident**         | Définir les rôles auxquels vous affectez les intervenants, comme Incident Commander.                                 |
-| **Plus de paramètres**       | Les préfixes de numéro d'incident et d'épisode d'incident.                                                           |
+| **Préfixe de numéro**       | Les préfixes de numéro d'incident et d'épisode d'incident.                                                           |
 
 **État de l'incident** et **Gravité de l'incident** sont traités en détail dans [États et sévérités des incidents](/docs/incidents/states-and-severities) — le reste de cette page reprend à partir des **Modèles d'incident**.
 
@@ -105,12 +105,14 @@ Les rôles ne sont que des définitions. L'affectation des personnes se fait inc
 
 Chaque incident reçoit un numéro. Par défaut, il s'affiche sous la forme `#42`. Si votre équipe dit « INC-42 » à voix haute, faites en sorte que le produit le dise aussi.
 
-Allez dans **Incidents → Paramètres → Plus de paramètres** (`/dashboard/{projectId}/incidents/settings/more`). La carte s'appelle **Préfixe du nombre** et porte deux champs sur le projet :
+Allez dans **Incidents → Paramètres → Préfixe de numéro** (`/dashboard/{projectId}/incidents/settings/number-prefix`). La carte **Préfixe de numéro** montre, pour les incidents et pour les épisodes d'incident, le préfixe et un exemple du numéro qu'il donne : `INC-` avec **Exemple :** `INC-42` ; sans préfixe, elle affiche **Aucun préfixe** et `#42`. **Mettre à jour** ouvre **Modifier le préfixe de numéro** avec deux champs :
 
-- **Préfixe de numéro d'incident** — jusqu'à 20 caractères, texte indicatif `INC-`. Renseignez-le et l'incident `#42` s'affiche `INC-42`.
-- **Préfixe de numéro d'épisode d'incident** — la même idée pour les numéros d'épisode d'incident, texte indicatif `IE-`.
+- **Préfixe de numéro d'incident** — texte indicatif `INC-`.
+- **Préfixe de numéro d'épisode d'incident** — texte indicatif `IE-`.
 
-Laissez l'un ou l'autre vide pour conserver le préfixe `#` par défaut ; le champ non renseigné affiche `# (default)`. Enregistrez avec **Mettre à jour**. La valeur préfixée est stockée sur l'incident sous `incidentNumberWithPrefix`, et c'est elle que rendent la liste des incidents et l'en-tête de l'incident.
+Sous chaque champ, **Aperçu :** montre le numéro pendant la saisie. Laissez un champ vide pour revenir à `#`. Un préfixe compte au plus 20 caractères, n'utilise que des lettres, des chiffres et `-` `_` `.` `/` `:` `#` (sans espaces) et ne se termine pas par un chiffre, qui se collerait au numéro : `SEV1` donnerait `SEV142`. La boîte de dialogue indique ce qui ne va pas avant l'enregistrement, et l'API refuse les mêmes préfixes.
+
+Un nouveau préfixe ne s'applique qu'aux incidents et épisodes créés ensuite. Les existants gardent leur numéro, et le compteur continue. La valeur préfixée est stockée sur l'incident sous `incidentNumberWithPrefix`, et c'est elle que rendent la liste des incidents et l'en-tête de l'incident. Les alertes et la maintenance planifiée ont la même page : **Alertes → Paramètres → Préfixe de numéro** et **Maintenance planifiée → Paramètres → Préfixe de numéro**. L'ancienne adresse de **Plus de paramètres** (`…/settings/more`) y mène toujours.
 
 ## Les règles qui s'exécutent à la création d'un incident
 

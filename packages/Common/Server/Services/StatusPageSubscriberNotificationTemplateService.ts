@@ -10,6 +10,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import SubscriberTemplateIncidentRecordAccess from "../Utils/StatusPage/SubscriberTemplateIncidentRecordAccess";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { normalizeCustomFieldTemplateVariableName } from "../../Types/CustomField/CustomFieldVariableKey";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberNotificationTemplateStatusPageService from "./StatusPageSubscriberNotificationTemplateStatusPageService";
@@ -33,9 +34,10 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * A template's body and subject may place values from the team's incident
-   * records - {{incidentLabels}} and {{customFields.<key>}} - only when
-   * whoever writes them may read those records: the status page roles that
-   * may write templates may not (SubscriberTemplateIncidentRecordAccess).
+   * records - {{incidentLabels}} and {{incident.customFields.<key>}} (or the
+   * older {{customFields.<key>}}) - only when whoever writes them may read
+   * those records: the status page roles that may write templates may not
+   * (SubscriberTemplateIncidentRecordAccess).
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
@@ -57,7 +59,10 @@ export class Service extends DatabaseService<Model> {
    * On an update, only what the write adds is checked: a placeholder the
    * template already holds was allowed when it was written, so someone
    * without incident access can still fix a typo, rename the template or
-   * move a placeholder from the subject to the body - but not add one.
+   * move a placeholder from the subject to the body - but not add one. A
+   * custom field the template holds as {{customFields.<key>}} may be
+   * rewritten as {{incident.customFields.<key>}}, its documented name: both
+   * read the same field, so nothing new is placed.
    *
    * Pointing a template somewhere else counts as placing everything it
    * holds: changing its channel or event type makes an admin's template
@@ -187,8 +192,15 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
+      // The same field written the other way is not an addition.
+      const heldFields: Set<string> = new Set<string>(
+        held.map((name: string): string => {
+          return normalizeCustomFieldTemplateVariableName(name);
+        }),
+      );
+
       for (const name of written) {
-        if (!held.includes(name)) {
+        if (!heldFields.has(normalizeCustomFieldTemplateVariableName(name))) {
           added.add(name);
         }
       }

@@ -27,6 +27,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   isEditable?: undefined | boolean;
   onSaveSuccess?: undefined | ((item: TBaseModel) => void);
   editButtonText?: undefined | string;
+  /*
+   * The edit dialog's title and the line under it. The title defaults to
+   * "Edit <model>", which says "Edit Project" on a card that edits a few of
+   * the project's settings: such a card names what it edits instead.
+   */
+  editModalTitle?: undefined | string;
+  editModalDescription?: undefined | string;
   formSteps?: undefined | Array<FormStep<TBaseModel>>;
   formFields?: undefined | Fields<TBaseModel>;
   className?: string | undefined;
@@ -183,7 +190,8 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
 
       {showModel ? (
         <ModelFormModal<TBaseModel>
-          title={`Edit ${model.singularName}`}
+          title={props.editModalTitle || `Edit ${model.singularName}`}
+          description={props.editModalDescription}
           modalWidth={props.createEditModalWidth}
           modelAPI={props.modelAPI}
           onClose={() => {

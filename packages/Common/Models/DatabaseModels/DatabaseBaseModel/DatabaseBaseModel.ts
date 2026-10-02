@@ -10,6 +10,7 @@ import { getColumnAccessControlForAllColumns } from "../../../Types/Database/Acc
 import { getColumnBillingAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/OwnedThrough";
 import { UniqueColumnsTogetherMetadata } from "../../../Types/Database/UniqueColumnsTogether";
+import { ListOrderSettings } from "../../../Types/Database/ListOrderColumn";
 import Columns from "../../../Types/Database/Columns";
 import ColumnType from "../../../Types/Database/ColumnType";
 import TableColumn, {
@@ -208,6 +209,13 @@ export default class DatabaseBaseModel extends BaseEntity {
   // set by the @UniqueColumnsTogether() decorator.
   public uniqueColumnsTogether!: Array<UniqueColumnsTogetherMetadata> | null;
 
+  /*
+   * Set by the @ListOrderColumn() decorator: this model is a list people put
+   * in order by dragging rows, and DatabaseService keeps the number column
+   * that says where each row sits. See Types/Database/ListOrderColumn.
+   */
+  public listOrder!: ListOrderSettings | null;
+
   public isPermissionIf: Dictionary<JSONObject> = {};
 
   public isMultiTenantRequestAllowed!: boolean | null;
@@ -387,6 +395,15 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public getUniqueColumnsTogether(): Array<UniqueColumnsTogetherMetadata> {
     return this.uniqueColumnsTogether || [];
+  }
+
+  /*
+   * The number column that holds each row's place in its list, the columns
+   * that say which list a row is in, and which end is the top. Null for a
+   * model whose rows are not put in order by hand.
+   */
+  public getListOrder(): ListOrderSettings | null {
+    return this.listOrder || null;
   }
 
   public getRequiredColumns(): Columns {

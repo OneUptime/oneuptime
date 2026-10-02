@@ -495,12 +495,17 @@ export default class Chunker {
    * pushed over by its envelope.) A NON-final newest piece over the budget
    * is still minted whole: it seals nothing, so an empty stand-in would
    * spend quota to say nothing.
+   *
+   * endedAtUnixMs dates a seal with nothing open, as close() does: a tab
+   * closed while the recorder was paused for idle ended where its footage
+   * did, not when the page finally went away.
    */
   public closeSplit(
     isFinal: boolean,
     maxPayloadBytes: number,
     maxTotalBytes?: number,
     frameOverheadBytes: number = 0,
+    endedAtUnixMs?: number,
   ): SplitCloseResult {
     const result: SplitCloseResult = {
       emptiedSealEvents: 0,
@@ -519,7 +524,7 @@ export default class Chunker {
 
     if (!open || open.eventCount === 0) {
       if (isFinal) {
-        this.emitEmptyFinalChunk();
+        this.emitEmptyFinalChunk(endedAtUnixMs);
       }
       return result;
     }

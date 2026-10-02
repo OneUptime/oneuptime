@@ -56,6 +56,18 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     return { findBy, carryForward: null };
   }
 
+  // The same rewrite, so the explorer's total counts the rows its list shows.
+  protected override async onBeforeCount(
+    countBy: CountBy<Span>,
+  ): Promise<CountBy<Span>> {
+    await ResourceEntityFilter.rewriteAnalyticsQuery({
+      query: countBy.query as unknown as Record<string, unknown>,
+      projectId: countBy.props?.tenantId,
+    });
+
+    return countBy;
+  }
+
   /**
    * Normalize a JSON-deserialized date value to a Date instance. When a query
    * crosses the API boundary, InBetween's startValue/endValue come back as ISO
@@ -81,10 +93,17 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
    * expressions — filtering on raw `startTime` won't trigger projection use.
    *
    * Trade-off: time bounds get rounded to the minute, so the count can be
-   * inflated by spans that started in the same minute as the boundary. For
-   * pagination this is acceptable.
+   * inflated by spans that started in the same minute as the boundary, and
+   * the projection cannot apply the retention read filter either. That is
+   * fine for a threshold, which is what the projection serves. An exact
+   * count is a total the traces explorer prints beside its list, where an
+   * extra minute of spans reads as a wrong total — so it reads the table.
    */
   public override toCountStatement(countBy: CountBy<Span>): Statement {
+    if (countBy.exact) {
+      return super.toCountStatement(countBy);
+    }
+
     const projectionStatement: Statement | null =
       this.tryBuildProjectionCountStatement(countBy);
     if (projectionStatement) {

@@ -2,7 +2,6 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnUpdate, OnDelete } from "../Types/Database/Hooks";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/AlertMeasurement";
 import AlertState from "../../Models/DatabaseModels/AlertState";
@@ -72,17 +71,6 @@ export class Service extends DatabaseService<Model> {
       startOccurrence: createBy.data.startStateOccurrence,
       endOccurrence: createBy.data.endStateOccurrence,
     });
-
-    if (!createBy.data.order) {
-      const highest: Model | null = await this.findOneBy({
-        query: { projectId: createBy.data.projectId! },
-        select: { order: true },
-        sort: { order: SortOrder.Descending },
-        props: { isRoot: true },
-      });
-
-      createBy.data.order = (highest?.order || 0) + 1;
-    }
 
     /*
      * A definition created today must apply to alerts that already happened,

@@ -12,10 +12,10 @@ import logger from "Common/Server/Utils/Logger";
  * migration job runs, so a pod still on the previous version can create a
  * field after that migration has committed. Its create leaves the key empty,
  * and the new version assigns keys only on create - an update never sets one
- * - so such a field could never be placed as {{customFields.<key>}}, is left
- * out of webhook payloads, and shows no key in the dashboard. This runs once
- * the new Worker starts, which is after the rollout has begun replacing the
- * old pods.
+ * - so such a field could never be placed as
+ * {{incident.customFields.<key>}}, is left out of webhook payloads, and
+ * shows no key in the dashboard. This runs once the new Worker starts, which
+ * is after the rollout has begun replacing the old pods.
  *
  * The same generator as the service's, so a field gets the key it would have
  * got had it been created on the new version; keys already taken in the

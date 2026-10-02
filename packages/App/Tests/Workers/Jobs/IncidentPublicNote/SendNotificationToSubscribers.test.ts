@@ -298,7 +298,8 @@ import {
   AFFECTED_LOCATION,
   AFFECTED_LOCATION_HTML,
   CUSTOM_FIELD_DEFINITIONS,
-  CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE,
+  CUSTOM_FIELD_PLACEHOLDERS_CASES,
+  CustomFieldPlaceholdersCase,
   CUSTOM_FIELD_VALUES,
   EXPECTED_CUSTOM_FIELD_ROWS,
   EXPECTED_INCLUDED_FIELDS_FEED,
@@ -2684,7 +2685,8 @@ describe("IncidentPublicNote unsubscribe links", () => {
  * Subscriber Notifications" (see IncidentCustomFieldFixtures). Those reach
  * the default email, Slack, Teams and webhook messages, in their order; the
  * default SMS stays as it was. Every field is offered to custom templates as
- * {{customFields.<key>}}, and the feed item records the values sent.
+ * {{incident.customFields.<key>}} (and the older {{customFields.<key>}}),
+ * and the feed item records the values sent.
  */
 describe("IncidentPublicNote with incident custom fields", () => {
   const CHAT_SENTENCES: Record<string, string> = {
@@ -2835,9 +2837,23 @@ ${NOTE}
     },
   );
 
-  test.each(TRIGGERS)(
-    "$name: custom templates place any field by its key, escaped only in the email body",
-    async (trigger: TriggerCase) => {
+  test.each(
+    TRIGGERS.flatMap(
+      (
+        trigger: TriggerCase,
+      ): Array<TriggerCase & CustomFieldPlaceholdersCase> => {
+        return CUSTOM_FIELD_PLACEHOLDERS_CASES.map(
+          (
+            placeholders: CustomFieldPlaceholdersCase,
+          ): TriggerCase & CustomFieldPlaceholdersCase => {
+            return { ...trigger, ...placeholders };
+          },
+        );
+      },
+    ),
+  )(
+    "$name: custom templates written with $written place any field by its key, escaped only in the email body",
+    async (trigger: TriggerCase & CustomFieldPlaceholdersCase) => {
       queueNote(trigger.job);
       mock(
         StatusPageSubscriberService.getStatusPagesToSendNotification,
@@ -2851,7 +2867,7 @@ ${NOTE}
           "notificationMethod"
         ] as string;
         return {
-          templateBody: `${method}\n${CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE}`,
+          templateBody: `${method}\n${trigger.template}`,
         };
       });
 

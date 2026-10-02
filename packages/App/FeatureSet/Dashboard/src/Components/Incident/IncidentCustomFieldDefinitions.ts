@@ -27,7 +27,7 @@ export {
  * template.
  */
 
-// A definition, with the key {{customFields.<key>}} placeholders use.
+// A definition, with the key {{incident.customFields.<key>}} placeholders use.
 export interface IncidentCustomFieldDefinition
   extends CustomFieldFormDefinition {
   variableKey?: string | undefined;

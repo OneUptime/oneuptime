@@ -92,7 +92,11 @@ import IncidentSettingsRoles from "../Pages/Incidents/Settings/IncidentRoles";
 
 import IncidentSettingsMeasurements from "../Pages/Incidents/Settings/IncidentMeasurements";
 
-import IncidentSettingsMore from "../Pages/Incidents/Settings/IncidentMoreSettings";
+import IncidentSettingsLinkedAlerts from "../Pages/Incidents/Settings/IncidentLinkedAlertsSettings";
+
+import IncidentSettingsNumberPrefix from "../Pages/Incidents/Settings/IncidentNumberPrefix";
+import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
+import { MORE_SETTINGS_PATH } from "../Components/NumberPrefix/NumberPrefixSettings";
 import IncidentSettingsAI from "../Pages/Incidents/Settings/IncidentAISettings";
 
 // Incident Episode Pages
@@ -182,6 +186,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
       <PageRoute
         path={MOVED_INCIDENT_FORM_PATHS.formView}
         element={<MovedFormPageRedirect pageMap={PageMap.FORM_VIEW} />}
+      />
+
+      {/*
+       * Number prefixes were on More Settings. Its old URL forwards to the
+       * Number Prefix page - outside the layout, so the side menu never
+       * flashes on the way.
+       */}
+      <PageRoute
+        path={MORE_SETTINGS_PATH}
+        element={
+          <MovedNumberPrefixPageRedirect
+            pageMap={PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX}
+          />
+        }
       />
 
       <PageRoute
@@ -630,11 +648,29 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_MORE] || ""}
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] || ""
+          }
           element={
-            <IncidentSettingsMore
+            <IncidentSettingsLinkedAlerts
               {...props}
-              pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_MORE] as Route}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX] || ""
+          }
+          element={
+            <IncidentSettingsNumberPrefix
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX] as Route
+              }
             />
           }
         />

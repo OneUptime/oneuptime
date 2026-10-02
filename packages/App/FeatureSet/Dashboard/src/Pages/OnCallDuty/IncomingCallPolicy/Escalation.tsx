@@ -104,7 +104,7 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
         cardProps={{
           title: "Escalation Rules",
           description:
-            "Define the order in which users or schedules are called when an incoming call is received.",
+            "Define the order in which users or schedules are called when an incoming call is received. Drag a rule to change when it is called.",
         }}
         noItemsMessage={"No escalation rules found."}
         formSteps={[
@@ -252,23 +252,8 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
             title: "Name",
             type: FieldType.Text,
           },
-          {
-            field: {
-              order: true,
-            },
-            title: "Order",
-            type: FieldType.Number,
-          },
         ]}
         columns={[
-          {
-            field: {
-              order: true,
-            },
-            title: "Escalation Rule Order",
-            description: "The order in which this rule is executed.",
-            type: FieldType.Number,
-          },
           {
             field: {
               name: true,

@@ -86,10 +86,6 @@ const TracePipelines: FunctionComponent<
       createInitialValues={{
         isEnabled: true,
       }}
-      onBeforeCreate={async (item: TracePipeline) => {
-        item.sortOrder = 1;
-        return item;
-      }}
       formFields={[
         {
           field: {

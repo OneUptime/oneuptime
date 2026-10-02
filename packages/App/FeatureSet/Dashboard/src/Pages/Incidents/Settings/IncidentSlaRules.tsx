@@ -109,7 +109,7 @@ const IncidentSlaRulesPage: FunctionComponent<
         cardProps={{
           title: "Incident SLA Rules",
           description:
-            "Define SLA rules to automatically track response and resolution times for incidents. Rules are evaluated in order - lower order numbers are evaluated first.",
+            "Define SLA rules to automatically track response and resolution times for incidents. Rules are evaluated from top to bottom - drag a rule to change its place.",
         }}
         helpContent={{
           title: "How Incident SLA Rules Work",
@@ -119,8 +119,10 @@ const IncidentSlaRulesPage: FunctionComponent<
         }}
         sortBy="order"
         sortOrder={SortOrder.Ascending}
+        // Evaluated from the top down; a new rule goes to the end.
+        enableDragAndDrop={true}
+        dragDropIndexField="order"
         selectMoreFields={{
-          order: true,
           isEnabled: true,
         }}
         filters={[
@@ -153,13 +155,6 @@ const IncidentSlaRulesPage: FunctionComponent<
             },
             title: "Description",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              order: true,
-            },
-            title: "Order",
-            type: FieldType.Number,
           },
           {
             field: {

@@ -45,6 +45,7 @@ import {
   MOBILE_WIDTH,
   MenuLink,
   PROJECT_ID,
+  activeLinkTitles,
   goTo,
   hrefsInMenu,
   iconCountIn,
@@ -349,11 +350,76 @@ describe("Incidents side menu", () => {
           title: "Measurements",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_MEASUREMENTS),
         },
+        // The linked alert switches, on a page of their own.
         {
-          title: "More Settings",
-          href: routeFor(PageMap.INCIDENTS_SETTINGS_MORE),
+          title: "Linked Alerts",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS),
+        },
+        /*
+         * The number prefixes, on a page named for them. It replaced More
+         * Settings, which held nothing else.
+         */
+        {
+          title: "Number Prefix",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX),
         },
       ]);
+    });
+
+    test("lists Number Prefix last, at settings/number-prefix", async () => {
+      await renderIncidentsMenu();
+
+      const settings: Array<MenuLink> = linksIn("Settings");
+
+      expect(settings[settings.length - 1]).toEqual({
+        title: "Number Prefix",
+        href: `/dashboard/${PROJECT_ID}/incidents/settings/number-prefix`,
+      });
+    });
+
+    test("has no More Settings entry, and nothing points at the old address", async () => {
+      await renderIncidentsMenu();
+
+      expect(titlesInMenu()).not.toContain("More Settings");
+      expect(hrefsInMenu()).not.toContain(
+        `/dashboard/${PROJECT_ID}/incidents/settings/more`,
+      );
+    });
+
+    // Settings is collapsed by default, so it must open itself on its pages.
+    test("opens itself on the Number Prefix page, and marks it", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/number-prefix`);
+      await renderIncidentsMenu();
+
+      expect(isExpanded("Settings")).toBe(true);
+      expect(isExpanded("Rules")).toBe(false);
+      expect(activeLinkTitles()).toEqual(["Number Prefix"]);
+    });
+
+    test("lists Linked Alerts at settings/linked-alerts", async () => {
+      await renderIncidentsMenu();
+
+      const linkedAlerts: Array<MenuLink> = linksIn("Settings").filter(
+        (link: MenuLink): boolean => {
+          return link.title === "Linked Alerts";
+        },
+      );
+
+      expect(linkedAlerts).toEqual([
+        {
+          title: "Linked Alerts",
+          href: `/dashboard/${PROJECT_ID}/incidents/settings/linked-alerts`,
+        },
+      ]);
+    });
+
+    // Settings is collapsed by default, so it must open itself on its pages.
+    test("opens itself on the Linked Alerts page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/linked-alerts`);
+      await renderIncidentsMenu();
+
+      expect(isExpanded("Settings")).toBe(true);
+      expect(isExpanded("Rules")).toBe(false);
     });
 
     test("does not hold the auto-remediation rules, which are a rule page", async () => {
@@ -423,7 +489,8 @@ describe("Incidents side menu", () => {
       PageMap.INCIDENTS_SETTINGS_SLA_RULES,
       PageMap.INCIDENTS_SETTINGS_REMINDER_RULES,
       PageMap.INCIDENTS_SETTINGS_ROLES,
-      PageMap.INCIDENTS_SETTINGS_MORE,
+      // More Settings, renamed for the one thing it held.
+      PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX,
     ];
 
     test("every settings page reachable before the move is still reachable", async () => {
@@ -498,6 +565,20 @@ describe("Incidents side menu", () => {
       await renderIncidentsMenu();
 
       expect(mobileSummaryText()).toContain("Settings / Incident Roles");
+    });
+
+    test("names the Settings section on the Number Prefix page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/number-prefix`);
+      await renderIncidentsMenu();
+
+      expect(mobileSummaryText()).toContain("Settings / Number Prefix");
+    });
+
+    test("names the Settings section on the Linked Alerts page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/linked-alerts`);
+      await renderIncidentsMenu();
+
+      expect(mobileSummaryText()).toContain("Settings / Linked Alerts");
     });
   });
 });

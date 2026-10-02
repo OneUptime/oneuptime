@@ -104,6 +104,58 @@ export class FakeAppState {
   }
 }
 
+/* React Native's Keyboard module, driven by the test. */
+export class FakeKeyboard {
+  public visible: boolean = false;
+  private readonly listeners: Map<string, Set<() => void>> = new Map<
+    string,
+    Set<() => void>
+  >();
+
+  public addListener(
+    eventName: "keyboardDidShow" | "keyboardDidHide",
+    listener: () => void,
+  ): { remove(): void } {
+    const forEvent: Set<() => void> =
+      this.listeners.get(eventName) ?? new Set<() => void>();
+    forEvent.add(listener);
+    this.listeners.set(eventName, forEvent);
+    return {
+      remove: (): void => {
+        forEvent.delete(listener);
+      },
+    };
+  }
+
+  public isVisible(): boolean {
+    return this.visible;
+  }
+
+  public show(): void {
+    this.visible = true;
+    this.emit("keyboardDidShow");
+  }
+
+  public hide(): void {
+    this.visible = false;
+    this.emit("keyboardDidHide");
+  }
+
+  public listenerCount(): number {
+    let count: number = 0;
+    for (const forEvent of this.listeners.values()) {
+      count += forEvent.size;
+    }
+    return count;
+  }
+
+  private emit(eventName: string): void {
+    for (const listener of Array.from(this.listeners.get(eventName) ?? [])) {
+      listener();
+    }
+  }
+}
+
 export function response(
   status: number,
   body: unknown = {},

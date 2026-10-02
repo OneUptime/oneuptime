@@ -102,6 +102,12 @@ import type AuditLogServiceType from "./AuditLogService";
 import EnableAuditLogOn from "../../Types/BaseDatabase/EnableAuditLogOn";
 import RelationValueUtil from "../Utils/Database/RelationValueUtil";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ListOrderMaintainer, {
+  ListOrderCreatePlan,
+  ListOrderScope,
+} from "../Utils/Database/ListOrderMaintainer";
+import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
+import { toListOrderNumber } from "../../Utils/ListOrder";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -1653,6 +1659,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       _createdBy.props,
     );
 
+    /*
+     * A drag-ordered list (@ListOrderColumn): the new row goes to the end of
+     * its list, or to the place the caller asked for. Planned after the
+     * permission check, so a number the server picks is not held against the
+     * caller's column permissions - a number the caller sent was checked as
+     * sent - and before the save, so the row is written with its number.
+     */
+    const listOrderPlan: ListOrderCreatePlan | null =
+      await this.planListOrderForCreate(data);
+
     createBy.data = data;
 
     // check uniqueColumns by:
@@ -1672,6 +1688,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       // Seed telemetry context with projectId + <model>Id for this create.
       this.setTelemetryContextFromItem(createBy.data);
+
+      // The rows that make room for it, now that it exists.
+      await this.applyListOrderCreatePlan(listOrderPlan);
 
       if (!createBy.props.ignoreHooks) {
         createBy.data = await this.onCreateSuccess(
@@ -1939,6 +1958,263 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return data;
+  }
+
+  /*
+   * ---------------------------------------------------------------------
+   * Drag-ordered lists (@ListOrderColumn)
+   * ---------------------------------------------------------------------
+   *
+   * A model marked with @ListOrderColumn is a list people put in order by
+   * dragging its rows, and its number column is kept here for every caller:
+   * a new row without a number goes to the end of its list, and a row given a
+   * number another row of its list holds takes that place while the rows in
+   * the way step aside. Numbers nobody collides with are kept as written. The
+   * arithmetic is Common/Utils/ListOrder, the database work
+   * ListOrderMaintainer. None of it runs for any other model.
+   */
+  private async planListOrderForCreate(
+    data: TBaseModel,
+  ): Promise<ListOrderCreatePlan | null> {
+    const settings: ListOrderSettings | null = ListOrderMaintainer.getSettings(
+      this.getModel(),
+    );
+
+    if (!settings) {
+      return null;
+    }
+
+    const plan: ListOrderCreatePlan | null =
+      await ListOrderMaintainer.planCreate({
+        service: this,
+        settings: settings,
+        row: data,
+      });
+
+    if (plan) {
+      data.setColumnValue(settings.column, plan.value);
+    }
+
+    return plan;
+  }
+
+  /*
+   * The new row is saved; now the rows in its way step aside. Never fails the
+   * create that already happened: a list left with a shared number still
+   * shows every row, and the next move in it sorts the pair out.
+   */
+  private async applyListOrderCreatePlan(
+    plan: ListOrderCreatePlan | null,
+  ): Promise<void> {
+    const settings: ListOrderSettings | null = ListOrderMaintainer.getSettings(
+      this.getModel(),
+    );
+
+    if (!plan || !settings || plan.siblingChanges.length === 0) {
+      return;
+    }
+
+    try {
+      await ListOrderMaintainer.writeChanges({
+        service: this,
+        settings: settings,
+        changes: plan.siblingChanges,
+      });
+    } catch (err) {
+      logger.error(
+        `Could not make room in the ${this.getModel().tableName || "list"} order for a new row: ${(err as Error)?.message || err}`,
+      );
+    }
+  }
+
+  /*
+   * The model's list settings when an update writes the number column or
+   * moves a row to another list, null otherwise - so an ordinary edit of a
+   * row costs nothing extra.
+   */
+  private getListOrderSettingsTouchedBy(
+    dataKeys: Array<string>,
+  ): ListOrderSettings | null {
+    const settings: ListOrderSettings | null = ListOrderMaintainer.getSettings(
+      this.getModel(),
+    );
+
+    if (!settings) {
+      return null;
+    }
+
+    if (dataKeys.includes(settings.column)) {
+      return settings;
+    }
+
+    const scopeKeys: Array<string> = [...settings.scopeColumns];
+
+    for (const column of this.getModel().getTableColumns().columns) {
+      const relationOf: string | undefined =
+        this.getModel().getTableColumnMetadata(column)?.manyToOneRelationColumn;
+
+      if (relationOf && settings.scopeColumns.includes(relationOf)) {
+        scopeKeys.push(column);
+      }
+    }
+
+    const movesToAnotherList: boolean = scopeKeys.some((key: string) => {
+      return dataKeys.includes(key);
+    });
+
+    return movesToAnotherList ? settings : null;
+  }
+
+  private addListOrderColumnsToSelect(
+    select: Dictionary<unknown>,
+    settings: ListOrderSettings,
+  ): void {
+    select[settings.column] = true;
+
+    for (const column of settings.scopeColumns) {
+      select[column] = true;
+    }
+  }
+
+  /*
+   * After an update wrote a row's number: the rows of its list that held that
+   * number step aside. A row that moved to another list takes the number it
+   * was given there (with the same stepping aside), or the end of that list
+   * when it was given none.
+   *
+   * Like the create, it never fails the update that already happened.
+   */
+  private async placeUpdatedRowsInListOrder(input: {
+    settings: ListOrderSettings;
+    rowsBeforeUpdate: Array<TBaseModel>;
+    data: PartialEntity<TBaseModel>;
+  }): Promise<void> {
+    const settings: ListOrderSettings = input.settings;
+    const dataRecord: Record<string, unknown> = input.data as Record<
+      string,
+      unknown
+    >;
+    const writesNumber: boolean = Object.prototype.hasOwnProperty.call(
+      dataRecord,
+      settings.column,
+    );
+
+    for (const rowBeforeUpdate of input.rowsBeforeUpdate) {
+      if (!rowBeforeUpdate._id) {
+        continue;
+      }
+
+      try {
+        const before: Record<string, unknown> =
+          rowBeforeUpdate as unknown as Record<string, unknown>;
+
+        const previousScope: ListOrderScope<TBaseModel> | null =
+          ListOrderMaintainer.getScope({
+            model: this.getModel(),
+            settings: settings,
+            row: before,
+          });
+
+        const nextScope: ListOrderScope<TBaseModel> | null =
+          ListOrderMaintainer.getScope({
+            model: this.getModel(),
+            settings: settings,
+            row: { ...before, ...dataRecord },
+          });
+
+        if (!nextScope) {
+          continue;
+        }
+
+        const id: ObjectID = new ObjectID(rowBeforeUpdate._id.toString());
+        const isNewToList: boolean = Boolean(
+          previousScope && previousScope.key !== nextScope.key,
+        );
+
+        if (isNewToList && !writesNumber) {
+          await ListOrderMaintainer.appendRow({
+            service: this,
+            settings: settings,
+            scope: nextScope,
+            id: id,
+          });
+
+          continue;
+        }
+
+        if (!writesNumber) {
+          continue;
+        }
+
+        const previousValue: unknown = isNewToList
+          ? null
+          : before[settings.column];
+
+        const requestedValue: unknown = dataRecord[settings.column];
+
+        if (
+          !isNewToList &&
+          toListOrderNumber(requestedValue) !== null &&
+          toListOrderNumber(requestedValue) === toListOrderNumber(previousValue)
+        ) {
+          // Saved where it already was - an edit form re-sending it, say.
+          continue;
+        }
+
+        if (toListOrderNumber(requestedValue) === null) {
+          /*
+           * The number was cleared: the row goes to the end of its list, as
+           * a row created without one does.
+           */
+          await ListOrderMaintainer.appendRow({
+            service: this,
+            settings: settings,
+            scope: nextScope,
+            id: id,
+          });
+
+          continue;
+        }
+
+        await ListOrderMaintainer.makeRoomForRow({
+          service: this,
+          settings: settings,
+          scope: nextScope,
+          id: id,
+          previousValue: previousValue,
+          requestedValue: requestedValue,
+        });
+      } catch (err) {
+        logger.error(
+          `Could not reorder the ${this.getModel().tableName || "list"} list after an update: ${(err as Error)?.message || err}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Numbers every list of this model that has rows without a number, or two
+   * rows sharing one, 1..n in the order it is shown in today; lists whose
+   * numbers are unique are left alone. Does nothing for a model that is not
+   * a drag-ordered list. Used by the NormalizeListOrder data migration.
+   */
+  @CaptureSpan()
+  public async normalizeListOrders(): Promise<{
+    lists: number;
+    rowsChanged: number;
+  }> {
+    const settings: ListOrderSettings | null = ListOrderMaintainer.getSettings(
+      this.getModel(),
+    );
+
+    if (!settings) {
+      return { lists: 0, rowsChanged: 0 };
+    }
+
+    return await ListOrderMaintainer.normalizeEveryList({
+      service: this,
+      settings: settings,
+    });
   }
 
   private async checkTotalItemsBy(
@@ -3310,6 +3586,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         this.addAuditLogColumnsToUpdateSelect(selectColumns, dataKeys);
       }
 
+      /*
+       * A drag-ordered list needs each row's place and list as they were
+       * BEFORE this write, to move it from there afterwards.
+       */
+      const listOrderSettings: ListOrderSettings | null =
+        this.getListOrderSettingsTouchedBy(dataKeys);
+
+      if (listOrderSettings) {
+        this.addListOrderColumnsToSelect(
+          selectColumns as Dictionary<unknown>,
+          listOrderSettings,
+        );
+      }
+
       const items: Array<TBaseModel> = hasColumnsToUpdate
         ? await this._findBy({
             query: beforeUpdateBy.query,
@@ -3541,6 +3831,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        *         )
        *     ).affected || 0;
        */
+
+      /*
+       * Before onUpdateSuccess, so a service hook that reads the list (an
+       * escalation order, a roster) sees it in its new order.
+       */
+      if (listOrderSettings) {
+        await this.placeUpdatedRowsInListOrder({
+          settings: listOrderSettings,
+          rowsBeforeUpdate: affectedItems,
+          data: data,
+        });
+      }
 
       /*
        * onUpdateSuccess always fires — subclasses rely on it being called

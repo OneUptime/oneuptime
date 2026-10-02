@@ -1,9 +1,9 @@
 import { AddIncidentForms1796400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796400000000-AddIncidentForms";
 import {
   LEGACY_PERMISSION_RENAMES,
-  MigrateIncidentFormsToForms1797300000000,
+  MigrateIncidentFormsToForms1797400000000,
   PERMISSION_TABLES,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797300000000-MigrateIncidentFormsToForms";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797400000000-MigrateIncidentFormsToForms";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Form from "../../../../Models/DatabaseModels/Form";
 import FormSubmission from "../../../../Models/DatabaseModels/FormSubmission";
@@ -25,7 +25,7 @@ import {
 import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 
 /*
- * Incident forms become Forms (MigrateIncidentFormsToForms1797300000000).
+ * Incident forms become Forms (MigrateIncidentFormsToForms1797400000000).
  *
  * The schema half was generated against the models - and verified against
  * a real database: migrated with incident forms in it, checked with the
@@ -52,7 +52,7 @@ const MIGRATION_PATH: string = path.join(
   "Infrastructure",
   "Postgres",
   "SchemaMigrations",
-  "1797300000000-MigrateIncidentFormsToForms.ts",
+  "1797400000000-MigrateIncidentFormsToForms.ts",
 );
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -169,7 +169,7 @@ async function recordQueries(
     },
   } as unknown as QueryRunner;
 
-  await new MigrateIncidentFormsToForms1797300000000()[direction](queryRunner);
+  await new MigrateIncidentFormsToForms1797400000000()[direction](queryRunner);
 
   return statements;
 }
@@ -220,20 +220,20 @@ describe("MigrateIncidentFormsToForms migration - identity and registration", ()
 
   test("lives at its round stamp, with a class and name that carry it", () => {
     expect(fs.existsSync(MIGRATION_PATH)).toBe(true);
-    expect(new MigrateIncidentFormsToForms1797300000000().name).toBe(
-      "MigrateIncidentFormsToForms1797300000000",
+    expect(new MigrateIncidentFormsToForms1797400000000().name).toBe(
+      "MigrateIncidentFormsToForms1797400000000",
     );
   });
 
   test("is registered exactly once, after the migration that made incident forms", () => {
     const index: number = registeredNames.indexOf(
-      "MigrateIncidentFormsToForms1797300000000",
+      "MigrateIncidentFormsToForms1797400000000",
     );
 
     expect(index).toBeGreaterThan(-1);
     expect(
       registeredNames.filter((name: string): boolean => {
-        return name === "MigrateIncidentFormsToForms1797300000000";
+        return name === "MigrateIncidentFormsToForms1797400000000";
       }),
     ).toHaveLength(1);
     expect(index).toBeGreaterThan(
@@ -243,14 +243,14 @@ describe("MigrateIncidentFormsToForms migration - identity and registration", ()
 
   test("its timestamp is newer than every migration registered before it", () => {
     const index: number = registeredNames.indexOf(
-      "MigrateIncidentFormsToForms1797300000000",
+      "MigrateIncidentFormsToForms1797400000000",
     );
 
     for (const name of registeredNames.slice(0, index)) {
       const match: RegExpMatchArray | null = name.match(/(\d{13})$/);
 
       if (match) {
-        expect({ name, older: Number(match[1]) < 1797300000000 }).toEqual({
+        expect({ name, older: Number(match[1]) < 1797400000000 }).toEqual({
           name,
           older: true,
         });

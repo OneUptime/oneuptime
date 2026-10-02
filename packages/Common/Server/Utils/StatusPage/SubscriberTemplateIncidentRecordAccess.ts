@@ -7,7 +7,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
-import { CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX } from "../../../Types/CustomField/CustomFieldVariableKey";
+import { isCustomFieldTemplateVariableName } from "../../../Types/CustomField/CustomFieldVariableKey";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import Permission, {
@@ -19,7 +19,8 @@ import Permission, {
  * WHO MAY PLACE INCIDENT RECORDS IN A SUBSCRIBER TEMPLATE.
  *
  * A custom subscriber notification template can place {{incidentLabels}} and
- * any {{customFields.<key>}} - values from the team's incident records, which
+ * any {{incident.customFields.<key>}} (or the older {{customFields.<key>}},
+ * which is filled the same) - values from the team's incident records, which
  * the status page does not show, marked for subscribers or not
  * (SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders).
  * Templates are written by the status page roles (StatusPageAdmin,
@@ -111,7 +112,8 @@ export default class SubscriberTemplateIncidentRecordAccess {
   /*
    * What these placeholders need: reading incidents, and the column each
    * one reads - Incident.labels for {{incidentLabels}}; Incident.customFields
-   * and the field definitions for {{customFields.<key>}}.
+   * and the field definitions for a custom field, written either way
+   * ({{incident.customFields.<key>}} or {{customFields.<key>}}).
    */
   public static getRequirements(
     placeholders: Array<string>,
@@ -125,7 +127,7 @@ export default class SubscriberTemplateIncidentRecordAccess {
 
     if (
       placeholders.some((name: string): boolean => {
-        return name.startsWith(CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX);
+        return isCustomFieldTemplateVariableName(name);
       })
     ) {
       requirements.push(
@@ -142,7 +144,7 @@ export default class SubscriberTemplateIncidentRecordAccess {
 
     if (
       placeholders.some((name: string): boolean => {
-        return !name.startsWith(CUSTOM_FIELD_TEMPLATE_VARIABLE_PREFIX);
+        return !isCustomFieldTemplateVariableName(name);
       })
     ) {
       requirements.push({

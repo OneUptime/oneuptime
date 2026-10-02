@@ -6,11 +6,10 @@ import path from "path";
 
 /*
  * The text under a subscriber notification template's variable reference
- * for an incident event - the warning that custom fields and the affected
- * status pages are internal data, and the project's incident custom fields
- * with their template variables - reaches the screen by looking its English
- * text up in the Dashboard locale files. A string with no entry silently
- * stays English, so this pins:
+ * for an incident event - who may place custom fields and labels, and the
+ * project's incident custom fields with their template variables - reaches
+ * the screen by looking its English text up in the Dashboard locale files.
+ * A string with no entry silently stays English, so this pins:
  *
  *   - en.json maps every string to itself, and all sixteen other locales
  *     carry a translation;
@@ -63,8 +62,6 @@ const SHARED_WITH_OTHER_FEATURES: Array<string> = [
   "In Subscriber Notifications",
   "Yes",
   "No",
-  // "Interne data" in Danish and Norwegian reads like English.
-  "Internal data",
 ];
 
 const STRINGS: Array<string> = Array.from(

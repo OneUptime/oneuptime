@@ -33,7 +33,8 @@ import { AddMcpOAuthTables1796900000000 } from "./1796900000000-AddMcpOAuthTable
 import { AddWorkflowIncomingEmailSecretKey1797000000000 } from "./1797000000000-AddWorkflowIncomingEmailSecretKey";
 import { AddMonitorSecretAccess1797100000000 } from "./1797100000000-AddMonitorSecretAccess";
 import { AddArchiveToMoreResources1797200000000 } from "./1797200000000-AddArchiveToMoreResources";
-import { MigrateIncidentFormsToForms1797300000000 } from "./1797300000000-MigrateIncidentFormsToForms";
+import { TurnOnLinkedAlertSwitchesByDefault1797300000000 } from "./1797300000000-TurnOnLinkedAlertSwitchesByDefault";
+import { MigrateIncidentFormsToForms1797400000000 } from "./1797400000000-MigrateIncidentFormsToForms";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1267,5 +1268,6 @@ export default [
   AddWorkflowIncomingEmailSecretKey1797000000000,
   AddMonitorSecretAccess1797100000000,
   AddArchiveToMoreResources1797200000000,
-  MigrateIncidentFormsToForms1797300000000,
+  TurnOnLinkedAlertSwitchesByDefault1797300000000,
+  MigrateIncidentFormsToForms1797400000000,
 ];

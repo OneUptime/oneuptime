@@ -5,6 +5,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import AppLink from "../../AppLink/AppLink";
 import {
+  formatReplayDuration,
   formatReplayOffset,
   formatReplayOffsetPrecise,
   formatReplayWallClock,
@@ -1190,6 +1191,26 @@ const MarkerDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
         <Note>
           {detail.droppedCount ?? "Some"} custom events in this chunk were
           dropped: the per-chunk cap was reached.
+        </Note>
+      );
+    case "idle-pause":
+      return detail.idlePauseEdge === "resumed" ? (
+        <Note>
+          Input came back
+          {typeof detail.pausedForMs === "number"
+            ? ` after ${formatReplayDuration(detail.pausedForMs)}`
+            : ""}{" "}
+          and the recorder started again here, on a fresh snapshot of the page.
+          Nothing was recorded during the pause, so playback skips it.
+        </Note>
+      ) : (
+        <Note>
+          Nobody touched the page
+          {typeof detail.idleForMs === "number"
+            ? ` for ${formatReplayDuration(detail.idleForMs)}`
+            : ""}
+          , so the recorder stopped capturing here. Nothing the page did on its
+          own is recorded until the next input.
         </Note>
       );
     default:

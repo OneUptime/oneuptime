@@ -124,6 +124,7 @@ import BackfillStatusPageSubscriberUnsubscribeColumns from "./BackfillStatusPage
 import BackfillIncidentCustomFieldVariableKeys from "./BackfillIncidentCustomFieldVariableKeys";
 import AcceptPendingTeamInvitationsOfProjectMembers from "./AcceptPendingTeamInvitationsOfProjectMembers";
 import AddIncomingCallMissedNotificationSettingsForUsers from "./AddIncomingCallMissedNotificationSettingsForUsers";
+import NormalizeListOrder from "./NormalizeListOrder";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -573,6 +574,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself. Idempotent.
    */
   new AddIncomingCallMissedNotificationSettingsForUsers(),
+  /*
+   * Numbers the drag-ordered lists (custom fields, rules, pipelines, status
+   * page links...) that have rows without a number or rows sharing one, 1..n
+   * in the order each is shown in today, so a drop on them lands where it
+   * was dropped. Lists with unique numbers are left alone. Postgres-only,
+   * idempotent, and never halts the chain: a table it cannot renumber is
+   * logged and skipped.
+   */
+  new NormalizeListOrder(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

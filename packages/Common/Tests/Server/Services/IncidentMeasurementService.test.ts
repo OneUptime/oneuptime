@@ -194,27 +194,32 @@ describe("IncidentMeasurementService", () => {
       );
     });
 
-    test("puts a new definition after the project's last one, so the settings list has a stable order", async () => {
-      const highest: IncidentMeasurement = new IncidentMeasurement();
-      highest.order = 7;
-
-      jest
-        .spyOn(IncidentMeasurementService, "findOneBy")
-        .mockResolvedValue(highest as never);
+    /*
+     * Where a new definition goes is the list's business, not this hook's:
+     * the model is a drag-ordered list (@ListOrderColumn), and
+     * DatabaseService puts a row created without an order at the end of its
+     * project's list (see DatabaseServiceListOrder.test.ts).
+     */
+    test("leaves the order of a new definition to the list, which puts it at the end", async () => {
+      const findOneBy: jest.SpyInstance = jest.spyOn(
+        IncidentMeasurementService,
+        "findOneBy",
+      ) as unknown as jest.SpyInstance;
 
       const createBy: CreateBy<IncidentMeasurement> = buildCreateBy({});
 
       await hooks.onBeforeCreate(createBy);
 
-      expect(createBy.data.order).toBe(8);
+      expect(createBy.data.order).toBeUndefined();
+      expect(findOneBy).not.toHaveBeenCalled();
     });
 
-    test("gives the first definition in a project order 1", async () => {
-      const createBy: CreateBy<IncidentMeasurement> = buildCreateBy({});
-
-      await hooks.onBeforeCreate(createBy);
-
-      expect(createBy.data.order).toBe(1);
+    test("is a list ordered within its project, lowest number first", () => {
+      expect(new IncidentMeasurement().getListOrder()).toEqual({
+        column: "order",
+        scopeColumns: ["projectId"],
+        sortOrder: "ASC",
+      });
     });
 
     test("requests a backfill, or the definition would be blank on every incident that already happened", async () => {

@@ -26,6 +26,19 @@ import { ReplayIdleBand } from "./ReplayEngineTypes";
  * elsewhere, not reading - so those spans come out as "background-tab"
  * bands, drawn differently, and idle bands are cut around them.
  *
+ * A stretch the recorder PAUSED through is not footage at all: after
+ * SESSION_REPLAY_IDLE_PAUSE_MS without input the recorder stops capturing
+ * and starts again on the next input, in the same tab and the next chunk,
+ * so the manifest shows nothing but a jump in time between two
+ * consecutive chunks. The oneuptime.idle-resumed marker that opens the
+ * resuming chunk names both ends of that stretch, and it comes out as a
+ * "paused" band - exact, because it is only ever drawn from a decoded
+ * marker. Idle and background-tab bands are both cut around it: the idle
+ * run before a pause is real footage of a page nobody touched, the pause
+ * is not, and the player skips the two differently. A recording from a
+ * recorder without the pause carries no markers and gets exactly the bands
+ * it always did.
+ *
  * Pure: no rrweb, no React, no I/O. The engine feeds it and reads bands
  * out; the timeline draws them; IDLE_SKIP jumps over them. rrweb's own
  * skipInactive only scans the events it has been fed, which on a
@@ -45,11 +58,24 @@ export interface InactivityChunkEvidence {
   activityIntervals: Array<ReplayActivityInterval>;
   /* The chunk's visibility rows, if any; other kinds are ignored. */
   visibilityEvents: Array<ReplayTimelineEvent>;
+  /*
+   * The chunk's idle-pause rows, if any; other kinds are ignored. Each
+   * resumed row with a pausedAtOffsetMs is one paused band, from there to
+   * the row's own offsetMs. Optional, so evidence written before the idle
+   * pause existed still type-checks and simply has no pauses.
+   */
+  idlePauseEvents?: Array<ReplayTimelineEvent> | undefined;
 }
 
 interface VisibilityPoint {
   offsetMs: number;
   state: "hidden" | "visible";
+}
+
+/* One unrecorded stretch, before it becomes a band. */
+interface PausedSpan {
+  startMs: number;
+  endMs: number;
 }
 
 export default class InactivityMap {
@@ -134,6 +160,11 @@ export default class InactivityMap {
           return event.kind === "visibility";
         },
       ),
+      idlePauseEvents: (evidence.idlePauseEvents ?? []).filter(
+        (event: ReplayTimelineEvent): boolean => {
+          return event.kind === "idle-pause";
+        },
+      ),
     });
     this.cachedBands = null;
   }
@@ -177,7 +208,11 @@ export default class InactivityMap {
     return null;
   }
 
-  /* Total idle time (both kinds), for "idle 40%" style copy. */
+  /*
+   * Total idle time (every kind), for "idle 40%" style copy. A paused
+   * stretch counts: nobody touched the page through it either, and it is
+   * inside the session's duration.
+   */
   public getIdleMs(): number {
     return this.getBands().reduce(
       (total: number, band: ReplayIdleBand): number => {
@@ -196,6 +231,12 @@ export default class InactivityMap {
    * span (edges approximate); an undecoded chunk with too few events is
    * silence that keeps the run going. A hole in the chunk sequence ends
    * the run: missing footage is a gap band, never an idle one.
+   *
+   * A pause is NOT a hole - the chunk after it is the next index - so the
+   * run carries straight across it and the paused band is cut out of it
+   * afterwards, together with the background-tab bands, which are cut
+   * around the paused ones first. Any piece left shorter than the
+   * threshold is dropped, exactly as it always was for background tabs.
    */
   public static computeBands(
     entries: Array<SessionReplayChunkManifestEntry>,
@@ -269,17 +310,124 @@ export default class InactivityMap {
       closeRun(previous.chunkEndOffsetMs, !evidence.has(previous.chunkIndex));
     }
 
-    const background: Array<ReplayIdleBand> = InactivityMap.computeBackground(
+    const paused: Array<ReplayIdleBand> = InactivityMap.computePaused(
       sorted,
       evidence,
       thresholdMs,
     );
 
-    const trimmed: Array<ReplayIdleBand> = [];
+    /*
+     * A tab hidden when the pause began stays hidden in the stream until
+     * the visible event right after the resume, so its band would run
+     * straight through the pause. That the tab was in the background is
+     * only known up to the moment capture stopped.
+     */
+    const background: Array<ReplayIdleBand> = InactivityMap.cutAround(
+      InactivityMap.computeBackground(sorted, evidence, thresholdMs),
+      paused,
+      thresholdMs,
+    );
 
-    for (const band of idle) {
-      trimmed.push(
-        ...InactivityMap.subtract(band, background).filter(
+    const trimmed: Array<ReplayIdleBand> = InactivityMap.cutAround(
+      idle,
+      [...background, ...paused],
+      thresholdMs,
+    );
+
+    return [...trimmed, ...background, ...paused].sort(
+      (a: ReplayIdleBand, b: ReplayIdleBand): number => {
+        return a.startMs - b.startMs;
+      },
+    );
+  }
+
+  /*
+   * The stretches the recorder paused through, from the decoded chunks'
+   * idle-resumed rows: [pausedAtOffsetMs, offsetMs] each. A resume alone
+   * is enough - it carries the pause's start, so the chunk holding the
+   * idle-paused marker need not be decoded - and an idle-paused marker
+   * with no resume after it draws nothing: the user never came back, the
+   * recording simply ends there, and there is nothing after it to skip to.
+   *
+   * Shorter than the threshold is no band, as for background tabs, and
+   * anything overlapping is merged, so the skipper never sees two bands
+   * claiming the same moment.
+   */
+  private static computePaused(
+    sorted: Array<SessionReplayChunkManifestEntry>,
+    evidence: Map<number, InactivityChunkEvidence>,
+    thresholdMs: number,
+  ): Array<ReplayIdleBand> {
+    const spans: Array<PausedSpan> = [];
+
+    for (const entry of sorted) {
+      const known: InactivityChunkEvidence | undefined = evidence.get(
+        entry.chunkIndex,
+      );
+
+      for (const event of known?.idlePauseEvents ?? []) {
+        const startMs: number | undefined = event.pausedAtOffsetMs;
+
+        if (
+          event.kind !== "idle-pause" ||
+          event.idlePauseEdge !== "resumed" ||
+          typeof startMs !== "number" ||
+          !Number.isFinite(startMs) ||
+          !Number.isFinite(event.offsetMs) ||
+          event.offsetMs <= startMs
+        ) {
+          continue;
+        }
+
+        spans.push({ startMs: Math.max(0, startMs), endMs: event.offsetMs });
+      }
+    }
+
+    spans.sort((a: PausedSpan, b: PausedSpan): number => {
+      return a.startMs - b.startMs;
+    });
+
+    const merged: Array<PausedSpan> = [];
+
+    for (const span of spans) {
+      const last: PausedSpan | undefined = merged[merged.length - 1];
+
+      if (last && span.startMs <= last.endMs) {
+        last.endMs = Math.max(last.endMs, span.endMs);
+        continue;
+      }
+
+      merged.push({ startMs: span.startMs, endMs: span.endMs });
+    }
+
+    return merged
+      .filter((span: PausedSpan): boolean => {
+        return span.endMs - span.startMs >= thresholdMs;
+      })
+      .map((span: PausedSpan): ReplayIdleBand => {
+        return {
+          startMs: span.startMs,
+          endMs: span.endMs,
+          kind: "paused",
+          fidelity: "exact",
+        };
+      });
+  }
+
+  /*
+   * Cut `others` out of every band, keeping the pieces still at least the
+   * threshold long. With nothing to cut, every band comes back as itself.
+   */
+  private static cutAround(
+    bands: Array<ReplayIdleBand>,
+    others: Array<ReplayIdleBand>,
+    thresholdMs: number,
+  ): Array<ReplayIdleBand> {
+    const kept: Array<ReplayIdleBand> = [];
+
+    for (const band of bands) {
+      kept.push(
+        ...InactivityMap.subtract(band, others).filter(
           (piece: ReplayIdleBand): boolean => {
             return piece.endMs - piece.startMs >= thresholdMs;
           },
@@ -287,11 +435,7 @@ export default class InactivityMap {
       );
     }
 
-    return [...trimmed, ...background].sort(
-      (a: ReplayIdleBand, b: ReplayIdleBand): number => {
-        return a.startMs - b.startMs;
-      },
-    );
+    return kept;
   }
 
   /*

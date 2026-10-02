@@ -25,6 +25,7 @@ import { MemoryRouter, Route as PageRoute, Routes } from "react-router-dom";
  *   Workflows menu:        Workflows (Workflows, Global Variables)
  *                          Logs (Runs)
  *                          Settings (collapsed: Owner Rules, Label Rules)
+ *                          Advanced (collapsed: Archived)
  *
  *   A workflow's menu:     Basic (Overview, Builder, Workflow Variables)
  *                          Logs (Runs)
@@ -253,12 +254,6 @@ const WORKFLOWS_MENU: ReadonlyArray<MenuPage> = [
     section: "Workflows",
     path: `${WORKFLOWS_PATH}/variables`,
   },
-  // Archived workflows leave the list, so the way back to them sits beside it.
-  {
-    title: "Archived",
-    section: "Workflows",
-    path: `${WORKFLOWS_PATH}/archived`,
-  },
   { title: "Runs", section: "Logs", path: ALL_RUNS_PATH },
   {
     title: "Owner Rules",
@@ -269,6 +264,15 @@ const WORKFLOWS_MENU: ReadonlyArray<MenuPage> = [
     title: "Label Rules",
     section: "Settings",
     path: `${WORKFLOWS_PATH}/settings/label-rules`,
+  },
+  /*
+   * Archived workflows leave the list, and the way back to them is rarely
+   * needed, so it waits in Advanced (the maintainer's ask).
+   */
+  {
+    title: "Archived",
+    section: "Advanced",
+    path: `${WORKFLOWS_PATH}/archived`,
   },
   {
     title: "Terraform",
@@ -376,6 +380,7 @@ describe("the Workflows menu", () => {
       "Workflows",
       "Logs",
       "Settings",
+      "Advanced",
       "Developer",
     ]);
   });
@@ -391,11 +396,42 @@ describe("the Workflows menu", () => {
     );
   });
 
-  test("the Workflows section keeps only Workflows, Global Variables and Archived", async () => {
+  test("the Workflows section keeps only Workflows and Global Variables", async () => {
     await renderWorkflowsMenu();
 
     expect(linksIn("Workflows")).toEqual(linksOf(WORKFLOWS_MENU, "Workflows"));
     expect(linksIn("Settings")).toEqual(linksOf(WORKFLOWS_MENU, "Settings"));
+  });
+
+  test("Archived waits in Advanced, folded away until it is opened", async () => {
+    await renderWorkflowsMenu();
+
+    expect(linksIn("Advanced")).toEqual([
+      {
+        title: "Archived",
+        href: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.WORKFLOWS_ARCHIVED] as Route,
+        ).toString(),
+      },
+    ]);
+    expect(isExpanded("Advanced")).toBe(false);
+    expect(sectionBody("Advanced")).toHaveClass("max-h-0", "invisible");
+  });
+
+  test("on the Archived page, Advanced is open and Archived is the one active entry", async () => {
+    goTo(`${WORKFLOWS_PATH}/archived`);
+    await renderWorkflowsMenu();
+
+    expect(isExpanded("Advanced")).toBe(true);
+    expect(sectionBody("Advanced")).not.toHaveClass("invisible");
+
+    const archived: HTMLElement = within(sectionRoot("Advanced")).getByRole(
+      "link",
+      { name: "Archived" },
+    );
+
+    expect(archived).toHaveClass(...ACTIVE_LINK_CLASSES);
+    expect(activeLinks()).toEqual([archived]);
   });
 
   test("lists every page once, in order", async () => {
@@ -697,6 +733,7 @@ describe("the run pages keep their URLs", () => {
       "Workflows",
       "Logs",
       "Settings",
+      "Advanced",
       "Developer",
     ]);
   });

@@ -75,10 +75,10 @@ interface LegacyCustomFieldRow extends LegacyIncidentCustomFieldRow {
   projectId: string;
 }
 
-export class MigrateIncidentFormsToForms1797300000000
+export class MigrateIncidentFormsToForms1797400000000
   implements MigrationInterface
 {
-  public name: string = "MigrateIncidentFormsToForms1797300000000";
+  public name: string = "MigrateIncidentFormsToForms1797400000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Schema (generated).

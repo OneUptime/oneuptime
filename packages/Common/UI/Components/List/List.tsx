@@ -9,7 +9,9 @@ import Pagination from "../Pagination/Pagination";
 import ListBody from "./ListBody";
 import ListSkeleton from "./ListSkeleton";
 import { ListDetailProps } from "./ListRow";
+import { DRAG_HANDLE_USAGE_INSTRUCTIONS } from "../Table/Table";
 import GenericObject from "../../../Types/GenericObject";
+import useTranslateValue from "../../Utils/Translation";
 import React, { ReactElement } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 
@@ -30,7 +32,14 @@ export interface ComponentProps<T extends GenericObject> {
   enableDragAndDrop?: boolean | undefined;
   dragDropIndexField?: keyof T | undefined;
   dragDropIdField?: keyof T | undefined;
-  onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
+  // See Table: positions in `data`, never called for a drop that moved nothing.
+  onDragDrop?:
+    | ((id: string, destinationIndex: number, sourceIndex: number) => void)
+    | undefined;
+  isDragDisabled?: boolean | undefined;
+  dragDisabledReason?: string | undefined;
+  // What a card is ("Rule: Call the on-call engineer"), for its grip's name.
+  itemToString?: ((item: T) => string) | undefined;
   error: string;
   isLoading: boolean;
   singularLabel: string;
@@ -67,6 +76,7 @@ type ListFunction = <T extends GenericObject>(
 const List: ListFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   /*
    * A refetch with cards already on screen (pagination, sort, refresh - the
    * parent never clears `data` while fetching) keeps those cards visible and
@@ -126,6 +136,9 @@ const List: ListFunction = <T extends GenericObject>(
         dragAndDropScope={`${props.id}-dnd`}
         dragDropIdField={props.dragDropIdField}
         dragDropIndexField={props.dragDropIndexField}
+        isDragDisabled={props.isDragDisabled}
+        dragDisabledReason={props.dragDisabledReason}
+        itemToString={props.itemToString}
         listDetailOptions={props.listDetailOptions}
       />
     );
@@ -157,10 +170,25 @@ const List: ListFunction = <T extends GenericObject>(
         </div>
         <div className="">
           <DragDropContext
+            dragHandleUsageInstructions={
+              translateString(DRAG_HANDLE_USAGE_INSTRUCTIONS) ||
+              DRAG_HANDLE_USAGE_INSTRUCTIONS
+            }
             onDragEnd={(result: DropResult) => {
-              if (result.destination?.index && props.onDragDrop) {
-                props.onDragDrop(result.draggableId, result.destination.index);
+              // Index 0 is the top of the list: a drop there is a real move.
+              if (
+                !props.onDragDrop ||
+                !result.destination ||
+                result.destination.index === result.source.index
+              ) {
+                return;
               }
+
+              props.onDragDrop(
+                result.draggableId,
+                result.destination.index,
+                result.source.index,
+              );
             }}
           >
             {/*

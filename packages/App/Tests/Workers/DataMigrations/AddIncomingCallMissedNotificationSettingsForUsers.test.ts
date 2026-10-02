@@ -166,7 +166,14 @@ describe("AddIncomingCallMissedNotificationSettingsForUsers", () => {
     expect(registered[registered.length - 1]).toBe(
       "AddAuditLogMcpClientColumns",
     );
-    expect(registered.indexOf(MIGRATION_NAME)).toBe(registered.length - 2);
+    /*
+     * Anywhere before that last slot: it has no ordering requirement of its
+     * own, and migrations added after it go in front of the last one too.
+     */
+    expect(registered.indexOf(MIGRATION_NAME)).toBeGreaterThanOrEqual(0);
+    expect(registered.indexOf(MIGRATION_NAME)).toBeLessThan(
+      registered.length - 1,
+    );
   });
 
   test("seeds the setting for every accepted member of every project", async () => {

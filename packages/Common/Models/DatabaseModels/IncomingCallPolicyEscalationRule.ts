@@ -14,6 +14,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -22,6 +23,7 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 
 @EnableDocumentation()
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "order", scopeColumns: ["incomingCallPolicyId"] })
 @EnableWorkflow({
   create: true,
   delete: true,
@@ -346,10 +348,12 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
   })
   @Index()
   @TableColumn({
+    required: false,
     isDefaultValueColumn: false,
     type: TableColumnType.Number,
     title: "Order",
-    description: "Execution order (1, 2, 3...)",
+    description:
+      "Where this rule sits in the escalation, lowest number first. A new rule is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
     canReadOnRelationQuery: true,
   })
   @Column({

@@ -280,6 +280,67 @@ describe("RouteRecorder", (): void => {
     });
   });
 
+  /*
+   * #4208: while the recorder is paused because nobody is at the page, a
+   * route the page changes to on its own (a session-timeout redirect, a
+   * kiosk rotating screens) is not recorded and costs none of the cap -
+   * but the recorder still follows the URL, so the first route recorded
+   * once the user is back starts from where they came back to.
+   */
+  describe("while suspended", (): void => {
+    let suspended: boolean = false;
+
+    beforeEach((): void => {
+      suspended = false;
+      recorder.stop(window);
+      recorder = new RouteRecorder({
+        emitCustomEvent: (tag: string, payload: unknown): void => {
+          customEvents.push({ tag: tag, payload: payload });
+        },
+        scrubUrl: (url: string): string => {
+          return UrlScrubber.scrub(url);
+        },
+        onRouteChange: (_atUnixMs: number, route: RecordedRoute): void => {
+          routes.push(route);
+        },
+        requestFullSnapshot: (): void => {
+          snapshotRequests++;
+        },
+        isSuspended: (): boolean => {
+          return suspended;
+        },
+      });
+      recorder.start(window);
+    });
+
+    it("records nothing, asks for no snapshot and spends none of the cap", (): void => {
+      suspended = true;
+
+      for (let index: number = 0; index < 20; index++) {
+        window.history.pushState({}, "", `/rotating-${index}`);
+      }
+
+      settle();
+
+      expect(routes).toHaveLength(0);
+      expect(customEvents).toHaveLength(0);
+      expect(snapshotRequests).toBe(0);
+      expect(recorder.getRecordedCount()).toBe(0);
+    });
+
+    it("starts the next recorded route from the page the user came back to", (): void => {
+      suspended = true;
+      window.history.pushState({}, "", "/signed-out");
+
+      suspended = false;
+      window.history.pushState({}, "", "/sign-in");
+
+      expect(routes).toHaveLength(1);
+      expect(routes[0]?.from).toBe("https://shop.example.com/signed-out");
+      expect(routes[0]?.to).toBe("https://shop.example.com/sign-in");
+    });
+  });
+
   it("restores history methods on stop", (): void => {
     const patched: unknown = window.history.pushState;
 

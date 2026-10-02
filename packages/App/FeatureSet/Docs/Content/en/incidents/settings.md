@@ -19,9 +19,10 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 | **Note Templates**       | Reusable text for public and private notes.                                                  |
 | **Postmortem Templates** | Reusable postmortem structures.                                                              |
 | **Custom Fields**        | Define extra fields that appear on every incident.                                           |
-| **Measurements**         | Define named durations — time to detect, time to mitigate — computed for every incident.     |
 | **Incident Roles**       | Define the roles you assign responders to, such as Incident Commander.                       |
-| **More Settings**        | The incident and incident episode number prefixes, and the linked alert switches.            |
+| **Measurements**         | Define named durations — time to detect, time to mitigate — computed for every incident.     |
+| **Linked Alerts**        | Choose whether the alerts linked to an incident are acknowledged and resolved along with it. Both are on for new projects. |
+| **Number Prefix**        | The text in front of incident and episode numbers, such as `INC-` in `INC-42`.               |
 
 **Incident State** and **Incident Severity** are covered in depth on [Incident States & Severities](/docs/incidents/states-and-severities) — the rest of this page picks up from **Incident Templates**. Forms that let people outside your team report incidents are a product of their own: see [Forms](/docs/forms/index).
 
@@ -117,9 +118,9 @@ Like incident templates, rows are created and viewed rather than edited inline; 
 | `{{incident.startedAt}}`            | When it was declared, in the author's time zone, with the zone named. |
 | `{{incident.labels}}`               | Its labels, separated by commas.                                   |
 | `{{incident.affectedStatusPages}}`  | The status pages it shows on and notifies that the author can see. |
-| `{{customFields.<key>}}`            | A custom field's value, by the **Template Variable** shown on the custom field settings page. |
+| `{{incident.customFields.<key>}}`   | A custom field's value, by the **Template Variable** shown on the custom field settings page. |
 
-A placeholder that has no value, or that is not on the list, stays exactly as written, for the author to fill in. Values are placed as text: an incident title cannot turn into an image, HTML or a link whose text hides where it goes in the posted note, although an address in it still shows as a link to that address. A **Rich text (Markdown)** custom field is placed as the Markdown it is. The form for writing a note template lists these placeholders under the note, with a warning: the custom field, label and status page placeholders fill in your team's own records, every custom field whether or not it is marked **Include in Subscriber Notifications**, and one library serves public notes too, which are shown on the incident's status pages and emailed to their subscribers. Read the filled-in text before you post a public note.
+Custom fields used to be written `{{customFields.<key>}}`; templates that still use it are filled in the same way. A placeholder that has no value, or that is not on the list, stays exactly as written, for the author to fill in. Values are placed as text: an incident title cannot turn into an image, HTML or a link whose text hides where it goes in the posted note, although an address in it still shows as a link to that address. A **Rich text (Markdown)** custom field is placed as the Markdown it is. The form for writing a note template lists these placeholders under the note. The custom field, label and status page placeholders fill in your team's own records, every custom field whether or not it is marked **Include in Subscriber Notifications**, and one library serves public notes too, which are shown on the incident's status pages and emailed to their subscribers. Read the filled-in text before you post a public note.
 
 Note templates surface where you actually need them: the **Acknowledge Incident** and **Resolve Incident** confirmation dialogs both offer **Select Note Template** next to the **Public Note** field. See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for how public and private notes differ.
 
@@ -144,11 +145,11 @@ Go to **Incidents → Settings → Custom Fields** (`/dashboard/{projectId}/inci
 - **Field Description** — optional.
 - **Field Type** — required. This chooses how data is entered; the types are listed below. Dropdown types also need their options listed.
 - **Dropdown Options** — the values that appear in the dropdown, each with an optional color.
-- **Order** — where the field appears among the incident's custom fields, lowest first: on the incident's **Custom Fields** page, in the **Details** step and in subscriber messages. Fields without an order come after the ones that have one.
+- **Order** — where the field appears among the incident's custom fields: on the incident's **Custom Fields** page, in the **Details** step and in subscriber messages. There is no number to type in: drag a field by the handle at the start of its row to move it up or down, and a new field is added to the end. Dragging is off while a filter or search narrows the list.
 - **Show on Create** — asks for the field in the **Details** step when an incident is declared from the dashboard (see [Declaring Incidents](/docs/incidents/declaring-incidents)). An incident template can give any field a starting value, shown on create or not, and can ask for a field or leave it out for the incidents declared from it — see [Custom fields on create](#custom-fields-on-create). [Forms](/docs/forms/building#custom-fields) do not follow it: a form asks only the fields added to it.
 - **Required on Create** — offered once **Show on Create** is on. The **Details** step does not let you declare the incident until the field is filled in, and a **Boolean** field must be switched on. The dashboard is the only place this is checked; see [Required on Create is checked by the dashboard only](#required-on-create-is-checked-by-the-dashboard-only).
 - **Include in Subscriber Notifications** — sends the field and its value to status page subscribers with the incident's messages: the default email, Slack and Microsoft Teams messages and webhooks, but not SMS. Subscribers are usually outside your team, so only turn it on for fields that are safe to share. See [Incident custom fields in notifications](/docs/status-pages/subscribers#incident-custom-fields-in-notifications).
-- **Template Variable** — the key a template reaches the field by, `{{customFields.<key>}}`, in note templates and custom subscriber notification templates. It is made from the field's name when the field is created — lowercase letters, digits and underscores, so `Expected Resolution` becomes `expected_resolution`, with `_2`, `_3` and so on added when another field already has the key — and it does not change when the field is renamed. Nobody sets it by hand: the API ignores a value sent for it.
+- **Template Variable** — the key a template reaches the field by, `{{incident.customFields.<key>}}`, in note templates and custom subscriber notification templates. It is made from the field's name when the field is created — lowercase letters, digits and underscores, so `Expected Resolution` becomes `expected_resolution`, with `_2`, `_3` and so on added when another field already has the key — and it does not change when the field is renamed. Nobody sets it by hand: the API ignores a value sent for it. Templates written with the older `{{customFields.<key>}}` keep working.
 
 **Order**, **Show on Create**, **Required on Create**, **Include in Subscriber Notifications** and **Template Variable** exist on incident custom fields only. The custom fields of monitors, alerts, scheduled maintenance events and the other resources do not have them.
 
@@ -229,6 +230,8 @@ Deleting a field leaves the questions that ask for it on every [form](/docs/form
 ### Terraform
 
 The settings are on the `oneuptime_incident_custom_field` resource as `sort_order`, `show_on_create`, `is_required_on_create` and `include_in_subscriber_notifications`. `variable_key` is read-only: the key OneUptime made when the field was created.
+
+Leave `sort_order` out and a new field goes to the end of the list. Give it the number another field already has and it takes that place, while the fields in the way move one place along. A number no other field has is kept as you wrote it.
 
 ## Measurements
 
@@ -312,39 +315,53 @@ Roles are definitions only. You assign people to them per incident — the decla
 
 ## Number prefixes
 
-Every incident gets a number. By default it renders as `#42`. If your team says "INC-42" out loud, make the product say it too.
+Every incident gets a number from a per-project counter. Without a prefix it shows as `#42`; with one it shows as `INC-42`. If your team says "INC-42" out loud, make the product say it too. New projects start with `INC-` for incidents and `IE-` for incident episodes.
 
-Go to **Incidents → Settings → More Settings** (`/dashboard/{projectId}/incidents/settings/more`). The card is **Number Prefix** and holds two fields on the project:
+Go to **Incidents → Settings → Number Prefix** (`/dashboard/{projectId}/incidents/settings/number-prefix`). The **Number Prefix** card has a row for **Incidents** and one for **Incident Episodes**. Each shows its prefix and an example of the number it makes: `INC-`, then **Example:** `INC-42`. A project without a prefix shows **No prefix** and `#42`.
 
-- **Incident Number Prefix** — up to 20 characters, placeholder `INC-`. Set it and incident `#42` displays as `INC-42`.
-- **Incident Episode Number Prefix** — the same idea for incident episode numbers, placeholder `IE-`.
+**Update** opens **Edit Number Prefix**, with two fields:
 
-Leave either empty to keep the default `#` prefix; the unset field displays `# (default)`. Save with **Update**. The prefixed value is stored on the incident as `incidentNumberWithPrefix`, which is what the incidents list and the incident header render.
+- **Incident Number Prefix** — placeholder `INC-`.
+- **Incident Episode Number Prefix** — placeholder `IE-`.
+
+Under each field, **Preview:** shows the number as you type, so you see `OPS-42` before you save `OPS-`. Leave a field empty to go back to `#`. A prefix:
+
+- has up to 20 characters;
+- uses letters (of any alphabet), digits and `-` `_` `.` `/` `:` `#` — no spaces, and nothing Markdown, Slack or HTML would read as formatting;
+- does not end with a digit, which would run into the number: `SEV1` would make incident 42 `SEV142`.
+
+The dialog says what is wrong before you save, and the API refuses the same prefixes. Spaces around a prefix are trimmed off.
+
+**What a new prefix changes.** Only incidents and episodes created after you save get the new prefix. Each existing one keeps the number it was given: the prefixed value is stored on the incident as `incidentNumberWithPrefix`, which is what the incidents list, the incident header, notifications and the incident's Slack and Microsoft Teams channel names use. The counter carries on: if the last incident was `INC-41` and you switch to `OPS-`, the next one is `OPS-42`.
+
+Project Owners, Project Admins and anyone with **Edit Project** can change the prefixes. Everyone else sees them with the **Update** button locked.
+
+Alerts and scheduled maintenance events have the same page: **Alerts → Settings → Number Prefix** for alert and alert episode numbers (`ALT-` and `AE-` for new projects), and **Scheduled Maintenance → Settings → Number Prefix** for event numbers (`SM-`). In all three, the old **More Settings** address (`…/settings/more`) still works and opens **Number Prefix**.
 
 ## Linked alert switches
 
-Linking alerts to an incident never changes their state on its own. Two project switches, on the **Linked Alerts** card of **Incidents → Settings → More Settings**, let the incident move its linked alerts along with it:
+Linking alerts to an incident never changes their state on its own. Two project switches, on the **Linked Alerts** card of **Incidents → Settings → Linked Alerts** (`/dashboard/{projectId}/incidents/settings/linked-alerts`), let the incident move its linked alerts along with it:
 
 - **Acknowledge Linked Alerts When Incident Is Acknowledged** — acknowledging the incident acknowledges every linked alert that is not acknowledged yet, which stops those alerts' on-call escalations.
 - **Resolve Linked Alerts When Incident Is Resolved** — resolving the incident resolves every linked alert that is not resolved yet, except an alert that is still linked to another incident that is not resolved.
 
-Both are off by default, and only Project Owners and Project Admins can change them, with the card's **Update** button. States are compared by their order, so custom states count; alerts never move backwards, reopening an incident does not reopen its alerts, and an alert linked to an incident that is already acknowledged or resolved is brought in line as it is linked. Turning a switch on hands the linked alerts' states to the incident: whoever can change an incident's state, or link an alert to an incident that is already acknowledged or resolved, moves the alerts too, without needing permission to edit alerts. [Linked Alerts](/docs/incidents/linked-alerts) has the full rules, including why resolving an alert whose monitor is still failing makes the monitor raise a fresh one.
+Both are on for new projects; a project created before they were on by default keeps the setting it had. Only Project Owners and Project Admins can change them, with the card's **Update** button. States are compared by their order, so custom states count; alerts never move backwards, reopening an incident does not reopen its alerts, and an alert linked to an incident that is already acknowledged or resolved is brought in line as it is linked. Turning a switch on hands the linked alerts' states to the incident: whoever can change an incident's state, or link an alert to an incident that is already acknowledged or resolved, moves the alerts too, without needing permission to edit alerts. [Linked Alerts](/docs/incidents/linked-alerts) has the full rules, including why resolving an alert whose monitor is still failing makes the monitor raise a fresh one.
 
 ## Rules that run when an incident is created
 
 **Incidents → Rules** holds nine rule engines. They all do the same job — look at an incident the moment it is created, and act if it matches — but they differ in what they do and in how multiple matching rules resolve.
 
-- **Grouping Rules** — group related incidents into episodes. Rules are evaluated in priority order; lower priority numbers go first.
+- **Grouping Rules** — group related incidents into episodes. Rules are evaluated from the top of the list down; drag a rule to change its place.
 - **On-Call Rules** — execute on-call duty policies for matching incidents. Covered in detail below.
 - **Owner Rules** — assign owners automatically.
 - **Runbook Rules** — start a [runbook](/docs/runbooks/index) when an incident matches.
 - **Auto Remediation Rules** — propose or start remediation runbooks when an incident matches. If an AI investigation is queued for the incident, they run once it finishes, with its analysis in hand. See [AI SRE](/docs/ai/ai-sre).
 - **Privacy Rules** — decide whether a matching incident is private.
 - **Label Rules** — apply labels automatically.
-- **SLA Rules** — track response and resolution times. Rules are evaluated in order; lower order numbers go first.
-- **Reminder Rules** — periodically remind incident owners while an incident is still open. Rules are evaluated in order and the first matching rule wins.
+- **SLA Rules** — track response and resolution times. Rules are evaluated from the top of the list down; drag a rule to change its place.
+- **Reminder Rules** — periodically remind incident owners while an incident is still open. Rules are evaluated from the top of the list down and the first matching rule wins; drag a rule to change its place.
 
-**Order semantics are not uniform.** Grouping Rules, SLA Rules and Reminder Rules are order-evaluated. On-Call Rules are not — every matching rule fires. Do not assume one model applies to all nine.
+**Order semantics are not uniform.** Grouping Rules, SLA Rules and Reminder Rules are order-evaluated, and their lists are put in order by dragging: a new rule is added to the end. On-Call Rules are not — every matching rule fires. Do not assume one model applies to all nine.
 
 The **On-Call Rules**, **Owner Rules**, **Label Rules** and **Privacy Rules** pages are tabbed — an **Incident Rules** tab and an **Episode Rules** tab, each with its own table. Configure the **Incident Rules** tab unless you specifically mean episodes. **Grouping Rules**, **Runbook Rules**, **Auto Remediation Rules**, **SLA Rules** and **Reminder Rules** are single tables.
 

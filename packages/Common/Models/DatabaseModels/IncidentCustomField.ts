@@ -16,6 +16,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
@@ -30,6 +31,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: PlanType.Growth,
 })
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "sortOrder", scopeColumns: ["projectId"] })
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -433,7 +435,7 @@ export default class IncidentCustomField extends BaseModel {
     type: TableColumnType.Number,
     title: "Order",
     description:
-      "Where this field appears among the incident's custom fields, lowest first. Fields with no order come after the ones that have one.",
+      "Where this field appears among the incident's custom fields, lowest number first. A new field is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
     example: 1,
   })
   @Column({
@@ -519,7 +521,9 @@ export default class IncidentCustomField extends BaseModel {
   public includeInSubscriberNotifications?: boolean = undefined;
 
   /*
-   * The key templates reach this field by, {{customFields.<variableKey>}}.
+   * The key templates reach this field by,
+   * {{incident.customFields.<variableKey>}} (templates saved with the older
+   * {{customFields.<variableKey>}} are filled too).
    * Made from the name when the field is created
    * (IncidentCustomFieldService.onBeforeCreate, with
    * generateCustomFieldVariableKey) and never changed afterwards, so renaming
@@ -552,7 +556,7 @@ export default class IncidentCustomField extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Template Variable Key",
     description:
-      "The key this field is reached by in templates, as {{customFields.<key>}}. Made from the field's name when it is created - lowercase letters, digits and underscores, with _2, _3 and so on added when another field already has it - and never changed afterwards, so renaming the field does not break templates that use it.",
+      "The key this field is reached by in templates, as {{incident.customFields.<key>}}. Made from the field's name when it is created - lowercase letters, digits and underscores, with _2, _3 and so on added when another field already has it - and never changed afterwards, so renaming the field does not break templates that use it.",
     example: "expected_resolution",
   })
   @Column({

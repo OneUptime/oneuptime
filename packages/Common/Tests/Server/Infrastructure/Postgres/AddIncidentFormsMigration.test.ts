@@ -74,7 +74,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
 /*
  * The columns the incident forms models persisted, inherited ones included.
  * The models are gone - incident forms became Form and FormSubmission, and
- * MigrateIncidentFormsToForms1797300000000 copies these tables over and
+ * MigrateIncidentFormsToForms1797400000000 copies these tables over and
  * drops them - so they are written out: this migration must keep creating
  * every column that one reads.
  */

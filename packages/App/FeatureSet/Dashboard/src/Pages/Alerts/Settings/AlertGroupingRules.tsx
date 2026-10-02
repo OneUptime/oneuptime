@@ -153,7 +153,7 @@ const AlertGroupingRulesPage: FunctionComponent<
         cardProps={{
           title: "Alert Grouping Rules",
           description:
-            "Define rules to automatically group related alerts into episodes. Rules are evaluated in priority order - lower priority numbers are evaluated first.",
+            "Define rules to automatically group related alerts into episodes. Rules are evaluated from top to bottom - drag a rule to change its place.",
         }}
         helpContent={{
           title: "How Alert Grouping Rules Work",
@@ -163,8 +163,10 @@ const AlertGroupingRulesPage: FunctionComponent<
         }}
         sortBy="priority"
         sortOrder={SortOrder.Ascending}
+        // Evaluated from the top down; a new rule goes to the end.
+        enableDragAndDrop={true}
+        dragDropIndexField="priority"
         selectMoreFields={{
-          priority: true,
           isEnabled: true,
         }}
         filters={[
@@ -197,13 +199,6 @@ const AlertGroupingRulesPage: FunctionComponent<
             },
             title: "Description",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              priority: true,
-            },
-            title: "Priority",
-            type: FieldType.Number,
           },
           {
             field: {
@@ -301,18 +296,6 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Groups all critical alerts from production services",
-          },
-          {
-            field: {
-              priority: true,
-            },
-            title: "Priority",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "1",
-            description:
-              "Lower numbers have higher priority. Rules are evaluated in order.",
           },
           {
             field: {

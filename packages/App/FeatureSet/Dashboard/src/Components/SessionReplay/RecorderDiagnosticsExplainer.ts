@@ -243,6 +243,14 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
     explanation:
       "Nothing happened on the page for 30 minutes, so the session ended at the last activity. Nothing more is recorded until the user comes back, which starts a new session.",
   },
+  "recording-paused-idle": {
+    explanation:
+      "Nobody touched the page for 5 minutes, so recording paused. Nothing is captured or uploaded until the next key, click, scroll or touch, which resumes the same session.",
+  },
+  "recording-resumed": {
+    explanation:
+      "The user came back after recording paused for inactivity, and recording resumed in the same session on a fresh snapshot.",
+  },
   "recorder-stopped": { explanation: "Recording stopped on this page." },
   "recorder-stopped-by-server": {
     explanation:

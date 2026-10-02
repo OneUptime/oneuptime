@@ -218,12 +218,35 @@ const A_FEW_AT_A_TIME: Record<string, (atOnce: number) => string> = {
 const LINKING_LEAVES_STATES_ALONE: Record<string, Array<string>> = {
   en: [
     "on its own it never acknowledges, resolves or silences an alert",
-    "By default, linking changes nothing about an alert's state.",
+    "With both switches off, linking changes nothing about an alert's state.",
   ],
   fa: [
     "به‌خودی‌خود هرگز هشداری را تصدیق، برطرف یا خاموش نمی‌کند",
-    "به‌طور پیش‌فرض، پیوند دادن هیچ‌چیز را در وضعیت هشدار تغییر نمی‌دهد.",
+    "با خاموش بودن هر دو کلید، پیوند دادن هیچ‌چیز را در وضعیت هشدار تغییر نمی‌دهد.",
   ],
+};
+
+/*
+ * The linked alert switches are on for new projects; a project created
+ * before keeps the setting it had. How each language says both, and the
+ * wording from when both started off.
+ */
+const ON_FOR_NEW_PROJECTS: Record<string, string> = {
+  en: "Both are on for new projects",
+  fa: "هر دو در پروژه‌های تازه روشن‌اند",
+};
+const KEEPS_ITS_SETTING: Record<string, string> = {
+  en: "keeps the setting it had",
+  fa: "تنظیمی را که داشت نگه می‌دارد",
+};
+const OFF_BY_DEFAULT: Record<string, RegExp> = {
+  en: /\bboth (are )?off by default\b|\(the default\)/i,
+  fa: /هر دو به‌طور پیش‌فرض خاموش|\(پیش‌فرض\)/,
+};
+// How each language names the switches, for the More Settings row that once listed them.
+const LINKED_ALERT_SWITCHES_WORDS: Record<string, string> = {
+  en: "linked alert",
+  fa: "هشدارهای پیوندشده",
 };
 
 // The old wording, from when declaring had two ways in.
@@ -248,13 +271,19 @@ const INCIDENTS_SIDE_MENU_FILE: string = path.join(
   REPO_ROOT,
   "App/FeatureSet/Dashboard/src/Pages/Incidents/SideMenu.tsx",
 );
-const INCIDENT_MORE_SETTINGS_FILE: string = path.join(
+const INCIDENT_LINKED_ALERTS_SETTINGS_FILE: string = path.join(
   REPO_ROOT,
-  "App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentMoreSettings.tsx",
+  "App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentLinkedAlertsSettings.tsx",
 );
 
-// Where both pages tell readers to find the switches.
-const MORE_SETTINGS_PATH: string = "**Incidents → Settings → More Settings**";
+// Where both pages tell readers to find the switches: a Settings page of their own.
+const LINKED_ALERTS_SETTINGS_PATH: string =
+  "**Incidents → Settings → Linked Alerts**";
+const LINKED_ALERTS_SETTINGS_URL: string =
+  "/dashboard/{projectId}/incidents/settings/linked-alerts";
+
+// The settings page's section on the switches.
+const LINKED_ALERT_SWITCHES_SETTINGS_HEADING: string = "Linked alert switches";
 
 const NAV_GROUP_TITLE: string = "Incidents";
 
@@ -1700,18 +1729,43 @@ describe("Incident Linked Alerts docs", () => {
   describe("linked alert switches", () => {
     const project: Project = new Project();
 
-    it("are the opt-in Project columns the docs describe", () => {
+    it("are the on-by-default Project columns the docs describe, in every language", () => {
       for (const column of LINK_SWITCH_COLUMNS) {
         expect({
           column: column,
           defaultValue: project.getTableColumnMetadata(column).defaultValue,
-        }).toEqual({ column: column, defaultValue: false });
+        }).toEqual({ column: column, defaultValue: true });
       }
 
-      expect(readPage(LINKED_ALERTS_PAGE)).toContain(
-        "Both are off by default.",
+      for (const language of ALL_LANGUAGES) {
+        for (const page of [LINKED_ALERTS_PAGE, SETTINGS_PAGE]) {
+          const translated: string = readPage(page, language);
+
+          expect({
+            language: language,
+            page: page,
+            onForNewProjects: translated.includes(
+              ON_FOR_NEW_PROJECTS[language] as string,
+            ),
+            keepsItsSetting: translated.includes(
+              KEEPS_ITS_SETTING[language] as string,
+            ),
+            offByDefault: (OFF_BY_DEFAULT[language] as RegExp).test(translated),
+          }).toEqual({
+            language: language,
+            page: page,
+            onForNewProjects: true,
+            keepsItsSetting: true,
+            offByDefault: false,
+          });
+        }
+      }
+
+      // The overview says so too, and no longer calls them opt-in.
+      expect(readPage(OVERVIEW_PAGE)).toContain(
+        "two project switches, on for new projects, acknowledge and resolve those alerts",
       );
-      expect(readPage(SETTINGS_PAGE)).toContain("Both are off by default");
+      expect(readPage(OVERVIEW_PAGE)).not.toMatch(/opt-in project switches/);
     });
 
     it("are named by their real titles on Linked Alerts and Settings, in every language", () => {
@@ -1741,24 +1795,16 @@ describe("Incident Linked Alerts docs", () => {
       }
     });
 
-    it("sit on a card of their own on More Settings, where the docs send readers, in every language", () => {
+    it("have a Settings page of their own, Linked Alerts, where the docs send readers, in every language", () => {
       const cards: Array<string> = fs
-        .readFileSync(INCIDENT_MORE_SETTINGS_FILE, "utf8")
+        .readFileSync(INCIDENT_LINKED_ALERTS_SETTINGS_FILE, "utf8")
         .split("<CardModelDetail")
         .slice(1);
 
-      const switchCards: Array<string> = cards.filter(
-        (card: string): boolean => {
-          return LINK_SWITCH_COLUMNS.some((column: string): boolean => {
-            return card.includes(`${column}:`);
-          });
-        },
-      );
-
       // One card, holding both switches and nothing else it could overwrite on Update.
-      expect(switchCards).toHaveLength(1);
+      expect(cards).toHaveLength(1);
 
-      const card: string = switchCards[0] as string;
+      const card: string = cards[0] as string;
 
       for (const column of LINK_SWITCH_COLUMNS) {
         expect(card).toContain(`${column}:`);
@@ -1770,11 +1816,11 @@ describe("Incident Linked Alerts docs", () => {
         /cardProps=\{\{\s*title:\s*"([^"]+)"/,
       )?.[1];
 
-      expect(cardTitle).toBeDefined();
+      expect(cardTitle).toBe(LINKED_ALERTS_TITLE);
 
-      // The page holding the card is the one the Incidents side menu calls More Settings.
+      // The page holding the card is the one the Incidents side menu calls Linked Alerts.
       expect(fs.readFileSync(INCIDENTS_SIDE_MENU_FILE, "utf8")).toMatch(
-        /title:\s*"More Settings",\s*to:\s*RouteUtil\.populateRouteParams\(\s*RouteMap\[PageMap\.INCIDENTS_SETTINGS_MORE\]/,
+        /title:\s*"Linked Alerts",\s*to:\s*RouteUtil\.populateRouteParams\(\s*RouteMap\[PageMap\.INCIDENTS_SETTINGS_LINKED_ALERTS\]/,
       );
 
       const cardReference: Record<string, string> = {
@@ -1789,7 +1835,7 @@ describe("Incident Linked Alerts docs", () => {
           expect({
             language: language,
             page: page,
-            path: translated.includes(MORE_SETTINGS_PATH),
+            path: translated.includes(LINKED_ALERTS_SETTINGS_PATH),
             card: translated.includes(cardReference[language] as string),
           }).toEqual({
             language: language,
@@ -1798,6 +1844,62 @@ describe("Incident Linked Alerts docs", () => {
             card: true,
           });
         }
+
+        // The settings page also gives the page's address.
+        expect({
+          language: language,
+          url: readPage(SETTINGS_PAGE, language).includes(
+            LINKED_ALERTS_SETTINGS_URL,
+          ),
+        }).toEqual({ language: language, url: true });
+      }
+    });
+
+    /*
+     * They used to sit on More Settings, which is gone: the number prefixes
+     * it kept have a Number Prefix page of their own (NumberPrefixDocs.test.ts
+     * holds the docs to that). Only what the docs say about the switches is
+     * checked here.
+     */
+    it("are never looked for on More Settings any more, in every language", () => {
+      const switchesHeading: number = proseHeadings(
+        readPage(SETTINGS_PAGE),
+      ).findIndex((heading: ProseHeading): boolean => {
+        return (
+          heading.level === 2 &&
+          heading.text === LINKED_ALERT_SWITCHES_SETTINGS_HEADING
+        );
+      });
+
+      expect(switchesHeading).toBeGreaterThanOrEqual(0);
+
+      for (const language of ALL_LANGUAGES) {
+        const settings: string = readPage(SETTINGS_PAGE, language);
+        const moreSettingsRow: string =
+          tableRowStartingWith(settings, "**More Settings**") || "";
+
+        expect({
+          language: language,
+          linkedAlertsPage: readPage(LINKED_ALERTS_PAGE, language).includes(
+            "More Settings",
+          ),
+          switchesSection: sectionLines(settings, switchesHeading)
+            .join("\n")
+            .includes("More Settings"),
+          moreSettingsRow: moreSettingsRow.includes(
+            LINKED_ALERT_SWITCHES_WORDS[language] as string,
+          ),
+        }).toEqual({
+          language: language,
+          linkedAlertsPage: false,
+          switchesSection: false,
+          moreSettingsRow: false,
+        });
+
+        // The settings table has a row for the new page.
+        expect(
+          tableRowStartingWith(settings, `**${LINKED_ALERTS_TITLE}**`),
+        ).toBeDefined();
       }
     });
   });
@@ -1857,7 +1959,14 @@ describe("Incident Linked Alerts docs", () => {
       expect(readPage(SETTINGS_PAGE)).toContain(
         "without needing permission to edit alerts",
       );
-      expect(english).toContain("Leave them off if alert states should only");
+      /*
+       * They start on, so the advice is to turn them off - not to leave
+       * them off, which a new project never is.
+       */
+      expect(english).toContain(
+        "They are on in a new project, so turn them off if alert states should only ever be changed by people who can edit alerts.",
+      );
+      expect(english).not.toContain("Leave them off");
     });
   });
 

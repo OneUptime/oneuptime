@@ -339,11 +339,14 @@ describe("SubscriberNotificationTemplateVariables", () => {
 
   /*
    * The incident custom fields: one variable per field, by the field's
-   * Template Variable key, so they are listed as a family by prefix.
+   * Template Variable key, so they are listed as a family by prefix. The
+   * prefix names the incident - {{incident.customFields.<key>}}, as in a
+   * note template - and the older {{customFields.<key>}} still answers, so
+   * templates saved with it keep working.
    */
   describe("the custom field variables", () => {
     test.each(INCIDENT_EVENTS)(
-      "%s offers {{customFields.<key>}}",
+      "%s offers {{incident.customFields.<key>}}",
       (event: StatusPageSubscriberNotificationEventType) => {
         const dynamic: Array<SubscriberNotificationTemplateDynamicVariable> =
           SubscriberNotificationTemplateVariables.getDynamicVariablesForEventType(
@@ -356,8 +359,13 @@ describe("SubscriberNotificationTemplateVariables", () => {
               return [variable.prefix, variable.placeholder];
             },
           ),
-        ).toEqual([["customFields.", "<key>"]]);
-        expect(dynamic[0]!.description).toMatch(/Internal/);
+        ).toEqual([["incident.customFields.", "<key>"]]);
+        expect(dynamic[0]!.legacyPrefixes).toEqual(["customFields."]);
+        // A plain description: no "Internal:" note.
+        expect(dynamic[0]!.description).not.toMatch(/Internal/);
+        expect(dynamic[0]!.description).toMatch(
+          /whether or not the field is included in subscriber notifications/,
+        );
         // A Rich text field's value is rendered Markdown in an email body.
         expect(dynamic[0]!.mayBeHtmlInEmailBody).toBe(true);
       },
@@ -377,16 +385,33 @@ describe("SubscriberNotificationTemplateVariables", () => {
             event,
           ),
         ).toEqual([]);
-        expect(
-          SubscriberNotificationTemplateVariables.isVariableOffered(
-            event,
-            "customFields.site",
-          ),
-        ).toBe(false);
+
+        for (const name of [
+          "incident.customFields.site",
+          "customFields.site",
+        ]) {
+          expect(
+            SubscriberNotificationTemplateVariables.isVariableOffered(
+              event,
+              name,
+            ),
+          ).toBe(false);
+        }
       },
     );
 
     test.each([
+      ["incident.customFields.site", true],
+      ["incident.customFields.affected_location_2", true],
+      ["incident.customFields.", false],
+      ["incident.customFields.Site", false],
+      ["incident.customFields.site-name", false],
+      ["incident.customFields.site.name", false],
+      ["incident.customFields._site", false],
+      ["incident.customFieldssite", false],
+      ["incident.customfields.site", false],
+      ["Incident.customFields.site", false],
+      // The older name, which templates saved before the rename still hold.
       ["customFields.site", true],
       ["customFields.affected_location_2", true],
       ["customFields.", false],
@@ -417,12 +442,57 @@ describe("SubscriberNotificationTemplateVariables", () => {
           "incidentTitle",
         ),
       ).toBeNull();
-      expect(
-        SubscriberNotificationTemplateVariables.getDynamicVariableForName(
+    });
+
+    test("both names of a field belong to the one family", () => {
+      for (const name of ["incident.customFields.site", "customFields.site"]) {
+        expect(
+          SubscriberNotificationTemplateVariables.getDynamicVariableForName(
+            Event.SubscriberIncidentCreated,
+            name,
+          )?.prefix,
+        ).toBe("incident.customFields.");
+      }
+    });
+
+    test.each([
+      ["incident.customFields.site", "site"],
+      ["customFields.site", "site"],
+      ["incident.customFields.affected_location_2", "affected_location_2"],
+      ["customFields.affected_location_2", "affected_location_2"],
+    ])("%j places the field whose key is %j", (name: string, key: string) => {
+      const family: SubscriberNotificationTemplateDynamicVariable =
+        SubscriberNotificationTemplateVariables.getDynamicVariablesForEventType(
           Event.SubscriberIncidentCreated,
-          "customFields.site",
-        )?.prefix,
-      ).toBe("customFields.");
+        )[0]!;
+
+      expect(
+        SubscriberNotificationTemplateVariables.getDynamicVariableKey(
+          family,
+          name,
+        ),
+      ).toBe(key);
+    });
+
+    test.each([
+      "incidentTitle",
+      "incident.customFields.",
+      "customFields.",
+      "incident.customFields.Site",
+      "customFields.site-name",
+      "incident.title",
+    ])("%j places no custom field", (name: string) => {
+      const family: SubscriberNotificationTemplateDynamicVariable =
+        SubscriberNotificationTemplateVariables.getDynamicVariablesForEventType(
+          Event.SubscriberIncidentCreated,
+        )[0]!;
+
+      expect(
+        SubscriberNotificationTemplateVariables.getDynamicVariableKey(
+          family,
+          name,
+        ),
+      ).toBeNull();
     });
 
     test("returns a new list each time", () => {
@@ -431,12 +501,15 @@ describe("SubscriberNotificationTemplateVariables", () => {
           Event.SubscriberIncidentCreated,
         );
       first[0]!.prefix = "changed.";
+      first[0]!.legacyPrefixes!.push("changed.");
 
-      expect(
+      const second: SubscriberNotificationTemplateDynamicVariable =
         SubscriberNotificationTemplateVariables.getDynamicVariablesForEventType(
           Event.SubscriberIncidentCreated,
-        )[0]!.prefix,
-      ).toBe("customFields.");
+        )[0]!;
+
+      expect(second.prefix).toBe("incident.customFields.");
+      expect(second.legacyPrefixes).toEqual(["customFields."]);
     });
 
     test.each(INCIDENT_EVENTS)(
@@ -452,8 +525,13 @@ describe("SubscriberNotificationTemplateVariables", () => {
       },
     );
 
+    /*
+     * The one-line "Internal: ..." notes went with the yellow Internal data
+     * box the template forms no longer show: the variables are described
+     * plainly.
+     */
     test.each(INCIDENT_EVENTS)(
-      "%s warns that the affected status pages are internal",
+      "%s describes the affected status pages plainly",
       (event: StatusPageSubscriberNotificationEventType) => {
         const affected: SubscriberNotificationTemplateVariable | undefined =
           SubscriberNotificationTemplateVariables.getAvailableVariablesForEventType(
@@ -462,7 +540,10 @@ describe("SubscriberNotificationTemplateVariables", () => {
             return variable.name === "affectedStatusPages";
           });
 
-        expect(affected?.description).toMatch(/Internal/);
+        expect(affected?.description).toBe(
+          "Names of every status page the incident is shown on, separated by commas",
+        );
+        expect(affected?.description).not.toMatch(/Internal/);
       },
     );
   });
@@ -485,10 +566,28 @@ describe("SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders"
   test("finds labels and every custom field placeholder, each once, sorted", () => {
     expect(
       SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
-        "<p>{{ customFields.root_cause }} {{incidentLabels}}</p>",
-        "{{customFields.customer_account}} {{customFields.root_cause}}",
+        "<p>{{ incident.customFields.root_cause }} {{incidentLabels}}</p>",
+        "{{incident.customFields.customer_account}} {{incident.customFields.root_cause}}",
         null,
         undefined,
+      ]),
+    ).toEqual([
+      "incident.customFields.customer_account",
+      "incident.customFields.root_cause",
+      "incidentLabels",
+    ]);
+  });
+
+  /*
+   * The older name reads the same records, so it counts just the same: a
+   * template cannot slip a custom field past the save check by writing it
+   * the way it used to be written.
+   */
+  test("a custom field written the older way counts too, as written", () => {
+    expect(
+      SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
+        "<p>{{ customFields.root_cause }} {{incidentLabels}}</p>",
+        "{{customFields.customer_account}} {{customFields.root_cause}}",
       ]),
     ).toEqual([
       "customFields.customer_account",
@@ -497,12 +596,24 @@ describe("SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders"
     ]);
   });
 
+  test("a template that mixes both names lists each as written", () => {
+    expect(
+      SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
+        "{{customFields.root_cause}} {{incident.customFields.root_cause}}",
+      ]),
+    ).toEqual(["customFields.root_cause", "incident.customFields.root_cause"]);
+  });
+
   test("a guessed key counts, whether or not such a field exists", () => {
     expect(
       SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
-        "{{customFields.a}}{{customFields.b_2}}",
+        "{{incident.customFields.a}}{{incident.customFields.b_2}}{{customFields.c}}",
       ]),
-    ).toEqual(["customFields.a", "customFields.b_2"]);
+    ).toEqual([
+      "customFields.c",
+      "incident.customFields.a",
+      "incident.customFields.b_2",
+    ]);
   });
 
   test("what the status page shows does not count", () => {
@@ -535,6 +646,7 @@ describe("SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders"
     expect(
       SubscriberNotificationTemplateVariables.getIncidentRecordPlaceholders([
         "{customFields.a} {{customFields.a-b}} {{ customfields.a }} {{incidentlabels}}",
+        "{incident.customFields.a} {{incident.customFields.a-b}} {{ incident.customfields.a }} {{Incident.customFields.a}}",
       ]),
     ).toEqual([]);
   });

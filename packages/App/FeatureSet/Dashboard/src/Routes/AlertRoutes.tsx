@@ -71,7 +71,9 @@ import AlertSettingsLabelRules from "../Pages/Alerts/Settings/AlertLabelRules";
 
 import AlertSettingsMeasurements from "../Pages/Alerts/Settings/AlertMeasurements";
 
-import AlertSettingsMore from "../Pages/Alerts/Settings/AlertMoreSettings";
+import AlertSettingsNumberPrefix from "../Pages/Alerts/Settings/AlertNumberPrefix";
+import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
+import { MORE_SETTINGS_PATH } from "../Components/NumberPrefix/NumberPrefixSettings";
 import AlertSettingsAI from "../Pages/Alerts/Settings/AlertAISettings";
 
 // Episode Pages
@@ -127,6 +129,20 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
 
   return (
     <Routes>
+      {/*
+       * Number prefixes were on More Settings. Its old URL forwards to the
+       * Number Prefix page - outside the layout, so the side menu never
+       * flashes on the way.
+       */}
+      <PageRoute
+        path={MORE_SETTINGS_PATH}
+        element={
+          <MovedNumberPrefixPageRedirect
+            pageMap={PageMap.ALERTS_SETTINGS_NUMBER_PREFIX}
+          />
+        }
+      />
+
       <PageRoute
         path="/"
         element={<Layout {...props} hideSideMenu={hideSideMenu} />}
@@ -449,11 +465,13 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_MORE] || ""}
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_NUMBER_PREFIX] || ""}
           element={
-            <AlertSettingsMore
+            <AlertSettingsNumberPrefix
               {...props}
-              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_MORE] as Route}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_NUMBER_PREFIX] as Route
+              }
             />
           }
         />

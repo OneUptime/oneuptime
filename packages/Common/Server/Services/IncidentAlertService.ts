@@ -54,10 +54,57 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 
 /*
- * Which of the two opt-in project switches apply to an incident's state.
- * Only the switches the incident's state has reached are true: an incident
- * that is merely acknowledged never resolves its alerts, whatever the
- * resolve switch says.
+ * The project's two linked alert switches: acknowledge linked alerts when the
+ * incident is acknowledged, resolve them when it is resolved.
+ */
+export interface LinkedAlertSwitches {
+  acknowledge: boolean;
+  resolve: boolean;
+}
+
+/*
+ * The switches as the sync reads them off a project row, or null when there
+ * is nothing to do: both switches off, or no project to read them from (one
+ * deleted while an incident was changing state moves nothing).
+ *
+ * A switch is on unless the project says false. Both are on for new projects
+ * (the columns default to true), so a value that was never written - a row
+ * read without the column - is the default, on, not off. Projects that
+ * existed before the default changed hold false until someone turns a switch
+ * on, and an explicit false is always kept.
+ */
+export function readLinkedAlertSwitches(
+  project:
+    | Pick<
+        Project,
+        | "acknowledgeLinkedAlertsWhenIncidentAcknowledged"
+        | "resolveLinkedAlertsWhenIncidentResolved"
+      >
+    | null
+    | undefined,
+): LinkedAlertSwitches | null {
+  if (!project) {
+    return null;
+  }
+
+  const switches: LinkedAlertSwitches = {
+    acknowledge:
+      project.acknowledgeLinkedAlertsWhenIncidentAcknowledged !== false,
+    resolve: project.resolveLinkedAlertsWhenIncidentResolved !== false,
+  };
+
+  if (!switches.acknowledge && !switches.resolve) {
+    return null;
+  }
+
+  return switches;
+}
+
+/*
+ * Which of the two project switches apply to an incident's state. Only the
+ * switches the incident's state has reached are true: an incident that is
+ * merely acknowledged never resolves its alerts, whatever the resolve switch
+ * says.
  */
 export interface LinkedAlertStateTargets {
   acknowledge: boolean;
@@ -268,11 +315,6 @@ export function getDeclaredFromAlertsMarkdown(
   const noun: string = alerts.length === 1 ? "alert" : "alerts";
 
   return `🔗 Declared from ${alerts.length} ${noun}:\n\n${lines.join("\n")}`;
-}
-
-interface LinkedAlertSwitches {
-  acknowledge: boolean;
-  resolve: boolean;
 }
 
 /*
@@ -1726,8 +1768,8 @@ export class Service extends DatabaseService<Model> {
    * The linked alerts the project's linked-alert sync (and the incident
    * state cascade) will move by themselves, because the incident is already
    * in a state their switches act on: the same plan, the same per-alert
-   * choice. Empty when both switches are off - the default - or the incident
-   * is before Acknowledged, which is the usual declaration.
+   * choice. Empty when both switches are off or the incident is before
+   * Acknowledged, which is the usual declaration.
    */
   @CaptureSpan()
   private async getLinkedAlertsTheSyncWillMove(data: {
@@ -1863,7 +1905,8 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * An incident changed state: bring its linked alerts along, when the
-   * project has opted in. Called fire-and-forget from
+   * project's switches say so (both are on for new projects). Called
+   * fire-and-forget from
    * IncidentStateTimelineService.onCreateSuccess for the incident's CURRENT
    * state only. Never throws; every failure is logged, and one alert failing
    * does not stop the others.
@@ -2028,7 +2071,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  // Null when both project switches are off (the default).
+  // Null when both project switches are off, or the project cannot be read.
   @CaptureSpan()
   private async getLinkedAlertSwitches(
     projectId: ObjectID,
@@ -2044,17 +2087,7 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    const switches: LinkedAlertSwitches = {
-      acknowledge:
-        project?.acknowledgeLinkedAlertsWhenIncidentAcknowledged === true,
-      resolve: project?.resolveLinkedAlertsWhenIncidentResolved === true,
-    };
-
-    if (!switches.acknowledge && !switches.resolve) {
-      return null;
-    }
-
-    return switches;
+    return readLinkedAlertSwitches(project);
   }
 
   // Null when the incident's state calls for nothing.

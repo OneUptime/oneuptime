@@ -63,7 +63,9 @@ import ScheduledMaintenanceSettingsReminderRules from "../Pages/ScheduledMainten
 
 import ScheduledMaintenanceSettingsMeasurements from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMeasurements";
 
-import ScheduledMaintenanceSettingsMore from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMoreSettings";
+import ScheduledMaintenanceSettingsNumberPrefix from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNumberPrefix";
+import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
+import { MORE_SETTINGS_PATH } from "../Components/NumberPrefix/NumberPrefixSettings";
 import ScheduledMaintenanceLabelRule from "Common/Models/DatabaseModels/ScheduledMaintenanceLabelRule";
 import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -85,6 +87,22 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
 
   return (
     <Routes>
+      {/*
+       * Number prefixes were on More Settings. Its old URL forwards to the
+       * Number Prefix page - outside the layout, so the side menu never
+       * flashes on the way.
+       */}
+      <PageRoute
+        path={MORE_SETTINGS_PATH}
+        element={
+          <MovedNumberPrefixPageRedirect
+            pageMap={
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX
+            }
+          />
+        }
+      />
+
       <PageRoute
         path="/"
         element={
@@ -412,15 +430,15 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             ScheduledMaintenanceEventsRoutePath[
-              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX
             ] || ""
           }
           element={
-            <ScheduledMaintenanceSettingsMore
+            <ScheduledMaintenanceSettingsNumberPrefix
               {...props}
               pageRoute={
                 RouteMap[
-                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX
                 ] as Route
               }
             />

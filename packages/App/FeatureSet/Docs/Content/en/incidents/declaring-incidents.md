@@ -54,7 +54,7 @@ Only the first step has required fields, plus any custom field your admins marke
 
 ### Details — your incident custom fields
 
-This step appears only when at least one incident custom field has **Show on Create** turned on at **Incidents → Settings → Custom Fields** — or, when you declare from a template, when the template's **Custom Fields on Create** asks for one. It asks for those fields, in their **Order** (fields without one come last), with the input their type calls for — a dropdown, a number, a date, a yes/no switch, long text, or rich text in the Markdown editor. It is also left out for someone who cannot read the project's incident custom fields: on OneUptime Cloud they need the **Growth** plan or above, and a role that can view incident custom fields.
+This step appears only when at least one incident custom field has **Show on Create** turned on at **Incidents → Settings → Custom Fields** — or, when you declare from a template, when the template's **Custom Fields on Create** asks for one. It asks for those fields, in their **Order** — the order they are dragged into on that settings page — with the input their type calls for — a dropdown, a number, a date, a yes/no switch, long text, or rich text in the Markdown editor. It is also left out for someone who cannot read the project's incident custom fields: on OneUptime Cloud they need the **Growth** plan or above, and a role that can view incident custom fields.
 
 - A field marked **Required on Create** must be filled in before you can declare. A required yes/no field — an acknowledgement, say — must be switched on.
 - A 0 or a switch left off is an answer, and is saved as one.
@@ -178,7 +178,7 @@ Incidents reported this way are declared hidden from status pages, with **Notify
 
 Every incident gets a sequential number from a per-project counter, assigned by the server at creation time. Two columns hold it: `incidentNumber` (the raw integer) and `incidentNumberWithPrefix` (what you actually see). With no prefix configured, the display value is `#42`.
 
-To change that, go to **Incidents → Settings → More Settings**. The **Number Prefix** card has an **Incident Number Prefix** field (up to 20 characters, placeholder `INC-`) — set it and the same incident renders as `INC-42`. Leave it empty to keep the default `#`. The card also carries **Incident Episode Number Prefix** for episode numbering.
+To change that, go to **Incidents → Settings → Number Prefix** and click **Update**. The **Incident Number Prefix** field previews the number as you type: `INC-` makes it `INC-42`. Leave it empty to keep the default `#`. A new prefix applies to incidents declared after you save; existing incidents keep their numbers. The same dialog has **Incident Episode Number Prefix** for episode numbering. [Number prefixes](/docs/incidents/settings#number-prefixes) lists the rules a prefix follows.
 
 The number appears as the first column of the incidents list, links to the incident, and shows up as **Incident Number** on the incident's **Overview**.
 
