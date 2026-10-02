@@ -1,26 +1,26 @@
 import {
-  getIncidentFormIpAllowlistEntries,
+  getFormIpAllowlistEntries,
   getIpv4OfMappedAddress,
-  validateIncidentFormIpAllowlist,
-} from "../../../Types/Incident/IncidentFormIpAllowlist";
+  validateFormIpAllowlist,
+} from "../../../Types/Form/FormIpAllowlist";
 import IP from "../../../Types/IP/IP";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
 /*
- * An incident form's IP allowlist is checked with IP.isInWhitelist, which
+ * A form's IP allowlist is checked with IP.isInWhitelist, which
  * matches an IPv4 or IPv6 address and an IPv4 CIDR range - and nothing
  * else. The check fails closed, so an entry it cannot match locks every
  * reporter on that network out without a word to the admin who saved it.
- * validateIncidentFormIpAllowlist refuses such a list when it is written,
+ * validateFormIpAllowlist refuses such a list when it is written,
  * naming each bad line, and never rewrites a list it accepts.
  */
 
 const HINT: string =
   "Put one IPv4 or IPv6 address, or one IPv4 range such as 10.0.0.0/8, on each line.";
 
-describe("validateIncidentFormIpAllowlist - lists the public routes can match", () => {
+describe("validateFormIpAllowlist - lists the public routes can match", () => {
   test.each([
     ["no list", undefined],
     ["a cleared list", null],
@@ -45,13 +45,13 @@ describe("validateIncidentFormIpAllowlist - lists the public routes can match", 
       "10.0.0.0/8\r\n\r\n  203.0.113.7  \n2001:db8::1\n",
     ],
   ])("accepts %s", (_label: string, value: string | null | undefined) => {
-    expect(validateIncidentFormIpAllowlist(value)).toBeNull();
+    expect(validateFormIpAllowlist(value)).toBeNull();
   });
 });
 
-describe("validateIncidentFormIpAllowlist - lists that could never match", () => {
+describe("validateFormIpAllowlist - lists that could never match", () => {
   test("refuses an IPv6 range, naming the line", () => {
-    expect(validateIncidentFormIpAllowlist("203.0.113.7\n2001:db8::/32")).toBe(
+    expect(validateFormIpAllowlist("203.0.113.7\n2001:db8::/32")).toBe(
       `IP Allowlist: line 2 ("2001:db8::/32") is an IPv6 range, and only IPv4 ranges are supported - list each IPv6 address on a line of its own. ${HINT}`,
     );
   });
@@ -72,14 +72,14 @@ describe("validateIncidentFormIpAllowlist - lists that could never match", () =>
   ])(
     "refuses the IPv4 address %s written as IPv6, naming %s",
     (entry: string, ipv4: string) => {
-      expect(validateIncidentFormIpAllowlist(`10.0.0.0/8\n${entry}`)).toBe(
+      expect(validateFormIpAllowlist(`10.0.0.0/8\n${entry}`)).toBe(
         `IP Allowlist: line 2 (${JSON.stringify(entry)}) is an IPv4 address written as an IPv6 address - write it as ${ipv4}. ${HINT}`,
       );
     },
   );
 
   test("refuses a /0 range, which would match only its own address", () => {
-    expect(validateIncidentFormIpAllowlist("0.0.0.0/0")).toBe(
+    expect(validateFormIpAllowlist("0.0.0.0/0")).toBe(
       `IP Allowlist: line 1 ("0.0.0.0/0") is a /0 range, which would match only its own address rather than every network - leave the list empty to allow every network. ${HINT}`,
     );
   });
@@ -101,33 +101,33 @@ describe("validateIncidentFormIpAllowlist - lists that could never match", () =>
   ])(
     "refuses %s, naming the line and the entry",
     (_label: string, entry: string) => {
-      expect(validateIncidentFormIpAllowlist(`10.0.0.0/8\n${entry}`)).toBe(
+      expect(validateFormIpAllowlist(`10.0.0.0/8\n${entry}`)).toBe(
         `IP Allowlist: line 2 (${JSON.stringify(entry)}) is not an IP address or an IPv4 range. ${HINT}`,
       );
     },
   );
 
   test("counts lines as the admin sees them, blank ones included", () => {
-    expect(validateIncidentFormIpAllowlist("10.0.0.0/8\n\n\r\nbad")).toContain(
+    expect(validateFormIpAllowlist("10.0.0.0/8\n\n\r\nbad")).toContain(
       'line 4 ("bad")',
     );
   });
 
   test("names the first five bad lines and counts the rest", () => {
-    const message: string | null = validateIncidentFormIpAllowlist(
+    const message: string | null = validateFormIpAllowlist(
       ["a", "b", "c", "d", "e", "f", "g"].join("\n"),
     );
 
     expect(message).toBe(
       `IP Allowlist: line 1 ("a") is not an IP address or an IPv4 range; line 2 ("b") is not an IP address or an IPv4 range; line 3 ("c") is not an IP address or an IPv4 range; line 4 ("d") is not an IP address or an IPv4 range; line 5 ("e") is not an IP address or an IPv4 range; and 2 more lines are not valid either. ${HINT}`,
     );
-    expect(validateIncidentFormIpAllowlist("a\nb\nc\nd\ne\nf")).toContain(
+    expect(validateFormIpAllowlist("a\nb\nc\nd\ne\nf")).toContain(
       "; and 1 more line is not valid either.",
     );
   });
 
   test("quotes a long entry shortened", () => {
-    const message: string | null = validateIncidentFormIpAllowlist(
+    const message: string | null = validateFormIpAllowlist(
       "x".repeat(500),
     );
 
@@ -138,7 +138,7 @@ describe("validateIncidentFormIpAllowlist - lists that could never match", () =>
   test.each([[42], [["10.0.0.0/8"]], [{ ip: "10.0.0.1" }], [true]])(
     "refuses %j, which is not text",
     (value: unknown) => {
-      expect(validateIncidentFormIpAllowlist(value)).toBe(
+      expect(validateFormIpAllowlist(value)).toBe(
         `IP Allowlist must be text. ${HINT}`,
       );
     },
@@ -185,10 +185,10 @@ describe("getIpv4OfMappedAddress", () => {
   });
 });
 
-describe("getIncidentFormIpAllowlistEntries", () => {
+describe("getFormIpAllowlistEntries", () => {
   test("is each line trimmed, with blank lines left out", () => {
     expect(
-      getIncidentFormIpAllowlistEntries(
+      getFormIpAllowlistEntries(
         "  10.0.0.0/8 \r\n\r\n2001:db8::1\n\t\n203.0.113.7",
       ),
     ).toEqual(["10.0.0.0/8", "2001:db8::1", "203.0.113.7"]);
@@ -197,7 +197,7 @@ describe("getIncidentFormIpAllowlistEntries", () => {
   test.each([[null], [undefined], [""]])(
     "is empty for %p",
     (value: string | null | undefined) => {
-      expect(getIncidentFormIpAllowlistEntries(value)).toEqual([]);
+      expect(getFormIpAllowlistEntries(value)).toEqual([]);
     },
   );
 });
@@ -217,7 +217,7 @@ describe("the module stays pure", () => {
   }
 
   test("imports only other pure modules of Common", () => {
-    expect(importsOf("Types/Incident/IncidentFormIpAllowlist.ts")).toEqual([
+    expect(importsOf("Types/Form/FormIpAllowlist.ts")).toEqual([
       "../IP/IP",
       "../../Utils/IpCanonicalUtil",
     ]);
