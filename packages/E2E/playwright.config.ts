@@ -1,10 +1,48 @@
-import { defineConfig, devices } from "@playwright/test";
+import { Project, defineConfig, devices } from "@playwright/test";
+import path from "path";
+import { shardProjects } from "./Sharding/Sharding";
 
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
  */
 // require('dotenv').config();
+
+/* Configure projects for major browsers */
+const projects: Array<Project> = [
+  {
+    name: "chromium",
+    use: { ...devices["Desktop Chrome"] },
+  },
+
+  {
+    name: "firefox",
+    use: { ...devices["Desktop Firefox"] },
+  },
+  /* Test against mobile viewports. */
+  /*
+   * {
+   *   name: 'Mobile Chrome',
+   *   use: { ...devices['Pixel 5'] },
+   * },
+   * {
+   *   name: 'Mobile Safari',
+   *   use: { ...devices['iPhone 12'] },
+   * },
+   */
+
+  /* Test against branded browsers. */
+  /*
+   * {
+   *   name: 'Microsoft Edge',
+   *   use: { channel: 'msedge' },
+   * },
+   * {
+   *   name: 'Google Chrome',
+   *   use: { channel: 'chrome' },
+   * },
+   */
+];
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -53,8 +91,16 @@ export default defineConfig({
   retries: 2,
   /* Opt out of parallel tests on CI. */
   workers: 1,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: "html",
+  /*
+   * Reporter to use. See https://playwright.dev/docs/test-reporters
+   *
+   * Neither reporter prints to stdout, so Playwright still adds its own
+   * console reporter, as it did when html was the only one. The second
+   * writes how long each spec file took per project to
+   * test-results/shard-timings.json, which is what Sharding/ShardWeights.json
+   * is refreshed from (see "Sharding the suite" in README.md).
+   */
+  reporter: [["html"], ["./Sharding/ShardTimingReporter.ts"]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /*
@@ -96,41 +142,18 @@ export default defineConfig({
     trace: "on-first-retry",
   },
 
-  /* Configure projects for major browsers */
-  projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
-
-    {
-      name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
-    },
-    /* Test against mobile viewports. */
-    /*
-     * {
-     *   name: 'Mobile Chrome',
-     *   use: { ...devices['Pixel 5'] },
-     * },
-     * {
-     *   name: 'Mobile Safari',
-     *   use: { ...devices['iPhone 12'] },
-     * },
-     */
-
-    /* Test against branded browsers. */
-    /*
-     * {
-     *   name: 'Microsoft Edge',
-     *   use: { channel: 'msedge' },
-     * },
-     * {
-     *   name: 'Google Chrome',
-     *   use: { channel: 'chrome' },
-     * },
-     */
-  ],
+  /*
+   * E2E_SHARD="<current>/<total>" runs one shard of the suite: whole spec
+   * files per project, balanced by the durations in
+   * Sharding/ShardWeights.json. The release workflows set it; unset, every
+   * project runs every file, as before. See Sharding/Sharding.ts.
+   */
+  projects: shardProjects({
+    projects,
+    testDir: path.resolve(__dirname, "Tests"),
+    weightsFile: path.resolve(__dirname, "Sharding", "ShardWeights.json"),
+    shardValue: process.env["E2E_SHARD"],
+  }),
 
   /* Folder for test artifacts such as screenshots, videos, traces, etc. */
   // outputDir: 'test-results/',

@@ -602,6 +602,10 @@ services:
       E2E_TEST_REGISTERED_USER_PASSWORD: ${E2E_TEST_REGISTERED_USER_PASSWORD}
       E2E_TEST_STATUS_PAGE_URL: ${E2E_TEST_STATUS_PAGE_URL}
       E2E_TESTS_FAILED_WEBHOOK_URL: ${E2E_TESTS_FAILED_WEBHOOK_URL}
+      # "<current>/<total>" runs one shard of the default suite (see
+      # packages/E2E/Sharding/Sharding.ts). The release workflows set it per
+      # job; empty, the whole suite runs.
+      E2E_SHARD: ${E2E_SHARD:-}
     logging:
       driver: "json-file"
       options:

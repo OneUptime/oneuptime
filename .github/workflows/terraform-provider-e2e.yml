@@ -55,18 +55,31 @@ jobs:
       RANDOM_PROVIDER_OPENTOFU_REGISTRY_SHA256: "cbb2aa867fd828fcb4125239e00862b9a3bc2f280e945c760224276b476f4c49"
 
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Hermetic checks of the harness itself (engine dispatch, fixture and
+      # workflow contracts) against fake terraform/tofu binaries. Placed
+      # immediately after checkout and before every expensive step — npm
+      # install, provider generation, the Docker stack — so a harness
+      # regression fails in seconds instead of after a stack bring-up. Needs no
+      # Node, Go, Docker or network.
+      - name: Harness self-test
+        run: ./packages/E2E/Terraform/e2e-tests/scripts/self-test.sh
+
+      # These two cleanups ran on every run, and took ~4.5 minutes of a
+      # ~25-minute job, from when a hosted runner had about 14 GB free. Today's
+      # start with ~86 GB, so they now run only on a runner that is short of
+      # space (see .github/actions/free-disk-space) - the same cleanups as
+      # before when they do.
+      - name: Free disk space if the runner is short of it
+        id: disk
+        uses: ./.github/actions/free-disk-space
         with:
           tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
 
       - name: Additional Disk Cleanup
+        if: steps.disk.outputs.cleaned == 'true'
         run: |
           echo "=== Initial disk space ==="
           df -h
@@ -145,18 +158,6 @@ jobs:
 
           echo "=== Docker info ==="
           docker info | grep -E "Docker Root Dir|Storage Driver" || true
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Hermetic checks of the harness itself (engine dispatch, fixture and
-      # workflow contracts) against fake terraform/tofu binaries. Placed
-      # immediately after checkout and before every expensive step — npm
-      # install, provider generation, the Docker stack — so a harness
-      # regression fails in seconds instead of after a stack bring-up. Needs no
-      # Node, Go, Docker or network.
-      - name: Harness self-test
-        run: ./packages/E2E/Terraform/e2e-tests/scripts/self-test.sh
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
