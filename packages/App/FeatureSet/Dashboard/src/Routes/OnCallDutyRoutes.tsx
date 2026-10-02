@@ -49,6 +49,7 @@ import WorkspaceConnectionSlack from "../Pages/OnCallDuty/WorkspaceConnectionSla
 
 // Microsoft Teams
 import WorkspaceConnectionTeams from "../Pages/OnCallDuty/WorkspaceConnectionMicrosoftTeams";
+import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 // User Time Logs
 import OnCallDutyUserTimeLogs from "../Pages/OnCallDuty/OnCallDutyUserTimeLogs";
@@ -139,6 +140,21 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
                 ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS] ||
+            ""
+          }
+          element={
+            <WorkspaceConnectionsOverview
+              slackPage={PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK}
+              microsoftTeamsPage={
+                PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
               }
             />
           }

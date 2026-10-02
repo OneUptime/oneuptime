@@ -109,6 +109,10 @@ export function getScheduleMaintenanceBreadcrumbs(
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS,
+      ["Project", "Scheduled Maintenance Events", "Workspace"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS,
       [
         "Project",
