@@ -948,6 +948,43 @@ describe("Recorder idle pause (#4208)", (): void => {
       ).toBe(true);
     });
 
+    it("does not carry a hidden state over into the next session's stream", async (): Promise<void> => {
+      const instance: Recorder = startRecorder();
+      const firstSessionId: string = instance.getSessionId();
+
+      await drainMicrotasks();
+
+      /* Hidden, then gone past the idle window: that session ends hidden. */
+      setVisibility("hidden");
+      document.dispatchEvent(new Event("visibilitychange"));
+      await advance(
+        SESSION_REPLAY_IDLE_ROLLOVER_MS + SESSION_REPLAY_FLUSH_INTERVAL_MS,
+      );
+
+      setVisibility("visible");
+      document.dispatchEvent(new Event("visibilitychange"));
+      clickPage();
+      await runResumeAndFlush();
+
+      const secondSessionId: string = instance.getSessionId();
+
+      expect(secondSessionId).not.toBe(firstSessionId);
+
+      /* The new session pauses and resumes on its own. */
+      await waitForPause();
+      input("mousemove");
+      await runResumeAndFlush();
+
+      const frames: Array<CapturedFrame> = framesFor(secondSessionId);
+
+      expect(resumedMarkers(frames)).toHaveLength(1);
+
+      /* Its stream never said hidden, so it is never told visible. */
+      expect(
+        customEvents(frames, SessionReplayCustomEventTag.Visibility),
+      ).toHaveLength(0);
+    });
+
     it("does not repeat a visible state the stream already has", async (): Promise<void> => {
       const instance: Recorder = startRecorder();
 

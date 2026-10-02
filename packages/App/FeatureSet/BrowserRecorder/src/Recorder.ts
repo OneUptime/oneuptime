@@ -2677,6 +2677,8 @@ export default class Recorder {
     this.triggerReason = null;
     this.hasSentFinalChunk = false;
     this.sealedForIdle = false;
+    /* A new stream: nothing in it has said hidden yet. */
+    this.lastRecordedVisibility = null;
     this.droppedEvents = 0;
     this.customEventsInChunk = 0;
     this.customEventsDroppedInChunk = 0;
@@ -2970,6 +2972,7 @@ export default class Recorder {
   private recordOnInSameSession(nowUnixMs: number): void {
     this.hasSentFinalChunk = false;
     this.sealedForIdle = false;
+    this.lastRecordedVisibility = null;
     this.chunker.beginNewTab();
 
     /*
