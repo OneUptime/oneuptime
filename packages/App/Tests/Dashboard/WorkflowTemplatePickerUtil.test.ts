@@ -1,14 +1,17 @@
 /*
  * The rules behind the workflow template picker: which templates each view
- * holds and in what order, how the search finds and ranks them, how the
- * highlight moves, and what the preview says about a template.
+ * holds and in what order, how the search finds and ranks them, which
+ * template is picked and how the arrow keys move the pick, and what a
+ * picked template's details say.
  *
  * The picker replaced a grid that showed all forty-odd templates at once, as
- * equally large cards, which the maintainer called decision paralysis. What
- * replaced it only helps if no template went missing on the way: every one
- * has to stay reachable from a category, from All templates and from the
- * search, so several of these tests walk the whole catalog rather than a
- * sample of it.
+ * equally large cards, which the maintainer called decision paralysis; then
+ * the categories-list-and-preview version that followed it, which the
+ * maintainer found "extremely hard to use because it shows a lot of
+ * information". What replaced them only helps if no template went missing on
+ * the way: every one has to stay reachable from a category, from All
+ * templates and from the search, so several of these tests walk the whole
+ * catalog rather than a sample of it.
  */
 
 import { describe, expect, test } from "@jest/globals";
@@ -57,6 +60,7 @@ import {
   isSearchingTemplates,
   searchWorkflowTemplates,
   withWorkflowTemplateSearch,
+  withWorkflowTemplateSelected,
   withWorkflowTemplateView,
   workflowTemplateMatchesSearch,
 } from "../../FeatureSet/Dashboard/src/Utils/Workflow/WorkflowTemplatePickerUtil";
@@ -153,7 +157,11 @@ describe("the picker's views", () => {
     ]);
   });
 
-  test("a category is shown by its label, with its description and icon", () => {
+  /*
+   * The category select is meant to be quiet: an option is a name, with no
+   * icon, count or description beside it.
+   */
+  test("a category is offered by its label, and nothing else", () => {
     for (const category of WorkflowTemplateCategories) {
       const info: WorkflowTemplatePickerViewInfo =
         getWorkflowTemplatePickerViewInfo(category);
@@ -161,9 +169,11 @@ describe("the picker's views", () => {
       expect(info).toEqual({
         view: category,
         label: getWorkflowTemplateCategoryInfo(category).label,
-        description: getWorkflowTemplateCategoryInfo(category).description,
-        icon: getWorkflowTemplateCategoryInfo(category).icon,
       });
+    }
+
+    for (const info of getWorkflowTemplatePickerViews()) {
+      expect(Object.keys(info).sort()).toEqual(["label", "view"]);
     }
   });
 
@@ -178,13 +188,20 @@ describe("the picker's views", () => {
   });
 
   test("the two collections say what they hold", () => {
-    expect(RECOMMENDED_VIEW_INFO.label).toBe("Recommended");
-    expect(RECOMMENDED_VIEW_INFO.icon).toBe(IconProp.Star);
-    expect(ALL_TEMPLATES_VIEW_INFO.label).toBe("All templates");
-    expect(ALL_TEMPLATES_VIEW_INFO.icon).toBe(IconProp.Squares);
+    expect(RECOMMENDED_VIEW_INFO).toEqual({
+      view: WorkflowTemplateCollection.Recommended,
+      label: "Recommended",
+    });
+    expect(ALL_TEMPLATES_VIEW_INFO).toEqual({
+      view: WorkflowTemplateCollection.All,
+      label: "All templates",
+    });
     expect(
       getWorkflowTemplatePickerViewInfo(WorkflowTemplateCollection.All),
     ).toBe(ALL_TEMPLATES_VIEW_INFO);
+    expect(
+      getWorkflowTemplatePickerViewInfo(WorkflowTemplateCollection.Recommended),
+    ).toBe(RECOMMENDED_VIEW_INFO);
   });
 
   test("Recommended holds the curated handful, in the curated order", () => {
@@ -242,7 +259,7 @@ describe("the picker's views", () => {
     }
   });
 
-  test("a row's category label is the label the list of categories shows", () => {
+  test("a group's heading in All templates is the label the category select shows", () => {
     expect(
       getWorkflowTemplateCategoryLabel(
         WorkflowTemplateCategory.ScheduledMaintenance,
@@ -668,8 +685,7 @@ describe("the list for each state", () => {
       search: "",
       browseView: WorkflowTemplateCollection.Recommended,
       searchView: WorkflowTemplateCollection.All,
-      activeTemplateId: null,
-      isPreviewOpen: false,
+      selectedTemplateId: null,
     });
   });
 
@@ -892,8 +908,7 @@ describe("searching and choosing a category", () => {
   test("a new search looks through every template, whichever category was open", () => {
     const browsingJira: WorkflowTemplatePickerState = stateWith({
       browseView: WorkflowTemplateCategory.Jira,
-      activeTemplateId: "jira-status-to-alert-state",
-      isPreviewOpen: true,
+      selectedTemplateId: "jira-status-to-alert-state",
     });
     const searching: WorkflowTemplatePickerState = withWorkflowTemplateSearch(
       browsingJira,
@@ -906,9 +921,11 @@ describe("searching and choosing a category", () => {
     );
     // Browsing remembers where it was, for when the search is cleared.
     expect(searching.browseView).toBe(WorkflowTemplateCategory.Jira);
-    // The best match is highlighted afresh, and the preview closes.
-    expect(searching.activeTemplateId).toBeNull();
-    expect(searching.isPreviewOpen).toBe(false);
+    // What was picked is let go, so the best match is the one picked.
+    expect(searching.selectedTemplateId).toBeNull();
+    expect(getActiveWorkflowTemplate(searching)?.id).toBe(
+      listIds(searching)[0],
+    );
   });
 
   test("typing on keeps the category the search was narrowed to", () => {
@@ -957,15 +974,31 @@ describe("searching and choosing a category", () => {
     );
   });
 
-  test("choosing a category while browsing changes what is browsed", () => {
+  test("choosing a category while browsing changes what is browsed, and lets the pick go", () => {
     const next: WorkflowTemplatePickerState = withWorkflowTemplateView(
-      stateWith({ activeTemplateId: "incident-created-teams" }),
+      stateWith({ selectedTemplateId: "incident-created-teams" }),
       WorkflowTemplateCategory.OnCall,
     );
 
     expect(next.browseView).toBe(WorkflowTemplateCategory.OnCall);
     expect(next.searchView).toBe(WorkflowTemplateCollection.All);
-    expect(next.activeTemplateId).toBeNull();
+    expect(next.selectedTemplateId).toBeNull();
+    // A new list opens with every row closed.
+    expect(getActiveWorkflowTemplate(next)).toBeNull();
+  });
+
+  /*
+   * Even a template that is on the new list too is let go: its details
+   * would open on a list the person has not read yet.
+   */
+  test("choosing a category lets go of a pick that is on the new list as well", () => {
+    const next: WorkflowTemplatePickerState = withWorkflowTemplateView(
+      stateWith({ selectedTemplateId: "incident-created-slack" }),
+      WorkflowTemplateCategory.Incidents,
+    );
+
+    expect(listIds(next)).toContain("incident-created-slack");
+    expect(getActiveWorkflowTemplate(next)).toBeNull();
   });
 
   test("choosing a category while searching narrows the search, and leaves browsing alone", () => {
@@ -980,41 +1013,124 @@ describe("searching and choosing a category", () => {
 
   test("the state passed in is never changed", () => {
     const before: WorkflowTemplatePickerState = stateWith({
-      activeTemplateId: "manual-log",
+      selectedTemplateId: "manual-log",
     });
     const copy: WorkflowTemplatePickerState = { ...before };
 
     withWorkflowTemplateSearch(before, "slack");
     withWorkflowTemplateView(before, WorkflowTemplateCategory.Jira);
+    withWorkflowTemplateSelected(before, "incident-created-teams");
 
     expect(before).toEqual(copy);
   });
+
+  test("picking a template changes the pick and nothing else", () => {
+    const searching: WorkflowTemplatePickerState = withWorkflowTemplateView(
+      withWorkflowTemplateSearch(
+        INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
+        "slack",
+      ),
+      WorkflowTemplateCategory.Monitors,
+    );
+    const picked: WorkflowTemplatePickerState = withWorkflowTemplateSelected(
+      searching,
+      "monitor-offline-only-slack",
+    );
+
+    expect(picked).toEqual({
+      ...searching,
+      selectedTemplateId: "monitor-offline-only-slack",
+    });
+  });
 });
 
-describe("the highlighted template", () => {
-  test("with nothing picked, it is the first on the list", () => {
+/*
+ * The picked template is the one whose details are open in its row, and the
+ * one Use this template and Enter take. The maintainer found a preview that
+ * was always open too much, so while browsing nothing is picked until the
+ * person picks it; a search picks its best match, so typing and pressing
+ * Enter still takes it, as in the command palette.
+ */
+describe("the picked template", () => {
+  test("the picker opens with none: no template's details are open until asked for", () => {
     expect(
-      getActiveWorkflowTemplate(INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE)?.id,
-    ).toBe(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[0]);
+      getActiveWorkflowTemplate(INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE),
+    ).toBeNull();
+  });
+
+  test("browsing any view, nothing is picked until a template is", () => {
+    for (const info of getWorkflowTemplatePickerViews()) {
+      expect({
+        view: info.view,
+        picked: getActiveWorkflowTemplate(stateWith({ browseView: info.view })),
+      }).toEqual({ view: info.view, picked: null });
+    }
   });
 
   test("the one picked, while it is on the list", () => {
     expect(
       getActiveWorkflowTemplate(
-        stateWith({ activeTemplateId: "scheduled-check-alert-slack" }),
+        stateWith({ selectedTemplateId: "scheduled-check-alert-slack" }),
       )?.id,
     ).toBe("scheduled-check-alert-slack");
   });
 
-  test("a pick the list no longer shows falls back to the first on the list", () => {
+  test("a pick the list does not show is no pick, while browsing", () => {
     expect(
       getActiveWorkflowTemplate(
         stateWith({
           browseView: WorkflowTemplateCategory.Alerts,
-          activeTemplateId: "manual-log",
+          selectedTemplateId: "manual-log",
         }),
-      )?.id,
-    ).toBe(getTemplatesInView(WorkflowTemplateCategory.Alerts)[0]?.id);
+      ),
+    ).toBeNull();
+  });
+
+  test("an id no template has is no pick", () => {
+    expect(
+      getActiveWorkflowTemplate(
+        stateWith({ selectedTemplateId: "no-such-template" }),
+      ),
+    ).toBeNull();
+  });
+
+  test("while searching, a template picked from the results stays picked", () => {
+    const searching: WorkflowTemplatePickerState = withWorkflowTemplateSearch(
+      INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
+      "slack",
+    );
+    const second: string = listIds(searching)[1]!;
+
+    expect(
+      getActiveWorkflowTemplate(withWorkflowTemplateSelected(searching, second))
+        ?.id,
+    ).toBe(second);
+  });
+
+  test("while searching, a pick the results do not show gives way to the best match", () => {
+    const searching: WorkflowTemplatePickerState = withWorkflowTemplateSelected(
+      withWorkflowTemplateSearch(
+        INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
+        "discord",
+      ),
+      "manual-log",
+    );
+
+    expect(getActiveWorkflowTemplate(searching)?.id).toBe(
+      "incident-created-discord",
+    );
+  });
+
+  test("clearing the search lets the best match go: browsing again, none is picked", () => {
+    const searched: WorkflowTemplatePickerState = withWorkflowTemplateSearch(
+      INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
+      "slack",
+    );
+
+    expect(getActiveWorkflowTemplate(searched)).not.toBeNull();
+    expect(
+      getActiveWorkflowTemplate(withWorkflowTemplateSearch(searched, "")),
+    ).toBeNull();
   });
 
   test("after a search, the best match", () => {
@@ -1040,42 +1156,101 @@ describe("the highlighted template", () => {
   });
 });
 
-describe("moving the highlight", () => {
+describe("moving the pick", () => {
   const recommended: Array<string> = [...RECOMMENDED_WORKFLOW_TEMPLATE_IDS];
 
-  test("down and up move one row at a time, from the implicit first row", () => {
+  /*
+   * As a combobox's arrows do from its text box: with nothing picked, down
+   * goes to the top of the list and up to the bottom.
+   */
+  test("with nothing picked, down picks the first template and up the last", () => {
     const start: WorkflowTemplatePickerState =
       INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE;
 
     expect(getMovedWorkflowTemplateId(start, WorkflowTemplateMove.Next)).toBe(
-      recommended[1],
+      recommended[0],
     );
     expect(
+      getMovedWorkflowTemplateId(start, WorkflowTemplateMove.Previous),
+    ).toBe(recommended[recommended.length - 1]);
+  });
+
+  test("down and up move one row at a time from the pick", () => {
+    expect(
       getMovedWorkflowTemplateId(
-        stateWith({ activeTemplateId: recommended[2]! }),
+        stateWith({ selectedTemplateId: recommended[2]! }),
+        WorkflowTemplateMove.Next,
+      ),
+    ).toBe(recommended[3]);
+    expect(
+      getMovedWorkflowTemplateId(
+        stateWith({ selectedTemplateId: recommended[2]! }),
         WorkflowTemplateMove.Previous,
       ),
     ).toBe(recommended[1]);
   });
 
+  test("a pick the list does not show counts as none: down starts at the top", () => {
+    expect(
+      getMovedWorkflowTemplateId(
+        stateWith({
+          browseView: WorkflowTemplateCategory.Alerts,
+          selectedTemplateId: "manual-log",
+        }),
+        WorkflowTemplateMove.Next,
+      ),
+    ).toBe(
+      listIds(stateWith({ browseView: WorkflowTemplateCategory.Alerts }))[0],
+    );
+  });
+
+  test("while searching, down moves on from the best match, which counts as picked", () => {
+    const searching: WorkflowTemplatePickerState = withWorkflowTemplateSearch(
+      INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
+      "slack",
+    );
+
+    expect(
+      getMovedWorkflowTemplateId(searching, WorkflowTemplateMove.Next),
+    ).toBe(listIds(searching)[1]);
+    expect(
+      getMovedWorkflowTemplateId(searching, WorkflowTemplateMove.Previous),
+    ).toBe(listIds(searching)[0]);
+  });
+
   test("they stop at either end instead of wrapping round", () => {
     expect(
       getMovedWorkflowTemplateId(
-        INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
+        stateWith({ selectedTemplateId: recommended[0]! }),
         WorkflowTemplateMove.Previous,
       ),
     ).toBe(recommended[0]);
     expect(
       getMovedWorkflowTemplateId(
-        stateWith({ activeTemplateId: recommended[recommended.length - 1]! }),
+        stateWith({ selectedTemplateId: recommended[recommended.length - 1]! }),
         WorkflowTemplateMove.Next,
+      ),
+    ).toBe(recommended[recommended.length - 1]);
+  });
+
+  test("first and last jump to the ends of the list, with nothing picked too", () => {
+    expect(
+      getMovedWorkflowTemplateId(
+        INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
+        WorkflowTemplateMove.First,
+      ),
+    ).toBe(recommended[0]);
+    expect(
+      getMovedWorkflowTemplateId(
+        INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
+        WorkflowTemplateMove.Last,
       ),
     ).toBe(recommended[recommended.length - 1]);
   });
 
   test("first and last jump to the ends of the list", () => {
     const middle: WorkflowTemplatePickerState = stateWith({
-      activeTemplateId: recommended[3]!,
+      selectedTemplateId: recommended[3]!,
     });
 
     expect(getMovedWorkflowTemplateId(middle, WorkflowTemplateMove.First)).toBe(
@@ -1094,7 +1269,7 @@ describe("moving the highlight", () => {
       getMovedWorkflowTemplateId(
         stateWith({
           browseView: WorkflowTemplateCategory.Jira,
-          activeTemplateId: lastIncidentJira,
+          selectedTemplateId: lastIncidentJira,
         }),
         WorkflowTemplateMove.Next,
       ),
@@ -1113,7 +1288,7 @@ describe("moving the highlight", () => {
   });
 });
 
-describe("the preview of a template", () => {
+describe("the details of a picked template", () => {
   type TitlesFunction = (
     blocks: Array<WorkflowTemplatePreviewBlock>,
   ) => Array<string>;
