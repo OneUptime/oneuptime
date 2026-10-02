@@ -35,6 +35,14 @@ import Dictionary from "../../../Types/Dictionary";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import {
+  PluralTemplate,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -63,10 +71,43 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const tx: (value: string | undefined) => string = (
     value: string | undefined,
   ): string => {
     return translateString(value) ?? value ?? "";
+  };
+
+  /*
+   * A chip's sentence - "{{field}} contains {{value}}" - translated whole,
+   * with the filter's title and value in bold where the language puts them.
+   */
+  type RenderChipFunction = (
+    template: string | PluralTemplate,
+    title: string,
+    values?: Record<string, ReactElement | string>,
+    count?: number,
+  ) => ReactElement;
+
+  const renderChip: RenderChipFunction = (
+    template: string | PluralTemplate,
+    title: string,
+    values?: Record<string, ReactElement | string>,
+    count?: number,
+  ): ReactElement => {
+    const slots: Record<string, ReactElement> = {
+      field: <span className="font-medium">{tx(title)}</span>,
+    };
+
+    for (const name of Object.keys(values || {})) {
+      slots[name] = <span className="font-medium">{(values || {})[name]}</span>;
+    }
+
+    return (
+      <span>
+        <TranslatedSentence template={template} count={count} slots={slots} />
+      </span>
+    );
   };
   const [tempFilterDataForModal, setTempFilterDataForModal] = useState<
     FilterData<T>
@@ -212,14 +253,12 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     }
 
     if (data.filter.type === FieldType.Boolean) {
-      filterText = (
-        <span>
-          <span className="font-medium">{tx(data.filter.title)}</span>{" "}
-          {tx("is")}{" "}
-          <span className="font-medium">
-            {data.filterData[data.filter.key] ? tx("Yes") : tx("No")}
-          </span>
-        </span>
+      filterText = renderChip(
+        translationKey("{{field}} is {{value}}"),
+        data.filter.title,
+        {
+          value: data.filterData[data.filter.key] ? tx("Yes") : tx("No"),
+        },
       );
       return filterText;
     }
@@ -239,73 +278,101 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       const key: keyof T = data.filter.key;
       const value: unknown = data.filterData[key];
 
-      type RenderFunction = (verb: string, display: string) => ReactElement;
+      type RenderFunction = (template: string, display: string) => ReactElement;
       const render: RenderFunction = (
-        verb: string,
+        template: string,
         display: string,
       ): ReactElement => {
-        return (
-          <span>
-            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
-            {tx(verb)} <span className="font-medium">{display}</span>
-          </span>
-        );
+        return renderChip(template, data.filter.title, { value: display });
       };
 
       if (value instanceof IsNull) {
-        return (
-          <span>
-            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
-            {tx("is empty")}
-          </span>
+        return renderChip(
+          translationKey("{{field}} is empty"),
+          data.filter.title,
         );
       }
       if (value instanceof NotNull) {
-        return (
-          <span>
-            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
-            {tx("is not empty")}
-          </span>
+        return renderChip(
+          translationKey("{{field}} is not empty"),
+          data.filter.title,
         );
       }
       if (value instanceof Search) {
-        return render("contains", value.toString());
+        return render(
+          translationKey("{{field}} contains {{value}}"),
+          value.toString(),
+        );
       }
       if (value instanceof NotContains) {
-        return render("does not contain", value.toString());
+        return render(
+          translationKey("{{field}} does not contain {{value}}"),
+          value.toString(),
+        );
       }
       if (value instanceof StartsWith) {
-        return render("starts with", value.toString());
+        return render(
+          translationKey("{{field}} starts with {{value}}"),
+          value.toString(),
+        );
       }
       if (value instanceof EndsWith) {
-        return render("ends with", value.toString());
+        return render(
+          translationKey("{{field}} ends with {{value}}"),
+          value.toString(),
+        );
       }
       if (value instanceof InBetween) {
-        return render(
-          "is between",
-          `${value.startValue} and ${value.endValue}`,
+        return renderChip(
+          translationKey("{{field}} is between {{start}} and {{end}}"),
+          data.filter.title,
+          {
+            start: String(value.startValue),
+            end: String(value.endValue),
+          },
         );
       }
       if (value instanceof GreaterThanOrEqual) {
-        return render("is ≥", value.toString());
+        return render(
+          translationKey("{{field}} is ≥ {{value}}"),
+          value.toString(),
+        );
       }
       if (value instanceof LessThanOrEqual) {
-        return render("is ≤", value.toString());
+        return render(
+          translationKey("{{field}} is ≤ {{value}}"),
+          value.toString(),
+        );
       }
       if (value instanceof GreaterThan) {
-        return render("is greater than", value.toString());
+        return render(
+          translationKey("{{field}} is greater than {{value}}"),
+          value.toString(),
+        );
       }
       if (value instanceof LessThan) {
-        return render("is less than", value.toString());
+        return render(
+          translationKey("{{field}} is less than {{value}}"),
+          value.toString(),
+        );
       }
       if (value instanceof NotEqual) {
-        return render("does not equal", value.toString());
+        return render(
+          translationKey("{{field}} does not equal {{value}}"),
+          value.toString(),
+        );
       }
       if (value instanceof EqualTo) {
-        return render("equals", value.toString());
+        return render(
+          translationKey("{{field}} equals {{value}}"),
+          value.toString(),
+        );
       }
       if (value !== undefined && value !== null && value !== "") {
-        return render("is", (value as any).toString());
+        return render(
+          translationKey("{{field}} is {{value}}"),
+          (value as any).toString(),
+        );
       }
       return null;
     }
@@ -330,51 +397,58 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         );
       };
 
-      type RenderFunction = (verb: string, display: string) => ReactElement;
+      type RenderFunction = (template: string, display: string) => ReactElement;
       const render: RenderFunction = (
-        verb: string,
+        template: string,
         display: string,
       ): ReactElement => {
-        return (
-          <span>
-            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
-            {tx(verb)} <span className="font-medium">{display}</span>
-          </span>
-        );
+        return renderChip(template, data.filter.title, { value: display });
       };
 
       if (value instanceof IsNull) {
-        return (
-          <span>
-            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
-            {tx("is empty")}
-          </span>
+        return renderChip(
+          translationKey("{{field}} is empty"),
+          data.filter.title,
         );
       }
       if (value instanceof NotNull) {
-        return (
-          <span>
-            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
-            {tx("is not empty")}
-          </span>
+        return renderChip(
+          translationKey("{{field}} is not empty"),
+          data.filter.title,
         );
       }
       if (value instanceof InBetween) {
         const start: Date = value.startValue as unknown as Date;
         const end: Date = value.endValue as unknown as Date;
         if (format(start) === format(end)) {
-          return render("is", format(start));
+          return render(
+            translationKey("{{field}} is {{value}}"),
+            format(start),
+          );
         }
-        return render("is between", `${format(start)} and ${format(end)}`);
+        return renderChip(
+          translationKey("{{field}} is between {{start}} and {{end}}"),
+          data.filter.title,
+          { start: format(start), end: format(end) },
+        );
       }
       if (value instanceof GreaterThan) {
-        return render("is after", format(value.value as unknown as Date));
+        return render(
+          translationKey("{{field}} is after {{value}}"),
+          format(value.value as unknown as Date),
+        );
       }
       if (value instanceof LessThan) {
-        return render("is before", format(value.value as unknown as Date));
+        return render(
+          translationKey("{{field}} is before {{value}}"),
+          format(value.value as unknown as Date),
+        );
       }
       if (value instanceof EqualTo) {
-        return render("is", format(value.value as unknown as Date));
+        return render(
+          translationKey("{{field}} is {{value}}"),
+          format(value.value as unknown as Date),
+        );
       }
       return null;
     }
@@ -415,13 +489,27 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         return null;
       }
 
-      const isPlural: boolean = nonEmptyEntryCount > 1;
+      // "Labels is env = prod" for one entry, "Labels are ..." for several.
+      const jsonTemplate: PluralTemplate = {
+        one: "{{field}} is {{value}}",
+        other: "{{field}} are {{value}}",
+      };
 
       return (
         <span className="inline-flex items-center space-x-1">
-          <span className="font-medium">{tx(data.filter.title)}</span>
-          <span>{isPlural ? tx("are") : tx("is")}</span>
-          <span className="font-medium">{formatJson(json)}</span>
+          <TranslatedSentence
+            template={jsonTemplate}
+            count={nonEmptyEntryCount}
+            slots={{
+              field: (
+                <span className="font-medium">{tx(data.filter.title)}</span>
+              ),
+              value: <span className="font-medium">{formatJson(json)}</span>,
+            }}
+            renderText={(text: string): ReactElement => {
+              return <span>{text.trim()}</span>;
+            }}
+          />
         </span>
       );
     }
@@ -436,19 +524,15 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       const rawValue: unknown = data.filterData[key];
 
       if (rawValue instanceof IsNull) {
-        return (
-          <span>
-            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
-            {tx("is empty")}
-          </span>
+        return renderChip(
+          translationKey("{{field}} is empty"),
+          data.filter.title,
         );
       }
       if (rawValue instanceof NotNull) {
-        return (
-          <span>
-            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
-            {tx("is not empty")}
-          </span>
+        return renderChip(
+          translationKey("{{field}} is not empty"),
+          data.filter.title,
         );
       }
 
@@ -510,23 +594,18 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       }
 
       const isMoreItems: boolean = items.length > 1;
-      let joiner: string;
+      let template: string;
       if (matchMode === "all") {
-        joiner = tx("has all of:");
+        template = translationKey("{{field}} has all of: {{value}}");
       } else if (matchMode === "none") {
-        joiner = tx("has none of:");
+        template = translationKey("{{field}} has none of: {{value}}");
       } else if (isMoreItems) {
-        joiner = tx("is any of:");
+        template = translationKey("{{field}} is any of: {{value}}");
       } else {
-        joiner = tx("is");
+        template = translationKey("{{field}} is {{value}}");
       }
 
-      return (
-        <span>
-          <span className="font-medium">{tx(data.filter.title)}</span> {joiner}{" "}
-          <span className="font-medium">{entityNames}</span>
-        </span>
-      );
+      return renderChip(template, data.filter.title, { value: entityNames });
     }
 
     return filterText;
@@ -552,8 +631,12 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <Icon icon={IconProp.Filter} size={SizeProp.Smaller} />
                 <span className="font-semibold">
-                  {tx("Showing")} {props.pluralLabel || tx("results")}{" "}
-                  {tx("that match")}
+                  {props.pluralLabel
+                    ? translator.translateTemplate(
+                        "Showing {{itemsName}} that match",
+                        { itemsName: translatableTerm(props.pluralLabel) },
+                      )
+                    : tx("Showing results that match")}
                 </span>
               </div>
             </div>
@@ -602,10 +685,23 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         <Modal
           modalWidth={ModalWidth.Large}
           isLoading={props.isModalLoading}
-          title={`${tx("Filter")} ${props.pluralLabel || props.singularLabel || tx("results")}`}
-          description={`${tx("Narrow down")} ${
-            props.pluralLabel || tx("results")
-          } ${tx("by one or more criteria below.")}`}
+          title={
+            props.pluralLabel || props.singularLabel
+              ? translator.translateTemplate("Filter {{itemsName}}", {
+                  itemsName: translatableTerm(
+                    (props.pluralLabel || props.singularLabel) as string,
+                  ),
+                })
+              : tx("Filter results")
+          }
+          description={
+            props.pluralLabel
+              ? translator.translateTemplate(
+                  "Narrow down {{itemsName}} by one or more criteria below.",
+                  { itemsName: translatableTerm(props.pluralLabel) },
+                )
+              : tx("Narrow down results by one or more criteria below.")
+          }
           submitButtonText={tx("Apply Filters")}
           onClose={() => {
             props.onFilterModalClose?.();

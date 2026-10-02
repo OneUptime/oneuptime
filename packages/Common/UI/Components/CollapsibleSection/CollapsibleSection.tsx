@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslateValue from "../../Utils/Translation";
 
 export type CollapsibleSectionVariant = "default" | "card" | "bordered";
 
@@ -26,6 +27,7 @@ export interface ComponentProps {
 const CollapsibleSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString, translateValue } = useTranslateValue();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
     props.defaultCollapsed ?? props.isCollapsed ?? false,
   );
@@ -116,7 +118,7 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
                 id={collapsibleTitleId}
                 className="text-sm font-medium text-gray-900 truncate"
               >
-                {props.title}
+                {translateString(props.title) ?? props.title}
               </span>
               {isCollapsed && props.badge && (
                 <span className="ml-2 flex-shrink-0">
@@ -132,7 +134,7 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
             </div>
             {props.description && !isCollapsed && (
               <p className="text-xs text-gray-500 mt-0.5 truncate">
-                {props.description}
+                {translateValue(props.description)}
               </p>
             )}
           </div>
