@@ -32,12 +32,16 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/UI/Components/Link/Link";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 // Set as Default and Additional Parameters, folded at the end of Provider Settings.
 const advancedSection: FormFieldCollapsibleSection<LlmProvider> =
   getAdvancedFormSection<LlmProvider>();
 
 const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showTestModal, setShowTestModal] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [testError, setTestError] = useState<string>("");
@@ -82,10 +86,14 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
               />
               <div>
-                <span className="font-medium">Incident Notes</span>
+                <span className="font-medium">
+                  {translator.translateText("Incident Notes")}
+                </span>
                 <span className="text-gray-500">
-                  {" "}
-                  - Automatically generate detailed incident notes and updates
+                  {" - "}
+                  {translator.translateText(
+                    "Automatically generate detailed incident notes and updates",
+                  )}
                 </span>
               </div>
             </div>
@@ -95,10 +103,14 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
               />
               <div>
-                <span className="font-medium">Alert Notes</span>
+                <span className="font-medium">
+                  {translator.translateText("Alert Notes")}
+                </span>
                 <span className="text-gray-500">
-                  {" "}
-                  - Create meaningful alert descriptions and context
+                  {" - "}
+                  {translator.translateText(
+                    "Create meaningful alert descriptions and context",
+                  )}
                 </span>
               </div>
             </div>
@@ -108,10 +120,14 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
               />
               <div>
-                <span className="font-medium">Scheduled Maintenance Notes</span>
+                <span className="font-medium">
+                  {translator.translateText("Scheduled Maintenance Notes")}
+                </span>
                 <span className="text-gray-500">
-                  {" "}
-                  - Generate maintenance event notes automatically
+                  {" - "}
+                  {translator.translateText(
+                    "Generate maintenance event notes automatically",
+                  )}
                 </span>
               </div>
             </div>
@@ -121,11 +137,14 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
               />
               <div>
-                <span className="font-medium">Incident Postmortems</span>
+                <span className="font-medium">
+                  {translator.translateText("Incident Postmortems")}
+                </span>
                 <span className="text-gray-500">
-                  {" "}
-                  - Automatically draft comprehensive incident postmortem
-                  reports
+                  {" - "}
+                  {translator.translateText(
+                    "Automatically draft comprehensive incident postmortem reports",
+                  )}
                 </span>
               </div>
             </div>
@@ -135,14 +154,21 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
               />
               <div>
-                <span className="font-medium">Code Improvements</span>
+                <span className="font-medium">
+                  {translator.translateText("Code Improvements")}
+                </span>
                 <span className="text-gray-500">
-                  {" "}
-                  - Analyze telemetry data (logs, traces, metrics, exceptions)
-                  and suggest code improvements when connected to your{" "}
-                  <Link to={codeRepositoriesRoute} className="underline">
-                    code repository
-                  </Link>
+                  {" - "}
+                  <TranslatedSentence
+                    template="Analyze telemetry data (logs, traces, metrics, exceptions) and suggest code improvements when connected to your {{codeRepositoryLink}}"
+                    slots={{
+                      codeRepositoryLink: (
+                        <Link to={codeRepositoriesRoute} className="underline">
+                          {translator.translateText("code repository")}
+                        </Link>
+                      ),
+                    }}
+                  />
                 </span>
               </div>
             </div>

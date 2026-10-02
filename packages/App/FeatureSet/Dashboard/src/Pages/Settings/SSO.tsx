@@ -32,6 +32,9 @@ import React, {
   useState,
 } from "react";
 import Link from "Common/UI/Components/Link/Link";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * Settings > SSO: the project's SAML single sign-on providers, the link to
@@ -40,6 +43,8 @@ import Link from "Common/UI/Components/Link/Link";
 const SSOSettings: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const testUrl: string = `${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/sso`;
   const [showSingleSignOnUrlId, setShowSingleSignOnUrlId] =
     useState<string>("");
 
@@ -287,16 +292,16 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           title={`Test Single Sign On (SSO)`}
           description={
             <span>
-              Here&apos;s a link which will help you test SSO integration before
-              you force it on your organization:{" "}
-              <Link
-                openInNewTab={true}
-                to={URL.fromString(
-                  `${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/sso`,
-                )}
-              >
-                <span>{`${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/sso`}</span>
-              </Link>
+              <TranslatedSentence
+                template="Here’s a link which will help you test SSO integration before you force it on your organization: {{link}}"
+                slots={{
+                  link: (
+                    <Link openInNewTab={true} to={URL.fromString(testUrl)}>
+                      <span>{testUrl}</span>
+                    </Link>
+                  ),
+                }}
+              />
             </span>
           }
         />
@@ -345,14 +350,18 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
             description={
               <div>
                 <div>
-                  <div className="font-semibold">Identifier (Entity ID): </div>
+                  <div className="font-semibold">
+                    {translator.translateText("Identifier (Entity ID):")}
+                  </div>
 
                   <div>{`${HTTP_PROTOCOL}${HOST}/${props.currentProject?._id}/${showSingleSignOnUrlId}`}</div>
                   <br />
                 </div>
                 <div>
                   <div className="font-semibold">
-                    Reply URL (Assertion Consumer Service URL):
+                    {translator.translateText(
+                      "Reply URL (Assertion Consumer Service URL):",
+                    )}
                   </div>
                   <div>
                     {`${URL.fromString(IDENTITY_URL.toString()).addRoute(
