@@ -144,7 +144,7 @@ const WorkflowLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { workflowNamePattern: true },
-          title: "Workflow Name Pattern",
+          title: "Workflow Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -155,7 +155,7 @@ const WorkflowLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { workflowDescriptionPattern: true },
-          title: "Workflow Description Pattern",
+          title: "Workflow Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

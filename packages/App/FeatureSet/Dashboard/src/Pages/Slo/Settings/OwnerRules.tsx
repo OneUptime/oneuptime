@@ -160,7 +160,7 @@ const SloOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { serviceLevelObjectiveNamePattern: true },
-          title: "SLO Name Pattern",
+          title: "SLO Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -171,7 +171,7 @@ const SloOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { serviceLevelObjectiveDescriptionPattern: true },
-          title: "SLO Description Pattern",
+          title: "SLO Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

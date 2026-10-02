@@ -23,8 +23,11 @@ Queue Label Rules attach labels to a queue automatically when it matches your cr
 A rule matches a queue only when **all** specified criteria pass. Empty criteria are skipped.
 
 - **Queue Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex. Discovered queues are named after their destination (\`orders.created\`), so \`^orders\\.\` matches every queue whose name starts with \`orders.\`.
-- **Messaging System Pattern** — case-insensitive regex matched against the queue's messaging system, both its OpenTelemetry value (\`kafka\`, \`rabbitmq\`, \`aws_sqs\`) and its display name (\`Apache Kafka\`, \`RabbitMQ\`, \`Amazon SQS\`), so \`^kafka$\` matches every Kafka topic.
+- **Queue Name**, **Queue Description**, **Messaging System** — text, or a regular expression or \`*\` wildcard pattern
+
+### Matching Discovered Queues
+
+Discovered queues are named after their destination (\`orders.created\`), so the condition **Queue Name** starts with \`orders.\` covers every queue for that destination. **Messaging System** is compared with both the queue's OpenTelemetry value (\`kafka\`, \`rabbitmq\`, \`aws_sqs\`) and its display name (\`Apache Kafka\`, \`RabbitMQ\`, \`Amazon SQS\`), so the condition **Messaging System** equals \`kafka\` (or matches the pattern \`^kafka$\`) covers every Kafka topic.
 
 ### Action
 
@@ -145,7 +148,7 @@ const MessageQueueLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { messageQueueNamePattern: true },
-          title: "Queue Name Pattern",
+          title: "Queue Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -156,7 +159,7 @@ const MessageQueueLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { messageQueueDescriptionPattern: true },
-          title: "Queue Description Pattern",
+          title: "Queue Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -164,7 +167,7 @@ const MessageQueueLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { messageQueueSystemPattern: true },
-          title: "Messaging System Pattern",
+          title: "Messaging System",
           stepId: "match-criteria",
           description:
             "Matched against the OpenTelemetry messaging.system value (kafka, rabbitmq, aws_sqs, servicebus, ...) and its display name (Apache Kafka, RabbitMQ, Amazon SQS, Azure Service Bus, ...). ^kafka$ matches every Kafka topic.",

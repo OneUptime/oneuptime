@@ -204,7 +204,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           },
           {
             field: { titlePattern: true },
-            title: "Title Pattern",
+            title: "Event Title",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
@@ -215,7 +215,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           },
           {
             field: { descriptionPattern: true },
-            title: "Description Pattern",
+            title: "Event Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -223,7 +223,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           },
           {
             field: { monitorNamePattern: true },
-            title: "Monitor Name Pattern",
+            title: "Monitor Name",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -231,7 +231,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           },
           {
             field: { monitorDescriptionPattern: true },
-            title: "Monitor Description Pattern",
+            title: "Monitor Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,

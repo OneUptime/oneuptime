@@ -1,5 +1,10 @@
 import PageComponentProps from "../../PageComponentProps";
 import {
+  CustomFieldDefinitionModel,
+  getCustomFieldDefinitionColumns,
+  getCustomFieldDefinitionFilters,
+} from "../../../Components/CustomFields/CustomFieldDefinitionTable";
+import {
   CUSTOM_FIELDS_DESCRIPTION,
   CUSTOM_FIELDS_REORDER_DESCRIPTION,
   CustomFieldTypeOption,
@@ -8,7 +13,6 @@ import {
 } from "../../../Components/CustomFields/CustomFieldSettingsCopy";
 import { ListOrderSettings } from "Common/Types/Database/ListOrderColumn";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
-import { getCustomFieldTemplateVariableName } from "Common/Types/CustomField/CustomFieldVariableKey";
 import {
   CustomFieldMappingSourceInfo,
   getCustomFieldMappingSource,
@@ -23,19 +27,9 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Columns from "Common/UI/Components/ModelTable/Columns";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
-import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
-import InventoryItemCustomField from "Common/Models/DatabaseModels/InventoryItemCustomField";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
-import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
-import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
-import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
-import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
-import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import React, { Fragment, ReactElement } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 
@@ -48,16 +42,8 @@ const isDropdownType: (value: unknown) => boolean = (
   );
 };
 
-export type CustomFieldsBaseModels =
-  | AlertCustomField
-  | MonitorCustomField
-  | StatusPageCustomField
-  | IncidentCustomField
-  | InventoryItemCustomField
-  | ScheduledMaintenanceCustomField
-  | OnCallDutyPolicyCustomField
-  | TeamCustomField
-  | TeamMemberCustomField;
+// The nine custom field definition models, one per resource.
+export type CustomFieldsBaseModels = CustomFieldDefinitionModel;
 
 /*
  * The definition table a mapping source's fields are listed in, resolved from
@@ -154,9 +140,9 @@ const CustomFieldsPageBase: (
   /*
    * Empty for the six resources with nothing to inherit from — Team, Status
    * Page and the rest have no relation carrying custom fields — and the
-   * mapping form fields and column are simply not rendered for them. The
-   * COLUMNS exist on all nine definition tables regardless, in lockstep with
-   * their siblings, because CustomFieldsDetail issues one shared select for
+   * mapping form fields are simply not rendered for them. The COLUMNS exist
+   * on all nine definition tables regardless, in lockstep with their
+   * siblings, because CustomFieldsDetail issues one shared select for
    * whatever definition model it is handed and a column missing from one
    * model would fail that select for every resource.
    */
@@ -259,11 +245,10 @@ const CustomFieldsPageBase: (
 
   /*
    * The settings only incident fields have: whether a field is asked for
-   * (and required) when an incident is declared, whether it goes out in
-   * subscriber emails, and the key templates reach it by. Offered for any
-   * definition model that has the columns - today only IncidentCustomField -
-   * rather than by name, because the form and the table's select would fail
-   * for a model without them.
+   * (and required) when an incident is declared, and whether it goes out in
+   * subscriber emails. Offered for any definition model that has the
+   * columns - today only IncidentCustomField - rather than by name, because
+   * the form would fail for a model without them.
    */
   const definitionModel: CustomFieldsBaseModels = new props.modelType();
 
@@ -281,8 +266,6 @@ const CustomFieldsPageBase: (
     definitionModel.hasColumn("showOnCreate") &&
     definitionModel.hasColumn("isRequiredOnCreate") &&
     definitionModel.hasColumn("includeInSubscriberNotifications");
-
-  const hasVariableKey: boolean = definitionModel.hasColumn("variableKey");
 
   const incidentSettingsFormFields: Array<Field<CustomFieldsBaseModels>> =
     hasIncidentFieldSettings
@@ -349,114 +332,10 @@ const CustomFieldsPageBase: (
       : []),
   ];
 
-  const incidentSettingsColumns: Columns<CustomFieldsBaseModels> = [
-    ...(hasIncidentFieldSettings
-      ? [
-          {
-            field: {
-              showOnCreate: true,
-            } as any,
-            title: IncidentCustomFieldSettingsCopy.showOnCreateTitle,
-            type: FieldType.Boolean,
-          },
-          {
-            field: {
-              isRequiredOnCreate: true,
-            } as any,
-            title: IncidentCustomFieldSettingsCopy.isRequiredOnCreateTitle,
-            type: FieldType.Boolean,
-            isHiddenByDefault: true,
-          },
-          {
-            field: {
-              includeInSubscriberNotifications: true,
-            } as any,
-            title:
-              IncidentCustomFieldSettingsCopy.includeInSubscriberNotificationsColumnTitle,
-            type: FieldType.Boolean,
-          },
-        ]
-      : []),
-    ...(hasVariableKey
-      ? [
-          {
-            field: {
-              variableKey: true,
-            } as any,
-            title: IncidentCustomFieldSettingsCopy.variableKeyColumnTitle,
-            description:
-              IncidentCustomFieldSettingsCopy.variableKeyColumnDescription,
-            type: FieldType.Element,
-            noValueMessage: "-",
-            getElement: (item: CustomFieldsBaseModels): ReactElement => {
-              const variableKey: unknown = (item as any).variableKey;
-
-              if (typeof variableKey !== "string" || !variableKey) {
-                return <span className="text-gray-400">-</span>;
-              }
-
-              return (
-                <code className="text-xs text-gray-700">{`{{${getCustomFieldTemplateVariableName(
-                  variableKey,
-                )}}}`}</code>
-              );
-            },
-          },
-        ]
-      : []),
-  ];
-
-  /*
-   * A field whose value is copied from somewhere else is not editable on the
-   * record, so the settings table is the only place that says where it comes
-   * from. Without this column a renamed or deleted source field is invisible
-   * until someone notices the values have stopped moving.
-   */
-  const mappingColumns: Columns<CustomFieldsBaseModels> = canMapValues
-    ? [
-        {
-          field: {
-            mapFromCustomFieldName: true,
-          } as any,
-          title: "Mapped From",
-          type: FieldType.Element,
-          noValueMessage: "-",
-          getElement: (item: CustomFieldsBaseModels): ReactElement => {
-            const resource: string | undefined = (item as any)
-              .mapFromResourceType;
-            const fieldName: string | undefined = (item as any)
-              .mapFromCustomFieldName;
-
-            if (!resource || !fieldName) {
-              return <span className="text-gray-400">Entered by hand</span>;
-            }
-
-            const source: CustomFieldMappingSourceInfo | undefined =
-              getCustomFieldMappingSource({
-                definitionTableName: definitionTableName,
-                resource: resource,
-              });
-
-            return <span>{`${source?.title || resource} › ${fieldName}`}</span>;
-          },
-        },
-      ]
-    : [];
-
   return (
     <Fragment>
       <ModelTable<CustomFieldsBaseModels>
         modelType={props.modelType}
-        {...(canMapValues
-          ? {
-              /*
-               * The "Mapped From" column renders mapFromResourceType, which is
-               * not the column's own `field`. Without selecting it here it
-               * comes back undefined and the column reads as unmapped.
-               */
-              selectMoreFields: { mapFromResourceType: true } as any,
-            }
-          : {})}
         {...(listOrder
           ? {
               // Listed, and dragged, in the order the fields appear.
@@ -587,55 +466,13 @@ const CustomFieldsPageBase: (
           ...incidentSettingsFormFields,
         ]}
         showRefreshButton={true}
-        filters={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Field Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Field Description",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              customFieldType: true,
-            },
-            title: "Field Type",
-            type: FieldType.Text,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Field Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            noValueMessage: "-",
-            title: "Field Description",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              customFieldType: true,
-            },
-            title: "Field Type",
-            type: FieldType.Text,
-          },
-          ...mappingColumns,
-          ...incidentSettingsColumns,
-        ]}
+        /*
+         * A field's name and type, and that is all: the rest is on the
+         * field's form (CustomFieldDefinitionTable says where everything
+         * that used to be a column went).
+         */
+        filters={getCustomFieldDefinitionFilters()}
+        columns={getCustomFieldDefinitionColumns()}
       />
     </Fragment>
   );

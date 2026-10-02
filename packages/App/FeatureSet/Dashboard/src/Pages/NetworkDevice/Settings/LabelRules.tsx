@@ -153,7 +153,7 @@ const NetworkDeviceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { networkDeviceNamePattern: true },
-          title: "Network Device Name Pattern",
+          title: "Network Device Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -164,7 +164,7 @@ const NetworkDeviceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { networkDeviceDescriptionPattern: true },
-          title: "Network Device Description Pattern",
+          title: "Network Device Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

@@ -1109,19 +1109,18 @@ test.describe("SLOs", () => {
       .click({ timeout: 30000 });
 
     /*
-     * The option is labelled "Monitor Name", but it still stores into the
-     * monitorNamePattern column, so it defaults to "Matches pattern" (regex
-     * or * wildcard).
+     * A new text condition starts on "Contains" - patterns are one operator
+     * away - and stores into the monitorNamePattern column all the same.
      */
     const conditionRow: Locator = form.getByTestId("rule-criteria-row-0");
-    await expect(conditionRow).toContainText("Matches pattern", {
+    await expect(conditionRow).toContainText("Contains", {
       timeout: 30000,
     });
 
     /*
-     * The monitor's run-unique name is a valid literal regex, so the rule
-     * matches exactly the monitor already attached by hand. That monitor is
-     * never adopted by the rule: it stays Manual.
+     * The monitor's name is unique to this run, so containing it matches
+     * exactly the monitor already attached by hand. That monitor is never
+     * adopted by the rule: it stays Manual.
      */
     await form
       .getByRole("textbox", { name: "Value for condition 1" })

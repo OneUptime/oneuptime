@@ -187,7 +187,7 @@ async function selectOption(name: string, label: string): Promise<void> {
 async function addCondition(title: string): Promise<void> {
   const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
   await user.click(screen.getByTestId("rule-criteria-add"));
-  const index: number = screen.getAllByText("Criteria", { exact: true }).length;
+  const index: number = screen.getAllByTestId(/^rule-criteria-row-\d+$/).length;
   await selectOption(`Criteria for condition ${index}`, title);
 }
 
@@ -312,7 +312,10 @@ describe("SLO monitor rule criteria in the create and edit forms", () => {
       expect(
         screen.getByText("Does not match pattern", { exact: true }),
       ).not.toBeNull();
-      expect(screen.getByText("Contains", { exact: true })).not.toBeNull();
+      // A new text condition starts on Contains: the control and the menu.
+      expect(
+        screen.getAllByText("Contains", { exact: true }).length,
+      ).toBeGreaterThan(1);
 
       await user.click(
         screen.getByText("Does not match pattern", { exact: true }),
@@ -340,13 +343,16 @@ describe("SLO monitor rule criteria in the create and edit forms", () => {
       await selectOption("Value for condition 1", MonitorType.API);
       await addCondition("Monitor Name");
       const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
-      await user.type(screen.getByTestId("rule-criteria-value-1"), "api-*");
+      await user.type(screen.getByTestId("rule-criteria-value-1"), "api-");
       await user.click(
         screen.getByTestId(
           filterCondition === FilterCondition.All
             ? "rule-criteria-match-all"
             : "rule-criteria-match-any",
         ),
+      );
+      expect(screen.getByTestId("rule-criteria-connector-1")).toHaveTextContent(
+        filterCondition === FilterCondition.All ? "And" : "Or",
       );
 
       const rule: ServiceLevelObjectiveMonitorRule = await submitForm();
@@ -361,8 +367,8 @@ describe("SLO monitor rule criteria in the create and edit forms", () => {
           },
           {
             field: "monitorNamePattern",
-            operator: RuleCriteriaOperator.MatchesPattern,
-            value: "api-*",
+            operator: RuleCriteriaOperator.Contains,
+            value: "api-",
           },
         ],
       });
@@ -382,10 +388,63 @@ describe("SLO monitor rule criteria in the create and edit forms", () => {
     await user.click(
       screen.getByRole("button", { name: "Save SLO Monitor Rule" }),
     );
-    expect(
-      (await screen.findByTestId("rule-criteria-error")).textContent,
-    ).toContain("non-blank");
+
+    // Said at the row it is about, in plain words.
+    const row: HTMLElement = screen.getByTestId("rule-criteria-row-0");
+    expect((await within(row).findByRole("alert")).textContent).toContain(
+      "Choose a value.",
+    );
+    expect(screen.queryByTestId("rule-criteria-error")).toBeNull();
     expect(submittedRule).toBeNull();
+  });
+
+  test("an SLO monitor rule asks for a condition before it is saved", async () => {
+    await renderForm();
+
+    expect(
+      screen.getByTestId("rule-criteria-empty-description"),
+    ).toHaveTextContent(
+      "Add at least one condition. This rule only applies to what its conditions match.",
+    );
+    // A rule kind that needs a condition does not call its conditions optional.
+    expect(screen.queryByText("(Optional)")).toBeNull();
+
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: "Save SLO Monitor Rule" }),
+    );
+
+    expect((await screen.findByTestId("rule-criteria-error")).textContent).toBe(
+      "Add at least one condition.",
+    );
+    expect(submittedRule).toBeNull();
+
+    await addCondition("Monitor Name");
+    await user.type(screen.getByTestId("rule-criteria-value-0"), "checkout");
+    const rule: ServiceLevelObjectiveMonitorRule = await submitForm();
+    expect(rule.criteria).toEqual(
+      criteriaWith(
+        "monitorNamePattern",
+        RuleCriteriaOperator.Contains,
+        "checkout",
+      ),
+    );
+  });
+
+  test("a name condition asks for text, and for a pattern shows the example", async () => {
+    await renderForm();
+    await addCondition("Monitor Name");
+
+    expect(screen.getByTestId("rule-criteria-value-0")).toHaveAttribute(
+      "placeholder",
+      "Enter text",
+    );
+
+    await selectOption("Operator for condition 1", "Matches pattern");
+    expect(screen.getByTestId("rule-criteria-value-0")).toHaveAttribute(
+      "placeholder",
+      "Monitor name or pattern",
+    );
   });
 
   test("clears an incompatible pattern when switching to Monitor Type", async () => {
