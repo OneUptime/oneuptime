@@ -20,7 +20,7 @@ Abra **Incidentes** na navegação à esquerda e expanda **Configurações** no 
 | **Modelos de post-mortem** | Estruturas reutilizáveis de post-mortem.                                                              |
 | **Campos personalizados**        | Definir campos extras que aparecem em todo incidente.                                           |
 | **Funções de incidente**       | Definir as funções às quais você atribui os respondentes, como Incident Commander.                       |
-| **Mais configurações**        | Os prefixos de número de incidente e de episódio de incidente.                                           |
+| **Prefixo do número**        | Os prefixos de número de incidente e de episódio de incidente.                                           |
 
 **Estado do incidente** e **Severidade do incidente** são tratados a fundo em [Estados e severidades de incidentes](/docs/incidents/states-and-severities) — o resto desta página começa em **Modelos de incidentes**.
 
@@ -105,12 +105,14 @@ Funções são apenas definições. Você atribui pessoas a elas incidente a inc
 
 Todo incidente recebe um número. Por padrão ele aparece como `#42`. Se a sua equipe fala "INC-42" em voz alta, faça o produto falar do mesmo jeito.
 
-Vá a **Incidentes → Configurações → Mais configurações** (`/dashboard/{projectId}/incidents/settings/more`). O cartão é **Prefixo do número** e guarda dois campos do projeto:
+Vá a **Incidentes → Configurações → Prefixo do número** (`/dashboard/{projectId}/incidents/settings/number-prefix`). O cartão **Prefixo do número** mostra, para incidentes e para episódios de incidente, o prefixo e um exemplo do número que ele gera: `INC-` com **Exemplo:** `INC-42`; sem prefixo, aparece **Sem prefixo** e `#42`. **Atualizar** abre **Editar prefixo do número** com dois campos:
 
-- **Prefixo de número de incidente** — até 20 caracteres, placeholder `INC-`. Defina-o e o incidente `#42` passa a aparecer como `INC-42`.
-- **Prefixo de número de episódio de incidente** — a mesma ideia para os números de episódio de incidente, placeholder `IE-`.
+- **Prefixo de número de incidente** — placeholder `INC-`.
+- **Prefixo de número de episódio de incidente** — placeholder `IE-`.
 
-Deixe qualquer um dos dois vazio para manter o prefixo padrão `#`; o campo não preenchido aparece como `# (default)`. Salve com **Atualizar**. O valor com prefixo é gravado no incidente como `incidentNumberWithPrefix`, e é ele que a lista de incidentes e o cabeçalho do incidente exibem.
+Abaixo de cada campo, **Pré-visualização:** mostra o número enquanto você digita. Deixe um campo vazio para voltar a `#`. Um prefixo tem no máximo 20 caracteres, usa letras, números e `-` `_` `.` `/` `:` `#` (sem espaços) e não termina com um dígito, que se juntaria ao número: `SEV1` daria `SEV142`. A caixa de diálogo diz o que está errado antes de salvar, e a API recusa os mesmos prefixos.
+
+Um prefixo novo só vale para incidentes e episódios criados depois. Os existentes mantêm seus números, e o contador continua. O valor com prefixo é gravado no incidente como `incidentNumberWithPrefix`, e é ele que a lista de incidentes e o cabeçalho do incidente exibem. Alertas e manutenção programada têm a mesma página: **Alertas → Configurações → Prefixo do número** e **Manutenção programada → Configurações → Prefixo do número**. O endereço antigo de **Mais configurações** (`…/settings/more`) continua levando até lá.
 
 ## Regras que rodam quando um incidente é criado
 

@@ -116,7 +116,7 @@ Open **Incidenten** in de linkernavigatie. Het zijmenu is opgedeeld in secties:
 | **Episoden**    | Incident-episoden, een aparte groeperingsfunctie met eigen pagina's.                                                                                                      |
 | **Werkruimte**  | **Slack**- en **Microsoft Teams**-verbindingen voor incidenten.                                                                                                          |
 | **Regels**      | De regelmotoren: **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Regels voor automatisch herstel**, **Privacyregels**, **Labelregels**, **SLA-regels**, **Reminder Rules**. |
-| **Instellingen**| **AI**, **Status incident**, **Ernst van incident**, **Incident-sjablonen**, **Notitie-sjablonen**, **Postmortem-sjablonen**, **Aangepaste velden**, **Incidentrollen**, **Meer instellingen**. |
+| **Instellingen**| **AI**, **Status incident**, **Ernst van incident**, **Incident-sjablonen**, **Notitie-sjablonen**, **Postmortem-sjablonen**, **Aangepaste velden**, **Incidentrollen**, **Nummervoorvoegsel**. |
 
 **Regels** en **Instellingen** zijn standaard ingeklapt — vouw ze uit om de pagina's te vinden waar de rest van deze documentatie naar verwijst. Incidentconfiguratie staat niet onder Projectinstellingen; het woont hier allemaal.
 

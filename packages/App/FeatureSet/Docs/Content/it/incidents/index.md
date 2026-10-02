@@ -116,7 +116,7 @@ Aprite **Incidenti** nella navigazione a sinistra. Il suo menu laterale è organ
 | **Episodi**  | Gli episodi di incidente, una funzionalità di raggruppamento a parte con pagine proprie.                                                                                    |
 | **Area di lavoro** | Connessioni **Slack** e **Microsoft Teams** per gli incidenti.                                                                                                          |
 | **Regole**     | I motori di regole: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di rimedio automatico**, **Regole di privacy**, **Regole etichette**, **Regole SLA**, **Reminder Rules**. |
-| **Impostazioni**  | **IA**, **Stato incidente**, **Gravità incidente**, **Modelli di incidenti**, **Modelli di note**, **Modelli post-mortem**, **Campi personalizzati**, **Ruoli incidente**, **Altre impostazioni**. |
+| **Impostazioni**  | **IA**, **Stato incidente**, **Gravità incidente**, **Modelli di incidenti**, **Modelli di note**, **Modelli post-mortem**, **Campi personalizzati**, **Ruoli incidente**, **Prefisso del numero**. |
 
 **Regole** e **Impostazioni** sono compresse per impostazione predefinita: espandetele per trovare le pagine a cui il resto di questa documentazione fa riferimento. La configurazione degli incidenti non sta sotto Impostazioni del progetto, sta tutta qui.
 

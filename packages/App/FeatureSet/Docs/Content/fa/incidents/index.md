@@ -119,7 +119,7 @@
 | **Episodes** | اپیزودهای حادثه، قابلیتی جدا برای گروه‌بندی با صفحه‌های خودش. |
 | **Workspace** | اتصال‌های **Slack** و **Microsoft Teams** برای حادثه‌ها. |
 | **Rules** | موتورهای قاعده: **Grouping Rules**، **On-Call Rules**، **Owner Rules**، **Runbook Rules**، **Auto Remediation Rules**، **Privacy Rules**، **Label Rules**، **SLA Rules**، **Reminder Rules**. |
-| **Settings** | **AI**، **Incident State**، **Incident Severity**، **Incident Templates**، **Forms**، **Note Templates**، **Postmortem Templates**، **Custom Fields**، **Incident Roles**، **Measurements**، **Linked Alerts**، **More Settings**. |
+| **Settings** | **AI**، **Incident State**، **Incident Severity**، **Incident Templates**، **Forms**، **Note Templates**، **Postmortem Templates**، **Custom Fields**، **Incident Roles**، **Measurements**، **Linked Alerts**، **Number Prefix**. |
 
 بخش‌های **Rules** و **Settings** به‌طور پیش‌فرض جمع‌اند — بگسترانیدشان تا صفحه‌هایی را که باقی این مستندات به آن‌ها ارجاع می‌دهند بیابید. پیکربندی حادثه زیر Project Settings نیست؛ همه‌اش اینجا زندگی می‌کند.
 

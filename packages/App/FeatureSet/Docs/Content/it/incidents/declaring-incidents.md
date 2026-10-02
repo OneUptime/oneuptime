@@ -136,7 +136,7 @@ Gli endpoint correlati sono `/api/incident-state`, `/api/incident-severity` e `/
 
 Ogni incidente riceve un numero sequenziale da un contatore per progetto, assegnato dal server al momento della creazione. Lo conservano due colonne: `incidentNumber` (l'intero grezzo) e `incidentNumberWithPrefix` (quello che vedete davvero). Senza prefisso configurato, il valore mostrato è `#42`.
 
-Per cambiarlo, andate in **Incidenti → Impostazioni → Altre impostazioni**. La scheda **Prefisso del numero** ha un campo **Prefisso del numero dell'incidente** (fino a 20 caratteri, segnaposto `INC-`): impostatelo e lo stesso incidente viene mostrato come `INC-42`. Lasciatelo vuoto per mantenere il `#` predefinito. La scheda contiene anche **Prefisso del numero dell'episodio dell'incidente** per la numerazione degli episodi.
+Per cambiarlo, andate in **Incidenti → Impostazioni → Prefisso del numero** e fate clic su **Aggiorna**. Il campo **Prefisso del numero dell'incidente** mostra il numero mentre scrivete: con `INC-` diventa `INC-42`. Lasciatelo vuoto per mantenere il `#` predefinito. Un nuovo prefisso vale per gli incidenti dichiarati dopo il salvataggio; gli incidenti esistenti mantengono il loro numero. La stessa finestra contiene **Prefisso del numero dell'episodio dell'incidente** per la numerazione degli episodi.
 
 Il numero compare come prima colonna dell'elenco degli incidenti, rimanda all'incidente e appare come **Numero dell'incidente** nella **Panoramica** dell'incidente.
 
