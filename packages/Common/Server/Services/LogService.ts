@@ -1,6 +1,7 @@
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
 import Log from "../../Models/AnalyticsModels/Log";
+import CountBy from "../Types/AnalyticsDatabase/CountBy";
 import FindBy from "../Types/AnalyticsDatabase/FindBy";
 import { OnFind } from "../Types/AnalyticsDatabase/Hooks";
 import ResourceEntityFilter from "../Utils/Telemetry/ResourceEntityFilter";
@@ -26,6 +27,18 @@ export class LogService extends AnalyticsDatabaseService<Log> {
     });
 
     return { findBy, carryForward: null };
+  }
+
+  // The same rewrite, so the explorer's total counts the rows its list shows.
+  protected override async onBeforeCount(
+    countBy: CountBy<Log>,
+  ): Promise<CountBy<Log>> {
+    await ResourceEntityFilter.rewriteAnalyticsQuery({
+      query: countBy.query as unknown as Record<string, unknown>,
+      projectId: countBy.props?.tenantId,
+    });
+
+    return countBy;
   }
 }
 

@@ -17,6 +17,7 @@ import {
   computeFeedAheadMs,
   computePrefetchPagesAhead,
   getIdleSkipTargetMs,
+  shouldAutoSkipBand,
   shouldRewindBeforePlay,
 } from "../ReplayPlaybackIntent";
 import {
@@ -75,6 +76,11 @@ import {
  *   (e) every fetch is generation-guarded and abortable;
  *   (f) rrweb's own skipInactive is never set true;
  *   (g) the 1.5s watchdog is a backstop that never fires in the fixtures.
+ *
+ * Skipping is the engine's, from the InactivityMap (IDLE_SKIP): idle and
+ * background-tab bands when the viewer turned Skip idle on, and a paused
+ * band - a stretch the recorder never captured because nobody touched the
+ * page - always, the moment playback runs into it (findBandToSkip).
  *
  * Snapshot fields the UI reads (see ReplayEngineTypes.ReplayEngineSnapshot):
  * phase/intent/buffer, currentTimeMs, durationMs, speed, skipInactive,
@@ -1587,6 +1593,14 @@ class ReplayEngineMachine implements ReplayEngine {
    * chunk too late - the skip would jump over the click the viewer turned
    * the toggle on to reach. Every chunk decoded on the way there refines
    * the map, so the answer is re-asked here rather than committed to once.
+   *
+   * A paused band is never re-measured shorter: it only exists once the
+   * marker that names it has been decoded, so it is exact from the start
+   * and a skip across it keeps its goal. The case that does move is a
+   * guessed idle band that ran on through a pause the map did not know
+   * about yet: once the resuming chunk decodes, the band the skip started
+   * in ends where the pause begins, so the skip stops there - and the next
+   * tick, playing into the pause, skips that on its own.
    */
   private refineIdleSkipGoal(): FeedGoal | null {
     const goal: FeedGoal | null = this.feedGoal;
@@ -2053,22 +2067,12 @@ class ReplayEngineMachine implements ReplayEngine {
         void this.runExtend(this.generation);
       }
 
-      if (
-        this.skipInactive &&
-        this.intent === "playing" &&
-        this.buffer === "ok" &&
-        !this.feedGoal
-      ) {
-        const band: ReplayIdleBand | null = this.inactivity.findBandAt(
-          this.currentTimeMs,
-          IDLE_SKIP_MIN_REMAINING_MS,
-        );
+      const skippable: ReplayIdleBand | null = this.findBandToSkip();
 
-        if (band) {
-          this.onIdleSkip(band);
-          this.rescheduleTick();
-          return;
-        }
+      if (skippable) {
+        this.onIdleSkip(skippable);
+        this.rescheduleTick();
+        return;
       }
 
       if (this.reanchorIfSegmentTooLong(segment)) {
@@ -2081,6 +2085,50 @@ class ReplayEngineMachine implements ReplayEngine {
       this.lastPublishAtMs = nowMs;
       this.publish();
     }
+  }
+
+  /*
+   * The band the tick should jump over right now, if any.
+   *
+   * Only while playing and not already on the way somewhere: a feed goal
+   * is a seek or a skip in flight. Idle and background-tab bands follow
+   * the viewer's toggle and, as they always have, only on clean playback.
+   * A paused band holds no footage at all, so it is skipped whatever the
+   * toggle says (shouldAutoSkipBand), and also while a hole further on is
+   * queued ("gap-pending") - waiting for clean playback there would hold
+   * the viewer on the last frame before the pause for the whole of it
+   * before that jump. A viewer who seeks INTO a paused band while paused
+   * stays where they asked to be, on that last frame; the skip comes when
+   * playback runs, from this same check.
+   *
+   * The minimum-remaining rule holds for every kind. A skip lands its
+   * preroll short of the band's end (getIdleSkipTargetMs), so without it
+   * the next tick would find the same band again; and the last second or
+   * so of a band is a hitch to jump, not a skip.
+   */
+  private findBandToSkip(): ReplayIdleBand | null {
+    if (
+      this.intent !== "playing" ||
+      this.feedGoal !== null ||
+      (this.buffer !== "ok" && this.buffer !== "gap-pending")
+    ) {
+      return null;
+    }
+
+    const band: ReplayIdleBand | null = this.inactivity.findBandAt(
+      this.currentTimeMs,
+      IDLE_SKIP_MIN_REMAINING_MS,
+    );
+
+    if (!band || !shouldAutoSkipBand(band, this.skipInactive)) {
+      return null;
+    }
+
+    if (band.kind !== "paused" && this.buffer !== "ok") {
+      return null;
+    }
+
+    return band;
   }
 
   /*
@@ -2385,7 +2433,10 @@ class ReplayEngineMachine implements ReplayEngine {
     /*
      * Feeding across an idle band is cheap - idle chunks are nearly empty -
      * so the forward-feed cap is raised to cover it rather than tearing
-     * the Replayer down for a stretch of nothing.
+     * the Replayer down for a stretch of nothing. Across a paused band it
+     * is cheaper still: there is nothing in the pause to feed, only the
+     * chunk that resumed after it, which the feed-ahead has normally
+     * handed to rrweb before the playhead even reaches the pause.
      */
     this.performSeek(
       targetMs,
@@ -2498,9 +2549,14 @@ class ReplayEngineMachine implements ReplayEngine {
       return;
     }
 
+    /*
+     * The rows go in whole, twice: the map keeps the visibility rows from
+     * one list and the idle-pause rows from the other.
+     */
     this.inactivity.admitChunk(chunkIndex, {
       activityIntervals: intervals,
       visibilityEvents: rows,
+      idlePauseEvents: rows,
     });
     this.idleBands = this.inactivity.getBands();
   }

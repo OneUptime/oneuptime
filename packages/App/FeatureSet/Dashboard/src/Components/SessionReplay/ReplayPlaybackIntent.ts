@@ -24,6 +24,10 @@
  * It remains one checkbox away, and ReplayStage caps how fast it may skip.
  * But faithful playback is the right default for a tool whose whole claim is
  * showing what the user actually saw.
+ *
+ * None of that applies to a stretch the recorder PAUSED through (see
+ * shouldAutoSkipBand): there is nothing there to be faithful to, so it is
+ * jumped over with the toggle off too.
  */
 export const DEFAULT_SKIP_INACTIVE: boolean = false;
 
@@ -112,7 +116,12 @@ export function computePrefetchPagesAhead(speed: number): number {
  */
 export const IDLE_SKIP_PREROLL_MS: number = 1000;
 
-/* Bands with less than this left in them are not worth a jump. */
+/*
+ * Bands with less than this left in them are not worth a jump. Every kind,
+ * paused included: it is also what stops a skip that has landed its
+ * preroll before the end of a band from being asked to skip that band
+ * again.
+ */
 export const IDLE_SKIP_MIN_REMAINING_MS: number = 1500;
 
 export function getIdleSkipTargetMs(band: {
@@ -120,4 +129,24 @@ export function getIdleSkipTargetMs(band: {
   endMs: number;
 }): number {
   return Math.max(band.startMs, band.endMs - IDLE_SKIP_PREROLL_MS);
+}
+
+/*
+ * Whether playback jumps over a band the playhead has entered.
+ *
+ * Idle and background-tab bands are footage - a page nobody was using,
+ * still recorded - so they follow the viewer's Skip idle toggle, which is
+ * off by default (DEFAULT_SKIP_INACTIVE). A paused band is the opposite: the
+ * recorder stopped capturing because nobody touched the page, so nothing
+ * exists between the pause and the resume but the last frame before it.
+ * Playing that out would hold a still picture for as long as the user was
+ * away - up to the half hour before a session ends - and call it the
+ * recording. It is closer to a gap than to an idle stretch, so it is
+ * skipped whatever the toggle says, with the same toast as any skip.
+ */
+export function shouldAutoSkipBand(
+  band: { kind: string },
+  skipInactive: boolean,
+): boolean {
+  return band.kind === "paused" || skipInactive;
 }

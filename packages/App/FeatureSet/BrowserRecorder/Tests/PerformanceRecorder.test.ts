@@ -950,6 +950,105 @@ describe("PerformanceRecorder", (): void => {
       });
     });
 
+    /*
+     * #4208: the recorder pauses after five minutes with nobody at the
+     * page, and nothing it is told while paused reaches the recording. A
+     * page whose first hide came during the pause - the tab closed by
+     * someone who had walked away first - therefore lost its vitals, so the
+     * pause reports them first, exactly as a hide would.
+     */
+    describe("finaliseVitalsNow (the idle pause)", (): void => {
+      it("reports what a hide would, with no hide", (): void => {
+        const handles: Array<FakeObserverHandle> = installFakeObserver(window, [
+          "layout-shift",
+          "event",
+        ]);
+
+        recorder = makeRecorder({});
+        recorder.start(window);
+
+        handleFor(handles, "layout-shift")?.emit([
+          { value: 0.05, startTime: 1000, hadRecentInput: false },
+          { value: 0.04, startTime: 1500, hadRecentInput: false },
+        ]);
+        handleFor(handles, "event")?.emit([
+          { interactionId: 21, duration: 180, startTime: 4000 },
+        ]);
+
+        expect(vital("CLS")).toBeNull();
+        expect(vital("INP")).toBeNull();
+
+        recorder.finaliseVitalsNow();
+
+        expect(vital("CLS")?.value).toBe(0.09);
+        expect(vital("CLS")?.occurredAtUnixMs).toBe(atOrigin(1500));
+        expect(vital("INP")?.value).toBe(180);
+      });
+
+      it("reports a page-level vital once, however often it is asked", (): void => {
+        installFakeObserver(window, ["layout-shift"]);
+
+        recorder = makeRecorder({});
+        recorder.start(window);
+
+        recorder.finaliseVitalsNow();
+        recorder.finaliseVitalsNow();
+        window.dispatchEvent(new Event("pagehide"));
+
+        expect(
+          vitals().filter((event: WebVitalEvent): boolean => {
+            return event.metric === "CLS";
+          }),
+        ).toHaveLength(1);
+      });
+
+      it("keeps the view open, so INP is reported again if it grows once the user is back", (): void => {
+        const handles: Array<FakeObserverHandle> = installFakeObserver(window, [
+          "event",
+        ]);
+
+        recorder = makeRecorder({});
+        recorder.start(window);
+
+        handles[0]?.emit([
+          { interactionId: 31, duration: 120, startTime: 2000 },
+        ]);
+        recorder.finaliseVitalsNow();
+
+        /* Back from the pause, and something slower happens. */
+        handles[0]?.emit([
+          { interactionId: 32, duration: 420, startTime: 900000 },
+        ]);
+        window.dispatchEvent(new Event("pagehide"));
+
+        expect(
+          vitals()
+            .filter((event: WebVitalEvent): boolean => {
+              return event.metric === "INP";
+            })
+            .map((event: WebVitalEvent): number => {
+              return event.value;
+            }),
+        ).toEqual([120, 420]);
+      });
+
+      it("reports nothing when vitals are off or the recorder never started", (): void => {
+        installFakeObserver(window, ["layout-shift", "event"]);
+
+        recorder = makeRecorder({ webVitals: false });
+        recorder.start(window);
+        recorder.finaliseVitalsNow();
+
+        expect(vitals()).toHaveLength(0);
+
+        recorder.stop();
+        recorder = makeRecorder({});
+        recorder.finaliseVitalsNow();
+
+        expect(vitals()).toHaveLength(0);
+      });
+    });
+
     describe("INP", (): void => {
       it("asks event timing for interactions from 40ms and reports the slowest", (): void => {
         const handles: Array<FakeObserverHandle> = installFakeObserver(window, [

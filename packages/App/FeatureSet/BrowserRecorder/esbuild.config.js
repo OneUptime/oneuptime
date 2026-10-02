@@ -175,9 +175,24 @@ const RECORDER_MAX_BYTES = 320 * 1024;
  * 316719 bytes raw / 95550 gzip; before the feature 311368 / 94102. The
  * loader is unchanged at 13322 / 4930. Same rule as above: the measured
  * size plus about 1 KB, rounded up to a whole KB.
+ *
+ * Raised from 95 KB to 97 KB on 2026-10-02 for the idle pause (issue
+ * #4208, src/Recorder.ts): after five minutes without input the recorder
+ * reports the page's vitals, marks the pause, stops rrweb and records
+ * nothing - no DOM, no requests, no console, no caps spent, no session id
+ * on the page's requests - until the next input resumes the same session on
+ * a fresh snapshot, with every seal sent while paused dated at the footage;
+ * plus the direct keydown / wheel / pointer / touch listeners that decide
+ * what counts as someone being there. An unattended tab stops costing the
+ * customer upload and storage, and its page the work of observing it.
+ * Measured after: recorder.js 325412 bytes raw / 97650 gzip; before the
+ * feature 321643 / 96723 (master with the #4206 identity work, which had
+ * left 557 bytes of headroom). The loader is 13333 / 4912, against
+ * 13322 / 4907 before. Same rule: the measured size plus about 1 KB,
+ * rounded up to a whole KB.
  */
 const LOADER_MAX_GZIP_BYTES = 5 * 1024;
-const RECORDER_MAX_GZIP_BYTES = 95 * 1024;
+const RECORDER_MAX_GZIP_BYTES = 97 * 1024;
 
 function isInside(directory, candidate) {
   const withSeparator = directory.endsWith(path.sep)

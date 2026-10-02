@@ -62,6 +62,8 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import ExceptionCode from "../../Types/Exception/ExceptionCode";
+import ServerException from "../../Types/Exception/ServerException";
+import TimeoutException from "../../Types/Exception/TimeoutException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -211,6 +213,13 @@ export function shouldWaitForAsyncInsert(): boolean {
     process.env["TELEMETRY_WAIT_FOR_ASYNC_INSERT"];
   return raw === "true" || raw === "1";
 }
+
+/*
+ * How long a count may run. Below the ClickHouse client's 58s
+ * request_timeout, so the server answers (or refuses) before the client
+ * gives up on it.
+ */
+const COUNT_MAX_EXECUTION_TIME_IN_SECONDS: number = 45;
 
 export default class AnalyticsDatabaseService<
   TBaseModel extends AnalyticsBaseModel,
@@ -419,6 +428,17 @@ export default class AnalyticsDatabaseService<
   @CaptureSpan()
   public async countBy(countBy: CountBy<TBaseModel>): Promise<PositiveNumber> {
     try {
+      /*
+       * The same rewrite a findBy gets, and before the permission check for
+       * the same reason: it turns client-only keys (a telemetry explorer's
+       * `resourceFilters`) into the ones the statement compiler reads, and
+       * the check refuses any key that is not a column. Without it, counting
+       * the rows of a list narrowed by a resource facet failed outright.
+       */
+      if (!countBy.props?.ignoreHooks) {
+        countBy = await this.onBeforeCount(countBy);
+      }
+
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
@@ -431,8 +451,13 @@ export default class AnalyticsDatabaseService<
 
       const countStatement: Statement = this.toCountStatement(countBy);
 
-      const dbResult: ResultSet<"JSON"> =
-        await this.executeQuery(countStatement);
+      let dbResult: ResultSet<"JSON">;
+
+      try {
+        dbResult = await this.executeQuery(countStatement);
+      } catch (error) {
+        throw this.toCountException(countBy, error);
+      }
 
       logger.debug(`${this.model.tableName} Count Statement executed`, {
         tableName: this.model.tableName,
@@ -442,6 +467,7 @@ export default class AnalyticsDatabaseService<
       } as LogAttributes);
 
       let countPositive: PositiveNumber = new PositiveNumber(0);
+      let hasCount: boolean = false;
 
       try {
         const resultInJSON: ResponseJSON<JSONObject> =
@@ -464,6 +490,7 @@ export default class AnalyticsDatabaseService<
 
         if (typeof rawCount === "string" || typeof rawCount === "number") {
           countPositive = new PositiveNumber(rawCount);
+          hasCount = true;
         }
       } catch {
         /*
@@ -471,11 +498,23 @@ export default class AnalyticsDatabaseService<
          * ClickHouse may return a truncated response for count() queries
          * (the aggregation has no partial row to emit). Treat this as
          * "count unavailable" rather than a fatal error — the list query
-         * itself still succeeds.
+         * itself still succeeds. An exact count fails below instead.
          */
-        logger.warn(
-          `${this.model.tableName} count query returned unparseable response, defaulting to 0`,
-          { tableName: this.model.tableName } as LogAttributes,
+        if (!countBy.exact) {
+          logger.warn(
+            `${this.model.tableName} count query returned unparseable response, defaulting to 0`,
+            { tableName: this.model.tableName } as LogAttributes,
+          );
+        }
+      }
+
+      /*
+       * A 0 that stands for "no answer" is fine for a threshold, and wrong
+       * for a total a person reads: "0 spans" over a list of spans.
+       */
+      if (countBy.exact && !hasCount) {
+        throw new ServerException(
+          `The ${this.model.singularName.toLowerCase()} count came back without a number.`,
         );
       }
 
@@ -1200,6 +1239,58 @@ export default class AnalyticsDatabaseService<
     return Promise.resolve({ findBy, carryForward: null });
   }
 
+  /*
+   * A place holder method used for overriding. A service whose onBeforeFind
+   * rewrites the query must rewrite a count's query the same way, or the
+   * count describes different rows than the list it is shown beside.
+   */
+  protected async onBeforeCount(
+    countBy: CountBy<TBaseModel>,
+  ): Promise<CountBy<TBaseModel>> {
+    return Promise.resolve(countBy);
+  }
+
+  /*
+   * Whether ClickHouse refused to finish a query in the time it was given:
+   * TIMEOUT_EXCEEDED (159) once max_execution_time passes with
+   * timeout_overflow_mode 'throw', or TOO_SLOW (160) when the server
+   * estimates up front that it would.
+   */
+  public static isQueryTimeoutError(error: unknown): boolean {
+    if (!error || typeof error !== "object") {
+      return false;
+    }
+
+    const code: unknown = (error as { code?: unknown }).code;
+    const type: unknown = (error as { type?: unknown }).type;
+
+    return (
+      code === "159" ||
+      code === "160" ||
+      type === "TIMEOUT_EXCEEDED" ||
+      type === "TOO_SLOW"
+    );
+  }
+
+  /*
+   * What a failed count query is rethrown as. An exact count that ran out of
+   * time says so, and says what to do about it, rather than surfacing as an
+   * unexplained database error: the explorers that show the total tell the
+   * reader to narrow the window.
+   */
+  private toCountException(
+    countBy: CountBy<TBaseModel>,
+    error: unknown,
+  ): unknown {
+    if (countBy.exact && AnalyticsDatabaseService.isQueryTimeoutError(error)) {
+      return new TimeoutException(
+        `Counting every matching ${this.model.singularName.toLowerCase()} took longer than ${COUNT_MAX_EXECUTION_TIME_IN_SECONDS} seconds. Narrow the time range or add a filter to get an exact total.`,
+      );
+    }
+
+    return error;
+  }
+
   /**
    * Read-side retention filter. TTL deletes rows by `retentionDate`, and
    * ClickHouse applies it only when it merges: on a table with
@@ -1277,12 +1368,14 @@ export default class AnalyticsDatabaseService<
      * can scan billions of rows; without a cap the query runs until the
      * HTTP client disconnects, wasting ClickHouse resources. With 'break'
      * mode ClickHouse returns a partial (lower-bound) count rather than
-     * throwing, which is acceptable for pagination display.
+     * throwing, which is acceptable for a threshold. It is not for an exact
+     * count: a partial count printed as a total is a wrong total, so that
+     * one fails instead (see countBy).
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        maxExecutionTimeInSeconds: COUNT_MAX_EXECUTION_TIME_IN_SECONDS,
+        timeoutOverflowMode: countBy.exact ? "throw" : "break",
       }),
     );
 
