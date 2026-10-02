@@ -7,6 +7,7 @@ import {
   renderHook,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import { FunctionComponent, ReactElement } from "react";
@@ -28,15 +29,20 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * ServiceLevelObjectiveOwnerTeam junction pair because the SLO lists are the
  * adoption this change adds; the hook itself is model-agnostic.
  *
- * The hook is not a thin wrapper: it flattens every team's membership into a
- * single de-duped people list, tags each option with a "user:"/"team:" prefix
- * so one dropdown can drive two different junction tables, and then - per
- * selected item - reads that item's existing owners so a second "Add Owner"
- * run does not create duplicate rows. Every one of those steps is silent when
- * it goes wrong: a wrong resourceIdField or a dropped prefix does not fail, it
- * just queries nothing and reports the item as a success. So the suite drives
- * the real modal, the real form and the real dropdown, and asserts on what
+ * The hook is not a thin wrapper: its one Owners field (the people picker)
+ * hands back the picked people and the picked teams as two id lists, which
+ * drive two different junction tables, and then - per selected item - it
+ * reads that item's existing owners so a second "Add Owner" run does not
+ * create duplicate rows. Every one of those steps is silent when it goes
+ * wrong: a wrong resourceIdField or a swapped id list does not fail, it just
+ * queries nothing and reports the item as a success. So the suite drives the
+ * real modal, the real form and the real people picker, and asserts on what
  * actually reaches ModelAPI.
+ *
+ * The dialogs used to offer one grouped dropdown filled by reading every team
+ * member and team of the project as soon as a table offering these actions
+ * mounted. The picker searches when its list is opened instead, and the
+ * tests on what it asks for say so.
  */
 
 /*
@@ -108,8 +114,9 @@ import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
- * Rendering the real modal pulls in Formik and react-select, which are slow
- * to mount on a loaded box; the testing-library default of 1s flakes there.
+ * Rendering the real modal pulls in Formik and the people picker's portalled
+ * list, which are slow to mount on a loaded box; the testing-library default
+ * of 1s flakes there.
  */
 const WAIT_TIMEOUT: number = 20000;
 
@@ -330,28 +337,16 @@ const Harness: FunctionComponent<HarnessProps> = (
   );
 };
 
-type WaitForOwnerSourcesFunction = () => Promise<void>;
+type SettleFunction = () => Promise<void>;
 
-const waitForOwnerSources: WaitForOwnerSourcesFunction =
-  async (): Promise<void> => {
-    /*
-     * Drained inside act() first: waitFor's own await would otherwise let
-     * the mount fetch settle between checks, landing the dropdown state
-     * outside act and burying the run in warnings.
-     */
-    await act(async () => {
-      await new Promise<void>((resolve: () => void) => {
-        setTimeout(resolve, 0);
-      });
+// Lets the hook's mount effects run, inside act().
+const settle: SettleFunction = async (): Promise<void> => {
+  await act(async () => {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
     });
-
-    await waitFor(
-      () => {
-        expect(getListMock).toHaveBeenCalledTimes(2);
-      },
-      { timeout: WAIT_TIMEOUT },
-    );
-  };
+  });
+};
 
 type OpenOwnerModalFunction = (title: string) => Promise<void>;
 
@@ -382,28 +377,73 @@ const clickOwnerAction: ClickOwnerActionFunction = (title: string): void => {
   fireEvent.click(screen.getByText(`Trigger ${title}`));
 };
 
-type SelectOwnerFunction = (optionLabel: string) => Promise<void>;
+type OpenOwnersListFunction = () => Promise<HTMLElement>;
 
 /*
- * react-select closes its menu after each pick and hides already-selected
- * options, so re-opening between picks is what makes multi-select reachable
- * and keeps the option text unambiguous against the value pill.
+ * The dialog's Owners field is the people picker: "Add owner" opens one
+ * search list of people and teams, and it stays open for several picks.
  */
+const openOwnersList: OpenOwnersListFunction =
+  async (): Promise<HTMLElement> => {
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Add owner",
+    });
+
+    if (button.getAttribute("aria-expanded") !== "true") {
+      fireEvent.click(button);
+    }
+
+    const list: HTMLElement = await screen.findByTestId(
+      "people-search-popup",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await within(list).findAllByRole(
+      "option",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    return list;
+  };
+
+type OptionNamesFunction = (list: HTMLElement) => Array<string>;
+
+// Each row's name - the avatar's initials beside it are drawn for the eye only.
+const optionNames: OptionNamesFunction = (list: HTMLElement): Array<string> => {
+  return within(list)
+    .getAllByRole("option")
+    .map((option: HTMLElement): string => {
+      return (
+        option.querySelector(".text-sm.font-medium")?.textContent ||
+        option.textContent ||
+        ""
+      );
+    });
+};
+
+type SelectOwnerFunction = (optionLabel: string) => Promise<void>;
+
 const selectOwner: SelectOwnerFunction = async (
   optionLabel: string,
 ): Promise<void> => {
-  const combobox: HTMLElement = screen.getByRole("combobox");
-  fireEvent.keyDown(combobox, { key: "ArrowDown", code: "ArrowDown" });
-  fireEvent.click(
-    await screen.findByText(optionLabel, {}, { timeout: WAIT_TIMEOUT }),
-  );
-};
+  const list: HTMLElement = await openOwnersList();
 
-type OpenOwnerMenuFunction = () => void;
+  const option: HTMLElement | undefined = within(list)
+    .getAllByRole("option")
+    .find((candidate: HTMLElement): boolean => {
+      return (
+        candidate.querySelector(".text-sm.font-medium")?.textContent ===
+        optionLabel
+      );
+    });
 
-const openOwnerMenu: OpenOwnerMenuFunction = (): void => {
-  const combobox: HTMLElement = screen.getByRole("combobox");
-  fireEvent.keyDown(combobox, { key: "ArrowDown", code: "ArrowDown" });
+  if (!option) {
+    throw new Error(`No owner named ${optionLabel} in the list.`);
+  }
+
+  fireEvent.click(option);
 };
 
 type SubmitOwnerModalFunction = () => void;
@@ -427,7 +467,7 @@ const getListCallsFor: GetListCallsForFunction = (
 };
 
 /*
- * These mount the real Modal, Formik and react-select trees, so a cold
+ * These mount the real Modal, Formik and people picker trees, so a cold
  * ts-jest transform of that import graph can push individual tests past
  * jest's 5s default - which CI, always starting cold, would report as a
  * red build with no assertion having failed. The slowest test here runs
@@ -483,7 +523,7 @@ describe("useBulkOwnerActions", () => {
       return useBulkOwnerActions<ServiceLevelObjective>(SLO_OWNER_CONFIG);
     });
 
-    await waitForOwnerSources();
+    await settle();
 
     /*
      * Consumers splice these straight into ModelTable's button list, which
@@ -499,7 +539,7 @@ describe("useBulkOwnerActions", () => {
       return useBulkOwnerActions<ServiceLevelObjective>(SLO_OWNER_CONFIG);
     });
 
-    await waitForOwnerSources();
+    await settle();
 
     expect(result.current.bulkActions[0]!.icon).toBe(IconProp.UserPlus);
     expect(result.current.bulkActions[0]!.buttonStyleType).toBe(
@@ -517,28 +557,53 @@ describe("useBulkOwnerActions", () => {
     );
   });
 
-  test("fetches this project's team members and teams on mount", async () => {
-    render(<Harness items={[]} />);
+  test("asks for nothing until the Owners list is opened", async () => {
+    render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
+    await settle();
+    await openOwnerModal("Add Owner");
 
-    await waitForOwnerSources();
+    /*
+     * It used to read every team member and team of the project as soon as
+     * a table offering these actions mounted. The people picker searches
+     * when its list opens instead.
+     */
+    expect(getListMock).not.toHaveBeenCalled();
+  });
+
+  test("searches this project's people and teams in one list, people first", async () => {
+    mockLists({
+      teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
+      teams: [makeTeam(TEAM_ONE_ID, "Team One")],
+    });
+
+    render(<Harness items={[]} />);
+    await settle();
+    await openOwnerModal("Add Owner");
+
+    const list: HTMLElement = await openOwnersList();
+
+    expect(optionNames(list)).toEqual(["Alice", "Team One"]);
+    expect(
+      within(list)
+        .getAllByRole("group")
+        .map((group: HTMLElement): string => {
+          return (
+            document.getElementById(group.getAttribute("aria-labelledby")!)
+              ?.textContent || ""
+          );
+        }),
+    ).toEqual(["People", "Teams"]);
 
     const memberCall: any = getListCallsFor(TeamMember)[0];
     expect(memberCall.query.projectId.toString()).toBe(PROJECT_ID);
-    expect(memberCall.limit).toBe(LIMIT_PER_PROJECT);
-    expect(memberCall.skip).toBe(0);
-    expect(memberCall.select).toEqual({
-      _id: true,
-      user: { _id: true, name: true, email: true },
-    });
 
     const teamCall: any = getListCallsFor(Team)[0];
     expect(teamCall.query.projectId.toString()).toBe(PROJECT_ID);
-    expect(teamCall.limit).toBe(LIMIT_PER_PROJECT);
     expect(teamCall.select).toEqual({ _id: true, name: true });
     expect(teamCall.sort).toEqual({ name: SortOrder.Ascending });
   });
 
-  test("fetches team members and teams in parallel", async () => {
+  test("searches people and teams in parallel", async () => {
     getListMock.mockImplementation((listData: any): Promise<any> => {
       if (listData.modelType === TeamMember) {
         // Never settles, so the team read can only happen if it did not await this one.
@@ -549,31 +614,44 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[]} />);
+    await settle();
+    await openOwnerModal("Add Owner");
 
-    /*
-     * A project with a large membership table would otherwise hold the Teams
-     * group out of the dropdown for as long as that read takes.
-     */
-    await waitForOwnerSources();
+    fireEvent.click(screen.getByRole("button", { name: "Add owner" }));
+
+    await waitFor(
+      () => {
+        expect(getListCallsFor(Team)).toHaveLength(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
     expect(getListCallsFor(TeamMember)).toHaveLength(1);
-    expect(getListCallsFor(Team)).toHaveLength(1);
   });
 
-  test("fetches nothing when there is no current project", async () => {
+  test("asks nothing when there is no current project", async () => {
     window.history.replaceState({}, "", "/dashboard");
 
     render(<Harness items={[]} />);
+    await settle();
+    await openOwnerModal("Add Owner");
 
-    await screen.findByText("Trigger Add Owner", {}, { timeout: WAIT_TIMEOUT });
+    fireEvent.click(screen.getByRole("button", { name: "Add owner" }));
 
     /*
      * Without the guard the query goes out with projectId undefined, which
      * the API answers with every team member the caller can read.
      */
+    expect(
+      await screen.findByText(
+        "No people or teams available.",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toBeInTheDocument();
     expect(getListMock).not.toHaveBeenCalled();
   });
 
-  test("lists a user once even when they are on several teams", async () => {
+  test("lists a person once even when they are on several teams", async () => {
     mockLists({
       teamMembers: [
         makeTeamMember({ userId: ALICE_ID, name: "Alice" }),
@@ -584,146 +662,67 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
-    openOwnerMenu();
 
-    await screen.findByText("Bob", {}, { timeout: WAIT_TIMEOUT });
-    expect(screen.getAllByText("Alice")).toHaveLength(1);
+    expect(optionNames(await openOwnersList())).toEqual(["Alice", "Bob"]);
   });
 
-  test("sorts people case-insensitively by name", async () => {
+  test("sorts people case-insensitively by name, a person with no name by email", async () => {
     mockLists({
       teamMembers: [
         makeTeamMember({ userId: CAROL_ID, name: "carol" }),
         makeTeamMember({ userId: BOB_ID, name: "Bob" }),
-        makeTeamMember({ userId: ALICE_ID, name: "alice" }),
-      ],
-      teams: [],
-    });
-
-    render(<Harness items={[]} />);
-    await waitForOwnerSources();
-    await openOwnerModal("Add Owner");
-    openOwnerMenu();
-
-    await screen.findByText("alice", {}, { timeout: WAIT_TIMEOUT });
-
-    const optionLabels: Array<string> = screen
-      .getAllByRole("option")
-      .map((option: HTMLElement) => {
-        return option.textContent || "";
-      });
-
-    /*
-     * A plain codepoint sort puts every capitalised name ahead of every
-     * lowercase one, so "Bob" would jump the queue ahead of "alice".
-     */
-    expect(optionLabels).toEqual(["alice", "Bob", "carol"]);
-  });
-
-  test("falls back to a member's email when they have no name", async () => {
-    mockLists({
-      teamMembers: [
         makeTeamMember({ userId: ALICE_ID, email: "alice@example.com" }),
       ],
       teams: [],
     });
 
     render(<Harness items={[]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
-    openOwnerMenu();
-
-    expect(
-      await screen.findByText(
-        "alice@example.com",
-        {},
-        { timeout: WAIT_TIMEOUT },
-      ),
-    ).toBeInTheDocument();
-  });
-
-  test("groups the options under People and Teams", async () => {
-    mockLists({
-      teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
-      teams: [makeTeam(TEAM_ONE_ID, "Team One")],
-    });
-
-    render(<Harness items={[]} />);
-    await waitForOwnerSources();
-    await openOwnerModal("Add Owner");
-    openOwnerMenu();
-
-    expect(
-      await screen.findByText("People", {}, { timeout: WAIT_TIMEOUT }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Teams")).toBeInTheDocument();
-    expect(screen.getByText("Alice")).toBeInTheDocument();
-    expect(screen.getByText("Team One")).toBeInTheDocument();
-  });
-
-  test("offers every team in the project, in the order the API returned them", async () => {
-    mockLists({
-      teamMembers: [],
-      teams: [
-        makeTeam(TEAM_TWO_ID, "Zebra Team"),
-        makeTeam(TEAM_ONE_ID, "Apple Team"),
-      ],
-    });
-
-    render(<Harness items={[]} />);
-    await waitForOwnerSources();
-    await openOwnerModal("Add Owner");
-    openOwnerMenu();
-
-    await screen.findByText("Zebra Team", {}, { timeout: WAIT_TIMEOUT });
 
     /*
-     * Teams keep the server's ordering (the query asks for name ASC); only
-     * the people list is re-sorted in the hook, because it is stitched
-     * together from every team's membership.
+     * A plain codepoint sort puts every capitalised name ahead of every
+     * lowercase one, so "Bob" would jump the queue ahead of "alice".
      */
-    expect(
-      screen.getAllByRole("option").map((option: HTMLElement) => {
-        return option.textContent || "";
-      }),
-    ).toEqual(["Zebra Team", "Apple Team"]);
+    expect(optionNames(await openOwnersList())).toEqual([
+      "alice@example.com",
+      "Bob",
+      "carol",
+    ]);
   });
 
-  test("omits the People group when the project has no team members", async () => {
+  test("leaves out the People heading when the project has no team members", async () => {
     mockLists({
       teamMembers: [],
       teams: [makeTeam(TEAM_ONE_ID, "Team One")],
     });
 
     render(<Harness items={[]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
-    openOwnerMenu();
 
-    await screen.findByText("Teams", {}, { timeout: WAIT_TIMEOUT });
+    const list: HTMLElement = await openOwnersList();
 
-    /*
-     * An empty group still renders its heading, so the dropdown would show a
-     * "People" label with nothing under it.
-     */
-    expect(screen.queryByText("People")).not.toBeInTheDocument();
+    expect(within(list).getByText("Teams")).toBeInTheDocument();
+    expect(within(list).queryByText("People")).not.toBeInTheDocument();
   });
 
-  test("omits the Teams group when the project has no teams", async () => {
+  test("leaves out the Teams heading when the project has no teams", async () => {
     mockLists({
       teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
       teams: [],
     });
 
     render(<Harness items={[]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
-    openOwnerMenu();
 
-    await screen.findByText("People", {}, { timeout: WAIT_TIMEOUT });
-    expect(screen.queryByText("Teams")).not.toBeInTheDocument();
+    const list: HTMLElement = await openOwnersList();
+
+    expect(within(list).getByText("People")).toBeInTheDocument();
+    expect(within(list).queryByText("Teams")).not.toBeInTheDocument();
   });
 
   test("creates one owner row per picked user and per picked team", async () => {
@@ -733,7 +732,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
     await selectOwner("Alice");
     await selectOwner("Team One");
@@ -759,6 +758,203 @@ describe("useBulkOwnerActions", () => {
     expect(teamCall.model.projectId.toString()).toBe(PROJECT_ID);
   });
 
+  test("asks for owners with one Owners field, people and teams in one list", async () => {
+    render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
+    await settle();
+    await openOwnerModal("Add Owner");
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+
+    // One field, named Owners, opened with "Add owner" - no dropdown at all.
+    expect(within(dialog).getByText("Owners")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Select Owners")).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole("combobox")).not.toBeInTheDocument();
+    expect(within(dialog).getAllByTestId("people-picker")).toHaveLength(1);
+    expect(
+      within(dialog).getByRole("button", { name: "Add owner" }),
+    ).toBeInTheDocument();
+  });
+
+  test("the Remove Owner dialog picks with the same Owners field", async () => {
+    mockLists({
+      teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
+      teams: [makeTeam(TEAM_ONE_ID, "Team One")],
+    });
+
+    render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
+    await settle();
+    await openOwnerModal("Remove Owner");
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+
+    expect(within(dialog).getAllByTestId("people-picker")).toHaveLength(1);
+    expect(optionNames(await openOwnersList())).toEqual(["Alice", "Team One"]);
+  });
+
+  test("shows each pick as a chip and keeps the list open for the next one", async () => {
+    mockLists({
+      teamMembers: [
+        makeTeamMember({ userId: ALICE_ID, name: "Alice" }),
+        makeTeamMember({ userId: BOB_ID, name: "Bob" }),
+      ],
+      teams: [makeTeam(TEAM_ONE_ID, "Team One")],
+    });
+
+    render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
+    await settle();
+    await openOwnerModal("Add Owner");
+    await selectOwner("Alice");
+
+    // Still open: picking several owners is one trip to the list.
+    expect(screen.getByTestId("people-search-popup")).toBeInTheDocument();
+
+    await selectOwner("Team One");
+
+    expect(screen.getAllByTestId("people-chip")).toHaveLength(2);
+    expect(
+      screen.getByRole("button", { name: "Remove Alice" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Remove Team One" }),
+    ).toBeInTheDocument();
+  });
+
+  test("picking a chosen person again in the list un-picks them", async () => {
+    mockLists({
+      teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
+      teams: [makeTeam(TEAM_ONE_ID, "Team One")],
+    });
+
+    render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
+    await settle();
+    await openOwnerModal("Add Owner");
+    await selectOwner("Alice");
+    await selectOwner("Team One");
+    await selectOwner("Alice");
+
+    submitOwnerModal();
+
+    await waitFor(
+      () => {
+        expect(onBulkActionEnd).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    // Only the team is left to add.
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect((createMock.mock.calls[0]![0] as any).modelType).toBe(
+      ServiceLevelObjectiveOwnerTeam,
+    );
+    expect(getListCallsFor(ServiceLevelObjectiveOwnerUser)).toHaveLength(0);
+  });
+
+  test("a chip removed before submitting is not added", async () => {
+    mockLists({
+      teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
+      teams: [makeTeam(TEAM_ONE_ID, "Team One")],
+    });
+
+    render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
+    await settle();
+    await openOwnerModal("Add Owner");
+    await selectOwner("Alice");
+    await selectOwner("Team One");
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Team One" }));
+
+    expect(
+      screen.queryByRole("button", { name: "Remove Team One" }),
+    ).not.toBeInTheDocument();
+
+    submitOwnerModal();
+
+    await waitFor(
+      () => {
+        expect(onBulkActionEnd).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+
+    const userCall: any = createMock.mock.calls[0]![0];
+    expect(userCall.modelType).toBe(ServiceLevelObjectiveOwnerUser);
+    expect(userCall.model.userId.toString()).toBe(ALICE_ID);
+    expect(getListCallsFor(ServiceLevelObjectiveOwnerTeam)).toHaveLength(0);
+  });
+
+  test("removing the only pick brings the required rule back", async () => {
+    mockLists({
+      teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
+      teams: [],
+    });
+
+    render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
+    await settle();
+    await openOwnerModal("Add Owner");
+    await selectOwner("Alice");
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Alice" }));
+
+    submitOwnerModal();
+
+    expect(
+      await screen.findByText(
+        "Owners is required.",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toBeInTheDocument();
+    expect(createMock).not.toHaveBeenCalled();
+    expect(onBulkActionStart).not.toHaveBeenCalled();
+  });
+
+  test("a search typed into the list asks for matching people and teams", async () => {
+    mockLists({
+      teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
+      teams: [makeTeam(TEAM_ONE_ID, "Team One")],
+    });
+
+    render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
+    await settle();
+    await openOwnerModal("Add Owner");
+    await openOwnersList();
+
+    getListMock.mockClear();
+
+    fireEvent.change(screen.getByTestId("people-search-input"), {
+      target: { value: "ali" },
+    });
+
+    await waitFor(
+      () => {
+        expect(getListCallsFor(Team)).toHaveLength(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    // People by name and by email, teams by name - all in this project.
+    const memberQueries: Array<any> = getListCallsFor(TeamMember).map(
+      (call: any) => {
+        return call.query;
+      },
+    );
+    expect(memberQueries).toHaveLength(2);
+    for (const query of memberQueries) {
+      expect(query.projectId.toString()).toBe(PROJECT_ID);
+    }
+    expect(
+      memberQueries.map((query: any): string => {
+        return Object.keys(query.user).join(",");
+      }),
+    ).toEqual(["name", "email"]);
+
+    const teamQuery: any = getListCallsFor(Team)[0].query;
+    expect(teamQuery.projectId.toString()).toBe(PROJECT_ID);
+    expect(teamQuery.name.toString()).toContain("ali");
+  });
+
   test("creates a row for every selected item", async () => {
     mockLists({
       teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
@@ -766,7 +962,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID), makeSlo(SLO_TWO_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
     await selectOwner("Alice");
     submitOwnerModal();
@@ -796,7 +992,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
     await selectOwner("Alice");
     await selectOwner("Team One");
@@ -824,7 +1020,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
     await selectOwner("Alice");
     submitOwnerModal();
@@ -860,7 +1056,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
     await selectOwner("Alice");
     submitOwnerModal();
@@ -883,7 +1079,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
     await selectOwner("Team One");
     submitOwnerModal();
@@ -910,7 +1106,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Remove Owner");
     await selectOwner("Alice");
     await selectOwner("Team One");
@@ -942,7 +1138,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Remove Owner");
     await selectOwner("Alice");
     submitOwnerModal();
@@ -976,7 +1172,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Remove Owner");
     await selectOwner("Alice");
     submitOwnerModal();
@@ -1006,7 +1202,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Remove Owner");
     await selectOwner("Alice");
     submitOwnerModal();
@@ -1039,7 +1235,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID), makeSlo(SLO_TWO_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
     await selectOwner("Alice");
     submitOwnerModal();
@@ -1065,7 +1261,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(), makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
     await selectOwner("Alice");
     submitOwnerModal();
@@ -1098,7 +1294,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
     await selectOwner("Alice");
 
@@ -1126,7 +1322,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID), makeSlo(SLO_TWO_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
     await selectOwner("Alice");
     submitOwnerModal();
@@ -1155,7 +1351,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID), makeSlo(SLO_TWO_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
     await selectOwner("Alice");
     submitOwnerModal();
@@ -1194,7 +1390,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Remove Owner");
     clickOwnerAction("Add Owner");
 
@@ -1215,7 +1411,7 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
     clickOwnerAction("Remove Owner");
 
@@ -1232,13 +1428,13 @@ describe("useBulkOwnerActions", () => {
     });
 
     render(<Harness items={[makeSlo(SLO_ONE_ID)]} />);
-    await waitForOwnerSources();
+    await settle();
     await openOwnerModal("Add Owner");
     submitOwnerModal();
 
     expect(
       await screen.findByText(
-        "Select Owners is required.",
+        "Owners is required.",
         {},
         { timeout: WAIT_TIMEOUT },
       ),
@@ -1250,6 +1446,7 @@ describe("useBulkOwnerActions", () => {
      */
     expect(createMock).not.toHaveBeenCalled();
     expect(onBulkActionStart).not.toHaveBeenCalled();
-    expect(getListMock).toHaveBeenCalledTimes(2);
+    // The list was never opened, so nothing was searched either.
+    expect(getListMock).not.toHaveBeenCalled();
   });
 });
