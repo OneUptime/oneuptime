@@ -85,7 +85,7 @@ For POST, PUT, and PATCH requests, you can specify a JSON request body. You can 
 
 #### Do Not Follow Redirects
 
-By default, OneUptime follows HTTP redirects (301, 302, etc.). Enable this option if you want to monitor the redirect response itself rather than the final destination.
+By default, OneUptime follows HTTP redirects (301, 302, etc.). Enable this option if you want to monitor the redirect response itself rather than the final destination. The [default criteria](#default-criteria) count a redirect response as online.
 
 #### Allow Self-Signed Certificates
 
@@ -120,6 +120,19 @@ You can configure criteria to determine when your API is considered online, degr
 - **Response Body** - Check if the response body contains or matches specific content
 - **Response Headers** - Verify specific response headers are present or match expected values
 - **JavaScript Expression** - Write custom expressions to evaluate the response. See [JavaScript Expressions](/docs/monitor/javascript-expression) for details.
+
+### Default Criteria
+
+A new API monitor starts with two criteria, so it works without changing anything:
+
+- **Offline** — the API does not answer, or answers with a status code of `400` or above (or below `200`). The monitor is marked **Offline** and an incident is created. The incident resolves itself when the API is back.
+- **Online** — the API answers with any `2xx` or `3xx` status code, such as `200`, `201`, `202` or `204`. The monitor is marked **Operational**.
+
+So an endpoint that answers `201 Created` or `204 No Content` counts as up. If only one status code means healthy for you, change both criteria on the monitor's **Criteria** page: for example **Response Status Code** / **Equal To** / `200` in the online criteria and **Not Equal To** / `200` in the offline one. To check what the API returns as well, add a **Response Body** or **JavaScript Expression** filter to the offline criteria.
+
+Criteria are checked from top to bottom, and the first one that matches decides what happens.
+
+Monitors created before OneUptime changed these defaults keep the criteria they were created with, which count only `200` as online. Monitors created through the API or Terraform use the criteria you send.
 
 ### Evaluating over a period of time
 
