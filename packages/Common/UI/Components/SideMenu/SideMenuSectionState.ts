@@ -16,11 +16,10 @@ import React, { ReactElement, ReactNode } from "react";
  * Section titles that start collapsed in every menu, unless the menu says
  * otherwise with an explicit `defaultCollapsed`.
  *
- * "We need to make the UI very simple to understand and use, and one of the
- * ways to do that is collapsing things in the side menu that are not used
- * frequently ... This will make sure users don't have decision paralysis"
- * (the maintainer, on the Incidents menu: Overview and Episodes open; AI,
- * Workspace, Rules and Settings folded away).
+ * The maintainer asked for "collapsing things in the side menu that are not
+ * used frequently", in every side menu, so that people are not met with a
+ * wall of choices: on the Incidents menu, Overview and Episodes open, and
+ * AI, Workspace, Rules and Settings folded away.
  *
  * So a side menu shows, open, the sections that hold what people come to it
  * for: the lists and overviews of a product, and the views of the resource

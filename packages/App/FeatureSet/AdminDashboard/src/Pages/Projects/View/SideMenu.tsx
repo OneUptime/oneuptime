@@ -68,8 +68,7 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
        * Billing and Support start collapsed, folded down to their titles:
        * the project's members are what this menu is opened for, and these
        * are looked at now and then. Each opens with one click, and by itself
-       * on its own page. Said here because the titles are already translated
-       * (the shared section folds by English title).
+       * on its own page.
        */}
       {BILLING_ENABLED ? (
         <SideMenuSection title={t("sideMenu.billing")} defaultCollapsed={true}>
