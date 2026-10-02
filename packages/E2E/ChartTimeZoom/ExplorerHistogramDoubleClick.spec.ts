@@ -88,6 +88,8 @@ test.use({
 
 const RESET_ZOOM_TEST_ID: string = "reset-time-range-zoom";
 const RESET_HINT: string = "Double-click to reset";
+// The list's total, "2,120 spans" (TelemetryResultTotal).
+const RESULT_TOTAL_TEST_ID: string = "telemetry-result-total";
 
 // Epoch milliseconds.
 interface TimeWindow {
@@ -109,9 +111,13 @@ interface RecordedWindow {
 interface RecordedRequest {
   seq: number;
   kind: string;
+  modelName?: string | undefined;
   url?: string | undefined;
   metricName?: string | undefined;
   window?: RecordedWindow | null | undefined;
+  // An analytics.count: whether it asked for the exact total, and the answer.
+  exact?: boolean | undefined;
+  count?: number | undefined;
 }
 
 interface HistogramBucket {
@@ -198,6 +204,9 @@ interface ExplorerUnderTest {
   path: string;
   // The histogram endpoint, as the request URL ends.
   histogramPath: string;
+  // The table the list reads, and what the list's total calls its rows.
+  modelName: string;
+  itemLabel: string;
   pickerTestId: string;
   initial: { label: string; window: TimeWindow; bucketMs: number };
   // The drag: from the bar of bucket `from` to the bar of bucket `to`.
@@ -232,6 +241,9 @@ const TRACES_EXPLORER: ExplorerUnderTest = {
   name: "Traces explorer (Traces over time)",
   path: `/dashboard/${PROJECT_ID}/traces`,
   histogramPath: "/telemetry/traces/histogram",
+  // Not limited to root spans, every row is a span.
+  modelName: "SpanItemV3",
+  itemLabel: "spans",
   pickerTestId: "telemetry-time-range-picker-button",
   initial: {
     label: "Past 1 Hour",
@@ -250,6 +262,8 @@ const LOGS_EXPLORER: ExplorerUnderTest = {
   name: "Logs explorer (Log Volume)",
   path: `/dashboard/${PROJECT_ID}/logs`,
   histogramPath: "/telemetry/logs/histogram",
+  modelName: "LogItemV3",
+  itemLabel: "logs",
   pickerTestId: "log-time-range-picker-button",
   initial: {
     label: "Past 1 Hour",
@@ -400,6 +414,38 @@ async function histogramWindows(
     .map((request: RecordedRequest): string => {
       return recordedKey(request.window);
     });
+}
+
+// The counts of the explorer's list total since `mark`, in order.
+async function totalCounts(
+  page: Page,
+  subject: ExplorerUnderTest,
+  mark: number,
+): Promise<Array<RecordedRequest>> {
+  return (await requests(page))
+    .slice(mark)
+    .filter((request: RecordedRequest): boolean => {
+      return (
+        request.kind === "analytics.count" &&
+        request.modelName === subject.modelName
+      );
+    });
+}
+
+/*
+ * The windows the explorer's list total was counted for since `mark`, in
+ * order, each marked unless it asked for the exact total.
+ */
+async function totalCountWindows(
+  page: Page,
+  subject: ExplorerUnderTest,
+  mark: number,
+): Promise<Array<string>> {
+  return (await totalCounts(page, subject, mark)).map(
+    (request: RecordedRequest): string => {
+      return `${recordedKey(request.window)}${request.exact ? "" : " (not exact)"}`;
+    },
+  );
 }
 
 /*
@@ -1125,12 +1171,42 @@ async function expectBackOnInitialRange(
       },
     )
     .toBe(bucketCount(subject.initial.window, subject.initial.bucketMs));
+  /*
+   * The list's total ("2,120 spans", issue #4202) is counted with the
+   * list's own query, so it follows the zoom and the reset as the histogram
+   * does: counted exactly for the zoom, then for the initial range, whose
+   * total the explorer shows again.
+   */
+  await check
+    .poll(
+      async (): Promise<Array<string>> => {
+        return totalCountWindows(page, subject, mark);
+      },
+      {
+        message: `the list's total was counted for the zoom, then the initial range, each exactly. Pointer events: ${events}`,
+        timeout: 5000,
+      },
+    )
+    .toEqual(expected);
+  const initialTotal: number | undefined = (
+    await totalCounts(page, subject, mark)
+  ).pop()?.count;
+  await check(
+    page.getByTestId(RESULT_TOTAL_TEST_ID),
+    `the list's total is the initial range's again. Pointer events: ${events}`,
+  ).toHaveText(
+    `${(initialTotal ?? NaN).toLocaleString("en-US")} ${subject.itemLabel}`,
+  );
 
   // Nothing late: no zoom fires after the page came back.
   await page.waitForTimeout(AFTER_GESTURE_MS);
   check(
     await histogramWindows(page, subject, mark),
     `no histogram request after the reset. Pointer events: ${events}`,
+  ).toEqual(expected);
+  check(
+    await totalCountWindows(page, subject, mark),
+    `no count after the reset. Pointer events: ${events}`,
   ).toEqual(expected);
 }
 
