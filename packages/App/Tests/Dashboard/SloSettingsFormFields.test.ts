@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { describe, expect, jest, test } from "@jest/globals";
 import {
   getSloFormFields,
@@ -330,7 +331,11 @@ describe("the Downtime Calculation card", () => {
     expect(new Set(descriptions).size).toBe(descriptions.length);
   });
 
-  test("picks downtime statuses from the project's monitor statuses by id", () => {
+  /*
+   * Listed in the project's own order - from the healthiest status to the
+   * worst, as the Monitor Statuses settings page puts them - not newest first.
+   */
+  test("picks downtime statuses from the project's monitor statuses by id, in their order", () => {
     const field: SloField = fieldIn(DOWNTIME_FIELDS, "downtimeMonitorStatuses");
 
     expect(field.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
@@ -338,6 +343,9 @@ describe("the Downtime Calculation card", () => {
       type: MonitorStatus,
       labelField: "name",
       valueField: "_id",
+      sort: {
+        priority: SortOrder.Ascending,
+      },
     });
   });
 

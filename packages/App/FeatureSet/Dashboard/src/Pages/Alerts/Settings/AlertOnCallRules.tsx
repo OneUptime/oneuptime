@@ -186,6 +186,9 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
             type: AlertSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -369,6 +372,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
             type: AlertSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",

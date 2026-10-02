@@ -8,8 +8,8 @@
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Incident" plainText=incidentTitle }}
-{{> DetailBoxField title="Current State" plainText=incidentState  }}
-{{> DetailBoxField title="Severity" plainText=incidentSeverity  }}
+{{> DetailBoxField title="Current State" plainText=incidentState color=incidentStateColor textColor=incidentStateTextColor }}
+{{> DetailBoxField title="Severity" plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
 {{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
 {{> IncidentCustomFieldRows this }}
 {{> DetailBoxEnd this }}

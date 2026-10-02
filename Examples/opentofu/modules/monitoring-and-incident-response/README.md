@@ -41,7 +41,7 @@ When a monitor's probe fails, its offline criteria flips the monitor status, ope
 
 ## What it deliberately does not create
 
-**Monitor statuses and incident severities.** OneUptime seeds every project with `Operational` / `Degraded` / `Offline` and `Critical Incident` / `Major Incident` / `Minor Incident`. A module instantiated once per service would add a duplicate set on every call, and monitor-status `priority` is an insert slot that shifts existing statuses — creating them per service reorders the project's taxonomy. The module looks them up by name instead.
+**Monitor statuses and incident severities.** OneUptime seeds every project with `Operational` / `Degraded` / `Offline` and `Critical Incident` / `Major Incident` / `Minor Incident`. A module instantiated once per service would add a duplicate set on every call, and a monitor status created with a `priority` another status already holds takes its place and moves the ones below it down — creating them per service reorders the project's taxonomy. The module looks them up by name instead.
 
 If your project renamed them, override `operational_monitor_status_name`, `offline_monitor_status_name`, and `incident_severity_name`.
 

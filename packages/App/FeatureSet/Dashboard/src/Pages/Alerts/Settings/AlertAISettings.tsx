@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageComponentProps from "../../PageComponentProps";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -63,6 +64,9 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               type: AlertSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             placeholder: "Every severity",
           },

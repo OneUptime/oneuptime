@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DependencySuppressionWarning from "../../../Components/Monitor/DependencySuppressionWarning";
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import MonitorsElement from "../../../Components/Monitor/Monitors";
@@ -75,6 +76,9 @@ const MonitorDependencies: FunctionComponent<
               type: MonitorStatus,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Any offline status (default)",

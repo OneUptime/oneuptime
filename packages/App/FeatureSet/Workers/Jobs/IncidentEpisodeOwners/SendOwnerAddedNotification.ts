@@ -16,6 +16,7 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
@@ -145,9 +146,11 @@ RunCron(
             },
             currentIncidentState: {
               name: true,
+              color: true,
             },
             incidentSeverity: {
               name: true,
+              color: true,
             },
             episodeNumber: true,
             episodeNumberWithPrefix: true,
@@ -183,11 +186,19 @@ RunCron(
         episodeNumber: episodeNumber,
         projectName: episode.project!.name!,
         currentState: episode.currentIncidentState!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          episode.currentIncidentState?.color,
+        ),
         episodeDescription: await Markdown.convertToHTML(
           episode.description! || "",
           MarkdownContentType.Email,
         ),
         episodeSeverity: episode.incidentSeverity?.name || "Not Set",
+        ...EmailColorUtil.getTemplateVariables(
+          "episodeSeverity",
+          episode.incidentSeverity?.color,
+        ),
         episodeViewLink: (
           await IncidentEpisodeService.getEpisodeLinkInDashboard(
             episode.projectId!,

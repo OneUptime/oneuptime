@@ -1,15 +1,15 @@
-import logger from "../Utils/Logger";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
+import StateOrderGuard from "../Utils/Database/StateOrderGuard";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -18,23 +18,21 @@ export class Service extends DatabaseService<IncidentState> {
     super(IncidentState);
   }
 
+  /*
+   * A new state with no place goes just above the resolved state, and a signed-in
+   * create that would put the built-in states out of order is refused
+   * (Common/Server/Utils/Database/StateOrderGuard). Where it ends up in the
+   * list is then kept by DatabaseService (@ListOrderColumn).
+   */
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<IncidentState>,
   ): Promise<OnCreate<IncidentState>> {
-    if (!createBy.data.order) {
-      throw new BadDataException("Incident State order is required");
-    }
-
-    if (!createBy.data.projectId) {
-      throw new BadDataException("Incident State projectId is required");
-    }
-
-    await this.rearrangeOrder(
-      createBy.data.order,
-      createBy.data.projectId,
-      true,
-    );
+    await StateOrderGuard.beforeCreate({
+      service: this,
+      definition: STATE_LISTS[StateListType.IncidentState],
+      createBy: createBy,
+    });
 
     return {
       createBy: createBy,
@@ -52,123 +50,34 @@ export class Service extends DatabaseService<IncidentState> {
       );
     }
 
-    let incidentState: IncidentState | null = null;
-
-    if (!deleteBy.props.isRoot) {
-      incidentState = await this.findOneBy({
-        query: deleteBy.query,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          order: true,
-          projectId: true,
-        },
-      });
-    }
+    // A project always keeps a created, an acknowledged and a resolved state.
+    await StateOrderGuard.beforeDelete({
+      service: this,
+      definition: STATE_LISTS[StateListType.IncidentState],
+      deleteBy: deleteBy,
+    });
 
     return {
       deleteBy,
-      carryForward: incidentState,
-    };
-  }
-
-  @CaptureSpan()
-  protected override async onDeleteSuccess(
-    onDelete: OnDelete<IncidentState>,
-    _itemIdsBeforeDelete: ObjectID[],
-  ): Promise<OnDelete<IncidentState>> {
-    const deleteBy: DeleteBy<IncidentState> = onDelete.deleteBy;
-    const incidentState: IncidentState | null = onDelete.carryForward;
-
-    if (!deleteBy.props.isRoot && incidentState) {
-      if (incidentState && incidentState.order && incidentState.projectId) {
-        await this.rearrangeOrder(
-          incidentState.order,
-          incidentState.projectId,
-          false,
-        );
-      }
-    }
-
-    return {
-      deleteBy: deleteBy,
       carryForward: null,
     };
   }
 
+  /*
+   * A state can be moved - dragged on the settings page, or given another
+   * number through the API - as long as the created, acknowledged and resolved states keep their order.
+   */
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<IncidentState>,
   ): Promise<OnUpdate<IncidentState>> {
-    if (updateBy.data.order && !updateBy.props.isRoot) {
-      throw new BadDataException(
-        "Incident State order should not be updated. Delete this incident state and create a new state with the right order.",
-      );
-    }
-
-    return { updateBy, carryForward: null };
-  }
-
-  private async rearrangeOrder(
-    currentOrder: number,
-    projectId: ObjectID,
-    increaseOrder: boolean = true,
-  ): Promise<void> {
-    // get incident with this order.
-    const incidentStates: Array<IncidentState> = await this.findBy({
-      query: {
-        order: QueryHelper.greaterThanEqualTo(currentOrder),
-        projectId: projectId,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      sort: {
-        order: SortOrder.Ascending,
-      },
+    await StateOrderGuard.beforeUpdate({
+      service: this,
+      definition: STATE_LISTS[StateListType.IncidentState],
+      updateBy: updateBy,
     });
 
-    let newOrder: number = currentOrder;
-
-    for (const incidentState of incidentStates) {
-      if (increaseOrder) {
-        newOrder = incidentState.order! + 1;
-      } else {
-        newOrder = incidentState.order! - 1;
-      }
-
-      /*
-       * Concurrent deletes (e.g. Terraform destroying several items in
-       * parallel) can soft-delete a row between the findBy above and
-       * this update; save() would then INSERT with a null projectId and
-       * fail the whole delete with a 500. A row that vanished
-       * mid-rearrange needs no repositioning - skip it.
-       */
-      try {
-        await this.updateOneBy({
-          query: {
-            _id: incidentState._id!,
-          },
-          data: {
-            order: newOrder,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      } catch (err) {
-        logger.warn(
-          `rearrange: skipping row (likely deleted concurrently): ${err}`,
-        );
-      }
-    }
+    return { updateBy, carryForward: null };
   }
 
   @CaptureSpan()

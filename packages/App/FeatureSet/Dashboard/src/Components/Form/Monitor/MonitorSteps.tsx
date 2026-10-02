@@ -124,9 +124,12 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             color: true,
             isOperationalState: true,
             isOfflineState: true,
+            priority: true,
           },
 
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       /*
