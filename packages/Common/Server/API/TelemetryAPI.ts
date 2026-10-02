@@ -28,6 +28,7 @@ import LogAggregationService, {
   HistogramRequest,
   FacetValue,
   FacetRequest,
+  ResourceFacetCountRequest,
   LogAttributeFilters,
   AnalyticsRequest,
   AnalyticsChartType,
@@ -106,7 +107,9 @@ import RumSession from "../../Models/AnalyticsModels/RumSession";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { JSONArray, JSONObject } from "../../Types/JSON";
-import ResourceFacetResolver from "../Utils/Telemetry/ResourceFacetResolver";
+import ResourceFacetResolver, {
+  ResourceFacetEntity,
+} from "../Utils/Telemetry/ResourceFacetResolver";
 import ResourceFacetPlanner, {
   ListedResourceFacets,
 } from "../Utils/Telemetry/ResourceFacetPlanner";
@@ -843,6 +846,37 @@ router.post(
           };
           return LogAggregationService.getFacetValues(request);
         },
+        /*
+         * Resource facets are counted from their listed Postgres rows, one
+         * `countIf` per resource matching id OR entity key OR resource
+         * attribute — so an OTLP cluster / host that is only mentioned in
+         * `entityKeys` shows its real count instead of 0 (issue #3251).
+         */
+        countResourceFacet: (
+          facetKey: string,
+          entities: Array<ResourceFacetEntity>,
+        ): Promise<Array<FacetValue>> => {
+          const request: ResourceFacetCountRequest = {
+            projectId,
+            startTime,
+            endTime,
+            facetKey,
+            limit,
+            serviceIds,
+            entityKeys,
+            resourceScopes,
+            severityTexts,
+            bodySearchText,
+            traceIds,
+            spanIds,
+            sessionIds,
+            attributes,
+            entityIds: entities.map((entity: ResourceFacetEntity): string => {
+              return entity.id;
+            }),
+          };
+          return LogAggregationService.getResourceFacetValueCounts(request);
+        },
       });
 
       return Response.sendJsonObjectResponse(req, res, {
@@ -1262,11 +1296,10 @@ router.post(
       );
 
       /*
-       * Resource facets list their Postgres rows FIRST. The exact counts are
-       * one shared GROUP BY for statusCode and every resource facet, so it
-       * only runs when statusCode is requested or some requested resource
-       * facet listed a row to merge counts into — a sidebar whose resource
-       * types the project has none of skips the scan entirely. The listing
+       * Resource facets list their Postgres rows FIRST, then each one counts
+       * its listed rows by resolved scope (getResourceFacetValueCounts). The
+       * shared projection GROUP BY below only feeds statusCode, so it runs
+       * only when statusCode is requested. The listing
        * still overlaps the sample / root-span / exception queries.
        */
       const resourceListing: Promise<ListedResourceFacets> =
@@ -1292,7 +1325,7 @@ router.post(
        * were previously awaited one after another, so their latencies added up.
        * getHasExceptionCounts in particular is a base-table GROUP BY
        * (hasException is not a proj_hist_by_minute key), so overlapping it with
-       * the projection-backed sample / resource / root-span queries keeps it
+       * the sample / statusCode / root-span queries keeps it
        * off the critical path. Each query keeps its own degrade-to-empty catch.
        */
       const [
@@ -1370,7 +1403,6 @@ router.post(
       ]);
 
       const facets: Record<string, Array<TraceFacetValue>> = sampledFacets;
-      const serviceCounts: Map<string, number> = accurate.serviceCounts;
       const statusCounts: Map<string, number> = accurate.statusCounts;
 
       if (facetKeys.includes("statusCode")) {
@@ -1414,21 +1446,32 @@ router.post(
 
       /*
        * Resource facets answer with the Postgres source-of-truth list
-       * (filtered by facetSearchText and enriched with displayName). Every
-       * resource facet shares the same exact primaryEntityId -> count map;
-       * resource ids are globally unique, so each facet only ever resolves its own
-       * entities. Entities with no telemetry in the window surface with count
-       * 0 instead of being hidden, and the search box can find resources
-       * beyond the loaded subset. A facet that listed nothing answers [].
+       * (filtered by facetSearchText and enriched with displayName). Each one
+       * is counted from its own listed rows with the membership test selection
+       * uses — id OR entity key OR resource attribute — so an OTLP cluster /
+       * host that is only mentioned in `entityKeys` shows its real count
+       * instead of 0 (issue #3251). Entities with no telemetry in the window
+       * surface with count 0 instead of being hidden, and the search box can
+       * find resources beyond the loaded subset. A facet that listed nothing
+       * answers [].
        */
       const resourceFacets: Record<
         string,
         Array<TraceFacetValue>
-      > = ResourceFacetPlanner.mergeResourceFacetCounts({
+      > = await ResourceFacetPlanner.countResourceFacets({
         facetKeys,
         listed: listedResourceFacets,
-        countsFor: (): Map<string, number> => {
-          return serviceCounts;
+        counter: (
+          facetKey: string,
+          entities: Array<ResourceFacetEntity>,
+        ): Promise<Array<TraceFacetValue>> => {
+          return TraceAggregationService.getResourceFacetValueCounts({
+            ...multiRequest,
+            facetKey,
+            entityIds: entities.map((entity: ResourceFacetEntity): string => {
+              return entity.id;
+            }),
+          });
         },
       });
 

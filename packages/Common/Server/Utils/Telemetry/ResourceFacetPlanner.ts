@@ -5,6 +5,7 @@ import ResourceFacetResolver, {
   ResourceFacetListSpec,
 } from "./ResourceFacetResolver";
 import CaptureSpan from "./CaptureSpan";
+import logger from "../Logger";
 
 /*
  * Orchestrates a telemetry facets request that mixes resource facets (value
@@ -37,6 +38,18 @@ export type FacetValueCounter = (
   facetKey: string,
 ) => Promise<Array<PlannedFacetValue>>;
 
+/*
+ * Counts a resource facet from the Postgres rows already listed for it, so the
+ * ClickHouse query can match each resource by id OR entity key OR resource
+ * attribute — the same membership test selection uses (issue #3251). Optional:
+ * a caller whose count source cannot express that (or that has not been
+ * migrated yet) leaves it out and keeps the plain per-facet count.
+ */
+export type ResourceFacetValueCounter = (
+  facetKey: string,
+  entities: Array<ResourceFacetEntity>,
+) => Promise<Array<PlannedFacetValue>>;
+
 // facetKey -> the Postgres rows listed for it. Resource facets only.
 export type ListedResourceFacets = Record<string, Array<ResourceFacetEntity>>;
 
@@ -50,6 +63,7 @@ export interface ResourceFacetListRequest {
 
 export interface PerFacetCountRequest extends ResourceFacetListRequest {
   countFacet: FacetValueCounter;
+  countResourceFacet?: ResourceFacetValueCounter | undefined;
 }
 
 export default class ResourceFacetPlanner {
@@ -112,24 +126,15 @@ export default class ResourceFacetPlanner {
   }
 
   /*
-   * Traces count every resource facet (and statusCode) from ONE shared
-   * projection-backed GROUP BY, so the skip is all-or-nothing: the query is
-   * still needed when statusCode is requested, or when any requested
-   * resource facet listed at least one row to merge counts into.
+   * Traces count resource facets per resource through countResourceFacets
+   * (id OR entity key OR attribute), so the shared projection-backed
+   * `primaryEntityId -> count` query is only still needed for statusCode.
    */
   public static needsTraceResourceFacetCounts(data: {
     facetKeys: Array<string>;
     listed: ListedResourceFacets;
   }): boolean {
-    if (data.facetKeys.includes("statusCode")) {
-      return true;
-    }
-
-    return ResourceFacetPlanner.getResourceFacetKeys(data.facetKeys).some(
-      (facetKey: string): boolean => {
-        return ResourceFacetPlanner.hasListedEntities(data.listed, facetKey);
-      },
-    );
+    return data.facetKeys.includes("statusCode");
   }
 
   /*
@@ -206,16 +211,29 @@ export default class ResourceFacetPlanner {
               return [facetKey, []] as const;
             }
 
-            const values: Array<PlannedFacetValue> =
-              await ResourceFacetPlanner.countOrEmpty(
-                request.countFacet,
-                facetKey,
-              );
+            const entities: Array<ResourceFacetEntity> = listed[facetKey] || [];
+
+            /*
+             * Preferred: count each listed resource by its own resolved scope,
+             * so a row that carries the resource's entity key without being
+             * primary-keyed on it is counted too (issue #3251). Falls back to
+             * the plain grouped count for callers that do not supply one.
+             */
+            const values: Array<PlannedFacetValue> = request.countResourceFacet
+              ? await ResourceFacetPlanner.countOrEmptyResource(
+                  request.countResourceFacet,
+                  facetKey,
+                  entities,
+                )
+              : await ResourceFacetPlanner.countOrEmpty(
+                  request.countFacet,
+                  facetKey,
+                );
 
             return [
               facetKey,
               ResourceFacetResolver.mergeCounts(
-                listed[facetKey] || [],
+                entities,
                 ResourceFacetPlanner.toCountMap(values),
               ),
             ] as const;
@@ -224,6 +242,60 @@ export default class ResourceFacetPlanner {
       );
 
     return Object.fromEntries(results);
+  }
+
+  /*
+   * Phase two for the Trace endpoint, which shares one count source across
+   * facets. Each requested resource facet is counted from its own listed rows
+   * (id OR entity key OR attribute — see ResourceFacetValueCounter); a facet
+   * that listed nothing answers [], and a failing count still returns the
+   * listed rows with count 0 so the sidebar keeps listing the project's
+   * resources.
+   */
+  @CaptureSpan()
+  public static async countResourceFacets(data: {
+    facetKeys: Array<string>;
+    listed: ListedResourceFacets;
+    counter: ResourceFacetValueCounter;
+  }): Promise<Record<string, Array<ResolvedFacetValue>>> {
+    const merged: Record<string, Array<ResolvedFacetValue>> = {};
+
+    const results: Array<readonly [string, Array<ResolvedFacetValue>]> =
+      await Promise.all(
+        ResourceFacetPlanner.getResourceFacetKeys(data.facetKeys).map(
+          async (
+            facetKey: string,
+          ): Promise<readonly [string, Array<ResolvedFacetValue>]> => {
+            const entities: Array<ResourceFacetEntity> =
+              data.listed[facetKey] || [];
+
+            if (entities.length === 0) {
+              return [facetKey, []] as const;
+            }
+
+            const values: Array<PlannedFacetValue> =
+              await ResourceFacetPlanner.countOrEmptyResource(
+                data.counter,
+                facetKey,
+                entities,
+              );
+
+            return [
+              facetKey,
+              ResourceFacetResolver.mergeCounts(
+                entities,
+                ResourceFacetPlanner.toCountMap(values),
+              ),
+            ] as const;
+          },
+        ),
+      );
+
+    for (const [facetKey, values] of results) {
+      merged[facetKey] = values;
+    }
+
+    return merged;
   }
 
   public static toCountMap(
@@ -245,6 +317,27 @@ export default class ResourceFacetPlanner {
     try {
       return await countFacet(facetKey);
     } catch {
+      return [];
+    }
+  }
+
+  private static async countOrEmptyResource(
+    counter: ResourceFacetValueCounter,
+    facetKey: string,
+    entities: Array<ResourceFacetEntity>,
+  ): Promise<Array<PlannedFacetValue>> {
+    try {
+      return await counter(facetKey, entities);
+    } catch (err: unknown) {
+      /*
+       * A failed count still returns the listed rows with count 0, so the
+       * sidebar keeps listing the project's resources. Logged because a count
+       * that silently reads 0 is indistinguishable from a genuinely empty
+       * resource — which is what made #3251 hard to see in the first place.
+       */
+      logger.warn(
+        `Facet count failed for ${facetKey} (${entities.length} resources); showing count 0: ${err}`,
+      );
       return [];
     }
   }

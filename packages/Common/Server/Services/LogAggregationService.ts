@@ -16,10 +16,14 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
-import {
+import ResourceEntityFilter, {
   appendResourceScopeFilters,
   ResourceEntityScope,
 } from "../Utils/Telemetry/ResourceEntityFilter";
+import {
+  buildResourceFacetCountStatement,
+  readResourceFacetCounts,
+} from "../Utils/Telemetry/ResourceFacetCountQuery";
 import {
   buildLogErrorPatternExpression,
   clampLogErrorPattern,
@@ -103,6 +107,15 @@ export interface FacetRequest {
   spanIds?: Array<string> | undefined;
   sessionIds?: Array<string> | undefined;
   attributes?: LogAttributeFilters | undefined;
+}
+
+/*
+ * A resource facet's count request: the facet, the Postgres ids the sidebar
+ * listed for it, and the same filters a plain facet count carries. See
+ * getResourceFacetValueCounts.
+ */
+export interface ResourceFacetCountRequest extends FacetRequest {
+  entityIds: Array<string>;
 }
 
 export type AnalyticsChartType = "timeseries" | "toplist" | "table";
@@ -557,6 +570,111 @@ export class LogAggregationService {
       getQuerySettings({
         maxExecutionTimeInSeconds: 45,
         timeoutOverflowMode: "break",
+        boundScanMemory: true,
+      }),
+    );
+
+    return statement;
+  }
+
+  /*
+   * Per-resource counts for a resource facet, computed from the Postgres rows
+   * the sidebar already listed for it. Each listed resource is counted by its
+   * own resolved scope — `primaryEntityId = id OR hasAny(entityKeys, [key]) OR
+   * attributes['resource.x'] = identifier` — which is exactly the membership
+   * test selection uses, so the number next to a value and the rows clicking it
+   * returns finally agree (issue #3251).
+   *
+   * One `countIf` column per resource, so a row matching several branches
+   * (agent-ingested rows match both id and key) counts once. The cheap scalar
+   * entity-key columns cover modern rows; the full predicate (attributes
+   * included) runs only on rows that predate them. See
+   * ResourceFacetCountQuery.
+   */
+  @CaptureSpan()
+  public static async getResourceFacetValueCounts(
+    request: ResourceFacetCountRequest,
+  ): Promise<Array<FacetValue>> {
+    const entityIds: Array<string> = Array.from(
+      new Set(
+        (request.entityIds || []).filter((id: string): boolean => {
+          return typeof id === "string" && id.length > 0;
+        }),
+      ),
+    );
+
+    if (entityIds.length === 0) {
+      return [];
+    }
+
+    LogAggregationService.validateFacetKey(request.facetKey);
+
+    const scopes: Map<string, ResourceEntityScope> =
+      await ResourceEntityFilter.resolveCountScopes({
+        projectId: request.projectId,
+        facetKey: request.facetKey,
+        ids: entityIds,
+      });
+
+    const statement: Statement =
+      LogAggregationService.buildResourceFacetCountStatement(
+        request,
+        entityIds,
+        scopes,
+      );
+
+    const dbResult: Results = await LogDatabaseService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const rows: Array<JSONObject> = response.data || [];
+
+    return readResourceFacetCounts(rows[0], entityIds).map(
+      (value: { value: string; count: number }): FacetValue => {
+        return { value: value.value, count: value.count };
+      },
+    );
+  }
+
+  private static buildResourceFacetCountStatement(
+    request: ResourceFacetCountRequest,
+    entityIds: Array<string>,
+    scopes: Map<string, ResourceEntityScope>,
+  ): Statement {
+    const statement: Statement = buildResourceFacetCountStatement({
+      ids: entityIds,
+      scopes,
+      appendFromWhere: (fromWhere: Statement): void => {
+        fromWhere.append(
+          SQL` FROM ${LogAggregationService.TABLE_NAME} WHERE projectId = ${{
+            type: TableColumnType.ObjectID,
+            value: request.projectId,
+          }} AND time >= ${{
+            type: TableColumnType.Date,
+            value: request.startTime,
+          }} AND time <= ${{
+            type: TableColumnType.Date,
+            value: request.endTime,
+          }}`,
+        );
+
+        fromWhere.append(LogAggregationService.RETENTION_FILTER);
+
+        LogAggregationService.appendCommonFilters(fromWhere, request);
+      },
+    });
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        /*
+         * Resource facet counts must not treat an interrupted query as an
+         * exact zero: "break" returns zero rows on timeout, which reads as
+         * count 0 for every resource. "throw" fails, and the planner keeps
+         * the listed resources visible.
+         */
+        timeoutOverflowMode: "throw",
         boundScanMemory: true,
       }),
     );
