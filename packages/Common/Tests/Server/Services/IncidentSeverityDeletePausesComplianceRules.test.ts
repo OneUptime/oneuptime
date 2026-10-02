@@ -39,8 +39,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *
  * TeamComplianceSettingService's side - which rules, and the pause itself - is
  * pinned in TeamComplianceSettingService.test.ts; this file pins that both
- * services call it, in that order, with the right kind, and that the ordering
- * work the hooks already did is unchanged.
+ * services call it, in that order, with the right kind. A severity's place in
+ * its list is kept by DatabaseService (@ListOrderColumn), so a delete no
+ * longer re-ranks the severities that remain: their numbers keep their order
+ * with a gap where the deleted one was.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -62,12 +64,6 @@ type OnDeleteSuccessFunction = (
   itemIdsBeforeDelete: Array<ObjectID>,
 ) => Promise<OnDelete<SeverityModel>>;
 
-type RearrangeOrderFunction = (
-  currentOrder: number,
-  projectId: ObjectID,
-  increaseOrder: boolean,
-) => Promise<void>;
-
 type InternalFindFunction = (
   findBy: JSONObject,
 ) => Promise<Array<SeverityModel>>;
@@ -75,7 +71,6 @@ type InternalFindFunction = (
 interface SeverityServiceInternals {
   onBeforeDelete: OnBeforeDeleteFunction;
   onDeleteSuccess: OnDeleteSuccessFunction;
-  rearrangeOrder: RearrangeOrderFunction;
   _findBy: InternalFindFunction;
 }
 
@@ -153,7 +148,6 @@ describe.each(CASES)(
     let findBy: jest.SpyInstance;
     let getRulesScopedToAnyOf: jest.SpyInstance;
     let pauseRules: jest.SpyInstance;
-    let rearrangeOrder: jest.SpyInstance;
     let events: Array<string>;
 
     beforeEach(() => {
@@ -178,10 +172,6 @@ describe.each(CASES)(
           events.push("pause rules");
           return Promise.resolve([SCOPED_RULE_ID]);
         });
-
-      rearrangeOrder = jest
-        .spyOn(internals, "rearrangeOrder")
-        .mockResolvedValue(undefined as never);
     });
 
     test("before the delete, the severities it removes are read as root and the rules that reference them are looked up", async () => {
@@ -195,7 +185,6 @@ describe.each(CASES)(
       expect(read["query"]).toEqual({ _id: SEVERITY_ID });
       expect(read["select"]).toEqual({
         _id: true,
-        order: true,
         projectId: true,
       });
       expect(read["limit"]).toBe(1);
@@ -226,7 +215,7 @@ describe.each(CASES)(
       ).toEqual([SCOPED_RULE_ID]);
     });
 
-    test("a root delete is looked up too - it only skips the re-ranking", async () => {
+    test("a root delete is looked up too", async () => {
       await internals.onBeforeDelete(deleteByFor({ isRoot: true }));
 
       expect(getRulesScopedToAnyOf).toHaveBeenCalledTimes(1);
@@ -277,21 +266,22 @@ describe.each(CASES)(
       expect(loggerError).toHaveBeenCalled();
     });
 
-    test("a signed-in delete still re-ranks the severities that remain, and a root delete still does not", async () => {
-      let onDelete: OnDelete<SeverityModel> = await internals.onBeforeDelete(
-        deleteByFor(SIGNED_IN),
-      );
-      await internals.onDeleteSuccess(onDelete, [new ObjectID(SEVERITY_ID)]);
+    test("a delete leaves the other severities where they are: nothing is re-ranked", async () => {
+      const updateOneBy: jest.SpyInstance = jest
+        .spyOn(service, "updateOneBy")
+        .mockResolvedValue(1 as never);
+      const updateColumns: jest.SpyInstance = jest
+        .spyOn(service, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined as never);
 
-      expect(rearrangeOrder).toHaveBeenCalledTimes(1);
-      expect(rearrangeOrder.mock.calls[0]).toEqual([2, PROJECT_ID, false]);
+      for (const props of [SIGNED_IN, { isRoot: true }]) {
+        const onDelete: OnDelete<SeverityModel> =
+          await internals.onBeforeDelete(deleteByFor(props));
+        await internals.onDeleteSuccess(onDelete, [new ObjectID(SEVERITY_ID)]);
+      }
 
-      rearrangeOrder.mockClear();
-
-      onDelete = await internals.onBeforeDelete(deleteByFor({ isRoot: true }));
-      await internals.onDeleteSuccess(onDelete, [new ObjectID(SEVERITY_ID)]);
-
-      expect(rearrangeOrder).not.toHaveBeenCalled();
+      expect(updateOneBy).not.toHaveBeenCalled();
+      expect(updateColumns).not.toHaveBeenCalled();
     });
 
     describe("through deleteOneById", () => {
@@ -424,10 +414,6 @@ describe.each(CASES)(
       settingsUpdateBy = jest
         .spyOn(TeamComplianceSettingService, "updateBy")
         .mockResolvedValue(1 as never);
-
-      jest
-        .spyOn(internals, "rearrangeOrder")
-        .mockResolvedValue(undefined as never);
     });
 
     // What the database does when the delete of `id` commits.

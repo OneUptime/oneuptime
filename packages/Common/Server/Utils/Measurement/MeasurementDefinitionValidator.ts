@@ -1,5 +1,9 @@
 import BadDataException from "../../../Types/Exception/BadDataException";
 import MeasurementOccurrence from "../../../Types/Measurement/MeasurementOccurrence";
+import {
+  MEASUREMENT_KEY_PATTERN,
+  isValidMeasurementKey,
+} from "../../../Types/Measurement/MeasurementKey";
 
 /*
  * Validation shared by the incident, alert and scheduled maintenance
@@ -13,10 +17,11 @@ export default class MeasurementDefinitionValidator {
   /*
    * The key becomes part of the metric name, which lands in ClickHouse, in
    * the dashboard chart picker and in the API. It is immutable after
-   * creation, so it is worth rejecting a bad one loudly at the only moment
-   * it can still be changed.
+   * creation, so a key someone typed is worth rejecting loudly at the only
+   * moment it can still be changed. A key left out is made from the name
+   * instead (MeasurementKeyAssigner), and always fits.
    */
-  public static readonly KEY_PATTERN: RegExp = /^[a-z0-9][a-z0-9-]{0,49}$/;
+  public static readonly KEY_PATTERN: RegExp = MEASUREMENT_KEY_PATTERN;
 
   public static validateKey(key: string | undefined): void {
     if (!key) {
@@ -25,7 +30,7 @@ export default class MeasurementDefinitionValidator {
       );
     }
 
-    if (!MeasurementDefinitionValidator.KEY_PATTERN.test(key)) {
+    if (!isValidMeasurementKey(key)) {
       throw new BadDataException(
         `"${key}" is not a valid measurement key. Keys start with a lowercase letter or number, contain only lowercase letters, numbers and hyphens, and are at most 50 characters. For example: time-to-detect`,
       );

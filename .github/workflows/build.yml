@@ -5,11 +5,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Pull requests only. Every push to master builds these same images again in
+# test-release.yaml - from the same Dockerfiles, for both architectures and
+# both editions, with the release's own build script - and its e2e jobs check
+# the App's editions on the pushed images. Building them here as well on each
+# push to master cost ~40 runner-minutes (the home image alone ~20) and showed
+# nothing those jobs do not.
 on:
   pull_request:
-  push:
-    branches:
-      - master
 
 # Every job checks out and runs `docker build`; none pushes or calls the API.
 permissions:

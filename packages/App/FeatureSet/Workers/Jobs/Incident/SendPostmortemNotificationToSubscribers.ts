@@ -5,6 +5,7 @@ import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import SMS from "Common/Types/SMS/SMS";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
@@ -109,6 +110,7 @@ RunCron(
           },
           incidentSeverity: {
             name: true,
+            color: true,
           },
           incidentNumber: true,
           incidentNumberWithPrefix: true,
@@ -684,6 +686,10 @@ RunCron(
                                 resourcesAffected: resourcesAffectedString,
                                 incidentSeverity:
                                   incident.incidentSeverity?.name || " - ",
+                                ...EmailColorUtil.getTemplateVariables(
+                                  "incidentSeverity",
+                                  incident.incidentSeverity?.color,
+                                ),
                                 incidentTitle: incident.title || "",
                                 postmortemNote: postmortemNoteHtml,
                                 // The fields marked "Include in Subscriber Notifications".

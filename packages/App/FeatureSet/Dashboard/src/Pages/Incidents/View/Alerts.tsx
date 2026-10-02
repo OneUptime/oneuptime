@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -72,8 +73,11 @@ const IncidentViewAlerts: FunctionComponent<
               _id: true,
               name: true,
               color: true,
+              order: true,
             },
-            sort: {},
+            sort: {
+              order: SortOrder.Ascending,
+            },
           });
         setAlertStates(result.data);
       } catch {

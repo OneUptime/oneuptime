@@ -423,12 +423,15 @@ describe("GAP A CLOSED - IncidentSeverityService queues the rule backfill on cre
 
   beforeEach(() => {
     /*
-     * onBeforeCreate's only real work is order rearrangement, which reads and
-     * rewrites sibling rows. Stub both so the hook is drivable without a
-     * database.
+     * onBeforeCreate reads and writes no rows for a severity - DatabaseService
+     * keeps the list's order (@ListOrderColumn) - but the reads and writes
+     * are stubbed anyway, so one added later cannot reach a database here.
      */
     jest
       .spyOn(IncidentSeverityService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(IncidentSeverityService, "findAllBy")
       .mockResolvedValue([] as never);
     jest
       .spyOn(IncidentSeverityService, "updateOneBy")
@@ -478,15 +481,16 @@ describe("GAP A CLOSED - IncidentSeverityService queues the rule backfill on cre
   }
 
   /*
-   * GAP A CLOSED - onCreateSuccess is the hook Phase 1 added, so it now appears
-   * in this list. The rest of the list is unchanged: the backfill hangs off the
-   * success hook, not off any of the before-hooks.
+   * GAP A CLOSED - onCreateSuccess is the hook Phase 1 added, so it appears in
+   * this list: the backfill hangs off the success hook, not off any of the
+   * before-hooks. There is no onBeforeUpdate any more: severities are dragged
+   * into order and DatabaseService keeps it (@ListOrderColumn), so an update
+   * needs no hook of its own.
    */
-  test("it overrides onCreateSuccess alongside its ordering hooks", () => {
+  test("it overrides onCreateSuccess alongside its create and delete hooks", () => {
     expect(ownHookNames(IncidentSeverityServiceClass.prototype)).toEqual([
       "onBeforeCreate",
       "onBeforeDelete",
-      "onBeforeUpdate",
       "onCreateSuccess",
       "onDeleteSuccess",
     ]);
@@ -541,10 +545,22 @@ describe("GAP A CLOSED - IncidentSeverityService queues the rule backfill on cre
     expect(addJobSpy).not.toHaveBeenCalled();
   });
 
-  test("onBeforeCreate only rearranges sibling order - that is its whole job", async () => {
+  /*
+   * It used to read and renumber the sibling severities itself. The order is
+   * kept by DatabaseService now, so the hook reads no rows at all.
+   */
+  test("onBeforeCreate reads no rows - DatabaseService keeps the order", async () => {
     const findBySpy: jest.SpyInstance = jest.spyOn(
       IncidentSeverityService,
       "findBy",
+    );
+    const findAllBySpy: jest.SpyInstance = jest.spyOn(
+      IncidentSeverityService,
+      "findAllBy",
+    );
+    const updateOneBySpy: jest.SpyInstance = jest.spyOn(
+      IncidentSeverityService,
+      "updateOneBy",
     );
 
     await callHook(
@@ -553,7 +569,9 @@ describe("GAP A CLOSED - IncidentSeverityService queues the rule backfill on cre
       createBySeverity(),
     );
 
-    expect(findBySpy).toHaveBeenCalledTimes(1);
+    expect(findBySpy).not.toHaveBeenCalled();
+    expect(findAllBySpy).not.toHaveBeenCalled();
+    expect(updateOneBySpy).not.toHaveBeenCalled();
     expectNoInlineRuleCreation();
   });
 
@@ -612,15 +630,23 @@ describe("GAP A CLOSED - IncidentSeverityService queues the rule backfill on cre
     expect(returned).toBe(created);
   });
 
-  test("a severity with no order is rejected, and still nothing touches rules", async () => {
+  /*
+   * The order is optional: a severity created without one is put at the end
+   * of the list - the least severe - by DatabaseService.
+   */
+  test("a severity with no order is accepted, and still nothing touches rules", async () => {
     const createBy: CreateBy<IncidentSeverity> = createBySeverity();
     unsetColumn(createBy.data, "order");
 
-    await expect(
-      callHook(IncidentSeverityService, "onBeforeCreate", createBy),
-    ).rejects.toBeInstanceOf(BadDataException);
+    const onCreate: OnCreate<IncidentSeverity> = (await callHook(
+      IncidentSeverityService,
+      "onBeforeCreate",
+      createBy,
+    )) as OnCreate<IncidentSeverity>;
 
+    expect(onCreate.createBy.data).toBe(createBy.data);
     expectNoInlineRuleCreation();
+    expect(addJobSpy).not.toHaveBeenCalled();
   });
 
   test("a severity with no projectId is rejected, and still nothing touches rules", async () => {
@@ -678,6 +704,9 @@ describe("GAP A CLOSED - AlertSeverityService queues the rule backfill on create
   beforeEach(() => {
     jest.spyOn(AlertSeverityService, "findBy").mockResolvedValue([] as never);
     jest
+      .spyOn(AlertSeverityService, "findAllBy")
+      .mockResolvedValue([] as never);
+    jest
       .spyOn(AlertSeverityService, "updateOneBy")
       .mockResolvedValue(0 as never);
 
@@ -718,11 +747,10 @@ describe("GAP A CLOSED - AlertSeverityService queues the rule backfill on create
   /*
    * GAP A CLOSED - the alert half moves in lockstep with the incident half.
    */
-  test("it overrides onCreateSuccess alongside its ordering hooks", () => {
+  test("it overrides onCreateSuccess alongside its create and delete hooks", () => {
     expect(ownHookNames(AlertSeverityServiceClass.prototype)).toEqual([
       "onBeforeCreate",
       "onBeforeDelete",
-      "onBeforeUpdate",
       "onCreateSuccess",
       "onDeleteSuccess",
     ]);
@@ -784,15 +812,19 @@ describe("GAP A CLOSED - AlertSeverityService queues the rule backfill on create
     expectNoInlineRuleCreation();
   });
 
-  test("a severity with no order is rejected, and still nothing touches rules", async () => {
+  test("a severity with no order is accepted, and still nothing touches rules", async () => {
     const createBy: CreateBy<AlertSeverity> = createBySeverity();
     unsetColumn(createBy.data, "order");
 
-    await expect(
-      callHook(AlertSeverityService, "onBeforeCreate", createBy),
-    ).rejects.toBeInstanceOf(BadDataException);
+    const onCreate: OnCreate<AlertSeverity> = (await callHook(
+      AlertSeverityService,
+      "onBeforeCreate",
+      createBy,
+    )) as OnCreate<AlertSeverity>;
 
+    expect(onCreate.createBy.data).toBe(createBy.data);
     expectNoInlineRuleCreation();
+    expect(addJobSpy).not.toHaveBeenCalled();
   });
 
   test("a severity with no projectId is rejected, and still nothing touches rules", async () => {

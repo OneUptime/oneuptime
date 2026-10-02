@@ -1,5 +1,7 @@
 import ActionButtonSchema from "./ActionButtonSchema";
 import splitActionButtons, {
+  ActionButtonLock,
+  getActionButtonLock,
   IndexedActionButton,
   isDestructiveActionButton,
   SplitActionButtonsResult,
@@ -16,9 +18,9 @@ import useTranslateValue from "../../Utils/Translation";
 import React, { ReactElement, useRef, useState } from "react";
 
 /*
- * The actions of one row - a table row, a list card, a state in an ordered
- * list: one button, and a ⋯ menu holding everything else. SplitActionButtons
- * decides which action is which; this only draws the result.
+ * The actions of one row - a table row, a list card: one button, and a ⋯ menu
+ * holding everything else. SplitActionButtons decides which action is which,
+ * and whether it is locked on this row; this only draws the result.
  */
 
 export interface ComponentProps<T extends GenericObject> {
@@ -88,6 +90,10 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
       isMobile: props.isMobile,
     });
 
+  const primaryLock: ActionButtonLock | null = primary
+    ? getActionButtonLock(primary.button, props.item)
+    : null;
+
   if (!primary && moreMenu.length === 0 && !error) {
     return <></>;
   }
@@ -99,7 +105,7 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
   ): void => {
     const { button, index } = entry;
 
-    if (button.disabled || !button.onClick) {
+    if (getActionButtonLock(button, props.item).isDisabled || !button.onClick) {
       return;
     }
 
@@ -141,6 +147,11 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
     const title: string =
       translateString(entry.button.title) || entry.button.title;
 
+    const lock: ActionButtonLock = getActionButtonLock(
+      entry.button,
+      props.item,
+    );
+
     menuItems.push(
       <MoreMenuItem
         key={`action-${entry.index}`}
@@ -148,8 +159,8 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
         icon={entry.button.icon}
         isIconSpaceReserved={hasMenuIcons}
         isDestructive={isDestructive}
-        isDisabled={entry.button.disabled}
-        tooltip={translateString(entry.button.tooltip)}
+        isDisabled={lock.isDisabled}
+        tooltip={translateString(lock.tooltip)}
         onClick={() => {
           runAction(entry);
         }}
@@ -185,9 +196,9 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
       {primary && (
         /*
          * Button is w-full below md. Its own content-sized box keeps it the
-         * size of its label on every surface - a Table card, a List card and a
-         * centred ordered-states item alike - instead of stretching whenever
-         * the row's container happens to be a block.
+         * size of its label on every surface - a Table card and a List card
+         * alike - instead of stretching whenever the row's container happens
+         * to be a block.
          */
         <div className="shrink-0">
           <Button
@@ -196,8 +207,8 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
             icon={primary.button.icon}
             buttonStyle={getRowButtonStyle(primary.button.buttonStyleType)}
             isLoading={loadingActionIndexes.current[primary.index]}
-            disabled={primary.button.disabled}
-            tooltip={primary.button.tooltip}
+            disabled={primaryLock?.isDisabled}
+            tooltip={primaryLock?.tooltip}
             onClick={() => {
               runAction(primary);
             }}

@@ -205,15 +205,20 @@ export default class AlertMeasurement extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * Not required: a create without a key gets one made from the name
+   * (AlertMeasurementService.onBeforeCreate, MeasurementKeyAssigner). The
+   * column itself is never empty.
+   */
   @Index()
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Key",
     description:
-      "Stable, machine readable identifier for this measurement, unique within the project. It is immutable once created because it is used to build the metric name that every recorded point is written under - changing it would orphan all the history. Pick it carefully; to rename a measurement, change the Name instead.",
-    example: "time-to-detect",
+      "Stable, machine readable identifier for this measurement, unique within the project: lowercase letters, numbers and hyphens. Leave it out and it is made from the name - Time to Acknowledge becomes time-to-acknowledge, with -2, -3 and so on added when another measurement already has it. It cannot be changed once the measurement is created, because it is used to build the metric name that every recorded point is written under; to rename a measurement, change the Name instead.",
+    example: "time-to-acknowledge",
   })
   @Column({
     nullable: false,

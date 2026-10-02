@@ -449,8 +449,11 @@ const IncidentView: FunctionComponent<
             name: true,
             isAcknowledgedState: true,
             isResolvedState: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         }),
         ModelAPI.getItem<Incident>({
           id: modelId,
@@ -1205,6 +1208,9 @@ const IncidentView: FunctionComponent<
                   type: IncidentSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: true,
                 placeholder: "Incident Severity",
@@ -1692,6 +1698,9 @@ const IncidentView: FunctionComponent<
                   type: MonitorStatus,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    priority: SortOrder.Ascending,
+                  },
                 },
                 required: false,
                 placeholder: "Monitor Status",

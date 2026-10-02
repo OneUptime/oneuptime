@@ -55,7 +55,12 @@ const ActiveIncidentEpisodes: FunctionComponent<
         isDeleteable={false}
         query={{
           currentIncidentState: {
-            order: 1,
+            /*
+             * In the state new ones start in - not "the state numbered
+             * 1": states are dragged into any order, and the first one
+             * need not be where new ones start.
+             */
+            isCreatedState: true,
           },
         }}
         fetchRequestOptions={

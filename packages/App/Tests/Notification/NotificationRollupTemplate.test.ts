@@ -2,7 +2,9 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import Path from "path";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import Color from "Common/Types/Color";
 import Dictionary from "Common/Types/Dictionary";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import { JSONObject } from "Common/Types/JSON";
 import UserNotificationEmailRollupItem from "Common/Models/DatabaseModels/UserNotificationEmailRollupItem";
 import RollupCategory from "Common/Types/NotificationSetting/NotificationEmailRollupCategory";
@@ -86,6 +88,8 @@ interface ItemInput {
   rollupCategory?: RollupCategory | undefined;
   severity?: string | undefined;
   currentState?: string | undefined;
+  severityColor?: string | undefined;
+  currentStateColor?: string | undefined;
 }
 
 type MakeItemFunction = (input: ItemInput) => UserNotificationEmailRollupItem;
@@ -106,6 +110,12 @@ const makeItem: MakeItemFunction = (
   }
   if (input.currentState !== undefined) {
     item.currentState = input.currentState;
+  }
+  if (input.severityColor !== undefined) {
+    item.severityColor = new Color(input.severityColor);
+  }
+  if (input.currentStateColor !== undefined) {
+    item.currentStateColor = new Color(input.currentStateColor);
   }
 
   if (input.viewLink !== undefined) {
@@ -749,6 +759,231 @@ describe("NotificationRollup.hbs severity, state and card spacing", () => {
   });
 });
 
+/*
+ * The chips the screenshot in the request showed as two grey boxes -
+ * "Severity: Low" and "State: Resolved" - now carry the colours the project
+ * gave that severity and that state: a small dot in the colour itself,
+ * ringed in the readable shade so a near-white colour still shows, and the
+ * value in that shade. The "Severity:" and "State:" labels stay neutral.
+ */
+describe("NotificationRollup.hbs severity and state colours", () => {
+  interface Chip {
+    label: string;
+    dotStyle: string | null;
+    valueStyle: string | null;
+    value: string;
+  }
+
+  /*
+   * Every chip in render order, read out of the markup the way a mail client
+   * would lay it out: the label, an optional dot, and the bold value.
+   */
+  const chips: (html: string) => Array<Chip> = (html: string): Array<Chip> => {
+    const found: Array<Chip> = [];
+
+    for (const match of html.matchAll(
+      /border-radius: 4px;">(Severity|State): (?:<span class="st-ColorDot" aria-hidden="true" style="([^"]*)"><\/span>)?<strong(?: class="st-ColorText" style="([^"]*)")?>([^<]*)<\/strong><\/span>/g,
+    )) {
+      found.push({
+        label: match[1]!,
+        dotStyle: match[2] ?? null,
+        valueStyle: match[3] ?? null,
+        value: match[4]!,
+      });
+    }
+
+    return found;
+  };
+
+  const LOW: string = "#facc15";
+  const RESOLVED: string = "#22c55e";
+
+  test("paints the screenshot's alert: a dot and a coloured value per chip, labels untouched", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      build([
+        makeItem({
+          offsetSeconds: 0,
+          subject:
+            "[Resolved Alert ALT-44] - [K8s] High Memory Utilization (>85%)",
+          viewLink: INCIDENT_LINK,
+          rollupCategory: RollupCategory.Alerts,
+          severity: "Low",
+          currentState: "Resolved",
+          severityColor: LOW,
+          currentStateColor: RESOLVED,
+        }),
+      ]).vars,
+    );
+    const lowText: string = EmailColorUtil.getColorPair(LOW)!.textColor;
+    const resolvedText: string =
+      EmailColorUtil.getColorPair(RESOLVED)!.textColor;
+
+    expect(chips(html)).toEqual([
+      {
+        label: "Severity",
+        dotStyle: expect.stringContaining(`background-color: ${LOW};`),
+        valueStyle: `color: ${lowText};`,
+        value: "Low",
+      },
+      {
+        label: "State",
+        dotStyle: expect.stringContaining(`background-color: ${RESOLVED};`),
+        valueStyle: `color: ${resolvedText};`,
+        value: "Resolved",
+      },
+    ]);
+
+    const [severityChip, stateChip] = chips(html);
+
+    expect(severityChip!.dotStyle).toContain(`border: 1px solid ${lowText};`);
+    expect(stateChip!.dotStyle).toContain(`border: 1px solid ${resolvedText};`);
+
+    for (const chip of chips(html)) {
+      expect(chip.dotStyle).toContain("border-radius: 9999px;");
+      expect(chip.dotStyle).toContain("display: inline-block;");
+      expect(chip.dotStyle).toContain("width: 6px;");
+      expect(chip.dotStyle).toContain("height: 6px;");
+    }
+
+    // The chip itself keeps its neutral grey, so only the value changes.
+    expect(html).toContain(
+      'background-color: #eef2f7; border: 1px solid #cbd5e1; border-radius: 4px;">Severity: <span',
+    );
+  });
+
+  test("a pale severity's value is a darker shade than its dot", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      build([
+        makeItem({
+          offsetSeconds: 0,
+          subject: "Pale",
+          severity: "Low",
+          severityColor: LOW,
+        }),
+      ]).vars,
+    );
+    const chip: Chip = chips(html)[0]!;
+
+    expect(chip.dotStyle).toContain(`background-color: ${LOW};`);
+    expect(chip.valueStyle).not.toContain(LOW);
+  });
+
+  test("a row queued before colours existed keeps the plain chips", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      build([
+        makeItem({
+          offsetSeconds: 0,
+          subject: "Legacy",
+          severity: "High",
+          currentState: "Acknowledged",
+        }),
+      ]).vars,
+    );
+
+    expect(html).toContain("Severity: <strong>High</strong>");
+    expect(html).toContain("State: <strong>Acknowledged</strong>");
+    expect(html).not.toContain("st-ColorDot");
+    expect(html).not.toMatch(/color: ;|solid ;/);
+  });
+
+  test("colours each chip independently", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      build([
+        makeItem({
+          offsetSeconds: 0,
+          subject: "Half coloured",
+          severity: "High",
+          currentState: "Acknowledged",
+          currentStateColor: "#f97316",
+        }),
+      ]).vars,
+    );
+
+    expect(chips(html)).toEqual([
+      { label: "Severity", dotStyle: null, valueStyle: null, value: "High" },
+      {
+        label: "State",
+        dotStyle: expect.stringContaining("background-color: #f97316;"),
+        valueStyle: `color: ${EmailColorUtil.getColorPair("#f97316")!.textColor};`,
+        value: "Acknowledged",
+      },
+    ]);
+  });
+
+  test("the colour follows the newest notification of a folded row", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      build([
+        makeItem({
+          offsetSeconds: 0,
+          subject: "Firing",
+          viewLink: INCIDENT_LINK,
+          severity: "Critical",
+          currentState: "Created",
+          severityColor: "#dc2626",
+          currentStateColor: "#ef4444",
+        }),
+        makeItem({
+          offsetSeconds: 60,
+          subject: "Resolved",
+          viewLink: INCIDENT_LINK,
+          severity: "Low",
+          currentState: "Resolved",
+          severityColor: LOW,
+          currentStateColor: RESOLVED,
+        }),
+      ]).vars,
+    );
+
+    expect(html).toContain(`background-color: ${LOW};`);
+    expect(html).toContain(`background-color: ${RESOLVED};`);
+    expect(html).not.toContain("background-color: #dc2626;");
+    expect(html).not.toContain("background-color: #ef4444;");
+  });
+
+  test("a coloured custom name is still escaped exactly once", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      build([
+        makeItem({
+          offsetSeconds: 0,
+          subject: "Custom",
+          severity: 'P1 <urgent> & "now"',
+          severityColor: "#dc2626",
+        }),
+      ]).vars,
+    );
+
+    expect(chips(html)[0]!.value).toBe(
+      "P1 &lt;urgent&gt; &amp; &quot;now&quot;",
+    );
+    expect(html).not.toContain("<urgent>");
+    expect(html).not.toContain("&amp;lt;");
+  });
+
+  test("a tampered stored colour never reaches the chip", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      build([
+        makeItem({
+          offsetSeconds: 0,
+          subject: "Tampered",
+          severity: "High",
+          severityColor:
+            "#fff; background-image: url(https://evil.example/t.gif)",
+        }),
+      ]).vars,
+    );
+
+    expect(html).not.toContain("evil.example");
+    expect(html).toContain("Severity: <strong>High</strong>");
+  });
+});
+
 describe("NotificationRollup.hbs zebra striping", () => {
   /*
    * The stripe used to be {{#if @odd}} in the template. Handlebars defines
@@ -938,10 +1173,14 @@ describe("NotificationRollup.hbs source rules", () => {
     expect(Array.from(references.rowScoped).sort()).toEqual(
       [
         "currentState",
+        "currentStateColor",
+        "currentStateTextColor",
         "hasCurrentState",
+        "hasCurrentStateColor",
         "hasDetails",
         "hasLink",
         "hasSeverity",
+        "hasSeverityColor",
         "isSectionStart",
         "link",
         "metaLabel",
@@ -949,6 +1188,8 @@ describe("NotificationRollup.hbs source rules", () => {
         "sectionCount",
         "sectionLabel",
         "severity",
+        "severityColor",
+        "severityTextColor",
         "title",
       ].sort(),
     );

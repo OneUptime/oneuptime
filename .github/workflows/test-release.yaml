@@ -31,6 +31,10 @@ permissions:
   packages: write
 
 jobs:
+  # The build number is read by infrastructure-agent-deploy alone, so it is the
+  # only job that waits for this one. The image builds used to as well, so a
+  # failed counter (it creates a tag through the API, which can be refused)
+  # skipped the whole run, e2e included.
   generate-build-number:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -114,7 +118,7 @@ jobs:
   # ─── Docker image build jobs (per-arch matrix) ───────────────────────
 
   nginx-docker-image-build:
-    needs: [read-version, generate-build-number]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -205,7 +209,7 @@ jobs:
 
 
   e2e-docker-image-build:
-    needs: [read-version, generate-build-number]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -295,7 +299,7 @@ jobs:
             --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
 
   test-server-docker-image-build:
-    needs: [read-version, generate-build-number]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -385,7 +389,7 @@ jobs:
             --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
 
   home-docker-image-build:
-    needs: [read-version, generate-build-number]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -481,7 +485,7 @@ jobs:
             --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
 
   test-docker-image-build:
-    needs: [read-version, generate-build-number]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -571,7 +575,7 @@ jobs:
             --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
 
   probe-docker-image-build:
-    needs: [read-version, generate-build-number]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -661,7 +665,7 @@ jobs:
             --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
 
   runner-docker-image-build:
-    needs: [read-version, generate-build-number]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -758,7 +762,7 @@ jobs:
   # only); and a test cluster can run master's agent from the `test` tag
   # (aiAgent.image.tag=test with aiAgent.image.pullPolicy=Always).
   kubernetes-ai-agent-docker-image-build:
-    needs: [read-version, generate-build-number]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -855,7 +859,7 @@ jobs:
   # only); and a test host can run master's agent from the `test` tag
   # (oneuptime/resource-ai-agent:test in the resource's docker-compose.yml).
   resource-ai-agent-docker-image-build:
-    needs: [read-version, generate-build-number]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -945,7 +949,7 @@ jobs:
             --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
 
   app-docker-image-build:
-    needs: [read-version, generate-build-number]
+    needs: [read-version]
     strategy:
       matrix:
         include:
@@ -1042,7 +1046,7 @@ jobs:
   # publish-path bugs surface here instead of during a production release.
   publish-terraform-provider:
     runs-on: ubuntu-latest
-    needs: [read-version, generate-build-number]
+    needs: [read-version]
     timeout-minutes: 120
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
@@ -1154,7 +1158,7 @@ jobs:
   # with one worker, exactly as the unsharded suite ran. On one runner the
   # suite took ~67 minutes against the SaaS stack and ~42 against the
   # self-hosted one; four and three shards put each at about 17 and 14.
-  # `npm run test-sharding` (the Compile workflow's compile-e2e) checks that
+  # `npm run test-sharding` (the Compile workflow's compile-services) checks that
   # the shards of both counts add up to exactly the whole suite, so change
   # WORKFLOW_SHARD_TOTALS in packages/E2E/Sharding/Sharding.spec.ts with them.
   #

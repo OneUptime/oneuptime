@@ -426,8 +426,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             name: true,
             isAcknowledgedState: true,
             isResolvedState: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         }),
         ModelAPI.getItem<Alert>({
           id: modelId,
@@ -1044,6 +1047,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   type: AlertSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: true,
                 placeholder: "Alert Severity",

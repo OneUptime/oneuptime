@@ -17,6 +17,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
@@ -118,9 +119,11 @@ RunCron(
           },
           currentIncidentState: {
             name: true,
+            color: true,
           },
           incidentSeverity: {
             name: true,
+            color: true,
           },
           incidentNumber: true,
           incidentNumberWithPrefix: true,
@@ -161,6 +164,10 @@ RunCron(
         incidentNumber: incidentNumberStr,
         projectName: incident.project!.name!,
         currentState: incident.currentIncidentState!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          incident.currentIncidentState?.color,
+        ),
         note: await Markdown.convertToHTML(
           (note.getColumnValue("note")! as string) || "",
           MarkdownContentType.Email,
@@ -175,6 +182,10 @@ RunCron(
           fallback: "None",
         }),
         incidentSeverity: incident.incidentSeverity!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "incidentSeverity",
+          incident.incidentSeverity?.color,
+        ),
         incidentViewLink: (
           await IncidentService.getIncidentLinkInDashboard(
             incident.projectId!,
