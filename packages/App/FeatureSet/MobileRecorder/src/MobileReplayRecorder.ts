@@ -188,12 +188,13 @@ type ChunkAppendOptions = NonNullable<
 /*
  * Capture stopped because nobody touched the app for
  * SESSION_REPLAY_IDLE_PAUSE_MS. Kept from the pause until the snapshot
- * that resumes it is in the buffer, or until the session rotates.
+ * that resumes it is in the buffer, or until the session ends (sealForIdle,
+ * or any rotation).
  */
 interface IdlePause {
   /*
    * The stream the pause belongs to. Only that session and tab are owed
-   * the matching idle-resumed marker, and only its seal is dated at the
+   * the matching idle-resumed marker, and only its stop is dated at the
    * pause: an identity swapped underneath (a consent decision) never had
    * the pause in its stream.
    */
@@ -204,18 +205,10 @@ interface IdlePause {
   /*
    * The idle-paused marker went out in an uploading stream. A recorder
    * holding its pre-roll in memory marks nothing and drops the pre-roll
-   * instead (see pauseForIdle), so its resume owes no marker and its seal
+   * instead (see pauseForIdle), so its resume owes no marker and its stop
    * sends nothing.
    */
   marked: boolean;
-  /*
-   * Set when the session ended while paused - its idle window ran out, it
-   * reached the duration cap, or the app changed users - with the reason
-   * the next session will rotate under. Nothing more is sent for it, and
-   * its successor begins with the person's next input rather than a
-   * session of nobody (see sealIdlePausedSession).
-   */
-  sealedReason: SessionRotationReason | null;
 }
 
 /* An event recorded between an input that ended a pause and its snapshot. */
@@ -405,6 +398,22 @@ export default class MobileReplayRecorder {
   } | null = null;
   private identityPersisted: boolean = false;
   private sessionLastActivityUnixMs: number = 0;
+
+  /*
+   * The session went the idle window without activity, was sealed where it
+   * ended, and nobody has come back since.
+   *
+   * Rotating on the spot instead (the old behaviour) started a session
+   * nobody was in: an app left open in the foreground with the screen on
+   * re-snapshots every minute, so it filed a new session every half hour
+   * for as long as it stayed open. Now nothing is captured, uploaded or
+   * handed to the host as a session id until the user is back - a touch,
+   * the soft keyboard, the app returning to the foreground, or an explicit
+   * captureSession() - and that starts the next session (see
+   * maybeRotateSession). In the foreground the session was almost always
+   * paused for idle first (idlePause), so its footage already ended there.
+   */
+  private sealedForIdle: boolean = false;
   private rotatingSession: boolean = false;
   private rotationPromise: Promise<void> | null = null;
   private appStateQueue: Promise<void> = Promise.resolve();
@@ -441,17 +450,18 @@ export default class MobileReplayRecorder {
    * timer stops, and from then on nothing is recorded - no view-tree
    * sample, no checkout, no chunk, and every event the app emits is
    * dropped rather than queued. The 15-second flush timer is the only one
-   * left, and all it does is end the session if nobody comes back inside
-   * SESSION_REPLAY_IDLE_ROLLOVER_MS.
+   * left, and all it does is end the session (sealForIdle, #4207) if nobody
+   * comes back inside SESSION_REPLAY_IDLE_ROLLOVER_MS.
    *
    * It exists because the recorder used to go on sampling the view tree
    * every 500 ms, with a full checkout every minute, for the whole half
    * hour before the idle rollover - the phone's CPU and battery and the
    * customer's upload and storage, all spent on footage of nobody.
    *
-   * The next touch, or the app returning to the foreground, resumes the
-   * same session and tab on a fresh full snapshot with an idle-resumed
-   * marker directly behind it (idleResumeBacklog), at the next chunk index.
+   * Input inside that window - a touch, the soft keyboard, the app
+   * returning to the foreground - resumes the same session and tab on a
+   * fresh full snapshot with an idle-resumed marker directly behind it
+   * (idleResumeBacklog), at the next chunk index.
    */
   private idlePause: IdlePause | null = null;
 
@@ -563,6 +573,7 @@ export default class MobileReplayRecorder {
     this.appStateQueue = Promise.resolve();
     this.rotationPromise = null;
     this.rotatingSession = false;
+    this.sealedForIdle = false;
     this.policyRefreshPromise = null;
     this.lastPolicyRefreshAtUnixMs = 0;
     this.forceFullSnapshot = true;
@@ -794,21 +805,27 @@ export default class MobileReplayRecorder {
       return;
     }
 
+    /*
+     * Not on a session that has gone idle: it ended at its last activity,
+     * and a marker dated now would stretch it by the whole absence. Any
+     * footage it still buffers goes out below, dated by itself.
+     */
+    const endedIdle: boolean =
+      this.sealedForIdle || this.rotationReason(this.now()) === "idle";
     const pause: IdlePause | null = this.idlePause;
-    if (pause === null) {
+    if (!endedIdle && pause === null) {
       this.appendCustom(
         VISIBILITY_CUSTOM_EVENT_TAG,
         { state: "stopped" },
         undefined,
         true,
       );
-    } else if (pause.sealedReason === null && this.isPauseInStream(pause)) {
+    } else if (!endedIdle && pause !== null && this.isPauseInStream(pause)) {
       /*
-       * Stopped while paused for idle: the session's footage ended at the
-       * pause, so its final chunk is dated there. Dated now, the session
+       * Stopped while paused for idle (#4208): the session's footage ended
+       * at the pause, so its final chunk is dated there - dated now, it
        * would run on over the whole stretch nobody recorded. An input that
-       * came back without its snapshot yet recorded nothing either. A
-       * session already sealed while paused sent its final chunk then.
+       * came back without its snapshot yet recorded nothing either.
        */
       this.idleResumeBacklog = null;
       this.appendMarker(
@@ -1010,6 +1027,16 @@ export default class MobileReplayRecorder {
     }
 
     this.route = next;
+
+    /*
+     * A navigation on an app whose session ended idle is not the user
+     * coming back - it can be a timer, or an inactivity logout - so it
+     * starts nothing. The next session opens on this route when they do.
+     */
+    if (this.sealedForIdle) {
+      return;
+    }
+
     this.appendCustom(
       ROUTE_CUSTOM_EVENT_TAG,
       {
@@ -1030,24 +1057,28 @@ export default class MobileReplayRecorder {
       return;
     }
     /*
-     * The app asked for this moment to be recorded. Paused for idle,
-     * capture resumes at once, on a snapshot of what is on screen now, with
-     * the idle-resumed marker and then this marker behind it. A session that
-     * ended while paused is followed by the next one first, the way input
-     * would start it, so the marker lands there. Not input, though:
-     * lastInputUnixMs stays where the person left it, so the next pause
-     * check pauses again unless someone is actually there - as the browser
-     * recorder does. In the background nothing can be captured; the pause
-     * stands, and only the trigger applies.
+     * The app asked for this moment to be recorded.
+     *
+     * An explicit ask for a recording starts the next session on an app
+     * whose last one ended idle, so the marker lands in it rather than
+     * nowhere: the new session's snapshot, the rotation marker, then this
+     * marker.
+     *
+     * Paused for idle inside the session's window (#4208), capture resumes
+     * at once in the same session, on a snapshot of what is on screen now,
+     * with the idle-resumed marker and then this marker behind it.
+     *
+     * Either way it is not input: lastInputUnixMs stays where the person
+     * left it, so the next pause check pauses again unless someone is
+     * actually there - as the browser recorder does. In the background
+     * nothing can be captured, so a pause stands.
      */
     const resume: IdleInputOutcome = this.foreground
       ? this.endIdlePause(this.now())
       : "none";
-    if (resume !== "none") {
+    await this.maybeRotateForUser(this.now());
+    if (resume === "resumed") {
       this.startTimers();
-    }
-    await this.maybeRotateSession(this.now());
-    if (resume !== "none") {
       /*
        * The snapshot first, and without the pause check that follows a
        * sample, which would pause again before this marker is in. Under an
@@ -1084,6 +1115,13 @@ export default class MobileReplayRecorder {
       return;
     }
     await this.maybeRotateSession(this.now());
+    /*
+     * The session ended idle and nobody is back: an error a background
+     * poll threw belongs to no recording, and triggers nothing.
+     */
+    if (this.sealedForIdle) {
+      return;
+    }
     const rawName: string =
       error instanceof Error && typeof error.name === "string"
         ? error.name.trim()
@@ -1112,9 +1150,6 @@ export default class MobileReplayRecorder {
     }
     const input: IdleInputOutcome = this.noteUserInput(this.now());
     let resumeCapture: Promise<void> | null = null;
-    if (input !== "none") {
-      this.startTimers();
-    }
     if (input === "resumed") {
       /*
        * The capture that resumes the session starts now, and this touch
@@ -1122,9 +1157,10 @@ export default class MobileReplayRecorder {
        * marker, and checked against the privacy map that snapshot derives
        * rather than the one from before the pause, which may describe a
        * screen the app has since left. A touch that finds the session
-       * ended goes on as it always has: dropped while the next session
-       * starts (recordTouchAfterPrivacyCheck).
+       * ended starts the next one and is dropped, as on any idle session
+       * (recordTouchAfterPrivacyCheck).
        */
+      this.startTimers();
       resumeCapture = this.captureTick(true);
     }
     const generation: number = this.lifecycleGeneration;
@@ -1176,10 +1212,19 @@ export default class MobileReplayRecorder {
       this.lastTouchMoveAtUnixMs = touch.timestamp;
     }
 
+    /*
+     * A touch is the user, so on an idle session it starts the next one.
+     * The touch itself is dropped: it lands before that session's first
+     * snapshot, which shows its result anyway.
+     */
     const nowUnixMs: number = this.now();
-    if (this.rotatingSession || this.rotationReason(nowUnixMs)) {
+    if (
+      this.rotatingSession ||
+      this.sealedForIdle ||
+      this.rotationReason(nowUnixMs)
+    ) {
       this.diagnostic("touch-dropped-session-rotation");
-      void this.maybeRotateSession(nowUnixMs);
+      void this.maybeRotateForUser(nowUnixMs);
       return;
     }
 
@@ -1221,13 +1266,15 @@ export default class MobileReplayRecorder {
      * Derived rather than stored: the policy, consent and identity paths
      * all write "recording" without knowing about the pause, and a paused
      * recorder that reported "recording" is exactly the question a support
-     * ticket asks.
+     * ticket asks. A session that ended idle while nobody came back is
+     * paused too - nothing is captured until someone is - as the browser
+     * recorder reports it.
      */
     const status: MobileReplayStatus =
       this.diagnosticsStatus === "recording" &&
       this.running &&
       this.foreground &&
-      this.isIdlePaused()
+      (this.isIdlePaused() || this.sealedForIdle)
         ? "paused"
         : this.diagnosticsStatus;
     return {
@@ -1255,17 +1302,14 @@ export default class MobileReplayRecorder {
     };
   }
 
-  /** Current consented replay session for host trace/log correlation. */
+  /**
+   * Current consented replay session for host trace/log correlation. None
+   * while the session has ended idle and nobody is back: a background poll
+   * on an idle app is no part of a recording that ended at the user's last
+   * activity.
+   */
   public getSessionId(): string | null {
-    /*
-     * None while a session that ended during an idle pause waits for its
-     * successor: it is over, and after an identity change it belongs to
-     * the previous user, so nothing the app does meanwhile may be filed
-     * under it. The next input starts the next session and announces it.
-     */
-    const endedWhilePaused: boolean =
-      this.idlePause !== null && this.idlePause.sealedReason !== null;
-    return this.running && this.identityPersisted && !endedWhilePaused
+    return this.running && this.identityPersisted && !this.sealedForIdle
       ? this.identity?.sessionId ?? null
       : null;
   }
@@ -1362,11 +1406,18 @@ export default class MobileReplayRecorder {
     mayPauseForIdle: boolean = true,
   ): Promise<void> {
     const generation: number = this.lifecycleGeneration;
+    /*
+     * Nothing is captured while the session has ended idle: there is no
+     * session to put it in until the user is back (see sealedForIdle), and
+     * an idle app left in the foreground is not walking the view tree
+     * twice a second for nobody.
+     */
     if (
       !this.running ||
       !this.acceptingEvents ||
       !this.foreground ||
       !this.rootTag ||
+      this.sealedForIdle ||
       this.captureGeneration === generation ||
       !this.options
     ) {
@@ -1396,15 +1447,16 @@ export default class MobileReplayRecorder {
         !this.running ||
         !this.acceptingEvents ||
         !this.foreground ||
-        !this.isCurrentGeneration(generation)
+        !this.isCurrentGeneration(generation) ||
+        this.sealedForIdle
       ) {
         return;
       }
       /*
-       * Paused again meanwhile, or the person came back to a session that
-       * has ended while its successor is not in place yet (a seal was still
-       * finishing): the next tick starts that one. Nothing is captured into
-       * a session that is over.
+       * Paused again meanwhile, or the person came back to a session whose
+       * window has run out while its successor is not in place yet (another
+       * rotation was still finishing): the next tick starts that one.
+       * Nothing is captured into a session that is over.
        */
       if (
         this.isIdlePaused() ||
@@ -1427,7 +1479,6 @@ export default class MobileReplayRecorder {
         return;
       }
       this.touchPrivacyMap = deriveTouchPrivacyMap(tree);
-      const size: { width: number; height: number } = getViewport();
       const shouldForce: boolean =
         force ||
         this.forceFullSnapshot ||
@@ -1446,23 +1497,7 @@ export default class MobileReplayRecorder {
         return;
       }
 
-      const capture: SerializedCapture = this.serializer.capture(tree, {
-        timestamp: nowUnixMs,
-        url: toAppUrl(this.options.mobileAppIdentifier, this.route),
-        viewportWidth: size.width,
-        viewportHeight: size.height,
-        forceFullSnapshot: shouldForce,
-      });
-      this.droppedEvents += capture.droppedNodes;
-      this.chunkBuffer.appendMany(capture.events, {
-        route: toAppUrl(this.options.mobileAppIdentifier, this.route),
-        fidelityNotices: capture.fidelityNotices,
-      });
-      if (capture.hasFullSnapshot) {
-        this.lastFullSnapshotAtUnixMs = nowUnixMs;
-        this.forceFullSnapshot = false;
-        this.completeIdleResume(nowUnixMs);
-      }
+      this.appendCapture(tree, this.options, nowUnixMs, shouldForce);
       if (this.chunkBuffer.shouldFlush()) {
         await this.closeCurrent(false);
       }
@@ -1494,16 +1529,37 @@ export default class MobileReplayRecorder {
     }
   }
 
+  private appendCapture(
+    tree: NativeViewTreeNode,
+    options: ValidatedStartOptions,
+    nowUnixMs: number,
+    forceFullSnapshot: boolean,
+  ): void {
+    const size: { width: number; height: number } = getViewport();
+    const url: string = toAppUrl(options.mobileAppIdentifier, this.route);
+    const capture: SerializedCapture = this.serializer.capture(tree, {
+      timestamp: nowUnixMs,
+      url,
+      viewportWidth: size.width,
+      viewportHeight: size.height,
+      forceFullSnapshot,
+    });
+    this.droppedEvents += capture.droppedNodes;
+    this.chunkBuffer.appendMany(capture.events, {
+      route: url,
+      fidelityNotices: capture.fidelityNotices,
+    });
+    if (capture.hasFullSnapshot) {
+      this.lastFullSnapshotAtUnixMs = nowUnixMs;
+      this.forceFullSnapshot = false;
+      this.completeIdleResume(nowUnixMs);
+    }
+  }
+
   /*
    * The person did something: a touch, the soft keyboard showing or
    * hiding, or the app coming back to the foreground. It ends an idle
-   * pause. Inside the session's idle window the same session resumes, on
-   * the snapshot of the next capture. Past it - or once the session was
-   * sealed while paused - the session is over, and this input starts the
-   * next one exactly as input after the rollover always has (the rotation
-   * in maybeRotateSession, which is no longer held off once someone is
-   * back). Either way the caller starts the capture: a touch or the
-   * keyboard at once, a return to the foreground after its policy refresh.
+   * pause (see endIdlePause).
    */
   private noteUserInput(nowUnixMs: number): IdleInputOutcome {
     this.lastInputUnixMs = Math.max(this.lastInputUnixMs, nowUnixMs);
@@ -1511,19 +1567,27 @@ export default class MobileReplayRecorder {
   }
 
   /*
-   * The pause-ending half of noteUserInput, on its own for captureSession(),
-   * which resumes capture without being input: the idle clock keeps
-   * counting from the person's last touch.
+   * What someone being back does to an idle pause, on its own for
+   * captureSession(), which acts on the pause without being input.
+   *
+   * Inside the session's idle window the same session resumes, on the
+   * snapshot of the next capture; the caller starts that capture. Once
+   * the window has run out - or the session already ended idle - the
+   * session is over, and the caller starts the next one through
+   * maybeRotateForUser, as on any idle session; nothing changes here.
    */
   private endIdlePause(nowUnixMs: number): IdleInputOutcome {
+    if (this.sealedForIdle) {
+      return "session-ended";
+    }
     if (!this.isIdlePaused()) {
       return "none";
     }
-    this.idleResumeBacklog = [];
-    this.forceFullSnapshot = true;
     if (this.rotationReason(nowUnixMs) !== null) {
       return "session-ended";
     }
+    this.idleResumeBacklog = [];
+    this.forceFullSnapshot = true;
     /* The return is activity: the session's idle window starts over. */
     this.sessionLastActivityUnixMs = Math.max(
       this.sessionLastActivityUnixMs,
@@ -1539,7 +1603,7 @@ export default class MobileReplayRecorder {
 
   /*
    * Whether the pause's marker is in the stream being recorded now, which
-   * is what owes it the idle-resumed marker and dates a seal at it.
+   * is what owes it the idle-resumed marker and dates a stop at it.
    */
   private isPauseInStream(pause: IdlePause): boolean {
     return (
@@ -1555,9 +1619,9 @@ export default class MobileReplayRecorder {
    * In this order: the idle-paused marker goes in as the last event of the
    * open chunk, that chunk goes out through the ordinary path, and the
    * sampler stops. So the last thing the recording holds before the
-   * stretch nobody recorded says so, and a session the person never comes
-   * back to ends right there - every seal while paused is dated at the
-   * pause.
+   * stretch nobody recorded says so - and a session the person never comes
+   * back to has already ended there when its idle window runs out, so the
+   * idle seal (sealForIdle) has nothing left to send.
    *
    * A recorder holding its pre-roll in memory (error-triggered, or waiting
    * for consent) has nothing to mark and nothing to send. Its pre-roll is
@@ -1574,6 +1638,7 @@ export default class MobileReplayRecorder {
       !this.foreground ||
       !this.isCurrentGeneration(generation) ||
       this.idlePause !== null ||
+      this.sealedForIdle ||
       !this.identity
     ) {
       return;
@@ -1597,7 +1662,6 @@ export default class MobileReplayRecorder {
       idleSinceUnixMs: paused.idleSinceUnixMs,
       pausedAtUnixMs: paused.pausedAtUnixMs,
       marked,
-      sealedReason: null,
     };
     this.stopCaptureTimer();
     this.diagnostic("idle-paused", {
@@ -1647,51 +1711,10 @@ export default class MobileReplayRecorder {
   }
 
   /*
-   * The paused session ended with nobody back: its idle window ran out, it
-   * reached the duration cap, or the app changed users. It ends where its
-   * footage ended - its final chunk is dated at the pause - and its
-   * successor waits for the person's next input instead of beginning now,
-   * as a session of nobody. Nothing is left to wait for, so the heartbeat
-   * stops as well, and the stored record goes, so a relaunch meanwhile
-   * starts afresh instead of continuing a session that is over.
-   */
-  private async sealIdlePausedSession(
-    reason: SessionRotationReason,
-  ): Promise<void> {
-    const pause: IdlePause | null = this.idlePause;
-    if (pause === null || pause.sealedReason !== null) {
-      return;
-    }
-    pause.sealedReason = reason;
-    this.clearTimers();
-    this.notifySessionChange();
-    this.diagnostic("idle-session-ended", { reason });
-
-    if (this.isPauseInStream(pause)) {
-      this.appendMarker(
-        SESSION_ROTATED_CUSTOM_EVENT_TAG,
-        { reason },
-        pause.pausedAtUnixMs,
-      );
-      await this.closeCurrent(true);
-      await this.closeQueue;
-      if (!this.running) {
-        return;
-      }
-      if (this.uploadActive) {
-        await this.transport?.drain();
-      }
-    }
-    if (this.running && this.identityPersisted) {
-      await this.sessionStore?.end();
-    }
-  }
-
-  /*
    * A marker the recorder writes about itself - the idle pause and resume,
-   * and a seal while paused - straight into the open chunk, stamped with
+   * and a stop while paused - straight into the open chunk, stamped with
    * the moment it stands for. None of them is activity (the idle rollover
-   * must not move for them), and none is "now": a seal while paused is
+   * must not move for them), and none is "now": a stop while paused is
    * dated at the pause.
    */
   private appendMarker(tag: string, payload: unknown, timestamp: number): void {
@@ -1739,6 +1762,14 @@ export default class MobileReplayRecorder {
     if (!this.running || (!this.acceptingEvents && !allowWhenQuiesced)) {
       return;
     }
+    /*
+     * Not counted as dropped: nothing is lost. The session ended idle, an
+     * event dated after that is no part of it, and the next session opens
+     * on a snapshot of its own.
+     */
+    if (this.sealedForIdle) {
+      return;
+    }
     if (!Number.isFinite(event.timestamp)) {
       this.droppedEvents += 1;
       this.diagnostic("invalid-event-timestamp");
@@ -1770,9 +1801,8 @@ export default class MobileReplayRecorder {
     /*
      * The person is back but the snapshot the session resumes on is not in
      * the buffer yet: held, to land behind it (completeIdleResume). Not
-     * activity either - a session that ended while paused must still read
-     * as ended until its successor starts, and a resumed one already took
-     * the input that woke it as activity.
+     * counted as activity here: the input that woke the recorder already
+     * was.
      */
     if (this.idleResumeBacklog !== null) {
       if (this.idleResumeBacklog.length < MAX_EVENTS_HELD_FOR_RESUME) {
@@ -1798,9 +1828,15 @@ export default class MobileReplayRecorder {
   }
 
   private async closeCurrent(isFinal: boolean): Promise<void> {
+    /*
+     * Never on a session that ended idle: the cap's marker would be dated
+     * now, long after its footage, and the rotation after it would start a
+     * session nobody is in.
+     */
     const closesFinalChunkSlot: boolean =
       !isFinal &&
       !this.rotatingSession &&
+      !this.sealedForIdle &&
       this.uploadActive &&
       this.sessionStore?.getNextChunkIndex() ===
         MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1;
@@ -2063,9 +2099,13 @@ export default class MobileReplayRecorder {
     if (!this.running || !this.acceptingEvents || !this.foreground) {
       return;
     }
-    if (this.noteUserInput(this.now()) !== "none") {
+    const input: IdleInputOutcome = this.noteUserInput(this.now());
+    if (input === "resumed") {
       this.startTimers();
       void this.captureTick(true);
+    } else if (input === "session-ended") {
+      /* As a touch does on a session that ended idle: the next one starts. */
+      void this.maybeRotateForUser(this.now());
     }
   }
 
@@ -2091,15 +2131,16 @@ export default class MobileReplayRecorder {
       if (!this.running || !this.isCurrentGeneration(generation)) {
         return;
       }
-      if (this.idlePause !== null) {
+      if (this.idlePause !== null || this.sealedForIdle) {
         /*
          * Paused for idle - or a touch had just ended the pause and its
          * snapshot never came, which leaves the session paused where it
-         * was. Nothing is recorded, not even this: the stream still says
-         * "visible" from before the pause, and the return will read as the
-         * idle-resumed marker. What the outbox already holds - the pause's
-         * own chunk, if its upload failed - is still worth one try before
-         * the OS suspends the app.
+         * was - or ended idle. Nothing is recorded, not even this: the
+         * stream still says "visible" from before the pause, and the return
+         * will read as the idle-resumed marker (or open the next session).
+         * What the outbox already holds - the pause's own chunk, if its
+         * upload failed - is still worth one try before the OS suspends
+         * the app.
          */
         this.idleResumeBacklog = null;
         if (this.uploadActive) {
@@ -2119,11 +2160,9 @@ export default class MobileReplayRecorder {
       this.foreground = true;
       /*
        * Coming back to the app is the person coming back: like a touch, it
-       * ends an idle pause. The capture below takes the snapshot the
-       * session resumes on.
+       * ends an idle pause (#4208), and the capture below takes the snapshot
+       * the paused session resumes on.
        */
-      const sessionIdBeforeReturn: string | undefined =
-        this.identity?.sessionId;
       const input: IdleInputOutcome = this.noteUserInput(this.now());
       const policyReady: boolean = await this.refreshRuntimePolicy(
         generation,
@@ -2133,27 +2172,41 @@ export default class MobileReplayRecorder {
       if (!policyReady) {
         return;
       }
-      await this.maybeRotateSession(this.now());
+      /* Coming back to the app is the user returning. */
+      const sessionIdBeforeResume: string | undefined =
+        this.identity?.sessionId;
+      await this.maybeRotateSession(this.now(), true);
       if (!this.running || !this.isCurrentGeneration(generation)) {
         return;
       }
       /*
        * A return that resumes the paused session records no visibility
        * change: none was recorded when the app left, and the idle-resumed
-       * marker is what the return looks like. A return that starts a new
-       * session opens it as it always has.
+       * marker is what the return looks like. Any other return records it
+       * as it always has.
        */
-      if (
-        input !== "resumed" ||
-        this.identity?.sessionId !== sessionIdBeforeReturn
-      ) {
+      const resumedPausedSession: boolean =
+        input === "resumed" &&
+        this.identity?.sessionId === sessionIdBeforeResume;
+      if (!resumedPausedSession) {
         this.appendCustom(VISIBILITY_CUSTOM_EVENT_TAG, { state: "visible" });
       }
-      this.forceFullSnapshot = true;
+      /*
+       * Any other return takes a fresh checkout, as the screen may have
+       * changed while the app was away. A session the return just started
+       * already leads with a snapshot of this screen; a second one would
+       * only repeat it.
+       */
+      const openedOnSnapshot: boolean =
+        this.identity?.sessionId !== sessionIdBeforeResume &&
+        this.lastFullSnapshotAtUnixMs > 0;
+      if (!openedOnSnapshot) {
+        this.forceFullSnapshot = true;
+      }
       this.startTimers();
       this.diagnosticsStatus =
         this.consentState() === "Unknown" ? "consent-required" : "recording";
-      await this.captureTick(true);
+      await this.captureTick(!openedOnSnapshot);
 
       /*
        * Offline mode: returning to the app is the most likely moment the
@@ -2185,7 +2238,7 @@ export default class MobileReplayRecorder {
       /*
        * Paused for idle, this is the only timer left running, and all it
        * does is end a session nobody came back to: maybeRotateSession seals
-       * it once its idle window runs out (see sealIdlePausedSession).
+       * it once its idle window runs out (see sealForIdle).
        */
       if (this.isIdlePaused()) {
         if (this.acceptingEvents) {
@@ -2543,9 +2596,32 @@ export default class MobileReplayRecorder {
         return;
       }
 
+      /*
+       * A session that went idle before anything noticed (the app sat in
+       * the background) ended at its last activity. It is sealed there:
+       * closed by the identity marker instead, it was dated now and
+       * stretched by the whole absence. A session paused for idle (#4208)
+       * is sealed the same way, before its window runs out: nobody is in
+       * it, and its footage ended at the pause.
+       */
+      if (!this.rotationPromise && !this.sealedForIdle) {
+        if (this.isIdlePaused()) {
+          await this.sealForIdleNow();
+        } else if (this.rotationReason(this.now()) === "idle") {
+          await this.maybeRotateSession(this.now());
+        }
+      }
+
+      /*
+       * A session that ended idle needs no rotation to keep two accounts
+       * apart: it records nothing more, and the next one - minted when the
+       * user is back - belongs to the new identity. Rotating here would
+       * start a session nobody is in (an inactivity logout is the usual
+       * case).
+       */
       if (this.rotationPromise) {
         await this.rotationPromise;
-      } else {
+      } else if (!this.sealedForIdle) {
         this.rotatingSession = true;
         const rotation: Promise<void> = this.performSessionRotation(
           this.now(),
@@ -2969,29 +3045,29 @@ export default class MobileReplayRecorder {
     };
   }
 
+  /*
+   * Idle before the duration cap, the order Common's SessionIdentity decides
+   * them in. A session left for the idle window ended where it was left,
+   * even when it has outlived the cap by the time anything notices, and
+   * only an idle rotation dates its end there (see performSessionRotation):
+   * called "duration", a session three hours old put in the background for
+   * two more was sealed two hours after its footage.
+   */
   private rotationReason(nowUnixMs: number): SessionRotationReason | null {
     if (!this.identity) {
       return null;
-    }
-    /*
-     * A session that ended while paused for idle stays ended whatever the
-     * clock says, and its successor - begun by the next input - rotates
-     * under the reason it ended for.
-     */
-    if (this.idlePause !== null && this.idlePause.sealedReason !== null) {
-      return this.idlePause.sealedReason;
-    }
-    if (
-      nowUnixMs - this.identity.sessionStartUnixMs >=
-      SESSION_REPLAY_MAX_SESSION_MS
-    ) {
-      return "duration";
     }
     if (
       nowUnixMs - this.sessionLastActivityUnixMs >=
       SESSION_REPLAY_IDLE_ROLLOVER_MS
     ) {
       return "idle";
+    }
+    if (
+      nowUnixMs - this.identity.sessionStartUnixMs >=
+      SESSION_REPLAY_MAX_SESSION_MS
+    ) {
+      return "duration";
     }
     return null;
   }
@@ -3038,10 +3114,26 @@ export default class MobileReplayRecorder {
     });
   }
 
-  private async maybeRotateSession(nowUnixMs: number): Promise<void> {
-    if (this.rotationPromise) {
+  /*
+   * isUserBack: the caller knows the user is here - a touch, the app
+   * returning to the foreground, an explicit captureSession(). An idle
+   * session then rotates at once. Anything else (a capture tick, a route
+   * change, a developer event) only finds out the session went idle, and
+   * seals it to wait for them (see sealedForIdle).
+   */
+  private async maybeRotateSession(
+    nowUnixMs: number,
+    isUserBack: boolean = false,
+  ): Promise<void> {
+    while (this.rotationPromise) {
       await this.rotationPromise;
-      return;
+      /*
+       * What was in flight may have been the idle seal; a returning user
+       * still starts the next session after it.
+       */
+      if (!isUserBack || !this.sealedForIdle) {
+        return;
+      }
     }
     if (
       !this.running ||
@@ -3054,16 +3146,34 @@ export default class MobileReplayRecorder {
       return;
     }
 
-    const reason: SessionRotationReason | null = this.rotationReason(nowUnixMs);
+    let reason: SessionRotationReason | null;
+    if (this.sealedForIdle) {
+      if (!isUserBack) {
+        return;
+      }
+      reason = "idle";
+    } else {
+      reason = this.rotationReason(nowUnixMs);
+      /*
+       * Paused for idle (#4208), nobody is in the session and its footage
+       * already ended at the pause, so whatever ends it now - its idle
+       * window, or the duration cap reached meanwhile - ends it there, as
+       * idle: sealed to wait for the user, or followed at once by the next
+       * session when they are back.
+       */
+      if (reason !== null && this.isIdlePaused()) {
+        reason = "idle";
+      }
+    }
     if (!reason) {
       return;
     }
 
     this.rotatingSession = true;
-    const operation: Promise<void> = this.performSessionRotation(
-      nowUnixMs,
-      reason,
-    );
+    const operation: Promise<void> =
+      reason === "idle" && !isUserBack
+        ? this.sealForIdle()
+        : this.performSessionRotation(nowUnixMs, reason);
     this.rotationPromise = operation;
     try {
       await operation;
@@ -3075,39 +3185,117 @@ export default class MobileReplayRecorder {
     }
   }
 
+  /*
+   * The idle seal on demand, under the lock every rotation takes: for an
+   * identity change on a session paused for idle, which no clock has ended
+   * yet but nobody is in.
+   */
+  private async sealForIdleNow(): Promise<void> {
+    if (this.rotationPromise || this.rotatingSession || this.sealedForIdle) {
+      return;
+    }
+    this.rotatingSession = true;
+    const operation: Promise<void> = this.sealForIdle();
+    this.rotationPromise = operation;
+    try {
+      await operation;
+    } finally {
+      if (this.rotationPromise === operation) {
+        this.rotationPromise = null;
+      }
+      this.rotatingSession = false;
+    }
+  }
+
+  /*
+   * maybeRotateSession for a user who is here. On an app whose session
+   * ended idle - or was paused for idle, which stops the capture tick too
+   * (#4208) - the policy is brought up to date first: no capture tick has
+   * refreshed it while the app sat idle, and the next session must not open
+   * under one that has since changed (or turned replay off).
+   */
+  private async maybeRotateForUser(nowUnixMs: number): Promise<void> {
+    if (
+      (this.sealedForIdle || this.idlePause !== null) &&
+      !this.rotatingSession
+    ) {
+      const policyReady: boolean = await this.refreshRuntimePolicy(
+        this.lifecycleGeneration,
+        false,
+        "periodic",
+      );
+      if (!policyReady) {
+        return;
+      }
+    }
+    await this.maybeRotateSession(nowUnixMs, true);
+  }
+
+  /*
+   * End the session as idle, where it really ended, and wait for the user.
+   *
+   * Sealed with whatever footage is still buffered - dated by that footage,
+   * never by now - and with no marker of its own: a marker stamped now
+   * would date the session's end half an hour or more after anything the
+   * player can show. With nothing buffered nothing is sent, and the server
+   * ends the session at its last chunk - for a session paused for idle
+   * (#4208), the chunk its idle-paused marker closed.
+   */
+  private async sealForIdle(): Promise<void> {
+    /* First, so nothing appended while the seal uploads lands in it. */
+    this.sealedForIdle = true;
+    /*
+     * An idle pause ends with its session, and nothing is left to wait for
+     * on a timer: the next input starts the next session.
+     */
+    this.idlePause = null;
+    this.idleResumeBacklog = null;
+    this.clearTimers();
+    this.diagnostic("session-ended-idle", {
+      idleForMs: Math.max(0, this.now() - this.sessionLastActivityUnixMs),
+    });
+    this.notifySessionChange();
+    await this.closeCurrent(true);
+    await this.closeQueue;
+    if (!this.running) {
+      return;
+    }
+    if (this.uploadActive) {
+      await this.transport?.drain();
+    } else {
+      /* Pre-roll of a session that ended; a later trigger is the next one's. */
+      this.rollingBuffer.clear();
+    }
+    /*
+     * Its record goes too: written by the session's last chunk, it looks
+     * recent, and a relaunch before the user is back would otherwise carry
+     * on a session that is over.
+     */
+    if (this.running && this.identityPersisted) {
+      await this.sessionStore?.end();
+    }
+  }
+
   private async performSessionRotation(
     nowUnixMs: number,
     reason: SessionRotationReason,
   ): Promise<void> {
-    const pause: IdlePause | null = this.idlePause;
     /*
-     * Nobody is using the app: the session ends where its footage ended
-     * and the next one waits for the person to come back - rather than a
-     * session of nobody that would pause straight away, run out and roll
-     * over again for every half hour the phone sits there.
+     * The marker closes the outgoing session for a rotation the user was
+     * active through (the duration cap, an identity change): dated now, it
+     * is where that session ended. Not for an idle one. That session ended
+     * at its last activity - possibly hours ago, with the app in the
+     * background since - and a marker dated now, as its final chunk,
+     * stretched it by the whole absence. It opens the next session instead
+     * (openSessionAfterIdle). A session paused for idle rotates as idle
+     * (maybeRotateSession): its footage ended at the pause.
      */
-    if (pause !== null && this.idleResumeBacklog === null) {
-      await this.sealIdlePausedSession(reason);
-      return;
-    }
-    if (pause === null) {
+    if (reason !== "idle") {
       this.appendCustom(
         SESSION_ROTATED_CUSTOM_EVENT_TAG,
         { reason },
         undefined,
         true,
-      );
-    } else if (pause.sealedReason === null && this.isPauseInStream(pause)) {
-      /*
-       * The person came back after the paused session ran out. Its final
-       * chunk is dated at the pause, where its footage ended: dated now,
-       * the session would run on over the whole stretch nobody recorded.
-       * A session sealed while paused already sent its final chunk.
-       */
-      this.appendMarker(
-        SESSION_ROTATED_CUSTOM_EVENT_TAG,
-        { reason },
-        pause.pausedAtUnixMs,
       );
     }
     await this.closeCurrent(true);
@@ -3125,6 +3313,62 @@ export default class MobileReplayRecorder {
     }
 
     await this.completeSessionIdentityRotation(nowUnixMs, reason);
+    if (reason === "idle" && this.running) {
+      await this.openSessionAfterIdle();
+    }
+  }
+
+  /*
+   * The first things a session after an idle one records: a full snapshot
+   * of the screen the user came back to, then the rotation marker - the
+   * snapshot first, so chunk 0 is a seek anchor rather than a lone marker.
+   *
+   * Taken here, inside the rotation, rather than left to the next capture
+   * tick: until the rotation settles, touches are dropped and every other
+   * event waits for it (rotatingSession), so nothing can land ahead of the
+   * snapshot. A user who has just come back is touching the screen, and
+   * half a second of that was otherwise a chunk 0 with no screen in it.
+   *
+   * In the background or without a registered root there is no screen to
+   * capture yet; the marker opens the session alone.
+   */
+  private async openSessionAfterIdle(): Promise<void> {
+    const generation: number = this.lifecycleGeneration;
+    const rootTag: number | null = this.rootTag;
+    const options: ValidatedStartOptions | null = this.options;
+    const sessionId: string | undefined = this.identity?.sessionId;
+    if (this.foreground && rootTag && options && sessionId) {
+      const capturedAtUnixMs: number = this.now();
+      let tree: NativeViewTreeNode;
+      try {
+        tree = await this.nativeViewTree.captureViewTree(rootTag);
+      } catch (error) {
+        if (this.running && this.isCurrentGeneration(generation)) {
+          this.disable("native-capture-failed", {
+            name: error instanceof Error ? error.name : "Error",
+          });
+          this.haltCapture();
+        }
+        return;
+      }
+      if (
+        !this.running ||
+        !this.isCurrentGeneration(generation) ||
+        this.identity?.sessionId !== sessionId
+      ) {
+        return;
+      }
+      if (this.foreground) {
+        this.touchPrivacyMap = deriveTouchPrivacyMap(tree);
+        this.appendCapture(tree, options, capturedAtUnixMs, true);
+      }
+    }
+    this.appendCustom(
+      SESSION_ROTATED_CUSTOM_EVENT_TAG,
+      { reason: "idle" },
+      undefined,
+      true,
+    );
   }
 
   private async completeSessionIdentityRotation(
@@ -3138,15 +3382,11 @@ export default class MobileReplayRecorder {
       ? await this.sessionStore!.rotate(nowUnixMs)
       : this.ephemeralIdentity(nowUnixMs);
     /*
-     * An idle pause belongs to the session that just ended. Cleared before
-     * the new id is announced, which a session sealed while paused had
-     * withheld (getSessionId).
+     * Before the notification, which hands the host the new id. An idle
+     * pause, and whatever was held for its resume, belong to the session
+     * that just ended (#4208): the new one opens on a snapshot of its own.
      */
-    const wasIdlePaused: boolean = this.idlePause !== null;
-    const endedWhilePaused: boolean =
-      this.idlePause !== null && this.idlePause.sealedReason !== null;
-    const heldSinceInput: Array<HeldReplayEvent> | null =
-      this.idleResumeBacklog;
+    this.sealedForIdle = false;
     this.idlePause = null;
     this.idleResumeBacklog = null;
     this.notifySessionChange();
@@ -3173,20 +3413,6 @@ export default class MobileReplayRecorder {
     this.entryUrl = toAppUrl(this.options.mobileAppIdentifier, this.route);
     this.diagnostic("session-rotated", { reason });
 
-    /*
-     * What the person did after coming back opens the next session, as
-     * events after a rotation always have - unless this rotation is itself
-     * an identity change, which nothing recorded before it may cross. A
-     * session an earlier identity change sealed while paused was come back
-     * to under the new identity, so what was held since belongs to it.
-     */
-    if (
-      heldSinceInput !== null &&
-      (reason !== "identity" || endedWhilePaused)
-    ) {
-      this.releaseHeldEvents(heldSinceInput);
-    }
-
     if (
       this.config.captureTrigger === SessionReplayCaptureTrigger.Always &&
       this.identityPersisted &&
@@ -3199,12 +3425,12 @@ export default class MobileReplayRecorder {
     }
 
     /*
-     * The pause had stopped the sampler. The new session captures on its
-     * own snapshot - and, if nobody is there (a rotation nobody's input
+     * An idle pause or seal had stopped the sampler. The new session
+     * samples again - and, if nobody is there (a rotation nobody's input
      * caused, such as the chunk cap reached by the pause's own chunk),
      * pauses again on its own.
      */
-    if (wasIdlePaused && this.running && this.foreground) {
+    if (this.captureTimer === null && this.running && this.foreground) {
       this.startTimers();
     }
   }

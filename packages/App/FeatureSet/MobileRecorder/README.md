@@ -193,15 +193,16 @@ const diagnostics = OneUptimeReplay.getDiagnostics();
 
 Diagnostics contain recorder decisions and fixed reason codes, not view text.
 Pass `debug: true` at startup to mirror those codes to the development console.
-`status` is `"paused"` while capture is paused because nobody is using the app
-(see [Durability and lifecycle](#durability-and-lifecycle)), and the codes
-`idle-paused`, `idle-resumed` and `idle-session-ended` mark those transitions.
+`status` is `"paused"` while capture is paused because nobody is using the app,
+and while a session that ended idle waits for the user to come back (see
+[Durability and lifecycle](#durability-and-lifecycle)). The codes
+`idle-paused`, `idle-resumed` and `session-ended-idle` mark those transitions.
 
 Use the current consented session ID to correlate the application's own traces
 and logs with replay. The listener fires immediately when a session exists,
 again on every rotation, and with `null` when capture stops, consent is
-withdrawn, or a session ends while capture is paused for idle (the next
-session's ID arrives with the next input, or with `captureSession()`):
+withdrawn, or the session ends idle (the next session's ID arrives when the
+user is back, or with `captureSession()`):
 
 ```ts
 const unsubscribe = OneUptimeReplay.onSessionChange((sessionId) => {
@@ -230,12 +231,18 @@ screen costs neither battery nor upload. The open chunk closes with an
 `oneuptime.idle-paused` marker and the sampler stops: nothing is sampled,
 checked out, uploaded or recorded until someone is back. Events the app raises
 meanwhile (`track()`, `setRoute()`, JavaScript errors) are dropped, not queued,
-and an error while paused triggers no upload. The next touch, the soft
-keyboard showing or hiding, or the app returning to the foreground resumes the
-same session on a fresh full snapshot followed by an `oneuptime.idle-resumed`
-marker, so the player shows the gap as unrecorded rather than as a screen that
-sat still. A paused session nobody comes back to within 30 minutes ends there,
-dated at the pause, and the next input starts a new one.
+and an error while paused triggers no upload. Input - a touch, the soft
+keyboard showing or hiding, or the app returning to the foreground - resumes
+the same session on a fresh full snapshot followed by an
+`oneuptime.idle-resumed` marker, so the player shows the gap as unrecorded
+rather than as a screen that sat still.
+
+Thirty minutes with no touch and no recorded SDK call ends the session at that
+last activity - for a paused session, at the pause, where its footage ended -
+so time in the background or paused is never added to the end of a session,
+and nothing is sent dated after it. No session starts while nobody is there:
+the user's next touch, keyboard, return to the foreground, or
+`captureSession()` starts a new one on a fresh full snapshot.
 
 Keystrokes on the soft keyboard reach no view the SDK can observe, so the
 keyboard itself stands in for them: its showing and hiding count as input, and
@@ -244,7 +251,7 @@ capture never pauses while it is up, however long someone types. (The
 
 `captureSession()` while paused resumes capture at once, on a fresh snapshot
 with the `oneuptime.idle-resumed` marker and then its own marker behind it; if
-the paused session has already ended, it starts the next session first and the
+the session has already ended idle, it starts the next session first and the
 marker lands there. Under the error/frustration trigger it also starts the
 upload, opening on that snapshot. It is not input, so if nobody is there the
 next check pauses capture again.

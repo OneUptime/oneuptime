@@ -43,7 +43,8 @@ import {
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import CommonMasking from "Common/Utils/Rum/Masking";
-import {
+import SessionIdentity, {
+  SessionIdentifyDecision,
   SessionRotationDecision,
   SessionRotationReason,
 } from "Common/Utils/Rum/SessionIdentity";
@@ -505,6 +506,20 @@ export default class Recorder {
   private hasSentFinalChunk: boolean = false;
   private lastSensitiveScanAtMs: number = 0;
   private droppedEvents: number = 0;
+
+  /*
+   * The user THIS PAGE said the session belongs to - through identify() or
+   * the userRef init option - or null when it has said nothing.
+   *
+   * Not the whole answer to "whose session is this": an earlier page of
+   * the session, or another tab of it, may have identified it, and that
+   * is remembered in storage (SessionId.readStoredUserRef). See
+   * getSessionUserRef, which every reader goes through. Only this page's
+   * own reference is carried into a session this tab starts itself (an
+   * idle or duration rollover, a consent re-grant): the page knows who is
+   * signed in on it, whereas a reference it merely inherited belonged to
+   * the session that just ended.
+   */
   private userRef: string | null = null;
 
   /*
@@ -671,6 +686,15 @@ export default class Recorder {
      * which is what makes the sessions of one anonymous visitor groupable.
      */
     this.visitorId = SessionId.resolveVisitorId();
+
+    /*
+     * A reference supplied at load time identifies the session this page
+     * is joining, exactly like an identify() call - so a page that loads
+     * already signed in as someone other than the user the session
+     * belongs to starts a session of its own. Before the chunker, which is
+     * bound to the session's start time.
+     */
+    this.applyLoadTimeUserRef(Date.now());
 
     this.chunker = this.createChunker();
 
@@ -2684,6 +2708,7 @@ export default class Recorder {
     this.customEventsDroppedInChunk = 0;
 
     this.identity = next;
+    this.adoptSessionUser();
     this.chunker = this.createChunker();
     this.detectFidelityNotices();
 
@@ -3366,15 +3391,31 @@ export default class Recorder {
      * Only sent when the application has user-identity capture switched on.
      * Otherwise the server never receives the raw reference at all, so there
      * is nothing to leak from the wider session-metadata ACL.
+     *
+     * The SESSION's user, not just this page's: a page that never called
+     * identify() - the login page a sign-in redirect lands on, a link
+     * opened in a new tab - still names the person an earlier page of the
+     * same session identified (#4206).
      */
-    if (this.config.captureUserIdentity && this.userRef) {
-      meta.identifiedUserRef = this.userRef;
+    const sessionUserRef: string | null = this.config.captureUserIdentity
+      ? this.getSessionUserRef()
+      : null;
+
+    if (sessionUserRef) {
+      meta.identifiedUserRef = sessionUserRef;
 
       /*
        * Traits describe the identified person, so they follow the same
        * switch as the reference itself and never leave the page without it.
+       * Only this page's own, which describe the user this page named; a
+       * page that inherited the user sends none, and the server keeps the
+       * traits the identifying page sent.
        */
-      if (this.traits && Object.keys(this.traits).length > 0) {
+      if (
+        this.userRef !== null &&
+        this.traits &&
+        Object.keys(this.traits).length > 0
+      ) {
         meta.identifiedUserTraits = { ...this.traits };
       }
     }
@@ -3742,9 +3783,17 @@ export default class Recorder {
        * would build.
        */
       this.identity = SessionId.resolveSession(Date.now(), this.identity.tabId);
+      this.adoptSessionUser();
       this.chunker = this.createChunker();
       this.detectFidelityNotices();
     }
+
+    /*
+     * Under RequireExplicit an identify() made before the banner was
+     * answered was kept in memory only (rememberSessionUser); this is the
+     * moment the other pages of the session may learn whose it is.
+     */
+    this.rememberSessionUser();
 
     this.startUploadingIfAllowed();
 
@@ -3814,16 +3863,54 @@ export default class Recorder {
     userRef: string,
     traits?: Record<string, string | number | boolean>,
   ): void {
-    if (typeof userRef !== "string" || !userRef) {
+    if (typeof userRef !== "string" || !userRef.trim()) {
       return;
     }
 
-    this.userRef = userRef;
+    /*
+     * Traits describe one person. Calling identify() again for the same
+     * person without traits keeps the ones already given; naming someone
+     * else without traits must not leave the previous person's attached
+     * to them.
+     */
+    const isSamePersonAsPage: boolean =
+      this.userRef !== null &&
+      SessionIdentity.isSameUserRef(this.userRef, userRef);
 
-    if (traits !== undefined) {
-      this.traits = this.maskStringMap(
-        sanitizeSessionReplayStringMap(traits, TRAIT_LIMITS),
-      );
+    const nextTraits: Record<string, string> | null =
+      traits !== undefined
+        ? this.maskStringMap(
+            sanitizeSessionReplayStringMap(traits, TRAIT_LIMITS),
+          )
+        : isSamePersonAsPage
+          ? this.traits
+          : null;
+
+    /*
+     * Whose the session is decides what this call does (#4206). An
+     * anonymous session becomes this user's, from its start - the pages
+     * before the sign-in are part of the same visit. A session that
+     * already belongs to someone else - one person signed out and another
+     * signed in, in this tab or in another tab of the same session - ends,
+     * and this user's activity starts a session of its own: a recording
+     * is one person's. Only with identity capture on, because with it off
+     * the reference never leaves the page and the server could not tell
+     * the two people apart anyway.
+     */
+    const decision: SessionIdentifyDecision = this.config.captureUserIdentity
+      ? SessionIdentity.decideIdentify(this.getSessionUserRef(), userRef)
+      : SessionIdentifyDecision.Attach;
+
+    if (
+      decision === SessionIdentifyDecision.SwitchUser &&
+      !this.stopped &&
+      !this.consent.isRevoked()
+    ) {
+      this.startSessionForNewUser(userRef, nextTraits);
+    } else {
+      this.userRef = userRef;
+      this.traits = nextTraits;
+      this.rememberSessionUser();
     }
 
     this.metaDirty = true;
@@ -3833,6 +3920,170 @@ export default class Recorder {
     };
 
     this.emitCustomEvent(SessionReplayCustomEventTag.Identify, marker);
+  }
+
+  /*
+   * Who the current session belongs to: the user this page named, or else
+   * the one an earlier page or another tab of the same session stored for
+   * it, or null. Read from storage every time rather than cached, so a
+   * sibling tab's identification is seen on this tab's very next chunk.
+   * Nothing is read with identity capture off (nothing is ever stored
+   * then) or while consent is withdrawn (the record was cleared with the
+   * session).
+   */
+  private getSessionUserRef(): string | null {
+    if (this.userRef !== null) {
+      return this.userRef;
+    }
+
+    if (!this.config.captureUserIdentity || this.consent.isRevoked()) {
+      return null;
+    }
+
+    return SessionId.readStoredUserRef(this.identity.sessionId);
+  }
+
+  /*
+   * Remember for every page and tab of this session that it is this
+   * page's user's. Not with identity capture off, not after stop(), and
+   * only while uploading is allowed: never while consent is withdrawn
+   * (nothing is written to the visitor's storage then), and under
+   * RequireExplicit not before the grant - the reference is a person's,
+   * unlike the random ids, and the page has not been told it may record
+   * them yet. grantConsent() writes it then.
+   */
+  private rememberSessionUser(): void {
+    if (
+      this.userRef === null ||
+      !this.config.captureUserIdentity ||
+      !this.consent.isUploadAllowed() ||
+      this.stopped
+    ) {
+      return;
+    }
+
+    SessionId.writeStoredUserRef(this.identity.sessionId, this.userRef);
+  }
+
+  /*
+   * This tab just moved onto a session (switchSession, a pre-start grant).
+   * If that session already belongs to someone - another tab identified
+   * it, or signed a different user in and started it - that is whose it
+   * is: the other tab's word is the newer one, and this page's own
+   * reference (and the traits describing that person) stop applying here.
+   * If nobody has identified it, this page's own user is carried into it.
+   */
+  private adoptSessionUser(): void {
+    if (!this.config.captureUserIdentity) {
+      return;
+    }
+
+    const storedUserRef: string | null = SessionId.readStoredUserRef(
+      this.identity.sessionId,
+    );
+
+    if (storedUserRef === null) {
+      this.rememberSessionUser();
+      return;
+    }
+
+    if (
+      this.userRef !== null &&
+      !SessionIdentity.isSameUserRef(this.userRef, storedUserRef)
+    ) {
+      this.userRef = null;
+      this.traits = null;
+    }
+  }
+
+  /*
+   * The userRef init option is an identify() made at load time, before
+   * anything has been recorded: if the session this page resolved belongs
+   * to someone else, the page joins a new session instead (nothing to
+   * seal - this tab has not recorded a thing under the old one).
+   */
+  private applyLoadTimeUserRef(nowUnixMs: number): void {
+    if (this.userRef === null || !this.config.captureUserIdentity) {
+      return;
+    }
+
+    if (
+      SessionIdentity.decideIdentify(
+        SessionId.readStoredUserRef(this.identity.sessionId),
+        this.userRef,
+      ) === SessionIdentifyDecision.SwitchUser
+    ) {
+      this.identity = SessionId.startNewSession({
+        nowUnixMs: nowUnixMs,
+        tabId: this.identity.tabId,
+        previousSessionId: this.identity.sessionId,
+        rotationReason: SessionRotationReason.IdentityChange,
+      });
+    }
+
+    this.rememberSessionUser();
+  }
+
+  /*
+   * A different user signed in: the session that belonged to the previous
+   * one ends here, under their name, and a new one starts for this user.
+   *
+   * The outgoing session is sealed BEFORE the reference changes, because
+   * meta rides the final chunk and the header keeps the person it names:
+   * sealed after, the previous user's recording would end filed under the
+   * new user. Whatever is still in the ring buffer (a session that had not
+   * started uploading) is the previous person's footage and is dropped by
+   * switchSession rather than carried over.
+   *
+   * Every other tab of the session adopts the new id on its next tick or
+   * storage event, and with it the new user (adoptSessionUser).
+   */
+  private startSessionForNewUser(
+    userRef: string,
+    traits: Record<string, string> | null,
+  ): void {
+    const now: number = Date.now();
+    const previousSessionId: string = this.identity.sessionId;
+
+    if (this.started) {
+      this.sealCurrentSession();
+    }
+
+    this.userRef = userRef;
+    this.traits = traits;
+
+    const next: SessionIdentityState = SessionId.startNewSession({
+      nowUnixMs: now,
+      tabId: this.identity.tabId,
+      previousSessionId: previousSessionId,
+      rotationReason: SessionRotationReason.IdentityChange,
+    });
+
+    if (this.started) {
+      this.switchSession(now, next, SessionRotationReason.IdentityChange);
+      return;
+    }
+
+    /*
+     * Not started yet - a queued identify() applied before start(). Nothing
+     * has been recorded or sealed, so the recorder simply begins on the
+     * new session, with a chunker bound to its start, as grantConsent()'s
+     * pre-start branch does.
+     */
+    this.identity = next;
+    this.rememberSessionUser();
+    this.chunker = this.createChunker();
+    this.detectFidelityNotices();
+
+    debugLog(
+      "session-rotated",
+      "The session rolled over; a new recording starts here.",
+      {
+        previousSessionId: previousSessionId,
+        sessionId: this.identity.sessionId,
+        rotationReason: SessionRotationReason.IdentityChange,
+      },
+    );
   }
 
   public hasTraits(): boolean {

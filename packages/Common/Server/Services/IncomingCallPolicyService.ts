@@ -14,6 +14,14 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ObjectID from "../../Types/ObjectID";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import IncomingCallPolicyOwnerTeamService from "./IncomingCallPolicyOwnerTeamService";
+import IncomingCallPolicyOwnerUserService from "./IncomingCallPolicyOwnerUserService";
+import TeamMemberService from "./TeamMemberService";
+import IncomingCallPolicyOwnerTeam from "../../Models/DatabaseModels/IncomingCallPolicyOwnerTeam";
+import IncomingCallPolicyOwnerUser from "../../Models/DatabaseModels/IncomingCallPolicyOwnerUser";
+import User from "../../Models/DatabaseModels/User";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import Select from "../Types/Database/Select";
 
 function normalizeProjectCallSMSConfigIdValue(
   value: unknown,
@@ -321,6 +329,116 @@ export class Service extends DatabaseService<IncomingCallPolicy> {
       deleteBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * The people who own this policy: its owner users, plus the accepted
+   * members of its owner teams, once each. Owners who are no longer accepted
+   * members of the project are left out. Empty means nobody owns the policy,
+   * which callers treat as "tell the project owners".
+   */
+  @CaptureSpan()
+  public async findOwners(
+    incomingCallPolicyId: ObjectID,
+  ): Promise<Array<User>> {
+    if (!incomingCallPolicyId) {
+      throw new BadDataException("incomingCallPolicyId is required");
+    }
+
+    const ownerUsers: Array<IncomingCallPolicyOwnerUser> =
+      await IncomingCallPolicyOwnerUserService.findBy({
+        query: {
+          incomingCallPolicyId: incomingCallPolicyId,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          user: {
+            _id: true,
+            email: true,
+            name: true,
+            timezone: true,
+          } as Select<User>,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const ownerTeams: Array<IncomingCallPolicyOwnerTeam> =
+      await IncomingCallPolicyOwnerTeamService.findBy({
+        query: {
+          incomingCallPolicyId: incomingCallPolicyId,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          teamId: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const users: Array<User> = [];
+    const seenUserIds: Set<string> = new Set<string>();
+
+    const addUser: (user: User | undefined) => void = (
+      user: User | undefined,
+    ): void => {
+      const userId: string | undefined = user?.id?.toString();
+
+      if (!user || !userId || seenUserIds.has(userId)) {
+        return;
+      }
+
+      seenUserIds.add(userId);
+      users.push(user);
+    };
+
+    for (const ownerUser of ownerUsers) {
+      addUser(ownerUser.user);
+    }
+
+    const teamIds: Array<ObjectID> = ownerTeams
+      .map((ownerTeam: IncomingCallPolicyOwnerTeam): ObjectID | undefined => {
+        return ownerTeam.teamId;
+      })
+      .filter((teamId: ObjectID | undefined): teamId is ObjectID => {
+        return Boolean(teamId);
+      });
+
+    if (teamIds.length > 0) {
+      /*
+       * Accepted rows only: a pending invitation to an owner team grants
+       * none of the team's permissions, so it does not make anyone an owner.
+       */
+      const teamUsers: Array<User> = await TeamMemberService.getUsersInTeams(
+        teamIds,
+        { acceptedOnly: true },
+      );
+
+      for (const teamUser of teamUsers) {
+        addUser(teamUser);
+      }
+    }
+
+    const projectId: ObjectID | undefined =
+      ownerUsers[0]?.projectId || ownerTeams[0]?.projectId;
+
+    if (!projectId) {
+      return [];
+    }
+
+    // Owners who left the project are not told about its calls.
+    return await TeamMemberService.filterUsersToProjectMembers({
+      projectId: projectId,
+      users: users,
+    });
   }
 
   @CaptureSpan()

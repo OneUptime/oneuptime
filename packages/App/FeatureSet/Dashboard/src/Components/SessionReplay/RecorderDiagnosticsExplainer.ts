@@ -237,7 +237,7 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
   },
   "session-rotated": {
     explanation:
-      "A new session started here: the user came back after 30 minutes idle, the session reached its length cap, or another tab started one first.",
+      "A new session started here: the user came back after 30 minutes idle, the session reached its length cap, a different user signed in, or another tab started one first.",
   },
   "session-ended-idle": {
     explanation:

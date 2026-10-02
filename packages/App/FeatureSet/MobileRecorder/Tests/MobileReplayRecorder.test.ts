@@ -12,6 +12,7 @@ import {
   SESSION_REPLAY_FLUSH_INTERVAL_MS,
   SESSION_REPLAY_IDLE_PAUSE_MS,
   SESSION_REPLAY_IDLE_ROLLOVER_MS,
+  SESSION_REPLAY_MAX_SESSION_MS,
   SESSION_ROTATED_CUSTOM_EVENT_TAG,
   SessionReplayChunkEnvelope,
   SessionReplayFidelityNotice,
@@ -182,6 +183,32 @@ function describeEvent(event: RrwebEvent): string {
   return event.type === RrwebEventType.IncrementalSnapshot
     ? "incremental"
     : `type-${event.type}`;
+}
+
+/*
+ * Chunk 0 of a session that followed an idle one (#4207): the snapshot
+ * first, then the rotation marker that opens it.
+ */
+function expectOpensOnSnapshotThenIdleMarker(
+  post: DecodedPost | undefined,
+): void {
+  expect(post?.envelope).toMatchObject({
+    chunkIndex: 0,
+    hasFullSnapshot: true,
+  });
+  expect(post?.events.slice(0, 3).map(describeEvent)).toEqual([
+    "meta",
+    "full-snapshot",
+    SESSION_ROTATED_CUSTOM_EVENT_TAG,
+  ]);
+  expect(customPayload(post!.events[2]!)).toEqual({ reason: "idle" });
+}
+
+function chunkEndUnixMs(post: DecodedPost): number {
+  return (
+    (post.envelope["sessionStartUnixMs"] as number) +
+    (post.envelope["chunkEndOffsetMs"] as number)
+  );
 }
 
 function diagnosticCodes(recorder: MobileReplayRecorder): Array<string> {
@@ -1470,9 +1497,14 @@ describe("MobileReplayRecorder end-to-end", () => {
     ).toBeGreaterThanOrEqual(2);
   });
 
+  /*
+   * Four hours away is past the duration cap too, but the session ended
+   * idle long before that, so idle is the reason (see IdleRotation.test.ts
+   * for a duration-cap rotation of a session the user is still in).
+   */
   test.each([
     [30 * 60_000, "idle"],
-    [4 * 60 * 60_000, "duration"],
+    [4 * 60 * 60_000, "idle"],
   ])(
     "rotates a long-running session on resume after %sms",
     async (elapsed: number, reason: string) => {
@@ -2736,7 +2768,7 @@ describe("MobileReplayRecorder idle pause", () => {
     }
     await live(test, 15_000, 15_000);
     expect(test.recorder.getSessionId()).toBeNull();
-    expect(diagnosticCodes(test.recorder)).toContain("idle-session-ended");
+    expect(diagnosticCodes(test.recorder)).toContain("session-ended-idle");
     expect(JSON.stringify(allEvents(test.posted))).not.toContain(
       "poll-while-paused",
     );
@@ -2882,50 +2914,35 @@ describe("MobileReplayRecorder idle pause", () => {
     );
   });
 
-  test("ends a session nobody came back to, dated at its pause, and the next touch starts a new one", async () => {
+  test("ends a session nobody came back to where its footage ended - the pause - and the next touch starts a new one", async () => {
     const test: RecorderHarness = harness();
     const seen: Array<string | null> = [];
     test.recorder.onSessionChange((sessionId: string | null): void => {
       seen.push(sessionId);
     });
     const pauseIndex: number = await startAndLeaveAlone(test);
-    const pausePost: DecodedPost = test.posted[pauseIndex]!;
     const pausedSessionId: string | null = test.recorder.getSessionId();
     expect(pausedSessionId).toEqual(expect.any(String));
 
     await live(test, ROLLOVER_AT_UNIX_MS - test.nowUnixMs() + 15_000, 15_000);
 
-    expect(test.posted).toHaveLength(pauseIndex + 2);
-    const seal: DecodedPost = test.posted[pauseIndex + 1]!;
-    expect(seal.envelope).toMatchObject({
-      sessionId: pausedSessionId,
-      tabId: pausePost.envelope["tabId"],
-      chunkIndex: (pausePost.envelope["chunkIndex"] as number) + 1,
-      isFinal: true,
-      hasFullSnapshot: false,
-      chunkStartOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
-      chunkEndOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
-    });
-    expect(seal.events).toEqual([
-      {
-        type: RrwebEventType.Custom,
-        timestamp: PAUSED_AT_UNIX_MS,
-        data: {
-          tag: SESSION_ROTATED_CUSTOM_EVENT_TAG,
-          payload: { reason: "idle" },
-        },
-      },
-    ]);
+    /*
+     * Sealed with nothing left to send (#4207): the pause's chunk already
+     * ended its footage, so the session ends there and nothing is dated
+     * after it.
+     */
+    expect(test.posted).toHaveLength(pauseIndex + 1);
+    expect(chunkEndUnixMs(test.posted[pauseIndex]!)).toBe(PAUSED_AT_UNIX_MS);
     expect(test.recorder.getSessionId()).toBeNull();
     expect(seen).toEqual([pausedSessionId, null]);
     expect(test.recorder.getDiagnostics().status).toBe("paused");
-    expect(diagnosticCodes(test.recorder)).toContain("idle-session-ended");
+    expect(diagnosticCodes(test.recorder)).toContain("session-ended-idle");
 
     /* Over, and nobody here: nothing more is sent, sampled or kept alive. */
     expect(jest.getTimerCount()).toBe(0);
     const capturesAfterSeal: number = test.native.captures;
     await live(test, 20 * 60_000, 15_000);
-    expect(test.posted).toHaveLength(pauseIndex + 2);
+    expect(test.posted).toHaveLength(pauseIndex + 1);
     expect(test.native.captures).toBe(capturesAfterSeal);
 
     touchAt(test, 321, 654);
@@ -2942,14 +2959,7 @@ describe("MobileReplayRecorder idle pause", () => {
         return post.envelope["sessionId"] === nextSessionId;
       },
     );
-    expect(nextPosts[0]?.envelope).toMatchObject({
-      chunkIndex: 0,
-      hasFullSnapshot: true,
-    });
-    expect(nextPosts[0]?.events.slice(0, 2).map(describeEvent)).toEqual([
-      "meta",
-      "full-snapshot",
-    ]);
+    expectOpensOnSnapshotThenIdleMarker(nextPosts[0]);
     expect(eventsTagged(nextPosts, IDLE_RESUMED_CUSTOM_EVENT_TAG)).toEqual([]);
     /* As ever after the rollover, the touch that found the session over is not recorded. */
     expect(JSON.stringify(allEvents(nextPosts))).not.toContain('"x":321');
@@ -2960,10 +2970,10 @@ describe("MobileReplayRecorder idle pause", () => {
       test.posted.filter((post: DecodedPost): boolean => {
         return post.envelope["sessionId"] === pausedSessionId;
       }),
-    ).toHaveLength(pauseIndex + 2);
+    ).toHaveLength(pauseIndex + 1);
   });
 
-  test("a touch after the idle window ran out, before the heartbeat noticed, still seals the session at its pause", async () => {
+  test("a touch after the idle window ran out, before the heartbeat noticed, ends the session at its pause and starts the next", async () => {
     const test: RecorderHarness = harness();
     const pauseIndex: number = await startAndLeaveAlone(test);
     const pausedSessionId: string | null = test.recorder.getSessionId();
@@ -2976,22 +2986,27 @@ describe("MobileReplayRecorder idle pause", () => {
     await flush();
     await live(test, SESSION_REPLAY_FLUSH_INTERVAL_MS, 500);
 
-    const seal: DecodedPost = test.posted[pauseIndex + 1]!;
-    expect(seal.envelope).toMatchObject({
-      sessionId: pausedSessionId,
-      isFinal: true,
-      chunkEndOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
-    });
-    expect(seal.events.map(describeEvent)).toEqual([
-      SESSION_ROTATED_CUSTOM_EVENT_TAG,
-    ]);
-    expect(seal.events[0]?.timestamp).toBe(PAUSED_AT_UNIX_MS);
-    expect(test.recorder.getSessionId()).not.toBe(pausedSessionId);
+    /* Nothing more for the session that ended: its last chunk is the pause's. */
+    const pausedPosts: Array<DecodedPost> = test.posted.filter(
+      (post: DecodedPost): boolean => {
+        return post.envelope["sessionId"] === pausedSessionId;
+      },
+    );
+    expect(pausedPosts).toHaveLength(pauseIndex + 1);
+    expect(Math.max(...pausedPosts.map(chunkEndUnixMs))).toBe(
+      PAUSED_AT_UNIX_MS,
+    );
+    const nextSessionId: string | null = test.recorder.getSessionId();
+    expect(nextSessionId).not.toBe(pausedSessionId);
+    expectOpensOnSnapshotThenIdleMarker(test.posted[pauseIndex + 1]);
+    expect(test.posted[pauseIndex + 1]?.envelope["sessionId"]).toBe(
+      nextSessionId,
+    );
     expect(test.recorder.getDiagnostics().status).toBe("recording");
     await test.recorder.stop();
   });
 
-  test("a paused session that ran out while the app was in the background is sealed at its pause when the app returns", async () => {
+  test("a paused session that ran out while the app was in the background ends at its pause, and the return starts the next", async () => {
     const test: RecorderHarness = harness();
     const pauseIndex: number = await startAndLeaveAlone(test);
     const pausedSessionId: string | null = test.recorder.getSessionId();
@@ -3004,17 +3019,12 @@ describe("MobileReplayRecorder idle pause", () => {
     test.appState.emit("active");
     await flush();
 
-    const seal: DecodedPost = test.posted[pauseIndex + 1]!;
-    expect(seal.envelope).toMatchObject({
-      sessionId: pausedSessionId,
-      isFinal: true,
-      chunkStartOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
-      chunkEndOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
-    });
-    expect(seal.events.map(describeEvent)).toEqual([
-      SESSION_ROTATED_CUSTOM_EVENT_TAG,
-    ]);
-    expect(seal.events[0]?.timestamp).toBe(PAUSED_AT_UNIX_MS);
+    /* Nothing more for the session that ended: its last chunk is the pause's. */
+    expect(
+      test.posted.filter((post: DecodedPost): boolean => {
+        return post.envelope["sessionId"] === pausedSessionId;
+      }),
+    ).toHaveLength(pauseIndex + 1);
 
     const nextSessionId: string | null = test.recorder.getSessionId();
     expect(nextSessionId).toEqual(expect.any(String));
@@ -3028,6 +3038,7 @@ describe("MobileReplayRecorder idle pause", () => {
         return post.envelope["sessionId"] === nextSessionId;
       },
     );
+    expectOpensOnSnapshotThenIdleMarker(nextPosts[0]);
     expect(
       eventsTagged(nextPosts, VISIBILITY_CUSTOM_EVENT_TAG).map(
         (event: RrwebEvent): unknown => {
@@ -3035,11 +3046,6 @@ describe("MobileReplayRecorder idle pause", () => {
         },
       ),
     ).toEqual(["visible", "stopped"]);
-    expect(
-      nextPosts.some((post: DecodedPost): boolean => {
-        return post.envelope["hasFullSnapshot"] === true;
-      }),
-    ).toBe(true);
     expect(eventsTagged(nextPosts, IDLE_RESUMED_CUSTOM_EVENT_TAG)).toEqual([]);
   });
 
@@ -3079,11 +3085,12 @@ describe("MobileReplayRecorder idle pause", () => {
     const test: RecorderHarness = harness();
     const pauseIndex: number = await startAndLeaveAlone(test);
     await live(test, ROLLOVER_AT_UNIX_MS - test.nowUnixMs() + 15_000, 15_000);
-    expect(test.posted).toHaveLength(pauseIndex + 2);
+    expect(test.posted).toHaveLength(pauseIndex + 1);
+    expect(test.recorder.getSessionId()).toBeNull();
 
     await test.recorder.stop();
 
-    expect(test.posted).toHaveLength(pauseIndex + 2);
+    expect(test.posted).toHaveLength(pauseIndex + 1);
     expect(test.recorder.getDiagnostics().status).toBe("stopped");
   });
 
@@ -3178,28 +3185,18 @@ describe("MobileReplayRecorder idle pause", () => {
     test.recorder.identify("bob@example.com");
     await flush();
 
+    /*
+     * Sealed as idle (#4207), with nothing left to send: alice's footage
+     * ended at the pause, and no identity marker is dated after it.
+     */
     expect(test.recorder.getSessionId()).toBeNull();
     expect(test.native.captures).toBe(capturesAtPause);
-    const seal: DecodedPost = test.posted[pauseIndex + 1]!;
-    expect(seal.envelope).toMatchObject({
-      sessionId: aliceSessionId,
-      isFinal: true,
-      chunkEndOffsetMs: PAUSED_AT_UNIX_MS - START_UNIX_MS,
-    });
-    expect(seal.events).toEqual([
-      {
-        type: RrwebEventType.Custom,
-        timestamp: PAUSED_AT_UNIX_MS,
-        data: {
-          tag: SESSION_ROTATED_CUSTOM_EVENT_TAG,
-          payload: { reason: "identity" },
-        },
-      },
-    ]);
+    expect(test.posted).toHaveLength(pauseIndex + 1);
+    expect(diagnosticCodes(test.recorder)).toContain("session-ended-idle");
 
     /* Nobody here: no session of nobody for the new user meanwhile. */
     await live(test, 10 * 60_000, 15_000);
-    expect(test.posted).toHaveLength(pauseIndex + 2);
+    expect(test.posted).toHaveLength(pauseIndex + 1);
     expect(test.native.captures).toBe(capturesAtPause);
 
     touchAt(test, 3, 4);
@@ -3215,17 +3212,17 @@ describe("MobileReplayRecorder idle pause", () => {
         return post.envelope["sessionId"] === bobSessionId;
       },
     );
-    expect(bobPosts[0]?.envelope).toMatchObject({
-      chunkIndex: 0,
-      hasFullSnapshot: true,
-      meta: expect.objectContaining({ identifiedUserRef: "bob@example.com" }),
+    expectOpensOnSnapshotThenIdleMarker(bobPosts[0]);
+    expect(bobPosts[0]?.envelope["meta"]).toMatchObject({
+      identifiedUserRef: "bob@example.com",
     });
     const alicePosts: Array<DecodedPost> = test.posted.filter(
       (post: DecodedPost): boolean => {
         return post.envelope["sessionId"] === aliceSessionId;
       },
     );
-    expect(alicePosts).toHaveLength(pauseIndex + 2);
+    expect(alicePosts).toHaveLength(pauseIndex + 1);
+    expect(Math.max(...alicePosts.map(chunkEndUnixMs))).toBe(PAUSED_AT_UNIX_MS);
     expect(JSON.stringify(alicePosts)).not.toContain("bob@example.com");
   });
 
@@ -3287,7 +3284,7 @@ describe("MobileReplayRecorder idle pause", () => {
     const pauseIndex: number = await startAndLeaveAlone(test);
     const endedSessionId: string | null = test.recorder.getSessionId();
     await live(test, ROLLOVER_AT_UNIX_MS - test.nowUnixMs() + 15_000, 15_000);
-    expect(test.posted).toHaveLength(pauseIndex + 2);
+    expect(test.posted).toHaveLength(pauseIndex + 1);
     expect(test.recorder.getSessionId()).toBeNull();
 
     const capturedAtUnixMs: number = test.nowUnixMs();
@@ -3303,19 +3300,15 @@ describe("MobileReplayRecorder idle pause", () => {
         return post.envelope["sessionId"] === nextSessionId;
       },
     );
-    expect(nextPosts[0]?.envelope).toMatchObject({
-      chunkIndex: 0,
-      hasFullSnapshot: true,
-    });
-    expect(nextPosts[0]?.events.map(describeEvent)).toEqual([
-      "meta",
-      "full-snapshot",
+    /* The next session's own opening (#4207), then the marker, then the pause. */
+    expectOpensOnSnapshotThenIdleMarker(nextPosts[0]);
+    expect(nextPosts[0]?.events.slice(3).map(describeEvent)).toEqual([
       CUSTOM_EVENT_TAG,
       IDLE_PAUSED_CUSTOM_EVENT_TAG,
     ]);
     /* Nobody there before this session began: idle since it began. */
     expect(
-      customPayload<SessionReplayIdlePausedPayload>(nextPosts[0]!.events[3]!),
+      customPayload<SessionReplayIdlePausedPayload>(nextPosts[0]!.events[4]!),
     ).toEqual({
       idleSinceUnixMs: capturedAtUnixMs,
       pausedAtUnixMs: capturedAtUnixMs + 500,
@@ -3325,7 +3318,7 @@ describe("MobileReplayRecorder idle pause", () => {
       test.posted.filter((post: DecodedPost): boolean => {
         return post.envelope["sessionId"] === endedSessionId;
       }),
-    ).toHaveLength(pauseIndex + 2);
+    ).toHaveLength(pauseIndex + 1);
     await test.recorder.stop();
   });
 
@@ -3571,5 +3564,111 @@ describe("MobileReplayRecorder idle pause", () => {
     await live(test, SESSION_REPLAY_IDLE_PAUSE_MS);
     expect(test.recorder.getDiagnostics().status).toBe("paused");
     await test.recorder.stop();
+  });
+
+  /*
+   * Where the pause meets the end of an idle session (#4207): one seal, at
+   * the footage, and the next session only when someone is back.
+   */
+  test("the soft keyboard on a session that ended idle starts the next one", async () => {
+    const test: RecorderHarness = harness();
+    const pauseIndex: number = await startAndLeaveAlone(test);
+    const endedSessionId: string | null = test.recorder.getSessionId();
+    await live(test, ROLLOVER_AT_UNIX_MS - test.nowUnixMs() + 15_000, 15_000);
+    expect(test.recorder.getSessionId()).toBeNull();
+
+    test.keyboard.show();
+    await flush();
+    const nextSessionId: string | null = test.recorder.getSessionId();
+    expect(nextSessionId).toEqual(expect.any(String));
+    expect(nextSessionId).not.toBe(endedSessionId);
+    await live(test, SESSION_REPLAY_FLUSH_INTERVAL_MS, 500);
+    await test.recorder.stop();
+
+    expectOpensOnSnapshotThenIdleMarker(
+      test.posted.find((post: DecodedPost): boolean => {
+        return post.envelope["sessionId"] === nextSessionId;
+      }),
+    );
+    expect(
+      test.posted.filter((post: DecodedPost): boolean => {
+        return post.envelope["sessionId"] === endedSessionId;
+      }),
+    ).toHaveLength(pauseIndex + 1);
+  });
+
+  test("a paused session that reaches the duration cap ends at its pause, as idle, and waits for the user", async () => {
+    const test: RecorderHarness = harness();
+    const validated: ValidatedStartOptions = validateStartOptions(
+      startOptions({ fetch: test.fetch }),
+    )!;
+    const longSessionId: string = "c".repeat(32);
+    /* A session that began almost four hours ago, in use a moment ago. */
+    test.storage.values.set(
+      `@oneuptime/replay/${getReplayStorageNamespace(validated)}/session`,
+      JSON.stringify({
+        sessionId: longSessionId,
+        sessionStartUnixMs:
+          START_UNIX_MS - SESSION_REPLAY_MAX_SESSION_MS + 8 * 60_000,
+        lastActivityUnixMs: START_UNIX_MS - 1_000,
+        nextChunkIndex: 3,
+      }),
+    );
+    expect(await test.recorder.start(validated)).toBe(true);
+    expect(test.recorder.getSessionId()).toBe(longSessionId);
+    await live(test, SESSION_REPLAY_IDLE_PAUSE_MS);
+    const pauseIndex: number = indexOfPostWith(
+      test.posted,
+      IDLE_PAUSED_CUSTOM_EVENT_TAG,
+    );
+    expect(pauseIndex).toBeGreaterThanOrEqual(0);
+
+    /* The cap passes three minutes into the pause, with nobody there. */
+    await live(test, 4 * 60_000, 15_000);
+    expect(test.recorder.getSessionId()).toBeNull();
+    expect(diagnosticCodes(test.recorder)).toContain("session-ended-idle");
+    expect(test.posted).toHaveLength(pauseIndex + 1);
+    expect(eventsTagged(test.posted, SESSION_ROTATED_CUSTOM_EVENT_TAG)).toEqual(
+      [],
+    );
+
+    touchAt(test, 6, 6);
+    await flush();
+    const nextSessionId: string | null = test.recorder.getSessionId();
+    expect(nextSessionId).toEqual(expect.any(String));
+    expect(nextSessionId).not.toBe(longSessionId);
+    await test.recorder.stop();
+    expectOpensOnSnapshotThenIdleMarker(
+      test.posted.find((post: DecodedPost): boolean => {
+        return post.envelope["sessionId"] === nextSessionId;
+      }),
+    );
+  });
+
+  test("with the keyboard up the 30-minute rollover still ends the session, and the keyboard going away starts the next", async () => {
+    const test: RecorderHarness = harness();
+    await test.recorder.start(startOptions({ fetch: test.fetch }));
+    const typingSessionId: string | null = test.recorder.getSessionId();
+    test.keyboard.show();
+    await flush();
+
+    await live(test, SESSION_REPLAY_IDLE_ROLLOVER_MS + 10_000);
+
+    /* Never paused while the keyboard was up; the session's own window still ran out. */
+    expect(eventsTagged(test.posted, IDLE_PAUSED_CUSTOM_EVENT_TAG)).toEqual([]);
+    expect(test.recorder.getSessionId()).toBeNull();
+    expect(diagnosticCodes(test.recorder)).toContain("session-ended-idle");
+
+    test.keyboard.hide();
+    await flush();
+    const nextSessionId: string | null = test.recorder.getSessionId();
+    expect(nextSessionId).toEqual(expect.any(String));
+    expect(nextSessionId).not.toBe(typingSessionId);
+    await test.recorder.stop();
+    expectOpensOnSnapshotThenIdleMarker(
+      test.posted.find((post: DecodedPost): boolean => {
+        return post.envelope["sessionId"] === nextSessionId;
+      }),
+    );
   });
 });

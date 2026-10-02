@@ -51,6 +51,13 @@ export interface DialStatusData {
   callId: string;
   dialStatus: "completed" | "busy" | "no-answer" | "failed" | "canceled";
   dialDurationSeconds?: number;
+  /*
+   * The incoming call itself had already ended when the dial finished, so
+   * the caller is gone and nothing more can be played or dialed. A caller
+   * who hangs up while the dialed phone is still ringing ends the dial too,
+   * and dialStatus then looks like an unanswered dial.
+   */
+  callerHungUp: boolean;
 }
 
 // Express Request type for webhook parsing

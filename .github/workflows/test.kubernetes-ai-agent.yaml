@@ -25,7 +25,10 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd agents/KubernetesAIAgent && npm install
+      - name: Install Kubernetes AI Agent dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: agents/KubernetesAIAgent
       # The agent carries byte-identical copies of the server's kubectl
       # policy (Common/) and the Runner's argv guard; a copy that drifted
       # would let the agent and the server disagree about a command.

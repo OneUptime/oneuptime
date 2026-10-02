@@ -140,9 +140,6 @@ describe("published SDK wire contract", () => {
     expect(VISIBILITY_CUSTOM_EVENT_TAG).toBe(
       SessionReplayCustomEventTag.Visibility,
     );
-    expect(SESSION_ROTATED_CUSTOM_EVENT_TAG).toBe(
-      SessionReplayCustomEventTag.SessionRotated,
-    );
   });
 
   test("uses the exact stored mobile fidelity vocabulary", () => {
@@ -157,6 +154,12 @@ describe("published SDK wire contract", () => {
     );
     expect(SessionReplayFidelityNotice.MobileAnimationSampled).toBe(
       CommonFidelityNotice.MobileAnimationSampled,
+    );
+  });
+
+  test("marks a rotated session with the tag the browser recorder uses", () => {
+    expect(SESSION_ROTATED_CUSTOM_EVENT_TAG).toBe(
+      SessionReplayCustomEventTag.SessionRotated,
     );
   });
   /*

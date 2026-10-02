@@ -999,11 +999,20 @@ jobs:
           # renamed flags/config must not silently break this job.
           version: '~> v2'
 
-      - name: Install dependencies
-        run: |
-          npm install
-          if [ -d "packages/Common" ]; then cd packages/Common && npm install && cd ../..; fi
-          if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
+      # The dry run generates the provider: Scripts/TerraformProvider through
+      # the root's ts-node, against Common's sources. It needs all three.
+      - name: Install root dependencies
+        uses: ./.github/actions/npm-install
+
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      - name: Install Script dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Scripts
 
       - name: Import GPG signing key
         env:

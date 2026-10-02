@@ -63,8 +63,12 @@ jobs:
 
       # typeorm + ts-node live in the root package; the entities the check
       # reflects over resolve their imports through Common's.
-      - run: npm install
-      - run: cd packages/Common && npm install
+      - name: Install root dependencies
+        uses: ./.github/actions/npm-install
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
 
       - name: Check for Postgres schema drift
         run: npm run check-postgres-schema-drift
@@ -524,10 +528,16 @@ jobs:
       # rules and methods seeded as rows, and every query the ee status service
       # builds run by Postgres. ee's jest resolves Common and App from their
       # own installs, so both are installed first.
-      - name: Install App and ee for the Enterprise Postgres suite
-        run: |
-          cd packages/App && npm install
-          cd ../../ee && npm ci --ignore-scripts
+      - name: Install App for the Enterprise Postgres suite
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App
+      - name: Install ee for the Enterprise Postgres suite
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: ee
+          command: ci
+          args: --ignore-scripts
       - name: Test team compliance status on migrated Postgres (Enterprise)
         working-directory: ee
         env:

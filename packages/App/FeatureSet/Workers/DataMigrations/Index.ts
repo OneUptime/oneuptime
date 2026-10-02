@@ -123,6 +123,7 @@ import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboard
 import BackfillStatusPageSubscriberUnsubscribeColumns from "./BackfillStatusPageSubscriberUnsubscribeColumns";
 import BackfillIncidentCustomFieldVariableKeys from "./BackfillIncidentCustomFieldVariableKeys";
 import AcceptPendingTeamInvitationsOfProjectMembers from "./AcceptPendingTeamInvitationsOfProjectMembers";
+import AddIncomingCallMissedNotificationSettingsForUsers from "./AddIncomingCallMissedNotificationSettingsForUsers";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -565,6 +566,13 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Cluster-aware; after the migration above only so the two read in order.
    */
   new RoundTtlToDayOnMixedRetentionTables(),
+  /*
+   * Seeds the missed call notification setting (email on) for existing
+   * members, so Notification Settings shows it the way it behaves. No
+   * ordering requirement, so it sits before the last slot that
+   * AddAuditLogMcpClientColumns asserts for itself. Idempotent.
+   */
+  new AddIncomingCallMissedNotificationSettingsForUsers(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

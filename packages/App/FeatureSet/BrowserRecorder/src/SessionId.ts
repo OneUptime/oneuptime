@@ -4,6 +4,7 @@ import SessionIdentity, {
   StoredSessionState,
 } from "Common/Utils/Rum/SessionIdentity";
 import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
+import { SESSION_REPLAY_MAX_USER_REF_LENGTH } from "Common/Types/Rum/SessionReplay";
 
 /*
  * Browser-side session and tab identity.
@@ -50,6 +51,30 @@ const RELOAD_LOG_STORAGE_KEY: string = "oneuptime.replay.reloads";
  * tab is honoured by all of them within a tick.
  */
 const VISITOR_STORAGE_KEY: string = "oneuptime.replay.visitor";
+
+/*
+ * Who the CURRENT session belongs to: { sessionId, userRef }, written when
+ * a page identifies the session and only while the application has
+ * identity capture on (the reference never leaves the page otherwise, so
+ * there is nothing to remember).
+ *
+ * identify() lives in the page's memory, and a session is many pages: a
+ * multi-page app loads the recorder afresh on every navigation, and every
+ * tab of the origin shares the session id. Each of those pages used to
+ * start anonymous until it called identify() itself, and the ones that
+ * never did - the login page after a sign-in redirect, a link opened in a
+ * new tab - sent the session's header an anonymous version (#4206). With
+ * this record every page of the session knows who it belongs to, and a
+ * page that identifies SOMEONE ELSE can tell, and start a new session.
+ *
+ * Bound to the session id on purpose. It answers "whose session is this",
+ * never "who uses this browser": a record for any other session reads as
+ * nobody, so a new session - the next visit, after the idle rollover or
+ * the duration cap - starts anonymous until a page identifies it. It is
+ * overwritten by the next identification and removed by clearAll()
+ * (revokeConsent) with the rest of the recorder's state.
+ */
+const USER_STORAGE_KEY: string = "oneuptime.replay.user";
 
 /* Refresh rage: 3+ reloads of the same scrubbed pathname inside a minute. */
 const REFRESH_RAGE_WINDOW_MS: number = 60 * 1000;
@@ -298,12 +323,37 @@ export default class SessionId {
       };
     }
 
+    return SessionId.startNewSession({
+      nowUnixMs: nowUnixMs,
+      tabId: tabId,
+      ...(stored && stored.sessionId
+        ? { previousSessionId: stored.sessionId }
+        : {}),
+      ...(decision.reason ? { rotationReason: decision.reason } : {}),
+    });
+  }
+
+  /*
+   * Mint a new session id and make it the shared one, unconditionally.
+   *
+   * resolveSession's own minting path, and the one way to end a session
+   * that is still perfectly live: a different user signing in
+   * (SessionRotationReason.IdentityChange). Every tab of the origin adopts
+   * the new id on its next tick or storage event, exactly as it adopts an
+   * idle rotation.
+   */
+  public static startNewSession(data: {
+    nowUnixMs: number;
+    tabId: string;
+    previousSessionId?: string;
+    rotationReason?: SessionRotationReason;
+  }): SessionIdentityState {
     const sessionId: string = SessionId.generateId();
 
     SessionId.writeStoredSession({
       sessionId: sessionId,
-      sessionStartUnixMs: nowUnixMs,
-      lastActivityUnixMs: nowUnixMs,
+      sessionStartUnixMs: data.nowUnixMs,
+      lastActivityUnixMs: data.nowUnixMs,
     });
 
     /*
@@ -314,23 +364,84 @@ export default class SessionId {
      * preceded by missing chunks. (A bfcache restore mints a new tab id
      * before it gets here, so its counter is new anyway.)
      */
-    SessionId.resetChunkIndex(tabId);
+    SessionId.resetChunkIndex(data.tabId);
 
     const state: SessionIdentityState = {
       sessionId: sessionId,
-      tabId: tabId,
-      sessionStartUnixMs: nowUnixMs,
+      tabId: data.tabId,
+      sessionStartUnixMs: data.nowUnixMs,
     };
 
-    if (stored && stored.sessionId) {
-      state.previousSessionId = stored.sessionId;
+    if (data.previousSessionId) {
+      state.previousSessionId = data.previousSessionId;
     }
 
-    if (decision.reason) {
-      state.rotationReason = decision.reason;
+    if (data.rotationReason) {
+      state.rotationReason = data.rotationReason;
     }
 
     return state;
+  }
+
+  /*
+   * The user `sessionId` belongs to, or null when nobody has identified
+   * it - including when storage holds a record for a different session.
+   * See USER_STORAGE_KEY.
+   *
+   * A record that fails validation reads as nobody rather than being
+   * repaired: it is something this recorder did not write, and attaching
+   * a session to a reference we cannot vouch for is worse than leaving it
+   * anonymous. The server re-checks the reference anyway.
+   */
+  public static readStoredUserRef(sessionId: string): string | null {
+    const raw: string | null = SessionId.readLocalStorage(USER_STORAGE_KEY);
+
+    if (!raw || !sessionId) {
+      return null;
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(raw);
+
+      if (!parsed || typeof parsed !== "object") {
+        return null;
+      }
+
+      const record: Record<string, unknown> = parsed as Record<string, unknown>;
+      const userRef: unknown = record["userRef"];
+
+      if (
+        record["sessionId"] !== sessionId ||
+        typeof userRef !== "string" ||
+        userRef.trim().length === 0 ||
+        userRef.length > SESSION_REPLAY_MAX_USER_REF_LENGTH
+      ) {
+        return null;
+      }
+
+      return userRef;
+    } catch {
+      return null;
+    }
+  }
+
+  /*
+   * Record that `sessionId` belongs to `userRef`. One record, for the
+   * current session only: writing it for a new session replaces the last
+   * one rather than accumulating references in the visitor's storage.
+   */
+  public static writeStoredUserRef(sessionId: string, userRef: string): void {
+    if (!sessionId || !userRef) {
+      return;
+    }
+
+    SessionId.writeLocalStorage(
+      USER_STORAGE_KEY,
+      JSON.stringify({
+        sessionId: sessionId,
+        userRef: userRef.slice(0, SESSION_REPLAY_MAX_USER_REF_LENGTH),
+      }),
+    );
   }
 
   /*
@@ -542,6 +653,14 @@ export default class SessionId {
      * true now that there is a second key.
      */
     SessionId.removeLocalStorage(VISITOR_STORAGE_KEY);
+
+    /*
+     * And who the session belonged to. A withdrawn consent forgets the
+     * session, so it forgets whose it was: nothing the user identified
+     * themselves with before the withdrawal stays in the browser for a
+     * later session to pick up.
+     */
+    SessionId.removeLocalStorage(USER_STORAGE_KEY);
 
     /*
      * The in-memory high-water marks go too. clearAll is "forget this

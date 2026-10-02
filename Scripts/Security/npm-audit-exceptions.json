@@ -1,1 +1,16 @@
-{}
+{
+  "packages/Common": [
+    {
+      "advisory": "GHSA-86w9-cpqp-85rv",
+      "expires": "2026-11-01",
+      "reason": "node-forge has no fixed release: <= 1.4.0 is affected and 1.4.0 is the latest (the advisory was widened to it on 2026-10-01). It comes in only through acme-client 5.4.0, the latest acme-client, which loads it for its legacy forge API. OneUptime calls acme.crypto (createCsr, readCertificateInfo in Common/Server/Utils/Greenlock/Greenlock.ts), which is built on Node's crypto and @peculiar/x509, and acme-client's forge module only generates keys and signs CSRs: nothing here verifies an RSA PKCS#1 v1.5 signature with node-forge, which is where the advisory's forged signatures are accepted."
+    }
+  ],
+  "packages/MobileApp": [
+    {
+      "advisory": "GHSA-86w9-cpqp-85rv",
+      "expires": "2026-11-01",
+      "reason": "node-forge has no fixed release: <= 1.4.0 is affected and 1.4.0 is the latest. It comes in only through Expo's developer tooling, @expo/cli and @expo/code-signing-certificates, which run in Node on the developer's machine and are not bundled into the app. Their node-forge verify calls check a signature they have just made, or the developer's own certificate or CSR, never one an attacker supplies, so the forged signatures the advisory is about never reach them."
+    }
+  ]
+}
