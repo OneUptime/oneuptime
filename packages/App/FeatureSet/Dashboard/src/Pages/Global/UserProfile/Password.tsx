@@ -42,6 +42,12 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 password: true,
               },
               fieldType: FormFieldSchemaType.Password,
+              /*
+               * The person's own new password - the one password field in the
+               * Dashboard password managers should save.
+               */
+              autoComplete: "new-password",
+              isOwnCredential: true,
               validation: {
                 minLength: 6,
               },
@@ -60,6 +66,8 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 toMatchField: "password",
               },
               fieldType: FormFieldSchemaType.Password,
+              autoComplete: "new-password",
+              isOwnCredential: true,
               placeholder: "Confirm Password",
               title: "Confirm Password",
               required: true,
