@@ -1025,14 +1025,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           title="Change Scheduled Maintenance State"
           description="Select the state to change scheduled maintenance events to. Events already at or past the selected state will be skipped."
           stateFieldKey="scheduledMaintenanceStateId"
-          stateOptions={scheduledMaintenanceStates.map(
-            (state: ScheduledMaintenanceState) => {
-              return {
-                label: state.name || "",
-                value: state.id?.toString() || "",
-              };
-            },
-          )}
+          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: scheduledMaintenanceStates,
+            labelField: "name",
+            valueField: "_id",
+          })}
           noteType={BulkStateChangeNoteType.Public}
           noteTitle="Public Note"
           noteDescription="Post a public note about this state change to the status page. The same note is added to every event you selected."

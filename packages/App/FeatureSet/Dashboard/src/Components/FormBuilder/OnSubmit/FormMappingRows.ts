@@ -245,6 +245,46 @@ const settingRow: SettingRowFunction = (data: {
   };
 };
 
+type OwnersRowFunction = (data: {
+  lists: FormReferenceLists;
+  userIds: Array<string> | undefined;
+  teamIds: Array<string> | undefined;
+}) => FormMappingRow;
+
+/*
+ * The owners the settings name, people and teams in one row, as the
+ * settings dialog picks them in one field.
+ */
+const ownersRow: OwnersRowFunction = (data: {
+  lists: FormReferenceLists;
+  userIds: Array<string> | undefined;
+  teamIds: Array<string> | undefined;
+}): FormMappingRow => {
+  const names: Array<string> = [
+    ...nameRecords({
+      lists: data.lists,
+      model: FormTargetSettingReferenceModel.User,
+      ids: data.userIds,
+      deletedLabel: FormsCopy.deletedRecord,
+    }),
+    ...nameRecords({
+      lists: data.lists,
+      model: FormTargetSettingReferenceModel.Team,
+      ids: data.teamIds,
+      deletedLabel: FormsCopy.deletedRecord,
+    }),
+  ];
+
+  return {
+    key: "owners",
+    title: FormsCopy.owners,
+    lines:
+      names.length > 0
+        ? [{ kind: FormMappingLineKind.Value, text: names.join(", ") }]
+        : [notSet],
+  };
+};
+
 type CustomFieldsRowFunction = (data: {
   fields: Array<FormField>;
   customFields: Array<FormCustomFieldDefinition>;
@@ -373,19 +413,10 @@ export const getFormMappingRows: GetFormMappingRowsFunction = (data: {
         model: FormTargetSettingReferenceModel.Label,
         ids: settings.labelIds,
       }),
-      settingRow({
-        key: "ownerUsers",
-        title: FormsCopy.ownerUsers,
+      ownersRow({
         lists,
-        model: FormTargetSettingReferenceModel.User,
-        ids: settings.ownerUserIds,
-      }),
-      settingRow({
-        key: "ownerTeams",
-        title: FormsCopy.ownerTeams,
-        lists,
-        model: FormTargetSettingReferenceModel.Team,
-        ids: settings.ownerTeamIds,
+        userIds: settings.ownerUserIds,
+        teamIds: settings.ownerTeamIds,
       }),
       yesNoRow({
         key: "showOnStatusPages",
@@ -528,19 +559,10 @@ export const getFormMappingRows: GetFormMappingRowsFunction = (data: {
       model: FormTargetSettingReferenceModel.OnCallDutyPolicy,
       ids: settings.onCallDutyPolicyIds,
     }),
-    settingRow({
-      key: "ownerUsers",
-      title: FormsCopy.ownerUsers,
+    ownersRow({
       lists,
-      model: FormTargetSettingReferenceModel.User,
-      ids: settings.ownerUserIds,
-    }),
-    settingRow({
-      key: "ownerTeams",
-      title: FormsCopy.ownerTeams,
-      lists,
-      model: FormTargetSettingReferenceModel.Team,
-      ids: settings.ownerTeamIds,
+      userIds: settings.ownerUserIds,
+      teamIds: settings.ownerTeamIds,
     }),
     customFieldsRow({ fields: data.fields, customFields: data.customFields }),
     {

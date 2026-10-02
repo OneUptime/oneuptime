@@ -1,0 +1,390 @@
+{
+  "Accounts/Login.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Accounts/LoginEnumeration.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Accounts/Passkeys.spec.ts": {
+    "chromium": 10,
+    "firefox": 1
+  },
+  "Accounts/Register.spec.ts": {
+    "chromium": 4,
+    "firefox": 4
+  },
+  "Accounts/ResendVerificationEmail.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Accounts/SignupPassword.spec.ts": {
+    "chromium": 10,
+    "firefox": 14
+  },
+  "AdminDashboard/StatusCheck.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Api/IncidentSubscriberAudienceAccess.spec.ts": {
+    "chromium": 1,
+    "firefox": 3
+  },
+  "Api/NginxRaisedPrefixes.spec.ts": {
+    "chromium": 1,
+    "firefox": 3
+  },
+  "Api/Status.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Api/UnauthenticatedAccess.spec.ts": {
+    "chromium": 1,
+    "firefox": 4
+  },
+  "App/ApiKeyHeaderRefusal.spec.ts": {
+    "chromium": 1,
+    "firefox": 4
+  },
+  "App/AppNameEndpoint.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/AppShallowHealthEndpoints.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/CommunityEditionEnterpriseSurface.spec.ts": {
+    "chromium": 8,
+    "firefox": 8
+  },
+  "App/DeepHealthEndpointConsistency.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/DeepHealthEndpoints.spec.ts": {
+    "chromium": 1,
+    "firefox": 2
+  },
+  "App/HealthEndpointConcurrency.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/HealthEndpointConsistency.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/HealthEndpointContentType.spec.ts": {
+    "chromium": 1,
+    "firefox": 2
+  },
+  "App/HealthEndpointIdempotency.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/HealthEndpoints.spec.ts": {
+    "chromium": 1,
+    "firefox": 2
+  },
+  "App/IngressRoutes.spec.ts": {
+    "chromium": 1,
+    "firefox": 2
+  },
+  "App/NetworkTopologyApiAuth.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/OpenApiSpec.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/SecurityHeaders.spec.ts": {
+    "chromium": 1,
+    "firefox": 3
+  },
+  "App/SensitiveUrlTokenBootstrapServed.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/SessionReplayIngestAuth.spec.ts": {
+    "chromium": 1,
+    "firefox": 4
+  },
+  "App/SingleSignOn.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/SpaRoutesServeHtml.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/StatusCheck.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/StatusEndpointContract.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/StatusProbeHeadRequest.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "App/StatusProbeMinimalBody.spec.ts": {
+    "chromium": 1,
+    "firefox": 2
+  },
+  "App/UnauthenticatedCrudApiAccess.spec.ts": {
+    "chromium": 3,
+    "firefox": 10
+  },
+  "Dashboard/BillingPaidUsage.spec.ts": {
+    "chromium": 21,
+    "firefox": 21
+  },
+  "Dashboard/CephProduct.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Dashboard/CreateMonitors.spec.ts": {
+    "chromium": 134,
+    "firefox": 161
+  },
+  "Dashboard/CreateProject.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Dashboard/DockerSwarmProduct.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Dashboard/ExceptionDetailPages.spec.ts": {
+    "chromium": 26,
+    "firefox": 36
+  },
+  "Dashboard/FirstRunExperience.spec.ts": {
+    "chromium": 30,
+    "firefox": 38
+  },
+  "Dashboard/IncidentForms.spec.ts": {
+    "chromium": 67,
+    "firefox": 1
+  },
+  "Dashboard/InfraResources.spec.ts": {
+    "chromium": 132,
+    "firefox": 150
+  },
+  "Dashboard/InventoryProduct.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Dashboard/InviteUser.spec.ts": {
+    "chromium": 37,
+    "firefox": 40
+  },
+  "Dashboard/LogDropFilters.spec.ts": {
+    "chromium": 22,
+    "firefox": 29
+  },
+  "Dashboard/McpOAuthSignIn.spec.ts": {
+    "chromium": 18,
+    "firefox": 20
+  },
+  "Dashboard/MessageQueueDiscovery.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Dashboard/MessageQueueProduct.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Dashboard/MonitorIncidentOnCall.spec.ts": {
+    "chromium": 294,
+    "firefox": 1
+  },
+  "Dashboard/MonitorPayAsYouGo.spec.ts": {
+    "chromium": 9,
+    "firefox": 12
+  },
+  "Dashboard/MonitorProbeSelection.spec.ts": {
+    "chromium": 20,
+    "firefox": 26
+  },
+  "Dashboard/MonitorProbeSummary.spec.ts": {
+    "chromium": 27,
+    "firefox": 35
+  },
+  "Dashboard/MonitorSecretAccess.spec.ts": {
+    "chromium": 27,
+    "firefox": 34
+  },
+  "Dashboard/MonitorTemplateFieldSync.spec.ts": {
+    "chromium": 23,
+    "firefox": 30
+  },
+  "Dashboard/NetworkDeviceMonitorBacked.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Dashboard/OnCallScheduleTimeline.spec.ts": {
+    "chromium": 16,
+    "firefox": 1
+  },
+  "Dashboard/ProbeExecution.spec.ts": {
+    "chromium": 40,
+    "firefox": 1
+  },
+  "Dashboard/ProxmoxProduct.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Dashboard/ResourceArchiveSettings.spec.ts": {
+    "chromium": 40,
+    "firefox": 51
+  },
+  "Dashboard/RunnersUnderRunbooks.spec.ts": {
+    "chromium": 18,
+    "firefox": 23
+  },
+  "Dashboard/ScheduledMaintenance.spec.ts": {
+    "chromium": 29,
+    "firefox": 1
+  },
+  "Dashboard/SecuritySettingsLayout.spec.ts": {
+    "chromium": 22,
+    "firefox": 28
+  },
+  "Dashboard/SessionReplay.spec.ts": {
+    "chromium": 209,
+    "firefox": 233
+  },
+  "Dashboard/Slo.spec.ts": {
+    "chromium": 52,
+    "firefox": 69
+  },
+  "Dashboard/SloPublicDashboard.spec.ts": {
+    "chromium": 26,
+    "firefox": 1
+  },
+  "Dashboard/StatusPageCustomContentIsolation.spec.ts": {
+    "chromium": 14,
+    "firefox": 1
+  },
+  "Dashboard/StatusPagePublic.spec.ts": {
+    "chromium": 57,
+    "firefox": 1
+  },
+  "Dashboard/Telemetry.spec.ts": {
+    "chromium": 90,
+    "firefox": 98
+  },
+  "Dashboard/TelemetryIngestionKeyDetails.spec.ts": {
+    "chromium": 30,
+    "firefox": 34
+  },
+  "Dashboard/TelemetryIngestionKeys.spec.ts": {
+    "chromium": 34,
+    "firefox": 38
+  },
+  "Dashboard/TelemetryPayAsYouGoNotice.spec.ts": {
+    "chromium": 12,
+    "firefox": 13
+  },
+  "Dashboard/Topology.spec.ts": {
+    "chromium": 16,
+    "firefox": 17
+  },
+  "Dashboard/UserFlows.spec.ts": {
+    "chromium": 40,
+    "firefox": 46
+  },
+  "Dashboard/VMwareProduct.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Dashboard/WorkflowRunsUnderLogs.spec.ts": {
+    "chromium": 15,
+    "firefox": 18
+  },
+  "Dashboard/WorkflowTurnOn.spec.ts": {
+    "chromium": 13,
+    "firefox": 16
+  },
+  "Docs/NavigationIcons.spec.ts": {
+    "chromium": 6,
+    "firefox": 9
+  },
+  "Harness/ClickHouseFixtureLocation.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Harness/NavigationBudget.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Home/AIDiscovery.spec.ts": {
+    "chromium": 2,
+    "firefox": 1
+  },
+  "Home/BlogRss.spec.ts": {
+    "chromium": 1,
+    "firefox": 2
+  },
+  "Home/Books.spec.ts": {
+    "chromium": 35,
+    "firefox": 56
+  },
+  "Home/InstallScript.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Home/Landing.spec.ts": {
+    "chromium": 1,
+    "firefox": 2
+  },
+  "Home/MarkdownVariants.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Home/MarketingDataJson.spec.ts": {
+    "chromium": 1,
+    "firefox": 6
+  },
+  "Home/Navigation.spec.ts": {
+    "chromium": 3,
+    "firefox": 5
+  },
+  "Home/Nostr.spec.ts": {
+    "chromium": 1,
+    "firefox": 4
+  },
+  "Home/ProductCompare.spec.ts": {
+    "chromium": 4,
+    "firefox": 6
+  },
+  "Home/Robots.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Home/SignIn.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Home/SignUp.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "Home/Sitemap.spec.ts": {
+    "chromium": 1,
+    "firefox": 5
+  },
+  "PublicDashboard/StatusCheck.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  },
+  "StatusPage/Basic.spec.ts": {
+    "chromium": 1,
+    "firefox": 1
+  }
+}

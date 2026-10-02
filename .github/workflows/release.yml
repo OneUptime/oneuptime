@@ -266,6 +266,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -348,6 +352,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -430,21 +438,20 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
+
+      # The home image is the biggest one (the blog repository's full
+      # history is in it), so this asks for room - and frees it only on a
+      # runner that does not already have it (see the action).
+      - name: Free disk space if the runner is short of it
+        uses: ./.github/actions/free-disk-space
 
       - uses: actions/setup-node@v4
         with:
@@ -523,6 +530,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -605,6 +616,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -687,6 +702,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -769,6 +788,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -851,6 +874,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -935,6 +962,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1019,6 +1050,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1103,6 +1138,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1194,6 +1233,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1285,6 +1328,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1367,6 +1414,10 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    # Tells prerun's Scripts/Install/configure.sh it is in CI, so it does not
+    # `git pull` (every branch and tag of the repository, ~45s a job).
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1690,79 +1741,30 @@ jobs:
   test-e2e-release-saas:
     runs-on: ubuntu-latest
     needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-check, generate-build-number, read-version, nginx-docker-image-merge]
+    # Above the suite's own 90-minute globalTimeout, so a hang still reports.
+    timeout-minutes: 120
+    # One shard of the default suite per job (E2E_SHARD), as in
+    # test-release.yaml's test-e2e-test-saas job: whole spec files, balanced by their
+    # measured durations, each shard against a stack of its own with one
+    # worker. npm run test-sharding checks these counts add up to exactly
+    # the whole suite (WORKFLOW_SHARD_TOTALS in packages/E2E/Sharding/Sharding.spec.ts).
+    strategy:
+      # Every shard reports its own tests, whatever happens to the others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
-      # Aggressively free disk space before anything else
-      - name: Aggressive Disk Cleanup
-        run: |
-          echo "=== Disk space BEFORE cleanup ==="
-          df -h /
-          # Purge apt-installed packages before rm-ing their files so dpkg state stays consistent.
-          # Otherwise a later `apt-get install` triggers reconfiguration of half-removed packages
-          # (e.g. google-cloud-cli's postinst calls /usr/bin/gcloud) and fails with exit 100.
-          sudo DEBIAN_FRONTEND=noninteractive apt-get purge -y \
-            google-cloud-cli \
-            azure-cli \
-            firefox \
-            powershell \
-            mono-devel \
-            google-chrome-stable 2>/dev/null || true
-          # Remove pre-installed software not needed for this job
-          sudo rm -rf /usr/share/dotnet || true
-          sudo rm -rf /usr/local/lib/android || true
-          sudo rm -rf /opt/ghc || true
-          sudo rm -rf /opt/hostedtoolcache || true
-          sudo rm -rf /usr/local/share/boost || true
-          sudo rm -rf /usr/local/graalvm/ || true
-          sudo rm -rf /usr/local/share/powershell || true
-          sudo rm -rf /usr/local/share/chromium || true
-          sudo rm -rf /usr/local/lib/node_modules || true
-          sudo rm -rf /usr/share/swift || true
-          sudo rm -rf /usr/share/miniconda || true
-          sudo rm -rf /usr/lib/google-cloud-sdk || true
-          sudo rm -rf /usr/lib/jvm || true
-          sudo rm -rf /usr/lib/firefox || true
-          sudo rm -rf /usr/lib/heroku || true
-          sudo rm -rf /usr/local/julia* || true
-          sudo rm -rf /opt/az || true
-          sudo rm -rf /opt/microsoft || true
-          sudo rm -rf /opt/pipx || true
-          sudo rm -rf /opt/actionarchivecache || true
-          sudo rm -rf /imagegeneration || true
-          sudo rm -rf /usr/share/az_* || true
-          sudo rm -rf /usr/share/sbt || true
-          sudo rm -rf /usr/share/gradle* || true
-          sudo rm -rf /usr/share/kotlinc || true
-          sudo rm -rf /usr/share/ri || true
-          sudo rm -rf /usr/local/.ghcup || true
-          # Repair any dpkg state left half-broken by the rm operations above
-          sudo dpkg --configure -a 2>/dev/null || true
-          sudo DEBIAN_FRONTEND=noninteractive apt-get --fix-broken install -y 2>/dev/null || true
-          # Clean apt cache
-          sudo apt-get clean || true
-          sudo rm -rf /var/lib/apt/lists/* || true
-          # Clean temp files
-          sudo rm -rf /tmp/* || true
-          # Docker cleanup
-          docker system prune -af --volumes || true
-          echo "=== Disk space AFTER aggressive cleanup ==="
-          df -h /
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - name: Final Disk Space Check
-        run: |
-          echo "=== Disk space after all cleanup ==="
-          df -h /
       - uses: actions/checkout@v4
+      # The same purge and jlumbroso/free-disk-space this job always ran, but
+      # only on a runner that is short of space (see the action): it took 4 to
+      # 11 minutes a job, and today's runners start with ~86 GB free.
+      - name: Free disk space if the runner is short of it
+        uses: ./.github/actions/free-disk-space
+        with:
+          aggressive: true
+          tool-cache: true
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -1859,6 +1861,20 @@ jobs:
           # so `docker compose` interpolates ${KEY} straight from the process
           # env and does not depend on the config.env round-trip.
           echo "${KEY}=true" >> "$GITHUB_ENV"
+      # Every image this job runs, pulled together: the App image the check
+      # below inspects, the rest of the stack, and the e2e image. compose pulls
+      # them in parallel; the check's own `docker pull` then finds the App
+      # image here.
+      - name: Pull the stack's images and the e2e image
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}
+          # Retried only for what a later attempt can clear - a rate limit, a
+          # 5xx, a dropped connection; a tag that was never pushed fails at once.
+          source ./Scripts/GHA/retry.sh
+          retry_registry_read "Pulling the stack's images and the e2e image" \
+            docker compose -f docker-compose.yml -f packages/E2E/docker-compose.billing.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml -f packages/E2E/docker-compose.e2e.yml pull
       # push-release-tags promotes this App tag to enterprise-release once this
       # job passes, so check it is the Enterprise Edition before booting it: ee/
       # in the image and in its UI bundles, and the loader actually loading it.
@@ -1889,13 +1905,12 @@ jobs:
           echo "runner env flag: [${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"
           echo "app container flag:"
           docker compose -f docker-compose.yml exec -T app sh -lc 'echo "  APP_FLAG=[${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"' || echo "  (exec into app failed)"
-      - name: Pull E2E test image
-        run: |
-          set -euo pipefail
-          export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}
-          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml pull e2e
-      - name: Run E2E Tests. Run docker container e2e in docker compose file
+      # docker-compose.base.yml hands E2E_SHARD to the e2e container, whose
+      # playwright.config.ts narrows the suite to this shard's spec files and
+      # prints them first.
+      - name: Run E2E Tests (shard ${{ matrix.shard }} of ${{ strategy.job-total }})
+        env:
+          E2E_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
@@ -1910,9 +1925,8 @@ jobs:
         # Run this on failure
         if: failure()
         with:
-          # Name of the artifact to upload.
-          # Optional. Default is 'artifact'
-          name: test-results-${{ github.job }}-${{ github.run_attempt }}
+          # Name of the artifact to upload; one per shard.
+          name: test-results-${{ github.job }}-${{ matrix.shard }}-${{ github.run_attempt }}
 
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
@@ -1925,85 +1939,47 @@ jobs:
           # Maximum 90 days unless changed from the repository settings page.
           # Optional. Defaults to repository settings.
           retention-days: 7
+      # How long each spec file took in this shard, in the shape of
+      # packages/E2E/Sharding/ShardWeights.json (see "Sharding the suite" in
+      # packages/E2E/README.md). Green runs only.
+      - name: Upload shard timings
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: e2e-shard-timings-${{ github.job }}-${{ matrix.shard }}-${{ github.run_attempt }}
+          path: ./packages/E2E/test-results/shard-timings.json
+          if-no-files-found: warn
+          retention-days: 7
 
 
   test-e2e-release-self-hosted:
     runs-on: ubuntu-latest
     # After all the jobs runs
     needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-check, generate-build-number, read-version, nginx-docker-image-merge]
+    # Above the suite's own 90-minute globalTimeout, so a hang still reports.
+    timeout-minutes: 120
+    # One shard of the default suite per job (E2E_SHARD), as in
+    # test-release.yaml's test-e2e-test-self-hosted job: whole spec files, balanced by their
+    # measured durations, each shard against a stack of its own with one
+    # worker. npm run test-sharding checks these counts add up to exactly
+    # the whole suite (WORKFLOW_SHARD_TOTALS in packages/E2E/Sharding/Sharding.spec.ts).
+    strategy:
+      # Every shard reports its own tests, whatever happens to the others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
-      # Aggressively free disk space before anything else
-      - name: Aggressive Disk Cleanup
-        run: |
-          echo "=== Disk space BEFORE cleanup ==="
-          df -h /
-          # Purge apt-installed packages before rm-ing their files so dpkg state stays consistent.
-          # Otherwise a later `apt-get install` triggers reconfiguration of half-removed packages
-          # (e.g. google-cloud-cli's postinst calls /usr/bin/gcloud) and fails with exit 100.
-          sudo DEBIAN_FRONTEND=noninteractive apt-get purge -y \
-            google-cloud-cli \
-            azure-cli \
-            firefox \
-            powershell \
-            mono-devel \
-            google-chrome-stable 2>/dev/null || true
-          # Remove pre-installed software not needed for this job
-          sudo rm -rf /usr/share/dotnet || true
-          sudo rm -rf /usr/local/lib/android || true
-          sudo rm -rf /opt/ghc || true
-          sudo rm -rf /opt/hostedtoolcache || true
-          sudo rm -rf /usr/local/share/boost || true
-          sudo rm -rf /usr/local/graalvm/ || true
-          sudo rm -rf /usr/local/share/powershell || true
-          sudo rm -rf /usr/local/share/chromium || true
-          sudo rm -rf /usr/local/lib/node_modules || true
-          sudo rm -rf /usr/share/swift || true
-          sudo rm -rf /usr/share/miniconda || true
-          sudo rm -rf /usr/lib/google-cloud-sdk || true
-          sudo rm -rf /usr/lib/jvm || true
-          sudo rm -rf /usr/lib/firefox || true
-          sudo rm -rf /usr/lib/heroku || true
-          sudo rm -rf /usr/local/julia* || true
-          sudo rm -rf /opt/az || true
-          sudo rm -rf /opt/microsoft || true
-          sudo rm -rf /opt/pipx || true
-          sudo rm -rf /opt/actionarchivecache || true
-          sudo rm -rf /imagegeneration || true
-          sudo rm -rf /usr/share/az_* || true
-          sudo rm -rf /usr/share/sbt || true
-          sudo rm -rf /usr/share/gradle* || true
-          sudo rm -rf /usr/share/kotlinc || true
-          sudo rm -rf /usr/share/ri || true
-          sudo rm -rf /usr/local/.ghcup || true
-          # Repair any dpkg state left half-broken by the rm operations above
-          sudo dpkg --configure -a 2>/dev/null || true
-          sudo DEBIAN_FRONTEND=noninteractive apt-get --fix-broken install -y 2>/dev/null || true
-          # Clean apt cache
-          sudo apt-get clean || true
-          sudo rm -rf /var/lib/apt/lists/* || true
-          # Clean temp files
-          sudo rm -rf /tmp/* || true
-          # Docker cleanup
-          docker system prune -af --volumes || true
-          echo "=== Disk space AFTER aggressive cleanup ==="
-          df -h /
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - name: Final Disk Space Check
-        run: |
-          echo "=== Disk space after all cleanup ==="
-          df -h /
       - uses: actions/checkout@v4
+      # The same purge and jlumbroso/free-disk-space this job always ran, but
+      # only on a runner that is short of space (see the action): it took 4 to
+      # 11 minutes a job, and today's runners start with ~86 GB free.
+      - name: Free disk space if the runner is short of it
+        uses: ./.github/actions/free-disk-space
+        with:
+          aggressive: true
+          tool-cache: true
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -2028,6 +2004,20 @@ jobs:
           else
             echo "APP_TAG=${SANITIZED_VERSION}" > config.env
           fi
+      # Every image this job runs, pulled together: the App image the check
+      # below inspects, the rest of the stack, and the e2e image. compose pulls
+      # them in parallel; the check's own `docker pull` then finds the App
+      # image here.
+      - name: Pull the stack's images and the e2e image
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}
+          # Retried only for what a later attempt can clear - a rate limit, a
+          # 5xx, a dropped connection; a tag that was never pushed fails at once.
+          source ./Scripts/GHA/retry.sh
+          retry_registry_read "Pulling the stack's images and the e2e image" \
+            docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml -f packages/E2E/docker-compose.e2e.yml pull
       # push-release-tags promotes this App tag to release once this job
       # passes, so check it is the Community Edition before booting it: no ee/
       # anywhere in the image or its UI bundles, and the loader finding none.
@@ -2048,13 +2038,12 @@ jobs:
           npm run status-check
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
-      - name: Pull E2E test image
-        run: |
-          set -euo pipefail
-          export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}
-          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml pull e2e
-      - name: Run E2E Tests. Run docker container e2e in docker compose file
+      # docker-compose.base.yml hands E2E_SHARD to the e2e container, whose
+      # playwright.config.ts narrows the suite to this shard's spec files and
+      # prints them first.
+      - name: Run E2E Tests (shard ${{ matrix.shard }} of ${{ strategy.job-total }})
+        env:
+          E2E_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
@@ -2069,9 +2058,8 @@ jobs:
         # Run this on failure
         if: failure()
         with:
-          # Name of the artifact to upload.
-          # Optional. Default is 'artifact'
-          name: test-results-${{ github.job }}-${{ github.run_attempt }}
+          # Name of the artifact to upload; one per shard.
+          name: test-results-${{ github.job }}-${{ matrix.shard }}-${{ github.run_attempt }}
 
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
@@ -2083,6 +2071,17 @@ jobs:
           # Minimum 1 day.
           # Maximum 90 days unless changed from the repository settings page.
           # Optional. Defaults to repository settings.
+          retention-days: 7
+      # How long each spec file took in this shard, in the shape of
+      # packages/E2E/Sharding/ShardWeights.json (see "Sharding the suite" in
+      # packages/E2E/README.md). Green runs only.
+      - name: Upload shard timings
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: e2e-shard-timings-${{ github.job }}-${{ matrix.shard }}-${{ github.run_attempt }}
+          path: ./packages/E2E/test-results/shard-timings.json
+          if-no-files-found: warn
           retention-days: 7
 
   # The self-hosted ENTERPRISE stack, on the release pipeline. The master job
@@ -2103,79 +2102,19 @@ jobs:
     runs-on: ubuntu-latest
     # After all the jobs runs
     needs: [app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-check, generate-build-number, read-version, nginx-docker-image-merge]
+    timeout-minutes: 90
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
-      # Aggressively free disk space before anything else
-      - name: Aggressive Disk Cleanup
-        run: |
-          echo "=== Disk space BEFORE cleanup ==="
-          df -h /
-          # Purge apt-installed packages before rm-ing their files so dpkg state stays consistent.
-          # Otherwise a later `apt-get install` triggers reconfiguration of half-removed packages
-          # (e.g. google-cloud-cli's postinst calls /usr/bin/gcloud) and fails with exit 100.
-          sudo DEBIAN_FRONTEND=noninteractive apt-get purge -y \
-            google-cloud-cli \
-            azure-cli \
-            firefox \
-            powershell \
-            mono-devel \
-            google-chrome-stable 2>/dev/null || true
-          # Remove pre-installed software not needed for this job
-          sudo rm -rf /usr/share/dotnet || true
-          sudo rm -rf /usr/local/lib/android || true
-          sudo rm -rf /opt/ghc || true
-          sudo rm -rf /opt/hostedtoolcache || true
-          sudo rm -rf /usr/local/share/boost || true
-          sudo rm -rf /usr/local/graalvm/ || true
-          sudo rm -rf /usr/local/share/powershell || true
-          sudo rm -rf /usr/local/share/chromium || true
-          sudo rm -rf /usr/local/lib/node_modules || true
-          sudo rm -rf /usr/share/swift || true
-          sudo rm -rf /usr/share/miniconda || true
-          sudo rm -rf /usr/lib/google-cloud-sdk || true
-          sudo rm -rf /usr/lib/jvm || true
-          sudo rm -rf /usr/lib/firefox || true
-          sudo rm -rf /usr/lib/heroku || true
-          sudo rm -rf /usr/local/julia* || true
-          sudo rm -rf /opt/az || true
-          sudo rm -rf /opt/microsoft || true
-          sudo rm -rf /opt/pipx || true
-          sudo rm -rf /opt/actionarchivecache || true
-          sudo rm -rf /imagegeneration || true
-          sudo rm -rf /usr/share/az_* || true
-          sudo rm -rf /usr/share/sbt || true
-          sudo rm -rf /usr/share/gradle* || true
-          sudo rm -rf /usr/share/kotlinc || true
-          sudo rm -rf /usr/share/ri || true
-          sudo rm -rf /usr/local/.ghcup || true
-          # Repair any dpkg state left half-broken by the rm operations above
-          sudo dpkg --configure -a 2>/dev/null || true
-          sudo DEBIAN_FRONTEND=noninteractive apt-get --fix-broken install -y 2>/dev/null || true
-          # Clean apt cache
-          sudo apt-get clean || true
-          sudo rm -rf /var/lib/apt/lists/* || true
-          # Clean temp files
-          sudo rm -rf /tmp/* || true
-          # Docker cleanup
-          docker system prune -af --volumes || true
-          echo "=== Disk space AFTER aggressive cleanup ==="
-          df -h /
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - name: Final Disk Space Check
-        run: |
-          echo "=== Disk space after all cleanup ==="
-          df -h /
       - uses: actions/checkout@v4
+      # The same purge and jlumbroso/free-disk-space this job always ran, but
+      # only on a runner that is short of space (see the action): it took 4 to
+      # 11 minutes a job, and today's runners start with ~86 GB free.
+      - name: Free disk space if the runner is short of it
+        uses: ./.github/actions/free-disk-space
+        with:
+          aggressive: true
+          tool-cache: true
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -2226,6 +2165,18 @@ jobs:
           # so `docker compose` interpolates ${KEY} straight from the process
           # env and does not depend on the config.env round-trip.
           echo "${KEY}=true" >> "$GITHUB_ENV"
+      # Every image this job runs, pulled together; see the same step in
+      # test-e2e-release-saas.
+      - name: Pull the stack's images and the e2e image
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}
+          # Retried only for what a later attempt can clear - a rate limit, a
+          # 5xx, a dropped connection; a tag that was never pushed fails at once.
+          source ./Scripts/GHA/retry.sh
+          retry_registry_read "Pulling the stack's images and the e2e image" \
+            docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml -f packages/E2E/docker-compose.e2e.yml pull
       # push-release-tags promotes this App tag to enterprise-release once this
       # job passes, and the whole job is meaningless if the tag is not really the
       # Enterprise Edition: a Community image answers 404 to every SCIM route
@@ -2258,12 +2209,35 @@ jobs:
           echo "GET /api/global-config/license:"
           curl -sS --max-time 15 http://localhost/api/global-config/license
           echo ""
-      - name: Pull E2E test image
+      # PHASE A, setup: wait for the trial. A brand-new install can read its
+      # license before the AddDefaultGlobalConfig data migration has created
+      # the GlobalConfig row its trial is stamped on; it then reports
+      # "missing", and serves that for LICENSE_INPUTS_CACHE_TTL_IN_MS (60s,
+      # ee/Server/License/LicenseSettings.ts) until a later read stamps the row
+      # (ee/Server/License/LicenseStore.ts) and the trial starts. So poll the
+      # public license endpoint - it awaits the reload - until it reports a
+      # usable license, as phase B polls for the lapse. This used to be
+      # covered only by accident: the e2e image was built or pulled between the
+      # boot and phase A, and that took longer than the cache.
+      - name: Wait for the trial to start (phase A setup)
         run: |
-          set -euo pipefail
-          export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}
-          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml pull e2e
+          set -uo pipefail
+          DEADLINE=$(( $(date +%s) + 180 ))
+          ATTEMPT=0
+          while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+            ATTEMPT=$(( ATTEMPT + 1 ))
+            PAYLOAD="$(curl -sS --max-time 15 http://localhost/api/global-config/license || true)"
+            echo "attempt ${ATTEMPT}: ${PAYLOAD}"
+            STATUS="$(printf '%s' "$PAYLOAD" | jq -r '.status' 2>/dev/null || true)"
+            VALID="$(printf '%s' "$PAYLOAD" | jq -r '.licenseValid' 2>/dev/null || true)"
+            if [ "$VALID" = "true" ] && { [ "$STATUS" = "grace" ] || [ "$STATUS" = "valid" ]; }; then
+              echo "The license is usable after ${ATTEMPT} attempt(s)."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::A fresh Enterprise install never started its trial within 180s of booting. Expected GET /api/global-config/license to report licenseValid=true with status=grace (or valid); the license inputs cache is 60s. The last payload is in this step's log above." >&2
+          exit 1
       # PHASE A. A fresh Enterprise install is inside its unlicensed 14-day
       # trial, so the license is usable and every enterprise feature is on.
       #
@@ -2592,19 +2566,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
+      - name: Free disk space if the runner is short of it
+        uses: ./.github/actions/free-disk-space
 
       - name: Set up Go
         uses: actions/setup-go@v4

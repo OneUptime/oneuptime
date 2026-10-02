@@ -32,7 +32,7 @@ The card lists every field of the new incident and where its value comes from:
 | **Impact Started At** | The answer to **Impact Started At**, when the form asks it.                                                                                                                                  |
 | **Incident Template** | The form's **Incident Template** setting. It fills in whatever the answers and the settings leave unset.                                                                                     |
 | **On-Call Policies**  | The policies the settings name, executed for every incident the form declares. With none, the incident template's.                                                                           |
-| **Owner Users**, **Owner Teams** | The owners the settings name, together with the template's. They are told about every incident.                                                                                   |
+| **Owners**            | The people and teams the settings name, together with the template's owners. They are told about every incident.                                                                           |
 | **Custom Fields**     | Each custom field question's answer — unless the field copies its value from a monitor custom field and the incident's monitors hold one; the template fills in the rest.                     |
 | **Status Pages**      | Never shown on status pages, and subscribers are not told, until someone on your team publishes it.                                                                                          |
 | **Other Answers**     | Listed on a private note on the incident, with who submitted it.                                                                                                                             |
@@ -68,7 +68,7 @@ To publish one after triage, turn **Visible on Status Page** on from the inciden
 | **Monitors**                     | The monitors the submitter chose, together with the ones the settings always attach.                                               |
 | **Status Pages**                 | The status pages the submitter chose, together with the ones the settings name.                                                     |
 | **Labels**                       | The labels the submitter chose, together with the ones the settings always add.                                                     |
-| **Owner Users**, **Owner Teams** | The owners the settings name. They own every event the form schedules.                                                              |
+| **Owners**                       | The people and teams the settings name. They own every event the form schedules.                                                    |
 | **Show on Status Pages**         | **No** unless the settings turn it on.                                                                                              |
 | **Notify Subscribers**           | **No** unless the settings turn it on.                                                                                              |
 | **Custom Fields**                | Each custom field question's answer — unless the field copies its value from a monitor custom field and the event's monitors hold one. |
@@ -86,10 +86,10 @@ A submission is somebody's request, and a request is reviewed before it is publi
 | ----------------- | ----------------------------------------------------------------- | -------------------------------------------------- |
 | **Defaults**      | **Default Title**, **Severity**, **Incident Template**            | **Default Title**                                  |
 | **Always Attach** | **Monitors**, **Labels**, **On-Call Policies**                    | **Monitors**, **Status Pages**, **Labels**         |
-| **Owners**        | **Owner Users**, **Owner Teams**                                  | **Owner Users**, **Owner Teams**                   |
+| **Owners**        | **Owners**                                                        | **Owners**                                         |
 | **Publishing**    | —                                                                 | **Show on Status Pages**, **Notify Subscribers**   |
 
-Everything the settings name must belong to the form's project, and owners must be members of it. A record deleted after it was chosen is skipped when a submission is created, and the rest still applies.
+**Owners** is one picker for people and teams: **Add owner** opens one search list of both, and each pick shows as a chip you can remove. Everything the settings name must belong to the form's project, and owners must be members of it. A record deleted after it was chosen is skipped when a submission is created, and the rest still applies.
 
 ## The private note
 

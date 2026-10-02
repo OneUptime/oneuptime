@@ -5,7 +5,7 @@ import CategoryCheckbox from "../../CategoryCheckbox/Index";
 import CheckboxElement, {
   CategoryCheckboxValue,
 } from "../../Checkbox/Checkbox";
-import CodeEditor from "../../CodeEditor/CodeEditor";
+import CodeEditor, { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import DictionaryForm, { ValueType } from "../../Dictionary/Dictionary";
 import Dropdown, { DropdownValue } from "../../Dropdown/Dropdown";
 import EntityDropdown from "../../EntityDropdown/EntityDropdown";
@@ -35,12 +35,28 @@ import GenericObject from "../../../../Types/GenericObject";
 import { JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Typeof from "../../../../Types/Typeof";
-import React, { ReactElement, useEffect, useId } from "react";
+import React, { ReactElement, ReactNode, useEffect, useId } from "react";
 import Radio, { RadioValue } from "../../Radio/Radio";
 import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
 import HorizontalRule from "../../HorizontalRule/HorizontalRule";
 import MarkdownEditor from "../../Markdown.tsx/MarkdownEditor";
 import YamlEditor from "../../CodeEditor/YamlEditor";
+import PeoplePicker from "../../PeoplePicker/PeoplePicker";
+import {
+  getPeoplePickerKinds,
+  PeoplePickerValue,
+  readPeoplePickerFormValue,
+  toPeoplePickerFormValues,
+} from "../../PeoplePicker/PeoplePickerTypes";
+import InsertTemplateVariableButton from "../../TemplateVariables/InsertTemplateVariableButton";
+import TemplateVariableTextControl from "../../TemplateVariables/TemplateVariableTextControl";
+import {
+  TemplateVariable,
+  TemplateVariableGroups,
+  countTemplateVariables,
+  formatTemplateVariable,
+  hasTemplateVariables,
+} from "../../../../Types/Template/TemplateVariable";
 import useTranslateValue from "../../../Utils/Translation";
 
 /*
@@ -264,6 +280,65 @@ const FormField: <T extends GenericObject>(
 
     const isMultiFileField: boolean =
       props.field.fieldType === FormFieldSchemaType.MultipleFiles;
+
+    /*
+     * A template's {{variables}}: collapsed under the input, and one "{{"
+     * (or, in an editor with a toolbar, one Insert variable) away.
+     */
+    const templateVariableGroups: TemplateVariableGroups =
+      (typeof props.field.templateVariables === "function"
+        ? props.field.templateVariables(props.currentValues)
+        : props.field.templateVariables) || [];
+    const showsTemplateVariables: boolean = hasTemplateVariables(
+      templateVariableGroups,
+    );
+    const templateVariablesFooter: ReactElement | undefined = props.field
+      .getTemplateVariablesFooter
+      ? props.field.getTemplateVariablesFooter(props.currentValues)
+      : undefined;
+
+    // A text field, long text field or code editor, with its variables.
+    const withTemplateVariables: (control: ReactElement) => ReactElement = (
+      control: ReactElement,
+    ): ReactElement => {
+      if (!showsTemplateVariables) {
+        return control;
+      }
+
+      return (
+        <TemplateVariableTextControl
+          groups={templateVariableGroups}
+          description={props.field.templateVariablesDescription}
+          listChildren={templateVariablesFooter}
+        >
+          {control}
+        </TemplateVariableTextControl>
+      );
+    };
+
+    // A code editor's toolbar: Insert variable first, then the field's own.
+    const codeEditorToolbarActions:
+      | ((editor: CodeEditorActions) => ReactNode)
+      | undefined =
+      countTemplateVariables(templateVariableGroups) > 0
+        ? (editor: CodeEditorActions): ReactNode => {
+            return (
+              <>
+                <InsertTemplateVariableButton
+                  groups={templateVariableGroups}
+                  dataTestId="code-editor-insert-variable"
+                  onPick={(variable: TemplateVariable) => {
+                    editor.insertText(formatTemplateVariable(variable.name));
+                  }}
+                  onCloseFocus={editor.focus}
+                />
+                {props.field.codeEditorToolbarActions
+                  ? props.field.codeEditorToolbarActions(editor)
+                  : null}
+              </>
+            );
+          }
+        : props.field.codeEditorToolbarActions;
 
     if (Object.keys(props.field.field || {}).length === 0) {
       throw new BadDataException("Object cannot be without Field");
@@ -743,68 +818,70 @@ const FormField: <T extends GenericObject>(
             />
           )}
 
-          {props.field.fieldType === FormFieldSchemaType.LongText && (
-            <TextArea
-              autoFocus={!props.disableAutofocus && index === 1}
-              id={fieldId}
-              error={props.touched && props.error ? props.error : undefined}
-              tabIndex={0}
-              dataTestId={props.field.dataTestId}
-              disableSpellCheck={props.field.disableSpellCheck}
-              autoGrow={props.field.autoGrow}
-              onChange={async (value: string) => {
-                onChange(value);
-                props.setFieldValue(props.fieldName, value);
-              }}
-              onBlur={async () => {
-                props.setFieldTouched(props.fieldName, true);
-              }}
-              initialValue={
-                props.currentValues &&
-                (props.currentValues as any)[props.fieldName]
-                  ? (props.currentValues as any)[props.fieldName]
-                  : ""
-              }
-              placeholder={translatedPlaceholder || ""}
-            />
-          )}
+          {props.field.fieldType === FormFieldSchemaType.LongText &&
+            withTemplateVariables(
+              <TextArea
+                autoFocus={!props.disableAutofocus && index === 1}
+                id={fieldId}
+                error={props.touched && props.error ? props.error : undefined}
+                tabIndex={0}
+                dataTestId={props.field.dataTestId}
+                disableSpellCheck={props.field.disableSpellCheck}
+                autoGrow={props.field.autoGrow}
+                onChange={async (value: string) => {
+                  onChange(value);
+                  props.setFieldValue(props.fieldName, value);
+                }}
+                onBlur={async () => {
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                initialValue={
+                  props.currentValues &&
+                  (props.currentValues as any)[props.fieldName]
+                    ? (props.currentValues as any)[props.fieldName]
+                    : ""
+                }
+                placeholder={translatedPlaceholder || ""}
+              />,
+            )}
 
-          {props.field.fieldType === FormFieldSchemaType.JSON && (
-            <CodeEditor
-              ariaLabelledby={fieldLabelId}
-              error={props.touched && props.error ? props.error : undefined}
-              ariaInvalid={Boolean(props.touched && props.error)}
-              type={CodeType.JSON}
-              /*
-               * The form validates this field with JSON5 when the value is
-               * read that way, so the editor's own check has to agree.
-               */
-              allowJSON5={props.field.allowJSON5}
-              toolbarActions={props.field.codeEditorToolbarActions}
-              tabIndex={0}
-              dataTestId={props.field.dataTestId}
-              onChange={async (value: string) => {
-                onChange(value);
-                props.setFieldValue(props.fieldName, value);
-              }}
-              onBlur={async () => {
-                props.setFieldTouched(props.fieldName, true);
-              }}
-              initialValue={
-                props.currentValues &&
-                (props.currentValues as any)[props.fieldName]
-                  ? (props.currentValues as any)[props.fieldName]
-                  : ""
-              }
-              value={
-                props.currentValues &&
-                (props.currentValues as any)[props.fieldName]
-                  ? (props.currentValues as any)[props.fieldName]
-                  : ""
-              }
-              placeholder={translatedPlaceholder || ""}
-            />
-          )}
+          {props.field.fieldType === FormFieldSchemaType.JSON &&
+            withTemplateVariables(
+              <CodeEditor
+                ariaLabelledby={fieldLabelId}
+                error={props.touched && props.error ? props.error : undefined}
+                ariaInvalid={Boolean(props.touched && props.error)}
+                type={CodeType.JSON}
+                /*
+                 * The form validates this field with JSON5 when the value is
+                 * read that way, so the editor's own check has to agree.
+                 */
+                allowJSON5={props.field.allowJSON5}
+                toolbarActions={codeEditorToolbarActions}
+                tabIndex={0}
+                dataTestId={props.field.dataTestId}
+                onChange={async (value: string) => {
+                  onChange(value);
+                  props.setFieldValue(props.fieldName, value);
+                }}
+                onBlur={async () => {
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                initialValue={
+                  props.currentValues &&
+                  (props.currentValues as any)[props.fieldName]
+                    ? (props.currentValues as any)[props.fieldName]
+                    : ""
+                }
+                value={
+                  props.currentValues &&
+                  (props.currentValues as any)[props.fieldName]
+                    ? (props.currentValues as any)[props.fieldName]
+                    : ""
+                }
+                placeholder={translatedPlaceholder || ""}
+              />,
+            )}
 
           {props.field.fieldType === FormFieldSchemaType.YAML && (
             <YamlEditor
@@ -843,6 +920,11 @@ const FormField: <T extends GenericObject>(
               tabIndex={0}
               disableSpellCheck={props.field.disableSpellCheck}
               allowImageUpload={props.field.allowImageUpload}
+              templateVariables={templateVariableGroups}
+              templateVariablesDescription={
+                props.field.templateVariablesDescription
+              }
+              templateVariablesFooter={templateVariablesFooter}
               onChange={async (value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
@@ -886,33 +968,80 @@ const FormField: <T extends GenericObject>(
                 : fieldLabelId,
             })}
 
+          {/*
+           * One picker writing a form value per kind - owners are the
+           * people in ownerUsers and the teams in ownerTeams - so each is
+           * written to the form on its own, as two dropdowns used to.
+           */}
+          {props.field.fieldType === FormFieldSchemaType.PeoplePicker &&
+            props.field.peoplePicker && (
+              <PeoplePicker
+                kinds={getPeoplePickerKinds(props.field.peoplePicker)}
+                value={readPeoplePickerFormValue(
+                  props.field.peoplePicker,
+                  props.currentValues,
+                )}
+                onChange={(value: PeoplePickerValue) => {
+                  const formValues: Record<
+                    string,
+                    Array<string>
+                  > = toPeoplePickerFormValues(
+                    props.field.peoplePicker!,
+                    value,
+                  );
+
+                  onChange(formValues);
+
+                  for (const valueKey of Object.keys(formValues)) {
+                    props.setFieldValue(
+                      valueKey,
+                      formValues[valueKey] as Array<string>,
+                    );
+                  }
+
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                onBlur={() => {
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                addButtonText={props.field.peoplePicker.addButtonText}
+                searchPlaceholder={props.field.peoplePicker.searchPlaceholder}
+                emptyText={props.field.peoplePicker.emptyText}
+                disabled={props.field.disabled}
+                error={props.touched && props.error ? props.error : undefined}
+                ariaLabelledby={fieldLabelId}
+                dataTestId={props.field.dataTestId}
+              />
+            )}
+
           {(props.field.fieldType === FormFieldSchemaType.HTML ||
             props.field.fieldType === FormFieldSchemaType.CSS ||
-            props.field.fieldType === FormFieldSchemaType.JavaScript) && (
-            <CodeEditor
-              ariaLabelledby={fieldLabelId}
-              error={props.touched && props.error ? props.error : undefined}
-              ariaInvalid={Boolean(props.touched && props.error)}
-              tabIndex={0}
-              onChange={async (value: string) => {
-                onChange(value);
-                props.setFieldValue(props.fieldName, value);
-              }}
-              onBlur={async () => {
-                props.setFieldTouched(props.fieldName, true);
-              }}
-              dataTestId={props.field.dataTestId}
-              toolbarActions={props.field.codeEditorToolbarActions}
-              type={codeType}
-              initialValue={
-                props.currentValues &&
-                (props.currentValues as any)[props.fieldName]
-                  ? (props.currentValues as any)[props.fieldName]
-                  : ""
-              }
-              placeholder={translatedPlaceholder || ""}
-            />
-          )}
+            props.field.fieldType === FormFieldSchemaType.JavaScript) &&
+            withTemplateVariables(
+              <CodeEditor
+                ariaLabelledby={fieldLabelId}
+                error={props.touched && props.error ? props.error : undefined}
+                ariaInvalid={Boolean(props.touched && props.error)}
+                tabIndex={0}
+                onChange={async (value: string) => {
+                  onChange(value);
+                  props.setFieldValue(props.fieldName, value);
+                }}
+                onBlur={async () => {
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                dataTestId={props.field.dataTestId}
+                toolbarActions={codeEditorToolbarActions}
+                type={codeType}
+                initialValue={
+                  props.currentValues &&
+                  (props.currentValues as any)[props.fieldName]
+                    ? (props.currentValues as any)[props.fieldName]
+                    : ""
+                }
+                placeholder={translatedPlaceholder || ""}
+              />,
+            )}
 
           {isFileField && (
             <FilePicker
@@ -1060,52 +1189,53 @@ const FormField: <T extends GenericObject>(
             props.field.fieldType === FormFieldSchemaType.Port ||
             props.field.fieldType === FormFieldSchemaType.Phone ||
             props.field.fieldType === FormFieldSchemaType.Domain ||
-            props.field.fieldType === FormFieldSchemaType.PositiveNumber) && (
-            <Input
-              autoFocus={!props.disableAutofocus && index === 1}
-              id={fieldId}
-              tabIndex={0}
-              disabled={props.isDisabled || props.field.disabled}
-              error={
-                !props.field.errorMessageInFooter &&
-                props.touched &&
-                props.error
-                  ? props.error
-                  : undefined
-              }
-              ariaInvalid={Boolean(
-                props.field.errorMessageInFooter &&
+            props.field.fieldType === FormFieldSchemaType.PositiveNumber) &&
+            withTemplateVariables(
+              <Input
+                autoFocus={!props.disableAutofocus && index === 1}
+                id={fieldId}
+                tabIndex={0}
+                disabled={props.isDisabled || props.field.disabled}
+                error={
+                  !props.field.errorMessageInFooter &&
                   props.touched &&
-                  props.error,
-              )}
-              dataTestId={props.field.dataTestId}
-              type={fieldType as InputType}
-              ariaDescribedby={props.field.ariaDescribedby}
-              autoComplete={
-                props.field.autoComplete ||
-                (props.field.fieldType
-                  ? getAutoComplete(props.field.fieldType)
-                  : undefined)
-              }
-              isOwnCredential={props.field.isOwnCredential}
-              onChange={(value: string) => {
-                onChange(value);
-                props.setFieldValue(props.fieldName, value);
-              }}
-              onEnterPress={() => {
-                props.submitForm?.();
-              }}
-              onBlur={() => {
-                props.setFieldTouched(props.fieldName, true);
-              }}
-              initialValue={
-                inputInitialValue instanceof Date
-                  ? inputInitialValue
-                  : String(inputInitialValue ?? "")
-              }
-              placeholder={translatedPlaceholder || ""}
-            />
-          )}
+                  props.error
+                    ? props.error
+                    : undefined
+                }
+                ariaInvalid={Boolean(
+                  props.field.errorMessageInFooter &&
+                    props.touched &&
+                    props.error,
+                )}
+                dataTestId={props.field.dataTestId}
+                type={fieldType as InputType}
+                ariaDescribedby={props.field.ariaDescribedby}
+                autoComplete={
+                  props.field.autoComplete ||
+                  (props.field.fieldType
+                    ? getAutoComplete(props.field.fieldType)
+                    : undefined)
+                }
+                isOwnCredential={props.field.isOwnCredential}
+                onChange={(value: string) => {
+                  onChange(value);
+                  props.setFieldValue(props.fieldName, value);
+                }}
+                onEnterPress={() => {
+                  props.submitForm?.();
+                }}
+                onBlur={() => {
+                  props.setFieldTouched(props.fieldName, true);
+                }}
+                initialValue={
+                  inputInitialValue instanceof Date
+                    ? inputInitialValue
+                    : String(inputInitialValue ?? "")
+                }
+                placeholder={translatedPlaceholder || ""}
+              />,
+            )}
         </div>
 
         {showMultiSelectCheckboxCategoryModal &&

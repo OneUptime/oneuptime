@@ -40,7 +40,7 @@ Go to **Incidents → Settings → Incident Templates** (`/dashboard/{projectId}
 - **Custom Fields** — only when your project has incident custom fields: the values incidents declared from this template start with. Every field is offered here, not only the ones the **Details** step asks for, and none is required. An existing template has a **Custom Fields** card to change them.
 - **Custom Fields on Create** — also only when your project has incident custom fields: which of them the **Details** step asks for when an incident is declared from this template, and which must be filled in. An existing template has a **Custom Fields on Create** card to change them. See [Custom fields on create](#custom-fields-on-create).
 - **On-Call** — **On-Call Policy**, the policies to execute when an incident created from this template is declared.
-- **Owners** — **Owner - Teams** and **Owner - Users**.
+- **Owners** — **Owners**: the people and teams who own incidents declared from the template. **Add owner** opens one list of both, the same list as an incident's **Owners** page; each pick shows as a chip you can remove. An existing template shows them on an **Owners** card.
 - **Labels** — **Labels**.
 
 A few quick rules:
@@ -103,13 +103,13 @@ Note templates give responders canned text for incident updates, so a status pag
 Go to **Incidents → Settings → Note Templates** (`/dashboard/{projectId}/incidents/settings/note-templates`). The card is titled **Public or Private Note Templates for Incidents** — one library serves both note types. The create form has two steps:
 
 - **Template Info** — **Template Name** and **Template Description**, both required.
-- **Note Details** — the note body itself, in Markdown, required.
+- **Note Details** — the **Note** itself, in Markdown, required: the text a note starts with when the template is picked.
 
 Like incident templates, rows are created and viewed rather than edited inline; open a template to change it.
 
-**Placeholders.** A note template can carry placeholders that are filled in with the incident's values when the template is picked, so the author sees — and can still change — the finished text before posting it:
+**Variables.** A note template can carry variables that are filled in with the incident's values when the template is picked, so the author sees — and can still change — the finished text before posting it:
 
-| Placeholder                         | Filled with                                                        |
+| Variable                            | Filled with                                                        |
 | ----------------------------------- | ------------------------------------------------------------------ |
 | `{{incident.title}}`                | The incident's title.                                              |
 | `{{incident.number}}`               | Its number, for example `INC-42` or `#42`.                         |
@@ -118,9 +118,17 @@ Like incident templates, rows are created and viewed rather than edited inline; 
 | `{{incident.startedAt}}`            | When it was declared, in the author's time zone, with the zone named. |
 | `{{incident.labels}}`               | Its labels, separated by commas.                                   |
 | `{{incident.affectedStatusPages}}`  | The status pages it shows on and notifies that the author can see. |
-| `{{incident.customFields.<key>}}`   | A custom field's value, by the **Template Variable** shown on the custom field settings page. |
+| `{{incident.customFields.<key>}}`   | A custom field's value, by the field's **Template Variable**, which the **Note** editor lists under **Template variables** by the field's name. |
 
-Custom fields used to be written `{{customFields.<key>}}`; templates that still use it are filled in the same way. A placeholder that has no value, or that is not on the list, stays exactly as written, for the author to fill in. Values are placed as text: an incident title cannot turn into an image, HTML or a link whose text hides where it goes in the posted note, although an address in it still shows as a link to that address. A **Rich text (Markdown)** custom field is placed as the Markdown it is. The form for writing a note template lists these placeholders under the note. The custom field, label and status page placeholders fill in your team's own records, every custom field whether or not it is marked **Include in Subscriber Notifications**, and one library serves public notes too, which are shown on the incident's status pages and emailed to their subscribers. Read the filled-in text before you post a public note.
+Custom fields used to be written `{{customFields.<key>}}`; templates that still use it are filled in the same way. A variable that has no value, or that is not on the list, stays exactly as written, for the author to fill in. Values are placed as text: an incident title cannot turn into an image, HTML or a link whose text hides where it goes in the posted note, although an address in it still shows as a link to that address. A **Rich text (Markdown)** custom field is placed as the Markdown it is. The custom field, label and status page variables fill in your team's own records, every custom field whether or not it is marked **Include in Subscriber Notifications**, and one library serves public notes too, which are shown on the incident's status pages and emailed to their subscribers. Read the filled-in text before you post a public note.
+
+**Putting a variable in.** You never need to type a variable's name. The **Note** editor offers the variables three ways, and each puts the variable where the cursor is:
+
+- **Template variables**, collapsed under the editor: open it to see every variable with what it is filled with — the project's incident custom fields by name — and click one.
+- **Insert variable**, at the end of the editor's toolbar: the same list, with a search box.
+- Typing `{{` in the note opens the list under the cursor. Keep typing to narrow it, choose with the arrow keys, and press Enter or Tab to put the variable in; Escape closes the list.
+
+The same list, button and `{{` come with the other templates that have variables: an SLA rule's note reminders, an incident or alert grouping rule's episode title and description, a monitor rule's incident and alert description and remediation notes, an SLO burn rate rule's templates and a status page's custom subscriber notification templates.
 
 Note templates surface where you actually need them: the **Acknowledge Incident** and **Resolve Incident** confirmation dialogs both offer **Select Note Template** next to the **Public Note** field. See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for how public and private notes differ.
 
@@ -139,17 +147,21 @@ You apply one from the incident, not from settings. Open an incident, choose **P
 
 Custom fields let you carry your own metadata on every incident — an internal service name, a change ticket reference, a customer tier — and ask the same questions every time an incident is declared, such as its impact and when it is expected to be resolved.
 
-Go to **Incidents → Settings → Custom Fields** (`/dashboard/{projectId}/incidents/settings/custom-fields`). The page is titled **Incident Custom Fields** and lists the fields in their **Order**. Each definition has:
+Go to **Incidents → Settings → Custom Fields** (`/dashboard/{projectId}/incidents/settings/custom-fields`). The page is titled **Incident Custom Fields** and lists the fields in their **Order**, each by its **Field Name** and **Field Type** alone. **Edit** on a field's row opens the rest of its settings.
+
+Creating a field asks for its **Field Name**, **Field Description** and **Field Type** on one page — and, for a dropdown type, its options, right under the type. A new field's values are typed in. Everything else is under **Advanced**, which starts collapsed whether you create a field or edit one, and says **Configured** while something in it is set. To make a field that copies its value from a monitor custom field instead, open the **More** menu (**⋯**) next to **Create Incident Custom Field** and choose **Create Mapped Custom Field** — see [Fields copied from a monitor](#fields-copied-from-a-monitor).
+
+Each definition has:
 
 - **Field Name** — required, at least two characters. The placeholder suggests a slug-like name such as `internal-service`.
 - **Field Description** — optional.
 - **Field Type** — required. This chooses how data is entered; the types are listed below. Dropdown types also need their options listed.
 - **Dropdown Options** — the values that appear in the dropdown, each with an optional color.
 - **Order** — where the field appears among the incident's custom fields: on the incident's **Custom Fields** page, in the **Details** step and in subscriber messages. There is no number to type in: drag a field by the handle at the start of its row to move it up or down, and a new field is added to the end. Dragging is off while a filter or search narrows the list.
-- **Show on Create** — asks for the field in the **Details** step when an incident is declared from the dashboard (see [Declaring Incidents](/docs/incidents/declaring-incidents)). An incident template can give any field a starting value, shown on create or not, and can ask for a field or leave it out for the incidents declared from it — see [Custom fields on create](#custom-fields-on-create). [Forms](/docs/forms/building#custom-fields) do not follow it: a form asks only the fields added to it.
-- **Required on Create** — offered once **Show on Create** is on. The **Details** step does not let you declare the incident until the field is filled in, and a **Boolean** field must be switched on. The dashboard is the only place this is checked; see [Required on Create is checked by the dashboard only](#required-on-create-is-checked-by-the-dashboard-only).
-- **Include in Subscriber Notifications** — sends the field and its value to status page subscribers with the incident's messages: the default email, Slack and Microsoft Teams messages and webhooks, but not SMS. Subscribers are usually outside your team, so only turn it on for fields that are safe to share. See [Incident custom fields in notifications](/docs/status-pages/subscribers#incident-custom-fields-in-notifications).
-- **Template Variable** — the key a template reaches the field by, `{{incident.customFields.<key>}}`, in note templates and custom subscriber notification templates. It is made from the field's name when the field is created — lowercase letters, digits and underscores, so `Expected Resolution` becomes `expected_resolution`, with `_2`, `_3` and so on added when another field already has the key — and it does not change when the field is renamed. Nobody sets it by hand: the API ignores a value sent for it. Templates written with the older `{{customFields.<key>}}` keep working.
+- **Show on Create** — under **Advanced**. Asks for the field in the **Details** step when an incident is declared from the dashboard (see [Declaring Incidents](/docs/incidents/declaring-incidents)). An incident template can give any field a starting value, shown on create or not, and can ask for a field or leave it out for the incidents declared from it — see [Custom fields on create](#custom-fields-on-create). [Forms](/docs/forms/building#custom-fields) do not follow it: a form asks only the fields added to it.
+- **Required on Create** — under **Advanced**, offered once **Show on Create** is on. The **Details** step does not let you declare the incident until the field is filled in, and a **Boolean** field must be switched on. The dashboard is the only place this is checked; see [Required on Create is checked by the dashboard only](#required-on-create-is-checked-by-the-dashboard-only).
+- **Include in Subscriber Notifications** — under **Advanced**. Sends the field and its value to status page subscribers with the incident's messages: the default email, Slack and Microsoft Teams messages and webhooks, but not SMS. Subscribers are usually outside your team, so only turn it on for fields that are safe to share. See [Incident custom fields in notifications](/docs/status-pages/subscribers#incident-custom-fields-in-notifications).
+- **Template Variable** — the key a template reaches the field by, `{{incident.customFields.<key>}}`, in note templates and custom subscriber notification templates. It is made from the field's name when the field is created — lowercase letters, digits and underscores, so `Expected Resolution` becomes `expected_resolution`, with `_2`, `_3` and so on added when another field already has the key — and it does not change when the field is renamed. Nobody sets it by hand: the API ignores a value sent for it. Templates written with the older `{{customFields.<key>}}` keep working. You never need to look it up: the editors that place it — a note template's **Note** and a status page's custom subscriber notification templates for incident events — list every field's variable under **Template variables**, by the field's name. A field's **Edit** form also shows it, read only, at the bottom of **Advanced**, with a button that copies it.
 
 **Order**, **Show on Create**, **Required on Create**, **Include in Subscriber Notifications** and **Template Variable** exist on incident custom fields only. The custom fields of monitors, alerts, scheduled maintenance events and the other resources do not have them.
 
@@ -178,6 +190,18 @@ Definitions live in their own model; the values live on the incident itself in t
 **Required on Create** holds back the **Declare Incident** form, and nothing else. Incidents that a monitor, the API, Slack, Microsoft Teams or AI opens cannot fill in a form, so they are created with the field empty. Once an incident exists, every field stays optional on its **Custom Fields** page, so a responder fixing one value mid-outage is never asked for all the others. Treat it as a prompt for the people declaring incidents, not as a promise that every incident has a value.
 
 A template's [custom fields on create](#custom-fields-on-create) are the same: they shape the **Declare Incident** form and nothing else. [Forms](/docs/forms/building#required-questions) are the exception, because the server checks a form's **Required** questions when the form is submitted.
+
+### Fields copied from a monitor
+
+A custom field can take its value from a custom field of the incident's monitors instead of having it typed in — a region or a customer tier your monitors already record, say. To make one, open the **More** menu (**⋯**) next to **Create Incident Custom Field** and choose **Create Mapped Custom Field**. It asks for three things:
+
+- **Monitor Field** — the monitor custom field to copy. Every one is offered, each with its type under its name. The new field gets that type, and a dropdown's options, so the two always match.
+- **Field Name** — starts as the monitor field's name, until you type another.
+- **Field Description** — optional.
+
+The value is filled in when an incident is created with a monitor, and kept up to date when the monitor's value changes. When an incident's monitors hold different values, a single-value field is left as it is and a multi-select field gets all of them. Copying never clears a value: an incident without a monitor keeps whatever is typed on it, and clearing the monitor's value leaves the copies alone. The **Details** step does not ask for a copied field once the incident has a monitor.
+
+To copy an existing field's value from a monitor, change which monitor field it copies, or go back to typing it in, open **Edit** on the field's row and use **Map Value From** under **Advanced**. Alert and scheduled maintenance custom fields can copy from their monitors the same way.
 
 ### Custom field values through the API
 
@@ -351,7 +375,7 @@ Both are on for new projects; a project created before they were on by default k
 
 **Incidents → Rules** holds nine rule engines. They all do the same job — look at an incident the moment it is created, and act if it matches — but they differ in what they do and in how multiple matching rules resolve.
 
-- **Grouping Rules** — group related incidents into episodes. Rules are evaluated from the top of the list down; drag a rule to change its place.
+- **Grouping Rules** — group related incidents into episodes. Rules are evaluated from the top of the list down; drag a rule to change its place. Covered in detail below.
 - **On-Call Rules** — execute on-call duty policies for matching incidents. Covered in detail below.
 - **Owner Rules** — assign owners automatically.
 - **Runbook Rules** — start a [runbook](/docs/runbooks/index) when an incident matches.
@@ -367,6 +391,28 @@ The **On-Call Rules**, **Owner Rules**, **Label Rules** and **Privacy Rules** pa
 
 Owner, Label and Privacy Rules only act on incidents and episodes created after the rule exists. To apply one of them to incidents that are already there, use **Run Now** on the rule's row, on its own page, or from the table's bulk actions — see [Run Rules on Existing Resources](/docs/configuration/run-rules-now). On-Call, Runbook, Auto Remediation, Grouping, SLA and Reminder Rules cannot be run against existing incidents.
 
+## Incident grouping rules
+
+**Incidents → Rules → Grouping Rules** (`/dashboard/{projectId}/incidents/settings/grouping-rules`) puts related incidents into one episode. When a database goes down and 20 monitors open incidents within five minutes, a rule can put all 20 into one episode that your team acknowledges and resolves together. **Alerts → Rules → Grouping Rules** does the same for alerts.
+
+**Start from a template.** A project with no grouping rules sees four ready-made rules in place of the empty list; once there are rules, **Create from Template** on the card opens the same four. **Add Rule** saves one in a single click — enabled, at the end of the list, and applying to every new incident. Edit it afterwards like any other rule.
+
+| Template                                   | Groups                                                     | Time window |
+| ------------------------------------------ | ---------------------------------------------------------- | ----------- |
+| **Group incidents from the same monitor**  | One episode per monitor                                    | 30 minutes  |
+| **Group incidents that happen together**   | One shared episode, whatever the monitor                   | 10 minutes  |
+| **Group incidents by severity**            | One episode per severity                                   | 30 minutes  |
+| **Group repeats of the same incident**     | One episode per incident title, numbers and case ignored   | 1 hour      |
+
+**Or answer two questions.** **Create Custom Rule**, or the card's create button, opens a form that starts as a working rule:
+
+- **Grouping** — **Group incidents by**: **Monitor**, **Everything Together**, **Severity**, **Title** or **Custom**. Custom adds a **Group By** step with the five switches underneath the answers (monitor, severity, incident title, incident labels and monitor labels; labels group by their exact set). **Only group incidents that arrive close together** is on by default: an incident joins an episode only if it arrives within the time window of the episode's previous incident. Turned off, matching incidents keep joining the open episode until it is resolved. **Name** follows the answer until you type your own, and **Enabled** is on.
+- **Which Incidents** — conditions that narrow the rule down. Leave it empty to group every new incident.
+
+**Show advanced settings** adds three steps: **Episode Lifecycle** (reopen recently resolved episodes, wait before resolving an episode, and resolve quiet episodes — each a switch with its minutes), **Details** (the rule's description, the episode title and description templates, showing episodes on status pages, and episode labels) and **On-Call & Ownership** (the on-call policies to run when the rule opens an episode, the default team and user, and episode role assignments). A rule that already uses any of them opens with them shown. The alert form has no status page or episode role settings.
+
+The list's **Grouping** column says what each rule does — "One episode per monitor", "New incidents join while they arrive within 30 minutes of the last one" — with a note for each lifecycle setting that is on, for the on-call policies it runs and for showing episodes on status pages. **Match Criteria** shows which incidents it applies to, and **Status** whether it is on.
+
 ## Incident on-call rules
 
 **Incidents → Rules → On-Call Rules** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is where you make paging automatic. The card, **Incident On-Call Rules**, describes rules that automatically execute on-call duty policies when matching incidents are created. The page has two tabs: **Incident Rules** and **Episode Rules**.
@@ -374,16 +420,16 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 The create form has three steps:
 
 - **Basic Info** — **Name** (the placeholder suggests something like paging the database team for any DB incident), **Description**, and an **Enabled** toggle. The list renders a green **Enabled** or red **Disabled** pill per rule.
-- **Match Criteria** — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels**, plus case-insensitive regular expression fields for the incident title, incident description, monitor name and monitor description.
+- **Match Criteria** — the rule's **Conditions**. Each condition picks a criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels**, **Incident Title**, **Incident Description**, **Monitor Name** or **Monitor Description** — an operator and a value, and reads like a sentence: "If **Incident Title** contains `database`", "And **Monitor Labels** has any of _Production_".
 - **On-Call Policies** — the policies this rule executes.
 
 ### How matching resolves
 
 The rules the page ships with itself are worth internalizing:
 
-- A rule matches only when **all** of the criteria you filled in pass. Criteria you left empty are skipped, not failed.
-- Within a single list criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels** — matching is any-of.
-- The pattern fields are case-insensitive regular expressions.
+- With two or more conditions you choose **Match all** (every condition must be true) or **Match any** (one is enough). A rule with no conditions matches every incident.
+- A list criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels** — uses **Has any of**, **Has all of** or **Has none of** the values you pick.
+- A text criterion — the incident's title and description, its monitors' names and descriptions — uses **Contains**, **Does not contain**, **Equals**, **Does not equal**, **Starts with** or **Ends with**, ignoring case, or **Matches pattern** / **Does not match pattern** for a case-insensitive regular expression or a `*` wildcard. A new text condition starts on **Contains**.
 - **All matching rules fire.** There is no priority and no short-circuit.
 - The set of policies that actually executes is the union of every matching rule's policies plus any policies attached to the incident manually or by a template, deduplicated so each policy runs at most once.
 

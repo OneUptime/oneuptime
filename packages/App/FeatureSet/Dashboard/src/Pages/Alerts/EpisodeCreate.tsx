@@ -16,29 +16,22 @@ import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Card from "Common/UI/Components/Card/Card";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../Utils/ProjectUser";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import FetchUsers from "../../Components/User/FetchUsers";
-import User from "Common/Models/DatabaseModels/User";
-import FetchTeam from "../../Components/Team/FetchTeams";
 import FetchOnCallDutyPolicies from "../../Components/OnCallPolicy/FetchOnCallPolicies";
 import FetchAlertState from "../../Components/AlertState/FetchAlertState";
 import FetchAlertSeverity from "../../Components/AlertSeverity/FetchAlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Color from "Common/Types/Color";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 const EpisodeCreate: FunctionComponent<
   PageComponentProps
@@ -182,51 +175,12 @@ const EpisodeCreate: FunctionComponent<
                     type: AlertState,
                     labelField: "name",
                     valueField: "_id",
+                    sort: {
+                      order: SortOrder.Ascending,
+                    },
                   },
                   required: false,
                   placeholder: "Select Initial State",
-                  fetchDropdownOptions: async () => {
-                    const projectId: ObjectID | null =
-                      ProjectUtil.getCurrentProjectId();
-                    if (!projectId) {
-                      return [];
-                    }
-
-                    try {
-                      const alertStates: ListResult<AlertState> =
-                        await ModelAPI.getList<AlertState>({
-                          modelType: AlertState,
-                          query: {
-                            projectId: projectId,
-                          },
-                          limit: LIMIT_PER_PROJECT,
-                          skip: 0,
-                          select: {
-                            _id: true,
-                            name: true,
-                            color: true,
-                          },
-                          sort: {
-                            order: SortOrder.Ascending,
-                          },
-                        });
-
-                      return alertStates.data.map(
-                        (state: AlertState): DropdownOption => {
-                          const option: DropdownOption = {
-                            label: state.name || "",
-                            value: state._id?.toString() || "",
-                            color: state.color as Color,
-                          };
-
-                          return option;
-                        },
-                      );
-                    } catch {
-                      // Silently fail and return empty array
-                      return [];
-                    }
-                  },
                   getSummaryElement: (item: FormValues<AlertEpisode>) => {
                     if (!item.currentAlertState) {
                       return <p>Will use first available state by priority</p>;
@@ -302,118 +256,16 @@ const EpisodeCreate: FunctionComponent<
                     );
                   },
                 },
-                {
-                  overrideField: {
-                    ownerTeams: true,
-                  },
-                  showEvenIfPermissionDoesNotExist: true,
-                  title: "Owner - Teams",
+                /*
+                 * People and teams in one picker, kept in ownerUsers /
+                 * ownerTeams: AlertEpisodeService adds them as the episode's
+                 * owners. The summary step lists them by name.
+                 */
+                getOwnersFormField({
                   stepId: "owners",
                   description:
-                    "Select which teams own this episode. They will be notified when the episode is created or updated.",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  dropdownModal: {
-                    type: Team,
-                    labelField: "name",
-                    valueField: "_id",
-                  },
-                  required: false,
-                  placeholder: "Select Teams",
-                  overrideFieldKey: "ownerTeams",
-                  getSummaryElement: (item: FormValues<AlertEpisode>) => {
-                    if (
-                      !(item as JSONObject)["ownerTeams"] ||
-                      !Array.isArray((item as JSONObject)["ownerTeams"])
-                    ) {
-                      return <p>No teams assigned.</p>;
-                    }
-
-                    const ownerTeamIds: Array<ObjectID> = [];
-
-                    for (const ownerTeam of (item as JSONObject)[
-                      "ownerTeams"
-                    ] as Array<any>) {
-                      if (typeof ownerTeam === "string") {
-                        ownerTeamIds.push(new ObjectID(ownerTeam));
-                        continue;
-                      }
-
-                      if (ownerTeam instanceof ObjectID) {
-                        ownerTeamIds.push(ownerTeam);
-                        continue;
-                      }
-
-                      if (ownerTeam instanceof Team) {
-                        ownerTeamIds.push(
-                          new ObjectID(ownerTeam._id?.toString() || ""),
-                        );
-                        continue;
-                      }
-                    }
-
-                    return (
-                      <div>
-                        <FetchTeam teamIds={ownerTeamIds} />
-                      </div>
-                    );
-                  },
-                },
-                {
-                  overrideField: {
-                    ownerUsers: true,
-                  },
-                  showEvenIfPermissionDoesNotExist: true,
-                  title: "Owner - Users",
-                  stepId: "owners",
-                  description:
-                    "Select which users own this episode. They will be notified when the episode is created or updated.",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  fetchDropdownOptions: async () => {
-                    return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                      ProjectUtil.getCurrentProjectId()!,
-                    );
-                  },
-                  required: false,
-                  placeholder: "Select Users",
-                  overrideFieldKey: "ownerUsers",
-                  getSummaryElement: (item: FormValues<AlertEpisode>) => {
-                    if (
-                      !(item as JSONObject)["ownerUsers"] ||
-                      !Array.isArray((item as JSONObject)["ownerUsers"])
-                    ) {
-                      return <p>No owners assigned.</p>;
-                    }
-
-                    const ownerUserIds: Array<ObjectID> = [];
-
-                    for (const ownerUser of (item as JSONObject)[
-                      "ownerUsers"
-                    ] as Array<any>) {
-                      if (typeof ownerUser === "string") {
-                        ownerUserIds.push(new ObjectID(ownerUser));
-                        continue;
-                      }
-
-                      if (ownerUser instanceof ObjectID) {
-                        ownerUserIds.push(ownerUser);
-                        continue;
-                      }
-
-                      if (ownerUser instanceof User) {
-                        ownerUserIds.push(
-                          new ObjectID(ownerUser._id?.toString() || ""),
-                        );
-                        continue;
-                      }
-                    }
-
-                    return (
-                      <div>
-                        <FetchUsers userIds={ownerUserIds} />
-                      </div>
-                    );
-                  },
-                },
+                    "Who owns this episode. They are notified when it is created or updated.",
+                }),
                 {
                   field: {
                     labels: true,

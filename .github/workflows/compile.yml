@@ -347,7 +347,6 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: sudo apt-get update
       - name: Install Common dependencies
         uses: ./.github/actions/npm-install
         with:
@@ -367,6 +366,14 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3
           command: cd packages/E2E && npm run compile && npm run dep-check
+      # The release workflows split the default e2e suite into shards
+      # (packages/E2E/Sharding). A test that no shard picks up would never run,
+      # and every job would stay green, so this asks Playwright's own --list
+      # whether the shards those workflows use add up to exactly the whole
+      # suite. Listing loads the spec files but needs no browser.
+      - name: Check the e2e shards cover the whole suite
+        working-directory: packages/E2E
+        run: npm run test-sharding
 
   compile-probe:
     runs-on: ubuntu-latest

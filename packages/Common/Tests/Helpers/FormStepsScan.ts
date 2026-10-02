@@ -27,12 +27,25 @@ import ts from "typescript";
  * a loop, data from the server) makes the form "uncountable", and the guard
  * asks for those to be listed with a reason too.
  *
+ * A field a helper builds (getOwnersFormField({ stepId: "owners", ... })) is
+ * the object the helper returns, read with what the call hands it: a step,
+ * title or showIf written in the call's object argument is the field's, so
+ * the field is placed on its step like one written out in full.
+ *
  * What counts as a field the user can see. Every element of the list, less
  * the ones whose showIf is a constant `() => false` (registrations that only
  * make ModelForm select a column). A field shown under a condition counts:
  * the form can be that long. On a ModelTable the Create and the Edit forms
  * are told apart by doNotShowWhenCreating / doNotShowWhenEditing, and the
  * longer of the two is what is judged.
+ *
+ * A folded section counts once. Fields next to each other that share a
+ * collapsibleSection (an "Advanced" section, getAdvancedFormSection) are
+ * drawn as one header until the user opens it, so the form - or the step -
+ * is judged by the rows it shows, the section's header being one of them
+ * (countFieldRows). Fields are told to share a section by how their
+ * collapsibleSection is written, so write the same expression on each: one
+ * constant, built once.
  *
  * What counts as steps. A non-empty steps list (formSteps, steps,
  * formProps.steps), or a summary turned on (BasicForm then walks a default
@@ -96,6 +109,8 @@ export interface FormFieldFacts {
   // The column or override key the field writes, when it is written down.
   key: string;
   title: string;
+  // The fieldType as written ("FormFieldSchemaType.PeoplePicker"), or "".
+  fieldType: string;
   /*
    * The step the field is on: a string when written as one, null when it is
    * computed (a variable, a spread), undefined when the field has none.
@@ -109,6 +124,12 @@ export interface FormFieldFacts {
   isCreateOnly: boolean;
   // doNotShowWhenCreating - the Edit form only.
   isEditOnly: boolean;
+  /*
+   * The field's collapsibleSection as written (whitespace dropped), or
+   * undefined when it is not in one. Fields next to each other with the same
+   * text are one folded section.
+   */
+  collapsibleSection: string | undefined;
   file: string;
   line: number;
 }
@@ -138,7 +159,10 @@ export interface FormFacts {
   hasSummaryOnly: boolean;
   // Whether a ModelTable offers its Edit form (isEditable written as true).
   hasEditForm: boolean;
-  // The fields the user can see, on the longer of the forms the host draws.
+  /*
+   * The fields the user can see, on the longer of the forms the host draws -
+   * a folded section counting once (countFieldRows).
+   */
   visibleFieldCount: number;
   /*
    * The form edits a rule model (one extending RuleBaseModel), whose
@@ -186,8 +210,18 @@ interface ParsedFile {
   assignments: Map<string, Array<{ value: ts.Expression; inLoop: boolean }>>;
 }
 
+interface ResolvedItem {
+  parsed: ParsedFile;
+  node: ts.ObjectLiteralExpression;
+  /*
+   * For a field a helper returns: the object the call handed the helper,
+   * whose properties (stepId, title, showIf...) the field carries.
+   */
+  call?: ts.ObjectLiteralExpression | undefined;
+}
+
 interface Resolution {
-  items: Array<{ parsed: ParsedFile; node: ts.ObjectLiteralExpression }>;
+  items: Array<ResolvedItem>;
   // Plain literals written in the file the form itself is in.
   plain: Set<ts.ObjectLiteralExpression>;
   reasons: Array<string>;
@@ -1113,7 +1147,24 @@ export class FormStepsScanner {
 
           if (last) {
             // A helper's field: counted, but never a plain literal here.
-            return this.resolveItem(found.parsed, last, depth + 1, false);
+            const resolved: Resolution = this.resolveItem(
+              found.parsed,
+              last,
+              depth + 1,
+              false,
+            );
+
+            const argument: ts.Node | undefined = element.arguments[0]
+              ? unwrap(element.arguments[0])
+              : undefined;
+
+            if (argument && ts.isObjectLiteralExpression(argument)) {
+              for (const item of resolved.items) {
+                item.call = item.call || argument;
+              }
+            }
+
+            return resolved;
           }
         }
       }
@@ -1162,11 +1213,12 @@ export class FormStepsScanner {
     );
 
     const fields: Array<FormFieldFacts> = fieldResolution.items.map(
-      (item: { parsed: ParsedFile; node: ts.ObjectLiteralExpression }) => {
+      (item: ResolvedItem) => {
         return this.describeField(
           item.parsed,
           item.node,
           fieldResolution.plain.has(item.node),
+          item.call,
         );
       },
     );
@@ -1191,11 +1243,9 @@ export class FormStepsScanner {
         steps = null;
         hasSteps = true;
       } else {
-        steps = stepResolution.items.map(
-          (item: { parsed: ParsedFile; node: ts.ObjectLiteralExpression }) => {
-            return this.describeStep(item.parsed, item.node);
-          },
-        );
+        steps = stepResolution.items.map((item: ResolvedItem) => {
+          return this.describeStep(item.parsed, item.node);
+        });
         hasSteps = steps.length > 0;
       }
     }
@@ -1217,18 +1267,20 @@ export class FormStepsScanner {
       },
     );
 
-    let visibleFieldCount: number = shown.length;
+    let visibleFieldCount: number = countFieldRows(shown);
 
     if (hostName === "ModelTable" || hostName === "RuleTable") {
-      const onCreate: number = shown.filter(
-        (field: FormFieldFacts): boolean => {
+      const onCreate: number = countFieldRows(
+        shown.filter((field: FormFieldFacts): boolean => {
           return !field.isEditOnly;
-        },
-      ).length;
+        }),
+      );
       const onEdit: number = hasEditForm
-        ? shown.filter((field: FormFieldFacts): boolean => {
-            return !field.isCreateOnly;
-          }).length
+        ? countFieldRows(
+            shown.filter((field: FormFieldFacts): boolean => {
+              return !field.isCreateOnly;
+            }),
+          )
         : 0;
       visibleFieldCount = Math.max(onCreate, onEdit);
     }
@@ -1397,20 +1449,34 @@ export class FormStepsScanner {
     parsed: ParsedFile,
     node: ts.ObjectLiteralExpression,
     isPlainLiteral: boolean,
+    call?: ts.ObjectLiteralExpression | undefined,
   ): FormFieldFacts {
+    const propertyOf: (
+      container: ts.ObjectLiteralExpression,
+      name: string,
+    ) => ts.ObjectLiteralElementLike | undefined = (
+      container: ts.ObjectLiteralExpression,
+      name: string,
+    ): ts.ObjectLiteralElementLike | undefined => {
+      return container.properties.find(
+        (candidate: ts.ObjectLiteralElementLike): boolean => {
+          return (
+            (ts.isPropertyAssignment(candidate) ||
+              ts.isShorthandPropertyAssignment(candidate)) &&
+            candidate.name.getText(container.getSourceFile()) === name
+          );
+        },
+      );
+    };
+
+    // What the helper's caller wrote wins over the helper's own default.
     const property: (
       name: string,
     ) => ts.ObjectLiteralElementLike | undefined = (
       name: string,
     ): ts.ObjectLiteralElementLike | undefined => {
-      return node.properties.find(
-        (candidate: ts.ObjectLiteralElementLike): boolean => {
-          return (
-            (ts.isPropertyAssignment(candidate) ||
-              ts.isShorthandPropertyAssignment(candidate)) &&
-            candidate.name.getText(parsed.sourceFile) === name
-          );
-        },
+      return (
+        (call ? propertyOf(call, name) : undefined) || propertyOf(node, name)
       );
     };
 
@@ -1446,14 +1512,14 @@ export class FormStepsScanner {
     if (overrideKey && ts.isStringLiteralLike(overrideKey)) {
       key = overrideKey.text;
     } else if (overrideKey) {
-      key = overrideKey.getText(parsed.sourceFile);
+      key = overrideKey.getText(overrideKey.getSourceFile());
     } else if (
       field &&
       ts.isObjectLiteralExpression(field) &&
       field.properties[0]?.name
     ) {
       key = field.properties[0].name
-        .getText(parsed.sourceFile)
+        .getText(field.getSourceFile())
         .replace(/^\[|\]$/g, "")
         .replace(/^["']|["']$/g, "");
     }
@@ -1461,6 +1527,8 @@ export class FormStepsScanner {
     const title: ts.Node | null = initializerOf("title");
     const stepId: ts.Node | null = initializerOf("stepId");
     const showIf: ts.Node | null = initializerOf("showIf");
+    const collapsibleSection: ts.Node | null =
+      initializerOf("collapsibleSection");
 
     let stepIdValue: string | null | undefined = undefined;
 
@@ -1475,12 +1543,17 @@ export class FormStepsScanner {
       stepIdValue = null;
     }
 
+    // A helper's field is reported where it is called.
+    const position: ts.Node = call || node;
+    const fieldType: ts.Node | null = initializerOf("fieldType");
+
     return {
       key,
+      fieldType: fieldType ? fieldType.getText(fieldType.getSourceFile()) : "",
       title: title
         ? ts.isStringLiteralLike(title)
           ? title.text
-          : title.getText(parsed.sourceFile)
+          : title.getText(title.getSourceFile())
         : "",
       stepId: stepIdValue,
       isPlainLiteral,
@@ -1488,11 +1561,27 @@ export class FormStepsScanner {
       isConditional: Boolean(showIf && !isConstantFalseFunction(showIf)),
       isCreateOnly: isTrue("doNotShowWhenEditing"),
       isEditOnly: isTrue("doNotShowWhenCreating"),
-      file: toRepositoryPath(this.repositoryRoot, parsed.file),
+      collapsibleSection:
+        collapsibleSection &&
+        collapsibleSection.kind !== ts.SyntaxKind.UndefinedKeyword &&
+        !(
+          ts.isIdentifier(collapsibleSection) &&
+          collapsibleSection.text === "undefined"
+        )
+          ? collapsibleSection
+              .getText(collapsibleSection.getSourceFile())
+              .replace(/\s+/g, "")
+          : undefined,
+      file: toRepositoryPath(
+        this.repositoryRoot,
+        call ? call.getSourceFile().fileName : parsed.file,
+      ),
       line:
-        parsed.sourceFile.getLineAndCharacterOfPosition(
-          node.getStart(parsed.sourceFile),
-        ).line + 1,
+        position
+          .getSourceFile()
+          .getLineAndCharacterOfPosition(
+            position.getStart(position.getSourceFile()),
+          ).line + 1,
     };
   }
 
@@ -1821,7 +1910,8 @@ export interface StepFieldCount {
 /*
  * Every step of a stepped form, with the fields it can show. Counted like a
  * form's length: a field shown under a condition counts (the step can be
- * that long), a constant `showIf: () => false` registration does not, and a
+ * that long), a constant `showIf: () => false` registration does not, a
+ * folded section counts once (countFieldRows), and a
  * ModelTable is judged by the longer of its Create and Edit forms. A rule
  * model's Match Criteria step counts as one field, because ModelForm draws
  * the criteria builder there instead of the fields listed on it.
@@ -1848,18 +1938,20 @@ export function countStepFields(form: FormFacts): Array<StepFieldCount> {
       },
     );
 
-    let count: number = onStep.length;
+    let count: number = countFieldRows(onStep);
 
     if (form.host === "ModelTable" || form.host === "RuleTable") {
-      const onCreate: number = onStep.filter(
-        (field: FormFieldFacts): boolean => {
+      const onCreate: number = countFieldRows(
+        onStep.filter((field: FormFieldFacts): boolean => {
           return !field.isEditOnly;
-        },
-      ).length;
+        }),
+      );
       const onEdit: number = form.hasEditForm
-        ? onStep.filter((field: FormFieldFacts): boolean => {
-            return !field.isCreateOnly;
-          }).length
+        ? countFieldRows(
+            onStep.filter((field: FormFieldFacts): boolean => {
+              return !field.isCreateOnly;
+            }),
+          )
         : 0;
       count = Math.max(onCreate, onEdit);
     }
@@ -1888,15 +1980,41 @@ export function findOverloadedSteps(
   });
 }
 
-export function describeStepFieldCount(count: StepFieldCount): string {
-  const titles: Array<string> = count.fields.map(
-    (field: FormFieldFacts): string => {
-      return (
-        (field.title || field.key || "?") +
-        (field.isConditional ? " (when shown)" : "")
-      );
-    },
+/*
+ * The rows a list of fields takes on screen. Every field is a row, except
+ * that fields next to each other in one folded section (collapsibleSection,
+ * e.g. getAdvancedFormSection) are one row between them: the section's
+ * header, which is all the form shows of them until the user opens it.
+ */
+export function countFieldRows(fields: Array<FormFieldFacts>): number {
+  let rows: number = 0;
+  let previousSection: string | undefined = undefined;
+
+  for (const field of fields) {
+    if (
+      field.collapsibleSection !== undefined &&
+      field.collapsibleSection === previousSection
+    ) {
+      continue;
+    }
+
+    rows++;
+    previousSection = field.collapsibleSection;
+  }
+
+  return rows;
+}
+
+function describeFieldTitle(field: FormFieldFacts): string {
+  return (
+    (field.title || field.key || "?") +
+    (field.isConditional ? " (when shown)" : "") +
+    (field.collapsibleSection !== undefined ? " (folded)" : "")
   );
+}
+
+export function describeStepFieldCount(count: StepFieldCount): string {
+  const titles: Array<string> = count.fields.map(describeFieldTitle);
 
   return `${count.form.file}:${count.form.line} ${count.form.label} - step "${count.step.id}" (${count.step.title}) shows ${count.count} fields: ${titles.join(", ")}`;
 }
@@ -1906,12 +2024,7 @@ export function describeForm(form: FormFacts): string {
     .filter((field: FormFieldFacts): boolean => {
       return !field.isNeverShown;
     })
-    .map((field: FormFieldFacts): string => {
-      return (
-        (field.title || field.key || "?") +
-        (field.isConditional ? " (when shown)" : "")
-      );
-    });
+    .map(describeFieldTitle);
 
   return `${form.file}:${form.line} ${form.label} - ${form.visibleFieldCount} fields: ${titles.join(", ")}`;
 }

@@ -24,8 +24,8 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
-import ProjectUtil from "Common/UI/Utils/Project";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -34,7 +34,6 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
-import Team from "Common/Models/DatabaseModels/Team";
 import Label from "Common/Models/DatabaseModels/Label";
 
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
@@ -79,7 +78,6 @@ import {
   RecommendationStatusFilter,
   RecommendationViewModel,
 } from "./RecommendationViewModel";
-import ProjectUser from "../../Utils/ProjectUser";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 
@@ -173,12 +171,6 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
 
   const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
     useState<Array<DropdownOption>>([]);
-  const [teamDropdownOptions, setTeamDropdownOptions] = useState<
-    Array<DropdownOption>
-  >([]);
-  const [userDropdownOptions, setUserDropdownOptions] = useState<
-    Array<DropdownOption>
-  >([]);
   const [labelDropdownOptions, setLabelDropdownOptions] = useState<
     Array<DropdownOption>
   >([]);
@@ -273,7 +265,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           query: {},
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          select: { name: true, order: true },
+          select: { name: true, order: true, color: true },
           sort: { order: SortOrder.Ascending },
         });
 
@@ -283,7 +275,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           query: {},
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          select: { name: true, order: true },
+          select: { name: true, order: true, color: true },
           sort: { order: SortOrder.Ascending },
         });
 
@@ -332,6 +324,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             id: new ObjectID(item._id!),
             name: item.name!,
             order: item.order,
+            color: DropdownUtil.toOptionColor(item.color),
           };
         }),
       );
@@ -341,6 +334,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             id: new ObjectID(item._id!),
             name: item.name!,
             order: item.order,
+            color: DropdownUtil.toOptionColor(item.color),
           };
         }),
       );
@@ -361,21 +355,6 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         }),
       );
 
-      const teamList: ListResult<Team> = await ModelAPI.getList({
-        modelType: Team,
-        query: {},
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: { name: true },
-        sort: { name: SortOrder.Ascending },
-      });
-
-      setTeamDropdownOptions(
-        teamList.data.map((item: Team) => {
-          return { value: item._id!, label: item.name! };
-        }),
-      );
-
       const labelList: ListResult<Label> = await ModelAPI.getList({
         modelType: Label,
         query: {},
@@ -390,13 +369,6 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           return { value: item._id!, label: item.name! };
         }),
       );
-
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-      if (projectId) {
-        setUserDropdownOptions(
-          await ProjectUser.fetchProjectUsersAsDropdownOptions(projectId),
-        );
-      }
 
       await Promise.all([loadCoverage(defaults), loadDismissals()]);
     } catch (err) {
@@ -987,8 +959,6 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           )}
           resourceLabel={definition.resourceLabel}
           onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
-          teamDropdownOptions={teamDropdownOptions}
-          userDropdownOptions={userDropdownOptions}
           labelDropdownOptions={labelDropdownOptions}
           incidentSeverityOptions={incidentSeverityOptions}
           alertSeverityOptions={alertSeverityOptions}

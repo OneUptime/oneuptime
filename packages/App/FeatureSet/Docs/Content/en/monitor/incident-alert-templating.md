@@ -186,7 +186,7 @@ unavailable on the database you are monitoring.
 
 ## Basic Usage
 
-In the Incident / Alert form inside a Monitor Criteria instance, you can write:
+In the Incident / Alert form inside a Monitor Criteria instance, the **Description** and **Remediation Notes** editors list the variables of the monitor's type under **Template variables**: click one to put it where the cursor is, use **Insert variable** in the editor's toolbar, or type `{{` and pick one from the list that opens. **Learn about dynamic templates**, next to the title, opens the same reference. You can write, for example:
 
 ```
 API returned {{responseStatusCode}} in {{responseTimeInMs}}ms

@@ -10,6 +10,12 @@ import Field from "./Types/Field";
 import FieldType from "../Types/FieldType";
 import { FormStep } from "./Types/FormStep";
 import HorizontalRule from "../HorizontalRule/HorizontalRule";
+import { PeopleListFromIds } from "../PeoplePicker/PeopleList";
+import {
+  getPeoplePickerKinds,
+  PeoplePickerFieldConfig,
+  readPeoplePickerFormValue,
+} from "../PeoplePicker/PeoplePickerTypes";
 
 type SummaryElementFn<T extends GenericObject> = (
   item: FormValues<T>,
@@ -170,6 +176,38 @@ const getFileSummaryElement: <T extends GenericObject>(
   return renderFiles;
 };
 
+/*
+ * A people picker's picks are ids in a form value per kind (owners: people
+ * in ownerUsers, teams in ownerTeams), shown as one list of names.
+ */
+const getPeoplePickerSummaryElement: <T extends GenericObject>(
+  field: Field<T>,
+) => SummaryElementFn<T> | undefined = <T extends GenericObject>(
+  field: Field<T>,
+): SummaryElementFn<T> | undefined => {
+  if (
+    field.fieldType !== FormFieldSchemaType.PeoplePicker ||
+    !field.peoplePicker
+  ) {
+    return undefined;
+  }
+
+  const config: PeoplePickerFieldConfig = field.peoplePicker;
+
+  const PeoplePickerSummary: SummaryElementFn<T> = (
+    item: FormValues<T>,
+  ): ReactElement => {
+    return (
+      <PeopleListFromIds
+        kinds={getPeoplePickerKinds(config)}
+        value={readPeoplePickerFormValue(config, item)}
+      />
+    );
+  };
+
+  return PeoplePickerSummary;
+};
+
 export interface ComponentProps<T> {
   formValues: FormValues<T>;
   formFields: Fields<T>;
@@ -197,7 +235,8 @@ const FormSummary: <T extends GenericObject>(
           fields={
             formFields.map((field: Field<T>) => {
               const defaultSummaryElement: SummaryElementFn<T> | undefined =
-                getFileSummaryElement(field);
+                getFileSummaryElement(field) ||
+                getPeoplePickerSummaryElement(field);
 
               const detailField: DetailField<T> = {
                 title: field.title || "",
