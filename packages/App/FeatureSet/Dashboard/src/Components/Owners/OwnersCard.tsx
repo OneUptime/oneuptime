@@ -137,10 +137,14 @@ export interface ComponentProps<
   /*
    * What owning the resource means, under the title. Default: they are
    * responsible for it and notified about changes - right for an incident,
-   * not for a template, whose owners own what is declared from it.
+   * not for a template, whose owners own what is declared from it. A whole
+   * English sentence, looked up as one in the locale files.
    */
   description?: string | undefined;
-  // The empty state's sentence. Default: add someone to be notified.
+  /*
+   * The empty state's sentence. Default: add someone to be notified. Looked
+   * up as one sentence too.
+   */
   emptyDescription?: string | undefined;
 }
 
@@ -424,8 +428,9 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
 
   const descriptionNode: ReactElement = (
     <span>
-      {props.description ||
-        `People and teams responsible for this ${resourceDisplayName}. They are notified about changes.`}
+      {props.description
+        ? translateString(props.description) || props.description
+        : `People and teams responsible for this ${resourceDisplayName}. They are notified about changes.`}
       {countLabel && <span className="ml-1 text-gray-400">· {countLabel}</span>}
     </span>
   );
@@ -465,8 +470,10 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
               {translateString("No owners yet") || "No owners yet"}
             </div>
             <div className="text-xs text-gray-500 mt-1 max-w-xs">
-              {props.emptyDescription ||
-                `Add a teammate or a team so they get notified about changes to this ${resourceDisplayName}.`}
+              {props.emptyDescription
+                ? translateString(props.emptyDescription) ||
+                  props.emptyDescription
+                : `Add a teammate or a team so they get notified about changes to this ${resourceDisplayName}.`}
             </div>
             <div ref={popup.anchorRef} className="mt-4 inline-block">
               <button
