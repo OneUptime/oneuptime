@@ -37,8 +37,7 @@ export {
   EMPTY_TABLE_CLEAR_FILTERS_TEST_ID,
 };
 
-export const VIEW_DOCUMENTATION: string =
-  translationKey("View Documentation");
+export const VIEW_DOCUMENTATION: string = translationKey("View Documentation");
 
 /*
  * Under a create button the viewer may not use. The button's own tooltip
