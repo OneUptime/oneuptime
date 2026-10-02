@@ -287,7 +287,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
           className="divide-y divide-gray-100"
           data-testid="form-mapping-rows"
         >
-          <div className="hidden grid-cols-3 gap-4 bg-gray-50 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 md:grid md:px-6">
+          <div className="max-md:hidden grid-cols-3 gap-4 bg-gray-50 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 md:grid md:px-6">
             <span>{tx(FormsCopy.mappingFieldColumn)}</span>
             <span className="col-span-2">
               {tx(FormsCopy.mappingSourceColumn)}
