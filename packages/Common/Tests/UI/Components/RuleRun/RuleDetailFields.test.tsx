@@ -10,6 +10,7 @@ import type { ModelField } from "../../../../UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import Field from "../../../../UI/Components/ModelDetail/Field";
+import getOwnersFormField from "../../../../UI/Components/PeoplePicker/OwnersFormField";
 import { getRuleCriteriaSummaryText } from "../../../../UI/Components/RuleCriteria/RuleCriteriaSummary";
 import { getLegacyRuleCriteriaFields } from "../../../../UI/Components/RuleCriteria/RuleCriteriaModelForm";
 import getRuleDetailFields, {
@@ -31,6 +32,9 @@ import { ReactElement } from "react";
  * same summary the table shows, in place of the legacy criteria inputs; each
  * relation selects what it renders (a label's colour, a user's email when it
  * has no name); and nothing selects a column its model does not have.
+ *
+ * Owners are one people picker in the form - people and teams together - so
+ * they are one Owners field on the view page too, not a list per kind.
  */
 
 function titles<
@@ -98,26 +102,11 @@ const OWNER_FORM: Array<ModelField<MonitorOwnerRule>> = [
   },
   {
     field: { monitorNamePattern: true },
-    title: "Monitor Name Pattern",
+    title: "Monitor Name",
     stepId: "match-criteria",
     fieldType: FormFieldSchemaType.Text,
   },
-  {
-    field: { ownerTeams: true },
-    title: "Owner Teams",
-    stepId: "owners",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownModal: { type: Team, labelField: "name", valueField: "_id" },
-  },
-  {
-    field: { ownerUsers: true },
-    title: "Owner Users",
-    stepId: "owners",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    fetchDropdownOptions: async () => {
-      return [];
-    },
-  },
+  getOwnersFormField<MonitorOwnerRule>({ stepId: "owners" }),
 ];
 
 describe("getRuleDetailFields", () => {
@@ -133,8 +122,7 @@ describe("getRuleDetailFields", () => {
       "Enabled",
       "Notify Owners",
       "Match Criteria",
-      "Owner Teams",
-      "Owner Users",
+      "Owners",
     ]);
 
     expect(
@@ -146,7 +134,6 @@ describe("getRuleDetailFields", () => {
       FieldType.LongText,
       FieldType.Boolean,
       FieldType.Boolean,
-      FieldType.Element,
       FieldType.Element,
       FieldType.Element,
     ]);
@@ -166,8 +153,14 @@ describe("getRuleDetailFields", () => {
       criteria: true,
       monitorLabels: true,
       monitorNamePattern: true,
-      ownerTeams: { name: true },
-      ownerUsers: { name: true, email: true },
+      // Everything a chip shows: the name, a person's email and picture.
+      ownerUsers: {
+        _id: true,
+        name: true,
+        email: true,
+        profilePictureId: true,
+      },
+      ownerTeams: { _id: true, name: true },
     });
   });
 
@@ -185,38 +178,127 @@ describe("getRuleDetailFields", () => {
       item: rule,
     });
 
-    expect(expected).not.toBe("Matches all resources");
+    expect(expected).toBe("Match all: Monitor Name matches pattern “prod-.*”");
     expect(
       renderElement(fieldTitled(detail, "Match Criteria"), rule),
     ).toHaveTextContent(expected);
   });
 
-  it("names owners, falling back to a user's email, and says None for none", () => {
+  it("names every owner in one list, people then teams, a user by email when unnamed, and None for none", () => {
     const detail: RuleDetailFields<MonitorOwnerRule> = getRuleDetailFields({
       model: new MonitorOwnerRule(),
       formFields: OWNER_FORM,
     });
 
     const named: User = new User();
+    named._id = "0000000e-0000-4000-8000-000000000001";
     named.name = "Ada Lovelace" as never;
     const unnamed: User = new User();
+    unnamed._id = "0000000e-0000-4000-8000-000000000002";
     unnamed.email = "bob@example.com" as never;
     const team: Team = new Team();
+    team._id = "0000000b-0000-4000-8000-000000000001";
     team.name = "Platform";
 
     const rule: MonitorOwnerRule = new MonitorOwnerRule();
-    rule.ownerUsers = [named, unnamed];
     rule.ownerTeams = [team];
+    rule.ownerUsers = [named, unnamed];
+
+    const element: HTMLElement = renderElement(
+      fieldTitled(detail, "Owners"),
+      rule,
+    );
+    const chips: Array<Element> = Array.from(
+      element.querySelectorAll('[data-testid="people-chip"]'),
+    );
 
     expect(
-      renderElement(fieldTitled(detail, "Owner Users"), rule),
-    ).toHaveTextContent("Ada Lovelace, bob@example.com");
+      chips.map((chip: Element): string | null => {
+        return chip.getAttribute("data-kind");
+      }),
+    ).toEqual(["user", "user", "team"]);
+    expect(chips[0]).toHaveTextContent("Ada Lovelace");
+    expect(chips[1]).toHaveTextContent("bob@example.com");
+    expect(chips[2]).toHaveTextContent("Platform");
+    // Nothing to remove on a view page: Edit is where owners change.
+    expect(element.querySelector("button")).toBeNull();
+
     expect(
-      renderElement(fieldTitled(detail, "Owner Teams"), rule),
-    ).toHaveTextContent("Platform");
-    expect(
-      renderElement(fieldTitled(detail, "Owner Teams"), new MonitorOwnerRule()),
+      renderElement(fieldTitled(detail, "Owners"), new MonitorOwnerRule()),
     ).toHaveTextContent("None");
+  });
+
+  it("follows the picker's own title and step condition", () => {
+    const detail: RuleDetailFields<MonitorOwnerRule> = getRuleDetailFields({
+      model: new MonitorOwnerRule(),
+      formFields: [
+        getOwnersFormField<MonitorOwnerRule>({
+          title: "Assign To",
+          showIf: (values: FormValues<MonitorOwnerRule>): boolean => {
+            return Boolean(values.notifyOwners);
+          },
+        }),
+      ],
+    });
+
+    const field: Field<MonitorOwnerRule> = fieldTitled(detail, "Assign To");
+    const rule: MonitorOwnerRule = new MonitorOwnerRule();
+
+    expect(field.showIf!(rule)).toBe(false);
+    rule.notifyOwners = true;
+    expect(field.showIf!(rule)).toBe(true);
+  });
+
+  it("adds nothing for a picker whose values are not columns of the rule", () => {
+    const detail: RuleDetailFields<MonitorLabelRule> = getRuleDetailFields({
+      model: new MonitorLabelRule(),
+      formFields: [getOwnersFormField<MonitorLabelRule>({})],
+    });
+
+    expect(detail.fields).toEqual([]);
+    expect(detail.selectMoreFields).toEqual({});
+  });
+
+  it("still names the rows of a relation dropdown that is not a picker", () => {
+    const detail: RuleDetailFields<MonitorOwnerRule> = getRuleDetailFields({
+      model: new MonitorOwnerRule(),
+      formFields: [
+        {
+          field: { ownerTeams: true },
+          title: "Teams",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: { type: Team, labelField: "name", valueField: "_id" },
+        },
+        {
+          field: { ownerUsers: true },
+          title: "Users",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          fetchDropdownOptions: async () => {
+            return [];
+          },
+        },
+      ],
+    });
+
+    expect(detail.selectMoreFields).toEqual({
+      ownerTeams: { name: true },
+      ownerUsers: { name: true, email: true },
+    });
+
+    const named: User = new User();
+    named.name = "Ada Lovelace" as never;
+    const unnamed: User = new User();
+    unnamed.email = "bob@example.com" as never;
+
+    const rule: MonitorOwnerRule = new MonitorOwnerRule();
+    rule.ownerUsers = [named, unnamed];
+
+    expect(renderElement(fieldTitled(detail, "Users"), rule)).toHaveTextContent(
+      "Ada Lovelace, bob@example.com",
+    );
+    expect(renderElement(fieldTitled(detail, "Teams"), rule)).toHaveTextContent(
+      "None",
+    );
   });
 
   it("renders labels to add as labels, selecting their colour", () => {

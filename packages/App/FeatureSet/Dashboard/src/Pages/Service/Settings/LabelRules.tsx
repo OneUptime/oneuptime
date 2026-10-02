@@ -144,7 +144,7 @@ const ServiceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { serviceNamePattern: true },
-          title: "Service Name Pattern",
+          title: "Service Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -155,7 +155,7 @@ const ServiceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { serviceDescriptionPattern: true },
-          title: "Service Description Pattern",
+          title: "Service Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

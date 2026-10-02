@@ -129,7 +129,7 @@ const NetworkSiteAssignmentRules: FunctionComponent<
             field: {
               subnetCidr: true,
             },
-            title: "Subnet CIDR",
+            title: "IP Address",
             stepId: "match-criteria",
             description:
               "Devices and endpoints with an IP in this CIDR match. Set this, a hostname pattern, or both.",
@@ -141,7 +141,7 @@ const NetworkSiteAssignmentRules: FunctionComponent<
             field: {
               hostnamePattern: true,
             },
-            title: "Hostname Pattern",
+            title: "Hostname",
             stepId: "match-criteria",
             description:
               "Wildcard pattern ('*' matches any run of characters, case-insensitive). It is matched against the device's hostname, its SNMP system name, its display name and its DNS name — a match on any of them assigns the device. Example: *0664* matches UN0664LANSWI03.",

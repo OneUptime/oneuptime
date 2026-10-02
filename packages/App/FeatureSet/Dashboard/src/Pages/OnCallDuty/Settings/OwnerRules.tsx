@@ -2,7 +2,6 @@ import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
 import Route from "Common/Types/API/Route";
-import ProjectUser from "../../../Utils/ProjectUser";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -15,10 +14,11 @@ import OnCallDutyPolicyOwnerRule from "Common/Models/DatabaseModels/OnCallDutyPo
 import OnCallDutyPolicyScheduleOwnerRule from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerRule";
 import IncomingCallPolicyOwnerRule from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerRule";
 import Label from "Common/Models/DatabaseModels/Label";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
+import getOwnersFormField, {
+  OWNER_RULE_OWNERS_DESCRIPTION,
+} from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 const policyDocumentation: string = `
 ### How On-Call Policy Owner Rules Work
@@ -201,7 +201,7 @@ const OnCallPolicyOwnerRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { onCallDutyPolicyNamePattern: true },
-          title: "On-Call Policy Name Pattern",
+          title: "On-Call Policy Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -212,41 +212,16 @@ const OnCallPolicyOwnerRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { onCallDutyPolicyDescriptionPattern: true },
-          title: "On-Call Policy Description Pattern",
+          title: "On-Call Policy Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "production|critical",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
+        getOwnersFormField({
           stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
+          description: OWNER_RULE_OWNERS_DESCRIPTION,
+        }),
       ]}
       showRefreshButton={true}
     />
@@ -380,7 +355,7 @@ const OnCallScheduleOwnerRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { onCallDutyPolicyScheduleNamePattern: true },
-          title: "On-Call Schedule Name Pattern",
+          title: "On-Call Schedule Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -391,41 +366,16 @@ const OnCallScheduleOwnerRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { onCallDutyPolicyScheduleDescriptionPattern: true },
-          title: "On-Call Schedule Description Pattern",
+          title: "On-Call Schedule Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "production|rotation",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
+        getOwnersFormField({
           stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
+          description: OWNER_RULE_OWNERS_DESCRIPTION,
+        }),
       ]}
       showRefreshButton={true}
     />
@@ -557,7 +507,7 @@ const IncomingCallPolicyOwnerRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { incomingCallPolicyNamePattern: true },
-          title: "Incoming Call Policy Name Pattern",
+          title: "Incoming Call Policy Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -568,41 +518,16 @@ const IncomingCallPolicyOwnerRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { incomingCallPolicyDescriptionPattern: true },
-          title: "Incoming Call Policy Description Pattern",
+          title: "Incoming Call Policy Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "billing|support",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
+        getOwnersFormField({
           stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
+          description: OWNER_RULE_OWNERS_DESCRIPTION,
+        }),
       ]}
       showRefreshButton={true}
     />

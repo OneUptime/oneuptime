@@ -145,7 +145,7 @@ const DockerHostLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { dockerHostNamePattern: true },
-          title: "Docker Host Name Pattern",
+          title: "Docker Host Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -156,7 +156,7 @@ const DockerHostLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { dockerHostDescriptionPattern: true },
-          title: "Docker Host Description Pattern",
+          title: "Docker Host Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

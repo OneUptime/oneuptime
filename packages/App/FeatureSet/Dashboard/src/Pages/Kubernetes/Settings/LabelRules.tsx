@@ -149,7 +149,7 @@ const KubernetesClusterLabelRulesPage: FunctionComponent<
         },
         {
           field: { kubernetesClusterNamePattern: true },
-          title: "Kubernetes Cluster Name Pattern",
+          title: "Kubernetes Cluster Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -160,7 +160,7 @@ const KubernetesClusterLabelRulesPage: FunctionComponent<
         },
         {
           field: { kubernetesClusterDescriptionPattern: true },
-          title: "Kubernetes Cluster Description Pattern",
+          title: "Kubernetes Cluster Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

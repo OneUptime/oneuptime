@@ -106,6 +106,19 @@ export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
       reason: INHERIT_CHECKLIST_REASON,
     };
   }),
+  /*
+   * Read since the form's fields stopped going through a wrapper the scan
+   * could not follow (the owner-user loader the owners picker replaced).
+   */
+  ...["alert-details", "incident-details"].map((step: string): ListedStep => {
+    return {
+      file: `${DASHBOARD}/Pages/Slo/View/BurnRateRules.tsx`,
+      form: "ModelTable: SLO > Burn Rate Rules",
+      step,
+      reason:
+        "Only the title and the severity are open: everything else on the step sits in four collapsed sections (Description, Ownership & Labels, On-Call, Advanced Options) that open one at a time, so the step reads as two fields and four headings.",
+    };
+  }),
   {
     file: `${DASHBOARD}/Pages/Metrics/Settings/PipelineRules.tsx`,
     form: "ModelTable: Metrics > Settings > Pipeline Rules",
@@ -260,12 +273,33 @@ describe("the step size detector", () => {
     expect(counts(form)).toEqual({ "match-criteria": 1 });
   });
 
-  // A helper that takes its step as an argument is left to its own tests.
-  test("does not place a field whose step is not written down", () => {
+  /*
+   * A helper's field is on the step its call names: the owners picker is
+   * getOwnersFormField({ stepId: "owners", ... }) on some forty forms.
+   */
+  test("places a helper's field on the step its call writes down", () => {
     const form: FormFacts = only({
       "Page.tsx": `
         import { getMacField } from "./Mac";
         const Page = () => <CardModelDetail name="Card" formSteps={${TWO_STEPS}} formFields={[${fieldsOn("one", 5)}, getMacField({ stepId: "one" }), ${fieldsOn("two", 1)}]} />;`,
+      "Mac.ts": `export function getMacField(data) { return { field: { mac: true }, title: "MAC", stepId: data.stepId }; }`,
+    });
+
+    expect(counts(form)).toEqual({ one: 6, two: 1 });
+    expect(
+      findOverloadedSteps([form]).map((count: StepFieldCount) => {
+        return count.step.id;
+      }),
+    ).toEqual(["one"]);
+  });
+
+  // A step the call computes is left to the helper's own tests.
+  test("does not place a field whose step is not written down", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getMacField } from "./Mac";
+        const STEP = "one";
+        const Page = () => <CardModelDetail name="Card" formSteps={${TWO_STEPS}} formFields={[${fieldsOn("one", 5)}, getMacField({ stepId: STEP }), ${fieldsOn("two", 1)}]} />;`,
       "Mac.ts": `export function getMacField(data) { return { field: { mac: true }, title: "MAC", stepId: data.stepId }; }`,
     });
 

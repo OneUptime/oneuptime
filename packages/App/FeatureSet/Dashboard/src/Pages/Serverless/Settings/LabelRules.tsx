@@ -107,7 +107,7 @@ const ServerlessFunctionLabelRulesPage: FunctionComponent<
         },
         {
           field: { matchLabels: true },
-          title: "Match Labels",
+          title: "Function Labels",
           stepId: "match-criteria",
           sectionTitle: "Match by Attributes",
           sectionDescription:
@@ -123,7 +123,7 @@ const ServerlessFunctionLabelRulesPage: FunctionComponent<
         },
         {
           field: { nameRegexPattern: true },
-          title: "Name Regex Pattern",
+          title: "Function Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -134,7 +134,7 @@ const ServerlessFunctionLabelRulesPage: FunctionComponent<
         },
         {
           field: { descriptionRegexPattern: true },
-          title: "Description Regex Pattern",
+          title: "Function Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

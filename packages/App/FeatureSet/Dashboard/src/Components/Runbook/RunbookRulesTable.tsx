@@ -16,6 +16,24 @@ export interface ComponentProps {
   entityLabel: string; // "incident", "alert", "scheduled maintenance event"
 }
 
+/*
+ * The word the conditions put before "Title" and "Description", matching the
+ * other rules of the same product: "Incident Title" on incident rules,
+ * "Alert Title" on alert rules, "Event Title" on scheduled maintenance rules.
+ */
+export function getRunbookRuleCriteriaSubject(
+  triggerEntityType: RunbookRuleTriggerEntity,
+): string {
+  switch (triggerEntityType) {
+    case RunbookRuleTriggerEntity.Alert:
+      return "Alert";
+    case RunbookRuleTriggerEntity.ScheduledMaintenance:
+      return "Event";
+    default:
+      return "Incident";
+  }
+}
+
 const runbookRuleDocumentation: (entityLabel: string) => string = (
   entityLabel: string,
 ): string => {
@@ -42,6 +60,10 @@ When a rule matches, every selected runbook starts its own execution attached to
 const RunbookRulesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const criteriaSubject: string = getRunbookRuleCriteriaSubject(
+    props.triggerEntityType,
+  );
+
   return (
     <ModelTable<RunbookRule>
       modelType={RunbookRule}
@@ -129,7 +151,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
         },
         {
           field: { titlePattern: true },
-          title: "Title Pattern",
+          title: `${criteriaSubject} Title`,
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -140,7 +162,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
         },
         {
           field: { descriptionPattern: true },
-          title: "Description Pattern",
+          title: `${criteriaSubject} Description`,
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

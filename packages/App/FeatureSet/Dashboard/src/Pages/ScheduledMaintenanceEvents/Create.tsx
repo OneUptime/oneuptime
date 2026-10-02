@@ -23,13 +23,10 @@ import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Service from "Common/Models/DatabaseModels/Service";
-import Team from "Common/Models/DatabaseModels/Team";
 import AffectedResourcesPicker, {
   AffectedResourceType,
   isAffectedResourcesPayload,
 } from "../../Components/AffectedResources/AffectedResourcesPicker";
-import ProjectUser from "../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import { JSONObject } from "Common/Types/JSON";
@@ -50,11 +47,9 @@ import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArr
 import Recurring from "Common/Types/Events/Recurring";
 import FetchMonitorStatuses from "../../Components/MonitorStatus/FetchMonitorStatuses";
 import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
-import FetchTeams from "../../Components/Team/FetchTeams";
-import FetchUsers from "../../Components/User/FetchUsers";
-import User from "Common/Models/DatabaseModels/User";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 /*
  * Every resource type the "Resources Affected" step offers. The editor and
@@ -642,122 +637,16 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     );
                   },
                 },
-                {
-                  overrideField: {
-                    ownerTeams: true,
-                  },
-                  showEvenIfPermissionDoesNotExist: true,
-                  title: "Owner - Teams",
+                /*
+                 * People and teams in one picker, kept in ownerUsers /
+                 * ownerTeams: ScheduledMaintenanceService adds them as the
+                 * event's owners. The summary step lists them by name.
+                 */
+                getOwnersFormField({
                   stepId: "owners",
                   description:
-                    "Select which teams own this event. They will be notified when event status changes.",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  dropdownModal: {
-                    type: Team,
-                    labelField: "name",
-                    valueField: "_id",
-                  },
-                  required: false,
-                  placeholder: "Select Teams",
-                  overrideFieldKey: "ownerTeams",
-                  getSummaryElement: (
-                    item: FormValues<ScheduledMaintenance>,
-                  ) => {
-                    if (
-                      !(item as JSONObject)["ownerTeams"] ||
-                      !Array.isArray((item as JSONObject)["ownerTeams"])
-                    ) {
-                      return <p>No teams assigned.</p>;
-                    }
-
-                    const ownerTeamIds: Array<ObjectID> = [];
-
-                    for (const ownerTeam of (item as JSONObject)[
-                      "ownerTeams"
-                    ] as Array<any>) {
-                      if (typeof ownerTeam === "string") {
-                        ownerTeamIds.push(new ObjectID(ownerTeam));
-                        continue;
-                      }
-
-                      if (ownerTeam instanceof ObjectID) {
-                        ownerTeamIds.push(ownerTeam);
-                        continue;
-                      }
-
-                      if (ownerTeam instanceof Team) {
-                        ownerTeamIds.push(
-                          new ObjectID(ownerTeam._id?.toString() || ""),
-                        );
-                        continue;
-                      }
-                    }
-
-                    return (
-                      <div>
-                        <FetchTeams teamIds={ownerTeamIds} />
-                      </div>
-                    );
-                  },
-                },
-                {
-                  overrideField: {
-                    ownerUsers: true,
-                  },
-                  showEvenIfPermissionDoesNotExist: true,
-                  title: "Owner - Users",
-                  stepId: "owners",
-                  description:
-                    "Select which users own this event. They will be notified when event status changes.",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  fetchDropdownOptions: async () => {
-                    return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                      ProjectUtil.getCurrentProjectId()!,
-                    );
-                  },
-                  required: false,
-                  placeholder: "Select Users",
-                  overrideFieldKey: "ownerUsers",
-                  getSummaryElement: (
-                    item: FormValues<ScheduledMaintenance>,
-                  ) => {
-                    if (
-                      !(item as JSONObject)["ownerUsers"] ||
-                      !Array.isArray((item as JSONObject)["ownerUsers"])
-                    ) {
-                      return <p>No owners assigned.</p>;
-                    }
-
-                    const ownerUserIds: Array<ObjectID> = [];
-
-                    for (const ownerUser of (item as JSONObject)[
-                      "ownerUsers"
-                    ] as Array<any>) {
-                      if (typeof ownerUser === "string") {
-                        ownerUserIds.push(new ObjectID(ownerUser));
-                        continue;
-                      }
-
-                      if (ownerUser instanceof ObjectID) {
-                        ownerUserIds.push(ownerUser);
-                        continue;
-                      }
-
-                      if (ownerUser instanceof User) {
-                        ownerUserIds.push(
-                          new ObjectID(ownerUser._id?.toString() || ""),
-                        );
-                        continue;
-                      }
-                    }
-
-                    return (
-                      <div>
-                        <FetchUsers userIds={ownerUserIds} />
-                      </div>
-                    );
-                  },
-                },
+                    "Who owns this event. They are notified when its status changes.",
+                }),
 
                 {
                   field: {

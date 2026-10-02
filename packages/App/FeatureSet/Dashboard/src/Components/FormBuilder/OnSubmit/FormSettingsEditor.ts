@@ -13,6 +13,7 @@ import { JSONObject } from "Common/Types/JSON";
 import Field from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 /*
  * The On Submit page's "Edit Settings" dialog, without React: its steps,
@@ -23,7 +24,9 @@ import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
  *
  * The dropdowns offer the project's records as they are now. A record a
  * setting names but that was deleted since is not among them, so the dialog
- * starts without it and saving leaves it out.
+ * starts without it and saving leaves it out. Owners are one people picker,
+ * people and teams in one list, as everywhere else owners are picked; it
+ * keeps the people in ownerUserIds and the teams in ownerTeamIds.
  */
 
 export const FORM_SETTINGS_STEP_DEFAULTS: string = "defaults";
@@ -102,19 +105,12 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
   };
 
   const owners: Array<Field<JSONObject>> = [
-    multiSelect({
-      key: "ownerUserIds",
-      title: FormsCopy.ownerUsers,
-      description: FormsCopy.ownerUsersDescription,
+    getOwnersFormField<JSONObject>({
+      usersKey: "ownerUserIds",
+      teamsKey: "ownerTeamIds",
+      title: FormsCopy.owners,
+      description: FormsCopy.ownersDescription,
       stepId: FORM_SETTINGS_STEP_OWNERS,
-      records: lists[FormTargetSettingReferenceModel.User],
-    }),
-    multiSelect({
-      key: "ownerTeamIds",
-      title: FormsCopy.ownerTeams,
-      description: FormsCopy.ownerTeamsDescription,
-      stepId: FORM_SETTINGS_STEP_OWNERS,
-      records: lists[FormTargetSettingReferenceModel.Team],
     }),
   ];
 

@@ -71,7 +71,7 @@ Every rule declares at least one of two things, and you choose which:
 | Title and description | Its own, or the built-in text                     | Its own, or the built-in text                                                       |
 | Severity              | Its own **alert severity**                        | Its own **incident severity**                                                       |
 | Escalation            | Its own **alert on-call policies**                | Its own **incident on-call policies**                                               |
-| Owners and labels     | Its own owner teams, owner users and labels       | Its own owner teams, owner users and labels                                         |
+| Owners and labels     | Its own **Alert Owners** and labels               | Its own **Incident Owners** and labels                                              |
 | Private               | Off by default                                    | Off by default                                                                      |
 | Auto-resolve          | On by default                                     | On by default                                                                       |
 | Remediation notes     | Its own                                           | Its own                                                                             |
@@ -140,7 +140,7 @@ A few details worth knowing:
 
 ## Owners, labels and privacy
 
-- **Owner teams** and **owner users** are added to the alert or incident as soon as it is created, and are notified. Owner users must be members of the project.
+- **Alert Owners** and **Incident Owners** — people and teams, picked from one list with **Add owner** — are added to the alert or incident as soon as it is created, and are notified. The people must be members of the project.
 - **Add SLO Owners as Owners** also adds the SLO's owners — its owner users and the members of its owner teams — to every alert and incident the rule creates. SLO owners already hear about the SLO's own status changes, so turning this on can notify them twice. It is off by default.
 - Each owner is added once. A user who is already an owner of the alert or incident (for example, added by the project's owner rules), or who is a member of an owner team being added, is not added again as an owner user; the team covers them.
 - **Labels** are added to the alert or incident, so filters, owner rules and workspace notification rules can match it.

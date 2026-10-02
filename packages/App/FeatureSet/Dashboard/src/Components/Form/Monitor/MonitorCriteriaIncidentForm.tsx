@@ -12,9 +12,13 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useMemo,
   useState,
 } from "react";
+import OwnersPicker, {
+  OwnersPickerValue,
+} from "Common/UI/Components/PeoplePicker/OwnersPicker";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
@@ -39,7 +43,7 @@ export interface ComponentProps {
   incidentSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
-  teamDropdownOptions: Array<DropdownOption>;
+  // The project's people, for the incident roles.
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   /**
@@ -72,6 +76,8 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     props.onChange?.(criteriaIncident);
   }, [criteriaIncident]);
+
+  const ownersLabelId: string = `${useId()}-owners-label`;
 
   const updateField: <K extends keyof CriteriaIncident>(
     field: K,
@@ -442,64 +448,24 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         <div className="space-y-4">
           <div>
             <FieldLabelElement
-              title="Owner Teams"
-              description="Teams that will own and be notified about this incident"
+              id={ownersLabelId}
+              title="Owners"
+              description="People and teams who will own this incident and be notified about it"
             />
-            <Dropdown
-              value={props.teamDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.ownerTeamIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.teamDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "ownerTeamIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("ownerTeamIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Teams"
-            />
-          </div>
-
-          <div>
-            <FieldLabelElement
-              title="Owner Users"
-              description="Users that will own and be notified about this incident"
-            />
-            <Dropdown
-              value={props.userDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.ownerUserIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.userDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "ownerUserIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("ownerUserIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Users"
-            />
+            <div className="mt-2">
+              <OwnersPicker
+                ariaLabelledby={ownersLabelId}
+                userIds={criteriaIncident.ownerUserIds}
+                teamIds={criteriaIncident.ownerTeamIds}
+                onChange={(owners: OwnersPickerValue) => {
+                  setCriteriaIncident({
+                    ...criteriaIncident,
+                    ownerUserIds: owners.userIds,
+                    ownerTeamIds: owners.teamIds,
+                  });
+                }}
+              />
+            </div>
           </div>
 
           <div>

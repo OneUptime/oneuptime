@@ -522,7 +522,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
             field: {
               incidentTitlePattern: true,
             },
-            title: "Incident Title Pattern",
+            title: "Incident Title",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
@@ -535,7 +535,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
             field: {
               incidentDescriptionPattern: true,
             },
-            title: "Incident Description Pattern",
+            title: "Incident Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -545,7 +545,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
             field: {
               monitorNamePattern: true,
             },
-            title: "Monitor Name Pattern",
+            title: "Monitor Name",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -555,7 +555,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
             field: {
               monitorDescriptionPattern: true,
             },
-            title: "Monitor Description Pattern",
+            title: "Monitor Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,

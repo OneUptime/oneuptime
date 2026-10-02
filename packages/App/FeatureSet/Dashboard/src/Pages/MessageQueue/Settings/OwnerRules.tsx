@@ -12,9 +12,9 @@ import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwne
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
+import getOwnersFormField, {
+  OWNER_RULE_OWNERS_DESCRIPTION,
+} from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 const messageQueueOwnerDocumentation: string = `
 ### How Queue Owner Rules Work
@@ -26,8 +26,11 @@ Queue Owner Rules add owner users and teams to a queue automatically when it mat
 A rule matches a queue only when **all** specified criteria pass. Empty criteria are skipped.
 
 - **Queue Labels** — any-of (M2M)
-- **Name / Description Pattern** — case-insensitive regex. Discovered queues are named after their destination (\`orders.created\`), so \`^orders\\.\` matches every queue whose name starts with \`orders.\`.
-- **Messaging System Pattern** — case-insensitive regex matched against the queue's messaging system, both its OpenTelemetry value (\`kafka\`, \`rabbitmq\`, \`aws_sqs\`) and its display name (\`Apache Kafka\`, \`RabbitMQ\`, \`Amazon SQS\`), so \`^kafka$\` matches every Kafka topic.
+- **Queue Name**, **Queue Description**, **Messaging System** — text, or a regular expression or \`*\` wildcard pattern
+
+### Matching Discovered Queues
+
+Discovered queues are named after their destination (\`orders.created\`), so the condition **Queue Name** starts with \`orders.\` covers every queue for that destination. **Messaging System** is compared with both the queue's OpenTelemetry value (\`kafka\`, \`rabbitmq\`, \`aws_sqs\`) and its display name (\`Apache Kafka\`, \`RabbitMQ\`, \`Amazon SQS\`), so the condition **Messaging System** equals \`kafka\` (or matches the pattern \`^kafka$\`) covers every Kafka topic.
 
 ### Action
 
@@ -158,7 +161,7 @@ const MessageQueueOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { messageQueueNamePattern: true },
-          title: "Queue Name Pattern",
+          title: "Queue Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -169,7 +172,7 @@ const MessageQueueOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { messageQueueDescriptionPattern: true },
-          title: "Queue Description Pattern",
+          title: "Queue Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -177,7 +180,7 @@ const MessageQueueOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { messageQueueSystemPattern: true },
-          title: "Messaging System Pattern",
+          title: "Messaging System",
           stepId: "match-criteria",
           description:
             "Matched against the OpenTelemetry messaging.system value (kafka, rabbitmq, aws_sqs, servicebus, ...) and its display name (Apache Kafka, RabbitMQ, Amazon SQS, Azure Service Bus, ...). ^kafka$ matches every Kafka topic.",
@@ -185,35 +188,10 @@ const MessageQueueOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           required: false,
           placeholder: "^kafka$",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
+        getOwnersFormField({
           stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
+          description: OWNER_RULE_OWNERS_DESCRIPTION,
+        }),
       ]}
       showRefreshButton={true}
     />

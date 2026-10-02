@@ -144,7 +144,7 @@ const RunbookLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { runbookNamePattern: true },
-          title: "Runbook Name Pattern",
+          title: "Runbook Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -155,7 +155,7 @@ const RunbookLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { runbookDescriptionPattern: true },
-          title: "Runbook Description Pattern",
+          title: "Runbook Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
