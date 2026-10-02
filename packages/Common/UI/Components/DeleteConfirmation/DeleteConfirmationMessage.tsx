@@ -3,6 +3,7 @@ import {
   getGlobalTranslator,
   translatableTerm,
   translateTemplate,
+  translationKey,
   Translator,
 } from "../../Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -35,8 +36,9 @@ export const DELETE_IRREVERSIBLE_SENTENCE: string =
   "This action cannot be undone.";
 
 // The question about a record with no name, about its kind instead.
-export const DELETE_THIS_QUESTION_TEMPLATE: string =
-  "Are you sure you want to delete this {{itemName}}?";
+export const DELETE_THIS_QUESTION_TEMPLATE: string = translationKey(
+  "Are you sure you want to delete this {{itemName}}?",
+);
 
 export type DeleteConfirmationKind = "question" | "statement";
 

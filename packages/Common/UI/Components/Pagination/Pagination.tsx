@@ -5,6 +5,7 @@ import {
   PluralTemplate,
   TranslatableTerm,
   translatableTerm,
+  translationKey,
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -74,13 +75,15 @@ export const PAGINATION_SUMMARY: PluralTemplate = {
   other: "Showing {{range}} of {{total}} {{itemsName}}",
 };
 
-export const PAGINATION_SUMMARY_WITHOUT_TOTAL: string =
-  "Showing {{range}} {{itemsName}}";
+export const PAGINATION_SUMMARY_WITHOUT_TOTAL: string = translationKey(
+  "Showing {{range}} {{itemsName}}",
+);
 
-export const PAGINATION_SUMMARY_WITH_MORE: string =
-  "Showing {{range}}+ {{itemsName}}";
+export const PAGINATION_SUMMARY_WITH_MORE: string = translationKey(
+  "Showing {{range}}+ {{itemsName}}",
+);
 
-export const PAGINATION_EMPTY: string = "No {{itemsName}}";
+export const PAGINATION_EMPTY: string = translationKey("No {{itemsName}}");
 
 export const GO_TO_PAGE_DESCRIPTION: PluralTemplate = {
   one: "This list has {{count}} page. Enter the one you want to see.",
