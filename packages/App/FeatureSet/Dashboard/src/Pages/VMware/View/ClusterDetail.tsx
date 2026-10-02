@@ -389,7 +389,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
               text={translator.translateTemplate(
                 "{{effectiveHostCount}} of {{hostCount}} effective — {{notEffective}} in maintenance mode or unresponsive",
                 {
-                  effectiveHostCount: effectiveHostCount,
+                  effectiveHostCount: effectiveHostCount ?? 0,
                   hostCount: hostCount,
                   notEffective: notEffective,
                 },
@@ -397,7 +397,10 @@ const VMwareVCenterClusterDetail: FunctionComponent<
               type={StatusBadgeType.Danger}
             />
           ) : effectiveHostCount !== null ? (
-            `${effectiveHostCount} of ${hostCount} effective`
+            translator.translateTemplate(
+              "{{effectiveHostCount}} of {{hostCount}} effective",
+              { effectiveHostCount: effectiveHostCount, hostCount: hostCount },
+            )
           ) : (
             String(hostCount)
           ),

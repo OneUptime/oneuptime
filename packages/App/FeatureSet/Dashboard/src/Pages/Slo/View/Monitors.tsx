@@ -423,7 +423,7 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
               className="text-sm font-medium underline"
               to={monitorRulesRoute}
             >
-              {translator.translateText("Manage Monitor Rules")}
+              {translator.translateTemplate("Manage Monitor Rules")}
             </AppLink>
           }
         >
