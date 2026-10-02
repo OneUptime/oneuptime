@@ -6610,6 +6610,7 @@
   "The form has a new link, shown on the Share Link card. The old link no longer works.": "フォームに新しいリンクが発行されました。「共有リンク」カードに表示されています。古いリンクは使えなくなりました。",
   "This form is turned off, so its link shows a 'not available' message.": "このフォームはオフになっているため、リンクには「利用できません」というメッセージが表示されます。",
   "This form's link could not be loaded. The form may have been deleted.": "このフォームのリンクを読み込めませんでした。フォームが削除された可能性があります。",
+  "This form could not be loaded. It may have been deleted.": "このフォームを読み込めませんでした。削除された可能性があります。",
   "Limit the form to your own networks: only requests from these IP addresses can open and submit it.": "フォームを自社のネットワークに限定します。これらの IP アドレスからのリクエストだけがフォームを開いて送信できます。",
   "Editing the IP allowlist needs the Scale plan.": "IP 許可リストの編集には Scale プランが必要です。",
   "Edit IP Allowlist": "IP 許可リストを編集",

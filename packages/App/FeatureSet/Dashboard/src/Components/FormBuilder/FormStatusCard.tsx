@@ -60,7 +60,7 @@ const FormStatusCard: FunctionComponent<ComponentProps> = (
         // The column defaults to on, so only an explicit false is off.
         setIsEnabled(form.isEnabled !== false);
       } else {
-        setError(FormsCopy.shareLinkNotFound);
+        setError(FormsCopy.formNotFound);
       }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -109,7 +109,7 @@ const FormStatusCard: FunctionComponent<ComponentProps> = (
     }
 
     if (isEnabled === null) {
-      return <ErrorMessage message={error || FormsCopy.shareLinkNotFound} />;
+      return <ErrorMessage message={error || FormsCopy.formNotFound} />;
     }
 
     return (

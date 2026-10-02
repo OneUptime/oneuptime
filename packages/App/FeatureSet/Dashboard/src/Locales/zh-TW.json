@@ -6610,6 +6610,7 @@
   "The form has a new link, shown on the Share Link card. The old link no longer works.": "表單已有新的連結，顯示在「分享連結」卡片上。舊連結已失效。",
   "This form is turned off, so its link shows a 'not available' message.": "此表單已關閉，因此其連結會顯示「無法使用」訊息。",
   "This form's link could not be loaded. The form may have been deleted.": "無法載入此表單的連結。該表單可能已被刪除。",
+  "This form could not be loaded. It may have been deleted.": "無法載入此表單。它可能已被刪除。",
   "Limit the form to your own networks: only requests from these IP addresses can open and submit it.": "將表單限制在您自己的網路內：只有來自這些 IP 位址的請求才能開啟和提交表單。",
   "Editing the IP allowlist needs the Scale plan.": "編輯 IP 允許清單需要 Scale 方案。",
   "Edit IP Allowlist": "編輯 IP 允許清單",

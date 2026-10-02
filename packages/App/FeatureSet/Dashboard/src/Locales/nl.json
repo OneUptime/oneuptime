@@ -6610,6 +6610,7 @@
   "The form has a new link, shown on the Share Link card. The old link no longer works.": "Het formulier heeft een nieuwe link, getoond op de kaart Deellink. De oude link werkt niet meer.",
   "This form is turned off, so its link shows a 'not available' message.": "Dit formulier is uitgeschakeld, dus de link toont de melding 'niet beschikbaar'.",
   "This form's link could not be loaded. The form may have been deleted.": "De link van dit formulier kon niet worden geladen. Het formulier is mogelijk verwijderd.",
+  "This form could not be loaded. It may have been deleted.": "Dit formulier kon niet worden geladen. Het is mogelijk verwijderd.",
   "Limit the form to your own networks: only requests from these IP addresses can open and submit it.": "Beperk het formulier tot uw eigen netwerken: alleen verzoeken vanaf deze IP-adressen kunnen het openen en verzenden.",
   "Editing the IP allowlist needs the Scale plan.": "Voor het bewerken van de IP-toelatingslijst is het Scale-abonnement nodig.",
   "Edit IP Allowlist": "IP-toelatingslijst bewerken",

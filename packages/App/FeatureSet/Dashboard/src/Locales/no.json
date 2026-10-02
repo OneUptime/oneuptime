@@ -6610,6 +6610,7 @@
   "The form has a new link, shown on the Share Link card. The old link no longer works.": "Skjemaet har en ny lenke, som vises på kortet Delingslenke. Den gamle lenken virker ikke lenger.",
   "This form is turned off, so its link shows a 'not available' message.": "Dette skjemaet er slått av, så lenken viser en melding om at det ikke er tilgjengelig.",
   "This form's link could not be loaded. The form may have been deleted.": "Lenken til dette skjemaet kunne ikke lastes inn. Skjemaet kan ha blitt slettet.",
+  "This form could not be loaded. It may have been deleted.": "Dette skjemaet kunne ikke lastes inn. Det kan ha blitt slettet.",
   "Limit the form to your own networks: only requests from these IP addresses can open and submit it.": "Begrens skjemaet til deres egne nettverk: bare forespørsler fra disse IP-adressene kan åpne og sende det inn.",
   "Editing the IP allowlist needs the Scale plan.": "Redigering av IP-tillatelseslisten krever Scale-abonnementet.",
   "Edit IP Allowlist": "Rediger IP-tillatelsesliste",

@@ -175,7 +175,7 @@ describe("reading the form", () => {
     await renderCard();
 
     await waitFor(() => {
-      expect(screen.getByText(FormsCopy.shareLinkNotFound)).toBeInTheDocument();
+      expect(screen.getByText(FormsCopy.formNotFound)).toBeInTheDocument();
     });
     expect(screen.queryByRole("switch")).not.toBeInTheDocument();
   });

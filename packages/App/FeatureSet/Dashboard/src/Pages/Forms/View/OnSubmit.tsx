@@ -55,7 +55,7 @@ const FormOnSubmit: FunctionComponent<PageComponentProps> = (): ReactElement => 
       if (loaded) {
         setForm(loaded);
       } else {
-        setError(FormsCopy.shareLinkNotFound);
+        setError(FormsCopy.formNotFound);
       }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -79,7 +79,7 @@ const FormOnSubmit: FunctionComponent<PageComponentProps> = (): ReactElement => 
         {isLoading ? (
           <ComponentLoader />
         ) : (
-          <ErrorMessage message={error || FormsCopy.shareLinkNotFound} />
+          <ErrorMessage message={error || FormsCopy.formNotFound} />
         )}
       </Card>
     );

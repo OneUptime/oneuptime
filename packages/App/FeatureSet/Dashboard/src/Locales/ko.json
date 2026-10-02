@@ -6610,6 +6610,7 @@
   "The form has a new link, shown on the Share Link card. The old link no longer works.": "양식에 새 링크가 생겼으며 '공유 링크' 카드에 표시됩니다. 이전 링크는 더 이상 작동하지 않습니다.",
   "This form is turned off, so its link shows a 'not available' message.": "이 양식은 꺼져 있으므로 링크에 '사용할 수 없음' 메시지가 표시됩니다.",
   "This form's link could not be loaded. The form may have been deleted.": "이 양식의 링크를 불러올 수 없습니다. 양식이 삭제되었을 수 있습니다.",
+  "This form could not be loaded. It may have been deleted.": "이 양식을 불러올 수 없습니다. 삭제되었을 수 있습니다.",
   "Limit the form to your own networks: only requests from these IP addresses can open and submit it.": "양식을 자체 네트워크로 제한합니다. 이 IP 주소에서 온 요청만 양식을 열고 제출할 수 있습니다.",
   "Editing the IP allowlist needs the Scale plan.": "IP 허용 목록을 편집하려면 Scale 요금제가 필요합니다.",
   "Edit IP Allowlist": "IP 허용 목록 편집",

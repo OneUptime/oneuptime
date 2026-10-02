@@ -210,7 +210,7 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
       });
 
       if (!loaded) {
-        setLoadError(FormsCopy.shareLinkNotFound);
+        setLoadError(FormsCopy.formNotFound);
         setIsLoading(false);
         return;
       }
@@ -388,7 +388,7 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
   if (loadError || !form) {
     return (
       <Card title={FormsCopy.builderTitle} description={FormsCopy.builderDescription}>
-        <ErrorMessage message={loadError || FormsCopy.shareLinkNotFound} />
+        <ErrorMessage message={loadError || FormsCopy.formNotFound} />
       </Card>
     );
   }

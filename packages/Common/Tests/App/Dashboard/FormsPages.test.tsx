@@ -443,7 +443,7 @@ describe("a form's pages", () => {
 
     await renderAt(<FormOnSubmit {...(PAGE_PROPS as never)} />);
 
-    expect(screen.getByText(FormsCopy.shareLinkNotFound)).toBeInTheDocument();
+    expect(screen.getByText(FormsCopy.formNotFound)).toBeInTheDocument();
     expect(recorded["target"]).toHaveLength(0);
   });
 

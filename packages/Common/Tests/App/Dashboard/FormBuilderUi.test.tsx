@@ -409,7 +409,7 @@ describe("loading", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(FormsCopy.shareLinkNotFound)).toBeInTheDocument();
+      expect(screen.getByText(FormsCopy.formNotFound)).toBeInTheDocument();
     });
   });
 });

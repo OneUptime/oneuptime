@@ -6610,6 +6610,7 @@
   "The form has a new link, shown on the Share Link card. The old link no longer works.": "Le formulaire a un nouveau lien, affiché sur la carte Lien de partage. L'ancien lien ne fonctionne plus.",
   "This form is turned off, so its link shows a 'not available' message.": "Ce formulaire est désactivé : son lien affiche donc un message « non disponible ».",
   "This form's link could not be loaded. The form may have been deleted.": "Le lien de ce formulaire n'a pas pu être chargé. Le formulaire a peut-être été supprimé.",
+  "This form could not be loaded. It may have been deleted.": "Ce formulaire n'a pas pu être chargé. Il a peut-être été supprimé.",
   "Limit the form to your own networks: only requests from these IP addresses can open and submit it.": "Limitez le formulaire à vos propres réseaux : seules les requêtes provenant de ces adresses IP peuvent l'ouvrir et l'envoyer.",
   "Editing the IP allowlist needs the Scale plan.": "La modification de la liste d'autorisation IP nécessite le forfait Scale.",
   "Edit IP Allowlist": "Modifier la liste d'autorisation IP",

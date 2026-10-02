@@ -263,7 +263,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
     }
 
     if (loadError || !reference) {
-      return <ErrorMessage message={loadError || FormsCopy.shareLinkNotFound} />;
+      return <ErrorMessage message={loadError || FormsCopy.formNotFound} />;
     }
 
     const settings:

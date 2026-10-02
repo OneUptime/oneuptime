@@ -6610,6 +6610,7 @@
   "The form has a new link, shown on the Share Link card. The old link no longer works.": "फ़ॉर्म का नया लिंक 'साझा करने का लिंक' कार्ड पर दिख रहा है। पुराना लिंक अब काम नहीं करता।",
   "This form is turned off, so its link shows a 'not available' message.": "यह फ़ॉर्म बंद है, इसलिए इसका लिंक 'उपलब्ध नहीं' संदेश दिखाता है।",
   "This form's link could not be loaded. The form may have been deleted.": "इस फ़ॉर्म का लिंक लोड नहीं हो सका। हो सकता है फ़ॉर्म हटा दिया गया हो।",
+  "This form could not be loaded. It may have been deleted.": "यह फ़ॉर्म लोड नहीं हो सका। हो सकता है इसे हटा दिया गया हो।",
   "Limit the form to your own networks: only requests from these IP addresses can open and submit it.": "फ़ॉर्म को अपने नेटवर्क तक सीमित करें: केवल इन IP पतों से आने वाले अनुरोध ही इसे खोल और सबमिट कर सकते हैं।",
   "Editing the IP allowlist needs the Scale plan.": "IP अनुमति सूची संपादित करने के लिए Scale प्लान चाहिए।",
   "Edit IP Allowlist": "IP अनुमति सूची संपादित करें",

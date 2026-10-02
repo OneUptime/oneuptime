@@ -6610,6 +6610,7 @@
   "The form has a new link, shown on the Share Link card. The old link no longer works.": "The form has a new link, shown on the Share Link card. The old link no longer works.",
   "This form is turned off, so its link shows a 'not available' message.": "This form is turned off, so its link shows a 'not available' message.",
   "This form's link could not be loaded. The form may have been deleted.": "This form's link could not be loaded. The form may have been deleted.",
+  "This form could not be loaded. It may have been deleted.": "This form could not be loaded. It may have been deleted.",
   "Limit the form to your own networks: only requests from these IP addresses can open and submit it.": "Limit the form to your own networks: only requests from these IP addresses can open and submit it.",
   "Editing the IP allowlist needs the Scale plan.": "Editing the IP allowlist needs the Scale plan.",
   "Edit IP Allowlist": "Edit IP Allowlist",

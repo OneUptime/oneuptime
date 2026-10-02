@@ -6610,6 +6610,7 @@
   "The form has a new link, shown on the Share Link card. The old link no longer works.": "У формы новая ссылка, она показана на карточке «Ссылка для доступа». Старая ссылка больше не работает.",
   "This form is turned off, so its link shows a 'not available' message.": "Эта форма выключена, поэтому по её ссылке показывается сообщение «недоступна».",
   "This form's link could not be loaded. The form may have been deleted.": "Не удалось загрузить ссылку этой формы. Возможно, форма была удалена.",
+  "This form could not be loaded. It may have been deleted.": "Не удалось загрузить эту форму. Возможно, она была удалена.",
   "Limit the form to your own networks: only requests from these IP addresses can open and submit it.": "Ограничьте форму своими сетями: открывать и отправлять её можно будет только с этих IP-адресов.",
   "Editing the IP allowlist needs the Scale plan.": "Для изменения списка разрешённых IP нужен тариф Scale.",
   "Edit IP Allowlist": "Изменить список разрешённых IP",

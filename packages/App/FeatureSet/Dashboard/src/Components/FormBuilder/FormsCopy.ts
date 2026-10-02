@@ -178,6 +178,7 @@ export const FormsCopy: {
   newLinkDescription: string;
   formTurnedOff: string;
   shareLinkNotFound: string;
+  formNotFound: string;
   afterSubmittingTitle: string;
   afterSubmittingDescription: string;
   editSuccessMessage: string;
@@ -413,6 +414,7 @@ export const FormsCopy: {
     "This form is turned off, so its link shows a 'not available' message.",
   shareLinkNotFound:
     "This form's link could not be loaded. The form may have been deleted.",
+  formNotFound: "This form could not be loaded. It may have been deleted.",
   afterSubmittingTitle: "After Submitting",
   afterSubmittingDescription:
     "What people see once they submit the form, together with the number of what it created.",
