@@ -377,14 +377,17 @@ describe("the dashboard is wired where the feature says", () => {
     expect(source).toContain(
       "return getIncidentCreatedPreviewRequest({ values: item as Record<string, unknown>, customFields: packCustomFieldFormValues({ definitions: detailsStepDefinitions, formValues: item as JSONObject, startingCustomFields: startingCustomFields, isShown: isAskedOnIncidentForm, }), });",
     );
-    // On the summary of the notify field, with the audience.
-    expect(
-      source.indexOf("<SubscriberNotificationPreviewButton"),
-    ).toBeGreaterThan(
-      source.indexOf(
-        "getSummaryElement: (item: FormValues<Incident>) => { return ( <> {getAudienceSummary(item)}",
-      ),
+    /*
+     * On the summary of the notify field: whether it is ticked, the
+     * audience, then the preview - offered only when something can be sent
+     * (notifying, not private, on a monitor).
+     */
+    expect(source).toContain(
+      'getSummaryElement: (item: FormValues<Incident>) => { return ( <> <BooleanValue value={isNotifyTicked(item)} dataTestId="incident-create-notify-subscribers-value" /> {getAudienceSummary(item)} {isNotifyingSubscribers(item) && hasMonitors(item) ? ( <SubscriberNotificationPreviewButton dataTestId="incident-create-preview-notification"',
     );
+    expect(
+      source.split("<SubscriberNotificationPreviewButton").length - 1,
+    ).toBe(1);
   });
 
   test("the public note composer offers it while notifying, with the note being written", () => {
