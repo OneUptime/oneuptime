@@ -10,11 +10,11 @@
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Incident Title:" text=incidentTitle }}
-{{> DetailBoxField title="Current State: " text=currentState  }}
+{{> DetailBoxField title="Current State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
 {{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
 {{> DetailBoxField title="Incident Declared By: " text=declaredBy  }}
 {{> DetailBoxField title="Incident Declared At: " text=declaredAt  }}
-{{> DetailBoxField title="Severity: " text=incidentSeverity  }}
+{{> DetailBoxField title="Severity: " plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
 {{> DetailBoxField title="Root Cause: " blockText=rootCause  }}
 {{> DetailBoxField title="Description: " blockText=incidentDescription  }}
 {{#ifNotCond remediationNotes ""}}

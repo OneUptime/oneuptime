@@ -638,6 +638,8 @@ export default class EmailRollupFlushRunner {
           subject: true,
           severity: true,
           currentState: true,
+          severityColor: true,
+          currentStateColor: true,
           viewLink: true,
           createdAt: true,
         },
