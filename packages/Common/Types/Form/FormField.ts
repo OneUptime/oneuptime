@@ -957,6 +957,65 @@ export const getDefaultFormFields: GetDefaultFormFieldsFunction = (
   return fields;
 };
 
+export type TranslateFormFieldDefaultsFunction = (data: {
+  fields: Array<FormField>;
+  targetType: FormTargetType;
+  translate: (text: string) => string;
+}) => Array<FormField>;
+
+/**
+ * The questions with the default labels and help texts of fields of what
+ * the form creates, and of the submitter's fields, put in the reader's
+ * language - so a form built in a German dashboard starts with German
+ * questions. Only a label or help text that is still exactly the English
+ * default is translated: one someone wrote is theirs, and stays as it is.
+ * A translation that comes back empty keeps the English.
+ */
+export const translateFormFieldDefaults: TranslateFormFieldDefaultsFunction =
+  (data: {
+    fields: Array<FormField>;
+    targetType: FormTargetType;
+    translate: (text: string) => string;
+  }): Array<FormField> => {
+    const translate: (text: string) => string = (text: string): string => {
+      const translated: string = data.translate(text);
+      return typeof translated === "string" && translated.trim()
+        ? translated
+        : text;
+    };
+
+    return data.fields.map((field: FormField): FormField => {
+      let defaultLabel: string | undefined = undefined;
+      let defaultHelpText: string | undefined = undefined;
+
+      if (field.source === FormFieldSource.TargetField && field.targetField) {
+        const definition: FormTargetFieldDefinition | undefined =
+          getFormTargetField(data.targetType, field.targetField);
+        defaultLabel = definition?.defaultLabel;
+        defaultHelpText = definition?.defaultHelpText;
+      } else if (
+        field.source === FormFieldSource.Submitter &&
+        field.submitterField &&
+        FORM_SUBMITTER_FIELD_DEFINITIONS[field.submitterField]
+      ) {
+        defaultLabel =
+          FORM_SUBMITTER_FIELD_DEFINITIONS[field.submitterField].defaultLabel;
+      }
+
+      const translated: FormField = { ...field };
+
+      if (defaultLabel && field.label === defaultLabel) {
+        translated.label = translate(defaultLabel);
+      }
+
+      if (defaultHelpText && field.helpText === defaultHelpText) {
+        translated.helpText = translate(defaultHelpText);
+      }
+
+      return translated;
+    });
+  };
+
 export type ConvertFormFieldsForTargetFunction = (data: {
   fields: Array<FormField>;
   from: FormTargetType;

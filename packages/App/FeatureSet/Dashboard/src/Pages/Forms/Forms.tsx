@@ -4,6 +4,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Form from "Common/Models/DatabaseModels/Form";
 import Route from "Common/Types/API/Route";
+import {
+  getDefaultFormFields,
+  translateFormFieldDefaults,
+} from "Common/Types/Form/FormField";
 import FormTargetType, {
   DEFAULT_FORM_TARGET_TYPE,
   FORM_TARGET_TYPE_TEXT,
@@ -11,6 +15,7 @@ import FormTargetType, {
   readFormTargetType,
 } from "Common/Types/Form/FormTargetType";
 import IconProp from "Common/Types/Icon/IconProp";
+import { JSONArray } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -121,6 +126,24 @@ const Forms: FunctionComponent<PageComponentProps> = (
             required: false,
           },
         ]}
+        onBeforeCreate={async (item: Form): Promise<Form> => {
+          /*
+           * The questions a new form starts with, worded in the language of
+           * the dashboard it is created in. Without them the server would
+           * add the same questions in English.
+           */
+          const targetType: FormTargetType = readFormTargetType(
+            item.targetType,
+          );
+
+          item.fields = translateFormFieldDefaults({
+            fields: getDefaultFormFields(targetType),
+            targetType: targetType,
+            translate: tx,
+          }) as unknown as JSONArray;
+
+          return item;
+        }}
         onCreateSuccess={async (item: Form): Promise<Form> => {
           // A new form opens on its builder: its questions are the next step.
           if (item._id) {

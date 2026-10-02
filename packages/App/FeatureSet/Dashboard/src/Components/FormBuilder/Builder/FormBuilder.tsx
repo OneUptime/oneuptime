@@ -21,6 +21,7 @@ import {
   FormField,
   FormFieldSource,
   readFormFields,
+  translateFormFieldDefaults,
   validateFormFields,
 } from "Common/Types/Form/FormField";
 import {
@@ -272,7 +273,12 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
   const addFromPalette: (item: PaletteItem) => void = (
     item: PaletteItem,
   ): void => {
-    const field: FormField = createPaletteField(item);
+    // A field's suggested label and help text, in the reader's language.
+    const field: FormField = translateFormFieldDefaults({
+      fields: [createPaletteField(item)],
+      targetType: targetType,
+      translate: tx,
+    })[0] as FormField;
 
     if (item.kind === "target" && item.definition.optionsSource) {
       void ensureRecordOptions(item.definition.optionsSource);
