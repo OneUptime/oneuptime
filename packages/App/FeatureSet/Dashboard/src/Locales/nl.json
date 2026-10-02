@@ -6945,6 +6945,7 @@
   "Kept with the submission and named on the private note. Never shown on the incident or event itself.": "Wordt bij de inzending bewaard en in de privénotitie genoemd. Nooit getoond op het incident of de gebeurtenis zelf.",
   "The answer is kept with the submission and listed on the private note of what the form creates.": "Het antwoord wordt bij de inzending bewaard en vermeld in de privénotitie van wat het formulier aanmaakt.",
   "This custom field was deleted, so the question is not asked. Delete the question.": "Dit aangepaste veld is verwijderd, dus de vraag wordt niet gesteld. Verwijder de vraag.",
+  "Copied from a monitor custom field: when what this form creates has monitors that agree on a value for it, that value replaces the answer.": "Overgenomen uit een aangepast monitorveld: wanneer wat dit formulier aanmaakt monitors heeft die het over een waarde ervoor eens zijn, vervangt die waarde het antwoord.",
   "Choose at least one to offer, or the question is not asked.": "Kies minstens één keuze om aan te bieden, anders wordt de vraag niet gesteld.",
   "Add at least one option.": "Voeg minstens één optie toe.",
   "Write the question.": "Schrijf de vraag.",

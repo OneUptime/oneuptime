@@ -33,7 +33,7 @@ The card lists every field of the new incident and where its value comes from:
 | **Incident Template** | The form's **Incident Template** setting. It fills in whatever the answers and the settings leave unset.                                                                                     |
 | **On-Call Policies**  | The policies the settings name, executed for every incident the form declares. With none, the incident template's.                                                                           |
 | **Owner Users**, **Owner Teams** | The owners the settings name, together with the template's. They are told about every incident.                                                                                   |
-| **Custom Fields**     | Each custom field question's answer; the template fills in the rest.                                                                                                                         |
+| **Custom Fields**     | Each custom field question's answer — unless the field copies its value from a monitor custom field and the incident's monitors hold one; the template fills in the rest.                     |
 | **Status Pages**      | Never shown on status pages, and subscribers are not told, until someone on your team publishes it.                                                                                          |
 | **Other Answers**     | Listed on a private note on the incident, with who submitted it.                                                                                                                             |
 
@@ -71,7 +71,7 @@ To publish one after triage, turn **Visible on Status Page** on from the inciden
 | **Owner Users**, **Owner Teams** | The owners the settings name. They own every event the form schedules.                                                              |
 | **Show on Status Pages**         | **No** unless the settings turn it on.                                                                                              |
 | **Notify Subscribers**           | **No** unless the settings turn it on.                                                                                              |
-| **Custom Fields**                | Each custom field question's answer.                                                                                                |
+| **Custom Fields**                | Each custom field question's answer — unless the field copies its value from a monitor custom field and the event's monitors hold one. |
 | **Other Answers**                | Listed on a private note on the event, with who submitted it.                                                                      |
 
 The event starts in your project's **Scheduled** state and moves on like any other: it becomes ongoing when it starts and ends when it ends.

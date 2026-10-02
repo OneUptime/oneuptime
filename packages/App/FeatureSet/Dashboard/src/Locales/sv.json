@@ -6945,6 +6945,7 @@
   "Kept with the submission and named on the private note. Never shown on the incident or event itself.": "Sparas med inlämningen och nämns i den privata anteckningen. Visas aldrig på själva incidenten eller händelsen.",
   "The answer is kept with the submission and listed on the private note of what the form creates.": "Svaret sparas med inlämningen och listas i den privata anteckningen på det som formuläret skapar.",
   "This custom field was deleted, so the question is not asked. Delete the question.": "Det här anpassade fältet har tagits bort, så frågan ställs inte. Ta bort frågan.",
+  "Copied from a monitor custom field: when what this form creates has monitors that agree on a value for it, that value replaces the answer.": "Kopierat från ett anpassat monitorfält: när det som det här formuläret skapar har monitorer som är överens om ett värde för det, ersätter det värdet svaret.",
   "Choose at least one to offer, or the question is not asked.": "Välj minst ett alternativ att erbjuda, annars ställs inte frågan.",
   "Add at least one option.": "Lägg till minst ett alternativ.",
   "Write the question.": "Skriv frågan.",

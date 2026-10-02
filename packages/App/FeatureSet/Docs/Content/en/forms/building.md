@@ -68,6 +68,8 @@ Your incident custom fields — or scheduled maintenance custom fields, for a ma
 
 A form asks only the custom fields you add to it, whatever **Show on Create** says: every field a form asks shows its name, description and options to anyone with the link. When a custom field is deleted, its question stays on the form but is no longer asked, and its card says so — delete the question. A field created again with the same name is a new field: add it again.
 
+A custom field that copies its value from a monitor custom field says so on its card: when the incident or event has monitors that agree on a value for it, that value replaces the submitter's answer.
+
 ### Submitter
 
 **Your Name** and **Your Email** ask who is submitting. They are kept with the submission and named on the private note, so your team can follow up, and are never shown on the incident or event itself. OneUptime never emails the submitter. Leave them out, or make them optional, to take anonymous submissions.

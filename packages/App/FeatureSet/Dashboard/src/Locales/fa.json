@@ -6945,6 +6945,7 @@
   "Kept with the submission and named on the private note. Never shown on the incident or event itself.": "همراه ارسال نگه داشته می‌شود و در یادداشت خصوصی ذکر می‌شود. هرگز روی خود حادثه یا رویداد نمایش داده نمی‌شود.",
   "The answer is kept with the submission and listed on the private note of what the form creates.": "پاسخ همراه ارسال نگه داشته می‌شود و در یادداشت خصوصیِ آنچه فرم ایجاد می‌کند فهرست می‌شود.",
   "This custom field was deleted, so the question is not asked. Delete the question.": "این فیلد سفارشی حذف شده است، پس این پرسش پرسیده نمی‌شود. پرسش را حذف کنید.",
+  "Copied from a monitor custom field: when what this form creates has monitors that agree on a value for it, that value replaces the answer.": "از یک فیلد سفارشی مانیتور کپی می‌شود: وقتی آنچه این فرم می‌سازد مانیتورهایی دارد که بر سر مقداری برای آن هم‌نظرند، آن مقدار جای پاسخ را می‌گیرد.",
   "Choose at least one to offer, or the question is not asked.": "دست‌کم یک گزینه برای ارائه انتخاب کنید، وگرنه این پرسش پرسیده نمی‌شود.",
   "Add at least one option.": "دست‌کم یک گزینه اضافه کنید.",
   "Write the question.": "پرسش را بنویسید.",

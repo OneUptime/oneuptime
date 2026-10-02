@@ -6945,6 +6945,7 @@
   "Kept with the submission and named on the private note. Never shown on the incident or event itself.": "सबमिशन के साथ रखा जाता है और निजी नोट में बताया जाता है। घटना या इवेंट पर कभी नहीं दिखाया जाता।",
   "The answer is kept with the submission and listed on the private note of what the form creates.": "उत्तर सबमिशन के साथ रखा जाता है और फ़ॉर्म जो बनाता है उसके निजी नोट में सूचीबद्ध होता है।",
   "This custom field was deleted, so the question is not asked. Delete the question.": "यह कस्टम फ़ील्ड हटा दिया गया था, इसलिए प्रश्न नहीं पूछा जाता। प्रश्न हटाएँ।",
+  "Copied from a monitor custom field: when what this form creates has monitors that agree on a value for it, that value replaces the answer.": "मॉनिटर कस्टम फ़ील्ड से कॉपी किया गया: जब यह फ़ॉर्म जो बनाता है उसके मॉनिटर इसके किसी मान पर सहमत हों, तो वह मान उत्तर की जगह ले लेता है।",
   "Choose at least one to offer, or the question is not asked.": "देने के लिए कम से कम एक चुनें, नहीं तो प्रश्न नहीं पूछा जाएगा।",
   "Add at least one option.": "कम से कम एक विकल्प जोड़ें।",
   "Write the question.": "प्रश्न लिखें।",

@@ -6945,6 +6945,7 @@
   "Kept with the submission and named on the private note. Never shown on the incident or event itself.": "送信と一緒に保存され、非公開メモに記載されます。インシデントやイベント自体には表示されません。",
   "The answer is kept with the submission and listed on the private note of what the form creates.": "回答は送信と一緒に保存され、フォームが作成するものの非公開メモに記載されます。",
   "This custom field was deleted, so the question is not asked. Delete the question.": "このカスタムフィールドは削除されたため、質問は表示されません。質問を削除してください。",
+  "Copied from a monitor custom field: when what this form creates has monitors that agree on a value for it, that value replaces the answer.": "モニターのカスタムフィールドからコピーされます。このフォームが作成するものに、この値で一致するモニターがある場合、その値が回答の代わりに使われます。",
   "Choose at least one to offer, or the question is not asked.": "提示するものを少なくとも 1 つ選んでください。選ばないと質問は表示されません。",
   "Add at least one option.": "選択肢を少なくとも 1 つ追加してください。",
   "Write the question.": "質問を入力してください。",

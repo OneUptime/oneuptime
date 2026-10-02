@@ -6945,6 +6945,7 @@
   "Kept with the submission and named on the private note. Never shown on the incident or event itself.": "随提交一起保存，并写在私密备注中。绝不会显示在事件或活动本身上。",
   "The answer is kept with the submission and listed on the private note of what the form creates.": "回答随提交一起保存，并列在表单所创建内容的私密备注中。",
   "This custom field was deleted, so the question is not asked. Delete the question.": "此自定义字段已被删除，因此不会询问此问题。请删除该问题。",
+  "Copied from a monitor custom field: when what this form creates has monitors that agree on a value for it, that value replaces the answer.": "从监控器自定义字段复制：当此表单创建的内容所关联的监控器在此字段上的值一致时，该值将替换答案。",
   "Choose at least one to offer, or the question is not asked.": "请至少选择一个要提供的选项，否则不会询问此问题。",
   "Add at least one option.": "请至少添加一个选项。",
   "Write the question.": "请填写问题。",

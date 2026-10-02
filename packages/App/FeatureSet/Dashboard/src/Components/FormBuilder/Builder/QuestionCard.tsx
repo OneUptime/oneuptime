@@ -563,6 +563,21 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
             options={getPreviewOptions()}
           />
 
+          {customField?.isCopiedFromMonitor ? (
+            <p
+              className="mt-2 flex items-start gap-1.5 text-xs text-gray-500"
+              data-testid={`form-question-copied-from-monitor-${field.id}`}
+            >
+              <Icon
+                icon={IconProp.Info}
+                className="mt-0.5 h-3.5 w-3.5 shrink-0"
+              />
+              <span>{tx(FormsCopy.copiedFromMonitor)}</span>
+            </p>
+          ) : (
+            <></>
+          )}
+
           {issues.length > 0 ? (
             <ul className="mt-2 space-y-1" data-testid="form-question-issues">
               {issues.map((issue: FormFieldIssue): ReactElement => {

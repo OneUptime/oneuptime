@@ -35,7 +35,9 @@ jest.mock("../../../UI/Utils/Project", () => {
         const ObjectIDClass: any = jest.requireActual(
           "../../../Types/ObjectID",
         ) as any;
-        return new ObjectIDClass.default("11111111-1111-4111-8111-111111111111");
+        return new ObjectIDClass.default(
+          "11111111-1111-4111-8111-111111111111",
+        );
       },
     },
   };
@@ -132,7 +134,9 @@ describe("the palette", () => {
       );
 
       expect(entry).toHaveTextContent(FORM_QUESTION_TYPE_TEXT[type].title);
-      expect(entry).toHaveTextContent(FORM_QUESTION_TYPE_TEXT[type].description);
+      expect(entry).toHaveTextContent(
+        FORM_QUESTION_TYPE_TEXT[type].description,
+      );
     }
   });
 
@@ -175,7 +179,9 @@ describe("the palette", () => {
     expect(screen.getByTestId("form-palette-target-fields")).toHaveTextContent(
       FormsCopy.paletteScheduledMaintenanceFields,
     );
-    expect(screen.getByTestId("form-palette-target-startsAt")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("form-palette-target-startsAt"),
+    ).toBeInTheDocument();
     expect(
       screen.queryByTestId("form-palette-target-incidentSeverityId"),
     ).not.toBeInTheDocument();
@@ -220,10 +226,7 @@ describe("the palette", () => {
       expect(screen.getByText(note)).toBeInTheDocument();
       expect(
         screen.getByText(FormsCopy.manageCustomFields).closest("a"),
-      ).toHaveAttribute(
-        "href",
-        expect.stringContaining(path),
-      );
+      ).toHaveAttribute("href", expect.stringContaining(path));
     },
   );
 
@@ -376,7 +379,9 @@ describe("a question card", () => {
   ])("says what it is linked to: %#", (field: FormField, badge: string) => {
     renderCard({ field });
 
-    expect(screen.getByTestId("form-question-badge-q")).toHaveTextContent(badge);
+    expect(screen.getByTestId("form-question-badge-q")).toHaveTextContent(
+      badge,
+    );
   });
 
   test("reads like the public form: the question, the asterisk, the help text and the choices", () => {
@@ -399,7 +404,9 @@ describe("a question card", () => {
     expect(select).toHaveTextContent("Where you sit.");
     expect(screen.getByTestId("form-question-q")).toHaveTextContent("Berlin");
     expect(screen.getByTestId("form-question-q")).toHaveTextContent("London");
-    expect(screen.queryByTestId("form-question-editor-q")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("form-question-editor-q"),
+    ).not.toBeInTheDocument();
   });
 
   test("an untitled question says so", () => {
@@ -438,6 +445,46 @@ describe("a question card", () => {
     expect(screen.getByTestId("form-question-badge-q")).toHaveTextContent(
       FormsCopy.deletedRecord,
     );
+  });
+
+  test("a field that copies a monitor's value says the monitors' value replaces the answer", () => {
+    renderCard({
+      field: {
+        id: "q",
+        source: FormFieldSource.TargetCustomField,
+        customFieldId: "c0000000-0000-4000-8000-0000000000aa",
+        label: "Vendor",
+        isRequired: false,
+      },
+      customFields: [
+        {
+          id: "c0000000-0000-4000-8000-0000000000aa",
+          name: "Vendor",
+          customFieldType: CustomFieldType.Text,
+          isCopiedFromMonitor: true,
+        },
+      ],
+    });
+
+    expect(
+      screen.getByTestId("form-question-copied-from-monitor-q"),
+    ).toHaveTextContent(FormsCopy.copiedFromMonitor);
+  });
+
+  test("an ordinary custom field says nothing of monitors", () => {
+    renderCard({
+      field: {
+        id: "q",
+        source: FormFieldSource.TargetCustomField,
+        customFieldId: REGION_ID,
+        label: "Where?",
+        isRequired: false,
+      },
+    });
+
+    expect(
+      screen.queryByTestId("form-question-copied-from-monitor-q"),
+    ).not.toBeInTheDocument();
   });
 
   test("a monitor question with nothing offered says it is not asked", () => {
@@ -536,7 +583,9 @@ describe("a question card", () => {
     expect(screen.getByTestId("form-question-link-note")).toHaveTextContent(
       FormsCopy.linkedTargetFieldNote,
     );
-    expect(screen.queryByTestId("form-question-type-q")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("form-question-type-q"),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("form-question-duplicate-q"),
     ).not.toBeInTheDocument();
@@ -555,7 +604,9 @@ describe("a question card", () => {
     });
 
     expect(screen.getByText(FormsCopy.choicesOffered)).toBeInTheDocument();
-    expect(screen.getByText(FormsCopy.choicesOfferedSeverity)).toBeInTheDocument();
+    expect(
+      screen.getByText(FormsCopy.choicesOfferedSeverity),
+    ).toBeInTheDocument();
     // Severities are offered all together unless narrowed: the card lists them.
     expect(screen.getByTestId("form-question-q")).toHaveTextContent("Major");
   });
@@ -595,7 +646,9 @@ describe("a question card", () => {
     });
 
     expect(screen.getByTestId("form-question-select-q")).toBeDisabled();
-    expect(screen.queryByTestId("form-question-drag-q")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("form-question-drag-q"),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("form-question-move-up-q"),
     ).not.toBeInTheDocument();
@@ -660,7 +713,9 @@ describe("the preview", () => {
     );
     expect(screen.getByTestId("form-preview-field-what")).toBeInTheDocument();
     expect(preview).toHaveTextContent("Where?");
-    expect(screen.queryByTestId("form-preview-skipped")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("form-preview-skipped"),
+    ).not.toBeInTheDocument();
   });
 
   test("says when it leaves a flagged question out", async () => {
@@ -693,7 +748,9 @@ describe("the preview", () => {
     expect(
       await screen.findByText("What is wrong? is required."),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId("form-preview-submitted")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("form-preview-submitted"),
+    ).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByTestId("form-preview-field-what"), {
       target: { value: "Checkout is down" },

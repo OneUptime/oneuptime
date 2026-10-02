@@ -133,7 +133,10 @@ const RATE_LIMIT_FILE: string = path.join(
   REPO_ROOT,
   "Common/Server/Middleware/FormRateLimit.ts",
 );
-const FORM_API_FILE: string = path.join(REPO_ROOT, "Common/Server/API/FormAPI.ts");
+const FORM_API_FILE: string = path.join(
+  REPO_ROOT,
+  "Common/Server/API/FormAPI.ts",
+);
 const FORM_SERVICE_FILE: string = path.join(
   REPO_ROOT,
   "Common/Server/Services/FormService.ts",
@@ -180,6 +183,9 @@ const PAGES_LINKING_TO_FORMS: ReadonlyArray<string> = [
 const LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
 
 const FENCE_LINE: RegExp = /^\s*```/;
+// Forms listed right after Incident Templates, in either language's comma.
+const FORMS_AFTER_TEMPLATES: RegExp =
+  /\*\*Incident Templates\*\*[,،] \*\*Forms\*\*/;
 const ANY_HEADING: RegExp = /^(#{1,6}) (.*)$/;
 const RIGHT_TO_LEFT_MARK: RegExp = /^‏/;
 
@@ -264,7 +270,11 @@ function headingsOf(markdown: string): Array<Heading> {
  * heading of the same or a higher level (so an H2's section includes its
  * H3s). A `#` inside a fence is not a heading.
  */
-function sectionOf(markdown: string, level: number, headingText: string): string {
+function sectionOf(
+  markdown: string,
+  level: number,
+  headingText: string,
+): string {
   const lines: Array<string> = markdown.split("\n");
   let start: number = -1;
   let inFence: boolean = false;
@@ -515,9 +525,9 @@ describe("Forms docs", () => {
         });
 
         expect(group).toBeDefined();
-        expect((group as LocalizedNavGroup).title.trim().length).toBeGreaterThan(
-          0,
-        );
+        expect(
+          (group as LocalizedNavGroup).title.trim().length,
+        ).toBeGreaterThan(0);
         expect(
           (group as LocalizedNavGroup).links.map(
             (link: LocalizedNavLink): string => {
@@ -530,7 +540,9 @@ describe("Forms docs", () => {
           }),
         );
 
-        for (const [index, link] of (group as LocalizedNavGroup).links.entries()) {
+        for (const [index, link] of (
+          group as LocalizedNavGroup
+        ).links.entries()) {
           expect(link.title.trim().length).toBeGreaterThan(0);
 
           // A missing translation falls back to its key, "navLinks.…".
@@ -554,19 +566,25 @@ describe("Forms docs", () => {
   });
 
   describe("the pages", () => {
-    it.each(FORMS_PAGES)("%s renders as the docs route renders it", async (page: string) => {
-      const markdown: string = readPage(page);
-      const html: string = await DocsRender.render(
-        DocsPlaceholders.render(markdown.split("\n").slice(1).join("\n"), "en"),
-      );
+    it.each(FORMS_PAGES)(
+      "%s renders as the docs route renders it",
+      async (page: string) => {
+        const markdown: string = readPage(page);
+        const html: string = await DocsRender.render(
+          DocsPlaceholders.render(
+            markdown.split("\n").slice(1).join("\n"),
+            "en",
+          ),
+        );
 
-      expect(html.length).toBeGreaterThan(1000);
+        expect(html.length).toBeGreaterThan(1000);
 
-      // Every section heading is drawn, with the id its links use.
-      for (const heading of headingsOf(markdown).slice(1)) {
-        expect(html).toContain(`id="${heading.slug}"`);
-      }
-    });
+        // Every section heading is drawn, with the id its links use.
+        for (const heading of headingsOf(markdown).slice(1)) {
+          expect(html).toContain(`id="${heading.slug}"`);
+        }
+      },
+    );
 
     it("resolve every link and anchor they use, and so do the pages that link to them", () => {
       const pages: Array<[string, string]> = [
@@ -591,9 +609,12 @@ describe("Forms docs", () => {
         );
 
         for (const anchor of inPageLinks(markdown)) {
-          expect({ page, language, anchor, found: own.includes(anchor) }).toEqual(
-            { page, language, anchor, found: true },
-          );
+          expect({
+            page,
+            language,
+            anchor,
+            found: own.includes(anchor),
+          }).toEqual({ page, language, anchor, found: true });
         }
 
         for (const link of docsLinks(markdown)) {
@@ -681,9 +702,7 @@ describe("Forms docs", () => {
         expect({
           language,
           settingsRow: settings.includes("| **Forms**"),
-          overviewRow: /\*\*Incident Templates\*\*[,،] \*\*Forms\*\*/.test(
-            overview,
-          ),
+          overviewRow: FORMS_AFTER_TEMPLATES.test(overview),
         }).toEqual({ language, settingsRow: false, overviewRow: false });
       }
 
@@ -724,10 +743,11 @@ describe("Forms docs", () => {
 
       // And the API's spelling of the same types.
       const apiRow: string =
-        tableBody(sectionOf(readPage(OVERVIEW_PAGE), 2, "Forms through the API"))
-          .find((row: Array<string>): boolean => {
-            return row[0] === "`Question`";
-          })?.[1] || "";
+        tableBody(
+          sectionOf(readPage(OVERVIEW_PAGE), 2, "Forms through the API"),
+        ).find((row: Array<string>): boolean => {
+          return row[0] === "`Question`";
+        })?.[1] || "";
 
       for (const type of FORM_QUESTION_TYPES) {
         expect(apiRow).toContain(`\`${type}\``);
@@ -773,10 +793,11 @@ describe("Forms docs", () => {
 
       // The API names the same fields by their keys.
       const apiRow: string =
-        tableBody(sectionOf(readPage(OVERVIEW_PAGE), 2, "Forms through the API"))
-          .find((row: Array<string>): boolean => {
-            return row[0] === "`TargetField`";
-          })?.[1] || "";
+        tableBody(
+          sectionOf(readPage(OVERVIEW_PAGE), 2, "Forms through the API"),
+        ).find((row: Array<string>): boolean => {
+          return row[0] === "`TargetField`";
+        })?.[1] || "";
       const [incidentPart, maintenancePart] = apiRow.split(" for an incident;");
 
       expect(
@@ -796,9 +817,9 @@ describe("Forms docs", () => {
       );
       expect(
         Array.from(
-          (maintenancePart || "").split(" for a maintenance event.")[0]!.matchAll(
-            /`([a-zA-Z]+)`/g,
-          ),
+          (maintenancePart || "")
+            .split(" for a maintenance event.")[0]!
+            .matchAll(/`([a-zA-Z]+)`/g),
         ).map((match: RegExpMatchArray): string => {
           return match[1] as string;
         }),
@@ -825,7 +846,10 @@ describe("Forms docs", () => {
           },
         );
 
-        expect({ answer, found: Boolean(row) }).toEqual({ answer, found: true });
+        expect({ answer, found: Boolean(row) }).toEqual({
+          answer,
+          found: true,
+        });
 
         return numbersIn((row as Array<string>)[1] as string);
       };
@@ -846,7 +870,9 @@ describe("Forms docs", () => {
       expect(limitOf("**Your Name**, **Your Email**")).toEqual([
         FORM_SUBMITTER_NAME_MAX_LENGTH,
       ]);
-      expect(FORM_SUBMITTER_EMAIL_MAX_LENGTH).toBe(FORM_SUBMITTER_NAME_MAX_LENGTH);
+      expect(FORM_SUBMITTER_EMAIL_MAX_LENGTH).toBe(
+        FORM_SUBMITTER_NAME_MAX_LENGTH,
+      );
 
       // The same numbers where the fields are listed.
       const fields: string = sectionOf(
@@ -870,9 +896,7 @@ describe("Forms docs", () => {
       expect(building).toContain(
         `between one and ${FORM_QUESTION_MAX_OPTIONS} of them`,
       );
-      expect(
-        sectionOf(building, 3, "Submitter"),
-      ).toContain(
+      expect(sectionOf(building, 3, "Submitter")).toContain(
         `Name and email are up to ${FORM_SUBMITTER_NAME_MAX_LENGTH} characters each.`,
       );
     });
@@ -981,14 +1005,19 @@ describe("Forms docs", () => {
         ),
       );
 
-      for (const name of [FormsCopy.showOnStatusPages, FormsCopy.notifySubscribers]) {
+      for (const name of [
+        FormsCopy.showOnStatusPages,
+        FormsCopy.notifySubscribers,
+      ]) {
         const row: Array<string> | undefined = table.find(
           (cells: Array<string>): boolean => {
             return cells[0] === `**${name}**`;
           },
         );
 
-        expect(row?.[1]).toContain(`**${FormsCopy.no}** unless the settings turn it on.`);
+        expect(row?.[1]).toContain(
+          `**${FormsCopy.no}** unless the settings turn it on.`,
+        );
       }
     });
 
@@ -996,7 +1025,10 @@ describe("Forms docs", () => {
       const table: Array<Array<string>> = firstTable(
         sectionOf(readPage(ON_SUBMIT_PAGE), 2, "The On Submit settings"),
       );
-      const reference: { lists: object; templateIdsWithSeverity: Array<string> } = {
+      const reference: {
+        lists: Record<string, unknown>;
+        templateIdsWithSeverity: Array<string>;
+      } = {
         lists: {},
         templateIdsWithSeverity: [],
       };
@@ -1024,18 +1056,20 @@ describe("Forms docs", () => {
           });
 
         expect(documented).toEqual(
-          steps.map((step: { id: string; title: string }): [string, Array<string>] => {
-            return [
-              step.title,
-              fields
-                .filter((field: Field<JSONObject>): boolean => {
-                  return field.stepId === step.id;
-                })
-                .map((field: Field<JSONObject>): string => {
-                  return field.title as string;
-                }),
-            ];
-          }),
+          steps.map(
+            (step: { id: string; title: string }): [string, Array<string>] => {
+              return [
+                step.title,
+                fields
+                  .filter((field: Field<JSONObject>): boolean => {
+                    return field.stepId === step.id;
+                  })
+                  .map((field: Field<JSONObject>): string => {
+                    return field.title as string;
+                  }),
+              ];
+            },
+          ),
         );
       }
 
@@ -1046,7 +1080,9 @@ describe("Forms docs", () => {
       expect(
         sectionOf(readPage(ON_SUBMIT_PAGE), 2, "The On Submit settings"),
       ).toContain(`**${FormsCopy.saveChanges}** saves from any of them`);
-      expect(readSource(FORM_MAPPING_CARD_FILE)).toContain("saveFromAnyStep={true}");
+      expect(readSource(FORM_MAPPING_CARD_FILE)).toContain(
+        "saveFromAnyStep={true}",
+      );
     });
 
     it("quote the refusals word for word, as the server and the public page word them", () => {
@@ -1091,7 +1127,9 @@ describe("Forms docs", () => {
       }
 
       const strays: Array<string> = Array.from(
-        splitMarkdown(rest).prose.join("\n").matchAll(/"([A-Z][^"\n]{12,}[.!?])"/g),
+        splitMarkdown(rest)
+          .prose.join("\n")
+          .matchAll(/"([A-Z][^"\n]{12,}[.!?])"/g),
       ).map((match: RegExpMatchArray): string => {
         return match[1] as string;
       });
@@ -1109,20 +1147,23 @@ describe("Forms docs", () => {
 
     it("list the rate limiter's environment variables, with its defaults, and the names it still reads", () => {
       const source: string = readSource(RATE_LIMIT_FILE);
-      const settings: Array<{ name: string; defaultValue: number }> = Array.from(
-        source.matchAll(
-          /parsePositiveIntFromEnv\(\s*"([A-Z0-9_]+)",\s*([\d\s*]+?)\s*,?\s*\)/g,
-        ),
-      ).map((match: RegExpMatchArray): { name: string; defaultValue: number } => {
-        return {
-          name: `FORM_${match[1] as string}`,
-          defaultValue: (match[2] as string)
-            .split("*")
-            .reduce((product: number, factor: string): number => {
-              return product * parseInt(factor.trim(), 10);
-            }, 1),
-        };
-      });
+      const settings: Array<{ name: string; defaultValue: number }> =
+        Array.from(
+          source.matchAll(
+            /parsePositiveIntFromEnv\(\s*"([A-Z0-9_]+)",\s*([\d\s*]+?)\s*,?\s*\)/g,
+          ),
+        ).map(
+          (match: RegExpMatchArray): { name: string; defaultValue: number } => {
+            return {
+              name: `FORM_${match[1] as string}`,
+              defaultValue: (match[2] as string)
+                .split("*")
+                .reduce((product: number, factor: string): number => {
+                  return product * parseInt(factor.trim(), 10);
+                }, 1),
+            };
+          },
+        );
 
       // Every setting is read: a default written some other way fails here.
       expect(settings).toHaveLength(
@@ -1137,15 +1178,21 @@ describe("Forms docs", () => {
       );
 
       expect(
-        rows.map((row: Array<string>): { name: string; defaultValue: number } => {
-          return {
-            name: (row[0] as string).replace(/`/g, ""),
-            defaultValue: parseInt((row[1] as string).replace(/`/g, ""), 10),
-          };
-        }),
+        rows.map(
+          (row: Array<string>): { name: string; defaultValue: number } => {
+            return {
+              name: (row[0] as string).replace(/`/g, ""),
+              defaultValue: parseInt((row[1] as string).replace(/`/g, ""), 10),
+            };
+          },
+        ),
       ).toEqual(settings);
 
-      const section: string = sectionOf(readPage(SHARING_PAGE), 3, "Rate limits");
+      const section: string = sectionOf(
+        readPage(SHARING_PAGE),
+        3,
+        "Rate limits",
+      );
 
       expect(section).toContain(
         "with `INCIDENT_FORM_` in front instead of `FORM_`",
@@ -1195,7 +1242,10 @@ describe("Forms docs", () => {
         [Permission.EditForm, new Form().getUpdatePermissions()],
         [Permission.DeleteForm, new Form().getDeletePermissions()],
         [Permission.ReadForm, new Form().getReadPermissions()],
-        [Permission.ReadFormSubmission, new FormSubmission().getReadPermissions()],
+        [
+          Permission.ReadFormSubmission,
+          new FormSubmission().getReadPermissions(),
+        ],
         [
           Permission.DeleteFormSubmission,
           new FormSubmission().getDeletePermissions(),
@@ -1207,9 +1257,11 @@ describe("Forms docs", () => {
           return row[0] as string;
         }),
       ).toEqual(
-        expected.map(([permission]: [Permission, Array<Permission>]): string => {
-          return `**${PermissionHelper.getTitle(permission)}**`;
-        }),
+        expected.map(
+          ([permission]: [Permission, Array<Permission>]): string => {
+            return `**${PermissionHelper.getTitle(permission)}**`;
+          },
+        ),
       );
 
       for (const [index, [permission, holders]] of expected.entries()) {
@@ -1250,9 +1302,9 @@ describe("Forms docs", () => {
 
       // The group the reference lists them under.
       expect(PermissionGroup.Form).toBe("Form");
-      expect(
-        sectionOf(readPage(OVERVIEW_PAGE), 2, "Permissions"),
-      ).toContain("They are in the **Form** group of the");
+      expect(sectionOf(readPage(OVERVIEW_PAGE), 2, "Permissions")).toContain(
+        "They are in the **Form** group of the",
+      );
     });
 
     it("name the plans the billing rules name", () => {
@@ -1284,7 +1336,11 @@ describe("Forms docs", () => {
     });
 
     it("offer IP allowlist entries the save-time check accepts, and show refused the ones it refuses", () => {
-      const section: string = sectionOf(readPage(SHARING_PAGE), 3, "IP allowlist");
+      const section: string = sectionOf(
+        readPage(SHARING_PAGE),
+        3,
+        "IP allowlist",
+      );
       const code: Set<string> = inlineCode(section);
 
       for (const accepted of ["203.0.113.7", "2001:db8::7", "10.0.0.0/8"]) {
@@ -1304,7 +1360,11 @@ describe("Forms docs", () => {
     });
 
     it("show the private note the server writes, word for word", () => {
-      const section: string = sectionOf(readPage(ON_SUBMIT_PAGE), 2, "The private note");
+      const section: string = sectionOf(
+        readPage(ON_SUBMIT_PAGE),
+        2,
+        "The private note",
+      );
       const quote: string = section
         .split("\n")
         .filter((line: string): boolean => {
@@ -1372,10 +1432,35 @@ describe("Forms docs", () => {
 
       // The title is plain text: image syntax in it loads nothing.
       expect(neutralizeUntrustedPlainText(image)).not.toBe(image);
-      expect(neutralizeUntrustedPlainText(image).replace(/⁠/g, "")).toBe(
-        image,
+      expect(neutralizeUntrustedPlainText(image).replace(/⁠/g, "")).toBe(image);
+      expect(section).toContain(
+        "The invisible characters count towards the title's limit.",
       );
-      expect(section).toContain("The invisible characters count towards the title's limit.");
+    });
+
+    it("say what a custom field copied from a monitor does, as its question card says", () => {
+      // The card's note, and the docs, describe the same rule.
+      expect(FormsCopy.copiedFromMonitor).toContain(
+        "that value replaces the answer",
+      );
+      expect(sectionOf(readPage(BUILDING_PAGE), 3, "Custom fields")).toContain(
+        "A custom field that copies its value from a monitor custom field says so on its card: when the incident or event has monitors that agree on a value for it, that value replaces the submitter's answer.",
+      );
+
+      for (const heading of [
+        "How a submission becomes an incident",
+        "How a submission becomes a scheduled maintenance event",
+      ]) {
+        const row: Array<string> | undefined = firstTable(
+          sectionOf(readPage(ON_SUBMIT_PAGE), 2, heading),
+        ).find((cells: Array<string>): boolean => {
+          return cells[0] === "**Custom Fields**";
+        });
+
+        expect(row?.[1]).toContain(
+          "unless the field copies its value from a monitor custom field",
+        );
+      }
     });
 
     it("name the workflow components the model gets", () => {
@@ -1428,7 +1513,10 @@ describe("Forms docs", () => {
           },
           customFields: [],
           generateId,
-        }) as unknown as { fields: Array<FormField>; targetSettings: JSONObject };
+        }) as unknown as {
+          fields: Array<FormField>;
+          targetSettings: JSONObject;
+        };
 
       expect(
         named.fields

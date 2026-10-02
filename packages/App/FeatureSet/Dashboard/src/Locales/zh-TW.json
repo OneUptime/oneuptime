@@ -6945,6 +6945,7 @@
   "Kept with the submission and named on the private note. Never shown on the incident or event itself.": "隨提交一起保存，並寫在私人備註中。絕不會顯示在事件或活動本身。",
   "The answer is kept with the submission and listed on the private note of what the form creates.": "回答隨提交一起保存，並列在表單所建立內容的私人備註中。",
   "This custom field was deleted, so the question is not asked. Delete the question.": "此自訂欄位已被刪除，因此不會詢問此問題。請刪除該問題。",
+  "Copied from a monitor custom field: when what this form creates has monitors that agree on a value for it, that value replaces the answer.": "從監控器自訂欄位複製：當此表單建立的內容所關聯的監控器在此欄位上的值一致時，該值將取代答案。",
   "Choose at least one to offer, or the question is not asked.": "請至少選擇一個要提供的選項，否則不會詢問此問題。",
   "Add at least one option.": "請至少新增一個選項。",
   "Write the question.": "請填寫問題。",

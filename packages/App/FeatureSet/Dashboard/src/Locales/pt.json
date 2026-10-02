@@ -6945,6 +6945,7 @@
   "Kept with the submission and named on the private note. Never shown on the incident or event itself.": "Guardado com o envio e indicado na nota privada. Nunca é mostrado no próprio incidente ou evento.",
   "The answer is kept with the submission and listed on the private note of what the form creates.": "A resposta é guardada com o envio e listada na nota privada do que o formulário cria.",
   "This custom field was deleted, so the question is not asked. Delete the question.": "Este campo personalizado foi eliminado, por isso a pergunta não é feita. Elimine a pergunta.",
+  "Copied from a monitor custom field: when what this form creates has monitors that agree on a value for it, that value replaces the answer.": "Copiado de um campo personalizado de monitor: quando o que este formulário cria tem monitores que concordam num valor para ele, esse valor substitui a resposta.",
   "Choose at least one to offer, or the question is not asked.": "Escolha pelo menos uma opção para oferecer, ou a pergunta não é feita.",
   "Add at least one option.": "Adicione pelo menos uma opção.",
   "Write the question.": "Escreva a pergunta.",

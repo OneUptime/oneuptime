@@ -199,6 +199,12 @@ export interface FormCustomFieldDefinition {
   description?: string | null | undefined;
   customFieldType?: string | null | undefined;
   dropdownOptions?: string | null | undefined;
+  /*
+   * The dashboard's only, and never part of the public form: the field
+   * copies its value from the monitors of what is created
+   * (CustomFieldMappingService), and that value then replaces the answer.
+   */
+  isCopiedFromMonitor?: boolean | undefined;
 }
 
 // One of the project's records a choice question can offer.
@@ -312,9 +318,7 @@ const readCustomFieldType: ReadCustomFieldTypeFunction = (
     : CustomFieldType.Text;
 };
 
-type ToOptionsFunction = (
-  serialized: unknown,
-) => Array<PublicFormFieldOption>;
+type ToOptionsFunction = (serialized: unknown) => Array<PublicFormFieldOption>;
 
 // A dropdown's options in the custom fields' serialized format.
 const toTextOptions: ToOptionsFunction = (
@@ -499,7 +503,10 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
           return field.id === id;
         })
       ) {
-        skipped.push({ fieldId: id, reason: FormSkippedFieldReason.Unreadable });
+        skipped.push({
+          fieldId: id,
+          reason: FormSkippedFieldReason.Unreadable,
+        });
       }
     }
   }
@@ -585,9 +592,8 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
             continue;
           }
 
-          const defaultValue: string | undefined = (
-            data.defaultOptionValues || {}
-          )[definition.key];
+          const defaultValue: string | undefined = (data.defaultOptionValues ||
+            {})[definition.key];
 
           if (
             defaultValue &&
@@ -1111,7 +1117,9 @@ const validateOneAnswer: ValidateOneAnswerFunction = (data: {
        * answers it, as on the dashboard.
        */
       if (field.isRequired && value !== true) {
-        data.errors.push(fillMessage(MUST_BE_CHECKED_MESSAGE, { field: label }));
+        data.errors.push(
+          fillMessage(MUST_BE_CHECKED_MESSAGE, { field: label }),
+        );
         return undefined;
       }
 

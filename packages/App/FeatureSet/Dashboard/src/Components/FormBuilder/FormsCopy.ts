@@ -82,6 +82,7 @@ export const FormsCopy: {
   submitterNote: string;
   questionNote: string;
   issueCustomFieldDeleted: string;
+  copiedFromMonitor: string;
   issueNoAllowedOptions: string;
   issueNoOptions: string;
   issueNoLabel: string;
@@ -226,8 +227,7 @@ export const FormsCopy: {
   descriptionDescription:
     "Shown at the top of the form's public page: what the form is for and what happens after it is sent.",
   createsTitle: "Each Submission Creates",
-  createsDescription:
-    "You can change this later on the form's On Submit page.",
+  createsDescription: "You can change this later on the form's On Submit page.",
   statusTitle: "Status",
   statusAccepting: "Accepting submissions",
   statusOff: "Off",
@@ -283,7 +283,8 @@ export const FormsCopy: {
     "Only the ones you choose are listed on the public form.",
   choicesOfferedSeverity: "Leave it empty to offer every severity.",
   choicesOfferedPlaceholder: "Choose what to offer",
-  linkedTargetFieldNote: "The answer fills in this field of what the form creates.",
+  linkedTargetFieldNote:
+    "The answer fills in this field of what the form creates.",
   linkedCustomFieldNote:
     "The answer fills in this custom field. Its type and options come from the custom field.",
   submitterNote:
@@ -292,6 +293,8 @@ export const FormsCopy: {
     "The answer is kept with the submission and listed on the private note of what the form creates.",
   issueCustomFieldDeleted:
     "This custom field was deleted, so the question is not asked. Delete the question.",
+  copiedFromMonitor:
+    "Copied from a monitor custom field: when what this form creates has monitors that agree on a value for it, that value replaces the answer.",
   issueNoAllowedOptions:
     "Choose at least one to offer, or the question is not asked.",
   issueNoOptions: "Add at least one option.",
@@ -311,8 +314,7 @@ export const FormsCopy: {
   previewTitle: "Preview",
   previewDescription:
     "The form as people see it when they open its link. Nothing you enter here is submitted.",
-  previewSubmitted:
-    "Looks good. This is a preview, so nothing was submitted.",
+  previewSubmitted: "Looks good. This is a preview, so nothing was submitted.",
   previewAgain: "Fill It In Again",
   previewSkipped:
     "Some questions are not shown, because they cannot be answered yet. Their cards say why.",
@@ -396,7 +398,8 @@ export const FormsCopy: {
   statusCardDescription:
     "Turn the form off to stop submissions without deleting it. Its link then shows a not-available message.",
   acceptingSubmissions: "Accepting Submissions",
-  acceptingSubmissionsOn: "The form's link works, and submissions are accepted.",
+  acceptingSubmissionsOn:
+    "The form's link works, and submissions are accepted.",
   acceptingSubmissionsOff:
     "The form's link shows a not-available message. Nothing can be submitted.",
   shareLinkTitle: "Share Link",

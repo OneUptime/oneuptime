@@ -6945,6 +6945,7 @@
   "Kept with the submission and named on the private note. Never shown on the incident or event itself.": "Хранится вместе с отправкой и упоминается в личной заметке. Никогда не показывается в самом инциденте или событии.",
   "The answer is kept with the submission and listed on the private note of what the form creates.": "Ответ хранится вместе с отправкой и указывается в личной заметке того, что создаёт форма.",
   "This custom field was deleted, so the question is not asked. Delete the question.": "Это пользовательское поле удалено, поэтому вопрос не задаётся. Удалите вопрос.",
+  "Copied from a monitor custom field: when what this form creates has monitors that agree on a value for it, that value replaces the answer.": "Скопировано из пользовательского поля монитора: если у того, что создаёт эта форма, есть мониторы с одинаковым значением этого поля, это значение заменяет ответ.",
   "Choose at least one to offer, or the question is not asked.": "Выберите хотя бы один вариант, иначе вопрос не будет задан.",
   "Add at least one option.": "Добавьте хотя бы один вариант.",
   "Write the question.": "Напишите вопрос.",

@@ -5,6 +5,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import CustomFieldMappingSourceResource from "Common/Types/CustomField/CustomFieldMappingSourceResource";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
   FormCustomFieldDefinition,
@@ -50,6 +51,8 @@ export const loadFormCustomFields: LoadFormCustomFieldsFunction = async (
           description: true,
           customFieldType: true,
           dropdownOptions: true,
+          mapFromResourceType: true,
+          mapFromCustomFieldName: true,
         },
         sort: { name: SortOrder.Ascending },
         limit: LIMIT_PER_PROJECT,
@@ -69,6 +72,8 @@ export const loadFormCustomFields: LoadFormCustomFieldsFunction = async (
         description: true,
         customFieldType: true,
         dropdownOptions: true,
+        mapFromResourceType: true,
+        mapFromCustomFieldName: true,
       },
       sort: { sortOrder: SortOrder.Ascending },
       limit: LIMIT_PER_PROJECT,
@@ -94,13 +99,23 @@ const toDefinitions: ToDefinitionsFunction = (
       continue;
     }
 
-    definitions.push({
+    const definition: FormCustomFieldDefinition = {
       id: id.toLowerCase(),
       name: row.name,
       description: row.description,
       customFieldType: row.customFieldType,
       dropdownOptions: row.dropdownOptions,
-    });
+    };
+
+    // Monitors are the only source either target can copy a value from.
+    if (
+      row.mapFromResourceType === CustomFieldMappingSourceResource.Monitor &&
+      row.mapFromCustomFieldName
+    ) {
+      definition.isCopiedFromMonitor = true;
+    }
+
+    definitions.push(definition);
   }
 
   return definitions;
@@ -165,15 +180,16 @@ export const loadFormRecordOptions: LoadFormRecordOptionsFunction = async (
     }
 
     case FormTargetOptionsSource.StatusPage: {
-      const result: ListResult<StatusPage> =
-        await ModelAPI.getList<StatusPage>({
+      const result: ListResult<StatusPage> = await ModelAPI.getList<StatusPage>(
+        {
           modelType: StatusPage,
           query: { projectId: projectId },
           select: { _id: true, name: true },
           sort: { name: SortOrder.Ascending },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-        });
+        },
+      );
 
       return toOptions(result.data);
     }

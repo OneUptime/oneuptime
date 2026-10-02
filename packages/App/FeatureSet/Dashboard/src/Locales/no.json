@@ -6945,6 +6945,7 @@
   "Kept with the submission and named on the private note. Never shown on the incident or event itself.": "Lagres sammen med innsendingen og nevnes i det private notatet. Vises aldri på selve hendelsen eller arrangementet.",
   "The answer is kept with the submission and listed on the private note of what the form creates.": "Svaret lagres sammen med innsendingen og føres opp i det private notatet på det skjemaet oppretter.",
   "This custom field was deleted, so the question is not asked. Delete the question.": "Dette egendefinerte feltet er slettet, så spørsmålet stilles ikke. Slett spørsmålet.",
+  "Copied from a monitor custom field: when what this form creates has monitors that agree on a value for it, that value replaces the answer.": "Kopiert fra et egendefinert monitorfelt: når det dette skjemaet oppretter har monitorer som er enige om en verdi for det, erstatter den verdien svaret.",
   "Choose at least one to offer, or the question is not asked.": "Velg minst ett valg å tilby, ellers stilles ikke spørsmålet.",
   "Add at least one option.": "Legg til minst ett alternativ.",
   "Write the question.": "Skriv spørsmålet.",

@@ -6945,6 +6945,7 @@
   "Kept with the submission and named on the private note. Never shown on the incident or event itself.": "제출과 함께 보관되고 비공개 메모에 기재됩니다. 인시던트나 이벤트 자체에는 표시되지 않습니다.",
   "The answer is kept with the submission and listed on the private note of what the form creates.": "답변은 제출과 함께 보관되고, 양식이 만드는 항목의 비공개 메모에 기재됩니다.",
   "This custom field was deleted, so the question is not asked. Delete the question.": "이 사용자 정의 필드가 삭제되어 질문이 표시되지 않습니다. 질문을 삭제하세요.",
+  "Copied from a monitor custom field: when what this form creates has monitors that agree on a value for it, that value replaces the answer.": "모니터 사용자 지정 필드에서 복사됩니다. 이 양식이 만드는 항목에 이 필드의 값이 일치하는 모니터가 있으면 그 값이 답변을 대신합니다.",
   "Choose at least one to offer, or the question is not asked.": "제공할 항목을 하나 이상 선택하세요. 그렇지 않으면 질문이 표시되지 않습니다.",
   "Add at least one option.": "옵션을 하나 이상 추가하세요.",
   "Write the question.": "질문을 입력하세요.",
