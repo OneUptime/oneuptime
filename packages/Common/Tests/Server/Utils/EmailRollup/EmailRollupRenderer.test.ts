@@ -1119,10 +1119,14 @@ describe("buildRollupEmail variable set", () => {
     expect(Object.keys(varRows(email)[0]!).sort()).toEqual(
       [
         "currentState",
+        "currentStateColor",
+        "currentStateTextColor",
         "hasCurrentState",
+        "hasCurrentStateColor",
         "hasDetails",
         "hasLink",
         "hasSeverity",
+        "hasSeverityColor",
         "isSectionStart",
         "link",
         "metaLabel",
@@ -1130,6 +1134,8 @@ describe("buildRollupEmail variable set", () => {
         "sectionCount",
         "sectionLabel",
         "severity",
+        "severityColor",
+        "severityTextColor",
         "title",
       ].sort(),
     );

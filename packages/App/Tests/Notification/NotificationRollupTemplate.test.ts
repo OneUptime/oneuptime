@@ -938,10 +938,14 @@ describe("NotificationRollup.hbs source rules", () => {
     expect(Array.from(references.rowScoped).sort()).toEqual(
       [
         "currentState",
+        "currentStateColor",
+        "currentStateTextColor",
         "hasCurrentState",
+        "hasCurrentStateColor",
         "hasDetails",
         "hasLink",
         "hasSeverity",
+        "hasSeverityColor",
         "isSectionStart",
         "link",
         "metaLabel",
@@ -949,6 +953,8 @@ describe("NotificationRollup.hbs source rules", () => {
         "sectionCount",
         "sectionLabel",
         "severity",
+        "severityColor",
+        "severityTextColor",
         "title",
       ].sort(),
     );
